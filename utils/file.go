@@ -49,19 +49,14 @@ func MkFileFullPathDir(fileName string) error {
 }
 
 func Mkdir(dirName string) error {
-	dir := filepath.Dir(dirName)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, common.FileMode0766); err != nil {
-			return err
-		}
-	}
-	return nil
+	return os.MkdirAll(dirName, os.ModePerm)
 }
 
 func MkTmpdir() (string, error) {
 	tempDir := filepath.Join(os.TempDir(), GenUniqueID(32))
 	return tempDir, os.MkdirAll(tempDir, os.ModePerm)
 }
+
 func IsFileExist(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)

@@ -11,7 +11,7 @@ import (
 //sendBuildContext:send local build context to remote server
 func (c *CloudBuilder) sendBuildContext() (err error) {
 	// if remote cluster already exist,no need to pre init master0
-	if !c.SSH.IsFileExist(c.RemoteHostIp, common.RemoteSeadentPath) {
+	if !c.SSH.IsFileExist(c.RemoteHostIp, common.RemoteSealerPath) {
 		err = runtime.PreInitMaster0(c.SSH, c.RemoteHostIp)
 		if err != nil {
 			return fmt.Errorf("failed to prepare cluster env %v", err)

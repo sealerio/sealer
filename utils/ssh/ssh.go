@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"fmt"
+	"gitlab.alibaba-inc.com/seadent/pkg/common"
 	"sync"
 	"time"
 
@@ -55,7 +56,7 @@ func NewSSHClientWithCluster(cluster *v1.Cluster) (*SSHClient, error) {
 	if sshClient == nil {
 		return nil, fmt.Errorf("cloud build init ssh client failed")
 	}
-	host := cluster.GetClusterEIP()
+	host := cluster.GetAnnotationsByKey(common.Eip)
 	if host == "" {
 		return nil, fmt.Errorf("get cluster EIP failed")
 	}

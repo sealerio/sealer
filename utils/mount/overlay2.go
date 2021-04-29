@@ -69,10 +69,6 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 	}()
 	mountData := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(layers, ":"), upperLayer, workdir)
 	if err = mount("overlay", target, "overlay", 0, mountData); err != nil {
-		//if mount failed, to unmount
-		if err = unmount(target, 0); err != nil {
-			return err
-		}
 		return fmt.Errorf("error creating overlay mount to %s: %v", target, err)
 	}
 	return nil

@@ -9,10 +9,12 @@ import (
 	"sort"
 )
 
+//DefaultImageMetadataService provide service for image metadata operations
 type DefaultImageMetadataService struct {
 	BaseImageManager
 }
 
+// Tag is used to give an another name for imageName
 func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
 	imageMetadataMap, err := imageutils.GetImageMetadataMap()
 	if err != nil {
@@ -29,6 +31,7 @@ func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
 	return nil
 }
 
+//List will list all kube-image locally
 func (d DefaultImageMetadataService) List() ([]imageutils.ImageMetadata, error) {
 	imageMetadataMap, err := imageutils.GetImageMetadataMap()
 	if err != nil {
@@ -44,11 +47,12 @@ func (d DefaultImageMetadataService) List() ([]imageutils.ImageMetadata, error) 
 	return imageMetadataList, nil
 }
 
-// invoke GetImage here
+// GetImage will return the v1.Image locally
 func (d DefaultImageMetadataService) GetImage(imageName string) (*v1.Image, error) {
-	panic("not implemented")
+	return imageutils.GetImage(imageName)
 }
 
+// GetRemoteImage will return the v1.Image from remote registry
 func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image, error) {
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {

@@ -77,7 +77,7 @@ const (
 	TokenDiscovery       = "TokenDiscovery"
 	VIP                  = "VIP"
 	Version              = "Version"
-	ApiServer            = "ApiServer"
+	APIServer            = "ApiServer"
 	PodCIDR              = "PodCIDR"
 	SvcCIDR              = "SvcCIDR"
 	Repo                 = "Repo"
@@ -206,7 +206,6 @@ func (d *Default) sendJoinCPConfig(joinMaster []string) {
 			if err != nil {
 				logger.Error("set join kubeadm config failed %s %s %v", master, cmd, err)
 			}
-
 		}(master)
 	}
 	wg.Wait()
@@ -234,10 +233,10 @@ func vlogToStr(vlog int) string {
 }
 
 func (d *Default) Command(version string, name CommandType) (cmd string) {
-	cmds := make(map[CommandType]string)
+	//cmds := make(map[CommandType]string)
 	// Please convert your v1beta1 configuration files to v1beta2 using the
 	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
-	cmds = map[CommandType]string{
+	cmds := map[CommandType]string{
 		InitMaster: fmt.Sprintf(InitMaster115Lower, d.Rootfs),
 		JoinMaster: fmt.Sprintf(JoinMaster115Lower, utils.GetHostIP(d.Masters[0]), d.JoinToken, d.TokenCaCertHash, d.CertificateKey),
 		JoinNode:   fmt.Sprintf(JoinNode115Lower, d.VIP, d.JoinToken, d.TokenCaCertHash),

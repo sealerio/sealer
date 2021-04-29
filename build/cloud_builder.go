@@ -90,7 +90,7 @@ func (c *CloudBuilder) getClusterFile() error {
 		return nil
 	}
 	// find cluster file from base image
-	clusterFile := image.GetClusterFileFromImageName(c.local.Image.Spec.Layers[0].Value)
+	clusterFile := image.GetClusterFileFromImage(c.local.Image.Spec.Layers[0].Value)
 	if clusterFile == "" {
 		return fmt.Errorf("failed to find cluster file")
 	}
@@ -119,7 +119,7 @@ func (c *CloudBuilder) getClusterFileFromContext() bool {
 func (c *CloudBuilder) ApplyInfra() error {
 	if c.local.Cluster.Spec.Provider == common.ALI_CLOUD {
 		infraManager := infra.NewDefaultProvider(c.local.Cluster)
-		if err := infraManager.Apply(c.local.Cluster); err != nil {
+		if err := infraManager.Apply(); err != nil {
 			return fmt.Errorf("failed to apply infra :%v", err)
 		}
 		c.local.Cluster.Spec.Provider = common.BAREMETAL
@@ -157,7 +157,7 @@ func (c *CloudBuilder) Cleanup() (err error) {
 	c.local.Cluster.DeletionTimestamp = &t
 	c.local.Cluster.Spec.Provider = common.ALI_CLOUD
 	infraManager := infra.NewDefaultProvider(c.local.Cluster)
-	if err := infraManager.Apply(c.local.Cluster); err != nil {
+	if err := infraManager.Apply(); err != nil {
 		logger.Info("failed to cleanup infra :%v", err)
 	}
 

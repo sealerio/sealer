@@ -5,22 +5,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/docker/docker/api/types"
-	"github.com/pkg/errors"
-	"gitlab.alibaba-inc.com/seadent/pkg/image/reference"
-	"gitlab.alibaba-inc.com/seadent/pkg/registry"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/progress"
-	"sync"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
+	"github.com/docker/docker/api/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"gitlab.alibaba-inc.com/seadent/pkg/common"
+	"gitlab.alibaba-inc.com/seadent/pkg/image/reference"
 	imageutils "gitlab.alibaba-inc.com/seadent/pkg/image/utils"
 	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"gitlab.alibaba-inc.com/seadent/pkg/registry"
 	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
+	"gitlab.alibaba-inc.com/seadent/pkg/utils"
 	"gitlab.alibaba-inc.com/seadent/pkg/utils/compress"
+	"gitlab.alibaba-inc.com/seadent/pkg/utils/progress"
 	"os"
 	"path/filepath"
 )
@@ -34,10 +32,12 @@ const (
 	imageCompressing   = "Compressing"
 )
 
+// DefaultImageService is the default service, which is used for image pull/push
 type DefaultImageService struct {
 	BaseImageManager
 }
 
+// PullIfNotExist is used to pull image if not exists locally
 func (d DefaultImageService) PullIfNotExist(imageName string) error {
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
@@ -53,6 +53,7 @@ func (d DefaultImageService) PullIfNotExist(imageName string) error {
 	return d.Pull(imageName)
 }
 
+// Pull always do pull action
 func (d DefaultImageService) Pull(imageName string) error {
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
@@ -64,27 +65,17 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 
-	imagesToPull, err := imagesFromBase(imageName, d.remoteImage)
+	image, err := d.remoteImage(named.Raw())
 	if err != nil {
 		return err
 	}
-
-	if len(imagesToPull) == 0 {
-		return fmt.Errorf("failed to find image %s, err: list for images to pull empty", named.Raw())
-	}
-	// for sync image name to be same with input imageName
-	imagesToPull[len(imagesToPull)-1].Name = named.Raw()
+	// TODO rely on id next
+	image.Name = named.Raw()
 	fmt.Printf("Start to Pull Image %s \n", named.Raw())
-	for _, image := range imagesToPull {
-		err = d.pull(*image)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return d.pull(*image)
 }
 
+// Push push local image to remote registry
 func (d DefaultImageService) Push(imageName string) error {
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
@@ -96,42 +87,26 @@ func (d DefaultImageService) Push(imageName string) error {
 		return err
 	}
 
-	// build image list for pushing. for image dependency
-	imagesToPush, err := imagesFromBase(named.Raw(), imageutils.GetImage)
+	image, err := imageutils.GetImage(named.Raw())
 	if err != nil {
 		return err
 	}
-	if len(imagesToPush) == 0 {
-		return fmt.Errorf("failed to find image %s, err: list for images to push empty", named.Raw())
-	}
 
 	fmt.Printf("Start to Push Image %s \n", named.Raw())
-	imagesToPush[len(imagesToPush)-1].Name = named.Raw()
-	for _, image := range imagesToPush {
-		named, err := reference.ParseToNamed(image.Name)
-		if err != nil {
-			return err
-		}
-
-		descriptors, err := d.pushLayers(named)
-		if err != nil {
-			return err
-		}
-
-		metadataBytes, err := d.pushManifestConfig(named, *image)
-		if err != nil {
-			return err
-		}
-
-		err = d.pushManifest(metadataBytes, named, descriptors)
-		if err != nil {
-			return err
-		}
+	descriptors, err := d.pushLayers(named, image)
+	if err != nil {
+		return err
 	}
 
-	return nil
+	metadataBytes, err := d.pushManifestConfig(named, *image)
+	if err != nil {
+		return err
+	}
+
+	return d.pushManifest(metadataBytes, named, descriptors)
 }
 
+// Login login into a registry, for saving auth info in ~/.docker/config.json
 func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd string) error {
 	_, err := registry.New(context.Background(), types.AuthConfig{ServerAddress: RegistryURL, Username: RegistryUsername, Password: RegistryPasswd}, registry.Opt{Insecure: true, Debug: true})
 	if err != nil {
@@ -254,18 +229,12 @@ func (d DefaultImageService) downloadLayers(named reference.Named, manifest sche
 	}
 
 	flow.Start()
-	if len(errorCh) > 0 {
-		return fmt.Errorf("failed to pull image %s", named.Raw())
-	}
-
 	return nil
 }
 
 func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs chan distribution.Descriptor) (err error) {
 	flow := progress.NewProgressFlow()
-	// flag to know one of blobs was pushed failed
-	var wg sync.WaitGroup
-	errCh := make(chan error, len(layers))
+	errCh := make(chan error, 2*len(layers))
 	defer func() {
 		close(errCh)
 		lerr := errors.New("failed to upload layers")
@@ -275,103 +244,101 @@ func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs 
 		}
 	}()
 
-	for _, lay := range layers {
-		// ignore FROM layer
-		if lay.Type == common.FROMCOMMAND {
+	for _, layer := range layers {
+		// do not push empty layer
+		if layer.Hash == "" {
 			continue
 		}
-		wg.Add(1)
-		func(layer v1.Layer) {
-			defer wg.Done()
-			shortHex := layer.Hash
-			if len(shortHex) > 12 {
-				shortHex = shortHex[0:12]
-			}
 
-			var file *os.File
-			// check if the layer exists
-			layerDig := digest.NewDigestFromEncoded(digest.SHA256, layer.Hash)
-			blob, err := d.registry.LayerMetadata(repo, layerDig)
-			if err == nil {
-				blobs <- buildBlobs(layerDig, blob.Size, schema2.MediaTypeLayer)
-				flow.ShowMessage(shortHex+" already exist remotely", nil)
-				return
-			}
+		shortHex := layer.Hash
+		if len(shortHex) > 12 {
+			shortHex = shortHex[0:12]
+		}
+		// check if the layer exists
+		layerDig := digest.NewDigestFromEncoded(digest.SHA256, layer.Hash)
+		// TODO next we need to know the err type, 404 or sth else
+		blob, err := d.registry.LayerMetadata(repo, layerDig)
+		if err == nil {
+			blobs <- buildBlobs(layerDig, blob.Size, schema2.MediaTypeLayer)
+			flow.ShowMessage(shortHex+" "+"already exist remotely", nil)
+			continue
+		}
 
-			barId := utils.GenUniqueID(8)
-			flow.AddProgressTasks(progress.TaskDef{
-				Task: shortHex,
-				Job:  imageCompressing,
-				Max:  1,
-				ID:   barId,
-				ProgressSrc: progress.TakeOverTask{
-					Cxt: progress.Context{},
-					Action: func(cxt progress.Context) error {
-						defer func() {
-							if err != nil {
-								_ = utils.CleanFile(file)
-							}
-						}()
-						if file, err = compress.Compress(filepath.Join(common.DefaultLayerDir, layer.Hash), "", nil); err != nil {
-							errCh <- err
-							return err
-							//flow.ShowMessage(shortHex+" "+err.Error(), compressBar)
-						}
-						cxt.WithReader(file)
-						return nil
-					},
-				},
-			})
-
-			flow.AddProgressTasks(progress.TaskDef{
-				Task:       shortHex,
-				Job:        imagePushing,
-				Max:        1,
-				ID:         barId,
-				SuccessMsg: shortHex + " " + imagePushCompleted,
-				FailMsg:    shortHex,
-				ProgressSrc: progress.TakeOverTask{
-					Cxt: progress.Context{},
-					Action: func(cxt progress.Context) error {
-						defer utils.CleanFile(file)
-						var file *os.File
-						file, ok := cxt.GetCurrentReaderCloser().(*os.File)
-						if !ok || file == nil {
-							err := errors.New("failed to start uploading layer, err: no reader found or reader is not file")
-							errCh <- err
-							return err
-						}
-						if _, err = file.Seek(0, 0); err != nil {
-							errCh <- err
-							return err
-						}
-						fi, err := file.Stat()
+		barID := utils.GenUniqueID(8)
+		flow.AddProgressTasks(progress.TaskDef{
+			Task: shortHex,
+			Job:  imageCompressing,
+			Max:  1,
+			ID:   barID,
+			ProgressSrc: progress.TakeOverTask{
+				Cxt: progress.Context{},
+				Action: func(cxt progress.Context) error {
+					var file *os.File
+					defer func() {
 						if err != nil {
-							errCh <- err
-							return err
+							_ = utils.CleanFile(file)
 						}
-						curBar := cxt.GetCurrentBar()
-						if curBar == nil {
-							err = errors.New("failed to start uploading layer, err: no current bar found")
-							errCh <- err
-							return err
-						}
-						// there is no better way, we can't know file size on registering the upload process bar
-						// so we can set the total of the bar at the time only
-						curBar.SetTotal(fi.Size(), false)
-						prc := curBar.ProxyReader(file)
-						if err := d.registry.UploadLayer(context.Background(), repo, layerDig, prc); err != nil {
-							errCh <- err
-							return err
-						}
-						blobs <- buildBlobs(layerDig, fi.Size(), schema2.MediaTypeLayer)
-						return nil
-					},
+					}()
+
+					if file, err = compress.Compress(filepath.Join(common.DefaultLayerDir, layer.Hash), "", nil); err != nil {
+						errCh <- err
+						return err
+						//flow.ShowMessage(shortHex+" "+err.Error(), compressBar)
+					}
+					// pass to next progress task
+					cxt.WithReader(file)
+					return nil
 				},
-			})
-		}(lay)
+			},
+		})
+
+		flow.AddProgressTasks(progress.TaskDef{
+			Task:       shortHex,
+			Job:        imagePushing,
+			Max:        1,
+			ID:         barID,
+			SuccessMsg: shortHex + " " + imagePushCompleted,
+			FailMsg:    shortHex,
+			ProgressSrc: progress.TakeOverTask{
+				Cxt: progress.Context{},
+				Action: func(cxt progress.Context) error {
+					var file *os.File
+					file, ok := cxt.GetCurrentReaderCloser().(*os.File)
+					if !ok || file == nil {
+						err := errors.New("failed to start uploading layer, err: no reader found or reader is not file")
+						errCh <- err
+						return err
+					}
+					defer utils.CleanFile(file)
+					if _, err = file.Seek(0, 0); err != nil {
+						errCh <- err
+						return err
+					}
+					fi, err := file.Stat()
+					if err != nil {
+						errCh <- err
+						return err
+					}
+					curBar := cxt.GetCurrentBar()
+					if curBar == nil {
+						err = errors.New("failed to start uploading layer, err: no current bar found")
+						errCh <- err
+						return err
+					}
+					// there is no better way, we can't know file size on registering the upload process bar
+					// so we can set the total of the bar at the time only
+					curBar.SetTotal(fi.Size(), false)
+					prc := curBar.ProxyReader(file)
+					if err := d.registry.UploadLayer(context.Background(), repo, layerDig, prc); err != nil {
+						errCh <- err
+						return err
+					}
+					blobs <- buildBlobs(layerDig, fi.Size(), schema2.MediaTypeLayer)
+					return nil
+				},
+			},
+		})
 	}
-	wg.Wait()
 	flow.Start()
 	return
 }
@@ -429,21 +396,14 @@ func (d DefaultImageService) pull(img v1.Image) error {
 	return d.syncImageLocal(img)
 }
 
-func (d DefaultImageService) pushLayers(named reference.Named) ([]distribution.Descriptor, error) {
-	// to verify if the manifest exists
-	img, err := imageutils.GetImage(named.Raw())
-	if err != nil {
-		logger.Error("failed to find local image: %s, err: %s", named.Raw(), err)
-		return []distribution.Descriptor{}, err
-	}
-
-	if len(img.Spec.Layers) == 0 {
+func (d DefaultImageService) pushLayers(named reference.Named, image *v1.Image) ([]distribution.Descriptor, error) {
+	if len(image.Spec.Layers) == 0 {
 		return []distribution.Descriptor{}, errors.New(fmt.Sprintf("image %s layers empty", named.Raw()))
 	}
 
 	var descriptors []distribution.Descriptor
-	descriptorsCh := make(chan distribution.Descriptor, len(img.Spec.Layers))
-	err = d.uploadLayers(named.Repo(), img.Spec.Layers, descriptorsCh)
+	descriptorsCh := make(chan distribution.Descriptor, len(image.Spec.Layers))
+	err := d.uploadLayers(named.Repo(), image.Spec.Layers, descriptorsCh)
 	close(descriptorsCh)
 	if err != nil {
 		return descriptors, err
@@ -480,36 +440,4 @@ func (d DefaultImageService) pushManifest(metadata []byte, named reference.Named
 	}
 
 	return d.registry.PutManifest(context.Background(), named.Repo(), named.Tag(), built)
-}
-
-func imagesFromBase(imageName string, getImage func(name string) (*v1.Image, error)) ([]*v1.Image, error) {
-	var images []*v1.Image
-	imageVisit := make(map[string]bool)
-	curImageName := imageName
-
-	for {
-		named, err := reference.ParseToNamed(curImageName)
-		if err != nil {
-			return nil, err
-		}
-
-		img, err := getImage(named.Raw())
-		if err != nil {
-			return nil, err
-		}
-		if len(img.Spec.Layers) == 0 {
-			return nil, fmt.Errorf("failed to get image %s, which does not has layers", curImageName)
-		}
-
-		imageVisit[curImageName] = true
-		images = append([]*v1.Image{img}, images...)
-		if img.Spec.Layers[0].Type != common.FROMCOMMAND || img.Spec.Layers[0].Value == common.ImageScratch {
-			return images, nil
-		}
-
-		curImageName = img.Spec.Layers[0].Value
-		if imageVisit[curImageName] {
-			return nil, fmt.Errorf("circular dependency on image: %s", curImageName)
-		}
-	}
 }

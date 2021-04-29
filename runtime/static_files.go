@@ -18,7 +18,7 @@ type StaticFile struct {
 	Name           string
 }
 
-// Put static files here, can be moved to all master nodes before kubeadm execution
+//MasterStaticFiles Put static files here, can be moved to all master nodes before kubeadm execution
 var MasterStaticFiles = []*StaticFile{
 	{
 		DestinationDir: "/etc/kubernetes",

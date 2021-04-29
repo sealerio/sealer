@@ -1,6 +1,5 @@
-FROM kubernetes:v1.18.3
+FROM seadent/my-kuberentes-cluster-with-dashboard:latest
+COPY Clusterfile etc
 COPY dashboard.yaml .
-COPY prometheus.yaml .
 RUN wget helm.sh/helm
-RUN wget -O redis.tar.gz http://download.redis.io/releases/redis-5.0.3.tar.gz
-CMD touch aa
+CMD touch mytest

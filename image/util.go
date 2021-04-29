@@ -21,10 +21,11 @@ func buildBlobs(dig digest.Digest, size int64, mediaType string) distribution.De
 	}
 }
 
+// GetImageHashList return image hash list
 func GetImageHashList(image *v1.Image) (res []string, err error) {
 	baseLayer, err := GetImageAllLayers(image)
 	if err != nil {
-		return res, fmt.Errorf("get base image failed error is :%v\n", err)
+		return res, fmt.Errorf("get base image failed error is :%v", err)
 	}
 	for _, layer := range baseLayer {
 		if layer.Hash != "" {
@@ -34,6 +35,7 @@ func GetImageHashList(image *v1.Image) (res []string, err error) {
 	return
 }
 
+// GetImageAllLayers return all image layers, TODO need to refactor, do need to cut first one
 func GetImageAllLayers(image *v1.Image) (res []v1.Layer, err error) {
 	for {
 		res = append(res, image.Spec.Layers[1:]...)
@@ -52,7 +54,8 @@ func GetImageAllLayers(image *v1.Image) (res []v1.Layer, err error) {
 	return
 }
 
-func GetClusterFileFromImageName(imageName string) string {
+// GetClusterFileFromImage retrieve ClusterFile From image
+func GetClusterFileFromImage(imageName string) string {
 	clusterfile := GetClusterFileFromImageManifest(imageName)
 	if clusterfile != "" {
 		return clusterfile
@@ -65,6 +68,7 @@ func GetClusterFileFromImageName(imageName string) string {
 	return ""
 }
 
+// GetClusterFileFromImageManifest retrieve ClusterFile from image manifest(image yaml)
 func GetClusterFileFromImageManifest(imageName string) string {
 	//  find cluster file from image manifest
 	imageMetadata, err := NewImageMetadataService().GetRemoteImage(imageName)
@@ -82,6 +86,7 @@ func GetClusterFileFromImageManifest(imageName string) string {
 	return clusterFile
 }
 
+// GetClusterFileFromBaseImage retrieve ClusterFile from base image, TODO need to refactor
 func GetClusterFileFromBaseImage(imageName string) string {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()

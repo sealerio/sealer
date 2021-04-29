@@ -13,18 +13,18 @@ import (
 )
 
 const (
-	LvscareStaticPodName = "kube-lvscare"
-	LvscareCommand       = "/usr/bin/lvscare"
-	DefaultLvscareImage  = "sea.hub:5000/fanux/lvscare:latest"
+	LvsCareStaticPodName = "kube-lvscare"
+	LvsCareCommand       = "/usr/bin/lvscare"
+	DefaultLvsCareImage  = "sea.hub:5000/fanux/lvscare:latest"
 )
 
-// return lvscare static pod yaml
+// return lvs care static pod yaml
 func LvsStaticPodYaml(vip string, masters []string, image string) string {
 	if vip == "" || len(masters) == 0 {
 		return ""
 	}
 	if image == "" {
-		image = DefaultLvscareImage
+		image = DefaultLvsCareImage
 	}
 	args := []string{"care", "--vs", vip + ":6443", "--health-path", "/healthz", "--health-schem", "https"}
 	for _, m := range masters {
@@ -36,16 +36,16 @@ func LvsStaticPodYaml(vip string, masters []string, image string) string {
 	}
 	flag := true
 	pod := componentPod(v1.Container{
-		Name:            LvscareStaticPodName,
+		Name:            LvsCareStaticPodName,
 		Image:           image,
-		Command:         []string{LvscareCommand},
+		Command:         []string{LvsCareCommand},
 		Args:            args,
 		ImagePullPolicy: v1.PullIfNotPresent,
 		SecurityContext: &v1.SecurityContext{Privileged: &flag},
 	})
 	yaml, err := podToYaml(pod)
 	if err != nil {
-		logger.Error("decode lvscare static pod yaml failed %s", err)
+		logger.Error("decode lvs care static pod yaml failed %s", err)
 		return ""
 	}
 	return string(yaml)

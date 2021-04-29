@@ -28,7 +28,7 @@ func TestApply(t *testing.T) {
 	}
 
 	aliProvider := NewDefaultProvider(&cluster)
-	err = aliProvider.Apply(&cluster)
+	err = aliProvider.Apply()
 	if err != nil {
 		fmt.Printf("%v", err)
 	}
@@ -38,33 +38,31 @@ func TestApply(t *testing.T) {
 
 func TestGetAKSKFromEnv(t *testing.T) {
 	config := Config{}
-	GetAKSKFromEnv(&config)
+	err := GetAKSKFromEnv(&config)
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	fmt.Printf("%v", config)
 
 }
 
 func TestDeleteInstances(t *testing.T) {
 	config := Config{}
-	GetAKSKFromEnv(&config)
+	err := GetAKSKFromEnv(&config)
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	client, err := ecs.NewClientWithAccessKey(config.RegionID, config.AccessKey, config.AccessSecret)
-
+	if client == nil {
+		fmt.Printf("%v \n", err)
+	}
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	request := ecs.CreateDeleteInstancesRequest()
 	request.Scheme = "https"
 	request.Force = requests.NewBoolean(true)
-	request.InstanceId = &[]string{
-		"i-uf69n04nc0osynamesn2",
-		"i-uf6hdybz4rotahiwj8kn",
-		"i-uf6a0srss899w5yn2h6t",
-		"i-uf6a0srss899w5yn2h6u",
-		"i-uf6a0srss899w5yn2h6v",
-		"i-uf6a0srss899w5yn2h6s",
-		"i-uf6gnqwhe5mez7qelg3l",
-		"i-uf6gnqwhe5mez7qelg3m",
-		"i-uf6gnqwhe5mez7qelg3k",
-		"i-uf6gnqwhe5mez7qelg3n",
-		"i-uf6gn4h06jw37ifq9ki6",
-		"i-uf68m7sc6s68nm383gyi",
-	}
+	request.InstanceId = &[]string{}
 	response, err := client.DeleteInstances(request)
 	if err != nil {
 		fmt.Print(err.Error())
@@ -73,23 +71,36 @@ func TestDeleteInstances(t *testing.T) {
 }
 func TestDeleteSecurityGroup(t *testing.T) {
 	config := Config{}
-	GetAKSKFromEnv(&config)
+	err := GetAKSKFromEnv(&config)
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	securityGroupIds := []string{
-		"sg-uf69n04nc0osyp9mial3",
-		"sg-uf6c37xtwtghzabjfh0k",
-		"sg-uf6duslviuhlvbyr74ke",
-		"sg-uf68jz5neq6tx2rf1mqu",
-		"sg-uf6c23yx9aqoxn8eemxb",
+		"",
+		"sg-hp38q702bczjtnb5qxdh",
+		"sg-hp33dkye42vdg38i49mg",
+		"sg-hp36xu038m1cqwcmltc7",
+		"sg-hp38q702bczjt9hxyjjk",
+		"sg-hp36xu038m1cqsekdpdy",
+		"sg-hp3250tdy1vv64i866dv",
+		"sg-hp36utl2950o9m7b0eg9",
+		"sg-hp34sj0h93usb66rs5zq",
 	}
 	for _, id := range securityGroupIds {
 		client, err := ecs.NewClientWithAccessKey(config.RegionID, config.AccessKey, config.AccessSecret)
-
+		if client == nil {
+			fmt.Printf("%v \n", err)
+		}
+		if err != nil {
+			fmt.Printf("%v \n", err)
+		}
 		request := ecs.CreateDeleteSecurityGroupRequest()
 		request.Scheme = "https"
 
 		request.SecurityGroupId = id
 
 		response, err := client.DeleteSecurityGroup(request)
+
 		if err != nil {
 			fmt.Print(err.Error())
 		}
@@ -100,17 +111,29 @@ func TestDeleteSecurityGroup(t *testing.T) {
 
 func TestDeleteVswitch(t *testing.T) {
 	config := Config{}
-	GetAKSKFromEnv(&config)
+	err := GetAKSKFromEnv(&config)
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	vSwitchIDs := []string{
-		"vsw-uf68dq62th7irzg48kb5a",
-		"vsw-uf651u6e8lg5wfw94t930",
-		"vsw-uf6s50sqpnbx30o2hu88s",
-		"vsw-uf6wnyt5anmw4fcn5zss1",
-		"vsw-uf6g7cmjbwshuxwkjz0wa",
+		"vsw-hp3kk6dkf7msos0cdej2f",
+		"vsw-hp31isullq0d3n32bd8bu",
+		"vsw-hp3y1hzn0dxpiagf9pwc5",
+		"vsw-hp37frkvd9hck3pyir2go",
+		"vsw-hp33g2g8nhh9d72mx4w6o",
+		"vsw-hp3mywuhbc77fpxagcft6",
+		"vsw-hp3xfh2gv576nx26t59kn",
+		"vsw-hp33c9qnqd73vehangsok",
+		"vsw-hp38rwznx0y14xi48nu7y",
 	}
 	for _, vSwitchID := range vSwitchIDs {
 		client, err := ecs.NewClientWithAccessKey(config.RegionID, config.AccessKey, config.AccessSecret)
-
+		if err != nil {
+			fmt.Printf("%v \n", err)
+		}
+		if client == nil {
+			fmt.Printf("%v \n", err)
+		}
 		request := ecs.CreateDeleteVSwitchRequest()
 		request.Scheme = "https"
 
@@ -128,23 +151,37 @@ func TestDeleteVswitch(t *testing.T) {
 func TestDeleteVpc(t *testing.T) {
 
 	config := Config{}
-	GetAKSKFromEnv(&config)
+	err := GetAKSKFromEnv(&config)
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	vpcids := []string{
-		"vpc-uf6gvyids3riounf07d3p",
-		"vpc-uf612vsqrwspobp0kjs5t",
-		"vpc-uf6890nbfhcxrxtntombm",
-		"vpc-uf68ybg8gjvp8t0vkfsbs",
-		"vpc-uf610t8krl6dhc3ghtdma",
+		"vpc-hp3e6ckmb1ngp1hkob9cb",
+		"vpc-hp3bw0rlgmuhdq68b1t6m",
+		"vpc-hp3qh53u6w15psvh856xz",
+		"vpc-hp3lii8nsnosi0bwt460o",
+		"vpc-hp3rn2b8i05l4pt7ksmed",
+		"vpc-hp35s2er96rn7lqiw9sgx",
+		"vpc-hp3djex4ingvqv8um5jtv",
+		"vpc-hp3byr74ugj7zg4r547ap",
+		"vpc-hp33jer8cd3epf8mu5m0k",
+		"vpc-hp35gdcac444eyrwbmv6z",
 	}
 	for _, vpcid := range vpcids {
 		client, err := ecs.NewClientWithAccessKey(config.RegionID, config.AccessKey, config.AccessSecret)
-
+		if client == nil {
+			fmt.Printf("%v \n", err)
+		}
+		if err != nil {
+			fmt.Printf("%v \n", err)
+		}
 		request := ecs.CreateDeleteVpcRequest()
 		request.Scheme = "https"
 
 		request.VpcId = vpcid
 
 		response, err := client.DeleteVpc(request)
+
 		if err != nil {
 			fmt.Print(err.Error())
 		}
@@ -156,8 +193,16 @@ func TestDeleteVpc(t *testing.T) {
 func TestGetEIP(t *testing.T) {
 	config := Config{}
 	err := GetAKSKFromEnv(&config)
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	client, err := ecs.NewClientWithAccessKey(config.RegionID, config.AccessKey, config.AccessSecret)
-
+	if client == nil {
+		fmt.Printf("%v \n", err)
+	}
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	request := ecs.CreateAllocateEipAddressRequest()
 	request.Scheme = "https"
 
@@ -170,7 +215,10 @@ func TestGetEIP(t *testing.T) {
 
 func TestReleaseEIP(t *testing.T) {
 	config := Config{}
-	GetAKSKFromEnv(&config)
+	err := GetAKSKFromEnv(&config)
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	client, _ := ecs.NewClientWithAccessKey(config.RegionID, config.AccessKey, config.AccessSecret)
 	eipid := []string{
 		"eip-uf66uj4susq4lfmcyym8n",

@@ -17,7 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -83,20 +82,32 @@ type Cluster struct {
 	Status ClusterStatus `json:"status,omitempty"`
 }
 
-func (cluster *Cluster) GetClusterEIP() string {
-	host, ok := cluster.Annotations[common.Eip]
-	if ok {
-		return host
-	}
-	return ""
-}
+//func (cluster *Cluster) GetClusterEIP() string {
+//	return cluster.Annotations[common.Eip]
+//}
+//
+//func (cluster *Cluster) GetClusterMaster0IP() string {
+//	return cluster.Annotations[common.Master0InternalIP]
+//}
+//
+//func (cluster *Cluster) GetEipID() string {
+//	return cluster.Annotations[common.EipID]
+//}
+//
+//func (cluster *Cluster) GetMaster0ID() string {
+//	return cluster.Annotations[common.Master0ID]
+//}
+//
+//func (cluster *Cluster) GetVpcID() string {
+//	return cluster.Annotations[common.VpcID]
+//}
+//
+//func (cluster *Cluster) GetVSwitchID() string {
+//	return cluster.Annotations[common.VSwitchID]
+//}
 
-func (cluster *Cluster) GetClusterMaster0IP() string {
-	host, ok := cluster.Annotations[common.Master0InternalIP]
-	if ok {
-		return host
-	}
-	return ""
+func (cluster *Cluster) GetAnnotationsByKey(key string) string {
+	return cluster.Annotations[key]
 }
 
 // +kubebuilder:object:root=true

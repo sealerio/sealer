@@ -103,11 +103,12 @@ func (d *Default) ConfigKubeadmOnMaster0() error {
 	var templateData string
 	var err error
 	var tpl []byte
+	var fileData []byte
 	if d.KubeadmFilePath == "" {
 		tpl, err = d.defaultTemplate()
 	} else {
 		//TODO rootfs kubeadm.tmpl
-		fileData, err := ioutil.ReadFile(d.KubeadmFilePath)
+		fileData, err = ioutil.ReadFile(d.KubeadmFilePath)
 		if err != nil {
 			return err
 		}
@@ -127,7 +128,7 @@ func (d *Default) ConfigKubeadmOnMaster0() error {
 
 	kubeadm := kubeadmDataFromYaml(templateData)
 	if kubeadm != nil {
-		d.DnsDomain = kubeadm.Networking.DNSDomain
+		d.DNSDomain = kubeadm.Networking.DNSDomain
 		d.APIServerCertSANs = kubeadm.APIServer.CertSANs
 	} else {
 		logger.Warn("decode certSANs from config failed, using default SANs")
@@ -144,7 +145,7 @@ func (d *Default) GenerateCert() error {
 		utils.GetHostIP(d.Masters[0]),
 		d.GetRemoteHostName(d.Masters[0]),
 		d.SvcCIDR,
-		d.DnsDomain,
+		d.DNSDomain,
 	)
 	if err != nil {
 		return fmt.Errorf("generate certs failed %v", err)
@@ -246,7 +247,7 @@ func (d *Default) mountEtcdDisk(targetHosts []string, etcdDisk string) error {
 			cmdInitDir := fmt.Sprintf(RemoteCmdInitEtcdDir, etcdDisk, etcdDisk)
 			err := d.SSH.CmdAsync(master, cmdInitDevice, cmdInitDir)
 			if err != nil {
-				logger.Error("[%s] mount %s /var/lib/etcd failed, please check disk configuration", host, etcdDisk)
+				logger.Error("[%s] mount %s /var/lib/etcd failed, please check disk configuration", master, etcdDisk)
 				os.Exit(1)
 			}
 		}(host)

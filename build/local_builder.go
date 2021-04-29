@@ -130,6 +130,7 @@ func (l *LocalBuilder) ExecBuild() error {
 	if err != nil {
 		return err
 	}
+	// TODO a little bit confused about the block, jiangnan
 	for i := 1; i < len(l.Image.Spec.Layers); i++ {
 		layer := &l.Image.Spec.Layers[i]
 		logger.Info("run build layer: %s %s", layer.Type, layer.Value)
@@ -167,6 +168,26 @@ func (l *LocalBuilder) execCopyLayer(layer *v1.Layer) error {
 	if err = l.countLayerHash(layer, tempDir); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (l *LocalBuilder) squashBaseImageLayerIntoCurrentImage() (err error) {
+	if len(l.Image.Spec.Layers) == 0 || l.Image.Spec.Layers[0].Type != common.FROMCOMMAND {
+		return nil
+	}
+
+	value := l.Image.Spec.Layers[0].Value
+	l.Image.Spec.Layers = l.Image.Spec.Layers[1:]
+	if value == common.ImageScratch {
+		return nil
+	}
+
+	img, err := image.NewImageMetadataService().GetImage(value)
+	if err != nil {
+		return err
+	}
+
+	l.Image.Spec.Layers = append(img.Spec.Layers, l.Image.Spec.Layers...)
 	return nil
 }
 
@@ -232,6 +253,10 @@ func (l *LocalBuilder) countLayerHash(layer *v1.Layer, tempTarget string) error 
 	if err != nil {
 		return fmt.Errorf("failed to count layer hash:%v", err)
 	}
+	emptyHash := hash.SHA256{}.EmptyDigest().Hex()
+	if layerHash == emptyHash {
+		layerHash = ""
+	}
 	layer.Hash = layerHash
 	return nil
 }
@@ -241,6 +266,9 @@ func (l *LocalBuilder) ApplyCluster() error {
 }
 
 func (l *LocalBuilder) UpdateImageMetadata() error {
+	if err := l.squashBaseImageLayerIntoCurrentImage(); err != nil {
+		return err
+	}
 	// write image info to its metadata
 	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageMetaRootDir, l.Image.Spec.ID, common.YamlSuffix)
 	//set cluster file

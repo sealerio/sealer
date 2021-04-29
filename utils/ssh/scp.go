@@ -177,7 +177,6 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 			ch <- progress.Msg{Inc: 1}
 		}
 	}()
-
 	flow.Start()
 	if err != nil {
 		return err

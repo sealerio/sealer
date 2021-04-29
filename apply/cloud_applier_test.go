@@ -1,6 +1,10 @@
 package apply
 
-import "testing"
+import (
+	"testing"
+
+	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+)
 
 func TestAppendFile(t *testing.T) {
 	type args struct {
@@ -23,7 +27,7 @@ func TestAppendFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := AppendFile(tt.args.fileName, tt.args.content); (err != nil) != tt.wantErr {
+			if err := utils.AppendFile(tt.args.fileName, tt.args.content); (err != nil) != tt.wantErr {
 				t.Errorf("AppendFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -51,7 +55,7 @@ func TestRemoveFileContent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := RemoveFileContent(tt.args.fileName, tt.args.content); (err != nil) != tt.wantErr {
+			if err := utils.RemoveFileContent(tt.args.fileName, tt.args.content); (err != nil) != tt.wantErr {
 				t.Errorf("RemoveFileContent() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

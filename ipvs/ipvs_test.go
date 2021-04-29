@@ -65,7 +65,7 @@ func TestLvsStaticPodYaml(t *testing.T) {
 		want string
 	}{
 		{
-			"test generate lvscare static pod",
+			"test generate lvs care static pod",
 			args{
 				"10.10.10.10",
 				[]string{"116.31.96.134:6443", "116.31.96.135:6443", "116.31.96.136:6443"},

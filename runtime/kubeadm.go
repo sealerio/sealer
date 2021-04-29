@@ -11,10 +11,11 @@ package runtime
 import (
 	"bytes"
 	"fmt"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
 	"html/template"
-	"sigs.k8s.io/yaml"
 	"strings"
+
+	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"sigs.k8s.io/yaml"
 )
 
 func (d *Default) getDefaultSANs() []string {
@@ -42,7 +43,7 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	envMap[VIP] = d.VIP
 	envMap[Masters] = utils.GetHostIPSlice(d.Masters)
 	envMap[Version] = d.Version
-	envMap[ApiServer] = d.APIServer
+	envMap[APIServer] = d.APIServer
 	envMap[PodCIDR] = d.PodCIDR
 	envMap[SvcCIDR] = d.SvcCIDR
 	envMap[Repo] = fmt.Sprintf("%s:%d/library", SeaHub, d.RegistryPort)

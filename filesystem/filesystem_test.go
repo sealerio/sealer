@@ -1,9 +1,10 @@
 package filesystem
 
 import (
+	"testing"
+
 	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
 	v2 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestMount(t *testing.T) {
@@ -47,7 +48,7 @@ func TestMount(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fileSystem := NewFilesystem()
-			if err := fileSystem.Mount(tt.arg.cluster); err != nil {
+			if err := fileSystem.Mount(tt.arg.cluster, []string{""}); err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 		})

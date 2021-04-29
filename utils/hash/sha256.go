@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 )
 
+const emptySHA256TarDigest = "sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1"
+
 type SHA256 struct {
 }
 
@@ -61,4 +63,8 @@ func CheckSumAndPlaceLayer(dir string) (string, error) {
 	}
 
 	return dig, nil
+}
+
+func (sha SHA256) EmptyDigest() digest.Digest {
+	return digest.Digest(emptySHA256TarDigest)
 }

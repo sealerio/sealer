@@ -40,7 +40,7 @@ func (c *CloudApplier) Apply() error {
 	if cloudProvider == nil {
 		return fmt.Errorf("new cloud provider failed")
 	}
-	err := cloudProvider.Apply(cluster)
+	err := cloudProvider.Apply()
 	if err != nil {
 		return fmt.Errorf("apply infra failed %v", err)
 	}
@@ -63,8 +63,13 @@ func (c *CloudApplier) Apply() error {
 	}
 
 	err = runtime.PreInitMaster0(client.Ssh, client.Host)
+	if err != nil {
+		return err
+	}
 	err = client.Ssh.CmdAsync(client.Host, fmt.Sprintf(ApplyCluster, common.RemoteSealerPath, common.RemoteSealerPath, common.TmpClusterfile))
-
+	if err != nil {
+		return err
+	}
 	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
 	err = client.Ssh.Fetch(client.Host, common.DefaultKubeconfig, common.KubeAdminConf)
 	if err != nil {
@@ -89,7 +94,7 @@ func (c *CloudApplier) Apply() error {
 func (c *CloudApplier) Delete() error {
 	t := metav1.Now()
 	c.ClusterDesired.DeletionTimestamp = &t
-	host := c.ClusterDesired.GetClusterEIP()
+	host := c.ClusterDesired.GetAnnotationsByKey(common.Eip)
 	err := c.Apply()
 	if err != nil {
 		return err

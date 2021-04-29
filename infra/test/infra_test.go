@@ -12,7 +12,7 @@ import (
 
 func TestApply(t *testing.T) {
 	//setup cluster
-	passwod := os.Getenv("SealerPassword")
+	password := os.Getenv("SealerPassword")
 	cluster := v1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
@@ -38,26 +38,26 @@ func TestApply(t *testing.T) {
 			},
 			Provider: "ALI_CLOUD",
 			SSH: v1.SSH{
-				Passwd: passwod,
+				Passwd: password,
 			},
 		},
 	}
 
 	aliProvider := infra.NewDefaultProvider(&cluster)
-	fmt.Printf("%v", aliProvider.Apply(&cluster))
+	fmt.Printf("%v", aliProvider.Apply())
 
-	t.Run("modity instance type", func(t *testing.T) {
+	t.Run("modify instance type", func(t *testing.T) {
 		cluster.Spec.Masters.CPU = "4"
 		cluster.Spec.Masters.Memory = "8"
 		cluster.Spec.Nodes.CPU = "4"
 		cluster.Spec.Nodes.Memory = "8"
-		fmt.Printf("%v", aliProvider.Apply(&cluster))
+		fmt.Printf("%v", aliProvider.Apply())
 	})
 
 	t.Run("add instance count", func(t *testing.T) {
 		cluster.Spec.Masters.Count = "5"
 		cluster.Spec.Nodes.Count = "5"
-		fmt.Printf("%v", aliProvider.Apply(&cluster))
+		fmt.Printf("%v", aliProvider.Apply())
 		fmt.Printf("%v \n", cluster.Spec.Masters)
 		fmt.Printf("%v \n", cluster.Spec.Nodes)
 	})
@@ -65,7 +65,7 @@ func TestApply(t *testing.T) {
 	t.Run("reduce instance count", func(t *testing.T) {
 		cluster.Spec.Masters.Count = "1"
 		cluster.Spec.Nodes.Count = "1"
-		fmt.Printf("%v", aliProvider.Apply(&cluster))
+		fmt.Printf("%v", aliProvider.Apply())
 	})
 
 	t.Run("modify instance type & count both", func(t *testing.T) {
@@ -75,11 +75,11 @@ func TestApply(t *testing.T) {
 		cluster.Spec.Nodes.Memory = "16"
 		cluster.Spec.Masters.Count = "5"
 		cluster.Spec.Nodes.Count = "5"
-		fmt.Printf("%v", aliProvider.Apply(&cluster))
+		fmt.Printf("%v", aliProvider.Apply())
 	})
 
 	// todo
-	t.Run("modfiy instance systemdisk", func(t *testing.T) {
+	t.Run("modify instance system disk", func(t *testing.T) {
 
 	})
 
@@ -87,5 +87,5 @@ func TestApply(t *testing.T) {
 	time.Sleep(60 * time.Second)
 	now := metav1.Now()
 	cluster.ObjectMeta.DeletionTimestamp = &now
-	fmt.Printf("%v", aliProvider.Apply(&cluster))
+	fmt.Printf("%v", aliProvider.Apply())
 }

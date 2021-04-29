@@ -84,6 +84,7 @@ func (registry *Registry) HasLayer(ctx context.Context, repository string, diges
 	return false, err
 }
 
+// LayerMetadata return the layer metadata by repo and digest
 func (registry *Registry) LayerMetadata(repository string, digest digest.Digest) (distribution.Descriptor, error) {
 	checkURL := registry.url("/v2/%s/blobs/%s", repository, digest)
 	registry.Logf("registry.blob.check url=%s repository=%s digest=%s", checkURL, repository, digest)
@@ -100,9 +101,8 @@ func (registry *Registry) LayerMetadata(repository string, digest digest.Digest)
 	if resp.StatusCode != http.StatusOK {
 		if resp.StatusCode == http.StatusNotFound {
 			return distribution.Descriptor{}, errors.New("layer not found")
-		} else {
-			return distribution.Descriptor{}, errors.New("unexpected error when retrieving layer")
 		}
+		return distribution.Descriptor{}, errors.New("unexpected error when retrieving layer")
 	}
 
 	return distribution.Descriptor{

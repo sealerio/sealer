@@ -2,13 +2,14 @@ package apply
 
 import (
 	"fmt"
+	"net"
+	"strconv"
+	"strings"
+
 	"gitlab.alibaba-inc.com/seadent/pkg/common"
 	"gitlab.alibaba-inc.com/seadent/pkg/image"
 	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"net"
 	"sigs.k8s.io/yaml"
-	"strconv"
-	"strings"
 )
 
 type ClusterArgs struct {
@@ -22,7 +23,7 @@ func IsNumber(args string) bool {
 	return err == nil
 }
 
-func IsIpList(args string) bool {
+func IsIPList(args string) bool {
 	ipList := strings.Split(args, ",")
 
 	for _, i := range ipList {
@@ -41,7 +42,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		c.cluster.Spec.Provider = common.ALI_CLOUD
 		return nil
 	}
-	if IsIpList(c.masterArgs) && IsIpList(c.nodeArgs) {
+	if IsIPList(c.masterArgs) && IsIPList(c.nodeArgs) {
 		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
 		c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
 		c.cluster.Spec.Provider = common.BAREMETAL

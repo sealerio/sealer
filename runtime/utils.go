@@ -20,7 +20,7 @@ func VersionCompare(v1, v2 string) bool {
 	v2List := strings.Split(v2, ".")
 
 	if len(v1List) != 3 || len(v2List) != 3 {
-		fmt.Errorf("error version format %s %s", v1, v2)
+		logger.Error("error version format %s %s", v1, v2)
 		return false
 	}
 	if v1List[0] > v2List[0] {
@@ -48,25 +48,25 @@ func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
 	sealerPath := utils.ExecutableFilePath()
 	err = sshClient.Copy(remoteHostIP, sealerPath, common.RemoteSealerPath)
 	if err != nil {
-		return fmt.Errorf("send seautil to remote host %s failed:%v\n", remoteHostIP, err)
+		return fmt.Errorf("send seautil to remote host %s failed:%v", remoteHostIP, err)
 	}
 	err = sshClient.CmdAsync(remoteHostIP, fmt.Sprintf(common.ChmodCmd, common.RemoteSealerPath))
 	if err != nil {
-		return fmt.Errorf("chmod +x seautil on remote host %s failed:%v\n", remoteHostIP, err)
+		return fmt.Errorf("chmod +x seautil on remote host %s failed:%v", remoteHostIP, err)
 	}
 	logger.Info("send sealer cmd to %s success !", remoteHostIP)
 
 	// send tmp cluster file
 	err = sshClient.Copy(remoteHostIP, common.TmpClusterfile, common.TmpClusterfile)
 	if err != nil {
-		return fmt.Errorf("send cluster file to remote host %s failed:%v\n", remoteHostIP, err)
+		return fmt.Errorf("send cluster file to remote host %s failed:%v", remoteHostIP, err)
 	}
 	logger.Info("send cluster file to %s success !", remoteHostIP)
 
 	// send register login info
 	err = sshClient.Copy(remoteHostIP, common.DefaultRegistryAuthConfigDir(), common.DefaultRegistryAuthConfigDir())
 	if err != nil {
-		return fmt.Errorf("send register config to remote host %s failed:%v\n", remoteHostIP, err)
+		return fmt.Errorf("send register config to remote host %s failed:%v", remoteHostIP, err)
 	}
 	logger.Info("send register info to %s success !", remoteHostIP)
 
