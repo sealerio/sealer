@@ -1,0 +1,6 @@
+FROM kubernetes:v1.18.3
+COPY dashboard.yaml .
+COPY prometheus.yaml .
+RUN wget helm.sh/helm
+RUN wget -O redis.tar.gz http://download.redis.io/releases/redis-5.0.3.tar.gz
+CMD touch aa
