@@ -6,6 +6,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	"gitlab.alibaba-inc.com/seadent/pkg/common"
 	imageUtils "gitlab.alibaba-inc.com/seadent/pkg/image/utils"
+	"gitlab.alibaba-inc.com/seadent/pkg/logger"
 	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
 	"gitlab.alibaba-inc.com/seadent/pkg/utils"
 	"gitlab.alibaba-inc.com/seadent/pkg/utils/mount"
@@ -91,7 +92,10 @@ func GetClusterFileFromBaseImage(imageName string) string {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()
 	defer func() {
-		_ = utils.CleanDirs(mountTarget, mountUpper)
+		err := utils.CleanDirs(mountTarget, mountUpper)
+		if err != nil {
+			logger.Warn(err)
+		}
 	}()
 
 	if err := NewImageService().PullIfNotExist(imageName); err != nil {
@@ -113,7 +117,10 @@ func GetClusterFileFromBaseImage(imageName string) string {
 		return ""
 	}
 	defer func() {
-		_ = driver.Unmount(mountTarget)
+		err := driver.Unmount(mountTarget)
+		if err != nil {
+			logger.Warn(err)
+		}
 	}()
 
 	clusterFile := filepath.Join(mountTarget, "etc", common.DefaultClusterFileName)
