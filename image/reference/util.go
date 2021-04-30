@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	defaultDomain = "registry.cn-qingdao.aliyuncs.com"
-	defaultRepo = "seadent"
-	defaultTag = "latest"
-	localhost = "localhost"
+	defaultDomain = "registry-1.docker.io"
+	defaultRepo   = "library"
+	defaultTag    = "latest"
+	localhost     = "localhost"
 )
 
 func validate(name string) error {
@@ -22,7 +22,6 @@ func validate(name string) error {
 		if unicode.IsUpper(c) {
 			return errors.New("uppercase is not allowed in image name")
 		}
-
 
 		if unicode.IsSpace(c) {
 			return errors.New("space is not allowed in image name")
