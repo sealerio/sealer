@@ -1,0 +1,1 @@
+./sealer apply -f Clusterfile

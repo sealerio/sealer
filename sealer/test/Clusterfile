@@ -1,0 +1,36 @@
+apiVersion: zlink.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: registry.cn-qingdao.aliyuncs.com/seadent/cloudrootfs:v1.16.9-alpha.6
+  provider: ALI_CLOUD
+  ssh:
+    passwd: ******
+    pk: xxx
+    pkPasswd: xxx
+    user: root
+  network:
+    interface: eth0
+    cniName: calico
+    podCIDR: 100.64.0.0/10
+    svcCIDR: 10.96.0.0/22
+    withoutCNI: false
+  certSANS:
+    - aliyun-inc.com
+    - 10.0.0.2
+    
+  masters:
+    cpu: 4
+    memory: 4
+    count: 1
+    systemDisk: 100
+    dataDisks:
+    - 100
+  nodes:
+    cpu: 4
+    memory: 4
+    count: 1
+    systemDisk: 100
+    dataDisks:
+    - 100

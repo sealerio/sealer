@@ -1,0 +1,5 @@
+FROM seadent/my-kuberentes-cluster-with-dashboard:latest
+COPY Clusterfile etc
+COPY dashboard.yaml .
+RUN wget helm.sh/helm
+CMD touch mytest
