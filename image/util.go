@@ -90,7 +90,9 @@ func GetClusterFileFromImageManifest(imageName string) string {
 func GetClusterFileFromBaseImage(imageName string) string {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()
-	defer utils.CleanDirs(mountTarget, mountUpper)
+	defer func() {
+		_ = utils.CleanDirs(mountTarget, mountUpper)
+	}()
 
 	if err := NewImageService().PullIfNotExist(imageName); err != nil {
 		return ""
@@ -107,9 +109,14 @@ func GetClusterFileFromBaseImage(imageName string) string {
 	}
 
 	err = driver.Mount(mountTarget, mountUpper, layers...)
-	defer driver.Unmount(mountTarget)
-	clusterFile := filepath.Join(mountTarget, "etc", common.DefaultClusterFileName)
+	if err != nil {
+		return ""
+	}
+	defer func() {
+		_ = driver.Unmount(mountTarget)
+	}()
 
+	clusterFile := filepath.Join(mountTarget, "etc", common.DefaultClusterFileName)
 	data, err := ioutil.ReadFile(clusterFile)
 	if err != nil {
 		return ""

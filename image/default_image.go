@@ -309,7 +309,9 @@ func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs 
 						errCh <- err
 						return err
 					}
-					defer utils.CleanFile(file)
+					defer func() {
+						_ = utils.CleanFile(file)
+					}()
 					if _, err = file.Seek(0, 0); err != nil {
 						errCh <- err
 						return err
