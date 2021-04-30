@@ -14,7 +14,7 @@ import (
 	"html/template"
 	"strings"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/utils"
 	"sigs.k8s.io/yaml"
 )
 

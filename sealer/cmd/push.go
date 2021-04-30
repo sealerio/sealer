@@ -16,8 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/image"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/logger"
 
 	"os"
 

@@ -1,7 +1,7 @@
 package testing
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/build"
+	"github.com/alibaba/sealer/build"
 	"testing"
 )
 

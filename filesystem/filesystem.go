@@ -6,15 +6,15 @@ import (
 	"path/filepath"
 	"sync"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/logger"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/image"
-	imageUtils "gitlab.alibaba-inc.com/seadent/pkg/image/utils"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image"
+	imageUtils "github.com/alibaba/sealer/image/utils"
 
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/mount"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/ssh"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils/mount"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 const (

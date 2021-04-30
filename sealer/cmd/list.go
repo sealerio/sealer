@@ -20,8 +20,8 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"gitlab.alibaba-inc.com/seadent/pkg/image"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/logger"
 )
 
 const (

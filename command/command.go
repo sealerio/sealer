@@ -1,7 +1,7 @@
 package command
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/utils"
 )
 
 type Interface interface {

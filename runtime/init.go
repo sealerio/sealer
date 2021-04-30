@@ -8,13 +8,13 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/logger"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/cert"
-	"gitlab.alibaba-inc.com/seadent/pkg/guest"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/ssh"
+	"github.com/alibaba/sealer/cert"
+	"github.com/alibaba/sealer/guest"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 const (
