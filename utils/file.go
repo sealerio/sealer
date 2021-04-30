@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
 )
 
 // ReadAll read file content

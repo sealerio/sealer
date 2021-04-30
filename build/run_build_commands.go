@@ -2,8 +2,8 @@ package build
 
 import (
 	"fmt"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
 )
 
 func (c *CloudBuilder) runBuildCommands() error {

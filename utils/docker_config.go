@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/mitchellh/go-homedir"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
+	"github.com/alibaba/sealer/common"
 	"io/ioutil"
 	"os"
 	"path/filepath"

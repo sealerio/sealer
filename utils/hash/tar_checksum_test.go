@@ -3,7 +3,7 @@ package hash
 import (
 	"testing"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/logger"
 )
 
 func TestCheckSumAndPlaceLayer(t *testing.T) {
