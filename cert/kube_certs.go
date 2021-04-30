@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/logger"
 )
 
 var (

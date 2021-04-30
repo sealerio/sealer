@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "gitlab.alibaba-inc.com/seadent/pkg/sealer/cmd"
+import "github.com/alibaba/sealer/sealer/cmd"
 
 func main() {
 	cmd.Execute()

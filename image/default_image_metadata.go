@@ -3,9 +3,9 @@ package image
 import (
 	"context"
 	"fmt"
-	"gitlab.alibaba-inc.com/seadent/pkg/image/reference"
-	imageutils "gitlab.alibaba-inc.com/seadent/pkg/image/utils"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
+	"github.com/alibaba/sealer/image/reference"
+	imageutils "github.com/alibaba/sealer/image/utils"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"sort"
 )
 

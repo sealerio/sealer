@@ -18,7 +18,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/cert"
+	"github.com/alibaba/sealer/cert"
 )
 
 type Flag struct {

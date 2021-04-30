@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/image/utils"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	ssh2 "gitlab.alibaba-inc.com/seadent/pkg/utils/ssh"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/utils"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	ssh2 "github.com/alibaba/sealer/utils/ssh"
 )
 
 type Interface interface {

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/image"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"sigs.k8s.io/yaml"
 )
 

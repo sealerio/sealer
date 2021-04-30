@@ -3,7 +3,7 @@ package apply
 import (
 	"testing"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/utils"
 )
 
 func TestAppendFile(t *testing.T) {

@@ -2,7 +2,7 @@ package ssh
 
 import (
 	"fmt"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/progress"
+	"github.com/alibaba/sealer/utils/progress"
 	"io"
 	"io/ioutil"
 	"net"
@@ -15,9 +15,9 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/logger"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/utils"
 )
 
 const KByte = 1024
