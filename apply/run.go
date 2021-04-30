@@ -39,7 +39,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	if IsNumber(c.masterArgs) && IsNumber(c.nodeArgs) {
 		c.cluster.Spec.Masters.Count = c.masterArgs
 		c.cluster.Spec.Nodes.Count = c.nodeArgs
-		c.cluster.Spec.Provider = common.ALI_CLOUD
+		c.cluster.Spec.Provider = common.AliCloud
 		return nil
 	}
 	if IsIPList(c.masterArgs) && IsIPList(c.nodeArgs) {

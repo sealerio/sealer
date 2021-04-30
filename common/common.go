@@ -60,7 +60,7 @@ const (
 )
 const (
 	BAREMETAL = "BAREMETAL"
-	ALI_CLOUD = "ALI_CLOUD"
+	AliCloud  = "ALI_CLOUD"
 )
 
 const (
@@ -83,6 +83,7 @@ const (
 )
 const ExecBinaryFileName = "sealer"
 const ROOT = "root"
+const WINDOWS = "windows"
 
 func GetClusterWorkDir(clusterName string) string {
 	home, err := homedir.Dir()

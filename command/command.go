@@ -40,7 +40,6 @@ func (c *CopyCommand) Exec() (string, error) {
 		return "", err
 	}
 	return string(output), err
-
 }
 
 func NewCopyCommand(src, dst string) Interface {

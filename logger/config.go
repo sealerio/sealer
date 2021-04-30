@@ -3,6 +3,8 @@ package logger
 import (
 	"encoding/json"
 	"runtime"
+
+	"github.com/alibaba/sealer/common"
 )
 
 func Cfg(level int, logFIle string) {
@@ -10,7 +12,7 @@ func Cfg(level int, logFIle string) {
 		TimeFormat: "15:04:05",
 		Console: &consoleLogger{
 			LogLevel: level,
-			Colorful: runtime.GOOS != "windows",
+			Colorful: runtime.GOOS != common.WINDOWS,
 		},
 		File: &fileLogger{
 			Filename:   logFIle,

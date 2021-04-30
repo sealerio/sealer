@@ -38,7 +38,7 @@ func TestLogOut(t *testing.T) {
 func TestLogConfigReload(t *testing.T) {
 	go func() {
 		for {
-			for level, _ := range LevelMap {
+			for level := range LevelMap {
 				SetLogger(fmt.Sprintf(`{
 					"Console": {
 						"level": "%s",
@@ -72,11 +72,9 @@ func TestLogConfigReload(t *testing.T) {
 
 		time.Sleep(time.Millisecond)
 	}
-
 }
 
 func TestLogTimeFormat(t *testing.T) {
-
 	var formats = map[string]string{"ANSIC": "Mon Jan _2 15:04:05 2006",
 		"UnixDate":    "Mon Jan _2 15:04:05 MST 2006",
 		"RubyDate":    "Mon Jan 02 15:04:05 -0700 2006",
@@ -120,5 +118,4 @@ func TestLogTimeFormat(t *testing.T) {
 		Alert("Alert", timeType)
 		Emer("Emergency", timeType)
 	}
-
 }
