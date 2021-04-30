@@ -18,10 +18,10 @@ package cmd
 import (
 	"os"
 
-	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cobra"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
+	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cobra"
 )
 
 const (
