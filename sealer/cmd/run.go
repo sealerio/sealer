@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/apply"
+	"github.com/alibaba/sealer/apply"
 	"os"
 
 	"github.com/spf13/cobra"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/logger"
 )
 
 type clusterArg struct {

@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
+	"github.com/alibaba/sealer/common"
 	"os"
 	"path/filepath"
 )

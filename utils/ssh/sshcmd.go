@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/logger"
 )
 
 func (S *SSH) Ping(host string) error {

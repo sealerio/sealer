@@ -7,10 +7,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/ipvs"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/ssh"
+	"github.com/alibaba/sealer/ipvs"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 const (
