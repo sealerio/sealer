@@ -2,14 +2,14 @@ package image
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/common"
+	imageUtils "github.com/alibaba/sealer/image/utils"
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/mount"
 	"github.com/docker/distribution"
 	"github.com/opencontainers/go-digest"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	imageUtils "gitlab.alibaba-inc.com/seadent/pkg/image/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/mount"
 	"io/ioutil"
 	"path/filepath"
 )
