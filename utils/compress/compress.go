@@ -43,7 +43,7 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 
 	defer func() {
 		if err != nil {
-			_ = utils.CleanFile(file)
+			utils.CleanFile(file)
 		}
 	}()
 

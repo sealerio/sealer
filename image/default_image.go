@@ -275,15 +275,15 @@ func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs 
 				Action: func(cxt progress.Context) error {
 					var file *os.File
 					defer func() {
+						//file compress failed, clean file
 						if err != nil {
-							_ = utils.CleanFile(file)
+							utils.CleanFile(file)
 						}
 					}()
 
 					if file, err = compress.Compress(filepath.Join(common.DefaultLayerDir, layer.Hash), "", nil); err != nil {
 						errCh <- err
 						return err
-						//flow.ShowMessage(shortHex+" "+err.Error(), compressBar)
 					}
 					// pass to next progress task
 					cxt.WithReader(file)

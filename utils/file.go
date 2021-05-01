@@ -146,12 +146,20 @@ func CopySingleFile(src, dst string) (int64, error) {
 	return nBytes, err
 }
 
-func CleanFile(file *os.File) (err error) {
+func CleanFile(file *os.File) {
 	if file == nil {
 		return
 	}
-	err = file.Close()
-	return os.Remove(file.Name())
+	// the following operation won't failed regularly, if failed, log it
+	err := file.Close()
+	if err != nil {
+		logger.Warn(err)
+	}
+	err = os.Remove(file.Name())
+	if err != nil {
+		logger.Warn(err)
+	}
+	return
 }
 
 func CleanDir(dir string) (err error) {
