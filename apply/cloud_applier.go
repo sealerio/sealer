@@ -3,7 +3,6 @@ package apply
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/guest"
@@ -14,6 +13,7 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

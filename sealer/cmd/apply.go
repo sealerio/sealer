@@ -16,9 +16,9 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/logger"
+	"github.com/spf13/cobra"
 
 	"os"
 )

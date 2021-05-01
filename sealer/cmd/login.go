@@ -16,10 +16,11 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	"os"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
-	"os"
+	"github.com/spf13/cobra"
 )
 
 type LoginFlag struct {
