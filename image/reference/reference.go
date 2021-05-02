@@ -6,7 +6,7 @@ import (
 
 type Named struct {
 	domain  string // like ***.com, won't be empty
-	rawName string // almost same as it goes in, but tag would be set to latest if empty
+	raw     string // this name is going to be local tagname
 	repo    string // k8s, seadent/k8s
 	repoTag string // seadent/k8s:v1.6
 	tag     string // v1.6
@@ -20,10 +20,10 @@ func ParseToNamed(name string) (Named, error) {
 		return Named{}, err
 	}
 
-	named := Named{}
-	named.rawName, named.domain, named.repoTag = normalizeDomainRepoTag(name)
-	named.rawName = strings.TrimPrefix(named.rawName+"/"+named.repoTag, "/")
-	named.repo, named.tag = repoAndTag(named.repoTag)
+	var named Named
+	named.raw = buildRaw(name)
+	named.domain, named.repoTag = normalizeDomainRepoTag(name)
+	named.repo, named.tag = buildRepoAndTag(named.repoTag)
 	return named, nil
 }
 
@@ -36,7 +36,7 @@ func (n Named) RepoTag() string {
 }
 
 func (n Named) Raw() string {
-	return n.rawName
+	return n.raw
 }
 
 func (n Named) Repo() string {
