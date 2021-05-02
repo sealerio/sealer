@@ -3,7 +3,7 @@ package infra
 import (
 	"fmt"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/logger"
 	"os"
 	"time"
 )

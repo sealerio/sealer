@@ -47,13 +47,13 @@ func oauthFlow(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/oauth2/accesstoken") {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"access_token":"abcdef1234"}`))
+		_, _ = w.Write([]byte(`{"access_token":"abcdef1234"}`))
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, "/oauth2/token") {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"token":"abcdef1234"}`))
+		_, _ = w.Write([]byte(`{"token":"abcdef1234"}`))
 		return
 	}
 	auth := r.Header.Get("authorization")
@@ -63,7 +63,7 @@ func oauthFlow(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("www-authenticate", `Bearer realm="`+authURI+`/oauth2/token",service="my.endpoint.here"`)
 		}
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"errors":[{"code":"UNAUTHORIZED","message":"authentication required","detail":null}]}`))
+		_, _ = w.Write([]byte(`{"errors":[{"code":"UNAUTHORIZED","message":"authentication required","detail":null}]}`))
 		return
 	}
 	w.WriteHeader(http.StatusOK)

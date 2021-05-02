@@ -3,17 +3,17 @@ package apply
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/filesystem"
+	"github.com/alibaba/sealer/guest"
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/infra"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/runtime"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/ssh"
 	"github.com/pkg/errors"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/filesystem"
-	"gitlab.alibaba-inc.com/seadent/pkg/guest"
-	"gitlab.alibaba-inc.com/seadent/pkg/image"
-	"gitlab.alibaba-inc.com/seadent/pkg/infra"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	"gitlab.alibaba-inc.com/seadent/pkg/runtime"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/ssh"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

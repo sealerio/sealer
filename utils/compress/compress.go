@@ -5,8 +5,8 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
 	"io"
 	"io/ioutil"
 	"os"
@@ -43,7 +43,7 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 
 	defer func() {
 		if err != nil {
-			_ = utils.CleanFile(file)
+			utils.CleanFile(file)
 		}
 	}()
 

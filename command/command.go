@@ -1,7 +1,7 @@
 package command
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/utils"
 )
 
 type Interface interface {
@@ -40,7 +40,6 @@ func (c *CopyCommand) Exec() (string, error) {
 		return "", err
 	}
 	return string(output), err
-
 }
 
 func NewCopyCommand(src, dst string) Interface {

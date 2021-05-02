@@ -2,13 +2,13 @@ package build
 
 import (
 	"fmt"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/image"
-	"gitlab.alibaba-inc.com/seadent/pkg/infra"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/ssh"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/infra"
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/ssh"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"strings"
@@ -117,7 +117,7 @@ func (c *CloudBuilder) getClusterFileFromContext() bool {
 
 // apply infra create vms
 func (c *CloudBuilder) ApplyInfra() error {
-	if c.local.Cluster.Spec.Provider == common.ALI_CLOUD {
+	if c.local.Cluster.Spec.Provider == common.AliCloud {
 		infraManager := infra.NewDefaultProvider(c.local.Cluster)
 		if err := infraManager.Apply(); err != nil {
 			return fmt.Errorf("failed to apply infra :%v", err)
@@ -155,7 +155,7 @@ func (c *CloudBuilder) RemoteLocalBuild() (err error) {
 func (c *CloudBuilder) Cleanup() (err error) {
 	t := metav1.Now()
 	c.local.Cluster.DeletionTimestamp = &t
-	c.local.Cluster.Spec.Provider = common.ALI_CLOUD
+	c.local.Cluster.Spec.Provider = common.AliCloud
 	infraManager := infra.NewDefaultProvider(c.local.Cluster)
 	if err := infraManager.Apply(); err != nil {
 		logger.Info("failed to cleanup infra :%v", err)

@@ -1,7 +1,7 @@
 package image
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
+	"github.com/alibaba/sealer/logger"
 	"testing"
 )
 

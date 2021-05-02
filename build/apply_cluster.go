@@ -3,10 +3,10 @@ package build
 import (
 	"fmt"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/apply"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/apply"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 )
 
 func (l *LocalBuilder) applyCluster() error {

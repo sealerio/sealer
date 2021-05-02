@@ -18,9 +18,9 @@ package cmd
 import (
 	"os"
 
+	"github.com/alibaba/sealer/apply"
+	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
-	"gitlab.alibaba-inc.com/seadent/pkg/apply"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
 )
 
 // deleteCmd represents the delete command

@@ -3,8 +3,8 @@ package infra
 import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"strings"
 	"time"
 )

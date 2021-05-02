@@ -2,11 +2,11 @@ package ssh
 
 import (
 	"fmt"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
+	"github.com/alibaba/sealer/common"
 	"sync"
 	"time"
 
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type Interface interface {

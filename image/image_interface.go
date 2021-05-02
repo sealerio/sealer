@@ -1,8 +1,8 @@
 package image
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/image/utils"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
+	"github.com/alibaba/sealer/image/utils"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 // MetadataService is the interface for providing image metadata service

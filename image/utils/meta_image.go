@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/common"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 	"io/ioutil"
 	"path/filepath"
 )

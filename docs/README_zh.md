@@ -42,13 +42,13 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
 
 # 使用场景&特性
 
-[x] 极其简单的方式在生产环境中或者离线环境中安装kubernetes、以及kubernetes生态中其它软件
-[x] 通过Kubefile可以非常简单的自定义kubernetes集群镜像对集群和应用进行打包，并可以提交到仓库中进行分享
-[x] 强大的生命周期管理能力，以难以想想的简单的方式去做如集群升级，集群备份恢复，节点阔缩等操作
-[x] 速度极快3min以内完成集群安装
-[x] 支持ARM x86, v1.20以上版本支持containerd，几乎兼容所有支持systemd的linux操作系统
-[x] 不依赖ansible haproxy keepalived, 高可用通过ipvs实现，占用资源少，稳定可靠
-[x] 官方仓库中有非常多的生态软件镜像可以直接使用，包含所有依赖，一键安装
+- [x] 极其简单的方式在生产环境中或者离线环境中安装kubernetes、以及kubernetes生态中其它软件
+- [x] 通过Kubefile可以非常简单的自定义kubernetes集群镜像对集群和应用进行打包，并可以提交到仓库中进行分享
+- [x] 强大的生命周期管理能力，以难以想想的简单的方式去做如集群升级，集群备份恢复，节点阔缩等操作
+- [x] 速度极快3min以内完成集群安装
+- [x] 支持ARM x86, v1.20以上版本支持containerd，几乎兼容所有支持systemd的linux操作系统
+- [x] 不依赖ansible haproxy keepalived, 高可用通过ipvs实现，占用资源少，稳定可靠
+- [x] 官方仓库中有非常多的生态软件镜像可以直接使用，包含所有依赖，一键安装
 
 # 快速开始
 

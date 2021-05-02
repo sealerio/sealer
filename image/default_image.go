@@ -10,15 +10,15 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/image/reference"
-	imageutils "gitlab.alibaba-inc.com/seadent/pkg/image/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	"gitlab.alibaba-inc.com/seadent/pkg/registry"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/compress"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/progress"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/reference"
+	imageutils "github.com/alibaba/sealer/image/utils"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/registry"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/compress"
+	"github.com/alibaba/sealer/utils/progress"
 	"os"
 	"path/filepath"
 )
@@ -275,15 +275,15 @@ func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs 
 				Action: func(cxt progress.Context) error {
 					var file *os.File
 					defer func() {
+						//file compress failed, clean file
 						if err != nil {
-							_ = utils.CleanFile(file)
+							utils.CleanFile(file)
 						}
 					}()
 
 					if file, err = compress.Compress(filepath.Join(common.DefaultLayerDir, layer.Hash), "", nil); err != nil {
 						errCh <- err
 						return err
-						//flow.ShowMessage(shortHex+" "+err.Error(), compressBar)
 					}
 					// pass to next progress task
 					cxt.WithReader(file)

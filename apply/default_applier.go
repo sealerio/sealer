@@ -4,13 +4,13 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/filesystem"
-	"gitlab.alibaba-inc.com/seadent/pkg/guest"
-	"gitlab.alibaba-inc.com/seadent/pkg/image"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	"gitlab.alibaba-inc.com/seadent/pkg/runtime"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/filesystem"
+	"github.com/alibaba/sealer/guest"
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/runtime"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 // cloud builder using cloud provider to build a cluster image

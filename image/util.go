@@ -2,13 +2,14 @@ package image
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/common"
+	imageUtils "github.com/alibaba/sealer/image/utils"
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/mount"
 	"github.com/docker/distribution"
 	"github.com/opencontainers/go-digest"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	imageUtils "gitlab.alibaba-inc.com/seadent/pkg/image/utils"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils/mount"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -90,7 +91,12 @@ func GetClusterFileFromImageManifest(imageName string) string {
 func GetClusterFileFromBaseImage(imageName string) string {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()
-	defer utils.CleanDirs(mountTarget, mountUpper)
+	defer func() {
+		err := utils.CleanDirs(mountTarget, mountUpper)
+		if err != nil {
+			logger.Warn(err)
+		}
+	}()
 
 	if err := NewImageService().PullIfNotExist(imageName); err != nil {
 		return ""
@@ -107,9 +113,17 @@ func GetClusterFileFromBaseImage(imageName string) string {
 	}
 
 	err = driver.Mount(mountTarget, mountUpper, layers...)
-	defer driver.Unmount(mountTarget)
-	clusterFile := filepath.Join(mountTarget, "etc", common.DefaultClusterFileName)
+	if err != nil {
+		return ""
+	}
+	defer func() {
+		err := driver.Unmount(mountTarget)
+		if err != nil {
+			logger.Warn(err)
+		}
+	}()
 
+	clusterFile := filepath.Join(mountTarget, "etc", common.DefaultClusterFileName)
 	data, err := ioutil.ReadFile(clusterFile)
 	if err != nil {
 		return ""

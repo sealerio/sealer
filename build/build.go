@@ -1,6 +1,6 @@
 package build
 
-import "gitlab.alibaba-inc.com/seadent/pkg/common"
+import "github.com/alibaba/sealer/common"
 
 type Interface interface {
 	Build(name string, context string, kubefileName string) error

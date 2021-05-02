@@ -1,4 +1,4 @@
-module gitlab.alibaba-inc.com/seadent/pkg
+module github.com/alibaba/sealer
 
 go 1.14
 

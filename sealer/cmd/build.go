@@ -16,9 +16,9 @@ limitations under the License.
 package cmd
 
 import (
+	"github.com/alibaba/sealer/build"
+	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
-	"gitlab.alibaba-inc.com/seadent/pkg/build"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
 
 	"os"
 )

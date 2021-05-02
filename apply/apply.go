@@ -1,10 +1,10 @@
 package apply
 
 import (
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 type Interface interface {
@@ -23,7 +23,7 @@ func NewApplierFromFile(clusterfile string) Interface {
 
 func NewApplier(cluster *v1.Cluster) Interface {
 	switch cluster.Spec.Provider {
-	case common.ALI_CLOUD:
+	case common.AliCloud:
 		return NewAliCloudProvider(cluster)
 	}
 	return NewDefaultApplier(cluster)

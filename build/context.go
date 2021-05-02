@@ -2,10 +2,10 @@ package build
 
 import (
 	"fmt"
-	"gitlab.alibaba-inc.com/seadent/pkg/common"
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	"gitlab.alibaba-inc.com/seadent/pkg/runtime"
-	"gitlab.alibaba-inc.com/seadent/pkg/utils"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/runtime"
+	"github.com/alibaba/sealer/utils"
 )
 
 //sendBuildContext:send local build context to remote server

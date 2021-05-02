@@ -5,8 +5,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"gitlab.alibaba-inc.com/seadent/pkg/logger"
-	v1 "gitlab.alibaba-inc.com/seadent/pkg/types/api/v1"
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func TestGetCurrentCluster(t *testing.T) {
