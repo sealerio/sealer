@@ -23,7 +23,7 @@ func NewApplierFromFile(clusterfile string) Interface {
 
 func NewApplier(cluster *v1.Cluster) Interface {
 	switch cluster.Spec.Provider {
-	case common.ALI_CLOUD:
+	case common.AliCloud:
 		return NewAliCloudProvider(cluster)
 	}
 	return NewDefaultApplier(cluster)

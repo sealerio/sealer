@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/alibaba/sealer/common"
 )
 
 type brush func(string) string
@@ -46,7 +48,7 @@ func (c *consoleLogger) Init(jsonConfig string) error {
 	}
 
 	err := json.Unmarshal([]byte(jsonConfig), c)
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == common.WINDOWS {
 		c.Colorful = false
 	}
 
@@ -86,6 +88,6 @@ func (c *consoleLogger) printlnConsole(when time.Time, msg string) {
 func init() {
 	Register(AdapterConsole, &consoleLogger{
 		LogLevel: LevelDebug,
-		Colorful: runtime.GOOS != "windows",
+		Colorful: runtime.GOOS != common.WINDOWS,
 	})
 }

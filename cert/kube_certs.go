@@ -61,7 +61,7 @@ func CaList(CertPath, CertEtcdPath string) []Config {
 	}
 }
 
-func CertList(CertPath, CertEtcdPath string) []Config {
+func certList(CertPath, CertEtcdPath string) []Config {
 	return []Config{
 		{
 			Path:         CertPath,
@@ -210,8 +210,8 @@ func (meta *SeadentCertMetaData) apiServerAltName(certList *[]Config) {
 		(*certList)[APIserverCert].AltNames.DNSNames[dns] = dns
 	}
 
-	svcDns := fmt.Sprintf("kubernetes.default.svc.%s", meta.DNSDomain)
-	(*certList)[APIserverCert].AltNames.DNSNames[svcDns] = svcDns
+	svcDNS := fmt.Sprintf("kubernetes.default.svc.%s", meta.DNSDomain)
+	(*certList)[APIserverCert].AltNames.DNSNames[svcDNS] = svcDNS
 	(*certList)[APIserverCert].AltNames.DNSNames[meta.NodeName] = meta.NodeName
 
 	for _, ip := range meta.APIServer.IPs {
@@ -265,7 +265,7 @@ func (meta *SeadentCertMetaData) generatorServiceAccountKeyPaire() error {
 
 func (meta *SeadentCertMetaData) GenerateAll() error {
 	cas := CaList(meta.CertPath, meta.CertEtcdPath)
-	certs := CertList(meta.CertPath, meta.CertEtcdPath)
+	certs := certList(meta.CertPath, meta.CertEtcdPath)
 	meta.apiServerAltName(&certs)
 	meta.etcdAltAndCommonName(&certs)
 	if err := meta.generatorServiceAccountKeyPaire(); err != nil {
