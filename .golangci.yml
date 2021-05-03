@@ -1,6 +1,6 @@
 run:
   # timeout for analysis, e.g. 30s, 5m, default is 1m
-  timeout: 1m
+  timeout: 5m
 
   # include test files or not, default is true
   tests: true

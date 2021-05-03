@@ -22,10 +22,11 @@
 #    MULTI_PLATFORM_BUILD -  Need build all platform.(linux and darwin)
 
 
-export GO111MODULE=off
+export GO111MODULE=on
 
 SEALER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 export THIS_PLATFORM_BIN="${SEALER_ROOT}/_output/bin"
+export THIS_PLATFORM_ASSETS="${SEALER_ROOT}/_output/assets"
 
 debug() {
   timestamp=$(date +"[%m%d %H:%M:%S]")
@@ -88,12 +89,19 @@ readonly SEALER_SUPPORTED_PLATFORMS=(
 build_binaries() {
   goldflags="${GOLDFLAGS=-s -w} $(ldflags)"
   osarch=${1-}_${2-}
+  mkdir -p $THIS_PLATFORM_ASSETS
+  tarFile="${3-}-${1-}-${2-}.tar.gz"
+
   go build -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/sealer/main.go
   debug "output bin: $THIS_PLATFORM_BIN/sealer/$osarch/sealer"
+  tar czf $THIS_PLATFORM_ASSETS/sealer-$tarFile _output/bin/sealer/$osarch/
+  sha256sum $THIS_PLATFORM_ASSETS/sealer-$tarFile > $THIS_PLATFORM_ASSETS/sealer-$tarFile.sha256sum
 
   go build -o $THIS_PLATFORM_BIN/seautil/$osarch/seautil -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/seautil/main.go
   debug "output bin: $THIS_PLATFORM_BIN/seautil/$osarch/seautil"
 
+  tar czf $THIS_PLATFORM_ASSETS/seautil-$tarFile _output/bin/seautil/$osarch/
+  sha256sum $THIS_PLATFORM_ASSETS/seautil-$tarFile > $THIS_PLATFORM_ASSETS/seautil-$tarFile.sha256sum
 }
 
 debug "root dir: $SEALER_ROOT"
@@ -104,9 +112,9 @@ if [[ $MULTI_PLATFORM_BUILD ]]; then
    for platform in "${SEALER_SUPPORTED_PLATFORMS[@]}"; do
      OS=${platform%/*}
      ARCH=${platform##*/}
-     build_binaries $OS $ARCH
+     build_binaries $OS $ARCH ${1-0.0.0}
    done;
 else
-  build_binaries `go env GOOS` `go env GOARCH`
+  build_binaries `go env GOOS` `go env GOARCH` ${1-0.0.0}
 fi
 
