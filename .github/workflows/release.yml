@@ -67,19 +67,10 @@ jobs:
 
       - name: Make linux
         shell: bash
+        env:
+          MULTI_PLATFORM_BUILD: true
         run: |
-          readonly platforms=(
-            linux/amd64
-            linux/arm64
-          )
-
-          for platform in "${platforms[@]}"; do
-            os=${platform%/*}
-            arch=${platform##*/}
-            go env -w GOOS="${os}"
-            go env -w GOARCH="${arch}"
             make build version=${GIT_TAG#v}
-          done
         working-directory: src/github.com/alibaba/sealer
 
       - name: Save build binaries
@@ -139,7 +130,7 @@ jobs:
           asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file2 }}
           asset_name: ${{ steps.catalog.outputs.file2 }}
           asset_content_type: text/plain
-      - name: Upload Linux sealer linux arm64
+      - name: Upload Linux seautil linux amd64
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -148,7 +139,7 @@ jobs:
           asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file3 }}
           asset_name: ${{ steps.catalog.outputs.file3 }}
           asset_content_type: application/gzip
-      - name: Upload Linux sealer linux arm64 sha256 sum
+      - name: Upload Linux seautil linux amd64 sha256 sum
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -156,4 +147,76 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file4 }}
           asset_name: ${{ steps.catalog.outputs.file4 }}
+          asset_content_type: text/plain
+      - name: Upload Linux sealer linux arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file5 }}
+          asset_name: ${{ steps.catalog.outputs.file5 }}
+          asset_content_type: application/gzip
+      - name: Upload Linux sealer linux arm64 sha256 sum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file6 }}
+          asset_name: ${{ steps.catalog.outputs.file6 }}
+          asset_content_type: text/plain
+      - name: Upload Linux seautil linux arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file7 }}
+          asset_name: ${{ steps.catalog.outputs.file7 }}
+          asset_content_type: application/gzip
+      - name: Upload Linux seautil linux arm64 sha256 sum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file8 }}
+          asset_name: ${{ steps.catalog.outputs.file8 }}
+          asset_content_type: text/plain
+      - name: Upload Linux sealer linux arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file5 }}
+          asset_name: ${{ steps.catalog.outputs.file5 }}
+          asset_content_type: application/gzip
+      - name: Upload Linux sealer linux arm64 sha256 sum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file6 }}
+          asset_name: ${{ steps.catalog.outputs.file6 }}
+          asset_content_type: text/plain
+      - name: Upload Linux seautil linux arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file7 }}
+          asset_name: ${{ steps.catalog.outputs.file7 }}
+          asset_content_type: application/gzip
+      - name: Upload Linux seautil linux arm64 sha256 sum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file8 }}
+          asset_name: ${{ steps.catalog.outputs.file8 }}
           asset_content_type: text/plain
