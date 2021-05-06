@@ -5,13 +5,14 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
 )
 
 // src is the dir or single file to tar
@@ -100,7 +101,7 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 
 // example: dir:/var/lib/etcd target:/home/etcd.tar.gz
 // this func will keep original dir etcd
-func CompressDir(dir, target string) (err error) {
+func Dir(dir, target string) (err error) {
 	if dir == "" || target == "" {
 		return errors.New("dir or target should be provided")
 	}

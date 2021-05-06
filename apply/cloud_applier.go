@@ -62,16 +62,16 @@ func (c *CloudApplier) Apply() error {
 		return fmt.Errorf("prepare cluster ssh client failed %v", err)
 	}
 
-	err = runtime.PreInitMaster0(client.Ssh, client.Host)
+	err = runtime.PreInitMaster0(client.SSH, client.Host)
 	if err != nil {
 		return err
 	}
-	err = client.Ssh.CmdAsync(client.Host, fmt.Sprintf(ApplyCluster, common.RemoteSealerPath, common.RemoteSealerPath, common.TmpClusterfile))
+	err = client.SSH.CmdAsync(client.Host, fmt.Sprintf(ApplyCluster, common.RemoteSealerPath, common.RemoteSealerPath, common.TmpClusterfile))
 	if err != nil {
 		return err
 	}
 	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
-	err = client.Ssh.Fetch(client.Host, common.DefaultKubeconfig, common.KubeAdminConf)
+	err = client.SSH.Fetch(client.Host, common.DefaultKubeconfig, common.KubeAdminConf)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (c *CloudApplier) Apply() error {
 	if err != nil {
 		return errors.Wrap(err, "append EIP to etc hosts failed")
 	}
-	err = client.Ssh.Fetch(client.Host, common.KubectlPath, common.KubectlPath)
+	err = client.SSH.Fetch(client.Host, common.KubectlPath, common.KubectlPath)
 	if err != nil {
 		return errors.Wrap(err, "fetch kubectl failed")
 	}

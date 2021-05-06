@@ -1,8 +1,9 @@
 package progress
 
 import (
-	"github.com/vbauerster/mpb/v6"
 	"io"
+
+	"github.com/vbauerster/mpb/v6"
 )
 
 const (
