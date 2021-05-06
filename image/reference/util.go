@@ -23,7 +23,6 @@ func validate(name string) error {
 			return errors.New("uppercase is not allowed in image name")
 		}
 
-
 		if unicode.IsSpace(c) {
 			return errors.New("space is not allowed in image name")
 		}
@@ -32,11 +31,10 @@ func validate(name string) error {
 	return nil
 }
 
-func normalizeDomainRepoTag(name string) (originDomain, domain, repoTag string) {
+func normalizeDomainRepoTag(name string) (domain, repoTag string) {
 	ind := strings.IndexRune(name, '/')
 	if ind >= 0 && (strings.ContainsAny(name[0:ind], ".:") || name[0:ind] == localhost) {
 		domain = name[0:ind]
-		originDomain = name[0:ind]
 		repoTag = name[ind+1:]
 	} else {
 		domain = defaultDomain
@@ -53,7 +51,18 @@ func normalizeDomainRepoTag(name string) (originDomain, domain, repoTag string) 
 
 // input: urlImageName could be like "***.com/k8s:v1.1" or "k8s:v1.1"
 // output: like "k8s:v1.1"
-func repoAndTag(repoTag string) (string, string) {
+func buildRepoAndTag(repoTag string) (string, string) {
 	splits := strings.Split(repoTag, ":")
 	return splits[0], splits[1]
+}
+
+func buildRaw(name string) string {
+	i := strings.LastIndexByte(name, ':')
+	if i == -1 {
+		return name + ":" + defaultTag
+	}
+	if i > strings.LastIndexByte(name, '/') {
+		return name
+	}
+	return name + ":" + defaultTag
 }

@@ -47,5 +47,5 @@ var versionCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
-	rootCmd.Flags().BoolVar(&shortPrint, "short", false, "If true, print just the version number.")
+	versionCmd.Flags().BoolVar(&shortPrint, "short", false, "If true, print just the version number.")
 }
