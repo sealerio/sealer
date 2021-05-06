@@ -24,6 +24,7 @@ const (
 	DefaultClusterClearFile       = "/var/lib/seadent/data/%s/scripts/clean.sh"
 	ImageScratch                  = "scratch"
 	DefaultImageMetaRootDir       = "/var/lib/seadent/metadata"
+	DefaultLayerDBDir             = DefaultImageMetaRootDir + "/layerdb"
 	DefaultImageMetadataFile      = "/var/lib/seadent/metadata/images_metadata.json"
 	DefaultLayerDir               = "/var/lib/seadent/data/overlay2"
 	YamlSuffix                    = ".yaml"
@@ -64,7 +65,7 @@ const (
 )
 
 const (
-	FileMode0766 = 0766
+	FileMode0755 = 0755
 	FileMode0644 = 0644
 )
 
