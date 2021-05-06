@@ -2,6 +2,9 @@ package build
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/infra"
@@ -10,14 +13,12 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"strings"
 )
 
 // cloud builder using cloud provider to build a cluster image
 type CloudBuilder struct {
 	local        *LocalBuilder
-	RemoteHostIp string
+	RemoteHostIP string
 	SSH          ssh.Interface
 }
 
@@ -138,6 +139,7 @@ func (c *CloudBuilder) InitBuildSSH() error {
 	}
 	c.SSH = client.SSH
 	c.RemoteHostIp = client.Host
+
 	return nil
 }
 

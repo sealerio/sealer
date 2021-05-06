@@ -2,6 +2,10 @@ package build
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
@@ -13,9 +17,6 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/hash"
 	"github.com/alibaba/sealer/utils/mount"
-	"io/ioutil"
-	"path/filepath"
-	"strings"
 )
 
 type Config struct {
