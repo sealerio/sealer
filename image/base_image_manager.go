@@ -2,23 +2,21 @@ package image
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/docker/docker/api/types"
-	"github.com/justadogistaken/reg/registry"
-	"github.com/opencontainers/go-digest"
-	"github.com/wonderivan/logger"
+	"encoding/json" //nolint:goimports
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	imageutils "github.com/alibaba/sealer/image/utils"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	pkgutils "github.com/alibaba/sealer/utils"
+	"github.com/docker/docker/api/types"
+	"github.com/justadogistaken/reg/registry"
+	"github.com/opencontainers/go-digest"
+	"github.com/wonderivan/logger"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 )
-
-
 
 // BaseImageManager take the responsibility to store common values
 type BaseImageManager struct {
@@ -60,13 +58,27 @@ func (bim *BaseImageManager) initRegistry(hostname string) error {
 		}
 	}
 
-	reg, err := registry.New(context.Background(), types.AuthConfig{ServerAddress: hostname, Username: username, Password: passwd}, registry.Opt{Insecure: true})
-	if err != nil {
+	var reg *registry.Registry
+	reg, err = bim.fetchRegistryClient(types.AuthConfig{ServerAddress: hostname, Username: username, Password: passwd})
+	if nil != err {
 		return err
 	}
 
 	bim.registry = reg
 	return nil
+}
+
+//fetch https and http registry client
+func (bim *BaseImageManager) fetchRegistryClient(auth types.AuthConfig) (*registry.Registry, error) {
+	reg, err := registry.New(context.Background(), auth, registry.Opt{Insecure: true})
+	if err == nil {
+		return reg, nil
+	}
+	reg, err = registry.New(context.Background(), auth, registry.Opt{Insecure: true, NonSSL: true})
+	if err == nil {
+		return reg, nil
+	}
+	return nil, err
 }
 
 func (bim BaseImageManager) downloadImageManifestConfig(named reference.Named, dig digest.Digest) (v1.Image, error) {
