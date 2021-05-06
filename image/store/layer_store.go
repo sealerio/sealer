@@ -20,7 +20,11 @@ type layerStore struct {
 func (ls *layerStore) Get(id LayerID) Layer {
 	ls.mux.RLock()
 	defer ls.mux.RUnlock()
-	return ls.layers[id]
+	l, ok := ls.layers[id]
+	if !ok {
+		return nil
+	}
+	return l
 }
 
 func (ls *layerStore) RegisterLayerIfNotPresent(closer io.ReadCloser, id LayerID) error {
@@ -68,13 +72,17 @@ func getDirListInDir(dir string) ([]string, error) {
 	var dirs []string
 	for _, file := range files {
 		if file.IsDir() {
-			dirs = append(dirs, filepath.Join(common.DefaultLayerDBDir, file.Name()))
+			dirs = append(dirs, filepath.Join(dir, file.Name()))
 		}
 	}
 	return dirs, nil
 }
 
 func getAllROLayers() ([]*roLayer, error) {
+	err := utils.MkDirIfNotExists(common.DefaultLayerDBDir)
+	if err != nil {
+		return nil, err
+	}
 	// TODO maybe there no need to traverse layerdb, just clarify how may sha supported in a list
 	shaDirs, err := getDirListInDir(common.DefaultLayerDBDir)
 	if err != nil {
