@@ -319,19 +319,20 @@ func getBaseLayersFromImage(image v1.Image) (res []string, err error) {
 	if len(image.Spec.Layers) == 0 {
 		return nil, fmt.Errorf("no layer found in image %s", image.Name)
 	}
+	if image.Spec.Layers[0].Value == common.ImageScratch {
+		return []string{}, nil
+	}
 
 	var layers []v1.Layer
 	if image.Spec.Layers[0].Type == common.FROMCOMMAND {
-		if image.Spec.Layers[0].Value != common.ImageScratch {
-			baseImage, err := imageUtils.GetImage(image.Spec.Layers[0].Value)
-			if err != nil {
-				return []string{}, err
-			}
-			if len(baseImage.Spec.Layers) == 0 || baseImage.Spec.Layers[0].Type == common.FROMCOMMAND {
-				return []string{}, fmt.Errorf("no layer found in local base image %s, or this base image has base image, which is not allowed", baseImage.Spec.ID)
-			}
-			layers = append(layers, baseImage.Spec.Layers...)
+		baseImage, err := imageUtils.GetImage(image.Spec.Layers[0].Value)
+		if err != nil {
+			return []string{}, err
 		}
+		if len(baseImage.Spec.Layers) == 0 || baseImage.Spec.Layers[0].Type == common.FROMCOMMAND {
+			return []string{}, fmt.Errorf("no layer found in local base image %s, or this base image has base image, which is not allowed", baseImage.Spec.ID)
+		}
+		layers = append(layers, baseImage.Spec.Layers...)
 		// remove the from layer
 		//image.Spec.Layers = image.Spec.Layers[1:]
 	}
