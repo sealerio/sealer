@@ -2,10 +2,11 @@ package infra
 
 import (
 	"fmt"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
-	"github.com/alibaba/sealer/logger"
 	"os"
 	"time"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 )
 
 func Retry(tryTimes int, trySleepTime time.Duration, action func() error) error {
