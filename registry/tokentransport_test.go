@@ -176,7 +176,6 @@ func TestTokenTransportAuthLeak(t *testing.T) {
 					Body:       &testBody{t: t},
 					Header:     http.Header{},
 				}, nil
-
 			}
 		}),
 	}

@@ -3,10 +3,11 @@ package registry
 import (
 	"context"
 	"errors"
-	"github.com/docker/distribution"
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/docker/distribution"
 
 	"fmt"
 

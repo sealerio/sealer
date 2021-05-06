@@ -22,7 +22,7 @@ func TestConsole(t *testing.T) {
 	testConsoleCalls(log1)
 
 	log2 := NewLogger()
-	log2.SetLogger("console", `{"level":"EROR"}`)
+	log2.SetLogger("console", `{"level":"ERROR"}`)
 	testConsoleCalls(log2)
 }
 

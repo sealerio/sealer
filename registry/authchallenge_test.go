@@ -65,7 +65,6 @@ func TestParseChallenge(t *testing.T) {
 		if err == nil && !tc.value.equalTo(val) {
 			t.Fatalf("got %v, expected %v", val, tc.value)
 		}
-
 	}
 }
 
@@ -88,6 +87,5 @@ func TestParseChallengePush(t *testing.T) {
 		if !tc.value.equalTo(val) {
 			t.Fatalf("got %v, expected %v", val, tc.value)
 		}
-
 	}
 }

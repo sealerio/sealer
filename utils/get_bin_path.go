@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/alibaba/sealer/common"
 	"os"
 	"path/filepath"
+
+	"github.com/alibaba/sealer/common"
 )
 
 func ExecutableFilePath() string {
