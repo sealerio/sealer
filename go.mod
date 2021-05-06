@@ -21,6 +21,7 @@ require (
 	github.com/vbauerster/mpb/v6 v6.0.3
 	github.com/wonderivan/logger v1.0.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/tools v0.1.0 // indirect
 	k8s.io/api v0.20.4
 	k8s.io/apimachinery v0.20.4
 	k8s.io/client-go v0.20.4

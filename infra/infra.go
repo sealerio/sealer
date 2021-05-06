@@ -31,5 +31,4 @@ func NewDefaultProvider(cluster *v1.Cluster) Interface {
 	default:
 		return nil
 	}
-
 }

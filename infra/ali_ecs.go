@@ -3,16 +3,17 @@ package infra
 import (
 	"errors"
 	"fmt"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
-	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 	"math/rand"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 )
 
 type Instance struct {
@@ -251,14 +252,13 @@ func (a *AliProvider) ReconcileIntances(instanceRole string) error {
 			return err
 		}
 		hosts.IPList = utils.AppendIPList(hosts.IPList, ipList)
-
 	} else if len(instances) > i {
 		var deleteInstancesIDs []string
 		var count int
 		for _, instance := range instances {
 			if instance.InstanceID != a.Cluster.Annotations[Master0ID] {
 				deleteInstancesIDs = append(deleteInstancesIDs, instance.InstanceID)
-				count += 1
+				count++
 			}
 			if count == (len(instances) - i) {
 				break
@@ -355,7 +355,7 @@ func (a *AliProvider) GetAvailableResource(cores int, memory float64) (instanceT
 	}
 	for _, f := range response.AvailableZones.AvailableZone[0].AvailableResources.AvailableResource {
 		for _, r := range f.SupportedResources.SupportedResource {
-			if r.StatusCategory == AvaibleTypeStatus {
+			if r.StatusCategory == AvailableTypeStatus {
 				return r.Value, nil
 			}
 		}
@@ -379,7 +379,9 @@ func (a *AliProvider) RunInstances(instanceRole string, count int) error {
 	instancesMemory, _ := strconv.ParseFloat(instances.Memory, 64)
 	systemDiskSize := instances.SystemDisk
 	instanceType, err := a.GetAvailableResource(instancesCPU, instancesMemory)
-
+	if err != nil {
+		return err
+	}
 	tag := make(map[string]string)
 	tag[Product] = a.Cluster.Name
 	tag[Role] = instanceRole
@@ -419,10 +421,10 @@ func (a *AliProvider) RunInstances(instanceRole string, count int) error {
 	return nil
 }
 
-func (a *AliProvider) AuthorizeSecurityGroup(securityGroupId, portRange string) bool {
+func (a *AliProvider) AuthorizeSecurityGroup(securityGroupID, portRange string) bool {
 	request := ecs.CreateAuthorizeSecurityGroupRequest()
 	request.Scheme = Scheme
-	request.SecurityGroupId = securityGroupId
+	request.SecurityGroupId = securityGroupID
 	request.IpProtocol = IPProtocol
 	request.PortRange = portRange
 	request.SourceCidrIp = SourceCidrIP
@@ -450,10 +452,10 @@ func (a *AliProvider) CreateSecurityGroup() error {
 		return err
 	}
 
-	if !a.AuthorizeSecurityGroup(response.SecurityGroupId, SshPortRange) {
+	if !a.AuthorizeSecurityGroup(response.SecurityGroupId, SSHPortRange) {
 		return fmt.Errorf("authorize securitygroup ssh port failed")
 	}
-	if !a.AuthorizeSecurityGroup(response.SecurityGroupId, ApiServerPortRange) {
+	if !a.AuthorizeSecurityGroup(response.SecurityGroupId, APIServerPortRange) {
 		return fmt.Errorf("authorize securitygroup apiserver port failed")
 	}
 	a.Cluster.Annotations[SecurityGroupID] = response.SecurityGroupId
@@ -461,7 +463,6 @@ func (a *AliProvider) CreateSecurityGroup() error {
 }
 
 func (a *AliProvider) DeleteSecurityGroup() error {
-
 	request := ecs.CreateDeleteSecurityGroupRequest()
 	request.Scheme = Scheme
 	request.SecurityGroupId = a.Cluster.Annotations[SecurityGroupID]
