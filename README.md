@@ -1,5 +1,8 @@
 [简体中文](./docs/README_zh.md)
 
+[![Go](https://github.com/alibaba/sealer/actions/workflows/go.yml/badge.svg)](https://github.com/alibaba/sealer/actions/workflows/go.yml)
+[![Release](https://github.com/alibaba/sealer/actions/workflows/release.yml/badge.svg)](https://github.com/alibaba/sealer/actions/workflows/release.yml)
+
 # What is CloudImage 
 
 Docker can build a rootfs+application of an operating system into a container image. 
