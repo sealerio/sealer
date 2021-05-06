@@ -5,7 +5,7 @@
 
 # What is CloudImage 
 
-![image](https://user-images.githubusercontent.com/8912557/117261089-5467c380-ae82-11eb-8dd8-1163c1a74b10.png)
+![image](https://user-images.githubusercontent.com/8912557/117263735-2768e000-ae85-11eb-8e08-ec5b2de48c1b.png)
 
 Docker can build a rootfs+application of an operating system into a container image. 
 Sealer regards kubernetes as an operating system. 
