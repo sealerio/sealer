@@ -44,8 +44,7 @@ func SortIPList(iplist []string) {
 		return bytes.Compare(realIPs[i], realIPs[j]) < 0
 	})
 
-	for i, _ := range realIPs {
+	for i := range realIPs {
 		iplist[i] = realIPs[i].String()
 	}
-
 }

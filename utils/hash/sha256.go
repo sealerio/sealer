@@ -3,13 +3,14 @@ package hash
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/opencontainers/go-digest"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/compress"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/compress"
+	"github.com/opencontainers/go-digest"
 )
 
 const emptySHA256TarDigest = "sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1"

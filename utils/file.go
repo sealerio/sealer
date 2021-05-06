@@ -159,7 +159,6 @@ func CleanFile(file *os.File) {
 	if err != nil {
 		logger.Warn(err)
 	}
-	return
 }
 
 func CleanDir(dir string) (err error) {

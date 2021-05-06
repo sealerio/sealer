@@ -137,8 +137,9 @@ func (c *CloudBuilder) InitBuildSSH() error {
 	if err != nil {
 		return fmt.Errorf("failed to prepare cluster ssh client:%v", err)
 	}
-	c.SSH = client.Ssh
-	c.RemoteHostIP = client.Host
+	c.SSH = client.SSH
+	c.RemoteHostIp = client.Host
+
 	return nil
 }
 

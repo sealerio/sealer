@@ -140,7 +140,7 @@ func (locallog *LocalLogger) SetLogger(adapterName string, configs ...string) er
 	}
 
 	config := append(configs, "{}")[0]
-	var num int = -1
+	var num = -1
 	var i int
 	var l *nameLogger
 	for i, l = range locallog.outputs {
@@ -176,7 +176,7 @@ func (locallog *LocalLogger) SetLogger(adapterName string, configs ...string) er
 func (locallog *LocalLogger) DelLogger(adapterName string) error {
 	locallog.lock.Lock()
 	defer locallog.lock.Unlock()
-	outputs := []*nameLogger{}
+	var outputs []*nameLogger
 	for _, lg := range locallog.outputs {
 		if lg.name == adapterName {
 			lg.Destroy()

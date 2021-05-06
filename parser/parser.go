@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -14,7 +14,7 @@ import (
 var validLayer = []string{"FROM", "COPY", "RUN", "CMD"}
 
 type Interface interface {
-	Parse(kubefile []byte, name string) *v1.Image
+	Parse(kubeFile []byte, name string) *v1.Image
 }
 
 type Parser struct{}
@@ -23,19 +23,19 @@ func NewParse() Interface {
 	return &Parser{}
 }
 
-func (p *Parser) Parse(kubefile []byte, name string) *v1.Image {
+func (p *Parser) Parse(kubeFile []byte, name string) *v1.Image {
 	image := &v1.Image{
-		TypeMeta:   metav1.TypeMeta{APIVersion: "", Kind: "Image"},
-		ObjectMeta: metav1.ObjectMeta{Name: name},
+		TypeMeta:   metaV1.TypeMeta{APIVersion: "", Kind: "Image"},
+		ObjectMeta: metaV1.ObjectMeta{Name: name},
 		Spec:       v1.ImageSpec{},
 		Status:     v1.ImageStatus{},
 	}
-	scanner := bufio.NewScanner(strings.NewReader(string(kubefile)))
+	scanner := bufio.NewScanner(strings.NewReader(string(kubeFile)))
 	for scanner.Scan() {
 		text := scanner.Text()
 		layerType, layerValue, err := decodeLine(text)
 		if err != nil || layerType == "" {
-			logger.Warn("decode kubefile line failed %v", err)
+			logger.Warn("decode kubeFile line failed %v", err)
 			continue
 		}
 
