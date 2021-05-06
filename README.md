@@ -3,14 +3,19 @@
 [![Go](https://github.com/alibaba/sealer/actions/workflows/go.yml/badge.svg)](https://github.com/alibaba/sealer/actions/workflows/go.yml)
 [![Release](https://github.com/alibaba/sealer/actions/workflows/release.yml/badge.svg)](https://github.com/alibaba/sealer/actions/workflows/release.yml)
 
-# What is CloudImage 
+# What is sealer
 
-![image](https://user-images.githubusercontent.com/8912557/117261089-5467c380-ae82-11eb-8dd8-1163c1a74b10.png)
+sealer[ˈsiːlər] is a solution for distributed application package and delivery base on kubernetes. 
+It solves the delivery problem of complex applications by packaging distributed applications and dependencies(like database,middleware) together.
+The build output we call it CloudImage, which contains all the dependencies(docker, kubernetes,docker images,yaml files, helm chart...) your application needs.
+The CloudImage can be pushed to the registry and shared to other users. 
+
+![image](https://user-images.githubusercontent.com/8912557/117263735-2768e000-ae85-11eb-8e08-ec5b2de48c1b.png)
 
 Docker can build a rootfs+application of an operating system into a container image. 
 Sealer regards kubernetes as an operating system. 
 The image created on this higher abstraction is a CloudImage. 
-Realize the Build share run of the entire cluster!!!
+Build distributed application, share to anyone and run anywhere!!!
 
 ![image](https://user-images.githubusercontent.com/8912557/117263291-b88b8700-ae84-11eb-8b46-838292e85c5c.png)
 
