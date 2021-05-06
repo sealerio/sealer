@@ -5,6 +5,7 @@
 
 # What is sealer
 
+<<<<<<< HEAD
 **Build distributed application, share to anyone and run anywhere!!!**
 
 ![image](https://user-images.githubusercontent.com/8912557/117263291-b88b8700-ae84-11eb-8b46-838292e85c5c.png)
