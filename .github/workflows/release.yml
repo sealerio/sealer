@@ -61,7 +61,6 @@ jobs:
       - name: Checkout sealer
         uses: actions/checkout@v2
         with:
-          repository: alibaba/sealer
           ref: ${{ github.ref }}
           path: src/github.com/alibaba/sealer
 
@@ -147,42 +146,6 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file4 }}
           asset_name: ${{ steps.catalog.outputs.file4 }}
-          asset_content_type: text/plain
-      - name: Upload Linux sealer linux arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file5 }}
-          asset_name: ${{ steps.catalog.outputs.file5 }}
-          asset_content_type: application/gzip
-      - name: Upload Linux sealer linux arm64 sha256 sum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file6 }}
-          asset_name: ${{ steps.catalog.outputs.file6 }}
-          asset_content_type: text/plain
-      - name: Upload Linux seautil linux arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file7 }}
-          asset_name: ${{ steps.catalog.outputs.file7 }}
-          asset_content_type: application/gzip
-      - name: Upload Linux seautil linux arm64 sha256 sum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file8 }}
-          asset_name: ${{ steps.catalog.outputs.file8 }}
           asset_content_type: text/plain
       - name: Upload Linux sealer linux arm64
         uses: actions/upload-release-asset@v1

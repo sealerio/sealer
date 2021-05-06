@@ -80,10 +80,7 @@ readonly SEALER_GO_PACKAGE=github.com/alibaba/sealer
 # The server platform we are building on.
 readonly SEALER_SUPPORTED_PLATFORMS=(
   linux/amd64
-  linux/arm
   linux/arm64
-  darwin/amd64
-  darwin/arm64
 )
 
 build_binaries() {
@@ -92,16 +89,26 @@ build_binaries() {
   mkdir -p $THIS_PLATFORM_ASSETS
   tarFile="${3-}-${1-}-${2-}.tar.gz"
 
+  debug "!!! build $osarch sealer"
   go build -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/sealer/main.go
   debug "output bin: $THIS_PLATFORM_BIN/sealer/$osarch/sealer"
-  tar czf $THIS_PLATFORM_ASSETS/sealer-$tarFile _output/bin/sealer/$osarch/
-  sha256sum $THIS_PLATFORM_ASSETS/sealer-$tarFile > $THIS_PLATFORM_ASSETS/sealer-$tarFile.sha256sum
+  cd ${SEALER_ROOT}/_output/bin/sealer/$osarch/
+  tar czf sealer-$tarFile sealer
+  sha256sum sealer-$tarFile > sealer-$tarFile.sha256sum
+  mv *.tar.gz*  $THIS_PLATFORM_ASSETS/
+  debug "output tar.gz: $THIS_PLATFORM_ASSETS/sealer-$tarFile"
+  debug "output sha256sum: $THIS_PLATFORM_ASSETS/sealer-$tarFile.sha256sum"
 
+  debug "!!! build $osarch seautil"
   go build -o $THIS_PLATFORM_BIN/seautil/$osarch/seautil -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/seautil/main.go
   debug "output bin: $THIS_PLATFORM_BIN/seautil/$osarch/seautil"
+  cd ${SEALER_ROOT}/_output/bin/seautil/$osarch/
+  tar czf seautil-$tarFile seautil
+  sha256sum seautil-$tarFile >  seautil-$tarFile.sha256sum
+  mv *.tar.gz*  $THIS_PLATFORM_ASSETS/
+  debug "output tar.gz: $THIS_PLATFORM_ASSETS/seautil-$tarFile"
+  debug "output sha256sum: $THIS_PLATFORM_ASSETS/seautil-$tarFile.sha256sum"
 
-  tar czf $THIS_PLATFORM_ASSETS/seautil-$tarFile _output/bin/seautil/$osarch/
-  sha256sum $THIS_PLATFORM_ASSETS/seautil-$tarFile > $THIS_PLATFORM_ASSETS/seautil-$tarFile.sha256sum
 }
 
 debug "root dir: $SEALER_ROOT"
