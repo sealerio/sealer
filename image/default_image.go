@@ -5,11 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/docker/distribution"
-	"github.com/docker/distribution/manifest/schema2"
-	"github.com/docker/docker/api/types"
-	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	imageutils "github.com/alibaba/sealer/image/utils"
@@ -19,6 +14,11 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/compress"
 	"github.com/alibaba/sealer/utils/progress"
+	"github.com/docker/distribution"
+	"github.com/docker/distribution/manifest/schema2"
+	"github.com/docker/docker/api/types"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
 )
@@ -329,7 +329,8 @@ func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs 
 					// so we can set the total of the bar at the time only
 					curBar.SetTotal(fi.Size(), false)
 					prc := curBar.ProxyReader(file)
-					if err := d.registry.UploadLayer(context.Background(), repo, layerDig, prc); err != nil {
+					defer prc.Close()
+					if err = d.registry.UploadLayer(context.Background(), repo, layerDig, prc); err != nil {
 						errCh <- err
 						return err
 					}

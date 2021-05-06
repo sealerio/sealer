@@ -1,10 +1,10 @@
 package progress
 
 import (
+	"github.com/alibaba/sealer/utils"
 	"github.com/pkg/errors"
 	"github.com/vbauerster/mpb/v6"
 	"github.com/vbauerster/mpb/v6/decor"
-	"github.com/alibaba/sealer/utils"
 	"sync"
 )
 
@@ -103,7 +103,10 @@ func (flow *progressFlow) registryProcessBar(def TaskDef, addProgressBar func(de
 		bar = addProgressBar(decor.CountersKibiByte("%.2f/%.2f"), def)
 		job = processJob{
 			function: func(cxt Context) error {
-				return task.Action(cxt)
+				if err := task.Action(cxt); err != nil {
+					return errors.Wrap(err, def.FailMsg)
+				}
+				return nil
 			},
 		}
 	case successMsgTask:
@@ -214,14 +217,15 @@ func (flow *progressFlow) ShowMessage(msg string, bar *mpb.Bar) *mpb.Bar {
 }
 
 func (flow *progressFlow) appendErrorMessageBar(preBars []*mpb.Bar, task, job string) {
-	if preBars == nil {
-		preBars = []*mpb.Bar{nil}
-	}
-	preBars = append(preBars, flow.addMessageBar(preBars[len(preBars)-1], task, job))
+	//if preBars == nil {
+	//	preBars = []*mpb.Bar{nil}
+	//}
+	//preBars = append(preBars, flow.addMessageBar(preBars[len(preBars)-1], task, job))
+	flow.addMessageBar(nil, task, job).SetCurrent(int64Max)
 	for _, b := range preBars {
 		if b != nil {
-			// all the previous complete messages are fake news
-			b.SetCurrent(int64Max)
+			//b.SetCurrent(int64Max)
+			b.Abort(true)
 		}
 	}
 }
@@ -236,7 +240,7 @@ func (flow *progressFlow) addMessageBar(bar *mpb.Bar, task, job string) *mpb.Bar
 		))
 }
 
-func (flow progressFlow) tailBar(barId string) *mpb.Bar {
+func (flow *progressFlow) tailBar(barId string) *mpb.Bar {
 	bars := flow.allBars[barId]
 	if len(bars) > 0 {
 		return bars[len(bars)-1]
