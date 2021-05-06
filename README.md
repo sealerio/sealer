@@ -5,10 +5,14 @@
 
 # What is CloudImage 
 
+![image](https://user-images.githubusercontent.com/8912557/117261089-5467c380-ae82-11eb-8dd8-1163c1a74b10.png)
+
 Docker can build a rootfs+application of an operating system into a container image. 
 Sealer regards kubernetes as an operating system. 
 The image created on this higher abstraction is a CloudImage. 
 Realize the Build share run of the entire cluster!!!
+
+![image](https://user-images.githubusercontent.com/8912557/117263291-b88b8700-ae84-11eb-8b46-838292e85c5c.png)
 
 With CloudImage, it will be extremely simple for users to practice cloud native ecological technology, such as:
 
