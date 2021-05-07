@@ -23,51 +23,41 @@ It solves the delivery problem of complex applications by packaging distributed 
 
 We can write a Kubefile, and build a CloudImage, then using a Clusterfile to run a cluster.
 
-Using sealer, it will be extremely simple for users to practice cloud native ecological technology, such as:
-
-> Install a kubernetes cluster:
-
-```shell script
-sealer run kubernetes:1.19.2 # Run a kubernetes cluster on the public cloud
-sealer run kubernetes:1.19.2 --master 3 --node 3 # Run a kuberentes cluster with a specified number of nodes on the public cloud
-```
-
-> Install to an existing machine
-
-```shell script
-sealer run kuberntes:1.19.2 --master 192.168.0.2,192.168.0.3,192.168.0.4 --node 192.168.0.5,192.168.0.6,192.168.0.7
-```
-
-> Install prometheus cluster
-
-```shell script
-sealer run prometheus:2.26.0
-```
-
-The above command can help you install a kubernetes cluster that includes prometheus. 
-Similarly, other software such as istio ingress grafana can be run in this way.
-
-It's not over yet, the best thing about Sealer is that it is very convenient for users to customize a CloudImage, 
-which is described and built through a file like Dockerfile:
+For example, build a dashboard CloudImage:
 
 Kubefile:
 
 ```shell script
+# base CloudImage contains all the files that run a kubernetes cluster needed.
+#    1. kubernetes components like kubectl kubeadm kubelet and apiserver images ...
+#    2. docker engine, and a private registry
+#    3. config files, yaml, static files, scripts ...
 FROM registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.6
+# download kubernetes dashboard yaml file
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
+# when run this CloudImage, will apply a dashboard manifests
 CMD kubectl apply -f recommended.yaml
 ```
 
+Build dashobard CloudImage:
+
 ```shell script
-sealer build -t registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest.
+sealer build -t registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest .
 ```
 
-Then a CloudImage containing the dashboard is created, which can be run or shared with others.
-
-Push the created CloudImage to the registry, which is compatible with the docker image registry, 
-so you can push the CloudImage to docker hub, Ali ACR, or Harbor
+Run a kubernetes cluster with dashboard:
 
 ```shell script
+# sealer will install a kubernetes on host 192.168.0.2 then apply the dashboard manifests
+sealer run registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest --master 192.168.0.2 --passwd xxx
+# check the pod
+kubectl get pod -A|grep dashboard
+```
+
+Push the CloudImage to the registry
+
+```shell script
+# you can push the CloudImage to docker hub, Ali ACR, or Harbor
 sealer push registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
 ```
 
@@ -121,8 +111,7 @@ View the default startup configuration of the CloudImage:
 sealer config registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
 ```
 
-Use Clusterfile to pull up a k8s cluster
-Use the provided official basic image (sealer/cloudrootfs:v1.16.9-alpha.6) to quickly pull up a k8s cluster.
+Use Clusterfile to set up a k8s cluster
 
 ## Scenario 1. Install on an existing server, the provider type is BAREMETAL
 
@@ -209,9 +198,9 @@ spec:
     -100
 ```
 
-## Release the cluster
+## clean the cluster
 
-Some source information of the basic settings will be written to the Clusterfile and stored in /root/.sealer/[cluster-name]/Clusterfile, so the cluster can be released as follows:
+Some information of the basic settings will be written to the Clusterfile and stored in /root/.sealer/[cluster-name]/Clusterfile.
 
 ```shell script
 sealer delete -f /root/.sealer/my-cluster/Clusterfile
