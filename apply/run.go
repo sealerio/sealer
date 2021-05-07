@@ -16,6 +16,10 @@ type ClusterArgs struct {
 	cluster    *v1.Cluster
 	nodeArgs   string
 	masterArgs string
+	user       string
+	passwd     string
+	pk         string
+	pkPasswd   string
 }
 
 func IsNumber(args string) bool {
@@ -39,12 +43,17 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	if IsNumber(c.masterArgs) && IsNumber(c.nodeArgs) {
 		c.cluster.Spec.Masters.Count = c.masterArgs
 		c.cluster.Spec.Nodes.Count = c.nodeArgs
+		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.Provider = common.AliCloud
 		return nil
 	}
 	if IsIPList(c.masterArgs) && IsIPList(c.nodeArgs) {
 		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
 		c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
+		c.cluster.Spec.SSH.User = c.user
+		c.cluster.Spec.SSH.Passwd = c.passwd
+		c.cluster.Spec.SSH.Pk = c.pk
+		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
 		c.cluster.Spec.Provider = common.BAREMETAL
 		return nil
 	}
@@ -62,18 +71,22 @@ func GetClusterFileByImageName(imageName string) (cluster *v1.Cluster, err error
 	return cluster, nil
 }
 
-func NewApplierFromArgs(imageName string, masterArgs, nodeArgs string) (Interface, error) {
+func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, error) {
 	cluster, err := GetClusterFileByImageName(imageName)
 	if err != nil {
 		return nil, err
 	}
-	if nodeArgs == "" && masterArgs == "" {
+	if runArgs.Nodes == "" && runArgs.Masters == "" {
 		return NewApplier(cluster), nil
 	}
 	c := &ClusterArgs{
 		cluster:    cluster,
-		nodeArgs:   nodeArgs,
-		masterArgs: masterArgs,
+		nodeArgs:   runArgs.Nodes,
+		masterArgs: runArgs.Masters,
+		user:       runArgs.User,
+		passwd:     runArgs.Password,
+		pk:         runArgs.Pk,
+		pkPasswd:   runArgs.PkPassword,
 	}
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
