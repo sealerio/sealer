@@ -5,7 +5,6 @@ import (
 	"encoding/json" //nolint:goimports
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
@@ -16,6 +15,9 @@ import (
 	"github.com/justadogistaken/reg/registry"
 	"github.com/opencontainers/go-digest"
 	"github.com/wonderivan/logger"
+
+	"path/filepath"
+
 	"sigs.k8s.io/yaml"
 )
 
