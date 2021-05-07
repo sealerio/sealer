@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
@@ -20,8 +23,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
-	"os"
-	"path/filepath"
 )
 
 const (

@@ -2,6 +2,10 @@ package build
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
@@ -13,9 +17,6 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/hash"
 	"github.com/alibaba/sealer/utils/mount"
-	"io/ioutil"
-	"path/filepath"
-	"strings"
 )
 
 type Config struct {
@@ -290,7 +291,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 	logger.Info("write image yaml file to %s success !", filename)
 	if err := imageUtils.SetImageMetadata(imageUtils.ImageMetadata{
 		Name: l.ImageName,
-		Id:   l.Image.Spec.ID,
+		ID:   l.Image.Spec.ID,
 	}); err != nil {
 		return fmt.Errorf("failed to set image metadata :%v", err)
 	}

@@ -106,8 +106,8 @@ type Cluster struct {
 //	return cluster.Annotations[common.VSwitchID]
 //}
 
-func (cluster *Cluster) GetAnnotationsByKey(key string) string {
-	return cluster.Annotations[key]
+func (in *Cluster) GetAnnotationsByKey(key string) string {
+	return in.Annotations[key]
 }
 
 // +kubebuilder:object:root=true

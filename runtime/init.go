@@ -44,8 +44,8 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return err
 	}
 
-	//create kubeconfig for master0
-	if err := d.CreateKubeconfig(); err != nil {
+	//create kubeConfig for master0
+	if err := d.CreateKubeConfig(); err != nil {
 		return err
 	}
 
@@ -155,7 +155,7 @@ func (d *Default) GenerateCert() error {
 	return nil
 }
 
-func (d *Default) CreateKubeconfig() error {
+func (d *Default) CreateKubeConfig() error {
 	hostname := d.GetRemoteHostName(d.Masters[0])
 
 	certConfig := cert.Config{
@@ -179,7 +179,7 @@ func (d *Default) InitMaster0() error {
 	/*
 		err := d.mountEtcdDisk(d.Masters[:1], d.EtcdDevice)
 		if err != nil {
-			return fmt.Errorf("mount for /var/lib/etcd failed at %s, due to %s", d.Masters[0], err)
+			return fmt.Error("mount for /var/lib/etcd failed at %s, due to %s", d.Masters[0], err)
 		}
 	*/
 
@@ -198,7 +198,7 @@ func (d *Default) InitMaster0() error {
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}
 	d.decodeMaster0Output(output)
-	err = d.SSH.CmdAsync(d.Masters[0], RemoteCopyKubeconfig)
+	err = d.SSH.CmdAsync(d.Masters[0], RemoteCopyKubeConfig)
 	if err != nil {
 		return err
 	}

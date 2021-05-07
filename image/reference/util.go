@@ -8,9 +8,9 @@ import (
 
 const (
 	defaultDomain = "registry.cn-qingdao.aliyuncs.com"
-	defaultRepo = "seadent"
-	defaultTag = "latest"
-	localhost = "localhost"
+	defaultRepo   = "seadent"
+	defaultTag    = "latest"
+	localhost     = "localhost"
 )
 
 func validate(name string) error {

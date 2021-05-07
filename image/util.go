@@ -2,6 +2,9 @@ package image
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+
 	"github.com/alibaba/sealer/common"
 	imageUtils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
@@ -10,8 +13,6 @@ import (
 	"github.com/alibaba/sealer/utils/mount"
 	"github.com/docker/distribution"
 	"github.com/opencontainers/go-digest"
-	"io/ioutil"
-	"path/filepath"
 )
 
 func buildBlobs(dig digest.Digest, size int64, mediaType string) distribution.Descriptor {

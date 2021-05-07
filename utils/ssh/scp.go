@@ -2,7 +2,6 @@ package ssh
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/utils/progress"
 	"io"
 	"io/ioutil"
 	"net"
@@ -11,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/alibaba/sealer/utils/progress"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -252,8 +253,8 @@ func FromLocal(localPath string) string {
 }
 
 //if remote file not exist return false and nil
-func (S *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
-	sftpClient, err := S.sftpConnect(host)
+func (s *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
+	sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return false, err
 	}
