@@ -11,5 +11,6 @@ type LayerStore interface {
 
 type Layer interface {
 	ID() (LayerID, error)
+	SimpleID() string
 	TarStream() (io.ReadCloser, error)
 }
