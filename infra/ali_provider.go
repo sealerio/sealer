@@ -1,12 +1,14 @@
 package infra
 
 import (
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
-	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"strings"
 	"time"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type ActionName string
@@ -43,8 +45,8 @@ type Alifunc func() error
 const (
 	Scheme                     = "https"
 	IPProtocol                 = "tcp"
-	ApiServerPortRange         = "6443/6443"
-	SshPortRange               = "22/22"
+	APIServerPortRange         = "6443/6443"
+	SSHPortRange               = "22/22"
 	SourceCidrIP               = "0.0.0.0/0"
 	CidrBlock                  = "172.16.0.0/24"
 	Policy                     = "accept"
@@ -58,7 +60,7 @@ const (
 	Master                     = "master"
 	Node                       = "node"
 	Stopped                    = "Stopped"
-	AvaibleTypeStatus          = "WithStock"
+	AvailableTypeStatus        = "WithStock"
 	Bandwidth                  = "100"
 	Digits                     = "0123456789"
 	Specials                   = "~=+%^*/()[]{}/!@#$?|"
@@ -152,11 +154,12 @@ var DeleteFuncMap = map[ActionName]func(provider *AliProvider){
 
 func (a *AliProvider) NewClient() error {
 	ecsClient, err := ecs.NewClientWithAccessKey(a.Config.RegionID, a.Config.AccessKey, a.Config.AccessSecret)
-	vpcClient, err := vpc.NewClientWithAccessKey(a.Config.RegionID, a.Config.AccessKey, a.Config.AccessSecret)
-
 	if err != nil {
 		return err
-
+	}
+	vpcClient, err := vpc.NewClientWithAccessKey(a.Config.RegionID, a.Config.AccessKey, a.Config.AccessSecret)
+	if err != nil {
+		return err
 	}
 	a.EcsClient = *ecsClient
 	a.VpcClient = *vpcClient

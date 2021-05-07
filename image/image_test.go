@@ -1,8 +1,9 @@
 package image
 
 import (
-	"github.com/alibaba/sealer/logger"
 	"testing"
+
+	"github.com/alibaba/sealer/logger"
 )
 
 func Test_Compress(t *testing.T) {

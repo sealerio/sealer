@@ -42,7 +42,7 @@ var listCmd = &cobra.Command{
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{imageID, imageName})
 		for _, image := range imageMetadataList {
-			table.Append([]string{image.Id, image.Name})
+			table.Append([]string{image.ID, image.Name})
 		}
 		table.Render()
 	},

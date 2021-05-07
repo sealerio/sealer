@@ -1,8 +1,9 @@
 package image
 
 import (
-	"github.com/alibaba/sealer/logger"
 	"testing"
+
+	"github.com/alibaba/sealer/logger"
 )
 
 func TestDefaultImageMetadataService_GetRemoteManifestConfig(t *testing.T) {

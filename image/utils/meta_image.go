@@ -3,21 +3,22 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
+	"io/ioutil"
+	"path/filepath"
+
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"io/ioutil"
-	"path/filepath"
+	"github.com/pkg/errors"
 )
 
-const DefaultJsonIndent = "  "
+const DefaultJSONIndent = "  "
 
 type ImageMetadataMap map[string]ImageMetadata
 
 type ImageMetadata struct {
 	Name string `json:"name,omitempty"`
-	Id   string `json:"id,omitempty"`
+	ID   string `json:"id,omitempty"`
 }
 
 func GetImage(imageName string) (*v1.Image, error) {
@@ -31,19 +32,19 @@ func GetImage(imageName string) (*v1.Image, error) {
 		return nil, fmt.Errorf("failed to find image by name: %s", imageName)
 	}
 
-	if image.Id == "" {
+	if image.ID == "" {
 		return nil, fmt.Errorf("failed to find corresponding image id, id is empty")
 	}
 
-	return GetImageById(image.Id)
+	return GetImageByID(image.ID)
 }
 
-func GetImageById(imageId string) (*v1.Image, error) {
-	fileName := filepath.Join(common.DefaultImageMetaRootDir, imageId+".yaml")
+func GetImageByID(imageID string) (*v1.Image, error) {
+	fileName := filepath.Join(common.DefaultImageMetaRootDir, imageID+".yaml")
 
 	var image v1.Image
 	if err := utils.UnmarshalYamlFile(fileName, &image); err != nil {
-		return nil, fmt.Errorf("%s.yaml parsing failed, %s", imageId, err)
+		return nil, fmt.Errorf("%s.yaml parsing failed, %s", imageID, err)
 	}
 
 	return &image, nil
@@ -55,9 +56,8 @@ func GetImageMetadataMap() (ImageMetadataMap, error) {
 	if !utils.IsFileExist(common.DefaultImageMetadataFile) {
 		if err := utils.WriteFile(common.DefaultImageMetadataFile, []byte("{}")); err != nil {
 			return nil, err
-		} else {
-			return ImageMetadataMap{}, nil
 		}
+		return ImageMetadataMap{}, nil
 	}
 
 	data, err := ioutil.ReadFile(common.DefaultImageMetadataFile)
@@ -80,7 +80,7 @@ func SetImageMetadata(metadata ImageMetadata) error {
 	}
 
 	imagesMap[metadata.Name] = metadata
-	data, err := json.MarshalIndent(imagesMap, "", DefaultJsonIndent)
+	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
 	if err != nil {
 		return err
 	}

@@ -5,11 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/docker/distribution"
-	"github.com/docker/distribution/manifest/schema2"
-	"github.com/docker/docker/api/types"
-	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
+	"os"
+	"path/filepath"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	imageutils "github.com/alibaba/sealer/image/utils"
@@ -19,8 +17,11 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/compress"
 	"github.com/alibaba/sealer/utils/progress"
-	"os"
-	"path/filepath"
+	"github.com/docker/distribution"
+	"github.com/docker/distribution/manifest/schema2"
+	"github.com/docker/docker/api/types"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 const (

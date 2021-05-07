@@ -291,7 +291,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 	logger.Info("write image yaml file to %s success !", filename)
 	if err := imageUtils.SetImageMetadata(imageUtils.ImageMetadata{
 		Name: l.ImageName,
-		Id:   l.Image.Spec.ID,
+		ID:   l.Image.Spec.ID,
 	}); err != nil {
 		return fmt.Errorf("failed to set image metadata :%v", err)
 	}

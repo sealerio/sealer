@@ -2,29 +2,25 @@ package infra
 
 import (
 	"fmt"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"io/ioutil"
+	"testing"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"io/ioutil"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"sigs.k8s.io/yaml"
-	"testing"
 )
 
 func TestApply(t *testing.T) {
-
 	cluster := v1.Cluster{}
-
 	yamlFile, err := ioutil.ReadFile("./Clusterfile")
 	if err != nil {
 		t.Errorf("read yaml file get an err #%v", err)
-
 	}
 	err = yaml.Unmarshal(yamlFile, &cluster)
-
 	if err != nil {
 		t.Errorf("read yaml file get an err #%v", err)
-
 	}
 
 	aliProvider := NewDefaultProvider(&cluster)
@@ -33,7 +29,13 @@ func TestApply(t *testing.T) {
 		fmt.Printf("%v", err)
 	}
 	data, err := yaml.Marshal(&cluster)
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 	err = ioutil.WriteFile("./Clusterfile", data, 0777)
+	if err != nil {
+		fmt.Printf("%v \n", err)
+	}
 }
 
 func TestGetAKSKFromEnv(t *testing.T) {
@@ -43,7 +45,6 @@ func TestGetAKSKFromEnv(t *testing.T) {
 		fmt.Printf("%v \n", err)
 	}
 	fmt.Printf("%v", config)
-
 }
 
 func TestDeleteInstances(t *testing.T) {
@@ -60,7 +61,7 @@ func TestDeleteInstances(t *testing.T) {
 		fmt.Printf("%v \n", err)
 	}
 	request := ecs.CreateDeleteInstancesRequest()
-	request.Scheme = "https"
+	request.Scheme = Scheme
 	request.Force = requests.NewBoolean(true)
 	request.InstanceId = &[]string{}
 	response, err := client.DeleteInstances(request)
@@ -76,7 +77,6 @@ func TestDeleteSecurityGroup(t *testing.T) {
 		fmt.Printf("%v \n", err)
 	}
 	securityGroupIds := []string{
-		"",
 		"sg-hp38q702bczjtnb5qxdh",
 		"sg-hp33dkye42vdg38i49mg",
 		"sg-hp36xu038m1cqwcmltc7",
@@ -95,18 +95,14 @@ func TestDeleteSecurityGroup(t *testing.T) {
 			fmt.Printf("%v \n", err)
 		}
 		request := ecs.CreateDeleteSecurityGroupRequest()
-		request.Scheme = "https"
-
+		request.Scheme = Scheme
 		request.SecurityGroupId = id
-
 		response, err := client.DeleteSecurityGroup(request)
-
 		if err != nil {
 			fmt.Print(err.Error())
 		}
 		fmt.Printf("response is %#v\n", response)
 	}
-
 }
 
 func TestDeleteVswitch(t *testing.T) {
@@ -135,21 +131,17 @@ func TestDeleteVswitch(t *testing.T) {
 			fmt.Printf("%v \n", err)
 		}
 		request := ecs.CreateDeleteVSwitchRequest()
-		request.Scheme = "https"
-
+		request.Scheme = Scheme
 		request.VSwitchId = vSwitchID
-
 		response, err := client.DeleteVSwitch(request)
 		if err != nil {
 			fmt.Print(err.Error())
 		}
 		fmt.Printf("response is %#v\n", response)
 	}
-
 }
 
 func TestDeleteVpc(t *testing.T) {
-
 	config := Config{}
 	err := GetAKSKFromEnv(&config)
 	if err != nil {
@@ -176,18 +168,14 @@ func TestDeleteVpc(t *testing.T) {
 			fmt.Printf("%v \n", err)
 		}
 		request := ecs.CreateDeleteVpcRequest()
-		request.Scheme = "https"
-
+		request.Scheme = Scheme
 		request.VpcId = vpcid
-
 		response, err := client.DeleteVpc(request)
-
 		if err != nil {
 			fmt.Print(err.Error())
 		}
 		fmt.Printf("response is %#v\n", response)
 	}
-
 }
 
 func TestGetEIP(t *testing.T) {
@@ -204,8 +192,7 @@ func TestGetEIP(t *testing.T) {
 		fmt.Printf("%v \n", err)
 	}
 	request := ecs.CreateAllocateEipAddressRequest()
-	request.Scheme = "https"
-
+	request.Scheme = Scheme
 	response, err := client.AllocateEipAddress(request)
 	if err != nil {
 		fmt.Print(err.Error())
@@ -228,17 +215,14 @@ func TestReleaseEIP(t *testing.T) {
 	}
 	for _, s := range eipid {
 		request := ecs.CreateReleaseEipAddressRequest()
-		request.Scheme = "https"
-
+		request.Scheme = Scheme
 		request.AllocationId = s
-
 		response, err := client.ReleaseEipAddress(request)
 		if err != nil {
 			fmt.Print(err.Error())
 		}
 		fmt.Printf("response is %#v\n", response)
 	}
-
 }
 
 func TestSort(t *testing.T) {
