@@ -5,21 +5,25 @@
 
 # What is sealer
 
-sealer[ˈsiːlər] is a solution for distributed application package and delivery base on kubernetes. 
-It solves the delivery problem of complex applications by packaging distributed applications and dependencies(like database,middleware) together.
-The build output we call it CloudImage, which contains all the dependencies(docker, kubernetes,docker images,yaml files, helm chart...) your application needs.
-The CloudImage can be pushed to the registry and shared to other users. 
-
-![image](https://user-images.githubusercontent.com/8912557/117263735-2768e000-ae85-11eb-8e08-ec5b2de48c1b.png)
-
-Docker can build a rootfs+application of an operating system into a container image. 
-Sealer regards kubernetes as an operating system. 
-The image created on this higher abstraction is a CloudImage. 
-Build distributed application, share to anyone and run anywhere!!!
+**Build distributed application, share to anyone and run anywhere!!!**
 
 ![image](https://user-images.githubusercontent.com/8912557/117263291-b88b8700-ae84-11eb-8b46-838292e85c5c.png)
 
-With CloudImage, it will be extremely simple for users to practice cloud native ecological technology, such as:
+sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes. 
+
+It solves the delivery problem of complex applications by packaging distributed applications and dependencies(like database,middleware) together.
+
+> Concept
+
+* CloudImage : like Dockerimage, but the rootfs is kubernetes, and contains all the dependencies(docker images,yaml files or helm chart...) your application needs.
+* Kubefile : the file describe how to build a CloudImage.
+* Clusterfile : the config of using CloudImage to run a cluster.
+
+![image](https://user-images.githubusercontent.com/8912557/117263735-2768e000-ae85-11eb-8e08-ec5b2de48c1b.png)
+
+We can write a Kubefile, and build a CloudImage, then using a Clusterfile to run a cluster.
+
+Using sealer, it will be extremely simple for users to practice cloud native ecological technology, such as:
 
 > Install a kubernetes cluster:
 
