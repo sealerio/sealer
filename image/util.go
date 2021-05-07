@@ -23,35 +23,17 @@ func buildBlobs(dig digest.Digest, size int64, mediaType string) distribution.De
 	}
 }
 
-// GetImageHashList return image hash list
-func GetImageHashList(image *v1.Image) (res []string, err error) {
-	baseLayer, err := GetImageAllLayers(image)
-	if err != nil {
-		return res, fmt.Errorf("get base image failed error is :%v", err)
-	}
-	for _, layer := range baseLayer {
+// GetImageLayerDirs return image hash list
+// current image is different with the image in build stage
+// current image has no from layer
+func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
+	for _, layer := range image.Spec.Layers {
+		if layer.Type == common.FROMCOMMAND {
+			return res, fmt.Errorf("image %s has from layer, which is not allowed in current state", image.Spec.ID)
+		}
 		if layer.Hash != "" {
 			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash))
 		}
-	}
-	return
-}
-
-// GetImageAllLayers return all image layers, TODO need to refactor, do need to cut first one
-func GetImageAllLayers(image *v1.Image) (res []v1.Layer, err error) {
-	for {
-		res = append(res, image.Spec.Layers[1:]...)
-		if image.Spec.Layers[0].Value == common.ImageScratch {
-			break
-		}
-		if len(res) > 128 {
-			return nil, fmt.Errorf("current layer is exceed 128 layers")
-		}
-		i, err := imageUtils.GetImage(image.Spec.Layers[0].Value)
-		if err != nil {
-			return []v1.Layer{}, err
-		}
-		image = i
 	}
 	return
 }
@@ -108,7 +90,7 @@ func GetClusterFileFromBaseImage(imageName string) string {
 		return ""
 	}
 
-	layers, err := GetImageHashList(image)
+	layers, err := GetImageLayerDirs(image)
 	if err != nil {
 		return ""
 	}

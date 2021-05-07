@@ -112,12 +112,12 @@ func Dir(dir, target string) (err error) {
 
 	target = strings.TrimSuffix(target, "/")
 	tarDir := filepath.Dir(target)
-	if err = os.MkdirAll(tarDir, common.FileMode0766); err != nil {
+	if err = os.MkdirAll(tarDir, common.FileMode0755); err != nil {
 		return err
 	}
 
 	var file *os.File
-	if file, err = os.OpenFile(target, os.O_RDWR|os.O_TRUNC|os.O_CREATE, common.FileMode0766); err != nil {
+	if file, err = os.OpenFile(target, os.O_RDWR|os.O_TRUNC|os.O_CREATE, common.FileMode0755); err != nil {
 		return err
 	}
 	defer file.Close()
@@ -133,7 +133,7 @@ func Dir(dir, target string) (err error) {
 
 // this uncompress will not change the metadata of original files
 func Uncompress(src io.Reader, dst string) error {
-	err := os.MkdirAll(dst, common.FileMode0766)
+	err := os.MkdirAll(dst, common.FileMode0755)
 	if err != nil {
 		return err
 	}
