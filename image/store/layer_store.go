@@ -7,7 +7,7 @@ import (
 	"github.com/alibaba/sealer/utils/compress"
 	"github.com/opencontainers/go-digest"
 	"io"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 	"sync"
 )
@@ -65,7 +65,7 @@ func dumpLayerMetadata(layer Layer) error {
 }
 
 func getDirListInDir(dir string) ([]string, error) {
-	files, err := os.ReadDir(dir)
+	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func getAllROLayers() ([]*roLayer, error) {
 
 	var res []*roLayer
 	for _, layerDir := range layerDirs {
-		id, err := os.ReadFile(filepath.Join(layerDir, "id"))
+		id, err := ioutil.ReadFile(filepath.Join(layerDir, "id"))
 		if err == nil {
 			_, err := digest.Parse(string(id))
 			if err == nil {
