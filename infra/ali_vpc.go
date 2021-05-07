@@ -2,7 +2,7 @@ package infra
 
 import (
 	"errors"
-	"fmt"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
@@ -84,7 +84,7 @@ func (a *AliProvider) GetZoneID() error {
 		return err
 	}
 	if len(response.Zones.Zone) == 0 {
-		return fmt.Errorf("Not available ZoneID ")
+		return errors.New("not available ZoneID ")
 	}
 	a.Cluster.Annotations[ZoneID] = response.Zones.Zone[0].ZoneId
 
