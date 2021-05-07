@@ -8,15 +8,15 @@ import (
 	"github.com/alibaba/sealer/logger"
 )
 
-func (S *SSH) Ping(host string) error {
-	_, err := S.Connect(host)
+func (s *SSH) Ping(host string) error {
+	_, err := s.Connect(host)
 	if err != nil {
 		return fmt.Errorf("[ssh %s]create ssh session failed, %v", host, err)
 	}
 	return nil
 }
 
-func (S *SSH) CmdAsync(host string, cmds ...string) error {
+func (s *SSH) CmdAsync(host string, cmds ...string) error {
 	var flag bool
 
 	for _, cmd := range cmds {
@@ -24,7 +24,7 @@ func (S *SSH) CmdAsync(host string, cmds ...string) error {
 			continue
 		}
 		func(cmd string) {
-			session, err := S.Connect(host)
+			session, err := s.Connect(host)
 			if err != nil {
 				flag = true
 				logger.Error("[ssh %s]create ssh session failed, %s", host, err)
@@ -76,9 +76,9 @@ func (S *SSH) CmdAsync(host string, cmds ...string) error {
 	return nil
 }
 
-func (S *SSH) Cmd(host, cmd string) ([]byte, error) {
+func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	//logger.Info("[ssh][%s] %s", host, cmd)
-	session, err := S.Connect(host)
+	session, err := s.Connect(host)
 	if err != nil {
 		return nil, fmt.Errorf("[ssh][%s] create ssh session failed, %s", host, err)
 	}
@@ -100,7 +100,7 @@ func readPipe(pipe io.Reader, isErr bool) {
 		// should not using logger
 		fmt.Println(string(line))
 		if err != nil {
-			fmt.Errorf("%v", err)
+			logger.Error("%v", err)
 			return
 		}
 	}

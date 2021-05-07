@@ -1,11 +1,12 @@
 package progress
 
 import (
+	"sync"
+
+	"github.com/alibaba/sealer/utils"
 	"github.com/pkg/errors"
 	"github.com/vbauerster/mpb/v6"
 	"github.com/vbauerster/mpb/v6/decor"
-	"github.com/alibaba/sealer/utils"
-	"sync"
 )
 
 const (
@@ -37,28 +38,28 @@ type Msg struct {
 	Msg    string
 }
 
-type progressFlow struct {
+type Flow struct {
 	mux        sync.Mutex
 	progress   *mpb.Progress
 	processDef map[string][]TaskDef // pre definition for all task
 	allBars    map[string][]*mpb.Bar
 }
 
-func (flow *progressFlow) AddProgressTasks(tasks ...TaskDef) *progressFlow {
+func (flow *Flow) AddProgressTasks(tasks ...TaskDef) *Flow {
 	flow.mux.Lock()
 	defer flow.mux.Unlock()
 	if len(tasks) == 0 {
 		panic("tasks should be provided")
 	}
 
-	lastId := tasks[0].ID
-	uid := lastId
+	lastID := tasks[0].ID
+	uid := lastID
 	if uid == "" {
 		uid = utils.GenUniqueID(8)
 	}
 	for _, task := range tasks {
 		//TODO mux
-		if lastId != task.ID {
+		if lastID != task.ID {
 			panic("failed to add progress task, err: appending tasks within a operation should have same id")
 		}
 		task.ID = uid
@@ -71,7 +72,7 @@ func (flow *progressFlow) AddProgressTasks(tasks ...TaskDef) *progressFlow {
 	return flow
 }
 
-func (flow *progressFlow) registryProcessBar(def TaskDef, addProgressBar func(dec decor.Decorator, taskDef TaskDef) *mpb.Bar) (job processJob) {
+func (flow *Flow) registryProcessBar(def TaskDef, addProgressBar func(dec decor.Decorator, taskDef TaskDef) *mpb.Bar) (job processJob) {
 	var bar *mpb.Bar
 	switch (def.ProgressSrc).(type) {
 	case ChannelTask:
@@ -127,7 +128,7 @@ func (flow *progressFlow) registryProcessBar(def TaskDef, addProgressBar func(de
 }
 
 // add real progress bar
-func (flow *progressFlow) constructFinalBar() map[string][]processJob {
+func (flow *Flow) constructFinalBar() map[string][]processJob {
 	for _, defs := range flow.processDef {
 		err := validateTaskDef(defs)
 		if err != nil {
@@ -160,7 +161,7 @@ func (flow *progressFlow) constructFinalBar() map[string][]processJob {
 	return jobs
 }
 
-func (flow *progressFlow) startExecuteJobs(jobs map[string][]processJob) {
+func (flow *Flow) startExecuteJobs(jobs map[string][]processJob) {
 	for id, pjobs := range jobs {
 		go func(id string, js []processJob) {
 			cxt := Context{}
@@ -207,13 +208,13 @@ func validateTaskDef(defs []TaskDef) error {
 	return nil
 }
 
-func (flow *progressFlow) ShowMessage(msg string, bar *mpb.Bar) *mpb.Bar {
+func (flow *Flow) ShowMessage(msg string, bar *mpb.Bar) *mpb.Bar {
 	newBar := flow.addMessageBar(bar, msg, "")
 	newBar.SetCurrent(int64Max)
 	return newBar
 }
 
-func (flow *progressFlow) appendErrorMessageBar(preBars []*mpb.Bar, task, job string) {
+func (flow *Flow) appendErrorMessageBar(preBars []*mpb.Bar, task, job string) {
 	if preBars == nil {
 		preBars = []*mpb.Bar{nil}
 	}
@@ -226,7 +227,7 @@ func (flow *progressFlow) appendErrorMessageBar(preBars []*mpb.Bar, task, job st
 	}
 }
 
-func (flow *progressFlow) addMessageBar(bar *mpb.Bar, task, job string) *mpb.Bar {
+func (flow *Flow) addMessageBar(bar *mpb.Bar, task, job string) *mpb.Bar {
 	return flow.progress.Add(messageBufferMax,
 		nil,
 		mpb.BarQueueAfter(bar),
@@ -236,21 +237,21 @@ func (flow *progressFlow) addMessageBar(bar *mpb.Bar, task, job string) *mpb.Bar
 		))
 }
 
-func (flow progressFlow) tailBar(barId string) *mpb.Bar {
-	bars := flow.allBars[barId]
+func (flow *Flow) tailBar(barID string) *mpb.Bar {
+	bars := flow.allBars[barID]
 	if len(bars) > 0 {
 		return bars[len(bars)-1]
 	}
 	return nil
 }
 
-func NewProgressFlow() *progressFlow {
-	return &progressFlow{progress: mpb.New(mpb.WithWidth(progressWidth)),
+func NewProgressFlow() *Flow {
+	return &Flow{progress: mpb.New(mpb.WithWidth(progressWidth)),
 		allBars:    make(map[string][]*mpb.Bar),
 		processDef: make(map[string][]TaskDef)}
 }
 
-func (flow *progressFlow) Start() {
+func (flow *Flow) Start() {
 	jobs := flow.constructFinalBar()
 	flow.startExecuteJobs(jobs)
 	flow.progress.Wait()

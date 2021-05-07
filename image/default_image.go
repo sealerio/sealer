@@ -330,7 +330,8 @@ func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs 
 					// so we can set the total of the bar at the time only
 					curBar.SetTotal(fi.Size(), false)
 					prc := curBar.ProxyReader(file)
-					if err := d.registry.UploadLayer(context.Background(), repo, layerDig, prc); err != nil {
+					defer prc.Close()
+					if err = d.registry.UploadLayer(context.Background(), repo, layerDig, prc); err != nil {
 						errCh <- err
 						return err
 					}
