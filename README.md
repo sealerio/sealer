@@ -44,13 +44,13 @@ which is described and built through a file like Dockerfile:
 Kubefile:
 
 ```shell script
-FROM registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.6
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.6
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 CMD kubectl apply -f recommended.yaml
 ```
 
 ```shell script
-sealer build -t registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest.
+sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest.
 ```
 
 Then a CloudImage containing the dashboard is created, which can be run or shared with others.
@@ -59,7 +59,7 @@ Push the created CloudImage to the registry, which is compatible with the docker
 so you can push the CloudImage to docker hub, Ali ACR, or Harbor
 
 ```shell script
-sealer push registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
+sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 # Usage scenarios & features
@@ -85,13 +85,13 @@ If it is installed on the cloud:
 ```shell script
 export ACCESSKEYID=xxx
 export ACCESSKEYSECRET=xxx
-sealer run registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
+sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 Or specify the number of nodes to run the cluster
 
 ```shell script
-sealer run registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest \
+sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest \
   --masters 3 --nodes 3
 ```
 
@@ -109,7 +109,7 @@ izm5ehdjw3kru84f0kq7rbz Ready <none> 18h v1.16.9
 View the default startup configuration of the CloudImage:
 
 ```shell script
-sealer config registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
+sealer config registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 Use Clusterfile to pull up a k8s cluster
@@ -125,7 +125,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
   provider: BAREMETAL
   ssh:
     passwd:
@@ -167,7 +167,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
   provider: ALI_CLOUD
   ssh:
     passwd:
