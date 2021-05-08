@@ -153,7 +153,7 @@ func certList(CertPath, CertEtcdPath string) []Config {
 	}
 }
 
-type SeadentCertMetaData struct {
+type MetaData struct {
 	APIServer    AltNames
 	NodeName     string
 	NodeIP       string
@@ -173,8 +173,8 @@ const (
 )
 
 // apiServerIPAndDomains = MasterIP + VIP + CertSANS 暂时只有apiserver, 记得把cluster.local后缀加到apiServerIPAndDOmas里先
-func NewSeadentCertMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, SvcCIDR, nodeName, nodeIP, DNSDomain string) (*SeadentCertMetaData, error) {
-	data := &SeadentCertMetaData{}
+func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, SvcCIDR, nodeName, nodeIP, DNSDomain string) (*MetaData, error) {
+	data := &MetaData{}
 	data.CertPath = certPATH
 	data.CertEtcdPath = certEtcdPATH
 	data.DNSDomain = DNSDomain
@@ -205,7 +205,7 @@ func NewSeadentCertMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains
 	return data, nil
 }
 
-func (meta *SeadentCertMetaData) apiServerAltName(certList *[]Config) {
+func (meta *MetaData) apiServerAltName(certList *[]Config) {
 	for _, dns := range meta.APIServer.DNSNames {
 		(*certList)[APIserverCert].AltNames.DNSNames[dns] = dns
 	}
@@ -220,7 +220,7 @@ func (meta *SeadentCertMetaData) apiServerAltName(certList *[]Config) {
 	logger.Info("APIserver altNames : ", (*certList)[APIserverCert].AltNames)
 }
 
-func (meta *SeadentCertMetaData) etcdAltAndCommonName(certList *[]Config) {
+func (meta *MetaData) etcdAltAndCommonName(certList *[]Config) {
 	altname := AltNames{
 		DNSNames: map[string]string{
 			"localhost":   "localhost",
@@ -241,7 +241,7 @@ func (meta *SeadentCertMetaData) etcdAltAndCommonName(certList *[]Config) {
 }
 
 // create sa.key sa.pub for service Account
-func (meta *SeadentCertMetaData) generatorServiceAccountKeyPaire() error {
+func (meta *MetaData) generatorServiceAccountKeyPaire() error {
 	dir := meta.CertPath
 	_, err := os.Stat(path.Join(dir, "sa.key"))
 	if !os.IsNotExist(err) {
@@ -263,7 +263,7 @@ func (meta *SeadentCertMetaData) generatorServiceAccountKeyPaire() error {
 	return WritePublicKey(dir, "sa", pub)
 }
 
-func (meta *SeadentCertMetaData) GenerateAll() error {
+func (meta *MetaData) GenerateAll() error {
 	cas := CaList(meta.CertPath, meta.CertEtcdPath)
 	certs := certList(meta.CertPath, meta.CertEtcdPath)
 	meta.apiServerAltName(&certs)

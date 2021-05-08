@@ -28,7 +28,7 @@ import (
 var pullCmd = &cobra.Command{
 	Use:   "pull",
 	Short: "pull cloud image to local",
-	Long:  `sealer pull registry.cn-qingdao.aliyuncs.com/seadent/cloudrootfs:v1.16.9-alpha.5`,
+	Long:  `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			logger.Error("enter the imageName")

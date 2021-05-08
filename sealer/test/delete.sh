@@ -1,1 +1,1 @@
-./sealer delete -f /root/.seadent/my-cluster/Clusterfile
+./sealer delete -f /root/.sealer/my-cluster/Clusterfile

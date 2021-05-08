@@ -81,7 +81,7 @@ const (
 	AliRegionID                = AliDomain + RegionID
 	AliMasterIDs               = AliDomain + "MasterIDs"
 	AliNodeIDs                 = AliDomain + "NodeIDs"
-	DefaultReigonID            = "cn-chengdu"
+	DefaultRegionID            = "cn-chengdu"
 	AliCloudEssd               = "cloud_essd"
 	TryTimes                   = 10
 	TrySleepTime               = time.Second

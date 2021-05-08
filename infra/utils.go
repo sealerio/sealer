@@ -56,7 +56,7 @@ func GetAKSKFromEnv(config *Config) error {
 	config.AccessSecret = os.Getenv(AccessSecret)
 	config.RegionID = os.Getenv(RegionID)
 	if config.RegionID == "" {
-		config.RegionID = DefaultReigonID
+		config.RegionID = DefaultRegionID
 	}
 	if config.AccessKey == "" || config.AccessSecret == "" || config.RegionID == "" {
 		return fmt.Errorf("please set accessKey and accessKeySecret ENV, example: export ACCESSKEYID=xxx export ACCESSKEYSECRET=xxx , how to get AK SK: https://ram.console.aliyun.com/manage/ak")

@@ -30,7 +30,7 @@ func (d *Default) joinNodes(nodes []string) error {
 		return nil
 	}
 	if err := ssh.WaitSSHReady(d.SSH, nodes...); err != nil {
-		errors.Wrap(err, "join nodes wait for ssh ready time out")
+		return errors.Wrap(err, "join nodes wait for ssh ready time out")
 	}
 	if err := d.GetJoinTokenHashAndKey(); err != nil {
 		return err

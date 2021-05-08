@@ -112,8 +112,8 @@ func (d *Default) JoinMasterCommands(master, joinCmd, hostname string) []string 
 
 func (d *Default) sendKubeConfigFile(hosts []string, kubeFile string) {
 	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
-	seadentKubeFile := fmt.Sprintf("%s/%s", d.Rootfs, kubeFile)
-	d.sendFileToHosts(hosts, seadentKubeFile, absKubeFile)
+	sealerKubeFile := fmt.Sprintf("%s/%s", d.Rootfs, kubeFile)
+	d.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
 func (d *Default) sendNewCertAndKey(hosts []string) {
@@ -141,7 +141,11 @@ func (d *Default) ReplaceKubeConfigV1991V1992(masters []string) bool {
 		for _, v := range masters {
 			ip := utils.GetHostIP(v)
 			cmd := fmt.Sprintf(RemoteReplaceKubeConfig, KUBESCHEDULERCONFIGFILE, ip, KUBECONTROLLERCONFIGFILE, ip, KUBESCHEDULERCONFIGFILE)
-			d.SSH.CmdAsync(v, cmd)
+			err := d.SSH.CmdAsync(v, cmd)
+			if err != nil {
+				logger.Info("failed to replace kube config on %s ", v)
+				return false
+			}
 		}
 		return true
 	}
@@ -312,7 +316,7 @@ func (d *Default) joinMasters(masters []string) error {
 	return nil
 }
 
-func (d *Default) joinMastersAsync(masters []string) error {
+/*func (d *Default) joinMastersAsync(masters []string) error {
 	d.SendJoinMasterKubeConfigs(masters)
 	d.sendNewCertAndKey(masters)
 	d.sendJoinCPConfig(masters)
@@ -339,7 +343,7 @@ func (d *Default) joinMastersAsync(masters []string) error {
 	}
 	wg.Wait()
 	return nil
-}
+}*/
 
 func (d *Default) deleteMasters(masters []string) error {
 	if len(masters) == 0 {

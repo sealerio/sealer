@@ -16,21 +16,21 @@ const (
 )
 
 const (
-	DefaultImageRootDir           = "/var/lib/seadent/data"
-	DefaultWorkDir                = "/var/lib/seadent/%s/workdir"
+	DefaultImageRootDir           = "/var/lib/sealer/data"
+	DefaultWorkDir                = "/var/lib/sealer/%s/workdir"
 	DefaultClusterFileName        = "Clusterfile"
-	DefaultClusterRootfsDir       = "/var/lib/seadent/data"
-	DefaultClusterInitFile        = "/var/lib/seadent/data/%s/scripts/init.sh"
-	DefaultClusterClearFile       = "/var/lib/seadent/data/%s/scripts/clean.sh"
+	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
+	DefaultClusterInitFile        = "/var/lib/sealer/data/%s/scripts/init.sh"
+	DefaultClusterClearFile       = "/var/lib/sealer/data/%s/scripts/clean.sh"
 	ImageScratch                  = "scratch"
-	DefaultImageMetaRootDir       = "/var/lib/seadent/metadata"
+	DefaultImageMetaRootDir       = "/var/lib/sealer/metadata"
 	DefaultLayerDBDir             = DefaultImageMetaRootDir + "/layerdb"
-	DefaultImageMetadataFile      = "/var/lib/seadent/metadata/images_metadata.json"
-	DefaultLayerDir               = "/var/lib/seadent/data/overlay2"
+	DefaultImageMetadataFile      = "/var/lib/sealer/metadata/images_metadata.json"
+	DefaultLayerDir               = "/var/lib/sealer/data/overlay2"
 	YamlSuffix                    = ".yaml"
 	RemoteServerEIPAnnotation     = "sea.aliyun.com/ClusterEIP"
 	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
-	RawClusterfile                = "/var/lib/seadent/Clusterfile"
+	RawClusterfile                = "/var/lib/sealer/Clusterfile"
 	TmpClusterfile                = "/tmp/Clusterfile"
 	DefaultRegistryHostName       = "registry.cn-qingdao.aliyuncs.com"
 	DefaultRegistryAuthDir        = "/root/.docker/config.json"
@@ -39,8 +39,8 @@ const (
 	DefaultKubeconfigDir          = "/root/.kube"
 	KubectlPath                   = "/usr/bin/kubectl"
 	EtcHosts                      = "/etc/hosts"
-	ClusterWorkDir                = "/root/.seadent/%s"
-	ClusterWorkClusterfile        = "/root/.seadent/%s/Clusterfile"
+	ClusterWorkDir                = "/root/.sealer/%s"
+	ClusterWorkClusterfile        = "/root/.sealer/%s/Clusterfile"
 	RemoteSealerPath              = "/usr/local/bin/sealer"
 )
 
@@ -91,7 +91,7 @@ func GetClusterWorkDir(clusterName string) string {
 	if err != nil {
 		return fmt.Sprintf(ClusterWorkDir, clusterName)
 	}
-	return filepath.Join(home, ".seadent", clusterName)
+	return filepath.Join(home, ".sealer", clusterName)
 }
 
 func GetClusterWorkClusterfile(clusterName string) string {
