@@ -99,7 +99,11 @@ func (c *connLogger) connect() error {
 		}
 
 		if tcpConn, ok := conn.(*net.TCPConn); ok {
-			tcpConn.SetKeepAlive(true)
+			err = tcpConn.SetKeepAlive(true)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to set tcp keep alive :%v\n", err)
+				continue
+			}
 		}
 		c.innerWriter = conn
 		return nil

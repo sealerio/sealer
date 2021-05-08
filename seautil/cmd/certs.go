@@ -16,9 +16,12 @@ limitations under the License.
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/cert"
+	"github.com/alibaba/sealer/logger"
 )
 
 type Flag struct {
@@ -39,7 +42,11 @@ var certsCmd = &cobra.Command{
 	Short: "generate kubernetes certes",
 	Long:  `seautil cert --node-ip 192.168.0.2 --node-name master1 --dns-domain aliyun.com --alt-names aliyun.local`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cert.GenerateCert(config.CertPath, config.CertEtcdPath, config.AltNames, config.NodeIP, config.NodeName, config.ServiceCIDR, config.DNSDomain)
+		err := cert.GenerateCert(config.CertPath, config.CertEtcdPath, config.AltNames, config.NodeIP, config.NodeName, config.ServiceCIDR, config.DNSDomain)
+		if err != nil {
+			logger.Error(err)
+			os.Exit(-1)
+		}
 	},
 }
 

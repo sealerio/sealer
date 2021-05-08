@@ -75,10 +75,7 @@ func GetClusterFileFromBaseImage(imageName string) string {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()
 	defer func() {
-		err := utils.CleanDirs(mountTarget, mountUpper)
-		if err != nil {
-			logger.Warn(err)
-		}
+		utils.CleanDirs(mountTarget, mountUpper)
 	}()
 
 	if err := NewImageService().PullIfNotExist(imageName); err != nil {

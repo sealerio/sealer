@@ -130,24 +130,24 @@ func init() {
 	defaultLogger = NewLogger(3)
 }
 
-func (locallog *LocalLogger) SetLogger(adapterName string, configs ...string) error {
-	locallog.lock.Lock()
-	defer locallog.lock.Unlock()
+func (localLog *LocalLogger) SetLogger(adapterName string, configs ...string) {
+	localLog.lock.Lock()
+	defer localLog.lock.Unlock()
 
-	if !locallog.init {
-		locallog.outputs = []*nameLogger{}
-		locallog.init = true
+	if !localLog.init {
+		localLog.outputs = []*nameLogger{}
+		localLog.init = true
 	}
 
 	config := append(configs, "{}")[0]
 	var num = -1
 	var i int
 	var l *nameLogger
-	for i, l = range locallog.outputs {
+	for i, l = range localLog.outputs {
 		if l.name == adapterName {
 			if l.config == config {
 				//配置没有变动，不重新设置
-				return fmt.Errorf("you have set same config for locallog adaptername %s", adapterName)
+				fmt.Printf("you have set same config for locallog adaptername %s", adapterName)
 			}
 			l.Logger.Destroy()
 			num = i
@@ -156,47 +156,44 @@ func (locallog *LocalLogger) SetLogger(adapterName string, configs ...string) er
 	}
 	logger, ok := adapters[adapterName]
 	if !ok {
-		return fmt.Errorf("unknown adaptername %s (forgotten Register?)", adapterName)
+		fmt.Printf("unknown adaptername %s (forgotten Register?)", adapterName)
 	}
 
 	err := logger.Init(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "logger Init <%s> err:%v, %s output ignore!\n",
 			adapterName, err, adapterName)
-		return err
 	}
 	if num >= 0 {
-		locallog.outputs[i] = &nameLogger{name: adapterName, Logger: logger, config: config}
-		return nil
+		localLog.outputs[i] = &nameLogger{name: adapterName, Logger: logger, config: config}
 	}
-	locallog.outputs = append(locallog.outputs, &nameLogger{name: adapterName, Logger: logger, config: config})
-	return nil
+	localLog.outputs = append(localLog.outputs, &nameLogger{name: adapterName, Logger: logger, config: config})
 }
 
-func (locallog *LocalLogger) DelLogger(adapterName string) error {
-	locallog.lock.Lock()
-	defer locallog.lock.Unlock()
+func (localLog *LocalLogger) DelLogger(adapterName string) error {
+	localLog.lock.Lock()
+	defer localLog.lock.Unlock()
 	var outputs []*nameLogger
-	for _, lg := range locallog.outputs {
+	for _, lg := range localLog.outputs {
 		if lg.name == adapterName {
 			lg.Destroy()
 		} else {
 			outputs = append(outputs, lg)
 		}
 	}
-	if len(outputs) == len(locallog.outputs) {
+	if len(outputs) == len(localLog.outputs) {
 		return fmt.Errorf("logs: unknown adaptername %s (forgotten Register?)", adapterName)
 	}
-	locallog.outputs = outputs
+	localLog.outputs = outputs
 	return nil
 }
 
 // 设置日志起始路径
-func (locallog *LocalLogger) SetLogPath(bPath bool) {
-	locallog.usePath = bPath
+func (localLog *LocalLogger) SetLogPath(bPath bool) {
+	localLog.usePath = bPath
 }
-func (locallog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level int) {
-	for _, l := range locallog.outputs {
+func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level int) {
+	for _, l := range localLog.outputs {
 		if l.name == AdapterConn {
 			//网络日志，使用json格式发送,此处使用结构体，用于类似ElasticSearch功能检索
 			err := l.LogWrite(when, msg, level)
@@ -208,11 +205,11 @@ func (locallog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level 
 
 		strLevel := " [" + msg.Level + "] "
 		strPath := "[" + msg.Path + "] "
-		if !locallog.usePath {
+		if !localLog.usePath {
 			strPath = ""
 		}
 
-		msgStr := when.Format(locallog.timeFormat) + strLevel + strPath + msg.Content
+		msgStr := when.Format(localLog.timeFormat) + strLevel + strPath + msg.Content
 		err := l.LogWrite(when, msgStr, level)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
@@ -220,9 +217,9 @@ func (locallog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level 
 	}
 }
 
-func (locallog *LocalLogger) writeMsg(logLevel int, msg string, v ...interface{}) error {
-	if !locallog.init {
-		locallog.SetLogger(AdapterConsole)
+func (localLog *LocalLogger) writeMsg(logLevel int, msg string, v ...interface{}) {
+	if !localLog.init {
+		localLog.SetLogger(AdapterConsole)
 	}
 	msgSt := new(loginfo)
 	src := ""
@@ -231,8 +228,8 @@ func (locallog *LocalLogger) writeMsg(logLevel int, msg string, v ...interface{}
 	}
 	when := time.Now()
 	//
-	if locallog.usePath {
-		_, file, lineno, ok := runtime.Caller(locallog.callDepth)
+	if localLog.usePath {
+		_, file, lineno, ok := runtime.Caller(localLog.callDepth)
 		var strim = "/"
 		if ok {
 			codeArr := strings.Split(file, strim)
@@ -245,79 +242,77 @@ func (locallog *LocalLogger) writeMsg(logLevel int, msg string, v ...interface{}
 	msgSt.Level = levelPrefix[logLevel]
 	msgSt.Path = src
 	msgSt.Content = msg
-	msgSt.Name = locallog.appName
-	msgSt.Time = when.Format(locallog.timeFormat)
-	locallog.writeToLoggers(when, msgSt, logLevel)
-
-	return nil
+	msgSt.Name = localLog.appName
+	msgSt.Time = when.Format(localLog.timeFormat)
+	localLog.writeToLoggers(when, msgSt, logLevel)
 }
 
-func (locallog *LocalLogger) Fatal(format string, args ...interface{}) {
-	locallog.Emer("###Exec Panic:"+format, args...)
+func (localLog *LocalLogger) Fatal(format string, args ...interface{}) {
+	localLog.Emer("###Exec Panic:"+format, args...)
 	os.Exit(1)
 }
 
-func (locallog *LocalLogger) Panic(format string, args ...interface{}) {
-	locallog.Emer("###Exec Panic:"+format, args...)
+func (localLog *LocalLogger) Panic(format string, args ...interface{}) {
+	localLog.Emer("###Exec Panic:"+format, args...)
 	panic(fmt.Sprintf(format, args...))
 }
 
 // Emer Log EMERGENCY level message.
-func (locallog *LocalLogger) Emer(format string, v ...interface{}) {
-	locallog.writeMsg(LevelEmergency, format, v...)
+func (localLog *LocalLogger) Emer(format string, v ...interface{}) {
+	localLog.writeMsg(LevelEmergency, format, v...)
 }
 
 // Alert Log ALERT level message.
-func (locallog *LocalLogger) Alert(format string, v ...interface{}) {
-	locallog.writeMsg(LevelAlert, format, v...)
+func (localLog *LocalLogger) Alert(format string, v ...interface{}) {
+	localLog.writeMsg(LevelAlert, format, v...)
 }
 
 // Crit Log CRITICAL level message.
-func (locallog *LocalLogger) Crit(format string, v ...interface{}) {
-	locallog.writeMsg(LevelCritical, format, v...)
+func (localLog *LocalLogger) Crit(format string, v ...interface{}) {
+	localLog.writeMsg(LevelCritical, format, v...)
 }
 
 // Error Log ERROR level message.
-func (locallog *LocalLogger) Error(format string, v ...interface{}) {
-	locallog.writeMsg(LevelError, format, v...)
+func (localLog *LocalLogger) Error(format string, v ...interface{}) {
+	localLog.writeMsg(LevelError, format, v...)
 }
 
 // Warn Log WARNING level message.
-func (locallog *LocalLogger) Warn(format string, v ...interface{}) {
-	locallog.writeMsg(LevelWarning, format, v...)
+func (localLog *LocalLogger) Warn(format string, v ...interface{}) {
+	localLog.writeMsg(LevelWarning, format, v...)
 }
 
 // Info Log INFO level message.
-func (locallog *LocalLogger) Info(format string, v ...interface{}) {
-	locallog.writeMsg(LevelInformational, format, v...)
+func (localLog *LocalLogger) Info(format string, v ...interface{}) {
+	localLog.writeMsg(LevelInformational, format, v...)
 }
 
 // Debug Log DEBUG level message.
-func (locallog *LocalLogger) Debug(format string, v ...interface{}) {
-	locallog.writeMsg(LevelDebug, format, v...)
+func (localLog *LocalLogger) Debug(format string, v ...interface{}) {
+	localLog.writeMsg(LevelDebug, format, v...)
 }
 
 // Trace Log TRAC level message.
-func (locallog *LocalLogger) Trace(format string, v ...interface{}) {
-	locallog.writeMsg(LevelTrace, format, v...)
+func (localLog *LocalLogger) Trace(format string, v ...interface{}) {
+	localLog.writeMsg(LevelTrace, format, v...)
 }
 
-func (locallog *LocalLogger) Close() {
-	for _, l := range locallog.outputs {
+func (localLog *LocalLogger) Close() {
+	for _, l := range localLog.outputs {
 		l.Destroy()
 	}
-	locallog.outputs = nil
+	localLog.outputs = nil
 }
 
-func (locallog *LocalLogger) Reset() {
-	for _, l := range locallog.outputs {
+func (localLog *LocalLogger) Reset() {
+	for _, l := range localLog.outputs {
 		l.Destroy()
 	}
-	locallog.outputs = nil
+	localLog.outputs = nil
 }
 
-func (locallog *LocalLogger) SetCallDepth(depth int) {
-	locallog.callDepth = depth
+func (localLog *LocalLogger) SetCallDepth(depth int) {
+	localLog.callDepth = depth
 }
 
 // GetlocalLogger returns the defaultLogger
@@ -335,11 +330,10 @@ func SetLogPath(show bool) {
 }
 
 // param 可以是log配置文件名，也可以是log配置内容,默认DEBUG输出到控制台
-func SetLogger(param ...string) error {
+func SetLogger(param ...string) {
 	if len(param) == 0 {
 		//默认只输出到控制台
 		defaultLogger.SetLogger(AdapterConsole)
-		return nil
 	}
 
 	c := param[0]
@@ -351,20 +345,17 @@ func SetLogger(param ...string) error {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Could not open %s for configure: %s\n", c, err)
 			os.Exit(1)
-			return err
 		}
 
 		contents, err := ioutil.ReadAll(fd)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Could not read %s: %s\n", c, err)
 			os.Exit(1)
-			return err
 		}
 		err = json.Unmarshal(contents, conf)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Could not Unmarshal %s: %s\n", contents, err)
 			os.Exit(1)
-			return err
 		}
 	}
 	if conf.TimeFormat != "" {
@@ -382,7 +373,6 @@ func SetLogger(param ...string) error {
 		conn, _ := json.Marshal(conf.Conn)
 		defaultLogger.SetLogger(AdapterConn, string(conn))
 	}
-	return nil
 }
 
 // Painc logs a message at emergency level and panic.
@@ -459,10 +449,10 @@ func formatLog(f interface{}, v ...interface{}) string {
 	return fmt.Sprintf(msg, v...)
 }
 
-func stringTrim(s string, cut string) string {
+/*func stringTrim(s string, cut string) string {
 	ss := strings.SplitN(s, cut, 2)
 	if len(ss) == 1 {
 		return ss[0]
 	}
 	return ss[1]
-}
+}*/

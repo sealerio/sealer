@@ -122,11 +122,16 @@ func TestFileByTime(t *testing.T) {
 		LogLevel:   LevelTrace,
 		PermitMask: "0660",
 	}
-	fw.Init(fmt.Sprintf(`{"filename":"%v","maxdays":1}`, fn1))
+	err := fw.Init(fmt.Sprintf(`{"filename":"%v","maxdays":1}`, fn1))
+	if err != nil {
+		fmt.Println("failed to init file logger")
+	}
 	fw.dailyOpenTime = time.Now().Add(-24 * time.Hour)
 	fw.dailyOpenDate = fw.dailyOpenTime.Day()
-	fw.LogWrite(time.Now(), "this is a msg for test", LevelTrace)
-
+	err = fw.LogWrite(time.Now(), "this is a msg for test", LevelTrace)
+	if err != nil {
+		fmt.Println("failed to write msg to file logger")
+	}
 	for _, file := range []string{fn1, fn2} {
 		_, err := os.Stat(file)
 		if err != nil {

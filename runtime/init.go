@@ -3,7 +3,6 @@ package runtime
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -232,7 +231,7 @@ func (d *Default) InitCNI() error {
 	return d.SSH.CmdAsync(d.Masters[0], fmt.Sprintf(RemoteApplyYaml, netYaml))
 }
 
-func (d *Default) mountEtcdDisk(targetHosts []string, etcdDisk string) error {
+/*func (d *Default) mountEtcdDisk(targetHosts []string, etcdDisk string) error {
 	if etcdDisk == "" {
 		logger.Warn("Etcd Disk is not set, etcd now uses root disk which is not recommended due to stability requirement.")
 		return nil
@@ -255,7 +254,7 @@ func (d *Default) mountEtcdDisk(targetHosts []string, etcdDisk string) error {
 	wg.Wait()
 
 	return nil
-}
+}*/
 
 func (d *Default) LinkStaticFiles(nodes []string) error {
 	var flag bool
