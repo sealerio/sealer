@@ -72,3 +72,7 @@ func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image,
 
 	return d.downloadImageManifestConfig(named, manifest.Config.Digest)
 }
+
+func (d DefaultImageMetadataService) DeleteImage(imageName string) error {
+	return imageutils.DeleteImage(imageName)
+}

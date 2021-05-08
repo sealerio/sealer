@@ -42,6 +42,20 @@ func (bim BaseImageManager) syncImageLocal(image v1.Image) (err error) {
 	return nil
 }
 
+func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err error) {
+	err = deleteImage(imageID)
+	if err != nil {
+		return err
+	}
+
+	err = imageutils.DeleteImage(imageName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // init bim registry
 func (bim *BaseImageManager) initRegistry(hostname string) error {
 	var (
@@ -112,4 +126,15 @@ func syncImage(image v1.Image) error {
 	}
 
 	return ioutil.WriteFile(filepath.Join(common.DefaultImageMetaRootDir, image.Spec.ID+common.YamlSuffix), imageYaml, common.FileMode0755)
+}
+
+func deleteImage(imageID string) error {
+	file := filepath.Join(common.DefaultImageMetaRootDir, imageID+common.YamlSuffix)
+	if pkgutils.IsFileExist(file) {
+		err := pkgutils.CleanFiles(file)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

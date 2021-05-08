@@ -54,6 +54,30 @@ func (ls *layerStore) RegisterLayerIfNotPresent(closer io.ReadCloser, id LayerID
 	return nil
 }
 
+func (ls *layerStore) Delete(id LayerID) error {
+	layer := ls.Get(id)
+	if layer == nil {
+		logger.Debug("layer %s is already deleted", id)
+		return nil
+	}
+
+	filePath := filepath.Join(common.DefaultLayerDir, digest.Digest(id).Hex())
+	err := utils.CleanDir(filePath)
+	if err != nil {
+		return err
+	}
+	digs := digest.Digest(id)
+	subDir := filepath.Join(common.DefaultLayerDBDir, digs.Algorithm().String(), digs.Hex())
+	err = utils.CleanDir(subDir)
+	if err != nil {
+		return err
+	}
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	delete(ls.layers, id)
+	return nil
+}
+
 func dumpLayerMetadata(layer Layer) error {
 	id, err := layer.ID()
 	if err != nil {

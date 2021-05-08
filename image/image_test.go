@@ -29,3 +29,14 @@ func TestDefaultImageService_PushWithAnnotations(t *testing.T) {
 	}
 	logger.Info(config)
 }
+
+func TestDefaultImageService_Delete(t *testing.T) {
+	err := NewImageService().Pull("registry.cn-qingdao.aliyuncs.com/seadent/cloudrootfs:v1.16.9-alpha.5")
+	if err != nil {
+		t.Error(err)
+	}
+	err = NewImageService().Delete("registry.cn-qingdao.aliyuncs.com/seadent/cloudrootfs:v1.16.9-alpha.5")
+	if err != nil {
+		t.Error(err)
+	}
+}
