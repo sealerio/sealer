@@ -46,7 +46,6 @@ func supportsOverlay() bool {
 		}
 	}
 	return false
-
 }
 
 // using overlay2 to merged layer files

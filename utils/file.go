@@ -65,12 +65,12 @@ func IsFileExist(filename string) bool {
 func WriteFile(fileName string, content []byte) error {
 	dir := filepath.Dir(fileName)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, common.FileMode0766); err != nil {
+		if err = os.MkdirAll(dir, common.FileMode0755); err != nil {
 			return err
 		}
 	}
 
-	if err := ioutil.WriteFile(fileName, content, common.FileMode0766); err != nil {
+	if err := ioutil.WriteFile(fileName, content, common.FileMode0755); err != nil {
 		return err
 	}
 	return nil
@@ -159,7 +159,6 @@ func CleanFile(file *os.File) {
 	if err != nil {
 		logger.Warn(err)
 	}
-	return
 }
 
 func CleanDir(dir string) (err error) {
@@ -253,7 +252,7 @@ func CountDirFiles(dirName string) int {
 
 func MkDirIfNotExists(dir string) (err error) {
 	if _, err = os.Stat(dir); err != nil && os.IsNotExist(err) {
-		err = os.MkdirAll(dir, common.FileMode0766)
+		err = os.MkdirAll(dir, common.FileMode0755)
 	}
 	//this operation won't fail regularly, so we would logger the err
 	if err != nil {

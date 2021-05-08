@@ -5,8 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
 	imageutils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/registry"
@@ -19,8 +23,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -159,6 +161,10 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 //}
 
 func (d DefaultImageService) downloadLayers(named reference.Named, manifest schema2.Manifest) (err error) {
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return err
+	}
 	flow := progress.NewProgressFlow()
 	errorCh := make(chan error, 2*len(manifest.Layers))
 	defer func() {
@@ -176,14 +182,9 @@ func (d DefaultImageService) downloadLayers(named reference.Named, manifest sche
 		if len(shortHex) > 12 {
 			shortHex = shortHex[0:12]
 		}
-		// check if the layer exists locally
-		if _, err := os.Stat(filepath.Join(common.DefaultLayerDir, hex)); err != nil {
-			if !os.IsNotExist(err) {
-				logger.Error(err)
-				errorCh <- err
-				continue
-			}
-		} else {
+
+		roLayer := layerStore.Get(store.LayerID(layer.Digest))
+		if roLayer != nil {
 			flow.ShowMessage(shortHex+" already exists", nil)
 			continue
 		}
@@ -204,6 +205,7 @@ func (d DefaultImageService) downloadLayers(named reference.Named, manifest sche
 			ProgressSrc: progress.TakeOverTask{
 				Cxt: progress.Context{}.WithReader(blobReader),
 				Action: func(cxt progress.Context) error {
+					var err error
 					rc := cxt.GetCurrentReaderCloser()
 					if rc == nil {
 						err = errors.New("failed to start uploading layer, err: no reader found")
@@ -218,7 +220,8 @@ func (d DefaultImageService) downloadLayers(named reference.Named, manifest sche
 						return err
 					}
 
-					if err := compress.Uncompress(curBar.ProxyReader(rc), filepath.Join(common.DefaultLayerDir, hex)); err != nil {
+					rc = curBar.ProxyReader(rc)
+					if err = layerStore.RegisterLayerIfNotPresent(rc, store.LayerID(layer.Digest)); err != nil {
 						errorCh <- err
 						return err
 					}

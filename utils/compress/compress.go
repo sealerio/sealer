@@ -5,13 +5,14 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
 )
 
 // src is the dir or single file to tar
@@ -100,7 +101,7 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 
 // example: dir:/var/lib/etcd target:/home/etcd.tar.gz
 // this func will keep original dir etcd
-func CompressDir(dir, target string) (err error) {
+func Dir(dir, target string) (err error) {
 	if dir == "" || target == "" {
 		return errors.New("dir or target should be provided")
 	}
@@ -111,12 +112,12 @@ func CompressDir(dir, target string) (err error) {
 
 	target = strings.TrimSuffix(target, "/")
 	tarDir := filepath.Dir(target)
-	if err = os.MkdirAll(tarDir, common.FileMode0766); err != nil {
+	if err = os.MkdirAll(tarDir, common.FileMode0755); err != nil {
 		return err
 	}
 
 	var file *os.File
-	if file, err = os.OpenFile(target, os.O_RDWR|os.O_TRUNC|os.O_CREATE, common.FileMode0766); err != nil {
+	if file, err = os.OpenFile(target, os.O_RDWR|os.O_TRUNC|os.O_CREATE, common.FileMode0755); err != nil {
 		return err
 	}
 	defer file.Close()
@@ -132,7 +133,7 @@ func CompressDir(dir, target string) (err error) {
 
 // this uncompress will not change the metadata of original files
 func Uncompress(src io.Reader, dst string) error {
-	err := os.MkdirAll(dst, common.FileMode0766)
+	err := os.MkdirAll(dst, common.FileMode0755)
 	if err != nil {
 		return err
 	}

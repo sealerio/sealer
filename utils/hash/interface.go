@@ -1,9 +1,10 @@
 package hash
 
 import (
-	"github.com/opencontainers/go-digest"
 	"io"
 	"os"
+
+	"github.com/opencontainers/go-digest"
 )
 
 type Interface interface {
