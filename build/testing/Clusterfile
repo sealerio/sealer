@@ -3,7 +3,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: seadent/my-kuberentes-cluster-with-dashboard:latest
+  image: sealer-io/my-kuberentes-cluster-with-dashboard:latest
   provider: ALI_CLOUD
   ssh:
     passwd: xxx

@@ -35,7 +35,7 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 	//use existing file
 	file = existingFile
 	if file == nil {
-		file, err = ioutil.TempFile("/tmp", "seadent_compress")
+		file, err = ioutil.TempFile("/tmp", "sealer_compress")
 	}
 
 	if err != nil {

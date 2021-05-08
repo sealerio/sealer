@@ -16,7 +16,7 @@ func TestGenerateAll(t *testing.T) {
 			false,
 		},
 	}
-	certMeta, err := NewSeadentCertMetaData(BasePath, EtcdBasePath, []string{"test.com", "192.168.1.2", "kubernetes.default.svc.sealyun"}, "10.64.0.0/10", "master1", "172.27.139.11", "cluster.local")
+	certMeta, err := NewMetaData(BasePath, EtcdBasePath, []string{"test.com", "192.168.1.2", "kubernetes.default.svc.sealyun"}, "10.64.0.0/10", "master1", "172.27.139.11", "cluster.local")
 	if err != nil {
 		t.Error(err)
 	}

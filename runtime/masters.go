@@ -112,8 +112,8 @@ func (d *Default) JoinMasterCommands(master, joinCmd, hostname string) []string 
 
 func (d *Default) sendKubeConfigFile(hosts []string, kubeFile string) {
 	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
-	seadentKubeFile := fmt.Sprintf("%s/%s", d.Rootfs, kubeFile)
-	d.sendFileToHosts(hosts, seadentKubeFile, absKubeFile)
+	sealerKubeFile := fmt.Sprintf("%s/%s", d.Rootfs, kubeFile)
+	d.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
 func (d *Default) sendNewCertAndKey(hosts []string) {

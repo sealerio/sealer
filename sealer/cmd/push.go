@@ -28,7 +28,7 @@ import (
 var pushCmd = &cobra.Command{
 	Use:   "push",
 	Short: "push cloud image to registry",
-	Long:  `sealer push registry.cn-qingdao.aliyuncs.com/seadent/my-kuberentes-cluster-with-dashboard:latest`,
+	Long:  `sealer push registry.cn-qingdao.aliyuncs.com/sealer/my-kuberentes-cluster-with-dashboard:latest`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			logger.Error("enter the imageName")

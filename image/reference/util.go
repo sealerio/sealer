@@ -8,7 +8,7 @@ import (
 
 const (
 	defaultDomain = "registry.cn-qingdao.aliyuncs.com"
-	defaultRepo   = "seadent"
+	defaultRepo   = "sealer"
 	defaultTag    = "latest"
 	localhost     = "localhost"
 )
