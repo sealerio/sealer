@@ -295,9 +295,11 @@ func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs 
 							}
 						}()
 
+						// TODO validate if compressed file hash is same as  layer.hash
 						if file, innerErr = compress.Compress(filepath.Join(common.DefaultLayerDir, layer.Hash), "", nil); innerErr != nil {
 							return innerErr
 						}
+
 						// pass to next progress task
 						cxt.WithReader(file)
 						return nil
