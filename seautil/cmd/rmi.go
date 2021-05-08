@@ -24,15 +24,17 @@ import (
 	"github.com/alibaba/sealer/logger"
 )
 
-var imageRmiFlag *ImageFlag
-
 // rmiCmd represents the rmi command
 var rmiCmd = &cobra.Command{
 	Use:   "rmi",
 	Short: "rmi remove local image",
 	Long:  `seautil rmi my-kubernetes:1.18.3`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := image.NewImageService().Delete(imagePullFlag.ImageName)
+		if len(args) == 0 {
+			logger.Error("enter the imageName")
+			os.Exit(1)
+		}
+		err := image.NewImageService().Delete(args[0])
 		if err != nil {
 			logger.Error(err)
 			os.Exit(-1)
@@ -41,9 +43,5 @@ var rmiCmd = &cobra.Command{
 }
 
 func init() {
-	imageRmiFlag = &ImageFlag{}
 	rootCmd.AddCommand(rmiCmd)
-	pullCmd.Flags().StringVarP(&imagePullFlag.Username, "username", "u", ".", "user name for login registry")
-	pullCmd.Flags().StringVarP(&imagePullFlag.Passwd, "passwd", "p", "", "password for login registry")
-	pullCmd.Flags().StringVarP(&imagePullFlag.ImageName, "imageName", "t", "", "name of cloud image")
 }

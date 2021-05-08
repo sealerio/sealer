@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
@@ -125,7 +126,7 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 func (d DefaultImageService) Delete(imageName string) error {
 	var (
 		images []*v1.Image
-		image *v1.Image
+		image  *v1.Image
 	)
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
@@ -176,10 +177,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 }
 
 func isLayerDeletable(layer2ImageNames map[store.LayerID][]string, layerID store.LayerID) bool {
-	if len(layer2ImageNames[layerID]) > 1 {
-		return false
-	}
-	return true
+	return len(layer2ImageNames[layerID]) <= 1
 }
 
 // layer2ImageMap accepts a directory parameter which contains image metadata.

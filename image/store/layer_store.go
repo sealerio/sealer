@@ -62,16 +62,10 @@ func (ls *layerStore) Delete(id LayerID) error {
 	}
 
 	filePath := filepath.Join(common.DefaultLayerDir, digest.Digest(id).Hex())
-	err := utils.CleanDir(filePath)
-	if err != nil {
-		return err
-	}
+	utils.CleanDir(filePath)
 	digs := digest.Digest(id)
 	subDir := filepath.Join(common.DefaultLayerDBDir, digs.Algorithm().String(), digs.Hex())
-	err = utils.CleanDir(subDir)
-	if err != nil {
-		return err
-	}
+	utils.CleanDir(subDir)
 	ls.mux.Lock()
 	defer ls.mux.Unlock()
 	delete(ls.layers, id)
