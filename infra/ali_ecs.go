@@ -24,8 +24,8 @@ type Instance struct {
 }
 
 type EcsManager struct {
-	config Config
-	client *ecs.Client
+	/*	config Config
+		client *ecs.Client*/
 }
 
 func (a *AliProvider) RetryEcsRequest(request requests.AcsRequest, response responses.AcsResponse) error {
