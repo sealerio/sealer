@@ -46,7 +46,7 @@ func (d *Default) Mount(target string, upperDir string, layers ...string) error 
 				return err
 			}
 			if !IsExist {
-				err = os.Mkdir(target, 666)
+				err = os.Mkdir(target, 0666)
 				if err != nil {
 					return fmt.Errorf("mkdir [%s] error %v", target, err)
 				}
@@ -68,7 +68,7 @@ func copyDir(srcPath string, dstPath string) error {
 		return err
 	}
 	if !IsExist {
-		err = os.Mkdir(dstPath, 666)
+		err = os.Mkdir(dstPath, 0666)
 		if err != nil {
 			return fmt.Errorf("mkdir [%s] error %v", dstPath, err)
 		}
