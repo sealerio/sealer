@@ -2,7 +2,7 @@ package utils
 
 import "testing"
 
-func TestDirMD5(t *testing.T) {
+/*func TestDirMD5(t *testing.T) {
 	type args struct {
 		dirName string
 	}
@@ -34,7 +34,7 @@ func TestDirMD5(t *testing.T) {
 			}
 		})
 	}
-}
+}*/
 
 func TestMD5(t *testing.T) {
 	type args struct {

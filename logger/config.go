@@ -1,13 +1,6 @@
 package logger
 
-import (
-	"encoding/json"
-	"runtime"
-
-	"github.com/alibaba/sealer/common"
-)
-
-func Cfg(level int, logFIle string) {
+/*func Cfg(level int, logFIle string) {
 	config := logConfig{
 		TimeFormat: "15:04:05",
 		Console: &consoleLogger{
@@ -28,7 +21,7 @@ func Cfg(level int, logFIle string) {
 	cfg, _ := json.Marshal(config)
 	SetLogger(string(cfg))
 	SetLogPath(true)
-}
+}*/
 
 // "File": {                // 文件日志配置
 // 	"filename": "app.log",  // 初始日志文件名

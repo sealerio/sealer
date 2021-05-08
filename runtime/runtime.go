@@ -56,7 +56,10 @@ type Default struct {
 
 func NewDefaultRuntime(cluster *v1.Cluster) Interface {
 	d := &Default{}
-	d.initRunner(cluster)
+	err := d.initRunner(cluster)
+	if err != nil {
+		return nil
+	}
 	return d
 }
 

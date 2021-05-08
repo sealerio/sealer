@@ -43,9 +43,6 @@ func (c *consoleLogger) Init(jsonConfig string) error {
 	if len(jsonConfig) == 0 {
 		return nil
 	}
-	if jsonConfig != "{}" {
-		//fmt.Fprintf(os.Stdout, "consoleLogger Init:%s\n", jsonConfig)
-	}
 
 	err := json.Unmarshal([]byte(jsonConfig), c)
 	if runtime.GOOS == common.WINDOWS {
