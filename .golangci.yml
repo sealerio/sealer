@@ -27,6 +27,13 @@ linters:
     - ineffassign
     - vet
     - typecheck
+    - deadcode
+    - errcheck
+    - govet
+    - staticcheck
+    - structcheck
+    - unused
+    - varcheck
 
 issues:
   exclude-rules:

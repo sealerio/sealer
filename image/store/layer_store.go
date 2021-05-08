@@ -1,15 +1,16 @@
 package store
 
 import (
+	"io"
+	"io/ioutil"
+	"path/filepath"
+	"sync"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/compress"
 	"github.com/opencontainers/go-digest"
-	"io"
-	"io/ioutil"
-	"path/filepath"
-	"sync"
 )
 
 type layerStore struct {
