@@ -161,25 +161,23 @@ func CleanFile(file *os.File) {
 	}
 }
 
-func CleanDir(dir string) (err error) {
+func CleanDir(dir string) {
 	if dir == "" {
-		return errors.New("dir name is empty")
+		logger.Error("clean dir path is empty")
 	}
-	err = os.RemoveAll(dir)
-	return
+	err := os.RemoveAll(dir)
+	if err != nil {
+		logger.Error("failed to remove dir %s ", dir)
+	}
 }
 
-func CleanDirs(dirs ...string) (err error) {
+func CleanDirs(dirs ...string) {
 	if len(dirs) == 0 {
-		return nil
+		return
 	}
 	for _, dir := range dirs {
-		err = CleanDir(dir)
-		if err != nil {
-			return err
-		}
+		CleanDir(dir)
 	}
-	return
 }
 func CleanFiles(file ...string) error {
 	for _, f := range file {

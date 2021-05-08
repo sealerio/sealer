@@ -3,18 +3,17 @@ package cmd
 import (
 	"os"
 
+	"github.com/alibaba/sealer/common"
+
+	"github.com/alibaba/sealer/cert"
+
 	"github.com/alibaba/sealer/apply"
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
 )
 
-type clusterArg struct {
-	Masters string
-	Nodes   string
-}
-
-var clusterConfig *clusterArg
+var runArgs *common.RunArgs
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -36,7 +35,7 @@ create cluster to your baremetal server, appoint the iplist:
 			logger.Error("cluster image name not found")
 			os.Exit(1)
 		}
-		applier, err := apply.NewApplierFromArgs(args[0], clusterConfig.Masters, clusterConfig.Nodes)
+		applier, err := apply.NewApplierFromArgs(args[0], runArgs)
 		if err != nil {
 			logger.Error(err)
 			os.Exit(1)
@@ -49,8 +48,12 @@ create cluster to your baremetal server, appoint the iplist:
 }
 
 func init() {
-	clusterConfig = &clusterArg{}
+	runArgs = &common.RunArgs{}
 	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().StringVarP(&clusterConfig.Masters, "masters", "m", "", "set Count or IPList to masters")
-	runCmd.Flags().StringVarP(&clusterConfig.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
+	runCmd.Flags().StringVarP(&runArgs.Masters, "masters", "m", "", "set Count or IPList to masters")
+	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
+	runCmd.Flags().StringVarP(&runArgs.User, "user", "u", "root", "set baremetal server username")
+	runCmd.Flags().StringVarP(&runArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
+	runCmd.Flags().StringVarP(&runArgs.Pk, "pk", "", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
+	runCmd.Flags().StringVarP(&runArgs.PkPassword, "pk-passwd", "", "", "set baremetal server  private key password")
 }

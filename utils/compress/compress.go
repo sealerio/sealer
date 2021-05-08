@@ -59,9 +59,9 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 	srcPrefix := filepath.ToSlash(src + "/")
 	err = filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
 		// generate tar header
-		header, err := tar.FileInfoHeader(fi, file)
-		if err != nil {
-			return err
+		header, walkErr := tar.FileInfoHeader(fi, file)
+		if walkErr != nil {
+			return walkErr
 		}
 		if file != src {
 			absPath := filepath.ToSlash(file)
@@ -76,17 +76,17 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 		}
 
 		// write header
-		if err = tw.WriteHeader(header); err != nil {
-			return err
+		if walkErr = tw.WriteHeader(header); walkErr != nil {
+			return walkErr
 		}
 		// if not a dir, write file content
 		if !fi.IsDir() {
-			data, err := os.Open(file)
-			if err != nil {
-				return err
+			data, walkErr := os.Open(file)
+			if walkErr != nil {
+				return walkErr
 			}
-			if _, err = io.Copy(tw, data); err != nil {
-				return err
+			if _, walkErr = io.Copy(tw, data); walkErr != nil {
+				return walkErr
 			}
 		}
 		return nil
