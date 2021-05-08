@@ -4,9 +4,9 @@ import (
 	"fmt"
 )
 
-// CMD return seadent cert command
+// CMD return sealer cert command
 func CMD(altNames []string, hostIP, hostName, serviceCIRD, DNSDomain string) string {
-	cmd := "seadent cert "
+	cmd := "sealer cert "
 	if hostIP != "" {
 		cmd += fmt.Sprintf(" --node-ip %s", hostIP)
 	}
@@ -34,7 +34,7 @@ func CMD(altNames []string, hostIP, hostName, serviceCIRD, DNSDomain string) str
 
 // GenerateCert generate all cert.
 func GenerateCert(certPATH, certEtcdPATH string, altNames []string, hostIP, hostName, serviceCIRD, DNSDomain string) error {
-	certConfig, err := NewSeadentCertMetaData(certPATH, certEtcdPATH, altNames, serviceCIRD, hostName, hostIP, DNSDomain)
+	certConfig, err := NewMetaData(certPATH, certEtcdPATH, altNames, serviceCIRD, hostName, hostIP, DNSDomain)
 	if err != nil {
 		return fmt.Errorf("generator cert config failed %v", err)
 	}
