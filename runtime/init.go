@@ -302,7 +302,6 @@ func (d *Default) decodeJoinCmd(cmd string) {
 		r = strings.ReplaceAll(r, "\n", "")
 		r = strings.ReplaceAll(r, "\\", "")
 		r = strings.TrimSpace(r)
-		logger.Debug("[####]%d :%s:", i, r)
 		if strings.Contains(r, "--token") {
 			d.JoinToken = stringSlice[i+1]
 		}
@@ -313,4 +312,5 @@ func (d *Default) decodeJoinCmd(cmd string) {
 			d.CertificateKey = stringSlice[i+1][:64]
 		}
 	}
+	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", d.JoinToken, d.TokenCaCertHash, d.CertificateKey)
 }
