@@ -297,13 +297,20 @@ func (d *Default) decodeJoinCmd(cmd string) {
 	stringSlice := strings.Split(cmd, " ")
 
 	for i, r := range stringSlice {
-		switch r {
-		case "--token":
+		// upstream error, delete \t, \\, \n, space.
+		r = strings.ReplaceAll(r, "\t", "")
+		r = strings.ReplaceAll(r, "\n", "")
+		r = strings.ReplaceAll(r, "\\", "")
+		r = strings.TrimSpace(r)
+		if strings.Contains(r, "--token") {
 			d.JoinToken = stringSlice[i+1]
-		case "--discovery-token-ca-cert-hash":
+		}
+		if strings.Contains(r, "--discovery-token-ca-cert-hash") {
 			d.TokenCaCertHash = stringSlice[i+1]
-		case "--certificate-key":
+		}
+		if strings.Contains(r, "--certificate-key") {
 			d.CertificateKey = stringSlice[i+1][:64]
 		}
 	}
+	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", d.JoinToken, d.TokenCaCertHash, d.CertificateKey)
 }
