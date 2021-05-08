@@ -1,11 +1,12 @@
 package store
 
 import (
-	"github.com/alibaba/sealer/common"
-	"github.com/opencontainers/go-digest"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/opencontainers/go-digest"
 )
 
 type LayerID digest.Digest
