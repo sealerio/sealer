@@ -28,12 +28,9 @@ import (
 var rmiCmd = &cobra.Command{
 	Use:   "rmi",
 	Short: "rmi delete local image",
-	Long:  `sealer rmi registry.cn-qingdao.aliyuncs.com/seadent/cloudrootfs:v1.16.9-alpha.5`,
+	Long:  `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5`,
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			logger.Error("enter the imageName")
-			os.Exit(1)
-		}
 		if err := image.NewImageService().Delete(args[0]); err != nil {
 			logger.Error(err)
 			os.Exit(1)

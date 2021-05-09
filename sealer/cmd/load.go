@@ -16,39 +16,41 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/alibaba/sealer/apply"
+	"os"
+
+	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
-
-	"os"
 )
 
-var clusterFile string
+var imageSrc string
 
-// applyCmd represents the apply command
-var applyCmd = &cobra.Command{
-	Use:   "apply",
-	Short: "apply a kubernetes cluster",
-	Long:  `sealer apply -f Clusterfile`,
+// loadCmd represents the load command
+var loadCmd = &cobra.Command{
+	Use:   "load",
+	Short: "read image from tar archive file",
+	Long:  `sealer load -i kubernetes.tar.gz`,
+	Args:  cobra.MaximumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := apply.NewApplierFromFile(clusterFile).Apply(); err != nil {
-			logger.Error(err)
+		if err := image.NewImageFileService().Load(imageSrc); err != nil {
+			logger.Error("filed to load image from %s,%v", imageSrc, err)
 			os.Exit(1)
 		}
+		logger.Info("load image from %s success", imageSrc)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(applyCmd)
-	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "apply a kubernetes cluster")
-	_ = applyCmd.MarkFlagRequired("Clusterfile")
+	rootCmd.AddCommand(loadCmd)
+	loadCmd.Flags().StringVarP(&imageSrc, "input", "i", "", "read image from tar archive file")
+	_ = loadCmd.MarkFlagRequired("input")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// applyCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// loadCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// applyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// loadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

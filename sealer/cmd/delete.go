@@ -40,4 +40,5 @@ if provider is BARESERVER will delete kubernetes nodes, or if provider is ALI_CL
 func init() {
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "delete a kubernetes cluster with Clusterfile Annotations")
+	_ = deleteCmd.MarkFlagRequired("Clusterfile")
 }

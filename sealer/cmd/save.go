@@ -16,39 +16,40 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/alibaba/sealer/apply"
+	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
-	"github.com/spf13/cobra"
 
-	"os"
+	"github.com/spf13/cobra"
 )
 
-var clusterFile string
+var ImageTar string
 
-// applyCmd represents the apply command
-var applyCmd = &cobra.Command{
-	Use:   "apply",
-	Short: "apply a kubernetes cluster",
-	Long:  `sealer apply -f Clusterfile`,
+// saveCmd represents the save command
+var saveCmd = &cobra.Command{
+	Use:   "save",
+	Short: "write the image to a file and default tar file name is image id ",
+	Long: `sealer save -o [file name] [image name]
+examples:
+save image by image name:
+sealer save -o kubernetes.tar.gz kubernetes:v1.18.3`,
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := apply.NewApplierFromFile(clusterFile).Apply(); err != nil {
-			logger.Error(err)
-			os.Exit(1)
+		if err := image.NewImageFileService().Save(args[0], ImageTar); err != nil {
+			logger.Error("failed to save %v,%v", args[0], err)
 		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(applyCmd)
-	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "apply a kubernetes cluster")
-	_ = applyCmd.MarkFlagRequired("Clusterfile")
+	rootCmd.AddCommand(saveCmd)
+	saveCmd.Flags().StringVarP(&ImageTar, "output", "o", "", "write the image to a file")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// applyCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// saveCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// applyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// saveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

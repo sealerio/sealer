@@ -13,3 +13,8 @@ func NewImageMetadataService() MetadataService {
 		BaseImageManager{},
 	}
 }
+
+// NewImageFileService return the file Service
+func NewImageFileService() FileService {
+	return DefaultImageFileService{}
+}
