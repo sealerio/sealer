@@ -153,23 +153,26 @@ func (d DefaultImageService) Delete(imageName string) error {
 		images = append(images, tmpImage)
 	}
 	layer2ImageNames := layer2ImageMap(images)
+	// TODO: find a atomic way to delete layers and image
 	layerStore, err := store.NewDefaultLayerStore()
 	if err != nil {
 		return err
-	}
-	for _, layer := range image.Spec.Layers {
-		layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash))
-		if isLayerDeletable(layer2ImageNames, layerID) {
-			err = layerStore.Delete(layerID)
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	err = d.deleteImageLocal(image.Name, image.Spec.ID)
 	if err != nil {
 		return err
+	}
+
+	for _, layer := range image.Spec.Layers {
+		layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash))
+		if isLayerDeletable(layer2ImageNames, layerID) {
+			err = layerStore.Delete(layerID)
+			if err != nil {
+				// print log and continue to delete other layers of the image
+				logger.Error("Fail to delete image %s's layer %s", imageName, layerID)
+			}
+		}
 	}
 
 	logger.Info("image %s delete success", imageName)
