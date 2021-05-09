@@ -39,6 +39,29 @@ func GetImage(imageName string) (*v1.Image, error) {
 	return GetImageByID(image.ID)
 }
 
+func DeleteImage(imageName string) error {
+	imagesMap, err := GetImageMetadataMap()
+	if err != nil {
+		return err
+	}
+
+	_, ok := imagesMap[imageName]
+	if !ok {
+		return nil
+	}
+	delete(imagesMap, imageName)
+
+	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
+	if err != nil {
+		return err
+	}
+
+	if err = ioutil.WriteFile(common.DefaultImageMetadataFile, data, common.FileMode0644); err != nil {
+		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
+	}
+	return nil
+}
+
 func GetImageByID(imageID string) (*v1.Image, error) {
 	fileName := filepath.Join(common.DefaultImageMetaRootDir, imageID+".yaml")
 

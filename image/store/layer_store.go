@@ -3,6 +3,7 @@ package store
 import (
 	"io"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -51,6 +52,30 @@ func (ls *layerStore) RegisterLayerIfNotPresent(closer io.ReadCloser, id LayerID
 	ls.mux.Lock()
 	defer ls.mux.Unlock()
 	ls.layers[id] = rl
+	return nil
+}
+
+func (ls *layerStore) Delete(id LayerID) error {
+	digs := digest.Digest(id)
+	layer := ls.Get(id)
+	if layer == nil {
+		logger.Debug("layer %s is already deleted", id)
+		return nil
+	}
+
+	filePath := filepath.Join(common.DefaultLayerDir, digs.Hex())
+	err := os.RemoveAll(filePath)
+	if err != nil {
+		return err
+	}
+	subDir := filepath.Join(common.DefaultLayerDBDir, digs.Algorithm().String(), digs.Hex())
+	err = os.RemoveAll(subDir)
+	if err != nil {
+		return err
+	}
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	delete(ls.layers, id)
 	return nil
 }
 

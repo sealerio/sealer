@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
@@ -120,6 +121,79 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 	}
 	logger.Info("%s login %s success", RegistryUsername, RegistryURL)
 	return nil
+}
+
+func (d DefaultImageService) Delete(imageName string) error {
+	var (
+		images []*v1.Image
+		image  *v1.Image
+	)
+	named, err := reference.ParseToNamed(imageName)
+	if err != nil {
+		return err
+	}
+
+	image, err = imageutils.GetImage(named.Raw())
+	if err != nil {
+		return err
+	}
+
+	imageMetadataMap, err := imageutils.GetImageMetadataMap()
+	if err != nil {
+		return err
+	}
+	for _, imageMetadata := range imageMetadataMap {
+		if imageMetadata.ID == "" {
+			continue
+		}
+		tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
+		if err != nil {
+			continue
+		}
+		images = append(images, tmpImage)
+	}
+	layer2ImageNames := layer2ImageMap(images)
+	// TODO: find a atomic way to delete layers and image
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return err
+	}
+
+	err = d.deleteImageLocal(image.Name, image.Spec.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, layer := range image.Spec.Layers {
+		layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash))
+		if isLayerDeletable(layer2ImageNames, layerID) {
+			err = layerStore.Delete(layerID)
+			if err != nil {
+				// print log and continue to delete other layers of the image
+				logger.Error("Fail to delete image %s's layer %s", imageName, layerID)
+			}
+		}
+	}
+
+	logger.Info("image %s delete success", imageName)
+	return nil
+}
+
+func isLayerDeletable(layer2ImageNames map[store.LayerID][]string, layerID store.LayerID) bool {
+	return len(layer2ImageNames[layerID]) <= 1
+}
+
+// layer2ImageMap accepts a directory parameter which contains image metadata.
+// It reads these metadata and saves the layer and image relationship in a map.
+func layer2ImageMap(images []*v1.Image) map[store.LayerID][]string {
+	var layer2ImageNames = make(map[store.LayerID][]string)
+	for _, image := range images {
+		for _, layer := range image.Spec.Layers {
+			layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash))
+			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Name)
+		}
+	}
+	return layer2ImageNames
 }
 
 //func (d DefaultImageService) Load(imageSrc string) error {
