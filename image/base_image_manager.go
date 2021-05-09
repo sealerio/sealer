@@ -58,10 +58,10 @@ func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err err
 
 	err = imageutils.DeleteImage(imageName)
 	if err != nil {
-		err = syncImage(*image)
-		if err != nil {
-			return fmt.Errorf("failed to delete image records in %s and failed to recover image metadata file: %s",
-				common.DefaultImageMetadataFile, filepath.Join(common.DefaultImageMetaRootDir, imageID+common.YamlSuffix))
+		syncImageError := syncImage(*image)
+		if syncImageError != nil {
+			return fmt.Errorf("failed to delete image records in %s and failed to recover image metadata file: %s, error: %v",
+				common.DefaultImageMetadataFile, filepath.Join(common.DefaultImageMetaRootDir, imageID+common.YamlSuffix), syncImageError)
 		}
 		return err
 	}
