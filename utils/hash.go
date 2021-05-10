@@ -30,9 +30,12 @@ import (
 	return hex.EncodeToString(md5Values[:])
 }*/
 
-func MD5(body []byte) string {
-	bytes := md5.Sum(body)
-	return hex.EncodeToString(bytes[:])
+func MD5(body ...[]byte) string {
+	md5Hash := md5.New()
+	for _, b := range body {
+		md5Hash.Write(b)
+	}
+	return hex.EncodeToString(md5Hash.Sum(nil))
 }
 
 //FileMD5 count file md5

@@ -3,6 +3,7 @@ package parser
 import (
 	"bufio"
 	"fmt"
+	"github.com/alibaba/sealer/utils"
 	"strings"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,14 +39,14 @@ func (p *Parser) Parse(kubeFile []byte, name string) *v1.Image {
 			logger.Warn("decode kubeFile line failed %v", err)
 			continue
 		}
-
-		//TODO count layer hash
 		image.Spec.Layers = append(image.Spec.Layers, v1.Layer{
 			Hash:  "",
 			Type:  layerType,
 			Value: layerValue,
 		})
 	}
+	// gen consistent image ID
+	image.Spec.ID = utils.MD5(kubeFile, []byte(name))
 	return image
 }
 

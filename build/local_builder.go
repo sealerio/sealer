@@ -101,7 +101,6 @@ func (l *LocalBuilder) InitImageSpec() error {
 		return fmt.Errorf("first line of kubefile must be FROM")
 	}
 
-	l.Image.Spec.ID = utils.GenUniqueID(32)
 	logger.Info("init image spec success! image id is %s", l.Image.Spec.ID)
 	return nil
 }
