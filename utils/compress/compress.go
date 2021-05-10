@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/docker/docker/pkg/system"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
 )
@@ -57,7 +59,7 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 
 	src = strings.TrimSuffix(src, "/")
 	srcPrefix := filepath.ToSlash(src + "/")
-	err = filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
+	err = filepath.Walk(src, func(file string, fi os.FileInfo, funcErr error) error {
 		// generate tar header
 		header, walkErr := tar.FileInfoHeader(fi, file)
 		if walkErr != nil {
@@ -133,7 +135,15 @@ func Dir(dir, target string) (err error) {
 
 // this uncompress will not change the metadata of original files
 func Uncompress(src io.Reader, dst string) error {
-	err := os.MkdirAll(dst, common.FileMode0755)
+	// need to set umask to be 000 for current process.
+	// there will be some files having higher permission like 777,
+	// eventually permission will be set to 755 when umask is 022.
+	_, err := system.Umask(0)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(dst, common.FileMode0755)
 	if err != nil {
 		return err
 	}

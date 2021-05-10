@@ -23,6 +23,14 @@ func (rl *roLayer) ID() (LayerID, error) {
 	return LayerID(lid), nil
 }
 
+func (rl *roLayer) SimpleID() string {
+	id, err := rl.ID()
+	if err != nil {
+		return rl.id.String()
+	}
+	return digest.Digest(id).Hex()[0:12]
+}
+
 func (rl *roLayer) TarStream() (io.ReadCloser, error) {
 	id := digest.Digest(rl.id)
 	return os.Open(filepath.Join(common.DefaultLayerDBDir, id.Algorithm().String(), id.Hex(), DefaultLayerTarName))
