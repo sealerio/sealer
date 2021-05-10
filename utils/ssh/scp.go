@@ -191,16 +191,16 @@ func (s *SSH) copyLocalDirToRemote(host string, sshClient *ssh.Client, sftpClien
 		logger.Error("read local path dir failed %s %s", host, localPath)
 		return
 	}
-	if err = sftpClient.Mkdir(remotePath); err != nil {
-		logger.Error(" failed to create remote path %s", remotePath)
+	if err = sftpClient.MkdirAll(remotePath); err != nil {
+		logger.Error("failed to create remote path %s:%v", remotePath, err)
 		return
 	}
 	for _, file := range localFiles {
 		lfp := path.Join(localPath, file.Name())
 		rfp := path.Join(remotePath, file.Name())
 		if file.IsDir() {
-			if err = sftpClient.Mkdir(rfp); err != nil {
-				logger.Error(" failed to create remote path %s", rfp)
+			if err = sftpClient.MkdirAll(rfp); err != nil {
+				logger.Error("failed to create remote path %s:%v", rfp, err)
 				return
 			}
 			s.copyLocalDirToRemote(host, sshClient, sftpClient, lfp, rfp, ch)
