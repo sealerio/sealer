@@ -228,10 +228,7 @@ func (d DefaultImageService) downloadLayers(named reference.Named, manifest sche
 						}
 
 						rc = curBar.ProxyReader(rc)
-						if innerErr = layerStore.RegisterLayerIfNotPresent(rc, store.LayerID(layer.Digest)); innerErr != nil {
-							return innerErr
-						}
-						return nil
+						return layerStore.RegisterLayerIfNotPresent(rc, store.LayerID(layer.Digest))
 					},
 				},
 			})
