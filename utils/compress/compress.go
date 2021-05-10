@@ -15,14 +15,12 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-func validatePath(paths []string) error {
-	for _, path := range paths {
-		if !filepath.IsAbs(path) {
-			return fmt.Errorf("dir %s should be absolute path", path)
-		}
-		if _, err := os.Stat(path); err != nil {
-			return fmt.Errorf("dir %s is not exist, err: %s", path, err)
-		}
+func validatePath(path string) error {
+	if !filepath.IsAbs(path) {
+		return fmt.Errorf("dir %s must be absolute path", path)
+	}
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("dir %s does not exist, err: %s", path, err)
 	}
 	return nil
 }
@@ -43,10 +41,11 @@ func compress(targetFile *os.File, keepRootDir bool, paths []string) (file *os.F
 	if len(paths) == 0 {
 		return nil, errors.New("[compress] source must be provided")
 	}
-
-	err = validatePath(paths)
-	if err != nil {
-		return nil, err
+	for _, path := range paths {
+		err = validatePath(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	//use existing file
@@ -136,38 +135,6 @@ func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
 
 	return err
 }
-
-// Dir example: dir:/var/lib/etcd target:/home/etcd.tar.gz
-// this func will keep original dir etcd
-//func Dir(dir, target string) (err error) {
-//	if dir == "" || target == "" {
-//		return errors.New("dir or target should be provided")
-//	}
-//
-//	if !filepath.IsAbs(dir) || !filepath.IsAbs(target) {
-//		return errors.New("dir and target should be absolute path")
-//	}
-//
-//	target = strings.TrimSuffix(target, "/")
-//	tarDir := filepath.Dir(target)
-//	if err = os.MkdirAll(tarDir, common.FileMode0755); err != nil {
-//		return err
-//	}
-//
-//	var file *os.File
-//	if file, err = os.OpenFile(target, os.O_RDWR|os.O_TRUNC|os.O_CREATE, common.FileMode0755); err != nil {
-//		return err
-//	}
-//	defer file.Close()
-//
-//	dir = strings.TrimSuffix(dir, "/")
-//	originDir := filepath.Base(dir)
-//	// the return file will point to the file above, which will be close in defer, so ignore it
-//	if _, err = Compress(dir, originDir, file); err != nil {
-//		return err
-//	}
-//	return nil
-//}
 
 // Decompress this will not change the metadata of original files
 func Decompress(src io.Reader, dst string) error {
