@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -35,4 +36,34 @@ func ListNodes(client *kubernetes.Clientset) (*v1.NodeList, error) {
 		return nil, errors.Wrapf(err, "get cluster nodes failed")
 	}
 	return nodes, nil
+}
+
+func GetNodeByName(client *kubernetes.Clientset, nodeName string) (node *v1.Node, err error) {
+	return client.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+}
+
+func IsNodeReady(node v1.Node) bool {
+	nodeConditions := node.Status.Conditions
+	for _, condition := range nodeConditions {
+		if condition.Type == v1.NodeReady && condition.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+func CordonUnCordon(k8sClient *kubernetes.Clientset, nodeName string, cordoned bool) error {
+	node, err := GetNodeByName(k8sClient, nodeName)
+	if err != nil {
+		return err
+	}
+	if node.Spec.Unschedulable == cordoned {
+		return nil
+	}
+	node.Spec.Unschedulable = cordoned
+	_, err = k8sClient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("error setting cordoned state for  %s node err: %v", nodeName, err)
+	}
+	return nil
 }
