@@ -19,7 +19,7 @@ func (d *Default) upgrade() error {
 	if len(d.Masters) > 1 {
 		err = d.UpgradeOtherMasters()
 	}
-	
+
 	if len(d.Nodes) >= 1 {
 		err = d.UpgradeNodes()
 	}
@@ -117,7 +117,6 @@ func (d *Default) upgradeNodes(hosts []string, isMaster bool) error {
 			} else {
 				logger.Error("fourth:  %s nodes is not ready, please check the nodes logs to find out reason", node)
 			}
-
 		}(host)
 	}
 	wg.Wait()
