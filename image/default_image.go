@@ -358,7 +358,7 @@ func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs 
 						}
 					}()
 
-					if file, err = compress.Compress(filepath.Join(common.DefaultLayerDir, layer.Hash), "", nil); err != nil {
+					if file, err = compress.RootDirNotIncluded(nil, filepath.Join(common.DefaultLayerDir, layer.Hash)); err != nil {
 						errCh <- err
 						return err
 					}
