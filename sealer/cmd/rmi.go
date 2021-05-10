@@ -24,24 +24,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// pullCmd represents the pull command
-var pullCmd = &cobra.Command{
-	Use:   "pull",
-	Short: "pull cloud image to local",
-	Long:  `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5`,
+// rmiCmd represents the rmi command
+var rmiCmd = &cobra.Command{
+	Use:   "rmi",
+	Short: "rmi delete local image",
+	Long:  `sealer rmi registry.cn-qingdao.aliyuncs.com/seadent/cloudrootfs:v1.16.9-alpha.5`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			logger.Error("enter the imageName")
 			os.Exit(1)
 		}
-		if err := image.NewImageService().Pull(args[0]); err != nil {
+		if err := image.NewImageService().Delete(args[0]); err != nil {
 			logger.Error(err)
 			os.Exit(1)
 		}
-		logger.Info("Pull %s success", args[0])
+		logger.Info("Remove image %s success", args[0])
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(pullCmd)
+	rootCmd.AddCommand(rmiCmd)
 }

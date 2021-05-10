@@ -26,7 +26,7 @@ import (
 var tagCmd = &cobra.Command{
 	Use:   "tag",
 	Short: "tag IMAGE[:TAG] TARGET_IMAGE[:TAG]",
-	Long:  `sealer tag seadent/cloudrootfs:v1.16.9-alpha.6 registry.cn-qingdao.aliyuncs.com/seadent/cloudrootfs:v1.16.9-alpha.5`,
+	Long:  `sealer tag sealer/cloudrootfs:v1.16.9-alpha.6 registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 2 {
 			logger.Error("Enter imageName and target imageName")

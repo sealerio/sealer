@@ -33,7 +33,7 @@ type CopyCommand struct {
 
 // COPY dashboard-chart .
 // COPY [src] [dst]
-// copy files to /var/lib/seadent/[image hash]/[layer hash]
+// copy files to /var/lib/sealer/[image hash]/[layer hash]
 func (c *CopyCommand) Exec() (string, error) {
 	output, err := utils.CmdOutput("cp", "-r", c.Src, c.Dst)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 type LayerStore interface {
 	Get(id LayerID) Layer
 	RegisterLayerIfNotPresent(closer io.ReadCloser, id LayerID) error
+	Delete(id LayerID) error
 }
 
 type Layer interface {

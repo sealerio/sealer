@@ -11,6 +11,7 @@ type MetadataService interface {
 	List() ([]utils.ImageMetadata, error)
 	GetImage(imageName string) (*v1.Image, error)
 	GetRemoteImage(imageName string) (v1.Image, error)
+	DeleteImage(imageName string) error
 }
 
 // FileService is the interface for file operations
@@ -25,5 +26,6 @@ type Service interface {
 	Pull(imageName string) error
 	PullIfNotExist(imageName string) error
 	Push(imageName string) error
+	Delete(imageName string) error
 	Login(RegistryURL, RegistryUsername, RegistryPasswd string) error
 }

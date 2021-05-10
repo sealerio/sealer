@@ -3,6 +3,7 @@ package image
 import (
 	"context"
 	"encoding/json" //nolint:goimports
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -39,6 +40,32 @@ func (bim BaseImageManager) syncImageLocal(image v1.Image) (err error) {
 		}
 		return err
 	}
+	return nil
+}
+
+func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err error) {
+	// Read image metadata from file to ensure that if we fail to delete image records,
+	// the image metadata can be recovered from it.
+	image, err := imageutils.GetImage(imageName)
+	if err != nil {
+		return err
+	}
+
+	err = deleteImage(imageID)
+	if err != nil {
+		return err
+	}
+
+	err = imageutils.DeleteImage(imageName)
+	if err != nil {
+		syncImageError := syncImage(*image)
+		if syncImageError != nil {
+			return fmt.Errorf("failed to delete image records in %s and failed to recover image metadata file: %s, error: %v",
+				common.DefaultImageMetadataFile, filepath.Join(common.DefaultImageMetaRootDir, imageID+common.YamlSuffix), syncImageError)
+		}
+		return err
+	}
+
 	return nil
 }
 
@@ -112,4 +139,15 @@ func syncImage(image v1.Image) error {
 	}
 
 	return ioutil.WriteFile(filepath.Join(common.DefaultImageMetaRootDir, image.Spec.ID+common.YamlSuffix), imageYaml, common.FileMode0755)
+}
+
+func deleteImage(imageID string) error {
+	file := filepath.Join(common.DefaultImageMetaRootDir, imageID+common.YamlSuffix)
+	if pkgutils.IsFileExist(file) {
+		err := pkgutils.CleanFiles(file)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
