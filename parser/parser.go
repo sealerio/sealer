@@ -3,8 +3,9 @@ package parser
 import (
 	"bufio"
 	"fmt"
-	"github.com/alibaba/sealer/utils"
 	"strings"
+
+	"github.com/alibaba/sealer/utils"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
