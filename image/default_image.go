@@ -119,7 +119,7 @@ func (d DefaultImageService) Push(imageArgs string) error {
 }
 
 func IsIDType(args string) bool {
-	return strings.Contains(args, ":")
+	return strings.Contains(args, "/.:")
 }
 
 // Login login into a registry, for saving auth info in ~/.docker/config.json
