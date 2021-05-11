@@ -35,6 +35,7 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "login image repositories",
 	Long:  `sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]`,
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			logger.Error("enter the registry URL failed")
@@ -52,4 +53,6 @@ func init() {
 	rootCmd.AddCommand(loginCmd)
 	loginCmd.Flags().StringVarP(&loginConfig.RegistryUsername, "username", "u", "", "user name for login registry")
 	loginCmd.Flags().StringVarP(&loginConfig.RegistryPasswd, "passwd", "p", "", "password for login registry")
+	_ = loginCmd.MarkFlagRequired("username")
+	_ = loginCmd.MarkFlagRequired("passwd")
 }

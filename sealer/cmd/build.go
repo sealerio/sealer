@@ -55,4 +55,5 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().StringVarP(&buildConfig.Context, "context", "c", ".", "cluster image build context file path")
+	_ = buildCmd.MarkFlagRequired("imageName")
 }
