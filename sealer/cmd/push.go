@@ -29,7 +29,7 @@ var pushCmd = &cobra.Command{
 	Use:   "push",
 	Short: "push cloud image to registry",
 	Long:  `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kuberentes-cluster-with-dashboard:latest`,
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := image.NewImageService().Push(args[0]); err != nil {
 			logger.Error(err)
