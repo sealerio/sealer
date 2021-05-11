@@ -27,9 +27,9 @@ var clusterFile string
 
 // applyCmd represents the apply command
 var applyCmd = &cobra.Command{
-	Use:   "apply",
-	Short: "apply a kubernetes cluster",
-	Long:  `sealer apply -f Clusterfile`,
+	Use:     "apply",
+	Short:   "apply a kubernetes cluster",
+	Example: `sealer apply -f Clusterfile`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := apply.NewApplierFromFile(clusterFile).Apply(); err != nil {
 			logger.Error(err)
@@ -41,13 +41,4 @@ var applyCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(applyCmd)
 	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "apply a kubernetes cluster")
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// applyCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// applyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
