@@ -113,18 +113,3 @@ func GetClusterFileFromBaseImage(imageName string) string {
 	}
 	return string(data)
 }
-
-func GetImageByClusterFileName(imageName string) string {
-	image, err := imageUtils.GetImage(imageName)
-	if err == nil {
-		if image.Annotations == nil {
-			logger.Info("not found clusterFile in locally")
-		}
-		clusterFile, ok := image.Annotations[common.ImageAnnotationForClusterfile]
-		if !ok {
-			return ""
-		}
-		return clusterFile
-	}
-	return GetClusterFileFromImageManifest(imageName)
-}
