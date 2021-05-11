@@ -36,7 +36,7 @@ func (ls *layerStore) RegisterLayerIfNotPresent(closer io.ReadCloser, id LayerID
 		return nil
 	}
 
-	err := compress.Uncompress(closer, filepath.Join(common.DefaultLayerDir, digest.Digest(id).Hex()))
+	err := compress.Decompress(closer, filepath.Join(common.DefaultLayerDir, digest.Digest(id).Hex()))
 	if err != nil {
 		return err
 	}

@@ -28,7 +28,7 @@ func (sha SHA256) CheckSum(reader io.Reader) (*digest.Digest, error) {
 }
 
 func (sha SHA256) TarCheckSum(src string) (*os.File, string, error) {
-	file, err := compress.Compress(src, "", nil)
+	file, err := compress.RootDirNotIncluded(nil, src)
 	if err != nil {
 		return nil, "", err
 	}
@@ -58,7 +58,7 @@ func CheckSumAndPlaceLayer(dir string) (string, error) {
 	}
 
 	defer utils.CleanFile(file)
-	err = compress.Uncompress(file, filepath.Join(common.DefaultLayerDir, dig))
+	err = compress.Decompress(file, filepath.Join(common.DefaultLayerDir, dig))
 	if err != nil {
 		return "", err
 	}
