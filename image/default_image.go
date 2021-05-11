@@ -82,16 +82,13 @@ func (d DefaultImageService) Pull(imageName string) error {
 func (d DefaultImageService) Push(imageArgs string) error {
 	var image *v1.Image
 	var err error
-	if Images := IsIDType(imageArgs); Images != true {
+	if !strings.ContainsAny(imageArgs, ":./") {
 		image, err = imageutils.GetImageByID(imageArgs)
-		if err != nil {
-			return err
-		}
 	} else {
 		image, err = imageutils.GetImage(imageArgs)
-		if err != nil {
-			return err
-		}
+	}
+	if err != nil {
+		return err
 	}
 
 	named, err := reference.ParseToNamed(imageArgs)
@@ -116,10 +113,6 @@ func (d DefaultImageService) Push(imageArgs string) error {
 	}
 
 	return d.pushManifest(metadataBytes, named, descriptors)
-}
-
-func IsIDType(args string) bool {
-	return strings.Contains(args, "/.:")
 }
 
 // Login login into a registry, for saving auth info in ~/.docker/config.json
