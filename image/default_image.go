@@ -93,6 +93,7 @@ func (d DefaultImageService) Push(imageArgs string) error {
 			return err
 		}
 	}
+
 	named, err := reference.ParseToNamed(imageArgs)
 	if err != nil {
 		return err
