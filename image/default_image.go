@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
@@ -78,18 +79,26 @@ func (d DefaultImageService) Pull(imageName string) error {
 }
 
 // Push push local image to remote registry
-func (d DefaultImageService) Push(imageName string) error {
-	named, err := reference.ParseToNamed(imageName)
+func (d DefaultImageService) Push(imageArgs string) error {
+	var image *v1.Image
+	var err error
+	if Images := IsIDType(imageArgs); Images != true {
+		image, err = imageutils.GetImageByID(imageArgs)
+		if err != nil {
+			return err
+		}
+	} else {
+		image, err = imageutils.GetImage(imageArgs)
+		if err != nil {
+			return err
+		}
+	}
+	named, err := reference.ParseToNamed(imageArgs)
 	if err != nil {
 		return err
 	}
 
 	err = d.initRegistry(named.Domain())
-	if err != nil {
-		return err
-	}
-
-	image, err := imageutils.GetImage(named.Raw())
 	if err != nil {
 		return err
 	}
@@ -106,6 +115,10 @@ func (d DefaultImageService) Push(imageName string) error {
 	}
 
 	return d.pushManifest(metadataBytes, named, descriptors)
+}
+
+func IsIDType(args string) bool {
+	return strings.Contains(args, ":")
 }
 
 // Login login into a registry, for saving auth info in ~/.docker/config.json
