@@ -5,11 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/docker/distribution"
+	"io"
 	"os"
 
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/distributionutil"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
 	imageutils "github.com/alibaba/sealer/image/utils"
@@ -19,9 +22,13 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/compress"
 	"github.com/alibaba/sealer/utils/progress"
-	"github.com/docker/distribution"
+	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/api/types"
+	dockerutils "github.com/docker/docker/distribution/utils"
+	dockerioutils "github.com/docker/docker/pkg/ioutils"
+	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
+	dockerprogress "github.com/docker/docker/pkg/progress"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
@@ -63,19 +70,46 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 
-	err = d.initRegistry(named.Domain())
+	var (
+		reader, writer  = io.Pipe()
+		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
+		progressChan    = make(chan dockerprogress.Progress, 100)
+		progressChanOut = dockerprogress.ChanOutput(progressChan)
+		pullDone        = make(chan struct{})
+		streamOut       = dockerstreams.NewOut(os.Stdout)
+	)
+	defer func() {
+		reader.Close()
+		writer.Close()
+		writeFlusher.Close()
+	}()
+
+	go func() {
+		dockerutils.WriteDistributionProgress(func() {}, writeFlusher, progressChan)
+		close(pullDone)
+	}()
+
+	puller, err := distributionutil.NewPuller(distributionutil.Config{
+		LayerStore:     *globalLayerStore,
+		ProgressOutput: progressChanOut,
+		AuthInfo:       getDockerAuthInfoFromDocker(named.Domain()),
+	})
 	if err != nil {
 		return err
 	}
 
-	image, err := d.remoteImage(named.Raw())
+	go func() {
+		dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
+	}()
+
+	fmt.Printf("Start to Pull Image %s \n", named.Raw())
+	image, err := puller.Pull(context.Background(), named)
 	if err != nil {
 		return err
 	}
 	// TODO rely on id next
-	image.Name = named.Raw()
-	fmt.Printf("Start to Pull Image %s \n", named.Raw())
-	return d.pull(*image)
+	//image.Name = named.Raw()
+	return d.syncImageLocal(*image)
 }
 
 // Push push local image to remote registry
@@ -194,123 +228,6 @@ func layer2ImageMap(images []*v1.Image) map[store.LayerID][]string {
 		}
 	}
 	return layer2ImageNames
-}
-
-//func (d DefaultImageService) Load(imageSrc string) error {
-//	panic("implement me")
-//}
-
-//func (d DefaultImageService) Save(imageName string, imageTar string) error {
-//	will be accomplished
-//	img, err := localImage(imageName)
-//	if err != nil {
-//		return err
-//	}
-//
-//	tarFile, err := os.OpenFile(imageTar, os.O_CREATE|os.O_TRUNC, 0766)
-//	if err != nil {
-//		return err
-//	}
-//
-//	for _, layer := range img.Spec.Layers {
-//		compress.Compress("", layer.Hash)
-//		io.Copy(tarFile)
-//	}
-//	compress.Compress()
-//	panic("implement me")
-//}
-
-//func (d DefaultImageService) Merge(image *v1.Image) (err error) {
-//	var layers []string
-//	// TODO merge baseImage layers
-//	for _, l := range image.Spec.Layers {
-//		if l.Type == common.COPYCOMMAND {
-//			layers = append(layers, fmt.Sprintf("%s/%s", common.DefaultImageRootDir, l.Hash))
-//		}
-//	}
-//
-//	driver := mount.NewMountDriver()
-//	err = driver.Mount("", "", layers...)
-//	return err
-//}
-
-func (d DefaultImageService) downloadLayers(named reference.Named, manifest schema2.Manifest) (err error) {
-	layerStore, err := store.NewDefaultLayerStore()
-	if err != nil {
-		return err
-	}
-	flow := progress.NewProgressFlow()
-	errorCh := make(chan error, 2*len(manifest.Layers))
-	defer func() {
-		close(errorCh)
-		lerr := errors.New("failed to download layers")
-		for e := range errorCh {
-			err = errors.Wrap(e, lerr.Error())
-			lerr = err
-		}
-	}()
-
-	for _, lyr := range manifest.Layers {
-		func(layer distribution.Descriptor) {
-			var err error
-			defer func() {
-				if err != nil {
-					errorCh <- err
-				}
-			}()
-			//TODO construct an roLayer
-			hex := layer.Digest.Hex()
-			shortHex := hex
-			if len(shortHex) > 12 {
-				shortHex = shortHex[0:12]
-			}
-
-			roLayer := layerStore.Get(store.LayerID(layer.Digest))
-			if roLayer != nil {
-				flow.ShowMessage(roLayer.SimpleID()+" already exists", nil)
-				return
-			}
-
-			// get layers stream first
-			blobReader, err := d.registry.DownloadLayer(context.Background(), named.Repo(), layer.Digest)
-			if err != nil {
-				flow.ShowMessage(shortHex+fmt.Sprintf(" failed to pull layer, err: %s", err), nil)
-				return
-			}
-
-			flow.AddProgressTasks(progress.TaskDef{
-				Task:       hex[0:12],
-				Job:        imageDownloading + "&" + imageExtracting,
-				Max:        layer.Size,
-				SuccessMsg: shortHex + " " + imagePullComplete,
-				ProgressSrc: progress.TakeOverTask{
-					Cxt: progress.Context{}.WithReader(blobReader),
-					Action: func(cxt progress.Context) (innerErr error) {
-						defer func() {
-							if innerErr != nil {
-								errorCh <- innerErr
-							}
-						}()
-						rc := cxt.GetCurrentReaderCloser()
-						if rc == nil {
-							return errors.New("failed to start uploading layer, err: no reader found")
-						}
-						defer rc.Close()
-						curBar := cxt.GetCurrentBar()
-						if curBar == nil {
-							return errors.New("failed to start uploading layer, err: no current bar found")
-						}
-
-						rc = curBar.ProxyReader(rc)
-						return layerStore.RegisterLayerIfNotPresent(rc, store.LayerID(layer.Digest))
-					},
-				},
-			})
-		}(lyr)
-	}
-
-	flow.Start()
-	return nil
 }
 
 func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs chan distribution.Descriptor) (err error) {
@@ -461,26 +378,6 @@ func (d DefaultImageService) remoteImage(imageName string) (*v1.Image, error) {
 	}
 
 	return &remoteImage, nil
-}
-
-func (d DefaultImageService) pull(img v1.Image) error {
-	named, err := reference.ParseToNamed(img.Name)
-	if err != nil {
-		return err
-	}
-
-	repo, tag := named.Repo(), named.Tag()
-	manifest, err := d.registry.ManifestV2(context.Background(), repo, tag)
-	if err != nil {
-		return err
-	}
-
-	err = d.downloadLayers(named, manifest)
-	if err != nil {
-		return err
-	}
-
-	return d.syncImageLocal(img)
 }
 
 func (d DefaultImageService) pushLayers(named reference.Named, image *v1.Image) ([]distribution.Descriptor, error) {

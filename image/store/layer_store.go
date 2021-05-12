@@ -1,7 +1,6 @@
 package store
 
 import (
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,7 +9,6 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/compress"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -29,29 +27,26 @@ func (ls *layerStore) Get(id LayerID) Layer {
 	return l
 }
 
-func (ls *layerStore) RegisterLayerIfNotPresent(closer io.ReadCloser, id LayerID) error {
-	layer := ls.Get(id)
-	if layer != nil {
-		logger.Debug("layer %s already exists", id)
+func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
+	layerExist := ls.Get(layer.ID())
+	if layerExist != nil {
 		return nil
 	}
 
-	err := compress.Decompress(closer, filepath.Join(common.DefaultLayerDir, digest.Digest(id).Hex()))
-	if err != nil {
-		return err
-	}
-
-	rl := &roLayer{
-		id: id,
-	}
-	err = dumpLayerMetadata(rl)
+	err := dumpLayerMetadata(layer)
 	if err != nil {
 		return err
 	}
 
 	ls.mux.Lock()
 	defer ls.mux.Unlock()
-	ls.layers[id] = rl
+	switch layer.(type) {
+	case *roLayer:
+		ls.layers[layer.ID()] = layer.(*roLayer)
+	default:
+		// won't happen
+	}
+
 	return nil
 }
 
@@ -80,11 +75,7 @@ func (ls *layerStore) Delete(id LayerID) error {
 }
 
 func dumpLayerMetadata(layer Layer) error {
-	id, err := layer.ID()
-	if err != nil {
-		return err
-	}
-
+	id := layer.ID()
 	digs := digest.Digest(id)
 	subDir := filepath.Join(common.DefaultLayerDBDir, digs.Algorithm().String(), digs.Hex())
 	return utils.WriteFile(filepath.Join(subDir, "id"), []byte(id.String()))

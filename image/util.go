@@ -2,6 +2,7 @@ package image
 
 import (
 	"fmt"
+	"github.com/docker/docker/api/types"
 	"io/ioutil"
 	"path/filepath"
 
@@ -109,4 +110,23 @@ func GetClusterFileFromBaseImage(imageName string) string {
 		return ""
 	}
 	return string(data)
+}
+
+func getDockerAuthInfoFromDocker(domain string) types.AuthConfig {
+	var (
+		dockerInfo       *utils.DockerInfo
+		err              error
+		username, passwd string
+	)
+	dockerInfo, err = utils.DockerConfig()
+	if err != nil {
+		logger.Warn("failed to get docker info, err: %s", err)
+	} else {
+		username, passwd, err = dockerInfo.DecodeDockerAuth(domain)
+		if err != nil {
+			logger.Warn("failed to decode auth info, username and password would be empty, err: %s", err)
+		}
+	}
+
+	return types.AuthConfig{Username: username, Password: passwd, ServerAddress: domain}
 }
