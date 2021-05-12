@@ -18,8 +18,8 @@ var runArgs *common.RunArgs
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "run a cluster with images and arguments",
-	Long: `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7 --masters [arg] --nodes [arg]
-examples:
+	Long:  `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7 --masters [arg] --nodes [arg]`,
+	Example: `
 create default cluster:
 	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7
 

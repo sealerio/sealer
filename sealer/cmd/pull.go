@@ -26,10 +26,10 @@ import (
 
 // pullCmd represents the pull command
 var pullCmd = &cobra.Command{
-	Use:   "pull",
-	Short: "pull cloud image to local",
-	Long:  `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5`,
-	Args:  cobra.ExactArgs(1),
+	Use:     "pull",
+	Short:   "pull cloud image to local",
+	Example: `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5`,
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := image.NewImageService().Pull(args[0]); err != nil {
 			logger.Error(err)
