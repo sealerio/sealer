@@ -110,3 +110,35 @@ func GetClusterFileFromBaseImage(imageName string) string {
 	}
 	return string(data)
 }
+
+func GetYamlByImage(imageName string) string {
+	imagesMap, err := imageUtils.GetImageMetadataMap()
+	if err != nil {
+		return " "
+	}
+
+	image, ok := imagesMap[imageName]
+	if !ok {
+		return " failed to find image by name"
+	}
+
+	if image.ID == "" {
+		return " failed to find corresponding image id, id is empty"
+	}
+
+	ImageInformation, err := ioutil.ReadFile(filepath.Join(common.DefaultImageMetaRootDir, image.ID+common.YamlSuffix))
+	if err != nil {
+		return ""
+	}
+	return string(ImageInformation)
+}
+
+func GetClusterFileByImage(imageName string) string {
+	image, err := imageUtils.GetImage(imageName)
+	if err == nil {
+		if image.Annotations == nil {
+			logger.Info("not found clusterFile in locally")
+		}
+	}
+	return GetClusterFileFromImageManifest(imageName)
+}

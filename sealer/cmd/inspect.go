@@ -16,41 +16,43 @@ limitations under the License.
 package cmd
 
 import (
-"fmt"
-"github.com/alibaba/sealer/image"
-"github.com/alibaba/sealer/logger"
-"os"
+	"fmt"
+	"os"
 
-"github.com/spf13/cobra"
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/logger"
+	"github.com/spf13/cobra"
 )
+
+var clusterFilePrint bool
 
 // inspectCmd represents the inspect command
 var inspectCmd = &cobra.Command{
 	Use:   "inspect",
-	Short: "print the imageInformation",
-	Long: `sealer inspect kubernetes:v1.18.3`,
-	Args:  cobra.MinimumNArgs(1),
+	Short: "print the imageInformation or clusterFile",
+	Long: `sealer inspect kubernetes:v1.18.3
+	 	   sealer inspect -c kubernetes:v1.18.3`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		file := image.GetInspect(args[0])
-		if file == " " {
-			logger.Error("not found clusterFile in registry")
+		file := image.GetYamlByImage(args[0])
+		if file == "" {
+			logger.Error("not found image information")
 			os.Exit(1)
 		}
-		fmt.Println(file)
+		if clusterFilePrint {
+			cluster := image.GetClusterFileByImage(args[0])
+			if cluster == "" {
+				logger.Error("not found clusterFile in registry")
+				os.Exit(1)
+			}
+			fmt.Println(cluster)
+		} else {
+			fmt.Println(file)
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(inspectCmd)
-	inspectCmd.Flags().StringVarP(&, "clusterFile", "c", "clusterFile", "print the clusterFile")
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// inspectCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// inspectCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	inspectCmd.Flags().BoolVarP(&clusterFilePrint, "imageName", "c", false, "print the clusterFile")
 }
