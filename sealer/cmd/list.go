@@ -30,9 +30,9 @@ const (
 )
 
 var listCmd = &cobra.Command{
-	Use:   "images",
-	Short: "list all cluster images",
-	Long:  `sealer images`,
+	Use:     "images",
+	Short:   "list all cluster images",
+	Example: `sealer images`,
 	Run: func(cmd *cobra.Command, args []string) {
 		imageMetadataList, err := image.NewImageMetadataService().List()
 		if err != nil {

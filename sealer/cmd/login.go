@@ -32,9 +32,10 @@ type LoginFlag struct {
 var loginConfig *LoginFlag
 
 var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "login image repositories",
-	Long:  `sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]`,
+	Use:     "login",
+	Short:   "login image repositories",
+	Example: `sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]`,
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			logger.Error("enter the registry URL failed")
@@ -52,4 +53,12 @@ func init() {
 	rootCmd.AddCommand(loginCmd)
 	loginCmd.Flags().StringVarP(&loginConfig.RegistryUsername, "username", "u", "", "user name for login registry")
 	loginCmd.Flags().StringVarP(&loginConfig.RegistryPasswd, "passwd", "p", "", "password for login registry")
+	if err := loginCmd.MarkFlagRequired("username"); err != nil {
+		logger.Error("failed to init flag: %v", err)
+		os.Exit(1)
+	}
+	if err := loginCmd.MarkFlagRequired("passwd"); err != nil {
+		logger.Error("failed to init flag: %v", err)
+		os.Exit(1)
+	}
 }

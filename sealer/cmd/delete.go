@@ -25,10 +25,10 @@ import (
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "delete a cluster",
-	Long: `sealer delete -f /root/.sealer/mycluster/Clusterfile
-if provider is BARESERVER will delete kubernetes nodes, or if provider is ALI_CLOUD, will delete all the infra resources`,
+	Use:     "delete",
+	Short:   "delete a cluster",
+	Long:    `if provider is BARESERVER will delete kubernetes nodes, or if provider is ALI_CLOUD, will delete all the infra resources`,
+	Example: `sealer delete -f /root/.sealer/mycluster/Clusterfile`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := apply.NewApplierFromFile(clusterFile).Delete(); err != nil {
 			logger.Error(err)

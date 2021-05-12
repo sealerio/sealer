@@ -28,9 +28,9 @@ import (
 var shortPrint bool
 
 var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "version",
-	Long:  `sealer version`,
+	Use:     "version",
+	Short:   "version",
+	Example: `sealer version`,
 	Run: func(cmd *cobra.Command, args []string) {
 		marshalled, err := json.Marshal(version.Get())
 		if err != nil {

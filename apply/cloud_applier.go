@@ -101,10 +101,9 @@ func (c *CloudApplier) Delete() error {
 	}
 	if err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("%s %s", host, common.APIServerDomain)); err != nil {
 		logger.Warn(err)
-		return nil
 	}
 
-	if err := utils.CleanFiles(common.DefaultKubeconfigDir, common.GetClusterWorkDir(c.ClusterDesired.Name), common.KubectlPath); err != nil {
+	if err := utils.CleanFiles(common.DefaultKubeconfigDir, common.GetClusterWorkDir(c.ClusterDesired.Name), common.TmpClusterfile, common.KubectlPath); err != nil {
 		logger.Warn(err)
 		return nil
 	}
