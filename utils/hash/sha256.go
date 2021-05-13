@@ -18,16 +18,16 @@ const emptySHA256TarDigest = "sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577
 type SHA256 struct {
 }
 
-func (sha SHA256) CheckSum(reader io.Reader) (*digest.Digest, error) {
+func (sha SHA256) CheckSum(reader io.Reader) (digest.Digest, error) {
 	hash := sha256.New()
 	if _, err := io.Copy(hash, reader); err != nil {
-		return nil, err
+		return "", err
 	}
 	dig := digest.NewDigestFromEncoded(digest.SHA256, hex.EncodeToString(hash.Sum(nil)))
-	return &dig, nil
+	return dig, nil
 }
 
-func (sha SHA256) TarCheckSum(src string) (*os.File, string, error) {
+func (sha SHA256) TarCheckSum(src string) (*os.File, digest.Digest, error) {
 	file, err := compress.RootDirNotIncluded(nil, src)
 	if err != nil {
 		return nil, "", err
@@ -47,10 +47,10 @@ func (sha SHA256) TarCheckSum(src string) (*os.File, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	return file, dig.String(), nil
+	return file, dig, nil
 }
 
-func CheckSumAndPlaceLayer(dir string) (string, error) {
+func CheckSumAndPlaceLayer(dir string) (digest.Digest, error) {
 	sha := SHA256{}
 	file, dig, err := sha.TarCheckSum(dir)
 	if err != nil {
@@ -58,7 +58,7 @@ func CheckSumAndPlaceLayer(dir string) (string, error) {
 	}
 
 	defer utils.CleanFile(file)
-	err = compress.Decompress(file, filepath.Join(common.DefaultLayerDir, dig))
+	err = compress.Decompress(file, filepath.Join(common.DefaultLayerDir, dig.Hex()))
 	if err != nil {
 		return "", err
 	}
@@ -67,5 +67,5 @@ func CheckSumAndPlaceLayer(dir string) (string, error) {
 }
 
 func (sha SHA256) EmptyDigest() digest.Digest {
-	return digest.Digest(emptySHA256TarDigest)
+	return emptySHA256TarDigest
 }

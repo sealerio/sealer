@@ -54,7 +54,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 			continue
 		}
 
-		roLayer, err := store.NewROLayer(digest.Digest(l.Hash), 0)
+		roLayer, err := store.NewROLayer(l.Hash, 0)
 		if err != nil {
 			return err
 		}

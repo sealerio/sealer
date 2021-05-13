@@ -69,8 +69,13 @@ func (d DefaultImageService) Pull(imageName string) error {
 		dockerutils.WriteDistributionProgress(func() {}, writeFlusher, progressChan)
 	}()
 
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return err
+	}
+
 	puller, err := distributionutil.NewPuller(distributionutil.Config{
-		LayerStore:     *globalLayerStore,
+		LayerStore:     layerStore,
 		ProgressOutput: progressChanOut,
 		AuthInfo:       getDockerAuthInfoFromDocker(named.Domain()),
 	})
@@ -119,9 +124,14 @@ func (d DefaultImageService) Push(imageName string) error {
 		dockerutils.WriteDistributionProgress(func() {}, writeFlusher, progressChan)
 	}()
 
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return err
+	}
+
 	authInfo := getDockerAuthInfoFromDocker(named.Domain())
 	pusher, err := distributionutil.NewPusher(distributionutil.Config{
-		LayerStore:     *globalLayerStore,
+		LayerStore:     layerStore,
 		ProgressOutput: progressChanOut,
 		AuthInfo:       authInfo,
 	})
@@ -195,7 +205,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 	}
 
 	for _, layer := range image.Spec.Layers {
-		layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash))
+		layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash.Hex()))
 		if isLayerDeletable(layer2ImageNames, layerID) {
 			err = layerStore.Delete(layerID)
 			if err != nil {
@@ -219,7 +229,7 @@ func layer2ImageMap(images []*v1.Image) map[store.LayerID][]string {
 	var layer2ImageNames = make(map[store.LayerID][]string)
 	for _, image := range images {
 		for _, layer := range image.Spec.Layers {
-			layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash))
+			layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash.Hex()))
 			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Name)
 		}
 	}

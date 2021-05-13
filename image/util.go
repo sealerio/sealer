@@ -24,7 +24,7 @@ func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 			return res, fmt.Errorf("image %s has from layer, which is not allowed in current state", image.Spec.ID)
 		}
 		if layer.Hash != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash))
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
 		}
 	}
 	return

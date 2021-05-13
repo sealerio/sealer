@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/opencontainers/go-digest"
+	"github.com/alibaba/sealer/image/store"
 
 	"path/filepath"
 	"strings"
@@ -34,6 +34,7 @@ type LocalBuilder struct {
 	ImageID      string
 	Context      string
 	KubeFileName string
+	LayerStore   store.LayerStore
 }
 
 func (l *LocalBuilder) Build(name string, context string, kubefileName string) error {
@@ -134,7 +135,6 @@ func (l *LocalBuilder) ExecBuild() error {
 	if err != nil {
 		return err
 	}
-	// TODO a little bit confused about the block, jiangnan
 	for i := 1; i < len(l.Image.Spec.Layers); i++ {
 		layer := &l.Image.Spec.Layers[i]
 		logger.Info("run build layer: %s %s", layer.Type, layer.Value)
@@ -150,7 +150,7 @@ func (l *LocalBuilder) ExecBuild() error {
 				return err
 			}
 		}
-		baseLayers = append(baseLayers, filepath.Join(common.DefaultLayerDir, layer.Hash))
+		baseLayers = append(baseLayers, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
 	}
 	logger.Info("exec all build instructs success !")
 	return nil
@@ -258,7 +258,7 @@ func (l *LocalBuilder) countLayerHash(layer *v1.Layer, tempTarget string) error 
 		return fmt.Errorf("failed to count layer hash:%v", err)
 	}
 	emptyHash := hash.SHA256{}.EmptyDigest()
-	if digest.Digest(layerHash) == emptyHash {
+	if layerHash == emptyHash {
 		layerHash = ""
 	}
 	layer.Hash = layerHash
@@ -287,6 +287,21 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 		l.Image.Annotations[common.ImageAnnotationForClusterfile] = string(bytes)
 	}
 
+	// save layer ids
+	for _, layer := range l.Image.Spec.Layers {
+		if layer.Hash != "" {
+			roLayer, err := store.NewROLayer(layer.Hash, 0)
+			if err != nil {
+				return err
+			}
+
+			err = l.LayerStore.RegisterLayerIfNotPresent(roLayer)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := utils.MarshalYamlToFile(filename, l.Image); err != nil {
 		return fmt.Errorf("failed to write image yaml:%v", err)
 	}
@@ -299,6 +314,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 		return fmt.Errorf("failed to set image metadata :%v", err)
 	}
 	logger.Info("update image %s to image metadata success !", l.ImageName)
+
 	return nil
 }
 
@@ -312,10 +328,15 @@ func (l *LocalBuilder) PushToRegistry() error {
 	return nil
 }
 
-func NewLocalBuilder(config *Config) Interface {
-	c := new(LocalBuilder)
-	c.Config = config
-	return c
+func NewLocalBuilder(config *Config) (Interface, error) {
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return nil, err
+	}
+	return &LocalBuilder{
+		Config:     config,
+		LayerStore: layerStore,
+	}, nil
 }
 
 // used in build stage, where the image still has from layer
@@ -337,18 +358,14 @@ func getBaseLayersFromImage(image v1.Image) (res []string, err error) {
 			return []string{}, fmt.Errorf("no layer found in local base image %s, or this base image has base image, which is not allowed", baseImage.Spec.ID)
 		}
 		layers = append(layers, baseImage.Spec.Layers...)
-		// remove the from layer
-		//image.Spec.Layers = image.Spec.Layers[1:]
 	}
-	// TODO the original logic would append current image layers, but I guess there is no need to do that
-	//layers = append(layers, image.Spec.Layers...)
 	if len(layers) > 128 {
 		return []string{}, fmt.Errorf("current layer is exceed 128 layers")
 	}
 
 	for _, layer := range layers {
 		if layer.Hash != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash))
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
 		}
 	}
 	return res, nil
