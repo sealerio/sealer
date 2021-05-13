@@ -13,8 +13,6 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5
-	github.com/onsi/ginkgo v1.16.2
-	github.com/onsi/gomega v1.12.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/peterhellberg/link v1.0.0
 	github.com/pkg/errors v0.9.1
@@ -24,7 +22,6 @@ require (
 	github.com/spf13/viper v1.7.0
 	github.com/vbauerster/mpb/v6 v6.0.3
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
 	k8s.io/api v0.20.4
 	k8s.io/apimachinery v0.20.4
 	k8s.io/client-go v0.20.4
