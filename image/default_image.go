@@ -94,9 +94,8 @@ func (d DefaultImageService) Pull(imageName string) error {
 	if err != nil {
 		return err
 	}
-	// TODO rely on id next
-	image.Name = named.Raw()
-	return d.syncImageLocal(*image)
+	// TODO use image store to do the job next
+	return d.syncImageLocal(*image, named)
 }
 
 // Push push local image to remote registry

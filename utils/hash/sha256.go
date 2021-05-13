@@ -5,9 +5,7 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
-	"path/filepath"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/compress"
 	"github.com/opencontainers/go-digest"
@@ -50,15 +48,15 @@ func (sha SHA256) TarCheckSum(src string) (*os.File, digest.Digest, error) {
 	return file, dig, nil
 }
 
-func CheckSumAndPlaceLayer(dir string) (digest.Digest, error) {
+func CheckSumAndPlaceLayer(src, target string) (digest.Digest, error) {
 	sha := SHA256{}
-	file, dig, err := sha.TarCheckSum(dir)
+	file, dig, err := sha.TarCheckSum(src)
 	if err != nil {
 		return "", err
 	}
 
 	defer utils.CleanFile(file)
-	err = compress.Decompress(file, filepath.Join(common.DefaultLayerDir, dig.Hex()))
+	err = compress.Decompress(file, target)
 	if err != nil {
 		return "", err
 	}

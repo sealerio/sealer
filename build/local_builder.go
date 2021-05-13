@@ -169,7 +169,7 @@ func (l *LocalBuilder) execCopyLayer(layer *v1.Layer) error {
 	if err != nil {
 		return fmt.Errorf("failed to exec layer %v:%v", layer, err)
 	}
-	if err = l.countLayerHash(layer, tempDir); err != nil {
+	if err = l.calculateLayerHashAndPlaceIt(layer, tempDir); err != nil {
 		return err
 	}
 	return nil
@@ -209,7 +209,7 @@ func (l *LocalBuilder) execOtherLayer(layer *v1.Layer, lowLayers []string) error
 	if err = l.mountAndExecLayer(layer, tempTarget, tempUpper, lowLayers...); err != nil {
 		return err
 	}
-	if err = l.countLayerHash(layer, tempUpper); err != nil {
+	if err = l.calculateLayerHashAndPlaceIt(layer, tempUpper); err != nil {
 		return err
 	}
 	return nil
@@ -252,15 +252,17 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 	return nil
 }
 
-func (l *LocalBuilder) countLayerHash(layer *v1.Layer, tempTarget string) error {
-	layerHash, err := hash.CheckSumAndPlaceLayer(tempTarget)
+func (l *LocalBuilder) calculateLayerHashAndPlaceIt(layer *v1.Layer, tempTarget string) error {
+	layerHash, err := hash.CheckSumAndPlaceLayer(tempTarget, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
 	if err != nil {
-		return fmt.Errorf("failed to count layer hash:%v", err)
+		return fmt.Errorf("failed to calculate layer hash and place it, err: %v", err)
 	}
+
 	emptyHash := hash.SHA256{}.EmptyDigest()
 	if layerHash == emptyHash {
 		layerHash = ""
 	}
+
 	layer.Hash = layerHash
 	return nil
 }
