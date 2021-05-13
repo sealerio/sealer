@@ -46,7 +46,7 @@ func (d *Default) Apply(cluster *v1.Cluster) error {
 	}
 	mountClusterDir := filepath.Join(os.TempDir(), cluster.Name)
 	if err := mount.NewMountDriver().Unmount(mountClusterDir); err != nil {
-		logger.Error("failed to umount %s,err: &v", mountClusterDir, err)
+		logger.Error("failed to umount %s, err: %v", mountClusterDir, err)
 	}
 	return nil
 }

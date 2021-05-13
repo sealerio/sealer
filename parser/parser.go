@@ -36,7 +36,7 @@ func (p *Parser) Parse(kubeFile []byte, name string) *v1.Image {
 		layerType, layerValue, err := decodeLine(text)
 		if layerType == "" {
 			if err != nil {
-				logger.Warn("decode kubeFile line failed %v", err)
+				logger.Warn("decode kubeFile line failed, err: %v", err)
 			}
 			continue
 		}
