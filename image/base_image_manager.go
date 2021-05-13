@@ -57,11 +57,11 @@ func (bim *BaseImageManager) initRegistry(hostname string) error {
 	)
 	dockerInfo, err = pkgutils.DockerConfig()
 	if err != nil {
-		logger.Warn("failed to get docker info, err: %s", err)
+		logger.Error("failed to get docker info, err: %s", err)
 	} else {
 		username, passwd, err = dockerInfo.DecodeDockerAuth(hostname)
 		if err != nil {
-			logger.Warn("failed to decode auth info, username and password would be empty, err: %s", err)
+			logger.Error("failed to decode auth info, username and password would be empty, err: %s", err)
 		}
 	}
 
