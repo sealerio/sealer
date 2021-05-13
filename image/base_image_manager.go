@@ -15,8 +15,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/justadogistaken/reg/registry"
 	"github.com/opencontainers/go-digest"
-	"github.com/wonderivan/logger"
-
 	"path/filepath"
 
 	"sigs.k8s.io/yaml"
@@ -80,11 +78,11 @@ func (bim *BaseImageManager) initRegistry(hostname string) error {
 	)
 	dockerInfo, err = pkgutils.DockerConfig()
 	if err != nil {
-		logger.Warn("failed to get docker info, err: %s", err)
+		return fmt.Errorf("failed to get docker info, err: %s", err)
 	} else {
 		username, passwd, err = dockerInfo.DecodeDockerAuth(hostname)
 		if err != nil {
-			logger.Warn("failed to decode auth info, username and password would be empty, err: %s", err)
+			return fmt.Errorf("failed to decode auth info, username and password would be empty, err: %s", err)
 		}
 	}
 
