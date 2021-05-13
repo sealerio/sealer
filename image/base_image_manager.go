@@ -74,16 +74,8 @@ func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err err
 // init bim registry
 func (bim *BaseImageManager) initRegistry(hostname string) error {
 	var (
-		reg *registry.Registry
-		err error
-	)
-	reg, err = bim.fetchRegistryClient(types.AuthConfig{ServerAddress: hostname})
-	if err == nil {
-		bim.registry = reg
-		return nil
-	}
-	var (
 		dockerInfo       *pkgutils.DockerInfo
+		err              error
 		username, passwd string
 	)
 	dockerInfo, err = pkgutils.DockerConfig()
@@ -96,6 +88,7 @@ func (bim *BaseImageManager) initRegistry(hostname string) error {
 		}
 	}
 
+	var reg *registry.Registry
 	reg, err = bim.fetchRegistryClient(types.AuthConfig{ServerAddress: hostname, Username: username, Password: passwd})
 	if nil != err {
 		return err
