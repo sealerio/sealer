@@ -2,6 +2,7 @@ package distributionutil
 
 import (
 	"context"
+
 	"github.com/docker/docker/api/types"
 	"github.com/justadogistaken/reg/registry"
 )

@@ -40,11 +40,8 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 
 	ls.mux.Lock()
 	defer ls.mux.Unlock()
-	switch layer.(type) {
-	case *roLayer:
-		ls.layers[layer.ID()] = layer.(*roLayer)
-	default:
-		// won't happen
+	if roLayer, ok := layer.(*roLayer); ok {
+		ls.layers[layer.ID()] = roLayer
 	}
 
 	return nil

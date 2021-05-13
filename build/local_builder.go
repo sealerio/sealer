@@ -3,6 +3,9 @@ package build
 import (
 	"fmt"
 	"io/ioutil"
+
+	"github.com/opencontainers/go-digest"
+
 	"path/filepath"
 	"strings"
 
@@ -254,8 +257,8 @@ func (l *LocalBuilder) countLayerHash(layer *v1.Layer, tempTarget string) error 
 	if err != nil {
 		return fmt.Errorf("failed to count layer hash:%v", err)
 	}
-	emptyHash := hash.SHA256{}.EmptyDigest().Hex()
-	if layerHash == emptyHash {
+	emptyHash := hash.SHA256{}.EmptyDigest()
+	if digest.Digest(layerHash) == emptyHash {
 		layerHash = ""
 	}
 	layer.Hash = layerHash

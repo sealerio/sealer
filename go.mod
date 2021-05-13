@@ -11,6 +11,7 @@ require (
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/justadogistaken/reg v0.16.5
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/peterhellberg/link v1.0.0

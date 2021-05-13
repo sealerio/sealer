@@ -3,6 +3,11 @@ package distributionutil
 import (
 	"context"
 	"encoding/json"
+
+	"fmt"
+	"path/filepath"
+	"sync"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
@@ -14,8 +19,6 @@ import (
 	"github.com/justadogistaken/reg/registry"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
-	"path/filepath"
-	"sync"
 )
 
 type Puller interface {
@@ -29,7 +32,7 @@ type ImagePuller struct {
 
 func (puller *ImagePuller) Pull(context context.Context, named reference.Named) (*v1.Image, error) {
 	var (
-		errorCh    = make(chan error)
+		errorCh    = make(chan error, 128)
 		done       sync.WaitGroup
 		layerStore = puller.config.LayerStore
 	)
@@ -68,8 +71,14 @@ func (puller *ImagePuller) Pull(context context.Context, named reference.Named) 
 	}
 	done.Wait()
 	if len(errorCh) > 0 {
-		return nil, errors.Wrap(<-errorCh, "failed to pull image")
+		close(errorCh)
+		err = fmt.Errorf("failed to pull image %s", named.Raw())
+		for chErr := range errorCh {
+			err = errors.Wrap(chErr, err.Error())
+		}
+		return nil, err
 	}
+
 	return &v1Image, nil
 }
 
@@ -80,8 +89,9 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Na
 		registryClient = puller.registry
 	)
 
+	// check layer existence
 	roLayer := layerStore.Get(layer.ID())
-	if roLayer == nil {
+	if roLayer != nil {
 		progress.Message(progressOut, layer.SimpleID(), "already exists")
 		return nil
 	}
@@ -92,7 +102,14 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Na
 	}
 
 	progressReader := progress.NewProgressReader(layerDownloadReader, progressOut, layer.Size(), layer.SimpleID(), "pulling")
-	return compress.Decompress(progressReader, filepath.Join(common.DefaultLayerDir, digest.Digest(layer.ID()).Hex()))
+	err = compress.Decompress(progressReader, filepath.Join(common.DefaultLayerDir, digest.Digest(layer.ID()).Hex()))
+	if err != nil {
+		progress.Update(progressOut, layer.SimpleID(), err.Error())
+		return err
+	}
+
+	progress.Update(progressOut, layer.SimpleID(), "pull completed")
+	return nil
 }
 
 // TODO make a manifest store do this job
@@ -112,12 +129,13 @@ func (puller *ImagePuller) getRemoteImage(context context.Context, named referen
 }
 
 func NewPuller(config Config) (Puller, error) {
-	newImagePuller := &ImagePuller{config: config}
-	reg, err := fetchRegistryClient(newImagePuller.config.AuthInfo)
+	reg, err := fetchRegistryClient(config.AuthInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	newImagePuller.registry = reg
-	return newImagePuller, nil
+	return &ImagePuller{
+		registry: reg,
+		config:   config,
+	}, nil
 }

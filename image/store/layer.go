@@ -12,7 +12,7 @@ import (
 type LayerID digest.Digest
 
 type roLayer struct {
-	id LayerID
+	id   LayerID
 	size int64
 }
 
@@ -42,5 +42,8 @@ func NewROLayer(LayerDigest digest.Digest, size int64) (Layer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &roLayer{id: LayerID(LayerDigest), size: size}, nil
+	return &roLayer{
+		id:   LayerID(LayerDigest),
+		size: size,
+	}, nil
 }

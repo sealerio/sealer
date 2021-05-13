@@ -47,7 +47,7 @@ func (sha SHA256) TarCheckSum(src string) (*os.File, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	return file, dig.Hex(), nil
+	return file, dig.String(), nil
 }
 
 func CheckSumAndPlaceLayer(dir string) (string, error) {

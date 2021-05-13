@@ -2,9 +2,10 @@ package image
 
 import (
 	"fmt"
-	"github.com/docker/docker/api/types"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/docker/docker/api/types"
 
 	"github.com/alibaba/sealer/common"
 	imageUtils "github.com/alibaba/sealer/image/utils"
@@ -12,17 +13,7 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
-	"github.com/docker/distribution"
-	"github.com/opencontainers/go-digest"
 )
-
-func buildBlobs(dig digest.Digest, size int64, mediaType string) distribution.Descriptor {
-	return distribution.Descriptor{
-		Digest:    dig,
-		Size:      size,
-		MediaType: mediaType,
-	}
-}
 
 // GetImageLayerDirs return image hash list
 // current image is different with the image in build stage
