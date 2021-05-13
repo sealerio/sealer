@@ -1,9 +1,8 @@
 ## releaes note
 
-### v0.1.0
+### v0.1.2
 
-[features]
-
-* using kubefile to build a user-defined cluster image.
-* apply a kubernetes cluster using Clusterfile.
-* support alicloud.
+- [x] support build push run a cloud image
+- [x] using docker registry as cloud image registry
+- [x] support alkaloid as a default infra provider
+- [x] support install cluster on bare metal server
