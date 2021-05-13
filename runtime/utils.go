@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/alibaba/sealer/common"
@@ -63,16 +62,14 @@ func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
 		return fmt.Errorf("send cluster file to remote host %s failed:%v", remoteHostIP, err)
 	}
 	logger.Info("send cluster file to %s success !", remoteHostIP)
-	authFile := common.DefaultRegistryAuthConfigDir()
-	//if auth file exist, copy file to remote
-	if _, err := os.Stat(authFile); err == nil {
-		// send register login info
-		err = sshClient.Copy(remoteHostIP, authFile, authFile)
-		if err != nil {
-			return fmt.Errorf("send register config to remote host %s failed:%v", remoteHostIP, err)
-		}
+
+	// send register login info
+	err = sshClient.Copy(remoteHostIP, common.DefaultRegistryAuthConfigDir(), common.DefaultRegistryAuthConfigDir())
+	if err != nil {
+		logger.Warn("send register config to remote host %s failed:%v", remoteHostIP, err)
+	} else {
+		logger.Info("send register info to %s success !", remoteHostIP)
 	}
-	logger.Info("send register info to %s success !", remoteHostIP)
 
 	return nil
 }
