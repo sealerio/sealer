@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -32,11 +31,6 @@ func (d *Default) reset(cluster *v1.Cluster) error {
 	err = d.resetNodes(cluster.Spec.Masters.IPList)
 	if err != nil {
 		logger.Error("failed to clean masters %v", err)
-	}
-	err = utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultKubeConfigDir())
-	if err != nil {
-		// needs continue to clean
-		logger.Warn("reset cluster : %v", err)
 	}
 	return d.RecycleRegistryOnMaster0()
 }
