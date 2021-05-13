@@ -19,7 +19,6 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.0
 	github.com/vbauerster/mpb/v6 v6.0.3
-	github.com/wonderivan/logger v1.0.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	k8s.io/api v0.20.4
 	k8s.io/apimachinery v0.20.4

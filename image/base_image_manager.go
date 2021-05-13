@@ -10,12 +10,12 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	imageutils "github.com/alibaba/sealer/image/utils"
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	pkgutils "github.com/alibaba/sealer/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/justadogistaken/reg/registry"
 	"github.com/opencontainers/go-digest"
-	"github.com/wonderivan/logger"
 
 	"path/filepath"
 
