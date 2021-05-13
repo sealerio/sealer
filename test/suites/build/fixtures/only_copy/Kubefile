@@ -1,0 +1,4 @@
+FROM seadent/rootfs:latest
+COPY test1 .
+COPY recommended.yaml .
+COPY test2 .
