@@ -1,5 +1,5 @@
 /*
-Copyright © 2021 cuisongliu@qq.com.
+Copyright © 2021 NAME HERE <EMAIL ADDRESS>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,37 +16,32 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/version"
 	"github.com/spf13/cobra"
+
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/logger"
 )
 
-var shortPrint bool
-
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "version",
-	Long:  `sealer version`,
+// rmiCmd represents the rmi command
+var rmiCmd = &cobra.Command{
+	Use:   "rmi",
+	Short: "rmi remove local image",
+	Long:  `seautil rmi my-kubernetes:1.18.3`,
 	Run: func(cmd *cobra.Command, args []string) {
-		marshalled, err := json.Marshal(version.Get())
-		if err != nil {
-			logger.Error(err)
+		if len(args) == 0 {
+			logger.Error("enter the imageName")
 			os.Exit(1)
 		}
-		if shortPrint {
-			fmt.Println(version.Get().String())
-		} else {
-			fmt.Println(string(marshalled))
+		err := image.NewImageService().Delete(args[0])
+		if err != nil {
+			logger.Error(err)
+			os.Exit(-1)
 		}
-
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd)
-	versionCmd.Flags().BoolVar(&shortPrint, "short", false, "If true, print just the version number.")
+	rootCmd.AddCommand(rmiCmd)
 }

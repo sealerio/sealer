@@ -17,7 +17,7 @@ import (
 
 var (
 	// ErrUnexpectedSchemaVersion a specific schema version was requested, but was not returned
-	ErrUnexpectedSchemaVersion = errors.New("recieved a different schema version than expected")
+	ErrUnexpectedSchemaVersion = errors.New("received a different schema version than expected")
 )
 
 // Manifest returns the manifest for a specific repository:tag.

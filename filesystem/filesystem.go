@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/common"
@@ -48,7 +50,7 @@ func (f *FileSystem) mountImage(cluster *v1.Cluster) error {
 		return err
 	}
 	logger.Info("image name is %s", Image.Name)
-	layers, err := image.GetImageHashList(Image)
+	layers, err := image.GetImageLayerDirs(Image)
 	if err != nil {
 		return fmt.Errorf("get layers failed: %v", err)
 	}
@@ -88,7 +90,9 @@ func (f *FileSystem) UnMount(cluster *v1.Cluster) error {
 
 func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	SSH := ssh.NewSSHByCluster(cluster)
-	ssh.WaitSSHReady(SSH, ipList...)
+	if err := ssh.WaitSSHReady(SSH, ipList...); err != nil {
+		return errors.Wrap(err, "check for node ssh service time out")
+	}
 	var wg sync.WaitGroup
 	var flag bool
 	var mutex sync.Mutex

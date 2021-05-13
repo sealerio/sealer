@@ -30,7 +30,7 @@ func (d *Default) joinNodes(nodes []string) error {
 		return nil
 	}
 	if err := ssh.WaitSSHReady(d.SSH, nodes...); err != nil {
-		errors.Wrap(err, "join nodes wait for ssh ready time out")
+		return errors.Wrap(err, "join nodes wait for ssh ready time out")
 	}
 	if err := d.GetJoinTokenHashAndKey(); err != nil {
 		return err
@@ -92,7 +92,7 @@ func (d *Default) deleteNodes(nodes []string) error {
 
 func (d *Default) deleteNode(node string) error {
 	host := utils.GetHostIP(node)
-	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveApiserverEtcHost, d.APIServer)); err != nil {
+	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer)); err != nil {
 		return err
 	}
 

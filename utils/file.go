@@ -65,12 +65,12 @@ func IsFileExist(filename string) bool {
 func WriteFile(fileName string, content []byte) error {
 	dir := filepath.Dir(fileName)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, common.FileMode0766); err != nil {
+		if err = os.MkdirAll(dir, common.FileMode0755); err != nil {
 			return err
 		}
 	}
 
-	if err := ioutil.WriteFile(fileName, content, common.FileMode0766); err != nil {
+	if err := ioutil.WriteFile(fileName, content, common.FileMode0755); err != nil {
 		return err
 	}
 	return nil
@@ -159,28 +159,25 @@ func CleanFile(file *os.File) {
 	if err != nil {
 		logger.Warn(err)
 	}
-	return
 }
 
-func CleanDir(dir string) (err error) {
+func CleanDir(dir string) {
 	if dir == "" {
-		return errors.New("dir name is empty")
+		logger.Error("clean dir path is empty")
 	}
-	err = os.RemoveAll(dir)
-	return
+	err := os.RemoveAll(dir)
+	if err != nil {
+		logger.Error("failed to remove dir %s ", dir)
+	}
 }
 
-func CleanDirs(dirs ...string) (err error) {
+func CleanDirs(dirs ...string) {
 	if len(dirs) == 0 {
-		return nil
+		return
 	}
 	for _, dir := range dirs {
-		err = CleanDir(dir)
-		if err != nil {
-			return err
-		}
+		CleanDir(dir)
 	}
-	return
 }
 func CleanFiles(file ...string) error {
 	for _, f := range file {
@@ -253,7 +250,7 @@ func CountDirFiles(dirName string) int {
 
 func MkDirIfNotExists(dir string) (err error) {
 	if _, err = os.Stat(dir); err != nil && os.IsNotExist(err) {
-		err = os.MkdirAll(dir, common.FileMode0766)
+		err = os.MkdirAll(dir, common.FileMode0755)
 	}
 	//this operation won't fail regularly, so we would logger the err
 	if err != nil {

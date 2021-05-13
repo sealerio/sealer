@@ -29,8 +29,8 @@ const (
 const (
 	RemoteAddEtcHosts       = "echo %s >> /etc/hosts"
 	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" -i /etc/hosts`
-	RemoteCopyKubeconfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
-	RemoteReplaceKubeconfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
+	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
+	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
 	RemoteJoinMasterConfig  = `echo "%s" > %s/kubeadm-join-config.yaml`
 	InitMaster115Lower      = `kubeadm init --config=%s/kubeadm-config.yaml --experimental-upload-certs`
 	JoinMaster115Lower      = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s"
@@ -47,7 +47,7 @@ rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd && rm -rf /var/etcd && \
 rm -rf ~/kube && \
 rm -rf /etc/kubernetes/pki `
-	RemoteRemoveApiserverEtcHost = "sed -i \"/%s/d\" /etc/hosts"
+	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
 	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
 	CreateLvscareStaticPod       = "mkdir -p /etc/kubernetes/manifests && echo '%s' > /etc/kubernetes/manifests/kube-sealyun-lvscare.yaml"
 	KubeDeleteNode               = "kubectl delete node %s"
@@ -107,13 +107,13 @@ func (d *Default) JoinMasterCommands(master, joinCmd, hostname string) []string 
 	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, getAPIServerHost(utils.GetHostIP(d.Masters[0]), d.APIServer),
 		getAPIServerHost(utils.GetHostIP(master), d.APIServer))
 
-	return []string{cmdAddRegistryHosts, certCMD, cmdAddHosts, joinCmd, cmdUpdateHosts, RemoteCopyKubeconfig}
+	return []string{cmdAddRegistryHosts, certCMD, cmdAddHosts, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig}
 }
 
 func (d *Default) sendKubeConfigFile(hosts []string, kubeFile string) {
 	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
-	seadentKubeFile := fmt.Sprintf("%s/%s", d.Rootfs, kubeFile)
-	d.sendFileToHosts(hosts, seadentKubeFile, absKubeFile)
+	sealerKubeFile := fmt.Sprintf("%s/%s", d.Rootfs, kubeFile)
+	d.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
 func (d *Default) sendNewCertAndKey(hosts []string) {
@@ -140,8 +140,12 @@ func (d *Default) ReplaceKubeConfigV1991V1992(masters []string) bool {
 	if VersionCompare(d.Version, V1991) && VersionCompare(V1992, d.Version) {
 		for _, v := range masters {
 			ip := utils.GetHostIP(v)
-			cmd := fmt.Sprintf(RemoteReplaceKubeconfig, KUBESCHEDULERCONFIGFILE, ip, KUBECONTROLLERCONFIGFILE, ip, KUBESCHEDULERCONFIGFILE)
-			d.SSH.CmdAsync(v, cmd)
+			cmd := fmt.Sprintf(RemoteReplaceKubeConfig, KUBESCHEDULERCONFIGFILE, ip, KUBECONTROLLERCONFIGFILE, ip, KUBESCHEDULERCONFIGFILE)
+			err := d.SSH.CmdAsync(v, cmd)
+			if err != nil {
+				logger.Info("failed to replace kube config on %s ", v)
+				return false
+			}
 		}
 		return true
 	}
@@ -312,7 +316,7 @@ func (d *Default) joinMasters(masters []string) error {
 	return nil
 }
 
-func (d *Default) joinMastersAsync(masters []string) error {
+/*func (d *Default) joinMastersAsync(masters []string) error {
 	d.SendJoinMasterKubeConfigs(masters)
 	d.sendNewCertAndKey(masters)
 	d.sendJoinCPConfig(masters)
@@ -339,7 +343,7 @@ func (d *Default) joinMastersAsync(masters []string) error {
 	}
 	wg.Wait()
 	return nil
-}
+}*/
 
 func (d *Default) deleteMasters(masters []string) error {
 	if len(masters) == 0 {
@@ -391,7 +395,7 @@ func (d *Default) isHostName(master, host string) string {
 
 func (d *Default) deleteMaster(master string) error {
 	host := utils.GetHostIP(master)
-	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveApiserverEtcHost, d.APIServer)); err != nil {
+	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer)); err != nil {
 		return err
 	}
 

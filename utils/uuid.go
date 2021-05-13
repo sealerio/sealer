@@ -8,6 +8,9 @@ import (
 // GenUniqueId: gen uuid
 func GenUniqueID(n int) string {
 	randBytes := make([]byte, n/2)
-	rand.Read(randBytes)
+	_, err := rand.Read(randBytes)
+	if err != nil {
+		return ""
+	}
 	return fmt.Sprintf("%x", randBytes)
 }

@@ -5,8 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+
+	"path/filepath"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
 	imageutils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/registry"
@@ -19,8 +24,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -120,6 +123,79 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 	return nil
 }
 
+func (d DefaultImageService) Delete(imageName string) error {
+	var (
+		images []*v1.Image
+		image  *v1.Image
+	)
+	named, err := reference.ParseToNamed(imageName)
+	if err != nil {
+		return err
+	}
+
+	image, err = imageutils.GetImage(named.Raw())
+	if err != nil {
+		return err
+	}
+
+	imageMetadataMap, err := imageutils.GetImageMetadataMap()
+	if err != nil {
+		return err
+	}
+	for _, imageMetadata := range imageMetadataMap {
+		if imageMetadata.ID == "" {
+			continue
+		}
+		tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
+		if err != nil {
+			continue
+		}
+		images = append(images, tmpImage)
+	}
+	layer2ImageNames := layer2ImageMap(images)
+	// TODO: find a atomic way to delete layers and image
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return err
+	}
+
+	err = d.deleteImageLocal(image.Name, image.Spec.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, layer := range image.Spec.Layers {
+		layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash))
+		if isLayerDeletable(layer2ImageNames, layerID) {
+			err = layerStore.Delete(layerID)
+			if err != nil {
+				// print log and continue to delete other layers of the image
+				logger.Error("Fail to delete image %s's layer %s", imageName, layerID)
+			}
+		}
+	}
+
+	logger.Info("image %s delete success", imageName)
+	return nil
+}
+
+func isLayerDeletable(layer2ImageNames map[store.LayerID][]string, layerID store.LayerID) bool {
+	return len(layer2ImageNames[layerID]) <= 1
+}
+
+// layer2ImageMap accepts a directory parameter which contains image metadata.
+// It reads these metadata and saves the layer and image relationship in a map.
+func layer2ImageMap(images []*v1.Image) map[store.LayerID][]string {
+	var layer2ImageNames = make(map[store.LayerID][]string)
+	for _, image := range images {
+		for _, layer := range image.Spec.Layers {
+			layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash))
+			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Name)
+		}
+	}
+	return layer2ImageNames
+}
+
 //func (d DefaultImageService) Load(imageSrc string) error {
 //	panic("implement me")
 //}
@@ -159,73 +235,78 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 //}
 
 func (d DefaultImageService) downloadLayers(named reference.Named, manifest schema2.Manifest) (err error) {
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return err
+	}
 	flow := progress.NewProgressFlow()
 	errorCh := make(chan error, 2*len(manifest.Layers))
 	defer func() {
 		close(errorCh)
-		lerr := errors.New("failed to upload layers")
+		lerr := errors.New("failed to download layers")
 		for e := range errorCh {
 			err = errors.Wrap(e, lerr.Error())
 			lerr = err
 		}
 	}()
 
-	for _, layer := range manifest.Layers {
-		hex := layer.Digest.Hex()
-		shortHex := hex
-		if len(shortHex) > 12 {
-			shortHex = shortHex[0:12]
-		}
-		// check if the layer exists locally
-		if _, err := os.Stat(filepath.Join(common.DefaultLayerDir, hex)); err != nil {
-			if !os.IsNotExist(err) {
-				logger.Error(err)
-				errorCh <- err
-				continue
+	for _, lyr := range manifest.Layers {
+		func(layer distribution.Descriptor) {
+			var err error
+			defer func() {
+				if err != nil {
+					errorCh <- err
+				}
+			}()
+			//TODO construct an roLayer
+			hex := layer.Digest.Hex()
+			shortHex := hex
+			if len(shortHex) > 12 {
+				shortHex = shortHex[0:12]
 			}
-		} else {
-			flow.ShowMessage(shortHex+" already exists", nil)
-			continue
-		}
 
-		// get layers stream first
-		blobReader, err := d.registry.DownloadLayer(context.Background(), named.Repo(), layer.Digest)
-		if err != nil {
-			flow.ShowMessage(shortHex+fmt.Sprintf(" failed to pull layer, err: %s", err), nil)
-			errorCh <- err
-			continue
-		}
+			roLayer := layerStore.Get(store.LayerID(layer.Digest))
+			if roLayer != nil {
+				flow.ShowMessage(roLayer.SimpleID()+" already exists", nil)
+				return
+			}
 
-		flow.AddProgressTasks(progress.TaskDef{
-			Task:       hex[0:12],
-			Job:        imageDownloading + "&" + imageExtracting,
-			Max:        layer.Size,
-			SuccessMsg: shortHex + " " + imagePullComplete,
-			ProgressSrc: progress.TakeOverTask{
-				Cxt: progress.Context{}.WithReader(blobReader),
-				Action: func(cxt progress.Context) error {
-					rc := cxt.GetCurrentReaderCloser()
-					if rc == nil {
-						err = errors.New("failed to start uploading layer, err: no reader found")
-						errorCh <- err
-						return err
-					}
-					defer rc.Close()
-					curBar := cxt.GetCurrentBar()
-					if curBar == nil {
-						err = errors.New("failed to start uploading layer, err: no current bar found")
-						errorCh <- err
-						return err
-					}
+			// get layers stream first
+			blobReader, err := d.registry.DownloadLayer(context.Background(), named.Repo(), layer.Digest)
+			if err != nil {
+				flow.ShowMessage(shortHex+fmt.Sprintf(" failed to pull layer, err: %s", err), nil)
+				return
+			}
 
-					if err := compress.Uncompress(curBar.ProxyReader(rc), filepath.Join(common.DefaultLayerDir, hex)); err != nil {
-						errorCh <- err
-						return err
-					}
-					return nil
+			flow.AddProgressTasks(progress.TaskDef{
+				Task:       hex[0:12],
+				Job:        imageDownloading + "&" + imageExtracting,
+				Max:        layer.Size,
+				SuccessMsg: shortHex + " " + imagePullComplete,
+				ProgressSrc: progress.TakeOverTask{
+					Cxt: progress.Context{}.WithReader(blobReader),
+					Action: func(cxt progress.Context) (innerErr error) {
+						defer func() {
+							if innerErr != nil {
+								errorCh <- innerErr
+							}
+						}()
+						rc := cxt.GetCurrentReaderCloser()
+						if rc == nil {
+							return errors.New("failed to start uploading layer, err: no reader found")
+						}
+						defer rc.Close()
+						curBar := cxt.GetCurrentBar()
+						if curBar == nil {
+							return errors.New("failed to start uploading layer, err: no current bar found")
+						}
+
+						rc = curBar.ProxyReader(rc)
+						return layerStore.RegisterLayerIfNotPresent(rc, store.LayerID(layer.Digest))
+					},
 				},
-			},
-		})
+			})
+		}(lyr)
 	}
 
 	flow.Start()
@@ -244,101 +325,106 @@ func (d DefaultImageService) uploadLayers(repo string, layers []v1.Layer, blobs 
 		}
 	}()
 
-	for _, layer := range layers {
-		// do not push empty layer
-		if layer.Hash == "" {
-			continue
-		}
+	for _, lyr := range layers {
+		//progress action will be executing in goroutines
+		//use func to make layer to be local variable
+		func(layer v1.Layer) {
+			// do not push empty layer
+			if layer.Hash == "" {
+				return
+			}
 
-		shortHex := layer.Hash
-		if len(shortHex) > 12 {
-			shortHex = shortHex[0:12]
-		}
-		// check if the layer exists
-		layerDig := digest.NewDigestFromEncoded(digest.SHA256, layer.Hash)
-		// TODO next we need to know the err type, 404 or sth else
-		blob, err := d.registry.LayerMetadata(repo, layerDig)
-		if err == nil {
-			blobs <- buildBlobs(layerDig, blob.Size, schema2.MediaTypeLayer)
-			flow.ShowMessage(shortHex+" "+"already exist remotely", nil)
-			continue
-		}
+			shortHex := layer.Hash
+			if len(shortHex) > 12 {
+				shortHex = shortHex[0:12]
+			}
+			// check if the layer exists
+			layerDig := digest.NewDigestFromEncoded(digest.SHA256, layer.Hash)
+			// TODO next we need to know the err type, 404 or sth else
+			blob, err := d.registry.LayerMetadata(repo, layerDig)
+			if err == nil {
+				blobs <- buildBlobs(layerDig, blob.Size, schema2.MediaTypeLayer)
+				flow.ShowMessage(shortHex+" "+"already exist remotely", nil)
+				return
+			}
 
-		barID := utils.GenUniqueID(8)
-		flow.AddProgressTasks(progress.TaskDef{
-			Task: shortHex,
-			Job:  imageCompressing,
-			Max:  1,
-			ID:   barID,
-			ProgressSrc: progress.TakeOverTask{
-				Cxt: progress.Context{},
-				Action: func(cxt progress.Context) error {
-					var file *os.File
-					defer func() {
-						//file compress failed, clean file
-						if err != nil {
-							utils.CleanFile(file)
+			barID := utils.GenUniqueID(8)
+			flow.AddProgressTasks(progress.TaskDef{
+				Task: shortHex,
+				Job:  imageCompressing,
+				Max:  1,
+				ID:   barID,
+				ProgressSrc: progress.TakeOverTask{
+					Cxt: progress.Context{},
+					Action: func(cxt progress.Context) (innerErr error) {
+						var file *os.File
+						defer func() {
+							//file compress failed, clean file
+							if innerErr != nil {
+								errCh <- innerErr
+								utils.CleanFile(file)
+							}
+						}()
+
+						// TODO validate if compressed file hash is same as  layer.hash
+						if file, innerErr = compress.RootDirNotIncluded(nil, filepath.Join(common.DefaultLayerDir, layer.Hash)); innerErr != nil {
+							return innerErr
 						}
-					}()
-
-					if file, err = compress.Compress(filepath.Join(common.DefaultLayerDir, layer.Hash), "", nil); err != nil {
-						errCh <- err
-						return err
-					}
-					// pass to next progress task
-					cxt.WithReader(file)
-					return nil
+						// pass to next progress task
+						cxt.WithReader(file)
+						return nil
+					},
 				},
-			},
-		})
+			})
 
-		flow.AddProgressTasks(progress.TaskDef{
-			Task:       shortHex,
-			Job:        imagePushing,
-			Max:        1,
-			ID:         barID,
-			SuccessMsg: shortHex + " " + imagePushCompleted,
-			FailMsg:    shortHex,
-			ProgressSrc: progress.TakeOverTask{
-				Cxt: progress.Context{},
-				Action: func(cxt progress.Context) error {
-					var file *os.File
-					file, ok := cxt.GetCurrentReaderCloser().(*os.File)
-					if !ok || file == nil {
-						err := errors.New("failed to start uploading layer, err: no reader found or reader is not file")
-						errCh <- err
-						return err
-					}
-					defer utils.CleanFile(file)
-					if _, err = file.Seek(0, 0); err != nil {
-						errCh <- err
-						return err
-					}
-					fi, err := file.Stat()
-					if err != nil {
-						errCh <- err
-						return err
-					}
-					curBar := cxt.GetCurrentBar()
-					if curBar == nil {
-						err = errors.New("failed to start uploading layer, err: no current bar found")
-						errCh <- err
-						return err
-					}
-					// there is no better way, we can't know file size on registering the upload process bar
-					// so we can set the total of the bar at the time only
-					curBar.SetTotal(fi.Size(), false)
-					prc := curBar.ProxyReader(file)
-					defer prc.Close()
-					if err = d.registry.UploadLayer(context.Background(), repo, layerDig, prc); err != nil {
-						errCh <- err
-						return err
-					}
-					blobs <- buildBlobs(layerDig, fi.Size(), schema2.MediaTypeLayer)
-					return nil
+			flow.AddProgressTasks(progress.TaskDef{
+				Task:       shortHex,
+				Job:        imagePushing,
+				Max:        1,
+				ID:         barID,
+				SuccessMsg: shortHex + " " + imagePushCompleted,
+				FailMsg:    shortHex,
+				ProgressSrc: progress.TakeOverTask{
+					Cxt: progress.Context{},
+					Action: func(cxt progress.Context) (innerErr error) {
+						var file *os.File
+						defer func() {
+							if innerErr != nil {
+								errCh <- innerErr
+							}
+							utils.CleanFile(file)
+						}()
+						file, ok := cxt.GetCurrentReaderCloser().(*os.File)
+						if !ok || file == nil {
+							return errors.New("failed to start uploading layer, err: no reader found or reader is not file")
+						}
+						if _, innerErr = file.Seek(0, 0); innerErr != nil {
+							return innerErr
+						}
+
+						fi, innerErr := file.Stat()
+						if innerErr != nil {
+							return innerErr
+						}
+
+						curBar := cxt.GetCurrentBar()
+						if curBar == nil {
+							return errors.New("failed to start uploading layer, err: no current bar found")
+						}
+						// there is no better way, we can't know file size on registering the upload process bar
+						// so we can set the total of the bar at the time only
+						curBar.SetTotal(fi.Size(), false)
+						prc := curBar.ProxyReader(file)
+						defer prc.Close()
+						if innerErr = d.registry.UploadLayer(context.Background(), repo, layerDig, prc); innerErr != nil {
+							return innerErr
+						}
+						blobs <- buildBlobs(layerDig, fi.Size(), schema2.MediaTypeLayer)
+						return nil
+					},
 				},
-			},
-		})
+			})
+		}(lyr)
 	}
 	flow.Start()
 	return

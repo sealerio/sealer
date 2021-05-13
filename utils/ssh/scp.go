@@ -2,7 +2,6 @@ package ssh
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/utils/progress"
 	"io"
 	"io/ioutil"
 	"net"
@@ -11,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/alibaba/sealer/utils/progress"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -190,12 +191,18 @@ func (s *SSH) copyLocalDirToRemote(host string, sshClient *ssh.Client, sftpClien
 		logger.Error("read local path dir failed %s %s", host, localPath)
 		return
 	}
-	sftpClient.Mkdir(remotePath)
+	if err = sftpClient.MkdirAll(remotePath); err != nil {
+		logger.Error("failed to create remote path %s:%v", remotePath, err)
+		return
+	}
 	for _, file := range localFiles {
 		lfp := path.Join(localPath, file.Name())
 		rfp := path.Join(remotePath, file.Name())
 		if file.IsDir() {
-			sftpClient.Mkdir(rfp)
+			if err = sftpClient.MkdirAll(rfp); err != nil {
+				logger.Error("failed to create remote path %s:%v", rfp, err)
+				return
+			}
 			s.copyLocalDirToRemote(host, sshClient, sftpClient, lfp, rfp, ch)
 		} else {
 			err := s.copyLocalFileToRemote(host, sshClient, sftpClient, lfp, rfp)
@@ -252,8 +259,8 @@ func FromLocal(localPath string) string {
 }
 
 //if remote file not exist return false and nil
-func (S *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
-	sftpClient, err := S.sftpConnect(host)
+func (s *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
+	sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return false, err
 	}

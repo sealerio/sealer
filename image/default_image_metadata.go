@@ -3,10 +3,11 @@ package image
 import (
 	"context"
 	"fmt"
+	"sort"
+
 	"github.com/alibaba/sealer/image/reference"
 	imageutils "github.com/alibaba/sealer/image/utils"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"sort"
 )
 
 //DefaultImageMetadataService provide service for image metadata operations
@@ -70,4 +71,8 @@ func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image,
 	}
 
 	return d.downloadImageManifestConfig(named, manifest.Config.Digest)
+}
+
+func (d DefaultImageMetadataService) DeleteImage(imageName string) error {
+	return imageutils.DeleteImage(imageName)
 }

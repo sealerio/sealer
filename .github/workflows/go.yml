@@ -9,22 +9,15 @@ on:
 jobs:
 
   build:
-    name: ${{ matrix.os }} - Go ${{ matrix.go_version }}
+    name: ubuntu - Go v1.14
     runs-on: ubuntu-latest
-    strategy:
-      # If you want to matrix build , you can append the following list.
-      matrix:
-        go_version:
-          - 1.13
-        os:
-          - ubuntu-latest
 
     steps:
 
-      - name: Set up Go ${{ matrix.go_version }}
+      - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: ${{ matrix.go_version }}
+          go-version: '1.14'
         id: go
 
       - name: Check out code into the Go module directory
@@ -33,11 +26,12 @@ jobs:
           ref: ${{ github.ref }}
           path: src/github.com/alibaba/sealer
       - name: Install go ci lint
-        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.35.2
+        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.39.0
 
-#      - name: Run Linter
-#        run: golangci-lint run -v
-#        working-directory: src/github.com/alibaba/sealer
+      - name: Run Linter
+        run: golangci-lint run -v
+        working-directory: src/github.com/alibaba/sealer
+
       - name: Make linux
         shell: bash
         run: |

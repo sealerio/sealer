@@ -2,9 +2,10 @@ package ssh
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/common"
 	"sync"
 	"time"
+
+	"github.com/alibaba/sealer/common"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
@@ -46,12 +47,12 @@ func NewSSHByCluster(cluster *v1.Cluster) Interface {
 	}
 }
 
-type SSHClient struct {
-	Ssh  Interface
+type Client struct {
+	SSH  Interface
 	Host string
 }
 
-func NewSSHClientWithCluster(cluster *v1.Cluster) (*SSHClient, error) {
+func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
 	sshClient := NewSSHByCluster(cluster)
 	if sshClient == nil {
 		return nil, fmt.Errorf("cloud build init ssh client failed")
@@ -64,8 +65,8 @@ func NewSSHClientWithCluster(cluster *v1.Cluster) (*SSHClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SSHClient{
-		Ssh:  sshClient,
+	return &Client{
+		SSH:  sshClient,
 		Host: host,
 	}, nil
 }

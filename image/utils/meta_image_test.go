@@ -1,8 +1,9 @@
 package utils
 
 import (
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"testing"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func TestImage(t *testing.T) {
@@ -48,7 +49,7 @@ func TestSetImageMetadata(t *testing.T) {
 			arg: args{
 				ImageMetadata{
 					Name: "kuberentes:v1.18.99",
-					Id:   "f6de07561db99",
+					ID:   "f6de07561db99",
 				},
 			},
 		},
@@ -57,7 +58,7 @@ func TestSetImageMetadata(t *testing.T) {
 			arg: args{
 				ImageMetadata{
 					Name: "kuberentes:v1.18.99",
-					Id:   "f6de07561db98",
+					ID:   "f6de07561db98",
 				},
 			},
 		},

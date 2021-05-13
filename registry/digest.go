@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/docker/distribution/manifest/schema2"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 )
 
 // Digest returns the digest for an image.

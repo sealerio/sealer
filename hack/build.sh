@@ -90,7 +90,7 @@ build_binaries() {
   tarFile="${3-}-${1-}-${2-}.tar.gz"
 
   debug "!!! build $osarch sealer"
-  go build -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/sealer/main.go
+  GOOS=${1-} GOARCH=${2-} go build -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/sealer/main.go
   debug "output bin: $THIS_PLATFORM_BIN/sealer/$osarch/sealer"
   cd ${SEALER_ROOT}/_output/bin/sealer/$osarch/
   tar czf sealer-$tarFile sealer
@@ -100,7 +100,7 @@ build_binaries() {
   debug "output sha256sum: $THIS_PLATFORM_ASSETS/sealer-$tarFile.sha256sum"
 
   debug "!!! build $osarch seautil"
-  go build -o $THIS_PLATFORM_BIN/seautil/$osarch/seautil -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/seautil/main.go
+  GOOS=${1-} GOARCH=${2-} go build -o $THIS_PLATFORM_BIN/seautil/$osarch/seautil -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/seautil/main.go
   debug "output bin: $THIS_PLATFORM_BIN/seautil/$osarch/seautil"
   cd ${SEALER_ROOT}/_output/bin/seautil/$osarch/
   tar czf seautil-$tarFile seautil

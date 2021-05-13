@@ -30,18 +30,18 @@ sealer run prometheus:2.26.0
 
 Kubefile:
 ```shell script
-FROM registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.6
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.6
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 CMD kubectl apply -f recommended.yaml
 ```
 ```shell script
-sealer build -t registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest .
+sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest .
 ```
 然后一个包含dashboard的集群镜像就被制作出来了，可以运行或者分享给别人。
 
 把制作好的集群镜像推送到镜像仓库，集群镜像仓库兼容docker镜像仓库标准，可以把集群镜像推送到docker hub、阿里ACR、或者Harbor中
 ```shell script
-sealer push registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
+sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 # 使用场景&特性
@@ -66,9 +66,9 @@ sealer run kubernetes:v1.19.2 --master 192.168.0.2
 ```shell script
 export ACCESSKEYID=xxx
 export ACCESSKEYSECRET=xxx
-sealer run registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
+sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 # 或者指定节点数量运行集群
-sealer run registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest \
+sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest \
   --masters 3 --nodes 3
 ```
 ```shell script
@@ -84,7 +84,7 @@ izm5ehdjw3kru84f0kq7rbz   Ready    <none>   18h   v1.16.9
 
 查看镜像默认启动配置：
 ```shell script
-sealer config registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
+sealer config registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 ## 使用Clusterfile拉起一个k8s集群
@@ -100,7 +100,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
   provider: BAREMETAL
   ssh:
     passwd: 
@@ -149,7 +149,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
   provider: ALI_CLOUD
   ssh:
     passwd: 
@@ -198,7 +198,7 @@ spec:
 
 新建一个dashboard目录,创建一个文件Kubefile内容为:
 ```
-FROM registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 CMD kubectl apply -f recommended.yaml
 ```
@@ -256,7 +256,7 @@ spec:
 
 把制作好的集群镜像推送到镜像仓库：
 ```
-sealer tag my-kuberentes-cluster-with-dashboard:latest registry.cn-qingdao.aliyuncs.com/sealer/my-kuberentes-cluster-with-dashboard:latest
-sealer push registry.cn-qingdao.aliyuncs.com/sealer/my-kuberentes-cluster-with-dashboard:latest
+sealer tag my-kuberentes-cluster-with-dashboard:latest registry.cn-qingdao.aliyuncs.com/sealer-io/my-kuberentes-cluster-with-dashboard:latest
+sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kuberentes-cluster-with-dashboard:latest
 ```
 就可以把镜像复用给别人进行使用

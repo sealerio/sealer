@@ -3,13 +3,14 @@ package hash
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/opencontainers/go-digest"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/compress"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/compress"
+	"github.com/opencontainers/go-digest"
 )
 
 const emptySHA256TarDigest = "sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1"
@@ -27,7 +28,7 @@ func (sha SHA256) CheckSum(reader io.Reader) (*digest.Digest, error) {
 }
 
 func (sha SHA256) TarCheckSum(src string) (*os.File, string, error) {
-	file, err := compress.Compress(src, "", nil)
+	file, err := compress.RootDirNotIncluded(nil, src)
 	if err != nil {
 		return nil, "", err
 	}
@@ -57,7 +58,7 @@ func CheckSumAndPlaceLayer(dir string) (string, error) {
 	}
 
 	defer utils.CleanFile(file)
-	err = compress.Uncompress(file, filepath.Join(common.DefaultLayerDir, dig))
+	err = compress.Decompress(file, filepath.Join(common.DefaultLayerDir, dig))
 	if err != nil {
 		return "", err
 	}

@@ -3,7 +3,6 @@ package runtime
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -44,8 +43,8 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return err
 	}
 
-	//create kubeconfig for master0
-	if err := d.CreateKubeconfig(); err != nil {
+	//create kubeConfig for master0
+	if err := d.CreateKubeConfig(); err != nil {
 		return err
 	}
 
@@ -155,7 +154,7 @@ func (d *Default) GenerateCert() error {
 	return nil
 }
 
-func (d *Default) CreateKubeconfig() error {
+func (d *Default) CreateKubeConfig() error {
 	hostname := d.GetRemoteHostName(d.Masters[0])
 
 	certConfig := cert.Config{
@@ -179,7 +178,7 @@ func (d *Default) InitMaster0() error {
 	/*
 		err := d.mountEtcdDisk(d.Masters[:1], d.EtcdDevice)
 		if err != nil {
-			return fmt.Errorf("mount for /var/lib/etcd failed at %s, due to %s", d.Masters[0], err)
+			return fmt.Error("mount for /var/lib/etcd failed at %s, due to %s", d.Masters[0], err)
 		}
 	*/
 
@@ -198,7 +197,7 @@ func (d *Default) InitMaster0() error {
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}
 	d.decodeMaster0Output(output)
-	err = d.SSH.CmdAsync(d.Masters[0], RemoteCopyKubeconfig)
+	err = d.SSH.CmdAsync(d.Masters[0], RemoteCopyKubeConfig)
 	if err != nil {
 		return err
 	}
@@ -232,7 +231,7 @@ func (d *Default) InitCNI() error {
 	return d.SSH.CmdAsync(d.Masters[0], fmt.Sprintf(RemoteApplyYaml, netYaml))
 }
 
-func (d *Default) mountEtcdDisk(targetHosts []string, etcdDisk string) error {
+/*func (d *Default) mountEtcdDisk(targetHosts []string, etcdDisk string) error {
 	if etcdDisk == "" {
 		logger.Warn("Etcd Disk is not set, etcd now uses root disk which is not recommended due to stability requirement.")
 		return nil
@@ -255,7 +254,7 @@ func (d *Default) mountEtcdDisk(targetHosts []string, etcdDisk string) error {
 	wg.Wait()
 
 	return nil
-}
+}*/
 
 func (d *Default) LinkStaticFiles(nodes []string) error {
 	var flag bool
@@ -298,13 +297,20 @@ func (d *Default) decodeJoinCmd(cmd string) {
 	stringSlice := strings.Split(cmd, " ")
 
 	for i, r := range stringSlice {
-		switch r {
-		case "--token":
+		// upstream error, delete \t, \\, \n, space.
+		r = strings.ReplaceAll(r, "\t", "")
+		r = strings.ReplaceAll(r, "\n", "")
+		r = strings.ReplaceAll(r, "\\", "")
+		r = strings.TrimSpace(r)
+		if strings.Contains(r, "--token") {
 			d.JoinToken = stringSlice[i+1]
-		case "--discovery-token-ca-cert-hash":
+		}
+		if strings.Contains(r, "--discovery-token-ca-cert-hash") {
 			d.TokenCaCertHash = stringSlice[i+1]
-		case "--certificate-key":
+		}
+		if strings.Contains(r, "--certificate-key") {
 			d.CertificateKey = stringSlice[i+1][:64]
 		}
 	}
+	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", d.JoinToken, d.TokenCaCertHash, d.CertificateKey)
 }

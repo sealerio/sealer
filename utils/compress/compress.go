@@ -5,43 +5,60 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
 )
 
+func validatePath(path string) error {
+	if !filepath.IsAbs(path) {
+		return fmt.Errorf("dir %s must be absolute path", path)
+	}
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("dir %s does not exist, err: %s", path, err)
+	}
+	return nil
+}
+
+// Compress
 // src is the dir or single file to tar
 // not contain the dir
 // newFolder is a folder for tar file
-func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err error) {
-	if len(src) == 0 {
+func Compress(targetFile *os.File, paths ...string) (file *os.File, err error) {
+	return compress(targetFile, true, paths)
+}
+
+func RootDirNotIncluded(targetFile *os.File, paths ...string) (file *os.File, err error) {
+	return compress(targetFile, false, paths)
+}
+
+func compress(targetFile *os.File, keepRootDir bool, paths []string) (file *os.File, err error) {
+	if len(paths) == 0 {
 		return nil, errors.New("[compress] source must be provided")
 	}
-
-	if !filepath.IsAbs(src) {
-		return nil, errors.New("src should be absolute path")
-	}
-
-	_, err = os.Stat(src)
-	if err != nil {
-		return
+	for _, path := range paths {
+		err = validatePath(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	//use existing file
-	file = existingFile
+	file = targetFile
 	if file == nil {
-		file, err = ioutil.TempFile("/tmp", "seadent_compress")
-	}
-
-	if err != nil {
-		return nil, errors.New("create tmp compress file failed")
+		file, err = ioutil.TempFile("/tmp", "sealer_compress")
+		if err != nil {
+			return nil, errors.New("create tmp compress file failed")
+		}
 	}
 
 	defer func() {
+		// TODO this would delete existing file, is that ok?
 		if err != nil {
 			utils.CleanFile(file)
 		}
@@ -54,15 +71,40 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 		_ = zr.Close()
 	}()
 
-	src = strings.TrimSuffix(src, "/")
-	srcPrefix := filepath.ToSlash(src + "/")
-	err = filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
-		// generate tar header
-		header, err := tar.FileInfoHeader(fi, file)
-		if err != nil {
-			return err
+	for _, path := range paths {
+		var (
+			fi        os.FileInfo
+			newFolder string
+		)
+		if keepRootDir {
+			fi, err = os.Stat(path)
+			if err != nil {
+				return nil, err
+			}
+			if fi.IsDir() {
+				newFolder = filepath.Base(path)
+			}
 		}
-		if file != src {
+
+		err = writeToTarWriter(path, newFolder, tw)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return file, nil
+}
+
+func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
+	dir = strings.TrimSuffix(dir, "/")
+	srcPrefix := filepath.ToSlash(dir + "/")
+	err := filepath.Walk(dir, func(file string, fi os.FileInfo, err error) error {
+		// generate tar header
+		header, walkErr := tar.FileInfoHeader(fi, file)
+		if walkErr != nil {
+			return walkErr
+		}
+		if file != dir {
 			absPath := filepath.ToSlash(file)
 			header.Name = filepath.Join(newFolder, strings.TrimPrefix(absPath, srcPrefix))
 		} else {
@@ -71,68 +113,32 @@ func Compress(src, newFolder string, existingFile *os.File) (file *os.File, err 
 				return nil
 			}
 			// for supporting tar single file
-			header.Name = filepath.Join(newFolder, filepath.Base(src))
+			header.Name = filepath.Join(newFolder, filepath.Base(dir))
 		}
 
 		// write header
-		if err = tw.WriteHeader(header); err != nil {
-			return err
+		if walkErr = tarWriter.WriteHeader(header); walkErr != nil {
+			return walkErr
 		}
 		// if not a dir, write file content
 		if !fi.IsDir() {
-			data, err := os.Open(file)
-			if err != nil {
-				return err
+			data, walkErr := os.Open(file)
+			if walkErr != nil {
+				return walkErr
 			}
-			if _, err = io.Copy(tw, data); err != nil {
-				return err
+			if _, walkErr = io.Copy(tarWriter, data); walkErr != nil {
+				return walkErr
 			}
 		}
 		return nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	return file, nil
+	return err
 }
 
-// example: dir:/var/lib/etcd target:/home/etcd.tar.gz
-// this func will keep original dir etcd
-func CompressDir(dir, target string) (err error) {
-	if dir == "" || target == "" {
-		return errors.New("dir or target should be provided")
-	}
-
-	if !filepath.IsAbs(dir) || !filepath.IsAbs(target) {
-		return errors.New("dir and target should be absolute path")
-	}
-
-	target = strings.TrimSuffix(target, "/")
-	tarDir := filepath.Dir(target)
-	if err = os.MkdirAll(tarDir, common.FileMode0766); err != nil {
-		return err
-	}
-
-	var file *os.File
-	if file, err = os.OpenFile(target, os.O_RDWR|os.O_TRUNC|os.O_CREATE, common.FileMode0766); err != nil {
-		return err
-	}
-	defer file.Close()
-
-	dir = strings.TrimSuffix(dir, "/")
-	originDir := filepath.Base(dir)
-	// the return file will point to the file above, which will be close in defer, so ignore it
-	if _, err = Compress(dir, originDir, file); err != nil {
-		return err
-	}
-	return nil
-}
-
-// this uncompress will not change the metadata of original files
-func Uncompress(src io.Reader, dst string) error {
-	err := os.MkdirAll(dst, common.FileMode0766)
+// Decompress this will not change the metadata of original files
+func Decompress(src io.Reader, dst string) error {
+	err := os.MkdirAll(dst, common.FileMode0755)
 	if err != nil {
 		return err
 	}
@@ -188,6 +194,12 @@ func Uncompress(src io.Reader, dst string) error {
 
 		case tar.TypeReg:
 			err = func() error {
+				// regularly won't mkdir, unless add newFolder on compressing
+				err := utils.MkDirIfNotExists(filepath.Dir(target))
+				if err != nil {
+					return err
+				}
+
 				fileToWrite, err := os.OpenFile(target, os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.FileMode(header.Mode))
 				if err != nil {
 					return err

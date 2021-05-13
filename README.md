@@ -33,7 +33,7 @@ Kubefile:
 #    1. kubernetes components like kubectl kubeadm kubelet and apiserver images ...
 #    2. docker engine, and a private registry
 #    3. config files, yaml, static files, scripts ...
-FROM registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.6
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7
 # download kubernetes dashboard yaml file
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 # when run this CloudImage, will apply a dashboard manifests
@@ -43,14 +43,14 @@ CMD kubectl apply -f recommended.yaml
 Build dashobard CloudImage:
 
 ```shell script
-sealer build -t registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest .
+sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest .
 ```
 
 Run a kubernetes cluster with dashboard:
 
 ```shell script
 # sealer will install a kubernetes on host 192.168.0.2 then apply the dashboard manifests
-sealer run registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest --master 192.168.0.2 --passwd xxx
+sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest --master 192.168.0.2 --passwd xxx
 # check the pod
 kubectl get pod -A|grep dashboard
 ```
@@ -59,7 +59,7 @@ Push the CloudImage to the registry
 
 ```shell script
 # you can push the CloudImage to docker hub, Ali ACR, or Harbor
-sealer push registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
+sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 # Usage scenarios & features
@@ -80,18 +80,18 @@ Install a kubernetes cluster
 sealer run kubernetes:v1.19.2 --master 192.168.0.2
 ```
 
-If it is installed on the cloud:
+Install a cluster on alicloud:
 
 ```shell script
 export ACCESSKEYID=xxx
 export ACCESSKEYSECRET=xxx
-sealer run registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
+sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 Or specify the number of nodes to run the cluster
 
 ```shell script
-sealer run registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest \
+sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest \
   --masters 3 --nodes 3
 ```
 
@@ -109,7 +109,7 @@ izm5ehdjw3kru84f0kq7rbz Ready <none> 18h v1.16.9
 View the default startup configuration of the CloudImage:
 
 ```shell script
-sealer config registry.cn-qingdao.aliyuncs.com/sealer/dashboard:latest
+sealer config registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 Use Clusterfile to set up a k8s cluster
@@ -124,7 +124,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
   provider: BAREMETAL
   ssh:
     passwd:
@@ -166,7 +166,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
   provider: ALI_CLOUD
   ssh:
     passwd:
@@ -206,3 +206,8 @@ Some information of the basic settings will be written to the Clusterfile and st
 ```shell script
 sealer delete -f /root/.sealer/my-cluster/Clusterfile
 ```
+
+# Developing Sealer
+
+* [contributing guide](./CONTRIBUTIONG.md)
+* [贡献文档](./docs/contributing_zh.md)

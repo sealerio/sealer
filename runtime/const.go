@@ -9,7 +9,7 @@
 package runtime
 
 const (
-	ClusterRootfsWorkspace = "/var/lib/seadent/data/%s"
+	ClusterRootfsWorkspace = "/var/lib/sealer/data/%s"
 	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
 	CreateKubeConfigCmd    = "mkdir -p ~/.kube && cp /etc/kubernetes/admin.conf ~/.kube/config"
 	//CreateEtcdSecretCmd    = `kubectl create secret generic etcd-client-cert --from-file=ca.pem=/etc/kubernetes/pki/etcd/ca.crt --from-file=etcd-client.pem=/etc/kubernetes/pki/apiserver-etcd-client.crt --from-file=etcd-client-key.pem=/etc/kubernetes/pki/apiserver-etcd-client.key -n kube-system`

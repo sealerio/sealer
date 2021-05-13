@@ -20,23 +20,23 @@ func Test_decodeLine(t *testing.T) {
 	}{
 		{
 			"test FROM command",
-			args{line: "FROM kuberentes:1.18.2"},
+			args{line: "FROM kubernetes:1.18.2"},
 			"FROM",
-			"kuberentes:1.18.2",
+			"kubernetes:1.18.2",
 			false,
 		},
 		{
 			"test FROM command",
-			args{line: " FROM kuberentes:1.18.2"},
+			args{line: " FROM kubernetes:1.18.2"},
 			"FROM",
-			"kuberentes:1.18.2",
+			"kubernetes:1.18.2",
 			false,
 		},
 		{
 			"test FROM command",
-			args{line: "FROM kuberentes:1.18.2 "},
+			args{line: "FROM kubernetes:1.18.2 "},
 			"FROM",
-			"kuberentes:1.18.2",
+			"kubernetes:1.18.2",
 			false,
 		},
 	}
@@ -58,14 +58,14 @@ func Test_decodeLine(t *testing.T) {
 }
 
 func TestParser_Parse(t *testing.T) {
-	kubefile := []byte(`FROM kubernetes:1.18.1
+	kubeFile := []byte(`FROM kubernetes:1.18.1
 
 # this is annotations
 COPY dashboard .
 RUN kubectl apply -f dashboard`)
 
 	type args struct {
-		kubefile []byte
+		kubeFile []byte
 		name     string
 	}
 	tests := []struct {
@@ -74,9 +74,9 @@ RUN kubectl apply -f dashboard`)
 		want *v1.Image
 	}{
 		{
-			"test kubefile",
+			"test kubeFile",
 			args{
-				kubefile: kubefile,
+				kubeFile: kubeFile,
 				name:     "",
 			},
 			nil,
@@ -85,7 +85,7 @@ RUN kubectl apply -f dashboard`)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Parser{}
-			if got := p.Parse(tt.args.kubefile, tt.args.name); !reflect.DeepEqual(got, tt.want) {
+			if got := p.Parse(tt.args.kubeFile, tt.args.name); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Parse() = %v, want %v", got, tt.want)
 			}
 		})

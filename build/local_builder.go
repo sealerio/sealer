@@ -2,6 +2,10 @@ package build
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
@@ -13,9 +17,6 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/hash"
 	"github.com/alibaba/sealer/utils/mount"
-	"io/ioutil"
-	"path/filepath"
-	"strings"
 )
 
 type Config struct {
@@ -126,7 +127,7 @@ func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
 }
 
 func (l *LocalBuilder) ExecBuild() error {
-	baseLayers, err := image.GetImageHashList(l.Image)
+	baseLayers, err := getBaseLayersFromImage(*l.Image)
 	if err != nil {
 		return err
 	}
@@ -290,7 +291,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 	logger.Info("write image yaml file to %s success !", filename)
 	if err := imageUtils.SetImageMetadata(imageUtils.ImageMetadata{
 		Name: l.ImageName,
-		Id:   l.Image.Spec.ID,
+		ID:   l.Image.Spec.ID,
 	}); err != nil {
 		return fmt.Errorf("failed to set image metadata :%v", err)
 	}
@@ -312,4 +313,40 @@ func NewLocalBuilder(config *Config) Interface {
 	c := new(LocalBuilder)
 	c.Config = config
 	return c
+}
+
+// used in build stage, where the image still has from layer
+func getBaseLayersFromImage(image v1.Image) (res []string, err error) {
+	if len(image.Spec.Layers) == 0 {
+		return nil, fmt.Errorf("no layer found in image %s", image.Name)
+	}
+	if image.Spec.Layers[0].Value == common.ImageScratch {
+		return []string{}, nil
+	}
+
+	var layers []v1.Layer
+	if image.Spec.Layers[0].Type == common.FROMCOMMAND {
+		baseImage, err := imageUtils.GetImage(image.Spec.Layers[0].Value)
+		if err != nil {
+			return []string{}, err
+		}
+		if len(baseImage.Spec.Layers) == 0 || baseImage.Spec.Layers[0].Type == common.FROMCOMMAND {
+			return []string{}, fmt.Errorf("no layer found in local base image %s, or this base image has base image, which is not allowed", baseImage.Spec.ID)
+		}
+		layers = append(layers, baseImage.Spec.Layers...)
+		// remove the from layer
+		//image.Spec.Layers = image.Spec.Layers[1:]
+	}
+	// TODO the original logic would append current image layers, but I guess there is no need to do that
+	//layers = append(layers, image.Spec.Layers...)
+	if len(layers) > 128 {
+		return []string{}, fmt.Errorf("current layer is exceed 128 layers")
+	}
+
+	for _, layer := range layers {
+		if layer.Hash != "" {
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash))
+		}
+	}
+	return res, nil
 }

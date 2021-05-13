@@ -56,7 +56,7 @@ func (f *fileLogger) Init(jsonConfig string) error {
 		return err
 	}
 	if len(f.Filename) == 0 {
-		return errors.New("jsonconfig must have filename")
+		return errors.New("jsonConfig must have filename")
 	}
 	f.suffix = filepath.Ext(f.Filename)
 	f.fileNameOnly = strings.TrimSuffix(f.Filename, f.suffix)
@@ -124,7 +124,10 @@ func (f *fileLogger) createLogFile() (*os.File, error) {
 	fd, err := os.OpenFile(f.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.FileMode(perm))
 	if err == nil {
 		// Make sure file perm is user set perm cause of `os.OpenFile` will obey umask
-		os.Chmod(f.Filename, os.FileMode(perm))
+		err = os.Chmod(f.Filename, os.FileMode(perm))
+		if err != nil {
+			return nil, err
+		}
 	}
 	return fd, err
 }
@@ -198,7 +201,7 @@ func (f *fileLogger) createFreshFile(logTime time.Time) error {
 	_, err = os.Lstat(f.Filename)
 	if err != nil {
 		// 初始日志文件不存在，无需创建新文件
-		goto RESTART_LOGGER
+		goto RestartLogger
 	}
 	// 日期变了， 说明跨天，重命名时需要保存为昨天的日期
 	if f.dailyOpenDate != logTime.Day() {
@@ -226,12 +229,12 @@ func (f *fileLogger) createFreshFile(logTime time.Time) error {
 	err = os.Rename(f.Filename, fName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "os.Rename %s to %s err:%s\n", f.Filename, fName, err.Error())
-		goto RESTART_LOGGER
+		goto RestartLogger
 	}
 
 	err = os.Chmod(fName, os.FileMode(rotatePerm))
 
-RESTART_LOGGER:
+RestartLogger:
 
 	startLoggerErr := f.newFile()
 	go f.deleteOldLog()
@@ -247,7 +250,7 @@ RESTART_LOGGER:
 
 func (f *fileLogger) deleteOldLog() {
 	dir := filepath.Dir(f.Filename)
-	filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
 				fmt.Fprintf(os.Stderr, "Unable to delete old log '%s', error: %v\n", path, r)
@@ -266,6 +269,9 @@ func (f *fileLogger) deleteOldLog() {
 		}
 		return
 	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to delete old log error: %v\n", err)
+	}
 }
 
 func (f *fileLogger) Destroy() {

@@ -4,12 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/mitchellh/go-homedir"
-	"github.com/alibaba/sealer/common"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/mitchellh/go-homedir"
 )
 
 type AuthItem struct {
