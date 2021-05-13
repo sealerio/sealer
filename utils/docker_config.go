@@ -39,7 +39,7 @@ type DockerInfo struct {
 func DockerConfig() (*DockerInfo, error) {
 	authFile := common.DefaultRegistryAuthConfigDir()
 	if !IsFileExist(authFile) {
-		return &DockerInfo{Auths: map[string]AuthItem{}}, ioutil.WriteFile(authFile, []byte("{\"auths\":{}}"), common.FileMode0644)
+		return &DockerInfo{Auths: map[string]AuthItem{}}, AtomicWriteFile(authFile, []byte("{\"auths\":{}}"), common.FileMode0644)
 	}
 
 	filebyts, err := ioutil.ReadFile(authFile)
@@ -100,7 +100,7 @@ func SetDockerConfig(hostname, username, password string) error {
 	if err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(authFile, data, common.FileMode0644); err != nil {
+	if err := AtomicWriteFile(authFile, data, common.FileMode0644); err != nil {
 		return fmt.Errorf("write %s failed,%s", authFile, err)
 	}
 	return nil

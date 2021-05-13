@@ -15,7 +15,6 @@
 package store
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/alibaba/sealer/common"
@@ -68,7 +67,7 @@ func saveImage(image v1.Image) error {
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(common.DefaultImageDBRootDir, image.Spec.ID+common.YamlSuffix), imageYaml, common.FileMode0644)
+	return pkgutils.AtomicWriteFile(filepath.Join(common.DefaultImageDBRootDir, image.Spec.ID+common.YamlSuffix), imageYaml, common.FileMode0644)
 }
 
 func deleteImage(imageID string) error {
