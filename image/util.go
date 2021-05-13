@@ -55,19 +55,22 @@ func GetClusterFileFromImage(imageName string) string {
 // GetClusterFileFromImageManifest retrieve ClusterFile from image manifest(image yaml)
 func GetClusterFileFromImageManifest(imageName string) string {
 	//  find cluster file from image manifest
-	imageMetadata, err := NewImageMetadataService().GetRemoteImage(imageName)
+	var image *v1.Image
+	var err error
+	image, err = imageUtils.GetImage(imageName)
 	if err != nil {
-		return ""
+		imageMetadata, err := NewImageMetadataService().GetRemoteImage(imageName)
+		if err != nil {
+			logger.Error("failed to find image %s,err: %v", imageName, err)
+			return ""
+		}
+		image = &imageMetadata
 	}
-	if imageMetadata.Annotations == nil {
-		return ""
-	}
-	clusterFile, ok := imageMetadata.Annotations[common.ImageAnnotationForClusterfile]
+	Clusterfile, ok := image.Annotations[common.ImageAnnotationForClusterfile]
 	if !ok {
-		return ""
+		logger.Error("failed to find Clusterfile in local %s", imageName)
 	}
-
-	return clusterFile
+	return Clusterfile
 }
 
 // GetClusterFileFromBaseImage retrieve ClusterFile from base image, TODO need to refactor
@@ -111,34 +114,23 @@ func GetClusterFileFromBaseImage(imageName string) string {
 	return string(data)
 }
 
-func GetYamlByImage(imageName string) string {
+func GetYamlByImage(imageName string) (string, error) {
 	imagesMap, err := imageUtils.GetImageMetadataMap()
 	if err != nil {
-		return " "
+		return "", err
 	}
 
 	image, ok := imagesMap[imageName]
 	if !ok {
-		return " failed to find image by name"
+		return "", fmt.Errorf("failed to find image by name (%s)", imageName)
 	}
-
 	if image.ID == "" {
-		return " failed to find corresponding image id, id is empty"
+		return "", fmt.Errorf("failed to find corresponding image id, id is empty")
 	}
 
 	ImageInformation, err := ioutil.ReadFile(filepath.Join(common.DefaultImageMetaRootDir, image.ID+common.YamlSuffix))
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("failed to read image yaml,err: %v", err)
 	}
-	return string(ImageInformation)
-}
-
-func GetClusterFileByImage(imageName string) string {
-	image, err := imageUtils.GetImage(imageName)
-	if err == nil {
-		if image.Annotations == nil {
-			logger.Info("not found clusterFile in locally")
-		}
-	}
-	return GetClusterFileFromImageManifest(imageName)
+	return string(ImageInformation), nil
 }

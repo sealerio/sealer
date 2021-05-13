@@ -29,24 +29,24 @@ var clusterFilePrint bool
 // inspectCmd represents the inspect command
 var inspectCmd = &cobra.Command{
 	Use:   "inspect",
-	Short: "print the imageInformation or clusterFile",
-	Long: `sealer inspect kubernetes:v1.18.3
-	 	   sealer inspect -c kubernetes:v1.18.3`,
+	Short: "print the image information or clusterFile",
+	Long: `sealer inspect kubernetes:v1.18.3 to print image information
+sealer inspect -c kubernetes:v1.18.3 to print image Clusterfile`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		file := image.GetYamlByImage(args[0])
-		if file == "" {
-			logger.Error("not found image information")
-			os.Exit(1)
-		}
 		if clusterFilePrint {
-			cluster := image.GetClusterFileByImage(args[0])
+			cluster := image.GetClusterFileFromImageManifest(args[0])
 			if cluster == "" {
-				logger.Error("not found clusterFile in registry")
+				logger.Error("failed to find Clusterfile by image %s", args[0])
 				os.Exit(1)
 			}
 			fmt.Println(cluster)
 		} else {
+			file, err := image.GetYamlByImage(args[0])
+			if err != nil {
+				logger.Error("failed to find information by image %s", args[0])
+				os.Exit(1)
+			}
 			fmt.Println(file)
 		}
 	},
@@ -54,5 +54,5 @@ var inspectCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(inspectCmd)
-	inspectCmd.Flags().BoolVarP(&clusterFilePrint, "imageName", "c", false, "print the clusterFile")
+	inspectCmd.Flags().BoolVarP(&clusterFilePrint, "Clusterfile", "c", false, "print the clusterFile")
 }
