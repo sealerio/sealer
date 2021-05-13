@@ -42,7 +42,7 @@ func (puller *ImagePuller) Pull(context context.Context, named reference.Named) 
 		return nil, err
 	}
 
-	v1Image, err := puller.getRemoteImage(context, named, manifest.Config.Digest)
+	v1Image, err := puller.getRemoteImageMetadata(context, named, manifest.Config.Digest)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,8 @@ func (puller *ImagePuller) getRemoteManifest(context context.Context, named refe
 	return puller.registry.ManifestV2(context, named.Repo(), named.Tag())
 }
 
-func (puller *ImagePuller) getRemoteImage(context context.Context, named reference.Named, digest digest.Digest) (v1.Image, error) {
+// not docker image, get sealer image metadata
+func (puller *ImagePuller) getRemoteImageMetadata(context context.Context, named reference.Named, digest digest.Digest) (v1.Image, error) {
 	manifestImage, err := puller.registry.DownloadLayer(context, named.Repo(), digest)
 	if err != nil {
 		return v1.Image{}, err

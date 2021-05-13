@@ -103,7 +103,7 @@ func GetClusterFileFromBaseImage(imageName string) string {
 	return string(data)
 }
 
-func getDockerAuthInfoFromDocker(domain string) types.AuthConfig {
+func getDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {
 	var (
 		dockerInfo       *utils.DockerInfo
 		err              error
@@ -111,13 +111,17 @@ func getDockerAuthInfoFromDocker(domain string) types.AuthConfig {
 	)
 	dockerInfo, err = utils.DockerConfig()
 	if err != nil {
-		logger.Warn("failed to get docker info, err: %s", err)
-	} else {
-		username, passwd, err = dockerInfo.DecodeDockerAuth(domain)
-		if err != nil {
-			logger.Warn("failed to decode auth info, username and password would be empty, err: %s", err)
-		}
+		return types.AuthConfig{}, err
 	}
 
-	return types.AuthConfig{Username: username, Password: passwd, ServerAddress: domain}
+	username, passwd, err = dockerInfo.DecodeDockerAuth(domain)
+	if err != nil {
+		return types.AuthConfig{}, err
+	}
+
+	return types.AuthConfig{
+		Username:      username,
+		Password:      passwd,
+		ServerAddress: domain,
+	}, nil
 }

@@ -74,10 +74,15 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 
+	authInfo, err := getDockerAuthInfoFromDocker(named.Domain())
+	if err != nil {
+		logger.Warn("failed to get auth info, err: %s", err)
+	}
+
 	puller, err := distributionutil.NewPuller(distributionutil.Config{
 		LayerStore:     layerStore,
 		ProgressOutput: progressChanOut,
-		AuthInfo:       getDockerAuthInfoFromDocker(named.Domain()),
+		AuthInfo:       authInfo,
 	})
 	if err != nil {
 		return err
@@ -128,7 +133,11 @@ func (d DefaultImageService) Push(imageName string) error {
 		return err
 	}
 
-	authInfo := getDockerAuthInfoFromDocker(named.Domain())
+	authInfo, err := getDockerAuthInfoFromDocker(named.Domain())
+	if err != nil {
+		logger.Warn("failed to get docker info, err: %s", err)
+	}
+
 	pusher, err := distributionutil.NewPusher(distributionutil.Config{
 		LayerStore:     layerStore,
 		ProgressOutput: progressChanOut,
@@ -139,6 +148,8 @@ func (d DefaultImageService) Push(imageName string) error {
 	}
 	go func() {
 		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
+		// reader may be closed in another goroutine
+		// so do not log warn when err == io.ErrClosedPipe
 		if err != nil && err != io.ErrClosedPipe {
 			logger.Warn("error occurs in display progressing, err: %s", err)
 		}

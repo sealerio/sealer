@@ -12,7 +12,6 @@ import (
 	imageutils "github.com/alibaba/sealer/image/utils"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
-	//"github.com/alibaba/sealer/utils"
 	"os"
 	"path/filepath"
 	"sync"
@@ -32,7 +31,7 @@ type Pusher interface {
 
 type ImagePusher struct {
 	config   Config
-	registry *registry.Registry
+	registry *registry.Registry // registrysdk
 }
 
 func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) error {
@@ -48,6 +47,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		return err
 	}
 
+	// to get layer descriptors, for building image manifest
 	layerDescriptorChan = make(chan distribution.Descriptor, len(image.Spec.Layers))
 	for _, l := range image.Spec.Layers {
 		if l.Hash == "" {
@@ -90,6 +90,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		layerDescriptors = append(layerDescriptors, descriptor)
 	}
 
+	// push sealer image metadata to registry
 	configJSON, err := pusher.putManifestConfig(ctx, named, *image)
 	if err != nil {
 		return err
@@ -106,12 +107,14 @@ func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Name
 		layerID         = digest.Digest(layer.ID())
 	)
 
+	// check if layer exists remotely.
 	remoteLayer, err := registryCli.LayerMetadata(named.Repo(), layerID)
 	if err == nil {
 		progress.Message(progressChanOut, layer.SimpleID(), "already exists")
 		return remoteLayer, nil
 	}
 
+	// pack layer files into tar.gz
 	progress.Update(progressChanOut, layer.SimpleID(), "preparing")
 	if file, err = compress.RootDirNotIncluded(nil, filepath.Join(common.DefaultLayerDir, layerID.Hex())); err != nil {
 		return distribution.Descriptor{}, err
