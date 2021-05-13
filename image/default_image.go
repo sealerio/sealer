@@ -79,7 +79,7 @@ func (d DefaultImageService) Pull(imageName string) error {
 	}
 	go func() {
 		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
-		if err != nil {
+		if err != nil && err != io.ErrClosedPipe {
 			logger.Warn("error occurs in display progressing, err: %s", err)
 		}
 	}()
@@ -130,7 +130,7 @@ func (d DefaultImageService) Push(imageName string) error {
 	}
 	go func() {
 		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
-		if err != nil {
+		if err != nil && err != io.ErrClosedPipe {
 			logger.Warn("error occurs in display progressing, err: %s", err)
 		}
 	}()
