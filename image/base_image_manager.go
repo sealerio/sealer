@@ -15,6 +15,8 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/justadogistaken/reg/registry"
 	"github.com/opencontainers/go-digest"
+	"github.com/wonderivan/logger"
+
 	"path/filepath"
 
 	"sigs.k8s.io/yaml"
@@ -72,21 +74,28 @@ func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err err
 // init bim registry
 func (bim *BaseImageManager) initRegistry(hostname string) error {
 	var (
+		reg *registry.Registry
+		err error
+	)
+	reg, err = bim.fetchRegistryClient(types.AuthConfig{ServerAddress: hostname})
+	if err == nil {
+		bim.registry = reg
+		return nil
+	}
+	var (
 		dockerInfo       *pkgutils.DockerInfo
-		err              error
 		username, passwd string
 	)
 	dockerInfo, err = pkgutils.DockerConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get docker info, err: %s", err)
+		logger.Warn("failed to get docker info, err: %s", err)
 	} else {
 		username, passwd, err = dockerInfo.DecodeDockerAuth(hostname)
 		if err != nil {
-			return fmt.Errorf("failed to decode auth info, username and password would be empty, err: %s", err)
+			logger.Warn("failed to decode auth info, username and password would be empty, err: %s", err)
 		}
 	}
 
-	var reg *registry.Registry
 	reg, err = bim.fetchRegistryClient(types.AuthConfig{ServerAddress: hostname, Username: username, Password: passwd})
 	if nil != err {
 		return err

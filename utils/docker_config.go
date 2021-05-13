@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/mitchellh/go-homedir"
 )
 
 type AuthItem struct {
@@ -22,12 +21,12 @@ type DockerInfo struct {
 }
 
 func DockerConfig() (*DockerInfo, error) {
-	dir, err := homedir.Dir()
-	if err != nil {
-		return nil, err
+	authFile := common.DefaultRegistryAuthConfigDir()
+	if !IsFileExist(authFile) {
+		return &DockerInfo{Auths: map[string]AuthItem{}}, ioutil.WriteFile(authFile, []byte("{\"auths\":{}}"), common.FileMode0644)
 	}
 
-	filebyts, err := ioutil.ReadFile(filepath.Join(dir, ".docker/config.json"))
+	filebyts, err := ioutil.ReadFile(authFile)
 	if err != nil {
 		return nil, err
 	}
