@@ -80,7 +80,7 @@ Install a kubernetes cluster
 sealer run kubernetes:v1.19.2 --master 192.168.0.2
 ```
 
-Install a cluster on alicloud:
+Install a cluster on public cloud(now support alicloud):
 
 ```shell script
 export ACCESSKEYID=xxx

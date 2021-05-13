@@ -23,7 +23,7 @@
 * rootfs mount filesystem
 * sealer hub UI
 
-## official registry opensource images
+## official registry opensource cloud images
 
 - [ ] dashboard, https://github.com/kubernetes/dashboard
 - [ ] prometheus stack, https://github.com/prometheus-operator/kube-prometheus
@@ -45,3 +45,7 @@
 - [ ] dapr
 - [ ] ingress
 - [ ] gitea/drone/harbor, devops stack
+
+# LONG-TERM
+
+

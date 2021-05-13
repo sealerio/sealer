@@ -1,6 +1,6 @@
 # cloud rootfs
 
-cloud rootfs package all the dependencies when run a kubernetes cluster needs.
+cloud rootfs will package all the dependencies refers to the kubernetes cluster requirements
 
 ```shell script
 .
