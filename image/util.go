@@ -68,7 +68,8 @@ func GetClusterFileFromImageManifest(imageName string) string {
 	}
 	Clusterfile, ok := image.Annotations[common.ImageAnnotationForClusterfile]
 	if !ok {
-		logger.Error("failed to find Clusterfile in local %s", imageName)
+		logger.Error("failed to find Clusterfile in local")
+		return ""
 	}
 	return Clusterfile
 }
