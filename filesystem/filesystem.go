@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	RemoteChmod = "cd %s && chmod +x bin/* && chmod +x docker/* && chmod +x scripts/* && cd scripts && sh init.sh"
+	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && sh init.sh"
 )
 
 type Interface interface {
