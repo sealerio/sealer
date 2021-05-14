@@ -72,7 +72,7 @@ func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
 		}
 		logger.Info("send register info to %s success !", remoteHostIP)
 	} else {
-		logger.Warn("failed to found %s, if you run a private repository image, please login first", authFile)
+		logger.Warn("failed to find %s, if image registry is private, please login first", authFile)
 	}
 	return nil
 }
