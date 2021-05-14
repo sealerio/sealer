@@ -3,7 +3,6 @@ package image
 import (
 	"context"
 	"encoding/json" //nolint:goimports
-	"fmt"
 	"io/ioutil"
 	"os"
 
