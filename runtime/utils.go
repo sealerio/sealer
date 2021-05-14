@@ -64,10 +64,12 @@ func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
 	logger.Info("send cluster file to %s success !", remoteHostIP)
 
 	// send register login info
-	err = sshClient.Copy(remoteHostIP, common.DefaultRegistryAuthConfigDir(), common.DefaultRegistryAuthConfigDir())
-	if err != nil {
-		logger.Warn("send register config to remote host %s failed:%v", remoteHostIP, err)
-	} else {
+	authFile := common.DefaultRegistryAuthConfigDir()
+	if utils.IsFileExist(authFile) {
+		err = sshClient.Copy(remoteHostIP, authFile, authFile)
+		if err != nil {
+			return fmt.Errorf("failed to send register config %s to remote host %s err: %v", authFile, remoteHostIP, err)
+		}
 		logger.Info("send register info to %s success !", remoteHostIP)
 	}
 
