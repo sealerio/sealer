@@ -135,7 +135,13 @@ func (d DefaultImageService) Delete(imageName string) error {
 
 	image, err = imageutils.GetImage(named.Raw())
 	if err != nil {
-		return err
+		// If the metadata yaml is missing,
+		// we also delete the corresponding record in images_metadata.json if any
+		newErr := imageutils.DeleteImage(imageName)
+		if newErr != nil {
+			return newErr
+		}
+		return fmt.Errorf("failed to find image metadata, err: %v", err)
 	}
 
 	imageMetadataMap, err := imageutils.GetImageMetadataMap()
