@@ -45,9 +45,18 @@ func GetClusterFileFromImage(imageName string) string {
 		return clusterfile
 	}
 
-	clusterfile = GetClusterFileFromBaseImage(imageName)
+	clusterfile = GetFileFromBaseImage(imageName, "etc", common.DefaultClusterFileName)
 	if clusterfile != "" {
 		return clusterfile
+	}
+	return ""
+}
+
+// GetMetadataFromImage retrieve Metadata From image
+func GetMetadataFromImage(imageName string) string {
+	metadata := GetFileFromBaseImage(imageName, common.DefaultMetadataName)
+	if metadata != "" {
+		return metadata
 	}
 	return ""
 }
@@ -70,8 +79,8 @@ func GetClusterFileFromImageManifest(imageName string) string {
 	return clusterFile
 }
 
-// GetClusterFileFromBaseImage retrieve ClusterFile from base image, TODO need to refactor
-func GetClusterFileFromBaseImage(imageName string) string {
+// GetFileFromBaseImage retrieve file from base image
+func GetFileFromBaseImage(imageName string, paths ...string) string {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()
 	defer func() {
@@ -102,8 +111,10 @@ func GetClusterFileFromBaseImage(imageName string) string {
 			logger.Warn(err)
 		}
 	}()
-
-	clusterFile := filepath.Join(mountTarget, "etc", common.DefaultClusterFileName)
+	var subPath []string
+	subPath = append(subPath, mountTarget)
+	subPath = append(subPath, paths...)
+	clusterFile := filepath.Join(subPath...)
 	data, err := ioutil.ReadFile(clusterFile)
 	if err != nil {
 		return ""

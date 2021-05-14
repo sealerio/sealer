@@ -22,8 +22,8 @@ import (
 const (
 	V1991 = "v1.19.1"
 	V1992 = "v1.19.2"
-	V1200 = "v1.20.0"
 	V1150 = "v1.15.0"
+	V1200 = "v1.20.0"
 )
 
 const (
@@ -137,7 +137,7 @@ func (d *Default) sendFileToHosts(Hosts []string, src, dst string) {
 
 func (d *Default) ReplaceKubeConfigV1991V1992(masters []string) bool {
 	// fix > 1.19.1 kube-controller-manager and kube-scheduler use the LocalAPIEndpoint instead of the ControlPlaneEndpoint.
-	if VersionCompare(d.Version, V1991) && VersionCompare(V1992, d.Version) {
+	if VersionCompare(d.Metadata.Version, V1991) && VersionCompare(V1992, d.Metadata.Version) {
 		for _, v := range masters {
 			ip := utils.GetHostIP(v)
 			cmd := fmt.Sprintf(RemoteReplaceKubeConfig, KUBESCHEDULERCONFIGFILE, ip, KUBECONTROLLERCONFIGFILE, ip, KUBESCHEDULERCONFIGFILE)
@@ -179,7 +179,7 @@ func (d *Default) JoinTemplateFromTemplateContent(templateContent, ip string) []
 	envMap[TokenDiscovery] = d.JoinToken
 	envMap[TokenDiscoveryCAHash] = d.TokenCaCertHash
 	envMap[VIP] = d.VIP
-	if VersionCompare(d.Version, V1200) {
+	if VersionCompare(d.Metadata.Version, V1200) {
 		envMap[CriSocket] = DefaultContainerdCRISocket
 	} else {
 		envMap[CriSocket] = DefaultDockerCRISocket
@@ -296,11 +296,11 @@ func (d *Default) joinMasters(masters []string) error {
 	// TODO only needs send ca?
 	d.sendNewCertAndKey(masters)
 	d.sendJoinCPConfig(masters)
-	cmd := d.Command(d.Version, JoinMaster)
+	cmd := d.Command(d.Metadata.Version, JoinMaster)
 	// TODO for test skip dockerd dev version
 	cmd = fmt.Sprintf("%s --ignore-preflight-errors=SystemVerification", cmd)
 	if cmd == "" {
-		return fmt.Errorf("get join master command failed, kubernetes version is %s", d.Version)
+		return fmt.Errorf("get join master command failed, kubernetes version is %s", d.Metadata.Version)
 	}
 
 	for _, master := range masters {
@@ -320,9 +320,9 @@ func (d *Default) joinMasters(masters []string) error {
 	d.SendJoinMasterKubeConfigs(masters)
 	d.sendNewCertAndKey(masters)
 	d.sendJoinCPConfig(masters)
-	cmd := d.Command(d.Version, JoinMaster)
+	cmd := d.Command(d.Metadata.Version, JoinMaster)
 	if cmd == "" {
-		return fmt.Errorf("get join master command failed, kubernetes version is %s", d.Version)
+		return fmt.Errorf("get join master command failed, kubernetes version is %s", d.Metadata.Version)
 	}
 
 	var wg sync.WaitGroup
