@@ -71,7 +71,8 @@ func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
 			return fmt.Errorf("failed to send register config %s to remote host %s err: %v", authFile, remoteHostIP, err)
 		}
 		logger.Info("send register info to %s success !", remoteHostIP)
+	} else {
+		logger.Warn("failed to found %s, if you run a private repository image, please login first", authFile)
 	}
-
 	return nil
 }
