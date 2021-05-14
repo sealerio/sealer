@@ -14,6 +14,7 @@ import (
 
 type ClusterArgs struct {
 	cluster    *v1.Cluster
+	imageName  string
 	nodeArgs   string
 	masterArgs string
 	user       string
@@ -40,22 +41,27 @@ func IsIPList(args string) bool {
 }
 
 func (c *ClusterArgs) SetClusterArgs() error {
-	if IsNumber(c.masterArgs) && IsNumber(c.nodeArgs) {
-		c.cluster.Spec.Masters.Count = c.masterArgs
-		c.cluster.Spec.Nodes.Count = c.nodeArgs
-		c.cluster.Spec.SSH.Passwd = c.passwd
-		c.cluster.Spec.Provider = common.AliCloud
-		return nil
+	c.cluster.Spec.Image = c.imageName
+	if IsNumber(c.masterArgs) {
+		if IsNumber(c.nodeArgs) || c.nodeArgs == "" {
+			c.cluster.Spec.Masters.Count = c.masterArgs
+			c.cluster.Spec.Nodes.Count = c.nodeArgs
+			c.cluster.Spec.SSH.Passwd = c.passwd
+			c.cluster.Spec.Provider = common.AliCloud
+			return nil
+		}
 	}
-	if IsIPList(c.masterArgs) && IsIPList(c.nodeArgs) {
-		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
-		c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
-		c.cluster.Spec.SSH.User = c.user
-		c.cluster.Spec.SSH.Passwd = c.passwd
-		c.cluster.Spec.SSH.Pk = c.pk
-		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
-		c.cluster.Spec.Provider = common.BAREMETAL
-		return nil
+	if IsIPList(c.masterArgs) {
+		if IsIPList(c.nodeArgs) || c.nodeArgs == "" {
+			c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
+			c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
+			c.cluster.Spec.SSH.User = c.user
+			c.cluster.Spec.SSH.Passwd = c.passwd
+			c.cluster.Spec.SSH.Pk = c.pk
+			c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
+			c.cluster.Spec.Provider = common.BAREMETAL
+			return nil
+		}
 	}
 	return fmt.Errorf("enter true iplist or count")
 }
@@ -81,6 +87,7 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 	}
 	c := &ClusterArgs{
 		cluster:    cluster,
+		imageName:  imageName,
 		nodeArgs:   runArgs.Nodes,
 		masterArgs: runArgs.Masters,
 		user:       runArgs.User,
