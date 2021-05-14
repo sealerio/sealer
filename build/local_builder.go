@@ -150,6 +150,10 @@ func (l *LocalBuilder) ExecBuild() error {
 				return err
 			}
 		}
+
+		if layer.Hash == "" {
+			continue
+		}
 		baseLayers = append(baseLayers, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
 	}
 	logger.Info("exec all build instructs success !")
@@ -253,7 +257,7 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 }
 
 func (l *LocalBuilder) calculateLayerHashAndPlaceIt(layer *v1.Layer, tempTarget string) error {
-	layerHash, err := hash.CheckSumAndPlaceLayer(tempTarget, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
+	layerHash, err := hash.CheckSumAndPlaceLayer(tempTarget)
 	if err != nil {
 		return fmt.Errorf("failed to calculate layer hash and place it, err: %v", err)
 	}

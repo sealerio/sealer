@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	"path/filepath"
+
+	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/compress"
@@ -48,7 +51,7 @@ func (sha SHA256) TarCheckSum(src string) (*os.File, digest.Digest, error) {
 	return file, dig, nil
 }
 
-func CheckSumAndPlaceLayer(src, target string) (digest.Digest, error) {
+func CheckSumAndPlaceLayer(src string) (digest.Digest, error) {
 	sha := SHA256{}
 	file, dig, err := sha.TarCheckSum(src)
 	if err != nil {
@@ -56,7 +59,7 @@ func CheckSumAndPlaceLayer(src, target string) (digest.Digest, error) {
 	}
 
 	defer utils.CleanFile(file)
-	err = compress.Decompress(file, target)
+	err = compress.Decompress(file, filepath.Join(common.DefaultLayerDir, dig.Hex()))
 	if err != nil {
 		return "", err
 	}
