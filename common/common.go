@@ -43,6 +43,7 @@ const (
 	ClusterWorkDir                = "/root/.sealer/%s"
 	ClusterWorkClusterfile        = "/root/.sealer/%s/Clusterfile"
 	RemoteSealerPath              = "/usr/local/bin/sealer"
+	DefaultCloudProvider          = AliCloud
 )
 
 //about infra
