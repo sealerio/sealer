@@ -144,15 +144,12 @@ func (d DefaultImageService) Delete(imageName string) error {
 	}
 	err = imageutils.DeleteImage(imageName)
 	if err != nil {
-		return fmt.Errorf("failed to untag image %s", imageName)
+		return fmt.Errorf("failed to untag image %s, err: %s", imageName, err)
 	}
 	logger.Info("untag image %s succeeded", imageName)
 
 	for _, value := range imageMetadataMap {
-		switch value.ID {
-		case "":
-			continue
-		case imageMetadata.ID:
+		if value.ID == imageMetadata.ID {
 			imageTagCount++
 			if imageTagCount > 1 {
 				break

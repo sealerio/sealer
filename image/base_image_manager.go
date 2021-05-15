@@ -45,8 +45,7 @@ func (bim BaseImageManager) syncImageLocal(image v1.Image) (err error) {
 }
 
 func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err error) {
-	err = deleteImage(imageID)
-	return err
+	return deleteImage(imageID)
 }
 
 // init bim registry
