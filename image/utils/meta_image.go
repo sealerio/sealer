@@ -45,17 +45,11 @@ func DeleteImage(imageName string) error {
 		return err
 	}
 
-	imageMetadata, ok := imagesMap[imageName]
+	_, ok := imagesMap[imageName]
 	if !ok {
 		return nil
 	}
 	delete(imagesMap, imageName)
-	// delete image name alias records
-	for imageName, value := range imagesMap {
-		if value.ID == imageMetadata.ID {
-			delete(imagesMap, imageName)
-		}
-	}
 
 	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
 	if err != nil {

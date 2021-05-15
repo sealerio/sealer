@@ -125,47 +125,67 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 
 func (d DefaultImageService) Delete(imageName string) error {
 	var (
-		images []*v1.Image
-		image  *v1.Image
+		images        []*v1.Image
+		image         *v1.Image
+		imageTagCount int
 	)
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
 		return err
 	}
 
-	image, err = imageutils.GetImage(named.Raw())
-	if err != nil {
-		// If the metadata yaml is missing,
-		// we also delete the corresponding record in images_metadata.json if any
-		newErr := imageutils.DeleteImage(imageName)
-		if newErr != nil {
-			return newErr
-		}
-		return fmt.Errorf("failed to find image metadata, err: %v", err)
-	}
-
 	imageMetadataMap, err := imageutils.GetImageMetadataMap()
 	if err != nil {
 		return err
 	}
-	for _, imageMetadata := range imageMetadataMap {
-		if imageMetadata.ID == "" {
-			continue
-		}
-		tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
-		if err != nil {
-			continue
-		}
-		images = append(images, tmpImage)
+	imageMetadata, ok := imageMetadataMap[named.Raw()]
+	if !ok {
+		return fmt.Errorf("failed to find image with name %s", imageName)
 	}
-	layer2ImageNames := layer2ImageMap(images)
-	// TODO: find a atomic way to delete layers and image
-	layerStore, err := store.NewDefaultLayerStore()
+	err = imageutils.DeleteImage(imageName)
+	if err != nil {
+		return fmt.Errorf("failed to untag image %s", imageName)
+	}
+	logger.Info("untag image %s succeeded", imageName)
+
+	for _, value := range imageMetadataMap {
+		switch value.ID {
+		case "":
+			continue
+		case imageMetadata.ID:
+			imageTagCount++
+			if imageTagCount > 1 {
+				break
+			}
+		}
+	}
+	if imageTagCount != 1 {
+		return nil
+	}
+
+	image, err = imageutils.GetImageByID(imageMetadata.ID)
+	if err != nil {
+		return fmt.Errorf("failed to find image metadata, err: %v", err)
+	}
+
+	err = d.deleteImageLocal(image.Name, image.Spec.ID)
 	if err != nil {
 		return err
 	}
 
-	err = d.deleteImageLocal(image.Name, image.Spec.ID)
+	for _, value := range imageMetadataMap {
+		if value.ID != imageMetadata.ID {
+			tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
+			if err != nil {
+				continue
+			}
+			images = append(images, tmpImage)
+		}
+	}
+	images = append(images, image)
+	layer2ImageNames := layer2ImageMap(images)
+	// TODO: find a atomic way to delete layers and image
+	layerStore, err := store.NewDefaultLayerStore()
 	if err != nil {
 		return err
 	}
