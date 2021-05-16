@@ -1,6 +1,6 @@
 package runtime
 
-const DefaultKubeadmTemplate = `
+const InitTemplateTextV1beta1 = `
 apiVersion: kubeadm.k8s.io/v1beta1
 kind: ClusterConfiguration
 kubernetesVersion: {{.Version}}
@@ -92,3 +92,72 @@ controlPlane:
 {{- end}}
 nodeRegistration:
   criSocket: {{.CriSocket}}`)
+
+const InitTemplateTextV1bate2 = string(`
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+kubernetesVersion: {{.Version}}
+controlPlaneEndpoint: "{{.ApiServer}}:6443"
+imageRepository: {{.Repo}}
+networking:
+  # dnsDomain: cluster.local
+  podSubnet: {{.PodCIDR}}
+  serviceSubnet: {{.SvcCIDR}}
+apiServer:
+  certSANs:
+  - 127.0.0.1
+  - {{.ApiServer}}
+  {{range .Masters -}}
+  - {{.}}
+  {{end -}}
+  {{range .CertSANS -}}
+  - {{.}}
+  {{end -}}
+  - {{.VIP}}
+  extraArgs:
+    etcd-servers: {{.EtcdServers}}
+    feature-gates: TTLAfterFinished=true,EphemeralContainers=true
+    audit-policy-file: "/etc/kubernetes/audit-policy.yml"
+    audit-log-path: "/var/log/kubernetes/audit.log"
+    audit-log-format: json
+    audit-log-maxbackup: '"10"'
+    audit-log-maxsize: '"100"'
+    audit-log-maxage: '"7"'
+    enable-aggregator-routing: '"true"'
+  extraVolumes:
+  - name: "audit"
+    hostPath: "/etc/kubernetes"
+    mountPath: "/etc/kubernetes"
+    pathType: DirectoryOrCreate
+  - name: "audit-log"
+    hostPath: "/var/log/kubernetes"
+    mountPath: "/var/log/kubernetes"
+    pathType: DirectoryOrCreate
+  - name: localtime
+    hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    readOnly: true
+    pathType: File
+controllerManager:
+  extraArgs:
+    feature-gates: TTLAfterFinished=true,EphemeralContainers=true
+    experimental-cluster-signing-duration: 876000h
+  extraVolumes:
+  - hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    name: localtime
+    readOnly: true
+    pathType: File
+scheduler:
+  extraArgs:
+    feature-gates: TTLAfterFinished=true,EphemeralContainers=true
+  extraVolumes:
+  - hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    name: localtime
+    readOnly: true
+    pathType: File
+etcd:
+  local:
+    extraArgs:
+      listen-metrics-urls: http://0.0.0.0:2381`)
