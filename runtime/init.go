@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/alibaba/sealer/image"
+
 	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/cert"
@@ -70,8 +72,6 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	// TODO add host port
 	d.Masters = cluster.Spec.Masters.IPList
-	// TODO read it from rootfs metadata
-	d.Version = "v1.16.9"
 	d.VIP = DefaultVIP
 	d.RegistryPort = DefaultRegistryPort
 	// TODO add host port
@@ -83,7 +83,8 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.StaticFileDir = fmt.Sprintf("%s/statics", d.Rootfs)
 	// TODO remote port in ipList
 	d.APIServerCertSANs = append(cluster.Spec.CertSANS, d.getDefaultSANs()...)
-
+	metadataFile := image.GetMetadataFromImage(cluster.Spec.Image)
+	d.Metadata = NewMetadata(metadataFile)
 	d.Interface = cluster.Spec.Network.Interface
 	d.Network = cluster.Spec.Network.CNIName
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
@@ -189,7 +190,7 @@ func (d *Default) InitMaster0() error {
 		return err
 	}
 
-	cmdInit := d.Command(d.Version, InitMaster)
+	cmdInit := d.Command(d.Metadata.Version, InitMaster)
 
 	// TODO skip docker version error check for test
 	output, err := d.SSH.Cmd(d.Masters[0], fmt.Sprintf("%s --ignore-preflight-errors=SystemVerification", cmdInit))
