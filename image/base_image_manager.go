@@ -3,7 +3,6 @@ package image
 import (
 	"context"
 	"encoding/json" //nolint:goimports
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -45,30 +44,8 @@ func (bim BaseImageManager) syncImageLocal(image v1.Image, named reference.Named
 	return nil
 }
 
-func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err error) {
-	// Read image metadata from file to ensure that if we fail to delete image records,
-	// the image metadata can be recovered from it.
-	image, err := imageutils.GetImage(imageName)
-	if err != nil {
-		return err
-	}
-
-	err = deleteImage(imageID)
-	if err != nil {
-		return err
-	}
-
-	err = imageutils.DeleteImage(imageName)
-	if err != nil {
-		syncImageError := saveImage(*image)
-		if syncImageError != nil {
-			return fmt.Errorf("failed to delete image records in %s and failed to recover image metadata file: %s, error: %v",
-				common.DefaultImageMetadataFile, filepath.Join(common.DefaultImageMetaRootDir, imageID+common.YamlSuffix), syncImageError)
-		}
-		return err
-	}
-
-	return nil
+func (bim BaseImageManager) deleteImageLocal(imageID string) (err error) {
+	return deleteImage(imageID)
 }
 
 // init bim registry

@@ -20,7 +20,6 @@ import (
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	dockerprogress "github.com/docker/docker/pkg/progress"
-	"github.com/opencontainers/go-digest"
 )
 
 // DefaultImageService is the default service, which is used for image pull/push
@@ -175,15 +174,11 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 
 func (d DefaultImageService) Delete(imageName string) error {
 	var (
-		images []*v1.Image
-		image  *v1.Image
+		images        []*v1.Image
+		image         *v1.Image
+		imageTagCount int
 	)
 	named, err := reference.ParseToNamed(imageName)
-	if err != nil {
-		return err
-	}
-
-	image, err = imageutils.GetImage(named.Raw())
 	if err != nil {
 		return err
 	}
@@ -192,16 +187,46 @@ func (d DefaultImageService) Delete(imageName string) error {
 	if err != nil {
 		return err
 	}
-	for _, imageMetadata := range imageMetadataMap {
-		if imageMetadata.ID == "" {
-			continue
-		}
+
+	imageMetadata, ok := imageMetadataMap[named.Raw()]
+	if !ok {
+		return fmt.Errorf("failed to find image with name %s", imageName)
+	}
+
+	//1.untag image
+	err = imageutils.DeleteImage(imageName)
+	if err != nil {
+		return fmt.Errorf("failed to untag image %s, err: %s", imageName, err)
+	}
+
+	image, err = imageutils.GetImageByID(imageMetadata.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get image metadata for image %s, err: %v", imageName, err)
+	}
+	logger.Info("untag image %s succeeded", imageName)
+
+	for _, value := range imageMetadataMap {
 		tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
 		if err != nil {
 			continue
 		}
+		if value.ID == imageMetadata.ID {
+			imageTagCount++
+			if imageTagCount > 1 {
+				break
+			}
+		}
 		images = append(images, tmpImage)
 	}
+	if imageTagCount != 1 {
+		return nil
+	}
+
+	err = d.deleteImageLocal(image.Spec.ID)
+	if err != nil {
+		return err
+	}
+
 	layer2ImageNames := layer2ImageMap(images)
 	// TODO: find a atomic way to delete layers and image
 	layerStore, err := store.NewDefaultLayerStore()
@@ -209,13 +234,8 @@ func (d DefaultImageService) Delete(imageName string) error {
 		return err
 	}
 
-	err = d.deleteImageLocal(image.Name, image.Spec.ID)
-	if err != nil {
-		return err
-	}
-
 	for _, layer := range image.Spec.Layers {
-		layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash.Hex()))
+		layerID := store.LayerID(layer.Hash)
 		if isLayerDeletable(layer2ImageNames, layerID) {
 			err = layerStore.Delete(layerID)
 			if err != nil {
@@ -239,7 +259,7 @@ func layer2ImageMap(images []*v1.Image) map[store.LayerID][]string {
 	var layer2ImageNames = make(map[store.LayerID][]string)
 	for _, image := range images {
 		for _, layer := range image.Spec.Layers {
-			layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash.Hex()))
+			layerID := store.LayerID(layer.Hash)
 			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Name)
 		}
 	}
