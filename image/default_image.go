@@ -138,14 +138,18 @@ func (d DefaultImageService) Delete(imageName string) error {
 	if err != nil {
 		return err
 	}
+
 	imageMetadata, ok := imageMetadataMap[named.Raw()]
 	if !ok {
 		return fmt.Errorf("failed to find image with name %s", imageName)
 	}
+
+	//1.untag image
 	err = imageutils.DeleteImage(imageName)
 	if err != nil {
 		return fmt.Errorf("failed to untag image %s, err: %s", imageName, err)
 	}
+
 	logger.Info("untag image %s succeeded", imageName)
 
 	for _, value := range imageMetadataMap {
@@ -160,26 +164,22 @@ func (d DefaultImageService) Delete(imageName string) error {
 		return nil
 	}
 
-	image, err = imageutils.GetImageByID(imageMetadata.ID)
-	if err != nil {
-		return fmt.Errorf("failed to find image metadata, err: %v", err)
+	for _, value := range imageMetadataMap {
+		tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
+		if err != nil {
+			continue
+		}
+		if value.ID == imageMetadata.ID {
+			image = tmpImage
+		}
+		images = append(images, tmpImage)
 	}
 
-	err = d.deleteImageLocal(image.Name, image.Spec.ID)
+	err = d.deleteImageLocal(image.Spec.ID)
 	if err != nil {
 		return err
 	}
 
-	for _, value := range imageMetadataMap {
-		if value.ID != imageMetadata.ID {
-			tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
-			if err != nil {
-				continue
-			}
-			images = append(images, tmpImage)
-		}
-	}
-	images = append(images, image)
 	layer2ImageNames := layer2ImageMap(images)
 	// TODO: find a atomic way to delete layers and image
 	layerStore, err := store.NewDefaultLayerStore()

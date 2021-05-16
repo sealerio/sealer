@@ -44,7 +44,7 @@ func (bim BaseImageManager) syncImageLocal(image v1.Image) (err error) {
 	return nil
 }
 
-func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err error) {
+func (bim BaseImageManager) deleteImageLocal(imageID string) (err error) {
 	return deleteImage(imageID)
 }
 
