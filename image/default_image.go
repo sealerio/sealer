@@ -20,7 +20,6 @@ import (
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	dockerprogress "github.com/docker/docker/pkg/progress"
-	"github.com/opencontainers/go-digest"
 )
 
 // DefaultImageService is the default service, which is used for image pull/push
@@ -236,7 +235,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 	}
 
 	for _, layer := range image.Spec.Layers {
-		layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash.Hex()))
+		layerID := store.LayerID(layer.Hash)
 		if isLayerDeletable(layer2ImageNames, layerID) {
 			err = layerStore.Delete(layerID)
 			if err != nil {
@@ -260,7 +259,7 @@ func layer2ImageMap(images []*v1.Image) map[store.LayerID][]string {
 	var layer2ImageNames = make(map[store.LayerID][]string)
 	for _, image := range images {
 		for _, layer := range image.Spec.Layers {
-			layerID := store.LayerID(digest.NewDigestFromEncoded(digest.SHA256, layer.Hash.Hex()))
+			layerID := store.LayerID(layer.Hash)
 			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Name)
 		}
 	}
