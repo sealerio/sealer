@@ -150,19 +150,11 @@ func (d DefaultImageService) Delete(imageName string) error {
 		return fmt.Errorf("failed to untag image %s, err: %s", imageName, err)
 	}
 
+	image, err = imageutils.GetImageByID(imageMetadata.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get image metadata for image %s, err: %v", imageName, err)
+	}
 	logger.Info("untag image %s succeeded", imageName)
-
-	for _, value := range imageMetadataMap {
-		if value.ID == imageMetadata.ID {
-			imageTagCount++
-			if imageTagCount > 1 {
-				break
-			}
-		}
-	}
-	if imageTagCount != 1 {
-		return nil
-	}
 
 	for _, value := range imageMetadataMap {
 		tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
@@ -170,9 +162,15 @@ func (d DefaultImageService) Delete(imageName string) error {
 			continue
 		}
 		if value.ID == imageMetadata.ID {
-			image = tmpImage
+			imageTagCount++
+			if imageTagCount > 1 {
+				break
+			}
 		}
 		images = append(images, tmpImage)
+	}
+	if imageTagCount != 1 {
+		return nil
 	}
 
 	err = d.deleteImageLocal(image.Spec.ID)
