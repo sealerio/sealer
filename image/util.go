@@ -5,23 +5,15 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/docker/docker/api/types"
+
 	"github.com/alibaba/sealer/common"
 	imageUtils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
-	"github.com/docker/distribution"
-	"github.com/opencontainers/go-digest"
 )
-
-func buildBlobs(dig digest.Digest, size int64, mediaType string) distribution.Descriptor {
-	return distribution.Descriptor{
-		Digest:    dig,
-		Size:      size,
-		MediaType: mediaType,
-	}
-}
 
 // GetImageLayerDirs return image hash list
 // current image is different with the image in build stage
@@ -32,7 +24,7 @@ func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 			return res, fmt.Errorf("image %s has from layer, which is not allowed in current state", image.Spec.ID)
 		}
 		if layer.Hash != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash))
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
 		}
 	}
 	return
@@ -120,4 +112,27 @@ func GetFileFromBaseImage(imageName string, paths ...string) string {
 		return ""
 	}
 	return string(data)
+}
+
+func getDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {
+	var (
+		dockerInfo       *utils.DockerInfo
+		err              error
+		username, passwd string
+	)
+	dockerInfo, err = utils.DockerConfig()
+	if err != nil {
+		return types.AuthConfig{}, err
+	}
+
+	username, passwd, err = dockerInfo.DecodeDockerAuth(domain)
+	if err != nil {
+		return types.AuthConfig{}, err
+	}
+
+	return types.AuthConfig{
+		Username:      username,
+		Password:      passwd,
+		ServerAddress: domain,
+	}, nil
 }

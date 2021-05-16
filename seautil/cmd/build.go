@@ -42,8 +42,13 @@ var buildCmd = &cobra.Command{
 	Long:  `seautil build -f Kubefile -t my-kubernetes:1.18.3 . `,
 	Run: func(cmd *cobra.Command, args []string) {
 		conf := &build.Config{}
-		builder := build.NewBuilder(conf, buildConfig.BuildType)
-		err := builder.Build(buildConfig.ImageName, buildConfig.Context, buildConfig.KubefileName)
+		builder, err := build.NewBuilder(conf, buildConfig.BuildType)
+		if err != nil {
+			logger.Error(err)
+			os.Exit(-1)
+		}
+
+		err = builder.Build(buildConfig.ImageName, buildConfig.Context, buildConfig.KubefileName)
 		if err != nil {
 			logger.Error(err)
 			os.Exit(-1)

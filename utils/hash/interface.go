@@ -8,6 +8,6 @@ import (
 )
 
 type Interface interface {
-	CheckSum(reader io.Reader) (*digest.Digest, error)
-	TarCheckSum(src string) (*os.File, string, error)
+	CheckSum(reader io.Reader) (digest.Digest, error)
+	TarCheckSum(src string) (*os.File, digest.Digest, error)
 }

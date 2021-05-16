@@ -6,12 +6,13 @@ import (
 
 type LayerStore interface {
 	Get(id LayerID) Layer
-	RegisterLayerIfNotPresent(closer io.ReadCloser, id LayerID) error
+	RegisterLayerIfNotPresent(layer Layer) error
 	Delete(id LayerID) error
 }
 
 type Layer interface {
-	ID() (LayerID, error)
+	ID() LayerID
 	SimpleID() string
 	TarStream() (io.ReadCloser, error)
+	Size() int64
 }

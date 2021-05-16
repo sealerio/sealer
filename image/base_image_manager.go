@@ -27,13 +27,13 @@ type BaseImageManager struct {
 	registry *registry.Registry
 }
 
-func (bim BaseImageManager) syncImageLocal(image v1.Image) (err error) {
-	err = syncImage(image)
+func (bim BaseImageManager) syncImageLocal(image v1.Image, named reference.Named) (err error) {
+	err = saveImage(image)
 	if err != nil {
 		return err
 	}
 
-	err = syncImagesMap(image)
+	err = syncImagesMap(named.Raw(), image.Spec.ID)
 	if err != nil {
 		// this won't fail literally
 		if err = os.Remove(filepath.Join(common.DefaultImageMetaRootDir,
@@ -60,7 +60,7 @@ func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err err
 
 	err = imageutils.DeleteImage(imageName)
 	if err != nil {
-		syncImageError := syncImage(*image)
+		syncImageError := saveImage(*image)
 		if syncImageError != nil {
 			return fmt.Errorf("failed to delete image records in %s and failed to recover image metadata file: %s, error: %v",
 				common.DefaultImageMetadataFile, filepath.Join(common.DefaultImageMetaRootDir, imageID+common.YamlSuffix), syncImageError)
@@ -124,12 +124,12 @@ func (bim BaseImageManager) downloadImageManifestConfig(named reference.Named, d
 }
 
 // used to sync image into DefaultImageMetadataFile
-func syncImagesMap(image v1.Image) error {
-	return imageutils.SetImageMetadata(imageutils.ImageMetadata{Name: image.Name, ID: image.Spec.ID})
+func syncImagesMap(name, id string) error {
+	return imageutils.SetImageMetadata(imageutils.ImageMetadata{Name: name, ID: id})
 }
 
 // dump image yaml to DefaultImageMetaRootDir
-func syncImage(image v1.Image) error {
+func saveImage(image v1.Image) error {
 	imageYaml, err := yaml.Marshal(image)
 	if err != nil {
 		return err
