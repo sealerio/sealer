@@ -137,6 +137,7 @@ func GetYamlByImage(imageName string) (string, error) {
 		return "", fmt.Errorf("failed to read image yaml,err: %v", err)
 	}
 	return string(ImageInformation), nil
+}
 
 func getDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {
 	var (
