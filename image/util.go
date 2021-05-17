@@ -56,19 +56,23 @@ func GetMetadataFromImage(imageName string) string {
 // GetClusterFileFromImageManifest retrieve ClusterFile from image manifest(image yaml)
 func GetClusterFileFromImageManifest(imageName string) string {
 	//  find cluster file from image manifest
-	imageMetadata, err := NewImageMetadataService().GetRemoteImage(imageName)
+	var image *v1.Image
+	var err error
+	image, err = imageUtils.GetImage(imageName)
 	if err != nil {
-		return ""
+		imageMetadata, err := NewImageMetadataService().GetRemoteImage(imageName)
+		if err != nil {
+			logger.Error("failed to find image %s,err: %v", imageName, err)
+			return ""
+		}
+		image = &imageMetadata
 	}
-	if imageMetadata.Annotations == nil {
-		return ""
-	}
-	clusterFile, ok := imageMetadata.Annotations[common.ImageAnnotationForClusterfile]
+	Clusterfile, ok := image.Annotations[common.ImageAnnotationForClusterfile]
 	if !ok {
+		logger.Error("failed to find Clusterfile in local")
 		return ""
 	}
-
-	return clusterFile
+	return Clusterfile
 }
 
 // GetFileFromBaseImage retrieve file from base image
@@ -112,6 +116,27 @@ func GetFileFromBaseImage(imageName string, paths ...string) string {
 		return ""
 	}
 	return string(data)
+}
+
+func GetYamlByImage(imageName string) (string, error) {
+	imagesMap, err := imageUtils.GetImageMetadataMap()
+	if err != nil {
+		return "", err
+	}
+
+	image, ok := imagesMap[imageName]
+	if !ok {
+		return "", fmt.Errorf("failed to find image by name (%s)", imageName)
+	}
+	if image.ID == "" {
+		return "", fmt.Errorf("failed to find corresponding image id, id is empty")
+	}
+
+	ImageInformation, err := ioutil.ReadFile(filepath.Join(common.DefaultImageMetaRootDir, image.ID+common.YamlSuffix))
+	if err != nil {
+		return "", fmt.Errorf("failed to read image yaml,err: %v", err)
+	}
+	return string(ImageInformation), nil
 }
 
 func getDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {
