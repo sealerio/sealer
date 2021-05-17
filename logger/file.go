@@ -27,7 +27,7 @@ type fileLogger struct {
 	Level      string `json:"level"`
 	PermitMask string `json:"permit"`
 
-	LogLevel             int
+	LogLevel             logLevel
 	maxSizeCurSize       int
 	maxLinesCurLines     int
 	dailyOpenDate        int
@@ -78,7 +78,7 @@ func (f *fileLogger) needCreateFresh(size int, day int) bool {
 }
 
 // WriteMsg write logger message into file.
-func (f *fileLogger) LogWrite(when time.Time, msgText interface{}, level int) error {
+func (f *fileLogger) LogWrite(when time.Time, msgText interface{}, level logLevel) error {
 	msg, ok := msgText.(string)
 	if !ok {
 		return nil
@@ -198,10 +198,20 @@ func (f *fileLogger) createFreshFile(logTime time.Time) error {
 		return err
 	}
 
+	RestartLogger := func(fl *fileLogger) error {
+		startLoggerErr := fl.newFile()
+		go fl.deleteOldLog()
+
+		if startLoggerErr != nil {
+			return fmt.Errorf("rotate StartLogger: %s", startLoggerErr)
+		}
+		return nil
+	}
+
 	_, err = os.Lstat(f.Filename)
 	if err != nil {
 		// 初始日志文件不存在，无需创建新文件
-		goto RestartLogger
+		return RestartLogger(f)
 	}
 	// 日期变了， 说明跨天，重命名时需要保存为昨天的日期
 	if f.dailyOpenDate != logTime.Day() {
@@ -228,24 +238,15 @@ func (f *fileLogger) createFreshFile(logTime time.Time) error {
 	// 将旧文件重命名，然后创建新文件
 	err = os.Rename(f.Filename, fName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "os.Rename %s to %s err:%s\n", f.Filename, fName, err.Error())
-		goto RestartLogger
+		_, _ = fmt.Fprintf(os.Stderr, "os.Rename %s to %s err:%s\n", f.Filename, fName, err.Error())
+		return RestartLogger(f)
 	}
 
 	err = os.Chmod(fName, os.FileMode(rotatePerm))
-
-RestartLogger:
-
-	startLoggerErr := f.newFile()
-	go f.deleteOldLog()
-
-	if startLoggerErr != nil {
-		return fmt.Errorf("rotate StartLogger: %s", startLoggerErr)
-	}
 	if err != nil {
 		return fmt.Errorf("rotate: %s", err)
 	}
-	return nil
+	return RestartLogger(f)
 }
 
 func (f *fileLogger) deleteOldLog() {

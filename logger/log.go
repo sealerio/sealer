@@ -16,18 +16,18 @@ var defaultLogger *LocalLogger
 
 // 日志等级，从0-7，日优先级由高到低
 const (
-	LevelEmergency     = iota // 系统级紧急，比如磁盘出错，内存异常，网络不可用等
-	LevelAlert                // 系统级警告，比如数据库访问异常，配置文件出错等
-	LevelCritical             // 系统级危险，比如权限出错，访问异常等
-	LevelError                // 用户级错误
-	LevelWarning              // 用户级警告
-	LevelInformational        // 用户级信息
-	LevelDebug                // 用户级调试
-	LevelTrace                // 用户级基本输出
+	LevelEmergency     logLevel = iota // 系统级紧急，比如磁盘出错，内存异常，网络不可用等
+	LevelAlert                         // 系统级警告，比如数据库访问异常，配置文件出错等
+	LevelCritical                      // 系统级危险，比如权限出错，访问异常等
+	LevelError                         // 用户级错误
+	LevelWarning                       // 用户级警告
+	LevelInformational                 // 用户级信息
+	LevelDebug                         // 用户级调试
+	LevelTrace                         // 用户级基本输出
 )
 
 // LevelMap 日志等级和描述映射关系
-var LevelMap = map[string]int{
+var LevelMap = map[string]logLevel{
 	"EMER": LevelEmergency,
 	"ALRT": LevelAlert,
 	"CRIT": LevelCritical,
@@ -60,10 +60,12 @@ const (
 	AdapterConn          = "conn"                // 网络输出配置项
 )
 
+type logLevel int
+
 // log provider interface
 type Logger interface {
 	Init(config string) error
-	LogWrite(when time.Time, msg interface{}, level int) error
+	LogWrite(when time.Time, msg interface{}, level logLevel) error
 	Destroy()
 }
 
@@ -192,7 +194,8 @@ func (localLog *LocalLogger) DelLogger(adapterName string) error {
 func (localLog *LocalLogger) SetLogPath(bPath bool) {
 	localLog.usePath = bPath
 }
-func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level int) {
+
+func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level logLevel) {
 	for _, l := range localLog.outputs {
 		if l.name == AdapterConn {
 			//网络日志，使用json格式发送,此处使用结构体，用于类似ElasticSearch功能检索
@@ -217,7 +220,7 @@ func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level 
 	}
 }
 
-func (localLog *LocalLogger) writeMsg(logLevel int, msg string, v ...interface{}) {
+func (localLog *LocalLogger) writeMsg(level logLevel, msg string, v ...interface{}) {
 	if !localLog.init {
 		localLog.SetLogger(AdapterConsole)
 	}
@@ -239,12 +242,12 @@ func (localLog *LocalLogger) writeMsg(logLevel int, msg string, v ...interface{}
 		}
 	}
 	//
-	msgSt.Level = levelPrefix[logLevel]
+	msgSt.Level = levelPrefix[level]
 	msgSt.Path = src
 	msgSt.Content = msg
 	msgSt.Name = localLog.appName
 	msgSt.Time = when.Format(localLog.timeFormat)
-	localLog.writeToLoggers(when, msgSt, logLevel)
+	localLog.writeToLoggers(when, msgSt, level)
 }
 
 func (localLog *LocalLogger) Fatal(format string, args ...interface{}) {
