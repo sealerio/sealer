@@ -21,7 +21,8 @@ var _ = Describe("sealer apply", func() {
 		Context("with roofs images", func() {
 			clusterFile := apply.GetClusterFilePathOfRootfs()
 			AfterEach(func() {
-				apply.DoApplyOrDelete("delete", settings.DefaultClusterFileNeedToBeCleaned)
+				cluster := apply.GetClusterFileData(clusterFile)
+				apply.DeleteCluster(cluster.ClusterName)
 			})
 
 			It("apply cluster", func() {

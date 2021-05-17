@@ -1,9 +1,8 @@
 package testhelper
 
 import (
-	"os"
-
 	"github.com/onsi/gomega"
+	"os"
 )
 
 func GetPwd() string {

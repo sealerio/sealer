@@ -9,7 +9,7 @@ const (
 	SealerBinPath                     = "/usr/local/bin/sealer"
 	ImageName                         = "sealer_test_image_"
 	DefaultRegistryAuthDir            = "/root/.docker"
-	DefaultClusterFileNeedToBeCleaned = "/root/.sealer/my-test-cluster/Clusterfile"
+	DefaultClusterFileNeedToBeCleaned = "/root/.sealer/%s/Clusterfile"
 	SubCmdBuildOfSealer               = "build"
 	SubCmdApplyOfSealer               = "apply"
 	SubCmdDeleteOfSealer              = "delete"

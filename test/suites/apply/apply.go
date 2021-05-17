@@ -2,9 +2,12 @@ package apply
 
 import (
 	"fmt"
-	"path/filepath"
-
+	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/test/testhelper"
+	"github.com/alibaba/sealer/test/testhelper/settings"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
+	"path/filepath"
 )
 
 func getFixtures() string {
@@ -17,14 +20,16 @@ func GetClusterFilePathOfRootfs() string {
 	return filepath.Join(fixtures, "cluster_file_rootfs.yaml")
 }
 
-func DoApplyOrDelete(action, clusterFilePath string) {
-	cmd := ""
-	if action == "apply" {
-		cmd = fmt.Sprintf("sealer apply -f %s", clusterFilePath)
+func GetClusterFileData(clusterFile string) *v1.Cluster {
+	cluster := &v1.Cluster{}
+	if err := utils.UnmarshalYamlFile(clusterFile, cluster); err != nil {
+		logger.Error("failed to unmarshal yamlFile to get clusterFile data")
+		return nil
 	}
+	return cluster
+}
 
-	if action == "delete" {
-		cmd = fmt.Sprintf("sealer delete -f %s", clusterFilePath)
-	}
+func DeleteCluster(clusterName string) {
+	cmd := "sealer delete -f " + fmt.Sprintf(settings.DefaultClusterFileNeedToBeCleaned, clusterName)
 	testhelper.RunCmdAndCheckResult(cmd, 0)
 }
