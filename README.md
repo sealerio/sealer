@@ -24,6 +24,10 @@ It solves the delivery problem of complex applications by packaging distributed 
 
 We can write a Kubefile, and build a CloudImage, then using a Clusterfile to run a cluster.
 
+sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes. 
+
+It solves the delivery problem of complex applications by packaging distributed applications and dependencies(like database,middleware) together.
+
 For example, build a dashboard CloudImage:
 
 Kubefile:
@@ -33,7 +37,7 @@ Kubefile:
 #    1. kubernetes components like kubectl kubeadm kubelet and apiserver images ...
 #    2. docker engine, and a private registry
 #    3. config files, yaml, static files, scripts ...
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.6
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7
 # download kubernetes dashboard yaml file
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 # when run this CloudImage, will apply a dashboard manifests
@@ -80,7 +84,7 @@ Install a kubernetes cluster
 sealer run kubernetes:v1.19.2 --master 192.168.0.2
 ```
 
-If it is installed on the cloud:
+Install a cluster on public cloud(now support alicloud):
 
 ```shell script
 export ACCESSKEYID=xxx
@@ -206,3 +210,8 @@ Some information of the basic settings will be written to the Clusterfile and st
 ```shell script
 sealer delete -f /root/.sealer/my-cluster/Clusterfile
 ```
+
+# Developing Sealer
+
+* [contributing guide](./CONTRIBUTIONG.md)
+* [贡献文档](./docs/contributing_zh.md)
