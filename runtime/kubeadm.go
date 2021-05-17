@@ -29,7 +29,7 @@ func (d *Default) getDefaultSANs() []string {
 
 //Template is
 func (d *Default) defaultTemplate() ([]byte, error) {
-	return d.templateFromContent(kubeadmConfig())
+	return d.templateFromContent(d.kubeadmConfig())
 }
 
 func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
@@ -42,7 +42,7 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	envMap[CertSANS] = d.APIServerCertSANs
 	envMap[VIP] = d.VIP
 	envMap[Masters] = utils.GetHostIPSlice(d.Masters)
-	envMap[Version] = d.Version
+	envMap[Version] = d.Metadata.Version
 	envMap[APIServer] = d.APIServer
 	envMap[PodCIDR] = d.PodCIDR
 	envMap[SvcCIDR] = d.SvcCIDR
@@ -53,9 +53,14 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-func kubeadmConfig() string {
+func (d *Default) kubeadmConfig() string {
 	var sb strings.Builder
-	sb.Write([]byte(DefaultKubeadmTemplate))
+	// kubernetes gt 1.20, use Containerd instead of docker
+	if VersionCompare(d.Metadata.Version, V1200) {
+		sb.Write([]byte(InitTemplateTextV1bate2))
+	} else {
+		sb.Write([]byte(InitTemplateTextV1beta1))
+	}
 	return sb.String()
 }
 

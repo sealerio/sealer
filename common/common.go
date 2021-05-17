@@ -19,6 +19,7 @@ const (
 	DefaultImageRootDir           = "/var/lib/sealer/data"
 	DefaultWorkDir                = "/var/lib/sealer/%s/workdir"
 	DefaultClusterFileName        = "Clusterfile"
+	DefaultMetadataName           = "Metadata"
 	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
 	DefaultClusterInitFile        = "/var/lib/sealer/data/%s/scripts/init.sh"
 	DefaultClusterClearFile       = "/var/lib/sealer/data/%s/scripts/clean.sh"
@@ -42,6 +43,7 @@ const (
 	ClusterWorkDir                = "/root/.sealer/%s"
 	ClusterWorkClusterfile        = "/root/.sealer/%s/Clusterfile"
 	RemoteSealerPath              = "/usr/local/bin/sealer"
+	DefaultCloudProvider          = AliCloud
 )
 
 //about infra

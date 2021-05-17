@@ -5,23 +5,15 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/docker/docker/api/types"
+
 	"github.com/alibaba/sealer/common"
 	imageUtils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
-	"github.com/docker/distribution"
-	"github.com/opencontainers/go-digest"
 )
-
-func buildBlobs(dig digest.Digest, size int64, mediaType string) distribution.Descriptor {
-	return distribution.Descriptor{
-		Digest:    dig,
-		Size:      size,
-		MediaType: mediaType,
-	}
-}
 
 // GetImageLayerDirs return image hash list
 // current image is different with the image in build stage
@@ -32,7 +24,7 @@ func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 			return res, fmt.Errorf("image %s has from layer, which is not allowed in current state", image.Spec.ID)
 		}
 		if layer.Hash != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash))
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
 		}
 	}
 	return
@@ -45,9 +37,18 @@ func GetClusterFileFromImage(imageName string) string {
 		return clusterfile
 	}
 
-	clusterfile = GetClusterFileFromBaseImage(imageName)
+	clusterfile = GetFileFromBaseImage(imageName, "etc", common.DefaultClusterFileName)
 	if clusterfile != "" {
 		return clusterfile
+	}
+	return ""
+}
+
+// GetMetadataFromImage retrieve Metadata From image
+func GetMetadataFromImage(imageName string) string {
+	metadata := GetFileFromBaseImage(imageName, common.DefaultMetadataName)
+	if metadata != "" {
+		return metadata
 	}
 	return ""
 }
@@ -74,8 +75,8 @@ func GetClusterFileFromImageManifest(imageName string) string {
 	return Clusterfile
 }
 
-// GetClusterFileFromBaseImage retrieve ClusterFile from base image, TODO need to refactor
-func GetClusterFileFromBaseImage(imageName string) string {
+// GetFileFromBaseImage retrieve file from base image
+func GetFileFromBaseImage(imageName string, paths ...string) string {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()
 	defer func() {
@@ -106,8 +107,10 @@ func GetClusterFileFromBaseImage(imageName string) string {
 			logger.Warn(err)
 		}
 	}()
-
-	clusterFile := filepath.Join(mountTarget, "etc", common.DefaultClusterFileName)
+	var subPath []string
+	subPath = append(subPath, mountTarget)
+	subPath = append(subPath, paths...)
+	clusterFile := filepath.Join(subPath...)
 	data, err := ioutil.ReadFile(clusterFile)
 	if err != nil {
 		return ""
@@ -134,4 +137,26 @@ func GetYamlByImage(imageName string) (string, error) {
 		return "", fmt.Errorf("failed to read image yaml,err: %v", err)
 	}
 	return string(ImageInformation), nil
+
+func getDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {
+	var (
+		dockerInfo       *utils.DockerInfo
+		err              error
+		username, passwd string
+	)
+	dockerInfo, err = utils.DockerConfig()
+	if err != nil {
+		return types.AuthConfig{}, err
+	}
+
+	username, passwd, err = dockerInfo.DecodeDockerAuth(domain)
+	if err != nil {
+		return types.AuthConfig{}, err
+	}
+
+	return types.AuthConfig{
+		Username:      username,
+		Password:      passwd,
+		ServerAddress: domain,
+	}, nil
 }

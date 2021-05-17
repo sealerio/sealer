@@ -58,7 +58,7 @@ func (d *Default) joinNodes(nodes []string) error {
 			// send join node config
 			cmdJoinConfig := fmt.Sprintf(RemoteJoinConfig, templateData, d.Rootfs)
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, d.VIP, d.APIServer)
-			cmd := d.Command(d.Version, JoinNode)
+			cmd := d.Command(d.Metadata.Version, JoinNode)
 			yaml := ipvs.LvsStaticPodYaml(d.VIP, d.Masters, d.LvscareImage)
 			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)
 			if err := d.SSH.CmdAsync(node, cmdAddRegistryHosts, cmdJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd); err != nil {

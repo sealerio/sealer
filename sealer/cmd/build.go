@@ -34,13 +34,18 @@ var buildConfig *BuildFlag
 
 // buildCmd represents the build command
 var buildCmd = &cobra.Command{
-	Use:   "build",
-	Short: "cloud image local build command line",
-	Long:  `sealer build -f Kubefile -t my-kubernetes:1.18.3 .`,
+	Use:     "build",
+	Short:   "cloud image local build command line",
+	Example: `sealer build -f Kubefile -t my-kubernetes:1.18.3 .`,
 	Run: func(cmd *cobra.Command, args []string) {
 		conf := &build.Config{}
-		builder := build.NewBuilder(conf, buildConfig.BuildType)
-		err := builder.Build(buildConfig.ImageName, buildConfig.Context, buildConfig.KubefileName)
+		builder, err := build.NewBuilder(conf, buildConfig.BuildType)
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+
+		err = builder.Build(buildConfig.ImageName, buildConfig.Context, buildConfig.KubefileName)
 		if err != nil {
 			logger.Error(err)
 			os.Exit(1)
@@ -55,4 +60,8 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().StringVarP(&buildConfig.Context, "context", "c", ".", "cluster image build context file path")
+	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
+		logger.Error("failed to init flag: %v", err)
+		os.Exit(1)
+	}
 }

@@ -18,8 +18,8 @@ var runArgs *common.RunArgs
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "run a cluster with images and arguments",
-	Long: `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7 --masters [arg] --nodes [arg]
-examples:
+	Long:  `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7 --masters [arg] --nodes [arg]`,
+	Example: `
 create default cluster:
 	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7
 
@@ -30,11 +30,8 @@ create cluster to your baremetal server, appoint the iplist:
 	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 		--nodes 192.168.0.5,192.168.0.6,192.168.0.7
 `,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			logger.Error("cluster image name not found")
-			os.Exit(1)
-		}
 		applier, err := apply.NewApplierFromArgs(args[0], runArgs)
 		if err != nil {
 			logger.Error(err)

@@ -5,8 +5,12 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+
+	"github.com/docker/docker/pkg/system"
+
 	"io"
 	"io/ioutil"
+
 	"os"
 	"path/filepath"
 	"strings"
@@ -138,7 +142,15 @@ func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
 
 // Decompress this will not change the metadata of original files
 func Decompress(src io.Reader, dst string) error {
-	err := os.MkdirAll(dst, common.FileMode0755)
+	// need to set umask to be 000 for current process.
+	// there will be some files having higher permission like 777,
+	// eventually permission will be set to 755 when umask is 022.
+	_, err := system.Umask(0)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(dst, common.FileMode0755)
 	if err != nil {
 		return err
 	}

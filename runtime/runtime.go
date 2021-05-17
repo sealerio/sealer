@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"encoding/json"
+
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/ssh"
@@ -18,7 +20,13 @@ type Interface interface {
 	DeleteNodes(nodesIPList []string) error
 }
 
+type Metadata struct {
+	Version string `json:"version"`
+	Arch    string `json:"arch"`
+}
+
 type Default struct {
+	Metadata          *Metadata
 	ClusterName       string
 	Token             string
 	APIServerCertSANs []string
@@ -29,7 +37,6 @@ type Default struct {
 	DNSDomain         string
 	Masters           []string
 	APIServer         string
-	Version           string
 	CertPath          string
 	StaticFileDir     string
 	CertEtcdPath      string
@@ -61,6 +68,16 @@ func NewDefaultRuntime(cluster *v1.Cluster) Interface {
 		return nil
 	}
 	return d
+}
+
+func NewMetadata(data string) *Metadata {
+	metadata := &Metadata{}
+	err := json.Unmarshal([]byte(data), metadata)
+	if err != nil {
+		logger.Fatal("load metadata failed,please check image Metadata", err)
+		return nil
+	}
+	return metadata
 }
 
 func (d *Default) Reset(cluster *v1.Cluster) error {

@@ -56,7 +56,11 @@ func (c *CloudApplier) Apply() error {
 	if err != nil {
 		return fmt.Errorf("marshal tmp cluster file failed %v", err)
 	}
-
+	defer func() {
+		if err := utils.CleanFiles(common.TmpClusterfile); err != nil {
+			logger.Error("failed to clean %s, err: %v", common.TmpClusterfile, err)
+		}
+	}()
 	client, err := ssh.NewSSHClientWithCluster(cluster)
 	if err != nil {
 		return fmt.Errorf("prepare cluster ssh client failed %v", err)
@@ -101,10 +105,9 @@ func (c *CloudApplier) Delete() error {
 	}
 	if err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("%s %s", host, common.APIServerDomain)); err != nil {
 		logger.Warn(err)
-		return nil
 	}
 
-	if err := utils.CleanFiles(common.DefaultKubeconfigDir, common.GetClusterWorkDir(c.ClusterDesired.Name), common.KubectlPath); err != nil {
+	if err := utils.CleanFiles(common.DefaultKubeconfigDir, common.GetClusterWorkDir(c.ClusterDesired.Name), common.TmpClusterfile, common.KubectlPath); err != nil {
 		logger.Warn(err)
 		return nil
 	}
