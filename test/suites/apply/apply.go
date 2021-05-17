@@ -2,12 +2,13 @@ package apply
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"path/filepath"
 )
 
 func getFixtures() string {
