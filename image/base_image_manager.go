@@ -3,19 +3,18 @@ package image
 import (
 	"context"
 	"encoding/json" //nolint:goimports
-	"fmt"
 	"io/ioutil"
 	"os"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	imageutils "github.com/alibaba/sealer/image/utils"
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	pkgutils "github.com/alibaba/sealer/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/justadogistaken/reg/registry"
 	"github.com/opencontainers/go-digest"
-	"github.com/wonderivan/logger"
 
 	"path/filepath"
 
@@ -27,13 +26,13 @@ type BaseImageManager struct {
 	registry *registry.Registry
 }
 
-func (bim BaseImageManager) syncImageLocal(image v1.Image) (err error) {
-	err = syncImage(image)
+func (bim BaseImageManager) syncImageLocal(image v1.Image, named reference.Named) (err error) {
+	err = saveImage(image)
 	if err != nil {
 		return err
 	}
 
-	err = syncImagesMap(image)
+	err = syncImagesMap(named.Raw(), image.Spec.ID)
 	if err != nil {
 		// this won't fail literally
 		if err = os.Remove(filepath.Join(common.DefaultImageMetaRootDir,
@@ -45,30 +44,8 @@ func (bim BaseImageManager) syncImageLocal(image v1.Image) (err error) {
 	return nil
 }
 
-func (bim BaseImageManager) deleteImageLocal(imageName, imageID string) (err error) {
-	// Read image metadata from file to ensure that if we fail to delete image records,
-	// the image metadata can be recovered from it.
-	image, err := imageutils.GetImage(imageName)
-	if err != nil {
-		return err
-	}
-
-	err = deleteImage(imageID)
-	if err != nil {
-		return err
-	}
-
-	err = imageutils.DeleteImage(imageName)
-	if err != nil {
-		syncImageError := syncImage(*image)
-		if syncImageError != nil {
-			return fmt.Errorf("failed to delete image records in %s and failed to recover image metadata file: %s, error: %v",
-				common.DefaultImageMetadataFile, filepath.Join(common.DefaultImageMetaRootDir, imageID+common.YamlSuffix), syncImageError)
-		}
-		return err
-	}
-
-	return nil
+func (bim BaseImageManager) deleteImageLocal(imageID string) (err error) {
+	return deleteImage(imageID)
 }
 
 // init bim registry
@@ -124,12 +101,12 @@ func (bim BaseImageManager) downloadImageManifestConfig(named reference.Named, d
 }
 
 // used to sync image into DefaultImageMetadataFile
-func syncImagesMap(image v1.Image) error {
-	return imageutils.SetImageMetadata(imageutils.ImageMetadata{Name: image.Name, ID: image.Spec.ID})
+func syncImagesMap(name, id string) error {
+	return imageutils.SetImageMetadata(imageutils.ImageMetadata{Name: name, ID: id})
 }
 
 // dump image yaml to DefaultImageMetaRootDir
-func syncImage(image v1.Image) error {
+func saveImage(image v1.Image) error {
 	imageYaml, err := yaml.Marshal(image)
 	if err != nil {
 		return err

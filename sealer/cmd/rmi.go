@@ -35,7 +35,6 @@ var rmiCmd = &cobra.Command{
 			logger.Error(err)
 			os.Exit(1)
 		}
-		logger.Info("Remove image %s success", args[0])
 	},
 }
 

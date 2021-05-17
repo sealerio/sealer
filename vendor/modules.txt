@@ -1,6 +1,6 @@
-# github.com/Microsoft/go-winio v0.4.14
-github.com/Microsoft/go-winio
-github.com/Microsoft/go-winio/pkg/guid
+# github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
+github.com/Azure/go-ansiterm
+github.com/Azure/go-ansiterm/winterm
 # github.com/Microsoft/hcsshim v0.8.6
 github.com/Microsoft/hcsshim/osversion
 # github.com/VividCortex/ewma v1.1.1
@@ -21,15 +21,15 @@ github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/utils
 github.com/aliyun/alibaba-cloud-sdk-go/services/ecs
 github.com/aliyun/alibaba-cloud-sdk-go/services/vpc
-# github.com/containerd/containerd v1.2.9
-github.com/containerd/containerd/errdefs
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/docker/cli v0.0.0-20190913211141-95327f4e6241
+# github.com/docker/cli v20.10.6+incompatible
+## explicit
 github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
 github.com/docker/cli/cli/config/credentials
 github.com/docker/cli/cli/config/types
+github.com/docker/cli/cli/streams
 # github.com/docker/distribution v2.7.1+incompatible
 ## explicit
 github.com/docker/distribution
@@ -39,8 +39,7 @@ github.com/docker/distribution/manifest/manifestlist
 github.com/docker/distribution/manifest/schema1
 github.com/docker/distribution/manifest/schema2
 github.com/docker/distribution/reference
-github.com/docker/distribution/registry/api/errcode
-# github.com/docker/docker v1.4.2-0.20190916154449-92cc603036dd
+# github.com/docker/docker v20.10.6+incompatible
 ## explicit
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/blkiodev
@@ -53,10 +52,13 @@ github.com/docker/docker/api/types/strslice
 github.com/docker/docker/api/types/swarm
 github.com/docker/docker/api/types/swarm/runtime
 github.com/docker/docker/api/types/versions
-github.com/docker/docker/errdefs
+github.com/docker/docker/distribution/utils
 github.com/docker/docker/pkg/homedir
-github.com/docker/docker/pkg/idtools
-github.com/docker/docker/pkg/mount
+github.com/docker/docker/pkg/ioutils
+github.com/docker/docker/pkg/jsonmessage
+github.com/docker/docker/pkg/longpath
+github.com/docker/docker/pkg/progress
+github.com/docker/docker/pkg/streamformatter
 github.com/docker/docker/pkg/system
 # github.com/docker/docker-credential-helpers v0.6.3
 github.com/docker/docker-credential-helpers/client
@@ -130,10 +132,20 @@ github.com/mitchellh/go-homedir
 github.com/mitchellh/mapstructure
 # github.com/moby/ipvs v1.0.1
 github.com/moby/ipvs
+# github.com/moby/sys/mount v0.2.0
+## explicit
+github.com/moby/sys/mount
+# github.com/moby/sys/mountinfo v0.4.0
+github.com/moby/sys/mountinfo
+# github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
+github.com/moby/term
+github.com/moby/term/windows
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
+# github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c
+github.com/morikuni/aec
 # github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5
 ## explicit
 github.com/olekukonko/tablewriter
@@ -143,8 +155,6 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v0.1.1
-github.com/opencontainers/runc/libcontainer/user
 # github.com/pelletier/go-toml v1.2.0
 github.com/pelletier/go-toml
 # github.com/peterhellberg/link v1.0.0
@@ -198,7 +208,6 @@ github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df
 github.com/vishvananda/netns
 # github.com/wonderivan/logger v1.0.0
-## explicit
 github.com/wonderivan/logger
 # golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 ## explicit
@@ -224,6 +233,7 @@ golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sys v0.0.0-20210324051608-47abb6519492
 golang.org/x/sys/cpu
+golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
@@ -245,14 +255,6 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a
-google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.27.1
-google.golang.org/grpc/codes
-google.golang.org/grpc/connectivity
-google.golang.org/grpc/grpclog
-google.golang.org/grpc/internal
-google.golang.org/grpc/status
 # google.golang.org/protobuf v1.25.0
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire

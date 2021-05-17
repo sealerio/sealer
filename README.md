@@ -19,10 +19,13 @@ It solves the delivery problem of complex applications by packaging distributed 
 * Kubefile : the file describe how to build a CloudImage.
 * Clusterfile : the config of using CloudImage to run a cluster.
 
-![image](https://user-images.githubusercontent.com/8912557/117400612-97cf3a00-af35-11eb-90b9-f5dc8e8117b5.png)
-
+![image](https://user-images.githubusercontent.com/8912557/117263735-2768e000-ae85-11eb-8e08-ec5b2de48c1b.png)
 
 We can write a Kubefile, and build a CloudImage, then using a Clusterfile to run a cluster.
+
+sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes. 
+
+It solves the delivery problem of complex applications by packaging distributed applications and dependencies(like database,middleware) together.
 
 For example, build a dashboard CloudImage:
 

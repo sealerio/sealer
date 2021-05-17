@@ -11,7 +11,7 @@ func Test_Compress(t *testing.T) {
 }
 
 func TestDefault_Pull(t *testing.T) {
-	err := NewImageService().Pull("registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5")
+	err := NewImageService().Pull("seadent/rootfs")
 	if err != nil {
 		t.Error(err)
 	}
