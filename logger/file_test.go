@@ -64,8 +64,8 @@ func TestFileLine(t *testing.T) {
 		}
 	}
 	var expected = LevelTrace + 1
-	if lineNum != expected {
-		t.Fatal(lineNum, "not "+strconv.Itoa(expected)+" lines")
+	if lineNum != int(expected) {
+		t.Fatal(lineNum, "not "+strconv.Itoa(int(expected))+" lines")
 	}
 	os.Remove("test2.log")
 }

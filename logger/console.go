@@ -33,10 +33,11 @@ var colors = []brush{
 }
 
 type consoleLogger struct {
-	sync.Mutex
-	Level    string `json:"level"`
-	Colorful bool   `json:"color"`
-	LogLevel int
+	stdOutMux sync.Mutex
+	stdErrMux sync.Mutex
+	Level     string `json:"level"`
+	Colorful  bool   `json:"color"`
+	LogLevel  logLevel
 }
 
 func (c *consoleLogger) Init(jsonConfig string) error {
@@ -57,7 +58,7 @@ func (c *consoleLogger) Init(jsonConfig string) error {
 	return err
 }
 
-func (c *consoleLogger) LogWrite(when time.Time, msgText interface{}, level int) error {
+func (c *consoleLogger) LogWrite(when time.Time, msgText interface{}, level logLevel) error {
 	if level > c.LogLevel {
 		return nil
 	}
@@ -68,7 +69,13 @@ func (c *consoleLogger) LogWrite(when time.Time, msgText interface{}, level int)
 	if c.Colorful {
 		msg = colors[level](msg)
 	}
-	c.printlnConsole(when, msg)
+	switch level {
+	case LevelEmergency, LevelAlert, LevelCritical, LevelError:
+		c.printlnToStdErr(when, msg)
+	default:
+		c.printlnToStdOut(when, msg)
+	}
+
 	return nil
 }
 
@@ -76,10 +83,16 @@ func (c *consoleLogger) Destroy() {
 
 }
 
-func (c *consoleLogger) printlnConsole(when time.Time, msg string) {
-	c.Lock()
-	defer c.Unlock()
+func (c *consoleLogger) printlnToStdOut(when time.Time, msg string) {
+	c.stdOutMux.Lock()
+	defer c.stdOutMux.Unlock()
 	os.Stdout.Write(append([]byte(msg), '\n'))
+}
+
+func (c *consoleLogger) printlnToStdErr(when time.Time, msg string) {
+	c.stdErrMux.Lock()
+	defer c.stdErrMux.Unlock()
+	os.Stderr.Write(append([]byte(msg), '\n'))
 }
 
 func init() {
