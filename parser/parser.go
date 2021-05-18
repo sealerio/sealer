@@ -33,6 +33,10 @@ func (p *Parser) Parse(kubeFile []byte, name string) *v1.Image {
 	scanner := bufio.NewScanner(strings.NewReader(string(kubeFile)))
 	for scanner.Scan() {
 		text := scanner.Text()
+		text = strings.Trim(text, " \t\n")
+		if text == "" || strings.HasPrefix(text, "#") {
+			continue
+		}
 		layerType, layerValue, err := decodeLine(text)
 		if err != nil || layerType == "" {
 			logger.Warn("decode kubeFile line failed %v", err)
