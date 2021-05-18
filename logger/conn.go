@@ -19,7 +19,7 @@ type connLogger struct {
 	Net            string `json:"net"`
 	Addr           string `json:"addr"`
 	Level          string `json:"level"`
-	LogLevel       int
+	LogLevel       logLevel
 	illNetFlag     bool //网络异常标记
 }
 
@@ -42,7 +42,7 @@ func (c *connLogger) Init(jsonConfig string) error {
 	return nil
 }
 
-func (c *connLogger) LogWrite(when time.Time, msgText interface{}, level int) (err error) {
+func (c *connLogger) LogWrite(when time.Time, msgText interface{}, level logLevel) (err error) {
 	if level > c.LogLevel {
 		return nil
 	}

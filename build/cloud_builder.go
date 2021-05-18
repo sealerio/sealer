@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/alibaba/sealer/image/store"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/infra"
@@ -177,10 +179,15 @@ func (c *CloudBuilder) Cleanup() (err error) {
 	return nil
 }
 
-func NewCloudBuilder(cloudConfig *Config) Interface {
-	local := new(LocalBuilder)
-	local.Config = cloudConfig
-	return &CloudBuilder{
-		local: local,
+func NewCloudBuilder(cloudConfig *Config) (Interface, error) {
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return nil, err
 	}
+	return &CloudBuilder{
+		local: &LocalBuilder{
+			Config:     cloudConfig,
+			LayerStore: layerStore,
+		},
+	}, nil
 }

@@ -69,6 +69,7 @@ Since you are ready to improve Sealer with a PR, we suggest you could take a loo
 To put forward a PR, we assume you have registered a GitHub ID. Then you could finish the preparation in the following steps:
 
 1. **FORK** Sealer to your repository. To make this work, you just need to click the button Fork in right-left of [alibaba/sealer](https://github.com/alibaba/sealer) main page. Then you will end up with your repository in `https://github.com/<your-username>/sealer`, in which `your-username` is your GitHub username.
+
 1. **CLONE** your own repository to develop locally. Use `git clone https://github.com/<your-username>/sealer.git` to clone repository to your local machine. Then you can create new branches to finish the change you wish to make.
 
 1. **Set Remote** upstream to be `https://github.com/alibaba/sealer.git` using the following two commands:
@@ -92,22 +93,34 @@ To put forward a PR, we assume you have registered a GitHub ID. Then you could f
 
 1. **Create a branch** to add a new feature or fix issues
 
-	Update local working directory:
+    Update local working directory and remote forked repository:
 
-	```
-	cd sealer
-	git fetch upstream
-	git checkout main
-	git rebase upstream/main
-	```
+   ```
+   cd sealer
+   git fetch upstream
+   git checkout main
+   git rebase upstream/main
+   git push	// default origin, update your forked repository
+   ```
 
-	Create a new branch:
+   Create a new branch:
 
-	```
-	git checkout -b <new-branch>
-	```
+   ```
+   git checkout -b <new-branch>
+   ```
 
-	Make any change on the `new-branch` then build and test your codes.
+   Make any change on the `new-branch` then build and test your codes.
+
+1. **Push your branch** to your forked repository, try not to generate multiple commit message within a pr. 
+
+   ```
+   golangci-lint run -c .golangci.yml	// lint
+   git commit -a -m "message for your changes"	// -a is git add .
+   git rebase -i	<commit-id>// do this if your pr has multiple commits
+   git push	// push to your forked repository after rebase done
+   ```
+
+1. **File a pull request** to alibaba/sealer:main
 
 ### Branch Definition
 

@@ -5,23 +5,15 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/docker/docker/api/types"
+
 	"github.com/alibaba/sealer/common"
 	imageUtils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
-	"github.com/docker/distribution"
-	"github.com/opencontainers/go-digest"
 )
-
-func buildBlobs(dig digest.Digest, size int64, mediaType string) distribution.Descriptor {
-	return distribution.Descriptor{
-		Digest:    dig,
-		Size:      size,
-		MediaType: mediaType,
-	}
-}
 
 // GetImageLayerDirs return image hash list
 // current image is different with the image in build stage
@@ -32,7 +24,7 @@ func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 			return res, fmt.Errorf("image %s has from layer, which is not allowed in current state", image.Spec.ID)
 		}
 		if layer.Hash != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash))
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
 		}
 	}
 	return
@@ -45,9 +37,18 @@ func GetClusterFileFromImage(imageName string) string {
 		return clusterfile
 	}
 
-	clusterfile = GetClusterFileFromBaseImage(imageName)
+	clusterfile = GetFileFromBaseImage(imageName, "etc", common.DefaultClusterFileName)
 	if clusterfile != "" {
 		return clusterfile
+	}
+	return ""
+}
+
+// GetMetadataFromImage retrieve Metadata From image
+func GetMetadataFromImage(imageName string) string {
+	metadata := GetFileFromBaseImage(imageName, common.DefaultMetadataName)
+	if metadata != "" {
+		return metadata
 	}
 	return ""
 }
@@ -55,23 +56,27 @@ func GetClusterFileFromImage(imageName string) string {
 // GetClusterFileFromImageManifest retrieve ClusterFile from image manifest(image yaml)
 func GetClusterFileFromImageManifest(imageName string) string {
 	//  find cluster file from image manifest
-	imageMetadata, err := NewImageMetadataService().GetRemoteImage(imageName)
+	var image *v1.Image
+	var err error
+	image, err = imageUtils.GetImage(imageName)
 	if err != nil {
-		return ""
+		imageMetadata, err := NewImageMetadataService().GetRemoteImage(imageName)
+		if err != nil {
+			logger.Error("failed to find image %s,err: %v", imageName, err)
+			return ""
+		}
+		image = &imageMetadata
 	}
-	if imageMetadata.Annotations == nil {
-		return ""
-	}
-	clusterFile, ok := imageMetadata.Annotations[common.ImageAnnotationForClusterfile]
+	Clusterfile, ok := image.Annotations[common.ImageAnnotationForClusterfile]
 	if !ok {
+		logger.Error("failed to find Clusterfile in local")
 		return ""
 	}
-
-	return clusterFile
+	return Clusterfile
 }
 
-// GetClusterFileFromBaseImage retrieve ClusterFile from base image, TODO need to refactor
-func GetClusterFileFromBaseImage(imageName string) string {
+// GetFileFromBaseImage retrieve file from base image
+func GetFileFromBaseImage(imageName string, paths ...string) string {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()
 	defer func() {
@@ -102,11 +107,57 @@ func GetClusterFileFromBaseImage(imageName string) string {
 			logger.Warn(err)
 		}
 	}()
-
-	clusterFile := filepath.Join(mountTarget, "etc", common.DefaultClusterFileName)
+	var subPath []string
+	subPath = append(subPath, mountTarget)
+	subPath = append(subPath, paths...)
+	clusterFile := filepath.Join(subPath...)
 	data, err := ioutil.ReadFile(clusterFile)
 	if err != nil {
 		return ""
 	}
 	return string(data)
+}
+
+func GetYamlByImage(imageName string) (string, error) {
+	imagesMap, err := imageUtils.GetImageMetadataMap()
+	if err != nil {
+		return "", err
+	}
+
+	image, ok := imagesMap[imageName]
+	if !ok {
+		return "", fmt.Errorf("failed to find image by name (%s)", imageName)
+	}
+	if image.ID == "" {
+		return "", fmt.Errorf("failed to find corresponding image id, id is empty")
+	}
+
+	ImageInformation, err := ioutil.ReadFile(filepath.Join(common.DefaultImageMetaRootDir, image.ID+common.YamlSuffix))
+	if err != nil {
+		return "", fmt.Errorf("failed to read image yaml,err: %v", err)
+	}
+	return string(ImageInformation), nil
+}
+
+func getDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {
+	var (
+		dockerInfo       *utils.DockerInfo
+		err              error
+		username, passwd string
+	)
+	dockerInfo, err = utils.DockerConfig()
+	if err != nil {
+		return types.AuthConfig{}, err
+	}
+
+	username, passwd, err = dockerInfo.DecodeDockerAuth(domain)
+	if err != nil {
+		return types.AuthConfig{}, err
+	}
+
+	return types.AuthConfig{
+		Username:      username,
+		Password:      passwd,
+		ServerAddress: domain,
+	}, nil
 }

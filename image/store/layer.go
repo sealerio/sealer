@@ -12,23 +12,16 @@ import (
 type LayerID digest.Digest
 
 type roLayer struct {
-	id LayerID
+	id   LayerID
+	size int64
 }
 
-func (rl *roLayer) ID() (LayerID, error) {
-	lid, err := digest.Parse(rl.id.String())
-	if err != nil {
-		return "", err
-	}
-	return LayerID(lid), nil
+func (rl *roLayer) ID() LayerID {
+	return rl.id
 }
 
 func (rl *roLayer) SimpleID() string {
-	id, err := rl.ID()
-	if err != nil {
-		return rl.id.String()
-	}
-	return digest.Digest(id).Hex()[0:12]
+	return digest.Digest(rl.ID()).Hex()[0:12]
 }
 
 func (rl *roLayer) TarStream() (io.ReadCloser, error) {
@@ -36,6 +29,21 @@ func (rl *roLayer) TarStream() (io.ReadCloser, error) {
 	return os.Open(filepath.Join(common.DefaultLayerDBDir, id.Algorithm().String(), id.Hex(), DefaultLayerTarName))
 }
 
+func (rl *roLayer) Size() int64 {
+	return rl.size
+}
+
 func (li LayerID) String() string {
 	return string(li)
+}
+
+func NewROLayer(LayerDigest digest.Digest, size int64) (Layer, error) {
+	err := LayerDigest.Validate()
+	if err != nil {
+		return nil, err
+	}
+	return &roLayer{
+		id:   LayerID(LayerDigest),
+		size: size,
+	}, nil
 }

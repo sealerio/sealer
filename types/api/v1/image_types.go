@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"github.com/opencontainers/go-digest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,9 +25,9 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type Layer struct {
-	Hash  string `json:"hash"`
-	Type  string `json:"type"`
-	Value string `json:"value"`
+	Hash  digest.Digest `json:"hash"` // shaxxx:d6a6c9bfd4ad2901695be1dceca62e1c35a8482982ad6be172fe6958bc4f79d7
+	Type  string        `json:"type"`
+	Value string        `json:"value"`
 }
 
 // ImageSpec defines the desired state of Image

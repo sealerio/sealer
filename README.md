@@ -24,6 +24,10 @@ It solves the delivery problem of complex applications by packaging distributed 
 
 We can write a Kubefile, and build a CloudImage, then using a Clusterfile to run a cluster.
 
+sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes. 
+
+It solves the delivery problem of complex applications by packaging distributed applications and dependencies(like database,middleware) together.
+
 For example, build a dashboard CloudImage:
 
 Kubefile:
@@ -33,7 +37,7 @@ Kubefile:
 #    1. kubernetes components like kubectl kubeadm kubelet and apiserver images ...
 #    2. docker engine, and a private registry
 #    3. config files, yaml, static files, scripts ...
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.6
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
 # download kubernetes dashboard yaml file
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 # when run this CloudImage, will apply a dashboard manifests
@@ -50,7 +54,7 @@ Run a kubernetes cluster with dashboard:
 
 ```shell script
 # sealer will install a kubernetes on host 192.168.0.2 then apply the dashboard manifests
-sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest --master 192.168.0.2 --passwd xxx
+sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest --masters 192.168.0.2 --passwd xxx
 # check the pod
 kubectl get pod -A|grep dashboard
 ```
@@ -77,10 +81,14 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 Install a kubernetes cluster
 
 ```shell script
-sealer run kubernetes:v1.19.2 --master 192.168.0.2
+#install Sealer binaries
+wget https://github.com/alibaba/sealer/releases/download/v0.1.3/sealer-0.1.3-linux-amd64.tar.gz && \
+tar zxvf sealer-0.1.3-linux-amd64.tar.gz && mv sealer /usr/bin
+#run a kubernetes cluster 
+sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx 
 ```
 
-If it is installed on the cloud:
+Install a cluster on public cloud(now support alicloud):
 
 ```shell script
 export ACCESSKEYID=xxx
@@ -109,7 +117,7 @@ izm5ehdjw3kru84f0kq7rbz Ready <none> 18h v1.16.9
 View the default startup configuration of the CloudImage:
 
 ```shell script
-sealer config registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
+sealer inspect -c registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 Use Clusterfile to set up a k8s cluster
@@ -124,7 +132,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: BAREMETAL
   ssh:
     passwd:
@@ -138,19 +146,19 @@ spec:
     svcCIDR: 10.96.0.0/22
     withoutCNI: false
   certSANS:
-    -aliyun-inc.com
-    -10.0.0.2
+    - aliyun-inc.com
+    - 10.0.0.2
     
   masters:
     ipList:
-     -172.20.125.234
-     -172.20.126.5
-     -172.20.126.6
+     - 172.20.125.234
+     - 172.20.126.5
+     - 172.20.126.6
   nodes:
     ipList:
-     -172.20.126.8
-     -172.20.126.9
-     -172.20.126.10
+     - 172.20.126.8
+     - 172.20.126.9
+     - 172.20.126.10
 ```
 
 ```shell script
@@ -166,7 +174,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: ALI_CLOUD
   ssh:
     passwd:
@@ -180,8 +188,8 @@ spec:
     svcCIDR: 10.96.0.0/22
     withoutCNI: false
   certSANS:
-    -aliyun-inc.com
-    -10.0.0.2
+    - aliyun-inc.com
+    - 10.0.0.2
     
   masters:
     cpu: 4
@@ -196,7 +204,7 @@ spec:
     count: 3
     systemDisk: 100
     dataDisks:
-    -100
+    - 100
 ```
 
 ## clean the cluster
@@ -206,3 +214,8 @@ Some information of the basic settings will be written to the Clusterfile and st
 ```shell script
 sealer delete -f /root/.sealer/my-cluster/Clusterfile
 ```
+
+# Developing Sealer
+
+* [contributing guide](./CONTRIBUTIONG.md)
+* [贡献文档](./docs/contributing_zh.md)
