@@ -37,7 +37,7 @@ Kubefile:
 #    1. kubernetes components like kubectl kubeadm kubelet and apiserver images ...
 #    2. docker engine, and a private registry
 #    3. config files, yaml, static files, scripts ...
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.2
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
 # download kubernetes dashboard yaml file
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 # when run this CloudImage, will apply a dashboard manifests
@@ -85,7 +85,7 @@ Install a kubernetes cluster
 wget https://github.com/alibaba/sealer/releases/download/v0.1.3/sealer-0.1.3-linux-amd64.tar.gz && \
 tar zxvf sealer-0.1.3-linux-amd64.tar.gz && mv sealer /usr/bin
 #run a kubernetes cluster 
-sealer run kubernetes:v1.19.2 --masters 192.168.0.2 --passwd xxx 
+sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx 
 ```
 
 Install a cluster on public cloud(now support alicloud):
@@ -132,7 +132,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.2
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: BAREMETAL
   ssh:
     passwd:
@@ -146,19 +146,19 @@ spec:
     svcCIDR: 10.96.0.0/22
     withoutCNI: false
   certSANS:
-    -aliyun-inc.com
-    -10.0.0.2
+    - aliyun-inc.com
+    - 10.0.0.2
     
   masters:
     ipList:
-     -172.20.125.234
-     -172.20.126.5
-     -172.20.126.6
+     - 172.20.125.234
+     - 172.20.126.5
+     - 172.20.126.6
   nodes:
     ipList:
-     -172.20.126.8
-     -172.20.126.9
-     -172.20.126.10
+     - 172.20.126.8
+     - 172.20.126.9
+     - 172.20.126.10
 ```
 
 ```shell script
@@ -174,7 +174,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.2
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: ALI_CLOUD
   ssh:
     passwd:
@@ -188,8 +188,8 @@ spec:
     svcCIDR: 10.96.0.0/22
     withoutCNI: false
   certSANS:
-    -aliyun-inc.com
-    -10.0.0.2
+    - aliyun-inc.com
+    - 10.0.0.2
     
   masters:
     cpu: 4
@@ -204,7 +204,7 @@ spec:
     count: 3
     systemDisk: 100
     dataDisks:
-    -100
+    - 100
 ```
 
 ## clean the cluster
