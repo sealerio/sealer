@@ -12,6 +12,7 @@ func fetchRegistryClient(auth types.AuthConfig) (*registry.Registry, error) {
 	if err == nil {
 		return reg, nil
 	}
+
 	reg, err = registry.New(context.Background(), auth, registry.Opt{Insecure: true, NonSSL: true})
 	if err == nil {
 		return reg, nil

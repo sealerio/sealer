@@ -141,18 +141,19 @@ func GetYamlByImage(imageName string) (string, error) {
 
 func getDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {
 	var (
-		dockerInfo       *utils.DockerInfo
-		err              error
-		username, passwd string
+		dockerInfo        *utils.DockerInfo
+		err               error
+		username, passwd  string
+		defaultAuthConfig = types.AuthConfig{ServerAddress: domain}
 	)
 	dockerInfo, err = utils.DockerConfig()
 	if err != nil {
-		return types.AuthConfig{}, err
+		return defaultAuthConfig, err
 	}
 
 	username, passwd, err = dockerInfo.DecodeDockerAuth(domain)
 	if err != nil {
-		return types.AuthConfig{}, err
+		return defaultAuthConfig, err
 	}
 
 	return types.AuthConfig{
