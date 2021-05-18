@@ -292,7 +292,9 @@ func (localLog *LocalLogger) Info(format string, v ...interface{}) {
 
 // Debug Log DEBUG level message.
 func (localLog *LocalLogger) Debug(format string, v ...interface{}) {
-	localLog.writeMsg(LevelDebug, format, v...)
+	if loggerConfig.DebugMode {
+		localLog.writeMsg(LevelDebug, format, v...)
+	}
 }
 
 // Trace Log TRAC level message.
@@ -418,7 +420,7 @@ func Info(f interface{}, v ...interface{}) {
 	defaultLogger.Info(formatLog(f, v...))
 }
 
-// Notice logs a message at debug level.
+// Debug logs a message at debug level.
 func Debug(f interface{}, v ...interface{}) {
 	defaultLogger.Debug(formatLog(f, v...))
 }
