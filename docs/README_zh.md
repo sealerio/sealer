@@ -12,11 +12,14 @@ Docker可以把一个操作系统的rootfs+应用 build成一个容器镜像，s
 > 安装一个kubernetes集群
 
 ```shell script
+#安装sealer
+wget https://github.com/alibaba/sealer/releases/download/v0.1.3/sealer-0.1.3-linux-amd64.tar.gz
+tar zxvf sealer-0.1.3-linux-amd64.tar.gz && mv sealer /usr/bin
+#运行集群
 sealer run kubernetes:1.19.2 # 在公有云上运行一个kubernetes集群
-sealer run kubernetes:1.19.2 --master 3 --node 3 # 在公有云上运行指定数量节点的kuberentes集群
-
+sealer run kubernetes:1.19.2 --masters 3 --nodes 3 # 在公有云上运行指定数量节点的kuberentes集群
 # 安装到已经存在的机器上
-sealer run kuberntes:1.19.2 --master 192.168.0.2,192.168.0.3,192.168.0.4 --node 192.168.0.5,192.168.0.6,192.168.0.7
+sealer run kuberntes:1.19.2 --masters 192.168.0.2,192.168.0.3,192.168.0.4 --nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
 ```
 
 > 安装prometheus集群
@@ -30,7 +33,7 @@ sealer run prometheus:2.26.0
 
 Kubefile:
 ```shell script
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.6
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.2
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 CMD kubectl apply -f recommended.yaml
 ```
@@ -59,7 +62,7 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ## 安装一个kubernetes集群
 
 ```shell script
-sealer run kubernetes:v1.19.2 --master 192.168.0.2
+sealer run kubernetes:v1.19.2 --masters 192.168.0.2 --passwd xxx
 ```
 
 如果是在云上安装：
@@ -84,12 +87,12 @@ izm5ehdjw3kru84f0kq7rbz   Ready    <none>   18h   v1.16.9
 
 查看镜像默认启动配置：
 ```shell script
-sealer config registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
+sealer inspect -c registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 ## 使用Clusterfile拉起一个k8s集群
 
-使用已经提供好的官方基础镜像(sealer/cloudrootfs:v1.16.9-alpha.6)就可以快速拉起一个k8s集群。
+使用已经提供好的官方基础镜像(sealer-io/kubernetes:v1.19.2)就可以快速拉起一个k8s集群。
 
 场景1. 往已经存在的服务器上去安装，provider类型为BAREMETAL
 
@@ -100,7 +103,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.2
   provider: BAREMETAL
   ssh:
     passwd: 
@@ -149,7 +152,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.2
   provider: ALI_CLOUD
   ssh:
     passwd: 
@@ -198,7 +201,7 @@ spec:
 
 新建一个dashboard目录,创建一个文件Kubefile内容为:
 ```
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.2
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 CMD kubectl apply -f recommended.yaml
 ```
