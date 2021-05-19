@@ -186,7 +186,7 @@ func Decompress(src io.Reader, dst string) error {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if _, err := os.Stat(target); err != nil {
+			if _, err = os.Stat(target); err != nil {
 				if err = os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
 					return err
 				}
@@ -207,25 +207,22 @@ func Decompress(src io.Reader, dst string) error {
 		case tar.TypeReg:
 			err = func() error {
 				// regularly won't mkdir, unless add newFolder on compressing
-				err := utils.MkDirIfNotExists(filepath.Dir(target))
-				if err != nil {
-					return err
+				inErr := utils.MkDirIfNotExists(filepath.Dir(target))
+				if inErr != nil {
+					return inErr
 				}
 
-				fileToWrite, err := os.OpenFile(target, os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.FileMode(header.Mode))
-				if err != nil {
-					return err
+				fileToWrite, inErr := os.OpenFile(target, os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.FileMode(header.Mode))
+				if inErr != nil {
+					return inErr
 				}
 
 				defer fileToWrite.Close()
-				if _, err := io.Copy(fileToWrite, tr); err != nil {
-					return err
+				if _, inErr = io.Copy(fileToWrite, tr); inErr != nil {
+					return inErr
 				}
 				// for not changing
-				if err = os.Chtimes(target, header.AccessTime, header.ModTime); err != nil {
-					return err
-				}
-				return nil
+				return os.Chtimes(target, header.AccessTime, header.ModTime)
 			}()
 
 			if err != nil {
