@@ -9,7 +9,6 @@ require (
 	github.com/docker/docker v20.10.6+incompatible
 	github.com/genuinetools/reg v0.16.1
 	github.com/imdario/mergo v0.3.11 // indirect
-	github.com/justadogistaken/reg v0.16.5
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5
