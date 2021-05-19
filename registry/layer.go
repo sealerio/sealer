@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"io"
 	"net/http"
@@ -33,25 +34,35 @@ func (registry *Registry) DownloadLayer(ctx context.Context, repository string, 
 }
 
 // UploadLayer uploads a specific layer by digest for a repository.
-func (registry *Registry) UploadLayer(ctx context.Context, repository string, digest reference.Reference, content io.Reader) error {
+func (registry *Registry) UploadLayer(ctx context.Context, repository string, digs reference.Reference, content io.Reader) error {
 	uploadURL, token, err := registry.initiateUpload(ctx, repository)
 	if err != nil {
 		return err
 	}
+
 	q := uploadURL.Query()
-	q.Set("digest", digest.String())
+	q.Set("digest", digs.String())
 	uploadURL.RawQuery = q.Encode()
-
-	registry.Logf("registry.layer.upload url=%s repository=%s digest=%s", uploadURL, repository, digest)
-
-	upload, err := http.NewRequest("PUT", uploadURL.String(), content)
+	dig, ok := digs.(digest.Digest)
+	if !ok {
+		return errors.New("layer digest is necessary when push a layer")
+	}
+	// used to verify compressed layer hash
+	hash := dig.Algorithm().Hash()
+	uploadReader := io.TeeReader(content, hash)
+	registry.Logf("registry.layer.upload url=%s repository=%s digest=%s", uploadURL, repository, digs)
+	upload, err := http.NewRequest("PUT", uploadURL.String(), uploadReader)
 	if err != nil {
 		return err
 	}
+
 	upload.Header.Set("Content-Type", "application/octet-stream")
 	upload.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-
 	_, err = registry.Client.Do(upload.WithContext(ctx))
+	currentDigestHex := hex.EncodeToString(hash.Sum(nil))
+	if currentDigestHex != dig.Hex() {
+		return fmt.Errorf("failed to push layer, err: layer digest changed, original: %s, current: %s", dig.Hex(), currentDigestHex)
+	}
 	return err
 }
 
