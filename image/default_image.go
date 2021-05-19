@@ -49,7 +49,6 @@ func (d DefaultImageService) Pull(imageName string) error {
 	if err != nil {
 		return err
 	}
-
 	var (
 		reader, writer  = io.Pipe()
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
@@ -63,7 +62,6 @@ func (d DefaultImageService) Pull(imageName string) error {
 		_ = writeFlusher.Close()
 		close(progressChan)
 	}()
-
 	go func() {
 		dockerutils.WriteDistributionProgress(func() {}, writeFlusher, progressChan)
 	}()
@@ -93,7 +91,7 @@ func (d DefaultImageService) Pull(imageName string) error {
 		}
 	}()
 
-	fmt.Printf("Start to Pull Image %s \n", named.Raw())
+	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Start to Pull Image %s", named.Raw()))
 	image, err := puller.Pull(context.Background(), named)
 	if err != nil {
 		return err
@@ -108,7 +106,6 @@ func (d DefaultImageService) Push(imageName string) error {
 	if err != nil {
 		return err
 	}
-
 	var (
 		reader, writer  = io.Pipe()
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
@@ -154,7 +151,7 @@ func (d DefaultImageService) Push(imageName string) error {
 		}
 	}()
 
-	fmt.Printf("Start to Push Image %s \n", named.Raw())
+	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Start to Push Image %s", named.Raw()))
 	return pusher.Push(context.Background(), named)
 }
 

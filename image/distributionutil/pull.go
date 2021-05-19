@@ -11,12 +11,12 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/registry"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/compress"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
-	"github.com/justadogistaken/reg/registry"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )

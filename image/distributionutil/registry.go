@@ -3,8 +3,8 @@ package distributionutil
 import (
 	"context"
 
+	"github.com/alibaba/sealer/registry"
 	"github.com/docker/docker/api/types"
-	"github.com/justadogistaken/reg/registry"
 )
 
 func fetchRegistryClient(auth types.AuthConfig) (*registry.Registry, error) {
