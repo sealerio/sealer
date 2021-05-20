@@ -85,7 +85,8 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	defer session.Close()
 	b, err := session.CombinedOutput(cmd)
 	if err != nil {
-		return nil, fmt.Errorf("[ssh][%s]run command failed [%s], %v", host, cmd, err)
+		fmt.Printf("[ssh][%s]failed to run command [%s],output is: %s", host, cmd, b)
+		return nil, fmt.Errorf("[ssh][%s]run command failed [%s]", host, cmd)
 	}
 	return b, nil
 }
