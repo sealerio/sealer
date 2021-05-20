@@ -8,7 +8,7 @@ import (
 
 func TestCloudBuilder_Build(t *testing.T) {
 	conf := &build.Config{}
-	builder, err := build.NewBuilder(conf, "")
+	builder, err := build.NewBuilder(conf)
 	if err != nil {
 		t.Error(err)
 	}

@@ -8,8 +8,8 @@ import (
 )
 
 func TestLocalBuilder_Build(t *testing.T) {
-	conf := &build.Config{}
-	builder, err := build.NewBuilder(conf, common.LocalBuild)
+	conf := &build.Config{BuildType: common.LocalBuild}
+	builder, err := build.NewBuilder(conf)
 	if err != nil {
 		t.Error(err)
 	}
