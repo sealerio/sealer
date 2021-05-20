@@ -1,6 +1,7 @@
 package apply
 
 import (
+	"fmt"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -27,4 +28,17 @@ func NewApplier(cluster *v1.Cluster) Interface {
 		return NewAliCloudProvider(cluster)
 	}
 	return NewDefaultApplier(cluster)
+}
+
+func saveClusterfile(cluster *v1.Cluster) error {
+	fileName := common.GetClusterWorkClusterfile(cluster.Name)
+	err := utils.MkFileFullPathDir(fileName)
+	if err != nil {
+		return fmt.Errorf("mkdir failed %s %v", fileName, err)
+	}
+	err = utils.MarshalYamlToFile(fileName, cluster)
+	if err != nil {
+		return fmt.Errorf("marshal cluster file failed %v", err)
+	}
+	return nil
 }

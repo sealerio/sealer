@@ -47,7 +47,7 @@ func (c *CloudApplier) Apply() error {
 	if cluster.DeletionTimestamp != nil {
 		return nil
 	}
-	err = c.SaveClusterfile()
+	err = saveClusterfile(c.ClusterDesired)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (c *CloudApplier) Apply() error {
 	err = utils.Cmd("chmod", "+x", common.KubectlPath)
 
 	if err != nil {
-		return errors.Wrap(err, "add EIP to etc hosts failed")
+		return errors.Wrap(err, "chmod a+x kubectl failed")
 	}
 	return nil
 }
@@ -112,18 +112,5 @@ func (c *CloudApplier) Delete() error {
 		return nil
 	}
 
-	return nil
-}
-
-func (c *CloudApplier) SaveClusterfile() error {
-	fileName := common.GetClusterWorkClusterfile(c.ClusterDesired.Name)
-	err := utils.MkFileFullPathDir(fileName)
-	if err != nil {
-		return fmt.Errorf("mkdir failed %s %v", fileName, err)
-	}
-	err = utils.MarshalYamlToFile(fileName, c.ClusterDesired)
-	if err != nil {
-		return fmt.Errorf("marshal cluster file failed %v", err)
-	}
 	return nil
 }
