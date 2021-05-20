@@ -1,7 +1,9 @@
-package infra
+package aliyun
 
 import (
 	"errors"
+
+	"github.com/alibaba/sealer/infra/utils"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
@@ -14,7 +16,7 @@ type VpcManager struct {
 }
 
 func (a *AliProvider) RetryVpcRequest(request requests.AcsRequest, response responses.AcsResponse) error {
-	return Retry(TryTimes, TrySleepTime, func() error {
+	return utils.Retry(TryTimes, TrySleepTime, func() error {
 		err := a.VpcClient.DoAction(request, response)
 		if err != nil {
 			return err
