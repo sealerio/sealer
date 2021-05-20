@@ -81,7 +81,6 @@ func (l *LocalBuilder) GetBuildPipeLine() ([]func() error, error) {
 	} else {
 		buildPipeline = append(buildPipeline,
 			l.PullBaseImageNotExist,
-			l.ApplyCluster,
 			l.ExecBuild,
 			l.UpdateImageMetadata,
 			l.PushToRegistry)
@@ -269,10 +268,6 @@ func (l *LocalBuilder) calculateLayerHashAndPlaceIt(layer *v1.Layer, tempTarget 
 
 	layer.Hash = layerHash
 	return nil
-}
-
-func (l *LocalBuilder) ApplyCluster() error {
-	return l.applyCluster()
 }
 
 func (l *LocalBuilder) UpdateImageMetadata() error {

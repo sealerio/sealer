@@ -12,13 +12,20 @@ func (c *CloudBuilder) runBuildCommands() error {
 	if err := c.SSH.Copy(c.RemoteHostIP, common.RawClusterfile, common.RawClusterfile); err != nil {
 		return err
 	}
+	// apply k8s cluster
+	apply := fmt.Sprintf("sealer apply -f %s", common.TmpClusterfile)
+	err := c.SSH.CmdAsync(c.RemoteHostIP, apply)
+	if err != nil {
+		return fmt.Errorf("failed to run remote apply:%v", err)
+	}
+	// run local build command
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.local.Cluster.Name)
 	build := fmt.Sprintf(common.BuildClusterCmd, common.ExecBinaryFileName,
 		c.local.KubeFileName, c.local.ImageName, common.LocalBuild)
 	logger.Info("run remote build %s", build)
 
 	cmd := fmt.Sprintf("cd %s && %s", workdir, build)
-	err := c.SSH.CmdAsync(c.RemoteHostIP, cmd)
+	err = c.SSH.CmdAsync(c.RemoteHostIP, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run remote build:%v", err)
 	}
