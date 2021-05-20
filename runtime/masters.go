@@ -137,7 +137,7 @@ func (d *Default) sendFileToHosts(Hosts []string, src, dst string) {
 
 func (d *Default) ReplaceKubeConfigV1991V1992(masters []string) bool {
 	// fix > 1.19.1 kube-controller-manager and kube-scheduler use the LocalAPIEndpoint instead of the ControlPlaneEndpoint.
-	if VersionCompare(d.Metadata.Version, V1991) && VersionCompare(V1992, d.Metadata.Version) {
+	if d.Metadata.Version == V1991 || d.Metadata.Version == V1992 {
 		for _, v := range masters {
 			ip := utils.GetHostIP(v)
 			cmd := fmt.Sprintf(RemoteReplaceKubeConfig, KUBESCHEDULERCONFIGFILE, ip, KUBECONTROLLERCONFIGFILE, ip, KUBESCHEDULERCONFIGFILE)
@@ -292,7 +292,7 @@ func (d *Default) joinMasters(masters []string) error {
 	if err := d.LinkStaticFiles(masters); err != nil {
 		return err
 	}
-	d.SendJoinMasterKubeConfigs(masters)
+	d.SendJoinMasterKubeConfigs(masters, AdminConf, ControllerConf, SchedulerConf)
 	// TODO only needs send ca?
 	d.sendNewCertAndKey(masters)
 	d.sendJoinCPConfig(masters)
