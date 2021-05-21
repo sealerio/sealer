@@ -23,7 +23,11 @@ type DefaultImageFileService struct {
 }
 
 func (d DefaultImageFileService) Load(imageSrc string) error {
-	return d.load(imageSrc)
+	imageMetadata, err := d.load(imageSrc)
+	if err == nil {
+		logger.Info("load image %s [id: %s] successfully", imageMetadata.Name, imageMetadata.ID)
+	}
+	return err
 }
 
 func (d DefaultImageFileService) Save(imageName string, imageTar string) error {
@@ -97,14 +101,14 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	return err
 }
 
-func (d DefaultImageFileService) load(imageSrc string) error {
+func (d DefaultImageFileService) load(imageSrc string) (*imageutils.ImageMetadata, error) {
 	src, err := os.Open(imageSrc)
 	if err != nil {
-		return fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
+		return nil, fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
 	}
 	defer src.Close()
 	if err = compress.Decompress(src, common.DefaultLayerDir); err != nil {
-		return err
+		return nil, err
 	}
 	repofile := filepath.Join(common.DefaultLayerDir, common.DefaultMetadataName)
 	defer os.Remove(repofile)
@@ -113,44 +117,41 @@ func (d DefaultImageFileService) load(imageSrc string) error {
 	var image v1.Image
 
 	if err = utils.UnmarshalYamlFile(imageTempFile, &image); err != nil {
-		return fmt.Errorf("failed to parsing %s.yaml, err: %v", imageTempFile, err)
+		return nil, fmt.Errorf("failed to parsing %s.yaml, err: %v", imageTempFile, err)
 	}
 
 	layerStore, err := store.NewDefaultLayerStore()
 	if err != nil {
-		return fmt.Errorf("failed to get layerstore, err: %v", err)
+		return nil, fmt.Errorf("failed to get layerstore, err: %v", err)
 	}
 
 	for _, layer := range image.Spec.Layers {
-		if layer.Hash != "" {
-			roLayer, err := store.NewROLayer(layer.Hash, 0)
-			if err != nil {
-				return err
-			}
-			err = layerStore.RegisterLayerIfNotPresent(roLayer)
-			if err != nil {
-				return fmt.Errorf("failed to register layer, err: %v", err)
-			}
+		if layer.Hash == "" {
+			continue
+		}
+		roLayer, err := store.NewROLayer(layer.Hash, 0)
+		if err != nil {
+			return nil, err
+		}
+		err = layerStore.RegisterLayerIfNotPresent(roLayer)
+		if err != nil {
+			return nil, fmt.Errorf("failed to register layer, err: %v", err)
 		}
 	}
 
 	repo, err := ioutil.ReadFile(repofile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var imageMetadata imageutils.ImageMetadata
 
 	if err := json.Unmarshal(repo, &imageMetadata); err != nil {
-		return err
+		return nil, err
 	}
 	named, err := reference.ParseToNamed(imageMetadata.Name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err = d.syncImageLocal(image, named); err != nil {
-		return err
-	}
-	logger.Info("load image %s [id: %s] successfully", named.Raw(), imageMetadata.ID)
-	return nil
+	return &imageMetadata, d.syncImageLocal(image, named)
 }
