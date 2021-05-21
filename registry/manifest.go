@@ -58,10 +58,12 @@ func (registry *Registry) ManifestList(ctx context.Context, repository, ref stri
 	registry.Logf("registry.manifests uri=%s repository=%s ref=%s", uri, repository, ref)
 
 	var m manifestlist.ManifestList
-	if _, err := registry.getJSON(ctx, uri, &m); err != nil {
+	resp, err := registry.getJSON(ctx, uri, &m)
+	if err != nil {
 		registry.Logf("registry.manifests response=%v", m)
 		return m, err
 	}
+	defer resp.Body.Close()
 
 	return m, nil
 }
@@ -70,18 +72,28 @@ func (registry *Registry) ManifestList(ctx context.Context, repository, ref stri
 func (registry *Registry) ManifestV2(ctx context.Context, repository, ref string) (schema2.Manifest, error) {
 	uri := registry.url("/v2/%s/manifests/%s", repository, ref)
 	registry.Logf("registry.manifests uri=%s repository=%s ref=%s", uri, repository, ref)
+	var (
+		m    schema2.Manifest
+		resp *http.Response
+		err  error
+	)
 
-	var m schema2.Manifest
-	if _, err := registry.getJSON(ctx, uri, &m); err != nil {
+	resp, err = registry.getJSON(ctx, uri, &m)
+	if err != nil {
 		registry.Logf("registry.manifests response=%v", m)
 		return m, err
 	}
 
-	if m.Versioned.SchemaVersion != 2 {
-		return m, ErrUnexpectedSchemaVersion
+	if resp.StatusCode == http.StatusNotModified {
+		return m, distribution.ErrManifestNotModified
 	}
-
-	return m, nil
+	if isSuccessResponse(resp.StatusCode) {
+		return m, nil
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return m, ErrManifestNotFound
+	}
+	return m, handleErrorResponse(resp)
 }
 
 // ManifestV1 gets the registry v1 manifest.

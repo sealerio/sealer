@@ -20,12 +20,13 @@ func (registry *Registry) Catalog(ctx context.Context, u string) ([]string, erro
 	registry.Logf("registry.catalog url=%s", uri)
 
 	var response catalogResponse
-	h, err := registry.getJSON(ctx, uri, &response)
+	resp, err := registry.getJSON(ctx, uri, &response)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
-	for _, l := range link.ParseHeader(h) {
+	for _, l := range link.ParseHeader(resp.Header) {
 		if l.Rel == "next" {
 			unescaped, _ := url.QueryUnescape(l.URI)
 			repos, err := registry.Catalog(ctx, unescaped)
