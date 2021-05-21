@@ -25,7 +25,11 @@ func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
 	if !ok {
 		return fmt.Errorf("failed to found image %s", imageName)
 	}
-	imageMetadata.Name = tarImageName
+	named, err := reference.ParseToNamed(tarImageName)
+	if err != nil {
+		return err
+	}
+	imageMetadata.Name = named.Raw()
 	if err := imageutils.SetImageMetadata(imageMetadata); err != nil {
 		return fmt.Errorf("failed to add tag %s, %s", tarImageName, err)
 	}

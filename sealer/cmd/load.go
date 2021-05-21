@@ -22,7 +22,6 @@ var loadCmd = &cobra.Command{
 			logger.Error("failed to load image from %s, err: %v", imageSrc, err)
 			os.Exit(1)
 		}
-		logger.Info("load image from %s successfully", imageSrc)
 	},
 }
 

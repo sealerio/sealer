@@ -1,10 +1,13 @@
 package image
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
@@ -27,12 +30,15 @@ func (d DefaultImageFileService) Save(imageName string, imageTar string) error {
 	if imageTar == "" {
 		return fmt.Errorf("imagetar cannot be empty")
 	}
+
 	if utils.IsFileExist(imageTar) {
 		return fmt.Errorf("file %s already exists", imageTar)
 	}
+
 	if err := utils.MkFileFullPathDir(imageTar); err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}
+
 	return d.save(imageName, imageTar)
 }
 
@@ -45,7 +51,8 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	if err != nil {
 		return err
 	}
-	ima, err := imageutils.GetImage(named.Raw())
+
+	image, err := imageutils.GetImage(named.Raw())
 	if err != nil {
 		return err
 	}
@@ -56,7 +63,7 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	defer file.Close()
 
 	var pathsToCompress []string
-	layerDirs, err := GetImageLayerDirs(ima)
+	layerDirs, err := GetImageLayerDirs(image)
 	if err != nil {
 		return err
 	}
@@ -67,15 +74,25 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	}
 	defer utils.CleanDir(tempDir)
 	imageMetadataTempFile := filepath.Join(tempDir, common.DefaultImageMetadataFileName)
-	imageMetadataYaml := filepath.Join(common.DefaultImageMetaRootDir, ima.Spec.ID+common.YamlSuffix)
-	imageMetadata, err := ioutil.ReadFile(imageMetadataYaml)
+	repofile := filepath.Join(tempDir, common.DefaultMetadataName)
+	imageYaml := filepath.Join(common.DefaultImageMetaRootDir, image.Spec.ID+common.YamlSuffix)
+
+	ima, err := ioutil.ReadFile(imageYaml)
 	if err != nil {
-		return fmt.Errorf("failed to read %s, err: %v", imageMetadataYaml, err)
+		return fmt.Errorf("failed to read %s, err: %v", imageYaml, err)
 	}
-	if err := ioutil.WriteFile(imageMetadataTempFile, imageMetadata, common.FileMode0644); err != nil {
+	if err = ioutil.WriteFile(imageMetadataTempFile, ima, common.FileMode0644); err != nil {
 		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
 	}
-	pathsToCompress = append(pathsToCompress, imageMetadataTempFile)
+	repo, err := json.Marshal(&imageutils.ImageMetadata{ID: image.Spec.ID, Name: named.Raw()})
+	if err != nil {
+		return err
+	}
+	if err = ioutil.WriteFile(repofile, repo, common.FileMode0644); err != nil {
+		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
+	}
+
+	pathsToCompress = append(pathsToCompress, imageMetadataTempFile, repofile)
 	_, err = compress.Compress(file, pathsToCompress...)
 	return err
 }
@@ -86,19 +103,24 @@ func (d DefaultImageFileService) load(imageSrc string) error {
 		return fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
 	}
 	defer src.Close()
-	if err := compress.Decompress(src, common.DefaultLayerDir); err != nil {
+	if err = compress.Decompress(src, common.DefaultLayerDir); err != nil {
 		return err
 	}
+	repofile := filepath.Join(common.DefaultLayerDir, common.DefaultMetadataName)
+	defer os.Remove(repofile)
 	imageTempFile := filepath.Join(common.DefaultLayerDir, common.DefaultImageMetadataFileName)
+	defer os.Remove(imageTempFile)
 	var image v1.Image
-	if err := utils.UnmarshalYamlFile(imageTempFile, &image); err != nil {
+
+	if err = utils.UnmarshalYamlFile(imageTempFile, &image); err != nil {
 		return fmt.Errorf("failed to parsing %s.yaml, err: %v", imageTempFile, err)
 	}
-	defer os.Remove(imageTempFile)
+
 	layerStore, err := store.NewDefaultLayerStore()
 	if err != nil {
 		return fmt.Errorf("failed to get layerstore, err: %v", err)
 	}
+
 	for _, layer := range image.Spec.Layers {
 		if layer.Hash != "" {
 			roLayer, err := store.NewROLayer(layer.Hash, 0)
@@ -111,9 +133,24 @@ func (d DefaultImageFileService) load(imageSrc string) error {
 			}
 		}
 	}
-	named, err := reference.ParseToNamed(image.Name)
+
+	repo, err := ioutil.ReadFile(repofile)
 	if err != nil {
 		return err
 	}
-	return d.syncImageLocal(image, named)
+	var imageMetadata imageutils.ImageMetadata
+
+	if err := json.Unmarshal(repo, &imageMetadata); err != nil {
+		return err
+	}
+	named, err := reference.ParseToNamed(imageMetadata.Name)
+	if err != nil {
+		return err
+	}
+
+	if err = d.syncImageLocal(image, named); err != nil {
+		return err
+	}
+	logger.Info("load image %s [id: %s] successfully", named.Raw(), imageMetadata.ID)
+	return nil
 }
