@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const DefaultJSONIndent = "  "
+const DefaultJSONIndent = "\t"
 
 type ImageMetadataMap map[string]ImageMetadata
 
@@ -73,7 +73,6 @@ func GetImageByID(imageID string) (*v1.Image, error) {
 	return &image, nil
 }
 
-//get all imageMetadata
 func GetImageMetadataMap() (ImageMetadataMap, error) {
 	// create file if not exists
 	if !utils.IsFileExist(common.DefaultImageMetadataFile) {
@@ -95,7 +94,6 @@ func GetImageMetadataMap() (ImageMetadataMap, error) {
 	return imagesMap, err
 }
 
-//set one imageMetadata to imageMetadataMap
 func SetImageMetadata(metadata ImageMetadata) error {
 	imagesMap, err := GetImageMetadataMap()
 	if err != nil {

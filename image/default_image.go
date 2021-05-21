@@ -24,7 +24,6 @@ import (
 
 // DefaultImageService is the default service, which is used for image pull/push
 type DefaultImageService struct {
-	BaseImageManager
 }
 
 // PullIfNotExist is used to pull image if not exists locally
@@ -71,7 +70,7 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 
-	authInfo, err := getDockerAuthInfoFromDocker(named.Domain())
+	authInfo, err := utils.GetDockerAuthInfoFromDocker(named.Domain())
 	if err != nil {
 		logger.Warn("failed to get auth info, err: %s", err)
 	}
@@ -97,7 +96,7 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 	// TODO use image store to do the job next
-	return d.syncImageLocal(*image, named)
+	return store.SyncImageLocal(*image, named)
 }
 
 // Push push local image to remote registry
@@ -129,7 +128,7 @@ func (d DefaultImageService) Push(imageName string) error {
 		return err
 	}
 
-	authInfo, err := getDockerAuthInfoFromDocker(named.Domain())
+	authInfo, err := utils.GetDockerAuthInfoFromDocker(named.Domain())
 	if err != nil {
 		logger.Warn("failed to get docker info, err: %s", err)
 	}
@@ -219,7 +218,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 		return nil
 	}
 
-	err = d.deleteImageLocal(image.Spec.ID)
+	err = store.DeleteImageLocal(image.Spec.ID)
 	if err != nil {
 		return err
 	}
