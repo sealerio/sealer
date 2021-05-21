@@ -81,7 +81,7 @@ func NewMetadata(data string) *Metadata {
 }
 
 func (d *Default) Reset(cluster *v1.Cluster) error {
-	panic("implement me")
+	return d.reset(cluster)
 }
 
 func (d *Default) Upgrade(cluster *v1.Cluster) error {
@@ -89,19 +89,22 @@ func (d *Default) Upgrade(cluster *v1.Cluster) error {
 }
 
 func (d *Default) JoinMasters(newMastersIPList []string) error {
-	logger.Info("join masters: %v", newMastersIPList)
+	logger.Debug("join masters: %v", newMastersIPList)
 	return d.joinMasters(newMastersIPList)
 }
 
 func (d *Default) JoinNodes(newNodesIPList []string) error {
+	logger.Debug("join nodes: %v", newNodesIPList)
 	return d.joinNodes(newNodesIPList)
 }
 
 func (d *Default) DeleteMasters(mastersIPList []string) error {
+	logger.Debug("delete masters: %v", mastersIPList)
 	return d.deleteMasters(mastersIPList)
 }
 
 func (d *Default) DeleteNodes(nodesIPList []string) error {
+	logger.Debug("delete nodes: %v", nodesIPList)
 	return d.deleteNodes(nodesIPList)
 }
 

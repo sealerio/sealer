@@ -16,8 +16,15 @@ func getRegistryHost(ip string) (host string) {
 	return fmt.Sprintf("%s %s", ip, SeaHub)
 }
 
+const registryName = "sealer-registry"
+
 //Only use this for join and init, due to the initiation operations
 func (d *Default) EnsureRegistryOnMaster0() error {
 	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", d.Rootfs, d.Rootfs)
+	return d.SSH.CmdAsync(d.Masters[0], cmd)
+}
+
+func (d *Default) RecycleRegistryOnMaster0() error {
+	cmd := fmt.Sprintf("docker stop %s || true && docker rm %s || true", registryName, registryName)
 	return d.SSH.CmdAsync(d.Masters[0], cmd)
 }

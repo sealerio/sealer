@@ -133,8 +133,8 @@ func (c *DefaultApplier) Delete() (err error) {
 
 func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	if c.ClusterDesired.DeletionTimestamp != nil {
-		todoList = append(todoList, ApplyNodes)
-		todoList = append(todoList, ApplyMasters)
+		c.MastersToDelete = c.ClusterDesired.Spec.Masters.IPList
+		c.NodesToDelete = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, Reset)
 		todoList = append(todoList, UnMount)
 		return todoList, nil
