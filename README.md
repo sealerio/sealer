@@ -217,5 +217,5 @@ sealer delete -f /root/.sealer/my-cluster/Clusterfile
 
 # Developing Sealer
 
-* [contributing guide](./CONTRIBUTIONG.md)
+* [contributing guide](./CONTRIBUTING.md)
 * [贡献文档](./docs/contributing_zh.md)
