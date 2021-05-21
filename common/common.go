@@ -31,7 +31,6 @@ const (
 	DefaultLayerDir               = "/var/lib/sealer/data/overlay2"
 	TarGzSuffix                   = ".tar.gz"
 	YamlSuffix                    = ".yaml"
-	RemoteServerEIPAnnotation     = "sea.aliyun.com/ClusterEIP"
 	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
 	RawClusterfile                = "/var/lib/sealer/Clusterfile"
 	TmpClusterfile                = "/tmp/Clusterfile"
@@ -96,6 +95,10 @@ func GetClusterWorkDir(clusterName string) string {
 		return fmt.Sprintf(ClusterWorkDir, clusterName)
 	}
 	return filepath.Join(home, ".sealer", clusterName)
+}
+
+func GetClusterRootfsDir(clusterName string) string {
+	return fmt.Sprintf(DefaultClusterRootfsDir+"/%s", clusterName)
 }
 
 func GetClusterWorkClusterfile(clusterName string) string {

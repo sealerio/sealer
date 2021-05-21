@@ -104,6 +104,5 @@ func (d *Default) deleteNode(node string) error {
 			return fmt.Errorf("delete node %s failed %v", hostname, err)
 		}
 	}
-
 	return nil
 }

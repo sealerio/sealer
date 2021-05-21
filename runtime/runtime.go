@@ -20,6 +20,8 @@ type Interface interface {
 	Upgrade(cluster *v1.Cluster) error
 	Reset(cluster *v1.Cluster) error
 	CNI(cluster *v1.Cluster) error
+	HostPreStart(cluster *v1.Cluster) error
+	HostPostStop(cluster *v1.Cluster) error
 	JoinMasters(newMastersIPList []string) error
 	JoinNodes(newNodesIPList []string) error
 	DeleteMasters(mastersIPList []string) error
@@ -57,7 +59,6 @@ type Default struct {
 	LvscareImage      string
 	SSH               ssh.Interface
 	Rootfs            string
-
 	// net config
 	Interface  string
 	Network    string
@@ -98,15 +99,18 @@ func (d *Default) LoadMetadata() {
 func (d *Default) Reset(cluster *v1.Cluster) error {
 	return d.reset(cluster)
 }
-
 func (d *Default) CNI(cluster *v1.Cluster) error {
 	return d.cni(cluster)
 }
-
 func (d *Default) Upgrade(cluster *v1.Cluster) error {
 	panic("implement upgrade !!")
 }
-
+func (d *Default) HostPreStart(cluster *v1.Cluster) error {
+	return d.hostPreStart(cluster)
+}
+func (d *Default) HostPostStop(cluster *v1.Cluster) error {
+	return d.hostPostStop(cluster)
+}
 func (d *Default) JoinMasters(newMastersIPList []string) error {
 	logger.Debug("join masters: %v", newMastersIPList)
 	return d.joinMasters(newMastersIPList)

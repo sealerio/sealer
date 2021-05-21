@@ -90,7 +90,7 @@ func (c *CloudApplier) Apply() error {
 	err = utils.Cmd("chmod", "+x", common.KubectlPath)
 
 	if err != nil {
-		return errors.Wrap(err, "chmod a+x kubectl failed")
+		return errors.Wrap(err, "chmod kubectl failed")
 	}
 	return nil
 }

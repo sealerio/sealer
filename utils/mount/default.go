@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/alibaba/sealer/utils"
 )
 
 type Default struct {
@@ -14,9 +16,13 @@ type Default struct {
 
 // Unmount target
 func (d *Default) Unmount(target string) error {
-	err := os.RemoveAll(target)
-	if err != nil {
-		return fmt.Errorf("remote target failed: %s", err)
+	if utils.IsDir(target) {
+		utils.CleanDir(target)
+	} else {
+		err := utils.CleanFiles(target)
+		if err != nil {
+			return fmt.Errorf("remote target failed: %s", err)
+		}
 	}
 	return nil
 }
