@@ -2,6 +2,11 @@ package runtime
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -70,14 +75,23 @@ func NewDefaultRuntime(cluster *v1.Cluster) Interface {
 	return d
 }
 
-func NewMetadata(data string) *Metadata {
-	metadata := &Metadata{}
-	err := json.Unmarshal([]byte(data), metadata)
-	if err != nil {
-		logger.Fatal("load metadata failed,please check image Metadata", err)
-		return nil
+func (d *Default) LoadMetadata() {
+	metadataPath := fmt.Sprintf("%s/%s", d.Rootfs, common.DefaultMetadataName)
+	var metadataFile []byte
+	var err error
+	if utils.IsFileExist(metadataPath) {
+		metadataFile, err = ioutil.ReadFile(metadataPath)
+		if err != nil {
+			logger.Warn("read metadata is error: %v", err)
+		}
 	}
-	return metadata
+	metadata := &Metadata{}
+	err = json.Unmarshal(metadataFile, metadata)
+	if err != nil {
+		logger.Warn("load metadata failed, skip")
+		return
+	}
+	d.Metadata = metadata
 }
 
 func (d *Default) Reset(cluster *v1.Cluster) error {
