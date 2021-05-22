@@ -104,6 +104,13 @@ func applyNodes(applier *DefaultApplier) error {
 }
 
 func (c *DefaultApplier) Apply() (err error) {
+	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
+		err = saveClusterfile(c.ClusterDesired)
+		if err != nil {
+			return err
+		}
+	}
+
 	currentCluster, err := GetCurrentCluster()
 	if err != nil {
 		return errors.Wrap(err, "get current cluster failed")
