@@ -173,7 +173,8 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 
 	// if only contains PullIfNotExist and Mount, we do nothing
 	if len(todoList) == 2 {
-		return nil, nil
+		todoList = append(todoList, CNI)
+		return todoList, nil
 	}
 
 	todoList = append(todoList, CNI)
