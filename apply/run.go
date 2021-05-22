@@ -52,7 +52,9 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	}
 	if IsIPList(c.masterArgs) && (IsIPList(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
-		c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
+		if c.nodeArgs != "" {
+			c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
+		}
 		c.cluster.Spec.SSH.User = c.user
 		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.SSH.Pk = c.pk
