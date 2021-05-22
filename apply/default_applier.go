@@ -38,6 +38,7 @@ const (
 	ApplyMasters   ActionName = "ApplyMasters"
 	ApplyNodes     ActionName = "ApplyNodes"
 	Guest          ActionName = "Guest"
+	CNI            ActionName = "CNI"
 	Reset          ActionName = "Reset"
 )
 
@@ -73,6 +74,9 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	},
 	Guest: func(applier *DefaultApplier) error {
 		return applier.Guest.Apply(applier.ClusterDesired)
+	},
+	CNI: func(applier *DefaultApplier) error {
+		return applier.Runtime.CNI(applier.ClusterDesired)
 	},
 	Reset: func(applier *DefaultApplier) error {
 		return applier.Runtime.Reset(applier.ClusterDesired)
@@ -177,9 +181,11 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 
 	// if only contains PullIfNotExist and Mount, we do nothing
 	if len(todoList) == 2 {
-		return nil, nil
+		todoList = append(todoList, CNI)
+		return todoList, nil
 	}
 
+	todoList = append(todoList, CNI)
 	todoList = append(todoList, Guest)
 	return todoList, nil
 }
