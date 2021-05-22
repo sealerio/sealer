@@ -123,6 +123,7 @@ func (c *DefaultApplier) Apply() (err error) {
 
 	todoList, _ := c.diff()
 	for _, action := range todoList {
+		logger.Debug("sealer apply process %s", action)
 		err := ActionFuncMap[action](c)
 		if err != nil {
 			return err
