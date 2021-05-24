@@ -1,12 +1,15 @@
-package infra
+package aliyun
 
 import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	utils2 "github.com/alibaba/sealer/infra/utils"
 
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -29,7 +32,7 @@ type EcsManager struct {
 }
 
 func (a *AliProvider) RetryEcsRequest(request requests.AcsRequest, response responses.AcsResponse) error {
-	return Retry(TryTimes, TrySleepTime, func() error {
+	return utils2.Retry(TryTimes, TrySleepTime, func() error {
 		err := a.EcsClient.DoAction(request, response)
 		if err != nil {
 			return err
@@ -39,7 +42,7 @@ func (a *AliProvider) RetryEcsRequest(request requests.AcsRequest, response resp
 }
 
 func (a *AliProvider) TryGetInstance(request *ecs.DescribeInstancesRequest, response *ecs.DescribeInstancesResponse, expectCount int) error {
-	return Retry(TryTimes, TrySleepTime, func() error {
+	return utils2.Retry(TryTimes, TrySleepTime, func() error {
 		err := a.EcsClient.DoAction(request, response)
 		if err != nil {
 			return err
@@ -470,4 +473,24 @@ func (a *AliProvider) DeleteSecurityGroup() error {
 	//response, err := d.Client.DeleteSecurityGroup(request)
 	response := ecs.CreateDeleteSecurityGroupResponse()
 	return a.RetryEcsRequest(request, response)
+}
+
+func CreateInstanceTag(tags map[string]string) (instanceTags []ecs.RunInstancesTag) {
+	for k, v := range tags {
+		instanceTags = append(instanceTags, ecs.RunInstancesTag{Key: k, Value: v})
+	}
+	return
+}
+
+func LoadConfig(config *Config) error {
+	config.AccessKey = os.Getenv(AccessKey)
+	config.AccessSecret = os.Getenv(AccessSecret)
+	config.RegionID = os.Getenv(RegionID)
+	if config.RegionID == "" {
+		config.RegionID = DefaultRegionID
+	}
+	if config.AccessKey == "" || config.AccessSecret == "" || config.RegionID == "" {
+		return fmt.Errorf("please set accessKey and accessKeySecret ENV, example: export ACCESSKEYID=xxx export ACCESSKEYSECRET=xxx , how to get AK SK: https://ram.console.aliyun.com/manage/ak")
+	}
+	return nil
 }

@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/alibaba/sealer/infra/aliyun"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -39,8 +41,8 @@ func TestApply(t *testing.T) {
 }
 
 func TestGetAKSKFromEnv(t *testing.T) {
-	config := Config{}
-	err := GetAKSKFromEnv(&config)
+	config := aliyun.Config{}
+	err := aliyun.LoadConfig(&config)
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}
@@ -48,8 +50,8 @@ func TestGetAKSKFromEnv(t *testing.T) {
 }
 
 func TestDeleteInstances(t *testing.T) {
-	config := Config{}
-	err := GetAKSKFromEnv(&config)
+	config := aliyun.Config{}
+	err := aliyun.LoadConfig(&config)
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}
@@ -61,7 +63,7 @@ func TestDeleteInstances(t *testing.T) {
 		fmt.Printf("%v \n", err)
 	}
 	request := ecs.CreateDeleteInstancesRequest()
-	request.Scheme = Scheme
+	request.Scheme = aliyun.Scheme
 	request.Force = requests.NewBoolean(true)
 	request.InstanceId = &[]string{}
 	response, err := client.DeleteInstances(request)
@@ -71,8 +73,8 @@ func TestDeleteInstances(t *testing.T) {
 	fmt.Printf("response is %#v\n", response)
 }
 func TestDeleteSecurityGroup(t *testing.T) {
-	config := Config{}
-	err := GetAKSKFromEnv(&config)
+	config := aliyun.Config{}
+	err := aliyun.LoadConfig(&config)
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}
@@ -95,7 +97,7 @@ func TestDeleteSecurityGroup(t *testing.T) {
 			fmt.Printf("%v \n", err)
 		}
 		request := ecs.CreateDeleteSecurityGroupRequest()
-		request.Scheme = Scheme
+		request.Scheme = aliyun.Scheme
 		request.SecurityGroupId = id
 		response, err := client.DeleteSecurityGroup(request)
 		if err != nil {
@@ -106,8 +108,8 @@ func TestDeleteSecurityGroup(t *testing.T) {
 }
 
 func TestDeleteVswitch(t *testing.T) {
-	config := Config{}
-	err := GetAKSKFromEnv(&config)
+	config := aliyun.Config{}
+	err := aliyun.LoadConfig(&config)
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}
@@ -131,7 +133,7 @@ func TestDeleteVswitch(t *testing.T) {
 			fmt.Printf("%v \n", err)
 		}
 		request := ecs.CreateDeleteVSwitchRequest()
-		request.Scheme = Scheme
+		request.Scheme = aliyun.Scheme
 		request.VSwitchId = vSwitchID
 		response, err := client.DeleteVSwitch(request)
 		if err != nil {
@@ -142,8 +144,8 @@ func TestDeleteVswitch(t *testing.T) {
 }
 
 func TestDeleteVpc(t *testing.T) {
-	config := Config{}
-	err := GetAKSKFromEnv(&config)
+	config := aliyun.Config{}
+	err := aliyun.LoadConfig(&config)
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}
@@ -168,7 +170,7 @@ func TestDeleteVpc(t *testing.T) {
 			fmt.Printf("%v \n", err)
 		}
 		request := ecs.CreateDeleteVpcRequest()
-		request.Scheme = Scheme
+		request.Scheme = aliyun.Scheme
 		request.VpcId = vpcid
 		response, err := client.DeleteVpc(request)
 		if err != nil {
@@ -179,8 +181,8 @@ func TestDeleteVpc(t *testing.T) {
 }
 
 func TestGetEIP(t *testing.T) {
-	config := Config{}
-	err := GetAKSKFromEnv(&config)
+	config := aliyun.Config{}
+	err := aliyun.LoadConfig(&config)
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}
@@ -192,7 +194,7 @@ func TestGetEIP(t *testing.T) {
 		fmt.Printf("%v \n", err)
 	}
 	request := ecs.CreateAllocateEipAddressRequest()
-	request.Scheme = Scheme
+	request.Scheme = aliyun.Scheme
 	response, err := client.AllocateEipAddress(request)
 	if err != nil {
 		fmt.Print(err.Error())
@@ -201,8 +203,8 @@ func TestGetEIP(t *testing.T) {
 }
 
 func TestReleaseEIP(t *testing.T) {
-	config := Config{}
-	err := GetAKSKFromEnv(&config)
+	config := aliyun.Config{}
+	err := aliyun.LoadConfig(&config)
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}
@@ -215,7 +217,7 @@ func TestReleaseEIP(t *testing.T) {
 	}
 	for _, s := range eipid {
 		request := ecs.CreateReleaseEipAddressRequest()
-		request.Scheme = Scheme
+		request.Scheme = aliyun.Scheme
 		request.AllocationId = s
 		response, err := client.ReleaseEipAddress(request)
 		if err != nil {

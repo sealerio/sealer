@@ -1,4 +1,4 @@
-package infra
+package aliyun
 
 import (
 	"strings"
@@ -88,6 +88,28 @@ const (
 	JustGetInstanceInfo        = ""
 	ShouldBeDeleteInstancesIDs = "ShouldBeDeleteInstancesIDs"
 )
+
+func (a *AliProvider) ReconcileResource(resourceKey string, action Alifunc) error {
+	if a.Cluster.Annotations[resourceKey] == "" {
+		err := action()
+		if err != nil {
+			return err
+		}
+		logger.Info("create resource success %s: %s", resourceKey, a.Cluster.Annotations[resourceKey])
+	}
+	return nil
+}
+
+func (a *AliProvider) DeleteResource(resourceKey string, action Alifunc) {
+	if a.Cluster.Annotations[resourceKey] != "" {
+		err := action()
+		if err != nil {
+			logger.Error("delete resource %s failed err: %s", resourceKey, err)
+		} else {
+			logger.Info("delete resource Success %s", a.Cluster.Annotations[resourceKey])
+		}
+	}
+}
 
 var RecocileFuncMap = map[ActionName]func(provider *AliProvider) error{
 	CreateVPC: func(aliProvider *AliProvider) error {
