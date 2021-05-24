@@ -3,10 +3,10 @@ kind: Cluster
 metadata:
   name: my-test-cluster
 spec:
-  image: seadent/rootfs:latest
+  image: sealer-io/kubernetes:v1.19.9
   provider: ALI_CLOUD
   ssh:
-    passwd: Seadent123
+    passwd: Sealer123
     pk: xxx
     pkPasswd: xxx
     user: root
@@ -23,14 +23,14 @@ spec:
   masters:
     cpu: 4
     memory: 4
-    count: 3
+    count: 1
     systemDisk: 100
     dataDisks:
       - 100
   nodes:
     cpu: 4
     memory: 4
-    count: 3
+    count: 2
     systemDisk: 100
     dataDisks:
       - 100
