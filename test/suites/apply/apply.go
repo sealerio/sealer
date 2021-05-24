@@ -22,7 +22,7 @@ func GetTestClusterFilePath() string {
 }
 
 func DeleteCluster(clusterFile string) {
-	cmd := "sudo sealer delete -f " + clusterFile
+	cmd := "sudo env PATH=$PATH sealer delete -f " + clusterFile
 	testhelper.RunCmdAndCheckResult(cmd, 0)
 }
 
@@ -41,14 +41,6 @@ func WriteClusterFileToDisk(cluster *v1.Cluster, clusterFilePath string) error {
 		return err
 	}
 	return nil
-}
-
-func CheckClusterStatus(cluster *v1.Cluster) {
-
-}
-
-func CheckClusterSSH(cluster *v1.Cluster) {
-
 }
 
 func GetClusterNodes() int {
