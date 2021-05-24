@@ -2,6 +2,9 @@ package testhelper
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	"github.com/onsi/gomega"
 	"io/ioutil"
 	"k8s.io/client-go/util/homedir"
@@ -32,6 +35,7 @@ func RemoveTempFile(file string) {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
+
 func GetUserHomeDir() string {
 	if home := homedir.HomeDir(); home != "" {
 		return home
@@ -45,3 +49,4 @@ func GetUsedClusterFilePath(clusterName string) string {
 	}
 	return ""
 }
+
