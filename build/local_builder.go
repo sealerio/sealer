@@ -23,6 +23,7 @@ import (
 )
 
 type Config struct {
+	BuildType string
 }
 
 // LocalBuilder: local builder using local provider to build a cluster image
@@ -271,23 +272,11 @@ func (l *LocalBuilder) calculateLayerHashAndPlaceIt(layer *v1.Layer, tempTarget 
 }
 
 func (l *LocalBuilder) UpdateImageMetadata() error {
+	l.setClusterFileToImage()
 	if err := l.squashBaseImageLayerIntoCurrentImage(); err != nil {
 		return err
 	}
-	// write image info to its metadata
 	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageMetaRootDir, l.Image.Spec.ID, common.YamlSuffix)
-	//set cluster file
-	if utils.IsFileExist(common.RawClusterfile) {
-		bytes, err := ioutil.ReadFile(common.RawClusterfile)
-		if err != nil {
-			return err
-		}
-		if l.Image.Annotations == nil {
-			l.Image.Annotations = make(map[string]string)
-		}
-		l.Image.Annotations[common.ImageAnnotationForClusterfile] = string(bytes)
-	}
-
 	// save layer ids
 	for _, layer := range l.Image.Spec.Layers {
 		if layer.Hash != "" {
@@ -302,7 +291,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 			}
 		}
 	}
-
+	// write image info to its metadata
 	if err := utils.MarshalYamlToFile(filename, l.Image); err != nil {
 		return fmt.Errorf("failed to write image yaml:%v", err)
 	}
@@ -317,6 +306,65 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 	logger.Info("update image %s to image metadata success !", l.ImageName)
 
 	return nil
+}
+
+// setClusterFileToImage: set cluster file whatever build type is
+func (l *LocalBuilder) setClusterFileToImage() {
+	var clusterFileData string
+	if utils.IsFileExist(common.RawClusterfile) {
+		bytes, err := utils.ReadAll(common.RawClusterfile)
+		if err != nil {
+			logger.Warn("failed to set cluster file to image metadata,%s not exist", common.RawClusterfile)
+		}
+		clusterFileData = string(bytes)
+	} else {
+		clusterFileData = l.GetRawClusterFile()
+	}
+
+	l.addImageAnnotations(common.ImageAnnotationForClusterfile, clusterFileData)
+}
+
+// GetClusterFile from user build context or from base image
+func (l *LocalBuilder) GetRawClusterFile() string {
+	if l.Image.Spec.Layers[0].Value == common.ImageScratch {
+		data, err := ioutil.ReadFile(filepath.Join("etc", common.DefaultClusterFileName))
+		if err != nil {
+			return ""
+		}
+		return string(data)
+	}
+	// find cluster file from context
+	if clusterFile := l.getClusterFileFromContext(); clusterFile != nil {
+		logger.Info("get cluster file from context success!")
+		return string(clusterFile)
+	}
+	// find cluster file from base image
+	clusterFile := image.GetClusterFileFromImage(l.Image.Spec.Layers[0].Value)
+	if clusterFile != "" {
+		logger.Info("get cluster file from base image success!")
+		return clusterFile
+	}
+	return ""
+}
+
+func (l *LocalBuilder) getClusterFileFromContext() []byte {
+	for i := range l.Image.Spec.Layers {
+		layer := l.Image.Spec.Layers[i]
+		if layer.Type == common.COPYCOMMAND && strings.Fields(layer.Value)[0] == common.DefaultClusterFileName {
+			if clusterFile, _ := utils.ReadAll(strings.Fields(layer.Value)[0]); clusterFile != nil {
+				return clusterFile
+			}
+		}
+	}
+	return nil
+}
+
+// GetClusterFile from user build context or from base image
+func (l *LocalBuilder) addImageAnnotations(key, value string) {
+	if l.Image.Annotations == nil {
+		l.Image.Annotations = make(map[string]string)
+	}
+	l.Image.Annotations[key] = value
 }
 
 func (l *LocalBuilder) PushToRegistry() error {

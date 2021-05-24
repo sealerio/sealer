@@ -3,12 +3,10 @@ package build
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/alibaba/sealer/image/store"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -69,7 +67,11 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 func (c *CloudBuilder) InitClusterFile() error {
 	clusterFile := common.TmpClusterfile
 	if !utils.IsFileExist(clusterFile) {
-		err := c.getClusterFile()
+		rawClusterFile := c.local.GetRawClusterFile()
+		if rawClusterFile == "" {
+			return fmt.Errorf("failed to get cluster file from context or base image")
+		}
+		err := utils.WriteFile(common.RawClusterfile, []byte(rawClusterFile))
 		if err != nil {
 			return err
 		}
@@ -84,38 +86,6 @@ func (c *CloudBuilder) InitClusterFile() error {
 
 	logger.Info("read cluster file %s success !", clusterFile)
 	return nil
-}
-
-func (c *CloudBuilder) getClusterFile() error {
-	// find cluster file from context
-	if c.getClusterFileFromContext() {
-		logger.Info("get cluster file from context success!")
-		return nil
-	}
-	// find cluster file from base image
-	clusterFile := image.GetClusterFileFromImage(c.local.Image.Spec.Layers[0].Value)
-	if clusterFile == "" {
-		return fmt.Errorf("failed to find cluster file")
-	}
-
-	err := utils.WriteFile(common.RawClusterfile, []byte(clusterFile))
-	if err != nil {
-		return fmt.Errorf("failed to write cluster file:%v", err)
-	}
-	return nil
-}
-
-func (c *CloudBuilder) getClusterFileFromContext() bool {
-	for i := range c.local.Image.Spec.Layers {
-		layer := c.local.Image.Spec.Layers[i]
-		if layer.Type == common.COPYCOMMAND && strings.Fields(layer.Value)[0] == common.DefaultClusterFileName {
-			if _, err := utils.CopySingleFile(strings.Fields(layer.Value)[0], common.RawClusterfile); err != nil {
-				return false
-			}
-			return true
-		}
-	}
-	return false
 }
 
 // apply infra create vms

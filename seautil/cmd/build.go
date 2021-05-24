@@ -41,8 +41,10 @@ var buildCmd = &cobra.Command{
 	Short: "cloud image local build command line",
 	Long:  `seautil build -f Kubefile -t my-kubernetes:1.18.3 . `,
 	Run: func(cmd *cobra.Command, args []string) {
-		conf := &build.Config{}
-		builder, err := build.NewBuilder(conf, buildConfig.BuildType)
+		conf := &build.Config{
+			BuildType: buildConfig.BuildType,
+		}
+		builder, err := build.NewBuilder(conf)
 		if err != nil {
 			logger.Error(err)
 			os.Exit(-1)

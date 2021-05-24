@@ -6,8 +6,8 @@ type Interface interface {
 	Build(name string, context string, kubefileName string) error
 }
 
-func NewBuilder(config *Config, builderType string) (Interface, error) {
-	if builderType == common.LocalBuild {
+func NewBuilder(config *Config) (Interface, error) {
+	if config.BuildType == common.LocalBuild {
 		return NewLocalBuilder(config)
 	}
 	return NewCloudBuilder(config)
