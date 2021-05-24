@@ -61,5 +61,5 @@ func CheckClusterPods() int {
 }
 
 func SealerApplyCmd(clusterFile string) string {
-	return fmt.Sprintf("sudo env PATH=$PATH sealer apply -f %s", clusterFile)
+	return fmt.Sprintf("sealer apply -f %s", clusterFile)
 }
