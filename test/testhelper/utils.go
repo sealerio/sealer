@@ -2,10 +2,10 @@ package testhelper
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-
 	"github.com/onsi/gomega"
+	"io/ioutil"
+	"k8s.io/client-go/util/homedir"
+	"os"
 )
 
 func GetPwd() string {
@@ -30,4 +30,18 @@ func CreateTempFile() string {
 func RemoveTempFile(file string) {
 	err := os.Remove(file)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+}
+
+func GetUserHomeDir() string {
+	if home := homedir.HomeDir(); home != "" {
+		return home
+	}
+	return ""
+}
+
+func GetUsedClusterFilePath(clusterName string) string {
+	if home := homedir.HomeDir(); home != "" {
+		return fmt.Sprintf("%s/.sealer/%s/Clusterfile", home, clusterName)
+	}
+	return ""
 }

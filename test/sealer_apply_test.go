@@ -1,8 +1,6 @@
 package test
 
 import (
-	"fmt"
-
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/test/suites/apply"
@@ -26,7 +24,7 @@ var _ = Describe("sealer apply", func() {
 			Context("if exist", func() {
 				testClusterFilePath := apply.GetTestClusterFilePath()
 				cluster := apply.LoadClusterFileData(testClusterFilePath)
-				usedClusterFile := fmt.Sprintf(settings.DefaultClusterFileNeedToBeCleaned, cluster.Name)
+				usedClusterFile := testhelper.GetUsedClusterFilePath(cluster.Name)
 
 				Context("check regular scenario that need to delete cluster", func() {
 					AfterEach(func() {
@@ -37,30 +35,30 @@ var _ = Describe("sealer apply", func() {
 						// apply a test cluster with 3 nodes
 						err := apply.WriteClusterFileToDisk(cluster, testClusterFilePath)
 						Expect(err).NotTo(HaveOccurred())
-						sess, err := testhelper.Start(fmt.Sprintf("sealer apply -f %s", testClusterFilePath))
+						sess, err := testhelper.Start(apply.SealerApplyCmd(testClusterFilePath))
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						Expect(apply.GetClusterNodes()).Should(Equal(3))
-
+/*
 						//// shrink cluster to 2 nodes and write to disk
-						/*						cluster.Spec.Nodes.Count = "1"
-												cluster.Spec.Masters.Count = "1"
-												err = apply.WriteClusterFileToDisk(cluster, usedClusterFile)
-												Expect(err).NotTo(HaveOccurred())
-												sess, err = testhelper.Start(fmt.Sprintf("sealer apply -f %s", usedClusterFile))
-												Expect(err).NotTo(HaveOccurred())
-												Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-												Expect(apply.GetClusterNodes()).Should(Equal(2))*/
+						cluster.Spec.Nodes.Count = "1"
+						cluster.Spec.Masters.Count = "1"
+						err = apply.WriteClusterFileToDisk(cluster, usedClusterFile)
+						Expect(err).NotTo(HaveOccurred())
+						sess, err = testhelper.Start(apply.SealerApplyCmd(usedClusterFile))
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+						Expect(apply.GetClusterNodes()).Should(Equal(2))
 
 						//// expand cluster to 3 nodes and write to disk
-						/*						cluster.Spec.Nodes.Count = "2"
-												cluster.Spec.Masters.Count = "1"
-												err = apply.WriteClusterFileToDisk(cluster, usedClusterFile)
-												Expect(err).NotTo(HaveOccurred())
-												sess, err = testhelper.Start(fmt.Sprintf("sealer apply -f %s", usedClusterFile))
-												Expect(err).NotTo(HaveOccurred())
-												Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-												Expect(apply.GetClusterNodes()).Should(Equal(3))*/
+						cluster.Spec.Nodes.Count = "2"
+						cluster.Spec.Masters.Count = "1"
+						err = apply.WriteClusterFileToDisk(cluster, usedClusterFile)
+						Expect(err).NotTo(HaveOccurred())
+						sess, err = testhelper.Start(apply.SealerApplyCmd(usedClusterFile))
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+						Expect(apply.GetClusterNodes()).Should(Equal(3))*/
 					})
 
 				})
@@ -76,7 +74,7 @@ var _ = Describe("sealer apply", func() {
 					})
 
 					It("empty content of cluster file", func() {
-						sess, err := testhelper.Start(fmt.Sprintf("sealer apply -f %s", tempFile))
+						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
 					})
@@ -84,7 +82,7 @@ var _ = Describe("sealer apply", func() {
 					It("invalid content of cluster file", func() {
 						err := utils.WriteFile(tempFile, []byte("i love sealer!"))
 						Expect(err).NotTo(HaveOccurred())
-						sess, err := testhelper.Start(fmt.Sprintf("sealer apply -f %s", tempFile))
+						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
 					})
@@ -93,7 +91,7 @@ var _ = Describe("sealer apply", func() {
 						cluster.Spec.Provider = "sealer"
 						err := apply.WriteClusterFileToDisk(cluster, tempFile)
 						Expect(err).NotTo(HaveOccurred())
-						sess, err := testhelper.Start(fmt.Sprintf("sealer apply -f %s", tempFile))
+						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.DefaultWaiteTime).Should(Exit(2))
 					})
@@ -102,9 +100,8 @@ var _ = Describe("sealer apply", func() {
 						cluster.Spec.Image = "FakeImage"
 						err := apply.WriteClusterFileToDisk(cluster, tempFile)
 						Expect(err).NotTo(HaveOccurred())
-						sess, err := testhelper.Start(fmt.Sprintf("sealer apply -f %s", tempFile))
+						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess.Err).Should(Say("load metadata failed,please check image Metadata unexpected end of JSON input"))
 						Eventually(sess, settings.DefaultWaiteTime).Should(Exit(1))
 					})
 
@@ -113,7 +110,7 @@ var _ = Describe("sealer apply", func() {
 
 			Context("if not exist", func() {
 				It("only run sealer apply", func() {
-					sess, err := testhelper.Start(fmt.Sprintf("sealer apply"))
+					sess, err := testhelper.Start(apply.SealerApplyCmd(""))
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess.Err).Should(Say("apply cloud cluster failed open Clusterfile: no such file or directory"))
 					Eventually(sess).Should(Exit(2))

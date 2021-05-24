@@ -1,6 +1,7 @@
 package apply
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/onsi/gomega"
@@ -57,4 +58,8 @@ func CheckClusterPods() int {
 	pods, err := testhelper.ListNodes(client)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return len(pods.Items)
+}
+
+func SealerApplyCmd(clusterFile string) string {
+	return fmt.Sprintf("sudo env PATH=$PATH sealer apply -f %s", clusterFile)
 }
