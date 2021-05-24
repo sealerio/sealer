@@ -20,8 +20,6 @@ type Interface interface {
 	Upgrade(cluster *v1.Cluster) error
 	Reset(cluster *v1.Cluster) error
 	CNI(cluster *v1.Cluster) error
-	HostPreStart(cluster *v1.Cluster) error
-	HostPostStop(cluster *v1.Cluster) error
 	JoinMasters(newMastersIPList []string) error
 	JoinNodes(newNodesIPList []string) error
 	DeleteMasters(mastersIPList []string) error
@@ -81,17 +79,17 @@ func (d *Default) LoadMetadata() {
 	metadataPath := fmt.Sprintf("%s/%s", d.Rootfs, common.DefaultMetadataName)
 	var metadataFile []byte
 	var err error
+	metadata := &Metadata{}
 	if utils.IsFileExist(metadataPath) {
 		metadataFile, err = ioutil.ReadFile(metadataPath)
 		if err != nil {
 			logger.Warn("read metadata is error: %v", err)
 		}
-	}
-	metadata := &Metadata{}
-	err = json.Unmarshal(metadataFile, metadata)
-	if err != nil {
-		logger.Warn("load metadata failed, skip")
-		return
+		err = json.Unmarshal(metadataFile, metadata)
+		if err != nil {
+			logger.Warn("load metadata failed, skip")
+			return
+		}
 	}
 	d.Metadata = metadata
 }
@@ -104,12 +102,6 @@ func (d *Default) CNI(cluster *v1.Cluster) error {
 }
 func (d *Default) Upgrade(cluster *v1.Cluster) error {
 	panic("implement upgrade !!")
-}
-func (d *Default) HostPreStart(cluster *v1.Cluster) error {
-	return d.hostPreStart(cluster)
-}
-func (d *Default) HostPostStop(cluster *v1.Cluster) error {
-	return d.hostPostStop(cluster)
 }
 func (d *Default) JoinMasters(newMastersIPList []string) error {
 	logger.Debug("join masters: %v", newMastersIPList)

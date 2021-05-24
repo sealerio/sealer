@@ -1,9 +1,12 @@
 package apply
 
 import (
-	"os"
+	"fmt"
+	"path"
 	"path/filepath"
+	"strings"
 
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/image"
@@ -42,10 +45,7 @@ const (
 	ApplyNodes     ActionName = "ApplyNodes"
 	Guest          ActionName = "Guest"
 	CNI            ActionName = "CNI"
-	HostPreStart   ActionName = "HostPreStart"
-	HostPostStop   ActionName = "HostPostStop"
 	Reset          ActionName = "Reset"
-	UnMountCluster ActionName = "UnMountCluster"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
@@ -87,26 +87,6 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	Reset: func(applier *DefaultApplier) error {
 		return applier.Runtime.Reset(applier.ClusterDesired)
 	},
-	HostPostStop: func(applier *DefaultApplier) error {
-		return applier.Runtime.HostPostStop(applier.ClusterDesired)
-	},
-	HostPreStart: func(applier *DefaultApplier) error {
-		return applier.Runtime.HostPreStart(applier.ClusterDesired)
-	},
-	UnMountCluster: func(applier *DefaultApplier) error {
-		return umountClusterDir(applier.ClusterDesired.Name)
-	},
-}
-
-func umountClusterDir(clusterName string) error {
-	mountClusterDir := filepath.Join(os.TempDir(), clusterName)
-	if utils.IsFileExist(mountClusterDir) {
-		logger.Debug("unmount cluster dir %s", mountClusterDir)
-		if err := mount.NewMountDriver().Unmount(mountClusterDir); err != nil {
-			logger.Warn("failed to umount %s, err: %v", mountClusterDir, err)
-		}
-	}
-	return nil
 }
 
 func applyMasters(applier *DefaultApplier) error {
@@ -150,30 +130,96 @@ func (c *DefaultApplier) Apply() (err error) {
 		c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
 		c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
 	}
-
+	logger.Debug("sealer apply add master0 host process")
+	c.addMaster0Host(c.ClusterDesired)
 	todoList, _ := c.diff()
 	for _, action := range todoList {
 		logger.Debug("sealer apply process %s", action)
-		err := ActionFuncMap[action](c)
+		err = ActionFuncMap[action](c)
 		if err != nil {
 			return err
 		}
 	}
+	logger.Debug("sealer apply delete master0 process")
+	c.deleteMaster0Host(c.ClusterDesired)
+	logger.Debug("sealer apply copy kube config process")
+	c.copyKubeConfig(c.ClusterDesired)
+	logger.Debug("sealer apply copy kubectl process")
+	c.copyKubectl(c.ClusterDesired)
+	logger.Debug("sealer apply umount rootfs process")
+	c.umountRootfs(c.ClusterDesired)
 	return nil
+}
+
+func (d *DefaultApplier) addMaster0Host(cluster *v1.Cluster) {
+	err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("%s %s", cluster.Spec.Masters.IPList[0], common.APIServerDomain))
+	if err != nil {
+		logger.Info("remove /etc/host failed: %v", err)
+	}
+}
+func (d *DefaultApplier) deleteMaster0Host(cluster *v1.Cluster) {
+	content, err := utils.ReadAll(common.EtcHosts)
+	if err != nil {
+		return
+	}
+	if !strings.Contains(string(content), common.APIServerDomain) {
+		err = utils.AppendFile(common.EtcHosts, fmt.Sprintf("%s %s", cluster.Spec.Masters.IPList[0], common.APIServerDomain))
+		if err != nil {
+			logger.Warn("append desired cluster new masters to etc hosts failed: %v", err)
+		}
+	}
+}
+func (d *DefaultApplier) copyKubeConfig(cluster *v1.Cluster) {
+	if !utils.IsFileExist(common.DefaultKubeconfig) {
+		adminConf := path.Join(common.DefaultClusterRootfsDir, cluster.Name, "admin.conf")
+		if !utils.IsFileExist(adminConf) {
+			adminConf = common.KubeAdminConf
+		}
+		_, err := utils.CopySingleFile(adminConf, common.DefaultKubeconfig)
+		if err != nil {
+			logger.Warn("copy kube config failed: %v", err)
+		}
+	}
+}
+func (d *DefaultApplier) copyKubectl(cluster *v1.Cluster) {
+	if !utils.IsFileExist(common.KubectlPath) {
+		clusterTmpRootfsDir := filepath.Join("/tmp", cluster.Name)
+		kubectl := filepath.Join(clusterTmpRootfsDir, "bin", "kubectl")
+		if utils.IsFileExist(kubectl) {
+			_, err := utils.CopySingleFile(kubectl, common.KubectlPath)
+			if err != nil {
+				logger.Warn("copy kube config failed: %v", err)
+			}
+			err = utils.Cmd("chmod", "+x", common.KubectlPath)
+			if err != nil {
+				logger.Warn("chmod a+x kubectl failed: %v", err)
+			}
+		}
+	}
+}
+
+func (c *DefaultApplier) umountRootfs(cluster *v1.Cluster) {
+	clusterTmpRootfsDir := filepath.Join("/tmp", cluster.Name)
+	if utils.IsFileExist(clusterTmpRootfsDir) {
+		logger.Debug("unmount cluster dir %s", clusterTmpRootfsDir)
+		if err := mount.NewMountDriver().Unmount(clusterTmpRootfsDir); err != nil {
+			logger.Warn("failed to umount %s, err: %v", clusterTmpRootfsDir, err)
+		}
+	}
+	utils.CleanDir(clusterTmpRootfsDir)
 }
 
 func (c *DefaultApplier) Delete() (err error) {
 	t := metav1.Now()
 	c.ClusterDesired.DeletionTimestamp = &t
-	return c.Apply()
-}
-func (c *DefaultApplier) actionNameContains(list []ActionName, i ActionName) bool {
-	for _, v := range list {
-		if string(v) == string(i) {
-			return true
+	defer func() {
+		if err = utils.CleanFiles(common.DefaultKubeconfigDir, common.GetClusterWorkDir(c.ClusterDesired.Name), common.TmpClusterfile, common.KubectlPath); err != nil {
+			logger.Warn(err)
 		}
-	}
-	return false
+		utils.CleanDir(common.GetClusterWorkDir(c.ClusterDesired.Name))
+		utils.CleanDir(common.GetClusterRootfsDir(c.ClusterDesired.Name))
+	}()
+	return c.Apply()
 }
 func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	if c.ClusterDesired.DeletionTimestamp != nil {
@@ -181,29 +227,25 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		c.NodesToDelete = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, Reset)
 		todoList = append(todoList, UnMount)
-		todoList = append(todoList, HostPostStop)
 		return todoList, nil
 	}
 
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, Mount)
-		todoList = append(todoList, HostPreStart)
 		todoList = append(todoList, Init)
 		c.MastersToJoin = c.ClusterDesired.Spec.Masters.IPList[1:]
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, ApplyNodes)
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, Guest)
-		todoList = append(todoList, UnMountCluster)
-		todoList = append(todoList, HostPostStop)
 		return todoList, nil
 	}
 
 	todoList = append(todoList, PullIfNotExist)
 	if c.ClusterDesired.Spec.Image != c.ClusterCurrent.Spec.Image {
 		logger.Info("current image is : %s and desired iamge is : %s , so upgrade your cluster", c.ClusterCurrent.Spec.Image, c.ClusterDesired.Spec.Image)
-		todoList = append(todoList, Upgrade) //TODO check version is same?
+		todoList = append(todoList, Upgrade)
 	}
 	c.MastersToJoin, c.MastersToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
 	c.NodesToJoin, c.NodesToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
@@ -215,17 +257,12 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, ApplyMasters)
 	}
 	// if only contains PullIfNotExist and Mount, we do nothing
-	if c.actionNameContains(todoList, ApplyNodes) || c.actionNameContains(todoList, ApplyMasters) {
-		todoList = append(todoList, HostPreStart)
-		defer func() {
-			todoList = append(todoList, UnMountCluster)
-			todoList = append(todoList, HostPostStop)
-		}()
-	} else {
+	if len(todoList) == 2 {
 		todoList = []ActionName{}
+	} else {
+		todoList = append(todoList, Guest)
 	}
 	todoList = append(todoList, CNI)
-	todoList = append(todoList, Guest)
 	return todoList, nil
 }
 

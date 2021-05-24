@@ -3,6 +3,7 @@ package runtime
 import (
 	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -25,6 +26,7 @@ const (
 	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
 	DefaultVIP             = "10.103.97.2"
 	DefaultAPIserverDomain = "apiserver.cluster.local"
+	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
 	DefaultRegistryPort    = 5000
 )
 
@@ -86,7 +88,7 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	// TODO add host port
 	d.Nodes = cluster.Spec.Nodes.IPList
 	d.APIServer = DefaultAPIserverDomain
-	d.Rootfs = fmt.Sprintf(ClusterRootfsWorkspace, d.ClusterName)
+	d.Rootfs = path.Join(common.DefaultClusterRootfsDir, d.ClusterName)
 	d.CertPath = fmt.Sprintf("%s/pki", d.Rootfs)
 	d.CertEtcdPath = fmt.Sprintf("%s/etcd", d.CertPath)
 	d.StaticFileDir = fmt.Sprintf("%s/statics", d.Rootfs)
