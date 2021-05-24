@@ -33,10 +33,7 @@ func IsIPList(args string) bool {
 
 	for _, i := range ipList {
 		if !strings.Contains(i, ":") {
-			if net.ParseIP(i) == nil {
-				return false
-			}
-			return true
+			return net.ParseIP(i) != nil
 		}
 		if _, err := net.ResolveTCPAddr("tcp", i);err != nil {
 			return false
