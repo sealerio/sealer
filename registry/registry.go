@@ -145,7 +145,7 @@ func (registry *Registry) url(pathTemplate string, args ...interface{}) string {
 	return url
 }
 
-func (registry *Registry) getJSON(ctx context.Context, url string, response interface{}) (http.Header, error) {
+func (registry *Registry) getJSON(ctx context.Context, url string, response interface{}) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -162,12 +162,11 @@ func (registry *Registry) getJSON(ctx context.Context, url string, response inte
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	registry.Logf("registry.registry resp.Status=%s", resp.Status)
 
+	registry.Logf("registry.registry resp.Status=%s", resp.Status)
 	if err := json.NewDecoder(resp.Body).Decode(response); err != nil {
 		return nil, err
 	}
 
-	return resp.Header, nil
+	return resp, nil
 }
