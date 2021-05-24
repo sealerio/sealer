@@ -93,7 +93,7 @@ var _ = Describe("sealer apply", func() {
 						Expect(err).NotTo(HaveOccurred())
 						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.DefaultWaiteTime).Should(Exit(2))
+						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(2))
 					})
 
 					It("invalid images name of cluster file", func() {
@@ -102,7 +102,7 @@ var _ = Describe("sealer apply", func() {
 						Expect(err).NotTo(HaveOccurred())
 						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.DefaultWaiteTime).Should(Exit(1))
+						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
 					})
 
 				})
