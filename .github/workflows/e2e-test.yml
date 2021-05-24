@@ -13,11 +13,9 @@ jobs:
   build:
     name: Test
     runs-on: ubuntu-latest
-    if: ${{ github.event.label.name == 'e2e-test' }}
     env:
       GO111MODULE: on
     steps:
-
       - name: Set up Go 1.13
         uses: actions/setup-go@v1
         with:
@@ -30,12 +28,17 @@ jobs:
           ref: ${{ github.ref }}
           path: src/github.com/alibaba/sealer
 
-      - name: Install sealer
+      - name: Install sealer and ginkgo
         shell: bash
         run: |
           source hack/build.sh
           export SEALER_DIR=$THIS_PLATFORM_BIN/sealer/linux_amd64
           echo "$SEALER_DIR" >> $GITHUB_PATH
+          go get github.com/onsi/ginkgo/ginkgo
+          go get github.com/onsi/gomega/...
+          GOPATH=`go env GOPATH`
+          export GOPATHBIN=$GOPATH/bin
+          echo "$GOPATHBIN" >> $GITHUB_PATH
         working-directory: src/github.com/alibaba/sealer
 
       - name: Run e2e test
@@ -48,4 +51,20 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
-        run: hack/test-sealer.sh
+        if: ${{ github.event.label.name == 'e2e-test' }}
+        run: |
+          ginkgo -v test
+
+      - name: Run apply test
+        shell: bash
+        working-directory: src/github.com/alibaba/sealer
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
+          ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
+          RegionID: ${{ secrets.RegionID }}
+        if: ${{ github.event.label.name == 'apply-test' }}
+        run: |
+          ginkgo -v --focus="sealer apply" test
