@@ -35,7 +35,7 @@ func IsIPList(args string) bool {
 		if !strings.Contains(i, ":") {
 			return net.ParseIP(i) != nil
 		}
-		if _, err := net.ResolveTCPAddr("tcp", i);err != nil {
+		if _, err := net.ResolveTCPAddr("tcp", i); err != nil {
 			return false
 		}
 	}
