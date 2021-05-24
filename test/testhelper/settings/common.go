@@ -34,5 +34,5 @@ var (
 	AccessKey     = os.Getenv("ACCESSKEYID")
 	AccessSecret  = os.Getenv("ACCESSKEYSECRET")
 	Region        = os.Getenv("RegionID")
-	TestImageName = ""
+	TestImageName = "kubernetes:v1.19.9"
 )
