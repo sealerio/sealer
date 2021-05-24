@@ -3,6 +3,8 @@ package test
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/suites/registry"
 	"github.com/alibaba/sealer/test/testhelper"
@@ -10,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
 )
 
@@ -62,7 +65,7 @@ var _ = Describe("sealer apply", func() {
 
 				})
 
-				/*Context("check abnormal scenario that no need to delete cluster", func() {
+				Context("check abnormal scenario that no need to delete cluster", func() {
 					var tempFile string
 					BeforeEach(func() {
 						tempFile = testhelper.CreateTempFile()
@@ -75,7 +78,7 @@ var _ = Describe("sealer apply", func() {
 					It("empty content of cluster file", func() {
 						sess, err := testhelper.Start(fmt.Sprintf("sealer apply -f %s", tempFile))
 						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess,settings.DefaultWaiteTime).ShouldNot(Exit(0))
+						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
 					})
 
 					It("invalid content of cluster file", func() {
@@ -105,17 +108,17 @@ var _ = Describe("sealer apply", func() {
 						Eventually(sess, settings.DefaultWaiteTime).Should(Exit(1))
 					})
 
-				})*/
+				})
 			})
 
-			/*Context("if not exist", func() {
+			Context("if not exist", func() {
 				It("only run sealer apply", func() {
 					sess, err := testhelper.Start(fmt.Sprintf("sealer apply"))
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess.Err).Should(Say("apply cloud cluster failed open Clusterfile: no such file or directory"))
 					Eventually(sess).Should(Exit(2))
 				})
-			})*/
+			})
 
 		})
 

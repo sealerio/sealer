@@ -22,7 +22,7 @@ func GetTestClusterFilePath() string {
 }
 
 func DeleteCluster(clusterFile string) {
-	cmd := "sealer delete -f " + clusterFile
+	cmd := "sudo sealer delete -f " + clusterFile
 	testhelper.RunCmdAndCheckResult(cmd, 0)
 }
 
