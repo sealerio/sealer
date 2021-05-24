@@ -20,6 +20,15 @@ const (
 	SubCmdListOfSealer                = "images"
 	SubCmdPushOfSealer                = "push"
 	SubCmdRmiOfSealer                 = "rmi"
+	DefaultSSHPassword                = "Sealer123"
+)
+
+const (
+	LocalBuild = "local"
+)
+const (
+	BAREMETAL = "BAREMETAL"
+	AliCloud  = "ALI_CLOUD"
 )
 
 var (

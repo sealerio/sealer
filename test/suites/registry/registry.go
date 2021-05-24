@@ -3,6 +3,9 @@ package registry
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
@@ -12,6 +15,11 @@ import (
 )
 
 func Login() {
+	// check if docker json already exist
+	config := filepath.Join(settings.DefaultRegistryAuthDir, "config.json")
+	if utils.IsFileExist(config) {
+		return
+	}
 	sess, err := testhelper.Start(fmt.Sprintf("sealer login %s -u %s -p %s", settings.RegistryURL,
 		settings.RegistryUsername,
 		settings.RegistryPasswd))
