@@ -1,6 +1,7 @@
 package apply
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/onsi/gomega"
@@ -25,7 +26,6 @@ func DeleteCluster(clusterFile string) {
 	cmd := "sudo env PATH=$PATH sealer delete -f " + clusterFile
 	testhelper.RunCmdAndCheckResult(cmd, 0)
 }
-
 
 func LoadClusterFileData(clusterFile string) *v1.Cluster {
 	cluster := &v1.Cluster{}

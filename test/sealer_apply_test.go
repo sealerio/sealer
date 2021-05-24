@@ -3,8 +3,6 @@ package test
 import (
 	"github.com/alibaba/sealer/utils"
 
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/suites/registry"
 	"github.com/alibaba/sealer/test/testhelper"
@@ -27,6 +25,7 @@ var _ = Describe("sealer apply", func() {
 				testClusterFilePath := apply.GetTestClusterFilePath()
 				cluster := apply.LoadClusterFileData(testClusterFilePath)
 				usedClusterFile := testhelper.GetUsedClusterFilePath(cluster.Name)
+
 				Context("check regular scenario that need to delete cluster", func() {
 					AfterEach(func() {
 						apply.DeleteCluster(usedClusterFile)
@@ -84,6 +83,7 @@ var _ = Describe("sealer apply", func() {
 						err := utils.WriteFile(tempFile, []byte("i love sealer!"))
 						Expect(err).NotTo(HaveOccurred())
 						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
+						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
 					})
 
@@ -102,7 +102,7 @@ var _ = Describe("sealer apply", func() {
 						Expect(err).NotTo(HaveOccurred())
 						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess.Err).Should(Say("load metadata failed,please check image Metadata unexpected end of JSON input"))
+						Eventually(sess, settings.DefaultWaiteTime).Should(Exit(1))
 					})
 
 				})
