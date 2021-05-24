@@ -13,14 +13,15 @@ import (
 )
 
 type ClusterArgs struct {
-	cluster    *v1.Cluster
-	imageName  string
-	nodeArgs   string
-	masterArgs string
-	user       string
-	passwd     string
-	pk         string
-	pkPasswd   string
+	cluster        *v1.Cluster
+	imageName       string
+	nodeArgs        string
+	masterArgs      string
+	user            string
+	passwd          string
+	pk              string
+	pkPasswd        string
+	interfaceName   string
 }
 
 func IsNumber(args string) bool {
@@ -61,6 +62,9 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
 		return nil
 	}
+	if c.interfaceName != "" {
+		c.cluster.Spec.Network.Interface = c.interfaceName
+	}
 	return fmt.Errorf("enter true iplist or count")
 }
 
@@ -84,14 +88,15 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 		return NewApplier(cluster), nil
 	}
 	c := &ClusterArgs{
-		cluster:    cluster,
-		imageName:  imageName,
-		nodeArgs:   runArgs.Nodes,
-		masterArgs: runArgs.Masters,
-		user:       runArgs.User,
-		passwd:     runArgs.Password,
-		pk:         runArgs.Pk,
-		pkPasswd:   runArgs.PkPassword,
+		cluster:       cluster,
+		imageName:     imageName,
+		nodeArgs:      runArgs.Nodes,
+		masterArgs:    runArgs.Masters,
+		user:          runArgs.User,
+		passwd:        runArgs.Password,
+		pk:            runArgs.Pk,
+		pkPasswd:      runArgs.PkPassword,
+		interfaceName: runArgs.Interface,
 	}
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
