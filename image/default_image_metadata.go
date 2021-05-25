@@ -2,8 +2,11 @@ package image
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
+
+	"github.com/alibaba/sealer/registry"
 
 	"github.com/alibaba/sealer/image/reference"
 	imageutils "github.com/alibaba/sealer/image/utils"
@@ -12,7 +15,6 @@ import (
 
 //DefaultImageMetadataService provide service for image metadata operations
 type DefaultImageMetadataService struct {
-	BaseImageManager
 }
 
 // Tag is used to give an another name for imageName
@@ -59,22 +61,35 @@ func (d DefaultImageMetadataService) GetImage(imageName string) (*v1.Image, erro
 
 // GetRemoteImage will return the v1.Image from remote registry
 func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image, error) {
-	named, err := reference.ParseToNamed(imageName)
+	var (
+		image v1.Image
+		err   error
+		named reference.Named
+		reg   *registry.Registry
+	)
+
+	named, err = reference.ParseToNamed(imageName)
 	if err != nil {
-		return v1.Image{}, err
+		return image, err
 	}
 
-	err = d.initRegistry(named.Domain())
+	reg, err = initRegistry(named.Domain())
 	if err != nil {
-		return v1.Image{}, err
+		return image, err
 	}
 
-	manifest, err := d.registry.ManifestV2(context.Background(), named.Repo(), named.Tag())
+	manifest, err := reg.ManifestV2(context.Background(), named.Repo(), named.Tag())
 	if err != nil {
-		return v1.Image{}, err
+		return image, err
 	}
 
-	return d.downloadImageManifestConfig(named, manifest.Config.Digest)
+	configReader, err := reg.DownloadLayer(context.Background(), named.Repo(), manifest.Config.Digest)
+	if err != nil {
+		return image, err
+	}
+
+	decoder := json.NewDecoder(configReader)
+	return image, decoder.Decode(&image)
 }
 
 func (d DefaultImageMetadataService) DeleteImage(imageName string) error {

@@ -5,8 +5,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/docker/docker/api/types"
-
 	"github.com/alibaba/sealer/common"
 	imageUtils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
@@ -137,28 +135,4 @@ func GetYamlByImage(imageName string) (string, error) {
 		return "", fmt.Errorf("failed to read image yaml,err: %v", err)
 	}
 	return string(ImageInformation), nil
-}
-
-func getDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {
-	var (
-		dockerInfo        *utils.DockerInfo
-		err               error
-		username, passwd  string
-		defaultAuthConfig = types.AuthConfig{ServerAddress: domain}
-	)
-	dockerInfo, err = utils.DockerConfig()
-	if err != nil {
-		return defaultAuthConfig, err
-	}
-
-	username, passwd, err = dockerInfo.DecodeDockerAuth(domain)
-	if err != nil {
-		return defaultAuthConfig, err
-	}
-
-	return types.AuthConfig{
-		Username:      username,
-		Password:      passwd,
-		ServerAddress: domain,
-	}, nil
 }

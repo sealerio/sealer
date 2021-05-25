@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/docker/docker/api/types"
+
 	"github.com/alibaba/sealer/common"
 )
 
@@ -88,4 +90,29 @@ func SetDockerConfig(hostname, username, password string) error {
 		return fmt.Errorf("write %s failed,%s", authFile, err)
 	}
 	return nil
+}
+
+func GetDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {
+	var (
+		dockerInfo        *DockerInfo
+		err               error
+		username, passwd  string
+		defaultAuthConfig = types.AuthConfig{ServerAddress: domain}
+	)
+
+	dockerInfo, err = DockerConfig()
+	if err != nil {
+		return defaultAuthConfig, err
+	}
+
+	username, passwd, err = dockerInfo.DecodeDockerAuth(domain)
+	if err != nil {
+		return defaultAuthConfig, err
+	}
+
+	return types.AuthConfig{
+		Username:      username,
+		Password:      passwd,
+		ServerAddress: domain,
+	}, nil
 }
