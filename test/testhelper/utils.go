@@ -92,3 +92,8 @@ func NewSSHClientByCluster(usedCluster *v1.Cluster) *SSHClient {
 		SSH:          sshClient.SSH,
 	}
 }
+
+func IsFileExist(filename string) bool {
+	_, err := os.Stat(filename)
+	return !os.IsNotExist(err)
+}

@@ -75,3 +75,15 @@ func CheckClusterPods() int {
 func SealerApplyCmd(clusterFile string) string {
 	return fmt.Sprintf("%s apply -f %s", settings.DefaultSealerBin, clusterFile)
 }
+
+func CleanUpAliCloudInfraByClusterFile(clusterFile string) {
+	if !utils.IsFileExist(clusterFile) {
+		return
+	}
+	cluster := LoadClusterFileFromDisk(clusterFile)
+	if cluster.Spec.Provider != settings.AliCloud {
+		cluster.Spec.Provider = settings.AliCloud
+	}
+	WriteClusterFileToDisk(cluster, clusterFile)
+	DeleteCluster(clusterFile)
+}
