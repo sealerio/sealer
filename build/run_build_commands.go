@@ -22,12 +22,15 @@ func (c *CloudBuilder) runBuildCommands() error {
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.local.Cluster.Name)
 	build := fmt.Sprintf(common.BuildClusterCmd, common.ExecBinaryFileName,
 		c.local.KubeFileName, c.local.ImageName, common.LocalBuild)
-	logger.Info("run remote build %s", build)
+	push := fmt.Sprintf(common.PushImageCmd, common.ExecBinaryFileName,
+		c.local.ImageName)
+	cmd := fmt.Sprintf("%s && %s", build, push)
+	logger.Info("run remote shell %s", cmd)
 
-	cmd := fmt.Sprintf("cd %s && %s", workdir, build)
+	cmd = fmt.Sprintf("cd %s && %s", workdir, cmd)
 	err = c.SSH.CmdAsync(c.RemoteHostIP, cmd)
 	if err != nil {
-		return fmt.Errorf("failed to run remote build:%v", err)
+		return fmt.Errorf("failed to run remote build and push:%v", err)
 	}
 	return nil
 }

@@ -77,14 +77,12 @@ func (l *LocalBuilder) GetBuildPipeLine() ([]func() error, error) {
 	if l.IsOnlyCopy() {
 		buildPipeline = append(buildPipeline,
 			l.ExecBuild,
-			l.UpdateImageMetadata,
-			l.PushToRegistry)
+			l.UpdateImageMetadata)
 	} else {
 		buildPipeline = append(buildPipeline,
 			l.PullBaseImageNotExist,
 			l.ExecBuild,
-			l.UpdateImageMetadata,
-			l.PushToRegistry)
+			l.UpdateImageMetadata)
 	}
 	return buildPipeline, nil
 }
