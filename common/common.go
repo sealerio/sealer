@@ -31,19 +31,16 @@ const (
 	DefaultLayerDir               = "/var/lib/sealer/data/overlay2"
 	TarGzSuffix                   = ".tar.gz"
 	YamlSuffix                    = ".yaml"
-	RemoteServerEIPAnnotation     = "sea.aliyun.com/ClusterEIP"
 	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
 	RawClusterfile                = "/var/lib/sealer/Clusterfile"
 	TmpClusterfile                = "/tmp/Clusterfile"
 	DefaultRegistryHostName       = "registry.cn-qingdao.aliyuncs.com"
 	DefaultRegistryAuthDir        = "/root/.docker/config.json"
 	KubeAdminConf                 = "/etc/kubernetes/admin.conf"
-	DefaultKubeconfig             = "/root/.kube/config"
-	DefaultKubeconfigDir          = "/root/.kube"
+	DefaultKubeDir                = "/root/.kube"
 	KubectlPath                   = "/usr/bin/kubectl"
 	EtcHosts                      = "/etc/hosts"
 	ClusterWorkDir                = "/root/.sealer/%s"
-	ClusterWorkClusterfile        = "/root/.sealer/%s/Clusterfile"
 	RemoteSealerPath              = "/usr/local/bin/sealer"
 	DefaultCloudProvider          = AliCloud
 )
@@ -109,4 +106,12 @@ func DefaultRegistryAuthConfigDir() string {
 	}
 
 	return filepath.Join(dir, ".docker/config.json")
+}
+
+func DefaultKubeConfigDir() string {
+	home, err := homedir.Dir()
+	if err != nil {
+		return DefaultKubeDir
+	}
+	return filepath.Join(home, ".kube")
 }

@@ -2,8 +2,8 @@ package runtime
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
@@ -15,6 +15,7 @@ import (
 
 type Interface interface {
 	// exec kubeadm init
+	LoadMetadata()
 	Init(cluster *v1.Cluster) error
 	Hook(cluster *v1.Cluster) error
 	Upgrade(cluster *v1.Cluster) error
@@ -77,24 +78,24 @@ func NewDefaultRuntime(cluster *v1.Cluster) Interface {
 }
 
 func (d *Default) LoadMetadata() {
-	metadataPath := fmt.Sprintf("%s/%s", d.Rootfs, common.DefaultMetadataName)
+	metadataPath := filepath.Join("/tmp", d.ClusterName, common.DefaultMetadataName)
 	var metadataFile []byte
 	var err error
+	metadata := &Metadata{}
 	if utils.IsFileExist(metadataPath) {
 		metadataFile, err = ioutil.ReadFile(metadataPath)
 		if err != nil {
 			logger.Warn("read metadata is error: %v", err)
 		}
-	}
-	metadata := &Metadata{}
-	err = json.Unmarshal(metadataFile, metadata)
-	if err != nil {
-		logger.Warn("load metadata failed, skip")
-		return
+		err = json.Unmarshal(metadataFile, metadata)
+		if err != nil {
+			logger.Warn("load metadata failed, skip")
+			return
+		}
+		logger.Debug("metadata version %s", metadata.Version)
 	}
 	d.Metadata = metadata
 }
-
 func (d *Default) Reset(cluster *v1.Cluster) error {
 	return d.reset(cluster)
 }

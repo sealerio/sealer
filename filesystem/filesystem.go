@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/pkg/errors"
 
 	"github.com/alibaba/sealer/logger"
@@ -24,8 +26,10 @@ const (
 )
 
 type Interface interface {
-	Mount(cluster *v1.Cluster, hosts []string) error
-	UnMount(cluster *v1.Cluster) error
+	MountRootfs(cluster *v1.Cluster, hosts []string) error
+	UnMountRootfs(cluster *v1.Cluster) error
+	MountImage(cluster *v1.Cluster) error
+	UnMountImage(cluster *v1.Cluster) error
 }
 type FileSystem struct {
 }
@@ -37,8 +41,18 @@ func IsDir(path string) bool {
 	}
 	return s.IsDir()
 }
-
-func (f *FileSystem) mountImage(cluster *v1.Cluster) error {
+func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
+	clusterTmpRootfsDir := filepath.Join("/tmp", cluster.Name)
+	if utils.IsFileExist(clusterTmpRootfsDir) {
+		logger.Debug("unmount cluster dir %s", clusterTmpRootfsDir)
+		if err := mount.NewMountDriver().Unmount(clusterTmpRootfsDir); err != nil {
+			logger.Warn("failed to umount %s, err: %v", clusterTmpRootfsDir, err)
+		}
+	}
+	utils.CleanDir(clusterTmpRootfsDir)
+	return nil
+}
+func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 	clusterTmpRootfsDir := filepath.Join("/tmp", cluster.Name)
 	if IsDir(clusterTmpRootfsDir) {
 		logger.Info("cluster rootfs already exist, skip mount cluster image")
@@ -64,22 +78,30 @@ func (f *FileSystem) mountImage(cluster *v1.Cluster) error {
 	}
 	return nil
 }
-
-func (f *FileSystem) Mount(cluster *v1.Cluster, hosts []string) error {
-	err := f.mountImage(cluster)
+func (c *FileSystem) MountImage(cluster *v1.Cluster) error {
+	err := c.mountImage(cluster)
 	if err != nil {
 		return err
 	}
-
+	return nil
+}
+func (c *FileSystem) UnMountImage(cluster *v1.Cluster) error {
+	err := c.umountImage(cluster)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (c *FileSystem) MountRootfs(cluster *v1.Cluster, hosts []string) error {
 	clusterRootfsDir := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name)
 	//scp roofs to all Masters and Nodes,then do init.sh
-	if err = mountRootfs(hosts, clusterRootfsDir, cluster); err != nil {
+	if err := mountRootfs(hosts, clusterRootfsDir, cluster); err != nil {
 		return fmt.Errorf("mount rootfs failed %v", err)
 	}
 	return nil
 }
 
-func (f *FileSystem) UnMount(cluster *v1.Cluster) error {
+func (c *FileSystem) UnMountRootfs(cluster *v1.Cluster) error {
 	//do clean.sh,then remove all Masters and Nodes roofs
 	IPList := append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
 	if err := unmountRootfs(IPList, cluster); err != nil {

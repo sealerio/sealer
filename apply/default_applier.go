@@ -1,9 +1,6 @@
 package apply
 
 import (
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/image"
@@ -11,6 +8,8 @@ import (
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // cloud builder using cloud provider to build a cluster image
@@ -31,8 +30,10 @@ type ActionName string
 
 const (
 	PullIfNotExist ActionName = "PullIfNotExist"
-	Mount          ActionName = "Mount"
-	UnMount        ActionName = "UnMount"
+	MountRootfs    ActionName = "MountRootfs"
+	UnMountRootfs  ActionName = "UnMountRootfs"
+	MountImage     ActionName = "MountImage"
+	UnMountImage   ActionName = "UnMountImage"
 	Init           ActionName = "Init"
 	Upgrade        ActionName = "Upgrade"
 	ApplyMasters   ActionName = "ApplyMasters"
@@ -47,7 +48,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		imageName := applier.ClusterDesired.Spec.Image
 		return image.NewImageService().PullIfNotExist(imageName)
 	},
-	Mount: func(applier *DefaultApplier) error {
+	MountRootfs: func(applier *DefaultApplier) error {
 		// TODO mount only mount desired hosts, some hosts already mounted when update cluster
 		var hosts []string
 		if applier.ClusterCurrent == nil {
@@ -55,10 +56,20 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		} else {
 			hosts = append(applier.MastersToJoin, applier.NodesToJoin...)
 		}
-		return applier.FileSystem.Mount(applier.ClusterDesired, hosts)
+		if err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts); err != nil {
+			return err
+		}
+		applier.Runtime.LoadMetadata()
+		return nil
 	},
-	UnMount: func(applier *DefaultApplier) error {
-		return applier.FileSystem.UnMount(applier.ClusterDesired)
+	UnMountRootfs: func(applier *DefaultApplier) error {
+		return applier.FileSystem.UnMountRootfs(applier.ClusterDesired)
+	},
+	MountImage: func(applier *DefaultApplier) error {
+		return applier.FileSystem.MountImage(applier.ClusterDesired)
+	},
+	UnMountImage: func(applier *DefaultApplier) error {
+		return applier.FileSystem.UnMountImage(applier.ClusterDesired)
 	},
 	Init: func(applier *DefaultApplier) error {
 		return applier.Runtime.Init(applier.ClusterDesired)
@@ -148,19 +159,21 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		c.MastersToDelete = c.ClusterDesired.Spec.Masters.IPList
 		c.NodesToDelete = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, Reset)
-		todoList = append(todoList, UnMount)
+		todoList = append(todoList, UnMountRootfs)
 		return todoList, nil
 	}
 
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PullIfNotExist)
-		todoList = append(todoList, Mount)
+		todoList = append(todoList, MountImage)
+		todoList = append(todoList, MountRootfs)
 		todoList = append(todoList, Init)
 		c.MastersToJoin = c.ClusterDesired.Spec.Masters.IPList[1:]
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, ApplyNodes)
 		todoList = append(todoList, Guest)
+		todoList = append(todoList, UnMountImage)
 		return todoList, nil
 	}
 
@@ -171,22 +184,17 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	}
 	c.MastersToJoin, c.MastersToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
 	c.NodesToJoin, c.NodesToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
-	todoList = append(todoList, Mount)
+	todoList = append(todoList, MountImage)
+	todoList = append(todoList, MountRootfs)
 	if c.MastersToJoin != nil || c.MastersToDelete != nil {
 		todoList = append(todoList, ApplyMasters)
 	}
 	if c.NodesToJoin != nil || c.NodesToDelete != nil {
 		todoList = append(todoList, ApplyNodes)
 	}
-
-	// if only contains PullIfNotExist and Mount, we do nothing
-	if len(todoList) == 2 {
-		todoList = append(todoList, CNI)
-		return todoList, nil
-	}
-
 	todoList = append(todoList, CNI)
 	todoList = append(todoList, Guest)
+	todoList = append(todoList, UnMountImage)
 	return todoList, nil
 }
 
