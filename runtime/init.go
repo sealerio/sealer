@@ -3,6 +3,7 @@ package runtime
 import (
 	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -23,6 +24,7 @@ const (
 	RemoteCmdUnmountEtcd   = "umount /var/lib/etcd; mkfs.ext4 -F %s"
 	RemoteCmdLinkStatic    = "mkdir -p %s && ln -f %s %s"
 	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
+	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
 	DefaultVIP             = "10.103.97.2"
 	DefaultAPIserverDomain = "apiserver.cluster.local"
 	DefaultRegistryPort    = 5000
@@ -34,16 +36,6 @@ func (d *Default) init(cluster *v1.Cluster) error {
 			return err
 		}
 	*/
-	//metadata
-	clusterTmpRootfsMetadata := filepath.Join("/tmp", cluster.Name, common.DefaultMetadataName)
-	if err := utils.MkDirIfNotExists(d.Rootfs); err != nil {
-		return err
-	}
-	metadataPath := fmt.Sprintf("%s/%s", d.Rootfs, common.DefaultMetadataName)
-	if err := utils.Cmd("cp", clusterTmpRootfsMetadata, metadataPath); err != nil {
-		return err
-	}
-	d.LoadMetadata()
 	//config kubeadm
 	if err := d.ConfigKubeadmOnMaster0(); err != nil {
 		return err
@@ -86,13 +78,12 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	// TODO add host port
 	d.Nodes = cluster.Spec.Nodes.IPList
 	d.APIServer = DefaultAPIserverDomain
-	d.Rootfs = fmt.Sprintf(ClusterRootfsWorkspace, d.ClusterName)
+	d.Rootfs = path.Join(common.DefaultClusterRootfsDir, d.ClusterName)
 	d.CertPath = fmt.Sprintf("%s/pki", d.Rootfs)
 	d.CertEtcdPath = fmt.Sprintf("%s/etcd", d.CertPath)
 	d.StaticFileDir = fmt.Sprintf("%s/statics", d.Rootfs)
 	// TODO remote port in ipList
 	d.APIServerCertSANs = append(cluster.Spec.CertSANS, d.getDefaultSANs()...)
-	d.LoadMetadata()
 	d.Interface = cluster.Spec.Network.Interface
 	d.Network = cluster.Spec.Network.CNIName
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
@@ -106,7 +97,6 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 
 	return nil
 }
-
 func (d *Default) ConfigKubeadmOnMaster0() error {
 	var templateData string
 	var err error

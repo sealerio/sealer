@@ -2,6 +2,7 @@ package apply
 
 import (
 	"fmt"
+	"path"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
@@ -75,7 +76,7 @@ func (c *CloudApplier) Apply() error {
 		return err
 	}
 	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
-	err = client.SSH.Fetch(client.Host, common.DefaultKubeconfig, common.KubeAdminConf)
+	err = client.SSH.Fetch(client.Host, path.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
 	if err != nil {
 		return err
 	}
@@ -107,7 +108,7 @@ func (c *CloudApplier) Delete() error {
 		logger.Warn(err)
 	}
 
-	if err := utils.CleanFiles(common.DefaultKubeconfigDir, common.GetClusterWorkDir(c.ClusterDesired.Name), common.TmpClusterfile, common.KubectlPath); err != nil {
+	if err := utils.CleanFiles(common.DefaultKubeConfigDir(), common.GetClusterWorkDir(c.ClusterDesired.Name), common.TmpClusterfile, common.KubectlPath); err != nil {
 		logger.Warn(err)
 		return nil
 	}

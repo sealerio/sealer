@@ -56,7 +56,11 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		} else {
 			hosts = append(applier.MastersToJoin, applier.NodesToJoin...)
 		}
-		return applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts)
+		if err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts); err != nil {
+			return err
+		}
+		applier.Runtime.LoadMetadata()
+		return nil
 	},
 	UnMountRootfs: func(applier *DefaultApplier) error {
 		return applier.FileSystem.UnMountRootfs(applier.ClusterDesired)
