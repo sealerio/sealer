@@ -2,6 +2,7 @@ package apply
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/utils"
 	"net"
 	"strconv"
 	"strings"
@@ -22,6 +23,7 @@ type ClusterArgs struct {
 	pk            string
 	pkPasswd      string
 	interfaceName string
+	podCidr       string
 }
 
 func IsNumber(args string) bool {
@@ -43,6 +45,14 @@ func IsIPList(args string) bool {
 	return true
 }
 
+func IsCidrString(arg string) bool {
+	_, err := utils.ParseCIDR(arg)
+	if err != nil {
+		return false
+	}
+	return true
+
+}
 func (c *ClusterArgs) SetClusterArgs() error {
 	c.cluster.Spec.Image = c.imageName
 	c.cluster.Spec.Provider = common.BAREMETAL
@@ -66,6 +76,10 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	}
 	if c.interfaceName != "" {
 		c.cluster.Spec.Network.Interface = c.interfaceName
+	}
+
+	if c.podCidr != "" && IsCidrString(c.podCidr) {
+		c.cluster.Spec.Network.PodCIDR, _ = utils.ParseCIDRString(c.podCidr)
 	}
 	return fmt.Errorf("enter true iplist or count")
 }
@@ -99,6 +113,7 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 		pk:            runArgs.Pk,
 		pkPasswd:      runArgs.PkPassword,
 		interfaceName: runArgs.Interface,
+		podCidr:       runArgs.PodCidr,
 	}
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
