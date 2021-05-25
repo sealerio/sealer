@@ -22,4 +22,5 @@ type RunArgs struct {
 	Password   string
 	Pk         string
 	PkPassword string
+	Interface  string
 }
