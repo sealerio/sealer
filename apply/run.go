@@ -13,15 +13,15 @@ import (
 )
 
 type ClusterArgs struct {
-	cluster        *v1.Cluster
-	imageName       string
-	nodeArgs        string
-	masterArgs      string
-	user            string
-	passwd          string
-	pk              string
-	pkPasswd        string
-	interfaceName   string
+	cluster       *v1.Cluster
+	imageName     string
+	nodeArgs      string
+	masterArgs    string
+	user          string
+	passwd        string
+	pk            string
+	pkPasswd      string
+	interfaceName string
 }
 
 func IsNumber(args string) bool {
