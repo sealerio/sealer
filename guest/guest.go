@@ -2,11 +2,7 @@ package guest
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
-
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils/mount"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/utils"
@@ -43,10 +39,6 @@ func (d *Default) Apply(cluster *v1.Cluster) error {
 		if err := ssh.CmdAsync(masters[0], fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, image.Spec.Layers[i].Value)); err != nil {
 			return err
 		}
-	}
-	mountClusterDir := filepath.Join(os.TempDir(), cluster.Name)
-	if err := mount.NewMountDriver().Unmount(mountClusterDir); err != nil {
-		logger.Error("failed to umount %s, err: %v", mountClusterDir, err)
 	}
 	return nil
 }
