@@ -2,13 +2,14 @@ package apply
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/utils"
 	"net"
 	"strconv"
 	"strings"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/utils"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -47,12 +48,9 @@ func IsIPList(args string) bool {
 
 func IsCidrString(arg string) bool {
 	_, err := utils.ParseCIDR(arg)
-	if err != nil {
-		return false
-	}
-	return true
-
+	return err == nil
 }
+
 func (c *ClusterArgs) SetClusterArgs() error {
 	c.cluster.Spec.Image = c.imageName
 	c.cluster.Spec.Provider = common.BAREMETAL
