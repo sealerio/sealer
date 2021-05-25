@@ -29,18 +29,20 @@ type DefaultApplier struct {
 type ActionName string
 
 const (
-	PullIfNotExist ActionName = "PullIfNotExist"
-	MountRootfs    ActionName = "MountRootfs"
-	UnMountRootfs  ActionName = "UnMountRootfs"
-	MountImage     ActionName = "MountImage"
-	UnMountImage   ActionName = "UnMountImage"
-	Init           ActionName = "Init"
-	Upgrade        ActionName = "Upgrade"
-	ApplyMasters   ActionName = "ApplyMasters"
-	ApplyNodes     ActionName = "ApplyNodes"
-	Guest          ActionName = "Guest"
-	CNI            ActionName = "CNI"
-	Reset          ActionName = "Reset"
+	PullIfNotExist   ActionName = "PullIfNotExist"
+	MountRootfs      ActionName = "MountRootfs"
+	UnMountRootfs    ActionName = "UnMountRootfs"
+	MountImage       ActionName = "MountImage"
+	UnMountImage     ActionName = "UnMountImage"
+	Init             ActionName = "Init"
+	Upgrade          ActionName = "Upgrade"
+	ApplyMasters     ActionName = "ApplyMasters"
+	ApplyNodes       ActionName = "ApplyNodes"
+	Guest            ActionName = "Guest"
+	CNI              ActionName = "CNI"
+	Reset            ActionName = "Reset"
+	CopyFilesOnRoot  ActionName = "CopyFilesOnRoot"
+	CleanFilesOnRoot ActionName = "CleanFilesOnRoot"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
@@ -92,6 +94,12 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	Reset: func(applier *DefaultApplier) error {
 		return applier.Runtime.Reset(applier.ClusterDesired)
 	},
+	CopyFilesOnRoot: func(applier *DefaultApplier) error {
+		return applier.Runtime.CopyFilesOnRoot(applier.ClusterDesired)
+	},
+	CleanFilesOnRoot: func(applier *DefaultApplier) error {
+		return applier.Runtime.CleanFilesOnRoot(applier.ClusterDesired)
+	},
 }
 
 func applyMasters(applier *DefaultApplier) error {
@@ -135,7 +143,6 @@ func (c *DefaultApplier) Apply() (err error) {
 		c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
 		c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
 	}
-
 	todoList, _ := c.diff()
 	for _, action := range todoList {
 		logger.Debug("sealer apply process %s", action)
@@ -144,7 +151,6 @@ func (c *DefaultApplier) Apply() (err error) {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -160,6 +166,8 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		c.NodesToDelete = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, Reset)
 		todoList = append(todoList, UnMountRootfs)
+		//clean files need after umount rootfs
+		todoList = append(todoList, CleanFilesOnRoot)
 		return todoList, nil
 	}
 
@@ -173,6 +181,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, ApplyNodes)
 		todoList = append(todoList, Guest)
+		todoList = append(todoList, CopyFilesOnRoot)
 		todoList = append(todoList, UnMountImage)
 		return todoList, nil
 	}
@@ -186,14 +195,15 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	c.NodesToJoin, c.NodesToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
 	todoList = append(todoList, MountImage)
 	todoList = append(todoList, MountRootfs)
-	if c.MastersToJoin != nil || c.MastersToDelete != nil {
-		todoList = append(todoList, ApplyMasters)
-	}
 	if c.NodesToJoin != nil || c.NodesToDelete != nil {
 		todoList = append(todoList, ApplyNodes)
 	}
+	if c.MastersToJoin != nil || c.MastersToDelete != nil {
+		todoList = append(todoList, ApplyMasters)
+	}
 	todoList = append(todoList, CNI)
 	todoList = append(todoList, Guest)
+	todoList = append(todoList, CopyFilesOnRoot)
 	todoList = append(todoList, UnMountImage)
 	return todoList, nil
 }

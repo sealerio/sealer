@@ -3,7 +3,6 @@ package runtime
 import (
 	"fmt"
 	"io/ioutil"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -22,7 +21,7 @@ import (
 const (
 	RemoteCmdInitEtcdDir   = "mkdir -p /var/lib/etcd && mount %s /var/lib/etcd && rm -rf /var/lib/etcd/* && echo \"%s /var/lib/etcd ext4 defaults 0 0\" >> /etc/fstab"
 	RemoteCmdUnmountEtcd   = "umount /var/lib/etcd; mkfs.ext4 -F %s"
-	RemoteCmdLinkStatic    = "mkdir -p %s && ln -f %s %s"
+	RemoteCmdLinkStatic    = "mkdir -p %s && cp -f %s %s"
 	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
 	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
 	DefaultVIP             = "10.103.97.2"
@@ -78,7 +77,7 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	// TODO add host port
 	d.Nodes = cluster.Spec.Nodes.IPList
 	d.APIServer = DefaultAPIserverDomain
-	d.Rootfs = path.Join(common.DefaultClusterRootfsDir, d.ClusterName)
+	d.Rootfs = filepath.Join(common.DefaultClusterRootfsDir, d.ClusterName)
 	d.CertPath = fmt.Sprintf("%s/pki", d.Rootfs)
 	d.CertEtcdPath = fmt.Sprintf("%s/etcd", d.CertPath)
 	d.StaticFileDir = fmt.Sprintf("%s/statics", d.Rootfs)

@@ -25,6 +25,8 @@ type Interface interface {
 	JoinNodes(newNodesIPList []string) error
 	DeleteMasters(mastersIPList []string) error
 	DeleteNodes(nodesIPList []string) error
+	CopyFilesOnRoot(cluster *v1.Cluster) error
+	CleanFilesOnRoot(cluster *v1.Cluster) error
 }
 
 type Metadata struct {

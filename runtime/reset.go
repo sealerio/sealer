@@ -33,8 +33,12 @@ func (d *Default) reset(cluster *v1.Cluster) error {
 	if err != nil {
 		return err
 	}
-	return d.RecycleRegistryOnMaster0()
+	if err = d.RecycleRegistryOnMaster0(); err != nil {
+		return err
+	}
+	return nil
 }
+
 func (d *Default) resetNodes(nodes []string) error {
 	if len(nodes) == 0 {
 		return nil

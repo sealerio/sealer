@@ -98,7 +98,9 @@ func GetClusterWorkDir(clusterName string) string {
 func GetClusterWorkClusterfile(clusterName string) string {
 	return filepath.Join(GetClusterWorkDir(clusterName), "Clusterfile")
 }
-
+func GetClusterRootfsDir(clusterName string) string {
+	return fmt.Sprintf(DefaultClusterRootfsDir+"/%s", clusterName)
+}
 func DefaultRegistryAuthConfigDir() string {
 	dir, err := homedir.Dir()
 	if err != nil {

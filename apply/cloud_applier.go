@@ -2,7 +2,7 @@ package apply
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
@@ -76,7 +76,7 @@ func (c *CloudApplier) Apply() error {
 		return err
 	}
 	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
-	err = client.SSH.Fetch(client.Host, path.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
+	err = client.SSH.Fetch(client.Host, filepath.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
 	if err != nil {
 		return err
 	}
