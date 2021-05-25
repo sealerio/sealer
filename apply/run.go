@@ -40,6 +40,7 @@ type ClusterArgs struct {
 	interfaceName string
 	podCidr       string
 	svcCidr       string
+
 }
 
 func IsNumber(args string) bool {
