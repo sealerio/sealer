@@ -8,6 +8,8 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/utils"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -22,6 +24,7 @@ type ClusterArgs struct {
 	pk            string
 	pkPasswd      string
 	interfaceName string
+	podCidr       string
 }
 
 func IsNumber(args string) bool {
@@ -43,7 +46,13 @@ func IsIPList(args string) bool {
 	return true
 }
 
+func IsCidrString(arg string) bool {
+	_, err := utils.ParseCIDR(arg)
+	return err == nil
+}
+
 func (c *ClusterArgs) SetClusterArgs() error {
+	var err error = nil
 	c.cluster.Spec.Image = c.imageName
 	c.cluster.Spec.Provider = common.BAREMETAL
 	if IsNumber(c.masterArgs) && (IsNumber(c.nodeArgs) || c.nodeArgs == "") {
@@ -51,7 +60,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		c.cluster.Spec.Nodes.Count = c.nodeArgs
 		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.Provider = common.DefaultCloudProvider
-		return nil
+		return err
 	}
 	if IsIPList(c.masterArgs) && (IsIPList(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
@@ -62,10 +71,15 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.SSH.Pk = c.pk
 		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
-		return nil
+		return err
 	}
 	if c.interfaceName != "" {
 		c.cluster.Spec.Network.Interface = c.interfaceName
+	}
+
+	if c.podCidr != "" && IsCidrString(c.podCidr) {
+		c.cluster.Spec.Network.PodCIDR, err = utils.ParseCIDRString(c.podCidr)
+		return err
 	}
 	return fmt.Errorf("enter true iplist or count")
 }
@@ -99,6 +113,7 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 		pk:            runArgs.Pk,
 		pkPasswd:      runArgs.PkPassword,
 		interfaceName: runArgs.Interface,
+		podCidr:       runArgs.PodCidr,
 	}
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
