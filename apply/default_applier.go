@@ -179,7 +179,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 
 	todoList = append(todoList, PullIfNotExist)
 	if c.ClusterDesired.Spec.Image != c.ClusterCurrent.Spec.Image {
-		logger.Info("current image is : %s and desired iamge is : %s , so upgrade your cluster", c.ClusterCurrent.Spec.Image, c.ClusterDesired.Spec.Image)
+		logger.Info("current image is : %s and desired image is : %s , so upgrade your cluster", c.ClusterCurrent.Spec.Image, c.ClusterDesired.Spec.Image)
 		todoList = append(todoList, Upgrade)
 	}
 	c.MastersToJoin, c.MastersToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
