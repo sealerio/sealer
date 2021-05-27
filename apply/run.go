@@ -25,6 +25,7 @@ type ClusterArgs struct {
 	pkPasswd      string
 	interfaceName string
 	podCidr       string
+	svcCidr       string
 }
 
 func IsNumber(args string) bool {
@@ -76,10 +77,12 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	if c.interfaceName != "" {
 		c.cluster.Spec.Network.Interface = c.interfaceName
 	}
-
 	if c.podCidr != "" && IsCidrString(c.podCidr) {
 		c.cluster.Spec.Network.PodCIDR, err = utils.ParseCIDRString(c.podCidr)
 		return err
+	}
+	if c.svcCidr != "" {
+		c.cluster.Spec.Network.SvcCIDR = c.svcCidr
 	}
 	return fmt.Errorf("enter true iplist or count")
 }
@@ -114,6 +117,7 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 		pkPasswd:      runArgs.PkPassword,
 		interfaceName: runArgs.Interface,
 		podCidr:       runArgs.PodCidr,
+		svcCidr:       runArgs.SvcCidr,
 	}
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
