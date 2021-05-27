@@ -255,6 +255,7 @@ func (a *AliProvider) ReconcileIntances(instanceRole string) error {
 			return err
 		}
 		hosts.IPList = utils.AppendIPList(hosts.IPList, ipList)
+		logger.Info("get scale up IP list %v, append iplist %v, host count %s", ipList, hosts.IPList, hosts.Count)
 	} else if len(instances) > i {
 		var deleteInstancesIDs []string
 		var count int

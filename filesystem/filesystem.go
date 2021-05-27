@@ -46,7 +46,7 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 	if utils.IsFileExist(clusterTmpRootfsDir) {
 		logger.Debug("unmount cluster dir %s", clusterTmpRootfsDir)
 		if err := mount.NewMountDriver().Unmount(clusterTmpRootfsDir); err != nil {
-			logger.Warn("failed to umount %s, err: %v", clusterTmpRootfsDir, err)
+			logger.Warn("failed to unmount %s, err: %v", clusterTmpRootfsDir, err)
 		}
 	}
 	utils.CleanDir(clusterTmpRootfsDir)

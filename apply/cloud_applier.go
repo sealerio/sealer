@@ -35,23 +35,64 @@ func NewAliCloudProvider(cluster *v1.Cluster) Interface {
 	return &CloudApplier{d}
 }
 
+func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, err error) {
+	logger.Info("desired master %s, current master %s, desired nodes %s, current nodes %s", c.ClusterDesired.Spec.Masters.Count,
+		cluster.Spec.Masters.Count,
+		c.ClusterDesired.Spec.Nodes.Count,
+		cluster.Spec.Nodes.Count)
+	if c.ClusterDesired.Spec.Masters.Count >= cluster.Spec.Masters.Count &&
+		c.ClusterDesired.Spec.Nodes.Count >= cluster.Spec.Nodes.Count {
+		return false, nil
+	}
+
+	MastersToJoin, MastersToDelete := utils.GetDiffHosts(cluster.Spec.Masters, c.ClusterDesired.Spec.Masters)
+	NodesToJoin, NodesToDelete := utils.GetDiffHosts(cluster.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
+	if len(MastersToJoin) != 0 || len(NodesToJoin) != 0 {
+		return false, fmt.Errorf("should not scale up and down at same time")
+	}
+
+	err = DeleteNodes(append(MastersToDelete, NodesToDelete...))
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (c *CloudApplier) Apply() error {
+	var err error
 	cluster := c.ClusterDesired
+	clusterCurrent, err := GetCurrentCluster()
+	if err != nil {
+		return fmt.Errorf("failed to get current clcuster %v", err)
+	}
+
 	cloudProvider := infra.NewDefaultProvider(cluster)
 	if cloudProvider == nil {
 		return fmt.Errorf("new cloud provider failed")
 	}
-	err := cloudProvider.Apply()
+	err = cloudProvider.Apply()
 	if err != nil {
 		return fmt.Errorf("apply infra failed %v", err)
 	}
 	if cluster.DeletionTimestamp != nil {
 		return nil
 	}
-	err = saveClusterfile(c.ClusterDesired)
+	err = saveClusterfile(cluster)
 	if err != nil {
 		return err
 	}
+
+	scaleDown, err := c.ScaleDownNodes(clusterCurrent)
+	if err != nil {
+		return fmt.Errorf("failed to scale down nodes %v", err)
+	}
+	if scaleDown {
+		//  infra already delete the host, if continue to apply will not found the host and
+		//  return ssh error
+		logger.Info("scale the cluster success")
+		return nil
+	}
+
 	cluster.Spec.Provider = common.BAREMETAL
 	err = utils.MarshalYamlToFile(common.TmpClusterfile, cluster)
 	if err != nil {

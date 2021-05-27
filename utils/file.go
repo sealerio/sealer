@@ -167,7 +167,7 @@ func CleanDir(dir string) {
 	}
 	err := os.RemoveAll(dir)
 	if err != nil {
-		logger.Error("failed to remove dir %s ", dir)
+		logger.Warn("failed to remove dir %s ", dir)
 	}
 }
 
