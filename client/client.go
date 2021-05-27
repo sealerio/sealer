@@ -36,3 +36,11 @@ func ListNodes(client *kubernetes.Clientset) (*v1.NodeList, error) {
 	}
 	return nodes, nil
 }
+
+func DeleteNode(client *kubernetes.Clientset, name string) error {
+	err := client.CoreV1().Nodes().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "delete cluster nodes failed")
+	}
+	return nil
+}
