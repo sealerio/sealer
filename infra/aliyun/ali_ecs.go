@@ -49,6 +49,7 @@ func (a *AliProvider) TryGetInstance(request *ecs.DescribeInstancesRequest, resp
 		}
 		instances := response.Instances.Instance
 		if expectCount != -1 {
+			var ipList []string
 			if len(instances) != expectCount {
 				return errors.New("the number of instances is not as expected")
 			}
@@ -56,15 +57,21 @@ func (a *AliProvider) TryGetInstance(request *ecs.DescribeInstancesRequest, resp
 				if instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress == "" {
 					return errors.New("PrimaryIpAddress cannt nob be nil")
 				}
+				if len(ipList) != 0 {
+					for _, ip := range ipList {
+						if instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress == ip {
+							return errors.New("PrimaryIpAddress cannt nob be same")
+						}
+					}
+				}
+				ipList = append(ipList, instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress)
 			}
 		}
-
 		return nil
 	})
 }
 
-func (a *AliProvider) InputIPlist(instanceRole string) (iplist []string, err error) {
-	var ipList []string
+func (a *AliProvider) InputIPlist(instanceRole string) (ipList []string, err error) {
 	var hosts *v1.Hosts
 	switch instanceRole {
 	case Master:
