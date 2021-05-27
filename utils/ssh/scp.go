@@ -217,8 +217,20 @@ func (s *SSH) copyLocalDirToRemote(host string, sshClient *ssh.Client, sftpClien
 	}
 }
 
+// check the remote file existence before copying
 // solve the sesion
 func (s *SSH) copyLocalFileToRemote(host string, sshClient *ssh.Client, sftpClient *sftp.Client, localPath, remotePath string) error {
+	var (
+		srcMd5, dstMd5 string
+	)
+	srcMd5 = LocalMd5Sum(localPath)
+	if s.IsFileExist(host, remotePath) {
+		dstMd5 = s.RemoteMd5Sum(host, remotePath)
+		if srcMd5 == dstMd5 {
+			logger.Debug("remote dst %s already exists and is the latest version , skip copying process", remotePath)
+			return nil
+		}
+	}
 	srcFile, err := os.Open(localPath)
 	if err != nil {
 		return err
@@ -241,15 +253,14 @@ func (s *SSH) copyLocalFileToRemote(host string, sshClient *ssh.Client, sftpClie
 	if err != nil {
 		return err
 	}
-	srcMd5 := FromLocal(localPath)
-	dstMd5 := s.RemoteMd5Sum(host, remotePath)
+	dstMd5 = s.RemoteMd5Sum(host, remotePath)
 	if srcMd5 != dstMd5 {
 		return fmt.Errorf("[ssh][%s] validate md5sum failed %s != %s", host, srcMd5, dstMd5)
 	}
 	return nil
 }
 
-func FromLocal(localPath string) string {
+func LocalMd5Sum(localPath string) string {
 	md5, err := utils.FileMD5(localPath)
 	if err != nil {
 		logger.Error("get file md5 failed %v", err)
