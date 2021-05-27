@@ -35,6 +35,9 @@ func listNodes() *corev1.NodeList {
 
 func getCurrentNodes() (*v1.Cluster, error) {
 	nodes := listNodes()
+	if nodes == nil {
+		return nil, nil
+	}
 
 	cluster := &v1.Cluster{
 		TypeMeta:   metav1.TypeMeta{},
