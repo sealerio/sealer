@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+
 	"github.com/alibaba/sealer/test/suites/image"
 	"github.com/alibaba/sealer/test/testhelper"
 
