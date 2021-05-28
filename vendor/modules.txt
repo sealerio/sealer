@@ -1,8 +1,6 @@
 # github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
 github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
-# github.com/Microsoft/hcsshim v0.8.6
-github.com/Microsoft/hcsshim/osversion
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
 # github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
@@ -71,7 +69,6 @@ github.com/docker/docker/pkg/jsonmessage
 github.com/docker/docker/pkg/longpath
 github.com/docker/docker/pkg/progress
 github.com/docker/docker/pkg/streamformatter
-github.com/docker/docker/pkg/system
 # github.com/docker/docker-credential-helpers v0.6.3
 github.com/docker/docker-credential-helpers/client
 github.com/docker/docker-credential-helpers/credentials
@@ -148,11 +145,6 @@ github.com/mitchellh/go-homedir
 github.com/mitchellh/mapstructure
 # github.com/moby/ipvs v1.0.1
 github.com/moby/ipvs
-# github.com/moby/sys/mount v0.2.0
-## explicit
-github.com/moby/sys/mount
-# github.com/moby/sys/mountinfo v0.4.0
-github.com/moby/sys/mountinfo
 # github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
 github.com/moby/term
 github.com/moby/term/windows

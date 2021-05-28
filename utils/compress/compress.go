@@ -5,8 +5,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-
-	"github.com/docker/docker/pkg/system"
+	"syscall"
 
 	"io"
 	"io/ioutil"
@@ -145,12 +144,10 @@ func Decompress(src io.Reader, dst string) error {
 	// need to set umask to be 000 for current process.
 	// there will be some files having higher permission like 777,
 	// eventually permission will be set to 755 when umask is 022.
-	_, err := system.Umask(0)
-	if err != nil {
-		return err
-	}
+	oldMask := syscall.Umask(0)
+	defer syscall.Umask(oldMask)
 
-	err = os.MkdirAll(dst, common.FileMode0755)
+	err := os.MkdirAll(dst, common.FileMode0755)
 	if err != nil {
 		return err
 	}
