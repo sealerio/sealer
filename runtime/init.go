@@ -22,7 +22,7 @@ import (
 const (
 	RemoteCmdInitEtcdDir   = "mkdir -p /var/lib/etcd && mount %s /var/lib/etcd && rm -rf /var/lib/etcd/* && echo \"%s /var/lib/etcd ext4 defaults 0 0\" >> /etc/fstab"
 	RemoteCmdUnmountEtcd   = "umount /var/lib/etcd; mkfs.ext4 -F %s"
-	RemoteCmdLinkStatic    = "mkdir -p %s && ln -f %s %s"
+	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
 	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
 	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
 	DefaultVIP             = "10.103.97.2"
@@ -51,7 +51,7 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return err
 	}
 
-	if err := d.LinkStaticFiles(d.Masters); err != nil {
+	if err := d.CopyStaticFiles(d.Masters); err != nil {
 		return err
 	}
 
@@ -255,11 +255,11 @@ func (d *Default) InitCNI() error {
 	return nil
 }*/
 
-func (d *Default) LinkStaticFiles(nodes []string) error {
+func (d *Default) CopyStaticFiles(nodes []string) error {
 	var flag bool
 	for _, file := range MasterStaticFiles {
 		staticFilePath := filepath.Join(d.StaticFileDir, file.Name)
-		cmdLinkStatic := fmt.Sprintf(RemoteCmdLinkStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
+		cmdLinkStatic := fmt.Sprintf(RemoteCmdCopyStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
 		var wg sync.WaitGroup
 		for _, host := range nodes {
 			wg.Add(1)
