@@ -71,7 +71,7 @@ func SetDockerConfig(hostname, username, password string) error {
 	var info *DockerInfo
 	var err error
 	if !IsFileExist(authFile) {
-		if err = os.MkdirAll(filepath.Dir(authFile), common.FileMode0644); err != nil {
+		if err = os.MkdirAll(filepath.Dir(authFile), common.FileMode0755); err != nil {
 			return err
 		}
 		info = &DockerInfo{Auths: map[string]AuthItem{}}
