@@ -28,7 +28,6 @@ type SSH struct {
 }
 
 type Network struct {
-	Interface  string `json:"interface,omitempty"`
 	CNIName    string `json:"cniName,omitempty"`
 	PodCIDR    string `json:"podCIDR,omitempty"`
 	SvcCIDR    string `json:"svcCIDR,omitempty"`

@@ -20,14 +20,16 @@ import (
 )
 
 const (
-	RemoteCmdInitEtcdDir   = "mkdir -p /var/lib/etcd && mount %s /var/lib/etcd && rm -rf /var/lib/etcd/* && echo \"%s /var/lib/etcd ext4 defaults 0 0\" >> /etc/fstab"
-	RemoteCmdUnmountEtcd   = "umount /var/lib/etcd; mkfs.ext4 -F %s"
-	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
-	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
-	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
-	DefaultVIP             = "10.103.97.2"
-	DefaultAPIserverDomain = "apiserver.cluster.local"
-	DefaultRegistryPort    = 5000
+	RemoteCmdInitEtcdDir           = "mkdir -p /var/lib/etcd && mount %s /var/lib/etcd && rm -rf /var/lib/etcd/* && echo \"%s /var/lib/etcd ext4 defaults 0 0\" >> /etc/fstab"
+	RemoteCmdUnmountEtcd           = "umount /var/lib/etcd; mkfs.ext4 -F %s"
+	RemoteCmdCopyStatic            = "mkdir -p %s && cp -f %s %s"
+	RemoteApplyYaml                = `echo '%s' | kubectl apply -f -`
+	RemoteCmdGetNetworkInterface   = "ls /sys/class/net"
+	RemoteCmdExistNetworkInterface = "ip addr show %s | grep %s || true"
+	WriteKubeadmConfigCmd          = "cd %s && echo \"%s\" > kubeadm-config.yaml"
+	DefaultVIP                     = "10.103.97.2"
+	DefaultAPIserverDomain         = "apiserver.cluster.local"
+	DefaultRegistryPort            = 5000
 )
 
 func (d *Default) init(cluster *v1.Cluster) error {
@@ -84,7 +86,6 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.StaticFileDir = fmt.Sprintf("%s/statics", d.Rootfs)
 	// TODO remote port in ipList
 	d.APIServerCertSANs = append(cluster.Spec.CertSANS, d.getDefaultSANs()...)
-	d.Interface = cluster.Spec.Network.Interface
 	d.Network = cluster.Spec.Network.CNIName
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
@@ -209,6 +210,22 @@ func (d *Default) InitCNI() error {
 	if d.WithoutCNI {
 		return nil
 	}
+
+	networkInterface, err := d.SSH.Cmd(d.Masters[0], RemoteCmdGetNetworkInterface)
+	if err != nil {
+		return fmt.Errorf("get remote network interface failed %v", err)
+	}
+	for _, v := range strings.Fields(strings.TrimSpace(string(networkInterface))) {
+		v = strings.Replace(strings.TrimSpace(v), "\n", "", -1)
+		ret, err := d.SSH.Cmd(d.Masters[0], fmt.Sprintf(RemoteCmdExistNetworkInterface, v, d.Masters[0]))
+		if err == nil {
+			if strings.Contains(string(ret), d.Masters[0]) {
+				d.Interface = v
+				break
+			}
+		}
+	}
+
 	// can-reach is used by calico multi network , flannel has nothing to add. just Use it.
 	if len(strings.Split(d.Interface, ".")) == 4 && d.Network == "calico" {
 		d.Interface = "can-reach=" + d.Interface

@@ -15,17 +15,16 @@ import (
 )
 
 type ClusterArgs struct {
-	cluster       *v1.Cluster
-	imageName     string
-	nodeArgs      string
-	masterArgs    string
-	user          string
-	passwd        string
-	pk            string
-	pkPasswd      string
-	interfaceName string
-	podCidr       string
-	svcCidr       string
+	cluster    *v1.Cluster
+	imageName  string
+	nodeArgs   string
+	masterArgs string
+	user       string
+	passwd     string
+	pk         string
+	pkPasswd   string
+	podCidr    string
+	svcCidr    string
 }
 
 func IsNumber(args string) bool {
@@ -74,9 +73,6 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
 		return err
 	}
-	if c.interfaceName != "" {
-		c.cluster.Spec.Network.Interface = c.interfaceName
-	}
 	if c.podCidr != "" && IsCidrString(c.podCidr) {
 		c.cluster.Spec.Network.PodCIDR, err = utils.ParseCIDRString(c.podCidr)
 		return err
@@ -107,17 +103,16 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 		return NewApplier(cluster), nil
 	}
 	c := &ClusterArgs{
-		cluster:       cluster,
-		imageName:     imageName,
-		nodeArgs:      runArgs.Nodes,
-		masterArgs:    runArgs.Masters,
-		user:          runArgs.User,
-		passwd:        runArgs.Password,
-		pk:            runArgs.Pk,
-		pkPasswd:      runArgs.PkPassword,
-		interfaceName: runArgs.Interface,
-		podCidr:       runArgs.PodCidr,
-		svcCidr:       runArgs.SvcCidr,
+		cluster:    cluster,
+		imageName:  imageName,
+		nodeArgs:   runArgs.Nodes,
+		masterArgs: runArgs.Masters,
+		user:       runArgs.User,
+		passwd:     runArgs.Password,
+		pk:         runArgs.Pk,
+		pkPasswd:   runArgs.PkPassword,
+		podCidr:    runArgs.PodCidr,
+		svcCidr:    runArgs.SvcCidr,
 	}
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
