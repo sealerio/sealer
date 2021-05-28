@@ -31,11 +31,6 @@ const (
 )
 
 func (d *Default) init(cluster *v1.Cluster) error {
-	/*
-		if err := d.initRunner(cluster); err != nil {
-			return err
-		}
-	*/
 	//config kubeadm
 	if err := d.ConfigKubeadmOnMaster0(); err != nil {
 		return err
@@ -63,7 +58,18 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return err
 	}
 
+	if err := d.GetKubectlAndKubeconfig(); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (d *Default) GetKubectlAndKubeconfig() error {
+	if utils.IsFileExist(common.DefaultKubeConfigFile()) {
+		return nil
+	}
+	return GetKubectlAndKubeconfig(d.SSH, utils.GetHostIP(d.Masters[0]))
 }
 
 func (d *Default) initRunner(cluster *v1.Cluster) error {
@@ -104,6 +110,9 @@ func (d *Default) ConfigKubeadmOnMaster0() error {
 	var fileData []byte
 	if d.KubeadmFilePath == "" {
 		tpl, err = d.defaultTemplate()
+		if err != nil {
+			return fmt.Errorf("failed to get default kubeadm template %v", err)
+		}
 	} else {
 		//TODO rootfs kubeadm.tmpl
 		fileData, err = ioutil.ReadFile(d.KubeadmFilePath)
@@ -111,6 +120,9 @@ func (d *Default) ConfigKubeadmOnMaster0() error {
 			return err
 		}
 		tpl, err = d.templateFromContent(string(fileData))
+		if err != nil {
+			return fmt.Errorf("failed to get kubeadm template %v", err)
+		}
 	}
 
 	if err != nil {
@@ -155,14 +167,12 @@ func (d *Default) GenerateCert() error {
 
 func (d *Default) CreateKubeConfig() error {
 	hostname := d.GetRemoteHostName(d.Masters[0])
-
 	certConfig := cert.Config{
 		Path:     d.CertPath,
 		BaseName: "ca",
 	}
 
 	controlPlaneEndpoint := fmt.Sprintf("https://%s:6443", d.APIServer)
-
 	err := cert.CreateJoinControlPlaneKubeConfigFiles(d.Rootfs,
 		certConfig, hostname, controlPlaneEndpoint, "kubernetes")
 	if err != nil {

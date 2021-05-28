@@ -115,3 +115,7 @@ func DefaultKubeConfigDir() string {
 	}
 	return filepath.Join(home, ".kube")
 }
+
+func DefaultKubeConfigFile() string {
+	return filepath.Join(DefaultKubeConfigDir(), "config")
+}
