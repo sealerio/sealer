@@ -4,6 +4,8 @@ import (
 	"context"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/common"
+
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,10 +14,8 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-const DefaultKubeconfigFile = "/root/.kube/config"
-
 func NewClientSet() (*kubernetes.Clientset, error) {
-	kubeconfig := DefaultKubeconfigFile
+	kubeconfig := filepath.Join(common.DefaultKubeConfigDir(), "config")
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = filepath.Join(home, ".kube", "config")
 	}
@@ -35,4 +35,12 @@ func ListNodes(client *kubernetes.Clientset) (*v1.NodeList, error) {
 		return nil, errors.Wrapf(err, "get cluster nodes failed")
 	}
 	return nodes, nil
+}
+
+func DeleteNode(client *kubernetes.Clientset, name string) error {
+	err := client.CoreV1().Nodes().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "delete cluster nodes failed")
+	}
+	return nil
 }

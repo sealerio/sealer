@@ -19,7 +19,6 @@ import (
 )
 
 type DefaultImageFileService struct {
-	BaseImageManager
 }
 
 func (d DefaultImageFileService) Load(imageSrc string) error {
@@ -153,5 +152,5 @@ func (d DefaultImageFileService) load(imageSrc string) (*imageutils.ImageMetadat
 		return nil, err
 	}
 
-	return &imageMetadata, d.syncImageLocal(image, named)
+	return &imageMetadata, store.SyncImageLocal(image, named)
 }

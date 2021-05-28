@@ -120,6 +120,12 @@ func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
 			header.Name = filepath.Join(newFolder, filepath.Base(dir))
 		}
 
+		// those two fields may diff in different machine,
+		// so we hardcoded the gname and uname to make hash of
+		// tar consistent
+		// TODO think of a better way to fix this issue
+		header.Gname = "root"
+		header.Uname = "root"
 		// write header
 		if walkErr = tarWriter.WriteHeader(header); walkErr != nil {
 			return walkErr

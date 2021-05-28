@@ -70,7 +70,7 @@ func WriteFile(fileName string, content []byte) error {
 		}
 	}
 
-	if err := ioutil.WriteFile(fileName, content, common.FileMode0755); err != nil {
+	if err := ioutil.WriteFile(fileName, content, common.FileMode0644); err != nil {
 		return err
 	}
 	return nil
@@ -167,7 +167,7 @@ func CleanDir(dir string) {
 	}
 	err := os.RemoveAll(dir)
 	if err != nil {
-		logger.Error("failed to remove dir %s ", dir)
+		logger.Warn("failed to remove dir %s ", dir)
 	}
 }
 
