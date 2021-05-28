@@ -44,26 +44,29 @@ func (a *AliProvider) RetryEcsRequest(request requests.AcsRequest, response resp
 func (a *AliProvider) TryGetInstance(request *ecs.DescribeInstancesRequest, response *ecs.DescribeInstancesResponse, expectCount int) error {
 	return utils2.Retry(TryTimes, TrySleepTime, func() error {
 		err := a.EcsClient.DoAction(request, response)
+		var ipList []string
 		if err != nil {
 			return err
 		}
 		instances := response.Instances.Instance
-		if expectCount != -1 {
-			var ipList []string
-			if len(instances) != expectCount {
-				return errors.New("the number of instances is not as expected")
-			}
-			for _, instance := range instances {
-				if instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress == "" {
-					return errors.New("PrimaryIpAddress cannt nob be nil")
-				}
-				if len(ipList) != 0 && !utils.NotIn(instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress, ipList) {
-					return errors.New("PrimaryIpAddress cannt nob be same")
-				}
-
-				ipList = append(ipList, instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress)
-			}
+		if expectCount == -1 {
+			return nil
 		}
+
+		if len(instances) != expectCount {
+			return errors.New("the number of instances is not as expected")
+		}
+		for _, instance := range instances {
+			if instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress == "" {
+				return errors.New("PrimaryIpAddress cannt nob be nil")
+			}
+			if len(ipList) != 0 && !utils.NotIn(instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress, ipList) {
+				return errors.New("PrimaryIpAddress cannt nob be same")
+			}
+
+			ipList = append(ipList, instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress)
+		}
+
 		return nil
 	})
 }
