@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
@@ -119,6 +121,7 @@ func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Name
 	if file, err = compress.RootDirNotIncluded(nil, filepath.Join(common.DefaultLayerDir, layerID.Hex())); err != nil {
 		return distribution.Descriptor{}, err
 	}
+	defer utils.CleanFile(file)
 
 	_, err = file.Seek(0, 0)
 	if err != nil {
