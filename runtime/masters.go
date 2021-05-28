@@ -289,7 +289,7 @@ func (d *Default) joinMasters(masters []string) error {
 	if err := d.GetJoinTokenHashAndKey(); err != nil {
 		return err
 	}
-	if err := d.LinkStaticFiles(masters); err != nil {
+	if err := d.CopyStaticFiles(masters); err != nil {
 		return err
 	}
 	d.SendJoinMasterKubeConfigs(masters, AdminConf, ControllerConf, SchedulerConf)
