@@ -68,24 +68,3 @@ jobs:
         if: ${{ github.event.label.name == 'apply-test' }}
         run: |
           ginkgo -v --focus="sealer apply" test
-
-      - name: Run images test
-          shell: bash
-          working-directory: src/github.com/alibaba/sealer
-          if: ${{ github.event.label.name == 'images-test' }}
-          run: |
-            ginkgo -v --focus="sealer images" test
-
-      - name: Run inspect test
-          shell: bash
-          working-directory: src/github.com/alibaba/sealer
-          if: ${{ github.event.label.name == 'inspect-test' }}
-          run: |
-            ginkgo -v --focus="sealer inspect" test
-
-      - name: Run tag test
-          shell: bash
-          working-directory: src/github.com/alibaba/sealer
-          if: ${{ github.event.label.name == 'tag-test' }}
-          run: |
-            ginkgo -v --focus="sealer tag" test
