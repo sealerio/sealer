@@ -2,7 +2,8 @@ package apply
 
 import (
 	"fmt"
-	"path"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
@@ -14,8 +15,6 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const ApplyCluster = "chmod +x %s && %s apply -f %s"
@@ -116,24 +115,12 @@ func (c *CloudApplier) Apply() error {
 	if err != nil {
 		return err
 	}
-	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
-	err = client.SSH.Fetch(client.Host, path.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
-	if err != nil {
-		return err
-	}
-	err = utils.AppendFile(common.EtcHosts, fmt.Sprintf("%s %s", client.Host, common.APIServerDomain))
-	if err != nil {
-		return errors.Wrap(err, "append EIP to etc hosts failed")
-	}
-	err = client.SSH.Fetch(client.Host, common.KubectlPath, common.KubectlPath)
-	if err != nil {
-		return errors.Wrap(err, "fetch kubectl failed")
-	}
-	err = utils.Cmd("chmod", "+x", common.KubectlPath)
 
+	err = runtime.GetKubectlAndKubeconfig(client.SSH, client.Host)
 	if err != nil {
-		return errors.Wrap(err, "chmod a+x kubectl failed")
+		return fmt.Errorf("failed to copy kubeconfig and kubectl %v", err)
 	}
+
 	return nil
 }
 

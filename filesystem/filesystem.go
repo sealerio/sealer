@@ -54,9 +54,13 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 }
 func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 	clusterTmpRootfsDir := filepath.Join("/tmp", cluster.Name)
-	if IsDir(clusterTmpRootfsDir) {
-		logger.Info("cluster rootfs already exist, skip mount cluster image")
-		return nil
+	clusterRootfsDir := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name)
+	if IsDir(clusterTmpRootfsDir) || IsDir(clusterRootfsDir) {
+		// fix issue: https://github.com/alibaba/sealer/issues/226
+		err := utils.CleanFiles(clusterTmpRootfsDir, clusterRootfsDir)
+		if err != nil {
+			logger.Warn("unable to clean rootfs dir %v", err)
+		}
 	}
 	//get layers
 	Image, err := imageUtils.GetImage(cluster.Spec.Image)

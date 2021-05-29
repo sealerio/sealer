@@ -2,7 +2,10 @@ package runtime
 
 import (
 	"fmt"
+	"path"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -74,5 +77,27 @@ func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
 	} else {
 		logger.Warn("failed to find %s, if image registry is private, please login first", authFile)
 	}
+	return nil
+}
+
+func GetKubectlAndKubeconfig(ssh ssh.Interface, host string) error {
+	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
+	err := ssh.Fetch(host, path.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
+	if err != nil {
+		return errors.Wrap(err, "failed to copy kubeconfig")
+	}
+	err = utils.AppendFile(common.EtcHosts, fmt.Sprintf("%s %s", host, common.APIServerDomain))
+	if err != nil {
+		return errors.Wrap(err, "failed to append master IP to etc hosts")
+	}
+	err = ssh.Fetch(host, common.KubectlPath, common.KubectlPath)
+	if err != nil {
+		return errors.Wrap(err, "fetch kubectl failed")
+	}
+	err = utils.Cmd("chmod", "+x", common.KubectlPath)
+	if err != nil {
+		return errors.Wrap(err, "chmod a+x kubectl failed")
+	}
+
 	return nil
 }
