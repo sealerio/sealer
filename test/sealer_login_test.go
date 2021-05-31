@@ -19,7 +19,7 @@ var _ = Describe("sealer login", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("with correct name and password", func() {
-			sess, err := testhelper.Start(fmt.Sprintf("sealer login %s -u %s -p %s", settings.RegistryURL,
+			sess, err := testhelper.Start(fmt.Sprintf("%s login %s -u %s -p %s", settings.DefaultSealerBin, settings.RegistryURL,
 				settings.RegistryUsername, settings.RegistryPasswd))
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess).Should(Say(fmt.Sprintf("login %s success", settings.RegistryURL)))

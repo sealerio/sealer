@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/suites/registry"
 	"github.com/alibaba/sealer/test/testhelper"
@@ -30,8 +31,7 @@ var _ = Describe("sealer apply", func() {
 					AfterEach(func() {
 						apply.DeleteCluster(usedClusterFilePath)
 					})
-
-					It("apply a cluster file to do shrink and expand if provider is ali cloud", func() {
+					It("apply a cluster file to do scale down or scale up if provider is ali cloud", func() {
 						// apply a test cluster with 2 nodes
 						sess, err := testhelper.Start(apply.SealerApplyCmd(rawClusterFilePath))
 						Expect(err).NotTo(HaveOccurred())
@@ -63,52 +63,53 @@ var _ = Describe("sealer apply", func() {
 
 					})
 
-					Context("check abnormal scenario that no need to delete cluster", func() {
-						var tempFile string
-						BeforeEach(func() {
-							tempFile = testhelper.CreateTempFile()
-						})
+				})
 
-						AfterEach(func() {
-							testhelper.RemoveTempFile(tempFile)
-						})
-
-						It("empty content of cluster file", func() {
-							sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-							Expect(err).NotTo(HaveOccurred())
-							Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
-						})
-
-						It("invalid content of cluster file", func() {
-							err := utils.WriteFile(tempFile, []byte("i love sealer!"))
-							Expect(err).NotTo(HaveOccurred())
-							sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-							Expect(err).NotTo(HaveOccurred())
-							Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
-						})
-
-						It("invalid provider of cluster file", func() {
-							rawCluster.Spec.Provider = "sealer"
-							apply.WriteClusterFileToDisk(rawCluster, tempFile)
-							sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-							Expect(err).NotTo(HaveOccurred())
-							Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(2))
-						})
-
-						It("invalid images name of cluster file", func() {
-							rawCluster.Spec.Image = "FakeImage"
-							apply.WriteClusterFileToDisk(rawCluster, tempFile)
-							sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-							Expect(err).NotTo(HaveOccurred())
-							Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
-						})
-
+				Context("check abnormal scenario that no need to delete cluster", func() {
+					var tempFile string
+					BeforeEach(func() {
+						tempFile = testhelper.CreateTempFile()
 					})
+
+					AfterEach(func() {
+						testhelper.RemoveTempFile(tempFile)
+					})
+
+					It("empty content of cluster file", func() {
+						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
+					})
+
+					It("invalid content of cluster file", func() {
+						err := utils.WriteFile(tempFile, []byte("i love sealer!"))
+						Expect(err).NotTo(HaveOccurred())
+						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
+					})
+
+					It("invalid provider of cluster file", func() {
+						rawCluster.Spec.Provider = "sealer"
+						apply.WriteClusterFileToDisk(rawCluster, tempFile)
+						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(2))
+					})
+
+					It("invalid images name of cluster file", func() {
+						rawCluster.Spec.Image = "FakeImage"
+						apply.WriteClusterFileToDisk(rawCluster, tempFile)
+						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
+					})
+
 				})
 
 				Context("if not exist", func() {
 					It("only run sealer apply", func() {
-						sess, err := testhelper.Start("sealer apply")
+						sess, err := testhelper.Start(fmt.Sprintf("%s apply", settings.DefaultSealerBin))
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess.Err).Should(Say("apply cloud cluster failed open Clusterfile: no such file or directory"))
 						Eventually(sess).Should(Exit(2))

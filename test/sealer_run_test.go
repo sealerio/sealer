@@ -30,7 +30,7 @@ var _ = Describe("sealer run", func() {
 				It("exec sealer run", func() {
 					master := "3"
 					node := "3"
-					cmd := fmt.Sprintf("sealer run %s -m %s -n %s", settings.ImageNameForRun, master, node)
+					cmd := fmt.Sprintf("%s run %s -m %s -n %s", settings.DefaultSealerBin, settings.ImageNameForRun, master, node)
 					sess, err := testhelper.Start(cmd)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))

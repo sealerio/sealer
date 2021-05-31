@@ -22,7 +22,7 @@ func Login() {
 	if utils.IsFileExist(config) {
 		return
 	}
-	sess, err := testhelper.Start(fmt.Sprintf("sealer login %s -u %s -p %s", settings.RegistryURL,
+	sess, err := testhelper.Start(fmt.Sprintf("%s login %s -u %s -p %s", settings.DefaultSealerBin, settings.RegistryURL,
 		settings.RegistryUsername,
 		settings.RegistryPasswd))
 

@@ -19,6 +19,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	output, err := exec.LookPath("sealer")
 	Expect(err).NotTo(HaveOccurred(), output)
 	SetDefaultEventuallyTimeout(settings.DefaultWaiteTime)
+	settings.DefaultSealerBin = output
 	return nil
 }, func(data []byte) {
 	SetDefaultEventuallyTimeout(settings.DefaultWaiteTime)
