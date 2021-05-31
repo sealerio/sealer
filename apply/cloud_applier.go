@@ -35,6 +35,9 @@ func NewAliCloudProvider(cluster *v1.Cluster) Interface {
 }
 
 func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, err error) {
+	if cluster == nil {
+		return false, nil
+	}
 	logger.Info("desired master %s, current master %s, desired nodes %s, current nodes %s", c.ClusterDesired.Spec.Masters.Count,
 		cluster.Spec.Masters.Count,
 		c.ClusterDesired.Spec.Nodes.Count,
