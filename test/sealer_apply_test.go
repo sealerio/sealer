@@ -27,18 +27,18 @@ var _ = Describe("sealer apply", func() {
 				rawCluster := apply.LoadClusterFileFromDisk(rawClusterFilePath)
 				usedClusterFilePath := testhelper.GetUsedClusterFilePath(rawCluster.Name)
 
-				Context("check regular scenario that need to delete cluster", func() {
+				Context("check regular scenario that provider is ali cloud", func() {
 					AfterEach(func() {
 						apply.DeleteCluster(usedClusterFilePath)
 					})
-					It("apply a cluster file to do scale down or scale up if provider is ali cloud", func() {
-						// apply a test cluster with 2 nodes
+					It("scale up and scale down", func() {
+						// 1,apply a test cluster with 2 nodes
 						sess, err := testhelper.Start(apply.SealerApplyCmd(rawClusterFilePath))
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						Expect(apply.GetClusterNodes()).Should(Equal(2))
 
-						// expand cluster to 6 nodes and write to disk
+						// 2,scale up cluster to 6 nodes and write to disk
 						usedCluster := apply.LoadClusterFileFromDisk(usedClusterFilePath)
 						usedCluster.Spec.Nodes.Count = "3"
 						usedCluster.Spec.Masters.Count = "3"
@@ -48,7 +48,7 @@ var _ = Describe("sealer apply", func() {
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						Expect(apply.GetClusterNodes()).Should(Equal(6))
 
-						// shrink cluster to 4 nodes and write to disk
+						// 3,scale down cluster to 4 nodes and write to disk
 						usedCluster = apply.LoadClusterFileFromDisk(usedClusterFilePath)
 						usedCluster.Spec.Nodes.Count = "1"
 						usedCluster.Spec.Masters.Count = "3"
@@ -57,10 +57,55 @@ var _ = Describe("sealer apply", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						Expect(apply.GetClusterNodes()).Should(Equal(4))
-						It("apply a cluster file to do shrink and expand if provider is bare metal", func() {
-							//todo : need to test bare metal scenario
-						})
+					})
 
+				})
+
+				Context("check regular scenario that provider is bare metal", func() {
+					AfterEach(func() {
+						//delete infra
+						apply.DeleteCluster(usedClusterFilePath)
+					})
+
+					It("scale up and scale down", func() {
+						// 1,apply a remote cluster with 2 nodes and prepare ssh client
+						sess, err := testhelper.Start(apply.SealerApplyCmd(rawClusterFilePath))
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+						Expect(apply.GetClusterNodes()).Should(Equal(2))
+						usedCluster := apply.LoadClusterFileFromDisk(usedClusterFilePath)
+						sshClient := testhelper.NewSSHClientByCluster(usedCluster)
+						usedCluster.Spec.Provider = settings.BAREMETAL
+						remoteApplyCmd := apply.SealerApplyCmd(usedClusterFilePath)
+						// 2,scale up cluster to 6 nodes and write to disk
+						usedCluster.Spec.Nodes.Count = "3"
+						usedCluster.Spec.Masters.Count = "3"
+						apply.WriteClusterFileToDisk(usedCluster, usedClusterFilePath)
+						err = sshClient.SSH.Copy(sshClient.RemoteHostIP, usedClusterFilePath, usedClusterFilePath)
+						Expect(err).NotTo(HaveOccurred())
+						err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, remoteApplyCmd)
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+						Expect(apply.GetClusterNodes()).Should(Equal(6))
+
+						// 3,scale down cluster to 4 nodes and write to disk
+						usedCluster.Spec.Nodes.Count = "1"
+						usedCluster.Spec.Masters.Count = "3"
+						apply.WriteClusterFileToDisk(usedCluster, usedClusterFilePath)
+						err = sshClient.SSH.Copy(sshClient.RemoteHostIP, usedClusterFilePath, usedClusterFilePath)
+						Expect(err).NotTo(HaveOccurred())
+						err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, remoteApplyCmd)
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+						Expect(apply.GetClusterNodes()).Should(Equal(4))
+						// 4,delete k8s cluster:run apply delete remotely
+						deleteCmd := fmt.Sprintf("sealer delete -f %s", usedClusterFilePath)
+						err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, deleteCmd)
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+						//reset provider for cleaning up
+						usedCluster.Spec.Provider = settings.AliCloud
+						apply.WriteClusterFileToDisk(usedCluster, usedClusterFilePath)
 					})
 
 				})
@@ -107,15 +152,15 @@ var _ = Describe("sealer apply", func() {
 
 				})
 
-				Context("if not exist", func() {
-					It("only run sealer apply", func() {
-						sess, err := testhelper.Start(fmt.Sprintf("%s apply", settings.DefaultSealerBin))
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess.Err).Should(Say("apply cloud cluster failed open Clusterfile: no such file or directory"))
-						Eventually(sess).Should(Exit(2))
-					})
-				})
+			})
 
+			Context("if not exist", func() {
+				It("only run sealer apply", func() {
+					sess, err := testhelper.Start(fmt.Sprintf("%s apply", settings.DefaultSealerBin))
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess.Err).Should(Say("apply cloud cluster failed open Clusterfile: no such file or directory"))
+					Eventually(sess).Should(Exit(2))
+				})
 			})
 
 		})

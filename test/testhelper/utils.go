@@ -6,6 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils/ssh"
+
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	"github.com/onsi/gomega"
 	"k8s.io/client-go/util/homedir"
@@ -61,4 +64,20 @@ func GetUsedClusterFilePath(clusterName string) string {
 		return fmt.Sprintf("%s/.sealer/%s/Clusterfile", home, clusterName)
 	}
 	return ""
+}
+
+type SSHClient struct {
+	RemoteHostIP string
+	SSH          ssh.Interface
+}
+
+func NewSSHClientByCluster(usedCluster *v1.Cluster) *SSHClient {
+	sshClient, err := ssh.NewSSHClientWithCluster(usedCluster)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(sshClient).NotTo(gomega.BeNil())
+	return &SSHClient{
+		RemoteHostIP: sshClient.Host,
+		SSH:          sshClient.SSH,
+	}
+
 }

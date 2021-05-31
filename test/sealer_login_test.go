@@ -15,8 +15,7 @@ import (
 var _ = Describe("sealer login", func() {
 	Context("login docker registry", func() {
 		AfterEach(func() {
-			err := registry.CleanLoginFile()
-			Expect(err).NotTo(HaveOccurred())
+			registry.Logout()
 		})
 		It("with correct name and password", func() {
 			sess, err := testhelper.Start(fmt.Sprintf("%s login %s -u %s -p %s", settings.DefaultSealerBin, settings.RegistryURL,
