@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+
 	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/suites/registry"
 	"github.com/alibaba/sealer/test/testhelper"
@@ -62,50 +63,9 @@ var _ = Describe("sealer apply", func() {
 				})
 
 				Context("check regular scenario that provider is bare metal", func() {
-					AfterEach(func() {
-						//delete infra
-						apply.DeleteCluster(usedClusterFilePath)
-					})
-
+					
 					It("scale up and scale down", func() {
-						// 1,apply a remote cluster with 2 nodes and prepare ssh client
-						sess, err := testhelper.Start(apply.SealerApplyCmd(rawClusterFilePath))
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-						Expect(apply.GetClusterNodes()).Should(Equal(2))
-						usedCluster := apply.LoadClusterFileFromDisk(usedClusterFilePath)
-						sshClient := testhelper.NewSSHClientByCluster(usedCluster)
-						usedCluster.Spec.Provider = settings.BAREMETAL
-						remoteApplyCmd := apply.SealerApplyCmd(usedClusterFilePath)
-						// 2,scale up cluster to 6 nodes and write to disk
-						usedCluster.Spec.Nodes.Count = "3"
-						usedCluster.Spec.Masters.Count = "3"
-						apply.WriteClusterFileToDisk(usedCluster, usedClusterFilePath)
-						err = sshClient.SSH.Copy(sshClient.RemoteHostIP, usedClusterFilePath, usedClusterFilePath)
-						Expect(err).NotTo(HaveOccurred())
-						err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, remoteApplyCmd)
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-						Expect(apply.GetClusterNodes()).Should(Equal(6))
 
-						// 3,scale down cluster to 4 nodes and write to disk
-						usedCluster.Spec.Nodes.Count = "1"
-						usedCluster.Spec.Masters.Count = "3"
-						apply.WriteClusterFileToDisk(usedCluster, usedClusterFilePath)
-						err = sshClient.SSH.Copy(sshClient.RemoteHostIP, usedClusterFilePath, usedClusterFilePath)
-						Expect(err).NotTo(HaveOccurred())
-						err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, remoteApplyCmd)
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-						Expect(apply.GetClusterNodes()).Should(Equal(4))
-						// 4,delete k8s cluster:run apply delete remotely
-						deleteCmd := fmt.Sprintf("sealer delete -f %s", usedClusterFilePath)
-						err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, deleteCmd)
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-						//reset provider for cleaning up
-						usedCluster.Spec.Provider = settings.AliCloud
-						apply.WriteClusterFileToDisk(usedCluster, usedClusterFilePath)
 					})
 
 				})

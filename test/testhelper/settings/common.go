@@ -42,10 +42,10 @@ var (
 	DefaultPollingInterval time.Duration
 	MaxWaiteTime           time.Duration
 	DefaultWaiteTime       time.Duration
-	DefaultSealerBin = ""
-	RegistryURL      = os.Getenv("REGISTRY_URL")
-	RegistryUsername = os.Getenv("REGISTRY_USERNAME")
-	RegistryPasswd   = os.Getenv("REGISTRY_PASSWORD")
+	DefaultSealerBin       = ""
+	RegistryURL            = os.Getenv("REGISTRY_URL")
+	RegistryUsername       = os.Getenv("REGISTRY_USERNAME")
+	RegistryPasswd         = os.Getenv("REGISTRY_PASSWORD")
 
 	AccessKey     = os.Getenv("ACCESSKEYID")
 	AccessSecret  = os.Getenv("ACCESSKEYSECRET")

@@ -79,5 +79,4 @@ func NewSSHClientByCluster(usedCluster *v1.Cluster) *SSHClient {
 		RemoteHostIP: sshClient.Host,
 		SSH:          sshClient.SSH,
 	}
-
 }
