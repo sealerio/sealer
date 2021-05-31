@@ -54,7 +54,6 @@ jobs:
         if: ${{ github.event.label.name == 'e2e-test' }}
         run: |
           ginkgo -v test
-
       - name: Run apply test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
