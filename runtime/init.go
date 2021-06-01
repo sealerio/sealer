@@ -84,8 +84,9 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	// TODO add host port
 	d.Nodes = cluster.Spec.Nodes.IPList
 	d.APIServer = DefaultAPIserverDomain
-	d.Rootfs = path.Join(common.DefaultClusterRootfsDir, d.ClusterName)
-	d.CertPath = fmt.Sprintf("%s/pki", d.Rootfs)
+	d.Rootfs = common.DefaultTheClusterRootfsDir(d.ClusterName)
+	d.BasePath = path.Join(common.DefaultClusterRootfsDir, d.ClusterName)
+	d.CertPath = fmt.Sprintf("%s/pki", d.BasePath)
 	d.CertEtcdPath = fmt.Sprintf("%s/etcd", d.CertPath)
 	d.StaticFileDir = fmt.Sprintf("%s/statics", d.Rootfs)
 	// TODO remote port in ipList
@@ -100,8 +101,7 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	} else {
 		d.MTU = "1550"
 	}
-
-	return nil
+	return d.LoadMetadata()
 }
 func (d *Default) ConfigKubeadmOnMaster0() error {
 	var templateData string
@@ -173,7 +173,7 @@ func (d *Default) CreateKubeConfig() error {
 	}
 
 	controlPlaneEndpoint := fmt.Sprintf("https://%s:6443", d.APIServer)
-	err := cert.CreateJoinControlPlaneKubeConfigFiles(d.Rootfs,
+	err := cert.CreateJoinControlPlaneKubeConfigFiles(d.BasePath,
 		certConfig, hostname, controlPlaneEndpoint, "kubernetes")
 	if err != nil {
 		return fmt.Errorf("generator kubeconfig failed %s", err)

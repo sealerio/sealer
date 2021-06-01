@@ -8,6 +8,9 @@ import (
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+
+	"fmt"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -59,7 +62,10 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		if err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts); err != nil {
 			return err
 		}
-		applier.Runtime.LoadMetadata()
+		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		if applier.Runtime == nil {
+			return fmt.Errorf("failed to init runtime")
+		}
 		return nil
 	},
 	UnMountRootfs: func(applier *DefaultApplier) error {
@@ -203,7 +209,6 @@ func NewDefaultApplier(cluster *v1.Cluster) Interface {
 		ClusterDesired: cluster,
 		ImageManager:   image.NewImageService(),
 		FileSystem:     filesystem.NewFilesystem(),
-		Runtime:        runtime.NewDefaultRuntime(cluster),
 		Guest:          guest.NewGuestManager(),
 	}
 }
