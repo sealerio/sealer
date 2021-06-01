@@ -9,6 +9,7 @@ on:
       - 'docs/**'
       - 'vendor/**'
       - '*.md'
+      - '*.yml'
 jobs:
 
   build:
@@ -38,18 +39,8 @@ jobs:
       - name: Make linux
         shell: bash
         run: |
-          readonly platforms=(
-            linux/amd64
-            linux/arm64
-          )
-
-          for platform in "${platforms[@]}"; do
-            os=${platform%/*}
-            arch=${platform##*/}
-            go env -w GOOS="${os}"
-            go env -w GOARCH="${arch}"
-            make build version=0.0.0
-          done
+          export MULTI_PLATFORM_BUILD=true
+          make build
         working-directory: src/github.com/alibaba/sealer
 
       - name: Save build binaries
