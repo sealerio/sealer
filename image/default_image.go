@@ -25,7 +25,6 @@ import (
 	"github.com/alibaba/sealer/image/store"
 	imageutils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/registry"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	dockerstreams "github.com/docker/cli/cli/streams"
@@ -84,19 +83,14 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 
-	authInfo, err := utils.GetDockerAuthInfoFromDocker(named.Domain())
-	if err != nil {
-		logger.Warn("failed to get auth info, err: %s", err)
-	}
-
-	puller, err := distributionutil.NewPuller(distributionutil.Config{
+	puller, err := distributionutil.NewPuller(named, distributionutil.Config{
 		LayerStore:     layerStore,
 		ProgressOutput: progressChanOut,
-		AuthInfo:       authInfo,
 	})
 	if err != nil {
 		return err
 	}
+
 	go func() {
 		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
 		if err != nil && err != io.ErrClosedPipe {
@@ -142,16 +136,11 @@ func (d DefaultImageService) Push(imageName string) error {
 		return err
 	}
 
-	authInfo, err := utils.GetDockerAuthInfoFromDocker(named.Domain())
-	if err != nil {
-		logger.Warn("failed to get docker info, err: %s", err)
-	}
-
-	pusher, err := distributionutil.NewPusher(distributionutil.Config{
-		LayerStore:     layerStore,
-		ProgressOutput: progressChanOut,
-		AuthInfo:       authInfo,
-	})
+	pusher, err := distributionutil.NewPusher(named,
+		distributionutil.Config{
+			LayerStore:     layerStore,
+			ProgressOutput: progressChanOut,
+		})
 	if err != nil {
 		return err
 	}
@@ -170,7 +159,7 @@ func (d DefaultImageService) Push(imageName string) error {
 
 // Login login into a registry, for saving auth info in ~/.docker/config.json
 func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd string) error {
-	_, err := registry.New(context.Background(), types.AuthConfig{ServerAddress: RegistryURL, Username: RegistryUsername, Password: RegistryPasswd}, registry.Opt{Insecure: true, Debug: true})
+	err := distributionutil.Login(context.Background(), &types.AuthConfig{ServerAddress: RegistryURL, Username: RegistryUsername, Password: RegistryPasswd})
 	if err != nil {
 		logger.Error("%v authentication failed", RegistryURL)
 		return err

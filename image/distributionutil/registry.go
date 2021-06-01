@@ -17,19 +17,24 @@ package distributionutil
 import (
 	"context"
 
-	"github.com/alibaba/sealer/registry"
-	"github.com/docker/docker/api/types"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
+
+	"github.com/alibaba/sealer/image/reference"
+
+	"github.com/docker/distribution"
 )
 
-func fetchRegistryClient(auth types.AuthConfig) (*registry.Registry, error) {
-	reg, err := registry.New(context.Background(), auth, registry.Opt{Insecure: true})
-	if err == nil {
-		return reg, nil
+func NewV2Repository(named reference.Named, actions ...string) (distribution.Repository, error) {
+	authConfig, err := utils.GetDockerAuthInfoFromDocker(named.Domain())
+	if err != nil {
+		logger.Warn("failed to get auth info, err: %s", err)
 	}
 
-	reg, err = registry.New(context.Background(), auth, registry.Opt{Insecure: true, NonSSL: true})
+	repo, err := NewRepository(context.Background(), authConfig, named.Repo(), registryConfig{Insecure: true, Domain: named.Domain()}, actions...)
 	if err == nil {
-		return reg, nil
+		return repo, nil
 	}
-	return nil, err
+
+	return NewRepository(context.Background(), authConfig, named.Repo(), registryConfig{Insecure: true, NonSSL: true, Domain: named.Domain()}, actions...)
 }
