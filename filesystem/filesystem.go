@@ -31,6 +31,7 @@ type Interface interface {
 	MountImage(cluster *v1.Cluster) error
 	UnMountImage(cluster *v1.Cluster) error
 }
+
 type FileSystem struct {
 }
 
@@ -41,26 +42,24 @@ func IsDir(path string) bool {
 	}
 	return s.IsDir()
 }
+
 func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
-	clusterTmpRootfsDir := filepath.Join("/tmp", cluster.Name)
-	if utils.IsFileExist(clusterTmpRootfsDir) {
-		logger.Debug("unmount cluster dir %s", clusterTmpRootfsDir)
-		if err := mount.NewMountDriver().Unmount(clusterTmpRootfsDir); err != nil {
-			logger.Warn("failed to unmount %s, err: %v", clusterTmpRootfsDir, err)
+	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
+	if utils.IsFileExist(mountdir) {
+		logger.Debug("unmount cluster dir %s", mountdir)
+		if err := mount.NewMountDriver().Unmount(mountdir); err != nil {
+			logger.Warn("failed to unmount %s, err: %v", mountdir, err)
 		}
 	}
-	utils.CleanDir(clusterTmpRootfsDir)
+	utils.CleanDir(mountdir)
 	return nil
 }
+
 func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
-	clusterTmpRootfsDir := filepath.Join("/tmp", cluster.Name)
-	clusterRootfsDir := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name)
-	if IsDir(clusterTmpRootfsDir) || IsDir(clusterRootfsDir) {
-		// fix issue: https://github.com/alibaba/sealer/issues/226
-		err := utils.CleanFiles(clusterTmpRootfsDir, clusterRootfsDir)
-		if err != nil {
-			logger.Warn("unable to clean rootfs dir %v", err)
-		}
+	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
+	if IsDir(mountdir) {
+		logger.Info("image already mounted")
+		return nil
 	}
 	//get layers
 	Image, err := imageUtils.GetImage(cluster.Spec.Image)
@@ -73,15 +72,16 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 		return fmt.Errorf("get layers failed: %v", err)
 	}
 	driver := mount.NewMountDriver()
-	upperDir := filepath.Join(clusterTmpRootfsDir, "upper")
+	upperDir := filepath.Join(mountdir, "upper")
 	if err = os.MkdirAll(upperDir, 0744); err != nil {
 		return fmt.Errorf("create upperdir failed, %s", err)
 	}
-	if err = driver.Mount(clusterTmpRootfsDir, upperDir, layers...); err != nil {
+	if err = driver.Mount(mountdir, upperDir, layers...); err != nil {
 		return fmt.Errorf("mount files failed %v", err)
 	}
 	return nil
 }
+
 func (c *FileSystem) MountImage(cluster *v1.Cluster) error {
 	err := c.mountImage(cluster)
 	if err != nil {
@@ -89,6 +89,7 @@ func (c *FileSystem) MountImage(cluster *v1.Cluster) error {
 	}
 	return nil
 }
+
 func (c *FileSystem) UnMountImage(cluster *v1.Cluster) error {
 	err := c.umountImage(cluster)
 	if err != nil {
@@ -96,8 +97,9 @@ func (c *FileSystem) UnMountImage(cluster *v1.Cluster) error {
 	}
 	return nil
 }
+
 func (c *FileSystem) MountRootfs(cluster *v1.Cluster, hosts []string) error {
-	clusterRootfsDir := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name)
+	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	//scp roofs to all Masters and Nodes,then do init.sh
 	if err := mountRootfs(hosts, clusterRootfsDir, cluster); err != nil {
 		return fmt.Errorf("mount rootfs failed %v", err)
@@ -122,10 +124,9 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	var wg sync.WaitGroup
 	var flag bool
 	var mutex sync.Mutex
-	rootfs := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name)
-	src := filepath.Join("/tmp", cluster.Name)
+	src := common.DefaultMountCloudImageDir(cluster.Name)
 	// TODO scp sdk has change file mod bug
-	initCmd := fmt.Sprintf(RemoteChmod, rootfs)
+	initCmd := fmt.Sprintf(RemoteChmod, target)
 	for _, ip := range ipList {
 		wg.Add(1)
 		go func(ip string) {
@@ -158,7 +159,7 @@ func unmountRootfs(ipList []string, cluster *v1.Cluster) error {
 	var wg sync.WaitGroup
 	var flag bool
 	var mutex sync.Mutex
-	clusterRootfsDir := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name)
+	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	execClean := fmt.Sprintf("/bin/sh -c "+common.DefaultClusterClearFile, cluster.Name)
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
 	for _, ip := range ipList {

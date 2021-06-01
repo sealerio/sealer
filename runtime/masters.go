@@ -27,6 +27,7 @@ const (
 )
 
 const (
+	RemoteRestartDocker     = "systemctl restart docker"
 	RemoteAddEtcHosts       = "echo %s >> /etc/hosts"
 	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" -i /etc/hosts`
 	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
@@ -112,7 +113,7 @@ func (d *Default) JoinMasterCommands(master, joinCmd, hostname string) []string 
 
 func (d *Default) sendKubeConfigFile(hosts []string, kubeFile string) {
 	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
-	sealerKubeFile := fmt.Sprintf("%s/%s", d.Rootfs, kubeFile)
+	sealerKubeFile := fmt.Sprintf("%s/%s", d.BasePath, kubeFile)
 	d.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
