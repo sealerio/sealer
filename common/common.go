@@ -36,7 +36,7 @@ const (
 	DefaultMetadataName           = "Metadata"
 	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
 	DefaultClusterInitFile        = "/var/lib/sealer/data/%s/scripts/init.sh"
-	DefaultClusterClearFile       = "/var/lib/sealer/data/%s/scripts/clean.sh"
+	DefaultClusterClearFile       = "/var/lib/sealer/data/%s/rootfs/scripts/clean.sh"
 	DefaultImageMetadataFileName  = "image_metadata.yaml"
 	ImageScratch                  = "scratch"
 	DefaultImageMetaRootDir       = "/var/lib/sealer/metadata"
@@ -132,4 +132,12 @@ func DefaultKubeConfigDir() string {
 
 func DefaultKubeConfigFile() string {
 	return filepath.Join(DefaultKubeConfigDir(), "config")
+}
+
+func DefaultMountCloudImageDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "mount")
+}
+
+func DefaultTheClusterRootfsDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
 }

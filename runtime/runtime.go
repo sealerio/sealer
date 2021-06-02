@@ -16,12 +16,11 @@ package runtime
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/ssh"
@@ -29,7 +28,6 @@ import (
 
 type Interface interface {
 	// exec kubeadm init
-	LoadMetadata()
 	Init(cluster *v1.Cluster) error
 	Hook(cluster *v1.Cluster) error
 	Upgrade(cluster *v1.Cluster) error
@@ -72,6 +70,7 @@ type Default struct {
 	LvscareImage      string
 	SSH               ssh.Interface
 	Rootfs            string
+	BasePath          string
 
 	// net config
 	Interface  string
@@ -86,29 +85,28 @@ func NewDefaultRuntime(cluster *v1.Cluster) Interface {
 	d := &Default{}
 	err := d.initRunner(cluster)
 	if err != nil {
+		logger.Error("get runtime failed %v", err)
 		return nil
 	}
 	return d
 }
 
-func (d *Default) LoadMetadata() {
-	metadataPath := filepath.Join("/tmp", d.ClusterName, common.DefaultMetadataName)
+func (d *Default) LoadMetadata() error {
+	metadataPath := filepath.Join(common.DefaultTheClusterRootfsDir(d.ClusterName), common.DefaultMetadataName)
 	var metadataFile []byte
 	var err error
 	metadata := &Metadata{}
-	if utils.IsFileExist(metadataPath) {
-		metadataFile, err = ioutil.ReadFile(metadataPath)
-		if err != nil {
-			logger.Warn("read metadata is error: %v", err)
-		}
-		err = json.Unmarshal(metadataFile, metadata)
-		if err != nil {
-			logger.Warn("load metadata failed, skip")
-			return
-		}
-		logger.Debug("metadata version %s", metadata.Version)
+	metadataFile, err = ioutil.ReadFile(metadataPath)
+	if err != nil {
+		return fmt.Errorf("failed to read CloudImage metadata %v", err)
 	}
+	err = json.Unmarshal(metadataFile, metadata)
+	if err != nil {
+		return fmt.Errorf("failed to load CloudImage metadata %v", err)
+	}
+	logger.Info("metadata version %s", metadata.Version)
 	d.Metadata = metadata
+	return nil
 }
 func (d *Default) Reset(cluster *v1.Cluster) error {
 	return d.reset(cluster)

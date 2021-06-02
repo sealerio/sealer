@@ -42,7 +42,6 @@ func NewAliCloudProvider(cluster *v1.Cluster) Interface {
 		ClusterDesired: cluster,
 		ImageManager:   image.NewImageService(),
 		FileSystem:     filesystem.NewFilesystem(),
-		Runtime:        runtime.NewDefaultRuntime(cluster),
 		Guest:          guest.NewGuestManager(),
 	}
 	return &CloudApplier{d}
