@@ -16,12 +16,11 @@ package cmd
 
 import (
 	"errors"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/logger"
+	"os"
 	"strings"
 
-	"os"
-
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
 )
 
