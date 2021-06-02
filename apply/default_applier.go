@@ -192,6 +192,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, ApplyNodes)
+		todoList = append(todoList, CNI)
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		return todoList, nil

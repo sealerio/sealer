@@ -34,8 +34,6 @@ import (
 )
 
 const (
-	RemoteCmdInitEtcdDir   = "mkdir -p /var/lib/etcd && mount %s /var/lib/etcd && rm -rf /var/lib/etcd/* && echo \"%s /var/lib/etcd ext4 defaults 0 0\" >> /etc/fstab"
-	RemoteCmdUnmountEtcd   = "umount /var/lib/etcd; mkfs.ext4 -F %s"
 	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
 	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
 	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
@@ -198,12 +196,6 @@ func (d *Default) CreateKubeConfig() error {
 //InitMaster0 is
 func (d *Default) InitMaster0() error {
 	d.SendJoinMasterKubeConfigs(d.Masters[:1], AdminConf, ControllerConf, SchedulerConf, KubeletConf)
-	/*
-		err := d.mountEtcdDisk(d.Masters[:1], d.EtcdDevice)
-		if err != nil {
-			return fmt.Error("mount for /var/lib/etcd failed at %s, due to %s", d.Masters[0], err)
-		}
-	*/
 
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(utils.GetHostIP(d.Masters[0]), d.APIServer))
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(utils.GetHostIP(d.Masters[0])))
@@ -212,6 +204,7 @@ func (d *Default) InitMaster0() error {
 		return err
 	}
 
+	logger.Info("start to init master0...")
 	cmdInit := d.Command(d.Metadata.Version, InitMaster)
 
 	// TODO skip docker version error check for test
@@ -225,7 +218,8 @@ func (d *Default) InitMaster0() error {
 		return err
 	}
 
-	return d.InitCNI()
+	//return d.InitCNI()
+	return nil
 }
 
 func (d *Default) InitCNI() error {
@@ -253,31 +247,6 @@ func (d *Default) InitCNI() error {
 
 	return d.SSH.CmdAsync(d.Masters[0], fmt.Sprintf(RemoteApplyYaml, netYaml))
 }
-
-/*func (d *Default) mountEtcdDisk(targetHosts []string, etcdDisk string) error {
-	if etcdDisk == "" {
-		logger.Warn("Etcd Disk is not set, etcd now uses root disk which is not recommended due to stability requirement.")
-		return nil
-	}
-
-	var wg sync.WaitGroup
-	for _, host := range targetHosts {
-		wg.Add(1)
-		go func(master string) {
-			defer wg.Done()
-			cmdInitDevice := fmt.Sprintf(RemoteCmdUnmountEtcd, etcdDisk)
-			cmdInitDir := fmt.Sprintf(RemoteCmdInitEtcdDir, etcdDisk, etcdDisk)
-			err := d.SSH.CmdAsync(master, cmdInitDevice, cmdInitDir)
-			if err != nil {
-				logger.Error("[%s] mount %s /var/lib/etcd failed, please check disk configuration", master, etcdDisk)
-				os.Exit(1)
-			}
-		}(host)
-	}
-	wg.Wait()
-
-	return nil
-}*/
 
 func (d *Default) CopyStaticFiles(nodes []string) error {
 	var flag bool
