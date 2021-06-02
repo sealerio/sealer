@@ -45,9 +45,8 @@ rm -rf ~/.kube/ && rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
 rm -rf /usr/bin/kube* && rm -rf /usr/bin/crictl && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
-rm -rf /var/lib/etcd && rm -rf /var/etcd && \
-rm -rf ~/kube && \
-rm -rf /etc/kubernetes/pki `
+rm -rf /var/lib/etcd && rm -rf /var/etcd 
+`
 	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
 	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
 	CreateLvscareStaticPod       = "mkdir -p /etc/kubernetes/manifests && echo '%s' > /etc/kubernetes/manifests/kube-sealyun-lvscare.yaml"
@@ -283,6 +282,9 @@ func (d *Default) GetRemoteHostName(hostIP string) string {
 func (d *Default) joinMasters(masters []string) error {
 	if len(masters) == 0 {
 		return nil
+	}
+	if err := d.LoadMetadata(); err != nil {
+		return fmt.Errorf("failed to load metadata %v", err)
 	}
 	if err := ssh.WaitSSHReady(d.SSH, masters...); err != nil {
 		return errors.Wrap(err, "join masters wait for ssh ready time out")
