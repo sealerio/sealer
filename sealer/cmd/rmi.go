@@ -15,9 +15,10 @@
 package cmd
 
 import (
+	"errors"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils/cli"
+	"strings"
 
 	"os"
 
@@ -35,7 +36,7 @@ var rmiCmd = &cobra.Command{
 	Use:     "rmi",
 	Short:   "Remove one or more images",
 	Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5`,
-	Args:    cli.RequiresMinArgs(1),
+	Args:    cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := runRemove(args); err != nil {
 			logger.Error(err)
@@ -46,10 +47,15 @@ var rmiCmd = &cobra.Command{
 
 func runRemove(images []string) error {
 	imageService := image.NewDeleteImageService(opts.force)
+	var errs []string
 	for _, img := range images {
 		if err := imageService.Delete(img); err != nil {
-			logger.Error(err)
+			errs = append(errs, err.Error())
 		}
+	}
+	if len(errs) > 0 {
+		msg := strings.Join(errs, "\n")
+		return errors.New(msg)
 	}
 	return nil
 }
