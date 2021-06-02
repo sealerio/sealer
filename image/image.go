@@ -28,3 +28,7 @@ func NewImageMetadataService() MetadataService {
 func NewImageFileService() FileService {
 	return DefaultImageFileService{}
 }
+
+func NewDeleteImageService(force bool) Service {
+	return DefaultImageService{force}
+}

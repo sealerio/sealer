@@ -17,26 +17,45 @@ package cmd
 import (
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils/cli"
 
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
+type removeImageFlag struct {
+	force bool
+}
+
+var opts removeImageFlag
+
 // rmiCmd represents the rmi command
 var rmiCmd = &cobra.Command{
 	Use:     "rmi",
-	Short:   "rmi delete local image",
+	Short:   "Remove one or more images",
 	Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5`,
-	Args:    cobra.ExactArgs(1),
+	Args:    cli.RequiresMinArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := image.NewImageService().Delete(args[0]); err != nil {
+		if err := runRemove(args); err != nil {
 			logger.Error(err)
 			os.Exit(1)
 		}
 	},
 }
 
+func runRemove(images []string) error {
+	imageService := image.NewDeleteImageService(opts.force)
+	for _, img := range images {
+		if err := imageService.Delete(img); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func init() {
+	opts = removeImageFlag{}
 	rootCmd.AddCommand(rmiCmd)
+	rmiCmd.Flags().BoolVarP(&opts.force, "force", "f", false, "force removal of the image")
 }
