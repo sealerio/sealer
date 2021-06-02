@@ -189,6 +189,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 		images        []*v1.Image
 		image         *v1.Image
 		imageTagCount int
+		imageID       string
 	)
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
@@ -212,13 +213,17 @@ func (d DefaultImageService) Delete(imageName string) error {
 		if err = imageutils.DeleteImage(imageName); err != nil {
 			return fmt.Errorf("failed to untag image %s, err: %w", imageName, err)
 		}
+		image, err = imageutils.GetImageByID(imageMetadata.ID)
+
+		imageID = imageMetadata.ID
 	} else {
 		if err = imageutils.DeleteImageByID(imageName, d.ForceDeleteImage); err != nil {
 			return err
 		}
+		image, err = imageutils.GetImageByID(imageName)
+		imageID = imageName
 	}
 
-	image, err = imageutils.GetImageByID(imageMetadata.ID)
 	if err != nil {
 		return fmt.Errorf("failed to get image metadata for image %s, err: %w", imageName, err)
 	}
@@ -229,7 +234,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 		if err != nil {
 			continue
 		}
-		if value.ID == imageMetadata.ID {
+		if value.ID == imageID {
 			imageTagCount++
 			if imageTagCount > 1 {
 				break
