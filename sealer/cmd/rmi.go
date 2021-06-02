@@ -48,7 +48,7 @@ func runRemove(images []string) error {
 	imageService := image.NewDeleteImageService(opts.force)
 	for _, img := range images {
 		if err := imageService.Delete(img); err != nil {
-			return err
+			logger.Error(err)
 		}
 	}
 	return nil
