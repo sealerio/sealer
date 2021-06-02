@@ -14,7 +14,7 @@
 
 package test
 
-import (
+/*import (
 	"fmt"
 
 	"github.com/alibaba/sealer/test/suites/apply"
@@ -48,4 +48,4 @@ var _ = Describe("sealer apply", func() {
 
 	})
 
-})
+})*/
