@@ -11,12 +11,6 @@ jobs:
     permissions:
       issues: write
     steps:
-      - name: Dump event context
-        env:
-          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-        run: |
-          env
 
       - name: Invite user to join our group
         uses: peter-evans/create-or-update-comment@v1
