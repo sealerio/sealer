@@ -12,10 +12,6 @@ jobs:
     env:
       GO111MODULE: on
     steps:
-      - name: Dump event context
-        env:
-          $STEPS_CONTEXT_EVENT: ${{ toJson(github.event) }}
-        run: echo "$STEPS_CONTEXT_EVENT"
       - name: Set up Go 1.13
         uses: actions/setup-go@v1
         with:
@@ -48,7 +44,7 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
-        if: contains(github.event.comment.body, '/test all')
+        if: ${{ github.event.comment.body == '/test all' }}
         run: |
           ginkgo -v test
         working-directory: src/github.com/alibaba/sealer
@@ -63,7 +59,7 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
-        if: contains(github.event.comment.body, '/test apply')
+        if: ${{ github.event.comment.body == '/test apply' }}
         run: |
           ginkgo -v --focus="sealer apply" test
 
@@ -77,6 +73,6 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
-        if: contains(github.event.comment.body, '/test build')
+        if: ${{ github.event.comment.body == '/test build' }}
         run: |
           ginkgo -v --focus="sealer build" test
