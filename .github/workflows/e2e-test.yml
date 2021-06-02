@@ -1,18 +1,14 @@
 name: Sealer-Test
 
 on:
-  pull_request:
-    types: [ labeled ]
-    branches:
-      - main
-    paths-ignore:
-      - 'docs/**'
-      - 'vendor/**'
-
+  issue_comment:
+    types:
+      - created
 jobs:
   build:
-    name: Test
+    name: test
     runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request }} && contains(github.event.comment.body, '/test')
     env:
       GO111MODULE: on
     steps:
@@ -21,7 +17,6 @@ jobs:
         with:
           go-version: 1.13
         id: go
-
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
         with:
@@ -37,13 +32,11 @@ jobs:
           go get github.com/onsi/ginkgo/ginkgo
           go get github.com/onsi/gomega/...
           GOPATH=`go env GOPATH`
-          export GOPATHBIN=$GOPATH/bin
-          echo "$GOPATHBIN" >> $GITHUB_PATH
+          echo "$GOPATH/bin" >> $GITHUB_PATH
         working-directory: src/github.com/alibaba/sealer
 
-      - name: Run e2e test
+      - name: Run all e2e test
         shell: bash
-        working-directory: src/github.com/alibaba/sealer
         env:
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
@@ -51,9 +44,11 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
-        if: ${{ github.event.label.name == 'e2e-test' }}
+        if: ${{ github.event.comment.body == '/test all' }}
         run: |
           ginkgo -v test
+        working-directory: src/github.com/alibaba/sealer
+
       - name: Run apply test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
@@ -64,6 +59,20 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
-        if: ${{ github.event.label.name == 'apply-test' }}
+        if: ${{ github.event.comment.body == '/test apply' }}
         run: |
           ginkgo -v --focus="sealer apply" test
+
+      - name: Run build test
+        shell: bash
+        working-directory: src/github.com/alibaba/sealer
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
+          ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
+          RegionID: ${{ secrets.RegionID }}
+        if: ${{ github.event.comment.body == '/test build' }}
+        run: |
+          ginkgo -v --focus="sealer build" test
