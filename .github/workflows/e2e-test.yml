@@ -12,6 +12,10 @@ jobs:
     env:
       GO111MODULE: on
     steps:
+      - name: Dump event context
+        env:
+          $STEPS_CONTEXT_EVENT: ${{ toJson(github.event) }}
+        run: echo "$STEPS_CONTEXT_EVENT"
       - name: Set up Go 1.13
         uses: actions/setup-go@v1
         with:
