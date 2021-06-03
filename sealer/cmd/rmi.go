@@ -33,7 +33,7 @@ var opts removeImageFlag
 // rmiCmd represents the rmi command
 var rmiCmd = &cobra.Command{
 	Use:     "rmi",
-	Short:   "Remove one or more images",
+	Short:   "Remove local images by name or ID",
 	Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer/cloudrootfs:v1.16.9-alpha.5`,
 	Args:    cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
