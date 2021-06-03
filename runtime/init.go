@@ -77,6 +77,10 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return err
 	}
 
+	if err := d.getClusterNodes(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -309,4 +313,15 @@ func (d *Default) decodeJoinCmd(cmd string) {
 		}
 	}
 	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", d.JoinToken, d.TokenCaCertHash, d.CertificateKey)
+}
+
+// get nodes list,check the config of kubectl
+func (d *Default) getClusterNodes() error {
+	output, err := utils.CmdOutput("kubectl", "get", "nodes")
+	if err != nil {
+		logger.Warn("failed to kubectl get nodes %s", err)
+		return err
+	}
+	fmt.Println(string(output))
+	return nil
 }
