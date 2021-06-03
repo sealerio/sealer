@@ -14,7 +14,7 @@
 
 package test
 
-import (
+/*import (
 	"fmt"
 	"os"
 
@@ -78,4 +78,4 @@ var _ = Describe("sealer build", func() {
 		})
 
 	})
-})
+})*/
