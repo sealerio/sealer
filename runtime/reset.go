@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -31,6 +32,11 @@ func (d *Default) reset(cluster *v1.Cluster) error {
 	err = d.resetNodes(cluster.Spec.Masters.IPList)
 	if err != nil {
 		return err
+	}
+	err = utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultClusterBaseDir(cluster.Name))
+	if err != nil {
+		// needs continue to clean
+		logger.Warn("reset cluster : %v", err)
 	}
 	return d.RecycleRegistryOnMaster0()
 }
@@ -54,7 +60,9 @@ func (d *Default) resetNodes(nodes []string) error {
 }
 func (d *Default) resetNode(node string) error {
 	host := utils.GetHostIP(node)
-	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Masters[0]))); err != nil {
+	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Masters[0]))); err != nil {
 		return err
 	}
 	return nil
