@@ -11,7 +11,6 @@ require (
 	github.com/genuinetools/reg v0.16.1
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5
 	github.com/onsi/ginkgo v1.16.2
 	github.com/onsi/gomega v1.12.0
@@ -22,7 +21,6 @@ require (
 	github.com/sealyun/lvscare v1.1.2-alpha.2
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.0
-	github.com/vbauerster/mpb/v6 v6.0.3
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
 	k8s.io/api v0.20.4

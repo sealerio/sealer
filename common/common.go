@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package common
 
 import (
@@ -22,7 +36,7 @@ const (
 	DefaultMetadataName           = "Metadata"
 	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
 	DefaultClusterInitFile        = "/var/lib/sealer/data/%s/scripts/init.sh"
-	DefaultClusterClearFile       = "/var/lib/sealer/data/%s/scripts/clean.sh"
+	DefaultClusterClearFile       = "/var/lib/sealer/data/%s/rootfs/scripts/clean.sh"
 	DefaultImageMetadataFileName  = "image_metadata.yaml"
 	ImageScratch                  = "scratch"
 	DefaultImageMetaRootDir       = "/var/lib/sealer/metadata"
@@ -114,4 +128,20 @@ func DefaultKubeConfigDir() string {
 		return DefaultKubeDir
 	}
 	return filepath.Join(home, ".kube")
+}
+
+func DefaultKubeConfigFile() string {
+	return filepath.Join(DefaultKubeConfigDir(), "config")
+}
+
+func DefaultMountCloudImageDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "mount")
+}
+
+func DefaultTheClusterRootfsDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
+}
+
+func DefaultClusterBaseDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName)
 }

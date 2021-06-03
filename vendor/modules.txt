@@ -1,12 +1,6 @@
 # github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
 github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
-# github.com/Microsoft/hcsshim v0.8.6
-github.com/Microsoft/hcsshim/osversion
-# github.com/VividCortex/ewma v1.1.1
-github.com/VividCortex/ewma
-# github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
-github.com/acarl005/stripansi
 # github.com/aliyun/alibaba-cloud-sdk-go v1.61.985
 ## explicit
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
@@ -71,7 +65,6 @@ github.com/docker/docker/pkg/jsonmessage
 github.com/docker/docker/pkg/longpath
 github.com/docker/docker/pkg/progress
 github.com/docker/docker/pkg/streamformatter
-github.com/docker/docker/pkg/system
 # github.com/docker/docker-credential-helpers v0.6.3
 github.com/docker/docker-credential-helpers/client
 github.com/docker/docker-credential-helpers/credentials
@@ -137,7 +130,7 @@ github.com/kr/fs
 github.com/lithammer/dedent
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
-# github.com/mattn/go-runewidth v0.0.10
+# github.com/mattn/go-runewidth v0.0.2
 github.com/mattn/go-runewidth
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 github.com/matttproud/golang_protobuf_extensions/pbutil
@@ -148,11 +141,6 @@ github.com/mitchellh/go-homedir
 github.com/mitchellh/mapstructure
 # github.com/moby/ipvs v1.0.1
 github.com/moby/ipvs
-# github.com/moby/sys/mount v0.2.0
-## explicit
-github.com/moby/sys/mount
-# github.com/moby/sys/mountinfo v0.4.0
-github.com/moby/sys/mountinfo
 # github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
 github.com/moby/term
 github.com/moby/term/windows
@@ -240,8 +228,6 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/rivo/uniseg v0.2.0
-github.com/rivo/uniseg
 # github.com/sealyun/lvscare v1.1.2-alpha.2
 ## explicit
 github.com/sealyun/lvscare/care
@@ -271,12 +257,6 @@ github.com/spf13/pflag
 github.com/spf13/viper
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
-# github.com/vbauerster/mpb/v6 v6.0.3
-## explicit
-github.com/vbauerster/mpb/v6
-github.com/vbauerster/mpb/v6/cwriter
-github.com/vbauerster/mpb/v6/decor
-github.com/vbauerster/mpb/v6/internal
 # github.com/vishvananda/netlink v1.1.0
 github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df

@@ -1,8 +1,23 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package apply
 
 import (
 	"fmt"
-	"path"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
@@ -14,8 +29,6 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const ApplyCluster = "chmod +x %s && %s apply -f %s"
@@ -29,13 +42,15 @@ func NewAliCloudProvider(cluster *v1.Cluster) Interface {
 		ClusterDesired: cluster,
 		ImageManager:   image.NewImageService(),
 		FileSystem:     filesystem.NewFilesystem(),
-		Runtime:        runtime.NewDefaultRuntime(cluster),
 		Guest:          guest.NewGuestManager(),
 	}
 	return &CloudApplier{d}
 }
 
 func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, err error) {
+	if cluster == nil {
+		return false, nil
+	}
 	logger.Info("desired master %s, current master %s, desired nodes %s, current nodes %s", c.ClusterDesired.Spec.Masters.Count,
 		cluster.Spec.Masters.Count,
 		c.ClusterDesired.Spec.Nodes.Count,
@@ -116,24 +131,12 @@ func (c *CloudApplier) Apply() error {
 	if err != nil {
 		return err
 	}
-	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
-	err = client.SSH.Fetch(client.Host, path.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
-	if err != nil {
-		return err
-	}
-	err = utils.AppendFile(common.EtcHosts, fmt.Sprintf("%s %s", client.Host, common.APIServerDomain))
-	if err != nil {
-		return errors.Wrap(err, "append EIP to etc hosts failed")
-	}
-	err = client.SSH.Fetch(client.Host, common.KubectlPath, common.KubectlPath)
-	if err != nil {
-		return errors.Wrap(err, "fetch kubectl failed")
-	}
-	err = utils.Cmd("chmod", "+x", common.KubectlPath)
 
+	err = runtime.GetKubectlAndKubeconfig(client.SSH, client.Host)
 	if err != nil {
-		return errors.Wrap(err, "chmod a+x kubectl failed")
+		return fmt.Errorf("failed to copy kubeconfig and kubectl %v", err)
 	}
+
 	return nil
 }
 
