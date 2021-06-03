@@ -33,11 +33,7 @@ type DefaultImageMetadataService struct {
 
 // Tag is used to give an another name for imageName
 func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
-	imageMetadataMap, err := imageutils.GetImageMetadataMap()
-	if err != nil {
-		return err
-	}
-	imageMetadata, ok := imageMetadataMap[imageName]
+	imageMetadata, ok := imageutils.GetNewImageMetadata(imageName)
 	if !ok {
 		return fmt.Errorf("failed to found image %s", imageName)
 	}
