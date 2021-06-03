@@ -27,13 +27,13 @@ import (
 func (d *Default) reset(cluster *v1.Cluster) error {
 	err := d.resetNodes(cluster.Spec.Nodes.IPList)
 	if err != nil {
-		return err
+		logger.Error("failed to clean nodes %v", err)
 	}
 	err = d.resetNodes(cluster.Spec.Masters.IPList)
 	if err != nil {
-		return err
+		logger.Error("failed to clean masters %v", err)
 	}
-	err = utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultClusterBaseDir(cluster.Name))
+	err = utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultClusterBaseDir(cluster.Name), common.DefaultKubeConfigDir())
 	if err != nil {
 		// needs continue to clean
 		logger.Warn("reset cluster : %v", err)
