@@ -135,12 +135,18 @@ spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: BAREMETAL
   ssh:
+    # SSH login password, if you use the key to log in, you don’t need to set it
     passwd:
+    ## The absolute path of the ssh private key file, for example /root/.ssh/id_rsa
     pk: xxx
+    #  The password of the ssh private key file, if there is none, set it to ""
     pkPasswd: xxx
+    # ssh login user
     user: root
   network:
+    # in use NIC name
     interface: eth0
+    # Network plug-in name
     cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
@@ -177,12 +183,18 @@ spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: ALI_CLOUD
   ssh:
+    # SSH login password, if you use the key to log in, you don’t need to set it
     passwd:
+    ## The absolute path of the ssh private key file, for example /root/.ssh/id_rsa
     pk: xxx
+    #  The password of the ssh private key file, if there is none, set it to ""
     pkPasswd: xxx
+    # ssh login user
     user: root
   network:
+    # in use NIC name
     interface: eth0
+    # Network plug-in name
     cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22

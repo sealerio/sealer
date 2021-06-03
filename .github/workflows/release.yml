@@ -66,10 +66,10 @@ jobs:
 
       - name: Make linux
         shell: bash
-        env:
-          MULTI_PLATFORM_BUILD: true
         run: |
-            make build version=${GIT_TAG#v}
+            export GIT_VERSION=${GIT_TAG#v}
+            export MULTI_PLATFORM_BUILD=true
+            make build
         working-directory: src/github.com/alibaba/sealer
 
       - name: Save build binaries
