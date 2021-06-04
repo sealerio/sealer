@@ -237,12 +237,12 @@ func (d DefaultImageService) Delete(imageName string) error {
 		if value.ID == imageID {
 			imageTagCount++
 			if imageTagCount > 1 {
-				break
+				continue
 			}
 		}
 		images = append(images, tmpImage)
 	}
-	if imageTagCount != 1 {
+	if imageTagCount != 1 && !d.ForceDeleteImage {
 		return nil
 	}
 
