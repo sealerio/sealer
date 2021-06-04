@@ -50,6 +50,7 @@ const (
 	AliCloud          = "ALI_CLOUD"
 	ImageNameForRun   = "registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest"
 	ClusterNameForRun = "my-cluster"
+	TMPClusterFile    = "/tmp/Clusterfile"
 )
 
 var (
