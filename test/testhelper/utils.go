@@ -105,7 +105,6 @@ func UnmarshalYamlFile(file string, obj interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(data))
 	err = yaml.Unmarshal(data, obj)
 	return err
 }
@@ -115,7 +114,6 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(data))
 	if err = WriteFile(file, data); err != nil {
 		return err
 	}
