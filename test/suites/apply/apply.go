@@ -24,7 +24,6 @@ import (
 
 	"github.com/alibaba/sealer/test/testhelper"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 )
 
 func getFixtures() string {
@@ -44,13 +43,13 @@ func DeleteCluster(clusterFile string) {
 
 func WriteClusterFileToDisk(cluster *v1.Cluster, clusterFilePath string) {
 	gomega.Expect(cluster).NotTo(gomega.BeNil())
-	err := utils.MarshalYamlToFile(clusterFilePath, cluster)
+	err := testhelper.MarshalYamlToFile(clusterFilePath, cluster)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
 func LoadClusterFileFromDisk(clusterFilePath string) *v1.Cluster {
 	var cluster v1.Cluster
-	err := utils.UnmarshalYamlFile(clusterFilePath, &cluster)
+	err := testhelper.UnmarshalYamlFile(clusterFilePath, &cluster)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(cluster).NotTo(gomega.BeNil())
 	return &cluster
@@ -77,7 +76,7 @@ func SealerApplyCmd(clusterFile string) string {
 }
 
 func CleanUpAliCloudInfraByClusterFile(clusterFile string) {
-	if !utils.IsFileExist(clusterFile) {
+	if !testhelper.IsFileExist(clusterFile) {
 		return
 	}
 	cluster := LoadClusterFileFromDisk(clusterFile)

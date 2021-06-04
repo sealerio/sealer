@@ -26,6 +26,8 @@ import (
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	"github.com/onsi/gomega"
 	"k8s.io/client-go/util/homedir"
+
+	"sigs.k8s.io/yaml"
 )
 
 func GetPwd() string {
@@ -96,4 +98,26 @@ func NewSSHClientByCluster(usedCluster *v1.Cluster) *SSHClient {
 func IsFileExist(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
+}
+
+func UnmarshalYamlFile(file string, obj interface{}) error {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(data))
+	err = yaml.Unmarshal(data, obj)
+	return err
+}
+
+func MarshalYamlToFile(file string, obj interface{}) error {
+	data, err := yaml.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(data))
+	if err = WriteFile(file, data); err != nil {
+		return err
+	}
+	return nil
 }
