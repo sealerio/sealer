@@ -1,4 +1,5 @@
-FROM seadent/rootfs:latest
+FROM sealer-io/kubernetes:v1.19.9
 COPY test1 .
 COPY recommended.yaml .
 COPY test2 .
+COPY test3 .
