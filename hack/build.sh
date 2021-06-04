@@ -52,8 +52,6 @@ get_version_vars() {
 }
 
 ldflags() {
-  get_version_vars
-
   local -a ldflags
   function add_ldflag() {
     local key=${1}
@@ -84,10 +82,11 @@ readonly SEALER_SUPPORTED_PLATFORMS=(
 )
 
 build_binaries() {
+  get_version_vars
   goldflags="${GOLDFLAGS=-s -w} $(ldflags)"
   osarch=${1-}_${2-}
   mkdir -p $THIS_PLATFORM_ASSETS
-  tarFile="${3-}-${1-}-${2-}.tar.gz"
+  tarFile="${GIT_VERSION}-${1-}-${2-}.tar.gz"
 
   debug "!!! build $osarch sealer"
   GOOS=${1-} GOARCH=${2-} go build -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/sealer/main.go
@@ -119,9 +118,9 @@ if [[ $MULTI_PLATFORM_BUILD ]]; then
    for platform in "${SEALER_SUPPORTED_PLATFORMS[@]}"; do
      OS=${platform%/*}
      ARCH=${platform##*/}
-     build_binaries $OS $ARCH ${1-0.0.0}
+     build_binaries $OS $ARCH
    done;
 else
-  build_binaries `go env GOOS` `go env GOARCH` ${1-0.0.0}
+  build_binaries `go env GOOS` `go env GOARCH`
 fi
 
