@@ -21,8 +21,6 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	"github.com/onsi/gomega"
@@ -33,7 +31,7 @@ import (
 func Login() {
 	// check if docker json already exist
 	config := DefaultRegistryAuthConfigDir()
-	if utils.IsFileExist(config) {
+	if testhelper.IsFileExist(config) {
 		return
 	}
 	sess, err := testhelper.Start(fmt.Sprintf("%s login %s -u %s -p %s", settings.DefaultSealerBin, settings.RegistryURL,
