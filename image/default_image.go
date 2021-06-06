@@ -260,7 +260,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 
 	for _, layer := range image.Spec.Layers {
 		layerID := store.LayerID(layer.Hash)
-		if isLayerDeletable(layer2ImageNames, layerID) || d.ForceDeleteImage {
+		if isLayerDeletable(layer2ImageNames, layerID) {
 			err = layerStore.Delete(layerID)
 			if err != nil {
 				// print log and continue to delete other layers of the image
