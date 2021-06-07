@@ -43,6 +43,9 @@ const (
 )
 
 func (d *Default) init(cluster *v1.Cluster) error {
+	if err := d.LoadMetadata(); err != nil {
+		return fmt.Errorf("failed to load metadata %v", err)
+	}
 	//config kubeadm
 	if err := d.ConfigKubeadmOnMaster0(); err != nil {
 		return err
@@ -115,7 +118,8 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 			d.MTU = "1450"
 		}
 	}
-	return d.LoadMetadata()
+	// return d.LoadMetadata()
+	return nil
 }
 func (d *Default) ConfigKubeadmOnMaster0() error {
 	var templateData string

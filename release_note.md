@@ -1,8 +1,10 @@
 ## releaes note
 
-### v0.1.2
+### v0.1.5
 
-- [x] support build push run a cloud image
-- [x] using docker registry as cloud image registry
-- [x] support alkaloid as a default infra provider
-- [x] support install cluster on bare metal server
+- [x] CLOUD mode scale up and down, delete cluster
+- [x] BAREMETAL mode scale up and down, delete cluster
+- [x] fix infra ip list lack IP
+- [x] fix x509 cert issue
+- [x] fix send file repeatedly
+- [x] fix non root user can't init cluster

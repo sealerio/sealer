@@ -44,6 +44,7 @@ type Interface interface {
 	UnMountRootfs(cluster *v1.Cluster) error
 	MountImage(cluster *v1.Cluster) error
 	UnMountImage(cluster *v1.Cluster) error
+	Clean(cluster *v1.Cluster) error
 }
 
 type FileSystem struct {
@@ -55,6 +56,10 @@ func IsDir(path string) bool {
 		return false
 	}
 	return s.IsDir()
+}
+
+func (c *FileSystem) Clean(cluster *v1.Cluster) error {
+	return utils.CleanFiles(common.DefaultClusterBaseDir(cluster.Name))
 }
 
 func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
