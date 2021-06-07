@@ -73,11 +73,6 @@ spec:
     user: root
 status: {}
 ```
-
-
-
-
-
 ## scale up:
 
 #### 1. Modify /root/sealer/mycluster/Clusterfile file Masters, Nodes Count number：
@@ -104,9 +99,6 @@ status: {}
 ```
 
 #### 2. Execute Sealer apply-f /root/.sealer/my-cluster/Clusterfile (Successfully executed):
-
-
-
 ```shell
 [root@iZ2vc2ce4hs85f7asxhaipZ ~]# kubectl get nodes
 NAME                      STATUS   ROLES    AGE     VERSION
@@ -178,7 +170,6 @@ spec:
     user: root
 status: {}
 ```
-
 ## scale down:
 
 #### 1. Modify /root/sealer/mycluster/Clusterfile file Masters, Nodes Count number:
@@ -214,8 +205,6 @@ status: {}
 ```
 
 #### 2. Execute sealer apply -f /root/.sealer/my-cluster/Clusterfile（Successfully executed）:
-
-
 
 ```shell
 [root@iZ2vc2ce4hs85f7asxhaipZ ~]# sealer apply -f /root/.sealer/my-cluster/Clusterfile
@@ -325,8 +314,6 @@ test-baremetal005   Ready    master   12m   v1.19.9
 test-baremetal006   Ready    <none>   11m   v1.19.9
 test-baremetal007   Ready    <none>   11m   v1.19.9
 ```
-
-
 
 **Problem: The number of counts in /root/.sealer/my-cluster/Clusterfile does not change but does not affect the result**
 
@@ -468,8 +455,6 @@ Welcome to Alibaba Cloud Elastic Compute Service !
 bin  cri  images                    Kubefile  README.md  scripts  TREE.md
 cni  etc  kubeadm-join-config.yaml  Metadata  registry   statics
 ```
-
-
 
 ## 4. Delete
 
@@ -618,8 +603,6 @@ test-baremetal009   Ready    master   2m52s   v1.19.9
     - 172.16.0.168
     - 172.16.0.169 
 ```
-
-
 
 2. **execute Sealer /root/.sealer/my-cluster/Clusterfile (Successfully executed）：**
 

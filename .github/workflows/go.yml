@@ -17,10 +17,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Dump steps context
-        env:
-          STEPS_CONTEXT: ${{ toJson(github) }}
-        run: echo "$STEPS_CONTEXT"
 
       - name: Set up Go
         uses: actions/setup-go@v2
