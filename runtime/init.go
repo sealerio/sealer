@@ -36,7 +36,7 @@ import (
 const (
 	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
 	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
-	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
+	WriteKubeadmConfigCmd   = "cd %s && echo \"%s\" > kubeadm-config.yaml"
 	DefaultVIP             = "10.103.97.2"
 	DefaultAPIserverDomain = "apiserver.cluster.local"
 	DefaultRegistryPort    = 5000
@@ -108,10 +108,12 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
 	d.WithoutCNI = cluster.Spec.Network.WithoutCNI
-	if d.IPIP && d.MTU == "" {
-		d.MTU = "1480"
-	} else {
-		d.MTU = "1550"
+	if d.MTU == "" {
+		if d.IPIP {
+			d.MTU = "1480"
+		} else {
+			d.MTU = "1450"
+		}
 	}
 	return d.LoadMetadata()
 }
