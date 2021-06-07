@@ -159,3 +159,20 @@ func SetImageMetadata(metadata ImageMetadata) error {
 	}
 	return nil
 }
+
+func GetImageMetadata(imageNameOrID string) (ImageMetadata, error) {
+	imageMetadataMap, err := GetImageMetadataMap()
+	imageMetadata := ImageMetadata{}
+	if err != nil {
+		return imageMetadata, err
+	}
+	for k, v := range imageMetadataMap {
+		if imageNameOrID == k {
+			return v, nil
+		}
+		if imageNameOrID == v.ID {
+			return v, nil
+		}
+	}
+	return imageMetadata, &ImageNameOrIDNotFoundError{name: imageNameOrID}
+}
