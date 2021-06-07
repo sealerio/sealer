@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/alibaba/sealer/image/distributionutil"
 	"github.com/alibaba/sealer/image/reference"
@@ -37,6 +38,7 @@ import (
 
 // DefaultImageService is the default service, which is used for image pull/push
 type DefaultImageService struct {
+	ForceDeleteImage bool // sealer rmi -f
 }
 
 // PullIfNotExist is used to pull image if not exists locally
@@ -176,6 +178,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 		images        []*v1.Image
 		image         *v1.Image
 		imageTagCount int
+		imageID       string
 	)
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
@@ -186,38 +189,49 @@ func (d DefaultImageService) Delete(imageName string) error {
 	if err != nil {
 		return err
 	}
-
+	// example ImageName : 7e2e51b85680d827fae08853dea32ad6:latest
+	// example ImageID :   7e2e51b85680d827fae08853dea32ad6
+	// https://github.com/alibaba/sealer/blob/f9d609c7fede47a7ac229bcd03d92dd0429b5038/image/reference/util.go#L59
 	imageMetadata, ok := imageMetadataMap[named.Raw()]
-	if !ok {
+	if !ok && strings.Contains(imageName, ":") {
 		return fmt.Errorf("failed to find image with name %s", imageName)
 	}
 
-	//1.untag image
-	err = imageutils.DeleteImage(imageName)
-	if err != nil {
-		return fmt.Errorf("failed to untag image %s, err: %s", imageName, err)
+	if strings.Contains(imageName, ":") {
+		//1.untag image
+		if err = imageutils.DeleteImage(imageName); err != nil {
+			return fmt.Errorf("failed to untag image %s, err: %w", imageName, err)
+		}
+		image, err = imageutils.GetImageByID(imageMetadata.ID)
+
+		imageID = imageMetadata.ID
+	} else {
+		if err = imageutils.DeleteImageByID(imageName, d.ForceDeleteImage); err != nil {
+			return err
+		}
+		image, err = imageutils.GetImageByID(imageName)
+		imageID = imageName
 	}
 
-	image, err = imageutils.GetImageByID(imageMetadata.ID)
 	if err != nil {
-		return fmt.Errorf("failed to get image metadata for image %s, err: %v", imageName, err)
+		return fmt.Errorf("failed to get image metadata for image %s, err: %w", imageName, err)
 	}
 	logger.Info("untag image %s succeeded", imageName)
 
 	for _, value := range imageMetadataMap {
-		tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
+		tmpImage, err := imageutils.GetImageByID(value.ID)
 		if err != nil {
 			continue
 		}
-		if value.ID == imageMetadata.ID {
+		if value.ID == imageID {
 			imageTagCount++
 			if imageTagCount > 1 {
-				break
+				continue
 			}
 		}
 		images = append(images, tmpImage)
 	}
-	if imageTagCount != 1 {
+	if imageTagCount != 1 && !d.ForceDeleteImage {
 		return nil
 	}
 
