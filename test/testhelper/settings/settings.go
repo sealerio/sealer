@@ -15,8 +15,6 @@
 package settings
 
 import (
-	"fmt"
-	"math/rand"
 	"os"
 	"time"
 )
@@ -41,8 +39,4 @@ func init() {
 	if pollingInterval == "" {
 		DefaultPollingInterval = 10
 	}
-}
-
-func GetTestImageName() string {
-	return fmt.Sprintf("%s%d", ImageName, rand.Intn(99999))
 }
