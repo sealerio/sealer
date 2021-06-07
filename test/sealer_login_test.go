@@ -14,7 +14,7 @@
 
 package test
 
-import (
+/*import (
 	"fmt"
 
 	"github.com/alibaba/sealer/test/suites/registry"
@@ -40,4 +40,4 @@ var _ = Describe("sealer login", func() {
 			Eventually(sess).Should(Exit(0))
 		})
 	})
-})
+})*/

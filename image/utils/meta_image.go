@@ -76,6 +76,40 @@ func DeleteImage(imageName string) error {
 	return nil
 }
 
+func DeleteImageByID(imageID string, force bool) error {
+	imagesMap, err := GetImageMetadataMap()
+	if err != nil {
+		return err
+	}
+	var imageIDCount = 0
+	var imageNames []string
+	for _, value := range imagesMap {
+		if value.ID == imageID {
+			imageIDCount++
+			imageNames = append(imageNames, value.Name)
+		}
+		if imageIDCount > 1 && !force {
+			return fmt.Errorf("there are more than one image %s", imageID)
+		}
+	}
+	if imageIDCount == 0 {
+		return fmt.Errorf("failed to find image with id %s", imageID)
+	}
+	for _, imageName := range imageNames {
+		delete(imagesMap, imageName)
+	}
+
+	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
+	if err != nil {
+		return err
+	}
+
+	if err = ioutil.WriteFile(common.DefaultImageMetadataFile, data, common.FileMode0644); err != nil {
+		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
+	}
+	return nil
+}
+
 func GetImageByID(imageID string) (*v1.Image, error) {
 	fileName := filepath.Join(common.DefaultImageMetaRootDir, imageID+".yaml")
 

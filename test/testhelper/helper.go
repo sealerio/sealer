@@ -31,6 +31,7 @@ func Start(cmdLine string) (*gexec.Session, error) {
 	if cmdLine == "" {
 		return nil, errors.New("failed to start cmd, line is empty")
 	}
+	cmdLine = fmt.Sprintf("sudo -E %s", cmdLine)
 	execCmd := exec.Command("/bin/sh", "-c", cmdLine)
 	_, err := io.WriteString(ginkgo.GinkgoWriter, fmt.Sprintf("%s\n", cmdLine))
 	if err != nil {

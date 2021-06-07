@@ -20,7 +20,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/alibaba/sealer/registry"
+	"github.com/docker/distribution/manifest/schema2"
+
+	"github.com/alibaba/sealer/image/distributionutil"
+	"github.com/docker/distribution"
 
 	"github.com/alibaba/sealer/image/reference"
 	imageutils "github.com/alibaba/sealer/image/utils"
@@ -75,7 +78,7 @@ func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image,
 		image v1.Image
 		err   error
 		named reference.Named
-		reg   *registry.Registry
+		ctx   = context.Background()
 	)
 
 	named, err = reference.ParseToNamed(imageName)
@@ -83,22 +86,36 @@ func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image,
 		return image, err
 	}
 
-	reg, err = initRegistry(named.Domain())
+	repo, err := distributionutil.NewV2Repository(named, "pull")
 	if err != nil {
-		return image, err
+		return v1.Image{}, err
 	}
 
-	manifest, err := reg.ManifestV2(context.Background(), named.Repo(), named.Tag())
+	ms, err := repo.Manifests(ctx)
 	if err != nil {
-		return image, err
+		return v1.Image{}, err
 	}
 
-	configReader, err := reg.DownloadLayer(context.Background(), named.Repo(), manifest.Config.Digest)
+	manifest, err := ms.Get(ctx, "", distribution.WithTagOption{Tag: named.Tag()})
 	if err != nil {
-		return image, err
+		return v1.Image{}, err
 	}
 
-	decoder := json.NewDecoder(configReader)
+	// just transform it to schema2.DeserializedManifest
+	// because we only upload this kind manifest.
+	scheme2Manifest, ok := manifest.(*schema2.DeserializedManifest)
+	if !ok {
+		return v1.Image{}, fmt.Errorf("failed to parse manifest %s to DeserializedManifest", named.RepoTag())
+	}
+
+	bs := repo.Blobs(ctx)
+	configJSONReader, err := bs.Open(ctx, scheme2Manifest.Config.Digest)
+	if err != nil {
+		return v1.Image{}, err
+	}
+	defer configJSONReader.Close()
+
+	decoder := json.NewDecoder(configJSONReader)
 	return image, decoder.Decode(&image)
 }
 

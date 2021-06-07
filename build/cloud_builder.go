@@ -62,8 +62,7 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 	if c.local.IsOnlyCopy() {
 		buildPipeline = append(buildPipeline,
 			c.local.ExecBuild,
-			c.local.UpdateImageMetadata,
-			c.local.PushToRegistry)
+			c.local.UpdateImageMetadata)
 	} else {
 		buildPipeline = append(buildPipeline,
 			c.InitClusterFile,
