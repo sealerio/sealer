@@ -58,6 +58,7 @@ const (
 	Guest          ActionName = "Guest"
 	CNI            ActionName = "CNI"
 	Reset          ActionName = "Reset"
+	CleanFS        ActionName = "CleanFS"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
@@ -110,7 +111,14 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.Runtime.CNI(applier.ClusterDesired)
 	},
 	Reset: func(applier *DefaultApplier) error {
+		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		if applier.Runtime == nil {
+			return fmt.Errorf("failed to init runtime")
+		}
 		return applier.Runtime.Reset(applier.ClusterDesired)
+	},
+	CleanFS: func(applier *DefaultApplier) error {
+		return applier.FileSystem.Clean(applier.ClusterDesired)
 	},
 }
 
@@ -144,16 +152,16 @@ func (c *DefaultApplier) Apply() (err error) {
 		if err != nil {
 			return err
 		}
-	}
 
-	currentCluster, err := GetCurrentCluster()
-	if err != nil {
-		return errors.Wrap(err, "get current cluster failed")
-	}
-	if currentCluster != nil {
-		c.ClusterCurrent = c.ClusterDesired.DeepCopy()
-		c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
-		c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
+		currentCluster, err := GetCurrentCluster()
+		if err != nil {
+			return errors.Wrap(err, "get current cluster failed")
+		}
+		if currentCluster != nil {
+			c.ClusterCurrent = c.ClusterDesired.DeepCopy()
+			c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
+			c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
+		}
 	}
 
 	todoList, _ := c.diff()
@@ -180,6 +188,8 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		c.NodesToDelete = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, Reset)
 		todoList = append(todoList, UnMountRootfs)
+		todoList = append(todoList, UnMountImage)
+		todoList = append(todoList, CleanFS)
 		return todoList, nil
 	}
 

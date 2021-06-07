@@ -92,7 +92,7 @@ func NewDefaultRuntime(cluster *v1.Cluster) Interface {
 }
 
 func (d *Default) LoadMetadata() error {
-	metadataPath := filepath.Join(common.DefaultTheClusterRootfsDir(d.ClusterName), common.DefaultMetadataName)
+	metadataPath := filepath.Join(common.DefaultMountCloudImageDir(d.ClusterName), common.DefaultMetadataName)
 	var metadataFile []byte
 	var err error
 	metadata := &Metadata{}

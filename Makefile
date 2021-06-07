@@ -1,4 +1,3 @@
-GitTag=$(version)
 Dirs=$(shell ls)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -10,7 +9,7 @@ endif
 
 build: clean ## build binaries by default
 	@echo "build sealer and sealutil bin"
-	hack/build.sh $(GitTag)
+	hack/build.sh
 
 linux: clean ## build binaries for linux
 	@echo "build sealer and sealutil bin for linux"

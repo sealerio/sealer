@@ -141,3 +141,7 @@ func DefaultMountCloudImageDir(clusterName string) string {
 func DefaultTheClusterRootfsDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
 }
+
+func DefaultClusterBaseDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName)
+}

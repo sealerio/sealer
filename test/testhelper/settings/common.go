@@ -22,7 +22,7 @@ import (
 const (
 	SealerBinPath                     = "/usr/local/bin/sealer"
 	ImageName                         = "sealer_test_image_"
-	DefaultRegistryAuthDir            = "/root/.docker"
+	DefaultRegistryAuthFile           = "/root/.docker/config.json"
 	DefaultClusterFileNeedToBeCleaned = "/root/.sealer/%s/Clusterfile"
 	SubCmdBuildOfSealer               = "build"
 	SubCmdApplyOfSealer               = "apply"
@@ -34,16 +34,33 @@ const (
 	SubCmdListOfSealer                = "images"
 	SubCmdPushOfSealer                = "push"
 	SubCmdRmiOfSealer                 = "rmi"
+	DefaultSSHPassword                = "Sealer123"
+	ImageAnnotationForClusterfile     = "sea.aliyun.com/ClusterFile"
+)
+
+const (
+	FileMode0755 = 0755
+	FileMode0644 = 0644
+)
+const (
+	LocalBuild = "local"
+)
+const (
+	BAREMETAL         = "BAREMETAL"
+	AliCloud          = "ALI_CLOUD"
+	ImageNameForRun   = "registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest"
+	ClusterNameForRun = "my-cluster"
+	TMPClusterFile    = "/tmp/Clusterfile"
 )
 
 var (
 	DefaultPollingInterval time.Duration
 	MaxWaiteTime           time.Duration
 	DefaultWaiteTime       time.Duration
-
-	RegistryURL      = os.Getenv("REGISTRY_URL")
-	RegistryUsername = os.Getenv("REGISTRY_USERNAME")
-	RegistryPasswd   = os.Getenv("REGISTRY_PASSWORD")
+	DefaultSealerBin       = ""
+	RegistryURL            = os.Getenv("REGISTRY_URL")
+	RegistryUsername       = os.Getenv("REGISTRY_USERNAME")
+	RegistryPasswd         = os.Getenv("REGISTRY_PASSWORD")
 
 	AccessKey     = os.Getenv("ACCESSKEYID")
 	AccessSecret  = os.Getenv("ACCESSKEYSECRET")

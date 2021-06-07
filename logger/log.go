@@ -129,6 +129,7 @@ func NewLogger(depth ...int) *LocalLogger {
 	}
 	l.appName = "[" + appSn + "]"
 	l.callDepth = dep
+	l.usePath = true
 	l.SetLogger(AdapterConsole)
 	l.timeFormat = logTimeDefaultFormat
 	return l
