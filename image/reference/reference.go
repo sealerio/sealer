@@ -60,3 +60,7 @@ func (n Named) Repo() string {
 func (n Named) Tag() string {
 	return n.tag
 }
+
+func (n Named) CompleteName() string {
+	return n.domain + "/" + n.repoTag
+}
