@@ -115,10 +115,12 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
 	d.WithoutCNI = cluster.Spec.Network.WithoutCNI
-	if d.IPIP && d.MTU == "" {
-		d.MTU = "1480"
-	} else {
-		d.MTU = "1550"
+	if d.MTU == "" {
+		if d.IPIP {
+			d.MTU = "1480"
+		} else {
+			d.MTU = "1450"
+		}
 	}
 	// return d.LoadMetadata()
 	return nil

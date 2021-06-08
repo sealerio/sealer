@@ -20,7 +20,7 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.ref }}
           path: src/github.com/alibaba/sealer
 
       - name: Install sealer and ginkgo

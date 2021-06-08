@@ -83,7 +83,7 @@ func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
 	// send register login info
 	authFile := common.DefaultRegistryAuthConfigDir()
 	if utils.IsFileExist(authFile) {
-		err = sshClient.Copy(remoteHostIP, authFile, authFile)
+		err = sshClient.Copy(remoteHostIP, authFile, common.DefaultRegistryAuthDir)
 		if err != nil {
 			return fmt.Errorf("failed to send register config %s to remote host %s err: %v", authFile, remoteHostIP, err)
 		}
