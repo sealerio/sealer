@@ -33,7 +33,7 @@ func (d *Default) reset(cluster *v1.Cluster) error {
 	if err != nil {
 		logger.Error("failed to clean masters %v", err)
 	}
-	err = utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultClusterBaseDir(cluster.Name), common.DefaultKubeConfigDir())
+	err = utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultKubeConfigDir())
 	if err != nil {
 		// needs continue to clean
 		logger.Warn("reset cluster : %v", err)
