@@ -24,6 +24,10 @@ func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface
 		logger.Error("clusterfile parsing failed, please check:", err)
 		return nil
 	}
+	if joinArgs.Nodes == "" && joinArgs.Masters == "" {
+		logger.Error("The node or master parameter was not committed")
+		return nil
+	}
 	if cluster.Spec.Provider == "" {
 		if IsIPList(joinArgs.Nodes) || IsIPList(joinArgs.Masters) {
 			cluster.Spec.Masters.IPList = append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Masters, ",")...)
