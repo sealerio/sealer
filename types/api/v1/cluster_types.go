@@ -66,6 +66,7 @@ type ClusterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	// TODO save cluster status info
+
 }
 
 // +kubebuilder:object:root=true
