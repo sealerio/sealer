@@ -21,6 +21,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/docker/docker/pkg/streamformatter"
+
 	"github.com/alibaba/sealer/image/distributionutil"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
@@ -30,7 +32,6 @@ import (
 	"github.com/alibaba/sealer/utils"
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
-	dockerutils "github.com/docker/docker/distribution/utils"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	dockerprogress "github.com/docker/docker/pkg/progress"
@@ -66,18 +67,13 @@ func (d DefaultImageService) Pull(imageName string) error {
 	var (
 		reader, writer  = io.Pipe()
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
-		progressChan    = make(chan dockerprogress.Progress, 100)
-		progressChanOut = dockerprogress.ChanOutput(progressChan)
+		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
 		streamOut       = dockerstreams.NewOut(os.Stdout)
 	)
 	defer func() {
 		_ = reader.Close()
 		_ = writer.Close()
 		_ = writeFlusher.Close()
-		close(progressChan)
-	}()
-	go func() {
-		dockerutils.WriteDistributionProgress(func() {}, writeFlusher, progressChan)
 	}()
 
 	layerStore, err := store.NewDefaultLayerStore()
@@ -106,7 +102,11 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 	// TODO use image store to do the job next
-	return store.SyncImageLocal(*image, named)
+	err = store.SyncImageLocal(*image, named)
+	if err == nil {
+		dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Pull Image %s", named.Raw()))
+	}
+	return err
 }
 
 // Push push local image to remote registry
@@ -118,19 +118,13 @@ func (d DefaultImageService) Push(imageName string) error {
 	var (
 		reader, writer  = io.Pipe()
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
-		progressChan    = make(chan dockerprogress.Progress, 100)
-		progressChanOut = dockerprogress.ChanOutput(progressChan)
+		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
 		streamOut       = dockerstreams.NewOut(os.Stdout)
 	)
 	defer func() {
 		_ = reader.Close()
 		_ = writer.Close()
 		_ = writeFlusher.Close()
-		close(progressChan)
-	}()
-
-	go func() {
-		dockerutils.WriteDistributionProgress(func() {}, writeFlusher, progressChan)
 	}()
 
 	layerStore, err := store.NewDefaultLayerStore()
@@ -156,7 +150,12 @@ func (d DefaultImageService) Push(imageName string) error {
 	}()
 
 	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Start to Push Image %s", named.Raw()))
-	return pusher.Push(context.Background(), named)
+	err = pusher.Push(context.Background(), named)
+	if err == nil {
+		dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Push Image %s", named.CompleteName()))
+	}
+	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Push Image %s", named.CompleteName()))
+	return err
 }
 
 // Login login into a registry, for saving auth info in ~/.docker/config.json
