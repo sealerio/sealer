@@ -22,7 +22,7 @@ join to cluster by cloud provider, just set the number of masters or nodes:
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, err := os.Lstat(clusterFile);err != nil {
+		if _, err := os.Lstat(clusterFile); err != nil {
 			logger.Error(clusterFile, err)
 			os.Exit(1)
 		}
