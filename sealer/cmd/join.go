@@ -31,11 +31,11 @@ import (
 var clusterName string
 var joinArgs *common.RunArgs
 
-func getClusterName(sealerPath string) []string {
+func getClusterName(sealerPath string) ([]string, error) {
 	files, err := ioutil.ReadDir(sealerPath)
 	if err != nil {
 		logger.Error(err)
-		os.Exit(1)
+		return nil, err
 	}
 	var clusters []string
 	for _, f := range files {
@@ -43,7 +43,7 @@ func getClusterName(sealerPath string) []string {
 			clusters = append(clusters, f.Name())
 		}
 	}
-	return clusters
+	return clusters, nil
 }
 
 var joinCmd = &cobra.Command{
@@ -55,11 +55,15 @@ join to default cluster:
 join to cluster by cloud provider, just set the number of masters or nodes:
 	sealer join --master 2 --node 3
 `,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		sealerPath := fmt.Sprintf("%s/.sealer", cert.GetUserHomeDir())
 		if clusterName == "" {
-			files := getClusterName(sealerPath)
+			files, err := getClusterName(sealerPath)
+			if err != nil{
+				logger.Error(err)
+				os.Exit(1)
+			}
 			if len(files) == 1 {
 				clusterName = files[0]
 			} else if len(files) > 1 {

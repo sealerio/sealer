@@ -51,14 +51,12 @@ func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface
 			logger.Error("Parameter error:", "The current mode should submit iplist！")
 			return nil
 		}
+	} else if IsNumber(joinArgs.Nodes) || IsNumber(joinArgs.Masters) {
+		cluster.Spec.Masters.Count = strconv.Itoa(StrToInt(cluster.Spec.Masters.Count) + StrToInt(joinArgs.Masters))
+		cluster.Spec.Nodes.Count = strconv.Itoa(StrToInt(cluster.Spec.Nodes.Count) + StrToInt(joinArgs.Nodes))
 	} else {
-		if IsNumber(joinArgs.Nodes) || IsNumber(joinArgs.Masters) {
-			cluster.Spec.Masters.Count = strconv.Itoa(StrToInt(cluster.Spec.Masters.Count) + StrToInt(joinArgs.Masters))
-			cluster.Spec.Nodes.Count = strconv.Itoa(StrToInt(cluster.Spec.Nodes.Count) + StrToInt(joinArgs.Nodes))
-		} else {
-			logger.Error("Parameter error:", "The number of join masters or nodes that must be submitted to use cloud service！")
-			return nil
-		}
+		logger.Error("Parameter error:", "The number of join masters or nodes that must be submitted to use cloud service！")
+		return nil
 	}
 	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
 		logger.Error("clusterfile save failed, please check:", err)
