@@ -83,6 +83,10 @@ func CleanUpAliCloudInfraByClusterFile(clusterFile string) {
 	if cluster.Spec.Provider != settings.AliCloud {
 		cluster.Spec.Provider = settings.AliCloud
 	}
-	WriteClusterFileToDisk(cluster, clusterFile)
-	DeleteCluster(clusterFile)
+
+	tmp := testhelper.CreateTempFile()
+	defer testhelper.RemoveTempFile(tmp)
+
+	WriteClusterFileToDisk(cluster, tmp)
+	DeleteCluster(tmp)
 }

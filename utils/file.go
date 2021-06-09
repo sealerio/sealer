@@ -166,7 +166,7 @@ func CleanFile(file *os.File) {
 	}
 	// the following operation won't failed regularly, if failed, log it
 	err := file.Close()
-	if err != nil {
+	if err != nil && err != os.ErrClosed {
 		logger.Warn(err)
 	}
 	err = os.Remove(file.Name())

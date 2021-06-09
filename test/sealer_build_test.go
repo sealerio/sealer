@@ -147,10 +147,10 @@ var _ = Describe("sealer build", func() {
 							SetBuildType("cloud").
 							Build()
 						sess, err := testhelper.Start(cmd)
-						Expect(err).NotTo(HaveOccurred())
 						defer func() {
 							apply.CleanUpAliCloudInfraByClusterFile(settings.TMPClusterFile)
 						}()
+						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						// check: need to pull build image and check whether image exist
 						image.DoImageOps(settings.SubCmdPullOfSealer, imageName)
