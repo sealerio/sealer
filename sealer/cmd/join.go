@@ -51,9 +51,11 @@ var joinCmd = &cobra.Command{
 	Short: "join node to cluster",
 	Example: `
 join to default cluster:
-	sealer join --master x.x.x.x --node x.x.x.x
+	sealer join --masters x.x.x.x --nodes x.x.x.x
 join to cluster by cloud provider, just set the number of masters or nodes:
-	sealer join --master 2 --node 3
+	sealer join --masters 2 --nodes 3
+specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
+    sealer join --masters 2 --nodes 3 -c my-cluster
 `,
 	Args: cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -92,9 +94,9 @@ join to cluster by cloud provider, just set the number of masters or nodes:
 }
 
 func init() {
-	runArgs = &common.RunArgs{}
+	joinArgs = &common.RunArgs{}
 	rootCmd.AddCommand(joinCmd)
 	joinCmd.Flags().StringVarP(&joinArgs.Masters, "masters", "m", "", "set Count or IPList to masters")
 	joinCmd.Flags().StringVarP(&joinArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
-	joinCmd.Flags().StringVarP(&clusterName, "ClusterName", "c", "", "submit one cluster name")
+	joinCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "submit one cluster name")
 }

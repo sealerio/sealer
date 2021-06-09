@@ -15,6 +15,7 @@
 package apply
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -33,6 +34,18 @@ func StrToInt(str string) int {
 	return num
 }
 
+func removeIpListDuplicatesAndEmpty(ipList []string) []string {
+	count := len(ipList)
+	var newList []string
+	for i := 0; i < count; i++ {
+		if (i > 0 && ipList[i-1] == ipList[i]) || len(ipList[i]) == 0 {
+			continue
+		}
+		newList = append(newList, ipList[i])
+	}
+	return newList
+}
+
 func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface {
 	cluster := &v1.Cluster{}
 	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
@@ -45,8 +58,12 @@ func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface
 	}
 	if cluster.Spec.Provider == "BAREMETAL" {
 		if IsIPList(joinArgs.Nodes) || IsIPList(joinArgs.Masters) {
-			cluster.Spec.Masters.IPList = append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Masters, ",")...)
-			cluster.Spec.Nodes.IPList = append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Nodes, ",")...)
+			margeMasters := append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Masters, ",")...)
+			margeNodes := append(cluster.Spec.Nodes.IPList, strings.Split(joinArgs.Nodes, ",")...)
+			sort.Strings(margeMasters)
+			sort.Strings(margeNodes)
+			cluster.Spec.Masters.IPList = removeIpListDuplicatesAndEmpty(margeMasters)
+			cluster.Spec.Nodes.IPList = removeIpListDuplicatesAndEmpty(margeNodes)
 		} else {
 			logger.Error("Parameter error:", "The current mode should submit iplist！")
 			return nil
