@@ -3,6 +3,7 @@ package build
 import (
 	"fmt"
 	"io/ioutil"
+	"path"
 
 	"github.com/alibaba/sealer/image/store"
 
@@ -242,7 +243,7 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 			dist = filepath.Join(tempTarget, strings.Fields(layer.Value)[1])
 		} else {
 			// src is file
-			dist = filepath.Join(tempTarget, strings.Fields(layer.Value)[1], strings.Fields(layer.Value)[0])
+			dist = filepath.Join(tempTarget, strings.Fields(layer.Value)[1], path.Base(strings.Fields(layer.Value)[0]))
 		}
 		return utils.RecursionCopy(strings.Fields(layer.Value)[0], dist)
 	}
