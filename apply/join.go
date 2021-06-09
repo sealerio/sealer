@@ -34,7 +34,7 @@ func StrToInt(str string) int {
 	return num
 }
 
-func removeIpListDuplicatesAndEmpty(ipList []string) []string {
+func removeIPListDuplicatesAndEmpty(ipList []string) []string {
 	count := len(ipList)
 	var newList []string
 	for i := 0; i < count; i++ {
@@ -62,8 +62,8 @@ func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface
 			margeNodes := append(cluster.Spec.Nodes.IPList, strings.Split(joinArgs.Nodes, ",")...)
 			sort.Strings(margeMasters)
 			sort.Strings(margeNodes)
-			cluster.Spec.Masters.IPList = removeIpListDuplicatesAndEmpty(margeMasters)
-			cluster.Spec.Nodes.IPList = removeIpListDuplicatesAndEmpty(margeNodes)
+			cluster.Spec.Masters.IPList = removeIPListDuplicatesAndEmpty(margeMasters)
+			cluster.Spec.Nodes.IPList = removeIPListDuplicatesAndEmpty(margeNodes)
 		} else {
 			logger.Error("Parameter error:", "The current mode should submit iplist！")
 			return nil
