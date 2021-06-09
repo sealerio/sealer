@@ -46,47 +46,53 @@ var _ = Describe("sealer build", func() {
 				})
 				It("specific the base rootfs that do not exist", func() {
 					//base rootfs not exist
+					imageName := build.GetImageNameTemplate("no_rootfs")
 					err := testhelper.WriteFile(tempFile, []byte("from abc\ncopy . ."))
 					Expect(err).NotTo(HaveOccurred())
 					cmd := build.NewArgsOfBuild().
 						SetKubeFile(tempFile).
-						SetImageName(build.GetTestImageName()).
+						SetImageName(imageName).
 						SetContext(".").
 						SetBuildType(common.LocalBuild).
 						Build()
 					sess, err := testhelper.Start(cmd)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess).Should(Exit(2))
+					Expect(build.CheckIsImageExist(imageName)).ShouldNot(BeTrue())
 				})
 
 				It("copy src that do not exist", func() {
 					//copy: copy src not exist;
+					imageName := build.GetImageNameTemplate("no_src_copy")
 					err := testhelper.WriteFile(tempFile, []byte("from sealer-io/kubernetes:v1.19.9\ncopy abc123 ."))
 					Expect(err).NotTo(HaveOccurred())
 					cmd := build.NewArgsOfBuild().
 						SetKubeFile(tempFile).
-						SetImageName(build.GetTestImageName()).
+						SetImageName(imageName).
 						SetContext(".").
 						SetBuildType(common.LocalBuild).
 						Build()
 					sess, err := testhelper.Start(cmd)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess).Should(Exit(2))
+					Expect(build.CheckIsImageExist(imageName)).ShouldNot(BeTrue())
 				})
 
 				It("exec cmd that do not exist in system", func() {
 					//run&cmd: exec cmd not exist
+					imageName := build.GetImageNameTemplate("no_cmd_run")
 					err := testhelper.WriteFile(tempFile, []byte("from sealer-io/kubernetes:v1.19.9\ncmd abc ."))
 					Expect(err).NotTo(HaveOccurred())
 					cmd := build.NewArgsOfBuild().
 						SetKubeFile(tempFile).
-						SetImageName(build.GetTestImageName()).
+						SetImageName(imageName).
 						SetContext(".").
 						SetBuildType(common.LocalBuild).
 						Build()
 					sess, err := testhelper.Start(cmd)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess).Should(Exit(2))
+					Expect(build.CheckIsImageExist(imageName)).ShouldNot(BeTrue())
 				})
 			})
 
@@ -95,8 +101,15 @@ var _ = Describe("sealer build", func() {
 					err := os.Chdir(filepath.Join(build.GetFixtures(), build.GetLocalBuildDir()))
 					Expect(err).NotTo(HaveOccurred())
 
+					BeforeEach(func() {
+						registry.Login()
+					})
+					AfterEach(func() {
+						registry.Logout()
+					})
+
 					It("with all build instruct", func() {
-						imageName := build.GetTestImageName()
+						imageName := build.GetImageNameTemplate("all_instruct")
 						cmd := build.NewArgsOfBuild().
 							SetKubeFile("Kubefile").
 							SetImageName(imageName).
@@ -112,7 +125,7 @@ var _ = Describe("sealer build", func() {
 					})
 
 					It("only copy instruct", func() {
-						imageName := build.GetTestImageName()
+						imageName := build.GetImageNameTemplate("only_copy")
 						cmd := build.NewArgsOfBuild().
 							SetKubeFile("Kubefile_only_copy").
 							SetImageName(imageName).
@@ -148,7 +161,11 @@ var _ = Describe("sealer build", func() {
 							Build()
 						sess, err := testhelper.Start(cmd)
 						defer func() {
-							apply.CleanUpAliCloudInfraByClusterFile(settings.TMPClusterFile)
+							if testhelper.IsFileExist(settings.TMPClusterFile) {
+								cluster := apply.LoadClusterFileFromDisk(settings.TMPClusterFile)
+								apply.CleanUpAliCloudInfra(cluster)
+								testhelper.DeleteFileLocally(settings.TMPClusterFile)
+							}
 						}()
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))

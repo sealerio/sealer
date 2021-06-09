@@ -90,7 +90,6 @@ func SendAndApplyCluster(sshClient *testhelper.SSHClient, clusterFile string) {
 		err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, SealerApplyCmd(clusterFile))
 		return err == nil
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
-
 }
 
 func CleanUpAliCloudInfra(cluster *v1.Cluster) {
