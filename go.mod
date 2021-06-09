@@ -28,6 +28,7 @@ require (
 	github.com/spf13/viper v1.7.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
+	golang.org/x/tools v0.1.2 // indirect
 	k8s.io/api v0.20.4
 	k8s.io/apimachinery v0.20.4
 	k8s.io/client-go v0.20.4
