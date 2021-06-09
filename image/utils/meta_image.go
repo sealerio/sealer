@@ -167,10 +167,7 @@ func GetImageMetadata(imageNameOrID string) (ImageMetadata, error) {
 		return imageMetadata, err
 	}
 	for k, v := range imageMetadataMap {
-		if imageNameOrID == k {
-			return v, nil
-		}
-		if imageNameOrID == v.ID {
+		if imageNameOrID == k || imageNameOrID == v.ID{
 			return v, nil
 		}
 	}
