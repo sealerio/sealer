@@ -52,7 +52,7 @@ join to cluster by cloud provider, just set the number of masters or nodes:
 			if len(files) == 1 && files[0].IsDir() {
 				clusterName = files[0].Name()
 			} else if len(files) > 1 {
-				logger.Error("Please select a cluster:", strings.Join(func() []string {
+				logger.Error("Select a cluster through the -c parameter:", strings.Join(func() []string {
 					var clusters []string
 					for _, f := range files {
 						if f.IsDir() {
