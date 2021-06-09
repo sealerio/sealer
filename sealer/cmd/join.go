@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -30,6 +31,16 @@ import (
 
 var clusterName string
 var joinArgs *common.RunArgs
+
+func getClusterName(files []fs.FileInfo) []string {
+	var clusters []string
+	for _, f := range files {
+		if f.IsDir() {
+			clusters = append(clusters, f.Name())
+		}
+	}
+	return clusters
+}
 
 var joinCmd = &cobra.Command{
 	Use:   "join",
@@ -52,15 +63,7 @@ join to cluster by cloud provider, just set the number of masters or nodes:
 			if len(files) == 1 && files[0].IsDir() {
 				clusterName = files[0].Name()
 			} else if len(files) > 1 {
-				logger.Error("Select a cluster through the -c parameter:", strings.Join(func() []string {
-					var clusters []string
-					for _, f := range files {
-						if f.IsDir() {
-							clusters = append(clusters, f.Name())
-						}
-					}
-					return clusters
-				}(), ","))
+				logger.Error("Select a cluster through the -c parameter:", strings.Join(getClusterName(files), ","))
 				os.Exit(1)
 			} else {
 				logger.Error("Existing cluster not found！")
