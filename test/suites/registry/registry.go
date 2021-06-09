@@ -16,10 +16,6 @@ package registry
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/mitchellh/go-homedir"
 
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
@@ -29,11 +25,6 @@ import (
 )
 
 func Login() {
-	// check if docker json already exist
-	config := DefaultRegistryAuthConfigDir()
-	if testhelper.IsFileExist(config) {
-		return
-	}
 	sess, err := testhelper.Start(fmt.Sprintf("%s login %s -u %s -p %s", settings.DefaultSealerBin, settings.RegistryURL,
 		settings.RegistryUsername,
 		settings.RegistryPasswd))
@@ -44,19 +35,10 @@ func Login() {
 }
 
 func Logout() {
-	err := CleanLoginFile()
-	gomega.Expect(err).To(gomega.BeNil())
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	testhelper.DeleteFileLocally(DefaultRegistryAuthConfigDir())
 }
 
-func CleanLoginFile() error {
-	return os.RemoveAll(DefaultRegistryAuthConfigDir())
-}
+// DefaultRegistryAuthConfigDir using root privilege to run sealer cmd at e2e test
 func DefaultRegistryAuthConfigDir() string {
-	dir, err := homedir.Dir()
-	if err != nil {
-		return settings.DefaultRegistryAuthFile
-	}
-
-	return filepath.Join(dir, ".docker/config.json")
+	return settings.DefaultRegistryAuthFileDir
 }

@@ -21,12 +21,11 @@ import (
 	"path/filepath"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	"github.com/onsi/gomega"
-	"k8s.io/client-go/util/homedir"
-
 	"sigs.k8s.io/yaml"
 )
 
@@ -52,13 +51,6 @@ func RemoveTempFile(file string) {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-func GetUserHomeDir() string {
-	if home := homedir.HomeDir(); home != "" {
-		return home
-	}
-	return ""
-}
-
 func WriteFile(fileName string, content []byte) error {
 	dir := filepath.Dir(fileName)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -73,11 +65,8 @@ func WriteFile(fileName string, content []byte) error {
 	return nil
 }
 
-func GetUsedClusterFilePath(clusterName string) string {
-	if home := homedir.HomeDir(); home != "" {
-		return fmt.Sprintf("%s/.sealer/%s/Clusterfile", home, clusterName)
-	}
-	return ""
+func GetRootClusterFilePath(clusterName string) string {
+	return fmt.Sprintf("/root/.sealer/%s/Clusterfile", clusterName)
 }
 
 type SSHClient struct {
@@ -118,4 +107,19 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 		return err
 	}
 	return nil
+}
+
+// GetFileDataLocally get file data for cloud apply
+func GetFileDataLocally(filePath string) string {
+	cmd := fmt.Sprintf("sudo -E cat %s", filePath)
+	result, err := utils.RunSimpleCmd(cmd)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	return result
+}
+
+// DeleteFileLocally delete file for cloud apply
+func DeleteFileLocally(filePath string) {
+	cmd := fmt.Sprintf("sudo -E rm -rf %s", filePath)
+	_, err := utils.RunSimpleCmd(cmd)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }

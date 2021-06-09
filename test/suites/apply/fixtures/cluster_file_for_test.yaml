@@ -15,7 +15,7 @@
 apiVersion: zlink.aliyun.com/v1alpha1
 kind: Cluster
 metadata:
-  name: my-test-cluster
+  name: my-cluster
 spec:
   image: sealer-io/kubernetes:v1.19.9
   provider: ALI_CLOUD
