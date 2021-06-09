@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/test/suites/apply"
-	"github.com/alibaba/sealer/test/suites/registry"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
 
@@ -30,51 +29,55 @@ import (
 
 var _ = Describe("sealer apply", func() {
 	Context("start apply", func() {
-		BeforeEach(func() {
-			registry.Login()
-		})
-		AfterEach(func() {
-			registry.Logout()
-		})
+
 		Context("check if cluster file exist", func() {
 			Context("if exist", func() {
 				rawClusterFilePath := apply.GetRawClusterFilePath()
 				rawCluster := apply.LoadClusterFileFromDisk(rawClusterFilePath)
-				usedClusterFilePath := testhelper.GetUsedClusterFilePath(rawCluster.Name)
-
 				Context("check regular scenario that provider is ali cloud", func() {
-					AfterEach(func() {
-						apply.DeleteCluster(usedClusterFilePath)
+					var tempFile string
+					BeforeEach(func() {
+						tempFile = testhelper.CreateTempFile()
 					})
+
+					AfterEach(func() {
+						apply.DeleteClusterByFile(tempFile)
+						testhelper.RemoveTempFile(tempFile)
+						testhelper.DeleteFileLocally(testhelper.GetRootClusterFilePath(rawCluster.Name))
+					})
+
 					It("init, scale up, scale down, clean up", func() {
 						// 1,init cluster to 2 nodes and write to disk
 						By("start to init cluster")
 						sess, err := testhelper.Start(apply.SealerApplyCmd(rawClusterFilePath))
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-						Expect(apply.GetClusterNodes()).Should(Equal(2))
+						apply.CheckNodeNumLocally(2)
+
+						result := testhelper.GetFileDataLocally(testhelper.GetRootClusterFilePath(rawCluster.Name))
+						err = testhelper.WriteFile(tempFile, []byte(result))
+						Expect(err).NotTo(HaveOccurred())
+						usedCluster := apply.LoadClusterFileFromDisk(tempFile)
 
 						// 2,scale up cluster to 6 nodes and write to disk
 						By("start to scale up cluster")
-						usedCluster := apply.LoadClusterFileFromDisk(usedClusterFilePath)
 						usedCluster.Spec.Nodes.Count = "3"
 						usedCluster.Spec.Masters.Count = "3"
-						apply.WriteClusterFileToDisk(usedCluster, usedClusterFilePath)
-						sess, err = testhelper.Start(apply.SealerApplyCmd(usedClusterFilePath))
+						apply.WriteClusterFileToDisk(usedCluster, tempFile)
+						sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-						Expect(apply.GetClusterNodes()).Should(Equal(6))
+						apply.CheckNodeNumLocally(6)
 
-						// 3,scale down cluster to 4 nodes and write to disk
+						//3,scale down cluster to 4 nodes and write to disk
 						By("start to scale down cluster")
-						usedCluster = apply.LoadClusterFileFromDisk(usedClusterFilePath)
 						usedCluster.Spec.Nodes.Count = "1"
 						usedCluster.Spec.Masters.Count = "3"
-						apply.WriteClusterFileToDisk(usedCluster, usedClusterFilePath)
-						sess, err = testhelper.Start(apply.SealerApplyCmd(usedClusterFilePath))
+						apply.WriteClusterFileToDisk(usedCluster, tempFile)
+						sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-						Expect(apply.GetClusterNodes()).Should(Equal(4))
+						apply.CheckNodeNumLocally(4)
 					})
 
 				})
@@ -103,14 +106,14 @@ var _ = Describe("sealer apply", func() {
 
 						By("start init cluster")
 						apply.SendAndApplyCluster(sshClient, tempFile)
-						apply.CheckNodeNum(sshClient, 2)
+						apply.CheckNodeNumWithSSH(sshClient, 2)
 
 						By("start to scale up cluster")
 						usedCluster.Spec.Nodes.Count = "3"
 						usedCluster.Spec.Masters.Count = "3"
 						usedCluster = apply.CreateAliCloudInfraAndSave(usedCluster, tempFile)
 						apply.SendAndApplyCluster(sshClient, tempFile)
-						apply.CheckNodeNum(sshClient, 6)
+						apply.CheckNodeNumWithSSH(sshClient, 6)
 
 						By("start to scale down cluster")
 						usedCluster.Spec.Nodes.Count = "1"
@@ -119,7 +122,7 @@ var _ = Describe("sealer apply", func() {
 						usedCluster.Spec.Provider = settings.BAREMETAL
 						apply.WriteClusterFileToDisk(usedCluster, tempFile)
 						apply.SendAndApplyCluster(sshClient, tempFile)
-						apply.CheckNodeNum(sshClient, 4)
+						apply.CheckNodeNumWithSSH(sshClient, 4)
 						usedCluster.Spec.Provider = settings.AliCloud
 						usedCluster = apply.CreateAliCloudInfraAndSave(usedCluster, tempFile)
 
@@ -127,48 +130,6 @@ var _ = Describe("sealer apply", func() {
 						deleteCmd := fmt.Sprintf("sealer delete -f %s", tempFile)
 						err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, deleteCmd)
 						Expect(err).NotTo(HaveOccurred())
-					})
-
-				})
-
-				Context("check abnormal scenario that no need to delete cluster", func() {
-					var tempFile string
-					BeforeEach(func() {
-						tempFile = testhelper.CreateTempFile()
-					})
-
-					AfterEach(func() {
-						testhelper.RemoveTempFile(tempFile)
-					})
-
-					It("empty content of cluster file", func() {
-						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
-					})
-
-					It("invalid content of cluster file", func() {
-						err := testhelper.WriteFile(tempFile, []byte("i love sealer!"))
-						Expect(err).NotTo(HaveOccurred())
-						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
-					})
-
-					It("invalid provider of cluster file", func() {
-						rawCluster.Spec.Provider = "sealer"
-						apply.WriteClusterFileToDisk(rawCluster, tempFile)
-						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(2))
-					})
-
-					It("invalid images name of cluster file", func() {
-						rawCluster.Spec.Image = "FakeImage"
-						apply.WriteClusterFileToDisk(rawCluster, tempFile)
-						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess, settings.DefaultWaiteTime).ShouldNot(Exit(0))
 					})
 
 				})
