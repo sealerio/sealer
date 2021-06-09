@@ -60,7 +60,7 @@ join to cluster by cloud provider, just set the number of masters or nodes:
 		sealerPath := fmt.Sprintf("%s/.sealer", cert.GetUserHomeDir())
 		if clusterName == "" {
 			files, err := getClusterName(sealerPath)
-			if err != nil{
+			if err != nil {
 				logger.Error(err)
 				os.Exit(1)
 			}
