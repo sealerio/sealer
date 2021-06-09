@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package utils
 
 import (
@@ -62,6 +76,40 @@ func DeleteImage(imageName string) error {
 	return nil
 }
 
+func DeleteImageByID(imageID string, force bool) error {
+	imagesMap, err := GetImageMetadataMap()
+	if err != nil {
+		return err
+	}
+	var imageIDCount = 0
+	var imageNames []string
+	for _, value := range imagesMap {
+		if value.ID == imageID {
+			imageIDCount++
+			imageNames = append(imageNames, value.Name)
+		}
+		if imageIDCount > 1 && !force {
+			return fmt.Errorf("there are more than one image %s", imageID)
+		}
+	}
+	if imageIDCount == 0 {
+		return fmt.Errorf("failed to find image with id %s", imageID)
+	}
+	for _, imageName := range imageNames {
+		delete(imagesMap, imageName)
+	}
+
+	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
+	if err != nil {
+		return err
+	}
+
+	if err = ioutil.WriteFile(common.DefaultImageMetadataFile, data, common.FileMode0644); err != nil {
+		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
+	}
+	return nil
+}
+
 func GetImageByID(imageID string) (*v1.Image, error) {
 	fileName := filepath.Join(common.DefaultImageMetaRootDir, imageID+".yaml")
 
@@ -110,4 +158,21 @@ func SetImageMetadata(metadata ImageMetadata) error {
 		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
 	}
 	return nil
+}
+
+func GetImageMetadata(imageNameOrID string) (ImageMetadata, error) {
+	imageMetadataMap, err := GetImageMetadataMap()
+	imageMetadata := ImageMetadata{}
+	if err != nil {
+		return imageMetadata, err
+	}
+	for k, v := range imageMetadataMap {
+		if imageNameOrID == k {
+			return v, nil
+		}
+		if imageNameOrID == v.ID {
+			return v, nil
+		}
+	}
+	return imageMetadata, &ImageNameOrIDNotFoundError{name: imageNameOrID}
 }

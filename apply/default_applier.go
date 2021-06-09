@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package apply
 
 import (
@@ -8,6 +22,9 @@ import (
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+
+	"fmt"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -41,6 +58,7 @@ const (
 	Guest          ActionName = "Guest"
 	CNI            ActionName = "CNI"
 	Reset          ActionName = "Reset"
+	CleanFS        ActionName = "CleanFS"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
@@ -59,7 +77,10 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		if err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts); err != nil {
 			return err
 		}
-		applier.Runtime.LoadMetadata()
+		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		if applier.Runtime == nil {
+			return fmt.Errorf("failed to init runtime")
+		}
 		return nil
 	},
 	UnMountRootfs: func(applier *DefaultApplier) error {
@@ -90,7 +111,14 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.Runtime.CNI(applier.ClusterDesired)
 	},
 	Reset: func(applier *DefaultApplier) error {
+		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		if applier.Runtime == nil {
+			return fmt.Errorf("failed to init runtime")
+		}
 		return applier.Runtime.Reset(applier.ClusterDesired)
+	},
+	CleanFS: func(applier *DefaultApplier) error {
+		return applier.FileSystem.Clean(applier.ClusterDesired)
 	},
 }
 
@@ -124,16 +152,16 @@ func (c *DefaultApplier) Apply() (err error) {
 		if err != nil {
 			return err
 		}
-	}
 
-	currentCluster, err := GetCurrentCluster()
-	if err != nil {
-		return errors.Wrap(err, "get current cluster failed")
-	}
-	if currentCluster != nil {
-		c.ClusterCurrent = c.ClusterDesired.DeepCopy()
-		c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
-		c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
+		currentCluster, err := GetCurrentCluster()
+		if err != nil {
+			return errors.Wrap(err, "get current cluster failed")
+		}
+		if currentCluster != nil {
+			c.ClusterCurrent = c.ClusterDesired.DeepCopy()
+			c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
+			c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
+		}
 	}
 
 	todoList, _ := c.diff()
@@ -160,6 +188,8 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		c.NodesToDelete = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, Reset)
 		todoList = append(todoList, UnMountRootfs)
+		todoList = append(todoList, UnMountImage)
+		todoList = append(todoList, CleanFS)
 		return todoList, nil
 	}
 
@@ -172,6 +202,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, ApplyNodes)
+		todoList = append(todoList, CNI)
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		return todoList, nil
@@ -203,7 +234,6 @@ func NewDefaultApplier(cluster *v1.Cluster) Interface {
 		ClusterDesired: cluster,
 		ImageManager:   image.NewImageService(),
 		FileSystem:     filesystem.NewFilesystem(),
-		Runtime:        runtime.NewDefaultRuntime(cluster),
 		Guest:          guest.NewGuestManager(),
 	}
 }

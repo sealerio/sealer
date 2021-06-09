@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package runtime
 
 import (
@@ -5,6 +19,7 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -20,17 +35,20 @@ import (
 )
 
 const (
-	RemoteCmdInitEtcdDir   = "mkdir -p /var/lib/etcd && mount %s /var/lib/etcd && rm -rf /var/lib/etcd/* && echo \"%s /var/lib/etcd ext4 defaults 0 0\" >> /etc/fstab"
-	RemoteCmdUnmountEtcd   = "umount /var/lib/etcd; mkfs.ext4 -F %s"
-	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
-	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
-	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
-	DefaultVIP             = "10.103.97.2"
-	DefaultAPIserverDomain = "apiserver.cluster.local"
-	DefaultRegistryPort    = 5000
+	RemoteCmdCopyStatic            = "mkdir -p %s && cp -f %s %s"
+	RemoteApplyYaml                = `echo '%s' | kubectl apply -f -`
+	RemoteCmdGetNetworkInterface   = "ls /sys/class/net"
+	RemoteCmdExistNetworkInterface = "ip addr show %s | egrep \"%s\" || true"
+	WriteKubeadmConfigCmd          = "cd %s && echo \"%s\" > kubeadm-config.yaml"
+	DefaultVIP                     = "10.103.97.2"
+	DefaultAPIserverDomain         = "apiserver.cluster.local"
+	DefaultRegistryPort            = 5000
 )
 
 func (d *Default) init(cluster *v1.Cluster) error {
+	if err := d.LoadMetadata(); err != nil {
+		return fmt.Errorf("failed to load metadata %v", err)
+	}
 	//config kubeadm
 	if err := d.ConfigKubeadmOnMaster0(); err != nil {
 		return err
@@ -84,8 +102,9 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	// TODO add host port
 	d.Nodes = cluster.Spec.Nodes.IPList
 	d.APIServer = DefaultAPIserverDomain
-	d.Rootfs = path.Join(common.DefaultClusterRootfsDir, d.ClusterName)
-	d.CertPath = fmt.Sprintf("%s/pki", d.Rootfs)
+	d.Rootfs = common.DefaultTheClusterRootfsDir(d.ClusterName)
+	d.BasePath = path.Join(common.DefaultClusterRootfsDir, d.ClusterName)
+	d.CertPath = fmt.Sprintf("%s/pki", d.BasePath)
 	d.CertEtcdPath = fmt.Sprintf("%s/etcd", d.CertPath)
 	d.StaticFileDir = fmt.Sprintf("%s/statics", d.Rootfs)
 	// TODO remote port in ipList
@@ -95,12 +114,14 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
 	d.WithoutCNI = cluster.Spec.Network.WithoutCNI
-	if d.IPIP && d.MTU == "" {
-		d.MTU = "1480"
-	} else {
-		d.MTU = "1550"
+	if d.MTU == "" {
+		if d.IPIP {
+			d.MTU = "1480"
+		} else {
+			d.MTU = "1450"
+		}
 	}
-
+	// return d.LoadMetadata()
 	return nil
 }
 func (d *Default) ConfigKubeadmOnMaster0() error {
@@ -173,7 +194,7 @@ func (d *Default) CreateKubeConfig() error {
 	}
 
 	controlPlaneEndpoint := fmt.Sprintf("https://%s:6443", d.APIServer)
-	err := cert.CreateJoinControlPlaneKubeConfigFiles(d.Rootfs,
+	err := cert.CreateJoinControlPlaneKubeConfigFiles(d.BasePath,
 		certConfig, hostname, controlPlaneEndpoint, "kubernetes")
 	if err != nil {
 		return fmt.Errorf("generator kubeconfig failed %s", err)
@@ -184,12 +205,6 @@ func (d *Default) CreateKubeConfig() error {
 //InitMaster0 is
 func (d *Default) InitMaster0() error {
 	d.SendJoinMasterKubeConfigs(d.Masters[:1], AdminConf, ControllerConf, SchedulerConf, KubeletConf)
-	/*
-		err := d.mountEtcdDisk(d.Masters[:1], d.EtcdDevice)
-		if err != nil {
-			return fmt.Error("mount for /var/lib/etcd failed at %s, due to %s", d.Masters[0], err)
-		}
-	*/
 
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(utils.GetHostIP(d.Masters[0]), d.APIServer))
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(utils.GetHostIP(d.Masters[0])))
@@ -198,6 +213,7 @@ func (d *Default) InitMaster0() error {
 		return err
 	}
 
+	logger.Info("start to init master0...")
 	cmdInit := d.Command(d.Metadata.Version, InitMaster)
 
 	// TODO skip docker version error check for test
@@ -211,7 +227,8 @@ func (d *Default) InitMaster0() error {
 		return err
 	}
 
-	return d.InitCNI()
+	//return d.InitCNI()
+	return nil
 }
 
 func (d *Default) InitCNI() error {
@@ -219,6 +236,22 @@ func (d *Default) InitCNI() error {
 	if d.WithoutCNI {
 		return nil
 	}
+
+	interfaceNameList, err := d.getAllInterfaceName()
+	if err != nil {
+		return fmt.Errorf("failed to list master[0] network interface: %w", err)
+	}
+	master0InterfaceName, err := d.getMaster0InterfaceName(interfaceNameList)
+	if err != nil {
+		return fmt.Errorf("failed to get master[0] network interface: %w", err)
+	}
+	if d.Interface == "" {
+		d.Interface = master0InterfaceName
+	}
+	if !d.existMaster0InterfaceName(interfaceNameList, d.Interface) {
+		return fmt.Errorf("failed to found %s nic", d.Interface)
+	}
+
 	// can-reach is used by calico multi network , flannel has nothing to add. just Use it.
 	if len(strings.Split(d.Interface, ".")) == 4 && d.Network == "calico" {
 		d.Interface = "can-reach=" + d.Interface
@@ -239,31 +272,6 @@ func (d *Default) InitCNI() error {
 
 	return d.SSH.CmdAsync(d.Masters[0], fmt.Sprintf(RemoteApplyYaml, netYaml))
 }
-
-/*func (d *Default) mountEtcdDisk(targetHosts []string, etcdDisk string) error {
-	if etcdDisk == "" {
-		logger.Warn("Etcd Disk is not set, etcd now uses root disk which is not recommended due to stability requirement.")
-		return nil
-	}
-
-	var wg sync.WaitGroup
-	for _, host := range targetHosts {
-		wg.Add(1)
-		go func(master string) {
-			defer wg.Done()
-			cmdInitDevice := fmt.Sprintf(RemoteCmdUnmountEtcd, etcdDisk)
-			cmdInitDir := fmt.Sprintf(RemoteCmdInitEtcdDir, etcdDisk, etcdDisk)
-			err := d.SSH.CmdAsync(master, cmdInitDevice, cmdInitDir)
-			if err != nil {
-				logger.Error("[%s] mount %s /var/lib/etcd failed, please check disk configuration", master, etcdDisk)
-				os.Exit(1)
-			}
-		}(host)
-	}
-	wg.Wait()
-
-	return nil
-}*/
 
 func (d *Default) CopyStaticFiles(nodes []string) error {
 	var flag bool
@@ -322,4 +330,36 @@ func (d *Default) decodeJoinCmd(cmd string) {
 		}
 	}
 	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", d.JoinToken, d.TokenCaCertHash, d.CertificateKey)
+}
+
+func (d *Default) getAllInterfaceName() ([]string, error) {
+	ret, err := d.SSH.Cmd(d.Masters[0], RemoteCmdGetNetworkInterface)
+	if err != nil {
+		return nil, err
+	}
+	interfaceList := strings.Fields(string(ret))
+	return interfaceList, nil
+}
+
+func (d *Default) getMaster0InterfaceName(interfaceNameList []string) (interfaceName string, err error) {
+	for _, v := range interfaceNameList {
+		ret, err := d.SSH.Cmd(d.Masters[0], fmt.Sprintf(RemoteCmdExistNetworkInterface, v, d.Masters[0]))
+		if err != nil {
+			return "", err
+		}
+		if strings.Contains(string(ret), d.Masters[0]) {
+			return v, nil
+		}
+	}
+	return "", nil
+}
+
+func (d *Default) existMaster0InterfaceName(interfaceNameList []string, interfaceName string) bool {
+	reg := regexp.MustCompile(interfaceName)
+	for _, v := range interfaceNameList {
+		if reg.MatchString(v) {
+			return true
+		}
+	}
+	return false
 }

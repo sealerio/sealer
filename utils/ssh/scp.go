@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package ssh
 
 import (
@@ -11,7 +25,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibaba/sealer/utils/progress"
+	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
+	"github.com/docker/docker/pkg/progress"
+	"github.com/docker/docker/pkg/streamformatter"
+
+	dockerstreams "github.com/docker/cli/cli/streams"
+	dockerioutils "github.com/docker/docker/pkg/ioutils"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -27,6 +46,26 @@ const MByte = 1024 * 1024
 const (
 	Md5sumCmd = "md5sum %s | cut -d\" \" -f1"
 )
+
+type easyProgressUtil struct {
+	output         progress.Output
+	copyID         string
+	completeNumber int
+	total          int
+}
+
+func (epu *easyProgressUtil) increment() {
+	epu.completeNumber = epu.completeNumber + 1
+	progress.Update(epu.output, epu.copyID, fmt.Sprintf("%d/%d", epu.completeNumber, epu.total))
+}
+
+func (epu *easyProgressUtil) fail(err error) {
+	progress.Update(epu.output, epu.copyID, fmt.Sprintf("failed, err: %s", err))
+}
+
+func (epu *easyProgressUtil) startMessage() {
+	progress.Update(epu.output, epu.copyID, fmt.Sprintf("%d/%d", epu.completeNumber, epu.total))
+}
 
 func (s *SSH) RemoteMd5Sum(host, remoteFilePath string) string {
 	cmd := fmt.Sprintf(Md5sumCmd, remoteFilePath)
@@ -153,39 +192,44 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	if number == 0 {
 		return nil
 	}
-
-	ch := make(chan progress.Msg, 10)
-	defer close(ch)
-	flow := progress.NewProgressFlow()
-	flow.AddProgressTasks(progress.TaskDef{
-		Task: "Copying Files",
-		Max:  int64(number),
-		ProgressSrc: progress.ChannelTask{
-			ProgressChan: ch,
-		},
-		SuccessMsg: fmt.Sprintf("Success to copy %s to %s", localPath, remotePath),
-		FailMsg:    fmt.Sprintf("Failed to copy %s to %s", localPath, remotePath),
-	})
-
+	var (
+		reader, writer  = io.Pipe()
+		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
+		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
+		streamOut       = dockerstreams.NewOut(os.Stdout)
+		epu             = &easyProgressUtil{
+			output:         progressChanOut,
+			completeNumber: 0,
+			total:          number,
+			copyID:         "copying files to " + host,
+		}
+	)
+	defer func() {
+		_ = reader.Close()
+		_ = writer.Close()
+		_ = writeFlusher.Close()
+	}()
 	go func() {
-		if f.IsDir() {
-			s.copyLocalDirToRemote(host, sshClient, sftpClient, localPath, remotePath, ch)
-		} else {
-			err = s.copyLocalFileToRemote(host, sshClient, sftpClient, localPath, remotePath)
-			if err != nil {
-				ch <- progress.Msg{Status: progress.StatusFail}
-			}
-			ch <- progress.Msg{Inc: 1}
+		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
+		if err != nil && err != io.ErrClosedPipe {
+			logger.Warn("error occurs in display progressing, err: %s", err)
 		}
 	}()
-	flow.Start()
-	if err != nil {
-		return err
+
+	epu.startMessage()
+	if f.IsDir() {
+		s.copyLocalDirToRemote(host, sshClient, sftpClient, localPath, remotePath, epu)
+	} else {
+		err = s.copyLocalFileToRemote(host, sshClient, sftpClient, localPath, remotePath)
+		if err != nil {
+			epu.fail(err)
+		}
+		epu.increment()
 	}
 	return nil
 }
 
-func (s *SSH) copyLocalDirToRemote(host string, sshClient *ssh.Client, sftpClient *sftp.Client, localPath, remotePath string, ch chan progress.Msg) {
+func (s *SSH) copyLocalDirToRemote(host string, sshClient *ssh.Client, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
 		logger.Error("read local path dir failed %s %s", host, localPath)
@@ -203,16 +247,16 @@ func (s *SSH) copyLocalDirToRemote(host string, sshClient *ssh.Client, sftpClien
 				logger.Error("failed to create remote path %s:%v", rfp, err)
 				return
 			}
-			s.copyLocalDirToRemote(host, sshClient, sftpClient, lfp, rfp, ch)
+			s.copyLocalDirToRemote(host, sshClient, sftpClient, lfp, rfp, epu)
 		} else {
 			err := s.copyLocalFileToRemote(host, sshClient, sftpClient, lfp, rfp)
 			if err != nil {
 				errMsg := fmt.Sprintf("copy local file to remote failed %v %s %s %s", err, host, lfp, rfp)
-				ch <- progress.Msg{Status: progress.StatusFail, Msg: errMsg}
+				epu.fail(err)
 				logger.Error(errMsg)
 				return
 			}
-			ch <- progress.Msg{Inc: 1}
+			epu.increment()
 		}
 	}
 }

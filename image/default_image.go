@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package image
 
 import (
@@ -5,18 +19,19 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
+
+	"github.com/docker/docker/pkg/streamformatter"
 
 	"github.com/alibaba/sealer/image/distributionutil"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
 	imageutils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/registry"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
-	dockerutils "github.com/docker/docker/distribution/utils"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	dockerprogress "github.com/docker/docker/pkg/progress"
@@ -24,6 +39,7 @@ import (
 
 // DefaultImageService is the default service, which is used for image pull/push
 type DefaultImageService struct {
+	ForceDeleteImage bool // sealer rmi -f
 }
 
 // PullIfNotExist is used to pull image if not exists locally
@@ -51,18 +67,13 @@ func (d DefaultImageService) Pull(imageName string) error {
 	var (
 		reader, writer  = io.Pipe()
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
-		progressChan    = make(chan dockerprogress.Progress, 100)
-		progressChanOut = dockerprogress.ChanOutput(progressChan)
+		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
 		streamOut       = dockerstreams.NewOut(os.Stdout)
 	)
 	defer func() {
 		_ = reader.Close()
 		_ = writer.Close()
 		_ = writeFlusher.Close()
-		close(progressChan)
-	}()
-	go func() {
-		dockerutils.WriteDistributionProgress(func() {}, writeFlusher, progressChan)
 	}()
 
 	layerStore, err := store.NewDefaultLayerStore()
@@ -70,19 +81,14 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 
-	authInfo, err := utils.GetDockerAuthInfoFromDocker(named.Domain())
-	if err != nil {
-		logger.Warn("failed to get auth info, err: %s", err)
-	}
-
-	puller, err := distributionutil.NewPuller(distributionutil.Config{
+	puller, err := distributionutil.NewPuller(named, distributionutil.Config{
 		LayerStore:     layerStore,
 		ProgressOutput: progressChanOut,
-		AuthInfo:       authInfo,
 	})
 	if err != nil {
 		return err
 	}
+
 	go func() {
 		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
 		if err != nil && err != io.ErrClosedPipe {
@@ -96,7 +102,11 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 	// TODO use image store to do the job next
-	return store.SyncImageLocal(*image, named)
+	err = store.SyncImageLocal(*image, named)
+	if err == nil {
+		dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Pull Image %s", named.Raw()))
+	}
+	return err
 }
 
 // Push push local image to remote registry
@@ -108,19 +118,13 @@ func (d DefaultImageService) Push(imageName string) error {
 	var (
 		reader, writer  = io.Pipe()
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
-		progressChan    = make(chan dockerprogress.Progress, 100)
-		progressChanOut = dockerprogress.ChanOutput(progressChan)
+		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
 		streamOut       = dockerstreams.NewOut(os.Stdout)
 	)
 	defer func() {
 		_ = reader.Close()
 		_ = writer.Close()
 		_ = writeFlusher.Close()
-		close(progressChan)
-	}()
-
-	go func() {
-		dockerutils.WriteDistributionProgress(func() {}, writeFlusher, progressChan)
 	}()
 
 	layerStore, err := store.NewDefaultLayerStore()
@@ -128,16 +132,11 @@ func (d DefaultImageService) Push(imageName string) error {
 		return err
 	}
 
-	authInfo, err := utils.GetDockerAuthInfoFromDocker(named.Domain())
-	if err != nil {
-		logger.Warn("failed to get docker info, err: %s", err)
-	}
-
-	pusher, err := distributionutil.NewPusher(distributionutil.Config{
-		LayerStore:     layerStore,
-		ProgressOutput: progressChanOut,
-		AuthInfo:       authInfo,
-	})
+	pusher, err := distributionutil.NewPusher(named,
+		distributionutil.Config{
+			LayerStore:     layerStore,
+			ProgressOutput: progressChanOut,
+		})
 	if err != nil {
 		return err
 	}
@@ -151,12 +150,17 @@ func (d DefaultImageService) Push(imageName string) error {
 	}()
 
 	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Start to Push Image %s", named.Raw()))
-	return pusher.Push(context.Background(), named)
+	err = pusher.Push(context.Background(), named)
+	if err == nil {
+		dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Push Image %s", named.CompleteName()))
+	}
+	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Push Image %s", named.CompleteName()))
+	return err
 }
 
 // Login login into a registry, for saving auth info in ~/.docker/config.json
 func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd string) error {
-	_, err := registry.New(context.Background(), types.AuthConfig{ServerAddress: RegistryURL, Username: RegistryUsername, Password: RegistryPasswd}, registry.Opt{Insecure: true, Debug: true})
+	err := distributionutil.Login(context.Background(), &types.AuthConfig{ServerAddress: RegistryURL, Username: RegistryUsername, Password: RegistryPasswd})
 	if err != nil {
 		logger.Error("%v authentication failed", RegistryURL)
 		return err
@@ -173,6 +177,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 		images        []*v1.Image
 		image         *v1.Image
 		imageTagCount int
+		imageID       string
 	)
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
@@ -183,38 +188,49 @@ func (d DefaultImageService) Delete(imageName string) error {
 	if err != nil {
 		return err
 	}
-
+	// example ImageName : 7e2e51b85680d827fae08853dea32ad6:latest
+	// example ImageID :   7e2e51b85680d827fae08853dea32ad6
+	// https://github.com/alibaba/sealer/blob/f9d609c7fede47a7ac229bcd03d92dd0429b5038/image/reference/util.go#L59
 	imageMetadata, ok := imageMetadataMap[named.Raw()]
-	if !ok {
+	if !ok && strings.Contains(imageName, ":") {
 		return fmt.Errorf("failed to find image with name %s", imageName)
 	}
 
-	//1.untag image
-	err = imageutils.DeleteImage(imageName)
-	if err != nil {
-		return fmt.Errorf("failed to untag image %s, err: %s", imageName, err)
+	if strings.Contains(imageName, ":") {
+		//1.untag image
+		if err = imageutils.DeleteImage(imageName); err != nil {
+			return fmt.Errorf("failed to untag image %s, err: %w", imageName, err)
+		}
+		image, err = imageutils.GetImageByID(imageMetadata.ID)
+
+		imageID = imageMetadata.ID
+	} else {
+		if err = imageutils.DeleteImageByID(imageName, d.ForceDeleteImage); err != nil {
+			return err
+		}
+		image, err = imageutils.GetImageByID(imageName)
+		imageID = imageName
 	}
 
-	image, err = imageutils.GetImageByID(imageMetadata.ID)
 	if err != nil {
-		return fmt.Errorf("failed to get image metadata for image %s, err: %v", imageName, err)
+		return fmt.Errorf("failed to get image metadata for image %s, err: %w", imageName, err)
 	}
 	logger.Info("untag image %s succeeded", imageName)
 
 	for _, value := range imageMetadataMap {
-		tmpImage, err := imageutils.GetImageByID(imageMetadata.ID)
+		tmpImage, err := imageutils.GetImageByID(value.ID)
 		if err != nil {
 			continue
 		}
-		if value.ID == imageMetadata.ID {
+		if value.ID == imageID {
 			imageTagCount++
 			if imageTagCount > 1 {
-				break
+				continue
 			}
 		}
 		images = append(images, tmpImage)
 	}
-	if imageTagCount != 1 {
+	if imageTagCount != 1 && !d.ForceDeleteImage {
 		return nil
 	}
 

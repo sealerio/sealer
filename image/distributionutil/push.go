@@ -1,10 +1,24 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package distributionutil
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/alibaba/sealer/utils"
 
@@ -18,7 +32,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/alibaba/sealer/registry"
 	"github.com/alibaba/sealer/utils/compress"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
@@ -32,8 +45,8 @@ type Pusher interface {
 }
 
 type ImagePusher struct {
-	config   Config
-	registry *registry.Registry // registrysdk
+	config     Config
+	repository distribution.Repository
 }
 
 func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) error {
@@ -104,21 +117,22 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Named, layer store.Layer) (distribution.Descriptor, error) {
 	var (
 		file            *os.File
-		registryCli     = pusher.registry
+		repo            = pusher.repository
 		progressChanOut = pusher.config.ProgressOutput
-		layerID         = digest.Digest(layer.ID())
+		layerIDDigest   = digest.Digest(layer.ID())
 	)
 
+	bs := repo.Blobs(ctx)
 	// check if layer exists remotely.
-	remoteLayer, err := registryCli.LayerMetadata(named.Repo(), layerID)
+	remoteLayerDescriptor, err := bs.Stat(ctx, layerIDDigest)
 	if err == nil {
 		progress.Message(progressChanOut, layer.SimpleID(), "already exists")
-		return remoteLayer, nil
+		return remoteLayerDescriptor, nil
 	}
 
 	// pack layer files into tar.gz
 	progress.Update(progressChanOut, layer.SimpleID(), "preparing")
-	if file, err = compress.RootDirNotIncluded(nil, filepath.Join(common.DefaultLayerDir, layerID.Hex())); err != nil {
+	if file, err = compress.RootDirNotIncluded(nil, filepath.Join(common.DefaultLayerDir, layerIDDigest.Hex())); err != nil {
 		return distribution.Descriptor{}, err
 	}
 	defer utils.CleanFile(file)
@@ -136,20 +150,39 @@ func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Name
 	progressReader := progress.NewProgressReader(file, progressChanOut, fi.Size(), layer.SimpleID(), "pushing")
 	defer progressReader.Close()
 
-	err = registryCli.UploadLayer(ctx, named.Repo(), layerID, progressReader)
+	layerUploader, err := bs.Create(ctx)
 	if err != nil {
 		return distribution.Descriptor{}, err
 	}
+	defer layerUploader.Close()
+
+	digester := digest.Canonical.Digester()
+	tee := io.TeeReader(progressReader, digester.Hash())
+	_, err = layerUploader.ReadFrom(tee)
+	if err != nil {
+		return distribution.Descriptor{}, fmt.Errorf("failed to upload layer %s, err: %s", layer.ID(), err)
+	}
+	if digester.Digest() != layerIDDigest {
+		return distribution.Descriptor{}, fmt.Errorf("layer hash changed, which means the layer filesystem may changed, current: %s, original: %s", digester.Digest(), layerIDDigest)
+	}
+	if _, err = layerUploader.Commit(ctx, distribution.Descriptor{Digest: layerIDDigest}); err != nil {
+		return distribution.Descriptor{}, fmt.Errorf("failed to commit layer to registry, err: %s", err)
+	}
 
 	progress.Update(progressChanOut, layer.SimpleID(), "push completed")
-	return buildBlobs(layerID, fi.Size(), schema2.MediaTypeLayer), nil
+	return buildBlobs(layerIDDigest, fi.Size(), schema2.MediaTypeLayer), nil
 }
 
 func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, named reference.Named, layerDescriptors []distribution.Descriptor) error {
-	bs := &blobService{descriptors: map[digest.Digest]distribution.Descriptor{}}
+	var (
+		bs   = &blobService{descriptors: map[digest.Digest]distribution.Descriptor{}}
+		repo = pusher.repository
+	)
 	manifestBuilder := schema2.NewManifestBuilder(
 		bs,
-		schema2.MediaTypeManifest,
+		//TODO use schema2.MediaTypeImageConfig by default
+		//plan to support more types to support more registry
+		schema2.MediaTypeImageConfig,
 		configJSON)
 
 	for _, d := range layerDescriptors {
@@ -164,17 +197,29 @@ func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, n
 		return err
 	}
 
-	return pusher.registry.PutManifest(ctx, named.Repo(), named.Tag(), manifest)
+	ms, err := repo.Manifests(ctx)
+	if err != nil {
+		return err
+	}
+
+	putOptions := []distribution.ManifestServiceOption{distribution.WithTag(named.Tag())}
+	_, err = ms.Put(ctx, manifest, putOptions...)
+	return err
 }
 
 func (pusher *ImagePusher) putManifestConfig(ctx context.Context, named reference.Named, image v1.Image) ([]byte, error) {
+	repo := pusher.repository
 	configJSON, err := json.Marshal(image)
 	if err != nil {
 		return nil, err
 	}
 
-	dig := digest.FromBytes(configJSON)
-	err = pusher.registry.UploadLayer(ctx, named.Repo(), dig, bytes.NewReader(configJSON))
+	bs := repo.Blobs(ctx)
+	_, err = bs.Put(ctx, schema2.MediaTypeImageConfig, configJSON)
+	if err != nil {
+		return nil, err
+	}
+
 	return configJSON, err
 }
 
@@ -186,14 +231,14 @@ func buildBlobs(dig digest.Digest, size int64, mediaType string) distribution.De
 	}
 }
 
-func NewPusher(config Config) (Pusher, error) {
-	regCli, err := fetchRegistryClient(config.AuthInfo)
+func NewPusher(named reference.Named, config Config) (Pusher, error) {
+	repo, err := NewV2Repository(named, "push", "pull")
 	if err != nil {
 		return nil, err
 	}
 
 	return &ImagePusher{
-		registry: regCli,
-		config:   config,
+		repository: repo,
+		config:     config,
 	}, nil
 }

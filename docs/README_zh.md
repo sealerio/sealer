@@ -106,12 +106,18 @@ spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: BAREMETAL
   ssh:
+    # ssh的登录密码，如果使用的密钥登录则无需设置
     passwd: 
+    # ssh的私钥文件绝对路径，例如/root/.ssh/id_rsa
     pk: xxx
+    # ssh的私钥文件密码，如果没有的话就设置为""
     pkPasswd: xxx
+    # ssh登录用户
     user: root
   network:
+    # 使用的网卡名称
     interface: eth0
+    # 网络插件
     cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
@@ -155,12 +161,18 @@ spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: ALI_CLOUD
   ssh:
+    # ssh的登录密码，如果使用的密钥登录则无需设置
     passwd: 
+    # ssh的私钥文件密码，如果没有的话就设置为""
     pk: xxx
+    # ssh的私钥文件密码，如果没有的话就设置为""
     pkPasswd: xxx
+    # ssh登录用户
     user: root
   network:
+    # 使用的网卡名称
     interface: eth0
+    # 网络插件
     cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22

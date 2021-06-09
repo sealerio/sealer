@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package runtime
 
 import (
@@ -27,6 +41,7 @@ const (
 )
 
 const (
+	RemoteRestartDocker     = "systemctl restart docker"
 	RemoteAddEtcHosts       = "echo %s >> /etc/hosts"
 	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" -i /etc/hosts`
 	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
@@ -44,9 +59,8 @@ rm -rf ~/.kube/ && rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
 rm -rf /usr/bin/kube* && rm -rf /usr/bin/crictl && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
-rm -rf /var/lib/etcd && rm -rf /var/etcd && \
-rm -rf ~/kube && \
-rm -rf /etc/kubernetes/pki `
+rm -rf /var/lib/etcd && rm -rf /var/etcd 
+`
 	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
 	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
 	CreateLvscareStaticPod       = "mkdir -p /etc/kubernetes/manifests && echo '%s' > /etc/kubernetes/manifests/kube-sealyun-lvscare.yaml"
@@ -112,7 +126,7 @@ func (d *Default) JoinMasterCommands(master, joinCmd, hostname string) []string 
 
 func (d *Default) sendKubeConfigFile(hosts []string, kubeFile string) {
 	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
-	sealerKubeFile := fmt.Sprintf("%s/%s", d.Rootfs, kubeFile)
+	sealerKubeFile := fmt.Sprintf("%s/%s", d.BasePath, kubeFile)
 	d.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
@@ -282,6 +296,9 @@ func (d *Default) GetRemoteHostName(hostIP string) string {
 func (d *Default) joinMasters(masters []string) error {
 	if len(masters) == 0 {
 		return nil
+	}
+	if err := d.LoadMetadata(); err != nil {
+		return fmt.Errorf("failed to load metadata %v", err)
 	}
 	if err := ssh.WaitSSHReady(d.SSH, masters...); err != nil {
 		return errors.Wrap(err, "join masters wait for ssh ready time out")

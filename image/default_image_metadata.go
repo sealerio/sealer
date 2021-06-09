@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package image
 
 import (
@@ -6,7 +20,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/alibaba/sealer/registry"
+	"github.com/docker/distribution/manifest/schema2"
+
+	"github.com/alibaba/sealer/image/distributionutil"
+	"github.com/docker/distribution"
 
 	"github.com/alibaba/sealer/image/reference"
 	imageutils "github.com/alibaba/sealer/image/utils"
@@ -19,13 +36,9 @@ type DefaultImageMetadataService struct {
 
 // Tag is used to give an another name for imageName
 func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
-	imageMetadataMap, err := imageutils.GetImageMetadataMap()
+	imageMetadata, err := imageutils.GetImageMetadata(imageName)
 	if err != nil {
 		return err
-	}
-	imageMetadata, ok := imageMetadataMap[imageName]
-	if !ok {
-		return fmt.Errorf("failed to found image %s", imageName)
 	}
 	named, err := reference.ParseToNamed(tarImageName)
 	if err != nil {
@@ -65,7 +78,7 @@ func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image,
 		image v1.Image
 		err   error
 		named reference.Named
-		reg   *registry.Registry
+		ctx   = context.Background()
 	)
 
 	named, err = reference.ParseToNamed(imageName)
@@ -73,22 +86,36 @@ func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image,
 		return image, err
 	}
 
-	reg, err = initRegistry(named.Domain())
+	repo, err := distributionutil.NewV2Repository(named, "pull")
 	if err != nil {
-		return image, err
+		return v1.Image{}, err
 	}
 
-	manifest, err := reg.ManifestV2(context.Background(), named.Repo(), named.Tag())
+	ms, err := repo.Manifests(ctx)
 	if err != nil {
-		return image, err
+		return v1.Image{}, err
 	}
 
-	configReader, err := reg.DownloadLayer(context.Background(), named.Repo(), manifest.Config.Digest)
+	manifest, err := ms.Get(ctx, "", distribution.WithTagOption{Tag: named.Tag()})
 	if err != nil {
-		return image, err
+		return v1.Image{}, err
 	}
 
-	decoder := json.NewDecoder(configReader)
+	// just transform it to schema2.DeserializedManifest
+	// because we only upload this kind manifest.
+	scheme2Manifest, ok := manifest.(*schema2.DeserializedManifest)
+	if !ok {
+		return v1.Image{}, fmt.Errorf("failed to parse manifest %s to DeserializedManifest", named.RepoTag())
+	}
+
+	bs := repo.Blobs(ctx)
+	configJSONReader, err := bs.Open(ctx, scheme2Manifest.Config.Digest)
+	if err != nil {
+		return v1.Image{}, err
+	}
+	defer configJSONReader.Close()
+
+	decoder := json.NewDecoder(configJSONReader)
 	return image, decoder.Decode(&image)
 }
 

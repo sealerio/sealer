@@ -11,6 +11,7 @@ jobs:
     permissions:
       issues: write
     steps:
+
       - name: Invite user to join our group
         uses: peter-evans/create-or-update-comment@v1
         with:
