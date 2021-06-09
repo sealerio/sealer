@@ -48,7 +48,7 @@ func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface
 			cluster.Spec.Masters.IPList = append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Masters, ",")...)
 			cluster.Spec.Nodes.IPList = append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Nodes, ",")...)
 		} else {
-			logger.Error("Parameter error:", "provider cannot be empty when using cloud service！")
+			logger.Error("Parameter error:", "The current mode should submit iplist！")
 			return nil
 		}
 	} else {
@@ -56,7 +56,7 @@ func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface
 			cluster.Spec.Masters.Count = strconv.Itoa(StrToInt(cluster.Spec.Masters.Count) + StrToInt(joinArgs.Masters))
 			cluster.Spec.Nodes.Count = strconv.Itoa(StrToInt(cluster.Spec.Nodes.Count) + StrToInt(joinArgs.Nodes))
 		} else {
-			logger.Error("Parameter error:", "The current mode should submit iplist！")
+			logger.Error("Parameter error:", "The number of join masters or nodes that must be submitted to use cloud service！")
 			return nil
 		}
 	}
