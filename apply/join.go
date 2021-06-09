@@ -43,7 +43,7 @@ func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface
 		logger.Error("The node or master parameter was not committed")
 		return nil
 	}
-	if cluster.Spec.Provider == "" {
+	if cluster.Spec.Provider == "BAREMETAL" {
 		if IsIPList(joinArgs.Nodes) || IsIPList(joinArgs.Masters) {
 			cluster.Spec.Masters.IPList = append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Masters, ",")...)
 			cluster.Spec.Nodes.IPList = append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Nodes, ",")...)

@@ -15,15 +15,20 @@
 package cmd
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
+	"strings"
+
+	"github.com/alibaba/sealer/cert"
 
 	"github.com/alibaba/sealer/apply"
-	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
 )
 
+var clusterName string
 var joinArgs *common.RunArgs
 
 var joinCmd = &cobra.Command{
@@ -37,11 +42,38 @@ join to cluster by cloud provider, just set the number of masters or nodes:
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, err := os.Lstat(clusterFile); err != nil {
-			logger.Error(clusterFile, err)
+		sealerPath := fmt.Sprintf("%s/.sealer", cert.GetUserHomeDir())
+		if clusterName == "" {
+			files, err := ioutil.ReadDir(sealerPath)
+			if err != nil {
+				logger.Error(err)
+				os.Exit(1)
+			}
+			if len(files) == 1 && files[0].IsDir() {
+				clusterName = files[0].Name()
+			} else if len(files) > 1 {
+				logger.Error("Please select a cluster:", strings.Join(func() []string {
+					var clusters []string
+					for _, f := range files {
+						if f.IsDir() {
+							clusters = append(clusters, f.Name())
+						}
+					}
+					return clusters
+				}(), ","))
+				os.Exit(1)
+			} else {
+				logger.Error("Existing cluster not found！")
+				os.Exit(1)
+			}
+		}
+
+		clusterFilePath := fmt.Sprintf("%s/%s/Clusterfile", sealerPath, clusterName)
+		if _, err := os.Lstat(clusterFilePath); err != nil {
+			logger.Error(err)
 			os.Exit(1)
 		}
-		applier := apply.JoinApplierFromArgs(clusterFile, joinArgs)
+		applier := apply.JoinApplierFromArgs(clusterFilePath, joinArgs)
 		if applier == nil {
 			os.Exit(1)
 		}
@@ -57,10 +89,5 @@ func init() {
 	rootCmd.AddCommand(joinCmd)
 	joinCmd.Flags().StringVarP(&joinArgs.Masters, "masters", "m", "", "set Count or IPList to masters")
 	joinCmd.Flags().StringVarP(&joinArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
-	joinCmd.Flags().StringVarP(&joinArgs.User, "user", "u", "root", "set baremetal server username")
-	joinCmd.Flags().StringVarP(&joinArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
-	joinCmd.Flags().StringVarP(&joinArgs.Pk, "pk", "", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
-	joinCmd.Flags().StringVarP(&joinArgs.PkPassword, "pk-passwd", "", "", "set baremetal server  private key password")
-	joinCmd.Flags().StringVarP(&joinArgs.Interface, "interface", "i", "", "set default network interface name")
-	joinCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", cert.GetUserHomeDir()+"/.sealer/my-cluster/Clusterfile", "apply a kubernetes cluster")
+	joinCmd.Flags().StringVarP(&clusterName, "ClusterName", "c", "", "submit one cluster name")
 }
