@@ -36,7 +36,7 @@ import (
 const (
 	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
 	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
-	WriteKubeadmConfigCmd   = "cd %s && echo \"%s\" > kubeadm-config.yaml"
+	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
 	DefaultVIP             = "10.103.97.2"
 	DefaultAPIserverDomain = "apiserver.cluster.local"
 	DefaultRegistryPort    = 5000
