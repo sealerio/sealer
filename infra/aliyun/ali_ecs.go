@@ -234,7 +234,7 @@ func (a *AliProvider) GetInstancesInfo(instancesRole, expectCount string) (insta
 	return
 }
 
-func (a *AliProvider) ReconcileIntances(instanceRole string) error {
+func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 	var hosts *v1.Hosts
 	var instances []Instance
 	var instancesIDs string

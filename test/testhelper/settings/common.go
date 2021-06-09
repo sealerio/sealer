@@ -22,7 +22,7 @@ import (
 const (
 	SealerBinPath                     = "/usr/local/bin/sealer"
 	ImageName                         = "sealer_test_image_"
-	DefaultRegistryAuthFile           = "/root/.docker/config.json"
+	DefaultRegistryAuthFileDir        = "/root/.docker"
 	DefaultClusterFileNeedToBeCleaned = "/root/.sealer/%s/Clusterfile"
 	SubCmdBuildOfSealer               = "build"
 	SubCmdApplyOfSealer               = "apply"
@@ -48,7 +48,7 @@ const (
 const (
 	BAREMETAL         = "BAREMETAL"
 	AliCloud          = "ALI_CLOUD"
-	ImageNameForRun   = "registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest"
+	ImageNameForRun   = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9"
 	ClusterNameForRun = "my-cluster"
 	TMPClusterFile    = "/tmp/Clusterfile"
 )

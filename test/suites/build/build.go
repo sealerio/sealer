@@ -38,8 +38,14 @@ func GetCloudBuildDir() string {
 	return "cloud_build"
 }
 
+// GetTestImageName return specific image name that will be push to registry
 func GetTestImageName() string {
 	return fmt.Sprintf("sealer-io/%s%d:%s", settings.ImageName, 719, "v1")
+}
+
+//GetImageNameTemplate return image name only for local build
+func GetImageNameTemplate(name string) string {
+	return fmt.Sprintf("sealer-io-test/%s%s:%s", settings.ImageName, name, "v1")
 }
 
 type ArgsOfBuild struct {

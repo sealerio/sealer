@@ -137,12 +137,12 @@ var RecocileFuncMap = map[ActionName]func(provider *AliProvider) error{
 		return aliProvider.ReconcileResource(SecurityGroupID, aliProvider.CreateSecurityGroup)
 	},
 	ReconcileInstance: func(aliProvider *AliProvider) error {
-		err := aliProvider.ReconcileIntances(Master)
+		err := aliProvider.ReconcileInstances(Master)
 		if err != nil {
 			return err
 		}
 
-		err = aliProvider.ReconcileIntances(Node)
+		err = aliProvider.ReconcileInstances(Node)
 		if err != nil {
 			return err
 		}

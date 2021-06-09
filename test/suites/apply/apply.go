@@ -17,10 +17,15 @@ package apply
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
+	"strings"
 
+	"github.com/alibaba/sealer/utils"
+
+	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/test/testhelper/settings"
-
 	"github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/test/testhelper"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -36,7 +41,7 @@ func GetRawClusterFilePath() string {
 	return filepath.Join(fixtures, "cluster_file_for_test.yaml")
 }
 
-func DeleteCluster(clusterFile string) {
+func DeleteClusterByFile(clusterFile string) {
 	cmd := fmt.Sprintf("%s delete -f %s", settings.DefaultSealerBin, clusterFile)
 	testhelper.RunCmdAndCheckResult(cmd, 0)
 }
@@ -55,38 +60,75 @@ func LoadClusterFileFromDisk(clusterFilePath string) *v1.Cluster {
 	return &cluster
 }
 
-func GetClusterNodes() int {
-	client, err := testhelper.NewClientSet()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	nodes, err := testhelper.ListNodes(client)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return len(nodes.Items)
-}
-
-func CheckClusterPods() int {
-	client, err := testhelper.NewClientSet()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	pods, err := testhelper.ListNodes(client)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return len(pods.Items)
-}
-
 func SealerApplyCmd(clusterFile string) string {
 	return fmt.Sprintf("%s apply -f %s", settings.DefaultSealerBin, clusterFile)
 }
 
-func CleanUpAliCloudInfraByClusterFile(clusterFile string) {
-	if !testhelper.IsFileExist(clusterFile) {
+func CreateAliCloudInfraAndSave(cluster *v1.Cluster, clusterFile string) *v1.Cluster {
+	gomega.Eventually(func() bool {
+		infraManager := infra.NewDefaultProvider(cluster)
+		err := infraManager.Apply()
+		return err == nil
+	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
+
+	//save used cluster file
+	cluster.Spec.Provider = settings.BAREMETAL
+	err := testhelper.MarshalYamlToFile(clusterFile, cluster)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	cluster.Spec.Provider = settings.AliCloud
+	return cluster
+}
+
+func SendAndApplyCluster(sshClient *testhelper.SSHClient, clusterFile string) {
+	// send tmp cluster file to remote server and run apply cmd
+	gomega.Eventually(func() bool {
+		err := sshClient.SSH.Copy(sshClient.RemoteHostIP, clusterFile, clusterFile)
+		return err == nil
+	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
+
+	gomega.Eventually(func() bool {
+		err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, SealerApplyCmd(clusterFile))
+		return err == nil
+	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
+
+}
+
+func CleanUpAliCloudInfra(cluster *v1.Cluster) {
+	if cluster == nil {
 		return
 	}
-	cluster := LoadClusterFileFromDisk(clusterFile)
 	if cluster.Spec.Provider != settings.AliCloud {
 		cluster.Spec.Provider = settings.AliCloud
 	}
 
-	tmp := testhelper.CreateTempFile()
-	defer testhelper.RemoveTempFile(tmp)
+	gomega.Eventually(func() bool {
+		t := metav1.Now()
+		cluster.DeletionTimestamp = &t
+		infraManager := infra.NewDefaultProvider(cluster)
+		err := infraManager.Apply()
+		return err == nil
+	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
+}
 
-	WriteClusterFileToDisk(cluster, tmp)
-	DeleteCluster(tmp)
+// CheckNodeNumWithSSH check node mum of remote cluster;for bare metal apply
+func CheckNodeNumWithSSH(sshClient *testhelper.SSHClient, expectNum int) {
+	if sshClient == nil {
+		return
+	}
+	cmd := "kubectl get nodes | wc -l"
+	result, err := sshClient.SSH.CmdToString(sshClient.RemoteHostIP, cmd, "")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	num, err := strconv.Atoi(strings.ReplaceAll(result, "\n", ""))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(num).Should(gomega.Equal(expectNum + 1))
+}
+
+// CheckNodeNumLocally check node mum of remote cluster;for cloud apply
+func CheckNodeNumLocally(expectNum int) {
+	cmd := "sudo -E kubectl get nodes | wc -l"
+	result, err := utils.RunSimpleCmd(cmd)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	num, err := strconv.Atoi(strings.ReplaceAll(result, "\n", ""))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(num).Should(gomega.Equal(expectNum + 1))
 }

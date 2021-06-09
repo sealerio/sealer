@@ -14,7 +14,7 @@
 
 package test
 
-/*import (
+import (
 	"fmt"
 
 	"github.com/alibaba/sealer/test/suites/registry"
@@ -29,15 +29,14 @@ package test
 var _ = Describe("sealer login", func() {
 	Context("login docker registry", func() {
 		AfterEach(func() {
-			err := registry.CleanLoginFile()
-			Expect(err).NotTo(HaveOccurred())
+			registry.Logout()
 		})
 		It("with correct name and password", func() {
-			sess, err := testhelper.Start(fmt.Sprintf("sealer login %s -u %s -p %s", settings.RegistryURL,
+			sess, err := testhelper.Start(fmt.Sprintf("%s login %s -u %s -p %s", settings.DefaultSealerBin, settings.RegistryURL,
 				settings.RegistryUsername, settings.RegistryPasswd))
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess).Should(Say(fmt.Sprintf("login %s success", settings.RegistryURL)))
 			Eventually(sess).Should(Exit(0))
 		})
 	})
-})*/
+})
