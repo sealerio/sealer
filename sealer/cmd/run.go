@@ -68,6 +68,6 @@ func init() {
 	runCmd.Flags().StringVarP(&runArgs.Pk, "pk", "", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
 	runCmd.Flags().StringVarP(&runArgs.PkPassword, "pk-passwd", "", "", "set baremetal server  private key password")
 	runCmd.Flags().StringVarP(&runArgs.Interface, "interface", "i", "", "set default network interface name")
-	runCmd.Flags().StringVarP(&runArgs.PodCidr, "podcidr", "", "", "set default pod CIDR network. example '192.168.1.0/24'")
-	runCmd.Flags().StringVarP(&runArgs.SvcCidr, "svccidr", "s", "", "set default Service CIDR network. example '10.96.0.0/12'")
+	runCmd.Flags().StringVarP(&runArgs.PodCidr, "podcidr", "", "", "set default pod CIDR network. example '10.233.0.0/18'")
+	runCmd.Flags().StringVarP(&runArgs.SvcCidr, "svccidr", "", "", "set default service CIDR network. example '10.233.64.0/18'")
 }
