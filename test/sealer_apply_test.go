@@ -41,7 +41,7 @@ var _ = Describe("sealer apply", func() {
 					})
 
 					AfterEach(func() {
-						apply.DeleteClusterByFile(tempFile)
+						apply.DeleteClusterByFile(testhelper.GetRootClusterFilePath(rawCluster.Name))
 						testhelper.RemoveTempFile(tempFile)
 						testhelper.DeleteFileLocally(testhelper.GetRootClusterFilePath(rawCluster.Name))
 					})
@@ -69,6 +69,11 @@ var _ = Describe("sealer apply", func() {
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						apply.CheckNodeNumLocally(6)
 
+						result = testhelper.GetFileDataLocally(testhelper.GetRootClusterFilePath(rawCluster.Name))
+						err = testhelper.WriteFile(tempFile, []byte(result))
+						Expect(err).NotTo(HaveOccurred())
+						usedCluster = apply.LoadClusterFileFromDisk(tempFile)
+
 						//3,scale down cluster to 4 nodes and write to disk
 						By("start to scale down cluster")
 						usedCluster.Spec.Nodes.Count = "1"
@@ -78,6 +83,7 @@ var _ = Describe("sealer apply", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						apply.CheckNodeNumLocally(4)
+
 					})
 
 				})
@@ -91,9 +97,8 @@ var _ = Describe("sealer apply", func() {
 					AfterEach(func() {
 						testhelper.RemoveTempFile(tempFile)
 					})
-
 					It("init, scale up, scale down, clean up", func() {
-						By("start prepare infra")
+						By("start to prepare infra")
 						usedCluster := apply.CreateAliCloudInfraAndSave(rawCluster, tempFile)
 						defer func() {
 							apply.CleanUpAliCloudInfra(usedCluster)
@@ -104,7 +109,7 @@ var _ = Describe("sealer apply", func() {
 							return err == nil
 						}, settings.MaxWaiteTime).Should(BeTrue())
 
-						By("start init cluster")
+						By("start to init cluster")
 						apply.SendAndApplyCluster(sshClient, tempFile)
 						apply.CheckNodeNumWithSSH(sshClient, 2)
 
