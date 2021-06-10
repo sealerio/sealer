@@ -57,7 +57,6 @@ join to cluster by cloud provider, just set the number of masters or nodes:
 specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
     sealer join --masters 2 --nodes 3 -c my-cluster
 `,
-	Args: cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		sealerPath := fmt.Sprintf("%s/.sealer", cert.GetUserHomeDir())
 		if clusterName == "" {
