@@ -65,6 +65,17 @@ func (sha SHA256) TarCheckSum(src string) (*os.File, digest.Digest, error) {
 	return file, dig, nil
 }
 
+func CheckSum(src string) (digest.Digest, error) {
+	sha := SHA256{}
+	file, dig, err := sha.TarCheckSum(src)
+	if err != nil {
+		return "", err
+	}
+	utils.CleanFile(file)
+
+	return dig, err
+}
+
 func CheckSumAndPlaceLayer(src string) (digest.Digest, error) {
 	sha := SHA256{}
 	file, dig, err := sha.TarCheckSum(src)

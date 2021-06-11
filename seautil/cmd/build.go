@@ -30,6 +30,7 @@ type BuildFlag struct {
 	KubefileName string
 	Context      string
 	BuildType    string
+	NoCache      bool
 }
 
 var buildConfig *BuildFlag
@@ -64,4 +65,5 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().StringVarP(&buildConfig.Context, "context", "c", ".", "cluster image build context file path")
 	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "buildType", "b", common.LocalBuild, "specific of type is local build or cloud build default is local")
+	buildCmd.Flags().BoolVarP(&buildConfig.NoCache, "noCache", "d", false, "build without cache")
 }

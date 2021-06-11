@@ -56,6 +56,7 @@ const (
 	EtcHosts                      = "/etc/hosts"
 	ClusterWorkDir                = "/root/.sealer/%s"
 	RemoteSealerPath              = "/usr/local/bin/sealer"
+	SourceFileHash                = "srchash"
 	DefaultCloudProvider          = AliCloud
 )
 

@@ -17,6 +17,12 @@ package build
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+
+	"github.com/pkg/errors"
+
+	"github.com/opencontainers/go-digest"
+	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/image/store"
 
@@ -38,6 +44,7 @@ import (
 
 type Config struct {
 	BuildType string
+	NoCache   bool
 }
 
 // LocalBuilder: local builder using local provider to build a cluster image
@@ -50,6 +57,9 @@ type LocalBuilder struct {
 	Context      string
 	KubeFileName string
 	LayerStore   store.LayerStore
+	ImageService image.Service
+	Prober       image.ImageProber
+	FS           store.StoreBackend
 }
 
 func (l *LocalBuilder) Build(name string, context string, kubefileName string) error {
@@ -135,11 +145,40 @@ func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
 	if l.Image.Spec.Layers[0].Value == common.ImageScratch {
 		return nil
 	}
-	if err = image.NewImageService().PullIfNotExist(l.Image.Spec.Layers[0].Value); err != nil {
+	if err = l.ImageService.PullIfNotExist(l.Image.Spec.Layers[0].Value); err != nil {
 		return fmt.Errorf("failed to pull baseImage: %v", err)
 	}
 	logger.Info("pull baseImage %s success", l.Image.Spec.Layers[0].Value)
 	return nil
+}
+
+func (l *LocalBuilder) IsHashConsistent(layer *v1.Layer, cacheid string) bool {
+	if cacheid == "" {
+		return false
+	}
+
+	baseDir, err := os.Getwd()
+	if err != nil {
+		logger.Error("failed to get current path, err: %v", err)
+		return false
+	}
+
+	layerHash, err := hash.CheckSum(filepath.Join(baseDir, strings.Fields(layer.Value)[0]))
+	if err != nil {
+		return false
+	}
+
+	historyHash, err := l.FS.GetMetadata(digest.Digest(cacheid), common.SourceFileHash)
+	if err != nil {
+		logger.Error("failed to read metadata from filesystem, err: %v", err)
+		return false
+	}
+
+	if string(historyHash) == layerHash.String() {
+		return true
+	}
+
+	return false
 }
 
 func (l *LocalBuilder) ExecBuild() error {
@@ -147,9 +186,32 @@ func (l *LocalBuilder) ExecBuild() error {
 	if err != nil {
 		return err
 	}
+	var layers []v1.Layer
+	img := &v1.Image{}
+	canUseCache := true
 	for i := 1; i < len(l.Image.Spec.Layers); i++ {
 		layer := &l.Image.Spec.Layers[i]
 		logger.Info("run build layer: %s %s", layer.Type, layer.Value)
+		if canUseCache {
+			layers = append(layers, v1.Layer{Value: l.Image.Spec.Layers[i-1].Value, Type: l.Image.Spec.Layers[i-1].Type})
+			img.Spec.Layers = layers
+			config, err := yaml.Marshal(img.Spec.Layers)
+			if err != nil {
+				logger.Error("failed to marshal image into bytes, err: %v", err)
+				continue
+			}
+			parentID := digest.FromBytes(config)
+			cacheID, err := l.Prober.Probe(parentID.String(), layer)
+			if err == nil && (layer.Type != common.COPYCOMMAND || l.IsHashConsistent(layer, cacheID)) {
+				// cache hit
+				logger.Info("---> Using cache %v", cacheID)
+				layer.Hash = digest.Digest(cacheID)
+				baseLayers = append(baseLayers, filepath.Join(common.DefaultLayerDir, digest.Digest(cacheID).Hex()))
+				continue
+			} else {
+				canUseCache = false
+			}
+		}
 		if layer.Type == common.COPYCOMMAND {
 			err = l.execCopyLayer(layer)
 			if err != nil {
@@ -188,7 +250,27 @@ func (l *LocalBuilder) execCopyLayer(layer *v1.Layer) error {
 	if err = l.calculateLayerHashAndPlaceIt(layer, tempDir); err != nil {
 		return err
 	}
+
+	if err = l.PlaceSrcHash(layer); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+//This function only has meaning for copy layers
+func (l *LocalBuilder) PlaceSrcHash(layer *v1.Layer) error {
+	baseDir, err := os.Getwd()
+	if err != nil {
+		return errors.Errorf("failed to get current path, err: %v", err)
+	}
+
+	layerHash, err := hash.CheckSum(filepath.Join(baseDir, strings.Fields(layer.Value)[0]))
+	if err != nil {
+		return err
+	}
+
+	return l.FS.SetMetadata(layer.Hash, common.SourceFileHash, []byte(layerHash.String()))
 }
 
 func (l *LocalBuilder) squashBaseImageLayerIntoCurrentImage() (err error) {
@@ -285,9 +367,9 @@ func (l *LocalBuilder) calculateLayerHashAndPlaceIt(layer *v1.Layer, tempTarget 
 
 func (l *LocalBuilder) UpdateImageMetadata() error {
 	l.setClusterFileToImage()
-	if err := l.squashBaseImageLayerIntoCurrentImage(); err != nil {
-		return err
-	}
+	//if err := l.squashBaseImageLayerIntoCurrentImage(); err != nil {
+	//	return err
+	//}
 	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageMetaRootDir, l.Image.Spec.ID, common.YamlSuffix)
 	// save layer ids
 	for _, layer := range l.Image.Spec.Layers {
@@ -381,7 +463,7 @@ func (l *LocalBuilder) addImageAnnotations(key, value string) {
 
 func (l *LocalBuilder) PushToRegistry() error {
 	//push image
-	err := image.NewImageService().Push(l.ImageName)
+	err := l.ImageService.Push(l.ImageName)
 	if err != nil {
 		return fmt.Errorf("failed to push image :%v", err)
 	}
@@ -394,9 +476,18 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 	if err != nil {
 		return nil, err
 	}
+	service := image.NewImageService()
+	fs, err := store.NewFSStoreBackend("")
+	if err != nil {
+		logger.Error("failed to build image cache")
+		return nil, err
+	}
 	return &LocalBuilder{
-		Config:     config,
-		LayerStore: layerStore,
+		Config:       config,
+		LayerStore:   layerStore,
+		ImageService: service,
+		Prober:       image.NewImageProber(service, config.NoCache),
+		FS:           fs,
 	}, nil
 }
 
