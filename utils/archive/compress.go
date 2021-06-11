@@ -40,9 +40,6 @@ type Options struct {
 }
 
 func validatePath(path string) error {
-	if !filepath.IsAbs(path) {
-		return fmt.Errorf("dir %s must be absolute path", path)
-	}
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("dir %s does not exist, err: %s", path, err)
 	}

@@ -18,6 +18,14 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/alibaba/sealer/image/cache"
+
+	"github.com/alibaba/sealer/utils/archive"
+
+	"github.com/pkg/errors"
+
+	"github.com/opencontainers/go-digest"
+
 	"github.com/alibaba/sealer/image/store"
 
 	"path/filepath"
@@ -37,6 +45,12 @@ import (
 
 type Config struct {
 	BuildType string
+	NoCache   bool
+}
+
+type builderLayer struct {
+	baseLayers []v1.Layer
+	newLayers  []v1.Layer
 }
 
 // LocalBuilder: local builder using local provider to build a cluster image
@@ -49,6 +63,10 @@ type LocalBuilder struct {
 	Context      string
 	KubeFileName string
 	LayerStore   store.LayerStore
+	ImageService image.Service
+	Prober       image.Prober
+	FS           store.Backend
+	builderLayer
 }
 
 func (l *LocalBuilder) Build(name string, context string, kubefileName string) error {
@@ -120,21 +138,56 @@ func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
 	if l.Image.Spec.Layers[0].Value == common.ImageScratch {
 		return nil
 	}
-	if err = image.NewImageService().PullIfNotExist(l.Image.Spec.Layers[0].Value); err != nil {
-		return fmt.Errorf("failed to pull base image: %v", err)
+	if err = l.ImageService.PullIfNotExist(l.Image.Spec.Layers[0].Value); err != nil {
+		return fmt.Errorf("failed to pull baseImage: %v", err)
 	}
 	logger.Info("pull base image %s success", l.Image.Spec.Layers[0].Value)
 	return nil
 }
 
+func (l *LocalBuilder) generateSourceFilesDigest(path string) (digest.Digest, error) {
+	baseDir := l.Context
+	layerDgst, _, err := archive.TarCanonicalDigest(filepath.Join(baseDir, path))
+	if err != nil {
+		logger.Error(err)
+		return "", err
+	}
+	return layerDgst, nil
+}
+
 func (l *LocalBuilder) ExecBuild() error {
-	baseLayers, err := getBaseLayersFromImage(*l.Image)
+	err := l.updateBuilderLayers(l.Image)
 	if err != nil {
 		return err
 	}
-	for i := 1; i < len(l.Image.Spec.Layers); i++ {
-		layer := &l.Image.Spec.Layers[i]
+
+	var (
+		canUseCache = !l.Config.NoCache
+		parentID    = cache.ChainID("")
+		newLayers   = l.newLayers
+	)
+
+	baseLayerPaths := getBaseLayersPath(l.baseLayers)
+	chainSvc, err := cache.NewService()
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(newLayers); i++ {
+		layer := &newLayers[i]
 		logger.Info("run build layer: %s %s", layer.Type, layer.Value)
+		if canUseCache {
+			canUseCache, parentID = l.goCache(parentID, layer, chainSvc)
+			// cache layer is empty layer
+			if canUseCache {
+				if layer.ID == "" {
+					continue
+				}
+				baseLayerPaths = append(baseLayerPaths, l.FS.LayerDataDir(layer.ID))
+				continue
+			}
+		}
+
 		if layer.Type == common.COPYCOMMAND {
 			err = l.execCopyLayer(layer)
 			if err != nil {
@@ -142,7 +195,7 @@ func (l *LocalBuilder) ExecBuild() error {
 			}
 		} else {
 			// exec other build cmd,need to mount
-			err = l.execOtherLayer(layer, baseLayers)
+			err = l.execOtherLayer(layer, baseLayerPaths)
 			if err != nil {
 				return err
 			}
@@ -152,9 +205,9 @@ func (l *LocalBuilder) ExecBuild() error {
 			continue
 		}
 
-		ls := image.NewLayerService()
-		baseLayers = append(baseLayers, ls.LayerStorage().LayerDataDir(layer.ID))
+		baseLayerPaths = append(baseLayerPaths, l.FS.LayerDataDir(layer.ID))
 	}
+
 	logger.Info("exec all build instructs success !")
 	return nil
 }
@@ -172,30 +225,31 @@ func (l *LocalBuilder) execCopyLayer(layer *v1.Layer) error {
 	if err != nil {
 		return fmt.Errorf("failed to exec layer %v:%v", layer, err)
 	}
-	if err = l.calculateLayerHashAndPlaceIt(layer, tempDir); err != nil {
+
+	if err = l.calculateLayerDigestAndPlaceIt(layer, tempDir); err != nil {
 		return err
 	}
+
+	if err = l.SetCacheID(layer); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (l *LocalBuilder) squashBaseImageLayerIntoCurrentImage() (err error) {
-	if len(l.Image.Spec.Layers) == 0 || l.Image.Spec.Layers[0].Type != common.FROMCOMMAND {
-		return nil
-	}
-
-	value := l.Image.Spec.Layers[0].Value
-	l.Image.Spec.Layers = l.Image.Spec.Layers[1:]
-	if value == common.ImageScratch {
-		return nil
-	}
-
-	img, err := image.NewImageMetadataService().GetImage(value)
+//This function only has meaning for copy layers
+func (l *LocalBuilder) SetCacheID(layer *v1.Layer) error {
+	baseDir := l.Context
+	layerDgst, _, err := archive.TarCanonicalDigest(filepath.Join(baseDir, strings.Fields(layer.Value)[0]))
 	if err != nil {
 		return err
 	}
 
-	l.Image.Spec.Layers = append(img.Spec.Layers, l.Image.Spec.Layers...)
-	return nil
+	return l.FS.SetMetadata(layer.ID, cacheID, []byte(layerDgst.String()))
+}
+
+func (l *LocalBuilder) squashBaseImageLayerIntoCurrentImage() {
+	l.Image.Spec.Layers = append(l.baseLayers, l.newLayers...)
 }
 
 func (l *LocalBuilder) execOtherLayer(layer *v1.Layer, lowLayers []string) error {
@@ -212,7 +266,7 @@ func (l *LocalBuilder) execOtherLayer(layer *v1.Layer, lowLayers []string) error
 	if err = l.mountAndExecLayer(layer, tempTarget, tempUpper, lowLayers...); err != nil {
 		return err
 	}
-	if err = l.calculateLayerHashAndPlaceIt(layer, tempUpper); err != nil {
+	if err = l.calculateLayerDigestAndPlaceIt(layer, tempUpper); err != nil {
 		return err
 	}
 	return nil
@@ -259,21 +313,19 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 	return nil
 }
 
-func (l *LocalBuilder) calculateLayerHashAndPlaceIt(layer *v1.Layer, tempTarget string) error {
-	layerHash, err := l.LayerStore.RegisterLayerForBuilder(tempTarget)
+func (l *LocalBuilder) calculateLayerDigestAndPlaceIt(layer *v1.Layer, tempTarget string) error {
+	layerDigest, err := l.LayerStore.RegisterLayerForBuilder(tempTarget)
 	if err != nil {
 		return fmt.Errorf("failed to register layer, err: %s", err)
 	}
 
-	layer.ID = layerHash
+	layer.ID = layerDigest
 	return nil
 }
 
 func (l *LocalBuilder) UpdateImageMetadata() error {
 	l.setClusterFileToImage()
-	if err := l.squashBaseImageLayerIntoCurrentImage(); err != nil {
-		return err
-	}
+	l.squashBaseImageLayerIntoCurrentImage()
 	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageDBRootDir, l.Image.Spec.ID, common.YamlSuffix)
 	// write image info to its metadata
 	if err := utils.MarshalYamlToFile(filename, l.Image); err != nil {
@@ -351,45 +403,99 @@ func (l *LocalBuilder) addImageAnnotations(key, value string) {
 	l.Image.Annotations[key] = value
 }
 
-func NewLocalBuilder(config *Config) (Interface, error) {
-	layerStore, err := store.NewDefaultLayerStore()
-	if err != nil {
-		return nil, err
+func (l *LocalBuilder) updateBuilderLayers(image *v1.Image) error {
+	// we do not check the len of layers here, because we checked it before.
+	// remove the first layer of image
+	var (
+		layer0    = image.Spec.Layers[0]
+		baseImage *v1.Image
+		err       error
+	)
+
+	// and the layer 0 must be from layer
+	if layer0.Value == common.ImageScratch {
+		// give a empty image
+		baseImage = &v1.Image{}
+	} else {
+		baseImage, err = imageUtils.GetImage(image.Spec.Layers[0].Value)
+		if err != nil {
+			return fmt.Errorf("failed to get base image while updating base layers, err: %s", err)
+		}
 	}
-	return &LocalBuilder{
-		Config:     config,
-		LayerStore: layerStore,
-	}, nil
+
+	l.baseLayers = append([]v1.Layer{}, baseImage.Spec.Layers...)
+	l.newLayers = append([]v1.Layer{}, image.Spec.Layers[1:]...)
+	if len(l.baseLayers)+len(l.newLayers) > maxLayerDeep {
+		return errors.New("current number of layers exceeds 128 layers")
+	}
+	return nil
+}
+
+func (l *LocalBuilder) goCache(parentID cache.ChainID, layer *v1.Layer, cacheService cache.Service) (continueCache bool, chainID cache.ChainID) {
+	var (
+		srcDigest = digest.Digest("")
+		err       error
+	)
+
+	// specially for copy command, we would generate digest of src file as srcDigest.
+	// and use srcDigest as cacheID to generate a cacheLayer, eventually use the cacheLayer
+	// to hit the cache layer
+	if layer.Type == common.COPYCOMMAND {
+		srcDigest, err = l.generateSourceFilesDigest(strings.Fields(layer.Value)[0])
+		if err != nil {
+			logger.Warn("failed to generate src digest, discard cache, err: %s", err)
+		}
+	}
+
+	cacheLayer := cacheService.NewCacheLayer(*layer, srcDigest)
+	cacheLayerID, err := l.Prober.Probe(parentID.String(), &cacheLayer)
+	if cacheLayerID == "" || err != nil {
+		logger.Debug("failed to probe cache for %+v, err: %s", layer, err)
+		return false, ""
+	}
+	// cache hit
+	logger.Info("---> Using cache %v", cacheLayerID)
+	layer.ID = cacheLayerID
+	cID, err := cacheLayer.ChainID(parentID)
+	if err != nil {
+		return false, ""
+	}
+	return true, cID
 }
 
 // used in build stage, where the image still has from layer
-func getBaseLayersFromImage(image v1.Image) (res []string, err error) {
-	if len(image.Spec.Layers) == 0 {
-		return nil, fmt.Errorf("no layer found in image %s", image.Name)
-	}
-	if image.Spec.Layers[0].Value == common.ImageScratch {
-		return []string{}, nil
-	}
-
-	var layers []v1.Layer
-	if image.Spec.Layers[0].Type == common.FROMCOMMAND {
-		baseImage, err := imageUtils.GetImage(image.Spec.Layers[0].Value)
-		if err != nil {
-			return []string{}, err
-		}
-		if len(baseImage.Spec.Layers) == 0 || baseImage.Spec.Layers[0].Type == common.FROMCOMMAND {
-			return []string{}, fmt.Errorf("no layer found in local base image %s, or this base image has base image, which is not allowed", baseImage.Spec.ID)
-		}
-		layers = append(layers, baseImage.Spec.Layers...)
-	}
-	if len(layers) > 128 {
-		return []string{}, fmt.Errorf("current layer is exceed 128 layers")
-	}
-
+func getBaseLayersPath(layers []v1.Layer) (res []string) {
 	for _, layer := range layers {
 		if layer.ID != "" {
 			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
 		}
 	}
-	return res, nil
+	return res
+}
+
+func NewLocalBuilder(config *Config) (Interface, error) {
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return nil, err
+	}
+
+	service := image.NewImageService()
+	fs, err := store.NewFSStoreBackend()
+	if err != nil {
+		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
+	}
+
+	prober := image.NewImageProber(service, config.NoCache)
+	return &LocalBuilder{
+		Config:       config,
+		LayerStore:   layerStore,
+		ImageService: service,
+		Prober:       prober,
+		FS:           fs,
+		builderLayer: builderLayer{
+			// for skip golang ci
+			baseLayers: []v1.Layer{},
+			newLayers:  []v1.Layer{},
+		},
+	}, nil
 }

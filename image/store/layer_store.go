@@ -34,12 +34,10 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-const emptySHA256TarDigest = "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
-
 type layerStore struct {
-	mux          sync.RWMutex
-	layers       map[LayerID]*ROLayer
-	layerStoreFS LayerStorage
+	mux    sync.RWMutex
+	layers map[LayerID]*ROLayer
+	Backend
 }
 
 func (ls *layerStore) Get(id LayerID) Layer {
@@ -58,7 +56,7 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 		return nil
 	}
 
-	curLayerDBDir := ls.layerStoreFS.LayerDBDir(layer.ID().ToDigest())
+	curLayerDBDir := ls.LayerDBDir(layer.ID().ToDigest())
 	err := os.MkdirAll(curLayerDBDir, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to init layer db for %s, err: %s", curLayerDBDir, err)
@@ -75,7 +73,7 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 		return err
 	}
 
-	err = ls.layerStoreFS.storeROLayer(layer)
+	err = ls.storeROLayer(layer)
 	if err != nil {
 		return err
 	}
@@ -89,30 +87,23 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 	return nil
 }
 
-func (ls *layerStore) RegisterLayerForBuilder(diffPath string) (digest.Digest, error) {
-	tarReader, err := archive.TarWithoutRootDir(diffPath)
-	if err != nil {
-		return "", fmt.Errorf("unable to tar on %s, err: %s", diffPath, err)
-	}
-	defer tarReader.Close()
-
-	digester := digest.Canonical.Digester()
-	size, err := io.Copy(digester.Hash(), tarReader)
+func (ls *layerStore) RegisterLayerForBuilder(path string) (digest.Digest, error) {
+	dist, size, err := archive.TarCanonicalDigest(path)
 	if err != nil {
 		return "", err
 	}
-	layerDigest := digester.Digest()
-	if layerDigest == emptySHA256TarDigest {
+
+	if dist == "" {
 		return "", nil
 	}
 
 	// layerContentDigest is the layer id at the build stage.
 	// and the layer id won't change any more
-	roLayer, err := NewROLayer(layerDigest, size, nil)
+	roLayer, err := NewROLayer(dist, size, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create a new rolayer, err: %s", err)
 	}
-	layerDataDir := ls.layerStoreFS.LayerDataDir(roLayer.ID().ToDigest())
+	layerDataDir := ls.LayerDataDir(roLayer.ID().ToDigest())
 
 	// remove before mv files to target
 	_, err = os.Stat(layerDataDir)
@@ -123,16 +114,16 @@ func (ls *layerStore) RegisterLayerForBuilder(diffPath string) (digest.Digest, e
 		}
 	}
 
-	err = os.Rename(diffPath, layerDataDir)
+	err = os.Rename(path, layerDataDir)
 	if err != nil {
 		return "", err
 	}
 
-	return layerDigest, ls.RegisterLayerIfNotPresent(roLayer)
+	return dist, ls.RegisterLayerIfNotPresent(roLayer)
 }
 
 func (ls *layerStore) DisassembleTar(layerID digest.Digest, streamReader io.ReadCloser) error {
-	layerDBDir := ls.layerStoreFS.LayerDBDir(layerID)
+	layerDBDir := ls.LayerDBDir(layerID)
 	mf, err := os.OpenFile(filepath.Join(layerDBDir, tarDataGZ), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0600))
 	if err != nil {
 		return err
@@ -162,13 +153,12 @@ func (ls *layerStore) Delete(id LayerID) error {
 		return nil
 	}
 
-	storefs := NewDefaultLayerStorage()
-	layerDataPath := storefs.LayerDataDir(digs)
+	layerDataPath := ls.LayerDataDir(digs)
 	err := os.RemoveAll(layerDataPath)
 	if err != nil {
 		return err
 	}
-	layerDBDir := storefs.LayerDBDir(digs)
+	layerDBDir := ls.LayerDBDir(digs)
 	err = os.RemoveAll(layerDBDir)
 	if err != nil {
 		return err
@@ -180,44 +170,37 @@ func (ls *layerStore) Delete(id LayerID) error {
 }
 
 func (ls *layerStore) AddDistributionMetadata(layerID LayerID, named reference.Named, descriptorDigest digest.Digest) error {
-	sfs := ls.layerStoreFS
-	return sfs.addDistributionMetadata(layerID, map[string]digest.Digest{
+	return ls.addDistributionMetadata(layerID, map[string]digest.Digest{
 		named.Domain() + "/" + named.Repo(): descriptorDigest,
 	})
 }
 
 func (ls *layerStore) loadAllROLayers() error {
-	layerDirs, err := ls.layerStoreFS.traverseLayerDB()
+	roLayers, err := ls.Backend.loadAllROLayers()
 	if err != nil {
-		return err
-	}
-
-	var layers []*ROLayer
-	sfs := ls.layerStoreFS
-	for _, layerDBDir := range layerDirs {
-		rolayer, err := sfs.loadROLayer(layerDBDir)
-		if err != nil {
-			logger.Warn(err)
-			continue
-		}
-		layers = append(layers, rolayer)
+		return fmt.Errorf("failed to load all layers, err: %s", err)
 	}
 
 	ls.mux.Lock()
 	defer ls.mux.Unlock()
 	//TODO only check .../layerdb/.../id for existence of layer currently
-	for _, layer := range layers {
+	for _, layer := range roLayers {
 		ls.layers[layer.id] = layer
 	}
 	return nil
 }
 
 func NewDefaultLayerStore() (LayerStore, error) {
-	ls := &layerStore{
-		layers:       map[LayerID]*ROLayer{},
-		layerStoreFS: NewDefaultLayerStorage(),
+	sb, err := NewFSStoreBackend()
+	if err != nil {
+		return nil, err
 	}
-	err := ls.loadAllROLayers()
+
+	ls := &layerStore{
+		layers:  map[LayerID]*ROLayer{},
+		Backend: sb,
+	}
+	err = ls.loadAllROLayers()
 	if err != nil {
 		return nil, err
 	}

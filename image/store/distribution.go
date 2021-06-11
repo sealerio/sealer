@@ -33,9 +33,9 @@ type DistributionMetadataItem struct {
 // which indicate that digest of compressedlayerStream in specific registry and repository
 type DistributionMetadata []DistributionMetadataItem
 
-func (ls LayerStorage) LoadDistributionMetadata(layerID LayerID) (map[string]digest.Digest, error) {
+func (fs *filesystem) LoadDistributionMetadata(layerID LayerID) (map[string]digest.Digest, error) {
 	var (
-		layerDBPath = ls.LayerDBDir(layerID.ToDigest())
+		layerDBPath = fs.LayerDBDir(layerID.ToDigest())
 		metadatas   = DistributionMetadata{}
 		res         = map[string]digest.Digest{}
 	)
@@ -57,9 +57,9 @@ func (ls LayerStorage) LoadDistributionMetadata(layerID LayerID) (map[string]dig
 	return res, nil
 }
 
-func (ls LayerStorage) addDistributionMetadata(layerID LayerID, newMetadatas map[string]digest.Digest) error {
+func (fs *filesystem) addDistributionMetadata(layerID LayerID, newMetadatas map[string]digest.Digest) error {
 	// load from distribution_layer_digest
-	metadataMap, err := ls.LoadDistributionMetadata(layerID)
+	metadataMap, err := fs.LoadDistributionMetadata(layerID)
 	if err != nil {
 		return err
 	}
@@ -81,5 +81,5 @@ func (ls LayerStorage) addDistributionMetadata(layerID LayerID, newMetadatas map
 		return err
 	}
 
-	return utils.WriteFile(filepath.Join(ls.LayerDBDir(layerID.ToDigest()), "distribution_layer_digest"), distributionMetadatasJSON)
+	return utils.WriteFile(filepath.Join(fs.LayerDBDir(layerID.ToDigest()), "distribution_layer_digest"), distributionMetadatasJSON)
 }

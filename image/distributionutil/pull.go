@@ -120,8 +120,11 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Na
 		layerStore  = puller.config.LayerStore
 		progressOut = puller.config.ProgressOutput
 		repo        = puller.repository
-		sfs         = store.NewDefaultLayerStorage()
 	)
+	backend, err := store.NewFSStoreBackend()
+	if err != nil {
+		return err
+	}
 	// descriptor is remote layer data, but its hash may not be the layer id, so we
 	// use layer.ID(hash of layer from v1.Image) to check layer existence.
 	roLayer := layerStore.Get(layer.ID())
@@ -140,7 +143,7 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Na
 	digester := digest.Canonical.Digester()
 	LayerDownloadReader := ioutil.NopCloser(io.TeeReader(layerReader, digester.Hash()))
 	progressReader := progress.NewProgressReader(LayerDownloadReader, progressOut, descriptor.Size, layer.SimpleID(), "pulling")
-	size, err := archive.Decompress(progressReader, sfs.LayerDataDir(digest.Digest(layer.ID())), archive.Options{Compress: true})
+	size, err := archive.Decompress(progressReader, backend.LayerDataDir(digest.Digest(layer.ID())), archive.Options{Compress: true})
 	if err != nil {
 		progress.Update(progressOut, layer.SimpleID(), err.Error())
 		return err
