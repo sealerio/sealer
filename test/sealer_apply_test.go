@@ -132,8 +132,7 @@ var _ = Describe("sealer apply", func() {
 						usedCluster = apply.CreateAliCloudInfraAndSave(usedCluster, tempFile)
 
 						By("start to delete cluster")
-						deleteCmd := fmt.Sprintf("sealer delete -f %s", tempFile)
-						err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, deleteCmd)
+						err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
 						Expect(err).NotTo(HaveOccurred())
 					})
 
