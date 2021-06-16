@@ -19,6 +19,9 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
+
+	infraUtils "github.com/alibaba/sealer/infra/utils"
 
 	"github.com/alibaba/sealer/utils"
 
@@ -59,18 +62,23 @@ func IsDir(path string) bool {
 }
 
 func (c *FileSystem) Clean(cluster *v1.Cluster) error {
-	return utils.CleanFiles(common.DefaultClusterBaseDir(cluster.Name))
+	return utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultClusterBaseDir(cluster.Name), common.DefaultKubeConfigDir())
 }
 
 func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
 	if utils.IsFileExist(mountdir) {
-		logger.Debug("unmount cluster dir %s", mountdir)
-		if err := mount.NewMountDriver().Unmount(mountdir); err != nil {
-			logger.Warn("failed to unmount %s, err: %v", mountdir, err)
-		}
+		var err error
+		err = infraUtils.Retry(10, time.Second, func() error {
+			logger.Debug("unmount cluster dir %s", mountdir)
+			err = mount.NewMountDriver().Unmount(mountdir)
+			if err != nil {
+				return err
+			}
+			return os.RemoveAll(mountdir)
+		})
+		logger.Warn("failed to unmount dir %s,err: %v", mountdir, err)
 	}
-	utils.CleanDir(mountdir)
 	return nil
 }
 
