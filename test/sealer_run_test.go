@@ -16,7 +16,7 @@ var _ = Describe("sealer run", func() {
 		Context("regular scenario", func() {
 			Context("run on ali cloud", func() {
 				AfterEach(func() {
-					apply.DeleteClusterByFile(testhelper.GetRootClusterFilePath(settings.ClusterNameForRun))
+					apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(settings.ClusterNameForRun))
 				})
 
 				It("exec sealer run", func() {

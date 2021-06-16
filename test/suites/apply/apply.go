@@ -42,8 +42,7 @@ func GetRawClusterFilePath() string {
 }
 
 func DeleteClusterByFile(clusterFile string) {
-	cmd := fmt.Sprintf("%s delete -f %s", settings.DefaultSealerBin, clusterFile)
-	testhelper.RunCmdAndCheckResult(cmd, 0)
+	testhelper.RunCmdAndCheckResult(SealerDeleteCmd(clusterFile), 0)
 }
 
 func WriteClusterFileToDisk(cluster *v1.Cluster, clusterFilePath string) {
@@ -58,6 +57,10 @@ func LoadClusterFileFromDisk(clusterFilePath string) *v1.Cluster {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(cluster).NotTo(gomega.BeNil())
 	return &cluster
+}
+
+func SealerDeleteCmd(clusterFile string) string {
+	return fmt.Sprintf("%s delete -f %s", settings.DefaultSealerBin, clusterFile)
 }
 
 func SealerApplyCmd(clusterFile string) string {
