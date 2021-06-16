@@ -33,23 +33,22 @@ func GetCurrentCluster() (*v1.Cluster, error) {
 	return getCurrentNodes()
 }
 
-func listNodes() *corev1.NodeList {
+func listNodes() (*corev1.NodeList, error) {
 	c, err := client.NewClientSet()
 	if err != nil {
-		logger.Info("current cluster not found, will create a new cluster %v", err)
-		return nil
+		return nil, fmt.Errorf("current cluster not found, %v", err)
 	}
 	nodes, err := client.ListNodes(c)
 	if err != nil {
-		logger.Info("current cluster nodes not found, will create a new cluster")
-		return nil
+		return nil, fmt.Errorf("current cluster nodes not found, %v", err)
 	}
-	return nodes
+	return nodes, nil
 }
 
 func getCurrentNodes() (*v1.Cluster, error) {
-	nodes := listNodes()
-	if nodes == nil {
+	nodes, err := listNodes()
+	if err != nil {
+		logger.Warn("%v, will create a new cluster", err)
 		return nil, nil
 	}
 
@@ -95,7 +94,10 @@ func deleteNode(name string) error {
 
 func DeleteNodes(nodeIPs []string) error {
 	logger.Info("delete nodes %s", nodeIPs)
-	nodes := listNodes()
+	nodes, err := listNodes()
+	if err != nil {
+		return err
+	}
 	for _, node := range nodes.Items {
 		addr := getNodeAddress(&node)
 		if addr == "" || utils.NotIn(addr, nodeIPs) {
