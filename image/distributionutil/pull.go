@@ -25,7 +25,6 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
-	"github.com/alibaba/sealer/registry"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/compress"
 	"github.com/docker/distribution"
@@ -40,8 +39,8 @@ type Puller interface {
 }
 
 type ImagePuller struct {
-	config   Config
-	registry *registry.Registry
+	config     Config
+	repository distribution.Repository
 }
 
 func (puller *ImagePuller) Pull(context context.Context, named reference.Named) (*v1.Image, error) {
@@ -98,9 +97,9 @@ func (puller *ImagePuller) Pull(context context.Context, named reference.Named) 
 
 func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Named, layer store.Layer) error {
 	var (
-		layerStore     = puller.config.LayerStore
-		progressOut    = puller.config.ProgressOutput
-		registryClient = puller.registry
+		layerStore  = puller.config.LayerStore
+		progressOut = puller.config.ProgressOutput
+		repo        = puller.repository
 	)
 
 	// check layer existence
@@ -110,7 +109,8 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Na
 		return nil
 	}
 
-	layerDownloadReader, err := registryClient.DownloadLayer(ctx, named.Repo(), digest.Digest(layer.ID()))
+	bs := repo.Blobs(ctx)
+	layerDownloadReader, err := bs.Open(ctx, digest.Digest(layer.ID()))
 	if err != nil {
 		return err
 	}
@@ -128,29 +128,45 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Na
 
 // TODO make a manifest store do this job
 func (puller *ImagePuller) getRemoteManifest(context context.Context, named reference.Named) (schema2.Manifest, error) {
-	return puller.registry.ManifestV2(context, named.Repo(), named.Tag())
+	repo := puller.repository
+	ms, err := repo.Manifests(context)
+	if err != nil {
+		return schema2.Manifest{}, err
+	}
+
+	manifest, err := ms.Get(context, "", distribution.WithTagOption{Tag: named.Tag()})
+	if err != nil {
+		return schema2.Manifest{}, err
+	}
+
+	_, ok := manifest.(*schema2.DeserializedManifest)
+	if !ok {
+		return schema2.Manifest{}, fmt.Errorf("failed to parse manifest %s to DeserializedManifest", named.RepoTag())
+	}
+	return manifest.(*schema2.DeserializedManifest).Manifest, nil
 }
 
 // not docker image, get sealer image metadata
 func (puller *ImagePuller) getRemoteImageMetadata(context context.Context, named reference.Named, digest digest.Digest) (v1.Image, error) {
-	manifestImage, err := puller.registry.DownloadLayer(context, named.Repo(), digest)
+	repo := puller.repository
+	bs := repo.Blobs(context)
+	manifestImageBytes, err := bs.Get(context, digest)
 	if err != nil {
 		return v1.Image{}, err
 	}
 
-	decoder := json.NewDecoder(manifestImage)
 	img := v1.Image{}
-	return img, decoder.Decode(&img)
+	return img, json.Unmarshal(manifestImageBytes, &img)
 }
 
-func NewPuller(config Config) (Puller, error) {
-	reg, err := fetchRegistryClient(config.AuthInfo)
+func NewPuller(named reference.Named, config Config) (Puller, error) {
+	repo, err := NewV2Repository(named, "pull")
 	if err != nil {
 		return nil, err
 	}
 
 	return &ImagePuller{
-		registry: reg,
-		config:   config,
+		repository: repo,
+		config:     config,
 	}, nil
 }

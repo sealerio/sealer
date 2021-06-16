@@ -16,6 +16,15 @@ package image
 
 import (
 	"fmt"
+	"io"
+	"path/filepath"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+
+	"github.com/alibaba/sealer/test/testhelper/settings"
 
 	"github.com/alibaba/sealer/test/testhelper"
 )
@@ -23,19 +32,30 @@ import (
 func DoImageOps(action, imageName string) {
 	cmd := ""
 	switch action {
-	case "pull":
-		cmd = fmt.Sprintf("sealer pull %s", imageName)
-	case "push":
-		cmd = fmt.Sprintf("sealer push %s", imageName)
-	case "rmi":
-		cmd = fmt.Sprintf("sealer rmi %s", imageName)
-	case "run":
-		cmd = fmt.Sprintf("sealer run %s", imageName)
+	case settings.SubCmdPullOfSealer:
+		cmd = fmt.Sprintf("%s pull %s", settings.DefaultSealerBin, imageName)
+	case settings.SubCmdPushOfSealer:
+		cmd = fmt.Sprintf("%s push %s", settings.DefaultSealerBin, imageName)
+	case settings.SubCmdRmiOfSealer:
+		cmd = fmt.Sprintf("%s rmi %s", settings.DefaultSealerBin, imageName)
+	case settings.SubCmdRunOfSealer:
+		cmd = fmt.Sprintf("%s run %s", settings.DefaultSealerBin, imageName)
+	case settings.SubCmdListOfSealer:
+		cmd = fmt.Sprintf("%s images", settings.DefaultSealerBin)
 	}
 
 	testhelper.RunCmdAndCheckResult(cmd, 0)
 }
 func TagImages(oldName, newName string) {
-	cmd := fmt.Sprintf("sealer tag %s %s", oldName, newName)
+	cmd := fmt.Sprintf("%s %s %s %s", settings.DefaultSealerBin, settings.SubCmdTagOfSealer, oldName, newName)
 	testhelper.RunCmdAndCheckResult(cmd, 0)
+}
+
+func GetEnvDirMd5() string {
+	getEnvMd5Cmd := fmt.Sprintf("sudo -E find %s -type f -print0|xargs -0 sudo md5sum|cut -d\" \" -f1|md5sum|cut -d\" \" -f1\n", filepath.Dir(common.DefaultImageRootDir))
+	dirMd5, err := utils.RunSimpleCmd(getEnvMd5Cmd)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	_, err = io.WriteString(ginkgo.GinkgoWriter, getEnvMd5Cmd+dirMd5+"/n")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	return dirMd5
 }

@@ -49,7 +49,7 @@ jobs:
           ginkgo -v test
         working-directory: src/github.com/alibaba/sealer
 
-      - name: Run apply test
+      - name: Run sealer apply test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
         env:
@@ -63,7 +63,7 @@ jobs:
         run: |
           ginkgo -v --focus="sealer apply" test
 
-      - name: Run build test
+      - name: Run sealer build test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
         env:
@@ -76,3 +76,28 @@ jobs:
         if: ${{ github.event.comment.body == '/test build' }}
         run: |
           ginkgo -v --focus="sealer build" test
+
+      - name: Run sealer run test
+        shell: bash
+        working-directory: src/github.com/alibaba/sealer
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
+          ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
+          RegionID: ${{ secrets.RegionID }}
+        if: ${{ github.event.comment.body == '/test run' }}
+        run: |
+          ginkgo -v --focus="sealer run" test
+
+      - name: Run sealer login test
+        shell: bash
+        working-directory: src/github.com/alibaba/sealer
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+        if: ${{ github.event.comment.body == '/test login' }}
+        run: |
+          ginkgo -v --focus="sealer login" test

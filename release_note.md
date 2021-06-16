@@ -1,6 +1,6 @@
 ## releaes note
 
-### v0.1.5-rc
+### v0.1.5
 
 - [x] CLOUD mode scale up and down, delete cluster
 - [x] BAREMETAL mode scale up and down, delete cluster

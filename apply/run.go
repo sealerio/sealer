@@ -61,23 +61,41 @@ func IsIPList(args string) bool {
 	return true
 }
 
-func IsCidrString(arg string) bool {
+func IsCidrString(arg string) (bool, error) {
 	_, err := utils.ParseCIDR(arg)
-	return err == nil
+	var flag bool
+	if err == nil {
+		flag = true
+	}
+	return flag, err
 }
 
 func (c *ClusterArgs) SetClusterArgs() error {
 	var err error = nil
+	var flag bool
 	c.cluster.Spec.Image = c.imageName
 	c.cluster.Spec.Provider = common.BAREMETAL
+	if c.interfaceName != "" {
+		c.cluster.Spec.Network.Interface = c.interfaceName
+	}
+	if c.podCidr != "" {
+		if flag, err = IsCidrString(c.podCidr); !flag {
+			return err
+		}
+		c.cluster.Spec.Network.PodCIDR = c.podCidr
+	}
+	if c.svcCidr != "" {
+		if flag, err = IsCidrString(c.svcCidr); !flag {
+			return err
+		}
+		c.cluster.Spec.Network.SvcCIDR = c.svcCidr
+	}
 	if IsNumber(c.masterArgs) && (IsNumber(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.Count = c.masterArgs
 		c.cluster.Spec.Nodes.Count = c.nodeArgs
 		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.Provider = common.DefaultCloudProvider
-		return err
-	}
-	if IsIPList(c.masterArgs) && (IsIPList(c.nodeArgs) || c.nodeArgs == "") {
+	} else if IsIPList(c.masterArgs) && (IsIPList(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
 		if c.nodeArgs != "" {
 			c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
@@ -86,19 +104,11 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.SSH.Pk = c.pk
 		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
-		return err
+	} else {
+		err = fmt.Errorf("enter true iplist or count")
 	}
-	if c.interfaceName != "" {
-		c.cluster.Spec.Network.Interface = c.interfaceName
-	}
-	if c.podCidr != "" && IsCidrString(c.podCidr) {
-		c.cluster.Spec.Network.PodCIDR, err = utils.ParseCIDRString(c.podCidr)
-		return err
-	}
-	if c.svcCidr != "" {
-		c.cluster.Spec.Network.SvcCIDR = c.svcCidr
-	}
-	return fmt.Errorf("enter true iplist or count")
+
+	return err
 }
 
 func GetClusterFileByImageName(imageName string) (cluster *v1.Cluster, err error) {

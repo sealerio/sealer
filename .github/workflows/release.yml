@@ -67,7 +67,6 @@ jobs:
       - name: Make linux
         shell: bash
         run: |
-            export GIT_VERSION=${GIT_TAG#v}
             export MULTI_PLATFORM_BUILD=true
             make build
         working-directory: src/github.com/alibaba/sealer

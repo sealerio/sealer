@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -34,12 +35,14 @@ import (
 )
 
 const (
-	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
-	RemoteApplyYaml        = `echo '%s' | kubectl apply -f -`
-	WriteKubeadmConfigCmd  = "cd %s && echo \"%s\" > kubeadm-config.yaml"
-	DefaultVIP             = "10.103.97.2"
-	DefaultAPIserverDomain = "apiserver.cluster.local"
-	DefaultRegistryPort    = 5000
+	RemoteCmdCopyStatic            = "mkdir -p %s && cp -f %s %s"
+	RemoteApplyYaml                = `echo '%s' | kubectl apply -f -`
+	RemoteCmdGetNetworkInterface   = "ls /sys/class/net"
+	RemoteCmdExistNetworkInterface = "ip addr show %s | egrep \"%s\" || true"
+	WriteKubeadmConfigCmd          = "cd %s && echo \"%s\" > kubeadm-config.yaml"
+	DefaultVIP                     = "10.103.97.2"
+	DefaultAPIserverDomain         = "apiserver.cluster.local"
+	DefaultRegistryPort            = 5000
 )
 
 func (d *Default) init(cluster *v1.Cluster) error {
@@ -111,10 +114,12 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
 	d.WithoutCNI = cluster.Spec.Network.WithoutCNI
-	if d.IPIP && d.MTU == "" {
-		d.MTU = "1480"
-	} else {
-		d.MTU = "1550"
+	if d.MTU == "" {
+		if d.IPIP {
+			d.MTU = "1480"
+		} else {
+			d.MTU = "1450"
+		}
 	}
 	// return d.LoadMetadata()
 	return nil
@@ -231,6 +236,22 @@ func (d *Default) InitCNI() error {
 	if d.WithoutCNI {
 		return nil
 	}
+
+	interfaceNameList, err := d.getAllInterfaceName()
+	if err != nil {
+		return fmt.Errorf("failed to list master[0] network interface: %w", err)
+	}
+	master0InterfaceName, err := d.getMaster0InterfaceName(interfaceNameList)
+	if err != nil {
+		return fmt.Errorf("failed to get master[0] network interface: %w", err)
+	}
+	if d.Interface == "" {
+		d.Interface = master0InterfaceName
+	}
+	if !d.existMaster0InterfaceName(interfaceNameList, d.Interface) {
+		return fmt.Errorf("failed to found %s nic", d.Interface)
+	}
+
 	// can-reach is used by calico multi network , flannel has nothing to add. just Use it.
 	if len(strings.Split(d.Interface, ".")) == 4 && d.Network == "calico" {
 		d.Interface = "can-reach=" + d.Interface
@@ -309,4 +330,36 @@ func (d *Default) decodeJoinCmd(cmd string) {
 		}
 	}
 	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", d.JoinToken, d.TokenCaCertHash, d.CertificateKey)
+}
+
+func (d *Default) getAllInterfaceName() ([]string, error) {
+	ret, err := d.SSH.Cmd(d.Masters[0], RemoteCmdGetNetworkInterface)
+	if err != nil {
+		return nil, err
+	}
+	interfaceList := strings.Fields(string(ret))
+	return interfaceList, nil
+}
+
+func (d *Default) getMaster0InterfaceName(interfaceNameList []string) (interfaceName string, err error) {
+	for _, v := range interfaceNameList {
+		ret, err := d.SSH.Cmd(d.Masters[0], fmt.Sprintf(RemoteCmdExistNetworkInterface, v, d.Masters[0]))
+		if err != nil {
+			return "", err
+		}
+		if strings.Contains(string(ret), d.Masters[0]) {
+			return v, nil
+		}
+	}
+	return "", nil
+}
+
+func (d *Default) existMaster0InterfaceName(interfaceNameList []string, interfaceName string) bool {
+	reg := regexp.MustCompile(interfaceName)
+	for _, v := range interfaceNameList {
+		if reg.MatchString(v) {
+			return true
+		}
+	}
+	return false
 }

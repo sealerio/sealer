@@ -461,16 +461,6 @@ func (l *LocalBuilder) addImageAnnotations(key, value string) {
 	l.Image.Annotations[key] = value
 }
 
-func (l *LocalBuilder) PushToRegistry() error {
-	//push image
-	err := l.ImageService.Push(l.ImageName)
-	if err != nil {
-		return fmt.Errorf("failed to push image :%v", err)
-	}
-	logger.Info("push image %s to registry success !", l.ImageName)
-	return nil
-}
-
 func NewLocalBuilder(config *Config) (Interface, error) {
 	layerStore, err := store.NewDefaultLayerStore()
 	if err != nil {

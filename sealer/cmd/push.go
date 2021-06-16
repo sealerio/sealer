@@ -34,7 +34,6 @@ var pushCmd = &cobra.Command{
 			logger.Error(err)
 			os.Exit(1)
 		}
-		logger.Info("Push %s success", args[0])
 	},
 }
 

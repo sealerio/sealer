@@ -66,6 +66,51 @@ spec:
 ...
 ```
 
+## Application config
+
+Application config file:
+
+Clusterfile:
+```
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: registry.cn-qingdao.aliyuncs.com/sealer-app/my-SAAS-all-inone:latest
+  provider: BAREMETAL
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: AppConfig
+metadata:
+  name: mysql-config
+spec:
+  data: |
+       mysql-user: root
+       mysql-passwd: xxx
+...
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: AppConfig
+metadata:
+  name: redis-config
+spec:
+  data: |
+       redis-user: root
+       redis-passwd: xxx
+...
+```
+When apply this Clusterfile, sealer will generate some values file for application config. Named etc/mysql-config.yaml  etc/redis-config.yaml. 
+
+So if you want to use those config, Kubefile is like this:
+
+```
+FROM kuberentes:v1.19.9
+...
+CMD helm install mysql -f etc/mysql-config.yaml
+CMD helm install mysql -f etc/redis-config.yaml
+```
+
 ## Use with helm
 
 The sealer will also generate a very complete Clusterfile file to the etc directory when it is running, 

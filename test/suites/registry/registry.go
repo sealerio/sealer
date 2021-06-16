@@ -16,7 +16,6 @@ package registry
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
@@ -26,7 +25,7 @@ import (
 )
 
 func Login() {
-	sess, err := testhelper.Start(fmt.Sprintf("sealer login %s -u %s -p %s", settings.RegistryURL,
+	sess, err := testhelper.Start(fmt.Sprintf("%s login %s -u %s -p %s", settings.DefaultSealerBin, settings.RegistryURL,
 		settings.RegistryUsername,
 		settings.RegistryPasswd))
 
@@ -36,11 +35,10 @@ func Login() {
 }
 
 func Logout() {
-	err := CleanLoginFile()
-	gomega.Expect(err).To(gomega.BeNil())
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	testhelper.DeleteFileLocally(DefaultRegistryAuthConfigDir())
 }
 
-func CleanLoginFile() error {
-	return os.RemoveAll(settings.DefaultRegistryAuthDir)
+// DefaultRegistryAuthConfigDir using root privilege to run sealer cmd at e2e test
+func DefaultRegistryAuthConfigDir() string {
+	return settings.DefaultRegistryAuthFileDir
 }
