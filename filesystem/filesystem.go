@@ -77,7 +77,9 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 			}
 			return os.RemoveAll(mountdir)
 		})
-		logger.Warn("failed to unmount dir %s,err: %v", mountdir, err)
+		if err != nil {
+			logger.Warn("failed to unmount dir %s,err: %v", mountdir, err)
+		}
 	}
 	return nil
 }
