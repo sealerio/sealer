@@ -41,9 +41,9 @@ var _ = Describe("sealer apply", func() {
 					})
 
 					AfterEach(func() {
-						apply.DeleteClusterByFile(testhelper.GetRootClusterFilePath(rawCluster.Name))
+						apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
 						testhelper.RemoveTempFile(tempFile)
-						testhelper.DeleteFileLocally(testhelper.GetRootClusterFilePath(rawCluster.Name))
+						testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
 					})
 
 					It("init, scale up, scale down, clean up", func() {
@@ -54,12 +54,12 @@ var _ = Describe("sealer apply", func() {
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						apply.CheckNodeNumLocally(2)
 
-						result := testhelper.GetFileDataLocally(testhelper.GetRootClusterFilePath(rawCluster.Name))
+						result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
 						err = testhelper.WriteFile(tempFile, []byte(result))
 						Expect(err).NotTo(HaveOccurred())
 						usedCluster := apply.LoadClusterFileFromDisk(tempFile)
 
-						// 2,scale up cluster to 6 nodes and write to disk
+						//2,scale up cluster to 6 nodes and write to disk
 						By("start to scale up cluster")
 						usedCluster.Spec.Nodes.Count = "3"
 						usedCluster.Spec.Masters.Count = "3"
@@ -69,7 +69,7 @@ var _ = Describe("sealer apply", func() {
 						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						apply.CheckNodeNumLocally(6)
 
-						result = testhelper.GetFileDataLocally(testhelper.GetRootClusterFilePath(rawCluster.Name))
+						result = testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
 						err = testhelper.WriteFile(tempFile, []byte(result))
 						Expect(err).NotTo(HaveOccurred())
 						usedCluster = apply.LoadClusterFileFromDisk(tempFile)

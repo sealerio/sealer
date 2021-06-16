@@ -12,16 +12,32 @@ jobs:
     env:
       GO111MODULE: on
     steps:
+      - name: Github API Request
+        id: request
+        uses: octokit/request-action@v2.0.2
+        with:
+          route: ${{ github.event.issue.pull_request.url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get PR informations
+        id: pr_data
+        run: |
+          echo "::set-output name=repo_name::${{ fromJson(steps.request.outputs.data).head.repo.full_name }}"
+          echo "::set-output name=repo_clone_url::${{ fromJson(steps.request.outputs.data).head.repo.clone_url }}"
+          echo "::set-output name=repo_ssh_url::${{ fromJson(steps.request.outputs.data).head.repo.ssh_url }}"
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{fromJson(steps.request.outputs.data).head.repo.full_name}}
+          ref: ${{fromJson(steps.request.outputs.data).head.ref}}
+          path: src/github.com/alibaba/sealer
+
       - name: Set up Go 1.13
         uses: actions/setup-go@v1
         with:
           go-version: 1.13
         id: go
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.ref }}
-          path: src/github.com/alibaba/sealer
 
       - name: Install sealer and ginkgo
         shell: bash
@@ -62,7 +78,6 @@ jobs:
         if: ${{ github.event.comment.body == '/test apply' }}
         run: |
           ginkgo -v --focus="sealer apply" test
-
       - name: Run sealer build test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
@@ -76,7 +91,6 @@ jobs:
         if: ${{ github.event.comment.body == '/test build' }}
         run: |
           ginkgo -v --focus="sealer build" test
-
       - name: Run sealer run test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
@@ -90,7 +104,6 @@ jobs:
         if: ${{ github.event.comment.body == '/test run' }}
         run: |
           ginkgo -v --focus="sealer run" test
-
       - name: Run sealer login test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
