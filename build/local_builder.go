@@ -237,12 +237,15 @@ func (l *LocalBuilder) mountAndExecLayer(layer *v1.Layer, tempTarget, tempUpper 
 	if err != nil {
 		return fmt.Errorf("failed to mount target %s:%v", tempTarget, err)
 	}
+	defer func() {
+		if err = driver.Unmount(tempTarget); err != nil {
+			logger.Warn(fmt.Errorf("failed to umount %s:%v", tempTarget, err))
+		}
+	}()
+
 	err = l.execLayer(layer, tempTarget)
 	if err != nil {
 		return fmt.Errorf("failed to exec layer %v:%v", layer, err)
-	}
-	if err = driver.Unmount(tempTarget); err != nil {
-		return fmt.Errorf("failed to umount %s:%v", tempTarget, err)
 	}
 	return nil
 }
