@@ -22,6 +22,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	yes = "y"
+	no  = "n"
+)
+
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:     "delete",
@@ -29,6 +34,18 @@ var deleteCmd = &cobra.Command{
 	Long:    `if provider is BARESERVER will delete kubernetes nodes, or if provider is ALI_CLOUD, will delete all the infra resources`,
 	Example: `sealer delete -f /root/.sealer/mycluster/Clusterfile`,
 	Run: func(cmd *cobra.Command, args []string) {
+		var input string
+		for {
+			fmt.Printf("Are you sure you want to delete the cluster? Yes [Y/y], No [N/n] : ")
+			fmt.Scanln(&input)
+			if strings.EqualFold(yes, input) {
+				break
+			}
+			if strings.EqualFold(no, input) {
+				fmt.Println("You have canceled to delete the cluster!")
+				os.Exit(1)
+			}
+		}		
 		if err := apply.NewApplierFromFile(clusterFile).Delete(); err != nil {
 			logger.Error(err)
 			os.Exit(1)
