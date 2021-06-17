@@ -47,7 +47,7 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	var envMap = make(map[string]interface{})
 	sans := []string{"127.0.0.1"}
 	sans = utils.AppendIPList(sans, []string{d.APIServer})
-	sans = utils.AppendIPList(sans, d.Masters)
+	sans = utils.AppendIPList(sans, utils.GetHostIPSlice(d.Masters))
 	sans = utils.AppendIPList(sans, d.APIServerCertSANs)
 	sans = utils.AppendIPList(sans, []string{d.VIP})
 
