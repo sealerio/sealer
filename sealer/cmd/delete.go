@@ -48,7 +48,7 @@ var deleteCmd = &cobra.Command{
 				}
 				if noRx.MatchString(input) {
 					fmt.Println("You have canceled to delete the cluster!")
-					os.Exit(1)
+					os.Exit(0)
 				}
 			}
 		}
