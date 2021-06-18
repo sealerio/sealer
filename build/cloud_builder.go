@@ -148,12 +148,8 @@ func (c *CloudBuilder) Cleanup() (err error) {
 		logger.Info("failed to cleanup infra :%v", err)
 	}
 
-	tarFileName := fmt.Sprintf(common.TmpTarFile, c.local.Image.Spec.ID)
-	if err = os.Remove(tarFileName); err != nil {
-		logger.Info("failed to cleanup local temp file %s:%v", tarFileName, err)
-	}
 	if err = os.Remove(common.TmpClusterfile); err != nil {
-		logger.Info("failed to cleanup local temp file %s:%v", common.TmpClusterfile, err)
+		logger.Warn("failed to cleanup local temp file %s:%v", common.TmpClusterfile, err)
 	}
 	if err = os.Remove(common.RawClusterfile); err != nil {
 		logger.Info("failed to cleanup local temp file %s:%v", common.RawClusterfile, err)
