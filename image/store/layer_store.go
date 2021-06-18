@@ -114,12 +114,6 @@ func (ls *layerStore) RegisterLayerForBuilder(diffPath string) (digest.Digest, e
 	}
 	layerDataDir := ls.layerStoreFS.LayerDataDir(roLayer.ID().ToDigest())
 
-	// TODO need a daemon to mk those dir at the sealer start
-	err = os.MkdirAll(layerDataRoot, 0755)
-	if err != nil {
-		return "", err
-	}
-
 	// remove before mv files to target
 	_, err = os.Stat(layerDataDir)
 	if err == nil {
@@ -193,12 +187,7 @@ func (ls *layerStore) AddDistributionMetadata(layerID LayerID, named reference.N
 }
 
 func (ls *layerStore) loadAllROLayers() error {
-	err := os.MkdirAll(layerDBRoot, 0755)
-	if err != nil {
-		return err
-	}
-
-	layerDirs, err := traverseLayerDB()
+	layerDirs, err := ls.layerStoreFS.traverseLayerDB()
 	if err != nil {
 		return err
 	}
