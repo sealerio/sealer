@@ -20,19 +20,14 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/alibaba/sealer/utils"
-
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
 	imageutils "github.com/alibaba/sealer/image/utils"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
-	"os"
-	"path/filepath"
 	"sync"
 
-	"github.com/alibaba/sealer/utils/compress"
+	"github.com/alibaba/sealer/utils/archive"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
@@ -51,10 +46,11 @@ type ImagePusher struct {
 
 func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) error {
 	var (
-		layerStore          = pusher.config.LayerStore
-		done                sync.WaitGroup
-		errorCh             = make(chan error, 128)
-		layerDescriptorChan chan distribution.Descriptor
+		layerStore   = pusher.config.LayerStore
+		done         sync.WaitGroup
+		errorCh      = make(chan error, 128)
+		pushedLayers = map[string]distribution.Descriptor{}
+		pushMux      sync.Mutex
 	)
 
 	image, err := imageutils.GetImage(named.Raw())
@@ -62,31 +58,37 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		return err
 	}
 
-	// to get layer descriptors, for building image manifest
-	layerDescriptorChan = make(chan distribution.Descriptor, len(image.Spec.Layers))
 	for _, l := range image.Spec.Layers {
-		if l.Hash == "" {
+		if l.ID == "" {
 			continue
 		}
-
-		roLayer, err := store.NewROLayer(l.Hash, 0)
+		err := l.ID.Validate()
 		if err != nil {
-			return err
+			return fmt.Errorf("layer hash %s validate failed, err: %s", l.ID, err)
 		}
-		if layerStore.Get(roLayer.ID()) == nil {
-			return fmt.Errorf("failed to put image %s, layer %s not exists locally", named.Raw(), roLayer.SimpleID())
+
+		roLayer := layerStore.Get(store.LayerID(l.ID))
+		if roLayer == nil {
+			return fmt.Errorf("failed to put image %s, layer %s not exists locally", named.Raw(), l.ID.String())
 		}
 
 		done.Add(1)
 		go func(layer store.Layer) {
 			defer done.Done()
-
 			layerDescriptor, layerErr := pusher.uploadLayer(ctx, named, layer)
 			if layerErr != nil {
 				errorCh <- layerErr
 				return
 			}
-			layerDescriptorChan <- layerDescriptor
+
+			pushMux.Lock()
+			pushedLayers[layer.ID().String()] = layerDescriptor
+			pushMux.Unlock()
+			// add distribution digest metadata to disk
+			layerErr = layerStore.AddDistributionMetadata(layer.ID(), named, layerDescriptor.Digest)
+			if layerErr != nil {
+				errorCh <- layerErr
+			}
 		}(roLayer)
 	}
 	done.Wait()
@@ -99,12 +101,25 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		return err
 	}
 
+	// for making descriptors have same order with image layers
+	// descriptor and image yaml are both saved in registry
+	// but they are different, layer digest in layer yaml is layerid.
+	// And digest in descriptor indicate the hash of layer content.
 	var layerDescriptors []distribution.Descriptor
-	close(layerDescriptorChan)
-	for descriptor := range layerDescriptorChan {
-		layerDescriptors = append(layerDescriptors, descriptor)
+	for _, l := range image.Spec.Layers {
+		if l.ID == "" {
+			continue
+		}
+		// l.Hash.String() is same as layer.ID().String() above
+		layerDescriptor, ok := pushedLayers[l.ID.String()]
+		if !ok {
+			continue
+		}
+		layerDescriptors = append(layerDescriptors, layerDescriptor)
 	}
-
+	if len(layerDescriptors) != len(pushedLayers) {
+		return errors.New("failed to push image, the number of layerDescriptors and pushedLayers mismatch")
+	}
 	// push sealer image metadata to registry
 	configJSON, err := pusher.putManifestConfig(ctx, named, *image)
 	if err != nil {
@@ -114,41 +129,44 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 	return pusher.putManifest(ctx, configJSON, named, layerDescriptors)
 }
 
-func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Named, layer store.Layer) (distribution.Descriptor, error) {
+func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Named, roLayer store.Layer) (distribution.Descriptor, error) {
 	var (
-		file            *os.File
-		repo            = pusher.repository
-		progressChanOut = pusher.config.ProgressOutput
-		layerIDDigest   = digest.Digest(layer.ID())
+		err                      error
+		layerContentStream       io.ReadCloser
+		repo                     = pusher.repository
+		progressChanOut          = pusher.config.ProgressOutput
+		layerDistributionDigests = roLayer.DistributionMetadata()
 	)
 
 	bs := repo.Blobs(ctx)
-	// check if layer exists remotely.
-	remoteLayerDescriptor, err := bs.Stat(ctx, layerIDDigest)
-	if err == nil {
-		progress.Message(progressChanOut, layer.SimpleID(), "already exists")
-		return remoteLayerDescriptor, nil
+	// if layerDistributionDigests is empty, we take the layer inexistence in the registry
+	// check all candidates
+	if len(layerDistributionDigests) > 0 {
+		// check if layer exists remotely.
+		for _, cand := range layerDistributionDigests {
+			remoteLayerDescriptor, err := bs.Stat(ctx, cand)
+			if err == nil {
+				progress.Message(progressChanOut, roLayer.SimpleID(), "already exists")
+				return remoteLayerDescriptor, nil
+			}
+		}
 	}
 
+	var finalReader io.Reader
 	// pack layer files into tar.gz
-	progress.Update(progressChanOut, layer.SimpleID(), "preparing")
-	if file, err = compress.RootDirNotIncluded(nil, filepath.Join(common.DefaultLayerDir, layerIDDigest.Hex())); err != nil {
-		return distribution.Descriptor{}, err
-	}
-	defer utils.CleanFile(file)
-
-	_, err = file.Seek(0, 0)
+	progress.Update(progressChanOut, roLayer.SimpleID(), "preparing")
+	layerContentStream, err = roLayer.TarStream()
 	if err != nil {
-		return distribution.Descriptor{}, err
+		return distribution.Descriptor{}, errors.Errorf("failed to get tar stream for layer %s, err: %s", roLayer.ID(), err)
 	}
-
-	fi, err := file.Stat()
-	if err != nil {
-		return distribution.Descriptor{}, err
-	}
-
-	progressReader := progress.NewProgressReader(file, progressChanOut, fi.Size(), layer.SimpleID(), "pushing")
-	defer progressReader.Close()
+	//progress.NewProgressReader will close layerContentStream
+	finalReader = progress.NewProgressReader(layerContentStream, progressChanOut, roLayer.Size(), roLayer.SimpleID(), "pushing")
+	uploadStream, compressionDone := archive.GzipCompress(finalReader)
+	defer func(closer io.ReadCloser) {
+		closer.Close()
+		<-compressionDone
+	}(layerContentStream)
+	finalReader = uploadStream
 
 	layerUploader, err := bs.Create(ctx)
 	if err != nil {
@@ -156,21 +174,21 @@ func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Name
 	}
 	defer layerUploader.Close()
 
+	// calculate hash of layer content stream
 	digester := digest.Canonical.Digester()
-	tee := io.TeeReader(progressReader, digester.Hash())
-	_, err = layerUploader.ReadFrom(tee)
+	tee := io.TeeReader(finalReader, digester.Hash())
+	realSize, err := layerUploader.ReadFrom(tee)
 	if err != nil {
-		return distribution.Descriptor{}, fmt.Errorf("failed to upload layer %s, err: %s", layer.ID(), err)
+		return distribution.Descriptor{}, fmt.Errorf("failed to upload layer %s, err: %s", roLayer.ID(), err)
 	}
-	if digester.Digest() != layerIDDigest {
-		return distribution.Descriptor{}, fmt.Errorf("layer hash changed, which means the layer filesystem may changed, current: %s, original: %s", digester.Digest(), layerIDDigest)
-	}
-	if _, err = layerUploader.Commit(ctx, distribution.Descriptor{Digest: layerIDDigest}); err != nil {
+
+	layerContentDigest := digester.Digest()
+	if _, err = layerUploader.Commit(ctx, distribution.Descriptor{Digest: layerContentDigest}); err != nil {
 		return distribution.Descriptor{}, fmt.Errorf("failed to commit layer to registry, err: %s", err)
 	}
 
-	progress.Update(progressChanOut, layer.SimpleID(), "push completed")
-	return buildBlobs(layerIDDigest, fi.Size(), schema2.MediaTypeLayer), nil
+	progress.Update(progressChanOut, roLayer.SimpleID(), "push completed")
+	return buildBlobs(layerContentDigest, realSize, roLayer.MediaType()), nil
 }
 
 func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, named reference.Named, layerDescriptors []distribution.Descriptor) error {
@@ -180,8 +198,8 @@ func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, n
 	)
 	manifestBuilder := schema2.NewManifestBuilder(
 		bs,
-		//TODO use schema2.MediaTypeImageConfig by default
-		//plan to support more types to support more registry
+		// use schema2.MediaTypeImageConfig by default
+		//TODO plan to support more types to support more registry
 		schema2.MediaTypeImageConfig,
 		configJSON)
 

@@ -62,7 +62,7 @@ func (p *Parser) Parse(kubeFile []byte, name string) *v1.Image {
 
 		//TODO count layer hash
 		image.Spec.Layers = append(image.Spec.Layers, v1.Layer{
-			Hash:  "",
+			ID:    "",
 			Type:  layerType,
 			Value: layerValue,
 		})

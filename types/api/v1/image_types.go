@@ -23,7 +23,7 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type Layer struct {
-	Hash  digest.Digest `json:"hash"` // shaxxx:d6a6c9bfd4ad2901695be1dceca62e1c35a8482982ad6be172fe6958bc4f79d7
+	ID    digest.Digest `json:"id"` // shaxxx:d6a6c9bfd4ad2901695be1dceca62e1c35a8482982ad6be172fe6958bc4f79d7
 	Type  string        `json:"type"`
 	Value string        `json:"value"`
 }
