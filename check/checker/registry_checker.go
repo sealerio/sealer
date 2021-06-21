@@ -14,14 +14,21 @@
 
 package checker
 
-import v1 "github.com/alibaba/sealer/types/api/v1"
+import (
+	"fmt"
 
-// Checker: checking cluster status,such as node,pod,svc status.
-type Checker interface {
-	Check(cluster *v1.Cluster) error
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
+)
+
+type RegistryChecker struct {
 }
 
-// PreChecker: checking prerequisite for sealer,such as system info,register login status.
-type PreChecker interface {
-	Check() error
+func (r *RegistryChecker) Check() error {
+	// check registry info;
+	authFile := common.DefaultRegistryAuthConfigDir()
+	if !utils.IsFileExist(authFile) {
+		return fmt.Errorf("registry auth info not found,please run 'sealer login' first")
+	}
+	return nil
 }

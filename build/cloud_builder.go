@@ -20,6 +20,7 @@ import (
 
 	"github.com/alibaba/sealer/image/store"
 
+	"github.com/alibaba/sealer/check"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
@@ -66,6 +67,7 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 			c.local.UpdateImageMetadata)
 	} else {
 		buildPipeline = append(buildPipeline,
+			c.PreCheck,
 			c.InitClusterFile,
 			c.ApplyInfra,
 			c.InitBuildSSH,
@@ -77,6 +79,7 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 	return buildPipeline, nil
 }
 
+
 func (c *CloudBuilder) IsOnlyCopy() bool {
 	for i := 1; i < len(c.local.Image.Spec.Layers); i++ {
 		if c.local.Image.Spec.Layers[i].Type == common.RUNCOMMAND ||
@@ -85,6 +88,22 @@ func (c *CloudBuilder) IsOnlyCopy() bool {
 		}
 	}
 	return true
+
+// PreCheck: check env before run cloud build
+func (c *CloudBuilder) PreCheck() error {
+	conf := &check.CheckerArgs{
+		Pre: true,
+	}
+	preChecker, err := check.NewChecker([]string{}, conf)
+	if err != nil {
+		return err
+	}
+	err = preChecker.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 // load cluster file from disk

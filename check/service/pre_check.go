@@ -14,12 +14,32 @@
 
 package service
 
-import "fmt"
+import (
+	"github.com/alibaba/sealer/check/checker"
+	"github.com/alibaba/sealer/logger"
+)
 
 type PreCheckerService struct {
 }
 
-func (d *PreCheckerService) Run() error {
-	fmt.Println("Pre check cluster")
+func (p *PreCheckerService) Run() error {
+	checkerList, err := p.init()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	for _, c := range checkerList {
+		err = c.Check()
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (p *PreCheckerService) init() ([]checker.PreChecker, error) {
+	var checkerList []checker.PreChecker
+	checkerList = append(checkerList, &checker.RegistryChecker{})
+	return checkerList, nil
 }
