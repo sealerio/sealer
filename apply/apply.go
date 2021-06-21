@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
@@ -28,13 +27,12 @@ type Interface interface {
 	Delete() error
 }
 
-func NewApplierFromFile(clusterfile string) Interface {
+func NewApplierFromFile(clusterfile string) (Interface, error) {
 	cluster := &v1.Cluster{}
 	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
-		logger.Error("apply cloud cluster failed", err)
-		return nil
+		return nil, fmt.Errorf("failed to get cluster from %s, %v", clusterfile, err)
 	}
-	return NewApplier(cluster)
+	return NewApplier(cluster), nil
 }
 
 func NewApplier(cluster *v1.Cluster) Interface {

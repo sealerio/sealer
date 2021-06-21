@@ -23,11 +23,7 @@ import (
 	"github.com/alibaba/sealer/logger"
 )
 
-type ApplyFlag struct {
-	ClusterFile string
-}
-
-var applyFlag *ApplyFlag
+var clusterFile string
 
 // applyCmd represents the apply command
 var applyCmd = &cobra.Command{
@@ -35,17 +31,19 @@ var applyCmd = &cobra.Command{
 	Short: "apply a kubernetes cluster",
 	Long:  `seautil apply -f cluster.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
-		applier := apply.NewApplierFromFile(applyFlag.ClusterFile)
-		err := applier.Apply()
+		applier, err := apply.NewApplierFromFile(clusterFile)
 		if err != nil {
 			logger.Error(err)
-			os.Exit(-1)
+			os.Exit(1)
+		}
+		if err = applier.Apply(); err != nil {
+			logger.Error(err)
+			os.Exit(1)
 		}
 	},
 }
 
 func init() {
-	applyFlag = &ApplyFlag{}
 	rootCmd.AddCommand(applyCmd)
-	applyCmd.Flags().StringVarP(&applyFlag.ClusterFile, "clusterfile", "f", "", "cluster file filepath")
+	applyCmd.Flags().StringVarP(&clusterFile, "clusterfile", "f", "", "cluster file filepath")
 }
