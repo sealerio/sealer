@@ -41,7 +41,7 @@ var deleteCmd = &cobra.Command{
 			var noRx = regexp.MustCompile("^(?:n(?:o)?)$")
 			var input string
 			for {
-				fmt.Printf("Are you sure you want to delete the cluster? Yes [y/yes], No [n/no] : ")
+				fmt.Printf("Are you sure to delete the cluster? Yes [y/yes], No [n/no] : ")
 				fmt.Scanln(&input)
 				if yesRx.MatchString(input) {
 					break
