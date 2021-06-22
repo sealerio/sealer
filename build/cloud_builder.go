@@ -115,7 +115,10 @@ func (c *CloudBuilder) InitClusterFile() error {
 // apply infra create vms
 func (c *CloudBuilder) ApplyInfra() error {
 	if c.local.Cluster.Spec.Provider == common.AliCloud {
-		infraManager := infra.NewDefaultProvider(c.local.Cluster)
+		infraManager, err := infra.NewDefaultProvider(c.local.Cluster)
+		if err != nil {
+			return err
+		}
 		if err := infraManager.Apply(); err != nil {
 			return fmt.Errorf("failed to apply infra :%v", err)
 		}
@@ -154,7 +157,10 @@ func (c *CloudBuilder) Cleanup() (err error) {
 	t := metav1.Now()
 	c.local.Cluster.DeletionTimestamp = &t
 	c.local.Cluster.Spec.Provider = common.AliCloud
-	infraManager := infra.NewDefaultProvider(c.local.Cluster)
+	infraManager, err := infra.NewDefaultProvider(c.local.Cluster)
+	if err != nil {
+		return err
+	}
 	if err := infraManager.Apply(); err != nil {
 		logger.Info("failed to cleanup infra :%v", err)
 	}

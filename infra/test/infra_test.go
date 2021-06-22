@@ -58,8 +58,12 @@ func TestApply(t *testing.T) {
 		},
 	}
 
-	aliProvider := infra.NewDefaultProvider(&cluster)
-	fmt.Printf("%v", aliProvider.Apply())
+	aliProvider, err := infra.NewDefaultProvider(&cluster)
+	if err != nil {
+		fmt.Printf("%v", err)
+	} else {
+		fmt.Printf("%v", aliProvider.Apply())
+	}
 
 	t.Run("modify instance type", func(t *testing.T) {
 		cluster.Spec.Masters.CPU = "4"
