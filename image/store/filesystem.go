@@ -120,56 +120,36 @@ func (ls LayerStorage) storeROLayer(layer Layer) error {
 	return nil
 }
 
-func (ls LayerStorage) assembleTar(id LayerID) (io.ReadCloser, error) {
+func (ls LayerStorage) assembleTar(id LayerID, writer io.Writer) error {
 	var (
 		tarDataPath   = filepath.Join(ls.LayerDBDir(digest.Digest(id)), tarDataGZ)
 		layerDataPath = ls.LayerDataDir(digest.Digest(id))
 	)
 	_, err := os.Stat(tarDataPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find %s for layer %s, err: %s", tarDataGZ, id, err)
+		return fmt.Errorf("failed to find %s for layer %s, err: %s", tarDataGZ, id, err)
 	}
-
-	tmpFile, err := ioutil.TempFile("/tmp", "sealer-temp")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create temp file sealer-assemble err: %s", err)
-	}
-	defer func() {
-		if err != nil {
-			utils.CleanFile(tmpFile)
-		}
-	}()
 
 	mf, err := os.Open(tarDataPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open %s for layer %s, err: %s", tarDataGZ, id, err)
+		return fmt.Errorf("failed to open %s for layer %s, err: %s", tarDataGZ, id, err)
 	}
-	defer mf.Close()
 
 	mfz, err := gzip.NewReader(mf)
 	if err != nil {
-		return nil, err
+		mf.Close()
+		return err
 	}
-	defer mfz.Close()
 
-	metaUnpacker := storage.NewJSONUnpacker(mfz)
+	gzipReader := ioutils.NewReadCloserWrapper(mfz, func() error {
+		mfz.Close()
+		return mf.Close()
+	})
+
+	defer gzipReader.Close()
+	metaUnpacker := storage.NewJSONUnpacker(gzipReader)
 	fileGetter := storage.NewPathFileGetter(layerDataPath)
-	ots := asm.NewOutputTarStream(fileGetter, metaUnpacker)
-	defer ots.Close()
-
-	_, err = io.Copy(tmpFile, ots)
-	if err != nil {
-		return nil, err
-	}
-	_, err = tmpFile.Seek(0, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return ioutils.NewReadCloserWrapper(tmpFile, func() error {
-		utils.CleanFile(tmpFile)
-		return nil
-	}), nil
+	return asm.WriteOutputTarStream(fileGetter, metaUnpacker, writer)
 }
 
 func NewLayerStorage(layerDataRoot, layerDBRoot string) LayerStorage {
