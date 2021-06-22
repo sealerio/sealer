@@ -87,16 +87,11 @@ func (l *LocalBuilder) GetBuildPipeLine() ([]func() error, error) {
 	if err := l.InitImageSpec(); err != nil {
 		return nil, err
 	}
-	if l.IsOnlyCopy() {
-		buildPipeline = append(buildPipeline,
-			l.ExecBuild,
-			l.UpdateImageMetadata)
-	} else {
-		buildPipeline = append(buildPipeline,
-			l.PullBaseImageNotExist,
-			l.ExecBuild,
-			l.UpdateImageMetadata)
-	}
+
+	buildPipeline = append(buildPipeline,
+		l.PullBaseImageNotExist,
+		l.ExecBuild,
+		l.UpdateImageMetadata)
 	return buildPipeline, nil
 }
 
@@ -113,21 +108,12 @@ func (l *LocalBuilder) InitImageSpec() error {
 
 	layer0 := l.Image.Spec.Layers[0]
 	if layer0.Type != common.FROMCOMMAND {
-		return fmt.Errorf("first line of kubefile must be FROM")
+		return fmt.Errorf("first line of kubefile must start with FROM")
 	}
 
 	l.Image.Spec.ID = utils.GenUniqueID(32)
 	logger.Info("init image spec success! image id is %s", l.Image.Spec.ID)
 	return nil
-}
-func (l *LocalBuilder) IsOnlyCopy() bool {
-	for i := 1; i < len(l.Image.Spec.Layers); i++ {
-		if l.Image.Spec.Layers[i].Type == common.RUNCOMMAND ||
-			l.Image.Spec.Layers[i].Type == common.CMDCOMMAND {
-			return false
-		}
-	}
-	return true
 }
 
 func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
@@ -135,9 +121,9 @@ func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
 		return nil
 	}
 	if err = image.NewImageService().PullIfNotExist(l.Image.Spec.Layers[0].Value); err != nil {
-		return fmt.Errorf("failed to pull baseImage: %v", err)
+		return fmt.Errorf("failed to pull base image: %v", err)
 	}
-	logger.Info("pull baseImage %s success", l.Image.Spec.Layers[0].Value)
+	logger.Info("pull base image %s success", l.Image.Spec.Layers[0].Value)
 	return nil
 }
 
@@ -315,15 +301,15 @@ func (l *LocalBuilder) setClusterFileToImage() {
 		}
 		clusterFileData = string(bytes)
 	} else {
-		clusterFileData = l.GetRawClusterFile()
+		clusterFileData = GetRawClusterFile(l.Image)
 	}
 
 	l.addImageAnnotations(common.ImageAnnotationForClusterfile, clusterFileData)
 }
 
 // GetClusterFile from user build context or from base image
-func (l *LocalBuilder) GetRawClusterFile() string {
-	if l.Image.Spec.Layers[0].Value == common.ImageScratch {
+func GetRawClusterFile(im *v1.Image) string {
+	if im.Spec.Layers[0].Value == common.ImageScratch {
 		data, err := ioutil.ReadFile(filepath.Join("etc", common.DefaultClusterFileName))
 		if err != nil {
 			return ""
@@ -331,12 +317,12 @@ func (l *LocalBuilder) GetRawClusterFile() string {
 		return string(data)
 	}
 	// find cluster file from context
-	if clusterFile := l.getClusterFileFromContext(); clusterFile != nil {
+	if clusterFile := getClusterFileFromContext(im); clusterFile != nil {
 		logger.Info("get cluster file from context success!")
 		return string(clusterFile)
 	}
 	// find cluster file from base image
-	clusterFile := image.GetClusterFileFromImage(l.Image.Spec.Layers[0].Value)
+	clusterFile := image.GetClusterFileFromImage(im.Spec.Layers[0].Value)
 	if clusterFile != "" {
 		logger.Info("get cluster file from base image success!")
 		return clusterFile
@@ -344,9 +330,9 @@ func (l *LocalBuilder) GetRawClusterFile() string {
 	return ""
 }
 
-func (l *LocalBuilder) getClusterFileFromContext() []byte {
-	for i := range l.Image.Spec.Layers {
-		layer := l.Image.Spec.Layers[i]
+func getClusterFileFromContext(image *v1.Image) []byte {
+	for i := range image.Spec.Layers {
+		layer := image.Spec.Layers[i]
 		if layer.Type == common.COPYCOMMAND && strings.Fields(layer.Value)[0] == common.DefaultClusterFileName {
 			if clusterFile, _ := utils.ReadAll(strings.Fields(layer.Value)[0]); clusterFile != nil {
 				return clusterFile

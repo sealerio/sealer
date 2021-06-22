@@ -18,7 +18,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/suites/image"
 	"github.com/alibaba/sealer/test/suites/registry"
@@ -35,67 +34,6 @@ import (
 var _ = Describe("sealer build", func() {
 	Context("test build args", func() {
 		Context("build kube file", func() {
-			Context("testing the abnormal scenario ", func() {
-				var tempFile string
-				BeforeEach(func() {
-					tempFile = testhelper.CreateTempFile()
-				})
-
-				AfterEach(func() {
-					testhelper.RemoveTempFile(tempFile)
-				})
-				It("specific the base rootfs that do not exist", func() {
-					//base rootfs not exist
-					imageName := build.GetImageNameTemplate("no_rootfs")
-					err := testhelper.WriteFile(tempFile, []byte("FROM abc\nCOPY . ."))
-					Expect(err).NotTo(HaveOccurred())
-					cmd := build.NewArgsOfBuild().
-						SetKubeFile(tempFile).
-						SetImageName(imageName).
-						SetContext(".").
-						SetBuildType(common.LocalBuild).
-						Build()
-					sess, err := testhelper.Start(cmd)
-					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess).Should(Exit(1))
-					Expect(build.CheckIsImageExist(imageName)).ShouldNot(BeTrue())
-				})
-
-				It("copy src that do not exist", func() {
-					//copy: copy src not exist;
-					imageName := build.GetImageNameTemplate("no_src_copy")
-					err := testhelper.WriteFile(tempFile, []byte("FROM sealer-io/kubernetes:v1.19.9\nCOPY abc123 ."))
-					Expect(err).NotTo(HaveOccurred())
-					cmd := build.NewArgsOfBuild().
-						SetKubeFile(tempFile).
-						SetImageName(imageName).
-						SetContext(".").
-						SetBuildType(common.LocalBuild).
-						Build()
-					sess, err := testhelper.Start(cmd)
-					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess).Should(Exit(1))
-					Expect(build.CheckIsImageExist(imageName)).ShouldNot(BeTrue())
-				})
-
-				It("exec cmd that do not exist in system", func() {
-					//run&cmd: exec cmd not exist
-					imageName := build.GetImageNameTemplate("no_cmd_run")
-					err := testhelper.WriteFile(tempFile, []byte("FROM sealer-io/kubernetes:v1.19.9\nCMD abc ."))
-					Expect(err).NotTo(HaveOccurred())
-					cmd := build.NewArgsOfBuild().
-						SetKubeFile(tempFile).
-						SetImageName(imageName).
-						SetContext(".").
-						SetBuildType(common.LocalBuild).
-						Build()
-					sess, err := testhelper.Start(cmd)
-					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess).Should(Exit(1))
-					Expect(build.CheckIsImageExist(imageName)).ShouldNot(BeTrue())
-				})
-			})
-
 			Context("testing the content of kube file", func() {
 				Context("testing local build scenario", func() {
 					err := os.Chdir(filepath.Join(build.GetFixtures(), build.GetLocalBuildDir()))
