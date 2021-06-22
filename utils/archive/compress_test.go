@@ -16,6 +16,7 @@
 package archive
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -104,4 +105,17 @@ func makeDir(root string, d dirDef) error {
 }
 
 func TestTarWithoutRootDir(t *testing.T) {
+}
+
+func TestTarWithRootDir(t *testing.T) {
+	reader, err := TarWithRootDir("/Users/eric/Workspace/src/github.com/vbauerster/mpb", "/Users/eric/Workspace/src/github.com/vbauerster/empty")
+	if err != nil {
+		t.Error(err)
+	}
+
+	tmp, err := os.CreateTemp("/tmp", "tar")
+	_, err = io.Copy(tmp, reader)
+	if err != nil {
+		t.Error(err)
+	}
 }

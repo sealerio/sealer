@@ -91,7 +91,7 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 }
 
 func (ls *layerStore) RegisterLayerForBuilder(diffPath string) (digest.Digest, error) {
-	tarReader, err := archive.TarWithoutRootDir(nil, diffPath)
+	tarReader, err := archive.TarWithoutRootDir(diffPath)
 	if err != nil {
 		return "", fmt.Errorf("unable to tar on %s, err: %s", diffPath, err)
 	}

@@ -68,7 +68,7 @@ func (rl *ROLayer) TarStream() (io.ReadCloser, error) {
 	// so we tar the layer dir.
 	if err != nil {
 		logger.Debug("failed to find %s for layer %s, use tar, err: %s", tarDataGZ, rl.ID(), err)
-		tarReader, tarErr := archive.TarWithoutRootDir(nil, layerDataPath)
+		tarReader, tarErr := archive.TarWithoutRootDir(layerDataPath)
 		if tarErr != nil {
 			return nil, fmt.Errorf("failed to tar layer %s, err: %s", rl.ID(), tarErr)
 		}
