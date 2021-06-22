@@ -314,11 +314,11 @@ func (d *Default) joinMasters(masters []string) error {
 	d.sendNewCertAndKey(masters)
 	d.sendJoinCPConfig(masters)
 	cmd := d.Command(d.Metadata.Version, JoinMaster)
-	// TODO for test skip dockerd dev version
-	cmd = fmt.Sprintf("%s --ignore-preflight-errors=SystemVerification", cmd)
 	if cmd == "" {
 		return fmt.Errorf("get join master command failed, kubernetes version is %s", d.Metadata.Version)
 	}
+	// TODO for test skip dockerd dev version
+	cmd = fmt.Sprintf("%s --ignore-preflight-errors=SystemVerification", cmd)
 
 	for _, master := range masters {
 		hostname := d.GetRemoteHostName(master)

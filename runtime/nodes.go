@@ -75,6 +75,7 @@ func (d *Default) joinNodes(nodes []string) error {
 			// send join node config
 			cmdJoinConfig := fmt.Sprintf(RemoteJoinConfig, templateData, d.Rootfs)
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, d.VIP, d.APIServer)
+			//TODO If at the same time to delete the master and add node need to delete /etc/kubernetes/manifests directory
 			cmd := d.Command(d.Metadata.Version, JoinNode)
 			yaml := ipvs.LvsStaticPodYaml(d.VIP, d.Masters, d.LvscareImage)
 			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)

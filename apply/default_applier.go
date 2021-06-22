@@ -15,6 +15,11 @@
 package apply
 
 import (
+	"fmt"
+
+	"github.com/alibaba/sealer/check"
+	"github.com/alibaba/sealer/check/service"
+
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/image"
@@ -22,8 +27,6 @@ import (
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-
-	"fmt"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,6 +62,7 @@ const (
 	CNI            ActionName = "CNI"
 	Reset          ActionName = "Reset"
 	CleanFS        ActionName = "CleanFS"
+	PreCheck       ActionName = "PreCheck"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
@@ -120,6 +124,17 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	CleanFS: func(applier *DefaultApplier) error {
 		return applier.FileSystem.Clean(applier.ClusterDesired)
 	},
+	PreCheck: func(applier *DefaultApplier) error {
+		checkArgs := check.Args{PreApplyChecker: &service.PreApplyCheckerService{Current: applier.ClusterCurrent, Desired: applier.ClusterDesired}}
+		preCheck, err := check.NewChecker(checkArgs, check.PreApplyCheck)
+		if err != nil {
+			return err
+		}
+		if err = preCheck.Run(); err != nil {
+			return err
+		}
+		return saveClusterfile(applier.ClusterDesired)
+	},
 }
 
 func applyMasters(applier *DefaultApplier) error {
@@ -148,11 +163,6 @@ func applyNodes(applier *DefaultApplier) error {
 
 func (c *DefaultApplier) Apply() (err error) {
 	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
-		err = saveClusterfile(c.ClusterDesired)
-		if err != nil {
-			return err
-		}
-
 		currentCluster, err := GetCurrentCluster()
 		if err != nil {
 			return errors.Wrap(err, "get current cluster failed")
@@ -192,7 +202,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, CleanFS)
 		return todoList, nil
 	}
-
+	todoList = append(todoList, PreCheck)
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, MountImage)
@@ -207,20 +217,19 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, UnMountImage)
 		return todoList, nil
 	}
-
+	c.MastersToJoin, c.MastersToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
+	c.NodesToJoin, c.NodesToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
 	todoList = append(todoList, PullIfNotExist)
 	if c.ClusterDesired.Spec.Image != c.ClusterCurrent.Spec.Image {
 		logger.Info("current image is : %s and desired image is : %s , so upgrade your cluster", c.ClusterCurrent.Spec.Image, c.ClusterDesired.Spec.Image)
 		todoList = append(todoList, Upgrade)
 	}
-	c.MastersToJoin, c.MastersToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
-	c.NodesToJoin, c.NodesToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
 	todoList = append(todoList, MountImage)
 	todoList = append(todoList, MountRootfs)
-	if c.MastersToJoin != nil || c.MastersToDelete != nil {
+	if len(c.MastersToJoin) > 0 || len(c.MastersToDelete) > 0 {
 		todoList = append(todoList, ApplyMasters)
 	}
-	if c.NodesToJoin != nil || c.NodesToDelete != nil {
+	if len(c.NodesToJoin) > 0 || len(c.NodesToDelete) > 0 {
 		todoList = append(todoList, ApplyNodes)
 	}
 	todoList = append(todoList, CNI)

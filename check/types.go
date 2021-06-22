@@ -18,7 +18,4 @@ type CheckerService interface {
 	Run() error
 }
 
-type CheckerArgs struct {
-	Pre  bool
-	Post bool
-}
+type CheckerArgs string

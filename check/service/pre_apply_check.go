@@ -16,22 +16,20 @@ package service
 
 import (
 	"github.com/alibaba/sealer/check/checker"
-	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
-type PostCheckerService struct {
+type PreApplyCheckerService struct {
+	Desired *v1.Cluster
+	Current *v1.Cluster
 }
 
-func (d *PostCheckerService) Run() error {
-	checkerList, err := d.init()
+func (p *PreApplyCheckerService) Run() error {
+	checkerList, err := p.init()
 	if err != nil {
-		logger.Error(err)
 		return err
 	}
-	/*	cluster, err := apply.GetCurrentCluster()
-		if err != nil {
-			return err
-		}*/
+
 	for _, checker := range checkerList {
 		err = checker.Check(nil)
 		if err != nil {
@@ -41,8 +39,8 @@ func (d *PostCheckerService) Run() error {
 	return nil
 }
 
-func (d *PostCheckerService) init() ([]checker.Checker, error) {
-	var checkerList []checker.Checker
-	checkerList = append(checkerList, &checker.NodeChecker{}, &checker.PodChecker{}, &checker.SvcChecker{})
+func (p *PreApplyCheckerService) init() ([]checker.PreChecker, error) {
+	var checkerList []checker.PreChecker
+	checkerList = append(checkerList, &checker.ApplyChecker{Desired: p.Desired, Current: p.Current})
 	return checkerList, nil
 }

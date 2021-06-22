@@ -18,15 +18,25 @@ import (
 	"github.com/alibaba/sealer/check/service"
 )
 
-func NewChecker(args []string, checkerArgs *CheckerArgs) (CheckerService, error) {
-	if checkerArgs.Pre && checkerArgs.Post {
-		return &service.DefaultCheckerService{}, &NotAllowedArgsError{}
-	}
-	if checkerArgs.Pre {
+const (
+	PreCheck      = "PreCheck"
+	PreApplyCheck = "PreApplyCheck"
+	PostCheck     = "PostCheck"
+)
+
+type Args struct {
+	PreApplyChecker *service.PreApplyCheckerService
+}
+
+func NewChecker(args Args, checkerArgs CheckerArgs) (CheckerService, error) {
+	switch checkerArgs {
+	case PreCheck:
 		return &service.PreCheckerService{}, nil
-	}
-	if checkerArgs.Post {
+	case PostCheck:
 		return &service.PostCheckerService{}, nil
+	case PreApplyCheck:
+		return &service.PreApplyCheckerService{Desired: args.PreApplyChecker.Desired, Current: args.PreApplyChecker.Current}, nil
+	default:
+		return &service.DefaultCheckerService{}, nil
 	}
-	return &service.DefaultCheckerService{}, nil
 }

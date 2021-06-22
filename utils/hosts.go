@@ -38,3 +38,32 @@ func GetDiffHosts(hostsOld, hostsNew v1.Hosts) (add, sub []string) {
 
 	return
 }
+
+func HasSameHosts(hostsOld, hostsNew v1.Hosts) bool {
+	return HasSameIPList(hostsOld.IPList, hostsNew.IPList)
+}
+
+func HasSameIPList(IPListOld, IPListNew []string) bool {
+	diffMap := make(map[string]bool)
+	for _, v := range IPListOld {
+		diffMap[v] = true
+	}
+	for _, v := range IPListNew {
+		if diffMap[v] {
+			return true
+		}
+	}
+	return false
+}
+
+func RemoveDuplicate(old []string) (new []string) {
+	tmpMap := make(map[string]bool)
+	for _, IP := range old {
+		if tmpMap[IP] || IP == "" {
+			continue
+		}
+		new = append(new, IP)
+		tmpMap[IP] = true
+	}
+	return
+}

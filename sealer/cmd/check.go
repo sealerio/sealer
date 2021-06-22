@@ -30,17 +30,22 @@ type CheckArgs struct {
 
 var checkArgs *CheckArgs
 
-// pushCmd represents the push command
 var checkCmd = &cobra.Command{
 	Use:     "check",
 	Short:   "check the state of cluster ",
 	Example: `sealer check --pre or sealer check --post`,
 	Run: func(cmd *cobra.Command, args []string) {
-		conf := &check.CheckerArgs{
-			Pre:  checkArgs.Pre,
-			Post: checkArgs.Post,
+		var conf check.CheckerArgs
+		if checkArgs.Pre && checkArgs.Post {
+			logger.Error(&check.NotAllowedArgsError{})
+			os.Exit(1)
 		}
-		checker, err := check.NewChecker(args, conf)
+		if checkArgs.Pre {
+			conf = check.PreCheck
+		} else {
+			conf = check.PostCheck
+		}
+		checker, err := check.NewChecker(check.Args{}, conf)
 		if err != nil {
 			logger.Error(err)
 			os.Exit(1)
