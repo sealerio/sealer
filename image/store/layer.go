@@ -74,7 +74,18 @@ func (rl *ROLayer) TarStream() (io.ReadCloser, error) {
 		}
 		return tarReader, nil
 	}
-	return NewDefaultLayerStorage().assembleTar(rl.ID())
+
+	pr, pw := io.Pipe()
+	go func() {
+		err := sfs.assembleTar(rl.ID(), pw)
+		if err != nil {
+			_ = pw.CloseWithError(err)
+		} else {
+			_ = pw.Close()
+		}
+	}()
+
+	return pr, nil
 }
 
 func (rl *ROLayer) Size() int64 {
