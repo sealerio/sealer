@@ -56,7 +56,7 @@ var _ = Describe("sealer build", func() {
 							Build()
 						sess, err := testhelper.Start(cmd)
 						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess).Should(Exit(0))
+						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						// check: sealer images whether image exist
 						Expect(build.CheckIsImageExist(imageName)).Should(BeTrue())
 						Expect(build.CheckClusterFile(imageName)).Should(BeTrue())
@@ -72,7 +72,7 @@ var _ = Describe("sealer build", func() {
 							Build()
 						sess, err := testhelper.Start(cmd)
 						Expect(err).NotTo(HaveOccurred())
-						Eventually(sess).Should(Exit(0))
+						Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 						// check: sealer images whether image exist
 						Expect(build.CheckIsImageExist(imageName)).Should(BeTrue())
 						Expect(build.CheckClusterFile(imageName)).Should(BeTrue())
