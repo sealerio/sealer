@@ -148,7 +148,7 @@ you just need to add or delete ip in masters or nodes ipList and reapply.
 OR using join command to scale up.
 
 ```shell script
-sealer join --master 192.168.0.2 --node 192.168.0.3
+sealer join --masters 192.168.0.2 --nodes 192.168.0.3
 ```
 
 ### Run on Cloud
