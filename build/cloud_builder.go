@@ -59,8 +59,9 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 	if err := c.local.InitImageSpec(); err != nil {
 		return nil, err
 	}
-	if c.local.IsOnlyCopy() {
+	if c.IsOnlyCopy() {
 		buildPipeline = append(buildPipeline,
+			c.local.PullBaseImageNotExist,
 			c.local.ExecBuild,
 			c.local.UpdateImageMetadata)
 	} else {
@@ -76,11 +77,21 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 	return buildPipeline, nil
 }
 
+func (c *CloudBuilder) IsOnlyCopy() bool {
+	for i := 1; i < len(c.local.Image.Spec.Layers); i++ {
+		if c.local.Image.Spec.Layers[i].Type == common.RUNCOMMAND ||
+			c.local.Image.Spec.Layers[i].Type == common.CMDCOMMAND {
+			return false
+		}
+	}
+	return true
+}
+
 // load cluster file from disk
 func (c *CloudBuilder) InitClusterFile() error {
 	clusterFile := common.TmpClusterfile
 	if !utils.IsFileExist(clusterFile) {
-		rawClusterFile := c.local.GetRawClusterFile()
+		rawClusterFile := GetRawClusterFile(c.local.Image)
 		if rawClusterFile == "" {
 			return fmt.Errorf("failed to get cluster file from context or base image")
 		}
