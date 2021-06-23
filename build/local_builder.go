@@ -32,7 +32,6 @@ import (
 	"github.com/alibaba/sealer/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/hash"
 	"github.com/alibaba/sealer/utils/mount"
 )
 
@@ -163,10 +162,12 @@ func (l *LocalBuilder) ExecBuild() error {
 			}
 		}
 
-		if layer.Hash == "" {
+		if layer.ID == "" {
 			continue
 		}
-		baseLayers = append(baseLayers, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
+
+		ls := image.NewLayerService()
+		baseLayers = append(baseLayers, ls.LayerStorage().LayerDataDir(layer.ID))
 	}
 	logger.Info("exec all build instructs success !")
 	return nil
@@ -237,12 +238,15 @@ func (l *LocalBuilder) mountAndExecLayer(layer *v1.Layer, tempTarget, tempUpper 
 	if err != nil {
 		return fmt.Errorf("failed to mount target %s:%v", tempTarget, err)
 	}
+	defer func() {
+		if err = driver.Unmount(tempTarget); err != nil {
+			logger.Warn(fmt.Errorf("failed to umount %s:%v", tempTarget, err))
+		}
+	}()
+
 	err = l.execLayer(layer, tempTarget)
 	if err != nil {
 		return fmt.Errorf("failed to exec layer %v:%v", layer, err)
-	}
-	if err = driver.Unmount(tempTarget); err != nil {
-		return fmt.Errorf("failed to umount %s:%v", tempTarget, err)
 	}
 	return nil
 }
@@ -269,17 +273,12 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 }
 
 func (l *LocalBuilder) calculateLayerHashAndPlaceIt(layer *v1.Layer, tempTarget string) error {
-	layerHash, err := hash.CheckSumAndPlaceLayer(tempTarget)
+	layerHash, err := l.LayerStore.RegisterLayerForBuilder(tempTarget)
 	if err != nil {
-		return fmt.Errorf("failed to calculate layer hash and place it, err: %v", err)
+		return fmt.Errorf("failed to register layer, err: %s", err)
 	}
 
-	emptyHash := hash.SHA256{}.EmptyDigest()
-	if layerHash == emptyHash {
-		layerHash = ""
-	}
-
-	layer.Hash = layerHash
+	layer.ID = layerHash
 	return nil
 }
 
@@ -289,20 +288,6 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 		return err
 	}
 	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageMetaRootDir, l.Image.Spec.ID, common.YamlSuffix)
-	// save layer ids
-	for _, layer := range l.Image.Spec.Layers {
-		if layer.Hash != "" {
-			roLayer, err := store.NewROLayer(layer.Hash, 0)
-			if err != nil {
-				return err
-			}
-
-			err = l.LayerStore.RegisterLayerIfNotPresent(roLayer)
-			if err != nil {
-				return err
-			}
-		}
-	}
 	// write image info to its metadata
 	if err := utils.MarshalYamlToFile(filename, l.Image); err != nil {
 		return fmt.Errorf("failed to write image yaml:%v", err)
@@ -415,8 +400,8 @@ func getBaseLayersFromImage(image v1.Image) (res []string, err error) {
 	}
 
 	for _, layer := range layers {
-		if layer.Hash != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
+		if layer.ID != "" {
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
 		}
 	}
 	return res, nil

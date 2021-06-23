@@ -54,6 +54,7 @@ func (p *Parser) Parse(kubeFile []byte, name string) *v1.Image {
 		layerType, layerValue, err := decodeLine(text)
 		if err != nil {
 			logger.Warn("decode kubeFile line failed, err: %v", err)
+			return nil
 		}
 		if layerType == "" {
 			continue
@@ -61,7 +62,7 @@ func (p *Parser) Parse(kubeFile []byte, name string) *v1.Image {
 
 		//TODO count layer hash
 		image.Spec.Layers = append(image.Spec.Layers, v1.Layer{
-			Hash:  "",
+			ID:    "",
 			Type:  layerType,
 			Value: layerValue,
 		})

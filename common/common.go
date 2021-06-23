@@ -40,7 +40,6 @@ const (
 	DefaultImageMetadataFileName  = "image_metadata.yaml"
 	ImageScratch                  = "scratch"
 	DefaultImageMetaRootDir       = "/var/lib/sealer/metadata"
-	DefaultLayerDBDir             = DefaultImageMetaRootDir + "/layerdb"
 	DefaultImageMetadataFile      = "/var/lib/sealer/metadata/images_metadata.json"
 	DefaultLayerDir               = "/var/lib/sealer/data/overlay2"
 	TarGzSuffix                   = ".tar.gz"

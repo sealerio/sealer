@@ -111,7 +111,7 @@ var _ = Describe("sealer image", func() {
 				image.TagImages(settings.TestImageName, testImageName+strconv.Itoa(i))
 				Expect(build.CheckIsImageExist(testImageName + strconv.Itoa(i))).Should(BeTrue())
 			}
-			image.DoImageOps(settings.SubCmdForceRmiOfSealer, image.GetImageID(settings.TestImageName))
+			image.DoImageOps(settings.SubCmdForceRmiOfSealer, settings.TestImageName)
 			Expect(build.CheckIsImageExist(settings.TestImageName)).ShouldNot(BeTrue())
 			Expect(build.CheckIsImageExist(testImageName)).ShouldNot(BeTrue())
 			afterEnvMd5 := image.GetEnvDirMd5()
@@ -127,7 +127,7 @@ var _ = Describe("sealer image", func() {
 		})
 		AfterEach(func() {
 			registry.Logout()
-			image.DoImageOps(settings.SubCmdForceRmiOfSealer, image.GetImageID(settings.TestImageName))
+			image.DoImageOps(settings.SubCmdForceRmiOfSealer, settings.TestImageName)
 		})
 		pushImageNames := []string{
 			"registry.cn-qingdao.aliyuncs.com/sealer-io/e2e_image_test:v0.01",
@@ -156,6 +156,7 @@ var _ = Describe("sealer image", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
 		})
+
 		It("show image default Clusterfile", func() {
 			sess, err := testhelper.Start(fmt.Sprintf("%s inspect -c %s", settings.DefaultSealerBin, settings.TestImageName))
 			Expect(err).NotTo(HaveOccurred())
@@ -168,25 +169,23 @@ var _ = Describe("sealer image", func() {
 			image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
 		})
 		AfterEach(func() {
-			image.DoImageOps(settings.SubCmdForceRmiOfSealer, image.GetImageID(settings.TestImageName))
+			image.DoImageOps(settings.SubCmdForceRmiOfSealer, settings.TestImageName)
 		})
-		It("tag image", func() {
-			tagImageNames := []string{
-				"e2eimage_test:latest",
-				"e2eimage_test:v0.01",
-				"sealer-io/e2eimage_test:v0.02",
-				"registry.cn-qingdao.aliyuncs.com/sealer-io/e2eimage_test:v0.03",
-			}
-			for _, tagImageName := range tagImageNames {
-				tagImageName := tagImageName
-				image.TagImages(settings.TestImageName, tagImageName)
-				Expect(build.CheckIsImageExist(settings.TestImageName)).Should(BeTrue())
-			}
-			It("images list", func() {
-				image.DoImageOps(settings.SubCmdListOfSealer, "")
-			})
+		tagImageNames := []string{
+			"e2eimage_test:latest",
+			"e2eimage_test:v0.01",
+			"sealer-io/e2eimage_test:v0.02",
+			"registry.cn-qingdao.aliyuncs.com/sealer-io/e2eimage_test:v0.03",
+		}
+		It("tag by image name and show images list", func() {
+			image.TagImageList(settings.TestImageName, tagImageNames)
+			image.DoImageOps(settings.SubCmdListOfSealer, "")
 		})
 
+		It("tag by image id and show images list", func() {
+			imageID := image.GetImageID(settings.TestImageName)
+			image.TagImageList(imageID, tagImageNames)
+			image.DoImageOps(settings.SubCmdListOfSealer, "")
+		})
 	})
-
 })

@@ -47,7 +47,7 @@ var _ = Describe("sealer build", func() {
 				It("specific the base rootfs that do not exist", func() {
 					//base rootfs not exist
 					imageName := build.GetImageNameTemplate("no_rootfs")
-					err := testhelper.WriteFile(tempFile, []byte("from abc\ncopy . ."))
+					err := testhelper.WriteFile(tempFile, []byte("FROM abc\nCOPY . ."))
 					Expect(err).NotTo(HaveOccurred())
 					cmd := build.NewArgsOfBuild().
 						SetKubeFile(tempFile).
@@ -57,14 +57,14 @@ var _ = Describe("sealer build", func() {
 						Build()
 					sess, err := testhelper.Start(cmd)
 					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess).Should(Exit(2))
+					Eventually(sess).Should(Exit(1))
 					Expect(build.CheckIsImageExist(imageName)).ShouldNot(BeTrue())
 				})
 
 				It("copy src that do not exist", func() {
 					//copy: copy src not exist;
 					imageName := build.GetImageNameTemplate("no_src_copy")
-					err := testhelper.WriteFile(tempFile, []byte("from sealer-io/kubernetes:v1.19.9\ncopy abc123 ."))
+					err := testhelper.WriteFile(tempFile, []byte("FROM sealer-io/kubernetes:v1.19.9\nCOPY abc123 ."))
 					Expect(err).NotTo(HaveOccurred())
 					cmd := build.NewArgsOfBuild().
 						SetKubeFile(tempFile).
@@ -74,14 +74,14 @@ var _ = Describe("sealer build", func() {
 						Build()
 					sess, err := testhelper.Start(cmd)
 					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess).Should(Exit(2))
+					Eventually(sess).Should(Exit(1))
 					Expect(build.CheckIsImageExist(imageName)).ShouldNot(BeTrue())
 				})
 
 				It("exec cmd that do not exist in system", func() {
 					//run&cmd: exec cmd not exist
 					imageName := build.GetImageNameTemplate("no_cmd_run")
-					err := testhelper.WriteFile(tempFile, []byte("from sealer-io/kubernetes:v1.19.9\ncmd abc ."))
+					err := testhelper.WriteFile(tempFile, []byte("FROM sealer-io/kubernetes:v1.19.9\nCMD abc ."))
 					Expect(err).NotTo(HaveOccurred())
 					cmd := build.NewArgsOfBuild().
 						SetKubeFile(tempFile).
@@ -91,7 +91,7 @@ var _ = Describe("sealer build", func() {
 						Build()
 					sess, err := testhelper.Start(cmd)
 					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess).Should(Exit(2))
+					Eventually(sess).Should(Exit(1))
 					Expect(build.CheckIsImageExist(imageName)).ShouldNot(BeTrue())
 				})
 			})

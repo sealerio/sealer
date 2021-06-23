@@ -15,6 +15,7 @@
 package image
 
 import (
+	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/image/utils"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
@@ -42,4 +43,8 @@ type Service interface {
 	Push(imageName string) error
 	Delete(imageName string) error
 	Login(RegistryURL, RegistryUsername, RegistryPasswd string) error
+}
+
+type LayerService interface {
+	LayerStorage() store.LayerStorage
 }

@@ -26,9 +26,11 @@ require (
 	github.com/sealyun/lvscare v1.1.2-alpha.2
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.0
+	github.com/vbatts/tar-split v0.11.1
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
-	golang.org/x/tools v0.1.2 // indirect
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
+	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.20.4
 	k8s.io/apimachinery v0.20.4
 	k8s.io/client-go v0.20.4

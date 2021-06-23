@@ -1,4 +1,4 @@
-FROM sealer-io/kubernetes:v1.19.9
+FROM sealer-io/test:v1
 COPY Clusterfile etc
 COPY test1 .
 COPY recommended.yaml .

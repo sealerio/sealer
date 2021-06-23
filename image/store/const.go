@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hash
+package store
 
-import (
-	"io"
-	"os"
-
-	"github.com/opencontainers/go-digest"
+const (
+	DefaultLayerTarName = "layer.tar.gz"
+	layerDataRoot       = "/var/lib/sealer/data/overlay2"
+	layerDBRoot         = "/var/lib/sealer/metadata/layerdb"
+	tarDataGZ           = "tar-data.json.gz"
 )
-
-type Interface interface {
-	CheckSum(reader io.Reader) (digest.Digest, error)
-	TarCheckSum(src string) (*os.File, digest.Digest, error)
-}

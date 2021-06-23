@@ -12,8 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package store
+package image
 
-const (
-	DefaultLayerTarName = "layer.tar.gz"
-)
+import "github.com/alibaba/sealer/image/store"
+
+type DefaultLayerService struct {
+	layerStorage store.LayerStorage
+}
+
+func (dls DefaultLayerService) LayerStorage() store.LayerStorage {
+	return dls.layerStorage
+}
+
+func NewLayerService() LayerService {
+	return DefaultLayerService{
+		layerStorage: store.NewDefaultLayerStorage(),
+	}
+}

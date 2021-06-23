@@ -16,6 +16,7 @@ package build
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -32,7 +33,6 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 			return fmt.Errorf("failed to prepare cluster env %v", err)
 		}
 	}
-
 	// tar local build context
 	tarFileName := fmt.Sprintf(common.TmpTarFile, c.local.Image.Spec.ID)
 	if _, isExist := utils.CheckCmdIsExist("tar"); !isExist {
@@ -41,6 +41,11 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 	if _, err := utils.RunSimpleCmd(fmt.Sprintf(common.ZipCmd, tarFileName, c.local.Context)); err != nil {
 		return fmt.Errorf("failed to create context file: %v", err)
 	}
+	defer func() {
+		if err = os.Remove(tarFileName); err != nil {
+			logger.Warn("failed to cleanup local temp file %s:%v", tarFileName, err)
+		}
+	}()
 	// send to remote server
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.local.Cluster.Name)
 	if err := c.SSH.Copy(c.RemoteHostIP, tarFileName, tarFileName); err != nil {
