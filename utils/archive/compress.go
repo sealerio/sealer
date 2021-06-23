@@ -22,10 +22,7 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/docker/docker/pkg/ioutils"
-
 	"io"
-	"io/ioutil"
 
 	"os"
 	"path/filepath"
@@ -57,14 +54,14 @@ func validatePath(path string) error {
 // src is the dir or single file to tar
 // not contain the dir
 // newFolder is a folder for tar file
-func TarWithRootDir(targetFile *os.File, paths ...string) (readCloser io.ReadCloser, err error) {
-	return compress(targetFile, paths, Options{Compress: false, KeepRootDir: true})
+func TarWithRootDir(paths ...string) (readCloser io.ReadCloser, err error) {
+	return compress(paths, Options{Compress: false, KeepRootDir: true})
 }
 
 // TarWithoutRootDir function will tar files, but without keeping the original dir
 // this is useful when we tar files at the build stage
-func TarWithoutRootDir(targetFile *os.File, paths ...string) (readCloser io.ReadCloser, err error) {
-	return compress(targetFile, paths, Options{Compress: false, KeepRootDir: false})
+func TarWithoutRootDir(paths ...string) (readCloser io.ReadCloser, err error) {
+	return compress(paths, Options{Compress: false, KeepRootDir: false})
 }
 
 func Untar(src io.Reader, dst string) (int64, error) {
@@ -100,8 +97,7 @@ func GzipCompress(in io.Reader) (io.ReadCloser, chan struct{}) {
 	return pipeReader, compressionDone
 }
 
-// TODO optimize compress logic, do not tmp file, store in memory
-func compress(targetFile *os.File, paths []string, options Options) (reader io.ReadCloser, err error) {
+func compress(paths []string, options Options) (reader io.ReadCloser, err error) {
 	if len(paths) == 0 {
 		return nil, errors.New("[archive] source must be provided")
 	}
@@ -112,78 +108,42 @@ func compress(targetFile *os.File, paths []string, options Options) (reader io.R
 		}
 	}
 
-	//use existing file
-	var file = targetFile
-	if file == nil {
-		file, err = ioutil.TempFile("/tmp", "sealer-temp")
-		if err != nil {
-			return nil, errors.New("create tmp archive file failed")
-		}
+	pr, pw := io.Pipe()
+	tw := tar.NewWriter(pw)
+	bufWriter := bufio.NewWriterSize(nil, compressionBufSize)
+	if options.Compress {
+		tw = tar.NewWriter(gzip.NewWriter(pw))
 	}
+	go func() {
+		defer func() {
+			tw.Close()
+			pw.Close()
+		}()
 
-	defer func() {
-		// can't delete the existing file, even though the err occurs.
-		if err != nil && targetFile == nil {
-			utils.CleanFile(file)
+		for _, path := range paths {
+			err = writeToTarWriter(path, tw, bufWriter, options)
+			if err != nil {
+				_ = pw.CloseWithError(err)
+			}
 		}
 	}()
 
-	var writer io.WriteCloser = file
-	if options.Compress {
-		writer = gzip.NewWriter(file)
-		defer writer.Close()
-	}
-
-	tw := tar.NewWriter(writer)
-	defer tw.Close()
-	for _, path := range paths {
-		var (
-			fi        os.FileInfo
-			newFolder string
-		)
-
-		if options.KeepRootDir {
-			fi, err = os.Stat(path)
-			if err != nil {
-				return nil, err
-			}
-			if fi.IsDir() {
-				newFolder = filepath.Base(path)
-			}
-		}
-
-		err = writeToTarWriter(path, newFolder, tw)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// let me explain why we close and open it again.
-	// I find that seek the file will and return it as reader,
-	// it will fail when take it as tar file, unless I seek it again outsides.
-	file.Close()
-	file, err = os.Open(file.Name())
-	if err != nil {
-		return nil, err
-	}
-	//fi, err := file.Stat()
-	//if err != nil {
-	//	return nil, 0, err
-	//}
-	//size = fi.Size()
-	//_, err = file.Seek(0, io.SeekStart)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	return ioutils.NewReadCloserWrapper(file, func() error {
-		utils.CleanFile(file)
-		return nil
-	}), nil
+	return pr, nil
 }
 
-func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
-	dir = strings.TrimSuffix(dir, "/")
+func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Writer, options Options) error {
+	var newFolder string
+	if options.KeepRootDir {
+		fi, err := os.Stat(path)
+		if err != nil {
+			return err
+		}
+		if fi.IsDir() {
+			newFolder = filepath.Base(path)
+		}
+	}
+
+	dir := strings.TrimSuffix(path, "/")
 	srcPrefix := filepath.ToSlash(dir + "/")
 	err := filepath.Walk(dir, func(file string, fi os.FileInfo, err error) error {
 		// generate tar header
@@ -215,7 +175,15 @@ func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
 			}
 			defer data.Close()
 
-			_, walkErr = io.Copy(tarWriter, data)
+			bufWriter.Reset(tarWriter)
+			defer bufWriter.Reset(nil)
+
+			_, walkErr = io.Copy(bufWriter, data)
+			if walkErr != nil {
+				return walkErr
+			}
+
+			walkErr = bufWriter.Flush()
 			if walkErr != nil {
 				return walkErr
 			}

@@ -17,9 +17,12 @@ package image
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/logger"
 
@@ -94,12 +97,11 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 
 	imageMetadataTempFile := filepath.Join(tempDir, common.DefaultImageMetadataFileName)
 	repofile := filepath.Join(tempDir, common.DefaultMetadataName)
-	imageYaml := filepath.Join(common.DefaultImageMetaRootDir, image.Spec.ID+common.YamlSuffix)
-	ima, err := ioutil.ReadFile(imageYaml)
+	imgBytes, err := yaml.Marshal(image)
 	if err != nil {
-		return fmt.Errorf("failed to read %s, err: %v", imageYaml, err)
+		return fmt.Errorf("failed to marchal image, err: %s", err)
 	}
-	if err = ioutil.WriteFile(imageMetadataTempFile, ima, common.FileMode0644); err != nil {
+	if err = ioutil.WriteFile(imageMetadataTempFile, imgBytes, common.FileMode0644); err != nil {
 		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
 	}
 
@@ -112,7 +114,13 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	}
 
 	pathsToCompress = append(pathsToCompress, imageMetadataTempFile, repofile)
-	_, err = archive.TarWithRootDir(file, pathsToCompress...)
+	tarReader, err := archive.TarWithRootDir(pathsToCompress...)
+	if err != nil {
+		return fmt.Errorf("failed to get tar reader for %s, err: %s", named.Raw(), err)
+	}
+	defer tarReader.Close()
+
+	_, err = io.Copy(file, tarReader)
 	return err
 }
 
@@ -141,11 +149,21 @@ func (d DefaultImageFileService) load(imageSrc string) (*imageutils.ImageMetadat
 	repofile := filepath.Join(common.DefaultLayerDir, common.DefaultMetadataName)
 	defer os.Remove(repofile)
 
+	repo, err := ioutil.ReadFile(repofile)
+	if err != nil {
+		return nil, err
+	}
+	var imageMetadata imageutils.ImageMetadata
+
+	if err := json.Unmarshal(repo, &imageMetadata); err != nil {
+		return nil, err
+	}
+
 	imageTempFile := filepath.Join(common.DefaultLayerDir, common.DefaultImageMetadataFileName)
 	defer os.Remove(imageTempFile)
 
 	if err = utils.UnmarshalYamlFile(imageTempFile, &image); err != nil {
-		return nil, fmt.Errorf("failed to parsing %s.yaml, err: %v", imageTempFile, err)
+		return nil, fmt.Errorf("failed to parsing %s, err: %v", imageTempFile, err)
 	}
 
 	layerStore, err := store.NewDefaultLayerStore()
@@ -169,15 +187,6 @@ func (d DefaultImageFileService) load(imageSrc string) (*imageutils.ImageMetadat
 		}
 	}
 
-	repo, err := ioutil.ReadFile(repofile)
-	if err != nil {
-		return nil, err
-	}
-	var imageMetadata imageutils.ImageMetadata
-
-	if err := json.Unmarshal(repo, &imageMetadata); err != nil {
-		return nil, err
-	}
 	named, err := reference.ParseToNamed(imageMetadata.Name)
 	if err != nil {
 		return nil, err
