@@ -34,6 +34,7 @@ func NewApplierFromFile(clusterfile string) Interface {
 		logger.Error("apply cloud cluster failed", err)
 		return nil
 	}
+	cluster.SetAnnotations(common.ClusterfileName, clusterfile)
 	return NewApplier(cluster)
 }
 
