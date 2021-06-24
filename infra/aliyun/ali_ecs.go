@@ -257,7 +257,7 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 	}
 	i, err := strconv.Atoi(hosts.Count)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get hosts count, %v", err)
 	}
 	if instancesIDs != "" {
 		instances, err = a.GetInstancesInfo(instanceRole, JustGetInstanceInfo)
@@ -304,13 +304,15 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 		}
 		hosts.IPList = utils.ReduceIPList(hosts.IPList, ipList)
 	}
+
 	cpu, err := strconv.Atoi(hosts.CPU)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get hosts CPU, %v", err)
 	}
+
 	memory, err := strconv.Atoi(hosts.Memory)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get hosts memory, %v", err)
 	}
 	for _, instance := range instances {
 		if instance.CPU != cpu || instance.Memory != memory {
