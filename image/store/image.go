@@ -38,7 +38,7 @@ func SyncImageLocal(image v1.Image, named reference.Named) (err error) {
 	err = syncImagesMap(named.Raw(), image.Spec.ID)
 	if err != nil {
 		// this won't fail literally
-		if err = os.Remove(filepath.Join(common.DefaultImageMetaRootDir,
+		if err = os.Remove(filepath.Join(common.DefaultImageDBRootDir,
 			image.Spec.ID+common.YamlSuffix)); err != nil {
 			return err
 		}
@@ -63,16 +63,16 @@ func saveImage(image v1.Image) error {
 		return err
 	}
 
-	err = pkgutils.MkDirIfNotExists(common.DefaultImageMetaRootDir)
+	err = os.MkdirAll(common.DefaultImageDBRootDir, 0755)
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(common.DefaultImageMetaRootDir, image.Spec.ID+common.YamlSuffix), imageYaml, common.FileMode0644)
+	return ioutil.WriteFile(filepath.Join(common.DefaultImageDBRootDir, image.Spec.ID+common.YamlSuffix), imageYaml, common.FileMode0644)
 }
 
 func deleteImage(imageID string) error {
-	file := filepath.Join(common.DefaultImageMetaRootDir, imageID+common.YamlSuffix)
+	file := filepath.Join(common.DefaultImageDBRootDir, imageID+common.YamlSuffix)
 	if pkgutils.IsFileExist(file) {
 		err := pkgutils.CleanFiles(file)
 		if err != nil {

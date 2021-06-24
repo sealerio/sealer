@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
 )
 
 const compressionBufSize = 32768
@@ -248,7 +247,7 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 		case tar.TypeReg:
 			err = func() error {
 				// regularly won't mkdir, unless add newFolder on compressing
-				inErr := utils.MkDirIfNotExists(filepath.Dir(target))
+				inErr := os.MkdirAll(filepath.Dir(target), 0755)
 				if inErr != nil {
 					return inErr
 				}

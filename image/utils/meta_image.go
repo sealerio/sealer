@@ -111,7 +111,7 @@ func DeleteImageByID(imageID string, force bool) error {
 }
 
 func GetImageByID(imageID string) (*v1.Image, error) {
-	fileName := filepath.Join(common.DefaultImageMetaRootDir, imageID+".yaml")
+	fileName := filepath.Join(common.DefaultImageDBRootDir, imageID+".yaml")
 
 	var image v1.Image
 	if err := utils.UnmarshalYamlFile(fileName, &image); err != nil {
