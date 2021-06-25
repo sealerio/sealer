@@ -56,6 +56,7 @@ const (
 	ClusterWorkDir                = "/root/.sealer/%s"
 	RemoteSealerPath              = "/usr/local/bin/sealer"
 	DefaultCloudProvider          = AliCloud
+	ClusterfileName               = "ClusterfileName"
 )
 
 //about infra
@@ -68,6 +69,11 @@ const (
 	VpcID             = AliDomain + "VpcID"
 	VSwitchID         = AliDomain + "VSwitchID"
 	SecurityGroupID   = AliDomain + "SecurityGroupID"
+)
+
+//CRD kind
+const (
+	CRDConfig = "Config"
 )
 
 const (

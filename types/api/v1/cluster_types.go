@@ -109,6 +109,13 @@ func (in *Cluster) GetAnnotationsByKey(key string) string {
 	return in.Annotations[key]
 }
 
+func (in *Cluster) SetAnnotations(key, value string) {
+	if in.Annotations == nil {
+		in.Annotations = make(map[string]string)
+	}
+	in.Annotations[key] = value
+}
+
 // +kubebuilder:object:root=true
 
 // ClusterList contains a list of Cluster
