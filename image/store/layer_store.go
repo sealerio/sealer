@@ -34,7 +34,7 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-const emptySHA256TarDigest = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+const emptySHA256TarDigest = "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
 
 type layerStore struct {
 	mux          sync.RWMutex
