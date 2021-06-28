@@ -39,8 +39,8 @@ func (p *PreApplyCheckerService) Run() error {
 	return nil
 }
 
-func (p *PreApplyCheckerService) init() ([]checker.PreChecker, error) {
-	var checkerList []checker.PreChecker
+func (p *PreApplyCheckerService) init() ([]checker.Checker, error) {
+	var checkerList []checker.Checker
 	checkerList = append(checkerList, &checker.ApplyChecker{Desired: p.Desired, Current: p.Current})
 	return checkerList, nil
 }

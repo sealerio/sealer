@@ -35,7 +35,7 @@ func NewChecker(args Args, checkerArgs CheckerArgs) (CheckerService, error) {
 	case PostCheck:
 		return &service.PostCheckerService{}, nil
 	case PreApplyCheck:
-		return &service.PreApplyCheckerService{Desired: args.PreApplyChecker.Desired, Current: args.PreApplyChecker.Current}, nil
+		return args.PreApplyChecker, nil
 	default:
 		return &service.DefaultCheckerService{}, nil
 	}
