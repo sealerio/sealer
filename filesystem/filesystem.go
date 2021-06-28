@@ -16,6 +16,7 @@ package filesystem
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -160,7 +161,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 		wg.Add(1)
 		go func(ip string) {
 			defer wg.Done()
-			err := SSH.Copy(ip, src, target)
+			err := CopyFiles(SSH, ip == ipList[0], ip, src, target)
 			if err != nil {
 				logger.Error("copy rootfs failed %v", err)
 				mutex.Lock()
@@ -179,6 +180,27 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	wg.Wait()
 	if flag {
 		return fmt.Errorf("mountRootfs failed")
+	}
+	return nil
+}
+
+func CopyFiles(ssh ssh.Interface, isMaster0 bool, ip, src, target string) error {
+	if isMaster0 {
+		return ssh.Copy(ip, src, target)
+	}
+	files, err := ioutil.ReadDir(src)
+	if err != nil {
+		return fmt.Errorf("failed to copy files %s", err)
+	}
+
+	for _, f := range files {
+		if f.Name() == common.RegistryDirName {
+			continue
+		}
+		err := ssh.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
+		if err != nil {
+			return fmt.Errorf("failed to copy sub files %v", err)
+		}
 	}
 	return nil
 }
