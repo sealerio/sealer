@@ -141,7 +141,7 @@ func GetYamlByImage(imageName string) (string, error) {
 		return "", fmt.Errorf("failed to find corresponding image id, id is empty")
 	}
 
-	ImageInformation, err := ioutil.ReadFile(filepath.Join(common.DefaultImageMetaRootDir, image.ID+common.YamlSuffix))
+	ImageInformation, err := ioutil.ReadFile(filepath.Join(common.DefaultImageDBRootDir, image.ID+common.YamlSuffix))
 	if err != nil {
 		return "", fmt.Errorf("failed to read image yaml,err: %v", err)
 	}

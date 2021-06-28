@@ -271,7 +271,7 @@ func layer2ImageMap(images []*v1.Image) map[store.LayerID][]string {
 	for _, image := range images {
 		for _, layer := range image.Spec.Layers {
 			layerID := store.LayerID(layer.ID)
-			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Name)
+			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Spec.ID)
 		}
 	}
 	return layer2ImageNames

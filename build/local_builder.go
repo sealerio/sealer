@@ -101,7 +101,7 @@ func (l *LocalBuilder) InitImageSpec() error {
 	if err != nil {
 		return fmt.Errorf("failed to load kubefile: %v", err)
 	}
-	l.Image = parser.NewParse().Parse(kubeFile, l.ImageName)
+	l.Image = parser.NewParse().Parse(kubeFile)
 	if l.Image == nil {
 		return fmt.Errorf("failed to parse kubefile, image is nil")
 	}
@@ -273,7 +273,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 	if err := l.squashBaseImageLayerIntoCurrentImage(); err != nil {
 		return err
 	}
-	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageMetaRootDir, l.Image.Spec.ID, common.YamlSuffix)
+	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageDBRootDir, l.Image.Spec.ID, common.YamlSuffix)
 	// write image info to its metadata
 	if err := utils.MarshalYamlToFile(filename, l.Image); err != nil {
 		return fmt.Errorf("failed to write image yaml:%v", err)

@@ -31,7 +31,6 @@ import (
 	"github.com/vbatts/tar-split/tar/storage"
 
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -60,7 +59,7 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 	}
 
 	curLayerDBDir := ls.layerStoreFS.LayerDBDir(layer.ID().ToDigest())
-	err := utils.MkDirIfNotExists(curLayerDBDir)
+	err := os.MkdirAll(curLayerDBDir, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to init layer db for %s, err: %s", curLayerDBDir, err)
 	}
@@ -116,7 +115,7 @@ func (ls *layerStore) RegisterLayerForBuilder(diffPath string) (digest.Digest, e
 	layerDataDir := ls.layerStoreFS.LayerDataDir(roLayer.ID().ToDigest())
 
 	// TODO need a daemon to mk those dir at the sealer start
-	err = utils.MkDirIfNotExists(layerDataRoot)
+	err = os.MkdirAll(layerDataRoot, 0755)
 	if err != nil {
 		return "", err
 	}
@@ -194,7 +193,7 @@ func (ls *layerStore) AddDistributionMetadata(layerID LayerID, named reference.N
 }
 
 func (ls *layerStore) loadAllROLayers() error {
-	err := utils.MkDirIfNotExists(layerDBRoot)
+	err := os.MkdirAll(layerDBRoot, 0755)
 	if err != nil {
 		return err
 	}

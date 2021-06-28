@@ -261,14 +261,3 @@ func CountDirFiles(dirName string) int {
 	}
 	return count
 }
-
-func MkDirIfNotExists(dir string) (err error) {
-	if _, err = os.Stat(dir); err != nil && os.IsNotExist(err) {
-		err = os.MkdirAll(dir, common.FileMode0755)
-	}
-	//this operation won't fail regularly, so we would logger the err
-	if err != nil {
-		logger.Error("failed to mkdir, err %s", err)
-	}
-	return err
-}
