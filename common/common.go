@@ -101,7 +101,7 @@ const (
 	CdAndExecCmd    = "cd %s && %s"
 	TagImageCmd     = "%s tag %s %s"
 	PushImageCmd    = "%s push %s"
-	BuildClusterCmd = "%s build -f %s -t %s -c %s -b %s"
+	BuildClusterCmd = "%s build -f %s -t %s -b %s %s"
 )
 const ExecBinaryFileName = "sealer"
 const ROOT = "root"
