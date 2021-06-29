@@ -64,6 +64,7 @@ const (
 const (
 	AliDomain         = "sea.aliyun.com/"
 	Eip               = AliDomain + "ClusterEIP"
+	RegistryDirName   = "registry"
 	Master0InternalIP = AliDomain + "Master0InternalIP"
 	EipID             = AliDomain + "EipID"
 	Master0ID         = AliDomain + "Master0ID"
