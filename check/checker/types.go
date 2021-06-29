@@ -20,8 +20,3 @@ import v1 "github.com/alibaba/sealer/types/api/v1"
 type Checker interface {
 	Check(cluster *v1.Cluster) error
 }
-
-// PreChecker: checking prerequisite for sealer,such as system info,register login status.
-type PreChecker interface {
-	Check() error
-}
