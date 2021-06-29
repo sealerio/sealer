@@ -21,8 +21,8 @@ To install Sealer and prepare the test environment:
 
 ```console
 #install Sealer binaries
-wget https://github.com/alibaba/sealer/releases/download/v0.1.4/sealer-0.1.4-linux-amd64.tar.gz && \
-tar zxvf sealer-0.1.4-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.2.0/sealer-v0.2.0-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.2.0-linux-amd64.tar.gz && mv sealer /usr/bin
 
 #prepare test environment
 export ACCESSKEYID={your AK}
