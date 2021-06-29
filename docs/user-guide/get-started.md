@@ -136,6 +136,8 @@ spec:
      - 172.20.126.8
      - 172.20.126.9
      - 172.20.126.10
+  ## Optional, do not enter or enter "", the first IP of masters will be used
+  registry: 172.20.126.5
 ```
 ```shell script
 sealer apply -f Clusterfile

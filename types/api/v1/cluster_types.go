@@ -59,6 +59,7 @@ type ClusterSpec struct {
 	CertSANS []string `json:"certSANS,omitempty"`
 	Masters  Hosts    `json:"masters,omitempty"`
 	Nodes    Hosts    `json:"nodes,omitempty"`
+	Registry string   `json:"registry,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster

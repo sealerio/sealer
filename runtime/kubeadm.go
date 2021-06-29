@@ -20,8 +20,10 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/alibaba/sealer/utils"
 	"sigs.k8s.io/yaml"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 func (d *Default) getDefaultSANs() []string {
@@ -31,6 +33,13 @@ func (d *Default) getDefaultSANs() []string {
 	// 加入所有master ip
 	sans = append(sans, utils.GetHostIPSlice(d.Masters)...)
 	return sans
+}
+
+func (d *Default) getDefaultRegistryHost(Cluster *v1.Cluster) string {
+	if Cluster.Spec.Registry != "" {
+		return Cluster.Spec.Registry
+	}
+	return utils.GetHostIP(Cluster.Spec.Masters.IPList[0])
 }
 
 //Template is

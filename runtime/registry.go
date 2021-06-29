@@ -34,3 +34,13 @@ func (d *Default) RecycleRegistryOnMaster0() error {
 	cmd := fmt.Sprintf("docker stop %s || true && docker rm %s || true", registryName, registryName)
 	return d.SSH.CmdAsync(d.Masters[0], cmd)
 }
+
+func (d *Default) EnsureRegistryHost() error {
+	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", d.Rootfs, d.Rootfs)
+	return d.SSH.CmdAsync(d.RegistryHost, cmd)
+}
+
+func (d *Default) RecycleRegistryHosst() error {
+	cmd := fmt.Sprintf("docker stop %s || true && docker rm %s || true", registryName, registryName)
+	return d.SSH.CmdAsync(d.RegistryHost, cmd)
+}

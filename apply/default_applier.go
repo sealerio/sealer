@@ -55,6 +55,7 @@ const (
 	MountImage     ActionName = "MountImage"
 	Config         ActionName = "Config"
 	UnMountImage   ActionName = "UnMountImage"
+	InitRegistry   ActionName = "InitRegistry"
 	Init           ActionName = "Init"
 	Upgrade        ActionName = "Upgrade"
 	ApplyMasters   ActionName = "ApplyMasters"
@@ -75,6 +76,9 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		var hosts []string
 		if applier.ClusterCurrent == nil {
 			hosts = append(applier.ClusterDesired.Spec.Masters.IPList, applier.ClusterDesired.Spec.Nodes.IPList...)
+			if applier.ClusterDesired.Spec.Registry != "" {
+				hosts = append(hosts, applier.ClusterDesired.Spec.Registry)
+			}
 		} else {
 			hosts = append(applier.MastersToJoin, applier.NodesToJoin...)
 		}
@@ -98,6 +102,9 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	},
 	UnMountImage: func(applier *DefaultApplier) error {
 		return applier.FileSystem.UnMountImage(applier.ClusterDesired)
+	},
+	InitRegistry: func(applier *DefaultApplier) error {
+		return applier.Runtime.InitRegistry(applier.ClusterDesired)
 	},
 	Init: func(applier *DefaultApplier) error {
 		return applier.Runtime.Init(applier.ClusterDesired)
@@ -205,6 +212,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, MountImage)
 		todoList = append(todoList, Config)
 		todoList = append(todoList, MountRootfs)
+		todoList = append(todoList, InitRegistry)
 		todoList = append(todoList, Init)
 		c.MastersToJoin = c.ClusterDesired.Spec.Masters.IPList[1:]
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList

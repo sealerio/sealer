@@ -29,6 +29,7 @@ import (
 type Interface interface {
 	// exec kubeadm init
 	Init(cluster *v1.Cluster) error
+	InitRegistry(cluster *v1.Cluster) error
 	Hook(cluster *v1.Cluster) error
 	Upgrade(cluster *v1.Cluster) error
 	Reset(cluster *v1.Cluster) error
@@ -53,6 +54,7 @@ type Default struct {
 	PodCIDR           string
 	ControlPlaneRepo  string
 	RegistryPort      int
+	RegistryHost      string
 	DNSDomain         string
 	Masters           []string
 	APIServer         string
@@ -142,6 +144,10 @@ func (d *Default) DeleteNodes(nodesIPList []string) error {
 
 func (d *Default) Init(cluster *v1.Cluster) error {
 	return d.init(cluster)
+}
+
+func (d *Default) InitRegistry(cluster *v1.Cluster) error {
+	return d.initRegistry(cluster)
 }
 
 func (d *Default) Hook(cluster *v1.Cluster) error {

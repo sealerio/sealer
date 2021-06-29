@@ -68,10 +68,6 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return err
 	}
 
-	if err := d.EnsureRegistryOnMaster0(); err != nil {
-		return err
-	}
-
 	if err := d.InitMaster0(); err != nil {
 		return err
 	}
@@ -99,6 +95,7 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.Masters = cluster.Spec.Masters.IPList
 	d.VIP = DefaultVIP
 	d.RegistryPort = DefaultRegistryPort
+	d.RegistryHost = d.getDefaultRegistryHost(cluster)
 	// TODO add host port
 	d.Nodes = cluster.Spec.Nodes.IPList
 	d.APIServer = DefaultAPIserverDomain
@@ -202,12 +199,20 @@ func (d *Default) CreateKubeConfig() error {
 	return nil
 }
 
+// initRegsitry
+func (d *Default) initRegistry(cluster *v1.Cluster) error {
+	if err := d.EnsureRegistryHost(); err != nil {
+		return err
+	}
+	return nil
+}
+
 //InitMaster0 is
 func (d *Default) InitMaster0() error {
 	d.SendJoinMasterKubeConfigs(d.Masters[:1], AdminConf, ControllerConf, SchedulerConf, KubeletConf)
 
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(utils.GetHostIP(d.Masters[0]), d.APIServer))
-	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(utils.GetHostIP(d.Masters[0])))
+	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(d.RegistryHost))
 	err := d.SSH.CmdAsync(d.Masters[0], cmdAddEtcHost, cmdAddRegistryHosts)
 	if err != nil {
 		return err

@@ -139,6 +139,9 @@ func (c *FileSystem) MountRootfs(cluster *v1.Cluster, hosts []string) error {
 func (c *FileSystem) UnMountRootfs(cluster *v1.Cluster) error {
 	//do clean.sh,then remove all Masters and Nodes roofs
 	IPList := append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
+	if cluster.Spec.Registry != "" {
+		IPList = append(IPList, cluster.Spec.Registry)
+	}
 	if err := unmountRootfs(IPList, cluster); err != nil {
 		return err
 	}
