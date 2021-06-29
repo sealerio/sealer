@@ -26,7 +26,7 @@ type ApplyChecker struct {
 	Current *v1.Cluster
 }
 
-func (a ApplyChecker) Check(cluster *v1.Cluster) error {
+func (a ApplyChecker) Check() error {
 	desiredMasters := a.Desired.Spec.Masters
 	desiredNodes := a.Desired.Spec.Nodes
 	a.Desired.Spec.Masters.IPList = utils.RemoveDuplicate(desiredMasters.IPList)

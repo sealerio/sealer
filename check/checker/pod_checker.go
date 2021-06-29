@@ -22,7 +22,6 @@ import (
 
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type PodChecker struct {
@@ -38,7 +37,7 @@ type PodNamespaceStatus struct {
 
 var PodNamespaceStatusList []PodNamespaceStatus
 
-func (n *PodChecker) Check(cluster *v1.Cluster) error {
+func (n *PodChecker) Check() error {
 	// check if all the pod is Running
 	c, err := client.NewClientSet()
 	if err != nil {

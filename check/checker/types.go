@@ -14,8 +14,6 @@
 
 package checker
 
-import v1 "github.com/alibaba/sealer/types/api/v1"
-
 type Checker interface {
-	Check(cluster *v1.Cluster) error
+	Check() error
 }

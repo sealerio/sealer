@@ -25,22 +25,13 @@ type PreApplyCheckerService struct {
 }
 
 func (p *PreApplyCheckerService) Run() error {
-	checkerList, err := p.init()
+	err := checker.ApplyChecker{Desired: p.Desired, Current: p.Current}.Check()
 	if err != nil {
 		return err
-	}
-
-	for _, checker := range checkerList {
-		err = checker.Check(nil)
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
 
-func (p *PreApplyCheckerService) init() ([]checker.Checker, error) {
-	var checkerList []checker.Checker
-	checkerList = append(checkerList, &checker.ApplyChecker{Desired: p.Desired, Current: p.Current})
-	return checkerList, nil
+func NewPreApplyCheckerService(desired, current *v1.Cluster) CheckerService {
+	return &PreApplyCheckerService{Desired: desired, Current: current}
 }

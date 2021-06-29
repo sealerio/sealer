@@ -14,7 +14,9 @@
 
 package service
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type PreCheckerService struct {
 }
@@ -22,4 +24,8 @@ type PreCheckerService struct {
 func (d *PreCheckerService) Run() error {
 	fmt.Println("Pre check cluster")
 	return nil
+}
+
+func NewPreCheckerService() CheckerService {
+	return &PreCheckerService{}
 }

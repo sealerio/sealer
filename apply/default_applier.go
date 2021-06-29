@@ -17,7 +17,6 @@ package apply
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/check"
 	"github.com/alibaba/sealer/check/service"
 
 	"github.com/alibaba/sealer/filesystem"
@@ -125,12 +124,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.FileSystem.Clean(applier.ClusterDesired)
 	},
 	PreCheck: func(applier *DefaultApplier) error {
-		checkArgs := check.Args{PreApplyChecker: &service.PreApplyCheckerService{Current: applier.ClusterCurrent, Desired: applier.ClusterDesired}}
-		preCheck, err := check.NewChecker(checkArgs, check.PreApplyCheck)
-		if err != nil {
-			return err
-		}
-		if err = preCheck.Run(); err != nil {
+		if err := service.NewPreApplyCheckerService(applier.ClusterDesired, applier.ClusterCurrent).Run(); err != nil {
 			return err
 		}
 		return saveClusterfile(applier.ClusterDesired)

@@ -33,7 +33,7 @@ func (d *PostCheckerService) Run() error {
 			return err
 		}*/
 	for _, checker := range checkerList {
-		err = checker.Check(nil)
+		err = checker.Check()
 		if err != nil {
 			return err
 		}
@@ -45,4 +45,8 @@ func (d *PostCheckerService) init() ([]checker.Checker, error) {
 	var checkerList []checker.Checker
 	checkerList = append(checkerList, &checker.NodeChecker{}, &checker.PodChecker{}, &checker.SvcChecker{})
 	return checkerList, nil
+}
+
+func NewPostCheckerService() CheckerService {
+	return &PostCheckerService{}
 }

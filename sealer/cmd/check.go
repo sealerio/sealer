@@ -17,6 +17,8 @@ package cmd
 import (
 	"os"
 
+	"github.com/alibaba/sealer/check/service"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/check"
@@ -35,23 +37,19 @@ var checkCmd = &cobra.Command{
 	Short:   "check the state of cluster ",
 	Example: `sealer check --pre or sealer check --post`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var conf check.CheckerArgs
+		var checker service.CheckerService
 		if checkArgs.Pre && checkArgs.Post {
 			logger.Error(&check.NotAllowedArgsError{})
 			os.Exit(1)
 		}
 		if checkArgs.Pre {
-			conf = check.PreCheck
+			checker = service.NewPreCheckerService()
+		} else if checkArgs.Post {
+			checker = service.NewPostCheckerService()
 		} else {
-			conf = check.PostCheck
+			checker = service.NewDefaultCheckerService()
 		}
-		checker, err := check.NewChecker(check.Args{}, conf)
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
-		err = checker.Run()
-		if err != nil {
+		if err := checker.Run(); err != nil {
 			logger.Error(err)
 			os.Exit(1)
 		}
