@@ -38,7 +38,8 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 	if _, isExist := utils.CheckCmdIsExist("tar"); !isExist {
 		return fmt.Errorf("local server muster support tar cmd")
 	}
-	if _, err := utils.RunSimpleCmd(fmt.Sprintf(common.ZipCmd, tarFileName, c.local.Context)); err != nil {
+	context := fmt.Sprintf("%s %s", c.local.KubeFileName, c.local.Context)
+	if _, err := utils.RunSimpleCmd(fmt.Sprintf(common.ZipCmd, tarFileName, context)); err != nil {
 		return fmt.Errorf("failed to create context file: %v", err)
 	}
 	defer func() {

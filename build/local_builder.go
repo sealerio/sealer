@@ -240,15 +240,16 @@ func (l *LocalBuilder) mountAndExecLayer(layer *v1.Layer, tempTarget, tempUpper 
 func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 	// exec layer cmd;
 	if layer.Type == common.COPYCOMMAND {
-		dist := ""
-		if utils.IsDir(strings.Fields(layer.Value)[0]) {
+		src := filepath.Join(l.Context, strings.Fields(layer.Value)[0])
+		dest := ""
+		if utils.IsDir(src) {
 			// src is dir
-			dist = filepath.Join(tempTarget, strings.Fields(layer.Value)[1])
+			dest = filepath.Join(tempTarget, strings.Fields(layer.Value)[1])
 		} else {
 			// src is file
-			dist = filepath.Join(tempTarget, strings.Fields(layer.Value)[1], strings.Fields(layer.Value)[0])
+			dest = filepath.Join(tempTarget, strings.Fields(layer.Value)[1], strings.Fields(layer.Value)[0])
 		}
-		return utils.RecursionCopy(strings.Fields(layer.Value)[0], dist)
+		return utils.RecursionCopy(src, dest)
 	}
 	if layer.Type == common.RUNCOMMAND || layer.Type == common.CMDCOMMAND {
 		cmd := fmt.Sprintf(common.CdAndExecCmd, tempTarget, layer.Value)
