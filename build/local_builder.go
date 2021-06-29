@@ -44,7 +44,7 @@ type LocalBuilder struct {
 	Config       *Config
 	Image        *v1.Image
 	Cluster      *v1.Cluster
-	ImageName    string
+	ImageNamed   reference.Named
 	ImageID      string
 	Context      string
 	KubeFileName string
@@ -76,7 +76,7 @@ func (l *LocalBuilder) initBuilder(name string, context string, kubefileName str
 		return err
 	}
 
-	l.ImageName = named.Raw()
+	l.ImageNamed = named
 	l.Context = context
 	l.KubeFileName = kubefileName
 	return nil
@@ -282,12 +282,12 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 
 	logger.Info("write image yaml file to %s success !", filename)
 	if err := imageUtils.SetImageMetadata(imageUtils.ImageMetadata{
-		Name: l.ImageName,
+		Name: l.ImageNamed.Raw(),
 		ID:   l.Image.Spec.ID,
 	}); err != nil {
 		return fmt.Errorf("failed to set image metadata :%v", err)
 	}
-	logger.Info("update image %s to image metadata success !", l.ImageName)
+	logger.Info("update image %s to image metadata success !", l.ImageNamed.Raw())
 
 	return nil
 }

@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/alibaba/sealer/check/checker"
+
 	"github.com/alibaba/sealer/image/store"
 
 	"github.com/alibaba/sealer/common"
@@ -66,6 +68,7 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 			c.local.UpdateImageMetadata)
 	} else {
 		buildPipeline = append(buildPipeline,
+			c.PreCheck,
 			c.InitClusterFile,
 			c.ApplyInfra,
 			c.InitBuildSSH,
@@ -75,6 +78,19 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 		)
 	}
 	return buildPipeline, nil
+}
+
+// PreCheck: check env before run cloud build
+func (c *CloudBuilder) PreCheck() error {
+	registryChecker := &checker.RegistryChecker{
+		RegistryDomain: c.local.ImageNamed.Domain(),
+	}
+
+	err := registryChecker.Check(nil)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *CloudBuilder) IsOnlyCopy() bool {

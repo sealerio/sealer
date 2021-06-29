@@ -38,9 +38,9 @@ func (c *CloudBuilder) runBuildCommands() error {
 	// run local build command
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.local.Cluster.Name)
 	build := fmt.Sprintf(common.BuildClusterCmd, common.RemoteSealerPath,
-		c.local.KubeFileName, c.local.ImageName, common.LocalBuild, c.local.Context)
+		c.local.KubeFileName, c.local.ImageNamed.Raw(), common.LocalBuild, c.local.Context)
 	push := fmt.Sprintf(common.PushImageCmd, common.RemoteSealerPath,
-		c.local.ImageName)
+		c.local.ImageNamed.Raw())
 	cmd := fmt.Sprintf("%s && %s", build, push)
 	logger.Info("run remote shell %s", cmd)
 
