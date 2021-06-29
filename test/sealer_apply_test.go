@@ -15,6 +15,9 @@
 package test
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
@@ -51,22 +54,18 @@ var _ = Describe("sealer apply", func() {
 				result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
 				err = testhelper.WriteFile(tempFile, []byte(result))
 				Expect(err).NotTo(HaveOccurred())
-				usedCluster := apply.LoadClusterFileFromDisk(tempFile)
+				apply.LoadClusterFileFromDisk(tempFile)
 
 				//2,scale up cluster to 6 nodes and write to disk
-				By("start to scale up cluster")
-				usedCluster.Spec.Nodes.Count = "3"
-				usedCluster.Spec.Masters.Count = "3"
-				apply.WriteClusterFileToDisk(usedCluster, tempFile)
-				sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
-				Expect(err).NotTo(HaveOccurred())
-				Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-				apply.CheckNodeNumLocally(6)
+				By("Use join command to add 3master and 3node for scale up cluster in cloud mode", func() {
+					apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(2))
+					apply.CheckNodeNumLocally(6)
+				})
 
 				result = testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
 				err = testhelper.WriteFile(tempFile, []byte(result))
 				Expect(err).NotTo(HaveOccurred())
-				usedCluster = apply.LoadClusterFileFromDisk(tempFile)
+				usedCluster := apply.LoadClusterFileFromDisk(tempFile)
 
 				//3,scale down cluster to 4 nodes and write to disk
 				By("start to scale down cluster")
@@ -107,12 +106,17 @@ var _ = Describe("sealer apply", func() {
 				apply.SendAndApplyCluster(sshClient, tempFile)
 				apply.CheckNodeNumWithSSH(sshClient, 2)
 
-				By("start to scale up cluster")
-				usedCluster.Spec.Nodes.Count = "3"
-				usedCluster.Spec.Masters.Count = "3"
-				usedCluster = apply.CreateAliCloudInfraAndSave(usedCluster, tempFile)
-				apply.SendAndApplyCluster(sshClient, tempFile)
-				apply.CheckNodeNumWithSSH(sshClient, 6)
+				By("Use join command to add 3master and 3node for scale up cluster in baremetal mode", func() {
+					usedCluster.Spec.Nodes.Count = "3"
+					usedCluster.Spec.Masters.Count = "3"
+					usedCluster = apply.CreateAliCloudInfraAndSave(usedCluster, tempFile)
+					joinMasters := strings.Join(usedCluster.Spec.Masters.IPList[1:], ",")
+					joinNodes := strings.Join(usedCluster.Spec.Nodes.IPList[1:], ",")
+					//sealer join master and node
+					apply.SendAndJoinCluster(sshClient, tempFile, joinMasters, joinNodes)
+					//add 3 masters and 3 nodes
+					apply.CheckNodeNumWithSSH(sshClient, 6)
+				})
 
 				By("start to scale down cluster")
 				usedCluster.Spec.Nodes.Count = "1"
