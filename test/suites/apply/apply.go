@@ -60,7 +60,7 @@ func LoadClusterFileFromDisk(clusterFilePath string) *v1.Cluster {
 }
 
 func SealerDeleteCmd(clusterFile string) string {
-	return fmt.Sprintf("%s delete -f %s", settings.DefaultSealerBin, clusterFile)
+	return fmt.Sprintf("%s delete -f %s --force", settings.DefaultSealerBin, clusterFile)
 }
 
 func SealerApplyCmd(clusterFile string) string {

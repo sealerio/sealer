@@ -28,7 +28,7 @@ func (d *Default) reset(cluster *v1.Cluster) error {
 	if err != nil {
 		logger.Error("failed to clean nodes %v", err)
 	}
-	err = d.resetNodes(cluster.Spec.Masters.IPList)
+	err = d.resetMasters(cluster.Spec.Masters.IPList)
 	if err != nil {
 		logger.Error("failed to clean masters %v", err)
 	}
@@ -50,6 +50,17 @@ func (d *Default) resetNodes(nodes []string) error {
 	}
 	wg.Wait()
 
+	return nil
+}
+func (d *Default) resetMasters(nodes []string) error {
+	if len(nodes) == 0 {
+		return nil
+	}
+	for _, node := range nodes {
+		if err := d.resetNode(node); err != nil {
+			logger.Error("delete master %s failed %v", node, err)
+		}
+	}
 	return nil
 }
 func (d *Default) resetNode(node string) error {
