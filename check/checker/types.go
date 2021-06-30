@@ -14,9 +14,7 @@
 
 package checker
 
-import v1 "github.com/alibaba/sealer/types/api/v1"
-
 // Checker: checking cluster status,such as node,pod,svc status.
 type Checker interface {
-	Check(cluster *v1.Cluster) error
+	Check() error
 }

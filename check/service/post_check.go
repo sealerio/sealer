@@ -15,7 +15,6 @@
 package service
 
 import (
-	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/check/checker"
 	"github.com/alibaba/sealer/logger"
 )
@@ -29,12 +28,8 @@ func (d *PostCheckerService) Run() error {
 		logger.Error(err)
 		return err
 	}
-	cluster, err := apply.GetCurrentCluster()
-	if err != nil {
-		return err
-	}
 	for _, checker := range checkerList {
-		err = checker.Check(cluster)
+		err = checker.Check()
 		if err != nil {
 			return err
 		}
@@ -44,6 +39,10 @@ func (d *PostCheckerService) Run() error {
 
 func (d *PostCheckerService) init() ([]checker.Checker, error) {
 	var checkerList []checker.Checker
-	checkerList = append(checkerList, &checker.NodeChecker{}, &checker.PodChecker{}, &checker.SvcChecker{})
+	checkerList = append(checkerList, checker.NewNodeChecker(), checker.NewPodChecker(), checker.NewSvcChecker())
 	return checkerList, nil
+}
+
+func NewPostCheckerService() CheckerService {
+	return &PostCheckerService{}
 }

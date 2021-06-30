@@ -22,7 +22,6 @@ import (
 
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 const (
@@ -40,7 +39,7 @@ type NodeClusterStatus struct {
 	NotReadyNodeList []string
 }
 
-func (n *NodeChecker) Check(cluster *v1.Cluster) error {
+func (n *NodeChecker) Check() error {
 	// check if all the node is ready
 	c, err := client.NewClientSet()
 	if err != nil {
@@ -126,4 +125,8 @@ func GetNodeStatus(node *corev1.Node) (IP string, Phase string) {
 		}
 	}
 	return IP, Phase
+}
+
+func NewNodeChecker() Checker {
+	return &NodeChecker{}
 }
