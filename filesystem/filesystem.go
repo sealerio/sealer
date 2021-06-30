@@ -96,7 +96,6 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("image name is %s", Image.Name)
 	layers, err := image.GetImageLayerDirs(Image)
 	if err != nil {
 		return fmt.Errorf("get layers failed: %v", err)

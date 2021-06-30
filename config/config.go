@@ -49,6 +49,9 @@ func NewConfiguration(clusterName string) Interface {
 }
 
 func (c *Dumper) Dump(clusterfile string) error {
+	if clusterfile == "" {
+		return nil
+	}
 	file, err := os.Open(clusterfile)
 	if err != nil {
 		return fmt.Errorf("failed to dump config %v", err)
