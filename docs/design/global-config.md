@@ -81,7 +81,7 @@ spec:
   provider: BAREMETAL
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
-kind: AppConfig
+kind: Config
 metadata:
   name: mysql-config
 spec:
@@ -91,7 +91,7 @@ spec:
 ...
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
-kind: AppConfig
+kind: Config
 metadata:
   name: redis-config
 spec:
