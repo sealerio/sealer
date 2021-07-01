@@ -16,21 +16,44 @@ package runtime
 
 import (
 	"fmt"
+	"path/filepath"
+
+	"github.com/alibaba/sealer/logger"
+
+	"github.com/alibaba/sealer/utils"
+
+	"github.com/alibaba/sealer/common"
 )
 
-func getRegistryHost(ip string) (host string) {
-	return fmt.Sprintf("%s %s", ip, SeaHub)
+func (d *Default) getRegistryHost() (host string) {
+	ip, domain := d.getRegistryConfig()
+	return fmt.Sprintf("%s %s", ip, domain)
+}
+
+func (d *Default) getRegistryConfig() (host, domain string) {
+	var config map[string]string
+	registryConfigPath := filepath.Join(common.DefaultClusterBaseDir(d.ClusterName), "etc/registry.yaml")
+	if utils.IsFileExist(registryConfigPath) {
+		err := utils.UnmarshalYamlFile(registryConfigPath, &config)
+		if err == nil {
+			return config["ip"], config["domain"]
+		}
+		logger.Error("Failed to read registry config! ")
+	}
+	return d.Masters[0], SeaHub
 }
 
 const registryName = "sealer-registry"
 
 //Only use this for join and init, due to the initiation operations
-func (d *Default) EnsureRegistryOnMaster0() error {
+func (d *Default) EnsureRegistry() error {
+	ip, _ := d.getRegistryConfig()
 	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", d.Rootfs, d.Rootfs)
-	return d.SSH.CmdAsync(d.Masters[0], cmd)
+	return d.SSH.CmdAsync(ip, cmd)
 }
 
-func (d *Default) RecycleRegistryOnMaster0() error {
+func (d *Default) RecycleRegistry() error {
+	ip, _ := d.getRegistryConfig()
 	cmd := fmt.Sprintf("docker stop %s || true && docker rm %s || true", registryName, registryName)
-	return d.SSH.CmdAsync(d.Masters[0], cmd)
+	return d.SSH.CmdAsync(ip, cmd)
 }

@@ -23,3 +23,15 @@ spec:
   path: etc/redis.yaml
   data: |
     test
+
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: REGISTRY
+spec:
+  path: etc/registry.yaml
+  data: |
+    domain: image.cai-inc.com
+    ip: 172.16.0.1
+    volume: /opt/registry
