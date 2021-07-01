@@ -10,7 +10,7 @@ jobs:
   build:
     name: test
     runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request }} && contains(github.event.comment.body, '/test')
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/test') }}
     env:
       GO111MODULE: on
     steps:
@@ -62,7 +62,7 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
-        if: ${{ github.event.comment.body == '/test all' }} || {{ github.event_name == 'push' }}
+        if: ${{ github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
           ginkgo -v test
         working-directory: src/github.com/alibaba/sealer
@@ -80,6 +80,7 @@ jobs:
         if: ${{ github.event.comment.body == '/test apply' }}
         run: |
           ginkgo -v --focus="sealer apply" test
+
       - name: Run sealer build test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
@@ -93,6 +94,7 @@ jobs:
         if: ${{ github.event.comment.body == '/test build' }}
         run: |
           ginkgo -v --focus="sealer build" test
+
       - name: Run sealer run test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
@@ -106,6 +108,7 @@ jobs:
         if: ${{ github.event.comment.body == '/test run' }}
         run: |
           ginkgo -v --focus="sealer run" test
+
       - name: Run sealer login test
         shell: bash
         working-directory: src/github.com/alibaba/sealer
@@ -116,3 +119,14 @@ jobs:
         if: ${{ github.event.comment.body == '/test login' }}
         run: |
           ginkgo -v --focus="sealer login" test
+
+      - name: Run sealer image test
+        shell: bash
+        working-directory: src/github.com/alibaba/sealer
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+        if: ${{ github.event.comment.body == '/test image' }}
+        run: |
+          ginkgo -v --focus="sealer image" test
