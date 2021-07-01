@@ -31,6 +31,7 @@ type Network struct {
 	PodCIDR    string `json:"podCIDR,omitempty"`
 	SvcCIDR    string `json:"svcCIDR,omitempty"`
 	WithoutCNI bool   `json:"withoutCNI,omitempty"`
+	IPIP       bool   `json:"ipip,omitempty"`
 }
 
 type Hosts struct {
