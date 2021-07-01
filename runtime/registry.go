@@ -44,7 +44,10 @@ func (d *Default) getRegistryConfig() *RegistryConfig {
 	registryConfigPath := filepath.Join(common.DefaultClusterBaseDir(d.ClusterName), "etc/registry.yaml")
 	if utils.IsFileExist(registryConfigPath) {
 		err := utils.UnmarshalYamlFile(registryConfigPath, &config)
-		if err == nil && config.IP != "" && config.Domain != "" && config.Volume != "" {
+		if err == nil && config.IP != "" && config.Domain != "" {
+			if config.Volume == "" {
+				config.Volume = "/var/lib/registry"
+			}
 			return &config
 		}
 		logger.Error("Failed to read registry config! ")
