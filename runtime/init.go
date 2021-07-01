@@ -114,6 +114,7 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
 	d.WithoutCNI = cluster.Spec.Network.WithoutCNI
+	d.IPIP = cluster.Spec.Network.IPIP
 	if d.MTU == "" {
 		if d.IPIP {
 			d.MTU = "1480"
