@@ -14,9 +14,11 @@
 
 package store
 
+import "github.com/alibaba/sealer/common"
+
 const (
 	DefaultLayerTarName = "layer.tar.gz"
-	layerDataRoot       = "/var/lib/sealer/data/overlay2"
-	layerDBRoot         = "/var/lib/sealer/metadata/layerdb"
+	layerDataRoot       = common.DefaultLayerDir
+	layerDBRoot         = common.DefaultLayerDBRoot
 	tarDataGZ           = "tar-data.json.gz"
 )

@@ -40,9 +40,9 @@ func getDirListInDir(dir string) ([]string, error) {
 	return dirs, nil
 }
 
-func traverseLayerDB() ([]string, error) {
+func (ls LayerStorage) traverseLayerDB() ([]string, error) {
 	// TODO maybe there no need to traverse layerdb, just clarify how many sha supported in a list
-	shaDirs, err := getDirListInDir(layerDBRoot)
+	shaDirs, err := getDirListInDir(ls.LayerDBRoot)
 	if err != nil {
 		return nil, err
 	}

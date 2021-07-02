@@ -14,8 +14,15 @@
 
 package main
 
-import "github.com/alibaba/sealer/sealer/cmd"
+import (
+	"github.com/alibaba/sealer/sealer/boot"
+	"github.com/alibaba/sealer/sealer/cmd"
+)
 
 func main() {
+	err := boot.OnBoot()
+	if err != nil {
+		panic(err)
+	}
 	cmd.Execute()
 }
