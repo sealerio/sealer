@@ -56,7 +56,7 @@ const registryName = "sealer-registry"
 //Only use this for join and init, due to the initiation operations
 func (d *Default) EnsureRegistry() error {
 	cf := d.getRegistryConfig()
-	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry %s", d.Rootfs, d.Rootfs)
+	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", d.Rootfs, d.Rootfs)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
 
