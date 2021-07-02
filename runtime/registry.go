@@ -41,18 +41,19 @@ func (d *Default) getRegistryHost() (host string) {
 func (d *Default) getRegistryConfig() *RegistryConfig {
 	var config RegistryConfig
 	registryConfigPath := filepath.Join(common.DefaultClusterBaseDir(d.ClusterName), "etc/registry.yaml")
-	if utils.IsFileExist(registryConfigPath) {
-		err := utils.UnmarshalYamlFile(registryConfigPath, &config)
-		if err != nil {
-			logger.Error("Failed to read registry config! ")
-			return nil
-		}
-		if config.IP == "" {
-			config.IP = d.Masters[0]
-		}
-		if config.Domain == "" {
-			config.Domain = SeaHub
-		}
+	if !utils.IsFileExist(registryConfigPath) {
+		return nil
+	}
+	err := utils.UnmarshalYamlFile(registryConfigPath, &config)
+	if err != nil {
+		logger.Error("Failed to read registry config! ")
+		return nil
+	}
+	if config.IP == "" {
+		config.IP = d.Masters[0]
+	}
+	if config.Domain == "" {
+		config.Domain = SeaHub
 	}
 	return &config
 }
