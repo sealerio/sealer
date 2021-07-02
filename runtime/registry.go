@@ -28,7 +28,6 @@ import (
 type RegistryConfig struct {
 	IP     string
 	Domain string
-	Volume string
 }
 
 func (d *Default) getRegistryHost() (host string) {
@@ -45,9 +44,6 @@ func (d *Default) getRegistryConfig() *RegistryConfig {
 	if utils.IsFileExist(registryConfigPath) {
 		err := utils.UnmarshalYamlFile(registryConfigPath, &config)
 		if err == nil && config.IP != "" && config.Domain != "" {
-			if config.Volume == "" {
-				config.Volume = "/var/lib/registry"
-			}
 			return &config
 		}
 		logger.Error("Failed to read registry config! ")
@@ -60,7 +56,7 @@ const registryName = "sealer-registry"
 //Only use this for join and init, due to the initiation operations
 func (d *Default) EnsureRegistry() error {
 	cf := d.getRegistryConfig()
-	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry %s", d.Rootfs, d.Rootfs, cf.Volume)
+	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry %s", d.Rootfs, d.Rootfs)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
 

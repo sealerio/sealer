@@ -17,8 +17,6 @@ package apply
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/config"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/common"
@@ -45,7 +43,6 @@ func NewAliCloudProvider(cluster *v1.Cluster) Interface {
 		ImageManager:   image.NewImageService(),
 		FileSystem:     filesystem.NewFilesystem(),
 		Guest:          guest.NewGuestManager(),
-		Config:         config.NewConfiguration(cluster.Name),
 	}
 	return &CloudApplier{d}
 }

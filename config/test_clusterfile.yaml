@@ -34,4 +34,3 @@ spec:
   data: |
     domain: image.cai-inc.com
     ip: 172.16.0.1
-    volume: /opt/registry
