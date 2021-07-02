@@ -20,7 +20,6 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/distributionutil"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -28,7 +27,7 @@ type RegistryChecker struct {
 	RegistryDomain string
 }
 
-func (r *RegistryChecker) Check(cluster *v1.Cluster) error {
+func (r *RegistryChecker) Check() error {
 	// check the existence of the docker.json ;
 	authFile := common.DefaultRegistryAuthConfigDir()
 	if !utils.IsFileExist(authFile) {
@@ -45,4 +44,8 @@ func (r *RegistryChecker) Check(cluster *v1.Cluster) error {
 		return fmt.Errorf("%v authentication failed", r.RegistryDomain)
 	}
 	return nil
+}
+
+func NewRegistryChecker(registryDomain string) Checker {
+	return &RegistryChecker{RegistryDomain: registryDomain}
 }
