@@ -21,33 +21,32 @@ import (
 	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/utils"
-
-	"github.com/alibaba/sealer/common"
 )
 
 type RegistryConfig struct {
-	IP     string
-	Domain string
+	IP     string `yaml:"ip,omitempty"`
+	Domain string `yaml:"domain,omitempty"`
 }
 
 func (d *Default) getRegistryHost() (host string) {
 	cf := d.getRegistryConfig()
-	if cf == nil {
-		return fmt.Sprintf("%s %s", d.Masters[0], SeaHub)
-	}
 	return fmt.Sprintf("%s %s", cf.IP, cf.Domain)
 }
 
 func (d *Default) getRegistryConfig() *RegistryConfig {
 	var config RegistryConfig
-	registryConfigPath := filepath.Join(common.DefaultClusterBaseDir(d.ClusterName), "etc/registry.yaml")
+	var Default = &RegistryConfig{
+		IP:     d.Masters[0],
+		Domain: SeaHub,
+	}
+	registryConfigPath := filepath.Join(d.Rootfs, "/etc/registry.yaml")
 	if !utils.IsFileExist(registryConfigPath) {
-		return nil
+		return Default
 	}
 	err := utils.UnmarshalYamlFile(registryConfigPath, &config)
 	if err != nil {
 		logger.Error("Failed to read registry config! ")
-		return nil
+		return Default
 	}
 	if config.IP == "" {
 		config.IP = d.Masters[0]
