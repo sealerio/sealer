@@ -30,7 +30,12 @@ var applyCmd = &cobra.Command{
 	Short:   "apply a kubernetes cluster",
 	Example: `sealer apply -f Clusterfile`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := apply.NewApplierFromFile(clusterFile).Apply(); err != nil {
+		applier, err := apply.NewApplierFromFile(clusterFile)
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+		if err = applier.Apply(); err != nil {
 			logger.Error(err)
 			os.Exit(1)
 		}
