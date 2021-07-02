@@ -43,12 +43,18 @@ func (d *Default) getRegistryConfig() *RegistryConfig {
 	registryConfigPath := filepath.Join(common.DefaultClusterBaseDir(d.ClusterName), "etc/registry.yaml")
 	if utils.IsFileExist(registryConfigPath) {
 		err := utils.UnmarshalYamlFile(registryConfigPath, &config)
-		if err == nil && config.IP != "" && config.Domain != "" {
-			return &config
+		if err != nil {
+			logger.Error("Failed to read registry config! ")
+			return nil
 		}
-		logger.Error("Failed to read registry config! ")
+		if config.IP == "" {
+			config.IP = d.Masters[0]
+		}
+		if config.Domain == "" {
+			config.Domain = SeaHub
+		}
 	}
-	return nil
+	return &config
 }
 
 const registryName = "sealer-registry"
