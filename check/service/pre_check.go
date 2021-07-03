@@ -23,3 +23,7 @@ func (d *PreCheckerService) Run() error {
 	fmt.Println("Pre check cluster")
 	return nil
 }
+
+func NewPreCheckerService() CheckerService {
+	return &PreCheckerService{}
+}

@@ -225,10 +225,10 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	c.NodesToJoin, c.NodesToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
 	todoList = append(todoList, MountImage)
 	todoList = append(todoList, MountRootfs)
-	if c.MastersToJoin != nil || c.MastersToDelete != nil {
+	if len(c.MastersToJoin) > 0 || len(c.MastersToDelete) > 0 {
 		todoList = append(todoList, ApplyMasters)
 	}
-	if c.NodesToJoin != nil || c.NodesToDelete != nil {
+	if len(c.NodesToJoin) > 0 || len(c.NodesToDelete) > 0 {
 		todoList = append(todoList, ApplyNodes)
 	}
 	todoList = append(todoList, CNI)

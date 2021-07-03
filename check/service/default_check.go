@@ -23,3 +23,7 @@ func (d *DefaultCheckerService) Run() error {
 	fmt.Println("check cluster")
 	return nil
 }
+
+func NewDefaultCheckerService() CheckerService {
+	return &DefaultCheckerService{}
+}

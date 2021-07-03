@@ -52,7 +52,12 @@ var deleteCmd = &cobra.Command{
 				}
 			}
 		}
-		if err := apply.NewApplierFromFile(clusterFile).Delete(); err != nil {
+		applier, err := apply.NewApplierFromFile(clusterFile)
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+		if err = applier.Delete(); err != nil {
 			logger.Error(err)
 			os.Exit(1)
 		}

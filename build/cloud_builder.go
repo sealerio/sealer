@@ -82,11 +82,8 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 
 // PreCheck: check env before run cloud build
 func (c *CloudBuilder) PreCheck() error {
-	registryChecker := &checker.RegistryChecker{
-		RegistryDomain: c.local.ImageNamed.Domain(),
-	}
-
-	err := registryChecker.Check(nil)
+	registryChecker := checker.NewRegistryChecker(c.local.ImageNamed.Domain())
+	err := registryChecker.Check()
 	if err != nil {
 		return err
 	}

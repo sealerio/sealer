@@ -30,19 +30,11 @@ const (
 )
 
 const (
-	DefaultImageRootDir           = "/var/lib/sealer/data"
 	DefaultWorkDir                = "/var/lib/sealer/%s/workdir"
 	DefaultClusterFileName        = "Clusterfile"
-	DefaultMetadataName           = "Metadata"
 	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
 	DefaultClusterInitFile        = "/var/lib/sealer/data/%s/scripts/init.sh"
 	DefaultClusterClearFile       = "/var/lib/sealer/data/%s/rootfs/scripts/clean.sh"
-	DefaultImageMetadataFileName  = "image_metadata.yaml"
-	ImageScratch                  = "scratch"
-	DefaultImageMetaRootDir       = "/var/lib/sealer/metadata"
-	DefaultImageDBRootDir         = "/var/lib/sealer/metadata/imagedb"
-	DefaultImageMetadataFile      = "/var/lib/sealer/metadata/images_metadata.json"
-	DefaultLayerDir               = "/var/lib/sealer/data/overlay2"
 	TarGzSuffix                   = ".tar.gz"
 	YamlSuffix                    = ".yaml"
 	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
@@ -58,6 +50,19 @@ const (
 	RemoteSealerPath              = "/usr/local/bin/sealer"
 	DefaultCloudProvider          = AliCloud
 	ClusterfileName               = "ClusterfileName"
+)
+
+// image module
+const (
+	DefaultImageRootDir          = "/var/lib/sealer/data"
+	DefaultMetadataName          = "Metadata"
+	DefaultImageMetadataFileName = "image_metadata.yaml"
+	ImageScratch                 = "scratch"
+	DefaultImageMetaRootDir      = "/var/lib/sealer/metadata"
+	DefaultImageDBRootDir        = "/var/lib/sealer/metadata/imagedb"
+	DefaultImageMetadataFile     = "/var/lib/sealer/metadata/images_metadata.json"
+	DefaultLayerDir              = "/var/lib/sealer/data/overlay2"
+	DefaultLayerDBRoot           = "/var/lib/sealer/metadata/layerdb"
 )
 
 //about infra

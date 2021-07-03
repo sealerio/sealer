@@ -22,7 +22,6 @@ import (
 
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type SvcChecker struct {
@@ -38,7 +37,7 @@ type SvcClusterStatus struct {
 	SvcNamespaceStatusList []*SvcNamespaceStatus
 }
 
-func (n *SvcChecker) Check(cluster *v1.Cluster) error {
+func (n *SvcChecker) Check() error {
 	// check if all the svc is ok
 	c, err := client.NewClientSet()
 	if err != nil {
@@ -114,4 +113,8 @@ func IsExistEndpoint(endpointList *corev1.EndpointsList, serviceName string) boo
 		}
 	}
 	return false
+}
+
+func NewSvcChecker() Checker {
+	return &SvcChecker{}
 }
