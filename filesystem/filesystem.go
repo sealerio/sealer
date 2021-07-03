@@ -16,6 +16,7 @@ package filesystem
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/runtime"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -147,6 +148,11 @@ func (c *FileSystem) UnMountRootfs(cluster *v1.Cluster) error {
 
 func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	SSH := ssh.NewSSHByCluster(cluster)
+	d := runtime.Default{
+		Masters: cluster.Spec.Masters.IPList,
+		Rootfs: filepath.Join(common.DefaultClusterRootfsDir, cluster.Name),
+	}
+	config := d.GetRegistryConfig()
 	if err := ssh.WaitSSHReady(SSH, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}
@@ -160,7 +166,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 		wg.Add(1)
 		go func(ip string) {
 			defer wg.Done()
-			err := CopyFiles(SSH, ip == ipList[0], ip, src, target)
+			err := CopyFiles(SSH, ip == config.IP, ip, src, target)
 			if err != nil {
 				logger.Error("copy rootfs failed %v", err)
 				mutex.Lock()
@@ -183,8 +189,8 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	return nil
 }
 
-func CopyFiles(ssh ssh.Interface, isMaster0 bool, ip, src, target string) error {
-	if isMaster0 {
+func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
+	if isRegistry {
 		return ssh.Copy(ip, src, target)
 	}
 	files, err := ioutil.ReadDir(src)

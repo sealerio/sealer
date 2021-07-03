@@ -29,24 +29,24 @@ type RegistryConfig struct {
 }
 
 func (d *Default) getRegistryHost() (host string) {
-	cf := d.getRegistryConfig()
+	cf := d.GetRegistryConfig()
 	return fmt.Sprintf("%s %s", cf.IP, cf.Domain)
 }
 
-func (d *Default) getRegistryConfig() *RegistryConfig {
+func (d *Default) GetRegistryConfig() *RegistryConfig {
 	var config RegistryConfig
-	var Default = &RegistryConfig{
+	var DefaultConfig = &RegistryConfig{
 		IP:     d.Masters[0],
 		Domain: SeaHub,
 	}
 	registryConfigPath := filepath.Join(d.Rootfs, "/etc/registry.yaml")
 	if !utils.IsFileExist(registryConfigPath) {
-		return Default
+		return DefaultConfig
 	}
 	err := utils.UnmarshalYamlFile(registryConfigPath, &config)
 	if err != nil {
 		logger.Error("Failed to read registry config! ")
-		return Default
+		return DefaultConfig
 	}
 	if config.IP == "" {
 		config.IP = d.Masters[0]
@@ -61,13 +61,13 @@ const registryName = "sealer-registry"
 
 //Only use this for join and init, due to the initiation operations
 func (d *Default) EnsureRegistry() error {
-	cf := d.getRegistryConfig()
+	cf := d.GetRegistryConfig()
 	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", d.Rootfs, d.Rootfs)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
 
 func (d *Default) RecycleRegistry() error {
-	cf := d.getRegistryConfig()
+	cf := d.GetRegistryConfig()
 	cmd := fmt.Sprintf("docker stop %s || true && docker rm %s || true", registryName, registryName)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
