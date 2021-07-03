@@ -67,7 +67,7 @@ func (d *Default) resetNode(node string) error {
 	host := utils.GetHostIP(node)
 	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.getRegistryHost())); err != nil {
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Rootfs, d.Masters[0]))); err != nil {
 		return err
 	}
 	return nil

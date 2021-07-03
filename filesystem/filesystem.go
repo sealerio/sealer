@@ -149,11 +149,9 @@ func (c *FileSystem) UnMountRootfs(cluster *v1.Cluster) error {
 
 func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	SSH := ssh.NewSSHByCluster(cluster)
-	d := runtime.Default{
-		Masters: cluster.Spec.Masters.IPList,
-		Rootfs:  common.DefaultTheClusterRootfsDir(cluster.ClusterName),
-	}
-	config := d.GetRegistryConfig()
+	config := runtime.GetRegistryConfig(
+		common.DefaultTheClusterRootfsDir(cluster.ClusterName),
+		cluster.Spec.Masters.IPList[0])
 	if err := ssh.WaitSSHReady(SSH, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}

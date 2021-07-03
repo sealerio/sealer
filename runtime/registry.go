@@ -28,18 +28,19 @@ type RegistryConfig struct {
 	Domain string `yaml:"domain,omitempty"`
 }
 
-func (d *Default) getRegistryHost() (host string) {
-	cf := d.GetRegistryConfig()
+func getRegistryHost(rootfs, defaultRegistry string) (host string) {
+	cf := GetRegistryConfig(rootfs, defaultRegistry)
 	return fmt.Sprintf("%s %s", cf.IP, cf.Domain)
 }
 
-func (d *Default) GetRegistryConfig() *RegistryConfig {
+func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	var config RegistryConfig
 	var DefaultConfig = &RegistryConfig{
-		IP:     d.Masters[0],
+		IP:     defaultRegistry,
 		Domain: SeaHub,
 	}
-	registryConfigPath := filepath.Join(d.Rootfs, "/etc/registry.yaml")
+
+	registryConfigPath := filepath.Join(rootfs, "/etc/registry.yaml")
 	if !utils.IsFileExist(registryConfigPath) {
 		return DefaultConfig
 	}
@@ -49,7 +50,7 @@ func (d *Default) GetRegistryConfig() *RegistryConfig {
 		return DefaultConfig
 	}
 	if config.IP == "" {
-		config.IP = d.Masters[0]
+		config.IP = defaultRegistry
 	}
 	if config.Domain == "" {
 		config.Domain = SeaHub
@@ -61,13 +62,13 @@ const registryName = "sealer-registry"
 
 //Only use this for join and init, due to the initiation operations
 func (d *Default) EnsureRegistry() error {
-	cf := d.GetRegistryConfig()
+	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])
 	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", d.Rootfs, d.Rootfs)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
 
 func (d *Default) RecycleRegistry() error {
-	cf := d.GetRegistryConfig()
+	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])
 	cmd := fmt.Sprintf("docker stop %s || true && docker rm %s || true", registryName, registryName)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
