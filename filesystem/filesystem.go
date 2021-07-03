@@ -16,12 +16,13 @@ package filesystem
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/runtime"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/alibaba/sealer/runtime"
 
 	infraUtils "github.com/alibaba/sealer/infra/utils"
 
@@ -150,7 +151,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	SSH := ssh.NewSSHByCluster(cluster)
 	d := runtime.Default{
 		Masters: cluster.Spec.Masters.IPList,
-		Rootfs: filepath.Join(common.DefaultClusterRootfsDir, cluster.Name),
+		Rootfs:  filepath.Join(common.DefaultClusterRootfsDir, cluster.Name),
 	}
 	config := d.GetRegistryConfig()
 	if err := ssh.WaitSSHReady(SSH, ipList...); err != nil {
