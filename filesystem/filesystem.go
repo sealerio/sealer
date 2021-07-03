@@ -151,7 +151,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	SSH := ssh.NewSSHByCluster(cluster)
 	d := runtime.Default{
 		Masters: cluster.Spec.Masters.IPList,
-		Rootfs:  filepath.Join(common.DefaultClusterRootfsDir, cluster.Name),
+		Rootfs:  common.DefaultTheClusterRootfsDir(cluster.ClusterName),
 	}
 	config := d.GetRegistryConfig()
 	if err := ssh.WaitSSHReady(SSH, ipList...); err != nil {
