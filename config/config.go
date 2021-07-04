@@ -50,6 +50,7 @@ func NewConfiguration(clusterName string) Interface {
 
 func (c *Dumper) Dump(clusterfile string) error {
 	if clusterfile == "" {
+		logger.Warn("clusterfile is empty!")
 		return nil
 	}
 	file, err := os.Open(clusterfile)

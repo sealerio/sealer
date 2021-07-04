@@ -40,7 +40,8 @@ func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
 	if err = utils.UnmarshalYamlFile(filepath, cluster); err != nil {
 		return nil, fmt.Errorf("failed to get cluster from %s, %v", filepath, err)
 	}
-	return
+	cluster.SetAnnotations(common.ClusterfileName, filepath)
+	return cluster, nil
 }
 
 func NewApplier(cluster *v1.Cluster) Interface {

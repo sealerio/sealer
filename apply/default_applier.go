@@ -15,6 +15,8 @@
 package apply
 
 import (
+	"fmt"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
@@ -24,8 +26,6 @@ import (
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-
-	"fmt"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,6 +77,10 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 			hosts = append(applier.ClusterDesired.Spec.Masters.IPList, applier.ClusterDesired.Spec.Nodes.IPList...)
 		} else {
 			hosts = append(applier.MastersToJoin, applier.NodesToJoin...)
+		}
+		config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(applier.ClusterDesired.Name), applier.ClusterDesired.Spec.Masters.IPList[0])
+		if utils.NotIn(config.IP, applier.ClusterDesired.Spec.Masters.IPList) && utils.NotIn(config.IP, applier.ClusterDesired.Spec.Nodes.IPList) {
+			hosts = append(hosts, config.IP)
 		}
 		if err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts); err != nil {
 			return err
