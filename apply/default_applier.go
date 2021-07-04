@@ -75,12 +75,12 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		var hosts []string
 		if applier.ClusterCurrent == nil {
 			hosts = append(applier.ClusterDesired.Spec.Masters.IPList, applier.ClusterDesired.Spec.Nodes.IPList...)
+			config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(applier.ClusterDesired.Name), applier.ClusterDesired.Spec.Masters.IPList[0])
+			if utils.NotIn(config.IP, applier.ClusterDesired.Spec.Masters.IPList) && utils.NotIn(config.IP, applier.ClusterDesired.Spec.Nodes.IPList) {
+				hosts = append(hosts, config.IP)
+			}
 		} else {
 			hosts = append(applier.MastersToJoin, applier.NodesToJoin...)
-		}
-		config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(applier.ClusterDesired.Name), applier.ClusterDesired.Spec.Masters.IPList[0])
-		if utils.NotIn(config.IP, applier.ClusterDesired.Spec.Masters.IPList) && utils.NotIn(config.IP, applier.ClusterDesired.Spec.Nodes.IPList) {
-			hosts = append(hosts, config.IP)
 		}
 		if err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts); err != nil {
 			return err
