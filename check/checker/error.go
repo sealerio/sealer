@@ -12,16 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hash
+package checker
 
-import (
-	"io"
-	"os"
+import "fmt"
 
-	"github.com/opencontainers/go-digest"
-)
+type PodNotReadyError struct {
+	name string
+}
 
-type Interface interface {
-	CheckSum(reader io.Reader) (digest.Digest, error)
-	TarCheckSum(src string) (*os.File, digest.Digest, error)
+func (e *PodNotReadyError) Error() string {
+	return fmt.Sprintf("pod  %s is not ready", e.name)
+}
+
+type NotFindReadyTypeError struct {
+	name string
+}
+
+func (e *NotFindReadyTypeError) Error() string {
+	return fmt.Sprintf("pod %s has't Ready Type", e.name)
 }

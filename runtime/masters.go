@@ -114,7 +114,7 @@ func getAPIServerHost(ipAddr, APIServer string) (host string) {
 }
 
 func (d *Default) JoinMasterCommands(master, joinCmd, hostname string) []string {
-	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(utils.GetHostIP(d.Masters[0])))
+	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(d.Rootfs, d.Masters[0]))
 	hostIP := utils.GetHostIP(master)
 	certCMD := command.RemoteCerts(d.APIServerCertSANs, hostIP, hostname, d.SvcCIDR, "")
 	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(utils.GetHostIP(d.Masters[0]), d.APIServer))
@@ -412,7 +412,7 @@ func (d *Default) isHostName(master, host string) string {
 
 func (d *Default) deleteMaster(master string) error {
 	host := utils.GetHostIP(master)
-	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Masters[0]))); err != nil {
+	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Rootfs, d.Masters[0]))); err != nil {
 		return err
 	}
 

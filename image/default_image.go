@@ -154,7 +154,6 @@ func (d DefaultImageService) Push(imageName string) error {
 	if err == nil {
 		dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Push Image %s", named.CompleteName()))
 	}
-	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Push Image %s", named.CompleteName()))
 	return err
 }
 
@@ -247,7 +246,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 	}
 
 	for _, layer := range image.Spec.Layers {
-		layerID := store.LayerID(layer.Hash)
+		layerID := store.LayerID(layer.ID)
 		if isLayerDeletable(layer2ImageNames, layerID) {
 			err = layerStore.Delete(layerID)
 			if err != nil {
@@ -271,8 +270,8 @@ func layer2ImageMap(images []*v1.Image) map[store.LayerID][]string {
 	var layer2ImageNames = make(map[store.LayerID][]string)
 	for _, image := range images {
 		for _, layer := range image.Spec.Layers {
-			layerID := store.LayerID(layer.Hash)
-			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Name)
+			layerID := store.LayerID(layer.ID)
+			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Spec.ID)
 		}
 	}
 	return layer2ImageNames

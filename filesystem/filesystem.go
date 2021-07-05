@@ -16,9 +16,15 @@ package filesystem
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
+
+	"github.com/alibaba/sealer/runtime"
+
+	infraUtils "github.com/alibaba/sealer/infra/utils"
 
 	"github.com/alibaba/sealer/utils"
 
@@ -59,18 +65,25 @@ func IsDir(path string) bool {
 }
 
 func (c *FileSystem) Clean(cluster *v1.Cluster) error {
-	return utils.CleanFiles(common.DefaultClusterBaseDir(cluster.Name))
+	return utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultClusterBaseDir(cluster.Name), common.DefaultKubeConfigDir())
 }
 
 func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
 	if utils.IsFileExist(mountdir) {
-		logger.Debug("unmount cluster dir %s", mountdir)
-		if err := mount.NewMountDriver().Unmount(mountdir); err != nil {
-			logger.Warn("failed to unmount %s, err: %v", mountdir, err)
+		var err error
+		err = infraUtils.Retry(10, time.Second, func() error {
+			logger.Debug("unmount cluster dir %s", mountdir)
+			err = mount.NewMountDriver().Unmount(mountdir)
+			if err != nil {
+				return err
+			}
+			return os.RemoveAll(mountdir)
+		})
+		if err != nil {
+			logger.Warn("failed to unmount dir %s,err: %v", mountdir, err)
 		}
 	}
-	utils.CleanDir(mountdir)
 	return nil
 }
 
@@ -85,7 +98,6 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("image name is %s", Image.Name)
 	layers, err := image.GetImageLayerDirs(Image)
 	if err != nil {
 		return fmt.Errorf("get layers failed: %v", err)
@@ -129,6 +141,10 @@ func (c *FileSystem) MountRootfs(cluster *v1.Cluster, hosts []string) error {
 func (c *FileSystem) UnMountRootfs(cluster *v1.Cluster) error {
 	//do clean.sh,then remove all Masters and Nodes roofs
 	IPList := append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
+	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.Spec.Masters.IPList[0])
+	if utils.NotIn(config.IP, IPList) {
+		IPList = append(IPList, config.IP)
+	}
 	if err := unmountRootfs(IPList, cluster); err != nil {
 		return err
 	}
@@ -137,6 +153,9 @@ func (c *FileSystem) UnMountRootfs(cluster *v1.Cluster) error {
 
 func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	SSH := ssh.NewSSHByCluster(cluster)
+	config := runtime.GetRegistryConfig(
+		common.DefaultTheClusterRootfsDir(cluster.ClusterName),
+		cluster.Spec.Masters.IPList[0])
 	if err := ssh.WaitSSHReady(SSH, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}
@@ -150,7 +169,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 		wg.Add(1)
 		go func(ip string) {
 			defer wg.Done()
-			err := SSH.Copy(ip, src, target)
+			err := CopyFiles(SSH, ip == config.IP, ip, src, target)
 			if err != nil {
 				logger.Error("copy rootfs failed %v", err)
 				mutex.Lock()
@@ -169,6 +188,27 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	wg.Wait()
 	if flag {
 		return fmt.Errorf("mountRootfs failed")
+	}
+	return nil
+}
+
+func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
+	if isRegistry {
+		return ssh.Copy(ip, src, target)
+	}
+	files, err := ioutil.ReadDir(src)
+	if err != nil {
+		return fmt.Errorf("failed to copy files %s", err)
+	}
+
+	for _, f := range files {
+		if f.Name() == common.RegistryDirName {
+			continue
+		}
+		err := ssh.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
+		if err != nil {
+			return fmt.Errorf("failed to copy sub files %v", err)
+		}
 	}
 	return nil
 }

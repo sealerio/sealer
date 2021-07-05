@@ -33,7 +33,6 @@ import (
 	"github.com/alibaba/sealer/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/hash"
 	"github.com/alibaba/sealer/utils/mount"
 )
 
@@ -46,7 +45,7 @@ type LocalBuilder struct {
 	Config       *Config
 	Image        *v1.Image
 	Cluster      *v1.Cluster
-	ImageName    string
+	ImageNamed   reference.Named
 	ImageID      string
 	Context      string
 	KubeFileName string
@@ -78,7 +77,7 @@ func (l *LocalBuilder) initBuilder(name string, context string, kubefileName str
 		return err
 	}
 
-	l.ImageName = named.Raw()
+	l.ImageNamed = named
 	l.Context = context
 	l.KubeFileName = kubefileName
 	return nil
@@ -89,16 +88,11 @@ func (l *LocalBuilder) GetBuildPipeLine() ([]func() error, error) {
 	if err := l.InitImageSpec(); err != nil {
 		return nil, err
 	}
-	if l.IsOnlyCopy() {
-		buildPipeline = append(buildPipeline,
-			l.ExecBuild,
-			l.UpdateImageMetadata)
-	} else {
-		buildPipeline = append(buildPipeline,
-			l.PullBaseImageNotExist,
-			l.ExecBuild,
-			l.UpdateImageMetadata)
-	}
+
+	buildPipeline = append(buildPipeline,
+		l.PullBaseImageNotExist,
+		l.ExecBuild,
+		l.UpdateImageMetadata)
 	return buildPipeline, nil
 }
 
@@ -108,28 +102,19 @@ func (l *LocalBuilder) InitImageSpec() error {
 	if err != nil {
 		return fmt.Errorf("failed to load kubefile: %v", err)
 	}
-	l.Image = parser.NewParse().Parse(kubeFile, l.ImageName)
+	l.Image = parser.NewParse().Parse(kubeFile)
 	if l.Image == nil {
 		return fmt.Errorf("failed to parse kubefile, image is nil")
 	}
 
 	layer0 := l.Image.Spec.Layers[0]
 	if layer0.Type != common.FROMCOMMAND {
-		return fmt.Errorf("first line of kubefile must be FROM")
+		return fmt.Errorf("first line of kubefile must start with FROM")
 	}
 
 	l.Image.Spec.ID = utils.GenUniqueID(32)
 	logger.Info("init image spec success! image id is %s", l.Image.Spec.ID)
 	return nil
-}
-func (l *LocalBuilder) IsOnlyCopy() bool {
-	for i := 1; i < len(l.Image.Spec.Layers); i++ {
-		if l.Image.Spec.Layers[i].Type == common.RUNCOMMAND ||
-			l.Image.Spec.Layers[i].Type == common.CMDCOMMAND {
-			return false
-		}
-	}
-	return true
 }
 
 func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
@@ -137,9 +122,9 @@ func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
 		return nil
 	}
 	if err = image.NewImageService().PullIfNotExist(l.Image.Spec.Layers[0].Value); err != nil {
-		return fmt.Errorf("failed to pull baseImage: %v", err)
+		return fmt.Errorf("failed to pull base image: %v", err)
 	}
-	logger.Info("pull baseImage %s success", l.Image.Spec.Layers[0].Value)
+	logger.Info("pull base image %s success", l.Image.Spec.Layers[0].Value)
 	return nil
 }
 
@@ -164,10 +149,12 @@ func (l *LocalBuilder) ExecBuild() error {
 			}
 		}
 
-		if layer.Hash == "" {
+		if layer.ID == "" {
 			continue
 		}
-		baseLayers = append(baseLayers, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
+
+		ls := image.NewLayerService()
+		baseLayers = append(baseLayers, ls.LayerStorage().LayerDataDir(layer.ID))
 	}
 	logger.Info("exec all build instructs success !")
 	return nil
@@ -238,12 +225,15 @@ func (l *LocalBuilder) mountAndExecLayer(layer *v1.Layer, tempTarget, tempUpper 
 	if err != nil {
 		return fmt.Errorf("failed to mount target %s:%v", tempTarget, err)
 	}
+	defer func() {
+		if err = driver.Unmount(tempTarget); err != nil {
+			logger.Warn(fmt.Errorf("failed to umount %s:%v", tempTarget, err))
+		}
+	}()
+
 	err = l.execLayer(layer, tempTarget)
 	if err != nil {
 		return fmt.Errorf("failed to exec layer %v:%v", layer, err)
-	}
-	if err = driver.Unmount(tempTarget); err != nil {
-		return fmt.Errorf("failed to umount %s:%v", tempTarget, err)
 	}
 	return nil
 }
@@ -251,15 +241,16 @@ func (l *LocalBuilder) mountAndExecLayer(layer *v1.Layer, tempTarget, tempUpper 
 func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 	// exec layer cmd;
 	if layer.Type == common.COPYCOMMAND {
-		dist := ""
-		if utils.IsDir(strings.Fields(layer.Value)[0]) {
+		src := filepath.Join(l.Context, strings.Fields(layer.Value)[0])
+		dest := ""
+		if utils.IsDir(src) {
 			// src is dir
-			dist = filepath.Join(tempTarget, strings.Fields(layer.Value)[1])
+			dest = filepath.Join(tempTarget, strings.Fields(layer.Value)[1])
 		} else {
 			// src is file
-			dist = filepath.Join(tempTarget, strings.Fields(layer.Value)[1], path.Base(strings.Fields(layer.Value)[0]))
+			dest = filepath.Join(tempTarget, strings.Fields(layer.Value)[1], path.Base(strings.Fields(layer.Value)[0]))
 		}
-		return utils.RecursionCopy(strings.Fields(layer.Value)[0], dist)
+		return utils.RecursionCopy(src, dest)
 	}
 	if layer.Type == common.RUNCOMMAND || layer.Type == common.CMDCOMMAND {
 		cmd := fmt.Sprintf(common.CdAndExecCmd, tempTarget, layer.Value)
@@ -270,17 +261,12 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 }
 
 func (l *LocalBuilder) calculateLayerHashAndPlaceIt(layer *v1.Layer, tempTarget string) error {
-	layerHash, err := hash.CheckSumAndPlaceLayer(tempTarget)
+	layerHash, err := l.LayerStore.RegisterLayerForBuilder(tempTarget)
 	if err != nil {
-		return fmt.Errorf("failed to calculate layer hash and place it, err: %v", err)
+		return fmt.Errorf("failed to register layer, err: %s", err)
 	}
 
-	emptyHash := hash.SHA256{}.EmptyDigest()
-	if layerHash == emptyHash {
-		layerHash = ""
-	}
-
-	layer.Hash = layerHash
+	layer.ID = layerHash
 	return nil
 }
 
@@ -289,21 +275,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 	if err := l.squashBaseImageLayerIntoCurrentImage(); err != nil {
 		return err
 	}
-	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageMetaRootDir, l.Image.Spec.ID, common.YamlSuffix)
-	// save layer ids
-	for _, layer := range l.Image.Spec.Layers {
-		if layer.Hash != "" {
-			roLayer, err := store.NewROLayer(layer.Hash, 0)
-			if err != nil {
-				return err
-			}
-
-			err = l.LayerStore.RegisterLayerIfNotPresent(roLayer)
-			if err != nil {
-				return err
-			}
-		}
-	}
+	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageDBRootDir, l.Image.Spec.ID, common.YamlSuffix)
 	// write image info to its metadata
 	if err := utils.MarshalYamlToFile(filename, l.Image); err != nil {
 		return fmt.Errorf("failed to write image yaml:%v", err)
@@ -311,12 +283,12 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 
 	logger.Info("write image yaml file to %s success !", filename)
 	if err := imageUtils.SetImageMetadata(imageUtils.ImageMetadata{
-		Name: l.ImageName,
+		Name: l.ImageNamed.Raw(),
 		ID:   l.Image.Spec.ID,
 	}); err != nil {
 		return fmt.Errorf("failed to set image metadata :%v", err)
 	}
-	logger.Info("update image %s to image metadata success !", l.ImageName)
+	logger.Info("update image %s to image metadata success !", l.ImageNamed.Raw())
 
 	return nil
 }
@@ -331,15 +303,15 @@ func (l *LocalBuilder) setClusterFileToImage() {
 		}
 		clusterFileData = string(bytes)
 	} else {
-		clusterFileData = l.GetRawClusterFile()
+		clusterFileData = GetRawClusterFile(l.Image)
 	}
 
 	l.addImageAnnotations(common.ImageAnnotationForClusterfile, clusterFileData)
 }
 
 // GetClusterFile from user build context or from base image
-func (l *LocalBuilder) GetRawClusterFile() string {
-	if l.Image.Spec.Layers[0].Value == common.ImageScratch {
+func GetRawClusterFile(im *v1.Image) string {
+	if im.Spec.Layers[0].Value == common.ImageScratch {
 		data, err := ioutil.ReadFile(filepath.Join("etc", common.DefaultClusterFileName))
 		if err != nil {
 			return ""
@@ -347,12 +319,12 @@ func (l *LocalBuilder) GetRawClusterFile() string {
 		return string(data)
 	}
 	// find cluster file from context
-	if clusterFile := l.getClusterFileFromContext(); clusterFile != nil {
+	if clusterFile := getClusterFileFromContext(im); clusterFile != nil {
 		logger.Info("get cluster file from context success!")
 		return string(clusterFile)
 	}
 	// find cluster file from base image
-	clusterFile := image.GetClusterFileFromImage(l.Image.Spec.Layers[0].Value)
+	clusterFile := image.GetClusterFileFromImage(im.Spec.Layers[0].Value)
 	if clusterFile != "" {
 		logger.Info("get cluster file from base image success!")
 		return clusterFile
@@ -360,9 +332,9 @@ func (l *LocalBuilder) GetRawClusterFile() string {
 	return ""
 }
 
-func (l *LocalBuilder) getClusterFileFromContext() []byte {
-	for i := range l.Image.Spec.Layers {
-		layer := l.Image.Spec.Layers[i]
+func getClusterFileFromContext(image *v1.Image) []byte {
+	for i := range image.Spec.Layers {
+		layer := image.Spec.Layers[i]
 		if layer.Type == common.COPYCOMMAND && strings.Fields(layer.Value)[0] == common.DefaultClusterFileName {
 			if clusterFile, _ := utils.ReadAll(strings.Fields(layer.Value)[0]); clusterFile != nil {
 				return clusterFile
@@ -416,8 +388,8 @@ func getBaseLayersFromImage(image v1.Image) (res []string, err error) {
 	}
 
 	for _, layer := range layers {
-		if layer.Hash != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
+		if layer.ID != "" {
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
 		}
 	}
 	return res, nil

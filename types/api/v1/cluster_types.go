@@ -31,6 +31,7 @@ type Network struct {
 	PodCIDR    string `json:"podCIDR,omitempty"`
 	SvcCIDR    string `json:"svcCIDR,omitempty"`
 	WithoutCNI bool   `json:"withoutCNI,omitempty"`
+	IPIP       bool   `json:"ipip,omitempty"`
 }
 
 type Hosts struct {
@@ -66,6 +67,7 @@ type ClusterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	// TODO save cluster status info
+
 }
 
 // +kubebuilder:object:root=true
@@ -106,6 +108,13 @@ type Cluster struct {
 
 func (in *Cluster) GetAnnotationsByKey(key string) string {
 	return in.Annotations[key]
+}
+
+func (in *Cluster) SetAnnotations(key, value string) {
+	if in.Annotations == nil {
+		in.Annotations = make(map[string]string)
+	}
+	in.Annotations[key] = value
 }
 
 // +kubebuilder:object:root=true

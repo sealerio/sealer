@@ -53,6 +53,9 @@ type SSH struct {
 }
 
 func NewSSHByCluster(cluster *v1.Cluster) Interface {
+	if cluster.Spec.SSH.User == "" {
+		cluster.Spec.SSH.User = common.ROOT
+	}
 	return &SSH{
 		User:       cluster.Spec.SSH.User,
 		Password:   cluster.Spec.SSH.Passwd,

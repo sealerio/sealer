@@ -39,10 +39,14 @@ func TestApply(t *testing.T) {
 		t.Errorf("read yaml file get an err #%v", err)
 	}
 
-	aliProvider := NewDefaultProvider(&cluster)
-	err = aliProvider.Apply()
+	aliProvider, err := NewDefaultProvider(&cluster)
 	if err != nil {
 		fmt.Printf("%v", err)
+	} else {
+		err = aliProvider.Apply()
+		if err != nil {
+			fmt.Printf("%v", err)
+		}
 	}
 	data, err := yaml.Marshal(&cluster)
 	if err != nil {

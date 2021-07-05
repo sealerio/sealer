@@ -26,15 +26,9 @@ networking:
   serviceSubnet: {{.SvcCIDR}}
 apiServer:
   certSANs:
-  - 127.0.0.1
-  - {{.ApiServer}}
-  {{range .Masters -}}
-  - {{.}}
-  {{end -}}
   {{range .CertSANS -}}
   - {{.}}
   {{end -}}
-  - {{.VIP}}
   extraArgs:
     etcd-servers: {{.EtcdServers}}
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
@@ -119,15 +113,9 @@ networking:
   serviceSubnet: {{.SvcCIDR}}
 apiServer:
   certSANs:
-  - 127.0.0.1
-  - {{.ApiServer}}
-  {{range .Masters -}}
-  - {{.}}
-  {{end -}}
   {{range .CertSANS -}}
   - {{.}}
   {{end -}}
-  - {{.VIP}}
   extraArgs:
     etcd-servers: {{.EtcdServers}}
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true

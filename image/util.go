@@ -32,11 +32,8 @@ import (
 // current image has no from layer
 func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 	for _, layer := range image.Spec.Layers {
-		if layer.Type == common.FROMCOMMAND {
-			return res, fmt.Errorf("image %s has from layer, which is not allowed in current state", image.Spec.ID)
-		}
-		if layer.Hash != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.Hash.Hex()))
+		if layer.ID != "" {
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
 		}
 	}
 	return
@@ -144,7 +141,7 @@ func GetYamlByImage(imageName string) (string, error) {
 		return "", fmt.Errorf("failed to find corresponding image id, id is empty")
 	}
 
-	ImageInformation, err := ioutil.ReadFile(filepath.Join(common.DefaultImageMetaRootDir, image.ID+common.YamlSuffix))
+	ImageInformation, err := ioutil.ReadFile(filepath.Join(common.DefaultImageDBRootDir, image.ID+common.YamlSuffix))
 	if err != nil {
 		return "", fmt.Errorf("failed to read image yaml,err: %v", err)
 	}

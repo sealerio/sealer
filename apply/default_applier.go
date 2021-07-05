@@ -15,6 +15,10 @@
 package apply
 
 import (
+	"fmt"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/image"
@@ -22,8 +26,6 @@ import (
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-
-	"fmt"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,6 +39,7 @@ type DefaultApplier struct {
 	FileSystem      filesystem.Interface
 	Runtime         runtime.Interface
 	Guest           guest.Interface
+	Config          config.Interface
 	MastersToJoin   []string
 	MastersToDelete []string
 	NodesToJoin     []string
@@ -50,6 +53,7 @@ const (
 	MountRootfs    ActionName = "MountRootfs"
 	UnMountRootfs  ActionName = "UnMountRootfs"
 	MountImage     ActionName = "MountImage"
+	Config         ActionName = "Config"
 	UnMountImage   ActionName = "UnMountImage"
 	Init           ActionName = "Init"
 	Upgrade        ActionName = "Upgrade"
@@ -71,6 +75,10 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		var hosts []string
 		if applier.ClusterCurrent == nil {
 			hosts = append(applier.ClusterDesired.Spec.Masters.IPList, applier.ClusterDesired.Spec.Nodes.IPList...)
+			config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(applier.ClusterDesired.Name), applier.ClusterDesired.Spec.Masters.IPList[0])
+			if utils.NotIn(config.IP, applier.ClusterDesired.Spec.Masters.IPList) && utils.NotIn(config.IP, applier.ClusterDesired.Spec.Nodes.IPList) {
+				hosts = append(hosts, config.IP)
+			}
 		} else {
 			hosts = append(applier.MastersToJoin, applier.NodesToJoin...)
 		}
@@ -88,6 +96,9 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	},
 	MountImage: func(applier *DefaultApplier) error {
 		return applier.FileSystem.MountImage(applier.ClusterDesired)
+	},
+	Config: func(applier *DefaultApplier) error {
+		return applier.Config.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	},
 	UnMountImage: func(applier *DefaultApplier) error {
 		return applier.FileSystem.UnMountImage(applier.ClusterDesired)
@@ -196,6 +207,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, MountImage)
+		todoList = append(todoList, Config)
 		todoList = append(todoList, MountRootfs)
 		todoList = append(todoList, Init)
 		c.MastersToJoin = c.ClusterDesired.Spec.Masters.IPList[1:]
@@ -217,10 +229,10 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	c.NodesToJoin, c.NodesToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
 	todoList = append(todoList, MountImage)
 	todoList = append(todoList, MountRootfs)
-	if c.MastersToJoin != nil || c.MastersToDelete != nil {
+	if len(c.MastersToJoin) > 0 || len(c.MastersToDelete) > 0 {
 		todoList = append(todoList, ApplyMasters)
 	}
-	if c.NodesToJoin != nil || c.NodesToDelete != nil {
+	if len(c.NodesToJoin) > 0 || len(c.NodesToDelete) > 0 {
 		todoList = append(todoList, ApplyNodes)
 	}
 	todoList = append(todoList, CNI)
@@ -235,5 +247,6 @@ func NewDefaultApplier(cluster *v1.Cluster) Interface {
 		ImageManager:   image.NewImageService(),
 		FileSystem:     filesystem.NewFilesystem(),
 		Guest:          guest.NewGuestManager(),
+		Config:         config.NewConfiguration(cluster.Name),
 	}
 }

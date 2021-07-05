@@ -68,7 +68,7 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return err
 	}
 
-	if err := d.EnsureRegistryOnMaster0(); err != nil {
+	if err := d.EnsureRegistry(); err != nil {
 		return err
 	}
 
@@ -114,6 +114,7 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
 	d.WithoutCNI = cluster.Spec.Network.WithoutCNI
+	d.IPIP = cluster.Spec.Network.IPIP
 	if d.MTU == "" {
 		if d.IPIP {
 			d.MTU = "1480"
@@ -207,7 +208,7 @@ func (d *Default) InitMaster0() error {
 	d.SendJoinMasterKubeConfigs(d.Masters[:1], AdminConf, ControllerConf, SchedulerConf, KubeletConf)
 
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(utils.GetHostIP(d.Masters[0]), d.APIServer))
-	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(utils.GetHostIP(d.Masters[0])))
+	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(d.Rootfs, d.Masters[0]))
 	err := d.SSH.CmdAsync(d.Masters[0], cmdAddEtcHost, cmdAddRegistryHosts)
 	if err != nil {
 		return err

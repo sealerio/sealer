@@ -65,10 +65,6 @@ func WriteFile(fileName string, content []byte) error {
 	return nil
 }
 
-func GetRootClusterFilePath(clusterName string) string {
-	return fmt.Sprintf("/root/.sealer/%s/Clusterfile", clusterName)
-}
-
 type SSHClient struct {
 	RemoteHostIP string
 	SSH          ssh.Interface

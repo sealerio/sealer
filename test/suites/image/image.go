@@ -19,6 +19,13 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/test/suites/build"
+
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
+
+	imageUtils "github.com/alibaba/sealer/image/utils"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
 	"github.com/onsi/ginkgo"
@@ -38,6 +45,8 @@ func DoImageOps(action, imageName string) {
 		cmd = fmt.Sprintf("%s push %s", settings.DefaultSealerBin, imageName)
 	case settings.SubCmdRmiOfSealer:
 		cmd = fmt.Sprintf("%s rmi %s", settings.DefaultSealerBin, imageName)
+	case settings.SubCmdForceRmiOfSealer:
+		cmd = fmt.Sprintf("%s rmi -f %s", settings.DefaultSealerBin, GetImageID(imageName))
 	case settings.SubCmdRunOfSealer:
 		cmd = fmt.Sprintf("%s run %s", settings.DefaultSealerBin, imageName)
 	case settings.SubCmdListOfSealer:
@@ -55,7 +64,46 @@ func GetEnvDirMd5() string {
 	getEnvMd5Cmd := fmt.Sprintf("sudo -E find %s -type f -print0|xargs -0 sudo md5sum|cut -d\" \" -f1|md5sum|cut -d\" \" -f1\n", filepath.Dir(common.DefaultImageRootDir))
 	dirMd5, err := utils.RunSimpleCmd(getEnvMd5Cmd)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	_, err = io.WriteString(ginkgo.GinkgoWriter, getEnvMd5Cmd+dirMd5+"/n")
+	_, err = io.WriteString(ginkgo.GinkgoWriter, getEnvMd5Cmd+dirMd5+"\n")
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return dirMd5
+}
+
+func GetImageID(imageName string) string {
+	image, err := imageUtils.GetImage(imageName)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	return image.Spec.ID
+}
+
+func CheckLoginResult(registryURL, username, passwd string, result bool) {
+	usernameCmd, passwdCmd := "", ""
+	if username != "" {
+		usernameCmd = fmt.Sprintf("-u %s", username)
+	}
+	if passwd != "" {
+		passwdCmd = fmt.Sprintf("-p %s", passwd)
+	}
+	loginCmd := fmt.Sprintf("%s login %s %s %s", settings.DefaultSealerBin,
+		settings.RegistryURL,
+		usernameCmd,
+		passwdCmd)
+	if result {
+		sess, err := testhelper.Start(loginCmd)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		gomega.Eventually(sess).Should(gbytes.Say(fmt.Sprintf("%s login %s success", username, registryURL)))
+		gomega.Eventually(sess).Should(gexec.Exit(0))
+		return
+	}
+	sess, err := testhelper.Start(loginCmd)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Eventually(sess).ShouldNot(gbytes.Say(fmt.Sprintf("%s login %s success", username, registryURL)))
+	gomega.Eventually(sess).ShouldNot(gexec.Exit(0))
+}
+
+func TagImageList(imageNameOrID string, tagImageNames []string) {
+	for _, tagImageName := range tagImageNames {
+		tagImageName := tagImageName
+		TagImages(imageNameOrID, tagImageName)
+		gomega.Expect(build.CheckIsImageExist(settings.TestImageName)).Should(gomega.BeTrue())
+	}
 }

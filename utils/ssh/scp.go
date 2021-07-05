@@ -71,7 +71,7 @@ func (s *SSH) RemoteMd5Sum(host, remoteFilePath string) string {
 	cmd := fmt.Sprintf(Md5sumCmd, remoteFilePath)
 	remoteMD5, err := s.CmdToString(host, cmd, "")
 	if err != nil {
-		logger.Error("count remote md5 failed %s %s %s", host, remoteFilePath, err)
+		logger.Error("count remote md5 failed %s %s %v", host, remoteFilePath, err)
 	}
 	return remoteMD5
 }

@@ -84,7 +84,7 @@ func (a *ArgsOfBuild) Build() string {
 	if a.BuildType == "" {
 		a.BuildType = settings.LocalBuild
 	}
-	return fmt.Sprintf("%s build -f %s -t %s -c %s -b %s", settings.DefaultSealerBin, a.KubeFile, a.ImageName, a.Context, a.BuildType)
+	return fmt.Sprintf("%s build -f %s -t %s -b %s %s", settings.DefaultSealerBin, a.KubeFile, a.ImageName, a.BuildType, a.Context)
 }
 
 func NewArgsOfBuild() *ArgsOfBuild {

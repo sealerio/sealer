@@ -59,7 +59,7 @@ func (d *Default) joinNodes(nodes []string) error {
 	}
 	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, d.VIP, masters)
 	templateData := string(d.JoinTemplate(""))
-	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(utils.GetHostIP(d.Masters[0])))
+	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(d.Rootfs, d.Masters[0]))
 	for _, node := range nodes {
 		wg.Add(1)
 		go func(node string) {
@@ -109,7 +109,7 @@ func (d *Default) deleteNodes(nodes []string) error {
 
 func (d *Default) deleteNode(node string) error {
 	host := utils.GetHostIP(node)
-	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Masters[0]))); err != nil {
+	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Rootfs, d.Masters[0]))); err != nil {
 		return err
 	}
 

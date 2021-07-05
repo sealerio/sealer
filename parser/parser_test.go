@@ -99,7 +99,7 @@ RUN kubectl apply -f dashboard`)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Parser{}
-			if got := p.Parse(tt.args.kubeFile, tt.args.name); !reflect.DeepEqual(got, tt.want) {
+			if got := p.Parse(tt.args.kubeFile); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Parse() = %v, want %v", got, tt.want)
 			}
 		})

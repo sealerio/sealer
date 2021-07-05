@@ -15,20 +15,31 @@
 package store
 
 import (
+	"compress/gzip"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils/archive"
+
+	"github.com/alibaba/sealer/image/reference"
+
+	"github.com/vbatts/tar-split/tar/asm"
+	"github.com/vbatts/tar-split/tar/storage"
+
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 	"github.com/opencontainers/go-digest"
 )
 
+const emptySHA256TarDigest = "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+
 type layerStore struct {
-	mux    sync.RWMutex
-	layers map[LayerID]*roLayer
+	mux          sync.RWMutex
+	layers       map[LayerID]*ROLayer
+	layerStoreFS LayerStorage
 }
 
 func (ls *layerStore) Get(id LayerID) Layer {
@@ -47,35 +58,118 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 		return nil
 	}
 
-	err := dumpLayerMetadata(layer)
+	curLayerDBDir := ls.layerStoreFS.LayerDBDir(layer.ID().ToDigest())
+	err := os.MkdirAll(curLayerDBDir, 0755)
+	if err != nil {
+		return fmt.Errorf("failed to init layer db for %s, err: %s", curLayerDBDir, err)
+	}
+
+	layerTarReader, err := layer.TarStream()
+	if err != nil {
+		return err
+	}
+	defer layerTarReader.Close()
+
+	err = ls.DisassembleTar(layer.ID().ToDigest(), layerTarReader)
+	if err != nil {
+		return err
+	}
+
+	err = ls.layerStoreFS.storeROLayer(layer)
 	if err != nil {
 		return err
 	}
 
 	ls.mux.Lock()
 	defer ls.mux.Unlock()
-	if roLayer, ok := layer.(*roLayer); ok {
+	if roLayer, ok := layer.(*ROLayer); ok {
 		ls.layers[layer.ID()] = roLayer
 	}
 
 	return nil
 }
 
+func (ls *layerStore) RegisterLayerForBuilder(diffPath string) (digest.Digest, error) {
+	tarReader, err := archive.TarWithoutRootDir(diffPath)
+	if err != nil {
+		return "", fmt.Errorf("unable to tar on %s, err: %s", diffPath, err)
+	}
+	defer tarReader.Close()
+
+	digester := digest.Canonical.Digester()
+	size, err := io.Copy(digester.Hash(), tarReader)
+	if err != nil {
+		return "", err
+	}
+	layerDigest := digester.Digest()
+	if layerDigest == emptySHA256TarDigest {
+		return "", nil
+	}
+
+	// layerContentDigest is the layer id at the build stage.
+	// and the layer id won't change any more
+	roLayer, err := NewROLayer(layerDigest, size, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create a new rolayer, err: %s", err)
+	}
+	layerDataDir := ls.layerStoreFS.LayerDataDir(roLayer.ID().ToDigest())
+
+	// remove before mv files to target
+	_, err = os.Stat(layerDataDir)
+	if err == nil {
+		err = os.RemoveAll(layerDataDir)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	err = os.Rename(diffPath, layerDataDir)
+	if err != nil {
+		return "", err
+	}
+
+	return layerDigest, ls.RegisterLayerIfNotPresent(roLayer)
+}
+
+func (ls *layerStore) DisassembleTar(layerID digest.Digest, streamReader io.ReadCloser) error {
+	layerDBDir := ls.layerStoreFS.LayerDBDir(layerID)
+	mf, err := os.OpenFile(filepath.Join(layerDBDir, tarDataGZ), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0600))
+	if err != nil {
+		return err
+	}
+	defer mf.Close()
+
+	mfz := gzip.NewWriter(mf)
+	defer mfz.Close()
+
+	metaPacker := storage.NewJSONPacker(mfz)
+	// we're passing nil here for the file putter, because the ApplyDiff will
+	// handle the extraction of the archive
+	its, err := asm.NewInputTarStream(streamReader, metaPacker, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(ioutil.Discard, its)
+	return err
+}
+
 func (ls *layerStore) Delete(id LayerID) error {
-	digs := digest.Digest(id)
+	digs := id.ToDigest()
 	layer := ls.Get(id)
 	if layer == nil {
 		logger.Debug("layer %s is already deleted", id)
 		return nil
 	}
 
-	filePath := filepath.Join(common.DefaultLayerDir, digs.Hex())
-	err := os.RemoveAll(filePath)
+	storefs := NewDefaultLayerStorage()
+	layerDataPath := storefs.LayerDataDir(digs)
+	err := os.RemoveAll(layerDataPath)
 	if err != nil {
 		return err
 	}
-	subDir := filepath.Join(common.DefaultLayerDBDir, digs.Algorithm().String(), digs.Hex())
-	err = os.RemoveAll(subDir)
+	layerDBDir := storefs.LayerDBDir(digs)
+	err = os.RemoveAll(layerDBDir)
 	if err != nil {
 		return err
 	}
@@ -85,70 +179,28 @@ func (ls *layerStore) Delete(id LayerID) error {
 	return nil
 }
 
-func dumpLayerMetadata(layer Layer) error {
-	id := layer.ID()
-	digs := digest.Digest(id)
-	subDir := filepath.Join(common.DefaultLayerDBDir, digs.Algorithm().String(), digs.Hex())
-	return utils.WriteFile(filepath.Join(subDir, "id"), []byte(id.String()))
+func (ls *layerStore) AddDistributionMetadata(layerID LayerID, named reference.Named, descriptorDigest digest.Digest) error {
+	sfs := ls.layerStoreFS
+	return sfs.addDistributionMetadata(layerID, map[string]digest.Digest{
+		named.Domain() + "/" + named.Repo(): descriptorDigest,
+	})
 }
 
-func getDirListInDir(dir string) ([]string, error) {
-	files, err := ioutil.ReadDir(dir)
+func (ls *layerStore) loadAllROLayers() error {
+	layerDirs, err := ls.layerStoreFS.traverseLayerDB()
 	if err != nil {
-		return nil, err
-	}
-	var dirs []string
-	for _, file := range files {
-		if file.IsDir() {
-			dirs = append(dirs, filepath.Join(dir, file.Name()))
-		}
-	}
-	return dirs, nil
-}
-
-func getAllROLayers() ([]*roLayer, error) {
-	err := utils.MkDirIfNotExists(common.DefaultLayerDBDir)
-	if err != nil {
-		return nil, err
-	}
-	// TODO maybe there no need to traverse layerdb, just clarify how may sha supported in a list
-	shaDirs, err := getDirListInDir(common.DefaultLayerDBDir)
-	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var layerDirs []string
-	for _, shaDir := range shaDirs {
-		layerDirList, err := getDirListInDir(shaDir)
+	var layers []*ROLayer
+	sfs := ls.layerStoreFS
+	for _, layerDBDir := range layerDirs {
+		rolayer, err := sfs.loadROLayer(layerDBDir)
 		if err != nil {
-			return nil, err
+			logger.Warn(err)
+			continue
 		}
-		layerDirs = append(layerDirs, layerDirList...)
-	}
-
-	var res []*roLayer
-	for _, layerDir := range layerDirs {
-		id, err := ioutil.ReadFile(filepath.Join(layerDir, "id"))
-		if err == nil {
-			_, err := digest.Parse(string(id))
-			if err == nil {
-				res = append(res, &roLayer{id: LayerID(id)})
-			} else {
-				logger.Warn("failed to get layer metadata %s, which has a invalid id, err: %s", filepath.Base(layerDir), err)
-			}
-		} else {
-			logger.Warn("failed to get layer metadata %s, whose id file lost, err: %s", filepath.Base(layerDir), err)
-		}
-	}
-
-	return res, nil
-}
-
-func NewDefaultLayerStore() (LayerStore, error) {
-	ls := &layerStore{layers: map[LayerID]*roLayer{}}
-	layers, err := getAllROLayers()
-	if err != nil {
-		return nil, err
+		layers = append(layers, rolayer)
 	}
 
 	ls.mux.Lock()
@@ -157,6 +209,17 @@ func NewDefaultLayerStore() (LayerStore, error) {
 	for _, layer := range layers {
 		ls.layers[layer.id] = layer
 	}
+	return nil
+}
 
+func NewDefaultLayerStore() (LayerStore, error) {
+	ls := &layerStore{
+		layers:       map[LayerID]*ROLayer{},
+		layerStoreFS: NewDefaultLayerStorage(),
+	}
+	err := ls.loadAllROLayers()
+	if err != nil {
+		return nil, err
+	}
 	return ls, nil
 }

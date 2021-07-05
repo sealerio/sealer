@@ -15,8 +15,12 @@
 package settings
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"time"
+
+	"github.com/mitchellh/go-homedir"
 )
 
 const (
@@ -34,6 +38,7 @@ const (
 	SubCmdListOfSealer                = "images"
 	SubCmdPushOfSealer                = "push"
 	SubCmdRmiOfSealer                 = "rmi"
+	SubCmdForceRmiOfSealer            = "frmi"
 	DefaultSSHPassword                = "Sealer123"
 	ImageAnnotationForClusterfile     = "sea.aliyun.com/ClusterFile"
 )
@@ -51,6 +56,7 @@ const (
 	ImageNameForRun   = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9"
 	ClusterNameForRun = "my-cluster"
 	TMPClusterFile    = "/tmp/Clusterfile"
+	ClusterWorkDir    = "/root/.sealer/%s"
 )
 
 var (
@@ -65,5 +71,17 @@ var (
 	AccessKey     = os.Getenv("ACCESSKEYID")
 	AccessSecret  = os.Getenv("ACCESSKEYSECRET")
 	Region        = os.Getenv("RegionID")
-	TestImageName = ""
+	TestImageName = "kubernetes:v1.19.9"
 )
+
+func GetClusterWorkDir(clusterName string) string {
+	home, err := homedir.Dir()
+	if err != nil {
+		return fmt.Sprintf(ClusterWorkDir, clusterName)
+	}
+	return filepath.Join(home, ".sealer", clusterName)
+}
+
+func GetClusterWorkClusterfile(clusterName string) string {
+	return filepath.Join(GetClusterWorkDir(clusterName), "Clusterfile")
+}

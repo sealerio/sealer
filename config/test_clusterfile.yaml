@@ -1,0 +1,36 @@
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: registry.cn-qingdao.aliyuncs.com/sealer-app/my-SAAS-all-inone:latest
+  provider: BAREMETAL
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: mysql-config
+spec:
+  path: etc/mysql.yaml
+  data: |
+     test
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: redis-config
+spec:
+  path: etc/redis.yaml
+  data: |
+    test
+
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: REGISTRY
+spec:
+  path: etc/registry.yaml
+  data: |
+    domain: image.cai-inc.com
+    ip: 172.16.0.1

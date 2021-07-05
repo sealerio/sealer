@@ -12,25 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package compress
+package archive
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"errors"
 	"fmt"
 	"syscall"
 
 	"io"
-	"io/ioutil"
 
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
 )
+
+const compressionBufSize = 32768
+
+type Options struct {
+	Compress    bool
+	KeepRootDir bool
+	ToStream    bool
+}
 
 func validatePath(path string) error {
 	if !filepath.IsAbs(path) {
@@ -42,21 +49,56 @@ func validatePath(path string) error {
 	return nil
 }
 
-// Compress
+// TarWithRootDir
 // src is the dir or single file to tar
 // not contain the dir
 // newFolder is a folder for tar file
-func Compress(targetFile *os.File, paths ...string) (file *os.File, err error) {
-	return compress(targetFile, true, paths)
+func TarWithRootDir(paths ...string) (readCloser io.ReadCloser, err error) {
+	return compress(paths, Options{Compress: false, KeepRootDir: true})
 }
 
-func RootDirNotIncluded(targetFile *os.File, paths ...string) (file *os.File, err error) {
-	return compress(targetFile, false, paths)
+// TarWithoutRootDir function will tar files, but without keeping the original dir
+// this is useful when we tar files at the build stage
+func TarWithoutRootDir(paths ...string) (readCloser io.ReadCloser, err error) {
+	return compress(paths, Options{Compress: false, KeepRootDir: false})
 }
 
-func compress(targetFile *os.File, keepRootDir bool, paths []string) (file *os.File, err error) {
+func Untar(src io.Reader, dst string) (int64, error) {
+	return Decompress(src, dst, Options{Compress: false})
+}
+
+// GzipCompress make the tar stream to be gzip stream.
+func GzipCompress(in io.Reader) (io.ReadCloser, chan struct{}) {
+	compressionDone := make(chan struct{})
+
+	pipeReader, pipeWriter := io.Pipe()
+	// Use a bufio.Writer to avoid excessive chunking in HTTP request.
+	bufWriter := bufio.NewWriterSize(pipeWriter, compressionBufSize)
+	compressor := gzip.NewWriter(bufWriter)
+
+	go func() {
+		_, err := io.Copy(compressor, in)
+		if err == nil {
+			err = compressor.Close()
+		}
+		if err == nil {
+			err = bufWriter.Flush()
+		}
+		if err != nil {
+			// leave the err
+			_ = pipeWriter.CloseWithError(err)
+		} else {
+			pipeWriter.Close()
+		}
+		close(compressionDone)
+	}()
+
+	return pipeReader, compressionDone
+}
+
+func compress(paths []string, options Options) (reader io.ReadCloser, err error) {
 	if len(paths) == 0 {
-		return nil, errors.New("[compress] source must be provided")
+		return nil, errors.New("[archive] source must be provided")
 	}
 	for _, path := range paths {
 		err = validatePath(path)
@@ -65,55 +107,42 @@ func compress(targetFile *os.File, keepRootDir bool, paths []string) (file *os.F
 		}
 	}
 
-	//use existing file
-	file = targetFile
-	if file == nil {
-		file, err = ioutil.TempFile("/tmp", "sealer_compress")
-		if err != nil {
-			return nil, errors.New("create tmp compress file failed")
-		}
+	pr, pw := io.Pipe()
+	tw := tar.NewWriter(pw)
+	bufWriter := bufio.NewWriterSize(nil, compressionBufSize)
+	if options.Compress {
+		tw = tar.NewWriter(gzip.NewWriter(pw))
 	}
+	go func() {
+		defer func() {
+			tw.Close()
+			pw.Close()
+		}()
 
-	defer func() {
-		// TODO this would delete existing file, is that ok?
-		if err != nil {
-			utils.CleanFile(file)
-		}
-	}()
-
-	zr := gzip.NewWriter(file)
-	tw := tar.NewWriter(zr)
-	defer func() {
-		_ = tw.Close()
-		_ = zr.Close()
-	}()
-
-	for _, path := range paths {
-		var (
-			fi        os.FileInfo
-			newFolder string
-		)
-		if keepRootDir {
-			fi, err = os.Stat(path)
+		for _, path := range paths {
+			err = writeToTarWriter(path, tw, bufWriter, options)
 			if err != nil {
-				return nil, err
-			}
-			if fi.IsDir() {
-				newFolder = filepath.Base(path)
+				_ = pw.CloseWithError(err)
 			}
 		}
+	}()
 
-		err = writeToTarWriter(path, newFolder, tw)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return file, nil
+	return pr, nil
 }
 
-func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
-	dir = strings.TrimSuffix(dir, "/")
+func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Writer, options Options) error {
+	var newFolder string
+	if options.KeepRootDir {
+		fi, err := os.Stat(path)
+		if err != nil {
+			return err
+		}
+		if fi.IsDir() {
+			newFolder = filepath.Base(path)
+		}
+	}
+
+	dir := strings.TrimSuffix(path, "/")
 	srcPrefix := filepath.ToSlash(dir + "/")
 	err := filepath.Walk(dir, func(file string, fi os.FileInfo, err error) error {
 		// generate tar header
@@ -133,14 +162,8 @@ func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
 			header.Name = filepath.Join(newFolder, filepath.Base(dir))
 		}
 
-		// those two fields may diff in different machine,
-		// so we hardcoded the gname and uname to make hash of
-		// tar consistent
-		// TODO think of a better way to fix this issue
-		header.Gname = "root"
-		header.Uname = "root"
-		// write header
-		if walkErr = tarWriter.WriteHeader(header); walkErr != nil {
+		walkErr = tarWriter.WriteHeader(header)
+		if walkErr != nil {
 			return walkErr
 		}
 		// if not a dir, write file content
@@ -149,7 +172,18 @@ func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
 			if walkErr != nil {
 				return walkErr
 			}
-			if _, walkErr = io.Copy(tarWriter, data); walkErr != nil {
+			defer data.Close()
+
+			bufWriter.Reset(tarWriter)
+			defer bufWriter.Reset(nil)
+
+			_, walkErr = io.Copy(bufWriter, data)
+			if walkErr != nil {
+				return walkErr
+			}
+
+			walkErr = bufWriter.Flush()
+			if walkErr != nil {
 				return walkErr
 			}
 		}
@@ -160,7 +194,7 @@ func writeToTarWriter(dir, newFolder string, tarWriter *tar.Writer) error {
 }
 
 // Decompress this will not change the metadata of original files
-func Decompress(src io.Reader, dst string) error {
+func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 	// need to set umask to be 000 for current process.
 	// there will be some files having higher permission like 777,
 	// eventually permission will be set to 755 when umask is 022.
@@ -169,34 +203,34 @@ func Decompress(src io.Reader, dst string) error {
 
 	err := os.MkdirAll(dst, common.FileMode0755)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	zr, err := gzip.NewReader(src)
-	if err != nil {
-		return err
+	reader := src
+	if options.Compress {
+		reader, err = gzip.NewReader(src)
+		if err != nil {
+			return 0, err
+		}
 	}
 
-	tr := tar.NewReader(zr)
-	type DirStruct struct {
-		header     *tar.Header
-		dir        string
-		next, prev *DirStruct
-	}
-
-	prefixes := make(map[string]*DirStruct)
+	var (
+		size int64 = 0
+		dirs []*tar.Header
+		tr   = tar.NewReader(reader)
+	)
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return err
+			return 0, err
 		}
-
+		size += header.Size
 		// validate name against path traversal
 		if !validRelPath(header.Name) {
-			return fmt.Errorf("tar contained invalid name error %q", header.Name)
+			return 0, fmt.Errorf("tar contained invalid name error %q", header.Name)
 		}
 
 		target := filepath.Join(dst, header.Name)
@@ -205,26 +239,15 @@ func Decompress(src io.Reader, dst string) error {
 		case tar.TypeDir:
 			if _, err = os.Stat(target); err != nil {
 				if err = os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
-					return err
+					return 0, err
 				}
-
-				// building a double linked list
-				prefix := filepath.Dir(target)
-				prev := prefixes[prefix]
-				//an root dir
-				if prev == nil {
-					prefixes[target] = &DirStruct{header: header, dir: target, next: nil, prev: nil}
-				} else {
-					newHead := &DirStruct{header: header, dir: target, next: nil, prev: prev}
-					prev.next = newHead
-					prefixes[target] = newHead
-				}
+				dirs = append(dirs, header)
 			}
 
 		case tar.TypeReg:
 			err = func() error {
 				// regularly won't mkdir, unless add newFolder on compressing
-				inErr := utils.MkDirIfNotExists(filepath.Dir(target))
+				inErr := os.MkdirAll(filepath.Dir(target), 0755)
 				if inErr != nil {
 					return inErr
 				}
@@ -243,28 +266,20 @@ func Decompress(src io.Reader, dst string) error {
 			}()
 
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 	}
 
-	for _, v := range prefixes {
-		// for taking the last one
-		if v.next != nil {
-			continue
-		}
-
-		// every change in dir, will change the metadata of that dir
-		// change times from the last one
-		// do this is for not changing metadata of parent dir
-		for dirStr := v; dirStr != nil; dirStr = dirStr.prev {
-			if err = os.Chtimes(dirStr.dir, dirStr.header.AccessTime, dirStr.header.ModTime); err != nil {
-				return err
-			}
+	for _, h := range dirs {
+		path := filepath.Join(dst, h.Name)
+		err = os.Chtimes(path, h.AccessTime, h.ModTime)
+		if err != nil {
+			return 0, err
 		}
 	}
 
-	return nil
+	return size, nil
 }
 
 // check for path traversal and correct forward slashes

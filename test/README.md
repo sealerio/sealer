@@ -17,13 +17,27 @@ machine:
 $ go get github.com/onsi/ginkgo/ginkgo
 ```
 
+To install Sealer and prepare the test environment:
+
+```console
+#install Sealer binaries
+wget https://github.com/alibaba/sealer/releases/download/v0.2.0/sealer-v0.2.0-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.2.0-linux-amd64.tar.gz && mv sealer /usr/bin
+
+#prepare test environment
+export ACCESSKEYID={your AK}
+export ACCESSKEYSECRET={your SK}
+export RegionID={your region}
+export REGISTRY_URL={your registry}
+export REGISTRY_USERNAME={user name}
+export REGISTRY_PASSWORD={password}
+```
+
 To execute the entire test suite:
 
 ```console
-$ git clone https://github.com/alibaba/sealer.git && cd sealer
-$ ginkgo test
+$ cd sealer && ginkgo test
 ```
-
 You can then use the `--focus` option to run subsets of the test suite:
 
 ```console

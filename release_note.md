@@ -1,10 +1,14 @@
-## releaes note
+## release note
 
-### v0.1.5
+### v0.2.0
 
-- [x] CLOUD mode scale up and down, delete cluster
-- [x] BAREMETAL mode scale up and down, delete cluster
-- [x] fix infra ip list lack IP
-- [x] fix x509 cert issue
-- [x] fix send file repeatedly
-- [x] fix non root user can't init cluster
+- [x] support tag and rmi sealer image with id
+- [x] support sealer join masters and nodes
+- [x] add pre post check
+- [x] add Global config
+- [x] auto detect network interface
+- [x] optimize copy registy data
+- [x] fix Client.Timeout
+- [x] fix delete after master0 execution
+- [x] fix apply retry umount image
+- [x] optimize image structure

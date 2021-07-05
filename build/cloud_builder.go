@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/alibaba/sealer/check/checker"
+
 	"github.com/alibaba/sealer/image/store"
 
 	"github.com/alibaba/sealer/common"
@@ -59,12 +61,14 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 	if err := c.local.InitImageSpec(); err != nil {
 		return nil, err
 	}
-	if c.local.IsOnlyCopy() {
+	if c.IsOnlyCopy() {
 		buildPipeline = append(buildPipeline,
+			c.local.PullBaseImageNotExist,
 			c.local.ExecBuild,
 			c.local.UpdateImageMetadata)
 	} else {
 		buildPipeline = append(buildPipeline,
+			c.PreCheck,
 			c.InitClusterFile,
 			c.ApplyInfra,
 			c.InitBuildSSH,
@@ -76,11 +80,31 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 	return buildPipeline, nil
 }
 
+// PreCheck: check env before run cloud build
+func (c *CloudBuilder) PreCheck() error {
+	registryChecker := checker.NewRegistryChecker(c.local.ImageNamed.Domain())
+	err := registryChecker.Check()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CloudBuilder) IsOnlyCopy() bool {
+	for i := 1; i < len(c.local.Image.Spec.Layers); i++ {
+		if c.local.Image.Spec.Layers[i].Type == common.RUNCOMMAND ||
+			c.local.Image.Spec.Layers[i].Type == common.CMDCOMMAND {
+			return false
+		}
+	}
+	return true
+}
+
 // load cluster file from disk
 func (c *CloudBuilder) InitClusterFile() error {
 	clusterFile := common.TmpClusterfile
 	if !utils.IsFileExist(clusterFile) {
-		rawClusterFile := c.local.GetRawClusterFile()
+		rawClusterFile := GetRawClusterFile(c.local.Image)
 		if rawClusterFile == "" {
 			return fmt.Errorf("failed to get cluster file from context or base image")
 		}
@@ -104,7 +128,10 @@ func (c *CloudBuilder) InitClusterFile() error {
 // apply infra create vms
 func (c *CloudBuilder) ApplyInfra() error {
 	if c.local.Cluster.Spec.Provider == common.AliCloud {
-		infraManager := infra.NewDefaultProvider(c.local.Cluster)
+		infraManager, err := infra.NewDefaultProvider(c.local.Cluster)
+		if err != nil {
+			return err
+		}
 		if err := infraManager.Apply(); err != nil {
 			return fmt.Errorf("failed to apply infra :%v", err)
 		}
@@ -143,17 +170,16 @@ func (c *CloudBuilder) Cleanup() (err error) {
 	t := metav1.Now()
 	c.local.Cluster.DeletionTimestamp = &t
 	c.local.Cluster.Spec.Provider = common.AliCloud
-	infraManager := infra.NewDefaultProvider(c.local.Cluster)
+	infraManager, err := infra.NewDefaultProvider(c.local.Cluster)
+	if err != nil {
+		return err
+	}
 	if err := infraManager.Apply(); err != nil {
 		logger.Info("failed to cleanup infra :%v", err)
 	}
 
-	tarFileName := fmt.Sprintf(common.TmpTarFile, c.local.Image.Spec.ID)
-	if err = os.Remove(tarFileName); err != nil {
-		logger.Info("failed to cleanup local temp file %s:%v", tarFileName, err)
-	}
 	if err = os.Remove(common.TmpClusterfile); err != nil {
-		logger.Info("failed to cleanup local temp file %s:%v", common.TmpClusterfile, err)
+		logger.Warn("failed to cleanup local temp file %s:%v", common.TmpClusterfile, err)
 	}
 	if err = os.Remove(common.RawClusterfile); err != nil {
 		logger.Info("failed to cleanup local temp file %s:%v", common.RawClusterfile, err)

@@ -23,9 +23,9 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type Layer struct {
-	Hash  digest.Digest `json:"hash"` // shaxxx:d6a6c9bfd4ad2901695be1dceca62e1c35a8482982ad6be172fe6958bc4f79d7
-	Type  string        `json:"type"`
-	Value string        `json:"value"`
+	ID    digest.Digest `json:"id,omitempty"` // shaxxx:d6a6c9bfd4ad2901695be1dceca62e1c35a8482982ad6be172fe6958bc4f79d7
+	Type  string        `json:"type,omitempty"`
+	Value string        `json:"value,omitempty"`
 }
 
 // ImageSpec defines the desired state of Image
@@ -34,10 +34,11 @@ type ImageSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Image. Edit Image_types.go to remove/update
-	ID          string  `json:"id"`
-	Hash        string  `json:"hash"`
-	MergedLayer string  `json:"mergedLayer"`
-	Layers      []Layer `json:"layers"`
+	ID            string   `json:"id,omitempty"`
+	MergedLayer   string   `json:"mergedLayer,omitempty"`
+	Layers        []Layer  `json:"layers,omitempty"`
+	SealerVersion string   `json:"sealer_version,omitempty"`
+	Platform      Platform `json:"platform"`
 }
 
 // ImageStatus defines the observed state of Image
@@ -64,7 +65,13 @@ type Image struct {
 type ImageList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Image `json:"items"`
+	Items           []Image `json:"items,omitempty"`
+}
+
+type Platform struct {
+	Architecture string `json:"architecture,omitempty"`
+	OS           string `json:"os,omitempty"`
+	OSVersion    string `json:"os_version,omitempty"`
 }
 
 func init() {

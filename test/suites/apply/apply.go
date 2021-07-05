@@ -42,8 +42,7 @@ func GetRawClusterFilePath() string {
 }
 
 func DeleteClusterByFile(clusterFile string) {
-	cmd := fmt.Sprintf("%s delete -f %s", settings.DefaultSealerBin, clusterFile)
-	testhelper.RunCmdAndCheckResult(cmd, 0)
+	testhelper.RunCmdAndCheckResult(SealerDeleteCmd(clusterFile), 0)
 }
 
 func WriteClusterFileToDisk(cluster *v1.Cluster, clusterFilePath string) {
@@ -60,14 +59,21 @@ func LoadClusterFileFromDisk(clusterFilePath string) *v1.Cluster {
 	return &cluster
 }
 
+func SealerDeleteCmd(clusterFile string) string {
+	return fmt.Sprintf("%s delete -f %s --force", settings.DefaultSealerBin, clusterFile)
+}
+
 func SealerApplyCmd(clusterFile string) string {
 	return fmt.Sprintf("%s apply -f %s", settings.DefaultSealerBin, clusterFile)
 }
 
 func CreateAliCloudInfraAndSave(cluster *v1.Cluster, clusterFile string) *v1.Cluster {
 	gomega.Eventually(func() bool {
-		infraManager := infra.NewDefaultProvider(cluster)
-		err := infraManager.Apply()
+		infraManager, err := infra.NewDefaultProvider(cluster)
+		if err != nil {
+			return false
+		}
+		err = infraManager.Apply()
 		return err == nil
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
 
@@ -103,8 +109,11 @@ func CleanUpAliCloudInfra(cluster *v1.Cluster) {
 	gomega.Eventually(func() bool {
 		t := metav1.Now()
 		cluster.DeletionTimestamp = &t
-		infraManager := infra.NewDefaultProvider(cluster)
-		err := infraManager.Apply()
+		infraManager, err := infra.NewDefaultProvider(cluster)
+		if err != nil {
+			return false
+		}
+		err = infraManager.Apply()
 		return err == nil
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
 }

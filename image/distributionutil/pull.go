@@ -17,16 +17,17 @@ package distributionutil
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"io/ioutil"
+
+	"github.com/alibaba/sealer/utils/archive"
 
 	"fmt"
-	"path/filepath"
 	"sync"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils/compress"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
@@ -48,6 +49,7 @@ func (puller *ImagePuller) Pull(context context.Context, named reference.Named) 
 		errorCh    = make(chan error, 128)
 		done       sync.WaitGroup
 		layerStore = puller.config.LayerStore
+		layers     = []v1.Layer{}
 	)
 
 	manifest, err := puller.getRemoteManifest(context, named)
@@ -59,17 +61,35 @@ func (puller *ImagePuller) Pull(context context.Context, named reference.Named) 
 	if err != nil {
 		return nil, err
 	}
-	for _, l := range manifest.Layers {
+	for _, l := range v1Image.Spec.Layers {
+		if l.ID == "" {
+			continue
+		}
+		layers = append(layers, l)
+	}
+	// number of non-empty layer and layer in distribution should be equal
+	if len(layers) != len(manifest.Layers) {
+		return nil, fmt.Errorf("the number layerIDs %d and LayerDescriptor %d are mismatch", len(layers), len(manifest.Layers))
+	}
+
+	for i, l := range manifest.Layers {
 		done.Add(1)
-		go func(layer distribution.Descriptor) {
+		// we take hash of layer as real layer id,  hash of descriptor is just
+		// a identifier for remote data
+		go func(descriptor distribution.Descriptor, layer v1.Layer) {
 			defer done.Done()
-			roLayer, LayerErr := store.NewROLayer(layer.Digest, layer.Size)
+			// roLayer now does not exist, new one
+			// descriptor.Size is temp size for this layer
+			// real size will be set within downloadLayer
+			roLayer, LayerErr := store.NewROLayer(layer.ID,
+				descriptor.Size,
+				map[string]digest.Digest{named.Domain() + "/" + named.Repo(): descriptor.Digest})
 			if LayerErr != nil {
 				errorCh <- LayerErr
 				return
 			}
 
-			LayerErr = puller.downloadLayer(context, named, roLayer)
+			LayerErr = puller.downloadLayer(context, named, roLayer, descriptor)
 			if LayerErr != nil {
 				errorCh <- LayerErr
 				return
@@ -80,7 +100,7 @@ func (puller *ImagePuller) Pull(context context.Context, named reference.Named) 
 				errorCh <- LayerErr
 				return
 			}
-		}(l)
+		}(l, layers[i])
 	}
 	done.Wait()
 	if len(errorCh) > 0 {
@@ -95,14 +115,15 @@ func (puller *ImagePuller) Pull(context context.Context, named reference.Named) 
 	return &v1Image, nil
 }
 
-func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Named, layer store.Layer) error {
+func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Named, layer store.Layer, descriptor distribution.Descriptor) error {
 	var (
 		layerStore  = puller.config.LayerStore
 		progressOut = puller.config.ProgressOutput
 		repo        = puller.repository
+		sfs         = store.NewDefaultLayerStorage()
 	)
-
-	// check layer existence
+	// descriptor is remote layer data, but its hash may not be the layer id, so we
+	// use layer.ID(hash of layer from v1.Image) to check layer existence.
 	roLayer := layerStore.Get(layer.ID())
 	if roLayer != nil {
 		progress.Message(progressOut, layer.SimpleID(), "already exists")
@@ -110,18 +131,25 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Na
 	}
 
 	bs := repo.Blobs(ctx)
-	layerDownloadReader, err := bs.Open(ctx, digest.Digest(layer.ID()))
+	layerReader, err := bs.Open(ctx, descriptor.Digest)
 	if err != nil {
 		return err
 	}
+	defer layerReader.Close()
 
-	progressReader := progress.NewProgressReader(layerDownloadReader, progressOut, layer.Size(), layer.SimpleID(), "pulling")
-	err = compress.Decompress(progressReader, filepath.Join(common.DefaultLayerDir, digest.Digest(layer.ID()).Hex()))
+	digester := digest.Canonical.Digester()
+	LayerDownloadReader := ioutil.NopCloser(io.TeeReader(layerReader, digester.Hash()))
+	progressReader := progress.NewProgressReader(LayerDownloadReader, progressOut, descriptor.Size, layer.SimpleID(), "pulling")
+	size, err := archive.Decompress(progressReader, sfs.LayerDataDir(digest.Digest(layer.ID())), archive.Options{Compress: true})
 	if err != nil {
 		progress.Update(progressOut, layer.SimpleID(), err.Error())
 		return err
 	}
-
+	// update rolayer size for storing the info under layerdb
+	layer.SetSize(size)
+	if digester.Digest() != descriptor.Digest {
+		return fmt.Errorf("digest verified failed for %s", layer.ID())
+	}
 	progress.Update(progressOut, layer.SimpleID(), "pull completed")
 	return nil
 }
