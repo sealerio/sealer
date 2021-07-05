@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alibaba/sealer/runtime"
+
 	infraUtils "github.com/alibaba/sealer/infra/utils"
 
 	"github.com/alibaba/sealer/utils"
@@ -139,6 +141,10 @@ func (c *FileSystem) MountRootfs(cluster *v1.Cluster, hosts []string) error {
 func (c *FileSystem) UnMountRootfs(cluster *v1.Cluster) error {
 	//do clean.sh,then remove all Masters and Nodes roofs
 	IPList := append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
+	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.Spec.Masters.IPList[0])
+	if utils.NotIn(config.IP, IPList) {
+		IPList = append(IPList, config.IP)
+	}
 	if err := unmountRootfs(IPList, cluster); err != nil {
 		return err
 	}
@@ -147,6 +153,9 @@ func (c *FileSystem) UnMountRootfs(cluster *v1.Cluster) error {
 
 func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	SSH := ssh.NewSSHByCluster(cluster)
+	config := runtime.GetRegistryConfig(
+		common.DefaultTheClusterRootfsDir(cluster.ClusterName),
+		cluster.Spec.Masters.IPList[0])
 	if err := ssh.WaitSSHReady(SSH, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}
@@ -160,7 +169,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 		wg.Add(1)
 		go func(ip string) {
 			defer wg.Done()
-			err := CopyFiles(SSH, ip == ipList[0], ip, src, target)
+			err := CopyFiles(SSH, ip == config.IP, ip, src, target)
 			if err != nil {
 				logger.Error("copy rootfs failed %v", err)
 				mutex.Lock()
@@ -183,8 +192,8 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	return nil
 }
 
-func CopyFiles(ssh ssh.Interface, isMaster0 bool, ip, src, target string) error {
-	if isMaster0 {
+func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
+	if isRegistry {
 		return ssh.Copy(ip, src, target)
 	}
 	files, err := ioutil.ReadDir(src)

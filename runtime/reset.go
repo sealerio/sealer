@@ -32,7 +32,7 @@ func (d *Default) reset(cluster *v1.Cluster) error {
 	if err != nil {
 		logger.Error("failed to clean masters %v", err)
 	}
-	return d.RecycleRegistryOnMaster0()
+	return d.RecycleRegistry()
 }
 func (d *Default) resetNodes(nodes []string) error {
 	if len(nodes) == 0 {
@@ -67,7 +67,7 @@ func (d *Default) resetNode(node string) error {
 	host := utils.GetHostIP(node)
 	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Masters[0]))); err != nil {
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Rootfs, d.Masters[0]))); err != nil {
 		return err
 	}
 	return nil
