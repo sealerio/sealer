@@ -163,13 +163,21 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	var flag bool
 	var mutex sync.Mutex
 	src := common.DefaultMountCloudImageDir(cluster.Name)
+	localHostAddrs, err := utils.GetLocalHostAddrs()
+	if err != nil {
+		return err
+	}
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	for _, ip := range ipList {
 		wg.Add(1)
 		go func(ip string) {
 			defer wg.Done()
-			err := CopyFiles(SSH, ip == config.IP, ip, src, target)
+			if utils.IsLocalIP(ip, localHostAddrs) {
+				err = utils.RecursionCopy(src, target)
+			} else {
+				err = CopyFiles(SSH, ip == config.IP, ip, src, target)
+			}
 			if err != nil {
 				logger.Error("copy rootfs failed %v", err)
 				mutex.Lock()
