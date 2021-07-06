@@ -75,9 +75,8 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	var flag bool
 	c.cluster.Spec.Image = c.imageName
 	c.cluster.Spec.Provider = common.BAREMETAL
-	if c.interfaceName != "" {
-		c.cluster.Spec.Network.Interface = c.interfaceName
-	}
+	c.cluster.Spec.Network.Interface = c.interfaceName
+
 	if c.podCidr != "" {
 		if flag, err = IsCidrString(c.podCidr); !flag {
 			return err
