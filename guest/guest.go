@@ -16,7 +16,6 @@ package guest
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/utils"
@@ -45,7 +44,7 @@ func (d *Default) Apply(cluster *v1.Cluster) error {
 	if len(masters) == 0 {
 		return fmt.Errorf("failed to found master")
 	}
-	clusterRootfs := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name)
+	clusterRootfs := common.DefaultTheClusterRootfsDir(cluster.Name)
 	for i := range image.Spec.Layers {
 		if image.Spec.Layers[i].Type != common.CMDCOMMAND {
 			continue
