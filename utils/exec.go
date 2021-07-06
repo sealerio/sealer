@@ -19,13 +19,15 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/alibaba/sealer/common"
 )
 
 func Cmd(name string, args ...string) error {
 	cmd := exec.Command(name, args[:]...)
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
+	cmd.Stderr = common.StdErr
+	cmd.Stdout = common.StdOut
 	return cmd.Run()
 }
 

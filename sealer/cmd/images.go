@@ -17,6 +17,8 @@ package cmd
 import (
 	"os"
 
+	"github.com/alibaba/sealer/common"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
 	"github.com/olekukonko/tablewriter"
@@ -38,7 +40,7 @@ var listCmd = &cobra.Command{
 			logger.Error(err)
 			os.Exit(1)
 		}
-		table := tablewriter.NewWriter(os.Stdout)
+		table := tablewriter.NewWriter(common.StdOut)
 		table.SetHeader([]string{imageID, imageName})
 		for _, image := range imageMetadataList {
 			table.Append([]string{image.ID, image.Name})

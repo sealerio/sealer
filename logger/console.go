@@ -16,7 +16,6 @@ package logger
 
 import (
 	"encoding/json"
-	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -100,13 +99,13 @@ func (c *consoleLogger) Destroy() {
 func (c *consoleLogger) printlnToStdOut(when time.Time, msg string) {
 	c.stdOutMux.Lock()
 	defer c.stdOutMux.Unlock()
-	os.Stdout.Write(append([]byte(msg), '\n'))
+	_, _ = common.StdOut.Write(append([]byte(msg), '\n'))
 }
 
 func (c *consoleLogger) printlnToStdErr(when time.Time, msg string) {
 	c.stdErrMux.Lock()
 	defer c.stdErrMux.Unlock()
-	os.Stderr.Write(append([]byte(msg), '\n'))
+	_, _ = common.StdErr.Write(append([]byte(msg), '\n'))
 }
 
 func init() {

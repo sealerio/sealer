@@ -15,8 +15,9 @@
 package checker
 
 import (
-	"os"
 	"text/template"
+
+	"github.com/alibaba/sealer/common"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -98,7 +99,7 @@ func (n *PodChecker) Output(podNamespaceStatusList []PodNamespaceStatus) error {
 		panic(err)
 	}
 	t = template.Must(t, err)
-	err = t.Execute(os.Stdout, podNamespaceStatusList)
+	err = t.Execute(common.StdOut, podNamespaceStatusList)
 	if err != nil {
 		logger.Error("pod checker template can not excute %s", err)
 		return err
