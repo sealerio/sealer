@@ -25,6 +25,7 @@ import (
 	"github.com/alibaba/sealer/utils"
 
 	"sigs.k8s.io/yaml"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
