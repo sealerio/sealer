@@ -109,9 +109,12 @@ const (
 	PushImageCmd    = "%s push %s"
 	BuildClusterCmd = "%s build -f %s -t %s -b %s %s"
 )
-const ExecBinaryFileName = "sealer"
-const ROOT = "root"
-const WINDOWS = "windows"
+
+const (
+	ExecBinaryFileName = "sealer"
+	ROOT               = "root"
+	WINDOWS            = "windows"
+)
 
 func GetClusterWorkDir(clusterName string) string {
 	home, err := homedir.Dir()
