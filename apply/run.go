@@ -24,8 +24,9 @@ import (
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/utils"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"sigs.k8s.io/yaml"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type ClusterArgs struct {
@@ -75,9 +76,8 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	var flag bool
 	c.cluster.Spec.Image = c.imageName
 	c.cluster.Spec.Provider = common.BAREMETAL
-	if c.interfaceName != "" {
-		c.cluster.Spec.Network.Interface = c.interfaceName
-	}
+	c.cluster.Spec.Network.Interface = c.interfaceName
+
 	if c.podCidr != "" {
 		if flag, err = IsCidrString(c.podCidr); !flag {
 			return err

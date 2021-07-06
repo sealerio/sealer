@@ -1,7 +1,9 @@
 ## release note
 
-### v0.2.0
+### v0.2.1
 
+- [x] fix run can't init cluster
+- [x] add calico ipip config
 - [x] support tag and rmi sealer image with id
 - [x] support sealer join masters and nodes
 - [x] add pre post check

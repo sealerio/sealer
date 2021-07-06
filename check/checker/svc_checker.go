@@ -15,8 +15,9 @@
 package checker
 
 import (
-	"os"
 	"text/template"
+
+	"github.com/alibaba/sealer/common"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -96,7 +97,7 @@ func (n *SvcChecker) Output(svcNamespaceStatusList []*SvcNamespaceStatus) error 
 		panic(err)
 	}
 	t = template.Must(t, err)
-	err = t.Execute(os.Stdout, svcNamespaceStatusList)
+	err = t.Execute(common.StdOut, svcNamespaceStatusList)
 	if err != nil {
 		logger.Error("service checker template can not excute %s", err)
 		return err
