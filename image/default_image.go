@@ -18,8 +18,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strings"
+
+	"github.com/alibaba/sealer/common"
 
 	"github.com/docker/docker/pkg/streamformatter"
 
@@ -68,7 +69,7 @@ func (d DefaultImageService) Pull(imageName string) error {
 		reader, writer  = io.Pipe()
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
 		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
-		streamOut       = dockerstreams.NewOut(os.Stdout)
+		streamOut       = dockerstreams.NewOut(common.StdOut)
 	)
 	defer func() {
 		_ = reader.Close()
@@ -119,7 +120,7 @@ func (d DefaultImageService) Push(imageName string) error {
 		reader, writer  = io.Pipe()
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
 		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
-		streamOut       = dockerstreams.NewOut(os.Stdout)
+		streamOut       = dockerstreams.NewOut(common.StdOut)
 	)
 	defer func() {
 		_ = reader.Close()

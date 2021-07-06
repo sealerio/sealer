@@ -15,8 +15,9 @@
 package checker
 
 import (
-	"os"
 	"text/template"
+
+	"github.com/alibaba/sealer/common"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -94,7 +95,7 @@ func (n *NodeChecker) Output(nodeCLusterStatus NodeClusterStatus) error {
 		panic(err)
 	}
 	t = template.Must(t, err)
-	err = t.Execute(os.Stdout, nodeCLusterStatus)
+	err = t.Execute(common.StdOut, nodeCLusterStatus)
 	if err != nil {
 		logger.Error("node checker template can not excute %s", err)
 		return err

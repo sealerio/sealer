@@ -23,6 +23,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alibaba/sealer/common"
 )
 
 // 默认日志输出
@@ -178,7 +180,7 @@ func (localLog *LocalLogger) SetLogger(adapterName string, configs ...string) {
 
 	err := logger.Init(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "logger Init <%s> err:%v, %s output ignore!\n",
+		fmt.Fprintf(common.StdErr, "logger Init <%s> err:%v, %s output ignore!\n",
 			adapterName, err, adapterName)
 	}
 	if num >= 0 {
@@ -216,7 +218,7 @@ func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level 
 			//网络日志，使用json格式发送,此处使用结构体，用于类似ElasticSearch功能检索
 			err := l.LogWrite(when, msg, level)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
+				fmt.Fprintf(common.StdErr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
 			}
 			continue
 		}
@@ -230,7 +232,7 @@ func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level 
 		msgStr := when.Format(localLog.timeFormat) + strLevel + strPath + msg.Content
 		err := l.LogWrite(when, msgStr, level)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
+			fmt.Fprintf(common.StdErr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
 		}
 	}
 }
@@ -363,18 +365,18 @@ func SetLogger(param ...string) {
 		// Open the configuration file
 		fd, err := os.Open(c)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not open %s for configure: %s\n", c, err)
+			fmt.Fprintf(common.StdErr, "Could not open %s for configure: %s\n", c, err)
 			os.Exit(1)
 		}
 
 		contents, err := ioutil.ReadAll(fd)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not read %s: %s\n", c, err)
+			fmt.Fprintf(common.StdErr, "Could not read %s: %s\n", c, err)
 			os.Exit(1)
 		}
 		err = json.Unmarshal(contents, conf)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not Unmarshal %s: %s\n", contents, err)
+			fmt.Fprintf(common.StdErr, "Could not Unmarshal %s: %s\n", contents, err)
 			os.Exit(1)
 		}
 	}

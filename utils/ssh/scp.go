@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibaba/sealer/common"
+
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
@@ -196,7 +198,7 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 		reader, writer  = io.Pipe()
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
 		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
-		streamOut       = dockerstreams.NewOut(os.Stdout)
+		streamOut       = dockerstreams.NewOut(common.StdOut)
 		epu             = &easyProgressUtil{
 			output:         progressChanOut,
 			completeNumber: 0,
