@@ -76,7 +76,13 @@ etcd:
   local:
     extraArgs:
       listen-metrics-urls: http://0.0.0.0:2381
-`
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: "ipvs"
+ipvs:
+  excludeCIDRs:
+  - "{{.VIP}}/32"`
 
 const JoinCPTemplateTextV1beta2 = string(`apiVersion: kubeadm.k8s.io/v1beta2
 caCertPath: /etc/kubernetes/pki/ca.crt
@@ -162,4 +168,11 @@ scheduler:
 etcd:
   local:
     extraArgs:
-      listen-metrics-urls: http://0.0.0.0:2381`)
+      listen-metrics-urls: http://0.0.0.0:2381
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: "ipvs"
+ipvs:
+  excludeCIDRs:
+  - "{{.VIP}}/32"`)
