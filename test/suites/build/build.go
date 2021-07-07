@@ -20,14 +20,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	"github.com/alibaba/sealer/utils"
 	"github.com/onsi/gomega"
 )
 
 func GetFixtures() string {
-	return filepath.Join(testhelper.GetPwd(), "suites", "build", "fixtures")
+	return filepath.Join(settings.DefaultTestEnvDir, "suites", "build", "fixtures")
 }
 
 func GetLocalBuildDir() string {

@@ -152,15 +152,11 @@ var _ = Describe("sealer image", func() {
 			image.DoImageOps(settings.SubCmdRmiOfSealer, settings.TestImageName)
 		})
 		It("show image metadata", func() {
-			sess, err := testhelper.Start(fmt.Sprintf("%s inspect %s", settings.DefaultSealerBin, settings.TestImageName))
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+			testhelper.RunCmdAndCheckResult(fmt.Sprintf("%s inspect %s", settings.DefaultSealerBin, settings.TestImageName), 0)
 		})
 
 		It("show image default Clusterfile", func() {
-			sess, err := testhelper.Start(fmt.Sprintf("%s inspect -c %s", settings.DefaultSealerBin, settings.TestImageName))
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+			testhelper.RunCmdAndCheckResult(fmt.Sprintf("%s inspect -c %s", settings.DefaultSealerBin, settings.TestImageName), 0)
 		})
 	})
 
