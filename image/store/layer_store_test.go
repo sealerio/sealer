@@ -1,10 +1,11 @@
 package store
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -45,7 +46,7 @@ func makeFakeLayer(layer mockROLayer) error {
 	}
 
 	for _, file := range layer.files {
-		err = ioutil.WriteFile(filepath.Join(layer.tmpRelPath, file), []byte(fileContent), common.FileMode0644)
+		err = utils.AtomicWriteFile(filepath.Join(layer.tmpRelPath, file), []byte(fileContent), common.FileMode0644)
 		if err != nil {
 			return err
 		}

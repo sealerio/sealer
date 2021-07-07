@@ -70,7 +70,7 @@ func DeleteImage(imageName string) error {
 		return err
 	}
 
-	if err = ioutil.WriteFile(common.DefaultImageMetadataFile, data, common.FileMode0644); err != nil {
+	if err = utils.AtomicWriteFile(common.DefaultImageMetadataFile, data, common.FileMode0644); err != nil {
 		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
 	}
 	return nil
@@ -104,7 +104,7 @@ func DeleteImageByID(imageID string, force bool) error {
 		return err
 	}
 
-	if err = ioutil.WriteFile(common.DefaultImageMetadataFile, data, common.FileMode0644); err != nil {
+	if err = utils.AtomicWriteFile(common.DefaultImageMetadataFile, data, common.FileMode0644); err != nil {
 		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
 	}
 	return nil
@@ -154,7 +154,7 @@ func SetImageMetadata(metadata ImageMetadata) error {
 		return err
 	}
 
-	if err = ioutil.WriteFile(common.DefaultImageMetadataFile, data, common.FileMode0644); err != nil {
+	if err = utils.AtomicWriteFile(common.DefaultImageMetadataFile, data, common.FileMode0644); err != nil {
 		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
 	}
 	return nil
