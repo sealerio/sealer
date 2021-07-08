@@ -120,6 +120,7 @@ func (cs *chainStore) restore() error {
 				logger.Error(err)
 				break
 			}
+			logger.Debug("current layer %+v, restore chain id: %s", cacheLayer, chainID)
 
 			_, ok := cs.chains[chainID]
 			if !ok {

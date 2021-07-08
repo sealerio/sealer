@@ -33,8 +33,9 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 			return fmt.Errorf("failed to prepare cluster env %v", err)
 		}
 	}
+
 	// tar local build context
-	tarFileName := fmt.Sprintf(common.TmpTarFile, c.local.Image.Spec.ID)
+	tarFileName := fmt.Sprintf(common.TmpTarFile, utils.GenUniqueID(32))
 	if _, isExist := utils.CheckCmdIsExist("tar"); !isExist {
 		return fmt.Errorf("local server muster support tar cmd")
 	}
@@ -49,7 +50,7 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 	}()
 	// send to remote server
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.local.Cluster.Name)
-	if err := c.SSH.Copy(c.RemoteHostIP, tarFileName, tarFileName); err != nil {
+	if err = c.SSH.Copy(c.RemoteHostIP, tarFileName, tarFileName); err != nil {
 		return err
 	}
 	// unzip remote context

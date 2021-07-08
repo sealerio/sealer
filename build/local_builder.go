@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/alibaba/sealer/image/cache"
 
 	"github.com/alibaba/sealer/utils/archive"
@@ -129,8 +131,7 @@ func (l *LocalBuilder) InitImageSpec() error {
 		return fmt.Errorf("first line of kubefile must start with FROM")
 	}
 
-	l.Image.Spec.ID = utils.GenUniqueID(32)
-	logger.Info("init image spec success! image id is %s", l.Image.Spec.ID)
+	logger.Info("init image spec success!")
 	return nil
 }
 
@@ -326,21 +327,18 @@ func (l *LocalBuilder) calculateLayerDigestAndPlaceIt(layer *v1.Layer, tempTarge
 func (l *LocalBuilder) UpdateImageMetadata() error {
 	l.setClusterFileToImage()
 	l.squashBaseImageLayerIntoCurrentImage()
-	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageDBRootDir, l.Image.Spec.ID, common.YamlSuffix)
-	// write image info to its metadata
-	if err := utils.MarshalYamlToFile(filename, l.Image); err != nil {
-		return fmt.Errorf("failed to write image yaml:%v", err)
+	err := l.updateImageIDAndSaveImage()
+	if err != nil {
+		return fmt.Errorf("failed to updateImageIDAndSaveImage, err: %s", err)
 	}
 
-	logger.Info("write image yaml file to %s success !", filename)
-	if err := imageUtils.SetImageMetadata(imageUtils.ImageMetadata{
+	if err = imageUtils.SetImageMetadata(imageUtils.ImageMetadata{
 		Name: l.ImageNamed.Raw(),
 		ID:   l.Image.Spec.ID,
 	}); err != nil {
 		return fmt.Errorf("failed to set image metadata :%v", err)
 	}
 	logger.Info("update image %s to image metadata success !", l.ImageNamed.Raw())
-
 	return nil
 }
 
@@ -358,6 +356,23 @@ func (l *LocalBuilder) setClusterFileToImage() {
 	}
 
 	l.addImageAnnotations(common.ImageAnnotationForClusterfile, clusterFileData)
+}
+
+func (l *LocalBuilder) updateImageIDAndSaveImage() error {
+	imageBytes, err := yaml.Marshal(l.Image)
+	if err != nil {
+		return err
+	}
+
+	imageID := digest.FromBytes(imageBytes).Hex()
+	l.Image.Spec.ID = imageID
+	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageDBRootDir, imageID, common.YamlSuffix)
+	err = utils.WriteFile(filename, imageBytes)
+	if err != nil {
+		return err
+	}
+	logger.Info("write image yaml file to %s success !", filename)
+	return nil
 }
 
 // GetClusterFile from user build context or from base image
@@ -449,7 +464,7 @@ func (l *LocalBuilder) goCache(parentID cache.ChainID, layer *v1.Layer, cacheSer
 
 	cacheLayer := cacheService.NewCacheLayer(*layer, srcDigest)
 	cacheLayerID, err := l.Prober.Probe(parentID.String(), &cacheLayer)
-	if cacheLayerID == "" || err != nil {
+	if err != nil {
 		logger.Debug("failed to probe cache for %+v, err: %s", layer, err)
 		return false, ""
 	}
