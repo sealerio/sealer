@@ -163,13 +163,17 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	var flag bool
 	var mutex sync.Mutex
 	src := common.DefaultMountCloudImageDir(cluster.Name)
+	localHostAddrs, err := utils.IsLocalHostAddrs()
+	if err != nil {
+		return err
+	}
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	for _, ip := range ipList {
 		wg.Add(1)
 		go func(ip string) {
 			defer wg.Done()
-			err := CopyFiles(SSH, ip == config.IP, ip, src, target)
+			err = CopyFiles(SSH, ip == config.IP, utils.IsLocalIP(ip, localHostAddrs), ip, src, target)
 			if err != nil {
 				logger.Error("copy rootfs failed %v", err)
 				mutex.Lock()
@@ -192,22 +196,37 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	return nil
 }
 
-func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
-	if isRegistry {
-		return ssh.Copy(ip, src, target)
-	}
+func CopyFiles(ssh ssh.Interface, isRegistry bool, isLocal bool, ip, src, target string) error {
+	logger.Info(fmt.Sprintf(" %s the local host: %t ,", ip, isLocal))
 	files, err := ioutil.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("failed to copy files %s", err)
 	}
-
-	for _, f := range files {
-		if f.Name() == common.RegistryDirName {
-			continue
+	if isLocal {
+		if isRegistry {
+			return utils.RecursionCopy(src, target)
 		}
-		err := ssh.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
-		if err != nil {
-			return fmt.Errorf("failed to copy sub files %v", err)
+		for _, f := range files {
+			if f.Name() == common.RegistryDirName {
+				continue
+			}
+			err = utils.RecursionCopy(filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
+			if err != nil {
+				return fmt.Errorf("failed to local copy sub files %v", err)
+			}
+		}
+	} else {
+		if isRegistry {
+			return ssh.Copy(ip, src, target)
+		}
+		for _, f := range files {
+			if f.Name() == common.RegistryDirName {
+				continue
+			}
+			err = ssh.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
+			if err != nil {
+				return fmt.Errorf("failed to copy sub files %v", err)
+			}
 		}
 	}
 	return nil
