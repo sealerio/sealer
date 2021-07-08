@@ -14,18 +14,15 @@
 
 package image
 
-import "github.com/alibaba/sealer/image/store"
+import (
+	"github.com/alibaba/sealer/image/cache"
+	"github.com/opencontainers/go-digest"
+)
 
-type DefaultLayerService struct {
-	layerStorage store.LayerStorage
+type CacheBuilder interface {
+	BuildImageCache() (Cache, error)
 }
 
-func (dls DefaultLayerService) LayerStorage() store.LayerStorage {
-	return dls.layerStorage
-}
-
-func NewLayerService() LayerService {
-	return DefaultLayerService{
-		layerStorage: store.NewDefaultLayerStorage(),
-	}
+type Cache interface {
+	GetCache(parentID string, layer *cache.Layer) (LayerID digest.Digest, err error)
 }

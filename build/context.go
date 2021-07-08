@@ -60,3 +60,7 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 	logger.Info("send build context to %s success !", c.RemoteHostIP)
 	return nil
 }
+
+func (c *CloudBuilder) changeBuilderContext() {
+	c.local.Context = "."
+}

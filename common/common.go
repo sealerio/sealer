@@ -51,6 +51,7 @@ const (
 	RemoteSealerPath              = "/usr/local/bin/sealer"
 	DefaultCloudProvider          = AliCloud
 	ClusterfileName               = "ClusterfileName"
+	CacheID                       = "cacheID"
 )
 
 // image module
