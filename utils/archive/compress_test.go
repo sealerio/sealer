@@ -16,7 +16,9 @@
 package archive
 
 import (
+	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -105,15 +107,20 @@ func makeDir(root string, d dirDef) error {
 }
 
 func TestTarWithoutRootDir(t *testing.T) {
+	digest, _, err := TarCanonicalDigest("/Users/eric/Workspace/src/sealer/empty")
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(digest)
 }
 
 func TestTarWithRootDir(t *testing.T) {
-	reader, err := TarWithRootDir("/Users/eric/Workspace/src/github.com/vbauerster/mpb", "/Users/eric/Workspace/src/github.com/vbauerster/empty")
+	reader, err := TarWithRootDir("./hash.go")
 	if err != nil {
 		t.Error(err)
 	}
 
-	tmp, err := os.CreateTemp("/tmp", "tar")
+	tmp, err := ioutil.TempFile("/tmp", "tar")
 	_, err = io.Copy(tmp, reader)
 	if err != nil {
 		t.Error(err)

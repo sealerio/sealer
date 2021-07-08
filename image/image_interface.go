@@ -43,8 +43,9 @@ type Service interface {
 	Push(imageName string) error
 	Delete(imageName string) error
 	Login(RegistryURL, RegistryUsername, RegistryPasswd string) error
+	CacheBuilder
 }
 
 type LayerService interface {
-	LayerStorage() store.LayerStorage
+	LayerStore() store.LayerStore
 }

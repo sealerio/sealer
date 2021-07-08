@@ -26,6 +26,7 @@ type BuildFlag struct {
 	ImageName    string
 	KubefileName string
 	BuildType    string
+	NoCache      bool
 }
 
 var buildConfig *BuildFlag
@@ -42,6 +43,7 @@ var buildCmd = &cobra.Command{
 		}
 		conf := &build.Config{
 			BuildType: buildConfig.BuildType,
+			NoCache:   buildConfig.NoCache,
 		}
 		builder, err := build.NewBuilder(conf)
 		if err != nil {
@@ -63,6 +65,7 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "buildType", "b", "", "cluster image build type,default is cloud")
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
+	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logger.Error("failed to init flag: %v", err)
 		os.Exit(1)
