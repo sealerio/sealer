@@ -19,7 +19,6 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -277,36 +276,4 @@ func (d *Default) decodeJoinCmd(cmd string) {
 		}
 	}
 	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", d.JoinToken, d.TokenCaCertHash, d.CertificateKey)
-}
-
-func (d *Default) getAllInterfaceName() ([]string, error) {
-	ret, err := d.SSH.Cmd(d.Masters[0], RemoteCmdGetNetworkInterface)
-	if err != nil {
-		return nil, err
-	}
-	interfaceList := strings.Fields(string(ret))
-	return interfaceList, nil
-}
-
-func (d *Default) getMaster0InterfaceName(interfaceNameList []string) (interfaceName string, err error) {
-	for _, v := range interfaceNameList {
-		ret, err := d.SSH.Cmd(d.Masters[0], fmt.Sprintf(RemoteCmdExistNetworkInterface, v, d.Masters[0]))
-		if err != nil {
-			return "", err
-		}
-		if strings.Contains(string(ret), d.Masters[0]) {
-			return v, nil
-		}
-	}
-	return "", nil
-}
-
-func (d *Default) existMaster0InterfaceName(interfaceNameList []string, interfaceName string) bool {
-	reg := regexp.MustCompile(interfaceName)
-	for _, v := range interfaceNameList {
-		if reg.MatchString(v) {
-			return true
-		}
-	}
-	return false
 }
