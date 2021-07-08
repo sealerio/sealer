@@ -26,6 +26,7 @@ import (
 type RegistryConfig struct {
 	IP     string `yaml:"ip,omitempty"`
 	Domain string `yaml:"domain,omitempty"`
+	Port   string `yaml:"port,omitempty"`
 }
 
 func getRegistryHost(rootfs, defaultRegistry string) (host string) {
@@ -36,10 +37,10 @@ func getRegistryHost(rootfs, defaultRegistry string) (host string) {
 func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	var config RegistryConfig
 	var DefaultConfig = &RegistryConfig{
-		IP:     defaultRegistry,
+		IP:     utils.GetHostIP(defaultRegistry),
 		Domain: SeaHub,
+		Port:   "5000",
 	}
-
 	registryConfigPath := filepath.Join(rootfs, "/etc/registry.yaml")
 	if !utils.IsFileExist(registryConfigPath) {
 		return DefaultConfig
@@ -50,10 +51,15 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		return DefaultConfig
 	}
 	if config.IP == "" {
-		config.IP = defaultRegistry
+		config.IP = DefaultConfig.IP
+	} else {
+		config.IP = utils.GetHostIP(config.IP)
+	}
+	if config.Port == "" {
+		config.Domain = DefaultConfig.Port
 	}
 	if config.Domain == "" {
-		config.Domain = SeaHub
+		config.Domain = DefaultConfig.Domain
 	}
 	return &config
 }
@@ -63,7 +69,7 @@ const registryName = "sealer-registry"
 //Only use this for join and init, due to the initiation operations
 func (d *Default) EnsureRegistry() error {
 	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])
-	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", d.Rootfs, d.Rootfs)
+	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s/registry", d.Rootfs, cf.Port, d.Rootfs)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
 

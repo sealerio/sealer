@@ -18,11 +18,24 @@ import (
 	"bytes"
 	"net"
 	"sort"
+	"strings"
 )
 
 func NotIn(key string, slice []string) bool {
 	for _, s := range slice {
 		if key == s {
+			return false
+		}
+	}
+	return true
+}
+
+func NotInIPList(key string, slice []string) bool {
+	for _, s := range slice {
+		if s == "" {
+			continue
+		}
+		if key == strings.Split(s, ":")[0] {
 			return false
 		}
 	}
