@@ -26,12 +26,8 @@ type SSH struct {
 }
 
 type Network struct {
-	Interface  string `json:"interface,omitempty"`
-	CNIName    string `json:"cniName,omitempty"`
-	PodCIDR    string `json:"podCIDR,omitempty"`
-	SvcCIDR    string `json:"svcCIDR,omitempty"`
-	WithoutCNI bool   `json:"withoutCNI,omitempty"`
-	IPIP       bool   `json:"ipip,omitempty"`
+	PodCIDR string `json:"podCIDR,omitempty"`
+	SvcCIDR string `json:"svcCIDR,omitempty"`
 }
 
 type Hosts struct {

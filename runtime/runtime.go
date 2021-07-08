@@ -32,7 +32,6 @@ type Interface interface {
 	Hook(cluster *v1.Cluster) error
 	Upgrade(cluster *v1.Cluster) error
 	Reset(cluster *v1.Cluster) error
-	CNI(cluster *v1.Cluster) error
 	JoinMasters(newMastersIPList []string) error
 	JoinNodes(newNodesIPList []string) error
 	DeleteMasters(mastersIPList []string) error
@@ -71,14 +70,6 @@ type Default struct {
 	SSH               ssh.Interface
 	Rootfs            string
 	BasePath          string
-
-	// net config
-	Interface  string
-	Network    string
-	CIDR       string
-	IPIP       bool
-	MTU        string
-	WithoutCNI bool
 }
 
 func NewDefaultRuntime(cluster *v1.Cluster) Interface {
@@ -110,10 +101,6 @@ func (d *Default) LoadMetadata() error {
 }
 func (d *Default) Reset(cluster *v1.Cluster) error {
 	return d.reset(cluster)
-}
-
-func (d *Default) CNI(cluster *v1.Cluster) error {
-	return d.cni(cluster)
 }
 
 func (d *Default) Upgrade(cluster *v1.Cluster) error {

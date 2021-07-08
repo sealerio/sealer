@@ -28,7 +28,6 @@ import (
 	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/cert"
-	"github.com/alibaba/sealer/guest"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
@@ -109,19 +108,9 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.StaticFileDir = fmt.Sprintf("%s/statics", d.Rootfs)
 	// TODO remote port in ipList
 	d.APIServerCertSANs = append(cluster.Spec.CertSANS, d.getDefaultSANs()...)
-	d.Interface = cluster.Spec.Network.Interface
-	d.Network = cluster.Spec.Network.CNIName
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
-	d.WithoutCNI = cluster.Spec.Network.WithoutCNI
-	d.IPIP = cluster.Spec.Network.IPIP
-	if d.MTU == "" {
-		if d.IPIP {
-			d.MTU = "1480"
-		} else {
-			d.MTU = "1450"
-		}
-	}
+
 	// return d.LoadMetadata()
 	return nil
 }
@@ -228,50 +217,7 @@ func (d *Default) InitMaster0() error {
 		return err
 	}
 
-	//return d.InitCNI()
 	return nil
-}
-
-func (d *Default) InitCNI() error {
-	logger.Info("start to install CNI")
-	if d.WithoutCNI {
-		return nil
-	}
-
-	interfaceNameList, err := d.getAllInterfaceName()
-	if err != nil {
-		return fmt.Errorf("failed to list master[0] network interface: %w", err)
-	}
-	master0InterfaceName, err := d.getMaster0InterfaceName(interfaceNameList)
-	if err != nil {
-		return fmt.Errorf("failed to get master[0] network interface: %w", err)
-	}
-	if d.Interface == "" {
-		d.Interface = master0InterfaceName
-	}
-	if !d.existMaster0InterfaceName(interfaceNameList, d.Interface) {
-		return fmt.Errorf("failed to found %s nic", d.Interface)
-	}
-
-	// can-reach is used by calico multi network , flannel has nothing to add. just Use it.
-	if len(strings.Split(d.Interface, ".")) == 4 && d.Network == "calico" {
-		d.Interface = "can-reach=" + d.Interface
-	} else {
-		d.Interface = "interface=" + d.Interface
-	}
-
-	netYaml, err := guest.NewNetWork(d.Network, guest.MetaData{
-		Interface: d.Interface,
-		CIDR:      d.PodCIDR,
-		IPIP:      d.IPIP,
-		MTU:       d.MTU,
-	}).Manifests("")
-	if err != nil {
-		return fmt.Errorf("render net manifests failed %v", err)
-	}
-	logger.Info("render cni yaml success")
-
-	return d.SSH.CmdAsync(d.Masters[0], fmt.Sprintf(RemoteApplyYaml, netYaml))
 }
 
 func (d *Default) CopyStaticFiles(nodes []string) error {

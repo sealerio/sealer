@@ -60,7 +60,6 @@ const (
 	ApplyMasters   ActionName = "ApplyMasters"
 	ApplyNodes     ActionName = "ApplyNodes"
 	Guest          ActionName = "Guest"
-	CNI            ActionName = "CNI"
 	Reset          ActionName = "Reset"
 	CleanFS        ActionName = "CleanFS"
 )
@@ -117,9 +116,6 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	},
 	Guest: func(applier *DefaultApplier) error {
 		return applier.Guest.Apply(applier.ClusterDesired)
-	},
-	CNI: func(applier *DefaultApplier) error {
-		return applier.Runtime.CNI(applier.ClusterDesired)
 	},
 	Reset: func(applier *DefaultApplier) error {
 		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
@@ -214,7 +210,6 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, ApplyNodes)
-		todoList = append(todoList, CNI)
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		return todoList, nil
@@ -235,7 +230,6 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	if len(c.NodesToJoin) > 0 || len(c.NodesToDelete) > 0 {
 		todoList = append(todoList, ApplyNodes)
 	}
-	todoList = append(todoList, CNI)
 	todoList = append(todoList, Guest)
 	todoList = append(todoList, UnMountImage)
 	return todoList, nil
