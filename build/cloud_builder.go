@@ -19,10 +19,8 @@ import (
 	"os"
 
 	"github.com/alibaba/sealer/check/checker"
-
-	"github.com/alibaba/sealer/image/store"
-
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
