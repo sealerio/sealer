@@ -101,7 +101,7 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	if err != nil {
 		return fmt.Errorf("failed to marchal image, err: %s", err)
 	}
-	if err = ioutil.WriteFile(imageMetadataTempFile, imgBytes, common.FileMode0644); err != nil {
+	if err = utils.AtomicWriteFile(imageMetadataTempFile, imgBytes, common.FileMode0644); err != nil {
 		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
 	}
 
@@ -109,7 +109,7 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	if err != nil {
 		return err
 	}
-	if err = ioutil.WriteFile(repofile, repo, common.FileMode0644); err != nil {
+	if err = utils.AtomicWriteFile(repofile, repo, common.FileMode0644); err != nil {
 		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
 	}
 

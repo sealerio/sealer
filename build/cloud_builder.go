@@ -20,8 +20,6 @@ import (
 
 	"github.com/alibaba/sealer/check/checker"
 
-	"github.com/alibaba/sealer/image/store"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
@@ -157,7 +155,14 @@ func (c *CloudBuilder) InitBuildSSH() error {
 
 // send build context dir to remote host
 func (c *CloudBuilder) SendBuildContext() error {
-	return c.sendBuildContext()
+	err := c.sendBuildContext()
+	if err != nil {
+		return fmt.Errorf("failed to send context")
+	}
+	// change local builder context to ".", because sendBuildContext will send current localBuilder.Context to remote
+	// and work within the localBuilder.Context remotely, so change context to "." is more appropriate.
+	c.changeBuilderContext()
+	return nil
 }
 
 // run BUILD CMD commands
@@ -189,14 +194,12 @@ func (c *CloudBuilder) Cleanup() (err error) {
 }
 
 func NewCloudBuilder(cloudConfig *Config) (Interface, error) {
-	layerStore, err := store.NewDefaultLayerStore()
+	localBuilder, err := NewLocalBuilder(cloudConfig)
 	if err != nil {
 		return nil, err
 	}
+
 	return &CloudBuilder{
-		local: &LocalBuilder{
-			Config:     cloudConfig,
-			LayerStore: layerStore,
-		},
+		local: localBuilder.(*LocalBuilder),
 	}, nil
 }

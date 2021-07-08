@@ -1,10 +1,25 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package store
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -45,7 +60,7 @@ func makeFakeLayer(layer mockROLayer) error {
 	}
 
 	for _, file := range layer.files {
-		err = ioutil.WriteFile(filepath.Join(layer.tmpRelPath, file), []byte(fileContent), common.FileMode0644)
+		err = utils.AtomicWriteFile(filepath.Join(layer.tmpRelPath, file), []byte(fileContent), common.FileMode0644)
 		if err != nil {
 			return err
 		}
@@ -54,18 +69,22 @@ func makeFakeLayer(layer mockROLayer) error {
 	return nil
 }
 
-func cleanTmpLayers(layer mockROLayer) {
+func cleanTmpLayers(layer mockROLayer) error {
 	_ = os.Remove(layer.tmpRelPath)
-	lsg := NewDefaultLayerStorage()
-	err := os.RemoveAll(lsg.LayerDataDir(layer.roLayer.id.ToDigest()))
+	backend, err := NewFSStoreBackend()
+	if err != nil {
+		return err
+	}
+	err = os.RemoveAll(backend.LayerDataDir(layer.roLayer.id.ToDigest()))
 	if err != nil {
 		logger.Warn(err)
 	}
 
-	err = os.RemoveAll(lsg.LayerDBDir(layer.roLayer.id.ToDigest()))
+	err = os.RemoveAll(backend.LayerDBDir(layer.roLayer.id.ToDigest()))
 	if err != nil {
 		logger.Warn(err)
 	}
+	return nil
 }
 
 func TestLayerStore_RegisterLayerForBuilder(t *testing.T) {
@@ -107,7 +126,10 @@ func TestLayerStore_RegisterLayerForBuilder(t *testing.T) {
 
 	defer func() {
 		for _, layer := range newLayers {
-			cleanTmpLayers(layer)
+			err := cleanTmpLayers(layer)
+			if err != nil {
+				logger.Error(err)
+			}
 		}
 	}()
 

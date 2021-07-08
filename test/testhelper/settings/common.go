@@ -64,6 +64,7 @@ var (
 	MaxWaiteTime           time.Duration
 	DefaultWaiteTime       time.Duration
 	DefaultSealerBin       = ""
+	DefaultTestEnvDir      = ""
 	RegistryURL            = os.Getenv("REGISTRY_URL")
 	RegistryUsername       = os.Getenv("REGISTRY_USERNAME")
 	RegistryPasswd         = os.Getenv("REGISTRY_PASSWORD")

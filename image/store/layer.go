@@ -57,12 +57,16 @@ func (rl *ROLayer) SimpleID() string {
 }
 
 func (rl *ROLayer) TarStream() (io.ReadCloser, error) {
+	layerBackend, err := NewFSStoreBackend()
+	if err != nil {
+		return nil, err
+	}
+
 	var (
-		sfs           = NewDefaultLayerStorage()
-		tarDataPath   = filepath.Join(sfs.LayerDBDir(digest.Digest(rl.ID())), tarDataGZ)
-		layerDataPath = sfs.LayerDataDir(rl.ID().ToDigest())
+		tarDataPath   = filepath.Join(layerBackend.LayerDBDir(digest.Digest(rl.ID())), tarDataGZ)
+		layerDataPath = layerBackend.LayerDataDir(rl.ID().ToDigest())
 	)
-	_, err := os.Stat(tarDataPath)
+	_, err = os.Stat(tarDataPath)
 	// tar-data.json.gz does not exist
 	// at the pull stage, the file won't exist
 	// so we tar the layer dir.
@@ -77,7 +81,7 @@ func (rl *ROLayer) TarStream() (io.ReadCloser, error) {
 
 	pr, pw := io.Pipe()
 	go func() {
-		err := sfs.assembleTar(rl.ID(), pw)
+		err := layerBackend.assembleTar(rl.ID(), pw)
 		if err != nil {
 			_ = pw.CloseWithError(err)
 		} else {

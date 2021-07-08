@@ -8,6 +8,7 @@ import (
 )
 
 var rootDirs = []string{
+	common.DefaultTmpDir,
 	common.DefaultImageRootDir,
 	common.DefaultImageMetaRootDir,
 	common.DefaultImageDBRootDir,

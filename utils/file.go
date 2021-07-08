@@ -67,8 +67,15 @@ func Mkdir(dirName string) error {
 }
 
 func MkTmpdir() (string, error) {
-	tempDir := filepath.Join(os.TempDir(), GenUniqueID(32))
+	tempDir, err := ioutil.TempDir(common.DefaultTmpDir, ".DTmp-")
+	if err != nil {
+		return "", err
+	}
 	return tempDir, os.MkdirAll(tempDir, os.ModePerm)
+}
+
+func MkTmpFile() (*os.File, error) {
+	return ioutil.TempFile(common.DefaultTmpDir, ".FTmp-")
 }
 
 func IsFileExist(filename string) bool {
@@ -84,7 +91,7 @@ func WriteFile(fileName string, content []byte) error {
 		}
 	}
 
-	if err := ioutil.WriteFile(fileName, content, common.FileMode0644); err != nil {
+	if err := AtomicWriteFile(fileName, content, common.FileMode0644); err != nil {
 		return err
 	}
 	return nil

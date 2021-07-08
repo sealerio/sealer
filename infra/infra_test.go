@@ -52,7 +52,7 @@ func TestApply(t *testing.T) {
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}
-	err = ioutil.WriteFile("./Clusterfile", data, 0777)
+	err = utils.AtomicWriteFile("./Clusterfile", data, 0777)
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}

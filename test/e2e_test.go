@@ -18,6 +18,8 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/alibaba/sealer/test/testhelper"
+
 	"github.com/alibaba/sealer/test/testhelper/settings"
 
 	. "github.com/onsi/ginkgo"
@@ -34,6 +36,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred(), output)
 	SetDefaultEventuallyTimeout(settings.DefaultWaiteTime)
 	settings.DefaultSealerBin = output
+	settings.DefaultTestEnvDir = testhelper.GetPwd()
 	return nil
 }, func(data []byte) {
 	SetDefaultEventuallyTimeout(settings.DefaultWaiteTime)

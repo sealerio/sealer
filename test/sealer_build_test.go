@@ -36,14 +36,16 @@ var _ = Describe("sealer build", func() {
 		Context("build kube file", func() {
 			Context("testing the content of kube file", func() {
 				Context("testing local build scenario", func() {
-					err := os.Chdir(filepath.Join(build.GetFixtures(), build.GetLocalBuildDir()))
-					Expect(err).NotTo(HaveOccurred())
 
 					BeforeEach(func() {
 						registry.Login()
+						err := os.Chdir(filepath.Join(build.GetFixtures(), build.GetLocalBuildDir()))
+						Expect(err).NotTo(HaveOccurred())
 					})
 					AfterEach(func() {
 						registry.Logout()
+						err := os.Chdir(settings.DefaultTestEnvDir)
+						Expect(err).NotTo(HaveOccurred())
 					})
 
 					It("with all build instruct", func() {
@@ -82,11 +84,13 @@ var _ = Describe("sealer build", func() {
 				Context("testing cloud build scenario", func() {
 					BeforeEach(func() {
 						registry.Login()
-						err := os.Chdir(filepath.Join("..", build.GetCloudBuildDir()))
+						err := os.Chdir(filepath.Join(build.GetFixtures(), build.GetCloudBuildDir()))
 						Expect(err).NotTo(HaveOccurred())
 					})
 					AfterEach(func() {
 						registry.Logout()
+						err := os.Chdir(settings.DefaultTestEnvDir)
+						Expect(err).NotTo(HaveOccurred())
 					})
 
 					It("with all build instruct", func() {

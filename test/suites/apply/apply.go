@@ -32,7 +32,7 @@ import (
 )
 
 func getFixtures() string {
-	pwd := testhelper.GetPwd()
+	pwd := settings.DefaultTestEnvDir
 	return filepath.Join(pwd, "suites", "apply", "fixtures")
 }
 
@@ -67,6 +67,37 @@ func SealerApplyCmd(clusterFile string) string {
 	return fmt.Sprintf("%s apply -f %s", settings.DefaultSealerBin, clusterFile)
 }
 
+func SealerRunCmd(masters, nodes, passwd string) string {
+	if masters != "" {
+		masters = fmt.Sprintf("-m %s", masters)
+	}
+	if nodes != "" {
+		nodes = fmt.Sprintf("-n %s", nodes)
+	}
+	if passwd != "" {
+		passwd = fmt.Sprintf("-p %s", passwd)
+	}
+	return fmt.Sprintf("%s run %s %s %s %s", settings.DefaultSealerBin, settings.TestImageName, masters, nodes, passwd)
+}
+
+func SealerRun(masters, nodes, passwd string) {
+	testhelper.RunCmdAndCheckResult(SealerRunCmd(masters, nodes, passwd), 0)
+}
+
+func SealerJoinCmd(masters, nodes string) string {
+	if masters != "" {
+		masters = fmt.Sprintf("-m %s", masters)
+	}
+	if nodes != "" {
+		nodes = fmt.Sprintf("-n %s", nodes)
+	}
+	return fmt.Sprintf("%s join %s %s", settings.DefaultSealerBin, masters, nodes)
+}
+
+func SealerJoin(masters, nodes string) {
+	testhelper.RunCmdAndCheckResult(SealerJoinCmd(masters, nodes), 0)
+}
+
 func CreateAliCloudInfraAndSave(cluster *v1.Cluster, clusterFile string) *v1.Cluster {
 	gomega.Eventually(func() bool {
 		infraManager, err := infra.NewDefaultProvider(cluster)
@@ -86,6 +117,18 @@ func CreateAliCloudInfraAndSave(cluster *v1.Cluster, clusterFile string) *v1.Clu
 }
 
 func SendAndApplyCluster(sshClient *testhelper.SSHClient, clusterFile string) {
+	SendAndRemoteExecCluster(sshClient, clusterFile, SealerApplyCmd(clusterFile))
+}
+
+func SendAndJoinCluster(sshClient *testhelper.SSHClient, clusterFile string, joinMasters, joinNodes string) {
+	SendAndRemoteExecCluster(sshClient, clusterFile, SealerJoinCmd(joinMasters, joinNodes))
+}
+
+func SendAndRunCluster(sshClient *testhelper.SSHClient, clusterFile string, joinMasters, joinNodes, passwd string) {
+	SendAndRemoteExecCluster(sshClient, clusterFile, SealerRunCmd(joinMasters, joinNodes, passwd))
+}
+
+func SendAndRemoteExecCluster(sshClient *testhelper.SSHClient, clusterFile string, remoteCmd string) {
 	// send tmp cluster file to remote server and run apply cmd
 	gomega.Eventually(func() bool {
 		err := sshClient.SSH.Copy(sshClient.RemoteHostIP, clusterFile, clusterFile)
@@ -93,7 +136,7 @@ func SendAndApplyCluster(sshClient *testhelper.SSHClient, clusterFile string) {
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
 
 	gomega.Eventually(func() bool {
-		err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, SealerApplyCmd(clusterFile))
+		err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, remoteCmd)
 		return err == nil
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
 }
