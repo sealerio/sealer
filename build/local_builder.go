@@ -359,20 +359,34 @@ func (l *LocalBuilder) setClusterFileToImage() {
 }
 
 func (l *LocalBuilder) updateImageIDAndSaveImage() error {
+	imageID, err := generateImageID(*l.Image)
+	if err != nil {
+		return err
+	}
+
+	l.Image.Spec.ID = imageID
+	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageDBRootDir, imageID, common.YamlSuffix)
+
 	imageBytes, err := yaml.Marshal(l.Image)
 	if err != nil {
 		return err
 	}
 
-	imageID := digest.FromBytes(imageBytes).Hex()
-	l.Image.Spec.ID = imageID
-	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageDBRootDir, imageID, common.YamlSuffix)
 	err = utils.WriteFile(filename, imageBytes)
 	if err != nil {
 		return err
 	}
 	logger.Info("write image yaml file to %s success !", filename)
 	return nil
+}
+
+func generateImageID(image v1.Image) (string, error) {
+	imageBytes, err := yaml.Marshal(image)
+	if err != nil {
+		return "", err
+	}
+	imageID := digest.FromBytes(imageBytes).Hex()
+	return imageID, nil
 }
 
 // GetClusterFile from user build context or from base image
