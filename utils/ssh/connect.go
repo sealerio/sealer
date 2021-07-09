@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibaba/sealer/utils"
+
 	"golang.org/x/crypto/ssh"
 
 	"github.com/alibaba/sealer/logger"
@@ -50,7 +52,8 @@ func (s *SSH) connect(host string) (*ssh.Client, error) {
 			return nil
 		},
 	}
-	addr := s.addrReformat(host)
+	ip, port := utils.GetSSHHostIPAndPort(host)
+	addr := s.addrReformat(ip, port)
 	return ssh.Dial("tcp", addr, clientConfig)
 }
 
@@ -127,9 +130,9 @@ func (s *SSH) readFile(name string) []byte {
 	return content
 }
 
-func (s *SSH) addrReformat(host string) string {
+func (s *SSH) addrReformat(host, port string) string {
 	if !strings.Contains(host, ":") {
-		host = fmt.Sprintf("%s:22", host)
+		host = fmt.Sprintf("%s:%s", host, port)
 	}
 	return host
 }

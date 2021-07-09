@@ -119,7 +119,8 @@ func (s *SSH) sftpConnect(host string) (*sftp.Client, error) {
 	}
 
 	// connet to ssh
-	addr = s.addrReformat(host)
+	ip, port := utils.GetSSHHostIPAndPort(host)
+	addr = s.addrReformat(ip, port)
 
 	if sshClient, err = ssh.Dial("tcp", addr, clientConfig); err != nil {
 		return nil, err

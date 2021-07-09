@@ -76,7 +76,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		if applier.ClusterCurrent == nil {
 			hosts = append(applier.ClusterDesired.Spec.Masters.IPList, applier.ClusterDesired.Spec.Nodes.IPList...)
 			config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(applier.ClusterDesired.Name), applier.ClusterDesired.Spec.Masters.IPList[0])
-			if utils.NotIn(config.IP, applier.ClusterDesired.Spec.Masters.IPList) && utils.NotIn(config.IP, applier.ClusterDesired.Spec.Nodes.IPList) {
+			if utils.NotInIPList(config.IP, applier.ClusterDesired.Spec.Masters.IPList) && utils.NotInIPList(config.IP, applier.ClusterDesired.Spec.Nodes.IPList) {
 				hosts = append(hosts, config.IP)
 			}
 		} else {

@@ -28,6 +28,18 @@ func GetHostIP(host string) string {
 	return strings.Split(host, ":")[0]
 }
 
+func GetHostIPAndPortOrDefault(host, Default string) (string, string) {
+	if !strings.ContainsRune(host, ':') {
+		return host, Default
+	}
+	split := strings.Split(host, ":")
+	return split[0], split[1]
+}
+
+func GetSSHHostIPAndPort(host string) (string, string) {
+	return GetHostIPAndPortOrDefault(host, "22")
+}
+
 func GetHostIPSlice(hosts []string) (res []string) {
 	for _, ip := range hosts {
 		res = append(res, GetHostIP(ip))
