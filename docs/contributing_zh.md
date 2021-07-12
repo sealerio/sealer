@@ -17,7 +17,15 @@ git pull upstream main # git pull <remote name> <branch name>
 git push
 ```
 
+建议main分支只做代码同步，所有功能切一个新分支开发，如修复一个bug:
+```shell script
+git checkout -b bugfix/calico-interface
+# 开发完成后
+git push --set-upstream origin bugfix/calico-interface
+```
+
 代码先提交到自己的仓库中，然后在自己的仓库里点击pull request申请合并代码。
+然后在MR中就可以看到一个黄色的 "signed the CLA" 按钮，点一下签署CLA直至按钮变绿.
 
 ## 代码开发
 
