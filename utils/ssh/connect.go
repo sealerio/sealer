@@ -57,15 +57,16 @@ func (s *SSH) connect(host string) (*ssh.Client, error) {
 	return ssh.Dial("tcp", addr, clientConfig)
 }
 
-func (s *SSH) Connect(host string) (*ssh.Session, error) {
+func (s *SSH) Connect(host string) (*ssh.Client, *ssh.Session, error) {
 	client, err := s.connect(host)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	session, err := client.NewSession()
 	if err != nil {
-		return nil, err
+		client.Close()
+		return nil, nil, err
 	}
 
 	modes := ssh.TerminalModes{
@@ -75,10 +76,11 @@ func (s *SSH) Connect(host string) (*ssh.Session, error) {
 	}
 
 	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
-		return nil, err
+		client.Close()
+		return nil, nil, err
 	}
 
-	return session, nil
+	return client, session, nil
 }
 
 func (s *SSH) sshAuthMethod(password, pkFile, pkPasswd string) (auth []ssh.AuthMethod) {

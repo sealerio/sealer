@@ -23,10 +23,11 @@ import (
 )
 
 func (s *SSH) Ping(host string) error {
-	_, err := s.Connect(host)
+	client, _, err := s.Connect(host)
 	if err != nil {
 		return fmt.Errorf("[ssh %s]create ssh session failed, %v", host, err)
 	}
+	client.Close()
 	return nil
 }
 
@@ -38,13 +39,13 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 			continue
 		}
 		func(cmd string) {
-			session, err := s.Connect(host)
+			client, session, err := s.Connect(host)
 			if err != nil {
 				flag = true
 				logger.Error("[ssh %s]create ssh session failed, %s", host, err)
 				return
 			}
-			defer session.Close()
+			defer client.Close()
 			logger.Info("[ssh][%s] : %s", host, cmd)
 			stdout, err := session.StdoutPipe()
 			if err != nil {
@@ -92,11 +93,11 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 
 func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	//logger.Info("[ssh][%s] %s", host, cmd)
-	session, err := s.Connect(host)
+	client, session, err := s.Connect(host)
 	if err != nil {
 		return nil, fmt.Errorf("[ssh][%s] create ssh session failed, %s", host, err)
 	}
-	defer session.Close()
+	defer client.Close()
 	b, err := session.CombinedOutput(cmd)
 	if err != nil {
 		fmt.Printf("[ssh][%s]failed to run command [%s],output is: %s", host, cmd, b)
