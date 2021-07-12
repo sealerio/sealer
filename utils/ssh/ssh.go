@@ -95,7 +95,7 @@ func WaitSSHReady(ssh Interface, hosts ...string) error {
 		wg.Add(1)
 		go func(host string) {
 			defer wg.Done()
-			for i := 0; i < 10; i++ {
+			for i := 0; i < 6; i++ {
 				if err := ssh.Ping(host); err == nil {
 					return
 				}
