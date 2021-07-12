@@ -207,8 +207,8 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, MountImage)
-		todoList = append(todoList, Config)
 		todoList = append(todoList, MountRootfs)
+		todoList = append(todoList, Config)
 		todoList = append(todoList, Init)
 		c.MastersToJoin = c.ClusterDesired.Spec.Masters.IPList[1:]
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
