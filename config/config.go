@@ -4,16 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/yaml"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 /*
@@ -93,7 +92,7 @@ func (c *Dumper) Dump(clusterfile string) error {
 
 func (c *Dumper) WriteFiles() error {
 	for _, config := range c.configs {
-		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsDir(c.clusterName), config.Spec.Path), []byte(config.Spec.Data))
+		err := ioutil.WriteFile(filepath.Join(common.DefaultMountCloudImageDir(c.clusterName), config.Spec.Path), []byte(config.Spec.Data), common.FileMode0644)
 		if err != nil {
 			return fmt.Errorf("write config file failed %v", err)
 		}
