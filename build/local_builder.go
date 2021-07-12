@@ -309,7 +309,7 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 	if layer.Type == common.RUNCOMMAND || layer.Type == common.CMDCOMMAND {
 		cmd := fmt.Sprintf(common.CdAndExecCmd, tempTarget, layer.Value)
 		_, err := command.NewSimpleCommand(cmd).Exec()
-		return err
+		return fmt.Errorf("failed to exec %s, err: %v", cmd, err)
 	}
 	return nil
 }
@@ -317,7 +317,7 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 func (l *LocalBuilder) calculateLayerDigestAndPlaceIt(layer *v1.Layer, tempTarget string) error {
 	layerDigest, err := l.LayerStore.RegisterLayerForBuilder(tempTarget)
 	if err != nil {
-		return fmt.Errorf("failed to register layer, err: %s", err)
+		return fmt.Errorf("failed to register layer, err: %v", err)
 	}
 
 	layer.ID = layerDigest
@@ -329,7 +329,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 	l.squashBaseImageLayerIntoCurrentImage()
 	err := l.updateImageIDAndSaveImage()
 	if err != nil {
-		return fmt.Errorf("failed to updateImageIDAndSaveImage, err: %s", err)
+		return fmt.Errorf("failed to updateImageIDAndSaveImage, err: %v", err)
 	}
 
 	if err = imageUtils.SetImageMetadata(imageUtils.ImageMetadata{
