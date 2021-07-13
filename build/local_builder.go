@@ -308,8 +308,9 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 	}
 	if layer.Type == common.RUNCOMMAND || layer.Type == common.CMDCOMMAND {
 		cmd := fmt.Sprintf(common.CdAndExecCmd, tempTarget, layer.Value)
-		_, err := command.NewSimpleCommand(cmd).Exec()
-		return fmt.Errorf("failed to exec %s, err: %v", cmd, err)
+		if _, err := command.NewSimpleCommand(cmd).Exec(); err != nil {
+			return fmt.Errorf("failed to exec %s, err: %v", cmd, err)
+		}
 	}
 	return nil
 }
