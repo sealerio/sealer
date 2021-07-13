@@ -1,0 +1,42 @@
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: kubernetes-withcalico:v1.19.9
+  masters:
+    ipList:
+    - x.x.x.x
+  network:
+    podCIDR: 100.64.0.0/10
+    svcCIDR: 10.96.0.0/22
+  nodes:
+    ipList:
+    - x.x.x.x
+  ssh:
+    passwd: xxx
+  provider: BAREMETAL
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: calico
+spec:
+  path: etc/custom-resources.yaml
+  data: |
+    apiVersion: operator.tigera.io/v1
+    kind: Installation
+    metadata:
+      name: default
+    spec:
+      # Configures Calico networking.
+      calicoNetwork:
+        # Note: The ipPools section cannot be modified post-install.
+        ipPools:
+        - blockSize: 26
+          cidr: 100.64.0.0/10
+          encapsulation: IPIP
+          natOutgoing: Enabled
+          nodeSelector: all()
+        nodeAddressAutodetectionV4:
+          interface: "eth.*|en.*"
