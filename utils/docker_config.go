@@ -39,6 +39,9 @@ type DockerInfo struct {
 func DockerConfig() (*DockerInfo, error) {
 	authFile := common.DefaultRegistryAuthConfigDir()
 	if !IsFileExist(authFile) {
+		if err := os.MkdirAll(filepath.Dir(authFile), common.FileMode0755); err != nil {
+			return nil, err
+		}
 		return &DockerInfo{Auths: map[string]AuthItem{}}, AtomicWriteFile(authFile, []byte("{\"auths\":{}}"), common.FileMode0644)
 	}
 

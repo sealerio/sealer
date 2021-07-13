@@ -30,17 +30,16 @@ import (
 )
 
 type ClusterArgs struct {
-	cluster       *v1.Cluster
-	imageName     string
-	nodeArgs      string
-	masterArgs    string
-	user          string
-	passwd        string
-	pk            string
-	pkPasswd      string
-	interfaceName string
-	podCidr       string
-	svcCidr       string
+	cluster    *v1.Cluster
+	imageName  string
+	nodeArgs   string
+	masterArgs string
+	user       string
+	passwd     string
+	pk         string
+	pkPasswd   string
+	podCidr    string
+	svcCidr    string
 }
 
 func IsNumber(args string) bool {
@@ -76,7 +75,6 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	var flag bool
 	c.cluster.Spec.Image = c.imageName
 	c.cluster.Spec.Provider = common.BAREMETAL
-	c.cluster.Spec.Network.Interface = c.interfaceName
 
 	if c.podCidr != "" {
 		if flag, err = IsCidrString(c.podCidr); !flag {
@@ -90,10 +88,12 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		}
 		c.cluster.Spec.Network.SvcCIDR = c.svcCidr
 	}
+	if c.passwd != "" {
+		c.cluster.Spec.SSH.Passwd = c.passwd
+	}
 	if IsNumber(c.masterArgs) && (IsNumber(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.Count = c.masterArgs
 		c.cluster.Spec.Nodes.Count = c.nodeArgs
-		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.Provider = common.DefaultCloudProvider
 	} else if IsIPList(c.masterArgs) && (IsIPList(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
@@ -101,7 +101,6 @@ func (c *ClusterArgs) SetClusterArgs() error {
 			c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
 		}
 		c.cluster.Spec.SSH.User = c.user
-		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.SSH.Pk = c.pk
 		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
 	} else {
@@ -114,7 +113,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 func GetClusterFileByImageName(imageName string) (cluster *v1.Cluster, err error) {
 	clusterFile := image.GetClusterFileFromImageManifest(imageName)
 	if clusterFile == "" {
-		return nil, fmt.Errorf("failed to found Clusterfile")
+		return nil, fmt.Errorf("failed to find Clusterfile")
 	}
 	if err := yaml.Unmarshal([]byte(clusterFile), &cluster); err != nil {
 		return nil, err
@@ -131,17 +130,16 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 		return NewApplier(cluster), nil
 	}
 	c := &ClusterArgs{
-		cluster:       cluster,
-		imageName:     imageName,
-		nodeArgs:      runArgs.Nodes,
-		masterArgs:    runArgs.Masters,
-		user:          runArgs.User,
-		passwd:        runArgs.Password,
-		pk:            runArgs.Pk,
-		pkPasswd:      runArgs.PkPassword,
-		interfaceName: runArgs.Interface,
-		podCidr:       runArgs.PodCidr,
-		svcCidr:       runArgs.SvcCidr,
+		cluster:    cluster,
+		imageName:  imageName,
+		nodeArgs:   runArgs.Nodes,
+		masterArgs: runArgs.Masters,
+		user:       runArgs.User,
+		passwd:     runArgs.Password,
+		pk:         runArgs.Pk,
+		pkPasswd:   runArgs.PkPassword,
+		podCidr:    runArgs.PodCidr,
+		svcCidr:    runArgs.SvcCidr,
 	}
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
