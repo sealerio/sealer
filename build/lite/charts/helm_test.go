@@ -46,7 +46,7 @@ func TestRenderHelmChart(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"test package helm chart",
+			"test render helm chart",
 			args{"./test/alpine"},
 			false,
 		},
