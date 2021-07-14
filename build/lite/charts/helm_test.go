@@ -74,7 +74,7 @@ func Test_decodeImages(t *testing.T) {
           image: registry.cn-shanghai.aliyuncs.com/cnip/cn-app-integration:v1.0.0
           imagePullPolicy: Always
           image: cn-app-integration:v1.0.0
-		  # image: cn-app-integration:v1.0.0
+          # image: cn-app-integration:v1.0.0
           name: cn-app-demo`
 	type args struct {
 		body string

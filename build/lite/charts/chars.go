@@ -8,8 +8,7 @@ import (
 	"github.com/alibaba/sealer/common"
 )
 
-type Charts struct {
-}
+type Charts struct{}
 
 // List all the containers images in helm charts
 func (charts *Charts) ListImages(clusterName string) ([]string, error) {
@@ -37,12 +36,10 @@ func (charts *Charts) ListImages(clusterName string) ([]string, error) {
 	}
 
 	list = removeDuplicate(list)
-
 	return list, nil
 }
 
 func NewChars() (Interface, error) {
-
 	return &Charts{}, nil
 }
 

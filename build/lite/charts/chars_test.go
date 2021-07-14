@@ -64,8 +64,6 @@ func TestListImages(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ListImages() got = %v, want %v", got, tt.want)
 			}
-
 		})
 	}
-
 }
