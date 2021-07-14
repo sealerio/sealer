@@ -17,12 +17,12 @@ func TestDefaultChartsRootDir(t *testing.T) {
 		{
 			"test default charts root directory",
 			args{"my_cluster"},
-			"/var/lib/sealer/data/my_cluster/rootfs/chars",
+			"/var/lib/sealer/data/my_cluster/rootfs/charts",
 		},
 		{
 			"test default charts root directory 2",
 			args{"second_cluster"},
-			"/var/lib/sealer/data/second_cluster/rootfs/chars",
+			"/var/lib/sealer/data/second_cluster/rootfs/charts",
 		},
 	}
 	for _, tt := range tests {
@@ -47,13 +47,13 @@ func TestListImages(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"test list chars images",
+			"test list charts images",
 			args{"my_cluster"},
 			[]string{"docker.elastic.co/elasticsearch/elasticsearch:7.13.2", "traefik:2.4.9"},
 			false,
 		},
 	}
-	charts, _ := NewChars()
+	charts, _ := NewCharts()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := charts.ListImages(tt.args.clusterName)

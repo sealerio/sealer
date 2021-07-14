@@ -39,12 +39,12 @@ func (charts *Charts) ListImages(clusterName string) ([]string, error) {
 	return list, nil
 }
 
-func NewChars() (Interface, error) {
+func NewCharts() (Interface, error) {
 	return &Charts{}, nil
 }
 
 func defaultChartsRootDir(clusterName string) string {
-	return filepath.Join(common.DefaultTheClusterRootfsDir(clusterName), "chars")
+	return filepath.Join(common.DefaultTheClusterRootfsDir(clusterName), "charts")
 }
 
 func removeDuplicate(images []string) []string {
