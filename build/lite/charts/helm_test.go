@@ -63,18 +63,11 @@ func TestRenderHelmChart(t *testing.T) {
 }
 
 func Test_decodeImages(t *testing.T) {
-	body := `- env:
-            - name: TZ
-              value: Asia/Shanghai
-            - name: ACCESSKEYID
-              value: LTAI4FfyqA8UuQaMtEnXcnug
-            - name: ACCESSKEYSECRET
+	body := `
           image: cn-app-integration:v1.0.0
-              value: 6GebXuvrRuB6TqDZclI3aEmVsTYmPK
           image: registry.cn-shanghai.aliyuncs.com/cnip/cn-app-integration:v1.0.0
           imagePullPolicy: Always
           image: cn-app-integration:v1.0.0
-          # image: cn-app-integration:v1.0.0
           name: cn-app-demo`
 	type args struct {
 		body string
