@@ -1,0 +1,8 @@
+[package]
+name = "dashboard"
+version = "0.1.0"
+authors = ["中弈 <zhongyi.fht@alibaba-inc.com>"]
+edition = "2018"
+
+[dependencies]
+yew = "0.18"
