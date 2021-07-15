@@ -87,6 +87,7 @@ const (
 
 const (
 	LocalBuild = "local"
+	LiteBuild  = "lite"
 )
 const (
 	BAREMETAL = "BAREMETAL"
