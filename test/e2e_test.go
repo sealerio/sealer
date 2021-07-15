@@ -37,6 +37,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	SetDefaultEventuallyTimeout(settings.DefaultWaiteTime)
 	settings.DefaultSealerBin = output
 	settings.DefaultTestEnvDir = testhelper.GetPwd()
+	if settings.CustomImageName == "" {
+		settings.TestImageName = settings.DefaultImage
+	} else {
+		settings.TestImageName = settings.CustomImageName
+	}
 	return nil
 }, func(data []byte) {
 	SetDefaultEventuallyTimeout(settings.DefaultWaiteTime)

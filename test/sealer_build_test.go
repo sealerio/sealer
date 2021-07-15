@@ -39,8 +39,12 @@ var _ = Describe("sealer build", func() {
 
 					BeforeEach(func() {
 						registry.Login()
-						err := os.Chdir(filepath.Join(build.GetFixtures(), build.GetLocalBuildDir()))
+						localBuildPath := filepath.Join(build.GetFixtures(), build.GetLocalBuildDir())
+						err := os.Chdir(localBuildPath)
 						Expect(err).NotTo(HaveOccurred())
+						//add From custom image name
+						build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(localBuildPath, "Kubefile"))
+						build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(localBuildPath, "Kubefile_only_copy"))
 					})
 					AfterEach(func() {
 						registry.Logout()
@@ -84,8 +88,11 @@ var _ = Describe("sealer build", func() {
 				Context("testing cloud build scenario", func() {
 					BeforeEach(func() {
 						registry.Login()
-						err := os.Chdir(filepath.Join(build.GetFixtures(), build.GetCloudBuildDir()))
+						cloudBuildPath := filepath.Join(build.GetFixtures(), build.GetCloudBuildDir())
+						err := os.Chdir(cloudBuildPath)
 						Expect(err).NotTo(HaveOccurred())
+						//add From custom image name
+						build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(cloudBuildPath, "Kubefile"))
 					})
 					AfterEach(func() {
 						registry.Logout()

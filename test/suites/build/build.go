@@ -15,7 +15,10 @@
 package build
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -110,4 +113,12 @@ func CheckClusterFile(imageName string) bool {
 	num, err := strconv.Atoi(strings.Replace(result, "\n", "", -1))
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return num == 1
+}
+
+func UpdateKubeFromImage(imageName string, KubefilePath string) {
+	Kube, err := ioutil.ReadFile(KubefilePath)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	Kube = append([]byte(fmt.Sprintf("FROM %s", imageName)), Kube[bytes.IndexByte(Kube, '\n'):]...)
+	err = ioutil.WriteFile(KubefilePath, Kube, os.ModePerm)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }

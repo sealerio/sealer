@@ -31,6 +31,13 @@ var _ = Describe("sealer apply", func() {
 	Context("start apply", func() {
 		rawClusterFilePath := apply.GetRawClusterFilePath()
 		rawCluster := apply.LoadClusterFileFromDisk(rawClusterFilePath)
+		BeforeEach(func() {
+			if rawCluster.Spec.Image != settings.TestImageName {
+				//rawCluster imageName updated to customImageName
+				rawCluster.Spec.Image = settings.TestImageName
+				apply.MarshalClusterToFile(rawClusterFilePath, rawCluster)
+			}
+		})
 		Context("check regular scenario that provider is ali cloud", func() {
 			var tempFile string
 			BeforeEach(func() {
