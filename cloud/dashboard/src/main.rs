@@ -42,10 +42,19 @@ impl Component for Model {
 
     fn view(&self) -> Html {
         html! {
-            <div>
-                <button onclick=self.link.callback(|_| Msg::AddOne)>{ "+1" }</button>
-                <p>{ self.value }</p>
-            </div>
+            <section class="section">
+                <div class="container">
+                <h1 class="title">
+                    { "hello world" }
+                </h1>
+                <a class="button is-primary">
+                  { "Button" }
+                </a>
+                <p class="subtitle">
+                    { "My first website" } 
+                </p>
+                </div>
+            </section>
         }
     }
 }
