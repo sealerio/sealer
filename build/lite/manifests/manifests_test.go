@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -61,6 +62,8 @@ func TestListImages(t *testing.T) {
 				t.Errorf("ListImages() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			sort.Strings(got)
+			sort.Strings(tt.want)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ListImages() got = %v, want %v", got, tt.want)
 			}

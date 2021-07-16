@@ -3,6 +3,7 @@ package manifest
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -17,25 +18,29 @@ func (manifests *Manifests) ListImages(clusterName string) ([]string, error) {
 	var list []string
 
 	ManifestsRootDir := defaultManifestsRootDir(clusterName)
-	files, err := ioutil.ReadDir(ManifestsRootDir)
-	if err != nil {
-		return list, fmt.Errorf("list images failed %s", err)
-	}
 
-	for _, file := range files {
-		if file.IsDir() || !strings.HasSuffix(file.Name(), ".yaml") {
-			// skip directories and filename is't .yaml file
-			continue
+	err := filepath.Walk(ManifestsRootDir, func(filePath string, fileInfo os.FileInfo, er error) error {
+		if er != nil {
+			return fmt.Errorf("read file failed %s", er)
 		}
-		manifestFilePath := filepath.Join(ManifestsRootDir, file.Name())
-		yamlBytes, err := ioutil.ReadFile(manifestFilePath)
+		if fileInfo.IsDir() || !strings.HasSuffix(fileInfo.Name(), ".yaml") {
+			// skip directories and filename is't .yaml file
+			return nil
+		}
+
+		yamlBytes, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			return list, fmt.Errorf("read file failed %s", err)
+			return fmt.Errorf("read file failed %s", err)
 		}
 		images := lite.DecodeImages(string(yamlBytes))
 		if len(images) != 0 {
 			list = append(list, images...)
 		}
+		return nil
+	})
+
+	if err != nil {
+		return list, fmt.Errorf("filepath walk failed %s", err)
 	}
 
 	return list, nil
