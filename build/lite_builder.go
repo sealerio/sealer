@@ -16,13 +16,14 @@ package build
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/alibaba/sealer/build/lite/charts"
 	"github.com/alibaba/sealer/build/lite/docker"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
-	"path/filepath"
 )
 
 type LiteBuilder struct {
