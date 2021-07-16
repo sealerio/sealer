@@ -16,22 +16,22 @@ func (c *DockerProvider) PrepareNetworkResource() error {
 	if err != nil {
 		return err
 	}
-	var targetIds []string
+	var targetIDs []string
 
 	for _, net := range networks {
 		if net.Name == c.NetworkResource.DefaultName {
 			if len(net.Containers) > 1 {
 				return fmt.Errorf("duplicate bridge name with default %s", net.Name)
 			}
-			targetIds = append(targetIds, net.ID)
+			targetIDs = append(targetIDs, net.ID)
 		}
 	}
 
-	if len(targetIds) > 0 {
+	if len(targetIDs) > 0 {
 		// reuse sealer network
-		c.NetworkResource.Id = targetIds[0]
-		for i := 1; i < len(targetIds); i++ {
-			err = c.DeleteNetworkResource(targetIds[i])
+		c.NetworkResource.ID = targetIDs[0]
+		for i := 1; i < len(targetIDs); i++ {
+			err = c.DeleteNetworkResource(targetIDs[i])
 			if err != nil {
 				return err
 			}
@@ -39,19 +39,19 @@ func (c *DockerProvider) PrepareNetworkResource() error {
 		return nil
 	}
 
-	defaultBridgeId := ""
+	defaultBridgeID := ""
 	mtu := "1500"
 	//get default bridge network id by name
 	for _, net := range networks {
 		if net.Name == "bridge" {
-			defaultBridgeId = net.ID
+			defaultBridgeID = net.ID
 			break
 		}
 	}
 
 	// get default network bridge config
-	if defaultBridgeId != "" {
-		defaultBridge, err := c.DockerClient.NetworkInspect(c.Ctx, defaultBridgeId, types.NetworkInspectOptions{})
+	if defaultBridgeID != "" {
+		defaultBridge, err := c.DockerClient.NetworkInspect(c.Ctx, defaultBridgeID, types.NetworkInspectOptions{})
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ func (c *DockerProvider) PrepareNetworkResource() error {
 	}
 
 	// create sealer network
-	resp, err := c.DockerClient.NetworkCreate(c.Ctx, DEFAULT_NETWORK_NAME, types.NetworkCreate{
+	resp, err := c.DockerClient.NetworkCreate(c.Ctx, DefaultNetworkName, types.NetworkCreate{
 		Driver:     "bridge",
 		EnableIPv6: true,
 		Options: map[string]string{
@@ -77,11 +77,11 @@ func (c *DockerProvider) PrepareNetworkResource() error {
 		return err
 	}
 	//create network and set id
-	c.NetworkResource.Id = resp.ID
+	c.NetworkResource.ID = resp.ID
 	return nil
 }
 
-func (c *DockerProvider) GetNetworkResourceById(id string) (*types.NetworkResource, error) {
+func (c *DockerProvider) GetNetworkResourceByID(id string) (*types.NetworkResource, error) {
 	net, err := c.DockerClient.NetworkInspect(c.Ctx, id, types.NetworkInspectOptions{})
 	if err != nil {
 		return nil, err

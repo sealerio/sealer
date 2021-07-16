@@ -65,11 +65,11 @@ func (c *DockerProvider) setContainerMount(opts *CreateOptsForContainer) []mount
 	}
 
 	// only master0 need to bind root path
-	if utils.IsFileExist(SEALER_IMAGE_ROOT_PATH) && opts.IsMaster0 {
+	if utils.IsFileExist(SealerImageRootPath) && opts.IsMaster0 {
 		sealerMount := mount.Mount{
 			Type:     mount.TypeBind,
-			Source:   SEALER_IMAGE_ROOT_PATH,
-			Target:   SEALER_IMAGE_ROOT_PATH,
+			Source:   SealerImageRootPath,
+			Target:   SealerImageRootPath,
 			ReadOnly: false,
 			BindOptions: &mount.BindOptions{
 				Propagation: mount.PropagationRPrivate,
@@ -117,7 +117,7 @@ func (c *DockerProvider) RunContainer(opts *CreateOptsForContainer) (string, err
 		}, &network.NetworkingConfig{
 			EndpointsConfig: map[string]*network.EndpointSettings{
 				c.NetworkResource.DefaultName: {
-					NetworkID: c.NetworkResource.Id,
+					NetworkID: c.NetworkResource.ID,
 				},
 			},
 		}, nil, opts.ContainerName)
@@ -134,36 +134,36 @@ func (c *DockerProvider) RunContainer(opts *CreateOptsForContainer) (string, err
 	return resp.ID, nil
 }
 
-func (c *DockerProvider) GetContainerInfo(containerId string) (*Container, error) {
-	resp, err := c.DockerClient.ContainerInspect(c.Ctx, containerId)
+func (c *DockerProvider) GetContainerInfo(containerID string) (*Container, error) {
+	resp, err := c.DockerClient.ContainerInspect(c.Ctx, containerID)
 	if err != nil {
 		return nil, err
 	}
 	return &Container{
 		ContainerName:     resp.Name,
-		ContainerIp:       resp.NetworkSettings.Networks[c.NetworkResource.DefaultName].IPAddress,
+		ContainerIP:       resp.NetworkSettings.Networks[c.NetworkResource.DefaultName].IPAddress,
 		ContainerHostName: resp.Config.Hostname,
 		ContainerLabel:    resp.Config.Labels,
 		Status:            resp.State.Status,
 	}, nil
 }
 
-func (c *DockerProvider) GetContainerIdByIp(containerIp string) (string, error) {
+func (c *DockerProvider) GetContainerIDByIP(containerIP string) (string, error) {
 	resp, err := c.DockerClient.ContainerList(c.Ctx, types.ContainerListOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	for _, item := range resp {
-		if containerIp == item.NetworkSettings.Networks[c.NetworkResource.DefaultName].IPAddress {
+		if containerIP == item.NetworkSettings.Networks[c.NetworkResource.DefaultName].IPAddress {
 			return item.ID, nil
 		}
 	}
 	return "", err
 }
 
-func (c *DockerProvider) RmContainer(containerId string) error {
-	err := c.DockerClient.ContainerRemove(c.Ctx, containerId, types.ContainerRemoveOptions{
+func (c *DockerProvider) RmContainer(containerID string) error {
+	err := c.DockerClient.ContainerRemove(c.Ctx, containerID, types.ContainerRemoveOptions{
 		RemoveVolumes: true,
 		Force:         true,
 	})
@@ -172,11 +172,11 @@ func (c *DockerProvider) RmContainer(containerId string) error {
 		return err
 	}
 
-	logger.Info("delete container %s successfully", containerId)
+	logger.Info("delete container %s successfully", containerID)
 	return nil
 }
 
-func (c *DockerProvider) RunSSHCMDInContainer(sshClient ssh.Interface, containerIp, cmd string) error {
-	_, err := sshClient.Cmd(containerIp, cmd)
+func (c *DockerProvider) RunSSHCMDInContainer(sshClient ssh.Interface, containerIP, cmd string) error {
+	_, err := sshClient.Cmd(containerIP, cmd)
 	return err
 }

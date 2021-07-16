@@ -60,20 +60,20 @@ func TestContainerResource(t *testing.T) {
 			t.Logf("apply docker images failed %v", err)
 			return
 		}
-		imageId := client.GetImageIdByName(client.ImageResource.DefaultName)
-		if imageId == "" {
+		imageID := client.GetImageIDByName(client.ImageResource.DefaultName)
+		if imageID == "" {
 			t.Logf("check failed. image:%s not found", client.ImageResource.DefaultName)
 			return
 		}
 
-		resp, err := client.GetImageResourceById(imageId)
+		resp, err := client.GetImageResourceByID(imageID)
 		if err != nil {
 			t.Logf("get image info failed %v", err)
 			return
 		}
-		t.Logf("get image info sucess %s %s", resp.ID, resp.RepoTags)
+		t.Logf("get image info success %s %s", resp.ID, resp.RepoTags)
 
-		err = client.DeleteImageResource(imageId)
+		err = client.DeleteImageResource(imageID)
 		if err != nil {
 			t.Logf("check failed.failed to delete image %s.error is %v", client.ImageResource.DefaultName, err)
 			return
@@ -88,7 +88,7 @@ func TestContainerResource(t *testing.T) {
 			return
 		}
 
-		net, err := client.GetNetworkResourceById(client.NetworkResource.Id)
+		net, err := client.GetNetworkResourceByID(client.NetworkResource.ID)
 		if err != nil {
 			t.Logf("get network info failed %v", err)
 			return
@@ -98,8 +98,8 @@ func TestContainerResource(t *testing.T) {
 			return
 		}
 
-		t.Logf("get network info sucess %s %s", net.Name, net.ID)
-		err = client.DeleteNetworkResource(client.NetworkResource.Id)
+		t.Logf("get network info success %s %s", net.Name, net.ID)
+		err = client.DeleteNetworkResource(client.NetworkResource.ID)
 		if err != nil {
 			t.Logf("check failed.failed to delete network %s.error is %v", client.NetworkResource.DefaultName, err)
 			return
@@ -138,8 +138,8 @@ func TestContainerResource(t *testing.T) {
 		}
 
 		fmt.Println(client.Cluster.Annotations)
-		deleteNetErr := client.DeleteNetworkResource(client.Cluster.Annotations[container.NETWROK_ID])
-		deleteImageErr := client.DeleteImageResource(client.Cluster.Annotations[container.IMAGE_ID])
+		deleteNetErr := client.DeleteNetworkResource(client.Cluster.Annotations[container.NETWROKID])
+		deleteImageErr := client.DeleteImageResource(client.Cluster.Annotations[container.IMAGEID])
 
 		if deleteNetErr != nil || deleteImageErr != nil {
 			t.Logf("clean up err: %v %v", deleteNetErr, deleteImageErr)
@@ -148,11 +148,9 @@ func TestContainerResource(t *testing.T) {
 
 		t.Logf("succuss to apply docker container")
 	})
-
 }
 
 func TestContainerApply(t *testing.T) {
-
 	cluster := &v1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
@@ -246,8 +244,8 @@ func CheckContainerApplyResult(cluster *v1.Cluster) bool {
 		return true
 	}
 
-	if cluster.Annotations[container.IMAGE_ID] == "" ||
-		cluster.Annotations[container.NETWROK_ID] == "" ||
+	if cluster.Annotations[container.IMAGEID] == "" ||
+		cluster.Annotations[container.NETWROKID] == "" ||
 		len(cluster.Spec.Masters.IPList) != masterCount ||
 		len(cluster.Spec.Nodes.IPList) != nodeCount {
 		return true

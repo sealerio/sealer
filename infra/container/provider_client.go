@@ -27,7 +27,7 @@ type DockerProvider struct {
 }
 
 type Resource struct {
-	Id          string
+	ID          string
 	Type        string
 	DefaultName string
 }
@@ -36,7 +36,7 @@ type Container struct {
 	ContainerID       string
 	ContainerName     string
 	ContainerHostName string
-	ContainerIp       string
+	ContainerIP       string
 	Status            string
 	ContainerLabel    map[string]string
 }
@@ -62,7 +62,7 @@ type DockerInfo struct {
 
 type ApplyResult struct {
 	ToJoinNumber   int
-	ToDeleteIpList []string
+	ToDeleteIPList []string
 	Role           string
 }
 
@@ -83,7 +83,7 @@ func (c *DockerProvider) Apply() error {
 		return c.CleanUp()
 	}
 	// new apply
-	if c.Cluster.Annotations[NETWROK_ID] == "" || c.Cluster.Annotations[IMAGE_ID] == "" {
+	if c.Cluster.Annotations[NETWROKID] == "" || c.Cluster.Annotations[IMAGEID] == "" {
 		var pipLine []func() error
 		pipLine = append(pipLine,
 			c.CheckServerInfo,
@@ -109,7 +109,7 @@ func (c *DockerProvider) ReconcileContainer() error {
 	// check image id and network id!= nil . if so return error
 	// scale up: apply diff container, append ip list.
 	// scale down: delete diff container by id,delete ip list. if no container,need do cleanup
-	if c.Cluster.Annotations[NETWROK_ID] == "" || c.Cluster.Annotations[IMAGE_ID] == "" {
+	if c.Cluster.Annotations[NETWROKID] == "" || c.Cluster.Annotations[IMAGEID] == "" {
 		return fmt.Errorf("network %s or image %s not found", c.NetworkResource.DefaultName, c.ImageResource.DefaultName)
 	}
 	currentMasterNum := len(c.Cluster.Spec.Masters.IPList)
@@ -117,24 +117,24 @@ func (c *DockerProvider) ReconcileContainer() error {
 	num, list, _ := getDiff(c.Cluster.Spec.Masters)
 	masterApplyResult := &ApplyResult{
 		ToJoinNumber:   num,
-		ToDeleteIpList: list,
+		ToDeleteIPList: list,
 		Role:           MASTER,
 	}
 	num, list, _ = getDiff(c.Cluster.Spec.Nodes)
 	nodeApplyResult := &ApplyResult{
 		ToJoinNumber:   num,
-		ToDeleteIpList: list,
+		ToDeleteIPList: list,
 		Role:           NODE,
 	}
 	//Abnormal scene :master number must > 0
-	if currentMasterNum+masterApplyResult.ToJoinNumber-len(masterApplyResult.ToDeleteIpList) <= 0 {
+	if currentMasterNum+masterApplyResult.ToJoinNumber-len(masterApplyResult.ToDeleteIPList) <= 0 {
 		return fmt.Errorf("master number can not be 0")
 	}
 	logger.Info("master apply result: ToJoinNumber %d, ToDeleteIpList : %s",
-		masterApplyResult.ToJoinNumber, masterApplyResult.ToDeleteIpList)
+		masterApplyResult.ToJoinNumber, masterApplyResult.ToDeleteIPList)
 
 	logger.Info("node apply result: ToJoinNumber %d, ToDeleteIpList : %s",
-		nodeApplyResult.ToJoinNumber, nodeApplyResult.ToDeleteIpList)
+		nodeApplyResult.ToJoinNumber, nodeApplyResult.ToDeleteIPList)
 
 	if err := c.applyResult(masterApplyResult); err != nil {
 		return err
@@ -143,98 +143,95 @@ func (c *DockerProvider) ReconcileContainer() error {
 		return err
 	}
 	return nil
-
 }
 
 func (c *DockerProvider) applyResult(result *ApplyResult) error {
 	// create or delete an update iplist
 	if result.Role == MASTER {
 		if result.ToJoinNumber > 0 {
-			joinIpList, err := c.applyToJoin(result.ToJoinNumber, result.Role)
+			joinIPList, err := c.applyToJoin(result.ToJoinNumber, result.Role)
 			if err != nil {
 				return err
 			}
-			c.Cluster.Spec.Masters.IPList = append(c.Cluster.Spec.Masters.IPList, joinIpList...)
+			c.Cluster.Spec.Masters.IPList = append(c.Cluster.Spec.Masters.IPList, joinIPList...)
 		}
-		if len(result.ToDeleteIpList) > 0 {
-			err := c.applyToDelete(result.ToDeleteIpList)
+		if len(result.ToDeleteIPList) > 0 {
+			err := c.applyToDelete(result.ToDeleteIPList)
 			if err != nil {
 				return err
 			}
 			c.Cluster.Spec.Masters.IPList = c.Cluster.Spec.Masters.IPList[:len(c.Cluster.Spec.Masters.IPList)-
-				len(result.ToDeleteIpList)]
+				len(result.ToDeleteIPList)]
 		}
-
 	}
 
 	if result.Role == NODE {
 		if result.ToJoinNumber > 0 {
-			joinIpList, err := c.applyToJoin(result.ToJoinNumber, result.Role)
+			joinIPList, err := c.applyToJoin(result.ToJoinNumber, result.Role)
 			if err != nil {
 				return err
 			}
-			c.Cluster.Spec.Nodes.IPList = append(c.Cluster.Spec.Nodes.IPList, joinIpList...)
+			c.Cluster.Spec.Nodes.IPList = append(c.Cluster.Spec.Nodes.IPList, joinIPList...)
 		}
-		if len(result.ToDeleteIpList) > 0 {
-			err := c.applyToDelete(result.ToDeleteIpList)
+		if len(result.ToDeleteIPList) > 0 {
+			err := c.applyToDelete(result.ToDeleteIPList)
 			if err != nil {
 				return err
 			}
 			c.Cluster.Spec.Nodes.IPList = c.Cluster.Spec.Nodes.IPList[:len(c.Cluster.Spec.Nodes.IPList)-
-				len(result.ToDeleteIpList)]
+				len(result.ToDeleteIPList)]
 		}
 	}
-
 	return nil
 }
 
 func (c *DockerProvider) applyToJoin(toJoinNumber int, role string) ([]string, error) {
 	// run container and return append ip list
-	var toJoinIpList []string
+	var toJoinIPList []string
 	for i := 0; i < toJoinNumber; i++ {
 		name := fmt.Sprintf("sealer-%s-%s", role, utils.GenUniqueID(10))
 		opts := &CreateOptsForContainer{
 			ContainerHostName: name,
 			ContainerName:     name,
 			ContainerLabel: map[string]string{
-				CONTAINERLABLE: role,
+				RoleLabel: role,
 			},
 		}
 		if len(c.Cluster.Spec.Masters.IPList) == 0 && i == 0 {
-			opts.ContainerLabel[CONTAINERLABLEMASTER] = "true"
+			opts.ContainerLabel[RoleLabelMaster] = "true"
 			opts.IsMaster0 = true
 		}
 
-		containerId, err := c.RunContainer(opts)
+		containerID, err := c.RunContainer(opts)
 		if err != nil {
-			return toJoinIpList, fmt.Errorf("failed to create container %s,error is %v", opts.ContainerName, err)
+			return toJoinIPList, fmt.Errorf("failed to create container %s,error is %v", opts.ContainerName, err)
 		}
 		time.Sleep(3 * time.Second)
-		info, err := c.GetContainerInfo(containerId)
+		info, err := c.GetContainerInfo(containerID)
 		if err != nil {
-			return toJoinIpList, fmt.Errorf("failed to get container info of %s,error is %v", containerId, err)
+			return toJoinIPList, fmt.Errorf("failed to get container info of %s,error is %v", containerID, err)
 		}
 
-		err = c.changeDefaultPasswd(info.ContainerIp)
+		err = c.changeDefaultPasswd(info.ContainerIP)
 		if err != nil {
-			return nil, fmt.Errorf("failed to change container password of %s,error is %v", containerId, err)
+			return nil, fmt.Errorf("failed to change container password of %s,error is %v", containerID, err)
 		}
-		toJoinIpList = append(toJoinIpList, info.ContainerIp)
+		toJoinIPList = append(toJoinIPList, info.ContainerIP)
 	}
 
-	return toJoinIpList, nil
+	return toJoinIPList, nil
 }
 
-func (c *DockerProvider) changeDefaultPasswd(containerIp string) error {
+func (c *DockerProvider) changeDefaultPasswd(containerIP string) error {
 	if c.Cluster.Spec.SSH.Passwd == "" {
 		return nil
 	}
 
-	if c.Cluster.Spec.SSH.Passwd == DEFAULT_PASSWORD {
+	if c.Cluster.Spec.SSH.Passwd == DefaultPassword {
 		return nil
 	}
 
-	cmd := fmt.Sprintf(CHANGE_PASSWORD_CMD, c.Cluster.Spec.SSH.Passwd)
+	cmd := fmt.Sprintf(ChangePasswordCmd, c.Cluster.Spec.SSH.Passwd)
 
 	user := "root"
 	if c.Cluster.Spec.SSH.User != "" {
@@ -242,15 +239,15 @@ func (c *DockerProvider) changeDefaultPasswd(containerIp string) error {
 	}
 	sshClient := &ssh.SSH{
 		User:     user,
-		Password: DEFAULT_PASSWORD,
+		Password: DefaultPassword,
 	}
 
-	return c.RunSSHCMDInContainer(sshClient, containerIp, cmd)
+	return c.RunSSHCMDInContainer(sshClient, containerIP, cmd)
 }
-func (c *DockerProvider) applyToDelete(deleteIpList []string) error {
+func (c *DockerProvider) applyToDelete(deleteIPList []string) error {
 	// delete container and return deleted ip list
-	for _, ip := range deleteIpList {
-		id, err := c.GetContainerIdByIp(ip)
+	for _, ip := range deleteIPList {
+		id, err := c.GetContainerIDByIP(ip)
 		if err != nil {
 			return fmt.Errorf("failed to get container id %s while delte it ", ip)
 		}
@@ -288,7 +285,7 @@ func (c *DockerProvider) CheckServerInfo() error {
 		}
 	}
 
-	if !utils.IsFileExist(DOCKER_HOST) && os.Getenv("DOCKER_HOST") == "" {
+	if !utils.IsFileExist(DockerHost) && os.Getenv("DOCKER_HOST") == "" {
 		return fmt.Errorf("sealer user default docker host /var/run/docker.sock, please set env DOCKER_HOST='' to override it")
 	}
 
@@ -311,7 +308,6 @@ func (c *DockerProvider) GetServerInfo() (*DockerInfo, error) {
 		CPUNumber:       sysInfo.NCPU,
 		SecurityOptions: sysInfo.SecurityOptions,
 	}, nil
-
 }
 
 func (c *DockerProvider) PrepareBaseResource() error {
@@ -331,8 +327,8 @@ func (c *DockerProvider) PrepareBaseResource() error {
 	if c.Cluster.Annotations == nil {
 		c.Cluster.Annotations = make(map[string]string)
 	}
-	c.Cluster.Annotations[NETWROK_ID] = c.NetworkResource.Id
-	c.Cluster.Annotations[IMAGE_ID] = c.ImageResource.Id
+	c.Cluster.Annotations[NETWROKID] = c.NetworkResource.ID
+	c.Cluster.Annotations[IMAGEID] = c.ImageResource.ID
 	logger.Info("prepare base image %s and network %s successfully ", c.ImageResource.DefaultName, c.NetworkResource.DefaultName)
 	return nil
 }
@@ -346,7 +342,7 @@ func (c *DockerProvider) CleanUp() error {
 	iplist = append(iplist, c.Cluster.Spec.Nodes.IPList...)
 
 	for _, ip := range iplist {
-		id, err := c.GetContainerIdByIp(ip)
+		id, err := c.GetContainerIDByIP(ip)
 		if err != nil {
 			return fmt.Errorf("failed to get container id %s while delte it ", ip)
 		}
@@ -359,7 +355,7 @@ func (c *DockerProvider) CleanUp() error {
 	}
 	utils.CleanDir(common.DefaultClusterBaseDir(c.Cluster.Name))
 
-	deleteNetErr := c.DeleteNetworkResource(c.Cluster.Annotations[NETWROK_ID])
+	deleteNetErr := c.DeleteNetworkResource(c.Cluster.Annotations[NETWROKID])
 
 	if deleteNetErr != nil {
 		logger.Error("failed to clean up resource: %v", deleteNetErr)
@@ -380,12 +376,12 @@ func NewClientWithCluster(cluster *v1.Cluster) (*DockerProvider, error) {
 		DockerClient: cli,
 		Cluster:      cluster,
 		NetworkResource: &Resource{
-			Type:        RESOURCE_NETWORK,
-			DefaultName: DEFAULT_NETWORK_NAME,
+			Type:        ResourceNetwork,
+			DefaultName: DefaultNetworkName,
 		},
 		ImageResource: &Resource{
-			Type:        RESOURCE_IMAGE,
-			DefaultName: DEFAULT_IMAGE_NAME,
+			Type:        ResourceImage,
+			DefaultName: DefaultImageName,
 		},
 	}, nil
 }
