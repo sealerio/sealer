@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
 
 	"os"
@@ -35,6 +36,7 @@ var pushCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
+	ValidArgsFunction: utils.ImageListFuncForCompletion,
 }
 
 func init() {

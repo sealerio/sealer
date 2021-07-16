@@ -19,6 +19,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -172,4 +175,27 @@ func GetImageMetadata(imageNameOrID string) (ImageMetadata, error) {
 		}
 	}
 	return imageMetadata, &ImageNameOrIDNotFoundError{name: imageNameOrID}
+}
+
+func SimilarImageList(imageArg string) (similarImageList []string, err error) {
+	metadataMap, err := GetImageMetadataMap()
+	if err != nil {
+		return nil, err
+	}
+	for _, imageMetadata := range metadataMap {
+		imageMeta := imageMetadata
+		if !strings.Contains(imageMeta.Name, imageArg) && imageArg != "" {
+			continue
+		}
+		similarImageList = append(similarImageList, imageMeta.Name)
+	}
+	return similarImageList, nil
+}
+
+func ImageListFuncForCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	similarImages, err := SimilarImageList(toComplete)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	return similarImages, cobra.ShellCompDirectiveNoFileComp
 }

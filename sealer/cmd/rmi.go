@@ -19,6 +19,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/alibaba/sealer/image/utils"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
@@ -42,6 +44,7 @@ var rmiCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
+	ValidArgsFunction: utils.ImageListFuncForCompletion,
 }
 
 func runRemove(images []string) error {
