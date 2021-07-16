@@ -16,15 +16,13 @@ package build
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
-
 	"github.com/alibaba/sealer/build/lite/charts"
 	"github.com/alibaba/sealer/build/lite/docker"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
+	"path/filepath"
 )
 
 type LiteBuilder struct {
@@ -91,8 +89,9 @@ func (l *LiteBuilder) CacheImageToRegistry() error {
 	var err error
 	d := docker.Docker{}
 	c := charts.Charts{}
-	if strings.TrimSpace(l.local.Config.ImageList) != "" {
-		images, err = utils.ReadLines(l.local.Config.ImageList)
+	imageList := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "imageList")
+	if utils.IsExist(imageList) {
+		images, err = utils.ReadLines(imageList)
 	}
 	if i, err := c.ListImages(l.local.Cluster.Name); err == nil {
 		images = append(images, i...)

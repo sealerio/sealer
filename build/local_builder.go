@@ -48,7 +48,6 @@ import (
 type Config struct {
 	BuildType string
 	NoCache   bool
-	ImageList string
 }
 
 type builderLayer struct {
