@@ -1,0 +1,20 @@
+{
+  "max-concurrent-downloads": 20,
+  "log-driver": "json-file",
+  "log-level": "warn",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  },
+  "insecure-registries": [
+    "sea.hub",
+    "sea.hub:5000"
+  ],
+  "mirror-registries": [
+   {
+    "domain": "*",
+    "mirrors": ["http://sea.hub:5000"]
+   }
+  ],
+  "data-root": "/var/lib/docker"
+}
