@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/build/lite"
 	"github.com/alibaba/sealer/common"
 )
 
@@ -35,27 +36,13 @@ func (charts *Charts) ListImages(clusterName string) ([]string, error) {
 		}
 	}
 
-	list = removeDuplicate(list)
 	return list, nil
 }
 
-func NewCharts() (Interface, error) {
+func NewCharts() (lite.Interface, error) {
 	return &Charts{}, nil
 }
 
 func defaultChartsRootDir(clusterName string) string {
 	return filepath.Join(common.DefaultTheClusterRootfsDir(clusterName), "charts")
-}
-
-func removeDuplicate(images []string) []string {
-	var result []string
-	flagMap := map[string]struct{}{}
-
-	for _, image := range images {
-		if _, ok := flagMap[image]; !ok {
-			flagMap[image] = struct{}{}
-			result = append(result, image)
-		}
-	}
-	return result
 }
