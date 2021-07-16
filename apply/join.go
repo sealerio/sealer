@@ -76,5 +76,11 @@ func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface
 		logger.Error("clusterfile save failed, please check:", err)
 		return nil
 	}
-	return NewApplier(cluster)
+
+	applier, err := NewApplier(cluster)
+	if err != nil {
+		logger.Error("failed to init applier, err: %s", err)
+		return nil
+	}
+	return applier
 }

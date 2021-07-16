@@ -19,8 +19,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"sigs.k8s.io/yaml"
+
+	"github.com/alibaba/sealer/image/store"
+
 	"github.com/alibaba/sealer/common"
-	imageUtils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -53,23 +56,26 @@ func GetClusterFileFromImage(imageName string) string {
 	return ""
 }
 
-// GetMetadataFromImage retrieve Metadata From image
-func GetMetadataFromImage(imageName string) string {
-	metadata := GetFileFromBaseImage(imageName, common.DefaultMetadataName)
-	if metadata != "" {
-		return metadata
-	}
-	return ""
-}
-
 // GetClusterFileFromImageManifest retrieve ClusterFile from image manifest(image yaml)
 func GetClusterFileFromImageManifest(imageName string) string {
 	//  find cluster file from image manifest
-	var image *v1.Image
-	var err error
-	image, err = imageUtils.GetImage(imageName)
+	var (
+		image *v1.Image
+		err   error
+	)
+	is, err := store.NewDefaultImageStore()
 	if err != nil {
-		imageMetadata, err := NewImageMetadataService().GetRemoteImage(imageName)
+		logger.Error("failed to init image store, err: %s", err)
+		return ""
+	}
+	image, err = is.GetByName(imageName)
+	if err != nil {
+		ims, err := NewImageMetadataService()
+		if err != nil {
+			logger.Error("failed to create image metadata svc, err: %v", err)
+		}
+
+		imageMetadata, err := ims.GetRemoteImage(imageName)
 		if err != nil {
 			logger.Error("failed to find image %s,err: %v", imageName, err)
 			return ""
@@ -92,11 +98,21 @@ func GetFileFromBaseImage(imageName string, paths ...string) string {
 		utils.CleanDirs(mountTarget, mountUpper)
 	}()
 
-	if err := NewImageService().PullIfNotExist(imageName); err != nil {
+	imgSvc, err := NewImageService()
+	if err != nil {
 		return ""
 	}
+	if err = imgSvc.PullIfNotExist(imageName); err != nil {
+		return ""
+	}
+
 	driver := mount.NewMountDriver()
-	image, err := imageUtils.GetImage(imageName)
+	is, err := store.NewDefaultImageStore()
+	if err != nil {
+		logger.Error("failed to init image store, err: %s", err)
+		return ""
+	}
+	image, err := is.GetByName(imageName)
 	if err != nil {
 		return ""
 	}
@@ -128,22 +144,20 @@ func GetFileFromBaseImage(imageName string, paths ...string) string {
 }
 
 func GetYamlByImage(imageName string) (string, error) {
-	imagesMap, err := imageUtils.GetImageMetadataMap()
+	is, err := store.NewDefaultImageStore()
+	if err != nil {
+		return "", fmt.Errorf("failed to init image store, err: %s", err)
+	}
+
+	img, err := is.GetByName(imageName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get image %s, err: %s", imageName, err)
+	}
+
+	ImageInformation, err := yaml.Marshal(img)
 	if err != nil {
 		return "", err
 	}
 
-	image, ok := imagesMap[imageName]
-	if !ok {
-		return "", fmt.Errorf("failed to find image by name (%s)", imageName)
-	}
-	if image.ID == "" {
-		return "", fmt.Errorf("failed to find corresponding image id, id is empty")
-	}
-
-	ImageInformation, err := ioutil.ReadFile(filepath.Join(common.DefaultImageDBRootDir, image.ID+common.YamlSuffix))
-	if err != nil {
-		return "", fmt.Errorf("failed to read image yaml,err: %v", err)
-	}
 	return string(ImageInformation), nil
 }

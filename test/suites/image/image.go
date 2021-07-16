@@ -19,12 +19,12 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/image/store"
+
 	"github.com/alibaba/sealer/test/suites/build"
 
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-
-	imageUtils "github.com/alibaba/sealer/image/utils"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
@@ -70,7 +70,9 @@ func GetEnvDirMd5() string {
 }
 
 func GetImageID(imageName string) string {
-	image, err := imageUtils.GetImage(imageName)
+	is, err := store.NewDefaultImageStore()
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	image, err := is.GetByName(imageName)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return image.Spec.ID
 }

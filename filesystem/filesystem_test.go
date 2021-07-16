@@ -61,8 +61,12 @@ func TestMount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileSystem := NewFilesystem()
-			if err := fileSystem.MountRootfs(tt.arg.cluster, []string{""}); err != nil {
+			fileSystem, err := NewFilesystem()
+			if err != nil {
+				t.Errorf("%s failed: %v", tt.name, err)
+			}
+
+			if err = fileSystem.MountRootfs(tt.arg.cluster, []string{""}); err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 		})
@@ -109,8 +113,11 @@ func TestUnMount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileSystem := NewFilesystem()
-			if err := fileSystem.UnMountRootfs(tt.arg.cluster); err != nil {
+			fileSystem, err := NewFilesystem()
+			if err != nil {
+				t.Errorf("%s failed: %v", tt.name, err)
+			}
+			if err = fileSystem.UnMountRootfs(tt.arg.cluster); err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 		})

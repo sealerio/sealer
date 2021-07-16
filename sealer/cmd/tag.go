@@ -28,7 +28,13 @@ var tagCmd = &cobra.Command{
 	Example: `sealer tag sealer/cloudrootfs:v1.16.9-alpha.6 registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5`,
 	Args:    cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := image.NewImageMetadataService().Tag(args[0], args[1])
+		ims, err := image.NewImageMetadataService()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+
+		err = ims.Tag(args[0], args[1])
 		if err != nil {
 			logger.Error(err)
 			os.Exit(1)

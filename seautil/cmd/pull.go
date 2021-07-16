@@ -31,7 +31,13 @@ var pullCmd = &cobra.Command{
 	Short: "pull cloud image to local",
 	Long:  `seautil pull my-kubernetes:1.18.3`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := image.NewImageService().Pull(imagePullFlag.ImageName)
+		imgSvc, err := image.NewImageService()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+
+		err = imgSvc.Pull(imagePullFlag.ImageName)
 		if err != nil {
 			logger.Error(err)
 			os.Exit(-1)

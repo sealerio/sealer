@@ -37,7 +37,6 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/reference"
-	imageUtils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -65,6 +64,7 @@ type LocalBuilder struct {
 	Context      string
 	KubeFileName string
 	LayerStore   store.LayerStore
+	ImageStore   store.ImageStore
 	ImageService image.Service
 	Prober       image.Prober
 	FS           store.Backend
@@ -333,12 +333,6 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 		return fmt.Errorf("failed to updateImageIDAndSaveImage, err: %v", err)
 	}
 
-	if err = imageUtils.SetImageMetadata(imageUtils.ImageMetadata{
-		Name: l.ImageNamed.Raw(),
-		ID:   l.Image.Spec.ID,
-	}); err != nil {
-		return fmt.Errorf("failed to set image metadata :%v", err)
-	}
 	logger.Info("update image %s to image metadata success !", l.ImageNamed.Raw())
 	return nil
 }
@@ -366,19 +360,7 @@ func (l *LocalBuilder) updateImageIDAndSaveImage() error {
 	}
 
 	l.Image.Spec.ID = imageID
-	filename := fmt.Sprintf("%s/%s%s", common.DefaultImageDBRootDir, imageID, common.YamlSuffix)
-
-	imageBytes, err := yaml.Marshal(l.Image)
-	if err != nil {
-		return err
-	}
-
-	err = utils.WriteFile(filename, imageBytes)
-	if err != nil {
-		return err
-	}
-	logger.Info("write image yaml file to %s success !", filename)
-	return nil
+	return l.ImageStore.Save(*l.Image, l.ImageNamed.Raw())
 }
 
 func generateImageID(image v1.Image) (string, error) {
@@ -447,7 +429,7 @@ func (l *LocalBuilder) updateBuilderLayers(image *v1.Image) error {
 		// give a empty image
 		baseImage = &v1.Image{}
 	} else {
-		baseImage, err = imageUtils.GetImage(image.Spec.Layers[0].Value)
+		baseImage, err = l.ImageStore.GetByName(image.Spec.Layers[0].Value)
 		if err != nil {
 			return fmt.Errorf("failed to get base image while updating base layers, err: %s", err)
 		}
@@ -509,7 +491,16 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 		return nil, err
 	}
 
-	service := image.NewImageService()
+	imageStore, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+
+	service, err := image.NewImageService()
+	if err != nil {
+		return nil, err
+	}
+
 	fs, err := store.NewFSStoreBackend()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
@@ -519,6 +510,7 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 	return &LocalBuilder{
 		Config:       config,
 		LayerStore:   layerStore,
+		ImageStore:   imageStore,
 		ImageService: service,
 		Prober:       prober,
 		FS:           fs,

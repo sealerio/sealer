@@ -52,7 +52,10 @@ func TestDefault_Apply(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Default := NewGuestManager()
+			Default, err := NewGuestManager()
+			if err != nil {
+				t.Errorf("failed to NewGuestManager, err: %s", err)
+			}
 			if err := Default.Apply(tt.args.Cluster); (err != nil) != tt.wanterr {
 				t.Errorf("Apply failed, %s", err)
 			}

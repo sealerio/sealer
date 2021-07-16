@@ -31,7 +31,13 @@ var pushCmd = &cobra.Command{
 	Example: `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kuberentes-cluster-with-dashboard:latest`,
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := image.NewImageService().Push(args[0]); err != nil {
+		imgsvc, err := image.NewImageService()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+
+		if err = imgsvc.Push(args[0]); err != nil {
 			logger.Error(err)
 			os.Exit(1)
 		}

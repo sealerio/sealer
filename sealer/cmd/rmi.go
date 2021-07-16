@@ -48,7 +48,11 @@ var rmiCmd = &cobra.Command{
 }
 
 func runRemove(images []string) error {
-	imageService := image.NewDeleteImageService(opts.force)
+	imageService, err := image.NewDeleteImageService(opts.force)
+	if err != nil {
+		return err
+	}
+
 	var errs []string
 	for _, img := range images {
 		if err := imageService.Delete(img); err != nil {

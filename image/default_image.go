@@ -27,7 +27,6 @@ import (
 	"github.com/alibaba/sealer/image/distributionutil"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
-	imageutils "github.com/alibaba/sealer/image/utils"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -41,6 +40,7 @@ import (
 // DefaultImageService is the default service, which is used for image pull/push
 type DefaultImageService struct {
 	ForceDeleteImage bool // sealer rmi -f
+	imageStore       store.ImageStore
 }
 
 // PullIfNotExist is used to pull image if not exists locally
@@ -50,7 +50,7 @@ func (d DefaultImageService) PullIfNotExist(imageName string) error {
 		return err
 	}
 
-	_, err = imageutils.GetImage(named.Raw())
+	_, err = d.imageStore.GetByName(named.Raw())
 	if err == nil {
 		logger.Info("image %s already exists", named.Raw())
 		return nil
@@ -103,7 +103,7 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 	// TODO use image store to do the job next
-	err = store.SyncImageLocal(*image, named)
+	err = d.imageStore.Save(*image, named.Raw())
 	if err == nil {
 		dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Pull Image %s", named.Raw()))
 	}
@@ -178,13 +178,14 @@ func (d DefaultImageService) Delete(imageName string) error {
 		image         *v1.Image
 		imageTagCount int
 		imageID       string
+		imageStore    = d.imageStore
 	)
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
 		return err
 	}
 
-	imageMetadataMap, err := imageutils.GetImageMetadataMap()
+	imageMetadataMap, err := imageStore.GetImageMetadataMap()
 	if err != nil {
 		return err
 	}
@@ -198,17 +199,16 @@ func (d DefaultImageService) Delete(imageName string) error {
 
 	if strings.Contains(imageName, ":") {
 		//1.untag image
-		if err = imageutils.DeleteImage(imageName); err != nil {
+		if err = imageStore.DeleteByName(imageName); err != nil {
 			return fmt.Errorf("failed to untag image %s, err: %w", imageName, err)
 		}
-		image, err = imageutils.GetImageByID(imageMetadata.ID)
-
+		image, err = imageStore.GetByID(imageMetadata.ID)
 		imageID = imageMetadata.ID
 	} else {
-		if err = imageutils.DeleteImageByID(imageName, d.ForceDeleteImage); err != nil {
+		if err = imageStore.DeleteByID(imageName, d.ForceDeleteImage); err != nil {
 			return err
 		}
-		image, err = imageutils.GetImageByID(imageName)
+		image, err = imageStore.GetByID(imageName)
 		imageID = imageName
 	}
 
@@ -218,7 +218,7 @@ func (d DefaultImageService) Delete(imageName string) error {
 	logger.Info("untag image %s succeeded", imageName)
 
 	for _, value := range imageMetadataMap {
-		tmpImage, err := imageutils.GetImageByID(value.ID)
+		tmpImage, err := imageStore.GetByID(value.ID)
 		if err != nil {
 			continue
 		}
