@@ -16,6 +16,7 @@ package utils
 
 import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"strings"
 )
 
 func GetDiffHosts(hostsOld, hostsNew v1.Hosts) (add, sub []string) {
@@ -37,4 +38,12 @@ func GetDiffHosts(hostsOld, hostsNew v1.Hosts) (add, sub []string) {
 	}
 
 	return
+}
+
+func IsInContainer() bool {
+	data, err := ReadAll("/proc/1/environ")
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(data), "container=docker")
 }

@@ -92,6 +92,7 @@ const (
 const (
 	BAREMETAL = "BAREMETAL"
 	AliCloud  = "ALI_CLOUD"
+	CONTAINER  = "CONTAINER"
 )
 
 const (

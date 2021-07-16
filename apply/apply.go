@@ -48,6 +48,9 @@ func NewApplier(cluster *v1.Cluster) (Interface, error) {
 	switch cluster.Spec.Provider {
 	case common.AliCloud:
 		return NewAliCloudProvider(cluster)
+	case common.CONTAINER:
+		return NewAliCloudProvider(cluster)
 	}
+
 	return NewDefaultApplier(cluster)
 }

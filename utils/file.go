@@ -129,11 +129,11 @@ func WriteFile(fileName string, content []byte) error {
 			return err
 		}
 	}
-
-	if err := AtomicWriteFile(fileName, content, common.FileMode0644); err != nil {
-		return err
-	}
-	return nil
+	return ioutil.WriteFile(fileName, content, common.FileMode0644)
+	//if err := AtomicWriteFile(fileName, content, common.FileMode0644); err != nil {
+	//	return err
+	//}
+	//return nil
 }
 
 // copy a.txt /var/lib/a.txt
