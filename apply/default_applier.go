@@ -155,7 +155,7 @@ func applyNodes(applier *DefaultApplier) error {
 
 func (c *DefaultApplier) Apply() (err error) {
 	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
-		err = saveClusterfile(c.ClusterDesired)
+		err = utils.SaveClusterfile(c.ClusterDesired)
 		if err != nil {
 			return err
 		}

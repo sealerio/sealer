@@ -51,16 +51,3 @@ func NewApplier(cluster *v1.Cluster) Interface {
 	}
 	return NewDefaultApplier(cluster)
 }
-
-func saveClusterfile(cluster *v1.Cluster) error {
-	fileName := common.GetClusterWorkClusterfile(cluster.Name)
-	err := utils.MkFileFullPathDir(fileName)
-	if err != nil {
-		return fmt.Errorf("mkdir failed %s %v", fileName, err)
-	}
-	err = utils.MarshalYamlToFile(fileName, cluster)
-	if err != nil {
-		return fmt.Errorf("marshal cluster file failed %v", err)
-	}
-	return nil
-}

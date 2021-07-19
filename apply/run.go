@@ -88,10 +88,12 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		}
 		c.cluster.Spec.Network.SvcCIDR = c.svcCidr
 	}
+	if c.passwd != "" {
+		c.cluster.Spec.SSH.Passwd = c.passwd
+	}
 	if IsNumber(c.masterArgs) && (IsNumber(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.Count = c.masterArgs
 		c.cluster.Spec.Nodes.Count = c.nodeArgs
-		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.Provider = common.DefaultCloudProvider
 	} else if IsIPList(c.masterArgs) && (IsIPList(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
@@ -99,7 +101,6 @@ func (c *ClusterArgs) SetClusterArgs() error {
 			c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
 		}
 		c.cluster.Spec.SSH.User = c.user
-		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.SSH.Pk = c.pk
 		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
 	} else {
@@ -112,7 +113,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 func GetClusterFileByImageName(imageName string) (cluster *v1.Cluster, err error) {
 	clusterFile := image.GetClusterFileFromImageManifest(imageName)
 	if clusterFile == "" {
-		return nil, fmt.Errorf("failed to found Clusterfile")
+		return nil, fmt.Errorf("failed to find Clusterfile")
 	}
 	if err := yaml.Unmarshal([]byte(clusterFile), &cluster); err != nil {
 		return nil, err

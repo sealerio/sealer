@@ -95,7 +95,7 @@ func (c *CloudApplier) Apply() error {
 	if cluster.DeletionTimestamp != nil {
 		return nil
 	}
-	err = saveClusterfile(cluster)
+	err = utils.SaveClusterfile(cluster)
 	if err != nil {
 		return err
 	}
