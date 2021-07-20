@@ -56,14 +56,6 @@ type Interface interface {
 type FileSystem struct {
 }
 
-func IsDir(path string) bool {
-	s, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return s.IsDir()
-}
-
 func (c *FileSystem) Clean(cluster *v1.Cluster) error {
 	return utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultClusterBaseDir(cluster.Name), common.DefaultKubeConfigDir())
 }
@@ -89,9 +81,14 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 
 func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
-	if IsDir(mountdir) {
-		logger.Info("image already mounted")
-		return nil
+	upperDir := filepath.Join(mountdir, "upper")
+	if utils.IsDir(mountdir) {
+		if utils.IsFileExist(upperDir) {
+			utils.CleanDir(upperDir)
+		} else {
+			logger.Info("image already mounted")
+			return nil
+		}
 	}
 	//get layers
 	Image, err := imageUtils.GetImage(cluster.Spec.Image)
@@ -103,7 +100,6 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 		return fmt.Errorf("get layers failed: %v", err)
 	}
 	driver := mount.NewMountDriver()
-	upperDir := filepath.Join(mountdir, "upper")
 	if err = os.MkdirAll(upperDir, 0744); err != nil {
 		return fmt.Errorf("create upperdir failed, %s", err)
 	}

@@ -74,8 +74,8 @@ func MkTmpdir() (string, error) {
 	return tempDir, os.MkdirAll(tempDir, os.ModePerm)
 }
 
-func MkTmpFile() (*os.File, error) {
-	return ioutil.TempFile(common.DefaultTmpDir, ".FTmp-")
+func MkTmpFile(path string) (*os.File, error) {
+	return ioutil.TempFile(path, ".FTmp-")
 }
 
 func IsFileExist(filename string) bool {
