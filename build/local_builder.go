@@ -299,7 +299,7 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 		dest := ""
 		if utils.IsDir(src) {
 			// src is dir
-			dest = filepath.Join(tempTarget, strings.Fields(layer.Value)[1])
+			dest = filepath.Join(tempTarget, strings.Fields(layer.Value)[1], filepath.Base(src))
 		} else {
 			// src is file
 			dest = filepath.Join(tempTarget, strings.Fields(layer.Value)[1], strings.Fields(layer.Value)[0])
@@ -308,7 +308,9 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 	}
 	if layer.Type == common.RUNCOMMAND || layer.Type == common.CMDCOMMAND {
 		cmd := fmt.Sprintf(common.CdAndExecCmd, tempTarget, layer.Value)
-		if _, err := command.NewSimpleCommand(cmd).Exec(); err != nil {
+		output, err := command.NewSimpleCommand(cmd).Exec()
+		logger.Info(output)
+		if err != nil {
 			return fmt.Errorf("failed to exec %s, err: %v", cmd, err)
 		}
 	}
