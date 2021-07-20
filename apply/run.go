@@ -127,7 +127,7 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 		return nil, err
 	}
 	if runArgs.Nodes == "" && runArgs.Masters == "" {
-		return NewApplier(cluster), nil
+		return NewApplier(cluster)
 	}
 	c := &ClusterArgs{
 		cluster:    cluster,
@@ -144,5 +144,5 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
 	}
-	return NewApplier(c.cluster), nil
+	return NewApplier(c.cluster)
 }

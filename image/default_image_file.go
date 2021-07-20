@@ -22,6 +22,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/image/types"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/logger"
@@ -29,13 +31,14 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
-	imageutils "github.com/alibaba/sealer/image/utils"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/archive"
 )
 
 type DefaultImageFileService struct {
+	layerStore store.LayerStore
+	imageStore store.ImageStore
 }
 
 func (d DefaultImageFileService) Load(imageSrc string) error {
@@ -72,7 +75,7 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 		return err
 	}
 
-	image, err := imageutils.GetImage(named.Raw())
+	image, err := d.imageStore.GetByName(named.Raw())
 	if err != nil {
 		return err
 	}
@@ -105,7 +108,7 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
 	}
 
-	repo, err := json.Marshal(&imageutils.ImageMetadata{ID: image.Spec.ID, Name: named.Raw()})
+	repo, err := json.Marshal(&types.ImageMetadata{ID: image.Spec.ID, Name: named.Raw()})
 	if err != nil {
 		return err
 	}
@@ -124,7 +127,7 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	return err
 }
 
-func (d DefaultImageFileService) load(imageSrc string) (*imageutils.ImageMetadata, error) {
+func (d DefaultImageFileService) load(imageSrc string) (*types.ImageMetadata, error) {
 	var (
 		srcFile *os.File
 		size    int64
@@ -153,7 +156,7 @@ func (d DefaultImageFileService) load(imageSrc string) (*imageutils.ImageMetadat
 	if err != nil {
 		return nil, err
 	}
-	var imageMetadata imageutils.ImageMetadata
+	var imageMetadata types.ImageMetadata
 
 	if err := json.Unmarshal(repo, &imageMetadata); err != nil {
 		return nil, err
@@ -166,11 +169,6 @@ func (d DefaultImageFileService) load(imageSrc string) (*imageutils.ImageMetadat
 		return nil, fmt.Errorf("failed to parsing %s, err: %v", imageTempFile, err)
 	}
 
-	layerStore, err := store.NewDefaultLayerStore()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get layerstore, err: %v", err)
-	}
-
 	for _, layer := range image.Spec.Layers {
 		if layer.ID == "" {
 			continue
@@ -181,7 +179,7 @@ func (d DefaultImageFileService) load(imageSrc string) (*imageutils.ImageMetadat
 			return nil, err
 		}
 
-		err = layerStore.RegisterLayerIfNotPresent(roLayer)
+		err = d.layerStore.RegisterLayerIfNotPresent(roLayer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to register layer, err: %v", err)
 		}
@@ -192,5 +190,5 @@ func (d DefaultImageFileService) load(imageSrc string) (*imageutils.ImageMetadat
 		return nil, err
 	}
 
-	return &imageMetadata, store.SyncImageLocal(image, named)
+	return &imageMetadata, d.imageStore.Save(image, named.Raw())
 }

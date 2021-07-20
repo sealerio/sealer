@@ -16,14 +16,14 @@ package image
 
 import (
 	"github.com/alibaba/sealer/image/store"
-	"github.com/alibaba/sealer/image/utils"
+	"github.com/alibaba/sealer/image/types"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 // MetadataService is the interface for providing image metadata service
 type MetadataService interface {
 	Tag(imageName, tarImageName string) error
-	List() ([]utils.ImageMetadata, error)
+	List() ([]types.ImageMetadata, error)
 	GetImage(imageName string) (*v1.Image, error)
 	GetRemoteImage(imageName string) (v1.Image, error)
 	DeleteImage(imageName string) error

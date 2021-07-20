@@ -17,6 +17,7 @@ package utils
 import (
 	"fmt"
 	"io/ioutil"
+	"reflect"
 
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -31,7 +32,10 @@ func UnmarshalYamlFile(file string, obj interface{}) error {
 	}
 
 	err = yaml.Unmarshal(data, obj)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal file %s to %s", file, reflect.TypeOf(obj))
+	}
+	return nil
 }
 
 func MarshalYamlToFile(file string, obj interface{}) error {

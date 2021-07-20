@@ -32,7 +32,7 @@ func NewApplierFromFile(clusterfile string) (Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewApplier(cluster), nil
+	return NewApplier(cluster)
 }
 
 func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
@@ -44,7 +44,7 @@ func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
 	return cluster, nil
 }
 
-func NewApplier(cluster *v1.Cluster) Interface {
+func NewApplier(cluster *v1.Cluster) (Interface, error) {
 	switch cluster.Spec.Provider {
 	case common.AliCloud:
 		return NewAliCloudProvider(cluster)

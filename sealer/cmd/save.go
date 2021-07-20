@@ -35,7 +35,12 @@ save kubernetes:v1.18.3 image to kubernetes.tar.gz file:
 sealer save -o kubernetes.tar.gz kubernetes:v1.18.3`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := image.NewImageFileService().Save(args[0], ImageTar); err != nil {
+		ifs, err := image.NewImageFileService()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+		if err = ifs.Save(args[0], ImageTar); err != nil {
 			logger.Error("failed to save image %s, err: %v", args[0], err)
 			os.Exit(1)
 		}

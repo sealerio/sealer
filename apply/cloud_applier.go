@@ -37,14 +37,29 @@ type CloudApplier struct {
 	*DefaultApplier
 }
 
-func NewAliCloudProvider(cluster *v1.Cluster) Interface {
+func NewAliCloudProvider(cluster *v1.Cluster) (Interface, error) {
+	imgService, err := image.NewImageService()
+	if err != nil {
+		return nil, err
+	}
+
+	fs, err := filesystem.NewFilesystem()
+	if err != nil {
+		return nil, err
+	}
+
+	gs, err := guest.NewGuestManager()
+	if err != nil {
+		return nil, err
+	}
+
 	d := &DefaultApplier{
 		ClusterDesired: cluster,
-		ImageManager:   image.NewImageService(),
-		FileSystem:     filesystem.NewFilesystem(),
-		Guest:          guest.NewGuestManager(),
+		ImageManager:   imgService,
+		FileSystem:     fs,
+		Guest:          gs,
 	}
-	return &CloudApplier{d}
+	return &CloudApplier{d}, nil
 }
 
 func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, err error) {

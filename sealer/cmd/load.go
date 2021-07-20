@@ -32,7 +32,12 @@ var loadCmd = &cobra.Command{
 	Example: `sealer load -i kubernetes.tar.gz`,
 	Args:    cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := image.NewImageFileService().Load(imageSrc); err != nil {
+		ifs, err := image.NewImageFileService()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+		if err = ifs.Load(imageSrc); err != nil {
 			logger.Error("failed to load image from %s, err: %v", imageSrc, err)
 			os.Exit(1)
 		}

@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alibaba/sealer/image/store"
+
 	"github.com/alibaba/sealer/runtime"
 
 	infraUtils "github.com/alibaba/sealer/infra/utils"
@@ -34,7 +36,6 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
-	imageUtils "github.com/alibaba/sealer/image/utils"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/mount"
@@ -54,6 +55,7 @@ type Interface interface {
 }
 
 type FileSystem struct {
+	imageStore store.ImageStore
 }
 
 func (c *FileSystem) Clean(cluster *v1.Cluster) error {
@@ -91,7 +93,7 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 		}
 	}
 	//get layers
-	Image, err := imageUtils.GetImage(cluster.Spec.Image)
+	Image, err := c.imageStore.GetByName(cluster.Spec.Image)
 	if err != nil {
 		return err
 	}
@@ -256,6 +258,11 @@ func unmountRootfs(ipList []string, cluster *v1.Cluster) error {
 	return nil
 }
 
-func NewFilesystem() Interface {
-	return &FileSystem{}
+func NewFilesystem() (Interface, error) {
+	dis, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+
+	return &FileSystem{imageStore: dis}, nil
 }
