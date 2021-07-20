@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/alibaba/sealer/test/suites/apply"
+	"github.com/alibaba/sealer/test/suites/image"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
 
@@ -31,6 +32,7 @@ var _ = Describe("sealer apply", func() {
 	Context("start apply", func() {
 		rawClusterFilePath := apply.GetRawClusterFilePath()
 		rawCluster := apply.LoadClusterFileFromDisk(rawClusterFilePath)
+		rawCluster.Spec.Image = settings.TestImageName
 		BeforeEach(func() {
 			if rawCluster.Spec.Image != settings.TestImageName {
 				//rawCluster imageName updated to customImageName
@@ -61,7 +63,6 @@ var _ = Describe("sealer apply", func() {
 				result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
 				err = testhelper.WriteFile(tempFile, []byte(result))
 				Expect(err).NotTo(HaveOccurred())
-				apply.LoadClusterFileFromDisk(tempFile)
 
 				//2,scale up cluster to 6 nodes and write to disk
 				By("Use join command to add 3master and 3node for scale up cluster in cloud mode", func() {
@@ -88,6 +89,57 @@ var _ = Describe("sealer apply", func() {
 
 		})
 
+		Context("check regular scenario that provider is container", func() {
+			tempFile := testhelper.CreateTempFile()
+			BeforeEach(func() {
+				rawCluster.Spec.Provider = settings.CONTAINER
+				apply.MarshalClusterToFile(tempFile, rawCluster)
+				apply.CheckDockerAndSwapOff()
+			})
+
+			AfterEach(func() {
+				apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
+				testhelper.RemoveTempFile(tempFile)
+				testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+			})
+
+			It("init, scale up, scale down, clean up", func() {
+				// 1,init cluster to 2 nodes and write to disk
+				By("start to init cluster")
+				sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+				apply.CheckNodeNumLocally(2)
+
+				result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+				err = testhelper.WriteFile(tempFile, []byte(result))
+				Expect(err).NotTo(HaveOccurred())
+
+				//2,scale up cluster to 6 nodes and write to disk
+				By("Use join command to add 2master and 1node for scale up cluster in cloud mode", func() {
+					apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(1))
+					apply.CheckNodeNumLocally(5)
+				})
+
+				result = testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+				err = testhelper.WriteFile(tempFile, []byte(result))
+				Expect(err).NotTo(HaveOccurred())
+				usedCluster := apply.LoadClusterFileFromDisk(tempFile)
+
+				//3,scale down cluster to 4 nodes and write to disk
+				By("start to scale down cluster")
+				usedCluster.Spec.Nodes.Count = "1"
+				usedCluster.Spec.Masters.Count = "3"
+				apply.WriteClusterFileToDisk(usedCluster, tempFile)
+				sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+				apply.CheckNodeNumLocally(4)
+				image.DoImageOps(settings.SubCmdRmiOfSealer, settings.TestImageName)
+			})
+
+		})
+
 		Context("check regular scenario that provider is bare metal", func() {
 			var tempFile string
 			BeforeEach(func() {
@@ -99,6 +151,7 @@ var _ = Describe("sealer apply", func() {
 			})
 			It("init, scale up, scale down, clean up", func() {
 				By("start to prepare infra")
+				rawCluster.Spec.Provider = settings.AliCloud
 				usedCluster := apply.CreateAliCloudInfraAndSave(rawCluster, tempFile)
 				defer func() {
 					apply.CleanUpAliCloudInfra(usedCluster)

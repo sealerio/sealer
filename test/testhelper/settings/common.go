@@ -56,6 +56,7 @@ const (
 const (
 	BAREMETAL         = "BAREMETAL"
 	AliCloud          = "ALI_CLOUD"
+	CONTAINER         = "CONTAINER"
 	DefaultImage      = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9"
 	ClusterNameForRun = "my-cluster"
 	TMPClusterFile    = "/tmp/Clusterfile"

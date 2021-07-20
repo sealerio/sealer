@@ -40,6 +40,10 @@ func GetCloudBuildDir() string {
 	return "cloud_build"
 }
 
+func GetContainerBuildDir() string {
+	return "container_build"
+}
+
 // GetTestImageName return specific image name that will be push to registry
 func GetTestImageName() string {
 	return fmt.Sprintf("sealer-io/%s%d:%s", settings.ImageName, 719, "v1")

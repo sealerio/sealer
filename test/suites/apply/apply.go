@@ -91,7 +91,7 @@ func SealerJoinCmd(masters, nodes string) string {
 	if nodes != "" {
 		nodes = fmt.Sprintf("-n %s", nodes)
 	}
-	return fmt.Sprintf("%s join %s %s", settings.DefaultSealerBin, masters, nodes)
+	return fmt.Sprintf("%s join %s %s -c my-test-cluster", settings.DefaultSealerBin, masters, nodes)
 }
 
 func SealerJoin(masters, nodes string) {
@@ -186,4 +186,11 @@ func MarshalClusterToFile(ClusterFile string, cluster *v1.Cluster) {
 	err := testhelper.MarshalYamlToFile(ClusterFile, &cluster)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(cluster).NotTo(gomega.BeNil())
+}
+
+func CheckDockerAndSwapOff() {
+	_, err := utils.RunSimpleCmd("docker -v")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	_, err = utils.RunSimpleCmd("sudo swapoff -a")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }

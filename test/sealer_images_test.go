@@ -52,16 +52,18 @@ var _ = Describe("sealer image", func() {
 			By("tag by image name", func() {
 				image.TagImageList(settings.TestImageName, tagImageNames)
 				image.DoImageOps(settings.SubCmdListOfSealer, "")
+				image.RemoveImageList(tagImageNames)
 			})
 
 			By("tag by image id", func() {
 				imageID := image.GetImageID(settings.TestImageName)
 				image.TagImageList(imageID, tagImageNames)
 				image.DoImageOps(settings.SubCmdListOfSealer, "")
+				image.RemoveImageList(tagImageNames)
 			})
 
 			By("remove tag image", func() {
-				tagImageName := "e2e_images_test:v0.01"
+				tagImageName := "e2e_images_test:v0.3"
 				image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
 
 				beforeEnvMd5 := image.GetEnvDirMd5()
@@ -80,7 +82,7 @@ var _ = Describe("sealer image", func() {
 			By("force remove image", func() {
 				Expect(build.CheckIsImageExist(settings.TestImageName)).Should(BeTrue())
 				testImageName := "image_test:v0.0"
-				for i := 1; i <= 10; i++ {
+				for i := 1; i <= 5; i++ {
 					image.TagImages(settings.TestImageName, testImageName+strconv.Itoa(i))
 					image.DoImageOps(settings.SubCmdListOfSealer, settings.TestImageName)
 					Expect(build.CheckIsImageExist(testImageName + strconv.Itoa(i))).Should(BeTrue())
