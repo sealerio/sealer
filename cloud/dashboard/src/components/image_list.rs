@@ -12,6 +12,35 @@ pub struct Images{
 
 pub enum Msg {}
 
+enum Class {
+    Providor,
+    Categories,
+    OperatingSystems,
+    Architectrues
+}
+
+enum Label {
+   ThirdPart(Class),
+   Official(Class),
+
+   Analytics(Class),
+   ApplicationRuntime(Class),
+   BaseImages(Class),
+   Databases(Class),
+   DevOps(Class),
+   Messaging(Class),
+   Monitoring(Class),
+   OperatingSystem(Class),
+   Storage(Class),
+   Networking(Class),
+
+   Linux(Class),
+   Windows(Class),
+
+   ARM64(Class),
+   AMD64(Class)
+}
+
 impl Component for Images{
     type Message = Msg;
     type Properties = ();
@@ -53,15 +82,50 @@ impl Component for Images{
     
     fn view(&self) -> Html {
         html! {
-            <div class="container">
-            <br />
+          <div> 
+          <div class="columns is-multiline">
+            <div class="container column is-1">
+              { self.filter() }
+            </div>
+            <div class="container column is-10">
             { self.image_list() }
             </div>
+          </div>
+          </div>
         }
     }
 }
 
 impl Images{
+   fn filter(&self) -> Html {
+       html!{
+        <aside class="menu">
+            <p class="menu-label">
+             { "Providor" }
+            </p>
+            <ul class="menu-list">
+            <li><a>{ "Official" }</a></li>
+            <li><a>{ "ThirdPart" }</a></li>
+            </ul>
+            <p class="menu-label">
+              { "Categories" }
+            </p>
+            <ul class="menu-list">
+            <li><a>{ "BaseImage" }</a></li>
+            <li><a>{ "DataBases" }</a></li>
+            <li><a>{ "Messaging" }</a></li>
+            <li><a>{ "Monitoring" }</a></li>
+            </ul>
+            <p class="menu-label">
+              { "Architecutures" }
+            </p>
+            <ul class="menu-list">
+            <li><a>{ "ARM64" }</a></li>
+            <li><a>{ "AMD64" }</a></li>
+            </ul>
+        </aside>
+       }
+   }
    fn image_list(&self) -> Html {
        html! {
           <div class="columns is-multiline">
@@ -73,9 +137,10 @@ impl Images{
           </div>
        }
    }
+
    fn image_info(&self,image: &Image) -> Html {
        html! {
-        <div class="column is-4">
+        <div class="column is-6">
           <div class="card">
             <header class="card-header">
               <p class="card-header-title">

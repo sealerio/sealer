@@ -24,7 +24,7 @@ impl Component for Header {
     
     fn view(&self) -> Html {
         html! {
-            <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+            <nav class="navbar is-primary block" role="navigation" aria-label="main navigation">
                 { self.logo_name() }
                 { self.search() }
                 { self.login() }
