@@ -1,7 +1,7 @@
 pub mod components;
 
 use yew::prelude::*;
-use crate::components::{header::Header};
+use crate::components::{header::Header, image_list::Images};
 
 
 enum Msg {
@@ -35,7 +35,10 @@ impl Component for Model {
 
     fn view(&self) -> Html {
         html! {
-            <Header />
+            <div>
+              <Header />
+              <Images />
+            </div>
         }
     }
 }
