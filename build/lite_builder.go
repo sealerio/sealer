@@ -23,6 +23,7 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -49,6 +50,31 @@ func (l *LiteBuilder) Build(name string, context string, kubefileName string) er
 	return nil
 }
 
+// load cluster file from disk
+func (l *LiteBuilder) InitClusterFile() error {
+	clusterFile := common.TmpClusterfile
+	if !utils.IsFileExist(clusterFile) {
+		rawClusterFile := GetRawClusterFile(l.local.Image)
+		if rawClusterFile == "" {
+			return fmt.Errorf("failed to get cluster file from context or base image")
+		}
+		err := utils.WriteFile(common.RawClusterfile, []byte(rawClusterFile))
+		if err != nil {
+			return err
+		}
+		clusterFile = common.RawClusterfile
+	}
+	var cluster v1.Cluster
+	err := utils.UnmarshalYamlFile(clusterFile, &cluster)
+	if err != nil {
+		return fmt.Errorf("failed to read %s:%v", clusterFile, err)
+	}
+	l.local.Cluster = &cluster
+
+	logger.Info("read cluster file %s success !", clusterFile)
+	return nil
+}
+
 func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 	var buildPipeline []func() error
 	if err := l.local.InitImageSpec(); err != nil {
@@ -57,6 +83,7 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 
 	buildPipeline = append(buildPipeline,
 		l.local.PullBaseImageNotExist,
+		l.InitClusterFile,
 		l.MountImage,
 		l.InitDockerAndRegistry,
 		l.CacheImageToRegistry,
@@ -74,9 +101,9 @@ func (l *LiteBuilder) MountImage() error {
 }
 
 func (l *LiteBuilder) InitDockerAndRegistry() error {
-	rootfs := common.DefaultClusterBaseDir(l.local.Cluster.Name)
+	mount := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount")
 	cmd := "cd %s  && chmod +x scripts/* && cd scripts && sh docker.sh && sh init-registry.sh 5000 %s"
-	r, err := utils.CmdOutput(fmt.Sprintf(cmd, rootfs, filepath.Join(rootfs, "registry")))
+	r, err := utils.CmdOutput("sh", "-c", fmt.Sprintf(cmd, mount, filepath.Join(mount, "registry")))
 	if err != nil {
 		logger.Error(fmt.Sprintf("Init docker and registry failed: %v", err))
 		return err
@@ -90,7 +117,7 @@ func (l *LiteBuilder) CacheImageToRegistry() error {
 	var err error
 	d := docker.Docker{}
 	c := charts.Charts{}
-	imageList := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "imageList")
+	imageList := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount", "manifests", "imageList")
 	if utils.IsExist(imageList) {
 		images, err = utils.ReadLines(imageList)
 	}
