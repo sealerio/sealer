@@ -2,7 +2,6 @@ package container
 
 import (
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -65,7 +64,7 @@ func (c *DockerProvider) setContainerMount(opts *CreateOptsForContainer) []mount
 	}
 
 	// only master0 need to bind root path
-	if utils.IsFileExist(SealerImageRootPath) && opts.IsMaster0 {
+	if opts.IsMaster0 {
 		sealerMount := mount.Mount{
 			Type:     mount.TypeBind,
 			Source:   SealerImageRootPath,
