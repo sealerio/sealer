@@ -271,10 +271,10 @@ func (d *Default) Command(version string, name CommandType) (cmd string) {
 		return ""
 	}
 
-	if utils.IsInContainer() || name == JoinMaster{
+	if utils.IsInContainer() {
 		return fmt.Sprintf("%s%s%s", v, vlogToStr(d.Vlog), " --ignore-preflight-errors=all")
 	}
-	if name == InitMaster {
+	if name == InitMaster || name == JoinMaster {
 		return fmt.Sprintf("%s%s%s", v, vlogToStr(d.Vlog), " --ignore-preflight-errors=SystemVerification")
 	}
 

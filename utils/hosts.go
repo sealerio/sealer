@@ -15,8 +15,9 @@
 package utils
 
 import (
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"strings"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func GetDiffHosts(hostsOld, hostsNew v1.Hosts) (add, sub []string) {
