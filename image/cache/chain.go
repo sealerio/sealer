@@ -17,6 +17,8 @@ package cache
 import (
 	"sync"
 
+	"sigs.k8s.io/yaml"
+
 	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/image/store"
@@ -24,7 +26,6 @@ import (
 	"github.com/alibaba/sealer/logger"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/opencontainers/go-digest"

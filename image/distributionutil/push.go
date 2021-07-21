@@ -22,7 +22,6 @@ import (
 
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
-	imageutils "github.com/alibaba/sealer/image/utils"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"sync"
@@ -42,6 +41,7 @@ type Pusher interface {
 type ImagePusher struct {
 	config     Config
 	repository distribution.Repository
+	imageStore store.ImageStore
 }
 
 func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) error {
@@ -53,7 +53,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		pushMux      sync.Mutex
 	)
 
-	image, err := imageutils.GetImage(named.Raw())
+	image, err := pusher.imageStore.GetByName(named.Raw())
 	if err != nil {
 		return err
 	}
@@ -255,8 +255,14 @@ func NewPusher(named reference.Named, config Config) (Pusher, error) {
 		return nil, err
 	}
 
+	is, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+
 	return &ImagePusher{
 		repository: repo,
 		config:     config,
+		imageStore: is,
 	}, nil
 }

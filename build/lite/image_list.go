@@ -12,14 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package lite
 
-import "fmt"
-
-type ImageNameOrIDNotFoundError struct {
-	name string
-}
-
-func (e *ImageNameOrIDNotFoundError) Error() string {
-	return fmt.Sprintf("failed to find imageName or imageId %s", e.name)
+type Interface interface {
+	// List all the containers images in helm charts
+	ListImages(clusterName string) ([]string, error)
 }

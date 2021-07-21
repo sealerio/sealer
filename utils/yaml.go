@@ -15,7 +15,12 @@
 package utils
 
 import (
+	"fmt"
 	"io/ioutil"
+	"reflect"
+
+	"github.com/alibaba/sealer/common"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"sigs.k8s.io/yaml"
 )
@@ -27,7 +32,10 @@ func UnmarshalYamlFile(file string, obj interface{}) error {
 	}
 
 	err = yaml.Unmarshal(data, obj)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal file %s to %s", file, reflect.TypeOf(obj))
+	}
+	return nil
 }
 
 func MarshalYamlToFile(file string, obj interface{}) error {
@@ -38,6 +46,19 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 
 	if err = WriteFile(file, data); err != nil {
 		return err
+	}
+	return nil
+}
+
+func SaveClusterfile(cluster *v1.Cluster) error {
+	fileName := common.GetClusterWorkClusterfile(cluster.Name)
+	err := MkFileFullPathDir(fileName)
+	if err != nil {
+		return fmt.Errorf("mkdir failed %s %v", fileName, err)
+	}
+	err = MarshalYamlToFile(fileName, cluster)
+	if err != nil {
+		return fmt.Errorf("marshal cluster file failed %v", err)
 	}
 	return nil
 }

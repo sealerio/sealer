@@ -38,7 +38,13 @@ var pushCmd = &cobra.Command{
 	Short: "push cloud image to registry",
 	Long:  `seautil push my-kubernetes:1.18.3`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := image.NewImageService().Push(imageFlag.ImageName)
+		imgSvc, err := image.NewImageService()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+
+		err = imgSvc.Push(imageFlag.ImageName)
 		if err != nil {
 			logger.Error(err)
 			os.Exit(-1)

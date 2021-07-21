@@ -39,7 +39,7 @@ func (a *atomicFileWriter) close() (err error) {
 }
 
 func newAtomicFileWriter(path string, perm os.FileMode) (*atomicFileWriter, error) {
-	tmpFile, err := MkTmpFile()
+	tmpFile, err := MkTmpFile(path)
 	if err != nil {
 		return nil, err
 	}

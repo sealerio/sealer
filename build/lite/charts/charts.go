@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/build/lite"
 	"github.com/alibaba/sealer/common"
 )
 
@@ -51,7 +52,7 @@ func (charts *Charts) ListImages(clusterName string) ([]string, error) {
 	return list, nil
 }
 
-func NewCharts() (Interface, error) {
+func NewCharts() (lite.Interface, error) {
 	return &Charts{}, nil
 }
 

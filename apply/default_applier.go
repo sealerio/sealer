@@ -67,7 +67,11 @@ const (
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	PullIfNotExist: func(applier *DefaultApplier) error {
 		imageName := applier.ClusterDesired.Spec.Image
-		return image.NewImageService().PullIfNotExist(imageName)
+		imgSvc, err := image.NewImageService()
+		if err != nil {
+			return err
+		}
+		return imgSvc.PullIfNotExist(imageName)
 	},
 	MountRootfs: func(applier *DefaultApplier) error {
 		// TODO mount only mount desired hosts, some hosts already mounted when update cluster
@@ -155,7 +159,7 @@ func applyNodes(applier *DefaultApplier) error {
 
 func (c *DefaultApplier) Apply() (err error) {
 	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
-		err = saveClusterfile(c.ClusterDesired)
+		err = utils.SaveClusterfile(c.ClusterDesired)
 		if err != nil {
 			return err
 		}
@@ -235,12 +239,26 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	return todoList, nil
 }
 
-func NewDefaultApplier(cluster *v1.Cluster) Interface {
+func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
+	imgSvc, err := image.NewImageService()
+	if err != nil {
+		return nil, err
+	}
+
+	fs, err := filesystem.NewFilesystem()
+	if err != nil {
+		return nil, err
+	}
+
+	gs, err := guest.NewGuestManager()
+	if err != nil {
+		return nil, err
+	}
 	return &DefaultApplier{
 		ClusterDesired: cluster,
-		ImageManager:   image.NewImageService(),
-		FileSystem:     filesystem.NewFilesystem(),
-		Guest:          guest.NewGuestManager(),
+		ImageManager:   imgSvc,
+		FileSystem:     fs,
+		Guest:          gs,
 		Config:         config.NewConfiguration(cluster.Name),
-	}
+	}, nil
 }

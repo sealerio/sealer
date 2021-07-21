@@ -40,7 +40,14 @@ var loginCmd = &cobra.Command{
 			logger.Error("enter the registry URL failed")
 			os.Exit(1)
 		}
-		if err := image.NewImageService().Login(args[0], loginConfig.RegistryUsername, loginConfig.RegistryPasswd); err != nil {
+
+		imgSvc, err := image.NewImageService()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+
+		if err = imgSvc.Login(args[0], loginConfig.RegistryUsername, loginConfig.RegistryPasswd); err != nil {
 			logger.Error(err)
 			os.Exit(1)
 		}

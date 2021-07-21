@@ -32,7 +32,7 @@ func NewApplierFromFile(clusterfile string) (Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewApplier(cluster), nil
+	return NewApplier(cluster)
 }
 
 func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
@@ -44,23 +44,10 @@ func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
 	return cluster, nil
 }
 
-func NewApplier(cluster *v1.Cluster) Interface {
+func NewApplier(cluster *v1.Cluster) (Interface, error) {
 	switch cluster.Spec.Provider {
 	case common.AliCloud:
 		return NewAliCloudProvider(cluster)
 	}
 	return NewDefaultApplier(cluster)
-}
-
-func saveClusterfile(cluster *v1.Cluster) error {
-	fileName := common.GetClusterWorkClusterfile(cluster.Name)
-	err := utils.MkFileFullPathDir(fileName)
-	if err != nil {
-		return fmt.Errorf("mkdir failed %s %v", fileName, err)
-	}
-	err = utils.MarshalYamlToFile(fileName, cluster)
-	if err != nil {
-		return fmt.Errorf("marshal cluster file failed %v", err)
-	}
-	return nil
 }

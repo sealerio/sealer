@@ -15,11 +15,10 @@
 package charts
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
-	"strings"
 
+	"github.com/alibaba/sealer/build/lite"
 	"github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -89,44 +88,11 @@ func GetImageList(chartPath string) ([]string, error) {
 	}
 
 	for _, v := range content {
-		images := decodeImages(v)
+		images := lite.DecodeImages(v)
 		if len(images) != 0 {
 			list = append(list, images...)
 		}
 	}
 
 	return list, nil
-}
-
-// decode image from yaml content
-func decodeImages(body string) []string {
-	var list []string
-
-	reader := strings.NewReader(body)
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		l := decodeLine(scanner.Text())
-		if l != "" {
-			list = append(list, l)
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		logrus.Errorf(err.Error())
-		return list
-	}
-
-	return list
-}
-
-func decodeLine(line string) string {
-	l := strings.Replace(line, `"`, "", -1)
-	ss := strings.SplitN(l, ":", 2)
-	if len(ss) != 2 {
-		return ""
-	}
-	if !strings.HasSuffix(ss[0], "image") || strings.Contains(ss[0], "#") {
-		return ""
-	}
-
-	return strings.Replace(ss[1], " ", "", -1)
 }
