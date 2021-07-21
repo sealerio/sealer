@@ -9,6 +9,7 @@ rm -f /usr/bin/kubelet
 rm -f /usr/bin/containerd-rootless-setuptool.sh
 rm -f /usr/bin/containerd-rootless.sh
 rm -f /usr/bin/nerdctl
+rm -f /usr/bin/seautil
 
 rm -f /etc/sysctl.d/k8s.conf
 rm -f /etc/systemd/system/kubelet.service
