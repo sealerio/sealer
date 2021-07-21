@@ -93,7 +93,10 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 }
 
 func (l *LiteBuilder) MountImage() error {
-	FileSystem := filesystem.NewFilesystem()
+	FileSystem, err := filesystem.NewFilesystem()
+	if err != nil{
+		return err
+	}
 	if err := FileSystem.MountImage(l.local.Cluster); err != nil {
 		return err
 	}
