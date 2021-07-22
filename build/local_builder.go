@@ -47,6 +47,7 @@ import (
 type Config struct {
 	BuildType string
 	NoCache   bool
+	ImageName string
 }
 
 type builderLayer struct {

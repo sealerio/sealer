@@ -144,12 +144,7 @@ func GetFileFromBaseImage(imageName string, paths ...string) string {
 }
 
 func GetYamlByImage(imageName string) (string, error) {
-	is, err := store.NewDefaultImageStore()
-	if err != nil {
-		return "", fmt.Errorf("failed to init image store, err: %s", err)
-	}
-
-	img, err := is.GetByName(imageName)
+	img, err := GetImageByName(imageName)
 	if err != nil {
 		return "", fmt.Errorf("failed to get image %s, err: %s", imageName, err)
 	}
@@ -160,4 +155,16 @@ func GetYamlByImage(imageName string) (string, error) {
 	}
 
 	return string(ImageInformation), nil
+}
+
+func GetImageByName(imageName string) (*v1.Image, error) {
+	is, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, fmt.Errorf("failed to init image store, err: %s", err)
+	}
+	img, err := is.GetByName(imageName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get image %s, err: %s", imageName, err)
+	}
+	return img, nil
 }

@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/image"
+
 	"github.com/alibaba/sealer/build/lite/charts"
 	"github.com/alibaba/sealer/build/lite/docker"
 	"github.com/alibaba/sealer/common"
@@ -85,16 +87,42 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 		l.local.PullBaseImageNotExist,
 		l.InitClusterFile,
 		l.MountImage,
+		l.local.ExecBuild,
+		l.local.UpdateImageMetadata,
+		l.ReMountImage,
 		l.InitDockerAndRegistry,
 		l.CacheImageToRegistry,
-		l.local.ExecBuild,
-		l.local.UpdateImageMetadata)
+	)
 	return buildPipeline, nil
+}
+
+func (l *LiteBuilder) ReMountImage() error {
+	var (
+		FileSystem filesystem.Interface
+		err        error
+		im         *v1.Image
+	)
+	FileSystem, err = filesystem.NewFilesystem()
+	if err != nil {
+		return err
+	}
+	err = FileSystem.UnMountImage(l.local.Cluster)
+	if err != nil {
+		return err
+	}
+	im, err = image.GetImageByName(l.local.Config.ImageName)
+	if err != nil {
+		return err
+	}
+	local := l.local
+	local.Image = im
+	l.local = local
+	return l.MountImage()
 }
 
 func (l *LiteBuilder) MountImage() error {
 	FileSystem, err := filesystem.NewFilesystem()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	if err := FileSystem.MountImage(l.local.Cluster); err != nil {
