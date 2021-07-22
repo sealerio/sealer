@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	manifest "github.com/alibaba/sealer/build/lite/manifests"
+
 	"github.com/alibaba/sealer/build/lite/charts"
 	"github.com/alibaba/sealer/build/lite/docker"
 	"github.com/alibaba/sealer/common"
@@ -150,12 +152,16 @@ func (l *LiteBuilder) CacheImageToRegistry() error {
 	var err error
 	d := docker.Docker{}
 	c := charts.Charts{}
+	m := manifest.Manifests{}
 	imageList := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount", "manifests", "imageList")
 	if utils.IsExist(imageList) {
 		images, err = utils.ReadLines(imageList)
 	}
-	if i, err := c.ListImages(l.local.Cluster.Name); err == nil {
-		images = append(images, i...)
+	if helmImages, err := c.ListImages(l.local.Cluster.Name); err == nil {
+		images = append(images, helmImages...)
+	}
+	if manifestImages, err := m.ListImages(l.local.Cluster.Name); err == nil {
+		images = append(images, manifestImages...)
 	}
 	if err != nil {
 		return err
