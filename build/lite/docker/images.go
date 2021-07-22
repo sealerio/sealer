@@ -16,17 +16,18 @@ package docker
 
 import (
 	"context"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
-func (d Docker) DockerRmi(imageId string) error {
+func (d Docker) DockerRmi(imageID string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return err
 	}
-	if _, err := cli.ImageRemove(ctx, imageId, types.ImageRemoveOptions{}); err != nil {
+	if _, err := cli.ImageRemove(ctx, imageID, types.ImageRemoveOptions{}); err != nil {
 		return err
 	}
 	return nil
