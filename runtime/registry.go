@@ -58,7 +58,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		config.IP = utils.GetHostIP(config.IP)
 	}
 	if config.Port == "" {
-		config.Domain = DefaultConfig.Port
+		config.Port = DefaultConfig.Port
 	}
 	if config.Domain == "" {
 		config.Domain = DefaultConfig.Domain

@@ -27,6 +27,8 @@ type BuildFlag struct {
 	KubefileName string
 	BuildType    string
 	NoCache      bool
+	Lite         bool
+	ImageList    string
 }
 
 var buildConfig *BuildFlag
@@ -44,6 +46,7 @@ var buildCmd = &cobra.Command{
 		conf := &build.Config{
 			BuildType: buildConfig.BuildType,
 			NoCache:   buildConfig.NoCache,
+			ImageName: buildConfig.ImageName,
 		}
 		builder, err := build.NewBuilder(conf)
 		if err != nil {

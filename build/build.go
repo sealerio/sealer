@@ -21,8 +21,12 @@ type Interface interface {
 }
 
 func NewBuilder(config *Config) (Interface, error) {
-	if config.BuildType == common.LocalBuild {
+	switch config.BuildType {
+	case common.LiteBuild:
+		return NewLiteBuilder(config)
+	case common.LocalBuild:
 		return NewLocalBuilder(config)
+	default:
+		return NewCloudBuilder(config)
 	}
-	return NewCloudBuilder(config)
 }

@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,14 +29,52 @@ import (
 	"github.com/alibaba/sealer/logger"
 )
 
+func IsExist(fileName string) bool {
+	_, err := os.Stat(fileName)
+	if err != nil {
+		return os.IsExist(err)
+	}
+	return true
+}
+
+func RemoveDuplicate(list []string) []string {
+	var result []string
+	flagMap := map[string]struct{}{}
+	for _, v := range list {
+		if _, ok := flagMap[v]; !ok {
+			flagMap[v] = struct{}{}
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func ReadLines(fileName string) ([]string, error) {
+	var lines []string
+	if !IsExist(fileName) {
+		return nil, errors.New("no such file")
+	}
+	file, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	br := bufio.NewReader(file)
+	for {
+		line, _, c := br.ReadLine()
+		if c == io.EOF {
+			break
+		}
+		lines = append(lines, string(line))
+	}
+	return lines, nil
+}
+
 // ReadAll read file content
 func ReadAll(fileName string) ([]byte, error) {
 	// step1：check file exist
-	_, err := os.Stat(fileName)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, err
-		}
+	if !IsExist(fileName) {
+		return nil, errors.New("no such file")
 	}
 	// step2：open file
 	file, err := os.Open(fileName)

@@ -47,6 +47,7 @@ import (
 type Config struct {
 	BuildType string
 	NoCache   bool
+	ImageName string
 }
 
 type builderLayer struct {
@@ -509,6 +510,7 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 	}
 
 	prober := image.NewImageProber(service, config.NoCache)
+
 	return &LocalBuilder{
 		Config:       config,
 		LayerStore:   layerStore,
