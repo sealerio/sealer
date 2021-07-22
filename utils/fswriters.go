@@ -16,6 +16,7 @@ package utils
 
 import (
 	"os"
+	"path/filepath"
 )
 
 type atomicFileWriter struct {
@@ -39,7 +40,7 @@ func (a *atomicFileWriter) close() (err error) {
 }
 
 func newAtomicFileWriter(path string, perm os.FileMode) (*atomicFileWriter, error) {
-	tmpFile, err := MkTmpFile(path)
+	tmpFile, err := MkTmpFile(filepath.Dir(path))
 	if err != nil {
 		return nil, err
 	}

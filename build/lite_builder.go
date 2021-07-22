@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/image"
-
 	"github.com/alibaba/sealer/build/lite/charts"
 	"github.com/alibaba/sealer/build/lite/docker"
 	"github.com/alibaba/sealer/common"
@@ -89,34 +87,45 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 		l.MountImage,
 		l.local.ExecBuild,
 		l.local.UpdateImageMetadata,
+		l.ClearImages,
 		l.ReMountImage,
 		l.InitDockerAndRegistry,
 		l.CacheImageToRegistry,
+		l.ClearImages,
 	)
 	return buildPipeline, nil
+}
+
+func (l *LiteBuilder) ClearImages() error {
+	d := docker.Docker{}
+	images, err := d.ImagesList()
+	if err != nil {
+		return nil
+	}
+	for _, v := range images {
+		err := d.DockerRmi(v.ID)
+		if err != nil {
+			logger.Warn(fmt.Sprintf("image %s delete failed", v.ID))
+		}
+	}
+	return nil
 }
 
 func (l *LiteBuilder) ReMountImage() error {
 	var (
 		FileSystem filesystem.Interface
 		err        error
-		im         *v1.Image
 	)
 	FileSystem, err = filesystem.NewFilesystem()
 	if err != nil {
+		logger.Warn(err)
 		return err
 	}
 	err = FileSystem.UnMountImage(l.local.Cluster)
 	if err != nil {
 		return err
 	}
-	im, err = image.GetImageByName(l.local.Config.ImageName)
-	if err != nil {
-		return err
-	}
-	local := l.local
-	local.Image = im
-	l.local = local
+	l.local.Cluster.Spec.Image = l.local.Config.ImageName
 	return l.MountImage()
 }
 

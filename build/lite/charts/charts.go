@@ -57,5 +57,5 @@ func NewCharts() (lite.Interface, error) {
 }
 
 func defaultChartsRootDir(clusterName string) string {
-	return filepath.Join(common.DefaultTheClusterRootfsDir(clusterName), "charts")
+	return filepath.Join(common.DefaultClusterBaseDir(clusterName), "mount", "charts")
 }
