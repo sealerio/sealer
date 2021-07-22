@@ -27,7 +27,7 @@ func (d Docker) DockerRmi(imageID string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := cli.ImageRemove(ctx, imageID, types.ImageRemoveOptions{}); err != nil {
+	if _, err := cli.ImageRemove(ctx, imageID, types.ImageRemoveOptions{Force: true, PruneChildren: true}); err != nil {
 		return err
 	}
 	return nil
