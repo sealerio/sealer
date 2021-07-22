@@ -20,25 +20,25 @@ enum Class {
 }
 
 enum Label {
-   ThirdPart(Class),
-   Official(Class),
+   ThirdPart(Class,String),
+   Official(Class,String),
 
-   Analytics(Class),
-   ApplicationRuntime(Class),
-   BaseImages(Class),
-   Databases(Class),
-   DevOps(Class),
-   Messaging(Class),
-   Monitoring(Class),
-   OperatingSystem(Class),
-   Storage(Class),
-   Networking(Class),
+   Analytics(Class,String),
+   ApplicationRuntime(Class,String),
+   BaseImages(Class,String),
+   Databases(Class,String),
+   DevOps(Class,String),
+   Messaging(Class,String),
+   Monitoring(Class,String),
+   OperatingSystem(Class,String),
+   Storage(Class,String),
+   Networking(Class,String),
 
-   Linux(Class),
-   Windows(Class),
+   Linux(Class,String),
+   Windows(Class,String),
 
-   ARM64(Class),
-   AMD64(Class)
+   ARM64(Class,String),
+   AMD64(Class,String)
 }
 
 impl Component for Images{

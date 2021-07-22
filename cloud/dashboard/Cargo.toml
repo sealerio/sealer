@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 yew = "0.18"
+yew-router = "0.15"

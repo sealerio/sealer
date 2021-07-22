@@ -1,8 +1,19 @@
 pub mod components;
 
 use yew::prelude::*;
-use crate::components::{header::Header, image_list::Images};
+use yew_router::prelude::*;
+use crate::components::{header::Header, image_list::Images, image_info::ImageDetail};
 
+
+#[derive(Switch,Clone)]
+pub enum AppRoute {
+    #[to = "/images/{name}"]
+    ImageDetail(String),
+    #[to = "/images"]
+    Images
+}
+
+pub type Anchor = RouterAnchor<AppRoute>;
 
 enum Msg {
 }
@@ -37,8 +48,17 @@ impl Component for Model {
         html! {
             <div>
               <Header />
-              <Images />
+              <Router<AppRoute> render = Router::render(Self::switch) />
             </div>
+        }
+    }
+}
+
+impl Model {
+   fn switch(route: AppRoute) -> Html {
+        match route {
+            AppRoute::Images => html! { <Images /> },
+            AppRoute::ImageDetail(name)=> html! { <ImageDetail imageName=name /> }
         }
     }
 }
