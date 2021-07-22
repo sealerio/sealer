@@ -1,19 +1,10 @@
 pub mod components;
+pub mod routes;
 
 use yew::prelude::*;
 use yew_router::prelude::*;
 use crate::components::{header::Header, image_list::Images, image_info::ImageDetail};
-
-
-#[derive(Switch,Clone)]
-pub enum AppRoute {
-    #[to = "/images/{name}"]
-    ImageDetail(String),
-    #[to = "/images"]
-    Images
-}
-
-pub type Anchor = RouterAnchor<AppRoute>;
+use crate::routes::{router::AppRoute};
 
 enum Msg {
 }

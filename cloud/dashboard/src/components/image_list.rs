@@ -1,4 +1,5 @@
 use yew::{html, Component,ComponentLink,Html,ShouldRender};
+use crate::routes::{router::AppRoute,router::Anchor};
 
 pub struct Image {
     name: String,
@@ -142,6 +143,7 @@ impl Images{
        html! {
         <div class="column is-6">
           <div class="card">
+          <Anchor route=AppRoute::ImageDetail(image.name.to_string())>
             <header class="card-header">
               <p class="card-header-title">
                 { image.name.to_string() }
@@ -152,6 +154,7 @@ impl Images{
               </span>
             </button>
             </header>
+            </Anchor>
               <div class="card-content">
               <div class="content">
                 { image.body.to_string() }
