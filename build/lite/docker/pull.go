@@ -20,7 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
+
+	"github.com/alibaba/sealer/common"
+	dockerstreams "github.com/docker/cli/cli/streams"
+	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
@@ -80,9 +83,12 @@ func (d Docker) ImagePull(image string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
-	if _, err := io.Copy(os.Stdout, out); err != nil {
-		return err
+	defer func() {
+		_ = out.Close()
+	}()
+	err = dockerjsonmessage.DisplayJSONMessagesToStream(out, dockerstreams.NewOut(common.StdOut), nil)
+	if err != nil && err != io.ErrClosedPipe {
+		logger.Warn("error occurs in display progressing, err: %s", err)
 	}
 	return nil
 }

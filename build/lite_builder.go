@@ -82,31 +82,24 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 	}
 
 	buildPipeline = append(buildPipeline,
+		l.PreCheck,
 		l.local.PullBaseImageNotExist,
 		l.InitClusterFile,
 		l.MountImage,
 		l.local.ExecBuild,
 		l.local.UpdateImageMetadata,
-		l.ClearImages,
 		l.ReMountImage,
 		l.InitDockerAndRegistry,
 		l.CacheImageToRegistry,
-		l.ClearImages,
 	)
 	return buildPipeline, nil
 }
 
-func (l *LiteBuilder) ClearImages() error {
+func (l *LiteBuilder) PreCheck() error {
 	d := docker.Docker{}
-	images, err := d.ImagesList()
-	if err != nil {
-		return nil
-	}
-	for _, v := range images {
-		err := d.DockerRmi(v.ID)
-		if err != nil {
-			logger.Warn(fmt.Sprintf("image %s delete failed", v.ID))
-		}
+	images, _ := d.ImagesList()
+	if len(images) > 0 {
+		logger.Warn("The image already exists on the host. Note that the existing image cannot be cached in registry")
 	}
 	return nil
 }
