@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 
 	"github.com/alibaba/sealer/image"
-
 	"github.com/alibaba/sealer/utils/mount"
 
 	manifest "github.com/alibaba/sealer/build/lite/manifests"
