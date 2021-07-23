@@ -120,7 +120,7 @@ func (l *LiteBuilder) ReMountImage() error {
 	if err != nil {
 		return err
 	}
-	l.local.Cluster.Spec.Image = l.local.Config.ImageName
+	l.local.Cluster.Spec.Image = l.local.ImageNamed.Raw()
 	return l.MountImage()
 }
 
