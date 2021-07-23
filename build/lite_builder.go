@@ -143,7 +143,7 @@ func (l *LiteBuilder) MountImage() error {
 }
 
 func (l *LiteBuilder) AddUpperLayerToImage() error {
-	m := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name))
+	m := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount")
 	err := mount.NewMountDriver().Unmount(m)
 	if err != nil {
 		return err
