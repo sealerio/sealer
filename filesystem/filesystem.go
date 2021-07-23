@@ -67,7 +67,6 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 	if utils.IsFileExist(mountdir) {
 		var err error
 		err = infraUtils.Retry(10, time.Second, func() error {
-			logger.Debug("unmount cluster dir %s", mountdir)
 			err = mount.NewMountDriver().Unmount(mountdir)
 			if err != nil {
 				return err
