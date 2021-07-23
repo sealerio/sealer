@@ -41,7 +41,6 @@ const (
 )
 
 const (
-	RemoteRestartDocker     = "systemctl restart docker"
 	RemoteAddEtcHosts       = "echo %s >> /etc/hosts"
 	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" -i /etc/hosts`
 	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
