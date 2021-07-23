@@ -17,6 +17,8 @@ package build
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
+	"strings"
 
 	"sigs.k8s.io/yaml"
 
@@ -29,9 +31,6 @@ import (
 	"github.com/opencontainers/go-digest"
 
 	"github.com/alibaba/sealer/image/store"
-
-	"path/filepath"
-	"strings"
 
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
