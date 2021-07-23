@@ -54,7 +54,6 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 	if err != nil {
 		return err
 	}
-	logger.Info("the program is sending the %s file!", tarFileName)
 	// unzip remote context
 	err = c.SSH.CmdAsync(c.RemoteHostIP, fmt.Sprintf(common.UnzipCmd, workdir, tarFileName, workdir))
 	if err != nil {
