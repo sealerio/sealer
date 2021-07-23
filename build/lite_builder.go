@@ -142,12 +142,16 @@ func (l *LiteBuilder) MountImage() error {
 }
 
 func (l *LiteBuilder) AddUpperLayerToImage() error {
+	err := l.UnMountImage()
+	if err != nil {
+		return err
+	}
 	upper := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount", "upper")
 	imageLayer := v1.Layer{
 		Type:  "BASE",
 		Value: "",
 	}
-	err := l.local.calculateLayerDigestAndPlaceIt(&imageLayer, upper)
+	err = l.local.calculateLayerDigestAndPlaceIt(&imageLayer, upper)
 	if err != nil {
 		return err
 	}
@@ -159,10 +163,6 @@ func (l *LiteBuilder) AddUpperLayerToImage() error {
 }
 
 func (l *LiteBuilder) Clear() error {
-	err := l.UnMountImage()
-	if err != nil {
-		return err
-	}
 	return utils.CleanFiles(common.RawClusterfile, common.DefaultClusterBaseDir(l.local.Cluster.Name))
 }
 
