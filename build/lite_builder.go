@@ -16,8 +16,9 @@ package build
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/utils/mount"
 	"path/filepath"
+
+	"github.com/alibaba/sealer/utils/mount"
 
 	manifest "github.com/alibaba/sealer/build/lite/manifests"
 
