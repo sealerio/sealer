@@ -50,10 +50,10 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 	}()
 	// send to remote server
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.local.Cluster.Name)
-	err = c.SSH.Copy(c.RemoteHostIP, tarFileName, tarFileName)
-	if err != nil {
-		return err
+	if err = c.SSH.Copy(c.RemoteHostIP, tarFileName, tarFileName); err != nil {
+		return fmt.Errorf("failed to copy tar file: %s, err: %v", tarFileName, err)
 	}
+
 	// unzip remote context
 	err = c.SSH.CmdAsync(c.RemoteHostIP, fmt.Sprintf(common.UnzipCmd, workdir, tarFileName, workdir))
 	if err != nil {
