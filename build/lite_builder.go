@@ -93,6 +93,8 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 		l.ReMountImage,
 		l.InitDockerAndRegistry,
 		l.CacheImageToRegistry,
+		l.AddUpperLayerToImage,
+		l.Clear,
 	)
 	return buildPipeline, nil
 }
@@ -107,6 +109,15 @@ func (l *LiteBuilder) PreCheck() error {
 }
 
 func (l *LiteBuilder) ReMountImage() error {
+	err := l.UnMountImage()
+	if err != nil {
+		return err
+	}
+	l.local.Cluster.Spec.Image = l.local.Config.ImageName
+	return l.MountImage()
+}
+
+func (l *LiteBuilder) UnMountImage() error {
 	var (
 		FileSystem filesystem.Interface
 		err        error
@@ -116,12 +127,7 @@ func (l *LiteBuilder) ReMountImage() error {
 		logger.Warn(err)
 		return err
 	}
-	err = FileSystem.UnMountImage(l.local.Cluster)
-	if err != nil {
-		return err
-	}
-	l.local.Cluster.Spec.Image = l.local.ImageNamed.Raw()
-	return l.MountImage()
+	return FileSystem.UnMountImage(l.local.Cluster)
 }
 
 func (l *LiteBuilder) MountImage() error {
@@ -133,6 +139,31 @@ func (l *LiteBuilder) MountImage() error {
 		return err
 	}
 	return nil
+}
+
+func (l *LiteBuilder) AddUpperLayerToImage() error {
+	upper := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount", "upper")
+	imageLayer := v1.Layer{
+		Type:  "BASE",
+		Value: "",
+	}
+	err := l.local.calculateLayerDigestAndPlaceIt(&imageLayer, upper)
+	if err != nil {
+		return err
+	}
+	err = l.local.updateImageIDAndSaveImage()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (l *LiteBuilder) Clear() error {
+	err := l.UnMountImage()
+	if err != nil {
+		return err
+	}
+	return utils.CleanFiles(common.RawClusterfile, common.DefaultClusterBaseDir(l.local.Cluster.Name))
 }
 
 func (l *LiteBuilder) InitDockerAndRegistry() error {
