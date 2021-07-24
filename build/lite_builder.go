@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/utils/mount"
 
 	manifest "github.com/alibaba/sealer/build/lite/manifests"
@@ -144,20 +145,30 @@ func (l *LiteBuilder) MountImage() error {
 }
 
 func (l *LiteBuilder) AddUpperLayerToImage() error {
+	var (
+		err   error
+		Image *v1.Image
+	)
 	m := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount")
-	err := mount.NewMountDriver().Unmount(m)
+	err = mount.NewMountDriver().Unmount(m)
 	if err != nil {
 		return err
 	}
 	upper := filepath.Join(m, "upper")
 	imageLayer := v1.Layer{
 		Type:  "BASE",
-		Value: "",
+		Value: "registry cache",
 	}
 	err = l.local.calculateLayerDigestAndPlaceIt(&imageLayer, upper)
 	if err != nil {
 		return err
 	}
+	Image, err = image.GetImageByName(l.local.Config.ImageName)
+	if err != nil {
+		return err
+	}
+	Image.Spec.Layers = append(Image.Spec.Layers, imageLayer)
+	l.local.Image = Image
 	err = l.local.updateImageIDAndSaveImage()
 	if err != nil {
 		return err
