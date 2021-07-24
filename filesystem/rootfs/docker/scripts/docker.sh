@@ -52,7 +52,6 @@ fi
 systemctl daemon-reload
 systemctl restart docker.service
 
-cgroupDriver=$(docker info|grep Cg)
-driver=${cgroupDriver##*: }
+driver=$(docker info -f "{{.CgroupDriver}}")
 echo "driver is ${driver}"
 export criDriver=${driver}
