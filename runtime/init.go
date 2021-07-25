@@ -49,33 +49,33 @@ func (d *Default) init(cluster *v1.Cluster) error {
 	}
 	//config kubeadm
 	if err := d.ConfigKubeadmOnMaster0(); err != nil {
-		return err
+		return fmt.Errorf("failed to config kubeadmin on master0 %v", err)
 	}
 
 	//generate certs
 	if err := d.GenerateCert(); err != nil {
-		return err
+		return fmt.Errorf("failed to gernerate cert %v", err)
 	}
 
 	//create kubeConfig for master0
 	if err := d.CreateKubeConfig(); err != nil {
-		return err
+		return fmt.Errorf("failed to create kubeConfig for master0 %v", err)
 	}
 
 	if err := d.CopyStaticFiles(d.Masters); err != nil {
-		return err
+		return fmt.Errorf("failed to copy static files %v", err)
 	}
 
 	if err := d.EnsureRegistry(); err != nil {
-		return err
+		return fmt.Errorf("failed to encsure registry %v", err)
 	}
 
 	if err := d.InitMaster0(); err != nil {
-		return err
+		return fmt.Errorf("failed to init master0 %v", err)
 	}
 
 	if err := d.GetKubectlAndKubeconfig(); err != nil {
-		return err
+		return fmt.Errorf("failed to get kubectl and kubeConfig %v", err)
 	}
 
 	return nil
