@@ -1,16 +1,12 @@
 ## release note
 
-### v0.2.1
+### v0.3.0
 
-- [x] fix run can't init cluster
-- [x] add calico ipip config
-- [x] support tag and rmi sealer image with id
-- [x] support sealer join masters and nodes
-- [x] add pre post check
-- [x] add Global config
-- [x] auto detect network interface
-- [x] optimize copy registy data
-- [x] fix Client.Timeout
-- [x] fix delete after master0 execution
-- [x] fix apply retry umount image
-- [x] optimize image structure
+- [x] Calico out of box, use an image containing calico instead
+- [x] Sealer lite build without kubernetes cluster instance
+- [x] Support docker container apply and build
+- [x] Support command auto-completion
+- [x] Support build cache
+- [x] Cloud rootfs support alios
+- [x] Fix incorrectly copying dir path during build
+- [x] Fix proxy ipvs model
