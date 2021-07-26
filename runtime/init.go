@@ -49,33 +49,33 @@ func (d *Default) init(cluster *v1.Cluster) error {
 	}
 	//config kubeadm
 	if err := d.ConfigKubeadmOnMaster0(); err != nil {
-		return err
+		return fmt.Errorf("failed to config kubeadmin on master0 %v", err)
 	}
 
 	//generate certs
 	if err := d.GenerateCert(); err != nil {
-		return err
+		return fmt.Errorf("failed to gernerate cert %v", err)
 	}
 
 	//create kubeConfig for master0
 	if err := d.CreateKubeConfig(); err != nil {
-		return err
+		return fmt.Errorf("failed to create kubeConfig for master0 %v", err)
 	}
 
 	if err := d.CopyStaticFiles(d.Masters); err != nil {
-		return err
+		return fmt.Errorf("failed to copy static files %v", err)
 	}
 
 	if err := d.EnsureRegistry(); err != nil {
-		return err
+		return fmt.Errorf("failed to encsure registry %v", err)
 	}
 
 	if err := d.InitMaster0(); err != nil {
-		return err
+		return fmt.Errorf("failed to init master0 %v", err)
 	}
 
 	if err := d.GetKubectlAndKubeconfig(); err != nil {
-		return err
+		return fmt.Errorf("failed to get kubectl and kubeConfig %v", err)
 	}
 
 	return nil
@@ -206,7 +206,7 @@ func (d *Default) InitMaster0() error {
 	cmdInit := d.Command(d.Metadata.Version, InitMaster)
 
 	// TODO skip docker version error check for test
-	output, err := d.SSH.Cmd(d.Masters[0], fmt.Sprintf("%s --ignore-preflight-errors=SystemVerification", cmdInit))
+	output, err := d.SSH.Cmd(d.Masters[0], cmdInit)
 	if err != nil {
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}

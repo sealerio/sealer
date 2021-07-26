@@ -109,3 +109,10 @@ func TagImageList(imageNameOrID string, tagImageNames []string) {
 		gomega.Expect(build.CheckIsImageExist(settings.TestImageName)).Should(gomega.BeTrue())
 	}
 }
+
+func RemoveImageList(imageNameList []string) {
+	for _, imageName := range imageNameList {
+		removeImage := imageName
+		DoImageOps(settings.SubCmdRmiOfSealer, removeImage)
+	}
+}

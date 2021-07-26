@@ -18,6 +18,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/utils/mount"
+
 	manifest "github.com/alibaba/sealer/build/lite/manifests"
 
 	"github.com/alibaba/sealer/build/lite/charts"
@@ -93,6 +96,8 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 		l.ReMountImage,
 		l.InitDockerAndRegistry,
 		l.CacheImageToRegistry,
+		l.AddUpperLayerToImage,
+		l.Clear,
 	)
 	return buildPipeline, nil
 }
@@ -107,6 +112,15 @@ func (l *LiteBuilder) PreCheck() error {
 }
 
 func (l *LiteBuilder) ReMountImage() error {
+	err := l.UnMountImage()
+	if err != nil {
+		return err
+	}
+	l.local.Cluster.Spec.Image = l.local.Config.ImageName
+	return l.MountImage()
+}
+
+func (l *LiteBuilder) UnMountImage() error {
 	var (
 		FileSystem filesystem.Interface
 		err        error
@@ -116,12 +130,7 @@ func (l *LiteBuilder) ReMountImage() error {
 		logger.Warn(err)
 		return err
 	}
-	err = FileSystem.UnMountImage(l.local.Cluster)
-	if err != nil {
-		return err
-	}
-	l.local.Cluster.Spec.Image = l.local.Config.ImageName
-	return l.MountImage()
+	return FileSystem.UnMountImage(l.local.Cluster)
 }
 
 func (l *LiteBuilder) MountImage() error {
@@ -133,6 +142,42 @@ func (l *LiteBuilder) MountImage() error {
 		return err
 	}
 	return nil
+}
+
+func (l *LiteBuilder) AddUpperLayerToImage() error {
+	var (
+		err   error
+		Image *v1.Image
+	)
+	m := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount")
+	err = mount.NewMountDriver().Unmount(m)
+	if err != nil {
+		return err
+	}
+	upper := filepath.Join(m, "upper")
+	imageLayer := v1.Layer{
+		Type:  "BASE",
+		Value: "registry cache",
+	}
+	err = l.local.calculateLayerDigestAndPlaceIt(&imageLayer, upper)
+	if err != nil {
+		return err
+	}
+	Image, err = image.GetImageByName(l.local.Config.ImageName)
+	if err != nil {
+		return err
+	}
+	Image.Spec.Layers = append(Image.Spec.Layers, imageLayer)
+	l.local.Image = Image
+	err = l.local.updateImageIDAndSaveImage()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (l *LiteBuilder) Clear() error {
+	return utils.CleanFiles(common.RawClusterfile, common.DefaultClusterBaseDir(l.local.Cluster.Name))
 }
 
 func (l *LiteBuilder) InitDockerAndRegistry() error {

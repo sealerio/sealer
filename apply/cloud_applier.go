@@ -126,6 +126,11 @@ func (c *CloudApplier) Apply() error {
 		return nil
 	}
 
+	client, err := ssh.NewSSHClientWithCluster(cluster)
+	if err != nil {
+		return fmt.Errorf("prepare cluster ssh client failed %v", err)
+	}
+
 	cluster.Spec.Provider = common.BAREMETAL
 	err = utils.MarshalYamlToFile(common.TmpClusterfile, cluster)
 	if err != nil {
@@ -136,15 +141,12 @@ func (c *CloudApplier) Apply() error {
 			logger.Error("failed to clean %s, err: %v", common.TmpClusterfile, err)
 		}
 	}()
-	client, err := ssh.NewSSHClientWithCluster(cluster)
-	if err != nil {
-		return fmt.Errorf("prepare cluster ssh client failed %v", err)
-	}
 
 	err = runtime.PreInitMaster0(client.SSH, client.Host)
 	if err != nil {
 		return err
 	}
+
 	err = client.SSH.CmdAsync(client.Host, fmt.Sprintf(ApplyCluster, common.RemoteSealerPath, common.RemoteSealerPath, common.TmpClusterfile))
 	if err != nil {
 		return err

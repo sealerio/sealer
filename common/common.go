@@ -30,7 +30,7 @@ const (
 )
 
 const (
-	DefaultWorkDir                = "/var/lib/sealer/%s/workdir"
+	DefaultWorkDir                = "/tmp/%s/workdir"
 	DefaultTmpDir                 = "/var/lib/sealer/tmp"
 	DefaultClusterFileName        = "Clusterfile"
 	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
@@ -86,12 +86,15 @@ const (
 )
 
 const (
-	LocalBuild = "local"
-	LiteBuild  = "lite"
+	LocalBuild     = "local"
+	LiteBuild      = "lite"
+	ContainerBuild = "container"
+	AliCloudBuild  = "cloud"
 )
 const (
 	BAREMETAL = "BAREMETAL"
 	AliCloud  = "ALI_CLOUD"
+	CONTAINER = "CONTAINER"
 )
 
 const (
