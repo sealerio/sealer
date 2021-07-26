@@ -23,7 +23,7 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"sigs.k8s.io/yaml"
 )
-
+//Get default sans
 func (d *Default) getDefaultSANs() []string {
 	var sans = []string{"127.0.0.1", "apiserver.cluster.local", d.VIP}
 	// append specified certSANS
