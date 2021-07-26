@@ -112,7 +112,7 @@ type kubeadmType struct {
 		DNSDomain string `yaml:"dnsDomain,omitempty"`
 	} `yaml:"networking"`
 }
-
+// Get Etcd Endpoint
 func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
 	var tmpSlice []string
 	for _, ip := range masters {
