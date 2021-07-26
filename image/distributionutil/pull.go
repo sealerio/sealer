@@ -20,10 +20,11 @@ import (
 	"io"
 	"io/ioutil"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/alibaba/sealer/utils/archive"
 
 	"fmt"
-	"sync"
 
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
@@ -32,7 +33,6 @@ import (
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 type Puller interface {
@@ -44,23 +44,24 @@ type ImagePuller struct {
 	repository distribution.Repository
 }
 
-func (puller *ImagePuller) Pull(context context.Context, named reference.Named) (*v1.Image, error) {
+func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1.Image, error) {
 	var (
-		errorCh    = make(chan error, 128)
-		done       sync.WaitGroup
 		layerStore = puller.config.LayerStore
 		layers     = []v1.Layer{}
+		eg         *errgroup.Group
 	)
 
-	manifest, err := puller.getRemoteManifest(context, named)
+	manifest, err := puller.getRemoteManifest(ctx, named)
 	if err != nil {
 		return nil, err
 	}
 
-	v1Image, err := puller.getRemoteImageMetadata(context, named, manifest.Config.Digest)
+	v1Image, err := puller.getRemoteImageMetadata(ctx, named, manifest.Config.Digest)
 	if err != nil {
 		return nil, err
 	}
+
+	eg, _ = errgroup.WithContext(context.Background())
 	for _, l := range v1Image.Spec.Layers {
 		if l.ID == "" {
 			continue
@@ -73,11 +74,14 @@ func (puller *ImagePuller) Pull(context context.Context, named reference.Named) 
 	}
 
 	for i, l := range manifest.Layers {
-		done.Add(1)
+		// local value to current scope, safe to pass into goroutine
+		var (
+			descriptor = l
+			layer      = layers[i]
+		)
 		// we take hash of layer as real layer id,  hash of descriptor is just
 		// a identifier for remote data
-		go func(descriptor distribution.Descriptor, layer v1.Layer) {
-			defer done.Done()
+		eg.Go(func() error {
 			// roLayer now does not exist, new one
 			// descriptor.Size is temp size for this layer
 			// real size will be set within downloadLayer
@@ -85,31 +89,20 @@ func (puller *ImagePuller) Pull(context context.Context, named reference.Named) 
 				descriptor.Size,
 				map[string]digest.Digest{named.Domain() + "/" + named.Repo(): descriptor.Digest})
 			if LayerErr != nil {
-				errorCh <- LayerErr
-				return
+				return LayerErr
 			}
 
-			LayerErr = puller.downloadLayer(context, named, roLayer, descriptor)
+			LayerErr = puller.downloadLayer(ctx, named, roLayer, descriptor)
 			if LayerErr != nil {
-				errorCh <- LayerErr
-				return
+				return LayerErr
 			}
 
-			LayerErr = layerStore.RegisterLayerIfNotPresent(roLayer)
-			if LayerErr != nil {
-				errorCh <- LayerErr
-				return
-			}
-		}(l, layers[i])
+			return layerStore.RegisterLayerIfNotPresent(roLayer)
+		})
 	}
-	done.Wait()
-	if len(errorCh) > 0 {
-		close(errorCh)
-		err = fmt.Errorf("failed to pull image %s", named.Raw())
-		for chErr := range errorCh {
-			err = errors.Wrap(chErr, err.Error())
-		}
-		return nil, err
+	err = eg.Wait()
+	if err != nil {
+		return nil, fmt.Errorf("failed to pull image %s, err: %s", named.Raw(), err)
 	}
 
 	return &v1Image, nil
