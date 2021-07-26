@@ -31,6 +31,8 @@ export RegionID={your region}
 export REGISTRY_URL={your registry}
 export REGISTRY_USERNAME={user name}
 export REGISTRY_PASSWORD={password}
+#default test image name: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+export IMAGE_NAME={test image name}
 ```
 
 To execute the entire test suite:
@@ -38,6 +40,7 @@ To execute the entire test suite:
 ```console
 $ cd sealer && ginkgo test
 ```
+
 You can then use the `--focus` option to run subsets of the test suite:
 
 ```console
