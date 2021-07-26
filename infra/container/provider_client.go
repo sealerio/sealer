@@ -1,6 +1,5 @@
 package container
 
-import "C"
 import (
 	"context"
 	"fmt"
@@ -269,7 +268,7 @@ func (c *DockerProvider) CheckServerInfo() error {
 	*/
 	info, err := c.GetServerInfo()
 	if err != nil {
-		return fmt.Errorf("failed to get docker server, please check docker server runing status")
+		return fmt.Errorf("failed to get docker server, please check docker server running status")
 	}
 	if info.StorageDriver != "overlay2" {
 		return fmt.Errorf("only support storage driver overlay2 ,but current is :%s", info.StorageDriver)
