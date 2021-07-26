@@ -22,25 +22,20 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/alibaba/sealer/image/cache"
-
-	"github.com/alibaba/sealer/utils/archive"
-
-	"github.com/pkg/errors"
-
-	"github.com/opencontainers/go-digest"
-
-	"github.com/alibaba/sealer/image/store"
-
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/image/cache"
 	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/archive"
 	"github.com/alibaba/sealer/utils/mount"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 type Config struct {
