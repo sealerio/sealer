@@ -22,11 +22,12 @@ import (
 )
 
 const (
-	FROMCOMMAND = "FROM"
-	COPYCOMMAND = "COPY"
-	RUNCOMMAND  = "RUN"
-	CMDCOMMAND  = "CMD"
-	ENVCOMMAND  = "ENV"
+	FROMCOMMAND        = "FROM"
+	COPYCOMMAND        = "COPY"
+	RUNCOMMAND         = "RUN"
+	CMDCOMMAND         = "CMD"
+	ENVCOMMAND         = "ENV"
+	BaseImageLayerType = "BASE"
 )
 
 const (

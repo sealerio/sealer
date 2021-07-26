@@ -35,8 +35,18 @@ import (
 // current image has no from layer
 func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 	for _, layer := range image.Spec.Layers {
-		if layer.ID != "" {
+		if layer.ID != "" && layer.Type != common.BaseImageLayerType {
 			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
+		}
+	}
+	return
+}
+
+//get docker image layer hash path
+func GetBaseDockerImageLayerDir(image *v1.Image) (res string) {
+	for _, layer := range image.Spec.Layers {
+		if layer.ID != "" && layer.Type == common.BaseImageLayerType {
+			return filepath.Join(common.DefaultLayerDir, layer.ID.Hex())
 		}
 	}
 	return

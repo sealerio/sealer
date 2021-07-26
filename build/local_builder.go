@@ -16,26 +16,26 @@ package build
 
 import (
 	"fmt"
-	"io/ioutil"
+
+	"github.com/alibaba/sealer/image/cache"
+	"github.com/alibaba/sealer/utils/archive"
+	"github.com/pkg/errors"
+
+	"github.com/opencontainers/go-digest"
+
+	"github.com/alibaba/sealer/image/store"
+
 	"path/filepath"
 	"strings"
-
-	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/cache"
 	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/archive"
-	"github.com/alibaba/sealer/utils/mount"
-	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 type Config struct {
@@ -51,19 +51,19 @@ type builderLayer struct {
 
 // LocalBuilder: local builder using local provider to build a cluster image
 type LocalBuilder struct {
-	Config               *Config
-	Image                *v1.Image
-	Cluster              *v1.Cluster
-	ImageNamed           reference.Named
-	ImageID              string
-	Context              string
-	KubeFileName         string
-	LayerStore           store.LayerStore
-	ImageStore           store.ImageStore
-	ImageService         image.Service
-	Prober               image.Prober
-	FS                   store.Backend
-	DockerImageStorePath string
+	Config           *Config
+	Image            *v1.Image
+	Cluster          *v1.Cluster
+	ImageNamed       reference.Named
+	ImageID          string
+	Context          string
+	KubeFileName     string
+	LayerStore       store.LayerStore
+	ImageStore       store.ImageStore
+	ImageService     image.Service
+	Prober           image.Prober
+	FS               store.Backend
+	DockerImageCache IMountDriver
 	builderLayer
 }
 
@@ -107,6 +107,7 @@ func (l *LocalBuilder) GetBuildPipeLine() ([]func() error, error) {
 	buildPipeline = append(buildPipeline,
 		l.PullBaseImageNotExist,
 		l.ExecBuild,
+		l.CollectRegistryCache,
 		l.UpdateImageMetadata)
 	return buildPipeline, nil
 }
@@ -150,6 +151,27 @@ func (l *LocalBuilder) generateSourceFilesDigest(path string) (digest.Digest, er
 		return "", err
 	}
 	return layerDgst, nil
+}
+
+func (l *LocalBuilder) CollectRegistryCache() error {
+	if l.DockerImageCache == nil {
+		return nil
+	}
+	if !IsAllPodsRunning() {
+		return fmt.Errorf("cache docker image failed,cluster pod not running")
+	}
+	imageLayer := v1.Layer{
+		Type:  imageLayerType,
+		Value: "",
+	}
+	err := l.calculateLayerDigestAndPlaceIt(&imageLayer, l.DockerImageCache.GetMountUpper())
+	if err != nil {
+		return err
+	}
+	l.newLayers = append(l.newLayers, imageLayer)
+
+	logger.Info("save image cache success")
+	return nil
 }
 
 func (l *LocalBuilder) ExecBuild() error {
@@ -204,7 +226,7 @@ func (l *LocalBuilder) ExecBuild() error {
 
 		baseLayerPaths = append(baseLayerPaths, l.FS.LayerDataDir(layer.ID))
 	}
-	// todo need to collect docker images while build
+
 	logger.Info("exec all build instructs success !")
 	return nil
 }
@@ -245,45 +267,24 @@ func (l *LocalBuilder) SetCacheID(layer *v1.Layer) error {
 	return l.FS.SetMetadata(layer.ID, cacheID, []byte(layerDgst.String()))
 }
 
-func (l *LocalBuilder) squashBaseImageLayerIntoCurrentImage() {
-	l.Image.Spec.Layers = append(l.baseLayers, l.newLayers...)
-}
-
 func (l *LocalBuilder) execOtherLayer(layer *v1.Layer, lowLayers []string) error {
-	tempTarget, err := utils.MkTmpdir()
+	target, err := NewMountTarget("", "", lowLayers)
 	if err != nil {
-		return fmt.Errorf("failed to create %s:%v", tempTarget, err)
-	}
-	tempUpper, err := utils.MkTmpdir()
-	if err != nil {
-		return fmt.Errorf("failed to create %s:%v", tempUpper, err)
-	}
-	defer utils.CleanDirs(tempTarget, tempUpper)
-
-	if err = l.mountAndExecLayer(layer, tempTarget, tempUpper, lowLayers...); err != nil {
 		return err
 	}
-	if err = l.calculateLayerDigestAndPlaceIt(layer, tempUpper); err != nil {
+	defer target.CleanUp()
+
+	err = target.TempMount()
+	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (l *LocalBuilder) mountAndExecLayer(layer *v1.Layer, tempTarget, tempUpper string, lowLayers ...string) error {
-	driver := mount.NewMountDriver()
-	err := driver.Mount(tempTarget, tempUpper, lowLayers...)
-	if err != nil {
-		return fmt.Errorf("failed to mount target %s:%v", tempTarget, err)
-	}
-	defer func() {
-		if err = driver.Unmount(tempTarget); err != nil {
-			logger.Warn(fmt.Errorf("failed to umount %s:%v", tempTarget, err))
-		}
-	}()
-
-	err = l.execLayer(layer, tempTarget)
+	err = l.execLayer(layer, target.TempTarget)
 	if err != nil {
 		return fmt.Errorf("failed to exec layer %v:%v", layer, err)
+	}
+
+	if err = l.calculateLayerDigestAndPlaceIt(layer, target.TempUpper); err != nil {
+		return err
 	}
 	return nil
 }
@@ -324,21 +325,17 @@ func (l *LocalBuilder) calculateLayerDigestAndPlaceIt(layer *v1.Layer, tempTarge
 }
 
 func (l *LocalBuilder) UpdateImageMetadata() error {
-	l.setClusterFileToImage()
-	l.squashBaseImageLayerIntoCurrentImage()
+	setClusterFileToImage(l.Image)
+
+	l.Image.Spec.Layers = append(l.baseLayers, l.newLayers...)
+
 	err := l.updateImageIDAndSaveImage()
 	if err != nil {
-		return fmt.Errorf("failed to updateImageIDAndSaveImage, err: %v", err)
+		return fmt.Errorf("failed to save image metadata, err: %v", err)
 	}
 
 	logger.Info("update image %s to image metadata success !", l.ImageNamed.Raw())
 	return nil
-}
-
-// setClusterFileToImage: set cluster file whatever build type is
-func (l *LocalBuilder) setClusterFileToImage() {
-	clusterFileData := GetRawClusterFile(l.Image)
-	l.addImageAnnotations(common.ImageAnnotationForClusterfile, clusterFileData)
 }
 
 func (l *LocalBuilder) updateImageIDAndSaveImage() error {
@@ -349,58 +346,6 @@ func (l *LocalBuilder) updateImageIDAndSaveImage() error {
 
 	l.Image.Spec.ID = imageID
 	return l.ImageStore.Save(*l.Image, l.ImageNamed.Raw())
-}
-
-func generateImageID(image v1.Image) (string, error) {
-	imageBytes, err := yaml.Marshal(image)
-	if err != nil {
-		return "", err
-	}
-	imageID := digest.FromBytes(imageBytes).Hex()
-	return imageID, nil
-}
-
-// GetClusterFile from user build context or from base image
-func GetRawClusterFile(im *v1.Image) string {
-	if im.Spec.Layers[0].Value == common.ImageScratch {
-		data, err := ioutil.ReadFile(filepath.Join("etc", common.DefaultClusterFileName))
-		if err != nil {
-			return ""
-		}
-		return string(data)
-	}
-	// find cluster file from context
-	if clusterFile := getClusterFileFromContext(im); clusterFile != nil {
-		logger.Info("get cluster file from context success!")
-		return string(clusterFile)
-	}
-	// find cluster file from base image
-	clusterFile := image.GetClusterFileFromImage(im.Spec.Layers[0].Value)
-	if clusterFile != "" {
-		logger.Info("get cluster file from base image success!")
-		return clusterFile
-	}
-	return ""
-}
-
-func getClusterFileFromContext(image *v1.Image) []byte {
-	for i := range image.Spec.Layers {
-		layer := image.Spec.Layers[i]
-		if layer.Type == common.COPYCOMMAND && strings.Fields(layer.Value)[0] == common.DefaultClusterFileName {
-			if clusterFile, _ := utils.ReadAll(strings.Fields(layer.Value)[0]); clusterFile != nil {
-				return clusterFile
-			}
-		}
-	}
-	return nil
-}
-
-// GetClusterFile from user build context or from base image
-func (l *LocalBuilder) addImageAnnotations(key, value string) {
-	if l.Image.Annotations == nil {
-		l.Image.Annotations = make(map[string]string)
-	}
-	l.Image.Annotations[key] = value
 }
 
 func (l *LocalBuilder) updateBuilderLayers(image *v1.Image) error {
@@ -463,16 +408,6 @@ func (l *LocalBuilder) goCache(parentID cache.ChainID, layer *v1.Layer, cacheSer
 	return true, cID
 }
 
-// used in build stage, where the image still has from layer
-func getBaseLayersPath(layers []v1.Layer) (res []string) {
-	for _, layer := range layers {
-		if layer.ID != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
-		}
-	}
-	return res
-}
-
 func NewLocalBuilder(config *Config) (Interface, error) {
 	layerStore, err := store.NewDefaultLayerStore()
 	if err != nil {
@@ -496,19 +431,19 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 
 	prober := image.NewImageProber(service, config.NoCache)
 
-	dockerImageStorePath, err := utils.MkTmpdir()
+	registryCache, err := NewRegistryCache()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s:%v", dockerImageStorePath, err)
+		return nil, err
 	}
 
 	return &LocalBuilder{
-		Config:               config,
-		LayerStore:           layerStore,
-		ImageStore:           imageStore,
-		ImageService:         service,
-		Prober:               prober,
-		FS:                   fs,
-		DockerImageStorePath: dockerImageStorePath,
+		Config:           config,
+		LayerStore:       layerStore,
+		ImageStore:       imageStore,
+		ImageService:     service,
+		Prober:           prober,
+		FS:               fs,
+		DockerImageCache: registryCache,
 		builderLayer: builderLayer{
 			// for skip golang ci
 			baseLayers: []v1.Layer{},

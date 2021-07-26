@@ -130,7 +130,7 @@ func (c *CloudBuilder) InitClusterFile() error {
 
 	cluster.Spec.Provider = c.Provider
 	c.local.Cluster = &cluster
-	logger.Info("init cluster file success %+v!", c.local.Cluster)
+	logger.Info("init cluster file success, provider type is %s", c.Provider)
 	return nil
 }
 
@@ -239,9 +239,15 @@ func NewCloudBuilder(cloudConfig *Config) (Interface, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	provider := common.AliCloud
+	if cloudConfig.BuildType != "" {
+		provider = ProviderMap[cloudConfig.BuildType]
+	}
+
 	return &CloudBuilder{
 		local:              localBuilder.(*LocalBuilder),
-		Provider:           ProviderMap[cloudConfig.BuildType],
+		Provider:           provider,
 		TmpClusterFilePath: common.TmpClusterfile,
 	}, nil
 }

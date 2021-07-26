@@ -17,6 +17,7 @@ package build
 import "github.com/alibaba/sealer/common"
 
 const (
-	cacheID      = common.CacheID
-	maxLayerDeep = 128
+	cacheID        = common.CacheID
+	maxLayerDeep   = 128
+	imageLayerType = common.BaseImageLayerType
 )
