@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"archive/tar"
 	"bufio"
 	"fmt"
 	"io"
@@ -146,6 +147,75 @@ func RecursionCopy(src, dst string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func RecursionHardLink(src, dst string) error {
+	if !IsDir(src) {
+		return os.Link(src, dst)
+	}
+	fhs := []*tar.Header{}
+	err := RecursionHardLinkDir(src, dst, &fhs)
+	if err != nil {
+		return fmt.Errorf("failed to recursion hard link dir %s, err: %s", src, err)
+	}
+
+	for _, h := range fhs {
+		err = os.Chtimes(h.Name, h.AccessTime, h.ModTime)
+		if err != nil {
+			return fmt.Errorf("failed to chtimes for %s, err: %v", h.Name, err)
+		}
+
+		err = os.Chmod(h.Name, os.FileMode(h.Mode))
+		if err != nil {
+			return fmt.Errorf("failed to chmod for %s, err: %v", h.Name, err)
+		}
+	}
+	return nil
+}
+
+func RecursionHardLinkDir(src, dst string, modTimes *[]*tar.Header) error {
+	if modTimes == nil {
+		return fmt.Errorf("modTimes should be init")
+	}
+
+	fis, err := ioutil.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	// TODO maybe mk follow the src file
+	err = os.MkdirAll(dst, common.FileMode0755)
+	if err != nil {
+		return err
+	}
+
+	for _, f := range fis {
+		var (
+			srcPath = filepath.Join(src, f.Name())
+			dstPath = filepath.Join(dst, f.Name())
+		)
+		if f.IsDir() {
+			err = RecursionHardLinkDir(srcPath, dstPath, modTimes)
+			if err != nil {
+				return err
+			}
+
+			var fh *tar.Header
+			fh, err = tar.FileInfoHeader(f, src)
+			if err != nil {
+				return err
+			}
+			fh.Name = dstPath
+			*modTimes = append(*modTimes, fh)
+		} else {
+			err = os.Link(srcPath, dstPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

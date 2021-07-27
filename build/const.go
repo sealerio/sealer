@@ -19,4 +19,5 @@ import "github.com/alibaba/sealer/common"
 const (
 	cacheID      = common.CacheID
 	maxLayerDeep = 128
+	FromCmd      = "FROM"
 )
