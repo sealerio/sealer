@@ -37,11 +37,8 @@ func CmdOutput(name string, args ...string) ([]byte, error) {
 }
 
 func RunSimpleCmd(cmd string) (string, error) {
-	result, err := exec.Command("/bin/sh", "-c", cmd).Output()
-	if err != nil {
-		return "", err
-	}
-	return string(result), nil
+	result, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
+	return string(result), err
 }
 
 func CheckCmdIsExist(cmd string) (string, bool) {

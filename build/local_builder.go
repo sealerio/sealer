@@ -17,31 +17,25 @@ package build
 import (
 	"fmt"
 	"io/ioutil"
-
-	"sigs.k8s.io/yaml"
-
-	"github.com/alibaba/sealer/image/cache"
-
-	"github.com/alibaba/sealer/utils/archive"
-
-	"github.com/pkg/errors"
-
-	"github.com/opencontainers/go-digest"
-
-	"github.com/alibaba/sealer/image/store"
-
 	"path/filepath"
 	"strings"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/image/cache"
 	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/archive"
 	"github.com/alibaba/sealer/utils/mount"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 type Config struct {
@@ -57,18 +51,19 @@ type builderLayer struct {
 
 // LocalBuilder: local builder using local provider to build a cluster image
 type LocalBuilder struct {
-	Config       *Config
-	Image        *v1.Image
-	Cluster      *v1.Cluster
-	ImageNamed   reference.Named
-	ImageID      string
-	Context      string
-	KubeFileName string
-	LayerStore   store.LayerStore
-	ImageStore   store.ImageStore
-	ImageService image.Service
-	Prober       image.Prober
-	FS           store.Backend
+	Config               *Config
+	Image                *v1.Image
+	Cluster              *v1.Cluster
+	ImageNamed           reference.Named
+	ImageID              string
+	Context              string
+	KubeFileName         string
+	LayerStore           store.LayerStore
+	ImageStore           store.ImageStore
+	ImageService         image.Service
+	Prober               image.Prober
+	FS                   store.Backend
+	DockerImageStorePath string
 	builderLayer
 }
 
@@ -209,7 +204,7 @@ func (l *LocalBuilder) ExecBuild() error {
 
 		baseLayerPaths = append(baseLayerPaths, l.FS.LayerDataDir(layer.ID))
 	}
-
+	// todo need to collect docker images while build
 	logger.Info("exec all build instructs success !")
 	return nil
 }
@@ -342,17 +337,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 
 // setClusterFileToImage: set cluster file whatever build type is
 func (l *LocalBuilder) setClusterFileToImage() {
-	var clusterFileData string
-	if utils.IsFileExist(common.RawClusterfile) {
-		bytes, err := utils.ReadAll(common.RawClusterfile)
-		if err != nil {
-			logger.Warn("failed to set cluster file to image metadata,%s not exist", common.RawClusterfile)
-		}
-		clusterFileData = string(bytes)
-	} else {
-		clusterFileData = GetRawClusterFile(l.Image)
-	}
-
+	clusterFileData := GetRawClusterFile(l.Image)
 	l.addImageAnnotations(common.ImageAnnotationForClusterfile, clusterFileData)
 }
 
@@ -511,13 +496,19 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 
 	prober := image.NewImageProber(service, config.NoCache)
 
+	dockerImageStorePath, err := utils.MkTmpdir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create %s:%v", dockerImageStorePath, err)
+	}
+
 	return &LocalBuilder{
-		Config:       config,
-		LayerStore:   layerStore,
-		ImageStore:   imageStore,
-		ImageService: service,
-		Prober:       prober,
-		FS:           fs,
+		Config:               config,
+		LayerStore:           layerStore,
+		ImageStore:           imageStore,
+		ImageService:         service,
+		Prober:               prober,
+		FS:                   fs,
+		DockerImageStorePath: dockerImageStorePath,
 		builderLayer: builderLayer{
 			// for skip golang ci
 			baseLayers: []v1.Layer{},

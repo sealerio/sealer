@@ -206,7 +206,7 @@ func (d *Default) InitMaster0() error {
 	cmdInit := d.Command(d.Metadata.Version, InitMaster)
 
 	// TODO skip docker version error check for test
-	output, err := d.SSH.Cmd(d.Masters[0], fmt.Sprintf("%s --ignore-preflight-errors=SystemVerification", cmdInit))
+	output, err := d.SSH.Cmd(d.Masters[0], cmdInit)
 	if err != nil {
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}
