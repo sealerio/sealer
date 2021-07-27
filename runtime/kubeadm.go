@@ -36,7 +36,7 @@ func (d *Default) getDefaultSANs() []string {
 
 //Template is
 func (d *Default) defaultTemplate() ([]byte, error) {
-	return d.templateFromContent(d.kubeadmConfig()
+	return d.templateFromContent(d.kubeadmConfig())
 }
 
 func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
