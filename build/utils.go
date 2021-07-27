@@ -172,8 +172,5 @@ func IsAllPodsRunning() bool {
 		}
 		return nil
 	})
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
