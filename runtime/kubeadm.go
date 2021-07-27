@@ -25,7 +25,7 @@ import (
 )
 
 func (d *Default) getDefaultSANs() []string {
-	// default SANs
+	// default SANs str
 	var sans = []string{"127.0.0.1", "apiserver.cluster.local", d.VIP}
 	// append specified certSANS
 	sans = append(sans, d.APIServerCertSANs...)
@@ -36,7 +36,7 @@ func (d *Default) getDefaultSANs() []string {
 
 //Template is
 func (d *Default) defaultTemplate() ([]byte, error) {
-	return d.templateFromContent(d.kubeadmConfig())
+	return d.templateFromContent(d.kubeadmConfig()
 }
 
 func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
