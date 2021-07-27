@@ -23,8 +23,9 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"sigs.k8s.io/yaml"
 )
-//Get default sans
+
 func (d *Default) getDefaultSANs() []string {
+	// default SANs
 	var sans = []string{"127.0.0.1", "apiserver.cluster.local", d.VIP}
 	// append specified certSANS
 	sans = append(sans, d.APIServerCertSANs...)
@@ -112,7 +113,7 @@ type kubeadmType struct {
 		DNSDomain string `yaml:"dnsDomain,omitempty"`
 	} `yaml:"networking"`
 }
-// Get Etcd Endpoint
+
 func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
 	var tmpSlice []string
 	for _, ip := range masters {
