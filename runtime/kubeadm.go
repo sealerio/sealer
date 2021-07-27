@@ -25,6 +25,7 @@ import (
 )
 
 func (d *Default) getDefaultSANs() []string {
+	// default SANs str
 	var sans = []string{"127.0.0.1", "apiserver.cluster.local", d.VIP}
 	// append specified certSANS
 	sans = append(sans, d.APIServerCertSANs...)
