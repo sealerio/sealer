@@ -15,12 +15,15 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/alibaba/sealer/rpccall/client"
 
 	"github.com/alibaba/sealer/common"
 
@@ -229,10 +232,26 @@ func (d *Default) CopyStaticFiles(nodes []string) error {
 			wg.Add(1)
 			go func(host string) {
 				defer wg.Done()
-				err := d.SSH.CmdAsync(host, cmdLinkStatic)
+				clt, err := client.RemoteHandler(host, d.SSH)
 				if err != nil {
-					logger.Error("[%s] link static file failed, error:%s", host, err.Error())
+					logger.Error("failed to get remote handler while copying static files, host: %s, err: %s", host, err)
 					flag = true
+					return
+				}
+
+				ctx := context.Background()
+				err = clt.OSCallSvc().Mkdir(ctx, file.DestinationDir, 0755)
+				if err != nil {
+					logger.Error("failed to mkdir of %s, host: %s, err: %s", file.DestinationDir, host, err)
+					flag = true
+					return
+				}
+
+				err = clt.OSCallSvc().CPFiles(ctx, file.DestinationDir, staticFilePath)
+				if err != nil {
+					logger.Error("failed to cp %s to %s, host: %s, err: %s", staticFilePath, file.DestinationDir, host, err)
+					flag = true
+					return
 				}
 			}(host)
 			if flag {

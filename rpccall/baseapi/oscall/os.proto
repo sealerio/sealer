@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package os;
+
+option go_package = "github.com/alibaba/sealer/rpccall/baseapi/oscall";
+
+import "google/protobuf/empty.proto";
+
+service OSCall {
+  rpc Mkdir(Dir) returns (google.protobuf.Empty);
+
+  rpc CPFiles(FilesToCopy) returns (google.protobuf.Empty);
+
+  rpc WriteFile(FileWithContent) returns (google.protobuf.Empty);
+
+  rpc RMFiles(FilesToDelete) returns (google.protobuf.Empty);
+}
+
+message Dir {
+  string Name = 1;
+  uint32 FileMode = 2;
+}
+
+message File {
+  string Name = 1;
+}
+
+message FileWithContent {
+  File File = 1;
+  bytes content = 2;
+}
+
+message FilesToCopy {
+  repeated File Files = 1;
+  string Dir = 2;
+}
+
+message FilesToDelete {
+  repeated File Files = 1;
+}
