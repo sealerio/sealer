@@ -1,10 +1,12 @@
 pub mod components;
 pub mod routes;
+pub mod services;
 
 use yew::prelude::*;
 use yew_router::prelude::*;
-use crate::components::{header::Header, image_list::Images, image_info::ImageDetail};
+use crate::components::{header::Header, image_info::ImageDetail};
 use crate::routes::{router::AppRoute};
+use crate::services::{requests::Images};
 
 enum Msg {
 }
@@ -49,7 +51,7 @@ impl Model {
    fn switch(route: AppRoute) -> Html {
         match route {
             AppRoute::Images => html! { <Images /> },
-            AppRoute::ImageDetail(name)=> html! { <ImageDetail imageName=name /> }
+            AppRoute::ImageDetail(name)=> html! { <ImageDetail image_name=name /> }
         }
     }
 }

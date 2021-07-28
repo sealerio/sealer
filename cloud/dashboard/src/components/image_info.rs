@@ -7,7 +7,7 @@ pub struct ImageDetail{
 
 #[derive(Properties, Clone)]
 pub struct Props {
-    pub imageName: String,
+    pub image_name: String,
 }
 
 pub enum Msg {}
@@ -34,7 +34,7 @@ impl Component for ImageDetail{
         html! {
             <div>
             { "this is image info" }
-            { self.props.imageName.to_string() }
+            { self.props.image_name.to_string() }
             </div>
         }
     }
