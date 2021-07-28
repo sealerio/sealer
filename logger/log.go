@@ -24,6 +24,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spf13/viper"
+
 	"github.com/alibaba/sealer/common"
 )
 
@@ -132,7 +134,7 @@ func NewLogger(depth ...int) *LocalLogger {
 	l.appName = "[" + appSn + "]"
 	l.callDepth = dep
 	l.usePath = true
-	l.SetLogger(AdapterConsole)
+	//l.SetLogger(AdapterConsole)
 	l.timeFormat = logTimeDefaultFormat
 	return l
 }
@@ -147,6 +149,52 @@ type logConfig struct {
 
 func init() {
 	defaultLogger = NewLogger(3)
+}
+
+func Cfg(debugMod bool) {
+	logLev := 5
+	if debugMod {
+		logLev = 6
+	}
+	// If a config file is found, read it in.
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		var logCfg *logConfig
+		viper.SetConfigType("json")
+		err := viper.Unmarshal(&logCfg)
+		if err == nil {
+			logCfg.Console.LogLevel = logLevel(logLev)
+			cfg, err := json.Marshal(&logCfg)
+			if err == nil {
+				SetLogger(string(cfg))
+				SetLogPath(true)
+				return
+			}
+		}
+	}
+
+	SetLogger(fmt.Sprintf(`{
+					"TimeFormat": "2006-01-02 15:04:05",
+					"Console": {
+						"level": "",
+						"color": true,
+						"LogLevel": %d
+					},
+					"File": {
+						"filename": "%s/%s.log",
+						"level": "TRAC",
+						"daily": true,
+						"maxlines": 1000000,
+						"maxsize": 1,
+						"maxdays": -1,
+						"append": true,
+						"permit": "0660",
+						"LogLevel":0
+				}}`,
+		logLev, common.DefaultLogDir, time.Now().Format("2006-01-02"),
+	))
+
+	SetLogPath(true)
 }
 
 func (localLog *LocalLogger) SetLogger(adapterName string, configs ...string) {

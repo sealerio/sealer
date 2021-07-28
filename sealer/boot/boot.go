@@ -22,6 +22,7 @@ import (
 )
 
 var rootDirs = []string{
+	common.DefaultLogDir,
 	common.DefaultTmpDir,
 	common.DefaultImageRootDir,
 	common.DefaultImageMetaRootDir,
