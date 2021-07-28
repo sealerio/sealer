@@ -20,4 +20,5 @@ const (
 	cacheID        = common.CacheID
 	maxLayerDeep   = 128
 	imageLayerType = common.BaseImageLayerType
+	kubefile       = "Kubefile"
 )

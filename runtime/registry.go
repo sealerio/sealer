@@ -88,9 +88,10 @@ func (d *Default) EnsureRegistry(cluster *v1.Cluster) error {
 	if err != nil {
 		return err
 	}
-	dockerImageLayer := image.GetBaseDockerImageLayerDir(im)
-	if dockerImageLayer != "" {
-		lowerLayers = append(lowerLayers, dockerImageLayer)
+
+	layerDirs := image.GetBaseDockerImageLayerDir(im)
+	if len(layerDirs) != 0 {
+		lowerLayers = append(lowerLayers, layerDirs...)
 	}
 
 	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])

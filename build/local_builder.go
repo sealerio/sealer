@@ -16,9 +16,9 @@ package build
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/alibaba/sealer/image/cache"
-	"github.com/alibaba/sealer/utils/archive"
 	"github.com/pkg/errors"
 
 	"github.com/opencontainers/go-digest"
@@ -92,9 +92,19 @@ func (l *LocalBuilder) initBuilder(name string, context string, kubefileName str
 		return err
 	}
 
+	absContext, absKubeFile, err := ParseBuildArgs(context, kubefileName)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateContextDirectory(absContext)
+	if err != nil {
+		return err
+	}
+
 	l.ImageNamed = named
-	l.Context = context
-	l.KubeFileName = kubefileName
+	l.Context = absContext
+	l.KubeFileName = absKubeFile
 	return nil
 }
 
@@ -108,7 +118,9 @@ func (l *LocalBuilder) GetBuildPipeLine() ([]func() error, error) {
 		l.PullBaseImageNotExist,
 		l.ExecBuild,
 		l.CollectRegistryCache,
-		l.UpdateImageMetadata)
+		l.UpdateImageMetadata,
+		l.Cleanup,
+	)
 	return buildPipeline, nil
 }
 
@@ -143,20 +155,12 @@ func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
 	return nil
 }
 
-func (l *LocalBuilder) generateSourceFilesDigest(path string) (digest.Digest, error) {
-	baseDir := l.Context
-	layerDgst, _, err := archive.TarCanonicalDigest(filepath.Join(baseDir, path))
-	if err != nil {
-		logger.Error(err)
-		return "", err
-	}
-	return layerDgst, nil
-}
-
 func (l *LocalBuilder) CollectRegistryCache() error {
 	if l.DockerImageCache == nil {
 		return nil
 	}
+	// wait resource to sync
+	time.Sleep(15 * time.Second)
 	if !IsAllPodsRunning() {
 		return fmt.Errorf("cache docker image failed,cluster pod not running")
 	}
@@ -258,12 +262,10 @@ func (l *LocalBuilder) execCopyLayer(layer *v1.Layer) error {
 
 //This function only has meaning for copy layers
 func (l *LocalBuilder) SetCacheID(layer *v1.Layer) error {
-	baseDir := l.Context
-	layerDgst, _, err := archive.TarCanonicalDigest(filepath.Join(baseDir, strings.Fields(layer.Value)[0]))
+	layerDgst, err := generateSourceFilesDigest(filepath.Join(l.Context, strings.Fields(layer.Value)[0]))
 	if err != nil {
 		return err
 	}
-
 	return l.FS.SetMetadata(layer.ID, cacheID, []byte(layerDgst.String()))
 }
 
@@ -386,7 +388,7 @@ func (l *LocalBuilder) goCache(parentID cache.ChainID, layer *v1.Layer, cacheSer
 	// and use srcDigest as cacheID to generate a cacheLayer, eventually use the cacheLayer
 	// to hit the cache layer
 	if layer.Type == common.COPYCOMMAND {
-		srcDigest, err = l.generateSourceFilesDigest(strings.Fields(layer.Value)[0])
+		srcDigest, err = generateSourceFilesDigest(filepath.Join(l.Context, strings.Fields(layer.Value)[0]))
 		if err != nil {
 			logger.Warn("failed to generate src digest, discard cache, err: %s", err)
 		}
@@ -408,6 +410,15 @@ func (l *LocalBuilder) goCache(parentID cache.ChainID, layer *v1.Layer, cacheSer
 	return true, cID
 }
 
+func (l *LocalBuilder) Cleanup() (err error) {
+	// umount registry
+	if l.DockerImageCache != nil {
+		l.DockerImageCache.CleanUp()
+		return
+	}
+
+	return err
+}
 func NewLocalBuilder(config *Config) (Interface, error) {
 	layerStore, err := store.NewDefaultLayerStore()
 	if err != nil {

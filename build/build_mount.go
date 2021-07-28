@@ -90,15 +90,10 @@ func NewRegistryCache() (IMountDriver, error) {
 	if dir == "" {
 		return nil, nil
 	}
-
 	// if registry dir not mounted, return
-	if !IsMounted(dir) {
+	mounted, upper := GetMountDetails(dir)
+	if !mounted {
 		return nil, nil
-	}
-
-	upper, err := GetMountUpper(dir)
-	if err != nil {
-		return nil, err
 	}
 
 	logger.Info("get registry cache dir :%s success ", dir)

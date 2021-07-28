@@ -3,8 +3,12 @@ package build
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"time"
+
+	"github.com/alibaba/sealer/utils/archive"
 
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
@@ -87,6 +91,16 @@ func setClusterFileToImage(image *v1.Image) {
 	image.Annotations[common.ImageAnnotationForClusterfile] = clusterFileData
 }
 
+func IsOnlyCopy(layers []v1.Layer) bool {
+	for i := 1; i < len(layers); i++ {
+		if layers[i].Type == common.RUNCOMMAND ||
+			layers[i].Type == common.CMDCOMMAND {
+			return false
+		}
+	}
+	return true
+}
+
 func GetRegistryBindDir() string {
 	// check is docker running runtime.RegistryName
 	// check bind dir
@@ -117,40 +131,30 @@ func GetRegistryBindDir() string {
 	return ""
 }
 
-func GetMountUpper(target string) (string, error) {
+func GetMountDetails(target string) (mounted bool, upper string) {
 	cmd := fmt.Sprintf("mount | grep %s", target)
 	result, err := utils.RunSimpleCmd(cmd)
 	if err != nil {
-		return "", err
+		return false, ""
 	}
+	if !strings.Contains(result, target) {
+		return false, ""
+	}
+
 	data := strings.Split(result, ",upperdir=")
 	if len(data) < 2 {
-		return "", err
+		return false, ""
 	}
 
 	data = strings.Split(data[1], ",workdir=")
-	return strings.TrimSpace(data[0]), nil
-}
-
-func IsMounted(target string) bool {
-	cmd := fmt.Sprintf("mount | grep %s", target)
-	result, err := utils.RunSimpleCmd(cmd)
-	if err != nil {
-		return false
-	}
-	if strings.Contains(result, target) {
-		return true
-	}
-	return false
+	return true, strings.TrimSpace(data[0])
 }
 
 func IsAllPodsRunning() bool {
-	// wait resource to sync
-	time.Sleep(10 * time.Second)
 	err := infraUtils.Retry(10, 5*time.Second, func() error {
 		c, err := client.NewClientSet()
 		if err != nil {
-			return fmt.Errorf("failed to create k8s client  %v", err)
+			return fmt.Errorf("failed to create k8s client %v", err)
 		}
 		namespacePodList, err := client.ListAllNamespacesPods(c)
 		if err != nil {
@@ -173,4 +177,152 @@ func IsAllPodsRunning() bool {
 		return nil
 	})
 	return err == nil
+}
+
+func generateSourceFilesDigest(sourceFilepath string) (digest.Digest, error) {
+	layerDgst, _, err := archive.TarCanonicalDigest(sourceFilepath)
+	if err != nil {
+		logger.Error(err)
+		return "", err
+	}
+	return layerDgst, nil
+}
+
+// parse context and kubefile. return context abs path and kubefile abs path
+func ParseBuildArgs(localContextDir, kubeFileName string) (string, string, error) {
+	localDir, err := resolveAndValidateContextPath(localContextDir)
+	if err != nil {
+		return "", "", err
+	}
+
+	if kubeFileName != "" {
+		if kubeFileName, err = filepath.Abs(kubeFileName); err != nil {
+			return "", "", fmt.Errorf("unable to get absolute path to KubeFile: %v", err)
+		}
+	}
+
+	relFileName, err := getKubeFileRelPath(localDir, kubeFileName)
+	return localDir, relFileName, err
+}
+
+func resolveAndValidateContextPath(givenContextDir string) (string, error) {
+	absContextDir, err := filepath.Abs(givenContextDir)
+	if err != nil {
+		return "", fmt.Errorf("unable to get absolute context directory %s: %v", givenContextDir, err)
+	}
+
+	absContextDir, err = filepath.EvalSymlinks(absContextDir)
+	if err != nil {
+		return "", fmt.Errorf("unable to evaluate symlinks in context path: %v", err)
+	}
+
+	stat, err := os.Lstat(absContextDir)
+	if err != nil {
+		return "", fmt.Errorf("unable to stat context directory %s: %v", absContextDir, err)
+	}
+
+	if !stat.IsDir() {
+		return "", fmt.Errorf("context must be a directory: %s", absContextDir)
+	}
+
+	return absContextDir, err
+}
+
+func getKubeFileRelPath(absContextDir, givenKubeFile string) (string, error) {
+	var err error
+
+	absKubeFile := givenKubeFile
+	if absKubeFile == "" {
+		absKubeFile = filepath.Join(absContextDir, kubefile)
+		if _, err = os.Lstat(absKubeFile); os.IsNotExist(err) {
+			altPath := filepath.Join(absContextDir, strings.ToLower(kubefile))
+			if _, err = os.Lstat(altPath); err == nil {
+				absKubeFile = altPath
+			}
+		}
+	}
+
+	if !filepath.IsAbs(absKubeFile) {
+		absKubeFile = filepath.Join(absContextDir, absKubeFile)
+	}
+
+	absKubeFile, err = filepath.EvalSymlinks(absKubeFile)
+	if err != nil {
+		return "", fmt.Errorf("unable to evaluate symlinks in KubeFile path: %v", err)
+	}
+
+	if _, err := os.Lstat(absKubeFile); err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("cannot locate KubeFile: %s", absKubeFile)
+		}
+		return "", fmt.Errorf("unable to stat KubeFile: %v", err)
+	}
+
+	return absKubeFile, nil
+}
+
+func ValidateContextDirectory(srcPath string) error {
+	contextRoot, err := filepath.Abs(srcPath)
+	if err != nil {
+		return err
+	}
+
+	return filepath.Walk(contextRoot, func(filePath string, f os.FileInfo, err error) error {
+		if err != nil {
+			if os.IsPermission(err) {
+				return fmt.Errorf("can't stat '%s'", filePath)
+			}
+			if os.IsNotExist(err) {
+				return fmt.Errorf("file '%s' not found", filePath)
+			}
+			return err
+		}
+
+		if f.IsDir() {
+			return nil
+		}
+
+		if f.Mode()&(os.ModeSymlink|os.ModeNamedPipe) != 0 {
+			return nil
+		}
+
+		currentFile, err := os.Open(filePath)
+		if err != nil && os.IsPermission(err) {
+			return fmt.Errorf("no permission to read from '%s'", filePath)
+		}
+		currentFile.Close()
+
+		return nil
+	})
+}
+
+func tarBuildContext(kubeFilePath string, context string, tarFileName string) error {
+	file, err := os.Create(tarFileName)
+	if err != nil {
+		return fmt.Errorf("failed to create %s, err: %v", tarFileName, err)
+	}
+	defer file.Close()
+	_, err = utils.CopySingleFile(kubeFilePath, kubefile)
+	if err != nil {
+		return fmt.Errorf("failed to rename kubefile %s, err: %v", kubefile, err)
+	}
+	defer func() {
+		if err = os.Remove(kubefile); err != nil {
+			logger.Warn("failed to cleanup local temp file %s:%v", kubefile, err)
+		}
+	}()
+
+	var pathsToCompress []string
+	pathsToCompress = append(pathsToCompress, kubefile, context)
+	tarReader, err := archive.TarWithoutRootDir(pathsToCompress...)
+	if err != nil {
+		return fmt.Errorf("failed to new tar reader when send build context, err: %v", err)
+	}
+	defer tarReader.Close()
+
+	_, err = io.Copy(file, tarReader)
+	if err != nil {
+		return fmt.Errorf("failed to tar build context, err: %v", err)
+	}
+	return nil
 }
