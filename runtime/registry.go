@@ -95,8 +95,10 @@ func (d *Default) EnsureRegistry(cluster *v1.Cluster) error {
 	}
 
 	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])
-	mkdir := fmt.Sprintf("mkdir -p %s %s", RegistryMountUpper, RegistryMountWork)
-	mountCmd := fmt.Sprintf("%s & mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s", mkdir,
+	mkdir := fmt.Sprintf("rm -rf %s %s && mkdir -p %s %s", RegistryMountUpper, RegistryMountWork,
+		RegistryMountUpper, RegistryMountWork)
+
+	mountCmd := fmt.Sprintf("%s && mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s", mkdir,
 		strings.Join(lowerLayers, ":"),
 		RegistryMountUpper, RegistryMountWork, target)
 
