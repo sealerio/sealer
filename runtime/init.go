@@ -45,37 +45,37 @@ const (
 
 func (d *Default) init(cluster *v1.Cluster) error {
 	if err := d.LoadMetadata(); err != nil {
-		return fmt.Errorf("failed to load metadata %v ", err)
+		return fmt.Errorf("failed to load metadata %v", err)
 	}
 	//config kubeadm
 	if err := d.ConfigKubeadmOnMaster0(); err != nil {
-		return fmt.Errorf("failed to config kubeadmin on master %v", err)
+		return err
 	}
 
 	//generate certs
 	if err := d.GenerateCert(); err != nil {
-		return fmt.Errorf("failed to generate cert %v", err)
+		return err
 	}
 
 	//create kubeConfig for master0
 	if err := d.CreateKubeConfig(); err != nil {
-		return fmt.Errorf("failed to generate kube config %v", err)
+		return err
 	}
 
 	if err := d.CopyStaticFiles(d.Masters); err != nil {
-		return fmt.Errorf("failed to copy static files %v", err)
+		return err
 	}
 
 	if err := d.EnsureRegistry(); err != nil {
-		return fmt.Errorf("failed to ensure registry %v", err)
+		return err
 	}
 
 	if err := d.InitMaster0(); err != nil {
-		return fmt.Errorf("failed to init master %v", err)
+		return err
 	}
 
 	if err := d.GetKubectlAndKubeconfig(); err != nil {
-		return fmt.Errorf("failed to get kubectl and kubeconfig %v", err)
+		return err
 	}
 
 	return nil

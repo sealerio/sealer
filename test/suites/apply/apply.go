@@ -91,7 +91,7 @@ func SealerJoinCmd(masters, nodes string) string {
 	if nodes != "" {
 		nodes = fmt.Sprintf("-n %s", nodes)
 	}
-	return fmt.Sprintf("%s join %s %s", settings.DefaultSealerBin, masters, nodes)
+	return fmt.Sprintf("%s join %s %s -c my-test-cluster", settings.DefaultSealerBin, masters, nodes)
 }
 
 func SealerJoin(masters, nodes string) {
@@ -107,11 +107,9 @@ func CreateAliCloudInfraAndSave(cluster *v1.Cluster, clusterFile string) *v1.Clu
 		err = infraManager.Apply()
 		return err == nil
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
-
 	//save used cluster file
 	cluster.Spec.Provider = settings.BAREMETAL
-	err := testhelper.MarshalYamlToFile(clusterFile, cluster)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	MarshalClusterToFile(clusterFile, cluster)
 	cluster.Spec.Provider = settings.AliCloud
 	return cluster
 }
@@ -182,4 +180,17 @@ func CheckNodeNumLocally(expectNum int) {
 	num, err := strconv.Atoi(strings.ReplaceAll(result, "\n", ""))
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(num).Should(gomega.Equal(expectNum + 1))
+}
+
+func MarshalClusterToFile(ClusterFile string, cluster *v1.Cluster) {
+	err := testhelper.MarshalYamlToFile(ClusterFile, &cluster)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(cluster).NotTo(gomega.BeNil())
+}
+
+func CheckDockerAndSwapOff() {
+	_, err := utils.RunSimpleCmd("docker -v")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	_, err = utils.RunSimpleCmd("sudo swapoff -a")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }

@@ -70,11 +70,18 @@ type Client struct {
 }
 
 func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
+	var host string
+	if cluster.Spec.Provider == common.CONTAINER {
+		host = cluster.Spec.Masters.IPList[0]
+	}
+	if cluster.Spec.Provider == common.AliCloud {
+		host = cluster.GetAnnotationsByKey(common.Eip)
+	}
 	sshClient := NewSSHByCluster(cluster)
 	if sshClient == nil {
 		return nil, fmt.Errorf("cloud build init ssh client failed")
 	}
-	host := cluster.GetAnnotationsByKey(common.Eip)
+
 	if host == "" {
 		return nil, fmt.Errorf("get cluster EIP failed")
 	}

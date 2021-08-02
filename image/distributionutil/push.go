@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"io"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -47,10 +49,9 @@ type ImagePusher struct {
 func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) error {
 	var (
 		layerStore   = pusher.config.LayerStore
-		done         sync.WaitGroup
-		errorCh      = make(chan error, 128)
 		pushedLayers = map[string]distribution.Descriptor{}
 		pushMux      sync.Mutex
+		eg           *errgroup.Group
 	)
 
 	image, err := pusher.imageStore.GetByName(named.Raw())
@@ -58,6 +59,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		return err
 	}
 
+	eg, _ = errgroup.WithContext(context.Background())
 	for _, l := range image.Spec.Layers {
 		if l.ID == "" {
 			continue
@@ -67,38 +69,28 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 			return fmt.Errorf("layer hash %s validate failed, err: %s", l.ID, err)
 		}
 
+		// this scope value, safe to pass into eg.Go
 		roLayer := layerStore.Get(store.LayerID(l.ID))
 		if roLayer == nil {
 			return fmt.Errorf("failed to put image %s, layer %s not exists locally", named.Raw(), l.ID.String())
 		}
 
-		done.Add(1)
-		go func(layer store.Layer) {
-			defer done.Done()
-			layerDescriptor, layerErr := pusher.uploadLayer(ctx, named, layer)
+		eg.Go(func() error {
+			layerDescriptor, layerErr := pusher.uploadLayer(ctx, roLayer)
 			if layerErr != nil {
-				errorCh <- layerErr
-				return
+				return layerErr
 			}
 
 			pushMux.Lock()
-			pushedLayers[layer.ID().String()] = layerDescriptor
+			pushedLayers[roLayer.ID().String()] = layerDescriptor
 			pushMux.Unlock()
 			// add distribution digest metadata to disk
-			layerErr = layerStore.AddDistributionMetadata(layer.ID(), named, layerDescriptor.Digest)
-			if layerErr != nil {
-				errorCh <- layerErr
-			}
-		}(roLayer)
+			return layerStore.AddDistributionMetadata(roLayer.ID(), named, layerDescriptor.Digest)
+		})
 	}
-	done.Wait()
-	if len(errorCh) > 0 {
-		close(errorCh)
-		err = fmt.Errorf("failed to push image %s", named.Raw())
-		for chErr := range errorCh {
-			err = errors.Wrap(chErr, err.Error())
-		}
-		return err
+	err = eg.Wait()
+	if err != nil {
+		return fmt.Errorf("failed to push layers of %s, err: %s", named.Raw(), err)
 	}
 
 	// for making descriptors have same order with image layers
@@ -129,7 +121,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 	return pusher.putManifest(ctx, configJSON, named, layerDescriptors)
 }
 
-func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Named, roLayer store.Layer) (distribution.Descriptor, error) {
+func (pusher *ImagePusher) uploadLayer(ctx context.Context, roLayer store.Layer) (distribution.Descriptor, error) {
 	var (
 		err                      error
 		layerContentStream       io.ReadCloser
@@ -152,7 +144,6 @@ func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Name
 		}
 	}
 
-	var finalReader io.Reader
 	// pack layer files into tar.gz
 	progress.Update(progressChanOut, roLayer.SimpleID(), "preparing")
 	layerContentStream, err = roLayer.TarStream()
@@ -160,23 +151,23 @@ func (pusher *ImagePusher) uploadLayer(ctx context.Context, named reference.Name
 		return distribution.Descriptor{}, errors.Errorf("failed to get tar stream for layer %s, err: %s", roLayer.ID(), err)
 	}
 	//progress.NewProgressReader will close layerContentStream
-	finalReader = progress.NewProgressReader(layerContentStream, progressChanOut, roLayer.Size(), roLayer.SimpleID(), "pushing")
-	uploadStream, compressionDone := archive.GzipCompress(finalReader)
-	defer func(closer io.ReadCloser) {
-		closer.Close()
-		<-compressionDone
-	}(layerContentStream)
-	finalReader = uploadStream
+	progressReader := progress.NewProgressReader(layerContentStream, progressChanOut, roLayer.Size(), roLayer.SimpleID(), "pushing")
+	uploadStream, _ := archive.GzipCompress(progressReader)
+	defer func() {
+		layerContentStream.Close()
+		uploadStream.Close()
+	}()
 
 	layerUploader, err := bs.Create(ctx)
 	if err != nil {
+		progress.Update(progressChanOut, roLayer.SimpleID(), "push failed")
 		return distribution.Descriptor{}, err
 	}
 	defer layerUploader.Close()
 
 	// calculate hash of layer content stream
 	digester := digest.Canonical.Digester()
-	tee := io.TeeReader(finalReader, digester.Hash())
+	tee := io.TeeReader(uploadStream, digester.Hash())
 	realSize, err := layerUploader.ReadFrom(tee)
 	if err != nil {
 		return distribution.Descriptor{}, fmt.Errorf("failed to upload layer %s, err: %s", roLayer.ID(), err)

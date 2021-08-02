@@ -25,10 +25,11 @@ import (
 )
 
 func (d *Default) getDefaultSANs() []string {
+	// default SANs str
 	var sans = []string{"127.0.0.1", "apiserver.cluster.local", d.VIP}
-	// 指定的certSANS不为空, 则添加进去
+	// append specified certSANS
 	sans = append(sans, d.APIServerCertSANs...)
-	// 加入所有master ip
+	// append all k8s master node ip
 	sans = append(sans, utils.GetHostIPSlice(d.Masters)...)
 	return sans
 }
@@ -76,7 +77,7 @@ func (d *Default) kubeadmConfig() string {
 	return sb.String()
 }
 
-//根据yaml转换kubeadm结构
+//yaml data unmarshal kubeadm type struct
 func kubeadmDataFromYaml(context string) *kubeadmType {
 	yamls := strings.Split(context, "---")
 	if len(yamls) <= 0 {

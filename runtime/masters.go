@@ -41,9 +41,8 @@ const (
 )
 
 const (
-	RemoteRestartDocker     = "systemctl restart docker"
 	RemoteAddEtcHosts       = "echo %s >> /etc/hosts"
-	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" -i /etc/hosts`
+	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" < /etc/hosts > hosts && /usr/bin/cp -f hosts /etc/hosts`
 	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
 	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
 	RemoteJoinMasterConfig  = `echo "%s" > %s/kubeadm-join-config.yaml`
@@ -271,6 +270,14 @@ func (d *Default) Command(version string, name CommandType) (cmd string) {
 		logger.Error("get kubeadm command failed %v", cmds)
 		return ""
 	}
+
+	if utils.IsInContainer() {
+		return fmt.Sprintf("%s%s%s", v, vlogToStr(d.Vlog), " --ignore-preflight-errors=all")
+	}
+	if name == InitMaster || name == JoinMaster {
+		return fmt.Sprintf("%s%s%s", v, vlogToStr(d.Vlog), " --ignore-preflight-errors=SystemVerification")
+	}
+
 	return fmt.Sprintf("%s%s", v, vlogToStr(d.Vlog))
 }
 
@@ -315,7 +322,6 @@ func (d *Default) joinMasters(masters []string) error {
 	d.sendJoinCPConfig(masters)
 	cmd := d.Command(d.Metadata.Version, JoinMaster)
 	// TODO for test skip dockerd dev version
-	cmd = fmt.Sprintf("%s --ignore-preflight-errors=SystemVerification", cmd)
 	if cmd == "" {
 		return fmt.Errorf("get join master command failed, kubernetes version is %s", d.Metadata.Version)
 	}
