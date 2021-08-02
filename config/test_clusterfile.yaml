@@ -48,3 +48,53 @@ spec:
   data: |
     domain: image.cai-inc.com
     ip: 172.16.0.1
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: ETCD_BACKUP
+spec:
+  action: Manual
+  data: |
+    alioss:
+       ossendpoint: oss-cn-hangzhou.aliyuncs.com
+       accesskeyid: *****
+       accesskeysecrets: ****
+       bucketname: etcdbackup
+       objectpath: /sealos/
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: HOSTNAME
+spec:
+  data: |
+    192.168.0.2 master-0
+    192.168.0.3 master-1
+    192.168.0.4 master-2
+    192.168.0.5 node-0
+    192.168.0.6 node-1
+    192.168.0.7 node-2
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: SHELL
+spec:
+  action: PostInstall
+  on: role=master
+  data: |
+    kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
+  ---
+  apiVersion: sealer.aliyun.com/v1alpha1
+  kind: Plugin
+  metadata:
+    name: LABEL
+  spec:
+    data: |
+      192.168.0.2 ssd=true
+      192.168.0.3 ssd=true
+      192.168.0.4 ssd=true
+      192.168.0.5 ssd=false,hdd=true
+      192.168.0.6 ssd=false,hdd=true
+      192.168.0.7 ssd=false,hdd=true
