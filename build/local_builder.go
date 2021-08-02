@@ -307,6 +307,10 @@ func (l *LocalBuilder) execLayer(layer *v1.Layer, tempTarget string) error {
 		output, err := command.NewSimpleCommand(cmd).Exec()
 		logger.Info(output)
 		if err != nil {
+			if l.Config.BuildType == common.LiteBuild {
+				logger.Warn(fmt.Sprintf("failed to exec %s, err: %v", cmd, err))
+				return nil
+			}
 			return fmt.Errorf("failed to exec %s, err: %v", cmd, err)
 		}
 	}
