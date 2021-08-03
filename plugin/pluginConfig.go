@@ -92,7 +92,7 @@ func (c *DumperPlugin) Dump(clusterfile string) error {
 
 func (c *DumperPlugin) WriteFiles() error {
 	for _, config := range c.configs {
-		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.clusterName), config.ObjectMeta.Name+".yaml"), []byte(config.Spec.Data))
+		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.clusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
 		if err != nil {
 			return fmt.Errorf("write config fileed %v", err)
 		}
