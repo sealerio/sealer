@@ -64,11 +64,12 @@ func (d Docker) ImagesPullByList(images []string) {
 
 func (d Docker) ImagePull(image string) error {
 	var (
-		named      reference.Named
-		err        error
-		cli        *client.Client
-		authConfig types.AuthConfig
-		out        io.ReadCloser
+		named       reference.Named
+		err         error
+		cli         *client.Client
+		authConfig  types.AuthConfig
+		out         io.ReadCloser
+		encodedJSON []byte
 	)
 	named, err = reference.ParseToNamed(image)
 	if err != nil {
@@ -82,16 +83,14 @@ func (d Docker) ImagePull(image string) error {
 		logger.Warn("docker client creation failed: %v", err)
 		return err
 	}
-	authConfig, err = utils.GetDockerAuthInfoFromDocker(named.Domain())
+	authConfig, _ = utils.GetDockerAuthInfoFromDocker(named.Domain())
+	encodedJSON, err = json.Marshal(authConfig)
 	if err != nil {
-		encodedJSON, err := json.Marshal(authConfig)
-		if err != nil {
-			logger.Warn("authConfig encodedJSON failed: %v", err)
-			return err
-		}
-		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
-		ImagePullOptions = types.ImagePullOptions{RegistryAuth: authStr}
+		logger.Warn("authConfig encodedJSON failed: %v", err)
+		return err
 	}
+	authStr := base64.URLEncoding.EncodeToString(encodedJSON)
+	ImagePullOptions = types.ImagePullOptions{RegistryAuth: authStr}
 	out, err = cli.ImagePull(ctx, image, ImagePullOptions)
 	if err != nil {
 		logger.Warn("Image pull failed: %v", err)
