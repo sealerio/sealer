@@ -302,18 +302,9 @@ func tarBuildContext(kubeFilePath string, context string, tarFileName string) er
 		return fmt.Errorf("failed to create %s, err: %v", tarFileName, err)
 	}
 	defer file.Close()
-	_, err = utils.CopySingleFile(kubeFilePath, kubefile)
-	if err != nil {
-		return fmt.Errorf("failed to rename kubefile %s, err: %v", kubefile, err)
-	}
-	defer func() {
-		if err = os.Remove(kubefile); err != nil {
-			logger.Warn("failed to cleanup local temp file %s:%v", kubefile, err)
-		}
-	}()
 
 	var pathsToCompress []string
-	pathsToCompress = append(pathsToCompress, kubefile, context)
+	pathsToCompress = append(pathsToCompress, kubeFilePath, context)
 	tarReader, err := archive.TarWithoutRootDir(pathsToCompress...)
 	if err != nil {
 		return fmt.Errorf("failed to new tar reader when send build context, err: %v", err)

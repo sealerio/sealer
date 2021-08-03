@@ -17,6 +17,7 @@ package build
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
@@ -181,7 +182,7 @@ func (c *CloudBuilder) runBuildCommands() (err error) {
 	// run local build command
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.local.Cluster.Name)
 	build := fmt.Sprintf(common.BuildClusterCmd, common.RemoteSealerPath,
-		kubefile, c.local.ImageNamed.Raw(), common.LocalBuild, ".")
+		filepath.Base(c.local.KubeFileName), c.local.ImageNamed.Raw(), common.LocalBuild, ".")
 
 	if c.Provider == common.AliCloud {
 		push := fmt.Sprintf(common.PushImageCmd, common.RemoteSealerPath,

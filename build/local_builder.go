@@ -160,7 +160,7 @@ func (l *LocalBuilder) CollectRegistryCache() error {
 		return nil
 	}
 	// wait resource to sync
-	time.Sleep(15 * time.Second)
+	time.Sleep(20 * time.Second)
 	if !IsAllPodsRunning() {
 		return fmt.Errorf("cache docker image failed,cluster pod not running")
 	}
@@ -285,8 +285,9 @@ func (l *LocalBuilder) execOtherLayer(layer *v1.Layer, lowLayers []string) error
 		return fmt.Errorf("failed to exec layer %v:%v", layer, err)
 	}
 
-	if err = l.calculateLayerDigestAndPlaceIt(layer, target.TempUpper); err != nil {
-		return err
+	// cmd do not contains layer ,so no need to calculate layer
+	if layer.Type != common.CMDCOMMAND {
+		return l.calculateLayerDigestAndPlaceIt(layer, target.TempUpper)
 	}
 	return nil
 }
