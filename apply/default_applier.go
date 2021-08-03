@@ -266,5 +266,6 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 		FileSystem:     fs,
 		Guest:          gs,
 		Config:         config.NewConfiguration(cluster.Name),
+		Plugin:         plugin.PluginConfig(cluster.Name),
 	}, nil
 }
