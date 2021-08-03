@@ -2,7 +2,7 @@ package plugin
 
 import (
 	"github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 type Sheller struct {
@@ -15,8 +15,9 @@ func (s Sheller) Run(context Context, phase Phase) {
 	var hs v1.Hosts
 	host := hs.IPList
 
-	ssh := NewSSHByCluster(context.Cluster)
-	for i:= 0, i< len(host), i++ {
+	ssh := ssh.NewSSHByCluster(context.Cluster)
+
+	for i:= 0; i< len(host); i++ {
 		ssh.CmdAsync(host[i], cmds)
 	}
 }
