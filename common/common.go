@@ -163,6 +163,10 @@ func DefaultTheClusterRootfsDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
 }
 
+func DefaultTheClusterRootfsPluginDir(clusterName string) string {
+	return filepath.Join(DefaultTheClusterRootfsDir(clusterName), "plugin")
+}
+
 func DefaultClusterBaseDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName)
 }
