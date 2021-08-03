@@ -42,8 +42,6 @@ type Config struct {
 	BuildType string
 	NoCache   bool
 	ImageName string
-	Username  string
-	Password  string
 }
 
 type builderLayer struct {
