@@ -3,7 +3,7 @@ package plugin
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/types/api/v1"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
@@ -21,9 +21,9 @@ func (s Sheller) Run(context Context, phase Phase) {
 
 	for i := 0; i < len(host); i++ {
 		err := ssh.CmdAsync(host[i], cmds)
-		if err == nil{
+		if err == nil {
 			fmt.Printf("err is nil\\n")
-		}else {
+		} else {
 			fmt.Printf("err is %v\\n", err)
 		}
 	}
