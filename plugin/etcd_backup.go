@@ -15,13 +15,13 @@ var (
 	dialTimeout    = 5 * time.Second
 	requestTimeout = 4 * time.Second
 	endpoints      = []string{"https://172.17.189.108:2379"}
-	etcdCert = "/Users/liutao/fsdownload/etcd/healthcheck-client.crt"
-	etcdCertKey = "/Users/liutao/fsdownload/etcd/healthcheck-client.key"
-	etcdCa = "/Users/liutao/fsdownload/etcd/ca.crt"
+	etcdCert       = "/Users/liutao/fsdownload/etcd/healthcheck-client.crt"
+	etcdCertKey    = "/Users/liutao/fsdownload/etcd/healthcheck-client.key"
+	etcdCa         = "/Users/liutao/fsdownload/etcd/ca.crt"
 )
 
 func main() {
-	// 创建连接-TLS
+	// 尝试创建连接-TLS
 	cert, err := tls.LoadX509KeyPair(etcdCert, etcdCertKey)
 	if err != nil {
 		fmt.Printf("cert failed, err:%v\n", err)
