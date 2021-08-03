@@ -195,7 +195,10 @@ func (l *LiteBuilder) InitDockerAndRegistry() error {
 func (l *LiteBuilder) CacheImageToRegistry() error {
 	var images []string
 	var err error
-	d := docker.Docker{}
+	d := docker.Docker{
+		Username: l.local.Config.Username,
+		Password: l.local.Config.Password,
+	}
 	c := charts.Charts{}
 	m := manifest.Manifests{}
 	imageList := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount", "manifests", "imageList")
