@@ -16,13 +16,13 @@ package apply
 
 import (
 	"fmt"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/plugin"
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -40,6 +40,7 @@ type DefaultApplier struct {
 	Runtime         runtime.Interface
 	Guest           guest.Interface
 	Config          config.Interface
+	Plugin          plugin.PluginConfigInterface
 	MastersToJoin   []string
 	MastersToDelete []string
 	NodesToJoin     []string
@@ -62,6 +63,7 @@ const (
 	Guest          ActionName = "Guest"
 	Reset          ActionName = "Reset"
 	CleanFS        ActionName = "CleanFS"
+	PluginConfig   ActionName = "PluginConfig"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
@@ -130,6 +132,9 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	},
 	CleanFS: func(applier *DefaultApplier) error {
 		return applier.FileSystem.Clean(applier.ClusterDesired)
+	},
+	PluginConfig: func(applier *DefaultApplier) error {
+		return applier.Plugin.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName)) //TODO this is Plugin,but edit?
 	},
 }
 
@@ -207,6 +212,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, MountImage)
+		todoList = append(todoList, PluginConfig)
 		todoList = append(todoList, Config)
 		todoList = append(todoList, MountRootfs)
 		todoList = append(todoList, Init)
