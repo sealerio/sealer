@@ -16,8 +16,12 @@ package ssh
 
 import (
 	"fmt"
+	"net"
 	"sync"
 	"time"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
 
@@ -45,22 +49,28 @@ type Interface interface {
 }
 
 type SSH struct {
-	User       string
-	Password   string
-	PkFile     string
-	PkPassword string
-	Timeout    *time.Duration
+	User         string
+	Password     string
+	PkFile       string
+	PkPassword   string
+	Timeout      *time.Duration
+	LocalAddress *[]net.Addr
 }
 
 func NewSSHByCluster(cluster *v1.Cluster) Interface {
 	if cluster.Spec.SSH.User == "" {
 		cluster.Spec.SSH.User = common.ROOT
 	}
+	address, err := utils.IsLocalHostAddrs()
+	if err != nil {
+		logger.Warn("failed to get local address, %v", err)
+	}
 	return &SSH{
-		User:       cluster.Spec.SSH.User,
-		Password:   cluster.Spec.SSH.Passwd,
-		PkFile:     cluster.Spec.SSH.Pk,
-		PkPassword: cluster.Spec.SSH.PkPasswd,
+		User:         cluster.Spec.SSH.User,
+		Password:     cluster.Spec.SSH.Passwd,
+		PkFile:       cluster.Spec.SSH.Pk,
+		PkPassword:   cluster.Spec.SSH.PkPasswd,
+		LocalAddress: address,
 	}
 }
 

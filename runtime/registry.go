@@ -43,7 +43,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	}
 	registryConfigPath := filepath.Join(rootfs, "/etc/registry.yaml")
 	if !utils.IsFileExist(registryConfigPath) {
-		logger.Warn(fmt.Sprintf("failed to find %s", registryConfigPath))
+		logger.Debug("use default registry config")
 		return DefaultConfig
 	}
 	err := utils.UnmarshalYamlFile(registryConfigPath, &config)
