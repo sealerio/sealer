@@ -12,14 +12,16 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/snapshot"
 	"go.uber.org/zap"
+
+	"github.com/alibaba/sealer/logger"
 )
 
-type etcd struct {
+type EtcdBackupPlugin struct {
 	name    string
 	backDir string
 }
 
-func (e etcd) Run(context Context, phase Phase) {
+func (e EtcdBackupPlugin) Run(context Context, phase Phase) {
 	//Temporary use of local certificate files for testing
 	var (
 		dialTimeout = 5 * time.Second
@@ -32,13 +34,13 @@ func (e etcd) Run(context Context, phase Phase) {
 	// 创建连接-TLS
 	cert, err := tls.LoadX509KeyPair(etcdCert, etcdCertKey)
 	if err != nil {
-		fmt.Printf("cacert or key file is not exist, err:%v\n", err)
+		logger.Error("cacert or key file is not exist, err:%v\n", err)
 		os.Exit(1)
 	}
 
 	caData, err := ioutil.ReadFile(etcdCa)
 	if err != nil {
-		fmt.Printf("ca certificate reading failed, err:%v\n", err)
+		logger.Error("ca certificate reading failed, err:%v\n", err)
 		os.Exit(1)
 	}
 
@@ -58,7 +60,7 @@ func (e etcd) Run(context Context, phase Phase) {
 
 	cli, err := clientv3.New(cfg)
 	if err != nil {
-		fmt.Printf("connect to etcd failed, err:%v\n", err)
+		logger.Error("connect to etcd failed, err:%v\n", err)
 		os.Exit(1)
 	}
 
@@ -68,7 +70,7 @@ func (e etcd) Run(context Context, phase Phase) {
 
 	lg, err := zap.NewProduction()
 	if err != nil {
-		fmt.Printf("get lg error, err:%v\n", err)
+		logger.Error("get lg error, err:%v\n", err)
 		os.Exit(1)
 	}
 
@@ -77,8 +79,8 @@ func (e etcd) Run(context Context, phase Phase) {
 
 	var dbPath = fmt.Sprintf("%s/%s", e.backDir, e.name)
 	if err := snapshot.Save(ctx, lg, cfg, dbPath); err != nil {
-		fmt.Printf("snapshot save err: %v\n", err)
+		logger.Error("snapshot save err: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Snapshot saved at %s\n", dbPath)
+	logger.Info("Snapshot saved at %s\n", dbPath)
 }
