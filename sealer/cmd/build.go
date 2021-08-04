@@ -27,8 +27,6 @@ type BuildFlag struct {
 	KubefileName string
 	BuildType    string
 	NoCache      bool
-	Lite         bool
-	ImageList    string
 }
 
 var buildConfig *BuildFlag
