@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"archive/tar"
 	"bufio"
 	"fmt"
 	"io"
@@ -22,6 +23,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/pkg/errors"
 
@@ -151,14 +154,32 @@ func RecursionCopy(src, dst string) error {
 
 // cp -r /roo/test/* /tmp/abc
 func CopyDir(srcPath, dstPath string) error {
-	fi, err := ioutil.ReadDir(srcPath)
+	fis, err := ioutil.ReadDir(srcPath)
 	if err != nil {
 		return err
 	}
-	for _, f := range fi {
+	for _, f := range fis {
 		src := filepath.Join(srcPath, f.Name())
 		dst := filepath.Join(dstPath, f.Name())
 		if f.IsDir() {
+			if _, err = os.Stat(dst); os.IsNotExist(err) {
+				if err = os.MkdirAll(dst, 0755); err != nil {
+					return err
+				}
+			}
+
+			opaque, err := Lgetxattr(src, "trusted.overlay.opaque")
+			if err != nil {
+				return err
+			}
+
+			if len(opaque) == 1 && opaque[0] == 'y' {
+				err = unix.Setxattr(dst, "trusted.overlay.opaque", []byte{'y'}, 0)
+				if err != nil {
+					return err
+				}
+			}
+
 			err = CopyDir(src, dst)
 			if err != nil {
 				return err
@@ -180,6 +201,18 @@ func CopySingleFile(src, dst string) (int64, error) {
 		return 0, err
 	}
 
+	header, err := tar.FileInfoHeader(sourceFileStat, src)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get file info header for %s, err: %v", src, err)
+	}
+	if sourceFileStat.Mode()&os.ModeCharDevice != 0 && header.Devminor == 0 && header.Devmajor == 0 {
+		err = unix.Mknod(dst, unix.S_IFCHR, 0)
+		if err != nil {
+			return 0, err
+		}
+		return 0, os.Chown(dst, header.Uid, header.Gid)
+	}
+
 	if !sourceFileStat.Mode().IsRegular() {
 		return 0, fmt.Errorf("%s is not a regular file", src)
 	}
@@ -189,13 +222,6 @@ func CopySingleFile(src, dst string) (int64, error) {
 		return 0, err
 	}
 	defer source.Close()
-
-	dir := filepath.Dir(dst)
-	if _, err = os.Stat(dir); os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, 0766); err != nil {
-			return 0, err
-		}
-	}
 	//will over write dst when dst is exist
 	destination, err := os.Create(dst)
 	if err != nil {
