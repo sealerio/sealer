@@ -58,13 +58,12 @@ func (l LabelsNodes) Run(context Context, phase Phase) {
 			}
 		}
 	}
-
 }
 
 func (l LabelsNodes) formatData(data string) map[string][]label {
 	m := make(map[string][]label)
 	items := strings.Split(data, "\n")
-	if items == nil || len(items) == 0 {
+	if len(items) == 0 {
 		logger.Debug("label data is empty!")
 		return m
 	}
