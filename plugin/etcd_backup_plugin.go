@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 type EtcdBackupPlugin struct {
@@ -22,14 +23,30 @@ type EtcdBackupPlugin struct {
 }
 
 func (e EtcdBackupPlugin) Run(context Context, phase Phase) {
-	//Temporary use of local certificate files for testing
-	var (
-		dialTimeout = 5 * time.Second
-		endpoints   = []string{"https://172.17.189.108:2379"}
-		etcdCert    = "/Users/liutao/fsdownload/etcd/healthcheck-client.crt"
-		etcdCertKey = "/Users/liutao/fsdownload/etcd/healthcheck-client.key"
-		etcdCa      = "/Users/liutao/fsdownload/etcd/ca.crt"
-	)
+	dialTimeout := 5 * time.Second
+	masterIp := context.Cluster.Spec.Masters.IPList[0]
+	if masterIp == "" {
+		logger.Error("Cluster does not exist \n")
+		os.Exit(1)
+	}
+	endpoints := []string{fmt.Sprintf("https://%s:2379", masterIp)}
+	SSH := ssh.NewSSHByCluster(context.Cluster)
+	if err := SSH.Fetch(masterIp, "/tmp/healthcheck-client.crt", "/etc/kubernetes/pki/etcd/healthcheck-client.crt"); err != nil {
+		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIp, err)
+		os.Exit(1)
+	}
+	if err := SSH.Fetch(masterIp, "/tmp/healthcheck-client.key", "/etc/kubernetes/pki/etcd/healthcheck-client.key"); err != nil {
+		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIp, err)
+		os.Exit(1)
+	}
+	if err := SSH.Fetch(masterIp, "/tmp/ca.crt", "/etc/kubernetes/pki/etcd/ca.crt"); err != nil {
+		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIp, err)
+		os.Exit(1)
+	}
+
+	etcdCert := "/tmp/healthcheck-client.crt"
+	etcdCertKey := "/tmp/healthcheck-client.key"
+	etcdCa := "/tmp/ca.crt"
 
 	// 创建连接-TLS
 	cert, err := tls.LoadX509KeyPair(etcdCert, etcdCertKey)
