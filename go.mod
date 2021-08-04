@@ -22,10 +22,11 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.0
 	github.com/vbatts/tar-split v0.11.1
+	go.etcd.io/etcd/client/v3 v3.5.0
+	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gotest.tools v2.2.0+incompatible
 	helm.sh/helm/v3 v3.6.2
 	k8s.io/api v0.21.0
