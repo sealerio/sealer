@@ -31,7 +31,7 @@ spec:
 Dump will dump the config to etc/redis-config.yaml file
 */
 
-type PluginConfigInterface interface {
+type ConfigInterface interface {
 	// dump Config in Clusterfile to the cluster rootfs disk
 	Dump(clusterfile string) error
 }
@@ -41,7 +41,7 @@ type DumperPlugin struct {
 	clusterName string
 }
 
-func PluginConfig(clusterName string) PluginConfigInterface {
+func Config(clusterName string) ConfigInterface {
 	return &DumperPlugin{
 		clusterName: clusterName,
 	}

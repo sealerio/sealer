@@ -40,7 +40,7 @@ type DefaultApplier struct {
 	Runtime         runtime.Interface
 	Guest           guest.Interface
 	Config          config.Interface
-	Plugin          plugin.PluginConfigInterface
+	Plugin          plugin.ConfigInterface
 	MastersToJoin   []string
 	MastersToDelete []string
 	NodesToJoin     []string
@@ -266,6 +266,6 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 		FileSystem:     fs,
 		Guest:          gs,
 		Config:         config.NewConfiguration(cluster.Name),
-		Plugin:         plugin.PluginConfig(cluster.Name),
+		Plugin:         plugin.Config(cluster.Name),
 	}, nil
 }
