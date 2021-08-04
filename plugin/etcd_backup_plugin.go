@@ -24,23 +24,23 @@ type EtcdBackupPlugin struct {
 
 func (e EtcdBackupPlugin) Run(context Context, phase Phase) {
 	dialTimeout := 5 * time.Second
-	masterIp := context.Cluster.Spec.Masters.IPList[0]
-	if masterIp == "" {
+	masterIP := context.Cluster.Spec.Masters.IPList[0]
+	if masterIP == "" {
 		logger.Error("Cluster does not exist \n")
 		os.Exit(1)
 	}
-	endpoints := []string{fmt.Sprintf("https://%s:2379", masterIp)}
+	endpoints := []string{fmt.Sprintf("https://%s:2379", masterIP)}
 	SSH := ssh.NewSSHByCluster(context.Cluster)
-	if err := SSH.Fetch(masterIp, "/tmp/healthcheck-client.crt", "/etc/kubernetes/pki/etcd/healthcheck-client.crt"); err != nil {
-		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIp, err)
+	if err := SSH.Fetch(masterIP, "/tmp/healthcheck-client.crt", "/etc/kubernetes/pki/etcd/healthcheck-client.crt"); err != nil {
+		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIP, err)
 		os.Exit(1)
 	}
-	if err := SSH.Fetch(masterIp, "/tmp/healthcheck-client.key", "/etc/kubernetes/pki/etcd/healthcheck-client.key"); err != nil {
-		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIp, err)
+	if err := SSH.Fetch(masterIP, "/tmp/healthcheck-client.key", "/etc/kubernetes/pki/etcd/healthcheck-client.key"); err != nil {
+		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIP, err)
 		os.Exit(1)
 	}
-	if err := SSH.Fetch(masterIp, "/tmp/ca.crt", "/etc/kubernetes/pki/etcd/ca.crt"); err != nil {
-		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIp, err)
+	if err := SSH.Fetch(masterIP, "/tmp/ca.crt", "/etc/kubernetes/pki/etcd/ca.crt"); err != nil {
+		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIP, err)
 		os.Exit(1)
 	}
 
