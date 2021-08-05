@@ -31,13 +31,14 @@ type RegistryConfig struct {
 
 func getRegistryHost(rootfs, defaultRegistry string) (host string) {
 	cf := GetRegistryConfig(rootfs, defaultRegistry)
-	return fmt.Sprintf("%s %s", cf.IP, cf.Domain)
+	ip, _ := utils.GetSSHHostIPAndPort(cf.IP)
+	return fmt.Sprintf("%s %s", ip, cf.Domain)
 }
 
 func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	var config RegistryConfig
 	var DefaultConfig = &RegistryConfig{
-		IP:     utils.GetHostIP(defaultRegistry),
+		IP:     defaultRegistry,
 		Domain: SeaHub,
 		Port:   "5000",
 	}
