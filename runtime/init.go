@@ -85,7 +85,7 @@ func (d *Default) GetKubectlAndKubeconfig() error {
 	if utils.IsFileExist(common.DefaultKubeConfigFile()) {
 		return nil
 	}
-	return GetKubectlAndKubeconfig(d.SSH, utils.GetHostIP(d.Masters[0]))
+	return GetKubectlAndKubeconfig(d.SSH, d.Masters[0])
 }
 
 func (d *Default) initRunner(cluster *v1.Cluster) error {
