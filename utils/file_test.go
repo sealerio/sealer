@@ -15,8 +15,13 @@
 package utils
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
+
+	"github.com/alibaba/sealer/utils/archive"
 )
 
 func TestReadAll(t *testing.T) {
@@ -160,7 +165,6 @@ func TestCopySingleFile(t *testing.T) {
 			args{src: "/root/Notexist", dst: "/tmp"},
 			true,
 		},
-
 		{
 			"test copy single file dst exist",
 			args{src: "/root/test", dst: "/tmp"},
@@ -183,5 +187,133 @@ func TestCopySingleFile(t *testing.T) {
 				t.Errorf("CopySingleFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+type FakeDir struct {
+	path  string
+	dirs  []FakeDir
+	files []FakeFile
+}
+
+type FakeFile struct {
+	name    string
+	content string
+}
+
+func makeFakeSourceDir(dir FakeDir) error {
+	var (
+		err     error
+		fi      *os.File
+		curRoot = dir.path
+	)
+
+	err = os.MkdirAll(curRoot, 0755)
+	if err != nil {
+		return err
+	}
+	for _, f := range dir.files {
+		fi, err = os.Create(filepath.Join(dir.path, f.name))
+		if err != nil {
+			return err
+		}
+		_, err = fi.Write([]byte(f.content))
+		if err != nil {
+			fi.Close()
+			return err
+		}
+		fi.Close()
+	}
+
+	for _, d := range dir.dirs {
+		if !strings.HasPrefix(d.path, curRoot) {
+			d.path = filepath.Join(curRoot, d.path)
+		}
+		err = makeFakeSourceDir(d)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func TestRecursionHardLink(t *testing.T) {
+	var (
+		err     error
+		dstPath string = "/tmp/link-test-dst"
+	)
+
+	testDir := FakeDir{
+		path: "/tmp/link-test",
+		dirs: []FakeDir{
+			{
+				path: "subtest",
+				files: []FakeFile{
+					{
+						name:    "a",
+						content: "a",
+					},
+					{
+						name:    "b",
+						content: "b",
+					},
+				},
+				dirs: []FakeDir{
+					{
+						path: "deepSubtest",
+						files: []FakeFile{
+							{
+								name:    "e",
+								content: "e",
+							},
+						},
+					},
+				},
+			},
+		},
+		files: []FakeFile{
+			{
+				name:    "c",
+				content: "c",
+			},
+			{
+				name:    "d",
+				content: "d",
+			},
+		},
+	}
+
+	err = makeFakeSourceDir(testDir)
+	defer func() {
+		err = os.RemoveAll(testDir.path)
+		if err != nil {
+			t.Logf("failed to remove all source files, %v", err)
+		}
+		err = os.RemoveAll(dstPath)
+		if err != nil {
+			t.Logf("failed to remove all dst files, %v", err)
+		}
+	}()
+	if err != nil {
+		t.Fatalf("failed to make fake dir, err: %v", err)
+	}
+
+	dgst, _, err := archive.TarCanonicalDigest(testDir.path)
+	if err != nil {
+		t.Fatalf("failed to calculate test dir hash, err: %v", err)
+	}
+
+	err = RecursionHardLink(testDir.path, dstPath)
+	if err != nil {
+		t.Fatalf("failed to RecursionHardLink, err: %v", err)
+	}
+
+	dgst2, _, err := archive.TarCanonicalDigest(dstPath)
+	if err != nil {
+		t.Fatalf("failed to calculate dst hash, %v", err)
+	}
+
+	if dgst2 != dgst {
+		t.Fatalf("link hash changed, dgst: %v, dgst2: %v", dgst, dgst2)
 	}
 }

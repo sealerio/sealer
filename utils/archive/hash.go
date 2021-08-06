@@ -18,6 +18,9 @@ import (
 	"fmt"
 	"io"
 
+	// in some env, there maybe a panic of crypto/sha256 is not imported
+	_ "crypto/sha256"
+
 	"github.com/opencontainers/go-digest"
 )
 

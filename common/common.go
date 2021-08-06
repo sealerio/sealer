@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	FROMCOMMAND = "FROM"
 	COPYCOMMAND = "COPY"
 	RUNCOMMAND  = "RUN"
 	CMDCOMMAND  = "CMD"
