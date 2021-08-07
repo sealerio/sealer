@@ -37,7 +37,7 @@ type ConfigInterface interface {
 }
 
 type DumperPlugin struct {
-	configs     []v1.Plugin
+	plugin      []v1.Plugin
 	clusterName string
 }
 
@@ -91,7 +91,7 @@ func (c *DumperPlugin) Dump(clusterfile string) error {
 }
 
 func (c *DumperPlugin) WriteFiles() error {
-	for _, config := range c.configs {
+	for _, config := range c.plugin {
 		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.clusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
 		if err != nil {
 			return fmt.Errorf("write config fileed %v", err)
@@ -108,7 +108,7 @@ func (c *DumperPlugin) DecodeConfig(Body []byte) error {
 		return fmt.Errorf("decode config failed %v", err)
 	}
 	if config.Kind == common.CRDConfig {
-		c.configs = append(c.configs, config)
+		c.plugin = append(c.plugin, config)
 	}
 
 	return nil
