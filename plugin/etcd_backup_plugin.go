@@ -44,9 +44,8 @@ func getMasterIp(context Context) (string, error) {
 	ipList := context.Cluster.Spec.Masters.IPList
 	if len(ipList) == 0 {
 		return "", errors.New("cluster master does not exist \n")
-	} else {
-		return ipList[0], nil
 	}
+	return ipList[0], nil
 }
 
 func fetchRemoteCert(context Context, masterIP string) error {
