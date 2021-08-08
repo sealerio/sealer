@@ -43,7 +43,7 @@ func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {
 func getMasterIp(context Context) (string, error) {
 	ipList := context.Cluster.Spec.Masters.IPList
 	if len(ipList) == 0 {
-		return "", errors.New("cluster master does not exist \n")
+		return "", errors.New("cluster master does not exist")
 	}
 	return ipList[0], nil
 }
