@@ -23,7 +23,7 @@ type EtcdBackupPlugin struct {
 }
 
 func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {
-	masterIP, err := getMasterIp(context)
+	masterIP, err := getMasterIP(context)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {
 	return snapshotEtcd(&e, cfg)
 }
 
-func getMasterIp(context Context) (string, error) {
+func getMasterIP(context Context) (string, error) {
 	ipList := context.Cluster.Spec.Masters.IPList
 	if len(ipList) == 0 {
 		return "", errors.New("cluster master does not exist")
