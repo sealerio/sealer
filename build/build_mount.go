@@ -77,23 +77,23 @@ func NewMountTarget(target, upper string, LowLayers []string) (*MountTarget, err
 	}, nil
 }
 
-//func NewRegistryCache() (*MountTarget, error) {
-//	dir := GetRegistryBindDir()
-//	if dir == "" {
-//		return nil, nil
-//	}
-//	// if registry dir not mounted, return
-//	mounted, upper := GetMountDetails(dir)
-//	if !mounted {
-//		return nil, nil
-//	}
-//
-//	logger.Info("get registry cache dir :%s success ", dir)
-//	registryCache, err := NewMountTarget(dir,
-//		upper, []string{dir})
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return registryCache, nil
-//}
+func NewRegistryCache() (*MountTarget, error) {
+	dir := GetRegistryBindDir()
+	if dir == "" {
+		return nil, nil
+	}
+	// if registry dir not mounted, return
+	mounted, upper := GetMountDetails(dir)
+	if !mounted {
+		return nil, nil
+	}
+
+	logger.Info("get registry cache dir :%s success ", dir)
+	registryCache, err := NewMountTarget(dir,
+		upper, []string{dir})
+	if err != nil {
+		return nil, err
+	}
+
+	return registryCache, nil
+}

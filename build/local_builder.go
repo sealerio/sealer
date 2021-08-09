@@ -16,6 +16,7 @@ package build
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/alibaba/sealer/image/cache"
 	"github.com/pkg/errors"
@@ -112,7 +113,10 @@ func (l *LocalBuilder) GetBuildPipeLine() ([]func() error, error) {
 	buildPipeline = append(buildPipeline,
 		l.PullBaseImageNotExist,
 		l.ExecBuild,
-		l.UpdateImageMetadata)
+		l.CollectRegistryCache,
+		l.UpdateImageMetadata,
+		l.Cleanup,
+	)
 	return buildPipeline, nil
 }
 
@@ -222,6 +226,30 @@ func (l *LocalBuilder) ExecBuild() error {
 	logger.Info("exec all build instructs success !")
 	return nil
 }
+func (l *LocalBuilder) CollectRegistryCache() error {
+	if l.DockerImageCache == nil {
+		return nil
+	}
+	// wait resource to sync
+	time.Sleep(30 * time.Second)
+	if !IsAllPodsRunning() {
+		return fmt.Errorf("cache docker image failed,cluster pod not running")
+	}
+	imageLayer := v1.Layer{
+		Type:  imageLayerType,
+		Value: "",
+	}
+	layerDgst, err := l.registerLayer(l.DockerImageCache.GetMountUpper())
+	if err != nil {
+		return err
+	}
+
+	imageLayer.ID = layerDgst
+	l.newLayers = append(l.newLayers, imageLayer)
+
+	logger.Info("save image cache success")
+	return nil
+}
 
 //This function only has meaning for copy layers
 func (l *LocalBuilder) SetCacheID(layerID digest.Digest, cID string) error {
@@ -291,6 +319,15 @@ func (l *LocalBuilder) updateBuilderLayers(image *v1.Image) error {
 	}
 	return nil
 }
+func (l *LocalBuilder) Cleanup() (err error) {
+	// umount registry
+	if l.DockerImageCache != nil {
+		l.DockerImageCache.CleanUp()
+		return
+	}
+
+	return err
+}
 
 func NewLocalBuilder(config *Config) (Interface, error) {
 	layerStore, err := store.NewDefaultLayerStore()
@@ -315,19 +352,19 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 
 	prober := image.NewImageProber(service, config.NoCache)
 
-	//registryCache, err := NewRegistryCache()
-	//if err != nil {
-	//	return nil, err
-	//}
+	registryCache, err := NewRegistryCache()
+	if err != nil {
+		return nil, err
+	}
 
 	return &LocalBuilder{
-		Config:       config,
-		LayerStore:   layerStore,
-		ImageStore:   imageStore,
-		ImageService: service,
-		Prober:       prober,
-		FS:           fs,
-		//DockerImageCache: registryCache,
+		Config:           config,
+		LayerStore:       layerStore,
+		ImageStore:       imageStore,
+		ImageService:     service,
+		Prober:           prober,
+		FS:               fs,
+		DockerImageCache: registryCache,
 		builderLayer: builderLayer{
 			// for skip golang ci
 			baseLayers: []v1.Layer{},

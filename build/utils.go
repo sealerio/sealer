@@ -1,13 +1,17 @@
 package build
 
 import (
+	"context"
 	"fmt"
+	"github.com/alibaba/sealer/runtime"
+	"github.com/alibaba/sealer/utils/archive"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/mount"
 	"io"
 	"io/ioutil"
 	"os"
 	"time"
-
-	"github.com/alibaba/sealer/utils/archive"
 
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
@@ -113,36 +117,36 @@ func IsOnlyCopy(layers []v1.Layer) bool {
 	return true
 }
 
-//func GetRegistryBindDir() string {
-//	// check is docker running runtime.RegistryName
-//	// check bind dir
-//	var registryName = runtime.RegistryName
-//	var registryDest = runtime.RegistryBindDest
-//	ctx := context.Background()
-//	cli, err := client.NewDockerClient()
-//	if err != nil {
-//		return ""
-//	}
-//
-//	opts := types.ContainerListOptions{All: true}
-//	opts.Filters = filters.NewArgs()
-//	opts.Filters.Add("name", registryName)
-//	containers, err := cli.ContainerList(ctx, opts)
-//
-//	if err != nil {
-//		return ""
-//	}
-//
-//	for _, c := range containers {
-//		for _, m := range c.Mounts {
-//			if m.Type == mount.TypeBind && m.Destination == registryDest {
-//				return m.Source
-//			}
-//		}
-//	}
-//
-//	return ""
-//}
+func GetRegistryBindDir() string {
+	// check is docker running runtime.RegistryName
+	// check bind dir
+	var registryName = runtime.RegistryName
+	var registryDest = runtime.RegistryBindDest
+	ctx := context.Background()
+	cli, err := client.NewDockerClient()
+	if err != nil {
+		return ""
+	}
+
+	opts := types.ContainerListOptions{All: true}
+	opts.Filters = filters.NewArgs()
+	opts.Filters.Add("name", registryName)
+	containers, err := cli.ContainerList(ctx, opts)
+
+	if err != nil {
+		return ""
+	}
+
+	for _, c := range containers {
+		for _, m := range c.Mounts {
+			if m.Type == mount.TypeBind && m.Destination == registryDest {
+				return m.Source
+			}
+		}
+	}
+
+	return ""
+}
 
 func GetMountDetails(target string) (mounted bool, upper string) {
 	cmd := fmt.Sprintf("mount | grep %s", target)
