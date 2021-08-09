@@ -8,8 +8,6 @@ import (
 
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils/mount"
-
 	"github.com/alibaba/sealer/image/store"
 
 	"github.com/alibaba/sealer/utils/archive"
@@ -29,6 +27,7 @@ type handlerContext struct {
 	cacheSvc      cache.Service
 	prober        image.Prober
 	parentID      cache.ChainID
+	ignoreError   bool
 }
 
 type handler struct {
@@ -112,39 +111,35 @@ func (h *handler) handleCMDRUNCmd(layer v1.Layer, lowerLayers ...string) (layerI
 		}
 	}
 
-	tempTarget, err := utils.MkTmpdir()
+	target, err := NewMountTarget("", "", lowerLayers)
 	if err != nil {
-		return "", fmt.Errorf("failed to create %s:%v", tempTarget, err)
+		return "", err
 	}
-	tempUpper, err := utils.MkTmpdir()
-	if err != nil {
-		return "", fmt.Errorf("failed to create %s:%v", tempUpper, err)
-	}
-	defer utils.CleanDirs(tempTarget, tempUpper)
+	defer target.CleanUp()
 
-	driver := mount.NewMountDriver()
-	err = driver.Mount(tempTarget, tempUpper, lowerLayers...)
+	err = target.TempMount()
 	if err != nil {
-		return "", fmt.Errorf("failed to mount target %s:%v", tempTarget, err)
+		return "", err
 	}
-	defer func() {
-		if err = driver.Unmount(tempTarget); err != nil {
-			logger.Warn(fmt.Errorf("failed to umount %s:%v", tempTarget, err))
-		}
-	}()
 
-	cmd := fmt.Sprintf(common.CdAndExecCmd, tempTarget, layer.Value)
+	cmd := fmt.Sprintf(common.CdAndExecCmd, target.GetMountTarget(), layer.Value)
 	output, err := command.NewSimpleCommand(cmd).Exec()
 	logger.Info(output)
+
 	if err != nil {
+		if h.hc.ignoreError {
+			logger.Warn(fmt.Sprintf("failed to exec %s, err: %v", cmd, err))
+			return "", nil
+		}
 		return "", fmt.Errorf("failed to exec %s, err: %v", cmd, err)
 	}
 
-	layerID, err = h.layerStore.RegisterLayerForBuilder(tempUpper)
-	if err != nil {
-		return "", fmt.Errorf("failed to register cmd/run layer, err: %v", err)
+	// cmd do not contains layer ,so no need to calculate layer
+	if layer.Type != common.CMDCOMMAND {
+		return h.layerStore.RegisterLayerForBuilder(target.GetMountUpper())
 	}
-	return layerID, nil
+
+	return "", nil
 }
 
 //func (h *handler) hardLinkFiles(srcFileName, dstFileName, tempBuildDir string) error {
@@ -178,7 +173,7 @@ func (h *handler) copyFiles(srcFileName, dstFileName, tempBuildDir string) error
 	}
 
 	if fi.IsDir() {
-		dst = filepath.Join(tempBuildDir, dstFileName, filepath.Base(src))
+		dst = filepath.Join(tempBuildDir, dstFileName)
 	} else {
 		dst = filepath.Join(tempBuildDir, dstFileName, srcFileName)
 	}

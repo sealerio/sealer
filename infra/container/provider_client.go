@@ -7,11 +7,13 @@ import (
 	"strconv"
 	"time"
 
+	dockerClient "github.com/alibaba/sealer/client"
+	"github.com/alibaba/sealer/utils/ssh"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/ssh"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 )
@@ -230,8 +232,6 @@ func (c *DockerProvider) changeDefaultPasswd(containerIP string) error {
 		return nil
 	}
 
-	cmd := fmt.Sprintf(ChangePasswordCmd, c.Cluster.Spec.SSH.Passwd)
-
 	user := "root"
 	if c.Cluster.Spec.SSH.User != "" {
 		user = c.Cluster.Spec.SSH.User
@@ -241,6 +241,7 @@ func (c *DockerProvider) changeDefaultPasswd(containerIP string) error {
 		Password: DefaultPassword,
 	}
 
+	cmd := fmt.Sprintf(ChangePasswordCmd, c.Cluster.Spec.SSH.Passwd)
 	return c.RunSSHCMDInContainer(sshClient, containerIP, cmd)
 }
 func (c *DockerProvider) applyToDelete(deleteIPList []string) error {
@@ -366,7 +367,7 @@ func (c *DockerProvider) CleanUp() error {
 
 func NewClientWithCluster(cluster *v1.Cluster) (*DockerProvider, error) {
 	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	cli, err := dockerClient.NewDockerClient()
 	if err != nil {
 		return nil, err
 	}
