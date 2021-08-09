@@ -16,9 +16,10 @@ package runtime
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/common"
 	"path/filepath"
 	"strings"
+
+	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
