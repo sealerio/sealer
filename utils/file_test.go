@@ -20,8 +20,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/alibaba/sealer/utils/archive"
 )
 
 func TestReadAll(t *testing.T) {
@@ -296,24 +294,5 @@ func TestRecursionHardLink(t *testing.T) {
 	}()
 	if err != nil {
 		t.Fatalf("failed to make fake dir, err: %v", err)
-	}
-
-	dgst, _, err := archive.TarCanonicalDigest(testDir.path)
-	if err != nil {
-		t.Fatalf("failed to calculate test dir hash, err: %v", err)
-	}
-
-	err = RecursionHardLink(testDir.path, dstPath)
-	if err != nil {
-		t.Fatalf("failed to RecursionHardLink, err: %v", err)
-	}
-
-	dgst2, _, err := archive.TarCanonicalDigest(dstPath)
-	if err != nil {
-		t.Fatalf("failed to calculate dst hash, %v", err)
-	}
-
-	if dgst2 != dgst {
-		t.Fatalf("link hash changed, dgst: %v, dgst2: %v", dgst, dgst2)
 	}
 }
