@@ -25,4 +25,5 @@ func (s Sheller) Run(context Context, phase Phase) error {
 			return fmt.Errorf("failed to xxx %v", err)
 		}
 	}
+	return nil
 }
