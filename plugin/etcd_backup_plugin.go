@@ -50,17 +50,12 @@ func getMasterIP(context Context) (string, error) {
 
 func fetchRemoteCert(context Context, masterIP string) error {
 	SSH := ssh.NewSSHByCluster(context.Cluster)
-	if err := SSH.Fetch(masterIP, "/tmp/healthcheck-client.crt", "/etc/kubernetes/pki/etcd/healthcheck-client.crt"); err != nil {
-		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIP, err)
-		return err
-	}
-	if err := SSH.Fetch(masterIP, "/tmp/healthcheck-client.key", "/etc/kubernetes/pki/etcd/healthcheck-client.key"); err != nil {
-		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIP, err)
-		return err
-	}
-	if err := SSH.Fetch(masterIP, "/tmp/ca.crt", "/etc/kubernetes/pki/etcd/ca.crt"); err != nil {
-		logger.Error("host %s healthcheck-client.crt file does not exist, err: %v\n", masterIP, err)
-		return err
+	certs := []string{"healthcheck-client.crt", "healthcheck-client.key", "ca.crt"}
+	for _, cert := range certs {
+		if err := SSH.Fetch(masterIP, "/tmp/"+cert, "/etc/kubernetes/pki/etcd/"+cert); err != nil {
+			logger.Error("host %s %s file does not exist, err: %v\n", masterIP, cert, err)
+			return err
+		}
 	}
 	return nil
 }
