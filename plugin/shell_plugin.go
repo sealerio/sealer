@@ -3,28 +3,26 @@ package plugin
 import (
 	"fmt"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
 type Sheller struct {
 }
 
-func (s Sheller) Run(context Context, phase Phase) {
-	var ps v1.PluginSpec
-	cmds := ps.Data
+func (s Sheller) Run(context Context, phase Phase) error {
+	//get cmdline content
+	pluginData := context.Plugin.Spec.Data
+	//get all host ip
+	masterIP := context.Cluster.Spec.Masters.IPList
+	nodeIP := context.Cluster.Spec.Nodes.IPList
+	hostIP := append(masterIP, nodeIP...)
 
-	var hs v1.Hosts
-	host := hs.IPList
+	SSH := ssh.NewSSHByCluster(context.Cluster)
 
-	ssh := ssh.NewSSHByCluster(context.Cluster)
-
-	for i := 0; i < len(host); i++ {
-		err := ssh.CmdAsync(host[i], cmds)
-		if err == nil {
-			fmt.Printf("err is nil\\n")
-		} else {
-			fmt.Printf("err is %v\\n", err)
+	for i := 0; i < len(hostIP); i++ {
+		err := SSH.CmdAsync(hostIP[i], pluginData)
+		if err != nil {
+			return fmt.Errorf("failed to xxx %v", err)
 		}
 	}
 }
