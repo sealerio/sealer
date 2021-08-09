@@ -3,15 +3,16 @@ package build
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"time"
+
 	"github.com/alibaba/sealer/runtime"
 	"github.com/alibaba/sealer/utils/archive"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
-	"io"
-	"io/ioutil"
-	"os"
-	"time"
 
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
