@@ -34,6 +34,7 @@ Dump will dump the config to etc/redis-config.yaml file
 type ConfigInterface interface {
 	// dump Config in Clusterfile to the cluster rootfs disk
 	Dump(clusterfile string) error
+	GetPhasePlugin(phase Phase) []v1.Plugin
 }
 
 type DumperPlugin struct {
@@ -41,7 +42,18 @@ type DumperPlugin struct {
 	clusterName string
 }
 
-func Config(clusterName string) ConfigInterface {
+func (c *DumperPlugin) GetPhasePlugin(phase Phase) []v1.Plugin {
+	configs := make([]v1.Plugin, 0)
+	for _, config := range c.plugin {
+		on := Phase(config.Spec.On[5:])
+		if on == phase {
+			configs = append(configs, config)
+		}
+	}
+	return configs
+}
+
+func Config(clusterName string) *DumperPlugin {
 	return &DumperPlugin{
 		clusterName: clusterName,
 	}
@@ -92,6 +104,7 @@ func (c *DumperPlugin) Dump(clusterfile string) error {
 
 func (c *DumperPlugin) WriteFiles() error {
 	for _, config := range c.plugin {
+
 		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.clusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
 		if err != nil {
 			return fmt.Errorf("write config fileed %v", err)
@@ -110,6 +123,5 @@ func (c *DumperPlugin) DecodeConfig(Body []byte) error {
 	if config.Kind == common.CRDConfig {
 		c.plugin = append(c.plugin, config)
 	}
-
 	return nil
 }

@@ -16,6 +16,7 @@ package apply
 
 import (
 	"fmt"
+	"github.com/modern-go/reflect2"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
@@ -42,6 +43,7 @@ type DefaultApplier struct {
 	Guest           guest.Interface
 	Config          config.Interface
 	Plugin          plugin.ConfigInterface
+	RunPlugin		plugin.Interface
 	MastersToJoin   []string
 	MastersToDelete []string
 	NodesToJoin     []string
@@ -51,20 +53,23 @@ type DefaultApplier struct {
 type ActionName string
 
 const (
-	PullIfNotExist ActionName = "PullIfNotExist"
-	MountRootfs    ActionName = "MountRootfs"
-	UnMountRootfs  ActionName = "UnMountRootfs"
-	MountImage     ActionName = "MountImage"
-	Config         ActionName = "Config"
-	UnMountImage   ActionName = "UnMountImage"
-	Init           ActionName = "Init"
-	Upgrade        ActionName = "Upgrade"
-	ApplyMasters   ActionName = "ApplyMasters"
-	ApplyNodes     ActionName = "ApplyNodes"
-	Guest          ActionName = "Guest"
-	Reset          ActionName = "Reset"
-	CleanFS        ActionName = "CleanFS"
-	PluginConfig   ActionName = "PluginConfig"
+	PullIfNotExist 				ActionName = "PullIfNotExist"
+	MountRootfs    				ActionName = "MountRootfs"
+	UnMountRootfs  				ActionName = "UnMountRootfs"
+	MountImage     				ActionName = "MountImage"
+	Config         				ActionName = "Config"
+	UnMountImage   				ActionName = "UnMountImage"
+	Init           				ActionName = "Init"
+	Upgrade        				ActionName = "Upgrade"
+	ApplyMasters   				ActionName = "ApplyMasters"
+	ApplyNodes     				ActionName = "ApplyNodes"
+	Guest          				ActionName = "Guest"
+	Reset          				ActionName = "Reset"
+	CleanFS       				ActionName = "CleanFS"
+	PluginConfig   				ActionName = "PluginConfig"
+	PluginPhasePreInitRun		ActionName = "PluginPhasePreInitRun"
+	PluginPhasePreInstallRun	ActionName = "PluginPhasePreInstallRun"
+	PluginPhasePostInstallRun	ActionName = "PluginPhasePostInstallRun"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
@@ -135,7 +140,14 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.FileSystem.Clean(applier.ClusterDesired)
 	},
 	PluginConfig: func(applier *DefaultApplier) error {
-		return applier.Plugin.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName)) //TODO this is Plugin,but edit?
+		return applier.Plugin.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+	},
+	PluginPhasePreInitRun: func(applier *DefaultApplier) error {
+		plugins:=applier.Plugin.GetPhasePlugin(plugin.Phase("PreInit"))
+		for _,plugin:= range plugins {
+			reflect2.MapType().
+		}
+		return _
 	},
 }
 
@@ -216,11 +228,14 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, PluginConfig)
 		todoList = append(todoList, Config)
 		todoList = append(todoList, MountRootfs)
+		todoList = append(todoList, PluginPhasePreInitRun)
 		todoList = append(todoList, Init)
+		todoList = append(todoList, PluginPhasePreInstallRun)
 		c.MastersToJoin = c.ClusterDesired.Spec.Masters.IPList[1:]
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, ApplyNodes)
+		todoList = append(todoList, PluginPhasePostInstallRun)
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		return todoList, nil
