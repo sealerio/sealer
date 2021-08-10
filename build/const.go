@@ -17,9 +17,9 @@ package build
 import "github.com/alibaba/sealer/common"
 
 const (
-	cacheID      = common.CacheID
-	maxLayerDeep = 128
-	FromCmd      = "FROM"
-	//imageLayerType = common.BaseImageLayerType
-	kubefile = "Kubefile"
+	cacheID        = common.CacheID
+	maxLayerDeep   = 128
+	FromCmd        = "FROM"
+	imageLayerType = common.BaseImageLayerType
+	kubefile       = "Kubefile"
 )

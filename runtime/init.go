@@ -66,7 +66,7 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return fmt.Errorf("failed to copy static files %v", err)
 	}
 
-	if err := d.EnsureRegistry(); err != nil {
+	if err := d.EnsureRegistry(cluster); err != nil {
 		return fmt.Errorf("failed to encsure registry %v", err)
 	}
 

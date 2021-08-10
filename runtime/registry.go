@@ -17,10 +17,20 @@ package runtime
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
+
+	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/logger"
-
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+)
+
+const (
+	RegistryName       = "sealer-registry"
+	RegistryBindDest   = "/var/lib/registry"
+	RegistryMountUpper = "/var/lib/sealer/tmp/upper"
+	RegistryMountWork  = "/var/lib/sealer/tmp/work"
 )
 
 type RegistryConfig struct {
@@ -66,17 +76,54 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	return &config
 }
 
-const registryName = "sealer-registry"
-
 //Only use this for join and init, due to the initiation operations
-func (d *Default) EnsureRegistry() error {
+func (d *Default) EnsureRegistry(cluster *v1.Cluster) error {
+	var (
+		lowerLayers []string
+		target      = fmt.Sprintf("%s/registry", d.Rootfs)
+	)
+	lowerLayers = append(lowerLayers, target)
+	//get docker image layer
+	im, err := d.imageStore.GetByName(cluster.Spec.Image)
+	if err != nil {
+		return err
+	}
+
+	layerDirs := getDockerImageDiffLayerDir(im)
+	if len(layerDirs) != 0 {
+		lowerLayers = append(lowerLayers, layerDirs...)
+	}
+	// todo need to revers low layers
 	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])
-	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s/registry", d.Rootfs, cf.Port, d.Rootfs)
+	mkdir := fmt.Sprintf("rm -rf %s %s && mkdir -p %s %s", RegistryMountUpper, RegistryMountWork,
+		RegistryMountUpper, RegistryMountWork)
+
+	mountCmd := fmt.Sprintf("%s && mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s", mkdir,
+		strings.Join(lowerLayers, ":"),
+		RegistryMountUpper, RegistryMountWork, target)
+
+	if err := d.SSH.CmdAsync(cf.IP, mountCmd); err != nil {
+		return err
+	}
+
+	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s", d.Rootfs, cf.Port, target)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
 
 func (d *Default) RecycleRegistry() error {
 	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])
-	cmd := fmt.Sprintf("docker stop %s || true && docker rm %s || true", registryName, registryName)
+	umount := fmt.Sprintf("umount %s/registry", d.Rootfs)
+	delDir := fmt.Sprintf("rm -rf %s %s", RegistryMountUpper, RegistryMountWork)
+	cmd := fmt.Sprintf("%s && docker rm -f %s && %s ", umount, RegistryName, delDir)
 	return d.SSH.CmdAsync(cf.IP, cmd)
+}
+
+//get docker image layer hash path
+func getDockerImageDiffLayerDir(image *v1.Image) (res []string) {
+	for _, layer := range image.Spec.Layers {
+		if layer.ID != "" && layer.Type == common.BaseImageLayerType {
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
+		}
+	}
+	return
 }
