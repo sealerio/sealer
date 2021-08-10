@@ -22,6 +22,10 @@ type EtcdBackupPlugin struct {
 	backDir string
 }
 
+func NewEtcdBackupPlugin() Interface {
+	return &EtcdBackupPlugin{}
+}
+
 func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {
 	masterIP, err := getMasterIP(context)
 	if err != nil {
@@ -99,7 +103,7 @@ func connEtcd(masterIP string) (clientv3.Config, error) {
 		return clientv3.Config{}, err
 	}
 
-	fmt.Println("connect to etcd success")
+	logger.Info("connect to etcd success")
 
 	defer cli.Close()
 
