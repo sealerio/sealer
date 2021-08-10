@@ -24,6 +24,15 @@ func TestSheller_Run(t *testing.T) {
 		context Context
 		phase   Phase
 	}
+
+	cluster := &typev1.Cluster{}
+	cluster.Spec.SSH.User = "root"
+	cluster.Spec.SSH.Passwd = "7758521"
+	cluster.Spec.Nodes.IPList[0] = "192.168.59.11"
+
+	plugin := &typev1.Plugin{}
+	plugin.Spec.Data = "ifconfig"
+
 	tests := []struct {
 		name    string
 		args    args
@@ -31,40 +40,14 @@ func TestSheller_Run(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			"test shell plugin",
-			args{
+			name: "test shell plugin",
+			args: args{
 				context: Context{
-					Cluster: &typev1.Cluster{
-						Spec: typev1.ClusterSpec{
-							SSH: typev1.SSH{
-								User:     "root",
-								Passwd:   "7758521",
-								Pk:       "",
-								PkPasswd: "",
-							},
-							Nodes: typev1.Hosts{
-								CPU:        "",
-								Memory:     "",
-								Count:      "",
-								SystemDisk: "",
-								DataDisks: []string{
-									"",
-								},
-								IPList: []string{
-									"192.168.59.11",
-								},
-							},
-						},
-					},
-					Plugin: &typev1.Plugin{
-						Spec: typev1.PluginSpec{
-							Data: "ifconfig",
-						},
-					},
+					Cluster: cluster,
 				},
 				phase: PhasePostInstall,
 			},
-			true,
+			wantErr: true,
 		},
 	}
 
