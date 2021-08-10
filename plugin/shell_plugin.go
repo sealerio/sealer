@@ -22,7 +22,7 @@ func (s Sheller) Run(context Context, phase Phase) error {
 	for i := 0; i < len(hostIP); i++ {
 		err := SSH.CmdAsync(hostIP[i], pluginData)
 		if err != nil {
-			return fmt.Errorf("failed to xxx %v", err)
+			return fmt.Errorf("failed to run shell cmd,  %v", err)
 		}
 	}
 	return nil
