@@ -16,8 +16,6 @@ package apply
 
 import (
 	"fmt"
-	"github.com/modern-go/reflect2"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
@@ -43,7 +41,7 @@ type DefaultApplier struct {
 	Guest           guest.Interface
 	Config          config.Interface
 	Plugin          plugin.ConfigInterface
-	RunPlugin		plugin.Interface
+	Plugins         plugin.Plugins
 	MastersToJoin   []string
 	MastersToDelete []string
 	NodesToJoin     []string
@@ -53,23 +51,23 @@ type DefaultApplier struct {
 type ActionName string
 
 const (
-	PullIfNotExist 				ActionName = "PullIfNotExist"
-	MountRootfs    				ActionName = "MountRootfs"
-	UnMountRootfs  				ActionName = "UnMountRootfs"
-	MountImage     				ActionName = "MountImage"
-	Config         				ActionName = "Config"
-	UnMountImage   				ActionName = "UnMountImage"
-	Init           				ActionName = "Init"
-	Upgrade        				ActionName = "Upgrade"
-	ApplyMasters   				ActionName = "ApplyMasters"
-	ApplyNodes     				ActionName = "ApplyNodes"
-	Guest          				ActionName = "Guest"
-	Reset          				ActionName = "Reset"
-	CleanFS       				ActionName = "CleanFS"
-	PluginConfig   				ActionName = "PluginConfig"
-	PluginPhasePreInitRun		ActionName = "PluginPhasePreInitRun"
-	PluginPhasePreInstallRun	ActionName = "PluginPhasePreInstallRun"
-	PluginPhasePostInstallRun	ActionName = "PluginPhasePostInstallRun"
+	PullIfNotExist            ActionName = "PullIfNotExist"
+	MountRootfs               ActionName = "MountRootfs"
+	UnMountRootfs             ActionName = "UnMountRootfs"
+	MountImage                ActionName = "MountImage"
+	Config                    ActionName = "Config"
+	UnMountImage              ActionName = "UnMountImage"
+	Init                      ActionName = "Init"
+	Upgrade                   ActionName = "Upgrade"
+	ApplyMasters              ActionName = "ApplyMasters"
+	ApplyNodes                ActionName = "ApplyNodes"
+	Guest                     ActionName = "Guest"
+	Reset                     ActionName = "Reset"
+	CleanFS                   ActionName = "CleanFS"
+	PluginConfig              ActionName = "PluginConfig"
+	PluginPhasePreInitRun     ActionName = "PluginPhasePreInitRun"
+	PluginPhasePreInstallRun  ActionName = "PluginPhasePreInstallRun"
+	PluginPhasePostInstallRun ActionName = "PluginPhasePostInstallRun"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
@@ -143,11 +141,20 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.Plugin.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	},
 	PluginPhasePreInitRun: func(applier *DefaultApplier) error {
-		plugins:=applier.Plugin.GetPhasePlugin(plugin.Phase("PreInit"))
-		for _,plugin:= range plugins {
-			reflect2.MapType().
-		}
-		return _
+		plugins := applier.Plugin.GetPhasePlugin("PreInit")
+		applier.Plugins.AddPluginConfigs(plugins)
+		return applier.Plugins.Run(plugin.Context{Cluster: applier.ClusterDesired}, "PreInit")
+	},
+	PluginPhasePreInstallRun: func(applier *DefaultApplier) error {
+		plugins := applier.Plugin.GetPhasePlugin("PreInstall")
+		applier.Plugins.AddPluginConfigs(plugins)
+		return applier.Plugins.Run(plugin.Context{Cluster: applier.ClusterDesired}, "PreInit")
+	},
+	PluginPhasePostInstallRun: func(applier *DefaultApplier) error {
+		plugins := applier.Plugin.GetPhasePlugin("PostInstall")
+		applier.Plugins.AddPluginConfigs(plugins)
+		return applier.Plugins.Run(plugin.Context{Cluster: applier.ClusterDesired}, "PreInit")
+
 	},
 }
 
@@ -235,9 +242,9 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, ApplyNodes)
-		todoList = append(todoList, PluginPhasePostInstallRun)
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
+		todoList = append(todoList, PluginPhasePostInstallRun)
 		return todoList, nil
 	}
 
@@ -283,5 +290,6 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 		Guest:          gs,
 		Config:         config.NewConfiguration(cluster.Name),
 		Plugin:         plugin.Config(cluster.Name),
+		Plugins:        plugin.Plugins{},
 	}, nil
 }
