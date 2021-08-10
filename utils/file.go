@@ -145,11 +145,14 @@ func RecursionCopy(src, dst string) error {
 	if IsDir(src) {
 		return CopyDir(src, dst)
 	}
-	_, err := CopySingleFile(src, dst)
+
+	err := os.MkdirAll(filepath.Dir(dst), 0755)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to mkdir for recursion copy, err: %v", err)
 	}
-	return nil
+
+	_, err = CopySingleFile(src, dst)
+	return err
 }
 
 func RecursionHardLink(src, dst string) error {
@@ -223,6 +226,23 @@ func RecursionHardLinkDir(src, dst string, modTimes *[]*tar.Header) error {
 
 // cp -r /roo/test/* /tmp/abc
 func CopyDir(srcPath, dstPath string) error {
+	err := os.MkdirAll(dstPath, 0755)
+	if err != nil {
+		return err
+	}
+
+	opaque, err := Lgetxattr(srcPath, "trusted.overlay.opaque")
+	if err != nil {
+		logger.Debug("failed to get trusted.overlay.opaque. err: %v", err)
+	}
+
+	if len(opaque) == 1 && opaque[0] == 'y' {
+		err = unix.Setxattr(dstPath, "trusted.overlay.opaque", []byte{'y'}, 0)
+		if err != nil {
+			return fmt.Errorf("failed to set trusted.overlay.opaque, err: %v", err)
+		}
+	}
+
 	fis, err := ioutil.ReadDir(srcPath)
 	if err != nil {
 		return err
@@ -231,24 +251,6 @@ func CopyDir(srcPath, dstPath string) error {
 		src := filepath.Join(srcPath, f.Name())
 		dst := filepath.Join(dstPath, f.Name())
 		if f.IsDir() {
-			if _, err = os.Stat(dst); os.IsNotExist(err) {
-				if err = os.MkdirAll(dst, 0755); err != nil {
-					return err
-				}
-			}
-
-			opaque, err := Lgetxattr(src, "trusted.overlay.opaque")
-			if err != nil {
-				return err
-			}
-
-			if len(opaque) == 1 && opaque[0] == 'y' {
-				err = unix.Setxattr(dst, "trusted.overlay.opaque", []byte{'y'}, 0)
-				if err != nil {
-					return err
-				}
-			}
-
 			err = CopyDir(src, dst)
 			if err != nil {
 				return err

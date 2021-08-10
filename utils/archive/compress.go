@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"syscall"
 
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/alibaba/sealer/utils"
 
 	"golang.org/x/sys/unix"
@@ -146,7 +148,7 @@ func writeWhiteout(header *tar.Header, fi os.FileInfo, path string) (*tar.Header
 	if fi.Mode()&os.ModeDir != 0 {
 		opaque, walkErr := utils.Lgetxattr(path, "trusted.overlay.opaque")
 		if walkErr != nil {
-			return nil, walkErr
+			logger.Debug("failed to get trusted.overlay.opaque for %s at opaque, err: %v", path, walkErr)
 		}
 
 		if len(opaque) == 1 && opaque[0] == 'y' {
