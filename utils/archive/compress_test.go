@@ -22,6 +22,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"golang.org/x/sys/unix"
 )
 
 const basePath = "/tmp"
@@ -125,4 +127,16 @@ func TestTarWithRootDir(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestName(t *testing.T) {
+	//err := os.Mkdir("abc", 0755)
+	//if err != nil {
+	//	t.Error(err)
+	//}
+	err := unix.Setxattr("abc", "trusted.overlay.opaque", []byte{'y'}, 0)
+	if err != nil {
+		t.Error(err)
+	}
+	//fmt.Println(fm.String())
 }
