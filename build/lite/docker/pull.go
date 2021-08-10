@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/alibaba/sealer/image/reference"
+
 	"github.com/alibaba/sealer/common"
 	dockerstreams "github.com/docker/cli/cli/streams"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
@@ -32,6 +34,7 @@ import (
 )
 
 type Docker struct {
+	Auth     string
 	Username string
 	Password string
 }
@@ -60,27 +63,41 @@ func (d Docker) ImagesPullByList(images []string) {
 }
 
 func (d Docker) ImagePull(image string) error {
-	var ImagePullOptions types.ImagePullOptions
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	var (
+		named       reference.Named
+		err         error
+		cli         *client.Client
+		authConfig  types.AuthConfig
+		out         io.ReadCloser
+		encodedJSON []byte
+		authStr     string
+	)
+	named, err = reference.ParseToNamed(image)
 	if err != nil {
+		logger.Warn("image information parsing failed: %v", err)
 		return err
 	}
-	if d.Username != "" && d.Password != "" {
-		authConfig := types.AuthConfig{
-			Username: d.Username,
-			Password: d.Password,
-		}
-		encodedJSON, err := json.Marshal(authConfig)
+	var ImagePullOptions types.ImagePullOptions
+	ctx := context.Background()
+	cli, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		logger.Warn("docker client creation failed: %v", err)
+		return err
+	}
+	authConfig, err = utils.GetDockerAuthInfoFromDocker(named.Domain())
+	if err == nil {
+		encodedJSON, err = json.Marshal(authConfig)
 		if err != nil {
-			return err
+			logger.Warn("authConfig encodedJSON failed: %v", err)
+		} else {
+			authStr = base64.URLEncoding.EncodeToString(encodedJSON)
 		}
-		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
-		ImagePullOptions = types.ImagePullOptions{RegistryAuth: authStr}
 	}
 
-	out, err := cli.ImagePull(ctx, image, ImagePullOptions)
+	ImagePullOptions = types.ImagePullOptions{RegistryAuth: authStr}
+	out, err = cli.ImagePull(ctx, image, ImagePullOptions)
 	if err != nil {
+		logger.Warn("Image pull failed: %v", err)
 		return err
 	}
 	defer func() {

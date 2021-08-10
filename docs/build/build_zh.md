@@ -24,6 +24,18 @@ CMD kubectl apply -f recommended.yaml
 + CMD
     + 同RUN指令
 
+### 私有仓库认证问题
+> 在构建过程中，会存在使用私有仓库需要认证的场景， 在这个场景下， 进行镜像缓存时需要依赖docker的认证。可以在执行build操作前通过以下指令先进行login操作：
+
+``` sealer login registry.com -u username -p password```
+
+> 另一个依赖场景， 在交付完成后的， kubernetes node通过sealer内置的registry 代理到私有仓库且私有仓库需要认证时，可以通过自定义registry config来配置，sealer 优化和扩展了registry，使其可以同时支持多域名，多私有仓库的代理缓存。配置可参考: [registry配置文档](../user-guide/docker-image-cache.md) 
+
++ 可以通过定义Kubefile来自定义registry配置:
+```bigquery
+FROM kubernetes:v1.19.9
+COPY registry_config.yaml etc/registry_config.yaml
+```
 
 ### build类型
 > 针对不同的业务需求场景，sealer build 目前支持3种构建方式。
@@ -55,6 +67,8 @@ RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deplo
 COPY recommended.yaml manifests
 RUN kubectl apply -f manifests/recommended.yaml
 ```
+
+> 注意： 在lite build的场景下，因为build过程不会拉起集群，类似kubectl apply和helm install并不会实际执行成功， 但是会作为镜像的一层在交付集群的时候执行。
 
 + 如上示例，lite构建会从如下三个位置解析会获取镜像清单，并将镜像缓存至registry：
     + manifests/imageList: 内容就是镜像的清单，一行一个镜像地址。如果这个文件存在，则逐行提取镜像。imageList的文件名必须固定，不可更改，且必须放在manifests下。

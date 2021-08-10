@@ -22,6 +22,12 @@ import (
 	"fmt"
 	"syscall"
 
+	"github.com/alibaba/sealer/logger"
+
+	"github.com/alibaba/sealer/utils"
+
+	"golang.org/x/sys/unix"
+
 	"io"
 
 	"os"
@@ -127,6 +133,72 @@ func compress(paths []string, options Options) (reader io.ReadCloser, err error)
 	return pr, nil
 }
 
+func writeWhiteout(header *tar.Header, fi os.FileInfo, path string) (*tar.Header, error) {
+	// overlay whiteout process
+	// this is a whiteout file
+	if fi.Mode()&os.ModeCharDevice != 0 && header.Devminor == 0 && header.Devmajor == 0 {
+		hName := header.Name
+		header.Name = filepath.Join(filepath.Dir(hName), WhiteoutPrefix+filepath.Base(hName))
+		header.Mode = 0600
+		header.Typeflag = tar.TypeReg
+		header.Size = 0
+	}
+
+	var woh *tar.Header
+	if fi.Mode()&os.ModeDir != 0 {
+		opaque, walkErr := utils.Lgetxattr(path, "trusted.overlay.opaque")
+		if walkErr != nil {
+			logger.Debug("failed to get trusted.overlay.opaque for %s at opaque, err: %v", path, walkErr)
+		}
+
+		if len(opaque) == 1 && opaque[0] == 'y' {
+			if header.PAXRecords != nil {
+				delete(header.PAXRecords, "trusted.overlay.opaque")
+			}
+
+			woh = &tar.Header{
+				Typeflag:   tar.TypeReg,
+				Mode:       header.Mode & int64(os.ModePerm),
+				Name:       filepath.Join(header.Name, WhiteoutOpaqueDir),
+				Size:       0,
+				Uid:        header.Uid,
+				Uname:      header.Uname,
+				Gid:        header.Gid,
+				Gname:      header.Gname,
+				AccessTime: header.AccessTime,
+				ChangeTime: header.ChangeTime,
+			}
+		}
+	}
+	return woh, nil
+}
+
+func readWhiteout(hdr *tar.Header, path string) (bool, error) {
+	var (
+		base = filepath.Base(path)
+		dir  = filepath.Dir(path)
+		err  error
+	)
+
+	switch {
+	case base == WhiteoutOpaqueDir:
+		err = unix.Setxattr(dir, "trusted.overlay.opaque", []byte{'y'}, 0)
+		return false, err
+	case strings.HasPrefix(base, WhiteoutPrefix):
+		oBase := base[len(WhiteoutPrefix):]
+		oPath := filepath.Join(dir, oBase)
+
+		// make a whiteout file
+		err = unix.Mknod(oPath, unix.S_IFCHR, 0)
+		if err != nil {
+			return false, err
+		}
+		return false, os.Chown(oPath, hdr.Uid, hdr.Gid)
+	}
+
+	return true, nil
+}
+
 func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Writer, options Options) error {
 	var newFolder string
 	if options.KeepRootDir {
@@ -147,6 +219,7 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 		if walkErr != nil {
 			return walkErr
 		}
+		// root dir
 		if file != dir {
 			absPath := filepath.ToSlash(file)
 			header.Name = filepath.Join(newFolder, strings.TrimPrefix(absPath, srcPrefix))
@@ -158,23 +231,44 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 			// for supporting tar single file
 			header.Name = filepath.Join(newFolder, filepath.Base(dir))
 		}
+		// if current file is whiteout, the header has been changed,
+		// and we write a reg header into tar stream, but will not read its content
+		// cause doing so will lead to error. (its size is 0)
 
+		// if current target is dir, we will check if it is an opaque.
+		// and set add Suffix WhiteoutOpaqueDir for opaque.
+		// but we still need to write its original header into tar stream,
+		// because we need to create dir on this original header.
+		woh, walkErr := writeWhiteout(header, fi, file)
+		if walkErr != nil {
+			return fmt.Errorf("failed to write white out, path: %s, err: %v", file, walkErr)
+		}
 		walkErr = tarWriter.WriteHeader(header)
 		if walkErr != nil {
-			return walkErr
+			return fmt.Errorf("failed to write original header, path: %s, err: %v", file, walkErr)
 		}
-		// if not a dir, write file content
-		if !fi.IsDir() {
-			data, walkErr := os.Open(file)
+		// this is a opaque, write the opaque header, in order to set header.PAXRecords with trusted.overlay.opaque:y
+		// when decompress the tar stream.
+		if woh != nil {
+			walkErr = tarWriter.WriteHeader(woh)
+			if walkErr != nil {
+				return fmt.Errorf("failed to write opaque header, path: %s, err: %v", file, walkErr)
+			}
+		}
+		// if not a dir && size > 0, write file content
+		// the whiteout size is 0
+		if header.Typeflag == tar.TypeReg && header.Size > 0 {
+			var fHandler *os.File
+			fHandler, walkErr = os.Open(file)
 			if walkErr != nil {
 				return walkErr
 			}
-			defer data.Close()
+			defer fHandler.Close()
 
 			bufWriter.Reset(tarWriter)
 			defer bufWriter.Reset(nil)
 
-			_, walkErr = io.Copy(bufWriter, data)
+			_, walkErr = io.Copy(bufWriter, fHandler)
 			if walkErr != nil {
 				return walkErr
 			}
@@ -188,6 +282,24 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 	})
 
 	return err
+}
+
+func removePreviousFiles(path string) error {
+	base := filepath.Base(path)
+	dir := filepath.Dir(path)
+	existPath := path
+	if strings.HasPrefix(base, WhiteoutPrefix) {
+		existPath = filepath.Join(dir, strings.TrimPrefix(base, WhiteoutPrefix))
+	}
+
+	_, err := os.Stat(existPath)
+	if err == nil {
+		err = os.RemoveAll(existPath)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Decompress this will not change the metadata of original files
@@ -230,7 +342,21 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 			return 0, fmt.Errorf("tar contained invalid name error %q", header.Name)
 		}
 
+		// overwrite previous files
 		target := filepath.Join(dst, header.Name)
+		err = removePreviousFiles(target)
+		if err != nil {
+			return 0, err
+		}
+
+		goon, err := readWhiteout(header, target)
+		if err != nil {
+			return 0, err
+		}
+		// it is a opaque / whiteout, don't write its file content.
+		if !goon {
+			continue
+		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:

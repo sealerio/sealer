@@ -25,4 +25,11 @@ startRegistry() {
 
 docker load -q -i ../images/registry.tar || true
 docker rm $container -f || true
-docker run -d --restart=always --net=host --name $container -v $VOLUME:/var/lib/registry registry:2.7.1 || startRegistry
+
+config=$(dirname "$(pwd)")'/etc/registry_config.yaml'
+
+if [ -f $config ]; then
+    docker run -d --restart=always --net=host --name $container -v $VOLUME:/var/lib/registry registry:2.7.1 -v $config:/etc/docker/registry/config.yml|| startRegistry
+else
+    docker run -d --restart=always --net=host --name $container -v $VOLUME:/var/lib/registry registry:2.7.1 || startRegistry
+fi

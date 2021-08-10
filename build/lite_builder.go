@@ -159,14 +159,17 @@ func (l *LiteBuilder) AddUpperLayerToImage() error {
 		Type:  "BASE",
 		Value: "registry cache",
 	}
-	err = l.local.calculateLayerDigestAndPlaceIt(&imageLayer, upper)
+	layerDgst, err := l.local.registerLayer(upper)
 	if err != nil {
 		return err
 	}
+
+	imageLayer.ID = layerDgst
 	Image, err = image.GetImageByName(l.local.Config.ImageName)
 	if err != nil {
 		return err
 	}
+
 	Image.Spec.Layers = append(Image.Spec.Layers, imageLayer)
 	l.local.Image = Image
 	err = l.local.updateImageIDAndSaveImage()

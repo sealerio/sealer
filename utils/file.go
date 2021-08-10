@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"archive/tar"
 	"bufio"
 	"fmt"
 	"io"
@@ -22,6 +23,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/pkg/errors"
 
@@ -142,20 +145,109 @@ func RecursionCopy(src, dst string) error {
 	if IsDir(src) {
 		return CopyDir(src, dst)
 	}
-	_, err := CopySingleFile(src, dst)
+
+	err := os.MkdirAll(filepath.Dir(dst), 0755)
+	if err != nil {
+		return fmt.Errorf("failed to mkdir for recursion copy, err: %v", err)
+	}
+
+	_, err = CopySingleFile(src, dst)
+	return err
+}
+
+func RecursionHardLink(src, dst string) error {
+	if !IsDir(src) {
+		return os.Link(src, dst)
+	}
+	fhs := []*tar.Header{}
+	err := RecursionHardLinkDir(src, dst, &fhs)
+	if err != nil {
+		return fmt.Errorf("failed to recursion hard link dir %s, err: %s", src, err)
+	}
+
+	for _, h := range fhs {
+		err = os.Chtimes(h.Name, h.AccessTime, h.ModTime)
+		if err != nil {
+			return fmt.Errorf("failed to chtimes for %s, err: %v", h.Name, err)
+		}
+
+		err = os.Chmod(h.Name, os.FileMode(h.Mode))
+		if err != nil {
+			return fmt.Errorf("failed to chmod for %s, err: %v", h.Name, err)
+		}
+	}
+	return nil
+}
+
+func RecursionHardLinkDir(src, dst string, modTimes *[]*tar.Header) error {
+	if modTimes == nil {
+		return fmt.Errorf("modTimes should be init")
+	}
+
+	fis, err := ioutil.ReadDir(src)
 	if err != nil {
 		return err
 	}
+
+	// TODO maybe mk follow the src file
+	err = os.MkdirAll(dst, common.FileMode0755)
+	if err != nil {
+		return err
+	}
+
+	for _, f := range fis {
+		var (
+			srcPath = filepath.Join(src, f.Name())
+			dstPath = filepath.Join(dst, f.Name())
+		)
+		if f.IsDir() {
+			err = RecursionHardLinkDir(srcPath, dstPath, modTimes)
+			if err != nil {
+				return err
+			}
+
+			var fh *tar.Header
+			fh, err = tar.FileInfoHeader(f, src)
+			if err != nil {
+				return err
+			}
+			fh.Name = dstPath
+			*modTimes = append(*modTimes, fh)
+		} else {
+			err = os.Link(srcPath, dstPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
 // cp -r /roo/test/* /tmp/abc
 func CopyDir(srcPath, dstPath string) error {
-	fi, err := ioutil.ReadDir(srcPath)
+	err := os.MkdirAll(dstPath, 0755)
 	if err != nil {
 		return err
 	}
-	for _, f := range fi {
+
+	opaque, err := Lgetxattr(srcPath, "trusted.overlay.opaque")
+	if err != nil {
+		logger.Debug("failed to get trusted.overlay.opaque. err: %v", err)
+	}
+
+	if len(opaque) == 1 && opaque[0] == 'y' {
+		err = unix.Setxattr(dstPath, "trusted.overlay.opaque", []byte{'y'}, 0)
+		if err != nil {
+			return fmt.Errorf("failed to set trusted.overlay.opaque, err: %v", err)
+		}
+	}
+
+	fis, err := ioutil.ReadDir(srcPath)
+	if err != nil {
+		return err
+	}
+	for _, f := range fis {
 		src := filepath.Join(srcPath, f.Name())
 		dst := filepath.Join(dstPath, f.Name())
 		if f.IsDir() {
@@ -180,6 +272,18 @@ func CopySingleFile(src, dst string) (int64, error) {
 		return 0, err
 	}
 
+	header, err := tar.FileInfoHeader(sourceFileStat, src)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get file info header for %s, err: %v", src, err)
+	}
+	if sourceFileStat.Mode()&os.ModeCharDevice != 0 && header.Devminor == 0 && header.Devmajor == 0 {
+		err = unix.Mknod(dst, unix.S_IFCHR, 0)
+		if err != nil {
+			return 0, err
+		}
+		return 0, os.Chown(dst, header.Uid, header.Gid)
+	}
+
 	if !sourceFileStat.Mode().IsRegular() {
 		return 0, fmt.Errorf("%s is not a regular file", src)
 	}
@@ -189,13 +293,6 @@ func CopySingleFile(src, dst string) (int64, error) {
 		return 0, err
 	}
 	defer source.Close()
-
-	dir := filepath.Dir(dst)
-	if _, err = os.Stat(dir); os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, 0766); err != nil {
-			return 0, err
-		}
-	}
 	//will over write dst when dst is exist
 	destination, err := os.Create(dst)
 	if err != nil {

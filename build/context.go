@@ -33,15 +33,10 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 			return fmt.Errorf("failed to prepare cluster env %v", err)
 		}
 	}
-
-	// tar local build context
 	tarFileName := fmt.Sprintf(common.TmpTarFile, utils.GenUniqueID(32))
-	if _, isExist := utils.CheckCmdIsExist("tar"); !isExist {
-		return fmt.Errorf("local server muster support tar cmd")
-	}
-	context := fmt.Sprintf("%s %s", c.local.KubeFileName, c.local.Context)
-	if _, err := utils.RunSimpleCmd(fmt.Sprintf(common.ZipCmd, tarFileName, context)); err != nil {
-		return fmt.Errorf("failed to create context file: %v", err)
+	err = tarBuildContext(c.local.KubeFileName, c.local.Context, tarFileName)
+	if err != nil {
+		return err
 	}
 	defer func() {
 		if err = os.Remove(tarFileName); err != nil {
