@@ -5,7 +5,7 @@ import (
 )
 
 type Interface interface {
-	Run(context Context, phase Phase)
+	Run(context Context, phase Phase) error
 }
 
 type Phase string
