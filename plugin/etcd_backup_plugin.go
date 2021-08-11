@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/alibaba/sealer/logger"
 	"io/ioutil"
 	"time"
 
@@ -98,7 +99,7 @@ func connEtcd(masterIP string) (clientv3.Config, error) {
 		return clientv3.Config{}, fmt.Errorf("connect to etcd failed, err:%v", err)
 	}
 
-	fmt.Printf("connect to etcd success")
+	logger.Info("connect to etcd success")
 
 	defer cli.Close()
 
@@ -108,7 +109,7 @@ func connEtcd(masterIP string) (clientv3.Config, error) {
 func snapshotEtcd(e *EtcdBackupPlugin, cfg clientv3.Config) error {
 	lg, err := zap.NewProduction()
 	if err != nil {
-		return fmt.Errorf("get lg error, err:%v", err)
+		return fmt.Errorf("get zap logger error, err:%v", err)
 	}
 
 	ctx, cancel := ctx.WithCancel(ctx.Background())
@@ -118,7 +119,7 @@ func snapshotEtcd(e *EtcdBackupPlugin, cfg clientv3.Config) error {
 	if err := snapshot.Save(ctx, lg, cfg, dbPath); err != nil {
 		return fmt.Errorf("snapshot save err: %v", err)
 	}
-	fmt.Printf("Snapshot saved at %v", dbPath)
+	logger.Info("Snapshot saved at %s\n", dbPath)
 
 	return nil
 }
