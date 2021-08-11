@@ -28,7 +28,7 @@ func TestSheller_Run(t *testing.T) {
 	cluster := &typev1.Cluster{}
 	cluster.Spec.SSH.User = "root"
 	cluster.Spec.SSH.Passwd = "7758521"
-	cluster.Spec.Nodes.IPList[0] = "192.168.59.11"
+	cluster.Spec.Nodes.IPList = []string{"192.168.59.11"}
 
 	plugin := &typev1.Plugin{}
 	plugin.Spec.Data = "ifconfig"
@@ -44,10 +44,11 @@ func TestSheller_Run(t *testing.T) {
 			args: args{
 				context: Context{
 					Cluster: cluster,
+					Plugin:  plugin,
 				},
-				phase: PhasePostInstall,
+				phase: Phase(plugin.Spec.On),
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 
