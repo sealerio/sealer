@@ -149,25 +149,6 @@ func GetRegistryBindDir() string {
 	return ""
 }
 
-func GetMountDetails(target string) (mounted bool, upper string) {
-	cmd := fmt.Sprintf("mount | grep %s", target)
-	result, err := utils.RunSimpleCmd(cmd)
-	if err != nil {
-		return false, ""
-	}
-	if !strings.Contains(result, target) {
-		return false, ""
-	}
-
-	data := strings.Split(result, ",upperdir=")
-	if len(data) < 2 {
-		return false, ""
-	}
-
-	data = strings.Split(data[1], ",workdir=")
-	return true, strings.TrimSpace(data[0])
-}
-
 func IsAllPodsRunning() bool {
 	err := infraUtils.Retry(10, 5*time.Second, func() error {
 		c, err := client.NewClientSet()

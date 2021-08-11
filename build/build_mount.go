@@ -83,7 +83,7 @@ func NewRegistryCache() (*MountTarget, error) {
 		return nil, nil
 	}
 	// if registry dir not mounted, return
-	mounted, upper := GetMountDetails(dir)
+	mounted, upper := mount.GetMountDetails(dir)
 	if !mounted {
 		return nil, nil
 	}

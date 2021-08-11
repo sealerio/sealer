@@ -80,7 +80,7 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 			_ = os.RemoveAll(workdir)
 		}
 	}()
-	mountData := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(layers, ":"), upperLayer, workdir)
+	mountData := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(reverse(layers), ":"), upperLayer, workdir)
 	if err = mount("overlay", target, "overlay", 0, mountData); err != nil {
 		return fmt.Errorf("error creating overlay mount to %s: %v", target, err)
 	}
@@ -106,4 +106,23 @@ func mount(device, target, mType string, flag uintptr, data string) error {
 
 func unmount(target string, flag int) error {
 	return syscall.Unmount(target, flag)
+}
+
+func GetMountDetails(target string) (mounted bool, upper string) {
+	cmd := fmt.Sprintf("mount | grep %s", target)
+	result, err := utils.RunSimpleCmd(cmd)
+	if err != nil {
+		return false, ""
+	}
+	if !strings.Contains(result, target) {
+		return false, ""
+	}
+
+	data := strings.Split(result, ",upperdir=")
+	if len(data) < 2 {
+		return false, ""
+	}
+
+	data = strings.Split(data[1], ",workdir=")
+	return true, strings.TrimSpace(data[0])
 }
