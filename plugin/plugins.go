@@ -148,7 +148,7 @@ func (c *DumperPlugin) DecodeConfig(Body []byte) error {
 	if err != nil {
 		return fmt.Errorf("decode config failed %v", err)
 	}
-	if config.Kind == common.CRDConfig {
+	if config.Kind == common.CRDPlugin {
 		c.configs = append(c.configs, config)
 	}
 	return nil

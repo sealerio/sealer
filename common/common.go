@@ -84,6 +84,7 @@ const (
 //CRD kind
 const (
 	CRDConfig = "Config"
+	CRDPlugin = "Plugin"
 )
 
 const (
