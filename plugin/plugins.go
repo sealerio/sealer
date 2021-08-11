@@ -37,13 +37,13 @@ type Plugins interface {
 }
 
 type DumperPlugin struct {
-	plugins     []v1.Plugin
+	configs     []v1.Plugin
 	clusterName string
 }
 
 func (c *DumperPlugin) GetPhasePlugin(phase Phase) []v1.Plugin {
 	configs := make([]v1.Plugin, 0)
-	for _, config := range c.plugins {
+	for _, config := range c.configs {
 		on := Phase(config.Spec.On[5:])
 		if on == phase {
 			configs = append(configs, config)
@@ -55,6 +55,7 @@ func (c *DumperPlugin) GetPhasePlugin(phase Phase) []v1.Plugin {
 func NewPlugins(clusterName string) *DumperPlugin {
 	return &DumperPlugin{
 		clusterName: clusterName,
+		configs:     []v1.Plugin{},
 	}
 }
 
@@ -128,8 +129,10 @@ func (c *DumperPlugin) Dump(clusterfile string) error {
 }
 
 func (c *DumperPlugin) WriteFiles() error {
-	for _, config := range c.plugins {
-
+	if len(c.configs) < 1 {
+		return fmt.Errorf("config is nil")
+	}
+	for _, config := range c.configs {
 		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.clusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
 		if err != nil {
 			return fmt.Errorf("write config fileed %v", err)
@@ -146,7 +149,7 @@ func (c *DumperPlugin) DecodeConfig(Body []byte) error {
 		return fmt.Errorf("decode config failed %v", err)
 	}
 	if config.Kind == common.CRDConfig {
-		c.plugins = append(c.plugins, config)
+		c.configs = append(c.configs, config)
 	}
 	return nil
 }
