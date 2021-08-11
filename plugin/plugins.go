@@ -69,14 +69,12 @@ func (c *DumperPlugin) Run(cluster *v1.Cluster, phase Phase) error {
 				if err != nil {
 					return err
 				}
-				break
 			case "SHELL":
 				s := Sheller{}
 				err := s.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 				if err != nil {
 					return err
 				}
-				break
 			case "ETCD":
 			default:
 				return fmt.Errorf("not find plugin %s", config.Name)
