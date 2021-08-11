@@ -10,6 +10,9 @@ type Sheller struct {
 }
 
 func (s Sheller) Run(context Context, phase Phase) error {
+	if string(phase) != context.Plugin.Spec.On {
+		return nil
+	}
 	//get cmdline content
 	pluginData := context.Plugin.Spec.Data
 	//get all host ip
