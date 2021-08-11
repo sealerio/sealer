@@ -44,7 +44,7 @@ type DumperPlugin struct {
 
 func (c *DumperPlugin) GetPhasePlugin(phase Phase) []v1.Plugin {
 	configs := make([]v1.Plugin, 0)
-	for _, config := range c.plugin {
+	for _,config := range c.plugin {
 		on := Phase(config.Spec.On[5:])
 		if on == phase {
 			configs = append(configs, config)
