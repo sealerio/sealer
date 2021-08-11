@@ -16,7 +16,7 @@ package apply
 
 import (
 	"fmt"
-	
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
@@ -41,7 +41,6 @@ type DefaultApplier struct {
 	Runtime         runtime.Interface
 	Guest           guest.Interface
 	Config          config.Interface
-	Plugin          plugin.ConfigInterface
 	Plugins         plugin.Plugins
 	MastersToJoin   []string
 	MastersToDelete []string
@@ -139,22 +138,16 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.FileSystem.Clean(applier.ClusterDesired)
 	},
 	PluginConfig: func(applier *DefaultApplier) error {
-		return applier.Plugin.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+		return applier.Plugins.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	},
 	PluginPhasePreInitRun: func(applier *DefaultApplier) error {
-		plugins := applier.Plugin.GetPhasePlugin("PreInit")
-		applier.Plugins.AddPluginConfigs(plugins)
-		return applier.Plugins.Run(plugin.Context{Cluster: applier.ClusterDesired}, "PreInit")
+		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
 	},
 	PluginPhasePreInstallRun: func(applier *DefaultApplier) error {
-		plugins := applier.Plugin.GetPhasePlugin("PreInstall")
-		applier.Plugins.AddPluginConfigs(plugins)
-		return applier.Plugins.Run(plugin.Context{Cluster: applier.ClusterDesired}, "PreInit")
+		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
 	},
 	PluginPhasePostInstallRun: func(applier *DefaultApplier) error {
-		plugins := applier.Plugin.GetPhasePlugin("PostInstall")
-		applier.Plugins.AddPluginConfigs(plugins)
-		return applier.Plugins.Run(plugin.Context{Cluster: applier.ClusterDesired}, "PreInit")
+		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
 
 	},
 }
@@ -290,7 +283,6 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 		FileSystem:     fs,
 		Guest:          gs,
 		Config:         config.NewConfiguration(cluster.Name),
-		Plugin:         plugin.Config(cluster.Name),
-		Plugins:        plugin.Plugins{},
+		Plugins:        plugin.NewPlugins(cluster.Name),
 	}, nil
 }
