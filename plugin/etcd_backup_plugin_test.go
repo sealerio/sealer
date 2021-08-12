@@ -7,8 +7,6 @@ import (
 )
 
 func TestEtcdBackupPlugin_Run(t *testing.T) {
-	plugin := &v1.Plugin{}
-
 	type etcdBackup struct {
 		name    string
 		backDir string
@@ -17,6 +15,12 @@ func TestEtcdBackupPlugin_Run(t *testing.T) {
 		context Context
 		phase   Phase
 	}
+
+	cluster := &v1.Cluster{}
+	cluster.Spec.SSH.User = "root"
+	cluster.Spec.SSH.Passwd = "123456"
+	cluster.Spec.Masters.IPList = []string{"172.17.189.55"}
+
 	tests := []struct {
 		name    string
 		fields  etcdBackup
@@ -31,18 +35,7 @@ func TestEtcdBackupPlugin_Run(t *testing.T) {
 			},
 			args{
 				context: Context{
-					Plugin: plugin,
-					Cluster: &v1.Cluster{
-						Spec: v1.ClusterSpec{
-							Masters: v1.Hosts{
-								IPList: []string{"172.17.189.55"},
-							},
-							SSH: v1.SSH{
-								User:   "root",
-								Passwd: "123456",
-							},
-						},
-					},
+					Cluster: cluster,
 				},
 				phase: PhasePostInstall,
 			},
