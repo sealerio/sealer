@@ -89,6 +89,9 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 
 // PreCheck: check env before run cloud build
 func (c *CloudBuilder) PreCheck() (err error) {
+	if c.Provider != common.AliCloud {
+		return nil
+	}
 	registryChecker := checker.NewRegistryChecker(c.local.ImageNamed.Domain())
 	return registryChecker.Check()
 }
