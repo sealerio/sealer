@@ -36,6 +36,10 @@ func TestEtcdBackupPlugin_Run(t *testing.T) {
 							Masters: v1.Hosts{
 								IPList: []string{"172.17.189.55"},
 							},
+							SSH: v1.SSH{
+								User:   "root",
+								Passwd: "123456",
+							},
 						},
 					},
 				},
