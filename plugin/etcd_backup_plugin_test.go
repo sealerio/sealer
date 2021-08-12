@@ -1,8 +1,9 @@
 package plugin
 
 import (
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"testing"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func TestEtcdBackupPlugin_Run(t *testing.T) {
