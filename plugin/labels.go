@@ -88,20 +88,20 @@ func (l LabelsNodes) formatData(data string) map[string][]label {
 	for _, v := range items {
 		tmps := strings.Split(v, " ")
 		if len(tmps) != 2 {
-			logger.Warn("label data is no-compliance with the rules! label data: ", v)
+			//logger.Warn("label data is no-compliance with the rules! label data: %v", v)
 			continue
 		}
 		ip := tmps[0]
 		labelStr := strings.Split(tmps[1], ",")
 		if len(labelStr) == 0 {
-			logger.Warn("label data is no-compliance with the rules! label data: ", v)
+			logger.Warn("label data is no-compliance with the rules! label data: %v", v)
 			continue
 		}
 		var labels []label
 		for _, l := range labelStr {
 			tmp := strings.Split(l, "=")
 			if len(tmp) != 2 {
-				logger.Warn("label data is no-compliance with the rules! label data: ", l)
+				logger.Warn("label data is no-compliance with the rules! label data: %v", l)
 				continue
 			}
 			labels = append(labels, label{
