@@ -64,7 +64,7 @@ const (
 	Guest                     ActionName = "Guest"
 	Reset                     ActionName = "Reset"
 	CleanFS                   ActionName = "CleanFS"
-	PluginConfig              ActionName = "PluginConfig"
+	PluhinDump                ActionName = "PluhinDump"
 	PluginPhasePreInitRun     ActionName = "PluginPhasePreInitRun"
 	PluginPhasePreInstallRun  ActionName = "PluginPhasePreInstallRun"
 	PluginPhasePostInstallRun ActionName = "PluginPhasePostInstallRun"
@@ -137,17 +137,17 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	CleanFS: func(applier *DefaultApplier) error {
 		return applier.FileSystem.Clean(applier.ClusterDesired)
 	},
-	PluginConfig: func(applier *DefaultApplier) error {
+	PluhinDump: func(applier *DefaultApplier) error {
 		return applier.Plugins.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	},
 	PluginPhasePreInitRun: func(applier *DefaultApplier) error {
 		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
 	},
 	PluginPhasePreInstallRun: func(applier *DefaultApplier) error {
-		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
+		return applier.Plugins.Run(applier.ClusterDesired, "PreInstall")
 	},
 	PluginPhasePostInstallRun: func(applier *DefaultApplier) error {
-		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
+		return applier.Plugins.Run(applier.ClusterDesired, "PostInstall")
 
 	},
 }
@@ -226,7 +226,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, MountImage)
-		todoList = append(todoList, PluginConfig)
+		todoList = append(todoList, PluhinDump)
 		todoList = append(todoList, Config)
 		todoList = append(todoList, MountRootfs)
 		todoList = append(todoList, PluginPhasePreInitRun)

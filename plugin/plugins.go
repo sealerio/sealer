@@ -36,30 +36,30 @@ type Plugins interface {
 	Run(cluster *v1.Cluster, phase Phase) error
 }
 
-type DumperPlugin struct {
+type PluginsProcesser struct {
 	configs     []v1.Plugin
 	clusterName string
 }
 
-func (c *DumperPlugin) GetPhasePlugin(phase Phase) []v1.Plugin {
+func (c *PluginsProcesser) GetPhasePlugin(phase Phase) []v1.Plugin {
 	configs := make([]v1.Plugin, 0)
 	for _, config := range c.configs {
-		on := Phase(config.Spec.On[5:])
-		if on == phase {
+		action := Phase(config.Spec.Action)
+		if action == phase {
 			configs = append(configs, config)
 		}
 	}
 	return configs
 }
 
-func NewPlugins(clusterName string) *DumperPlugin {
-	return &DumperPlugin{
+func NewPlugins(clusterName string) Plugins {
+	return &PluginsProcesser{
 		clusterName: clusterName,
 		configs:     []v1.Plugin{},
 	}
 }
 
-func (c *DumperPlugin) Run(cluster *v1.Cluster, phase Phase) error {
+func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
 	configs := c.GetPhasePlugin(phase)
 	for _, config := range configs {
 		if phase == Phase(config.Spec.On[5:]) {
@@ -85,7 +85,7 @@ func (c *DumperPlugin) Run(cluster *v1.Cluster, phase Phase) error {
 	return nil
 }
 
-func (c *DumperPlugin) Dump(clusterfile string) error {
+func (c *PluginsProcesser) Dump(clusterfile string) error {
 	if clusterfile == "" {
 		logger.Debug("clusterfile is empty!")
 		return nil
@@ -128,7 +128,7 @@ func (c *DumperPlugin) Dump(clusterfile string) error {
 	return nil
 }
 
-func (c *DumperPlugin) WriteFiles() error {
+func (c *PluginsProcesser) WriteFiles() error {
 	if len(c.configs) < 1 {
 		return fmt.Errorf("config is nil")
 	}
@@ -142,7 +142,7 @@ func (c *DumperPlugin) WriteFiles() error {
 	return nil
 }
 
-func (c *DumperPlugin) DecodeConfig(Body []byte) error {
+func (c *PluginsProcesser) DecodeConfig(Body []byte) error {
 	config := v1.Plugin{}
 	err := yaml.Unmarshal(Body, &config)
 	if err != nil {
