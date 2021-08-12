@@ -72,14 +72,11 @@ func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
 }
 
 func (c *PluginsProcesser) Dump(clusterfile string) error {
-	logger.Info("call dump")
 	if clusterfile == "" {
-		logger.Info("clusterfile is empty!")
 		logger.Debug("clusterfile is empty!")
 		return nil
 	}
 	file, err := os.Open(clusterfile)
-	logger.Info("os.Open(clusterfile)")
 	if err != nil {
 		return fmt.Errorf("failed to dump config %v", err)
 	}
@@ -90,7 +87,6 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 	}()
 
 	d := yaml.NewYAMLOrJSONDecoder(file, 4096)
-	logger.Info("yaml.NewYAMLOrJSONDecoder")
 	for {
 		ext := runtime.RawExtension{}
 		if err := d.Decode(&ext); err != nil {
@@ -115,7 +111,6 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 	if err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
 	}
-	logger.Info("dump over!")
 	return nil
 }
 
