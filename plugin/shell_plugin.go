@@ -10,7 +10,7 @@ type Sheller struct {
 }
 
 func (s Sheller) Run(context Context, phase Phase) error {
-	if string(phase) != context.Plugin.Spec.On {
+	if string(phase) != context.Plugin.Spec.Action {
 		return nil
 	}
 	//get cmdline content
