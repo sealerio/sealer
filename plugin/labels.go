@@ -50,7 +50,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 		return nil
 	}
 	l.data = l.formatData(context.Plugin.Spec.Data)
-	logger.Warn("label data is:%v", l.data)
+
 	c, err := client.NewClientSet()
 	if err != nil {
 		return fmt.Errorf("current cluster not found, %v", err)
@@ -88,7 +88,7 @@ func (l LabelsNodes) formatData(data string) map[string][]label {
 	for _, v := range items {
 		tmps := strings.Split(v, " ")
 		if len(tmps) != 2 {
-			logger.Warn("label data is no-compliance with the rules! label data: %v", v)
+			//logger.Warn("label data is no-compliance with the rules! label data: %v", v)
 			continue
 		}
 		ip := tmps[0]

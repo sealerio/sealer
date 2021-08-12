@@ -43,7 +43,7 @@ func TestDumperPlugin_Dump(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &PluginsProcesser{
-				configs:     tt.fields.configs,
+				plugins:     tt.fields.configs,
 				clusterName: tt.fields.clusterName,
 			}
 			if err := c.Dump(tt.args.clusterfile); (err != nil) != tt.wantErr {
@@ -94,7 +94,7 @@ func TestDumperPlugin_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &PluginsProcesser{
-				configs:     tt.fields.configs,
+				plugins:     tt.fields.configs,
 				clusterName: tt.fields.clusterName,
 			}
 			if err := c.Run(tt.args.cluster, tt.args.phase); (err != nil) != tt.wantErr {
