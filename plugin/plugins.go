@@ -64,6 +64,12 @@ func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
 				return err
 			}
 		case "ETCD":
+			e := EtcdBackupPlugin{}
+			err := e.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+			if err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("not find plugin %s", config.Name)
 		}
