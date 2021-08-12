@@ -41,17 +41,6 @@ type PluginsProcesser struct {
 	clusterName string
 }
 
-func (c *PluginsProcesser) GetPhasePlugin(phase Phase) []v1.Plugin {
-	configs := make([]v1.Plugin, 0)
-	for _, config := range c.configs {
-		action := Phase(config.Spec.Action)
-		if action == phase {
-			configs = append(configs, config)
-		}
-	}
-	return configs
-}
-
 func NewPlugins(clusterName string) Plugins {
 	return &PluginsProcesser{
 		clusterName: clusterName,
@@ -60,8 +49,7 @@ func NewPlugins(clusterName string) Plugins {
 }
 
 func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
-	configs := c.GetPhasePlugin(phase)
-	for _, config := range configs {
+	for _, config := range c.configs {
 		if phase == Phase(config.Spec.On[5:]) {
 			switch config.Name {
 			case "LABEL":
