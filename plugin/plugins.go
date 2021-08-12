@@ -115,6 +115,7 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 	if err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
 	}
+	logger.Info("dump over!")
 	return nil
 }
 
