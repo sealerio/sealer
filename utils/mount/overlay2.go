@@ -24,6 +24,9 @@ import (
 	"path"
 	"strings"
 	"syscall"
+	"time"
+
+	infraUtils "github.com/alibaba/sealer/infra/utils"
 
 	"github.com/alibaba/sealer/utils"
 )
@@ -125,4 +128,27 @@ func GetMountDetails(target string) (mounted bool, upper string) {
 
 	data = strings.Split(data[1], ",workdir=")
 	return true, strings.TrimSpace(data[0])
+}
+
+func RetryUmountCleanDir(dir string) error {
+	var err error
+	if isMount, _ := GetMountDetails(dir); isMount {
+		err = infraUtils.Retry(10, time.Second, func() error {
+			err = NewMountDriver().Unmount(dir)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("%s already mount, and failed to umount %v", dir, err)
+		}
+	}
+	if utils.IsFileExist(dir) {
+		err := os.RemoveAll(dir)
+		if err != nil {
+			return fmt.Errorf("failed to clean %s, %v", dir, err)
+		}
+	}
+	return nil
 }

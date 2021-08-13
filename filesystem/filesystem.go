@@ -20,13 +20,10 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/alibaba/sealer/image/store"
 
 	"github.com/alibaba/sealer/runtime"
-
-	infraUtils "github.com/alibaba/sealer/infra/utils"
 
 	"github.com/alibaba/sealer/utils"
 
@@ -64,42 +61,21 @@ func (c *FileSystem) Clean(cluster *v1.Cluster) error {
 
 func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
-	if utils.IsFileExist(mountdir) {
-		var err error
-		err = infraUtils.Retry(10, time.Second, func() error {
-			err = mount.NewMountDriver().Unmount(mountdir)
-			if err != nil {
-				return err
-			}
-			return os.RemoveAll(mountdir)
-		})
-		if err != nil {
-			logger.Warn("failed to unmount dir %s,err: %v", mountdir, err)
-		}
-	}
-	return nil
+	return mount.RetryUmountCleanDir(mountdir)
 }
 
 func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 	var (
 		mountdir = common.DefaultMountCloudImageDir(cluster.Name)
 		upperDir = filepath.Join(mountdir, "upper")
-		driver   = mount.NewMountDriver()
 		err      error
 	)
-	if isMount, _ := mount.GetMountDetails(mountdir); isMount {
-		err = driver.Unmount(mountdir)
-		if err != nil {
-			return fmt.Errorf("%s already mount, and failed to umount %v", mountdir, err)
-		}
-	} else {
-		if utils.IsFileExist(mountdir) {
-			err = os.RemoveAll(mountdir)
-			if err != nil {
-				return fmt.Errorf("failed to clean %s, %v", mountdir, err)
-			}
-		}
+
+	err = mount.RetryUmountCleanDir(mountdir)
+	if err != nil {
+		return fmt.Errorf("failed to clean %s, %v", mountdir, err)
 	}
+
 	//get layers
 	Image, err := c.imageStore.GetByName(cluster.Spec.Image)
 	if err != nil {
@@ -113,7 +89,7 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 	if err = os.MkdirAll(upperDir, 0744); err != nil {
 		return fmt.Errorf("create upperdir failed, %s", err)
 	}
-	if err = driver.Mount(mountdir, upperDir, layers...); err != nil {
+	if err = mount.NewMountDriver().Mount(mountdir, upperDir, layers...); err != nil {
 		return fmt.Errorf("mount files failed %v", err)
 	}
 	return nil

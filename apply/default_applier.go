@@ -17,6 +17,9 @@ package apply
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
+	"github.com/alibaba/sealer/check/service"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
@@ -27,7 +30,6 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -57,6 +59,7 @@ const (
 	UnMountImage   ActionName = "UnMountImage"
 	Init           ActionName = "Init"
 	Upgrade        ActionName = "Upgrade"
+	ApplyCheck     ActionName = "ApplyCheck"
 	ApplyMasters   ActionName = "ApplyMasters"
 	ApplyNodes     ActionName = "ApplyNodes"
 	Guest          ActionName = "Guest"
@@ -72,6 +75,13 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 			return err
 		}
 		return imgSvc.PullIfNotExist(imageName)
+	},
+	ApplyCheck: func(applier *DefaultApplier) error {
+		err := service.NewPreApplyCheckerService(applier.ClusterCurrent, applier.ClusterDesired).Run()
+		if err != nil {
+			return err
+		}
+		return utils.SaveClusterfile(applier.ClusterDesired)
 	},
 	MountRootfs: func(applier *DefaultApplier) error {
 		// TODO mount only mount desired hosts, some hosts already mounted when update cluster
@@ -159,11 +169,6 @@ func applyNodes(applier *DefaultApplier) error {
 
 func (c *DefaultApplier) Apply() (err error) {
 	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
-		err = utils.SaveClusterfile(c.ClusterDesired)
-		if err != nil {
-			return err
-		}
-
 		currentCluster, err := GetCurrentCluster()
 		if err != nil {
 			return errors.Wrap(err, "get current cluster failed")
@@ -203,7 +208,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, CleanFS)
 		return todoList, nil
 	}
-
+	todoList = append(todoList, ApplyCheck)
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, MountImage)
