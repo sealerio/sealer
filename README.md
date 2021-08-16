@@ -96,3 +96,9 @@ sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx
 
 * [contributing guide](./CONTRIBUTING.md)
 * [贡献文档](./docs/contributing_zh.md)
+
+# Maintainers&Partners
+
+![](https://img.alicdn.com/tfs/TB13DzOjXP7gK0jSZFjXXc5aXXa-212-48.png =100)
+![](https://cdn.zcygov.cn/logo.png =100)
+![](http://harmonycloud.cn/uploads/images/202105/338aa0549c307208539755b8d2e0d352.png =100)
