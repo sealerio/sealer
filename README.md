@@ -99,6 +99,6 @@ sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx
 
 # Maintainers&Partners
 
-![](https://img.alicdn.com/tfs/TB13DzOjXP7gK0jSZFjXXc5aXXa-212-48.png){:height="100px"}
-![](https://cdn.zcygov.cn/logo.png){:height="100px"}
-![](http://harmonycloud.cn/uploads/images/202105/338aa0549c307208539755b8d2e0d352.png){:height="100px"}
+<img src="https://img.alicdn.com/tfs/TB13DzOjXP7gK0jSZFjXXc5aXXa-212-48.png" width="100px" />
+<img src="https://cdn.zcygov.cn/logo.png" width="100px" />
+<img src="http://harmonycloud.cn/uploads/images/202105/338aa0549c307208539755b8d2e0d352.png" width="100px" />
