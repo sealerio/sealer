@@ -80,7 +80,7 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 			_ = os.RemoveAll(workdir)
 		}
 	}()
-	mountData := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(reverse(layers), ":"), upperLayer, workdir)
+	mountData := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(utils.Reverse(layers), ":"), upperLayer, workdir)
 	if err = mount("overlay", target, "overlay", 0, mountData); err != nil {
 		return fmt.Errorf("error creating overlay mount to %s: %v", target, err)
 	}

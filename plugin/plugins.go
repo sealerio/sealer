@@ -121,8 +121,9 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 }
 
 func (c *PluginsProcesser) WriteFiles() error {
-	if len(c.plugins) < 1 {
-		return fmt.Errorf("config is nil")
+	if len(c.plugins) == 0 {
+		logger.Debug("config is nil")
+		return nil
 	}
 	for _, config := range c.plugins {
 		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.clusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
