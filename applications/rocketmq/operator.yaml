@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rocketmq-system
+  labels:
+    app.kubernetes.io/name: rocketmq-operator
+    app.kubernetes.io/instance: rocketmq-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: rocketmq-system
+  name: rocketmq-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: rocketmq-operator
+  namespace: rocketmq-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - services
+      - endpoints
+      - persistentvolumeclaims
+      - events
+      - configmaps
+      - secrets
+      - pods/exec
+    verbs:
+      - '*'
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - daemonsets
+      - replicasets
+      - statefulsets
+    verbs:
+      - '*'
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - get
+      - create
+  - apiGroups:
+      - apps
+    resourceNames:
+      - rocketmq-operator
+    resources:
+      - deployments/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - rocketmq.apache.org
+    resources:
+      - '*'
+      - brokers
+      - pods/exec
+      - topictransfers
+      - consoles
+    verbs:
+      - '*'
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: rocketmq-system
+  name: rocketmq-operator
+subjects:
+  - kind: ServiceAccount
+    name: rocketmq-operator
+roleRef:
+  kind: Role
+  name: rocketmq-operator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rocketmq-operator
+  namespace: rocketmq-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: rocketmq-operator
+  template:
+    metadata:
+      labels:
+        name: rocketmq-operator
+    spec:
+      serviceAccountName: rocketmq-operator
+      containers:
+        - name: rocketmq-operator
+          # Replace this with the built image name
+          image: apacherocketmq/rocketmq-operator:0.3.0-snapshot
+          command:
+            - rocketmq-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "rocketmq-operator"

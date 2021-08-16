@@ -1,0 +1,514 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+---
+# Source: mysql/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-mysql
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+  annotations:
+secrets:
+  - name: my-mysql
+---
+# Source: mysql/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-mysql
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+type: Opaque
+data:
+  mysql-root-password: "RWZuaWJiQzFaeQ=="
+  mysql-password: "dnR0TDlSaG1EbQ=="
+  mysql-replication-password: "NWd1MUxrU09Kdw=="
+---
+# Source: mysql/templates/primary/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-mysql-primary
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: primary
+data:
+  my.cnf: |-
+
+    [mysqld]
+    default_authentication_plugin=mysql_native_password
+    skip-name-resolve
+    explicit_defaults_for_timestamp
+    basedir=/opt/bitnami/mysql
+    plugin_dir=/opt/bitnami/mysql/lib/plugin
+    port=3306
+    socket=/opt/bitnami/mysql/tmp/mysql.sock
+    datadir=/bitnami/mysql/data
+    tmpdir=/opt/bitnami/mysql/tmp
+    max_allowed_packet=16M
+    bind-address=0.0.0.0
+    pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+    log-error=/opt/bitnami/mysql/logs/mysqld.log
+    character-set-server=UTF8
+    collation-server=utf8_general_ci
+
+    [client]
+    port=3306
+    socket=/opt/bitnami/mysql/tmp/mysql.sock
+    default-character-set=UTF8
+    plugin_dir=/opt/bitnami/mysql/lib/plugin
+
+    [manager]
+    port=3306
+    socket=/opt/bitnami/mysql/tmp/mysql.sock
+    pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+---
+# Source: mysql/templates/secondary/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-mysql-secondary
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: secondary
+data:
+  my.cnf: |-
+
+    [mysqld]
+    default_authentication_plugin=mysql_native_password
+    skip-name-resolve
+    explicit_defaults_for_timestamp
+    basedir=/opt/bitnami/mysql
+    port=3306
+    socket=/opt/bitnami/mysql/tmp/mysql.sock
+    datadir=/bitnami/mysql/data
+    tmpdir=/opt/bitnami/mysql/tmp
+    max_allowed_packet=16M
+    bind-address=0.0.0.0
+    pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+    log-error=/opt/bitnami/mysql/logs/mysqld.log
+    character-set-server=UTF8
+    collation-server=utf8_general_ci
+
+    [client]
+    port=3306
+    socket=/opt/bitnami/mysql/tmp/mysql.sock
+    default-character-set=UTF8
+
+    [manager]
+    port=3306
+    socket=/opt/bitnami/mysql/tmp/mysql.sock
+    pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+---
+# Source: mysql/templates/primary/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-mysql-primary-headless
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: primary
+  annotations:
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+  selector:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: primary
+---
+# Source: mysql/templates/primary/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-mysql-primary
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: primary
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+    - name: mysql
+      port: 3306
+      protocol: TCP
+      targetPort: mysql
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: primary
+---
+# Source: mysql/templates/secondary/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-mysql-secondary-headless
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: secondary
+  annotations:
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+  selector:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: secondary
+---
+# Source: mysql/templates/secondary/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-mysql-secondary
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: secondary
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+    - name: mysql
+      port: 3306
+      protocol: TCP
+      targetPort: mysql
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: secondary
+---
+# Source: mysql/templates/primary/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-mysql-primary
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: primary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mysql
+      app.kubernetes.io/instance: my-mysql
+      app.kubernetes.io/component: primary
+  serviceName: my-mysql-primary
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/configuration: f85346c5341cc96a7a79636cb39ddba62548beb8f3c80220f5ca61f7b5e2d038
+      labels:
+        app.kubernetes.io/name: mysql
+        app.kubernetes.io/instance: my-mysql
+        app.kubernetes.io/component: primary
+    spec:
+      serviceAccountName: my-mysql
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: mysql
+                    app.kubernetes.io/instance: my-mysql
+                    app.kubernetes.io/component: primary
+                namespaces:
+                  - "mysql-system"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: mysql
+          image: docker.io/bitnami/mysql:8.0.26-debian-10-r10
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsUser: 1001
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-mysql
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              value: "my_database"
+            - name: MYSQL_REPLICATION_MODE
+              value: "master"
+            - name: MYSQL_REPLICATION_USER
+              value: "replicator"
+            - name: MYSQL_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-mysql
+                  key: mysql-replication-password
+          ports:
+            - name: mysql
+              containerPort: 3306
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MYSQL_ROOT_PASSWORD:-}"
+                  if [[ -f "${MYSQL_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MYSQL_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MYSQL_ROOT_PASSWORD:-}"
+                  if [[ -f "${MYSQL_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MYSQL_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
+          startupProbe:
+            failureThreshold: 10
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MYSQL_ROOT_PASSWORD:-}"
+                  if [[ -f "${MYSQL_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MYSQL_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
+          resources:
+            limits: { }
+            requests: { }
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/mysql
+            - name: config
+              mountPath: /opt/bitnami/mysql/conf/my.cnf
+              subPath: my.cnf
+      volumes:
+        - name: config
+          configMap:
+            name: my-mysql-primary
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: mysql
+          app.kubernetes.io/instance: my-mysql
+          app.kubernetes.io/component: primary
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "50Gi"
+        storageClassName: openebs-jiva-csi-sc
+---
+# Source: mysql/templates/secondary/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-mysql-secondary
+  namespace: mysql-system
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: my-mysql
+    app.kubernetes.io/component: secondary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mysql
+      app.kubernetes.io/instance: my-mysql
+      app.kubernetes.io/component: secondary
+  serviceName: my-mysql-secondary
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/configuration: 596f59f44d599592de8d355e3bdde90fc33342820324c49e54365aa43419c3e2
+      labels:
+        app.kubernetes.io/name: mysql
+        app.kubernetes.io/instance: my-mysql
+        app.kubernetes.io/component: secondary
+    spec:
+      serviceAccountName: my-mysql
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: mysql
+                    app.kubernetes.io/instance: my-mysql
+                    app.kubernetes.io/component: secondary
+                namespaces:
+                  - "mysql-system"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: mysql
+          image: docker.io/bitnami/mysql:8.0.26-debian-10-r10
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsUser: 1001
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: MYSQL_REPLICATION_MODE
+              value: "slave"
+            - name: MYSQL_MASTER_HOST
+              value: my-mysql-primary
+            - name: MYSQL_MASTER_PORT_NUMBER
+              value: "3306"
+            - name: MYSQL_MASTER_ROOT_USER
+              value: "root"
+            - name: MYSQL_REPLICATION_USER
+              value: "replicator"
+            - name: MYSQL_MASTER_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-mysql
+                  key: mysql-root-password
+            - name: MYSQL_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-mysql
+                  key: mysql-replication-password
+          ports:
+            - name: mysql
+              containerPort: 3306
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MYSQL_MASTER_ROOT_PASSWORD:-}"
+                  if [[ -f "${MYSQL_MASTER_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MYSQL_MASTER_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MYSQL_MASTER_ROOT_PASSWORD:-}"
+                  if [[ -f "${MYSQL_MASTER_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MYSQL_MASTER_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
+          startupProbe:
+            failureThreshold: 15
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MYSQL_MASTER_ROOT_PASSWORD:-}"
+                  if [[ -f "${MYSQL_MASTER_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MYSQL_MASTER_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
+          resources:
+            limits: { }
+            requests: { }
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/mysql
+            - name: config
+              mountPath: /opt/bitnami/mysql/conf/my.cnf
+              subPath: my.cnf
+      volumes:
+        - name: config
+          configMap:
+            name: my-mysql-secondary
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: mysql
+          app.kubernetes.io/instance: my-mysql
+          app.kubernetes.io/component: secondary
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "80Gi"
+        storageClassName: openebs-jiva-csi-sc

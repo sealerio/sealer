@@ -1,0 +1,5 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
+COPY crd.yaml .
+COPY operator.yaml .
+COPY manifest.yaml .
+CMD kubectl apply -f crd.yaml -f operator.yaml -f manifest.yaml

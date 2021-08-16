@@ -1,0 +1,4 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0
+COPY jiva-operator.yaml .
+COPY cspc.yaml .
+CMD kubectl apply -f cstor-operator.yaml -f cspc.yaml

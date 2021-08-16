@@ -1,0 +1,5 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9
+COPY crd.yaml .
+COPY operator.yaml .
+COPY manifest.yaml .
+CMD kubectl apply -f crd.yaml -f operator.yaml -f manifest.yaml
