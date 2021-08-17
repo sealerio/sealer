@@ -11,20 +11,7 @@ use yew::{
 
 #[derive(Debug)]
 pub enum Msg {
-    GetRegistryCatelog(Result<ISS, anyhow::Error>),
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct ISSPosition {
-    latitude: String,
-    longitude: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct ISS {
-    message: String,
-    timestamp: i32,
-    iss_position: ISSPosition,
+    GetRegistryCatelog(Result<RegistryCatalog, anyhow::Error>),
 }
 
 enum Class {
@@ -66,6 +53,7 @@ impl Component for Images {
             repos: None,
             link,
             error: None,
+            task: None,
         }
     }
 
@@ -74,8 +62,8 @@ impl Component for Images {
         match msg {
             GetRegistryCatelog(response) => match response {
                 Ok(repos) => {
-                    //self.repos = Some(repos.repositories);
-                        ConsoleService::info(&format!("info {:?}", repos)); 
+                    ConsoleService::info(&format!("info {:?}", repos)); 
+                    self.repos = Some(repos.repositories);
                 }
                 Err(error) => {
                     ConsoleService::info(&format!("info {:?}", error.to_string())); 
@@ -88,16 +76,17 @@ impl Component for Images {
     fn rendered(&mut self, first_render: bool) {
         if first_render {
             ConsoleService::info("view app");
-            let request = Request::get("http://api.open-notify.org/iss-now.json")
+            let request = Request::get("http://localhost:8001/v2/_catalog")
                 .body(Nothing)
                 .expect("could not build request.");
             let callback = self.link.callback(
-                |response: Response<Json<Result<ISS, anyhow::Error>>>| {
+                |response: Response<Json<Result<RegistryCatalog, anyhow::Error>>>| {
                     let Json(data) = response.into_body();
                     Msg::GetRegistryCatelog(data)
                 },
             );
             let task = FetchService::fetch(request, callback).expect("failed to start request");
+            self.task = Some(task);
         }
     }
 
@@ -128,7 +117,7 @@ impl Images {
         html! {
          <aside class="menu">
              <p class="menu-label">
-              { "Providor" }
+              { "Provider" }
              </p>
              <ul class="menu-list">
              <li><a>{ "Official" }</a></li>

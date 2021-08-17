@@ -1,6 +1,6 @@
 use anyhow::Error;
 use serde::Deserialize;
-use yew::{callback::Callback, format::Nothing, services::fetch::Request, ComponentLink};
+use yew::{ComponentLink, callback::Callback, format::Nothing, services::fetch::{FetchTask, Request}};
 
 pub struct Image {
     pub name: String,
@@ -17,6 +17,7 @@ pub struct Images {
     pub repos: Option<Vec<String>>,
     pub error: Option<String>,
     pub link: ComponentLink<Self>,
+    pub task: Option<FetchTask>
 }
 
 pub fn get_image_list(callback: Callback<Result<String, Error>>) {
