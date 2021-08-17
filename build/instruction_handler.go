@@ -173,9 +173,9 @@ func (h *handler) copyFiles(srcFileName, dstFileName, tempBuildDir string) error
 	}
 
 	if fi.IsDir() {
-		//default workdir is rootfs,so if copy dst is ".", name it as filepath.Base(src)
+		//default workdir is rootfs,so if copy dst is ".", name it as filepath.Base(srcFileName)
 		if dstFileName == "." {
-			dstFileName = filepath.Base(src)
+			dstFileName = filepath.Base(srcFileName)
 		}
 		dst = filepath.Join(tempBuildDir, dstFileName)
 	} else {
