@@ -164,7 +164,7 @@ func (h *handler) handleCMDRUNCmd(layer v1.Layer, lowerLayers ...string) (layerI
 func (h *handler) copyFiles(srcFileName, dstFileName, tempBuildDir string) error {
 	var (
 		src = filepath.Join(h.hc.buildContext, srcFileName)
-		dst string
+		dst = tempBuildDir
 	)
 
 	fi, err := os.Stat(src)
@@ -173,10 +173,13 @@ func (h *handler) copyFiles(srcFileName, dstFileName, tempBuildDir string) error
 	}
 
 	if fi.IsDir() {
-		dst = filepath.Join(tempBuildDir, dstFileName)
+		if dstFileName != "." {
+			dst = filepath.Join(dst, filepath.Base(src))
+		}
 	} else {
-		dst = filepath.Join(tempBuildDir, dstFileName, srcFileName)
+		dst = filepath.Join(dst, dstFileName, srcFileName)
 	}
+
 	return utils.RecursionCopy(src, dst)
 }
 
