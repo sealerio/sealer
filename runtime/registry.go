@@ -19,6 +19,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/alibaba/sealer/utils/mount"
+
 	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/logger"
@@ -113,8 +115,13 @@ func (d *Default) EnsureRegistry(cluster *v1.Cluster) error {
 func (d *Default) RecycleRegistry() error {
 	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])
 	umount := fmt.Sprintf("umount %s/registry", d.Rootfs)
+	isMount, _ := mount.GetRemoteMountDetails(d.SSH, cf.IP, filepath.Join(d.Rootfs, "registry"))
+	if isMount {
+		err := d.SSH.CmdAsync(cf.IP, umount)
+		logger.Error(err)
+	}
 	delDir := fmt.Sprintf("rm -rf %s %s", RegistryMountUpper, RegistryMountWork)
-	cmd := fmt.Sprintf("%s && docker rm -f %s && %s ", umount, RegistryName, delDir)
+	cmd := fmt.Sprintf("docker rm -f %s && %s ", RegistryName, delDir)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
 
