@@ -9,8 +9,8 @@ REGISTRY_PORT=${3-5000}
 # Install docker
 chmod a+x docker.sh
 #./docker.sh  /var/docker/lib  127.0.0.1
-sh docker.sh ${STORAGE} ${REGISTRY_DOMAIN} $REGISTRY_PORT
+bash docker.sh ${STORAGE} ${REGISTRY_DOMAIN} $REGISTRY_PORT
 
 chmod a+x init-kube.sh
 
-sh init-kube.sh
+bash init-kube.sh
