@@ -37,8 +37,12 @@ startRegistry() {
     done
 }
 
-docker load -q -i ../images/registry.tar || true
-docker rm $container -f || true
+[ -f ../images/registry.tar  ] && docker load -q -i ../images/registry.tar 
+
+## rm container if exist.
+if [ "$(docker ps -aq -f name=$container)" ]; then
+    docker rm -f $container
+fi
 
 config=$(dirname "$(pwd)")'/etc/registry_config.yaml'
 
