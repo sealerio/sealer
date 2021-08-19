@@ -40,7 +40,7 @@ endif
 
 license: install-addlicense
 	for file in ${Dirs} ; do \
-		if [[  $$file != '_output' && $$file != 'vendor' ]]; then \
+		if [[  $$file != '_output' && $$file != 'vendor' && $$file != 'logger' ]]; then \
 			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f LICENSE_TEMPLATE ./$$file ; \
 		fi \
     done
