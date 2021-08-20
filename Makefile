@@ -29,7 +29,7 @@ ifeq (, $(shell which addlicense))
 	LICENSE_TMP_DIR=$$(mktemp -d) ;\
 	cd $$LICENSE_TMP_DIR ;\
 	go mod init tmp ;\
-	go get github.com/google/addlicense ;\
+	go get -v github.com/google/addlicense ;\
 	rm -rf $$LICENSE_TMP_DIR ;\
 	}
 ADDLICENSE_BIN=$(GOBIN)/addlicense
@@ -37,10 +37,10 @@ else
 ADDLICENSE_BIN=$(shell which addlicense)
 endif
 
-
-license: install-addlicense
+license: SHELL:=/bin/bash
+license:
 	for file in ${Dirs} ; do \
-		if [[  $$file != '_output' && $$file != 'vendor' ]]; then \
+		if [[  $$file != '_output' && $$file != 'vendor' && $$file != 'logger' ]]; then \
 			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f LICENSE_TEMPLATE ./$$file ; \
 		fi \
     done

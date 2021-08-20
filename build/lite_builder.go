@@ -185,7 +185,7 @@ func (l *LiteBuilder) Clear() error {
 
 func (l *LiteBuilder) InitDockerAndRegistry() error {
 	mount := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount")
-	cmd := "cd %s  && chmod +x scripts/* && cd scripts && sh docker.sh && sh init-registry.sh 5000 %s"
+	cmd := "cd %s  && chmod +x scripts/* && cd scripts && bash docker.sh && bash init-registry.sh 5000 %s"
 	r, err := utils.CmdOutput("sh", "-c", fmt.Sprintf(cmd, mount, filepath.Join(mount, "registry")))
 	if err != nil {
 		logger.Error(fmt.Sprintf("Init docker and registry failed: %v", err))
