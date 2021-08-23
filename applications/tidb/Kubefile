@@ -1,5 +1,5 @@
-FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9
-COPY crd.yaml .
-COPY operator.yaml .
-COPY manifest.yaml .
-CMD kubectl apply -f crd.yaml -f operator.yaml -f manifest.yaml
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+COPY tidb .
+CMD kubectl apply -f tidb/crd.yaml
+CMD kubectl apply -f tidb/operator.yaml
+CMD kubectl apply -f tidb/manifest.yaml

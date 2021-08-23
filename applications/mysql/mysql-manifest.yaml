@@ -357,7 +357,7 @@ spec:
           - "ReadWriteOnce"
         resources:
           requests:
-            storage: "50Gi"
+            storage: "80Gi"
         storageClassName: openebs-jiva-csi-sc
 ---
 # Source: mysql/templates/secondary/statefulset.yaml

@@ -474,6 +474,6 @@ spec:
           - "ReadWriteOnce"
         resources:
           requests:
-            storage: "50Gi"
+            storage: "10Gi"
         storageClassName: local-hostpath
 
