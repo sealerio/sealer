@@ -173,7 +173,6 @@ func (c *DockerProvider) GetContainerIDByIP(containerIP string) (string, error) 
 				return item.ID, nil
 			}
 		}
-
 	}
 	return "", err
 }
