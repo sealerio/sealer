@@ -238,7 +238,7 @@ func makeFakeSourceDir(dir FakeDir) error {
 func TestRecursionHardLink(t *testing.T) {
 	var (
 		err     error
-		dstPath string = "/tmp/link-test-dst"
+		dstPath = "/tmp/link-test-dst"
 	)
 
 	testDir := FakeDir{

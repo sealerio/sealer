@@ -201,9 +201,8 @@ func (c *DefaultApplier) Apply() (err error) {
 		if err != nil {
 			if c.ClusterDesired.DeletionTimestamp == nil {
 				return err
-			} else {
-				logger.Warn(err)
 			}
+			logger.Warn(err)
 		}
 	}
 
