@@ -199,10 +199,10 @@ func (c *DefaultApplier) Apply() (err error) {
 		logger.Debug("sealer apply process %s", action)
 		err := ActionFuncMap[action](c)
 		if err != nil {
-			if c.ClusterDesired.DeletionTimestamp != nil {
-				logger.Warn(err)
-			}else {
+			if c.ClusterDesired.DeletionTimestamp == nil {
 				return err
+			} else {
+				logger.Warn(err)
 			}
 		}
 	}
