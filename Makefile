@@ -40,7 +40,7 @@ endif
 license: SHELL:=/bin/bash
 license:
 	for file in ${Dirs} ; do \
-		if [[  $$file != '_output' && $$file != 'vendor' && $$file != 'logger' ]]; then \
+		if [[  $$file != '_output' && $$file != 'vendor' && $$file != 'logger' && $$file != 'applications' ]]; then \
 			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f LICENSE_TEMPLATE ./$$file ; \
 		fi \
     done
