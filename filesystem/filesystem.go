@@ -43,7 +43,7 @@ import (
 )
 
 const (
-	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && sh init.sh"
+	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh"
 )
 
 type Interface interface {
@@ -225,7 +225,7 @@ func unmountRootfs(ipList []string, cluster *v1.Cluster) error {
 	var flag bool
 	var mutex sync.Mutex
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
-	execClean := fmt.Sprintf("/bin/sh -c "+common.DefaultClusterClearFile, cluster.Name)
+	execClean := fmt.Sprintf("/bin/bash -c "+common.DefaultClusterClearBashFile, cluster.Name)
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
 	for _, ip := range ipList {
 		wg.Add(1)

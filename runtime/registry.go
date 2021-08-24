@@ -99,7 +99,7 @@ func (d *Default) EnsureRegistry(cluster *v1.Cluster) error {
 		RegistryMountUpper, RegistryMountWork)
 
 	mountCmd := fmt.Sprintf("%s && mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s", mkdir,
-		strings.Join(lowerLayers, ":"),
+		strings.Join(utils.Reverse(lowerLayers), ":"),
 		RegistryMountUpper, RegistryMountWork, target)
 
 	if err := d.SSH.CmdAsync(cf.IP, mountCmd); err != nil {

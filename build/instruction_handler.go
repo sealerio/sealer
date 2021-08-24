@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package build
 
 import (
@@ -173,6 +187,10 @@ func (h *handler) copyFiles(srcFileName, dstFileName, tempBuildDir string) error
 	}
 
 	if fi.IsDir() {
+		//default workdir is rootfs,so if copy dst is ".", name it as filepath.Base(srcFileName)
+		if dstFileName == "." {
+			dstFileName = filepath.Base(srcFileName)
+		}
 		dst = filepath.Join(tempBuildDir, dstFileName)
 	} else {
 		dst = filepath.Join(tempBuildDir, dstFileName, srcFileName)
