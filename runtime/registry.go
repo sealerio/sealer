@@ -118,7 +118,9 @@ func (d *Default) RecycleRegistry() error {
 	isMount, _ := mount.GetRemoteMountDetails(d.SSH, cf.IP, filepath.Join(d.Rootfs, "registry"))
 	if isMount {
 		err := d.SSH.CmdAsync(cf.IP, umount)
-		logger.Error(err)
+		if err != nil {
+			return fmt.Errorf("failed to %s in %s, %v", umount, cf.IP, err)
+		}
 	}
 	delDir := fmt.Sprintf("rm -rf %s %s", RegistryMountUpper, RegistryMountWork)
 	cmd := fmt.Sprintf("docker rm -f %s && %s ", RegistryName, delDir)
