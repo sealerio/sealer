@@ -15,18 +15,13 @@
 package plugin
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"os"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 /*
@@ -96,10 +91,11 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 		logger.Debug("clusterfile is empty!")
 		return nil
 	}
-	err := c.DecodeConfig(clusterfile)
+	plugins, err := utils.DecodePlugins(clusterfile)
 	if err != nil {
 		return err
 	}
+	c.Plugins = plugins
 	err = c.WriteFiles()
 	if err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
@@ -109,7 +105,7 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 
 func (c *PluginsProcesser) WriteFiles() error {
 	if len(c.Plugins) == 0 {
-		logger.Debug("config is nil")
+		logger.Debug("plugins is nil")
 		return nil
 	}
 	for _, config := range c.Plugins {
@@ -119,51 +115,5 @@ func (c *PluginsProcesser) WriteFiles() error {
 		}
 	}
 
-	return nil
-}
-
-func (c *PluginsProcesser) DecodeConfig(clusterfile string) error {
-	file, err := os.Open(clusterfile)
-	if err != nil {
-		return fmt.Errorf("failed to dump config %v", err)
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			logger.Warn("failed to dump config close clusterfile failed %v", err)
-		}
-	}()
-
-	d := yaml.NewYAMLOrJSONDecoder(file, 4096)
-	for {
-		ext := runtime.RawExtension{}
-		if err := d.Decode(&ext); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		// TODO: This needs to be able to handle object in other encodings and schemas.
-		ext.Raw = bytes.TrimSpace(ext.Raw)
-		if len(ext.Raw) == 0 || bytes.Equal(ext.Raw, []byte("null")) {
-			continue
-		}
-		// ext.Raw
-		err := c.decodeConfig(ext.Raw)
-		if err != nil {
-			return fmt.Errorf("failed to decode config file %v", err)
-		}
-	}
-	return nil
-}
-
-func (c *PluginsProcesser) decodeConfig(Body []byte) error {
-	config := v1.Plugin{}
-	err := yaml.Unmarshal(Body, &config)
-	if err != nil {
-		return fmt.Errorf("decode config failed %v", err)
-	}
-	if config.Kind == common.CRDPlugin {
-		c.Plugins = append(c.Plugins, config)
-	}
 	return nil
 }
