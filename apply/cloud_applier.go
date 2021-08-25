@@ -15,9 +15,8 @@
 package apply
 
 import (
+	"bytes"
 	"fmt"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
@@ -29,6 +28,8 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 const ApplyCluster = "chmod +x %s && %s apply -f %s"
@@ -131,10 +132,9 @@ func (c *CloudApplier) Apply() error {
 		return fmt.Errorf("prepare cluster ssh client failed %v", err)
 	}
 
-	cluster.Spec.Provider = common.BAREMETAL
-	err = utils.MarshalYamlToFile(common.TmpClusterfile, cluster)
+	err = generateTmpClusterfile(cluster)
 	if err != nil {
-		return fmt.Errorf("marshal tmp cluster file failed %v", err)
+		return fmt.Errorf("failed to generate TmpClusterfile, %v", err)
 	}
 	defer func() {
 		if err := utils.CleanFiles(common.TmpClusterfile); err != nil {
@@ -177,5 +177,47 @@ func (c *CloudApplier) Delete() error {
 		return nil
 	}
 
+	return nil
+}
+
+func generateTmpClusterfile(cluster *v1.Cluster) error {
+	cluster.Spec.Provider = common.BAREMETAL
+	clusterfile := cluster.GetAnnotationsByKey(common.ClusterfileName)
+	data, err := yaml.Marshal(cluster)
+	if err != nil {
+		return fmt.Errorf("failed to marshal cluster, %v", err)
+	}
+	if clusterfile == "" {
+		return utils.WriteFile(common.TmpClusterfile, data)
+	}
+	appendData := [][]byte{data}
+	plugins, err := utils.DecodePlugins(clusterfile)
+	if err != nil {
+		return err
+	}
+	for _, plugin := range plugins {
+		data, err := yaml.Marshal(plugin)
+		if err != nil {
+			return fmt.Errorf("failed to marshal plugin, %v", err)
+		}
+		appendData = append(appendData, []byte("---\n"), data)
+	}
+
+	configs, err := utils.DecodeConfigs(clusterfile)
+	if err != nil {
+		return err
+	}
+	for _, config := range configs {
+		data, err := yaml.Marshal(config)
+		if err != nil {
+			return fmt.Errorf("failed to marshal config, %v", err)
+		}
+		appendData = append(appendData, []byte("---\n"), data)
+	}
+
+	err = utils.WriteFile(common.TmpClusterfile, bytes.Join(appendData, []byte("")))
+	if err != nil {
+		return err
+	}
 	return nil
 }
