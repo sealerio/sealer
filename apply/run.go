@@ -16,7 +16,9 @@ package apply
 
 import (
 	"fmt"
+	"math/big"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 
@@ -59,6 +61,47 @@ func IsIPList(args string) bool {
 		}
 	}
 	return true
+}
+
+func PreProcessIPList(joinArgs *common.RunArgs) {
+	AssemblyIPList(&joinArgs.Masters)
+	AssemblyIPList(&joinArgs.Nodes)
+}
+
+func ipToInt(v string) *big.Int {
+	ip := net.ParseIP(v).To4()
+	if val := ip.To4(); val != nil {
+		return big.NewInt(0).SetBytes(val)
+	}
+	return big.NewInt(0).SetBytes(ip.To16())
+}
+
+func CompareIP(v1, v2 string) int {
+	i := ipToInt(v1)
+	j := ipToInt(v2)
+
+	if i == nil || j == nil {
+		os.Exit(-1)
+	}
+	return i.Cmp(j)
+}
+
+func NextIP(ip string) net.IP {
+	i := ipToInt(ip)
+	return i.Add(i, big.NewInt(1)).Bytes()
+}
+
+func AssemblyIPList(args *string) {
+	var result string
+	var ips = strings.Split(*args, "-")
+	if *args == "" || !strings.Contains(*args, "-") || len(ips) != 2 {
+		return
+	}
+	for CompareIP(ips[0], ips[1]) <= 0 {
+		result = ips[0] + "," + result
+		ips[0] = NextIP(ips[0]).String()
+	}
+	*args = result
 }
 
 func IsCidrString(arg string) (bool, error) {

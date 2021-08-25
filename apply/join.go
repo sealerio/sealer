@@ -56,6 +56,7 @@ func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface
 		return nil
 	}
 	if cluster.Spec.Provider == "BAREMETAL" {
+		PreProcessIPList(joinArgs)
 		if IsIPList(joinArgs.Nodes) || IsIPList(joinArgs.Masters) {
 			margeMasters := append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Masters, ",")...)
 			margeNodes := append(cluster.Spec.Nodes.IPList, strings.Split(joinArgs.Nodes, ",")...)
