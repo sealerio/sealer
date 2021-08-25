@@ -52,13 +52,13 @@ type Interface interface {
 }
 
 type Dumper struct {
-	configs     []v1.Config
-	clusterName string
+	Configs     []v1.Config
+	ClusterName string
 }
 
 func NewConfiguration(clusterName string) Interface {
 	return &Dumper{
-		clusterName: clusterName,
+		ClusterName: clusterName,
 	}
 }
 
@@ -67,6 +67,34 @@ func (c *Dumper) Dump(clusterfile string) error {
 		logger.Debug("clusterfile is empty!")
 		return nil
 	}
+	err := c.DecodeConfig(clusterfile)
+	if err != nil {
+		return fmt.Errorf("failed to dump config %v", err)
+	}
+
+	err = c.WriteFiles()
+	if err != nil {
+		return fmt.Errorf("failed to write config files %v", err)
+	}
+	return nil
+}
+
+func (c *Dumper) WriteFiles() error {
+	for _, config := range c.Configs {
+		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsDir(c.ClusterName), config.Spec.Path), []byte(config.Spec.Data))
+		if err != nil {
+			return fmt.Errorf("write config fileed %v", err)
+		}
+		err = ioutil.WriteFile(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterName), config.Spec.Path), []byte(config.Spec.Data), common.FileMode0644)
+		if err != nil {
+			return fmt.Errorf("write config file failed %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (c *Dumper) DecodeConfig(clusterfile string) error {
 	file, err := os.Open(clusterfile)
 	if err != nil {
 		return fmt.Errorf("failed to dump config %v", err)
@@ -92,42 +120,22 @@ func (c *Dumper) Dump(clusterfile string) error {
 			continue
 		}
 		// ext.Raw
-		err := c.DecodeConfig(ext.Raw)
+		err := c.decodeConfig(ext.Raw)
 		if err != nil {
 			return fmt.Errorf("failed to decode config file %v", err)
 		}
 	}
-
-	err = c.WriteFiles()
-	if err != nil {
-		return fmt.Errorf("failed to write config files %v", err)
-	}
 	return nil
 }
 
-func (c *Dumper) WriteFiles() error {
-	for _, config := range c.configs {
-		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsDir(c.clusterName), config.Spec.Path), []byte(config.Spec.Data))
-		if err != nil {
-			return fmt.Errorf("write config fileed %v", err)
-		}
-		err = ioutil.WriteFile(filepath.Join(common.DefaultMountCloudImageDir(c.clusterName), config.Spec.Path), []byte(config.Spec.Data), common.FileMode0644)
-		if err != nil {
-			return fmt.Errorf("write config file failed %v", err)
-		}
-	}
-
-	return nil
-}
-
-func (c *Dumper) DecodeConfig(Body []byte) error {
+func (c *Dumper) decodeConfig(Body []byte) error {
 	config := v1.Config{}
 	err := yaml.Unmarshal(Body, &config)
 	if err != nil {
 		return fmt.Errorf("decode config failed %v", err)
 	}
 	if config.Kind == common.CRDConfig {
-		c.configs = append(c.configs, config)
+		c.Configs = append(c.Configs, config)
 	}
 
 	return nil

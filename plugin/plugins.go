@@ -51,19 +51,19 @@ type Plugins interface {
 }
 
 type PluginsProcesser struct {
-	plugins     []v1.Plugin
-	clusterName string
+	Plugins     []v1.Plugin
+	ClusterName string
 }
 
 func NewPlugins(clusterName string) Plugins {
 	return &PluginsProcesser{
-		clusterName: clusterName,
-		plugins:     []v1.Plugin{},
+		ClusterName: clusterName,
+		Plugins:     []v1.Plugin{},
 	}
 }
 
 func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
-	for _, config := range c.plugins {
+	for _, config := range c.Plugins {
 		switch config.Name {
 		case "LABEL":
 			l := LabelsNodes{}
@@ -96,6 +96,33 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 		logger.Debug("clusterfile is empty!")
 		return nil
 	}
+	err := c.DecodeConfig(clusterfile)
+	if err != nil {
+		return err
+	}
+	err = c.WriteFiles()
+	if err != nil {
+		return fmt.Errorf("failed to write config files %v", err)
+	}
+	return nil
+}
+
+func (c *PluginsProcesser) WriteFiles() error {
+	if len(c.Plugins) == 0 {
+		logger.Debug("config is nil")
+		return nil
+	}
+	for _, config := range c.Plugins {
+		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
+		if err != nil {
+			return fmt.Errorf("write config fileed %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (c *PluginsProcesser) DecodeConfig(clusterfile string) error {
 	file, err := os.Open(clusterfile)
 	if err != nil {
 		return fmt.Errorf("failed to dump config %v", err)
@@ -121,42 +148,22 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 			continue
 		}
 		// ext.Raw
-		err := c.DecodeConfig(ext.Raw)
+		err := c.decodeConfig(ext.Raw)
 		if err != nil {
 			return fmt.Errorf("failed to decode config file %v", err)
 		}
 	}
-
-	err = c.WriteFiles()
-	if err != nil {
-		return fmt.Errorf("failed to write config files %v", err)
-	}
 	return nil
 }
 
-func (c *PluginsProcesser) WriteFiles() error {
-	if len(c.plugins) == 0 {
-		logger.Debug("config is nil")
-		return nil
-	}
-	for _, config := range c.plugins {
-		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.clusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
-		if err != nil {
-			return fmt.Errorf("write config fileed %v", err)
-		}
-	}
-
-	return nil
-}
-
-func (c *PluginsProcesser) DecodeConfig(Body []byte) error {
+func (c *PluginsProcesser) decodeConfig(Body []byte) error {
 	config := v1.Plugin{}
 	err := yaml.Unmarshal(Body, &config)
 	if err != nil {
 		return fmt.Errorf("decode config failed %v", err)
 	}
 	if config.Kind == common.CRDPlugin {
-		c.plugins = append(c.plugins, config)
+		c.Plugins = append(c.Plugins, config)
 	}
 	return nil
 }

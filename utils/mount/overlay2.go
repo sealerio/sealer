@@ -25,6 +25,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/alibaba/sealer/utils/ssh"
+
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -114,6 +116,18 @@ func GetMountDetails(target string) (mounted bool, upper string) {
 	if err != nil {
 		return false, ""
 	}
+	return mountCmdResultSplit(result, target)
+}
+
+func GetRemoteMountDetails(s ssh.Interface, ip string, target string) (mounted bool, upper string) {
+	result, err := s.Cmd(ip, fmt.Sprintf("mount | grep %s", target))
+	if err != nil {
+		return false, ""
+	}
+	return mountCmdResultSplit(string(result), target)
+}
+
+func mountCmdResultSplit(result string, target string) (mounted bool, upper string) {
 	if !strings.Contains(result, target) {
 		return false, ""
 	}
