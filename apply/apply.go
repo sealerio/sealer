@@ -28,10 +28,18 @@ type Interface interface {
 }
 
 func NewApplierFromFile(clusterfile string) (Interface, error) {
-	cluster, err := GetClusterFromFile(clusterfile)
+	clusters, err := utils.DecodeCluster(clusterfile)
 	if err != nil {
 		return nil, err
 	}
+	if len(clusters) == 0 {
+		return nil, fmt.Errorf("failed to found cluster from %s", clusterfile)
+	}
+	if len(clusters) > 1 {
+		return nil, fmt.Errorf("multiple clusters exist in the Clusterfile")
+	}
+	cluster := &clusters[0]
+	cluster.SetAnnotations(common.ClusterfileName, clusterfile)
 	return NewApplier(cluster)
 }
 

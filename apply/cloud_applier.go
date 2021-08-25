@@ -19,13 +19,11 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/plugin"
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -136,7 +134,7 @@ func (c *CloudApplier) Apply() error {
 
 	err = generateTmpClusterfile(cluster)
 	if err != nil {
-		return fmt.Errorf("failed to generateTmpClusterfile, %v", err)
+		return fmt.Errorf("failed to generate TmpClusterfile, %v", err)
 	}
 	defer func() {
 		if err := utils.CleanFiles(common.TmpClusterfile); err != nil {
@@ -184,23 +182,20 @@ func (c *CloudApplier) Delete() error {
 
 func generateTmpClusterfile(cluster *v1.Cluster) error {
 	cluster.Spec.Provider = common.BAREMETAL
+	clusterfile := cluster.GetAnnotationsByKey(common.ClusterfileName)
 	data, err := yaml.Marshal(cluster)
 	if err != nil {
 		return fmt.Errorf("failed to marshal cluster, %v", err)
 	}
-	clusterfile := cluster.GetAnnotationsByKey(common.ClusterfileName)
 	if clusterfile == "" {
 		return utils.WriteFile(common.TmpClusterfile, data)
 	}
 	appendData := [][]byte{data}
-	pluginsDumper := &plugin.PluginsProcesser{ClusterName: cluster.Name, Plugins: []v1.Plugin{}}
-	configDumper := &config.Dumper{ClusterName: cluster.Name, Configs: []v1.Config{}}
-
-	err = pluginsDumper.DecodeConfig(clusterfile)
+	plugins, err := utils.DecodePlugins(clusterfile)
 	if err != nil {
 		return err
 	}
-	for _, plugin := range pluginsDumper.Plugins {
+	for _, plugin := range plugins {
 		data, err := yaml.Marshal(plugin)
 		if err != nil {
 			return fmt.Errorf("failed to marshal plugin, %v", err)
@@ -208,11 +203,11 @@ func generateTmpClusterfile(cluster *v1.Cluster) error {
 		appendData = append(appendData, []byte("---\n"), data)
 	}
 
-	err = configDumper.DecodeConfig(clusterfile)
+	configs, err := utils.DecodeConfigs(clusterfile)
 	if err != nil {
 		return err
 	}
-	for _, config := range configDumper.Configs {
+	for _, config := range configs {
 		data, err := yaml.Marshal(config)
 		if err != nil {
 			return fmt.Errorf("failed to marshal config, %v", err)

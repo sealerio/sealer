@@ -15,19 +15,14 @@
 package config
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 /*
@@ -67,11 +62,11 @@ func (c *Dumper) Dump(clusterfile string) error {
 		logger.Debug("clusterfile is empty!")
 		return nil
 	}
-	err := c.DecodeConfig(clusterfile)
+	configs, err := utils.DecodeConfigs(clusterfile)
 	if err != nil {
 		return fmt.Errorf("failed to dump config %v", err)
 	}
-
+	c.Configs = configs
 	err = c.WriteFiles()
 	if err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
@@ -80,6 +75,10 @@ func (c *Dumper) Dump(clusterfile string) error {
 }
 
 func (c *Dumper) WriteFiles() error {
+	if c.Configs == nil {
+		logger.Debug("config is nil")
+		return nil
+	}
 	for _, config := range c.Configs {
 		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsDir(c.ClusterName), config.Spec.Path), []byte(config.Spec.Data))
 		if err != nil {
@@ -89,53 +88,6 @@ func (c *Dumper) WriteFiles() error {
 		if err != nil {
 			return fmt.Errorf("write config file failed %v", err)
 		}
-	}
-
-	return nil
-}
-
-func (c *Dumper) DecodeConfig(clusterfile string) error {
-	file, err := os.Open(clusterfile)
-	if err != nil {
-		return fmt.Errorf("failed to dump config %v", err)
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			logger.Warn("failed to dump config close clusterfile failed %v", err)
-		}
-	}()
-
-	d := yaml.NewYAMLOrJSONDecoder(file, 4096)
-	for {
-		ext := runtime.RawExtension{}
-		if err := d.Decode(&ext); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		// TODO: This needs to be able to handle object in other encodings and schemas.
-		ext.Raw = bytes.TrimSpace(ext.Raw)
-		if len(ext.Raw) == 0 || bytes.Equal(ext.Raw, []byte("null")) {
-			continue
-		}
-		// ext.Raw
-		err := c.decodeConfig(ext.Raw)
-		if err != nil {
-			return fmt.Errorf("failed to decode config file %v", err)
-		}
-	}
-	return nil
-}
-
-func (c *Dumper) decodeConfig(Body []byte) error {
-	config := v1.Config{}
-	err := yaml.Unmarshal(Body, &config)
-	if err != nil {
-		return fmt.Errorf("decode config failed %v", err)
-	}
-	if config.Kind == common.CRDConfig {
-		c.Configs = append(c.Configs, config)
 	}
 
 	return nil
