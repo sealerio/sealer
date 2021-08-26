@@ -99,6 +99,7 @@ func AssemblyIPList(args *string) {
 	for res, _ := CompareIP(ips[0], ips[1]); res <= 0; {
 		result = ips[0] + "," + result
 		ips[0] = NextIP(ips[0]).String()
+		res, _ = CompareIP(ips[0], ips[1])
 	}
 	*args = result
 }
