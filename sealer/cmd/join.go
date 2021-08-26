@@ -50,7 +50,7 @@ var joinCmd = &cobra.Command{
 	Use:   "join",
 	Short: "join node to cluster",
 	Example: `
-join to default cluster:
+join to default cluster: merge
 	sealer join --masters x.x.x.x --nodes x.x.x.x
     sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
 join to cluster by cloud provider, just set the number of masters or nodes:

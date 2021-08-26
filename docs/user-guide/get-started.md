@@ -115,13 +115,8 @@ spec:
     # ssh login user
     user: root
   network:
-    # in use NIC name
-    interface: eth0
-    # Network plug-in name
-    cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
-    withoutCNI: false
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2
@@ -177,13 +172,8 @@ spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: ALI_CLOUD
   network:
-    # in use NIC name
-    interface: eth0
-    # Network plug-in name
-    cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
-    withoutCNI: false
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2
