@@ -55,8 +55,21 @@ func TestAssemblyIPList(t *testing.T) {
 		{
 			"errorData3",
 			&common.RunArgs{
-				Masters:    "-10.110.101.5",
+				Masters:    "-10.110.101.",
 				Nodes:      "10.110.101.1-",
+				User:       "",
+				Password:   "",
+				Pk:         "",
+				PkPassword: "",
+				PodCidr:    "",
+				SvcCidr:    "",
+			},
+		},
+		{
+			"errorData4",
+			&common.RunArgs{
+				Masters:    "a-b",
+				Nodes:      "a-",
 				User:       "",
 				Password:   "",
 				Pk:         "",
@@ -68,7 +81,9 @@ func TestAssemblyIPList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			AssemblyIPList(&tt.args.Masters)
+			if err := AssemblyIPList(&tt.args.Masters); err != nil {
+				logger.Error("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
+			}
 			logger.Info("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
 		})
 	}
