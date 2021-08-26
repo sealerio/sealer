@@ -14,10 +14,49 @@ func TestAssemblyIPList(t *testing.T) {
 		args *common.RunArgs
 	}{
 		{
-			"TestAssemblyIPList",
+			"baseData",
 			&common.RunArgs{
 				Masters:    "10.110.101.1-10.110.101.5",
 				Nodes:      "10.110.101.1-10.110.101.5",
+				User:       "",
+				Password:   "",
+				Pk:         "",
+				PkPassword: "",
+				PodCidr:    "",
+				SvcCidr:    "",
+			},
+		},
+		{
+			"errorData",
+			&common.RunArgs{
+				Masters:    "10.110.101.10-10.110.101.5",
+				Nodes:      "10.110.101.1-10.110.101.5",
+				User:       "",
+				Password:   "",
+				Pk:         "",
+				PkPassword: "",
+				PodCidr:    "",
+				SvcCidr:    "",
+			},
+		},
+		{
+			"errorData2",
+			&common.RunArgs{
+				Masters:    "10.110.101.10-10.110.101.5-10.110.101.55",
+				Nodes:      "10.110.101.1-10.110.101.5",
+				User:       "",
+				Password:   "",
+				Pk:         "",
+				PkPassword: "",
+				PodCidr:    "",
+				SvcCidr:    "",
+			},
+		},
+		{
+			"errorData3",
+			&common.RunArgs{
+				Masters:    "-10.110.101.5",
+				Nodes:      "10.110.101.1-",
 				User:       "",
 				Password:   "",
 				Pk:         "",
@@ -30,7 +69,7 @@ func TestAssemblyIPList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			AssemblyIPList(&tt.args.Masters)
-			logger.Info("masters : %v ", &tt.args.Masters)
+			logger.Info("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
 		})
 	}
 }
