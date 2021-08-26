@@ -25,11 +25,8 @@ spec:
     pkPasswd: xxx
     user: root
   network:
-    interface: eth0
-    cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
-    withoutCNI: false
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2
