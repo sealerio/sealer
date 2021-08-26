@@ -10,8 +10,9 @@ import (
 
 func TestAssemblyIPList(t *testing.T) {
 	tests := []struct {
-		name string
-		args *common.RunArgs
+		name    string
+		args    *common.RunArgs
+		wantErr bool
 	}{
 		{
 			"baseData",
@@ -25,6 +26,7 @@ func TestAssemblyIPList(t *testing.T) {
 				PodCidr:    "",
 				SvcCidr:    "",
 			},
+			false,
 		},
 		{
 			"errorData",
@@ -38,6 +40,7 @@ func TestAssemblyIPList(t *testing.T) {
 				PodCidr:    "",
 				SvcCidr:    "",
 			},
+			true,
 		},
 		{
 			"errorData2",
@@ -51,6 +54,7 @@ func TestAssemblyIPList(t *testing.T) {
 				PodCidr:    "",
 				SvcCidr:    "",
 			},
+			true,
 		},
 		{
 			"errorData3",
@@ -64,6 +68,7 @@ func TestAssemblyIPList(t *testing.T) {
 				PodCidr:    "",
 				SvcCidr:    "",
 			},
+			true,
 		},
 		{
 			"errorData4",
@@ -77,11 +82,12 @@ func TestAssemblyIPList(t *testing.T) {
 				PodCidr:    "",
 				SvcCidr:    "",
 			},
+			true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := AssemblyIPList(&tt.args.Masters); err != nil {
+			if err := AssemblyIPList(&tt.args.Masters); (err != nil) != tt.wantErr {
 				logger.Error("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
 			}
 			logger.Info("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
