@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 
@@ -76,14 +75,14 @@ func ipToInt(v string) *big.Int {
 	return big.NewInt(0).SetBytes(ip.To16())
 }
 
-func CompareIP(v1, v2 string) int {
+func CompareIP(v1, v2 string) (int, error) {
 	i := ipToInt(v1)
 	j := ipToInt(v2)
 
 	if i == nil || j == nil {
-		os.Exit(-1)
+		return 2, fmt.Errorf("ip is nil，check you command agrs")
 	}
-	return i.Cmp(j)
+	return i.Cmp(j), nil
 }
 
 func NextIP(ip string) net.IP {
@@ -97,7 +96,7 @@ func AssemblyIPList(args *string) {
 	if *args == "" || !strings.Contains(*args, "-") || len(ips) != 2 {
 		return
 	}
-	for CompareIP(ips[0], ips[1]) <= 0 {
+	for res, _ := CompareIP(ips[0], ips[1]); res <= 0; {
 		result = ips[0] + "," + result
 		ips[0] = NextIP(ips[0]).String()
 	}
