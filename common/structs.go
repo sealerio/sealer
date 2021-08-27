@@ -24,3 +24,8 @@ type RunArgs struct {
 	PodCidr    string
 	SvcCidr    string
 }
+
+type RunOpts struct {
+	Force bool
+	All   bool
+}
