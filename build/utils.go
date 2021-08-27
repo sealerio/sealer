@@ -177,7 +177,7 @@ func IsAllPodsRunning() bool {
 		var notRunning int
 		for _, podNamespace := range namespacePodList {
 			for _, pod := range podNamespace.PodList.Items {
-				if pod.Status.Phase != "Running" {
+				if pod.Status.Phase != "Running" && pod.Status.Phase != "Succeeded" {
 					logger.Info(podNamespace.Namespace.Name, pod.Name, pod.Status.Phase)
 					notRunning++
 					continue
