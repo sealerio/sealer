@@ -34,6 +34,10 @@
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/zookeeper:3.7.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/rocketmq:4.5.0
 
+### application image
+
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/dashboard:v2.2.0
+
 # How to use it
 
 ## apply a cluster

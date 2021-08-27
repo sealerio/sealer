@@ -1,4 +1,11 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-prometheus-stack-system
+  labels:
+    app.kubernetes.io/instance: kube-prometheus-stack
+---
 # Source: kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/job-patch/psp.yaml
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -9,13 +16,9 @@ metadata:
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
   labels:
     app: kube-prometheus-stack-admission
-
-
-
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
-
     release: "kube-prometheus-stack"
     heritage: "Helm"
 spec:
@@ -121,7 +124,6 @@ metadata:
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
-
     release: "kube-prometheus-stack"
     heritage: "Helm"
 roleRef:
@@ -147,7 +149,6 @@ metadata:
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
-
     release: "kube-prometheus-stack"
     heritage: "Helm"
 rules:
@@ -673,7 +674,6 @@ metadata:
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "8.1.0"
-
   name: kube-prometheus-stack-grafana-test
   namespace: kube-prometheus-stack-system
 ---
@@ -755,8 +755,6 @@ metadata:
     app: kube-prometheus-stack-prometheus
     app.kubernetes.io/name: kube-prometheus-stack-prometheus
     app.kubernetes.io/component: prometheus
-
-
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
@@ -39868,12 +39866,9 @@ metadata:
   namespace: kube-prometheus-stack-system
   labels:
     app: kube-prometheus-stack-operator
-
-
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
-
     release: "kube-prometheus-stack"
     heritage: "Helm"
 spec:
@@ -39886,12 +39881,9 @@ spec:
     metadata:
       labels:
         app: kube-prometheus-stack-operator
-
-
         app.kubernetes.io/instance: kube-prometheus-stack
         app.kubernetes.io/version: "18.0.1"
         app.kubernetes.io/part-of: kube-prometheus-stack
-
         release: "kube-prometheus-stack"
         heritage: "Helm"
     spec:
@@ -39945,12 +39937,9 @@ metadata:
   namespace: kube-prometheus-stack-system
   labels:
     app: kube-prometheus-stack-alertmanager
-
-
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
-
     release: "kube-prometheus-stack"
     heritage: "Helm"
 spec:
@@ -40017,12 +40006,9 @@ metadata:
   namespace: kube-prometheus-stack-system
   labels:
     app: kube-prometheus-stack-prometheus
-
-
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
-
     release: "kube-prometheus-stack"
     heritage: "Helm"
 spec:
@@ -40225,12 +40211,9 @@ metadata:
   namespace: kube-prometheus-stack-system
   labels:
     app: kube-prometheus-stack
-
-
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
-
     release: "kube-prometheus-stack"
     heritage: "Helm"
 spec:
@@ -40359,12 +40342,9 @@ metadata:
   namespace: kube-prometheus-stack-system
   labels:
     app: kube-prometheus-stack
-
-
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
-
     release: "kube-prometheus-stack"
     heritage: "Helm"
 spec:
@@ -40407,8 +40387,6 @@ metadata:
   namespace: kube-prometheus-stack-system
   labels:
     app: kube-prometheus-stack
-
-
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
@@ -40564,8 +40542,6 @@ metadata:
   namespace: kube-prometheus-stack-system
   labels:
     app: kube-prometheus-stack
-
-
     app.kubernetes.io/instance: kube-prometheus-stack
     app.kubernetes.io/version: "18.0.1"
     app.kubernetes.io/part-of: kube-prometheus-stack
