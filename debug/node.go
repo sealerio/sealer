@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alibaba/sealer/common"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -11,37 +13,27 @@ import (
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
 )
 
-type DebugNodeOptions struct {
-	*DebugOptions
-}
-
-const NODE_DEBUG_PREFIX = "node-debugger"
-
-var debugNodeOptions *DebugNodeOptions
-
-func NewDebugNodeOptions(debutOpt *DebugOptions) *DebugNodeOptions{
-	return &DebugNodeOptions{
-		DebugOptions:	debutOpt,
-	}
-}
-
-func NewDebugNode(options *DebugOptions) *cobra.Command {
-	debugNodeOptions := NewDebugNodeOptions(options)
-
+func NewDebugNodeCommand(options *DebugOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "node",
 		Short:   "Debug node",
-		Long:    "",
-		Example: "",
+		Args:	 cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options.Type = "node"
+			debugger := NewDebugger(options)
+			debugger.AdminKubeConfigPath = common.KubeAdminConf
+			debugger.Type = TypeDebugNode
+			debugger.Motd = SEALER_DEBUG_MOTD
 
-			if err := debugNodeOptions.CompleteAndVerify(cmd, args); err != nil {
+			imager := NewDebugImagesManager()
+
+			if err := debugger.CompleteAndVerifyOptions(cmd, args, imager); err != nil {
 				return err
 			}
-			if err := debugNodeOptions.Run(cmd, debugNodeOptions.DebugNode); err != nil {
+			str, err := debugger.Run()
+			if err != nil {
 				return err
 			}
+			fmt.Println("The debug ID:", str)
 
 			return nil
 		},
@@ -50,19 +42,20 @@ func NewDebugNode(options *DebugOptions) *cobra.Command {
 	return cmd
 }
 
-func (debugOpts *DebugNodeOptions) DebugNode(ctx context.Context) (*corev1.Pod, error) {
+// DebugNode can debug a node.
+func (debugger *Debugger) DebugNode(ctx context.Context) (*corev1.Pod, error) {
 	// get the target node object
-	targetNode, err := debugOpts.kubeClientCorev1.Nodes().Get(ctx, debugOpts.TargetName, metav1.GetOptions{})
+	targetNode, err := debugger.kubeClientCorev1.Nodes().Get(ctx, debugger.TargetName, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to find the target node %s", debugOpts.TargetName)
+		return nil, errors.Wrapf(err, "failed to find the target node %s", debugger.TargetName)
 	}
 
-	if err := debugOpts.addClusterInfoIntoEnv(ctx); err != nil {
+	if err := debugger.addClusterInfoIntoEnv(ctx); err != nil {
 		return nil, err
 	}
 
 	// add a pod into target node
-	debugPod, err := debugOpts.debugNodeByPod(ctx, targetNode)
+	debugPod, err := debugger.debugNodeByPod(ctx, targetNode)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to add a pod into node: %s", targetNode.Name)
 	}
@@ -71,10 +64,10 @@ func (debugOpts *DebugNodeOptions) DebugNode(ctx context.Context) (*corev1.Pod, 
 }
 
 // debugNodeByPod runs a pod in target node and use as a debug pod.
-func (debugOpts *DebugNodeOptions) debugNodeByPod(ctx context.Context, node *corev1.Node) (*corev1.Pod, error) {
-	pods := debugOpts.kubeClientCorev1.Pods(debugOpts.Namespace)
+func (debugger *Debugger) debugNodeByPod(ctx context.Context, node *corev1.Node) (*corev1.Pod, error) {
+	pods := debugger.kubeClientCorev1.Pods(debugger.Namespace)
 
-	debugPod, err := pods.Create(ctx, debugOpts.generateDebugPod(node.Name), metav1.CreateOptions{})
+	debugPod, err := pods.Create(ctx, debugger.generateDebugPod(node.Name), metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -85,15 +78,15 @@ func (debugOpts *DebugNodeOptions) debugNodeByPod(ctx context.Context, node *cor
 // generateDebugPod generates a debug pod that schedules on the specified node.
 // The generated pod will run in the host PID, Network & IPC namespace, and it will
 // have the node's filesystem mounted at /hostfs.
-func (debugOpts *DebugNodeOptions) generateDebugPod(nodeName string) *corev1.Pod {
-	cn := "debugger"
-	if len(debugOpts.DebugContainerName) > 0 {
-		cn = debugOpts.DebugContainerName
+func (debugger *Debugger) generateDebugPod(nodeName string) *corev1.Pod {
+	cn := PodDebugPrefix
+	if len(debugger.DebugContainerName) > 0 {
+		cn = debugger.DebugContainerName
 	} else {
-		debugOpts.DebugContainerName = cn
+		debugger.DebugContainerName = cn
 	}
 
-	pn := fmt.Sprintf("%s-%s-%s", NODE_DEBUG_PREFIX, nodeName, utilrand.String(7))
+	pn := fmt.Sprintf("%s-%s-%s", NodeDebugPrefix, nodeName, utilrand.String(7))
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -103,9 +96,9 @@ func (debugOpts *DebugNodeOptions) generateDebugPod(nodeName string) *corev1.Pod
 			Containers: []corev1.Container{
 				{
 					Name: 						cn,
-					Env: 						debugOpts.Env,
-					Image: 						debugOpts.Image,
-					ImagePullPolicy: 			debugOpts.PullPolicy,
+					Env: 						debugger.Env,
+					Image: 						debugger.Image,
+					ImagePullPolicy: 			corev1.PullPolicy(debugger.PullPolicy),
 					Stdin: 						true,
 					TTY:						true,
 					TerminationMessagePolicy: 	corev1.TerminationMessageReadFile,

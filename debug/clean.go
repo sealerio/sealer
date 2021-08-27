@@ -8,8 +8,8 @@ import (
 
 	"github.com/alibaba/sealer/common"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -20,36 +20,48 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type CleanOptions struct {
+// DebugCleanOptions holds the the options for an invocation of debug clean.
+type DebugCleanOptions struct {
 	PodName				string
 	Namespace			string
-	KubeClientCorev1	corev1client.CoreV1Interface
-
-	Config				*restclient.Config
 	ContainerName		string
-	Stdin 				bool
-	TTY					bool
+}
+
+// DebugCleaner cleans the debug containers and pods.
+type DebugCleaner struct {
+	*DebugCleanOptions
+
+	AdminKubeConfigPath	string
+
+	stdin 				bool
+	tty					bool
 
 	genericclioptions.IOStreams
 }
 
-func NewCleanOptions() *CleanOptions {
-	return &CleanOptions{}
+func NewDebugCleanOptions() *DebugCleanOptions {
+	return &DebugCleanOptions{}
 }
 
-func NewDebugClean() *cobra.Command {
-	cleanOptions := NewCleanOptions()
+func NewDebugCleaner() *DebugCleaner {
+	return &DebugCleaner{
+		DebugCleanOptions: NewDebugCleanOptions(),
+	}
+}
 
+func NewDebugCleanCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "clean",
-		Short:   "clean the debug container od pod",
-		Long:    "",
-		Example: "",
+		Short:   "Clean the debug container od pod",
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cleanOptions.CompleteAndVerify(cmd, args); err != nil {
+			cleaner := NewDebugCleaner()
+			cleaner.AdminKubeConfigPath = common.KubeAdminConf
+
+			if err := cleaner.CompleteAndVerifyOptions(args); err != nil {
 				return err
 			}
-			if err := cleanOptions.Run(cmd); err != nil {
+			if err := cleaner.Run(); err != nil {
 				return err
 			}
 
@@ -60,90 +72,82 @@ func NewDebugClean() *cobra.Command {
 	return cmd
 }
 
-func (cleanOpts *CleanOptions) CompleteAndVerify(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		return fmt.Errorf("debug ID is required for clean")
-	}
-
-	ss := strings.Split(args[0], DEBUG_ID_FS)
+// CompleteAndVerifyOptions completes and verifies DebugCleanOptions.
+func (cleaner *DebugCleaner) CompleteAndVerifyOptions(args []string) error {
+	ss := strings.Split(args[0], FSDebugID)
 	if len(ss) < 3 {
 		return fmt.Errorf("invaild debug ID")
 	}
 
-	cleanOpts.Namespace = ss[2]
-	cleanOpts.PodName = ss[1]
-	cleanOpts.ContainerName = ss[0]
+	cleaner.Namespace = ss[2]
+	cleaner.PodName = ss[1]
+	cleaner.ContainerName = ss[0]
 
 	return nil
 }
 
-func (cleanOpts *CleanOptions) Run(cmd *cobra.Command) error {
+// Run removes debug pods or exits debug containers.
+func (cleaner *DebugCleaner) Run() error {
 	ctx := context.Background()
 
-	// Diff: between trident and sealer
-	// adminKubeConfigPath := config.AdminKubeConfPath
-	adminKubeConfigPath := common.KubeAdminConf
-
 	// get the rest config
-	restConfig, err := clientcmd.BuildConfigFromFlags("", adminKubeConfigPath)
+	restConfig, err := clientcmd.BuildConfigFromFlags("", cleaner.AdminKubeConfigPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get rest config from file %s", adminKubeConfigPath)
+		return errors.Wrapf(err, "failed to get rest config from file %s", cleaner.AdminKubeConfigPath)
 	}
-	setKubernetesDefaults(restConfig)
-	cleanOpts.Config = restConfig
+	SetKubernetesDefaults(restConfig)
 
 	// get the kube client set
 	kubeClientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create kubernetes client from file %s", adminKubeConfigPath)
+		return errors.Wrapf(err, "failed to create kubernetes client from file %s", cleaner.AdminKubeConfigPath)
 	}
-	cleanOpts.KubeClientCorev1 = kubeClientSet.CoreV1()
 
-	if strings.HasPrefix(cleanOpts.PodName, NODE_DEBUG_PREFIX) {
-		return cleanOpts.RemovePod(ctx)
+	if strings.HasPrefix(cleaner.PodName, NodeDebugPrefix) {
+		return cleaner.RemovePod(ctx, kubeClientSet.CoreV1())
 	} else {
-		return cleanOpts.ExitEphemeralContainer(ctx)
+		return cleaner.ExitEphemeralContainer(restConfig)
 	}
 
 	return nil
 }
 
-// RemovePod removes the connect pod
-func (cleanOpts *CleanOptions) RemovePod(ctx context.Context) error {
-	if cleanOpts.KubeClientCorev1 == nil {
+// RemovePod removes the debug pods.
+func (cleaner *DebugCleaner) RemovePod(ctx context.Context, kubeClientCorev1 corev1client.CoreV1Interface) error {
+	if kubeClientCorev1 == nil {
 		return fmt.Errorf("clean must need a kubernetes client")
 	}
 
-	return cleanOpts.KubeClientCorev1.Pods(cleanOpts.Namespace).Delete(ctx, cleanOpts.PodName, metav1.DeleteOptions{})
+	return kubeClientCorev1.Pods(cleaner.Namespace).Delete(ctx, cleaner.PodName, metav1.DeleteOptions{})
 }
 
-// ExitEphemeralContainer exits the ephemeral container and the ephemeral container's status
-// will become terminated.
-func (cleanOpts *CleanOptions) ExitEphemeralContainer(ctx context.Context) error {
-	restClient, err := restclient.RESTClientFor(cleanOpts.Config)
+// ExitEphemeralContainer exits the ephemeral containers
+// and the ephemeral container's status will become terminated.
+func (cleaner *DebugCleaner) ExitEphemeralContainer(config *restclient.Config) error {
+	restClient, err := restclient.RESTClientFor(config)
 	if err != nil {
 		return err
 	}
 
-	cleanOpts.initExitEpheContainerOpts()
+	cleaner.initExitEpheContainerOpts()
 
 	req := restClient.Post().
 		Resource("pods").
-		Name(cleanOpts.PodName).
-		Namespace(cleanOpts.Namespace).
+		Name(cleaner.PodName).
+		Namespace(cleaner.Namespace).
 		SubResource("attach")
 	req.VersionedParams(&corev1.PodAttachOptions{
-		Container: 		cleanOpts.ContainerName,
-		Stdin: 			cleanOpts.Stdin,
-		Stdout: 		cleanOpts.Out != nil,
-		Stderr: 		cleanOpts.ErrOut != nil,
-		TTY:			cleanOpts.TTY,
+		Container: 		cleaner.ContainerName,
+		Stdin: 			cleaner.stdin,
+		Stdout: 		cleaner.Out != nil,
+		Stderr: 		cleaner.ErrOut != nil,
+		TTY:			cleaner.tty,
 	}, scheme.ParameterCodec)
 
-	connect := &ConnectOptions{
-		Config:		cleanOpts.Config,
-		IOStreams:	cleanOpts.IOStreams,
-		TTY:		cleanOpts.TTY,
+	connect := &Connector{
+		Config:		config,
+		IOStreams:	cleaner.IOStreams,
+		TTY:		cleaner.tty,
 	}
 
 	if err := connect.DoConnect("POST", req.URL(), nil); err != nil {
@@ -153,12 +157,12 @@ func (cleanOpts *CleanOptions) ExitEphemeralContainer(ctx context.Context) error
 	return nil
 }
 
-func (cleanOpts *CleanOptions) initExitEpheContainerOpts() {
+func (cleaner *DebugCleaner) initExitEpheContainerOpts() {
 	var stdout, stderr bytes.Buffer
 	stdin := bytes.NewBuffer([]byte("exit\n"))
-	cleanOpts.In = stdin
-	cleanOpts.Out = &stdout
-	cleanOpts.ErrOut = &stderr
-	cleanOpts.Stdin = true
-	cleanOpts.TTY = true
+	cleaner.In = stdin
+	cleaner.Out = &stdout
+	cleaner.ErrOut = &stderr
+	cleaner.stdin = true
+	cleaner.tty = true
 }

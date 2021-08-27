@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alibaba/sealer/common"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -12,65 +14,53 @@ import (
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
 )
 
-type DebugPodOptions struct {
-	*DebugOptions
-
-	TargetContainer		string		// target container to share the namespace
-}
-
-const POD_DEBUG_PREFIX = "pod-debugger"
-
-var debugPodOptions *DebugPodOptions
-
-func NewDebugPodOptions(debugOpts *DebugOptions) *DebugPodOptions{
-	return &DebugPodOptions{
-		DebugOptions: debugOpts,
-	}
-}
-
-func NewDebugPod(options *DebugOptions) *cobra.Command {
-	debugPodOptions := NewDebugPodOptions(options)
-
+func NewDebugPodCommand(options *DebugOptions) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "pod",
+		Use: 	 "pod",
 		Short:   "Debug pod or container",
-		Long:    "",
-		Example: "",
+		Args:	 cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options.Type = "pod"
+			debugger := NewDebugger(options)
+			debugger.AdminKubeConfigPath = common.KubeAdminConf
+			debugger.Type = TypeDebugPod
+			debugger.Motd = SEALER_DEBUG_MOTD
 
-			if err := debugPodOptions.CompleteAndVerify(cmd, args); err != nil {
+			imager := NewDebugImagesManager()
+
+			if err := debugger.CompleteAndVerifyOptions(cmd, args, imager); err != nil {
 				return err
 			}
-			if err := debugPodOptions.Run(cmd, debugPodOptions.DebugPod); err != nil {
+			str, err := debugger.Run()
+			if err != nil {
 				return err
 			}
+			fmt.Println("The debug ID:", str)
 
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVarP(&debugPodOptions.TargetContainer, "container", "c", "", "The container to be debugged.")
+	cmd.Flags().StringVarP(&options.TargetContainer, "container", "c", "", "The container to be debugged.")
 
 	return cmd
 }
 
-func (debugOpts *DebugPodOptions) DebugPod(ctx context.Context) (*corev1.Pod, error) {
+func (debugger *Debugger) DebugPod(ctx context.Context) (*corev1.Pod, error) {
 	// get the target pod object
-	targetPod, err := debugOpts.kubeClientCorev1.Pods(debugOpts.Namespace).Get(ctx, debugOpts.TargetName, metav1.GetOptions{})
+	targetPod, err := debugger.kubeClientCorev1.Pods(debugger.Namespace).Get(ctx, debugger.TargetName, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get the target pod %s", debugOpts.TargetName)
+		return nil, errors.Wrapf(err, "failed to get the target pod %s", debugger.TargetName)
 	}
 
-	if err := debugOpts.addPodInfoIntoEnv(targetPod); err != nil {
+	if err := debugger.addPodInfoIntoEnv(targetPod); err != nil {
 		return nil, err
 	}
-	if err := debugOpts.addClusterInfoIntoEnv(ctx); err != nil {
+	if err := debugger.addClusterInfoIntoEnv(ctx); err != nil {
 		return nil, err
 	}
 
 	// add an ephemeral container into target pod and used as a debug container
-	debugPod, err := debugOpts.debugPodByEphemeralContainer(ctx, targetPod)
+	debugPod, err := debugger.debugPodByEphemeralContainer(ctx, targetPod)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to add an ephemeral container into pod: %s", targetPod.Name)
 	}
@@ -79,9 +69,9 @@ func (debugOpts *DebugPodOptions) DebugPod(ctx context.Context) (*corev1.Pod, er
 }
 
 // debugPodByEphemeralContainer runs an ephemeral container in target pod and use as a debug container.
-func (debugOpts *DebugPodOptions) debugPodByEphemeralContainer(ctx context.Context, pod *corev1.Pod) (*corev1.Pod, error) {
+func (debugger *Debugger) debugPodByEphemeralContainer(ctx context.Context, pod *corev1.Pod) (*corev1.Pod, error) {
 	// get ephemeral containers
-	pods := debugOpts.kubeClientCorev1.Pods(pod.Namespace)
+	pods := debugger.kubeClientCorev1.Pods(pod.Namespace)
 	ec, err := pods.GetEphemeralContainers(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
 		if serr, ok := err.(*apierrors.StatusError); ok && serr.Status().Reason == metav1.StatusReasonNotFound && serr.ErrStatus.Details.Name == "" {
@@ -91,7 +81,7 @@ func (debugOpts *DebugPodOptions) debugPodByEphemeralContainer(ctx context.Conte
 	}
 
 	// generate an ephemeral container
-	debugContainer := debugOpts.generateDebugContainer(pod)
+	debugContainer := debugger.generateDebugContainer(pod)
 
 	// add the ephemeral container and update the pod
 	ec.EphemeralContainers = append(ec.EphemeralContainers, *debugContainer)
@@ -104,52 +94,52 @@ func (debugOpts *DebugPodOptions) debugPodByEphemeralContainer(ctx context.Conte
 }
 
 // generateDebugContainer returns an ephemeral container suitable for use as a debug container in the given pod.
-func (debugOpts *DebugPodOptions) generateDebugContainer(pod *corev1.Pod) *corev1.EphemeralContainer {
-	debugContainerName := debugOpts.getDebugContainerName(pod)
-	debugOpts.DebugContainerName = debugContainerName
+func (debugger *Debugger) generateDebugContainer(pod *corev1.Pod) *corev1.EphemeralContainer {
+	debugContainerName := debugger.getDebugContainerName(pod)
+	debugger.DebugContainerName = debugContainerName
 
-	if len(debugOpts.TargetContainer) == 0 {
-		debugOpts.TargetContainer = pod.Spec.Containers[0].Name
+	if len(debugger.TargetContainer) == 0 {
+		debugger.TargetContainer = pod.Spec.Containers[0].Name
 	}
 
 	ec := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name: 						debugContainerName,
-			Env:						debugOpts.Env,
-			Image:						debugOpts.Image,
-			ImagePullPolicy: 			debugOpts.PullPolicy,
+			Env:						debugger.Env,
+			Image:						debugger.Image,
+			ImagePullPolicy: 			corev1.PullPolicy(debugger.PullPolicy),
 			Stdin:						true,
 			TerminationMessagePolicy: 	corev1.TerminationMessageReadFile,
 			TTY: 						true,
 		},
-		TargetContainerName: 			debugOpts.TargetContainer,
+		TargetContainerName: 			debugger.TargetContainer,
 	}
 
 	return ec
 }
 
 // getDebugContainerName generates and returns the debug container name.
-func (debugOpts *DebugPodOptions) getDebugContainerName(pod *corev1.Pod) string {
-	if len(debugOpts.DebugContainerName) > 0 {
-		return debugOpts.DebugContainerName
+func (debugger *Debugger) getDebugContainerName(pod *corev1.Pod) string {
+	if len(debugger.DebugContainerName) > 0 {
+		return debugger.DebugContainerName
 	}
 
-	name := debugOpts.DebugContainerName
-	containerByName := containerNameToRef(pod)
+	name := debugger.DebugContainerName
+	containerByName := ContainerNameToRef(pod)
 	for len(name) == 0 || containerByName[name] != nil {
-		name = fmt.Sprintf("%s-%s", POD_DEBUG_PREFIX, utilrand.String(5))
+		name = fmt.Sprintf("%s-%s", PodDebugPrefix, utilrand.String(5))
 	}
 
 	return name
 }
 
 // addPodInfoIntoEnv adds pod info into env
-func (debugOpts *DebugPodOptions) addPodInfoIntoEnv(pod *corev1.Pod) error {
+func (debugger *Debugger) addPodInfoIntoEnv(pod *corev1.Pod) error {
 	if pod == nil {
 		return fmt.Errorf("pod must not nil")
 	}
 
-	debugOpts.Env = append(debugOpts.Env,
+	debugger.Env = append(debugger.Env,
 		corev1.EnvVar{
 			Name: "POD_NAME",
 			Value: pod.Name,

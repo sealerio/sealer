@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/debug/clusterinfo"
 
 	"github.com/docker/distribution/reference"
@@ -24,14 +23,21 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
 )
 
-const DEBUG_ID_FS = "."
+const (
+	NodeDebugPrefix = "node-debugger"
+	PodDebugPrefix = "pod-debugger"
+
+	TypeDebugNode = "node"
+	TypeDebugPod = "pod"
+
+	FSDebugID = "."
+)
 
 // DebugOptions holds the options for an invocation of debug.
 type DebugOptions struct {
@@ -47,10 +53,19 @@ type DebugOptions struct {
 
 	DebugContainerName	string		// debug container name
 	Namespace			string		// kubernetes namespace
-	PullPolicy			corev1.PullPolicy
+	PullPolicy			string
+
+	AdminKubeConfigPath string
+
+	// Type is container
+	TargetContainer		string		// target container to share the namespace
+}
+
+type Debugger struct {
+	*DebugOptions
+	Motd				string
 
 	kubeClientCorev1	corev1client.CoreV1Interface
-	kubeClientRBACV1	rbacv1client.RbacV1Interface
 
 	genericclioptions.IOStreams
 }
@@ -60,9 +75,14 @@ func NewDebugOptions() *DebugOptions {
 	return &DebugOptions{
 		Command:		[]string{},
 
-		Namespace:		"default",
-		PullPolicy:		corev1.PullPolicy("IfNotPresent"),
+		Namespace:		corev1.NamespaceDefault,
+		PullPolicy:		string(corev1.PullIfNotPresent),
+	}
+}
 
+func NewDebugger(options *DebugOptions) *Debugger {
+	return &Debugger{
+		DebugOptions:	options,
 		IOStreams:		genericclioptions.IOStreams{
 			Out: 		os.Stdout,
 			ErrOut: 	os.Stderr,
@@ -70,47 +90,37 @@ func NewDebugOptions() *DebugOptions {
 	}
 }
 
-// CompleteAndVerify finishes run-time initialization of DebugOptions.
-func (debugOpts *DebugOptions) CompleteAndVerify(cmd *cobra.Command, args []string) error {
+// CompleteAndVerifyOptions completes and verifies DebugOptions.
+func (debugger *Debugger) CompleteAndVerifyOptions(cmd *cobra.Command, args []string, imager DebugImagesManagement) error {
 	// args
-	if len(args) == 0 {
-		return fmt.Errorf("debugged pod or node name is required for debug")
-	}
-
-	debugOpts.TargetName = args[0]
+	debugger.TargetName = args[0]
 	argsLen := cmd.ArgsLenAtDash()
 
 	if argsLen == -1 && len(args) > 1 {
-		debugOpts.Command = args[1:]
+		debugger.Command = args[1:]
 	}
 
 	if argsLen > 0 && len(args) > argsLen {
-		debugOpts.Command = args[argsLen:]
+		debugger.Command = args[argsLen:]
 	}
 
-	// image
-	if len(debugOpts.Image) == 0 {
-		imgOpts := NewImagesOptions()
-
-		image, err := imgOpts.GetDefaultImage()
+	if len(debugger.Image) == 0 {
+		image, err := imager.GetDefaultImage()
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("You don't specify an image, it will use the default image: %s\n" +
-			"You can use `--image` to specify an image.\n", image)
-
-		debugOpts.Image = image
+		debugger.Image = image
 	}
 
-	if len(debugOpts.Image) > 0 && !reference.ReferenceRegexp.MatchString(debugOpts.Image) {
-		return fmt.Errorf("invalid image name %q: %v", debugOpts.Image, reference.ErrReferenceInvalidFormat)
+	if len(debugger.Image) > 0 && !reference.ReferenceRegexp.MatchString(debugger.Image) {
+		return fmt.Errorf("invalid image name %q: %v", debugger.Image, reference.ErrReferenceInvalidFormat)
 	}
 
 	// stdin/tty
-	if debugOpts.TTY || debugOpts.Interactive {
-		debugOpts.In = os.Stdin
-		debugOpts.Interactive = true
+	if debugger.TTY || debugger.Interactive {
+		debugger.In = os.Stdin
+		debugger.Interactive = true
 	}
 
 	// env
@@ -119,107 +129,118 @@ func (debugOpts *DebugOptions) CompleteAndVerify(cmd *cobra.Command, args []stri
 		return fmt.Errorf("error getting env flag: %v", err)
 	}
 	for k, v := range envStrings {
-		debugOpts.Env = append(debugOpts.Env, corev1.EnvVar{Name: k, Value: v})
+		debugger.Env = append(debugger.Env, corev1.EnvVar{Name: k, Value: v})
+	}
+
+	// PullPolicy
+	if strings.ToLower(debugger.PullPolicy) == strings.ToLower(string(corev1.PullAlways)) {
+		debugger.PullPolicy = string(corev1.PullAlways)
+	}
+
+	if strings.ToLower(debugger.PullPolicy) == strings.ToLower(string(corev1.PullIfNotPresent)) {
+		debugger.PullPolicy = string(corev1.PullIfNotPresent)
+	}
+
+	if strings.ToLower(debugger.PullPolicy) == strings.ToLower(string(corev1.PullNever)) {
+		debugger.PullPolicy = string(corev1.PullNever)
 	}
 
 	// checklist: add check items into env
-	debugOpts.Env = append(debugOpts.Env, corev1.EnvVar{
+	debugger.Env = append(debugger.Env, corev1.EnvVar{
 		Name:	"CHECK_LIST",
-		Value:	strings.Join(debugOpts.CheckList, " "),
+		Value:	strings.Join(debugger.CheckList, " "),
 	})
 
 	return nil
 }
 
 // Run generates a debug pod/node and attach to it according to command flag.
-func (debugOpts *DebugOptions) Run(cmd *cobra.Command, debugFunc func (ctx context.Context) (*corev1.Pod, error)) error  {
+func (debugger *Debugger) Run() (string, error)  {
 	ctx := context.Background()
 
-	// Diff: between trident and sealer
-	// adminKubeConfigPath := config.AdminKubeConfPath
-	adminKubeConfigPath := common.KubeAdminConf
-
 	// get the rest config
-	restConfig, err := clientcmd.BuildConfigFromFlags("", adminKubeConfigPath)
+	restConfig, err := clientcmd.BuildConfigFromFlags("", debugger.AdminKubeConfigPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get rest config from file %s", adminKubeConfigPath)
+		return "", errors.Wrapf(err, "failed to get rest config from file %s", debugger.AdminKubeConfigPath)
 	}
-	setKubernetesDefaults(restConfig)
+	SetKubernetesDefaults(restConfig)
 
 	// get the kube client set
 	kubeClientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create kubernetes client from file %s", adminKubeConfigPath)
+		return "", errors.Wrapf(err, "failed to create kubernetes client from file %s", debugger.AdminKubeConfigPath)
 	}
-	debugOpts.kubeClientCorev1 = kubeClientSet.CoreV1()
-	debugOpts.kubeClientRBACV1 = kubeClientSet.RbacV1()
+	debugger.kubeClientCorev1 = kubeClientSet.CoreV1()
 
 	var (
-		debugPod *corev1.Pod
-		errDebug		error
+		debugPod 	*corev1.Pod
+		errDebug	error
 	)
 
 	// generate a debug container or pod
-	debugPod, errDebug = debugFunc(ctx)
-	if errDebug != nil {
-		return errDebug
+	if debugger.Type == TypeDebugNode {
+		debugPod, errDebug = debugger.DebugNode(ctx)
+	} else {
+		debugPod, errDebug = debugger.DebugPod(ctx)
 	}
 
-	fmt.Println("The debug pod or container id：", debugOpts.getDebugID(debugPod))
+	if errDebug != nil {
+		return "", errDebug
+	}
+
 
 	// will only create debug container but will not to connect it
-	if len(debugOpts.Command) == 0 && !debugOpts.TTY {
-		return nil
+	if len(debugger.Command) == 0 && !debugger.TTY {
+		return debugger.getDebugID(debugPod), nil
 	}
 
 	// clean the debugger container/pod
-	clean := &CleanOptions{
-		Namespace:			debugPod.Namespace,
-		PodName: 			debugPod.Name,
-		KubeClientCorev1: 	debugOpts.kubeClientCorev1,
-
-		ContainerName: 		debugOpts.DebugContainerName,
-		Config:				restConfig,
+	clean := &DebugCleaner{
+		DebugCleanOptions: &DebugCleanOptions{
+			Namespace:			debugPod.Namespace,
+			PodName: 			debugPod.Name,
+			ContainerName: 		debugger.DebugContainerName,
+		},
 	}
 
-	if debugOpts.Type == "node" {
-		defer clean.RemovePod(ctx)
+	if debugger.Type == TypeDebugNode {
+		defer clean.RemovePod(ctx, debugger.kubeClientCorev1)
 	} else {
-		defer clean.ExitEphemeralContainer(ctx)
+		defer clean.ExitEphemeralContainer(restConfig)
 	}
 
-	if err := debugOpts.connectPod(ctx, debugPod, restConfig); err != nil {
-		return err
+	if err := debugger.connectPod(ctx, debugPod, restConfig); err != nil {
+		return "", err
 	}
 
-	return nil
+	return debugger.getDebugID(debugPod), nil
 }
 
 // addClusterInfoIntoEnv adds the cluster infos into DebugOptions.Env
-func (debugOpts *DebugOptions) addClusterInfoIntoEnv(ctx context.Context) error {
-	podsIPList, err := clusterinfo.GetPodsIP(ctx, debugOpts.kubeClientCorev1, debugOpts.Namespace)
+func (debugger *Debugger) addClusterInfoIntoEnv(ctx context.Context) error {
+	podsIPList, err := clusterinfo.GetPodsIP(ctx, debugger.kubeClientCorev1, debugger.Namespace)
 	if err != nil {
 		return err
 	}
-	debugOpts.Env = append(debugOpts.Env, corev1.EnvVar{
+	debugger.Env = append(debugger.Env, corev1.EnvVar{
 			Name: 	"POD_IP_LIST",
 			Value: 	strings.Join(podsIPList, " "),
 	})
 
-	nodesIPList, err := clusterinfo.GetNodesIP(ctx, debugOpts.kubeClientCorev1)
+	nodesIPList, err := clusterinfo.GetNodesIP(ctx, debugger.kubeClientCorev1)
 	if err != nil {
 		return err
 	}
-	debugOpts.Env = append(debugOpts.Env, corev1.EnvVar{
+	debugger.Env = append(debugger.Env, corev1.EnvVar{
 			Name: 	"NODE_IP_LIST",
 			Value: 	strings.Join(nodesIPList, " "),
 	})
 
-	dnsSVCName, dnsSVCIP, dnsEndpointsIPs, err := clusterinfo.GetDNSServiceAll(ctx, debugOpts.kubeClientCorev1)
+	dnsSVCName, dnsSVCIP, dnsEndpointsIPs, err := clusterinfo.GetDNSServiceAll(ctx, debugger.kubeClientCorev1)
 	if err != nil {
 		return err
 	}
-	debugOpts.Env = append(debugOpts.Env,
+	debugger.Env = append(debugger.Env,
 		corev1.EnvVar{
 			Name:	"KUBE_DNS_SERVICE_NAME",
 			Value:	dnsSVCName,
@@ -237,32 +258,33 @@ func (debugOpts *DebugOptions) addClusterInfoIntoEnv(ctx context.Context) error 
 	return nil
 }
 
-func (debugOpts *DebugOptions) connectPod(ctx context.Context, debugPod *corev1.Pod, restConfig *rest.Config) error {
+func (debugger *Debugger) connectPod(ctx context.Context, debugPod *corev1.Pod, restConfig *rest.Config) error {
 	// wait the debug container(ephemeral container) running
-	debugPodRun, err := waitForContainer(ctx, debugOpts.kubeClientCorev1, debugPod.Namespace, debugPod.Name, debugOpts.DebugContainerName)
+	debugPodRun, err := WaitForContainer(ctx, debugger.kubeClientCorev1, debugPod.Namespace, debugPod.Name, debugger.DebugContainerName)
 	if err != nil {
 		return err
 	}
 
-	status, err := getContainerStatusByName(debugPodRun, debugOpts.DebugContainerName)
+	status, err := GetContainerStatusByName(debugPodRun, debugger.DebugContainerName)
 	if err != nil {
-		return fmt.Errorf("error getting container status of container name %s", debugOpts.DebugContainerName)
+		return fmt.Errorf("error getting container status of container name %s", debugger.DebugContainerName)
 	}
 
 	if status.State.Terminated != nil {
-		return fmt.Errorf("debug container %s terminated", debugOpts.DebugContainerName)
+		return fmt.Errorf("debug container %s terminated", debugger.DebugContainerName)
 	}
 
 	// begin attaching to debug container(ephemeral container)
-	connectOpts := &ConnectOptions{
+	connectOpts := &Connector{
 		NameSpace: 		debugPodRun.Namespace,
 		Pod:			debugPodRun,
-		Command: 		debugOpts.Command,
-		ContainerName: 	debugOpts.DebugContainerName,
-		Stdin: 			debugOpts.Interactive,
-		TTY: 			debugOpts.TTY,
-		IOStreams: 		debugOpts.IOStreams,
+		Command: 		debugger.Command,
+		ContainerName: 	debugger.DebugContainerName,
+		Stdin: 			debugger.Interactive,
+		TTY: 			debugger.TTY,
+		IOStreams: 		debugger.IOStreams,
 		Config: 		restConfig,
+		Motd:			debugger.Motd,
 	}
 
 	if err := connectOpts.Connect(); err != nil {
@@ -273,13 +295,13 @@ func (debugOpts *DebugOptions) connectPod(ctx context.Context, debugPod *corev1.
 }
 
 // getDebugID returns the debug ID that consists of namespace, pod name, container name
-func (debugOpts *DebugOptions) getDebugID(pod *corev1.Pod) string {
-	return debugOpts.DebugContainerName + DEBUG_ID_FS + pod.Name + DEBUG_ID_FS + debugOpts.Namespace
+func (debugger *Debugger) getDebugID(pod *corev1.Pod) string {
+	return debugger.DebugContainerName + FSDebugID + pod.Name + FSDebugID + debugger.Namespace
 }
 
-// setKubernetesDefaults sets default values on the provided client config for accessing the
+// SetKubernetesDefaults sets default values on the provided client config for accessing the
 // Kubernetes API or returns an error if any of the defaults are impossible or invalid.
-func setKubernetesDefaults(config *rest.Config) error {
+func SetKubernetesDefaults(config *rest.Config) error {
 	if config.GroupVersion == nil {
 		config.GroupVersion = &corev1.SchemeGroupVersion
 	}
@@ -296,9 +318,9 @@ func setKubernetesDefaults(config *rest.Config) error {
 	return rest.SetKubernetesDefaults(config)
 }
 
-// waitForContainer watches the given pod until the container is running or terminated.
-func waitForContainer(ctx context.Context, client corev1client.PodsGetter, namespace, podName, containerName string) (*corev1.Pod, error) {
-	ctx, cancel := watchtools.ContextWithOptionalTimeout(ctx, 0 * time.Second)
+// WaitForContainer watches the given pod until the container is running or terminated.
+func WaitForContainer(ctx context.Context, client corev1client.PodsGetter, namespace, podName, containerName string) (*corev1.Pod, error) {
+	ctx, cancel := watchtools.ContextWithOptionalTimeout(ctx, 2 * time.Second)
 	defer cancel()
 
 	// register the watcher and lister
@@ -326,7 +348,7 @@ func waitForContainer(ctx context.Context, client corev1client.PodsGetter, names
 			return false, fmt.Errorf("watch did not return a pod: %v", event.Object)
 		}
 
-		status, err := getContainerStatusByName(pod, containerName)
+		status, err := GetContainerStatusByName(pod, containerName)
 		if err != nil {
 			return false, err
 		}
@@ -349,8 +371,8 @@ func waitForContainer(ctx context.Context, client corev1client.PodsGetter, names
 	return nil, err
 }
 
-// getContainerStatusByName returns the container status by the containerName.
-func getContainerStatusByName(pod *corev1.Pod, containerName string) (*corev1.ContainerStatus, error) {
+// GetContainerStatusByName returns the container status by the containerName.
+func GetContainerStatusByName(pod *corev1.Pod, containerName string) (*corev1.ContainerStatus, error) {
 	allContainerStatus := [][]corev1.ContainerStatus{pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses, pod.Status.EphemeralContainerStatuses}
 
 	for _, statusSlice := range allContainerStatus {
@@ -364,8 +386,8 @@ func getContainerStatusByName(pod *corev1.Pod, containerName string) (*corev1.Co
 	return nil, fmt.Errorf("can not find the container %s in pod %s", containerName, pod.Name)
 }
 
-// containerNameToRef gets and returns the container names in pod.
-func containerNameToRef(pod *corev1.Pod) map[string]*corev1.Container {
+// ContainerNameToRef returns the container names in pod.
+func ContainerNameToRef(pod *corev1.Pod) map[string]*corev1.Container {
 	names := map[string]*corev1.Container{}
 
 	for i := range pod.Spec.Containers {

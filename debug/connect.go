@@ -11,8 +11,8 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-// ConnectOptions holds the options to attach a running container.
-type ConnectOptions struct {
+// Connector holds the options to connect a running container.
+type Connector struct {
 	NameSpace		string
 	ContainerName	string
 	Command			[]string
@@ -20,23 +20,25 @@ type ConnectOptions struct {
 	TTY				bool
 	genericclioptions.IOStreams
 
+	Motd			string
+
 	Pod				*corev1.Pod
 	Config			*restclient.Config
 }
 
 // Connect connects to a running container.
-func (connectOpts *ConnectOptions) Connect() error {
-	container, err := connectOpts.ContainerToConnect()
+func (connector *Connector) Connect() error {
+	container, err := connector.ContainerToConnect()
 	if err != nil {
 		return err
 	}
 
-	if connectOpts.TTY && !container.TTY {
-		connectOpts.TTY =  false
+	if connector.TTY && !container.TTY {
+		connector.TTY =  false
 	}
 
 	// set the TTY
-	t := connectOpts.SetTTY()
+	t := connector.SetTTY()
 
 	// get the terminal size queue
 	var sizeQueue remotecommand.TerminalSizeQueue
@@ -49,15 +51,16 @@ func (connectOpts *ConnectOptions) Connect() error {
 
 			sizeQueue = t.MonitorSize(&sizePlusOne, size)
 		}
-		showMotd(connectOpts.Out)
+
+		showMotd(connector.Out, connector.Motd)
 	}
 
-	if len(connectOpts.Command) == 0 {
-		if err := t.Safe(connectOpts.GetDefaultAttachFunc(container, sizeQueue)); err != nil {
+	if len(connector.Command) == 0 {
+		if err := t.Safe(connector.GetDefaultAttachFunc(container, sizeQueue)); err != nil {
 			return err
 		}
 	} else {
-		if err := t.Safe(connectOpts.GetDefaultExecFunc(container, sizeQueue)); err != nil {
+		if err := t.Safe(connector.GetDefaultExecFunc(container, sizeQueue)); err != nil {
 			return err
 		}
 	}
@@ -66,29 +69,29 @@ func (connectOpts *ConnectOptions) Connect() error {
 }
 
 // ContainerToConnect checks if there is a container to attach, and if exists returns the container object to attach.
-func (connectOpts *ConnectOptions) ContainerToConnect() (*corev1.Container, error) {
-	pod := connectOpts.Pod
+func (connector *Connector) ContainerToConnect() (*corev1.Container, error) {
+	pod := connector.Pod
 
-	if len(connectOpts.ContainerName) > 0 {
+	if len(connector.ContainerName) > 0 {
 		for i := range pod.Spec.Containers {
-			if pod.Spec.Containers[i].Name == connectOpts.ContainerName {
+			if pod.Spec.Containers[i].Name == connector.ContainerName {
 				return &pod.Spec.Containers[i], nil
 			}
 		}
 
 		for i := range pod.Spec.InitContainers {
-			if pod.Spec.InitContainers[i].Name == connectOpts.ContainerName {
+			if pod.Spec.InitContainers[i].Name == connector.ContainerName {
 				return &pod.Spec.InitContainers[i], nil
 			}
 		}
 
 		for i := range pod.Spec.EphemeralContainers {
-			if pod.Spec.EphemeralContainers[i].Name == connectOpts.ContainerName {
+			if pod.Spec.EphemeralContainers[i].Name == connector.ContainerName {
 				return (*corev1.Container)(&pod.Spec.EphemeralContainers[i].EphemeralContainerCommon), nil
 			}
 		}
 
-		return nil, fmt.Errorf("there is no container named %s", connectOpts.ContainerName)
+		return nil, fmt.Errorf("there is no container named %s", connector.ContainerName)
 	}
 
 	return &pod.Spec.Containers[0], nil
@@ -100,26 +103,26 @@ func (connectOpts *ConnectOptions) ContainerToConnect() (*corev1.Container, erro
 // 		3. stdin true, tty false 	--- stdin、stdout
 // 		4. stdin true, tty true 	--- stdin、stdout、tty	--- t.Raw
 // then returns a TTY object based on connectOpts.
-func (connectOpts *ConnectOptions) SetTTY() TTY {
+func (connector *Connector) SetTTY() TTY {
 	t := TTY{
-		Out: connectOpts.Out,
+		Out: connector.Out,
 	}
 
 	// Stdin is false, then tty and stdin both false
-	if !connectOpts.Stdin {
-		connectOpts.In = nil
-		connectOpts.TTY = false
+	if !connector.Stdin {
+		connector.In = nil
+		connector.TTY = false
 		return t
 	}
 
-	t.In = connectOpts.In
-	if !connectOpts.TTY {
+	t.In = connector.In
+	if !connector.TTY {
 		return t
 	}
 
 	// check whether t.In is a terminal
 	if !t.IsTerminalIn() {
-		connectOpts.TTY = false
+		connector.TTY = false
 		return t
 	}
 
@@ -129,68 +132,68 @@ func (connectOpts *ConnectOptions) SetTTY() TTY {
 }
 
 // GetDefaultAttachFunc returns the default attach function.
-func (connectOpts *ConnectOptions) GetDefaultAttachFunc(containerToAttach *corev1.Container, sizeQueue remotecommand.TerminalSizeQueue) func() error {
+func (connector *Connector) GetDefaultAttachFunc(containerToAttach *corev1.Container, sizeQueue remotecommand.TerminalSizeQueue) func() error {
 	return func() error {
-		restClient, err := restclient.RESTClientFor(connectOpts.Config)
+		restClient, err := restclient.RESTClientFor(connector.Config)
 		if err != nil {
 			return err
 		}
 
 		req := restClient.Post().
 			Resource("pods").
-			Name(connectOpts.Pod.Name).
-			Namespace(connectOpts.Pod.Namespace).
+			Name(connector.Pod.Name).
+			Namespace(connector.Pod.Namespace).
 			SubResource("attach")
 		req.VersionedParams(&corev1.PodAttachOptions{
 			Container: 		containerToAttach.Name,
-			Stdin: 			connectOpts.Stdin,
-			Stdout: 		connectOpts.Out != nil,
-			Stderr: 		connectOpts.ErrOut != nil,
-			TTY:			connectOpts.TTY,
+			Stdin: 			connector.Stdin,
+			Stdout: 		connector.Out != nil,
+			Stderr: 		connector.ErrOut != nil,
+			TTY:			connector.TTY,
 		}, scheme.ParameterCodec)
 
-		return connectOpts.DoConnect("POST", req.URL(), sizeQueue)
+		return connector.DoConnect("POST", req.URL(), sizeQueue)
 	}
 }
 
 // GetDefaultExecFunc returns the default exec function.
-func (connectOpts *ConnectOptions) GetDefaultExecFunc(containerToAttach *corev1.Container, sizeQueue remotecommand.TerminalSizeQueue) func() error {
+func (connector *Connector) GetDefaultExecFunc(containerToAttach *corev1.Container, sizeQueue remotecommand.TerminalSizeQueue) func() error {
 	return func() error {
-		restClient, err := restclient.RESTClientFor(connectOpts.Config)
+		restClient, err := restclient.RESTClientFor(connector.Config)
 		if err != nil {
 			return err
 		}
 
 		req := restClient.Post().
 			Resource("pods").
-			Name(connectOpts.Pod.Name).
-			Namespace(connectOpts.Pod.Namespace).
+			Name(connector.Pod.Name).
+			Namespace(connector.Pod.Namespace).
 			SubResource("exec")
 		req.VersionedParams(&corev1.PodExecOptions{
 			Container: 		containerToAttach.Name,
-			Command:		connectOpts.Command,
-			Stdin:			connectOpts.Stdin,
-			Stdout: 		connectOpts.Out != nil,
-			Stderr: 		connectOpts.ErrOut != nil,
-			TTY:			connectOpts.TTY,
+			Command:		connector.Command,
+			Stdin:			connector.Stdin,
+			Stdout: 		connector.Out != nil,
+			Stderr: 		connector.ErrOut != nil,
+			TTY:			connector.TTY,
 		}, scheme.ParameterCodec)
 
-		return connectOpts.DoConnect("POST", req.URL(), sizeQueue)
+		return connector.DoConnect("POST", req.URL(), sizeQueue)
 	}
 }
 
 // DoConnect executes attach to a running container with url.
-func (connectOpts *ConnectOptions) DoConnect(method string, url *url.URL, terminalSizeQueue remotecommand.TerminalSizeQueue) error {
-	exec, err := remotecommand.NewSPDYExecutor(connectOpts.Config, method, url)
+func (connector *Connector) DoConnect(method string, url *url.URL, terminalSizeQueue remotecommand.TerminalSizeQueue) error {
+	exec, err := remotecommand.NewSPDYExecutor(connector.Config, method, url)
 	if err != nil {
 		return err
 	}
 
 	return exec.Stream(remotecommand.StreamOptions{
-		Stdin: 					connectOpts.In,
-		Stdout: 				connectOpts.Out,
-		Stderr: 				connectOpts.ErrOut,
-		Tty: 					connectOpts.TTY,
+		Stdin: 					connector.In,
+		Stdout: 				connector.Out,
+		Stderr: 				connector.ErrOut,
+		Tty: 					connector.TTY,
 		TerminalSizeQueue:  	terminalSizeQueue,
 	})
 }
