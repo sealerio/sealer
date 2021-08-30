@@ -75,7 +75,7 @@ func (l *LiteBuilder) InitClusterFile() error {
 		return fmt.Errorf("failed to read %s:%v", clusterFile, err)
 	}
 	l.local.Cluster = &cluster
-
+	l.local.Cluster.Spec.Image = l.local.Image.Spec.Layers[0].Value
 	logger.Info("read cluster file %s success !", clusterFile)
 	return nil
 }
