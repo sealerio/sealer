@@ -102,5 +102,4 @@ func init() {
 	deleteCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "delete a kubernetes cluster with Clusterfile Annotations")
 	deleteCmd.Flags().BoolP("force", "", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolP("all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
-	fmt.Println("hello world")
 }
