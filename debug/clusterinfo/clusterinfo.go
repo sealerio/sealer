@@ -27,11 +27,11 @@ import (
 func GetPodsIP(ctx context.Context, client corev1client.CoreV1Interface, namespace string) ([]string, error) {
 	ipList := []string{}
 	podList, err := client.Pods(namespace).List(ctx, metav1.ListOptions{})
-	if  err != nil {
+	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get pods ip")
 	}
 
-	for i, _ := range podList.Items {
+	for i := range podList.Items {
 		ipList = append(ipList, podList.Items[i].Status.PodIP)
 	}
 
@@ -48,7 +48,7 @@ func GetNodesIP(ctx context.Context, client corev1client.CoreV1Interface) ([]str
 		return nil, errors.Wrapf(err, "failed to get nodes ip")
 	}
 
-	for i, _ := range nodeList.Items {
+	for i := range nodeList.Items {
 		ipList = append(ipList, nodeList.Items[i].Status.Addresses[0].Address)
 	}
 
@@ -83,7 +83,7 @@ func removeDuplicatesAndEmpty(ss []string) []string {
 	sort.Strings(ss)
 	ret := []string{}
 	l := len(ss)
-	for i:=0; i < l; i++ {
+	for i := 0; i < l; i++ {
 		if (i > 0 && ss[i] == ss[i-1]) || len(ss[i]) == 0 {
 			continue
 		}

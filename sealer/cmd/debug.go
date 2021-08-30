@@ -23,17 +23,17 @@ import (
 var debugOptions = debug.NewDebugOptions()
 
 var debugCommand = &cobra.Command{
-	Use:		"debug",
-	Short:		"Creating debugging sessions for pods and nodes",
+	Use:   "debug",
+	Short: "Creating debugging sessions for pods and nodes",
 }
 
 func init() {
 	rootCmd.AddCommand(debugCommand)
 
-	debugCommand.AddCommand(debug.NewDebugShowImagesCommand())
+	debugCommand.AddCommand(debug.CleanCMD)
+	debugCommand.AddCommand(debug.ShowImagesCMD)
 	debugCommand.AddCommand(debug.NewDebugPodCommand(debugOptions))
 	debugCommand.AddCommand(debug.NewDebugNodeCommand(debugOptions))
-	debugCommand.AddCommand(debug.NewDebugCleanCommand())
 
 	debugCommand.PersistentFlags().StringVar(&debugOptions.Image, "image", debugOptions.Image, "Container image to use for debug container.")
 	debugCommand.PersistentFlags().StringVar(&debugOptions.DebugContainerName, "name", debugOptions.DebugContainerName, "Container name to use for debug container.")

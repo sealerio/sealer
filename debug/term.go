@@ -104,6 +104,8 @@ func (t TTY) Safe(fn SafeFunc) error {
 			t.sizeQueue.stop()
 		}
 
-		term.RestoreTerminal(inFd, state)
+		if err := term.RestoreTerminal(inFd, state); err != nil {
+			return
+		}
 	}).Run(fn)
 }

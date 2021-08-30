@@ -28,16 +28,16 @@ import (
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
 )
 
-func NewDebugPodCommand(options *DebugOptions) *cobra.Command {
+func NewDebugPodCommand(options *DebuggerOptions) *cobra.Command {
 	cmd := &cobra.Command{
-		Use: 	 "pod",
-		Short:   "Debug pod or container",
-		Args:	 cobra.MinimumNArgs(1),
+		Use:   "pod",
+		Short: "Debug pod or container",
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			debugger := NewDebugger(options)
 			debugger.AdminKubeConfigPath = common.KubeAdminConf
 			debugger.Type = TypeDebugPod
-			debugger.Motd = SEALER_DEBUG_MOTD
+			debugger.Motd = SealerDebugMotd
 
 			imager := NewDebugImagesManager()
 
@@ -48,7 +48,9 @@ func NewDebugPodCommand(options *DebugOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println("The debug ID:", str)
+			if len(str) != 0 {
+				fmt.Println("The debug ID:", str)
+			}
 
 			return nil
 		},
@@ -118,15 +120,15 @@ func (debugger *Debugger) generateDebugContainer(pod *corev1.Pod) *corev1.Epheme
 
 	ec := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
-			Name: 						debugContainerName,
-			Env:						debugger.Env,
-			Image:						debugger.Image,
-			ImagePullPolicy: 			corev1.PullPolicy(debugger.PullPolicy),
-			Stdin:						true,
-			TerminationMessagePolicy: 	corev1.TerminationMessageReadFile,
-			TTY: 						true,
+			Name:                     debugContainerName,
+			Env:                      debugger.Env,
+			Image:                    debugger.Image,
+			ImagePullPolicy:          corev1.PullPolicy(debugger.PullPolicy),
+			Stdin:                    true,
+			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+			TTY:                      true,
 		},
-		TargetContainerName: 			debugger.TargetContainer,
+		TargetContainerName: debugger.TargetContainer,
 	}
 
 	return ec
@@ -155,11 +157,11 @@ func (debugger *Debugger) addPodInfoIntoEnv(pod *corev1.Pod) error {
 
 	debugger.Env = append(debugger.Env,
 		corev1.EnvVar{
-			Name: "POD_NAME",
+			Name:  "POD_NAME",
 			Value: pod.Name,
 		},
 		corev1.EnvVar{
-			Name: "POD_IP",
+			Name:  "POD_IP",
 			Value: pod.Status.PodIP,
 		},
 	)

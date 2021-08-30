@@ -101,7 +101,7 @@ func (cs *chainStore) restore() error {
 	images := cs.Images()
 	for _, image := range images {
 		layers := image.Spec.Layers
-		var lastChainItem *chainItem = &chainItem{}
+		lastChainItem := &chainItem{}
 		for _, layer := range layers {
 			var (
 				chainID ChainID

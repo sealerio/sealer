@@ -19,7 +19,7 @@ import (
 	"io"
 )
 
-const SEALER_DEBUG_MOTD = `
+const SealerDebugMotd = `
 
 	███████╗███████╗ █████╗ ██╗     ███████╗██████╗
 	██╔════╝██╔════╝██╔══██╗██║     ██╔════╝██╔══██╗

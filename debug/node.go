@@ -27,16 +27,16 @@ import (
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
 )
 
-func NewDebugNodeCommand(options *DebugOptions) *cobra.Command {
+func NewDebugNodeCommand(options *DebuggerOptions) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "node",
-		Short:   "Debug node",
-		Args:	 cobra.MinimumNArgs(1),
+		Use:   "node",
+		Short: "Debug node",
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			debugger := NewDebugger(options)
 			debugger.AdminKubeConfigPath = common.KubeAdminConf
 			debugger.Type = TypeDebugNode
-			debugger.Motd = SEALER_DEBUG_MOTD
+			debugger.Motd = SealerDebugMotd
 
 			imager := NewDebugImagesManager()
 
@@ -47,7 +47,9 @@ func NewDebugNodeCommand(options *DebugOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println("The debug ID:", str)
+			if len(str) != 0 {
+				fmt.Println("The debug ID:", str)
+			}
 
 			return nil
 		},
@@ -109,31 +111,31 @@ func (debugger *Debugger) generateDebugPod(nodeName string) *corev1.Pod {
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name: 						cn,
-					Env: 						debugger.Env,
-					Image: 						debugger.Image,
-					ImagePullPolicy: 			corev1.PullPolicy(debugger.PullPolicy),
-					Stdin: 						true,
-					TTY:						true,
-					TerminationMessagePolicy: 	corev1.TerminationMessageReadFile,
+					Name:                     cn,
+					Env:                      debugger.Env,
+					Image:                    debugger.Image,
+					ImagePullPolicy:          corev1.PullPolicy(debugger.PullPolicy),
+					Stdin:                    true,
+					TTY:                      true,
+					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 					VolumeMounts: []corev1.VolumeMount{
 						{
-							MountPath: 	"/hostfs",
-							Name:		"host-root",
+							MountPath: "/hostfs",
+							Name:      "host-root",
 						},
 					},
 				},
 			},
-			HostIPC: 			true,
-			HostNetwork: 		true,
-			HostPID: 			true,
-			NodeName: 			nodeName,
-			RestartPolicy: 		corev1.RestartPolicyNever,
+			HostIPC:       true,
+			HostNetwork:   true,
+			HostPID:       true,
+			NodeName:      nodeName,
+			RestartPolicy: corev1.RestartPolicyNever,
 			Volumes: []corev1.Volume{
 				{
-					Name:	"host-root",
+					Name: "host-root",
 					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{Path:"/"},
+						HostPath: &corev1.HostPathVolumeSource{Path: "/"},
 					},
 				},
 			},

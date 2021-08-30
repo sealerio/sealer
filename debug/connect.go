@@ -27,17 +27,17 @@ import (
 
 // Connector holds the options to connect a running container.
 type Connector struct {
-	NameSpace		string
-	ContainerName	string
-	Command			[]string
-	Stdin			bool
-	TTY				bool
+	NameSpace     string
+	ContainerName string
+	Command       []string
+	Stdin         bool
+	TTY           bool
 	genericclioptions.IOStreams
 
-	Motd			string
+	Motd string
 
-	Pod				*corev1.Pod
-	Config			*restclient.Config
+	Pod    *corev1.Pod
+	Config *restclient.Config
 }
 
 // Connect connects to a running container.
@@ -48,7 +48,7 @@ func (connector *Connector) Connect() error {
 	}
 
 	if connector.TTY && !container.TTY {
-		connector.TTY =  false
+		connector.TTY = false
 	}
 
 	// set the TTY
@@ -159,11 +159,11 @@ func (connector *Connector) GetDefaultAttachFunc(containerToAttach *corev1.Conta
 			Namespace(connector.Pod.Namespace).
 			SubResource("attach")
 		req.VersionedParams(&corev1.PodAttachOptions{
-			Container: 		containerToAttach.Name,
-			Stdin: 			connector.Stdin,
-			Stdout: 		connector.Out != nil,
-			Stderr: 		connector.ErrOut != nil,
-			TTY:			connector.TTY,
+			Container: containerToAttach.Name,
+			Stdin:     connector.Stdin,
+			Stdout:    connector.Out != nil,
+			Stderr:    connector.ErrOut != nil,
+			TTY:       connector.TTY,
 		}, scheme.ParameterCodec)
 
 		return connector.DoConnect("POST", req.URL(), sizeQueue)
@@ -184,12 +184,12 @@ func (connector *Connector) GetDefaultExecFunc(containerToAttach *corev1.Contain
 			Namespace(connector.Pod.Namespace).
 			SubResource("exec")
 		req.VersionedParams(&corev1.PodExecOptions{
-			Container: 		containerToAttach.Name,
-			Command:		connector.Command,
-			Stdin:			connector.Stdin,
-			Stdout: 		connector.Out != nil,
-			Stderr: 		connector.ErrOut != nil,
-			TTY:			connector.TTY,
+			Container: containerToAttach.Name,
+			Command:   connector.Command,
+			Stdin:     connector.Stdin,
+			Stdout:    connector.Out != nil,
+			Stderr:    connector.ErrOut != nil,
+			TTY:       connector.TTY,
 		}, scheme.ParameterCodec)
 
 		return connector.DoConnect("POST", req.URL(), sizeQueue)
@@ -204,10 +204,10 @@ func (connector *Connector) DoConnect(method string, url *url.URL, terminalSizeQ
 	}
 
 	return exec.Stream(remotecommand.StreamOptions{
-		Stdin: 					connector.In,
-		Stdout: 				connector.Out,
-		Stderr: 				connector.ErrOut,
-		Tty: 					connector.TTY,
-		TerminalSizeQueue:  	terminalSizeQueue,
+		Stdin:             connector.In,
+		Stdout:            connector.Out,
+		Stderr:            connector.ErrOut,
+		Tty:               connector.TTY,
+		TerminalSizeQueue: terminalSizeQueue,
 	})
 }
