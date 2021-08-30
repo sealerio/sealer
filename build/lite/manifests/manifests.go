@@ -31,9 +31,9 @@ type Manifests struct{}
 func (manifests *Manifests) ListImages(clusterName string) ([]string, error) {
 	var list []string
 
-	ManifestsRootDir := defaultManifestsRootDir(clusterName)
+	ManifestsMountDir := filepath.Join(common.DefaultMountCloudImageDir(clusterName), "manifests")
 
-	err := filepath.Walk(ManifestsRootDir, func(filePath string, fileInfo os.FileInfo, er error) error {
+	err := filepath.Walk(ManifestsMountDir, func(filePath string, fileInfo os.FileInfo, er error) error {
 		if er != nil {
 			return fmt.Errorf("read file failed %s", er)
 		}
