@@ -1,0 +1,77 @@
+name: Sealer-Test-Image
+
+on:
+  push:
+    branches: "release*"
+  issue_comment:
+    types:
+      - created
+jobs:
+  build:
+    name: test
+    runs-on: ubuntu-latest
+    if: ${{ (github.event.issue.pull_request && contains(github.event.comment.body, '/test')) || github.event_name == 'push' }}
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Github API Request
+        id: request
+        uses: octokit/request-action@v2.0.2
+        with:
+          route: ${{ github.event.issue.pull_request.url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get PR informations
+        id: pr_data
+        run: |
+          echo "::set-output name=repo_name::${{ fromJson(steps.request.outputs.data).head.repo.full_name }}"
+          echo "::set-output name=repo_clone_url::${{ fromJson(steps.request.outputs.data).head.repo.clone_url }}"
+          echo "::set-output name=repo_ssh_url::${{ fromJson(steps.request.outputs.data).head.repo.ssh_url }}"
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{fromJson(steps.request.outputs.data).head.repo.full_name}}
+          ref: ${{fromJson(steps.request.outputs.data).head.ref}}
+          path: src/github.com/alibaba/sealer
+
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+        id: go
+
+      - name: Install sealer and ginkgo
+        shell: bash
+        run: |
+          source hack/build.sh
+          export SEALER_DIR=$THIS_PLATFORM_BIN/sealer/linux_amd64
+          echo "$SEALER_DIR" >> $GITHUB_PATH
+          go get github.com/onsi/ginkgo/ginkgo
+          go get github.com/onsi/gomega/...
+          GOPATH=`go env GOPATH`
+          echo "$GOPATH/bin" >> $GITHUB_PATH
+        working-directory: src/github.com/alibaba/sealer
+
+      - name: Run sealer login test
+        shell: bash
+        working-directory: src/github.com/alibaba/sealer
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+        if: ${{ github.event.comment.body == '/test login' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
+        run: |
+          ginkgo -v --focus="sealer login" test
+
+      - name: Run sealer image test
+        shell: bash
+        working-directory: src/github.com/alibaba/sealer
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          IMAGE_NAME: ${{ secrets.IMAGE_NAME}}
+        if: ${{ github.event.comment.body == '/test image' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
+        run: |
+          ginkgo -v --focus="sealer image" test

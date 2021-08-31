@@ -168,8 +168,10 @@ func (c *DockerProvider) GetContainerIDByIP(containerIP string) (string, error) 
 	}
 
 	for _, item := range resp {
-		if containerIP == item.NetworkSettings.Networks[c.NetworkResource.DefaultName].IPAddress {
-			return item.ID, nil
+		if net, ok := item.NetworkSettings.Networks[c.NetworkResource.DefaultName]; ok {
+			if containerIP == net.IPAddress {
+				return item.ID, nil
+			}
 		}
 	}
 	return "", err

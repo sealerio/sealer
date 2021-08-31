@@ -36,7 +36,7 @@ func NewDefaultProvider(cluster *v1.Cluster) (Interface, error) {
 	case container.CONTAINER:
 		return NewContainerProvider(cluster)
 	default:
-		return nil, fmt.Errorf("the provider is invalid")
+		return nil, fmt.Errorf("the provider is invalid, please set the provider correctly")
 	}
 }
 

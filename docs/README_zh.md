@@ -13,8 +13,8 @@ Docker可以把一个操作系统的rootfs+应用 build成一个容器镜像，s
 
 ```shell script
 #安装sealer
-wget https://github.com/alibaba/sealer/releases/download/v0.3.0/sealer-v0.3.0-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.3.0-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.3.4/sealer-v0.3.4-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.3.4-linux-amd64.tar.gz && mv sealer /usr/bin
 #运行集群
 sealer run kubernetes:v1.19.9 # 在公有云上运行一个kubernetes集群
 sealer run kubernetes:v1.19.9 --masters 3 --nodes 3 # 在公有云上运行指定数量节点的kuberentes集群
@@ -115,13 +115,8 @@ spec:
     # ssh登录用户
     user: root
   network:
-    # 使用的网卡名称
-    interface: eth0
-    # 网络插件
-    cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
-    withoutCNI: false
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2
@@ -170,13 +165,8 @@ spec:
     # ssh登录用户
     user: root
   network:
-    # 使用的网卡名称
-    interface: eth0
-    # 网络插件
-    cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
-    withoutCNI: false
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2
@@ -239,11 +229,8 @@ spec:
     pkPasswd: xxx
     user: root
   network:
-    interface: eth0
-    cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
-    withoutCNI: false
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2

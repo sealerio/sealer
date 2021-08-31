@@ -15,18 +15,13 @@
 package plugin
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"os"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 /*
@@ -51,19 +46,19 @@ type Plugins interface {
 }
 
 type PluginsProcesser struct {
-	plugins     []v1.Plugin
-	clusterName string
+	Plugins     []v1.Plugin
+	ClusterName string
 }
 
 func NewPlugins(clusterName string) Plugins {
 	return &PluginsProcesser{
-		clusterName: clusterName,
-		plugins:     []v1.Plugin{},
+		ClusterName: clusterName,
+		Plugins:     []v1.Plugin{},
 	}
 }
 
 func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
-	for _, config := range c.plugins {
+	for _, config := range c.Plugins {
 		switch config.Name {
 		case "LABEL":
 			l := LabelsNodes{}
@@ -83,7 +78,12 @@ func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
 			if err != nil {
 				return err
 			}
-
+		case "HOSTNAME":
+			h := HostnamePlugin{}
+			err := h.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+			if err != nil {
+				return err
+			}
 		default:
 			return fmt.Errorf("not find plugin %s", config.Name)
 		}
@@ -96,37 +96,11 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 		logger.Debug("clusterfile is empty!")
 		return nil
 	}
-	file, err := os.Open(clusterfile)
+	plugins, err := utils.DecodePlugins(clusterfile)
 	if err != nil {
-		return fmt.Errorf("failed to dump config %v", err)
+		return err
 	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			logger.Warn("failed to dump config close clusterfile failed %v", err)
-		}
-	}()
-
-	d := yaml.NewYAMLOrJSONDecoder(file, 4096)
-	for {
-		ext := runtime.RawExtension{}
-		if err := d.Decode(&ext); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		// TODO: This needs to be able to handle object in other encodings and schemas.
-		ext.Raw = bytes.TrimSpace(ext.Raw)
-		if len(ext.Raw) == 0 || bytes.Equal(ext.Raw, []byte("null")) {
-			continue
-		}
-		// ext.Raw
-		err := c.DecodeConfig(ext.Raw)
-		if err != nil {
-			return fmt.Errorf("failed to decode config file %v", err)
-		}
-	}
-
+	c.Plugins = plugins
 	err = c.WriteFiles()
 	if err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
@@ -135,27 +109,16 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 }
 
 func (c *PluginsProcesser) WriteFiles() error {
-	if len(c.plugins) < 1 {
-		return fmt.Errorf("config is nil")
+	if len(c.Plugins) == 0 {
+		logger.Debug("plugins is nil")
+		return nil
 	}
-	for _, config := range c.plugins {
-		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.clusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
+	for _, config := range c.Plugins {
+		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
 		if err != nil {
 			return fmt.Errorf("write config fileed %v", err)
 		}
 	}
 
-	return nil
-}
-
-func (c *PluginsProcesser) DecodeConfig(Body []byte) error {
-	config := v1.Plugin{}
-	err := yaml.Unmarshal(Body, &config)
-	if err != nil {
-		return fmt.Errorf("decode config failed %v", err)
-	}
-	if config.Kind == common.CRDPlugin {
-		c.plugins = append(c.plugins, config)
-	}
 	return nil
 }

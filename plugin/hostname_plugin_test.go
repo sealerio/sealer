@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package config
+package plugin
 
 import (
 	"testing"
@@ -20,38 +20,59 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
-func TestDumper_Dump(t *testing.T) {
+/*
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: HOSTNAME
+spec:
+  data: |
+     192.168.0.2 master-0
+     192.168.0.3 master-1
+     192.168.0.4 master-2
+     192.168.0.5 node-0
+     192.168.0.6 node-1
+     192.168.0.7 node-2
+*/
+func TestHostnamePlugin_Run(t *testing.T) {
 	type fields struct {
-		configs     []v1.Config
-		clusterName string
+		data map[string]string
 	}
+
 	type args struct {
-		clusterfile string
+		context Context
+		phase   Phase
 	}
+
+	plugin := &v1.Plugin{}
+	plugin.Spec.Data = "192.168.0.2 master-0\n192.168.0.3 master-1\n192.168.0.4 master-2\n192.168.0.5 node-0\n192.168.0.6 node-1\n192.168.0.7 node-2\n"
+
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
 		wantErr bool
 	}{
+		// TODO: Add test cases.
 		{
-			"test dump clusterfile configs",
-			fields{
-				configs:     nil,
-				clusterName: "my-cluster",
+			"test hostnameChange to cluster node",
+			fields{},
+			args{
+				context: Context{
+					Plugin: plugin,
+				},
+				phase: PhasePreInit,
 			},
-			args{clusterfile: "test_clusterfile.yaml"},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Dumper{
-				Configs:     tt.fields.configs,
-				ClusterName: tt.fields.clusterName,
+			h := HostnamePlugin{
+				data: tt.fields.data,
 			}
-			if err := c.Dump(tt.args.clusterfile); (err != nil) != tt.wantErr {
-				t.Errorf("Dump() error = %v, wantErr %v", err, tt.wantErr)
+			if err := h.Run(tt.args.context, tt.args.phase); (err != nil) != tt.wantErr {
+				t.Errorf("HostnamePlugins.Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

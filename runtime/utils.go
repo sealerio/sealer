@@ -65,11 +65,11 @@ func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
 	sealerPath := utils.ExecutableFilePath()
 	err = sshClient.Copy(remoteHostIP, sealerPath, common.RemoteSealerPath)
 	if err != nil {
-		return fmt.Errorf("send seautil to remote host %s failed:%v", remoteHostIP, err)
+		return fmt.Errorf("send sealer to remote host %s failed:%v", remoteHostIP, err)
 	}
 	err = sshClient.CmdAsync(remoteHostIP, fmt.Sprintf(common.ChmodCmd, common.RemoteSealerPath))
 	if err != nil {
-		return fmt.Errorf("chmod +x seautil on remote host %s failed:%v", remoteHostIP, err)
+		return fmt.Errorf("chmod +x sealer on remote host %s failed:%v", remoteHostIP, err)
 	}
 	logger.Info("send sealer cmd to %s success !", remoteHostIP)
 
