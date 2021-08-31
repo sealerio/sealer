@@ -78,7 +78,12 @@ func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
 			if err != nil {
 				return err
 			}
-
+		case "HOSTNAME":
+			h := HostnamePlugin{}
+			err := h.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+			if err != nil {
+				return err
+			}
 		default:
 			return fmt.Errorf("not find plugin %s", config.Name)
 		}
