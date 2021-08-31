@@ -29,6 +29,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 		cFile   string
 		cArgs   *common.RunArgs
 		name    string
+		isJoin  bool
 		wantErr bool
 	}{
 		{
@@ -39,6 +40,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 			},
 			"test1",
 			false,
+			false,
 		},
 		{
 			"Clusterfile",
@@ -47,6 +49,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 				Nodes:   "10.110.101.1,10.110.101.5",
 			},
 			"test2",
+			false,
 			false,
 		},
 		{
@@ -57,6 +60,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 			},
 			"test3",
 			false,
+			false,
 		},
 		{
 			"Clusterfile",
@@ -66,6 +70,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 			},
 			"test4",
 			true,
+			true,
 		},
 		{
 			"Clusterfile",
@@ -74,6 +79,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 				Nodes:   "10.110.101.2-",
 			},
 			"test4",
+			true,
 			true,
 		},
 		{
@@ -84,11 +90,12 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 			},
 			"test4",
 			true,
+			true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := NewScalingApplierFromArgs(tt.cFile, tt.cArgs); (err != nil) != tt.wantErr {
+			if err := NewScalingApplierFromArgs(tt.cFile, tt.cArgs, tt.isJoin); (err != nil) != tt.wantErr {
 				logger.Error("masters : %v , nodes : %v", &tt.cArgs.Masters, &tt.cArgs.Nodes)
 			}
 			logger.Info("masters : %v , nodes : %v", &tt.cArgs.Masters, &tt.cArgs.Nodes)

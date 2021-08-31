@@ -40,12 +40,16 @@ specify the cluster name(If there is only one cluster in the $HOME/.sealer direc
     sealer join --masters 2 --nodes 3 -c my-cluster
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		file, err := utils.GetDefaultClusterFilePathByClusterName(clusterName)
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+		if clusterName == "" {
+			cn, err := utils.GetDefaultClusterName()
+			if err != nil {
+				logger.Error(err)
+				os.Exit(1)
+			}
+			clusterName = cn
 		}
-		applier := apply.JoinApplierFromArgs(file, joinArgs)
+		path := common.GetClusterWorkClusterfile(clusterName)
+		applier := apply.NewScalingApplierFromArgs(path, joinArgs, true)
 		if applier == nil {
 			os.Exit(1)
 		}

@@ -15,17 +15,17 @@
 package apply
 
 import (
-	"strconv"
-	"strings"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
-// NewScalingApplierFromArgs will filter ip list from command parameters.
-func NewScalingApplierFromArgs(clusterfile string, scalingArgs *common.RunArgs) Interface {
+type Scales interface {
+	Scale(cluster *v1.Cluster, scalingArgs *common.RunArgs) error
+}
+
+func NewScalingApplierFromArgs(clusterfile string, scalingArgs *common.RunArgs, isExpand bool) Interface {
 	cluster := &v1.Cluster{}
 	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
 		logger.Error("clusterfile parsing failed, please check:", err)
@@ -35,71 +35,26 @@ func NewScalingApplierFromArgs(clusterfile string, scalingArgs *common.RunArgs) 
 		logger.Error("The node or master parameter was not committed")
 		return nil
 	}
-	if cluster.Spec.Provider == "BAREMETAL" {
-		if err := PreProcessIPList(scalingArgs); err != nil {
-			logger.Error("please check you ips format:", err)
-			return nil
-		}
-		if IsIPList(scalingArgs.Nodes) || IsIPList(scalingArgs.Masters) {
-			margeMasters := returnFilteredIPList(cluster.Spec.Masters.IPList, strings.Split(scalingArgs.Masters, ","))
-			margeNodes := returnFilteredIPList(cluster.Spec.Nodes.IPList, strings.Split(scalingArgs.Nodes, ","))
-			cluster.Spec.Masters.IPList = removeIPListDuplicatesAndEmpty(margeMasters)
-			cluster.Spec.Nodes.IPList = removeIPListDuplicatesAndEmpty(margeNodes)
-		} else {
-			logger.Error("Parameter error:", "The current mode should submit iplist！")
-			return nil
-		}
-	} else if IsNumber(scalingArgs.Nodes) || IsNumber(scalingArgs.Masters) {
-		cluster.Spec.Masters.Count = strconv.Itoa(StrToInt(cluster.Spec.Masters.Count) - StrToInt(scalingArgs.Masters))
-		cluster.Spec.Nodes.Count = strconv.Itoa(StrToInt(cluster.Spec.Nodes.Count) - StrToInt(scalingArgs.Nodes))
-		if StrToInt(cluster.Spec.Masters.Count) <= 0 || StrToInt(cluster.Spec.Nodes.Count) <= 0 {
-			logger.Error("Parameter error:", "The number of clean masters or nodes that must be less than definition in Clusterfile.")
-			return nil
-		}
+	var err error
+	if isExpand {
+		e := Expand{}
+		err = e.Scale(cluster, scalingArgs)
 	} else {
-		logger.Error("Parameter error:", "The number of clean masters or nodes that must be submitted to use cloud service！")
+		s := Shrink{}
+		err = s.Scale(cluster, scalingArgs)
+	}
+	if err != nil {
+		logger.Error(err)
 		return nil
 	}
 	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
 		logger.Error("clusterfile save failed, please check:", err)
 		return nil
 	}
-
 	applier, err := NewApplier(cluster)
 	if err != nil {
 		logger.Error("failed to init applier, err: %s", err)
 		return nil
 	}
 	return applier
-}
-
-func returnFilteredIPList(clusterIPList []string, toBeDeletedIPList []string) []string {
-	f := make(map[string]byte)
-	s := make(map[string]byte)
-
-	var set []string
-
-	for _, v := range clusterIPList {
-		f[v] = 0
-		s[v] = 0
-	}
-	for _, v := range toBeDeletedIPList {
-		l := len(s)
-		s[v] = 1
-		if l == len(s) {
-			set = append(set, v)
-		}
-	}
-	for _, v := range set {
-		delete(s, v)
-	}
-	var result []string
-	for v := range s {
-		_, exist := f[v]
-		if exist {
-			result = append(result, v)
-		}
-	}
-
-	return result
 }

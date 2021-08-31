@@ -57,10 +57,13 @@ delete all:
 			logger.Error(err)
 			os.Exit(1)
 		}
-		deleteClusterFile, err := utils.GetDefaultClusterFilePath(deleteClusterFile)
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+		if deleteClusterFile == "" {
+			clusterName, err := utils.GetDefaultClusterName()
+			if err != nil {
+				logger.Error(err)
+				os.Exit(1)
+			}
+			deleteClusterFile = common.GetClusterWorkClusterfile(clusterName)
 		}
 		if all && !force {
 			var yesRx = regexp.MustCompile("^(?:y(?:es)?)$")
@@ -79,7 +82,7 @@ delete all:
 			}
 		}
 		if deleteArgs.Nodes != "" || deleteArgs.Masters != "" {
-			applier := apply.NewScalingApplierFromArgs(deleteClusterFile, deleteArgs)
+			applier := apply.NewScalingApplierFromArgs(deleteClusterFile, deleteArgs, false)
 			if applier == nil {
 				os.Exit(1)
 			}
