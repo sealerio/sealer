@@ -24,7 +24,7 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-// NewCleanApplierFromArgs will filter ip list from command parameters.
+// NewScalingApplierFromArgs will filter ip list from command parameters.
 func NewScalingApplierFromArgs(clusterfile string, scalingArgs *common.RunArgs) Interface {
 	cluster := &v1.Cluster{}
 	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
@@ -52,6 +52,10 @@ func NewScalingApplierFromArgs(clusterfile string, scalingArgs *common.RunArgs) 
 	} else if IsNumber(scalingArgs.Nodes) || IsNumber(scalingArgs.Masters) {
 		cluster.Spec.Masters.Count = strconv.Itoa(StrToInt(cluster.Spec.Masters.Count) - StrToInt(scalingArgs.Masters))
 		cluster.Spec.Nodes.Count = strconv.Itoa(StrToInt(cluster.Spec.Nodes.Count) - StrToInt(scalingArgs.Nodes))
+		if StrToInt(cluster.Spec.Masters.Count) <= 0 || StrToInt(cluster.Spec.Nodes.Count) <= 0 {
+			logger.Error("Parameter error:", "The number of clean masters or nodes that must be less than definition in Clusterfile.")
+			return nil
+		}
 	} else {
 		logger.Error("Parameter error:", "The number of clean masters or nodes that must be submitted to use cloud service！")
 		return nil

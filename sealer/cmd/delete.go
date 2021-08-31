@@ -22,10 +22,12 @@ import (
 	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 	"github.com/spf13/cobra"
 )
 
 var deleteArgs *common.RunArgs
+var deleteClusterFile string
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
@@ -55,6 +57,11 @@ delete all:
 			logger.Error(err)
 			os.Exit(1)
 		}
+		deleteClusterFile, err := utils.GetDefaultClusterFilePath(deleteClusterFile)
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
 		if all && !force {
 			var yesRx = regexp.MustCompile("^(?:y(?:es)?)$")
 			var noRx = regexp.MustCompile("^(?:n(?:o)?)$")
@@ -72,7 +79,7 @@ delete all:
 			}
 		}
 		if deleteArgs.Nodes != "" || deleteArgs.Masters != "" {
-			applier := apply.NewScalingApplierFromArgs(clusterFile, deleteArgs)
+			applier := apply.NewScalingApplierFromArgs(deleteClusterFile, deleteArgs)
 			if applier == nil {
 				os.Exit(1)
 			}
@@ -81,7 +88,7 @@ delete all:
 				os.Exit(1)
 			}
 		} else {
-			applier, err := apply.NewApplierFromFile(clusterFile)
+			applier, err := apply.NewApplierFromFile(deleteClusterFile)
 			if err != nil {
 				logger.Error(err)
 				os.Exit(1)
@@ -99,7 +106,7 @@ func init() {
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.Flags().StringVarP(&deleteArgs.Masters, "masters", "m", "", "reduce Count or IPList to masters")
 	deleteCmd.Flags().StringVarP(&deleteArgs.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
-	deleteCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "delete a kubernetes cluster with Clusterfile Annotations")
+	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
 	deleteCmd.Flags().BoolP("force", "", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolP("all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
 }
