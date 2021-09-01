@@ -103,7 +103,10 @@ func (d *Default) EnsureRegistry(cluster *v1.Cluster) error {
 	mountCmd := fmt.Sprintf("%s && mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s", mkdir,
 		strings.Join(utils.Reverse(lowerLayers), ":"),
 		RegistryMountUpper, RegistryMountWork, target)
-
+	isMount, _ := mount.GetRemoteMountDetails(d.SSH, cf.IP, target)
+	if isMount {
+		mountCmd = fmt.Sprintf("umount %s && %s", target, mountCmd)
+	}
 	if err := d.SSH.CmdAsync(cf.IP, mountCmd); err != nil {
 		return err
 	}
