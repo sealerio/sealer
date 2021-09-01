@@ -17,11 +17,8 @@ package cmd
 import (
 	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 	"github.com/spf13/cobra"
-
-	"os"
 )
 
 var clusterName string
@@ -42,21 +39,14 @@ specify the cluster name(If there is only one cluster in the $HOME/.sealer direc
 	Run: func(cmd *cobra.Command, args []string) {
 		if clusterName == "" {
 			cn, err := utils.GetDefaultClusterName()
-			if err != nil {
-				logger.Error(err)
-				os.Exit(1)
-			}
+			utils.ErrorThenExit(err)
 			clusterName = cn
 		}
 		path := common.GetClusterWorkClusterfile(clusterName)
-		applier := apply.NewScalingApplierFromArgs(path, joinArgs, true)
-		if applier == nil {
-			os.Exit(1)
-		}
-		if err := applier.Apply(); err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
+		applier, err := apply.NewScaleApplierFromArgs(path, joinArgs, common.JoinSubCmd)
+		utils.ErrorThenExit(err)
+		err = applier.Apply()
+		utils.ErrorThenExit(err)
 	},
 }
 

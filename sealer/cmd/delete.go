@@ -21,7 +21,6 @@ import (
 
 	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 	"github.com/spf13/cobra"
 )
@@ -48,21 +47,12 @@ delete all:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		force, err := cmd.Flags().GetBool("force")
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
+		utils.ErrorThenExit(err)
 		all, err := cmd.Flags().GetBool("all")
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
+		utils.ErrorThenExit(err)
 		if deleteClusterFile == "" {
 			clusterName, err := utils.GetDefaultClusterName()
-			if err != nil {
-				logger.Error(err)
-				os.Exit(1)
-			}
+			utils.ErrorThenExit(err)
 			deleteClusterFile = common.GetClusterWorkClusterfile(clusterName)
 		}
 		if all && !force {
@@ -82,24 +72,15 @@ delete all:
 			}
 		}
 		if deleteArgs.Nodes != "" || deleteArgs.Masters != "" {
-			applier := apply.NewScalingApplierFromArgs(deleteClusterFile, deleteArgs, false)
-			if applier == nil {
-				os.Exit(1)
-			}
-			if err := applier.Apply(); err != nil {
-				logger.Error(err)
-				os.Exit(1)
-			}
+			applier, err := apply.NewScaleApplierFromArgs(deleteClusterFile, deleteArgs, common.DeleteSubCmd)
+			utils.ErrorThenExit(err)
+			err = applier.Apply()
+			utils.ErrorThenExit(err)
 		} else {
 			applier, err := apply.NewApplierFromFile(deleteClusterFile)
-			if err != nil {
-				logger.Error(err)
-				os.Exit(1)
-			}
-			if err = applier.Delete(); err != nil {
-				logger.Error(err)
-				os.Exit(1)
-			}
+			utils.ErrorThenExit(err)
+			err = applier.Delete()
+			utils.ErrorThenExit(err)
 		}
 	},
 }

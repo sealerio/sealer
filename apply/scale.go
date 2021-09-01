@@ -15,46 +15,40 @@
 package apply
 
 import (
+	"fmt"
+
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
-type Scales interface {
-	Scale(cluster *v1.Cluster, scalingArgs *common.RunArgs) error
-}
-
-func NewScalingApplierFromArgs(clusterfile string, scalingArgs *common.RunArgs, isExpand bool) Interface {
+// NewScaleApplierFromArgs will filter ip list from command parameters.
+func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag string) (Interface, error) {
 	cluster := &v1.Cluster{}
 	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
-		logger.Error("clusterfile parsing failed, please check:", err)
-		return nil
+		return nil, err
 	}
-	if scalingArgs.Nodes == "" && scalingArgs.Masters == "" {
-		logger.Error("The node or master parameter was not committed")
-		return nil
+	if scaleArgs.Nodes == "" && scaleArgs.Masters == "" {
+		return nil, fmt.Errorf("the node or master parameter was not committed")
 	}
+
 	var err error
-	if isExpand {
-		e := Expand{}
-		err = e.Scale(cluster, scalingArgs)
-	} else {
-		s := Shrink{}
-		err = s.Scale(cluster, scalingArgs)
+	switch flag {
+	case common.JoinSubCmd:
+		err = Join(cluster, scaleArgs)
+	case common.DeleteSubCmd:
+		err = Delete(cluster, scaleArgs)
 	}
 	if err != nil {
-		logger.Error(err)
-		return nil
+		return nil, err
 	}
+
 	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
-		logger.Error("clusterfile save failed, please check:", err)
-		return nil
+		return nil, err
 	}
 	applier, err := NewApplier(cluster)
 	if err != nil {
-		logger.Error("failed to init applier, err: %s", err)
-		return nil
+		return nil, err
 	}
-	return applier
+	return applier, nil
 }
