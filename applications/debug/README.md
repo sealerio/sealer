@@ -1,0 +1,17 @@
+This CloudImage only contains a debug:ubuntu docker image. You can use this CloudImage as base image to build other CloudImages.
+
+# Build a kubernetes-debug-ubuntu CloudImage
+
+```
+sealer build -b lite -t kubernetes-debug-ubuntu:v1.19.9 .
+sealer push kubernetes-debug-ubuntu:v1.19.9
+```
+
+# Using kubernetes-debug-ubuntu CloudImage as Base Image
+
+```
+FROM kubernetes-debug-ubuntu:v1.19.9
+RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
+CMD kubectl apply -f recommended.yaml
+```
+
