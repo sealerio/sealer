@@ -15,36 +15,14 @@
 package cmd
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
-	"strings"
-
-	"github.com/alibaba/sealer/cert"
-
 	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 	"github.com/spf13/cobra"
 )
 
 var clusterName string
 var joinArgs *common.RunArgs
-
-func getClusterName(sealerPath string) ([]string, error) {
-	files, err := ioutil.ReadDir(sealerPath)
-	if err != nil {
-		logger.Error(err)
-		return nil, err
-	}
-	var clusters []string
-	for _, f := range files {
-		if f.IsDir() {
-			clusters = append(clusters, f.Name())
-		}
-	}
-	return clusters, nil
-}
 
 var joinCmd = &cobra.Command{
 	Use:   "join",
@@ -59,37 +37,16 @@ specify the cluster name(If there is only one cluster in the $HOME/.sealer direc
     sealer join --masters 2 --nodes 3 -c my-cluster
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		sealerPath := fmt.Sprintf("%s/.sealer", cert.GetUserHomeDir())
 		if clusterName == "" {
-			files, err := getClusterName(sealerPath)
-			if err != nil {
-				logger.Error(err)
-				os.Exit(1)
-			}
-			if len(files) == 1 {
-				clusterName = files[0]
-			} else if len(files) > 1 {
-				logger.Error("Select a cluster through the -c parameter:", strings.Join(files, ","))
-				os.Exit(1)
-			} else {
-				logger.Error("Existing cluster not found！")
-				os.Exit(1)
-			}
+			cn, err := utils.GetDefaultClusterName()
+			utils.ErrorThenExit(err)
+			clusterName = cn
 		}
-
-		clusterFilePath := fmt.Sprintf("%s/%s/Clusterfile", sealerPath, clusterName)
-		if _, err := os.Lstat(clusterFilePath); err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
-		applier := apply.JoinApplierFromArgs(clusterFilePath, joinArgs)
-		if applier == nil {
-			os.Exit(1)
-		}
-		if err := applier.Apply(); err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
+		path := common.GetClusterWorkClusterfile(clusterName)
+		applier, err := apply.NewScaleApplierFromArgs(path, joinArgs, common.JoinSubCmd)
+		utils.ErrorThenExit(err)
+		err = applier.Apply()
+		utils.ErrorThenExit(err)
 	},
 }
 
