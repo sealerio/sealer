@@ -294,8 +294,8 @@ func (debugger *Debugger) connectPod(ctx context.Context, debugPod *corev1.Pod, 
 		return err
 	}
 
-	status, err := GetContainerStatusByName(debugPodRun, debugger.DebugContainerName)
-	if err != nil {
+	status := GetContainerStatusByName(debugPodRun, debugger.DebugContainerName)
+	if status == nil {
 		return fmt.Errorf("error getting container status of container name %s", debugger.DebugContainerName)
 	}
 
@@ -377,9 +377,9 @@ func WaitForContainer(ctx context.Context, client corev1client.PodsGetter, names
 			return false, fmt.Errorf("watch did not return a pod: %v", event.Object)
 		}
 
-		status, err := GetContainerStatusByName(pod, containerName)
-		if err != nil {
-			return false, err
+		status := GetContainerStatusByName(pod, containerName)
+		if status == nil {
+			return false, nil
 		}
 
 		if status.State.Waiting != nil && status.State.Waiting.Reason == "ImagePullBackOff" {
@@ -401,18 +401,18 @@ func WaitForContainer(ctx context.Context, client corev1client.PodsGetter, names
 }
 
 // GetContainerStatusByName returns the container status by the containerName.
-func GetContainerStatusByName(pod *corev1.Pod, containerName string) (*corev1.ContainerStatus, error) {
+func GetContainerStatusByName(pod *corev1.Pod, containerName string) *corev1.ContainerStatus {
 	allContainerStatus := [][]corev1.ContainerStatus{pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses, pod.Status.EphemeralContainerStatuses}
 
 	for _, statusSlice := range allContainerStatus {
 		for _, status := range statusSlice {
 			if status.Name == containerName {
-				return &status, nil
+				return &status
 			}
 		}
 	}
 
-	return nil, fmt.Errorf("can not find the container %s in pod %s", containerName, pod.Name)
+	return nil
 }
 
 // ContainerNameToRef returns the container names in pod.
