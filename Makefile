@@ -51,8 +51,8 @@ else
 ADDLICENSE_BIN=$(shell which addlicense)
 endif
 
-license: SHELL:=/bin/bash
-license: ## add license
+filelicense: SHELL:=/bin/bash
+filelicense: ## add license
 	for file in ${Dirs} ; do \
 		if [[  $$file != '_output' && $$file != 'vendor' && $$file != 'logger' && $$file != 'applications' ]]; then \
 			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f LICENSE_TEMPLATE ./$$file ; \

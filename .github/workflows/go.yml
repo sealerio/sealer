@@ -36,13 +36,13 @@ jobs:
           tar -zxvf addlicense_1.0.0_Linux_x86_64.tar.gz -C $(go env GOPATH)/bin
           chmod a+x $(go env GOPATH)/bin/addlicense
           rm -rf addlicense_1.0.0_Linux_x86_64.tar.gz
-          make license
+          make filelicense
           modifyCode=$(git status  -s | grep M | wc -l)
           git status  -s
           if [ $modifyCode -eq 0 ] ; then
               echo "Lic check ok"
             else
-              echo "Failed git modify files num is $modifyCode. Lic check error,please exec 'make install-addlicense && make license' in your code "
+              echo "Failed git modify files num is $modifyCode. Lic check error,please exec 'make install-addlicense && make filelicense' in your code "
               exit -1
            fi
 
