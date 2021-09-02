@@ -30,7 +30,7 @@ metadata:
   name: SHELL
 spec:
   action: PostInstall
-  on: role=master
+  on: 192.168.0.2-192.168.0.4 #or 192.168.0.2,192.168.0.3,192.168.0.7
   data: |
      kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
 ```

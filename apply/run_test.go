@@ -16,6 +16,7 @@ package apply
 
 import (
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
 
 	"testing"
 
@@ -101,7 +102,7 @@ func TestAssemblyIPList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := AssemblyIPList(&tt.args.Masters); (err != nil) != tt.wantErr {
+			if err := utils.AssemblyIPList(&tt.args.Masters); (err != nil) != tt.wantErr {
 				logger.Error("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
 			}
 			logger.Info("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
