@@ -1,0 +1,3 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0
+COPY localpv-operator.yaml .
+CMD kubectl apply -f localpv-operator.yaml
