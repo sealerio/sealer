@@ -1,0 +1,222 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zookeeper-system
+  labels:
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/instance: my-zookeeper
+---
+# Source: zookeeper/templates/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-zookeeper-headless
+  namespace: zookeeper-system
+  labels:
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/instance: my-zookeeper
+    app.kubernetes.io/component: zookeeper
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: tcp-client
+      port: 2181
+      targetPort: client
+    - name: follower
+      port: 2888
+      targetPort: follower
+    - name: tcp-election
+      port: 3888
+      targetPort: election
+  selector:
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/instance: my-zookeeper
+    app.kubernetes.io/component: zookeeper
+---
+# Source: zookeeper/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-zookeeper
+  namespace: zookeeper-system
+  labels:
+    app.kubernetes.io/name: zookeeper
+
+    app.kubernetes.io/instance: my-zookeeper
+
+    app.kubernetes.io/component: zookeeper
+spec:
+  type: ClusterIP
+  ports:
+    - name: tcp-client
+      port: 2181
+      targetPort: client
+      nodePort: null
+    - name: follower
+      port: 2888
+      targetPort: follower
+    - name: tcp-election
+      port: 3888
+      targetPort: election
+  selector:
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/instance: my-zookeeper
+    app.kubernetes.io/component: zookeeper
+---
+# Source: zookeeper/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-zookeeper
+  namespace: zookeeper-system
+  labels:
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/instance: my-zookeeper
+    app.kubernetes.io/component: zookeeper
+    role: zookeeper
+spec:
+  serviceName: my-zookeeper-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zookeeper
+      app.kubernetes.io/instance: my-zookeeper
+      app.kubernetes.io/component: zookeeper
+  template:
+    metadata:
+      name: my-zookeeper
+      labels:
+        app.kubernetes.io/name: zookeeper
+        app.kubernetes.io/instance: my-zookeeper
+        app.kubernetes.io/component: zookeeper
+    spec:
+      serviceAccountName: default
+      securityContext:
+        fsGroup: 1001
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: zookeeper
+                    app.kubernetes.io/instance: my-zookeeper
+                    app.kubernetes.io/component: zookeeper
+                namespaces:
+                  - "zookeeper-system"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+      containers:
+        - name: zookeeper
+          image: docker.io/bitnami/zookeeper:3.7.0-debian-10-r106
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsUser: 1001
+          command:
+            - bash
+            - -ec
+            - |
+              # Execute entrypoint as usual after obtaining ZOO_SERVER_ID
+              # check ZOO_SERVER_ID in persistent volume via myid
+              # if not present, set based on POD hostname
+              if [[ -f "/bitnami/zookeeper/data/myid" ]]; then
+                export ZOO_SERVER_ID="$(cat /bitnami/zookeeper/data/myid)"
+              else
+                HOSTNAME=`hostname -s`
+                if [[ $HOSTNAME =~ (.*)-([0-9]+)$ ]]; then
+                  ORD=${BASH_REMATCH[2]}
+                  export ZOO_SERVER_ID=$((ORD + 1 ))
+                else
+                  echo "Failed to get index from hostname $HOST"
+                  exit 1
+                fi
+              fi
+              exec /entrypoint.sh /run.sh
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: ZOO_DATA_LOG_DIR
+              value: ""
+            - name: ZOO_PORT_NUMBER
+              value: "2181"
+            - name: ZOO_TICK_TIME
+              value: "2000"
+            - name: ZOO_INIT_LIMIT
+              value: "10"
+            - name: ZOO_SYNC_LIMIT
+              value: "5"
+            - name: ZOO_MAX_CLIENT_CNXNS
+              value: "60"
+            - name: ZOO_4LW_COMMANDS_WHITELIST
+              value: "srvr, mntr, ruok"
+            - name: ZOO_LISTEN_ALLIPS_ENABLED
+              value: "no"
+            - name: ZOO_AUTOPURGE_INTERVAL
+              value: "0"
+            - name: ZOO_AUTOPURGE_RETAIN_COUNT
+              value: "3"
+            - name: ZOO_MAX_SESSION_TIMEOUT
+              value: "40000"
+            - name: ZOO_SERVERS
+              value: my-zookeeper-0.my-zookeeper-headless.zookeeper-system.svc.cluster.local:2888:3888::1
+            - name: ZOO_ENABLE_AUTH
+              value: "no"
+            - name: ZOO_HEAP_SIZE
+              value: "1024"
+            - name: ZOO_LOG_LEVEL
+              value: "ERROR"
+            - name: ALLOW_ANONYMOUS_LOGIN
+              value: "yes"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          ports:
+            - name: client
+              containerPort: 2181
+            - name: follower
+              containerPort: 2888
+            - name: election
+              containerPort: 3888
+          livenessProbe:
+            exec:
+              command: [ '/bin/bash', '-c', 'echo "ruok" | timeout 2 nc -w 2 localhost 2181 | grep imok' ]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command: [ '/bin/bash', '-c', 'echo "ruok" | timeout 2 nc -w 2 localhost 2181 | grep imok' ]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/zookeeper
+      volumes:
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        annotations:
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "10Gi"
+        storageClassName: local-hostpath
