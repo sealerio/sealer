@@ -41,8 +41,7 @@ func (s Sheller) Run(context Context, phase Phase) error {
 	//get on
 	on := context.Plugin.Spec.On
 	if on != "" {
-		IPList := utils.DisassembleIPList(on)
-		allHostIP = IPList
+		allHostIP = utils.DisassembleIPList(on)
 	}
 
 	SSH := ssh.NewSSHByCluster(context.Cluster)
