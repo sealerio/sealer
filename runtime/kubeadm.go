@@ -40,6 +40,7 @@ func (d *Default) defaultTemplate() ([]byte, error) {
 }
 
 func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
+	d.setKubeadmAPIByVersion()
 	tmpl, err := template.New("text").Parse(templateContent)
 	if err != nil {
 		return nil, err
@@ -59,6 +60,10 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	envMap[APIServer] = d.APIServer
 	envMap[PodCIDR] = d.PodCIDR
 	envMap[SvcCIDR] = d.SvcCIDR
+	envMap[KubeadmAPI] = d.KubeadmAPI
+	envMap[CriSocket] = d.CriSocket
+	// we need to Dynamic get cgroup driver on init master.
+	envMap[CriCGroupDriver] = d.CriCGroupDriver
 	envMap[Repo] = fmt.Sprintf("%s:%d/library", SeaHub, d.RegistryPort)
 	envMap[EtcdServers] = getEtcdEndpointsWithHTTPSPrefix(d.Masters)
 	var buffer bytes.Buffer
@@ -66,14 +71,26 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
+// setKubeadmAPIByVersion is set kubeadm api version and crisocket
+func (d *Default) setKubeadmAPIByVersion() {
+	switch {
+	case VersionCompare(d.Metadata.Version, V1150) && !VersionCompare(d.Metadata.Version, V1200):
+		d.CriSocket = DefaultDockerCRISocket
+		d.KubeadmAPI = KubeadmV1beta2
+	// kubernetes gt 1.20, use Containerd instead of docker
+	case VersionCompare(d.Metadata.Version, V1200) :
+		d.KubeadmAPI = KubeadmV1beta2
+		d.CriSocket = DefaultContainerdCRISocket
+	default:
+		// 兼容一下 1.14 以下版本.
+		d.KubeadmAPI = KubeadmV1beta1
+		d.CriSocket = DefaultDockerCRISocket
+	}
+}
+
 func (d *Default) kubeadmConfig() string {
 	var sb strings.Builder
-	// kubernetes gt 1.20, use Containerd instead of docker
-	if VersionCompare(d.Metadata.Version, V1200) {
-		sb.Write([]byte(InitTemplateTextV1bate2))
-	} else {
-		sb.Write([]byte(InitTemplateTextV1beta1))
-	}
+	sb.Write([]byte(InitTemplateText))
 	return sb.String()
 }
 
