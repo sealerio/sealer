@@ -40,7 +40,7 @@ func (d *Default) defaultTemplate() ([]byte, error) {
 }
 
 func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
-	d.setKubeadmApiByVersion()
+	d.setKubeadmAPIByVersion()
 	tmpl, err := template.New("text").Parse(templateContent)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	envMap[APIServer] = d.APIServer
 	envMap[PodCIDR] = d.PodCIDR
 	envMap[SvcCIDR] = d.SvcCIDR
-	envMap[KubeadmApi] = d.KubeadmApi
+	envMap[KubeadmAPI] = d.KubeadmAPI
 	envMap[CriSocket] = d.CriSocket
 	// we need to Dynamic get cgroup driver on init master.
 	envMap[CriCGroupDriver] = d.CriCGroupDriver
@@ -71,23 +71,23 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-// setKubeadmApiByVersion is set kubeadm api version and crisocket
-func (d *Default) setKubeadmApiByVersion() {
+// setKubeadmAPIByVersion is set kubeadm api version and crisocket
+func (d *Default) setKubeadmAPIByVersion() {
 	switch {
 	case VersionCompare(d.Metadata.Version, V1150) && !VersionCompare(d.Metadata.Version, V1200):
 		d.CriSocket = DefaultDockerCRISocket
-		d.KubeadmApi = KubeadmV1beta2
+		d.KubeadmAPI = KubeadmV1beta2
 	// kubernetes gt 1.20, use Containerd instead of docker
 	case VersionCompare(d.Metadata.Version, V1200) && !VersionCompare(d.Metadata.Version, V1230):
-		d.KubeadmApi = KubeadmV1beta2
+		d.KubeadmAPI = KubeadmV1beta2
 		d.CriSocket = DefaultContainerdCRISocket
 	// kubernetes gt 1.23, use v1beta3 instead of v1beta2
 	case VersionCompare(d.Metadata.Version, V1230):
 		d.CriSocket = DefaultContainerdCRISocket
-		d.KubeadmApi = KubeadmV1beta3
+		d.KubeadmAPI = KubeadmV1beta3
 	default:
 		// 兼容一下 1.14 以下版本.
-		d.KubeadmApi = KubeadmV1beta1
+		d.KubeadmAPI = KubeadmV1beta1
 		d.CriSocket = DefaultDockerCRISocket
 	}
 }

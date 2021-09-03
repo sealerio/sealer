@@ -75,7 +75,7 @@ type Default struct {
 	imageStore        store.ImageStore
 	CriSocket         string
 	CriCGroupDriver   string
-	KubeadmApi        string
+	KubeadmAPI        string
 }
 
 func NewDefaultRuntime(cluster *v1.Cluster) Interface {

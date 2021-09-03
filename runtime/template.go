@@ -23,10 +23,10 @@ const (
 		JoinConfigurationDefault +
 		kubeletConfigDefault)
 
-	bootstrapTokenDefault = `{{- if eq .KubeadmApi "kubeadm.k8s.io/v1beta3" }}
+	bootstrapTokenDefault = `{{- if eq .KubeadmAPI "kubeadm.k8s.io/v1beta3" }}
 apiVersion: bootstraptoken/v1
 {{- else}}
-apiVersion: {{.KubeadmApi}}
+apiVersion: {{.KubeadmAPI}}
 {{- end}}
 caCertPath: /etc/kubernetes/pki/ca.crt
 discovery:
@@ -41,7 +41,7 @@ discovery:
     - {{.TokenDiscoveryCAHash}}
   timeout: 5m0s
 `
-	InitConfigurationDefault = `apiVersion: {{.KubeadmApi}}
+	InitConfigurationDefault = `apiVersion: {{.KubeadmAPI}}
 kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: {{.Master0}}
@@ -63,7 +63,7 @@ nodeRegistration:
 `
 
 	ClusterConfigurationDefault = `---
-apiVersion: {{.KubeadmApi}}
+apiVersion: {{.KubeadmAPI}}
 kind: ClusterConfiguration
 kubernetesVersion: {{.Version}}
 controlPlaneEndpoint: "{{.ApiServer}}:6443"

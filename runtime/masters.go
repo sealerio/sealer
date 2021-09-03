@@ -109,7 +109,7 @@ const (
 	EtcdServers          = "EtcdServers"
 	CriSocket            = "CriSocket"
 	CriCGroupDriver      = "CriCGroupDriver"
-	KubeadmApi           = "KubeadmApi"
+	KubeadmAPI           = "KubeadmAPI"
 	TokenDiscoveryCAHash = "TokenDiscoveryCAHash"
 	SeaHub               = "sea.hub"
 )
@@ -194,7 +194,7 @@ func joinKubeadmConfig() string {
 }
 
 func (d *Default) JoinTemplateFromTemplateContent(templateContent, ip string) []byte {
-	d.setKubeadmApiByVersion()
+	d.setKubeadmAPIByVersion()
 	tmpl, err := template.New("text").Parse(templateContent)
 	if err != nil {
 		logger.Error("template join config failed %v", err)
@@ -206,7 +206,7 @@ func (d *Default) JoinTemplateFromTemplateContent(templateContent, ip string) []
 	envMap[TokenDiscovery] = d.JoinToken
 	envMap[TokenDiscoveryCAHash] = d.TokenCaCertHash
 	envMap[VIP] = d.VIP
-	envMap[KubeadmApi] = d.KubeadmApi
+	envMap[KubeadmAPI] = d.KubeadmAPI
 	envMap[CriSocket] = d.CriSocket
 	// we need to Dynamic get cgroup driver on ervery join nodes.
 	envMap[CriCGroupDriver] = d.CriCGroupDriver
