@@ -38,6 +38,7 @@ const (
 	V1992 = "v1.19.2"
 	V1150 = "v1.15.0"
 	V1200 = "v1.20.0"
+	V1230 = "v1.23.0"
 )
 
 const (
@@ -81,6 +82,16 @@ const (
 	// CriSocket
 	DefaultDockerCRISocket     = "/var/run/dockershim.sock"
 	DefaultContainerdCRISocket = "/run/containerd/containerd.sock"
+	DefaultSystemdCgroupDriver = "systemd"
+	DefaultCgroupDriver        = "cgroupfs"
+
+	// kubeadm api version
+	KubeadmV1beta1 = "kubeadm.k8s.io/v1beta1"
+	KubeadmV1beta2 = "kubeadm.k8s.io/v1beta2"
+	KubeadmV1beta3 = "kubeadm.k8s.io/v1beta3"
+
+	// 	Bootstraptokenv1 new for 1.23
+	// Bootstraptokenv1 = "bootstraptoken/v1"
 )
 
 const (
@@ -97,6 +108,8 @@ const (
 	CertSANS             = "CertSANS"
 	EtcdServers          = "EtcdServers"
 	CriSocket            = "CriSocket"
+	CriCGroupDriver      = "CriCGroupDriver"
+	KubeadmApi           = "KubeadmApi"
 	TokenDiscoveryCAHash = "TokenDiscoveryCAHash"
 	SeaHub               = "sea.hub"
 )
@@ -176,11 +189,12 @@ func (d *Default) SendJoinMasterKubeConfigs(masters []string, files ...string) {
 
 func joinKubeadmConfig() string {
 	var sb strings.Builder
-	sb.Write([]byte(JoinCPTemplateTextV1beta2))
+	sb.Write([]byte(JoinCPTemplateText))
 	return sb.String()
 }
 
 func (d *Default) JoinTemplateFromTemplateContent(templateContent, ip string) []byte {
+	d.setKubeadmApiByVersion()
 	tmpl, err := template.New("text").Parse(templateContent)
 	if err != nil {
 		logger.Error("template join config failed %v", err)
@@ -192,11 +206,11 @@ func (d *Default) JoinTemplateFromTemplateContent(templateContent, ip string) []
 	envMap[TokenDiscovery] = d.JoinToken
 	envMap[TokenDiscoveryCAHash] = d.TokenCaCertHash
 	envMap[VIP] = d.VIP
-	if VersionCompare(d.Metadata.Version, V1200) {
-		envMap[CriSocket] = DefaultContainerdCRISocket
-	} else {
-		envMap[CriSocket] = DefaultDockerCRISocket
-	}
+	envMap[KubeadmApi] = d.KubeadmApi
+	envMap[CriSocket] = d.CriSocket
+	// we need to Dynamic get cgroup driver on ervery join nodes.
+	envMap[CriCGroupDriver] = d.CriCGroupDriver
+
 	var buffer bytes.Buffer
 	err = tmpl.Execute(&buffer, envMap)
 	if err != nil {
@@ -210,6 +224,25 @@ func (d *Default) JoinTemplate(ip string) []byte {
 	return d.JoinTemplateFromTemplateContent(joinKubeadmConfig(), ip)
 }
 
+// getCgroupDriverFromShell is get nodes container runtime cgroup by shell.
+func (d *Default) getCgroupDriverFromShell(node string) string {
+	var cmd string
+	if VersionCompare(d.Metadata.Version, V1200) {
+		cmd = ContainerdShell
+	} else {
+		cmd = DockerShell
+	}
+	driver, err := d.SSH.CmdToString(node, cmd, " ")
+	if err != nil {
+		// by default if we get wrong output we set it default systemd?
+		driver = DefaultSystemdCgroupDriver
+		logger.Error("get nodes [%s] cgroup driver err: %v", node, err)
+	}
+	driver = strings.TrimSpace(driver)
+	logger.Debug("get nodes [%s] cgroup driver is [%s]", node, driver)
+	return driver
+}
+
 // sendJoinCPConfig send join CP nodes configuration
 func (d *Default) sendJoinCPConfig(joinMaster []string) {
 	var wg sync.WaitGroup
@@ -217,6 +250,8 @@ func (d *Default) sendJoinCPConfig(joinMaster []string) {
 		wg.Add(1)
 		go func(master string) {
 			defer wg.Done()
+			// set d.CriCGroupDriver on every nodes.
+			d.CriCGroupDriver = d.getCgroupDriverFromShell(master)
 			templateData := string(d.JoinTemplate(utils.GetHostIP(master)))
 			cmd := fmt.Sprintf(RemoteJoinMasterConfig, templateData, d.Rootfs)
 			err := d.SSH.CmdAsync(master, cmd)

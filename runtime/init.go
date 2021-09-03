@@ -118,6 +118,8 @@ func (d *Default) ConfigKubeadmOnMaster0() error {
 	var err error
 	var tpl []byte
 	var fileData []byte
+	// on master init .we need to get master0 cgroupdriver.
+	d.CriCGroupDriver = d.getCgroupDriverFromShell(d.Masters[0])
 	if d.KubeadmFilePath == "" {
 		tpl, err = d.defaultTemplate()
 		if err != nil {

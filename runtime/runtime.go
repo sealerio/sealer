@@ -73,6 +73,9 @@ type Default struct {
 	Rootfs            string
 	BasePath          string
 	imageStore        store.ImageStore
+	CriSocket         string
+	CriCGroupDriver   string
+	KubeadmApi        string
 }
 
 func NewDefaultRuntime(cluster *v1.Cluster) Interface {
