@@ -78,7 +78,7 @@ func (d *Default) setKubeadmAPIByVersion() {
 		d.CriSocket = DefaultDockerCRISocket
 		d.KubeadmAPI = KubeadmV1beta2
 	// kubernetes gt 1.20, use Containerd instead of docker
-	case VersionCompare(d.Metadata.Version, V1200) :
+	case VersionCompare(d.Metadata.Version, V1200):
 		d.KubeadmAPI = KubeadmV1beta2
 		d.CriSocket = DefaultContainerdCRISocket
 	default:

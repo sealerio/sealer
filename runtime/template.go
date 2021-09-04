@@ -24,7 +24,6 @@ const (
 		kubeletConfigDefault)
 
 	bootstrapTokenDefault = `apiVersion: {{.KubeadmAPI}}
-{{- end}}
 caCertPath: /etc/kubernetes/pki/ca.crt
 discovery:
   bootstrapToken:
