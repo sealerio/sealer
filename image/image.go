@@ -14,21 +14,50 @@
 
 package image
 
-// NewImageService return the image service
-func NewImageService() Service {
-	return DefaultImageService{}
+import "github.com/alibaba/sealer/image/store"
+
+func NewImageService() (Service, error) {
+	imageStore, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+
+	return DefaultImageService{imageStore: imageStore}, nil
 }
 
-// NewImageMetadataService return the MetadataService
-func NewImageMetadataService() MetadataService {
-	return DefaultImageMetadataService{}
+func NewImageMetadataService() (MetadataService, error) {
+	imageStore, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+	return DefaultImageMetadataService{
+		imageStore: imageStore,
+	}, nil
 }
 
-// NewImageFileService return the file Service
-func NewImageFileService() FileService {
-	return DefaultImageFileService{}
+func NewImageFileService() (FileService, error) {
+	layerStore, err := store.NewDefaultLayerStore()
+	if err != nil {
+		return nil, err
+	}
+
+	imageStore, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+	return DefaultImageFileService{
+		layerStore: layerStore,
+		imageStore: imageStore,
+	}, nil
 }
 
-func NewDeleteImageService(force bool) Service {
-	return DefaultImageService{force}
+func NewDeleteImageService(force bool) (Service, error) {
+	imageStore, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+	return DefaultImageService{
+		imageStore:       imageStore,
+		ForceDeleteImage: force,
+	}, nil
 }

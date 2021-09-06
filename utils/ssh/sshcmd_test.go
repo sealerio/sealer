@@ -15,6 +15,7 @@
 package ssh
 
 import (
+	"net"
 	"testing"
 )
 
@@ -38,6 +39,7 @@ func TestSSH_Cmd(t *testing.T) {
 					"",
 					"",
 					nil,
+					&[]net.Addr{},
 				},
 				host: "192.168.56.103",
 				cmd:  "bash /opt/touchTxt.sh",
@@ -54,6 +56,7 @@ func TestSSH_Cmd(t *testing.T) {
 					"",
 					"",
 					nil,
+					&[]net.Addr{},
 				},
 				host: "192.168.56.103",
 				cmd:  "ls /opt/test",
@@ -70,6 +73,7 @@ func TestSSH_Cmd(t *testing.T) {
 					"",
 					"",
 					nil,
+					&[]net.Addr{},
 				},
 				host: "192.168.56.103",
 				cmd:  "bash /opt/removeTxt.sh",
@@ -86,6 +90,7 @@ func TestSSH_Cmd(t *testing.T) {
 					"",
 					"",
 					nil,
+					&[]net.Addr{},
 				},
 				host: "192.168.56.103",
 				cmd:  "bash /opt/exit1.sh",
@@ -129,6 +134,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 					"",
 					"",
 					nil,
+					&[]net.Addr{},
 				},
 				host: "192.168.56.103",
 				cmd:  "bash /opt/touchTxt.sh",
@@ -144,6 +150,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 					"",
 					"",
 					nil,
+					&[]net.Addr{},
 				},
 				host: "192.168.56.103",
 				cmd:  "ls /opt/test",
@@ -159,6 +166,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 					"",
 					"",
 					nil,
+					&[]net.Addr{},
 				},
 				host: "192.168.56.103",
 				cmd:  "bash /opt/removeTxt.sh",
@@ -174,6 +182,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 					"",
 					"",
 					nil,
+					&[]net.Addr{},
 				},
 				host: "192.168.56.103",
 				cmd:  "bash /opt/exit1.sh",

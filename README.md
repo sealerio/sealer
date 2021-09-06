@@ -82,8 +82,8 @@ Install a kubernetes cluster
 
 ```shell script
 #install Sealer binaries
-wget https://github.com/alibaba/sealer/releases/download/v0.2.1/sealer-v0.2.1-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.2.1-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.4.0/sealer-v0.4.0-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.4.0-linux-amd64.tar.gz && mv sealer /usr/bin
 #run a kubernetes cluster 
 sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx
 ```
@@ -96,3 +96,9 @@ sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx
 
 * [contributing guide](./CONTRIBUTING.md)
 * [贡献文档](./docs/contributing_zh.md)
+
+# Maintainers&Partners
+
+<img src="https://img.alicdn.com/tfs/TB13DzOjXP7gK0jSZFjXXc5aXXa-212-48.png" width="100px" />
+<img src="https://cdn.zcygov.cn/logo.png" width="100px" />
+<img src="http://harmonycloud.cn/uploads/images/202105/338aa0549c307208539755b8d2e0d352.png" width="100px" />

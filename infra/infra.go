@@ -17,6 +17,8 @@ package infra
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/infra/container"
+
 	"github.com/alibaba/sealer/infra/aliyun"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
@@ -31,8 +33,10 @@ func NewDefaultProvider(cluster *v1.Cluster) (Interface, error) {
 	switch cluster.Spec.Provider {
 	case aliyun.AliCloud:
 		return NewAliProvider(cluster)
+	case container.CONTAINER:
+		return NewContainerProvider(cluster)
 	default:
-		return nil, fmt.Errorf("the provider is invalid")
+		return nil, fmt.Errorf("the provider is invalid, please set the provider correctly")
 	}
 }
 
@@ -50,4 +54,17 @@ func NewAliProvider(cluster *v1.Cluster) (Interface, error) {
 		return nil, err
 	}
 	return aliProvider, nil
+}
+
+func NewContainerProvider(cluster *v1.Cluster) (Interface, error) {
+	if container.IsDockerAvailable() {
+		return nil, fmt.Errorf("please install docker on your system")
+	}
+
+	cli, err := container.NewClientWithCluster(cluster)
+	if err != nil {
+		return nil, fmt.Errorf("new container client failed")
+	}
+
+	return cli, nil
 }

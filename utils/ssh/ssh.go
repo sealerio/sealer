@@ -16,8 +16,12 @@ package ssh
 
 import (
 	"fmt"
+	"net"
 	"sync"
 	"time"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
 
@@ -45,22 +49,28 @@ type Interface interface {
 }
 
 type SSH struct {
-	User       string
-	Password   string
-	PkFile     string
-	PkPassword string
-	Timeout    *time.Duration
+	User         string
+	Password     string
+	PkFile       string
+	PkPassword   string
+	Timeout      *time.Duration
+	LocalAddress *[]net.Addr
 }
 
 func NewSSHByCluster(cluster *v1.Cluster) Interface {
 	if cluster.Spec.SSH.User == "" {
 		cluster.Spec.SSH.User = common.ROOT
 	}
+	address, err := utils.IsLocalHostAddrs()
+	if err != nil {
+		logger.Warn("failed to get local address, %v", err)
+	}
 	return &SSH{
-		User:       cluster.Spec.SSH.User,
-		Password:   cluster.Spec.SSH.Passwd,
-		PkFile:     cluster.Spec.SSH.Pk,
-		PkPassword: cluster.Spec.SSH.PkPasswd,
+		User:         cluster.Spec.SSH.User,
+		Password:     cluster.Spec.SSH.Passwd,
+		PkFile:       cluster.Spec.SSH.Pk,
+		PkPassword:   cluster.Spec.SSH.PkPasswd,
+		LocalAddress: address,
 	}
 }
 
@@ -70,11 +80,18 @@ type Client struct {
 }
 
 func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
+	var host string
+	if cluster.Spec.Provider == common.CONTAINER {
+		host = cluster.Spec.Masters.IPList[0]
+	}
+	if cluster.Spec.Provider == common.AliCloud {
+		host = cluster.GetAnnotationsByKey(common.Eip)
+	}
 	sshClient := NewSSHByCluster(cluster)
 	if sshClient == nil {
 		return nil, fmt.Errorf("cloud build init ssh client failed")
 	}
-	host := cluster.GetAnnotationsByKey(common.Eip)
+
 	if host == "" {
 		return nil, fmt.Errorf("get cluster EIP failed")
 	}
@@ -101,7 +118,7 @@ func WaitSSHReady(ssh Interface, hosts ...string) error {
 				}
 				time.Sleep(time.Duration(i) * time.Second)
 			}
-			err = fmt.Errorf("wait for [%s] ssh ready timeout", host)
+			err = fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
 		}(h)
 	}
 	wg.Wait()

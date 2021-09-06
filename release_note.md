@@ -1,16 +1,11 @@
 ## release note
 
-### v0.2.1
+### v0.4.0
 
-- [x] fix run can't init cluster
-- [x] add calico ipip config
-- [x] support tag and rmi sealer image with id
-- [x] support sealer join masters and nodes
-- [x] add pre post check
-- [x] add Global config
-- [x] auto detect network interface
-- [x] optimize copy registy data
-- [x] fix Client.Timeout
-- [x] fix delete after master0 execution
-- [x] fix apply retry umount image
-- [x] optimize image structure
+- [x] Fixed lite Build not cache images in manifest/*.yaml
+- [x] Cache docker image for build
+- [x] Add etcd, shell, label, hostname plugin config feature
+  https://github.com/alibaba/sealer/blob/main/docs/design/plugin.md
+- [x] Fixed not requiring login except for Cloud build
+- [x] Fixed build to support submitting private registry account passwords
+- [x] Fixed exceptions when executing kubectl or helm commands during lite builds

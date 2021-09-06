@@ -17,8 +17,10 @@ package build
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/check/checker"
 	"github.com/alibaba/sealer/common"
@@ -29,11 +31,19 @@ import (
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
+var ProviderMap = map[string]string{
+	common.LocalBuild:     common.BAREMETAL,
+	common.AliCloudBuild:  common.AliCloud,
+	common.ContainerBuild: common.CONTAINER,
+}
+
 // cloud builder using cloud provider to build a cluster image
 type CloudBuilder struct {
-	local        *LocalBuilder
-	RemoteHostIP string
-	SSH          ssh.Interface
+	local              *LocalBuilder
+	RemoteHostIP       string
+	SSH                ssh.Interface
+	Provider           string
+	TmpClusterFilePath string
 }
 
 func (c *CloudBuilder) Build(name string, context string, kubefileName string) error {
@@ -59,7 +69,7 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 	if err := c.local.InitImageSpec(); err != nil {
 		return nil, err
 	}
-	if c.IsOnlyCopy() {
+	if IsOnlyCopy(c.local.Image.Spec.Layers) {
 		buildPipeline = append(buildPipeline,
 			c.local.PullBaseImageNotExist,
 			c.local.ExecBuild,
@@ -69,7 +79,6 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 			c.PreCheck,
 			c.InitClusterFile,
 			c.ApplyInfra,
-			c.InitBuildSSH,
 			c.SendBuildContext,
 			c.RemoteLocalBuild,
 			c.Cleanup,
@@ -79,77 +88,73 @@ func (c *CloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 }
 
 // PreCheck: check env before run cloud build
-func (c *CloudBuilder) PreCheck() error {
+func (c *CloudBuilder) PreCheck() (err error) {
+	if c.Provider != common.AliCloud {
+		return nil
+	}
 	registryChecker := checker.NewRegistryChecker(c.local.ImageNamed.Domain())
-	err := registryChecker.Check()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *CloudBuilder) IsOnlyCopy() bool {
-	for i := 1; i < len(c.local.Image.Spec.Layers); i++ {
-		if c.local.Image.Spec.Layers[i].Type == common.RUNCOMMAND ||
-			c.local.Image.Spec.Layers[i].Type == common.CMDCOMMAND {
-			return false
-		}
-	}
-	return true
+	return registryChecker.Check()
 }
 
 // load cluster file from disk
 func (c *CloudBuilder) InitClusterFile() error {
-	clusterFile := common.TmpClusterfile
-	if !utils.IsFileExist(clusterFile) {
-		rawClusterFile := GetRawClusterFile(c.local.Image)
-		if rawClusterFile == "" {
-			return fmt.Errorf("failed to get cluster file from context or base image")
-		}
-		err := utils.WriteFile(common.RawClusterfile, []byte(rawClusterFile))
-		if err != nil {
-			return err
-		}
-		clusterFile = common.RawClusterfile
-	}
 	var cluster v1.Cluster
-	err := utils.UnmarshalYamlFile(clusterFile, &cluster)
-	if err != nil {
-		return fmt.Errorf("failed to read %s:%v", clusterFile, err)
+	if utils.IsFileExist(c.TmpClusterFilePath) {
+		err := utils.UnmarshalYamlFile(c.TmpClusterFilePath, &cluster)
+		if err != nil {
+			return fmt.Errorf("failed to read %s:%v", c.TmpClusterFilePath, err)
+		}
+		c.local.Cluster = &cluster
+		return nil
 	}
-	c.local.Cluster = &cluster
 
-	logger.Info("read cluster file %s success !", clusterFile)
+	rawClusterFile := GetRawClusterFile(c.local.Image)
+	if rawClusterFile == "" {
+		return fmt.Errorf("failed to get cluster file from context or base image")
+	}
+	err := yaml.Unmarshal([]byte(rawClusterFile), &cluster)
+	if err != nil {
+		return err
+	}
+
+	cluster.Spec.Provider = c.Provider
+	c.local.Cluster = &cluster
+	logger.Info("init cluster file success, provider type is %s", c.Provider)
 	return nil
 }
 
 // apply infra create vms
-func (c *CloudBuilder) ApplyInfra() error {
-	if c.local.Cluster.Spec.Provider == common.AliCloud {
-		infraManager, err := infra.NewDefaultProvider(c.local.Cluster)
-		if err != nil {
-			return err
-		}
-		if err := infraManager.Apply(); err != nil {
-			return fmt.Errorf("failed to apply infra :%v", err)
-		}
-		c.local.Cluster.Spec.Provider = common.BAREMETAL
-		if err := utils.MarshalYamlToFile(common.TmpClusterfile, c.local.Cluster); err != nil {
-			return fmt.Errorf("failed to write cluster info:%v", err)
-		}
+func (c *CloudBuilder) ApplyInfra() (err error) {
+	//bare_metal: no need to apply infra
+	//ali_cloud,container: apply infra as cluster content
+	if c.local.Cluster.Spec.Provider == common.BAREMETAL {
+		return c.initBuildSSH()
+	}
+	infraManager, err := infra.NewDefaultProvider(c.local.Cluster)
+	if err != nil {
+		return err
+	}
+	if err := infraManager.Apply(); err != nil {
+		return fmt.Errorf("failed to apply infra :%v", err)
+	}
+
+	c.local.Cluster.Spec.Provider = common.BAREMETAL
+	if err := utils.MarshalYamlToFile(c.TmpClusterFilePath, c.local.Cluster); err != nil {
+		return fmt.Errorf("failed to write cluster info:%v", err)
 	}
 	logger.Info("apply infra success !")
-	return nil
+	return c.initBuildSSH()
 }
-func (c *CloudBuilder) InitBuildSSH() error {
+
+func (c *CloudBuilder) initBuildSSH() error {
 	// init ssh client
+	c.local.Cluster.Spec.Provider = c.Provider
 	client, err := ssh.NewSSHClientWithCluster(c.local.Cluster)
 	if err != nil {
 		return fmt.Errorf("failed to prepare cluster ssh client:%v", err)
 	}
 	c.SSH = client.SSH
 	c.RemoteHostIP = client.Host
-
 	return nil
 }
 
@@ -165,16 +170,39 @@ func (c *CloudBuilder) SendBuildContext() error {
 	return nil
 }
 
-// run BUILD CMD commands
+// run sealer build remotely
 func (c *CloudBuilder) RemoteLocalBuild() (err error) {
+	// apply k8s cluster first
+	apply := fmt.Sprintf("%s apply -f %s", common.RemoteSealerPath, c.TmpClusterFilePath)
+	err = c.SSH.CmdAsync(c.RemoteHostIP, apply)
+	if err != nil {
+		return fmt.Errorf("failed to run remote apply:%v", err)
+	}
 	return c.runBuildCommands()
+}
+
+func (c *CloudBuilder) runBuildCommands() (err error) {
+	// run local build command
+	workdir := fmt.Sprintf(common.DefaultWorkDir, c.local.Cluster.Name)
+	build := fmt.Sprintf(common.BuildClusterCmd, common.RemoteSealerPath,
+		filepath.Base(c.local.KubeFileName), c.local.ImageNamed.Raw(), common.LocalBuild, ".")
+
+	if c.Provider == common.AliCloud {
+		push := fmt.Sprintf(common.PushImageCmd, common.RemoteSealerPath,
+			c.local.ImageNamed.Raw())
+		build = fmt.Sprintf("%s && %s", build, push)
+	}
+	logger.Info("run remote shell %s", build)
+
+	cmd := fmt.Sprintf("cd %s && %s", workdir, build)
+	return c.SSH.CmdAsync(c.RemoteHostIP, cmd)
 }
 
 //cleanup infra and tmp file
 func (c *CloudBuilder) Cleanup() (err error) {
 	t := metav1.Now()
 	c.local.Cluster.DeletionTimestamp = &t
-	c.local.Cluster.Spec.Provider = common.AliCloud
+	c.local.Cluster.Spec.Provider = c.Provider
 	infraManager, err := infra.NewDefaultProvider(c.local.Cluster)
 	if err != nil {
 		return err
@@ -183,12 +211,10 @@ func (c *CloudBuilder) Cleanup() (err error) {
 		logger.Info("failed to cleanup infra :%v", err)
 	}
 
-	if err = os.Remove(common.TmpClusterfile); err != nil {
-		logger.Warn("failed to cleanup local temp file %s:%v", common.TmpClusterfile, err)
+	if err = os.Remove(c.TmpClusterFilePath); err != nil {
+		logger.Warn("failed to cleanup local temp file %s:%v", c.TmpClusterFilePath, err)
 	}
-	if err = os.Remove(common.RawClusterfile); err != nil {
-		logger.Info("failed to cleanup local temp file %s:%v", common.RawClusterfile, err)
-	}
+
 	logger.Info("cleanup success !")
 	return nil
 }
@@ -199,7 +225,14 @@ func NewCloudBuilder(cloudConfig *Config) (Interface, error) {
 		return nil, err
 	}
 
+	provider := common.AliCloud
+	if cloudConfig.BuildType != "" {
+		provider = ProviderMap[cloudConfig.BuildType]
+	}
+
 	return &CloudBuilder{
-		local: localBuilder.(*LocalBuilder),
+		local:              localBuilder.(*LocalBuilder),
+		Provider:           provider,
+		TmpClusterFilePath: common.TmpClusterfile,
 	}, nil
 }

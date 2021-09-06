@@ -16,6 +16,7 @@ package apply
 
 import (
 	"fmt"
+	"math/big"
 	"net"
 	"strconv"
 	"strings"
@@ -61,6 +62,63 @@ func IsIPList(args string) bool {
 	return true
 }
 
+func PreProcessIPList(joinArgs *common.RunArgs) error {
+	if err := AssemblyIPList(&joinArgs.Masters); err != nil {
+		return err
+	}
+	if err := AssemblyIPList(&joinArgs.Nodes); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ipToInt(v string) *big.Int {
+	ip := net.ParseIP(v).To4()
+	if val := ip.To4(); val != nil {
+		return big.NewInt(0).SetBytes(val)
+	}
+	return big.NewInt(0).SetBytes(ip.To16())
+}
+
+func CompareIP(v1, v2 string) (int, error) {
+	i := ipToInt(v1)
+	j := ipToInt(v2)
+
+	if i == nil || j == nil {
+		return 2, fmt.Errorf("ip is invalid，check you command agrs")
+	}
+	return i.Cmp(j), nil
+}
+
+func NextIP(ip string) net.IP {
+	i := ipToInt(ip)
+	return i.Add(i, big.NewInt(1)).Bytes()
+}
+
+func AssemblyIPList(args *string) error {
+	var result string
+	var ips = strings.Split(*args, "-")
+	if *args == "" || !strings.Contains(*args, "-") {
+		return nil
+	}
+	if len(ips) != 2 {
+		return fmt.Errorf("ip is invalid，ip range format is xxx.xxx.xxx.1-xxx.xxx.xxx.2")
+	}
+	if !IsIPList(ips[0]) || !IsIPList(ips[1]) {
+		return fmt.Errorf("ip is invalid，check you command agrs")
+	}
+	for res, _ := CompareIP(ips[0], ips[1]); res <= 0; {
+		result = ips[0] + "," + result
+		ips[0] = NextIP(ips[0]).String()
+		res, _ = CompareIP(ips[0], ips[1])
+	}
+	if result == "" {
+		return fmt.Errorf("ip is invalid，check you command agrs")
+	}
+	*args = result
+	return nil
+}
+
 func IsCidrString(arg string) (bool, error) {
 	_, err := utils.ParseCIDR(arg)
 	var flag bool
@@ -88,10 +146,12 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		}
 		c.cluster.Spec.Network.SvcCIDR = c.svcCidr
 	}
+	if c.passwd != "" {
+		c.cluster.Spec.SSH.Passwd = c.passwd
+	}
 	if IsNumber(c.masterArgs) && (IsNumber(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.Count = c.masterArgs
 		c.cluster.Spec.Nodes.Count = c.nodeArgs
-		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.Provider = common.DefaultCloudProvider
 	} else if IsIPList(c.masterArgs) && (IsIPList(c.nodeArgs) || c.nodeArgs == "") {
 		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
@@ -99,7 +159,6 @@ func (c *ClusterArgs) SetClusterArgs() error {
 			c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
 		}
 		c.cluster.Spec.SSH.User = c.user
-		c.cluster.Spec.SSH.Passwd = c.passwd
 		c.cluster.Spec.SSH.Pk = c.pk
 		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
 	} else {
@@ -112,7 +171,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 func GetClusterFileByImageName(imageName string) (cluster *v1.Cluster, err error) {
 	clusterFile := image.GetClusterFileFromImageManifest(imageName)
 	if clusterFile == "" {
-		return nil, fmt.Errorf("failed to found Clusterfile")
+		return nil, fmt.Errorf("failed to find Clusterfile")
 	}
 	if err := yaml.Unmarshal([]byte(clusterFile), &cluster); err != nil {
 		return nil, err
@@ -126,7 +185,7 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 		return nil, err
 	}
 	if runArgs.Nodes == "" && runArgs.Masters == "" {
-		return NewApplier(cluster), nil
+		return NewApplier(cluster)
 	}
 	c := &ClusterArgs{
 		cluster:    cluster,
@@ -143,5 +202,5 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
 	}
-	return NewApplier(c.cluster), nil
+	return NewApplier(c.cluster)
 }

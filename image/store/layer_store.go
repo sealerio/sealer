@@ -183,7 +183,6 @@ func (ls *layerStore) loadAllROLayers() error {
 
 	ls.mux.Lock()
 	defer ls.mux.Unlock()
-	//TODO only check .../layerdb/.../id for existence of layer currently
 	for _, layer := range roLayers {
 		ls.layers[layer.id] = layer
 	}

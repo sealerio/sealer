@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/logger"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
@@ -110,6 +112,7 @@ func (a *AliProvider) ReconcileResource(resourceKey string, action Alifunc) erro
 			return err
 		}
 		logger.Info("create resource success %s: %s", resourceKey, a.Cluster.Annotations[resourceKey])
+		return utils.SaveClusterfile(a.Cluster)
 	}
 	return nil
 }

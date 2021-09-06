@@ -35,7 +35,13 @@ var listCmd = &cobra.Command{
 	Short:   "list all cluster images",
 	Example: `sealer images`,
 	Run: func(cmd *cobra.Command, args []string) {
-		imageMetadataList, err := image.NewImageMetadataService().List()
+		ims, err := image.NewImageMetadataService()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+
+		imageMetadataList, err := ims.List()
 		if err != nil {
 			logger.Error(err)
 			os.Exit(1)

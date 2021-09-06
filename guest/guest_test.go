@@ -15,6 +15,8 @@
 package guest
 
 import (
+	"fmt"
+	"path/filepath"
 	"testing"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -52,10 +54,19 @@ func TestDefault_Apply(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Default := NewGuestManager()
+			Default, err := NewGuestManager()
+			if err != nil {
+				t.Errorf("failed to NewGuestManager, err: %s", err)
+			}
 			if err := Default.Apply(tt.args.Cluster); (err != nil) != tt.wanterr {
 				t.Errorf("Apply failed, %s", err)
 			}
 		})
 	}
+}
+
+func TestName(t *testing.T) {
+	a := "."
+	b := "/var/lib"
+	fmt.Println(filepath.Join(a, b))
 }

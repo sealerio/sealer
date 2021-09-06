@@ -65,7 +65,7 @@ sealer load -i kubernetes.tar
 
 ## Run
 
-We can run a cluster suing `sealer run` or `sealer apply` command, `sealer apply` needs you edit a Clusterfile to tell
+We can run a cluster using `sealer run` or `sealer apply` command, `sealer apply` needs you edit a Clusterfile to tell
 sealer the cluster configuration.
 
 If you don't know how to write a Clusterfile, you can inspect a image to show the default Clusterfile:
@@ -78,7 +78,7 @@ sealer inspect -c kubernetes:v1.19.9
 > Using sealer run
 
 ```shell script
-sealer run kubernetes:v1.19.9 -m 192.168.0.2,192.168.0.3,192.168.0.4 -m 192.168.0.5,192.168.0.6,192.168.0.7 \
+sealer run kubernetes:v1.19.9 -m 192.168.0.2,192.168.0.3,192.168.0.4 -n 192.168.0.5,192.168.0.6,192.168.0.7 \
        -p xxxx # ssh passwd
 ```
 
@@ -115,13 +115,8 @@ spec:
     # ssh login user
     user: root
   network:
-    # in use NIC name
-    interface: eth0
-    # Network plug-in name
-    cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
-    withoutCNI: false
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2
@@ -177,13 +172,8 @@ spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
   provider: ALI_CLOUD
   network:
-    # in use NIC name
-    interface: eth0
-    # Network plug-in name
-    cniName: calico
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
-    withoutCNI: false
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2

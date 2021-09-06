@@ -81,16 +81,16 @@ func (s *SSH) RemoteMd5Sum(host, remoteFilePath string) string {
 //CmdToString is in host exec cmd and replace to spilt str
 func (s *SSH) CmdToString(host, cmd, spilt string) (string, error) {
 	data, err := s.Cmd(host, cmd)
+	str := string(data)
 	if err != nil {
-		return "", fmt.Errorf("exec remote command failed %s %s %s", host, cmd, err)
+		return str, fmt.Errorf("exec remote command failed %s %s %s", host, cmd, err)
 	}
 	if data != nil {
-		str := string(data)
 		str = strings.ReplaceAll(str, "\r\n", spilt)
 		str = strings.ReplaceAll(str, "\n", spilt)
 		return str, nil
 	}
-	return "", fmt.Errorf("command %s %s return nil", host, cmd)
+	return str, fmt.Errorf("command %s %s return nil", host, cmd)
 }
 
 //SftpConnect  is
@@ -136,6 +136,13 @@ func (s *SSH) sftpConnect(host string) (*sftp.Client, error) {
 
 // CopyRemoteFileToLocal is scp remote file to local
 func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
+	if utils.IsLocalIP(host, s.LocalAddress) {
+		if remoteFilePath != localFilePath {
+			logger.Debug("local copy files src %s to dst %s", remoteFilePath, localFilePath)
+			return utils.RecursionCopy(remoteFilePath, localFilePath)
+		}
+		return nil
+	}
 	sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return fmt.Errorf("new sftp client failed %v", err)
@@ -165,13 +172,11 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 
 // CopyLocalToRemote is copy file or dir to remotePath, add md5 validate
 func (s *SSH) Copy(host, localPath, remotePath string) error {
-	logger.Debug("copy files src %s to dst %s", localPath, remotePath)
-	baseRemoteFilePath := filepath.Dir(remotePath)
-	mkDstDir := fmt.Sprintf("mkdir -p %s || true", baseRemoteFilePath)
-	err := s.CmdAsync(host, mkDstDir)
-	if err != nil {
-		return err
+	if utils.IsLocalIP(host, s.LocalAddress) {
+		logger.Debug("local copy files src %s to dst %s", localPath, remotePath)
+		return utils.RecursionCopy(localPath, remotePath)
 	}
+	logger.Debug("remote copy files src %s to dst %s", localPath, remotePath)
 	sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return fmt.Errorf("new sftp client failed %s", err)
@@ -182,11 +187,19 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	}
 	defer sftpClient.Close()
 	defer sshClient.Close()
+
 	f, err := os.Stat(localPath)
 	if err != nil {
 		return fmt.Errorf("get file stat failed %s", err)
 	}
 
+	baseRemoteFilePath := filepath.Dir(remotePath)
+	_, err = sftpClient.ReadDir(baseRemoteFilePath)
+	if err != nil {
+		if err = sftpClient.MkdirAll(baseRemoteFilePath); err != nil {
+			return err
+		}
+	}
 	number := 1
 	if f.IsDir() {
 		number = utils.CountDirFiles(localPath)

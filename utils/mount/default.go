@@ -21,6 +21,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/alibaba/sealer/utils"
 )
 
 type Default struct {
@@ -42,7 +44,7 @@ func (d *Default) Mount(target string, upperDir string, layers ...string) error 
 		return fmt.Errorf("target is empty")
 	}
 
-	reverse(layers)
+	utils.Reverse(layers)
 
 	for _, layer := range layers {
 		srcInfo, err := os.Stat(layer)
@@ -143,11 +145,4 @@ func PathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, fmt.Errorf("os.Stat(%s) err: %s", path, err)
-}
-
-func reverse(s []string) []string {
-	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
-		s[i], s[j] = s[j], s[i]
-	}
-	return s
 }

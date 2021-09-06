@@ -44,6 +44,7 @@ var buildCmd = &cobra.Command{
 		conf := &build.Config{
 			BuildType: buildConfig.BuildType,
 			NoCache:   buildConfig.NoCache,
+			ImageName: buildConfig.ImageName,
 		}
 		builder, err := build.NewBuilder(conf)
 		if err != nil {

@@ -28,9 +28,6 @@ type SimpleCommand struct {
 
 func (c *SimpleCommand) Exec() (string, error) {
 	output, err := utils.RunSimpleCmd(c.Command)
-	if err != nil {
-		return "", err
-	}
 	return output, err
 }
 

@@ -16,6 +16,7 @@ package store
 
 import (
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -24,6 +25,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"sigs.k8s.io/yaml"
+
+	"github.com/alibaba/sealer/image/types"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/docker/docker/pkg/ioutils"
@@ -35,10 +42,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/opencontainers/go-digest"
-)
-
-const (
-	imageDBRoot = common.DefaultImageDBRootDir
 )
 
 // Backend is a service for image/layer read and write.
@@ -58,18 +61,32 @@ type Backend interface {
 	storeROLayer(layer Layer) error
 	loadAllROLayers() ([]*ROLayer, error)
 	addDistributionMetadata(layerID LayerID, newMetadatas map[string]digest.Digest) error
+	getImageByName(name string) (*v1.Image, error)
+	getImageByID(id string) (*v1.Image, error)
+	deleteImage(name string) error
+	deleteImageByID(id string, force bool) error
+	saveImage(image v1.Image, name string) error
+	setImageMetadata(metadata types.ImageMetadata) error
+	getImageMetadataItem(nameOrID string) (types.ImageMetadata, error)
+	getImageMetadataMap() (ImageMetadataMap, error)
 }
 
 type filesystem struct {
 	sync.RWMutex
-	layerDataRoot string
-	layerDBRoot   string
+	layerDataRoot         string
+	layerDBRoot           string
+	imageDBRoot           string
+	imageMetadataFilePath string
 }
+
+type ImageMetadataMap map[string]types.ImageMetadata
 
 func NewFSStoreBackend() (Backend, error) {
 	return &filesystem{
-		layerDataRoot: layerDataRoot,
-		layerDBRoot:   layerDBRoot,
+		layerDataRoot:         layerDataRoot,
+		layerDBRoot:           layerDBRoot,
+		imageDBRoot:           imageDBRoot,
+		imageMetadataFilePath: imageMetadataFilePath,
 	}, nil
 }
 
@@ -177,10 +194,10 @@ func (fs *filesystem) ListImages() ([][]byte, error) {
 		err       error
 		fileInfos []os.FileInfo
 	)
-	fileInfos, err = ioutil.ReadDir(imageDBRoot)
+	fileInfos, err = ioutil.ReadDir(fs.imageDBRoot)
 	if err != nil {
 		return nil, errors.Errorf("failed to open metadata directory %s, err: %v",
-			imageDBRoot, err)
+			fs.imageDBRoot, err)
 	}
 
 	for _, fileInfo := range fileInfos {
@@ -333,4 +350,166 @@ func (fs *filesystem) loadAllROLayers() ([]*ROLayer, error) {
 		layers = append(layers, rolayer)
 	}
 	return layers, nil
+}
+
+func (fs *filesystem) getImageMetadataMap() (ImageMetadataMap, error) {
+	var (
+		imagesMap ImageMetadataMap
+	)
+	// create file if not exists
+	if !pkgutils.IsFileExist(fs.imageMetadataFilePath) {
+		if err := pkgutils.WriteFile(fs.imageMetadataFilePath, []byte("{}")); err != nil {
+			return nil, err
+		}
+		return ImageMetadataMap{}, nil
+	}
+
+	data, err := ioutil.ReadFile(fs.imageMetadataFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read ImageMetadataMap, err: %s", err)
+	}
+
+	err = json.Unmarshal(data, &imagesMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parsing ImageMetadataMap, err: %s", err)
+	}
+	return imagesMap, err
+}
+
+func (fs *filesystem) getImageByName(name string) (*v1.Image, error) {
+	imagesMap, err := fs.getImageMetadataMap()
+	if err != nil {
+		return nil, err
+	}
+	//get an imageId based on the name of ClusterImage
+	image, ok := imagesMap[name]
+	if !ok {
+		return nil, fmt.Errorf("failed to find image by name: %s", name)
+	}
+
+	if image.ID == "" {
+		return nil, fmt.Errorf("failed to find corresponding image id, id is empty")
+	}
+
+	return fs.getImageByID(image.ID)
+}
+
+func (fs *filesystem) getImageByID(id string) (*v1.Image, error) {
+	var (
+		image    v1.Image
+		filename = filepath.Join(fs.imageDBRoot, id+".yaml")
+	)
+	return &image, pkgutils.UnmarshalYamlFile(filename, &image)
+}
+
+func (fs *filesystem) deleteImage(name string) error {
+	imagesMap, err := fs.getImageMetadataMap()
+	if err != nil {
+		return err
+	}
+
+	_, ok := imagesMap[name]
+	if !ok {
+		return nil
+	}
+	delete(imagesMap, name)
+
+	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
+	if err != nil {
+		return err
+	}
+
+	if err = pkgutils.AtomicWriteFile(fs.imageMetadataFilePath, data, common.FileMode0644); err != nil {
+		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
+	}
+	return nil
+}
+
+func (fs *filesystem) deleteImageByID(id string, force bool) error {
+	imagesMap, err := fs.getImageMetadataMap()
+	if err != nil {
+		return err
+	}
+	var imageIDCount = 0
+	var imageNames []string
+	for _, value := range imagesMap {
+		if value.ID == id {
+			imageIDCount++
+			imageNames = append(imageNames, value.Name)
+		}
+		if imageIDCount > 1 && !force {
+			return fmt.Errorf("there are more than one image %s", id)
+		}
+	}
+	if imageIDCount == 0 {
+		return fmt.Errorf("failed to find image with id %s", id)
+	}
+	for _, imageName := range imageNames {
+		delete(imagesMap, imageName)
+	}
+
+	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
+	if err != nil {
+		return err
+	}
+
+	if err = pkgutils.AtomicWriteFile(fs.imageMetadataFilePath, data, common.FileMode0644); err != nil {
+		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
+	}
+	return nil
+}
+
+func (fs *filesystem) getImageMetadataItem(nameOrID string) (types.ImageMetadata, error) {
+	imageMetadataMap, err := fs.getImageMetadataMap()
+	imageMetadata := types.ImageMetadata{}
+	if err != nil {
+		return imageMetadata, err
+	}
+	for k, v := range imageMetadataMap {
+		if nameOrID == k || nameOrID == v.ID {
+			return v, nil
+		}
+	}
+	return imageMetadata, &types.ImageNameOrIDNotFoundError{Name: nameOrID}
+}
+
+func (fs *filesystem) setImageMetadata(metadata types.ImageMetadata) error {
+	imagesMap, err := fs.getImageMetadataMap()
+	if err != nil {
+		return err
+	}
+
+	imagesMap[metadata.Name] = metadata
+	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
+	if err != nil {
+		return err
+	}
+
+	if err = pkgutils.AtomicWriteFile(fs.imageMetadataFilePath, data, common.FileMode0644); err != nil {
+		return errors.Wrap(err, "failed to write DefaultImageMetadataFile")
+	}
+	return nil
+}
+
+func (fs *filesystem) saveImage(image v1.Image, name string) error {
+	err := saveImageYaml(image, fs.imageDBRoot)
+	if err != nil {
+		return err
+	}
+
+	return fs.setImageMetadata(types.ImageMetadata{Name: name, ID: image.Spec.ID})
+}
+
+func saveImageYaml(image v1.Image, dir string) error {
+	imageYaml, err := yaml.Marshal(image)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		return err
+	}
+
+	return pkgutils.AtomicWriteFile(filepath.Join(dir, image.Spec.ID+common.YamlSuffix), imageYaml, common.FileMode0644)
 }

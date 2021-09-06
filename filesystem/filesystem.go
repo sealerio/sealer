@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alibaba/sealer/image/store"
+
 	"github.com/alibaba/sealer/runtime"
 
 	infraUtils "github.com/alibaba/sealer/infra/utils"
@@ -34,7 +36,6 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
-	imageUtils "github.com/alibaba/sealer/image/utils"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/mount"
@@ -42,7 +43,7 @@ import (
 )
 
 const (
-	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && sh init.sh"
+	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh"
 )
 
 type Interface interface {
@@ -54,14 +55,7 @@ type Interface interface {
 }
 
 type FileSystem struct {
-}
-
-func IsDir(path string) bool {
-	s, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return s.IsDir()
+	imageStore store.ImageStore
 }
 
 func (c *FileSystem) Clean(cluster *v1.Cluster) error {
@@ -73,7 +67,6 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 	if utils.IsFileExist(mountdir) {
 		var err error
 		err = infraUtils.Retry(10, time.Second, func() error {
-			logger.Debug("unmount cluster dir %s", mountdir)
 			err = mount.NewMountDriver().Unmount(mountdir)
 			if err != nil {
 				return err
@@ -88,13 +81,27 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 }
 
 func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
-	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
-	if IsDir(mountdir) {
-		logger.Info("image already mounted")
-		return nil
+	var (
+		mountdir = common.DefaultMountCloudImageDir(cluster.Name)
+		upperDir = filepath.Join(mountdir, "upper")
+		driver   = mount.NewMountDriver()
+		err      error
+	)
+	if isMount, _ := mount.GetMountDetails(mountdir); isMount {
+		err = driver.Unmount(mountdir)
+		if err != nil {
+			return fmt.Errorf("%s already mount, and failed to umount %v", mountdir, err)
+		}
+	} else {
+		if utils.IsFileExist(mountdir) {
+			err = os.RemoveAll(mountdir)
+			if err != nil {
+				return fmt.Errorf("failed to clean %s, %v", mountdir, err)
+			}
+		}
 	}
 	//get layers
-	Image, err := imageUtils.GetImage(cluster.Spec.Image)
+	Image, err := c.imageStore.GetByName(cluster.Spec.Image)
 	if err != nil {
 		return err
 	}
@@ -102,8 +109,7 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 	if err != nil {
 		return fmt.Errorf("get layers failed: %v", err)
 	}
-	driver := mount.NewMountDriver()
-	upperDir := filepath.Join(mountdir, "upper")
+
 	if err = os.MkdirAll(upperDir, 0744); err != nil {
 		return fmt.Errorf("create upperdir failed, %s", err)
 	}
@@ -163,17 +169,13 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	var flag bool
 	var mutex sync.Mutex
 	src := common.DefaultMountCloudImageDir(cluster.Name)
-	localHostAddrs, err := utils.IsLocalHostAddrs()
-	if err != nil {
-		return err
-	}
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	for _, ip := range ipList {
 		wg.Add(1)
 		go func(ip string) {
 			defer wg.Done()
-			err = CopyFiles(SSH, ip == config.IP, utils.IsLocalIP(ip, localHostAddrs), ip, src, target)
+			err := CopyFiles(SSH, ip == config.IP, ip, src, target)
 			if err != nil {
 				logger.Error("copy rootfs failed %v", err)
 				mutex.Lock()
@@ -196,37 +198,22 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	return nil
 }
 
-func CopyFiles(ssh ssh.Interface, isRegistry bool, isLocal bool, ip, src, target string) error {
-	logger.Info(fmt.Sprintf(" %s the local host: %t ,", ip, isLocal))
+func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
 	files, err := ioutil.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("failed to copy files %s", err)
 	}
-	if isLocal {
-		if isRegistry {
-			return utils.RecursionCopy(src, target)
+
+	if isRegistry {
+		return ssh.Copy(ip, src, target)
+	}
+	for _, f := range files {
+		if f.Name() == common.RegistryDirName {
+			continue
 		}
-		for _, f := range files {
-			if f.Name() == common.RegistryDirName {
-				continue
-			}
-			err = utils.RecursionCopy(filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
-			if err != nil {
-				return fmt.Errorf("failed to local copy sub files %v", err)
-			}
-		}
-	} else {
-		if isRegistry {
-			return ssh.Copy(ip, src, target)
-		}
-		for _, f := range files {
-			if f.Name() == common.RegistryDirName {
-				continue
-			}
-			err = ssh.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
-			if err != nil {
-				return fmt.Errorf("failed to copy sub files %v", err)
-			}
+		err = ssh.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
+		if err != nil {
+			return fmt.Errorf("failed to copy sub files %v", err)
 		}
 	}
 	return nil
@@ -238,7 +225,7 @@ func unmountRootfs(ipList []string, cluster *v1.Cluster) error {
 	var flag bool
 	var mutex sync.Mutex
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
-	execClean := fmt.Sprintf("/bin/sh -c "+common.DefaultClusterClearFile, cluster.Name)
+	execClean := fmt.Sprintf("/bin/bash -c "+common.DefaultClusterClearBashFile, cluster.Name)
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
 	for _, ip := range ipList {
 		wg.Add(1)
@@ -260,6 +247,11 @@ func unmountRootfs(ipList []string, cluster *v1.Cluster) error {
 	return nil
 }
 
-func NewFilesystem() Interface {
-	return &FileSystem{}
+func NewFilesystem() (Interface, error) {
+	dis, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+
+	return &FileSystem{imageStore: dis}, nil
 }

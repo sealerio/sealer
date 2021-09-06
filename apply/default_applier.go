@@ -23,6 +23,7 @@ import (
 	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/plugin"
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -40,6 +41,7 @@ type DefaultApplier struct {
 	Runtime         runtime.Interface
 	Guest           guest.Interface
 	Config          config.Interface
+	Plugins         plugin.Plugins
 	MastersToJoin   []string
 	MastersToDelete []string
 	NodesToJoin     []string
@@ -49,25 +51,33 @@ type DefaultApplier struct {
 type ActionName string
 
 const (
-	PullIfNotExist ActionName = "PullIfNotExist"
-	MountRootfs    ActionName = "MountRootfs"
-	UnMountRootfs  ActionName = "UnMountRootfs"
-	MountImage     ActionName = "MountImage"
-	Config         ActionName = "Config"
-	UnMountImage   ActionName = "UnMountImage"
-	Init           ActionName = "Init"
-	Upgrade        ActionName = "Upgrade"
-	ApplyMasters   ActionName = "ApplyMasters"
-	ApplyNodes     ActionName = "ApplyNodes"
-	Guest          ActionName = "Guest"
-	Reset          ActionName = "Reset"
-	CleanFS        ActionName = "CleanFS"
+	PullIfNotExist            ActionName = "PullIfNotExist"
+	MountRootfs               ActionName = "MountRootfs"
+	UnMountRootfs             ActionName = "UnMountRootfs"
+	MountImage                ActionName = "MountImage"
+	Config                    ActionName = "Config"
+	UnMountImage              ActionName = "UnMountImage"
+	Init                      ActionName = "Init"
+	Upgrade                   ActionName = "Upgrade"
+	ApplyMasters              ActionName = "ApplyMasters"
+	ApplyNodes                ActionName = "ApplyNodes"
+	Guest                     ActionName = "Guest"
+	Reset                     ActionName = "Reset"
+	CleanFS                   ActionName = "CleanFS"
+	PluginDump                ActionName = "PluginDump"
+	PluginPhasePreInitRun     ActionName = "PluginPhasePreInitRun"
+	PluginPhasePreInstallRun  ActionName = "PluginPhasePreInstallRun"
+	PluginPhasePostInstallRun ActionName = "PluginPhasePostInstallRun"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	PullIfNotExist: func(applier *DefaultApplier) error {
 		imageName := applier.ClusterDesired.Spec.Image
-		return image.NewImageService().PullIfNotExist(imageName)
+		imgSvc, err := image.NewImageService()
+		if err != nil {
+			return err
+		}
+		return imgSvc.PullIfNotExist(imageName)
 	},
 	MountRootfs: func(applier *DefaultApplier) error {
 		// TODO mount only mount desired hosts, some hosts already mounted when update cluster
@@ -127,6 +137,19 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	CleanFS: func(applier *DefaultApplier) error {
 		return applier.FileSystem.Clean(applier.ClusterDesired)
 	},
+	PluginDump: func(applier *DefaultApplier) error {
+		return applier.Plugins.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+	},
+	PluginPhasePreInitRun: func(applier *DefaultApplier) error {
+		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
+	},
+	PluginPhasePreInstallRun: func(applier *DefaultApplier) error {
+		return applier.Plugins.Run(applier.ClusterDesired, "PreInstall")
+	},
+	PluginPhasePostInstallRun: func(applier *DefaultApplier) error {
+		return applier.Plugins.Run(applier.ClusterDesired, "PostInstall")
+
+	},
 }
 
 func applyMasters(applier *DefaultApplier) error {
@@ -155,7 +178,7 @@ func applyNodes(applier *DefaultApplier) error {
 
 func (c *DefaultApplier) Apply() (err error) {
 	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
-		err = saveClusterfile(c.ClusterDesired)
+		err = utils.SaveClusterfile(c.ClusterDesired)
 		if err != nil {
 			return err
 		}
@@ -203,15 +226,19 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, MountImage)
+		todoList = append(todoList, PluginDump)
 		todoList = append(todoList, Config)
 		todoList = append(todoList, MountRootfs)
+		todoList = append(todoList, PluginPhasePreInitRun)
 		todoList = append(todoList, Init)
+		todoList = append(todoList, PluginPhasePreInstallRun)
 		c.MastersToJoin = c.ClusterDesired.Spec.Masters.IPList[1:]
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, ApplyNodes)
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
+		todoList = append(todoList, PluginPhasePostInstallRun)
 		return todoList, nil
 	}
 
@@ -235,12 +262,27 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	return todoList, nil
 }
 
-func NewDefaultApplier(cluster *v1.Cluster) Interface {
+func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
+	imgSvc, err := image.NewImageService()
+	if err != nil {
+		return nil, err
+	}
+
+	fs, err := filesystem.NewFilesystem()
+	if err != nil {
+		return nil, err
+	}
+
+	gs, err := guest.NewGuestManager()
+	if err != nil {
+		return nil, err
+	}
 	return &DefaultApplier{
 		ClusterDesired: cluster,
-		ImageManager:   image.NewImageService(),
-		FileSystem:     filesystem.NewFilesystem(),
-		Guest:          guest.NewGuestManager(),
+		ImageManager:   imgSvc,
+		FileSystem:     fs,
+		Guest:          gs,
 		Config:         config.NewConfiguration(cluster.Name),
-	}
+		Plugins:        plugin.NewPlugins(cluster.Name),
+	}, nil
 }

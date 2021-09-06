@@ -28,11 +28,19 @@ type Interface interface {
 }
 
 func NewApplierFromFile(clusterfile string) (Interface, error) {
-	cluster, err := GetClusterFromFile(clusterfile)
+	clusters, err := utils.DecodeCluster(clusterfile)
 	if err != nil {
 		return nil, err
 	}
-	return NewApplier(cluster), nil
+	if len(clusters) == 0 {
+		return nil, fmt.Errorf("failed to found cluster from %s", clusterfile)
+	}
+	if len(clusters) > 1 {
+		return nil, fmt.Errorf("multiple clusters exist in the Clusterfile")
+	}
+	cluster := &clusters[0]
+	cluster.SetAnnotations(common.ClusterfileName, clusterfile)
+	return NewApplier(cluster)
 }
 
 func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
@@ -44,23 +52,13 @@ func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
 	return cluster, nil
 }
 
-func NewApplier(cluster *v1.Cluster) Interface {
+func NewApplier(cluster *v1.Cluster) (Interface, error) {
 	switch cluster.Spec.Provider {
 	case common.AliCloud:
 		return NewAliCloudProvider(cluster)
+	case common.CONTAINER:
+		return NewAliCloudProvider(cluster)
 	}
-	return NewDefaultApplier(cluster)
-}
 
-func saveClusterfile(cluster *v1.Cluster) error {
-	fileName := common.GetClusterWorkClusterfile(cluster.Name)
-	err := utils.MkFileFullPathDir(fileName)
-	if err != nil {
-		return fmt.Errorf("mkdir failed %s %v", fileName, err)
-	}
-	err = utils.MarshalYamlToFile(fileName, cluster)
-	if err != nil {
-		return fmt.Errorf("marshal cluster file failed %v", err)
-	}
-	return nil
+	return NewDefaultApplier(cluster)
 }

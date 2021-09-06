@@ -20,23 +20,42 @@ import (
 	"regexp"
 
 	"github.com/alibaba/sealer/apply"
-	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
 	"github.com/spf13/cobra"
 )
 
+var deleteArgs *common.RunArgs
+var deleteClusterFile string
+
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
-	Use:     "delete",
-	Short:   "delete a cluster",
-	Long:    `if provider is BARESERVER will delete kubernetes nodes, or if provider is ALI_CLOUD, will delete all the infra resources`,
-	Example: `sealer delete -f /root/.sealer/mycluster/Clusterfile [--force]`,
+	Use:   "delete",
+	Short: "delete a cluster",
+	Long:  `if provider is BARESERVER will delete kubernetes nodes or IPList;  if provider is ALI_CLOUD, will delete all the infra resources or count`,
+	Example: `
+delete to default cluster: 
+	sealer delete --masters x.x.x.x --nodes x.x.x.x
+	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
+delete to cluster by cloud provider, just set the number of masters or nodes:
+	sealer delete --masters 2 --nodes 3
+specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
+	sealer delete --masters 2 --nodes 3 -f /root/.sealer/specify-cluster/Clusterfile
+delete all:
+	sealer delete --all [--force]
+	sealer delete -f /root/.sealer/mycluster/Clusterfile [--force]
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		force, err := cmd.Flags().GetBool("force")
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+		utils.ErrorThenExit(err)
+		all, err := cmd.Flags().GetBool("all")
+		utils.ErrorThenExit(err)
+		if deleteClusterFile == "" {
+			clusterName, err := utils.GetDefaultClusterName()
+			utils.ErrorThenExit(err)
+			deleteClusterFile = common.GetClusterWorkClusterfile(clusterName)
 		}
-		if !force {
+		if all && !force {
 			var yesRx = regexp.MustCompile("^(?:y(?:es)?)$")
 			var noRx = regexp.MustCompile("^(?:n(?:o)?)$")
 			var input string
@@ -52,20 +71,26 @@ var deleteCmd = &cobra.Command{
 				}
 			}
 		}
-		applier, err := apply.NewApplierFromFile(clusterFile)
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
-		if err = applier.Delete(); err != nil {
-			logger.Error(err)
-			os.Exit(1)
+		if deleteArgs.Nodes != "" || deleteArgs.Masters != "" {
+			applier, err := apply.NewScaleApplierFromArgs(deleteClusterFile, deleteArgs, common.DeleteSubCmd)
+			utils.ErrorThenExit(err)
+			err = applier.Apply()
+			utils.ErrorThenExit(err)
+		} else {
+			applier, err := apply.NewApplierFromFile(deleteClusterFile)
+			utils.ErrorThenExit(err)
+			err = applier.Delete()
+			utils.ErrorThenExit(err)
 		}
 	},
 }
 
 func init() {
+	deleteArgs = &common.RunArgs{}
 	rootCmd.AddCommand(deleteCmd)
-	deleteCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "delete a kubernetes cluster with Clusterfile Annotations")
+	deleteCmd.Flags().StringVarP(&deleteArgs.Masters, "masters", "m", "", "reduce Count or IPList to masters")
+	deleteCmd.Flags().StringVarP(&deleteArgs.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
+	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
 	deleteCmd.Flags().BoolP("force", "", false, "We also can input an --force flag to delete cluster by force")
+	deleteCmd.Flags().BoolP("all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
 }

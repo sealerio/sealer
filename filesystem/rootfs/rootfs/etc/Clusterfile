@@ -1,0 +1,32 @@
+apiVersion: zlink.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: kubernetes:v1.19.9
+  provider: ALI_CLOUD
+  ssh:
+    passwd: Seadent123
+    pk: xxx
+    pkPasswd: xxx
+    user: root
+  network:
+    podCIDR: 100.64.0.0/10
+    svcCIDR: 10.96.0.0/22
+  certSANS:
+    - aliyun-inc.com
+    - 10.0.0.2
+  masters:
+    cpu: 4
+    memory: 4
+    count: 1
+    systemDisk: 100
+    dataDisks:
+    - 100
+  nodes:
+    cpu: 4
+    memory: 4
+    count: 0
+    systemDisk: 100
+    dataDisks:
+    - 100

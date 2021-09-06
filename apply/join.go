@@ -15,14 +15,56 @@
 package apply
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 )
+
+func Join(cluster *v1.Cluster, scalingArgs *common.RunArgs) error {
+	switch cluster.Spec.Provider {
+	case common.BAREMETAL:
+		return joinBaremetalNodes(cluster, scalingArgs)
+	case common.AliCloud:
+		return joinAliCloudNodes(cluster, scalingArgs)
+	default:
+		return fmt.Errorf(" clusterfile provider type is not found ！")
+	}
+}
+
+func joinBaremetalNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
+	if err := PreProcessIPList(scaleArgs); err != nil {
+		return err
+	}
+	if (!IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
+		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
+	}
+	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
+		margeMasters := append(cluster.Spec.Masters.IPList, strings.Split(scaleArgs.Masters, ",")...)
+		cluster.Spec.Masters.IPList = removeIPListDuplicatesAndEmpty(margeMasters)
+	}
+	if scaleArgs.Nodes != "" && IsIPList(scaleArgs.Nodes) {
+		margeNodes := append(cluster.Spec.Nodes.IPList, strings.Split(scaleArgs.Nodes, ",")...)
+		cluster.Spec.Nodes.IPList = removeIPListDuplicatesAndEmpty(margeNodes)
+	}
+	return nil
+}
+
+func joinAliCloudNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
+	if (!IsNumber(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsNumber(scaleArgs.Masters) && scaleArgs.Masters != "") {
+		return fmt.Errorf(" Parameter error: The number of join masters or nodes that must be submitted to use cloud service！")
+	}
+	if scaleArgs.Masters != "" && IsNumber(scaleArgs.Masters) {
+		cluster.Spec.Masters.Count = strconv.Itoa(StrToInt(cluster.Spec.Masters.Count) + StrToInt(scaleArgs.Masters))
+	}
+	if scaleArgs.Nodes != "" && IsNumber(scaleArgs.Nodes) {
+		cluster.Spec.Nodes.Count = strconv.Itoa(StrToInt(cluster.Spec.Nodes.Count) + StrToInt(scaleArgs.Nodes))
+	}
+	return nil
+}
 
 func StrToInt(str string) int {
 	num, err := strconv.Atoi(str)
@@ -43,38 +85,4 @@ func removeIPListDuplicatesAndEmpty(ipList []string) []string {
 		newList = append(newList, ipList[i])
 	}
 	return newList
-}
-
-func JoinApplierFromArgs(clusterfile string, joinArgs *common.RunArgs) Interface {
-	cluster := &v1.Cluster{}
-	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
-		logger.Error("clusterfile parsing failed, please check:", err)
-		return nil
-	}
-	if joinArgs.Nodes == "" && joinArgs.Masters == "" {
-		logger.Error("The node or master parameter was not committed")
-		return nil
-	}
-	if cluster.Spec.Provider == "BAREMETAL" {
-		if IsIPList(joinArgs.Nodes) || IsIPList(joinArgs.Masters) {
-			margeMasters := append(cluster.Spec.Masters.IPList, strings.Split(joinArgs.Masters, ",")...)
-			margeNodes := append(cluster.Spec.Nodes.IPList, strings.Split(joinArgs.Nodes, ",")...)
-			cluster.Spec.Masters.IPList = removeIPListDuplicatesAndEmpty(margeMasters)
-			cluster.Spec.Nodes.IPList = removeIPListDuplicatesAndEmpty(margeNodes)
-		} else {
-			logger.Error("Parameter error:", "The current mode should submit iplist！")
-			return nil
-		}
-	} else if IsNumber(joinArgs.Nodes) || IsNumber(joinArgs.Masters) {
-		cluster.Spec.Masters.Count = strconv.Itoa(StrToInt(cluster.Spec.Masters.Count) + StrToInt(joinArgs.Masters))
-		cluster.Spec.Nodes.Count = strconv.Itoa(StrToInt(cluster.Spec.Nodes.Count) + StrToInt(joinArgs.Nodes))
-	} else {
-		logger.Error("Parameter error:", "The number of join masters or nodes that must be submitted to use cloud service！")
-		return nil
-	}
-	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
-		logger.Error("clusterfile save failed, please check:", err)
-		return nil
-	}
-	return NewApplier(cluster)
 }
