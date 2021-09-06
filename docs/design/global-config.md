@@ -85,6 +85,7 @@ kind: Config
 metadata:
   name: mysql-config
 spec:
+  path: etc/mysql.yaml
   data: |
        mysql-user: root
        mysql-passwd: xxx
@@ -95,6 +96,7 @@ kind: Config
 metadata:
   name: redis-config
 spec:
+  path: etc/redis.yaml
   data: |
        redis-user: root
        redis-passwd: xxx
