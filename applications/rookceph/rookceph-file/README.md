@@ -6,10 +6,19 @@ pool with replication of three and also will create default storage class named 
 
 Components included in this image:
 
-* 1 Deployment for rookceph operator.
-* 3 ceph mons for ceph cluster.
-* 1 ceph mgr for ceph cluster.
-* enable ceph dashboard with ssl port 8443.
+Ceph cluster:
+
+    * 1 Deployment for rookceph operator.
+    * 3 ceph mon for ceph cluster.
+    * 3 ceph osd for ceph cluster.
+    * 2 ceph mgr for ceph cluster.
+    * enable ceph dashboard with ssl port 8443.
+
+CephFilesystem:
+
+    * 3 replicated datapool for ceph filesystem.
+    * 3 replicated metadatapool for ceph filesystem.
+    * 2 ceph metadata server.
 
 # How to run it
 
@@ -78,6 +87,18 @@ spec:
           tolerationSeconds: 5
 
 ```
+
+Launch the rook-ceph-tools pod:
+
+`kubectl create -f toolbox.yaml`
+
+Wait for the toolbox pod to download its container and get to the running state:
+
+`kubectl -n rook-ceph rollout status deploy/rook-ceph-tools`
+
+Once the rook-ceph-tools pod is running, you can connect to it with:
+
+`kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- bash`
 
 Use ceph as the filesystem storage backend to deploy docker registry application.
 

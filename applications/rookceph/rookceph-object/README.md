@@ -5,10 +5,19 @@ default storage class named `rook-ceph-bucket` for use.
 
 Components included in this image:
 
-* 1 Deployment for rookceph operator.
-* 3 ceph mons for ceph cluster.
-* 1 ceph mgr for ceph cluster.
-* enable ceph dashboard with ssl port 8443.
+Ceph cluster:
+
+    * 1 Deployment for rookceph operator.
+    * 3 ceph mon for ceph cluster.
+    * 3 ceph osd for ceph cluster.
+    * 2 ceph mgr for ceph cluster.
+    * enable ceph dashboard with ssl port 8443.
+
+CephObjectStore:
+
+    * 3 replicated datapool for ceph filesystem.
+    * 3 replicated metadatapool for ceph filesystem.
+    * 1 object store gateway with port 80.
 
 # How to run it
 
@@ -78,6 +87,18 @@ spec:
 
 ```
 
+Launch the rook-ceph-tools pod:
+
+`kubectl create -f toolbox.yaml`
+
+Wait for the toolbox pod to download its container and get to the running state:
+
+`kubectl -n rook-ceph rollout status deploy/rook-ceph-tools`
+
+Once the rook-ceph-tools pod is running, you can connect to it with:
+
+`kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- bash`
+
 Use ceph as the object store backend act as AWS S3.
 
 create a bucket.
@@ -96,27 +117,47 @@ Client Connections
 
 ```shell
 #config-map, secret, OBC will part of default if no specific name space mentioned
-export AWS_HOST=$(kubectl -n default get cm ceph-bucket -o jsonpath='{.data.BUCKET_HOST}')
+export AWS_BUCKET_NAME=$(kubectl -n default get cm ceph-bucket -o jsonpath='{.data.BUCKET_NAME}')
 export AWS_ACCESS_KEY_ID=$(kubectl -n default get secret ceph-bucket -o jsonpath='{.data.AWS_ACCESS_KEY_ID}' | base64 --decode)
 export AWS_SECRET_ACCESS_KEY=$(kubectl -n default get secret ceph-bucket -o jsonpath='{.data.AWS_SECRET_ACCESS_KEY}' | base64 --decode)
 ```
 
-To test the CephObjectStore we will install the s3cmd tool into the toolbox pod.
+Get ceph-rgw service cluster ip and port.
+
+```shell
+kubectl -n rook-ceph get svc rook-ceph-rgw-my-store 
+NAME                     TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
+rook-ceph-rgw-my-store   ClusterIP   10.96.3.195   <none>        80/TCP    3h38m
+```
+
+Install the s3cmd tool into the toolbox pod.
 
 `yum -y install s3cmd`
+
+Edit s3cmd config file at : "$HOME/.s3cfg"
+
+example :
+
+```shell
+access_key = ${AWS_ACCESS_KEY_ID}
+secret_key = ${AWS_SECRET_ACCESS_KEY}
+host_bucket = 10.96.3.195/${AWS_BUCKET_NAME}
+host_base = 10.96.3.195:80
+use_https = False
+```
 
 Test the CephObjectStore to upload a file.
 
 ```shell
 echo "Hello Rook" > /tmp/rookObj 
-s3cmd put /tmp/rookObj --no-ssl --host=${AWS_HOST} --host-bucket=s3://rookbucket
+s3cmd put /tmp/rookObj s3://rookbucket-7d02c61a-892f-4dc8-a947-9a2234ae0610
 ```
 
-Test the CephObjectStore to download and verify the file from the bucket.
+Download and verify the file from the bucket.
 
 ```shell
-s3cmd get s3://rookbucket/rookObj /tmp/rookObj-download --no-ssl --host=${AWS_HOST} --host-bucket=s3://rookbucket
-cat /tmp/rookObj-download
+s3cmd get s3://rookbucket-7d02c61a-892f-4dc8-a947-9a2234ae0610/rookObj 
+cat rookObj
 ```
 
 # How to rebuild it
