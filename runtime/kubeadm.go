@@ -82,7 +82,7 @@ func (d *Default) setKubeadmAPIByVersion() {
 		d.KubeadmAPI = KubeadmV1beta2
 		d.CriSocket = DefaultContainerdCRISocket
 	default:
-		// 兼容一下 1.14 以下版本.
+		// Compatible with versions 1.14 and 1.13. but do not recommended.
 		d.KubeadmAPI = KubeadmV1beta1
 		d.CriSocket = DefaultDockerCRISocket
 	}

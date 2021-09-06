@@ -46,8 +46,7 @@ nodeRegistration:
   criSocket: {{.CriSocket}}
 `
 
-	JoinConfigurationDefault = `
-kind: JoinConfiguration
+	JoinConfigurationDefault = `kind: JoinConfiguration
 {{- if .Master }}
 controlPlane:
   localAPIEndpoint:
