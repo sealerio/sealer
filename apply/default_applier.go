@@ -259,8 +259,6 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	}
 	todoList = append(todoList, Guest)
 	todoList = append(todoList, UnMountImage)
-	todoList = append(todoList, PluginDump)
-	todoList = append(todoList, PluginPhasePostInstallRun)
 	return todoList, nil
 }
 
