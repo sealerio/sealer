@@ -14,4 +14,7 @@ _output
 seautil/seautil
 sealer/sealer
 *.swp
-cloud/dashboard/target
+
+cloud/dashboard/target/
+cloud/dashboard/dist/
+cloud/dashboard/Cargo.lock
