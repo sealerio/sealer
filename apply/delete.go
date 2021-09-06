@@ -29,7 +29,9 @@ func Delete(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
 	case common.BAREMETAL:
 		return deleteBaremetalNodes(cluster, scaleArgs)
 	case common.AliCloud:
-		return deleteAliCloudNodes(cluster, scaleArgs)
+		return deleteInfraNodes(cluster, scaleArgs)
+	case common.CONTAINER:
+		return deleteInfraNodes(cluster, scaleArgs)
 	default:
 		return fmt.Errorf(" clusterfile provider type is not found ！")
 	}
@@ -53,7 +55,7 @@ func deleteBaremetalNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error 
 	return nil
 }
 
-func deleteAliCloudNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
+func deleteInfraNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
 	if (!IsNumber(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsNumber(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The number of join masters or nodes that must be submitted to use cloud service！")
 	}
