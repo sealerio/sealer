@@ -1,0 +1,5 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+COPY tidb .
+CMD kubectl apply -f tidb/crd.yaml
+CMD kubectl apply -f tidb/operator.yaml
+CMD kubectl apply -f tidb/manifest.yaml
