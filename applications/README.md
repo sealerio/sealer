@@ -32,7 +32,7 @@ or Replicated PVs. More details about the application can be found in its manife
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/mongodb:4.4.8
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/postgresql:11.12.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/cassandra:4.0.0
-* registry.cn-qingdao.aliyuncs.com/sealer-apps/tidb:v1.2.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/tidb:v1.2.1
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/cockroach:v21.1.7
 
 ### Message queue image
