@@ -17,6 +17,8 @@ package plugin
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/utils/ssh"
@@ -35,10 +37,15 @@ func (s Sheller) Run(context Context, phase Phase) error {
 	//get all host ip
 	masterIP := context.Cluster.Spec.Masters.IPList
 	nodeIP := context.Cluster.Spec.Nodes.IPList
-	hostIP := append(masterIP, nodeIP...)
+	allHostIP := append(masterIP, nodeIP...)
+	//get on
+	on := context.Plugin.Spec.On
+	if on != "" {
+		allHostIP = utils.DisassembleIPList(on)
+	}
 
 	SSH := ssh.NewSSHByCluster(context.Cluster)
-	for _, ip := range hostIP {
+	for _, ip := range allHostIP {
 		err := SSH.CmdAsync(ip, pluginCmd)
 		if err != nil {
 			return fmt.Errorf("failed to run shell cmd,  %v", err)
