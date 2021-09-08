@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/runtime"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/utils/mount"
 
@@ -56,27 +58,10 @@ func (l *LiteBuilder) Build(name string, context string, kubefileName string) er
 }
 
 // load cluster file from disk
-func (l *LiteBuilder) InitClusterFile() error {
-	clusterFile := common.TmpClusterfile
-	if !utils.IsFileExist(clusterFile) {
-		rawClusterFile := GetRawClusterFile(l.local.Image)
-		if rawClusterFile == "" {
-			return fmt.Errorf("failed to get cluster file from context or base image")
-		}
-		err := utils.WriteFile(common.RawClusterfile, []byte(rawClusterFile))
-		if err != nil {
-			return err
-		}
-		clusterFile = common.RawClusterfile
-	}
-	var cluster v1.Cluster
-	err := utils.UnmarshalYamlFile(clusterFile, &cluster)
-	if err != nil {
-		return fmt.Errorf("failed to read %s:%v", clusterFile, err)
-	}
-	l.local.Cluster = &cluster
+func (l *LiteBuilder) InitCluster() error {
+	l.local.Cluster = &v1.Cluster{}
+	l.local.Cluster.Name = "lite-build"
 	l.local.Cluster.Spec.Image = l.local.Image.Spec.Layers[0].Value
-	logger.Info("read cluster file %s success !", clusterFile)
 	return nil
 }
 
@@ -89,7 +74,7 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 	buildPipeline = append(buildPipeline,
 		l.PreCheck,
 		l.local.PullBaseImageNotExist,
-		l.InitClusterFile,
+		l.InitCluster,
 		l.MountImage,
 		l.local.ExecBuild,
 		l.local.UpdateImageMetadata,
@@ -159,6 +144,7 @@ func (l *LiteBuilder) AddUpperLayerToImage() error {
 		Type:  "BASE",
 		Value: "registry cache",
 	}
+	utils.CleanDir(filepath.Join(upper, "scripts"))
 	layerDgst, err := l.local.registerLayer(upper)
 	if err != nil {
 		return err
@@ -180,18 +166,22 @@ func (l *LiteBuilder) AddUpperLayerToImage() error {
 }
 
 func (l *LiteBuilder) Clear() error {
+	if err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("127.0.0.1 %s", runtime.SeaHub)); err != nil {
+		logger.Warn(err)
+	}
 	return utils.CleanFiles(common.RawClusterfile, common.DefaultClusterBaseDir(l.local.Cluster.Name))
 }
 
 func (l *LiteBuilder) InitDockerAndRegistry() error {
 	mount := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount")
-	cmd := "cd %s  && chmod +x scripts/* && cd scripts && bash docker.sh && bash init-registry.sh 5000 %s"
-	r, err := utils.CmdOutput("sh", "-c", fmt.Sprintf(cmd, mount, filepath.Join(mount, "registry")))
+	initDockerCmd := fmt.Sprintf("cd %s  && chmod +x scripts/* && cd scripts && echo 127.0.0.1 sea.hub >> /etc/hosts && bash docker.sh", mount)
+	initRegistryCmd := fmt.Sprintf("bash init-registry.sh 5000 %s", filepath.Join(mount, "registry"))
+	r, err := utils.RunSimpleCmd(fmt.Sprintf("%s && %s", initDockerCmd, initRegistryCmd))
+	logger.Info(r)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Init docker and registry failed: %v", err))
 		return err
 	}
-	logger.Info(string(r))
 	return nil
 }
 
