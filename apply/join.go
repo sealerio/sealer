@@ -29,7 +29,9 @@ func Join(cluster *v1.Cluster, scalingArgs *common.RunArgs) error {
 	case common.BAREMETAL:
 		return joinBaremetalNodes(cluster, scalingArgs)
 	case common.AliCloud:
-		return joinAliCloudNodes(cluster, scalingArgs)
+		return joinInfraNodes(cluster, scalingArgs)
+	case common.CONTAINER:
+		return joinInfraNodes(cluster, scalingArgs)
 	default:
 		return fmt.Errorf(" clusterfile provider type is not found ！")
 	}
@@ -53,7 +55,7 @@ func joinBaremetalNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
 	return nil
 }
 
-func joinAliCloudNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
+func joinInfraNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
 	if (!IsNumber(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsNumber(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The number of join masters or nodes that must be submitted to use cloud service！")
 	}
