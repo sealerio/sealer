@@ -45,6 +45,10 @@ or Replicated PVs. More details about the application can be found in its manife
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/dashboard:v2.2.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/prometheus-stack:v2.28.1
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-promtail:v2.2.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-fluentbit:v2.2.0
+
+
 
 ## How to run it
 
