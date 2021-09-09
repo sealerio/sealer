@@ -1,0 +1,33 @@
+apiVersion: zlink.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  creationTimestamp: null
+  name: my-cluster
+spec:
+  certSANS:
+    - aliyun-inc.com
+    - 10.0.0.2
+  image: registry.cn-qingdao.aliyuncs.com/sealer-apps/ceph-object:v16.2.5
+  masters:
+    count: "3"
+    cpu: "4"
+    dataDisks:
+      - "100"
+    memory: "4"
+    systemDisk: "100"
+  network:
+    podCIDR: 100.64.0.0/10
+    svcCIDR: 10.96.0.0/22
+  nodes:
+    count: "3"
+    cpu: "4"
+    dataDisks:
+      - "100"
+    memory: "4"
+    systemDisk: "100"
+  provider: ALI_CLOUD
+  ssh:
+    passwd: Seadent123
+    pk: xxx
+    pkPasswd: xxx
+    user: root
