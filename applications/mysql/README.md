@@ -7,7 +7,7 @@ Components included in this image:
 * 1 StatefulSet replica for mysql primary which requests "80Gi" storage.
 * 1 StatefulSet replica for mysql secondary which requests "80Gi" storage.
 
-# How to use it
+## How to use it
 
 Tip:
 
@@ -38,7 +38,7 @@ To connect to your database:
 
    mysql -h my-mysql-secondary.mysql-system.svc.cluster.local -uroot -p my_database
 
-# How to rebuild it use helm
+## How to rebuild it use helm
 
 Kubefile:
 
@@ -56,4 +56,4 @@ run below command to build it
 sealer build -t {Your Image Name} -f Kubefile -b cloud .
 ```
 
-More parameters see :https://artifacthub.io/packages/helm/bitnami/mysql
+More parameters see [officail document here](https://artifacthub.io/packages/helm/bitnami/mysql).

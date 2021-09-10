@@ -3,18 +3,18 @@
 * install sealer in your machine
 * if your want to run cloud image on alibaba cloud, need AK,SK first.
 
-# Overview
+## Overview
 
 We choose OpenEBS jiva as default persistence storage to enable Stateful applications to easily access Dynamic Local PVs
 or Replicated PVs. More details about the application can be found in its manifest directory.
 
-## Cloud image list
+### Cloud image list
 
-### Install tools image
+#### Install tools image
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0
 
-### Infra image
+#### Infra image
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-cstor:2.11.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
@@ -25,7 +25,7 @@ or Replicated PVs. More details about the application can be found in its manife
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/ceph-object:v16.2.5
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/minio:2021.6.17
 
-### Database image
+#### Database image
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/mysql:8.0.26
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/redis:6.2.5
@@ -35,20 +35,20 @@ or Replicated PVs. More details about the application can be found in its manife
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/tidb:v1.2.1
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/cockroach:v21.1.7
 
-### Message queue image
+#### Message queue image
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/kafka:2.8.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/zookeeper:3.7.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/rocketmq:4.5.0
 
-### Application image
+#### Application image
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/dashboard:v2.2.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/prometheus-stack:v2.28.1
 
-# How to run it
+## How to run it
 
-## Apply a cluster
+### Apply a cluster
 
 you can modify the image name and save it as "clusterfile.yaml", then run sealer apply
 cmd  `sealer apply -f clusterfile.yaml`
@@ -93,7 +93,7 @@ if you want to apply a cloud image which need persistence storage. we provide op
 provides block volume support through the iSCSI protocol. Therefore, the iSCSI client (initiator) presence on all
 Kubernetes nodes is required. Choose the platform below to find the steps to verify if the iSCSI client is installed and
 running or to find the steps to install the iSCSI client.For openebs, different storage engine need to config different
-prerequisite. more to see https://docs.openebs.io/
+prerequisite. more to see [openebs website](https://docs.openebs.io/).
 
 We provide plugin mechanism, you only need to append below example to "clusterfile.yaml" and apply them together.
 
@@ -121,15 +121,15 @@ spec:
 ---
 ```
 
-# How to use it
+## How to use it
 
 See README.md of each application for more details.
 
-# How to rebuild it
+## How to rebuild it
 
 Use it as base image to build another useful image .For example, use helm image to build a mysql CloudImage:
 
-## Use helm
+### Use helm
 
 Kubefile:
 
@@ -149,7 +149,7 @@ run below command to build a mysql cloud image
 sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-apps/mysql:8.8.5 -b cloud .
 ```
 
-## Use manifest
+### Use manifest
 
 Kubefile:
 
@@ -160,5 +160,3 @@ Then run below command to rebuild it
 ```shell
 sealer build -t {Your Image Name} -f Kubefile -b cloud .
 ```
-
-

@@ -6,12 +6,12 @@ Components included in this image:
 
 * 1 StatefulSet with 3 replicas for cassandra cluster which requests "50Gi" storage.
 
-# How to use it
+## How to use it
 
 Cassandra can be accessed through the following URLs from within the cluster:
 
-- CQL: my-cassandra.cassandra-system.svc.cluster.local:9042
-- Thrift: my-cassandra.cassandra-system.svc.cluster.local:9160
+* CQL: my-cassandra.cassandra-system.svc.cluster.local:9042
+* Thrift: my-cassandra.cassandra-system.svc.cluster.local:9160
 
 To get your password run:
 
@@ -41,7 +41,7 @@ To connect to your database from outside the cluster execute the following comma
 kubectl port-forward --namespace cassandra-system svc/my-cassandra 9042:9042 & cqlsh -u cassandra -p $CASSANDRA_PASSWORD
 127.0.0.1 9042
 
-# How to rebuild it use helm
+## How to rebuild it use helm
 
 Kubefile:
 
@@ -59,5 +59,5 @@ run below command to build it
 sealer build -t {Your Image Name} -f Kubefile -b cloud .
 ```
 
-More parameters see :https://artifacthub.io/packages/helm/bitnami/cassandra
+More parameters see [official document here](https://artifacthub.io/packages/helm/bitnami/cassandra).
 

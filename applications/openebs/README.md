@@ -9,7 +9,7 @@ There are three OpenEBS Data Engine included in this section:
 * [Jiva](https://docs.openebs.io/docs/next/jiva.html)
 * [LocalPV](https://docs.openebs.io/docs/next/localpv.html)
 
-# About cStor
+## About cStor
 
 cStor provides enterprise grade features such as synchronous data replication, snapshots, clones, thin provisioning of
 data, high resiliency of data, data consistency and on-demand increase of capacity or performance.
@@ -30,7 +30,7 @@ Components included in this image:
 
 use example/Clusterfile.yaml to apply "openebs-cstor" by modifying the image filed
 as `image: registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-cstor:2.11.0`,and then run
-command `sealer apply -f Clusterfile.yaml `
+command `sealer apply -f Clusterfile.yaml`
 
 2, Create [CStorPoolCluster](https://docs.openebs.io/docs/next/ugcstor-csi.html#creating-cstor-storage-pools) to make
 the storage cluster in ready status. example see cstor/cspc.yaml
@@ -90,7 +90,7 @@ RUN helm repo add bitnami https://charts.bitnami.com/bitnami
 CMD helm install my-kafka --create-namespace --namespace kafka-system --set global.storageClass=cstor-csi-disk bitnami/kafka --version 14.0.5
 ```
 
-# About Jiva
+## About Jiva
 
 Jiva is a light weight storage engine that is recommended to use for low capacity workloads. The snapshot and storage
 management features of the other cStor engine are more advanced and is recommended when snapshots are a need.
@@ -106,33 +106,33 @@ Components included in this image:
 
 Apply a kubernetes cluster with "openebs-jiva" installed. use example/Clusterfile.yaml to apply "openebs-jiva" by
 modifying the image filed as `image: registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0`,and then run
-command `sealer apply -f Clusterfile.yaml `
+command `sealer apply -f Clusterfile.yaml`
 
 ## How use it
 
 Same with cStor engine.
 
-# About LocalPV
+## About LocalPV
 
 OpenEBS provides Dynamic PV provisioners for Kubernetes Local Volumes. A local volume implies that storage is available
 only from a single node. A local volume represents a mounted local storage device such as a disk, partition or
 directory.
 
 Components included in this image:
- 
+
 * Deployment resource for openebs-localpv-provisioner.
 
 ## How to run it
 
 Apply a kubernetes cluster with "openebs-localpv" installed. use example/Clusterfile.yaml to apply "openebs-localpv" by
 modifying the image filed as `image: registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0`,and then run
-command `sealer apply -f Clusterfile.yaml `
+command `sealer apply -f Clusterfile.yaml`
 
 ## How to use it
 
 Same with cStor engine.
 
-# How to rebuild it
+## How to rebuild it
 
 Modify manifest yaml file according to your needs, then run below command to rebuild it.
 
@@ -140,4 +140,4 @@ Modify manifest yaml file according to your needs, then run below command to reb
 sealer build -t {Your Image Name} -f Kubefile -b cloud .
 ```
 
-More information see :https://docs.openebs.io/docs
+More information see [official document here](https://docs.openebs.io).

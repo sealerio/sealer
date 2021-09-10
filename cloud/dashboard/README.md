@@ -6,7 +6,7 @@ rustup target add wasm32-unknown-unknown
 trunk serve
 ```
 
-# init registry
+## init registry
 
 ```
 docker run -p 5000:5000 -d --name registry registry:2.7.1
@@ -15,6 +15,7 @@ docker run -p 5000:5000 -d --name registry registry:2.7.1
 using nginx to proxy cors:
 
 nginx.conf:
+
 ```
 user  nginx;
 worker_processes  1;
@@ -22,11 +23,9 @@ worker_processes  1;
 error_log  /var/log/nginx/error.log warn;
 pid        /var/run/nginx.pid;
 
-
 events {
     worker_connections  1024;
 }
-
 
 http {
     include       /etc/nginx/mime.types;
@@ -78,6 +77,7 @@ docker run -d --name registry-proxy -p 8001:8000 \
 ```
 
 Then you can test the registry api:
+
 ```
 curl http://localhost:8001/v2/_catalog
 {"repositories":["centos","golang"]}

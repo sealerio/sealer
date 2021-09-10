@@ -2,10 +2,10 @@
 
 ```shell script
 sealer build -t sealer-apps/helm:v3.6.0 .
-sealer push sealer-apps/helm:v3.6.0 
+sealer push sealer-apps/helm:v3.6.0
 ```
 
-# Using helm CloudImage as Base Image
+## Using helm CloudImage as Base Image
 
 ```shell script
 FROM sealer-apps/helm:v3.6.0

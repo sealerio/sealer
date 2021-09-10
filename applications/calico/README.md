@@ -5,9 +5,9 @@ sealer build -t kubernetes-withcalico:v1.19.9 .
 sealer push kubernetes-withcalico:v1.19.9
 ```
 
-# Using kubernetes-withcalico CloudImage  
+## Using kubernetes-withcalico CloudImage
 
-This image contains the default Calico configuration [custom-resources.yaml](latest/etc/custom-resources.yaml). 
+This image contains the default Calico configuration [custom-resources.yaml](latest/etc/custom-resources.yaml).
 
 Clusterfile:
 
@@ -20,7 +20,7 @@ spec:
   image: kubernetes-withcalico:v1.19.9
   network:
     # default Calico configuration use this cidr
-    podCIDR: 100.64.0.0/10 
+    podCIDR: 100.64.0.0/10
 ...
 
 ```
@@ -29,7 +29,7 @@ spec:
 sealer apply -f Clusterfile
 ```
 
-If you want to override the default Calico configuration file, you need to add sealer configuration to the Clusterfile. 
+If you want to override the default Calico configuration file, you need to add sealer configuration to the Clusterfile.
 
 Clusterfile:
 
@@ -41,7 +41,7 @@ metadata:
 spec:
   image: kubernetes-withcalico:v1.19.9
   network:
-    podCIDR: 100.64.0.0/10    
+    podCIDR: 100.64.0.0/10
 ...
 
 ---
@@ -77,7 +77,7 @@ sealer apply -f Clusterfile
 
 For more information about calico installation configuration, see [the installation reference](https://docs.projectcalico.org/reference/installation/api#operator.tigera.io/v1.Installation).
 
-# Using kubernetes-withcalico CloudImage as Base Image
+## Using kubernetes-withcalico CloudImage as Base Image
 
 ```shell script
 FROM kubernetes-withcalico:v1.19.9
