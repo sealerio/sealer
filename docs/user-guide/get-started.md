@@ -10,7 +10,7 @@ sealer login registry.cn-qingdao.aliyuncs.com -u xxx -p xxx
 ```
 
 2. Set you build context and Kubefile
-> download bin files youself
+> download bin files yourself
 
 ```shell script
 mkdir helm-context && cd helm-context

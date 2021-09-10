@@ -826,7 +826,7 @@ spec:
                       additionalProperties:
                         type: string
                       description: NodeSelector is the labels that will be used to select
-                        a node for pod scheduleing
+                        a node for pod scheduling
                       type: object
                     resources:
                       description: Resources are the compute resources required by the
@@ -1560,7 +1560,7 @@ spec:
                       additionalProperties:
                         type: string
                       description: NodeSelector is the labels that will be used to select
-                        a node for pod scheduleing
+                        a node for pod scheduling
                       type: object
                     replicationFactor:
                       description: ReplicationFactor represents maximum number of replicas
@@ -2406,7 +2406,7 @@ spec:
                           additionalProperties:
                             type: string
                           description: NodeSelector is the labels that will be used
-                            to select a node for pod scheduleing
+                            to select a node for pod scheduling
                           type: object
                         resources:
                           description: Resources are the compute resources required
@@ -3168,7 +3168,7 @@ spec:
                           additionalProperties:
                             type: string
                           description: NodeSelector is the labels that will be used
-                            to select a node for pod scheduleing
+                            to select a node for pod scheduling
                           type: object
                         replicationFactor:
                           description: ReplicationFactor represents maximum number of
