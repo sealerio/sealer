@@ -1,0 +1,18 @@
+name: Check Misspell
+
+on:
+  pull_request:
+    branches: "*"
+
+jobs:
+  check-misspell:
+    name: Check Misspell
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Check Misspell
+      uses: docker://dragonflyoss/linter:v0.2.7
+      with:
+        args: bash -c "find . -type f | grep -v vendor | xargs misspell -error"

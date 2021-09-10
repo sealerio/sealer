@@ -2816,7 +2816,7 @@ spec:
                           additionalProperties:
                             type: string
                           description: NodeSelector is the labels that will be used
-                            to select a node for target pod scheduleing Required field
+                            to select a node for target pod scheduling Required field
                           type: object
                         priorityClassName:
                           description: PriorityClassName if specified applies to this
@@ -3372,7 +3372,7 @@ spec:
                       additionalProperties:
                         type: string
                       description: NodeSelector is the labels that will be used to select
-                        a node for target pod scheduleing Required field
+                        a node for target pod scheduling Required field
                       type: object
                     priorityClassName:
                       description: PriorityClassName if specified applies to this target
@@ -3609,7 +3609,7 @@ spec:
                     properties:
                       logicalReferenced:
                         description: LogicalReferenced describes the amount of space
-                          that is "logically" accessable by this snapshot. This logical
+                          that is "logically" accessible by this snapshot. This logical
                           space ignores the effect of the compression and copies properties,
                           giving a quantity closer to the amount of data that application
                           see. It also includes space consumed by metadata.
@@ -3632,7 +3632,7 @@ spec:
                     properties:
                       logicalReferenced:
                         description: LogicalReferenced describes the amount of space
-                          that is "logically" accessable by this snapshot. This logical
+                          that is "logically" accessible by this snapshot. This logical
                           space ignores the effect of the compression and copies properties,
                           giving a quantity closer to the amount of data that application
                           see. It also includes space consumed by metadata.

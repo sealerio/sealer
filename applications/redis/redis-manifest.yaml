@@ -428,7 +428,7 @@ data:
         # if I am the master, issue a command to failover once and then wait for the failover to finish
         run_sentinel_command failover "mymaster"
         if retry_while "failover_finished" "20" 1; then
-            echo "Master has been successfuly failed over to a different pod."
+            echo "Master has been successfully failed over to a different pod."
             exit 0
         else
             echo "Master failover failed"
