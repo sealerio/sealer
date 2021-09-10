@@ -16,6 +16,6 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Lint markdown file
-      uses: docker://avto-dev/markdown-lint@v1.5.0
+      uses: docker://avto-dev/markdown-lint:v1.5.0
       with:
         args: '*.md'
