@@ -1,17 +1,17 @@
 # YRCloudFile
-  YRCloudFile(www.yanrongyun.com) is a high performance distributed filesystem, which can be deployed either on-premise or off-premise, and fully support the Kubernetes.
 
-  By integrated with sealer, you can deploy the YRCloudFile and kubernetes seamlessly, just by one Clusterfile.
+RCloudFile(www.yanrongyun.com) is a high performance distributed filesystem, which can be deployed either on-premise or off-premise, and fully support the Kubernetes.
 
-# Concept
+By integrated with sealer, you can deploy the YRCloudFile and kubernetes seamlessly, just by one Clusterfile.
+
+## Concept
 oss: data storage node role, and contains oss disks; all the oss_disks should be even number.
 
 mds: meta storage node role ,and contains mds disks; all the mds_disks should be even number.
 
 mgr: storage management node role;nodes with mgr role should be 3 or 1.
-  
 
-# Using YRCloudFile CloudImage  
+## Using YRCloudFile CloudImage
 
 This image contains all the dependencies. and for Supported Kernel, please check the [compatible-kernels.txt]
 
@@ -70,10 +70,11 @@ spec:
     mount_path: /mnt/pfs
     storage_cidr: 192.168.0.0/16  # keep it as same as mgmt_cidr for now
     version: 6.6.2
-
 ```
-  Here the 'my-cluster' must be the SAME with cluster name
-  The last two parameters of shell command should be ip address of mgmt_network for one host which with mgr role, and the http_port defined the Config file
+
+Here the 'my-cluster' must be the SAME with cluster name
+
+The last two parameters of shell command should be ip address of mgmt_network for one host which with mgr role, and the http_port defined the Config file
 
 ```
 apiVersion: sealer.aliyun.com/v1alpha1

@@ -25,27 +25,27 @@
 
 ## official registry opensource cloud images
 
-- [ ] dashboard, https://github.com/kubernetes/dashboard
-- [ ] prometheus stack, https://github.com/prometheus-operator/kube-prometheus
-- [ ] loki stack
-- [ ] mysql
-- [ ] redis
-- [ ] rocketmq
-- [ ] zookeeper
-- [ ] minio
-- [ ] openEBS
-- [ ] rook ceph
-- [ ] kubeflow
-- [ ] kafka
-- [ ] cassandra
-- [ ] cockroachDB
-- [ ] postgreSQL
-- [ ] tiDB
-- [ ] istio
-- [ ] dapr
-- [ ] ingress
-- [ ] gitea/drone/harbor, devops stack
+* [ ] [dashboard](https://github.com/kubernetes/dashboard)
+* [ ] [prometheus stack](https://github.com/prometheus-operator/kube-prometheus)
+* [ ] loki stack
+* [ ] mysql
+* [ ] redis
+* [ ] rocketmq
+* [ ] zookeeper
+* [ ] minio
+* [ ] openEBS
+* [ ] rook ceph
+* [ ] kubeflow
+* [ ] kafka
+* [ ] cassandra
+* [ ] cockroachDB
+* [ ] postgreSQL
+* [ ] tiDB
+* [ ] istio
+* [ ] dapr
+* [ ] ingress
+* [ ] gitea/drone/harbor, devops stack
 
-# LONG-TERM
+## LONG*TERM
 
 

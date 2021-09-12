@@ -14,7 +14,7 @@ To run a single test or set of tests, you'll need the [Ginkgo](https://github.co
 machine:
 
 ```console
-$ go get github.com/onsi/ginkgo/ginkgo
+go get github.com/onsi/ginkgo/ginkgo
 ```
 
 To install Sealer and prepare the test environment:
@@ -38,23 +38,23 @@ export IMAGE_NAME={test image name}
 To execute the entire test suite:
 
 ```console
-$ cd sealer && ginkgo test
+cd sealer && ginkgo test
 ```
 
 You can then use the `--focus` option to run subsets of the test suite:
 
 ```console
-$ ginkgo --focus="sealer login" test
+ginkgo --focus="sealer login" test
 ```
 
 You can then use the `-v` option to print out default reporter as all specs begin:
 
 ```console
-$ ginkgo -v test
+ginkgo -v test
 ```
 
 More ginkgo helpful info see:
 
 ```console
-$ ginkgo --help
+ginkgo --help
 ```

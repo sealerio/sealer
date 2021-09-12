@@ -111,7 +111,7 @@ To put forward a PR, we assume you have registered a GitHub ID. Then you could f
 
    Make any change on the `new-branch` then build and test your codes.
 
-1. **Push your branch** to your forked repository, try not to generate multiple commit message within a pr. 
+1. **Push your branch** to your forked repository, try not to generate multiple commit message within a pr.
 
    ```
    golangci-lint run -c .golangci.yml	// lint

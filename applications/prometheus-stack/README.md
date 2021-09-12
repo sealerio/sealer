@@ -1,4 +1,4 @@
-## Overview
+# Overview
 
 This image collects Kubernetes manifests, [Grafana](http://grafana.com/) dashboards,
 and [Prometheus rules](https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/) combined with
@@ -35,7 +35,7 @@ kubectl get PrometheusRule -n kube-prometheus-stack-system
 
 We provide grafana as deployment resource in the cluster and which service type is `ClusterIP`. what's more, we hold
 many useful grafana dashboard inside which will be applied with the grafana dashboard by default. you can check the
-`ConfigMap `for more details in the `kube-prometheus-stack-system` namespace.
+`ConfigMap`for more details in the `kube-prometheus-stack-system` namespace.
 
 ## Access the dashboard
 
@@ -48,9 +48,9 @@ Examples:
 kubectl --namespace kube-prometheus-stack-system port-forward service/kube-prometheus-stack-grafana 3000
 ```
 
-Then access via http://localhost:3000 and use default dashboard access credential :
+Then access via [http://localhost:3000](http://localhost:3000) and use default dashboard access credential :
 
 ```shell
-username : admin 
+username : admin
 password : sealer-admin
 ```

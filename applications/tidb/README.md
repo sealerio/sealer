@@ -10,9 +10,9 @@ Components included in this image:
 * 2 tidb server using ClusterIP to expose service.
 * deploy TiDB monitor using grafana and prometheus which requests "50Gi" storage.
 
-# How to use it
+## How to use it
 
-## Access the database
+### Access the database
 
 By default, we use Cluster IP to expose the console service outside the k8s cluster.
 
@@ -29,10 +29,10 @@ Access tidb database:
 
 `tidb_lb_ip` is the cluster IP of the TiDB service.
 
-## Monitor
+### Monitor
 
 Access the Grafana monitoring dashboard,you can run the kubectl port-forward command to access the Grafana monitoring
-dashboard,then open http://localhost:3000 in your browser and log on with the default username and password admin.
+dashboard,then open [http://localhost:3000](http://localhost:3000) in your browser and log on with the default username and password admin.
 
 `kubectl port-forward -n tidb-system svc/basic-tidb-cluster-grafana 3000:3000 &>/tmp/portforward-grafana.log &`
 
@@ -45,7 +45,7 @@ NAME                         TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)     
 basic-tidb-cluster-grafana   NodePort   10.96.0.225   <none>        3000:31180/TCP   18m
 ```
 
-Access the prometheus monitoring data, run the kubectl port-forward command to access it.open http://localhost:9090 in
+Access the prometheus monitoring data, run the kubectl port-forward command to access it.open [http://localhost:9090](http://localhost:9000) in
 your browser or access this address via a client tool.
 
 `kubectl port-forward -n tidb-system svc/basic-tidb-cluster-prometheus 9090:9090 &>/tmp/portforward-prometheus.log &`
@@ -59,7 +59,7 @@ NAME                            TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)  
 basic-tidb-cluster-prometheus   NodePort   10.96.0.142   <none>        9090:31772/TCP   18m
 ```
 
-# How to rebuild it
+## How to rebuild it
 
 Modify manifest yaml file according to your needs, then run below command to rebuild it.
 
@@ -67,4 +67,4 @@ Modify manifest yaml file according to your needs, then run below command to reb
 sealer build -t {Your Image Name} -f Kubefile -b cloud .
 ```
 
-More parameters see :https://docs.pingcap.com/zh/tidb-in-kubernetes/stable
+More parameters see [official document here](https://docs.pingcap.com/zh/tidb-in-kubernetes/stable).

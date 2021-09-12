@@ -5,6 +5,7 @@ Plugins can help users do some peripheral things, like change hostname, upgrade 
 ## hostname plugin
 
 If you write the plugin config in Clusterfile and apply it, sealer will help you to change all the hostnames
+
 ```yaml
 ---
 apiVersion: sealer.aliyun.com/v1alpha1

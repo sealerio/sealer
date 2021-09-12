@@ -5,11 +5,13 @@
 ### Build a helm CloudImage
 
 1. Login your registry first
+
 ```shell script
 sealer login registry.cn-qingdao.aliyuncs.com -u xxx -p xxx
 ```
 
 2. Set you build context and Kubefile
+
 > download bin files yourself
 
 ```shell script
@@ -17,7 +19,9 @@ mkdir helm-context && cd helm-context
 wget https://get.helm.sh/helm-v3.6.0-linux-amd64.tar.gz
 tar zxvf helm-v3.6.0-linux-amd64.tar.gz
 ```
+
 Create a file Named Kubefile:
+
 ```shell script
 FROM kubernetes:v1.19.9
 COPY linux-amd64/helm /usr/bin
@@ -25,10 +29,11 @@ COPY linux-amd64/helm /usr/bin
 
 > OR using `RUN` command in Kubefile
 
-If your Kubefile has `RUN` or `CMD` command, sealer will try to create a tmp Cluster to execute 
+If your Kubefile has `RUN` or `CMD` command, sealer will try to create a tmp Cluster to execute
 those commands.
 
 So this case you need set cloud provider AK SK
+
 ```shell script
 # like ALI_CLOUD ak sk
 export ACCESSKEYID=LTAI5tx2dB2TgEkWAKU6wLfS
@@ -36,6 +41,7 @@ export ACCESSKEYSECRET=l7sHQ9vE1ZbxFxBkaKFb0YNSPOBt4D
 ```
 
 Kubefile
+
 ```shell script
 FROM kubernetes:v1.19.9
 RUN wget https://get.helm.sh/helm-v3.6.0-linux-amd64.tar.gz && \
@@ -44,6 +50,7 @@ RUN wget https://get.helm.sh/helm-v3.6.0-linux-amd64.tar.gz && \
 ```
 
 3. Build the CloudImage
+
 ```shell script
 sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0 .
 ```
@@ -51,13 +58,15 @@ sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0 .
 ## Share
 
 Push CloudImage to a registry, full docker registry compatibility:
+
 ```shell script
 sealer login registry.cn-qingdao.aliyuncs.com -u xxx -p
-sealer push registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9 
-sealer pull registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9 
+sealer push registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9
+sealer pull registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9
 ```
 
 We also can save the CloudImage as a tar file, copy and load it in your cluster.
+
 ```shell script
 sealer save registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9 -o kubernetes.tar
 sealer load -i kubernetes.tar
@@ -69,6 +78,7 @@ We can run a cluster using `sealer run` or `sealer apply` command, `sealer apply
 sealer the cluster configuration.
 
 If you don't know how to write a Clusterfile, you can inspect a image to show the default Clusterfile:
+
 ```shell script
 sealer inspect -c kubernetes:v1.19.9
 ```
@@ -83,6 +93,7 @@ sealer run kubernetes:v1.19.9 -m 192.168.0.2,192.168.0.3,192.168.0.4 -n 192.168.
 ```
 
 Check the Cluster
+
 ```shell script
 [root@iZm5e42unzb79kod55hehvZ ~]# kubectl get node
 NAME                    STATUS ROLES AGE VERSION
@@ -97,6 +108,7 @@ izm5ehdjw3kru84f0kq7rbz Ready <none> 18h v1.16.9
 > Using sealer apply, the provider should be BAREMETAL
 
 Clusterfile:
+
 ```yaml
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Cluster
@@ -120,7 +132,7 @@ spec:
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2
-    
+
   masters:
     ipList:
      - 172.20.126.4
@@ -132,11 +144,12 @@ spec:
      - 172.20.126.9
      - 172.20.126.10
 ```
+
 ```shell script
 sealer apply -f Clusterfile
 ```
 
-> scale up and down 
+> scale up and down
 
 you just need to add or delete ip in masters or nodes ipList and reapply.
 
@@ -177,7 +190,7 @@ spec:
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2
-    
+
   masters:
     cpu: 4
     memory: 4
@@ -201,15 +214,18 @@ sealer apply -f Clusterfile
 > scale up and down
 
 just edit `.sealer/my-cluster/Clusterfile` set masters.count or nodes.count to you desired number and reapply:
+
 ```shell script
 sealer apply -f .sealer/my-cluster/Clusterfile
 ```
 
-### Clean 
+### Clean
 
 cluster-name is defined in metadata.name
+
 ```shell script
 sealer delete -f .sealer/[cluster-name]/Clusterfile
 ```
+
 if you using cloud mod, sealer will delete the infa resouce too.
 

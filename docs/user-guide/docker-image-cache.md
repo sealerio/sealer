@@ -1,7 +1,6 @@
+# docker image cache
 
-## docker image cache
-
-### docker daemon config
+## docker daemon config
 /etc/docker/daemon.json
 
 we bring some changes on dockerd, there is a new filed in daemon.json—"mirror-registries".
@@ -13,6 +12,7 @@ With "mirror-registries", we can make the `docker pull a.test.com/test/test:v1` 
 examples following:
 
 1. `docker pull reg.test1.com/library/nginx:latest` from `mirror.test1.com`, `/mirror.test2.com` first.
+
 ```json
 {
 "mirror-registries":[
@@ -25,6 +25,7 @@ examples following:
 ```
 
 2. docker pull anything from `http://sea.hub:5000`, `https://mirror.test2.com` first
+
 ```json
 {
   "mirror-registries":[
@@ -38,7 +39,9 @@ examples following:
 ```
 
 ### registry config
+
 1. config with registry auth info
+
 ```yaml
 version: 0.1
 log:
@@ -74,6 +77,7 @@ health:
 ```
 
 2. or config with nothing remote registry info, we can get these info dynamically.
+
 ```yaml
 version: 0.1
 log:
@@ -105,6 +109,7 @@ registry config should be mounted as /etc/docker/registry/config.yml, and mount 
 ### Additional context
 remoteregistries could be added dynamically, but I do not store the dynamical remoteregistries info, because there would be many pair of username and password for same url probably, and maybe some image from different namespace has different auth info. Thus it's costly for adding remoteregistries dynamically, every docker pull request will generate request to real registry from local registry to get real auth endpoint.
 And for making cache registry work, there must be one remoteregistries item, so I take the following config as default registry config.yml.
+
 ```
 version: 0.1
 log:
@@ -130,8 +135,10 @@ health:
     interval: 10s
     threshold: 3
 ```
+
 at the runtime, I guess not everyone needs the cache ability, So I recommend turn the cache off, leave the choice to users.
 the following config will turn off cache ability, and the registry will behave like the community version.
+
 ```
 version: 0.1
 log:
@@ -152,9 +159,11 @@ health:
     interval: 10s
     threshold: 3
 ```
+
 docker run -v  {pathToTheConfigAbove}:/etc/docker/registry/config.yml
 
 if you do not want to provide any remote url, depend on request to config auth info dynamically. should config registry by following way:
+
 ```
 version: 0.1
 log:

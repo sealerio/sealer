@@ -10,7 +10,7 @@ Components included in this image:
 * 1 DaemonSet for ingress nginx controller
 * 1 Service for ingress nginx controller with LoadBalancer
 
-# How to use it
+## How to use it
 
 Create test web service named myapp which exposed 80 port:
 
@@ -96,7 +96,7 @@ Access myapp service via domain name:
 curl myapp.foo.org
 ```
 
-# How to rebuild it use helm
+## How to rebuild it use helm
 
 Kubefile:
 
@@ -113,4 +113,4 @@ run below command to build it
 sealer build -t {Your Image Name} -f Kubefile -b cloud .
 ```
 
-More parameters see : https://kubernetes.github.io/ingress-nginx/deploy
+More parameters see [official document here](https://kubernetes.github.io/ingress-nginx/deploy).

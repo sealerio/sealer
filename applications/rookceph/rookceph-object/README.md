@@ -7,25 +7,25 @@ Components included in this image:
 
 Ceph cluster:
 
-    * 1 Deployment for rookceph operator.
-    * 3 ceph mon for ceph cluster.
-    * 3 ceph osd for ceph cluster.
-    * 2 ceph mgr for ceph cluster.
-    * enable ceph dashboard with ssl port 8443.
+* 1 Deployment for rookceph operator.
+* 3 ceph mon for ceph cluster.
+* 3 ceph osd for ceph cluster.
+* 2 ceph mgr for ceph cluster.
+* enable ceph dashboard with ssl port 8443.
 
 CephObjectStore:
 
-    * 3 replicated datapool for ceph filesystem.
-    * 3 replicated metadatapool for ceph filesystem.
-    * 1 object store gateway with port 80.
+* 3 replicated datapool for ceph filesystem.
+* 3 replicated metadatapool for ceph filesystem.
+* 1 object store gateway with port 80.
 
-# How to run it
+## How to run it
 
 Use default Clusterfile to apply the ceph cluster.
 
-see : [default ceph object store Clusterfile examples](/applications/rookceph/rookceph-object/examples/Clusterfile.yaml)
+see : [default ceph object store Clusterfile examples](../../../applications/rookceph/rookceph-object/examples/Clusterfile.yaml)
 
-# How to use it
+## How to use it
 
 Connect to ceph cluster using below tools.Then run `ceph status` to check the status of ceph cluster.
 
@@ -125,7 +125,7 @@ export AWS_SECRET_ACCESS_KEY=$(kubectl -n default get secret ceph-bucket -o json
 Get ceph-rgw service cluster ip and port.
 
 ```shell
-kubectl -n rook-ceph get svc rook-ceph-rgw-my-store 
+kubectl -n rook-ceph get svc rook-ceph-rgw-my-store
 NAME                     TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
 rook-ceph-rgw-my-store   ClusterIP   10.96.3.195   <none>        80/TCP    3h38m
 ```
@@ -149,18 +149,18 @@ use_https = False
 Test the CephObjectStore to upload a file.
 
 ```shell
-echo "Hello Rook" > /tmp/rookObj 
+echo "Hello Rook" > /tmp/rookObj
 s3cmd put /tmp/rookObj s3://rookbucket-7d02c61a-892f-4dc8-a947-9a2234ae0610
 ```
 
 Download and verify the file from the bucket.
 
 ```shell
-s3cmd get s3://rookbucket-7d02c61a-892f-4dc8-a947-9a2234ae0610/rookObj 
+s3cmd get s3://rookbucket-7d02c61a-892f-4dc8-a947-9a2234ae0610/rookObj
 cat rookObj
 ```
 
-# How to rebuild it
+## How to rebuild it
 
 Modify manifest.yaml or cephobject.yaml file according to your needs, then run below command to rebuild it.
 
@@ -168,4 +168,4 @@ Modify manifest.yaml or cephobject.yaml file according to your needs, then run b
 sealer build -t {Your Image Name} -f Kubefile -b cloud .
 ```
 
-More parameters see : https://rook.io/docs/rook/v1.7/ceph-object.html
+More parameters see [official docs here](https://rook.io/docs/rook/v1.7/ceph-object.html).

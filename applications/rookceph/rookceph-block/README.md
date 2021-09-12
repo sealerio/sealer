@@ -7,23 +7,23 @@ Components included in this image:
 
 Ceph cluster:
 
-    * 1 Deployment for rookceph operator.
-    * 3 ceph mon for ceph cluster.
-    * 3 ceph osd for ceph cluster.
-    * 2 ceph mgr for ceph cluster.
-    * enable ceph dashboard with ssl port 8443.
+* 1 Deployment for rookceph operator.
+* 3 ceph mon for ceph cluster.
+* 3 ceph osd for ceph cluster.
+* 2 ceph mgr for ceph cluster.
+* enable ceph dashboard with ssl port 8443.
 
 CephBlockPool:
 
-    * 3 replicated ceph block pool for ceph block.
+* 3 replicated ceph block pool for ceph block.
 
-# How to run it
+## How to run it
 
 Use default Clusterfile to apply the ceph cluster.
 
-see : [default ceph block Clusterfile examples](/applications/rookceph/rookceph-block/examples/Clusterfile.yaml)
+see : [default ceph block Clusterfile examples](../../../applications/rookceph/rookceph-block/examples/Clusterfile.yaml)
 
-# How to use it
+## How to use it
 
 Connect to ceph cluster using below tools.Then run `ceph status` to check the status of ceph cluster.
 
@@ -99,9 +99,9 @@ Once the rook-ceph-tools pod is running, you can connect to it with:
 
 Use ceph as the block storage backend to deploy mysql application.
 
-see : [mysql with ceph block examples](/applications/rookceph/rookceph-block/examples/examples.yaml)
+see: [mysql with ceph block examples](../../../applications/rookceph/rookceph-block/examples/examples.yaml)
 
-# How to rebuild it
+## How to rebuild it
 
 Modify manifest.yaml or cephblockpool.yaml file according to your needs, then run below command to rebuild it.
 
@@ -109,4 +109,4 @@ Modify manifest.yaml or cephblockpool.yaml file according to your needs, then ru
 sealer build -t {Your Image Name} -f Kubefile -b cloud .
 ```
 
-More parameters see : https://rook.io/docs/rook/v1.7/ceph-block.html
+More parameters see [official docs here](https://rook.io/docs/rook/v1.7/ceph-block.html).

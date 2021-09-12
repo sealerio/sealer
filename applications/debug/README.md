@@ -17,5 +17,5 @@ CMD kubectl apply -f recommended.yaml
 
 ## What can this CloudImage do
 
-This CloudImage contains a debug:ubuntu docker image which may needed by `sealer debug`.  You can see  [sealer debug document ](docs/debug/README.md) to see how to use `sealer debug`.
+This CloudImage contains a debug:ubuntu docker image which may needed by `sealer debug`.  You can see  [sealer debug document](../../docs/debug/README.md) to see how to use `sealer debug`.
 

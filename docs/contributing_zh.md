@@ -7,17 +7,21 @@ sealer与其它的开源项目一样，任何开发者都可以通过fork & pull
 1. FORK 点击项目右上角的fork按钮，把alibaba/sealer fork到自己的仓库中如 fanux/sealer
 2. CLONE 把fork后的项目clone到自己本地，如`git clone https://github.com/fanux/sealer`
 3. Set Remote upstream, 方便把alibaba/sealer的代码更新到自己的仓库中
+
 ```shell script
 git remote add upstream https://github.com/alibaba/sealer.git
 git remote set-url --push upstream no-pushing
 ```
+
 更新主分支代码到自己的仓库可以：
+
 ```shell script
 git pull upstream main # git pull <remote name> <branch name>
 git push
 ```
 
 建议main分支只做代码同步，所有功能切一个新分支开发，如修复一个bug:
+
 ```shell script
 git checkout -b bugfix/calico-interface
 # 开发完成后

@@ -1,8 +1,8 @@
 # sealer release v0.1.5 test report
 
-# Cloud mode:
+## Cloud mode:
 
-##   init:
+### init:
 
 ```shell
 1.wget https://github.com/alibaba/sealer/releases/download/v0.1.5-rc/sealer-0.0.0-linux-amd64.tar.gz && tar zxvf sealer-0.0.0-linux-amd64.tar.gz && mv sealer /usr/local/bin/
@@ -73,7 +73,8 @@ spec:
     user: root
 status: {}
 ```
-## scale up:
+
+### scale up:
 
 #### 1. Modify /root/sealer/mycluster/Clusterfile file Masters, Nodes Count number：
 
@@ -99,6 +100,7 @@ status: {}
 ```
 
 #### 2. Execute Sealer apply-f /root/.sealer/my-cluster/Clusterfile (Successfully executed):
+
 ```shell
 [root@iZ2vc2ce4hs85f7asxhaipZ ~]# kubectl get nodes
 NAME                      STATUS   ROLES    AGE     VERSION
@@ -170,7 +172,8 @@ spec:
     user: root
 status: {}
 ```
-## scale down:
+
+### scale down:
 
 #### 1. Modify /root/sealer/mycluster/Clusterfile file Masters, Nodes Count number:
 
@@ -288,18 +291,17 @@ status: {}
 
 #### 4. Scale down node machine successfully deleted：
 
-
 ![image.png](https://intranetproxy.alipay.com/skylark/lark/0/2021/png/7656565/1622789105210-ce7d74b4-9e97-4a0e-bd5a-0c5a66a4d80f.png)
 
-##   
+###
 
-#  
+###
 
-# Bare metal mode：
+### Bare metal mode：
 
-# A.Executed on master0：   4C4G centos7.9
+### A.Executed on master0：   4C4G centos7.9
 
-## 1. init：
+### 1. init：
 
 ```shell
 1.wget https://github.com/alibaba/sealer/releases/download/v0.1.5-rc/sealer-0.0.0-linux-amd64.tar.g && tar zxvf sealer-0.0.0-linux-amd64.tar.gz && mv sealer /usr/local/bin/
@@ -352,7 +354,7 @@ spec:
 ~
 ```
 
-## 2. Scale up
+### 2. Scale up
 
 **Add node Masters: 172.16.0.170, 172.16.0.171;  nodes: 172.16.0.172**
 
@@ -398,7 +400,7 @@ test-baremetal007   Ready    <none>   25m   v1.19.9
 test-baremetal009   Ready    master   74s   v1.19.9
 ```
 
-## 3.  Scale down
+### 3.  Scale down
 
 1. **Modify Clusterfile**：
 
@@ -456,7 +458,7 @@ bin  cri  images                    Kubefile  README.md  scripts  TREE.md
 cni  etc  kubeadm-join-config.yaml  Metadata  registry   statics
 ```
 
-## 4. Delete
+### 4. Delete
 
 **Execute Sealer delete-f /root/.Sealer /my-cluster/Clusterfile (the last step reports an error, does not affect the result) :**
 
@@ -477,9 +479,9 @@ cni  etc  kubeadm-join-config.yaml  Metadata  registry   statics
 
 **// Seautil tool still exists after  delete **
 
-## 5. Rerun after delete：
+### 5. Rerun after delete：
 
-1.  **Execute run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 -- masters 172.16.0.165,172.16.0.166,172.16.0.167 -- nodes 172.16.0.168,172.16.0.169 --passwd  (executed successfully）**
+1. **Execute run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 -- masters 172.16.0.165,172.16.0.166,172.16.0.167 -- nodes 172.16.0.168,172.16.0.169 --passwd  (executed successfully）**
 
 ```shell
 [root@baremetal002 ~]# kubectl get nodes -A
@@ -492,9 +494,7 @@ baremetal004   Ready    <none>   45s     v1.19.9
 
 2. **Execute sealer delete -f /root/.sealer/my-cluster/Clusterfile**
 
-
-
-# B. Not executed in master0：   4C4G centos7.9
+### B. Not executed in master0：   4C4G centos7.9
 
 1.
 
@@ -516,7 +516,7 @@ test-baremetal006   Ready    <none>   15s    v1.19.9
 test-baremetal007   Ready    <none>   14s    v1.19.9
 ```
 
-## 2. Scale up
+### 2. Scale up
 
 **masters add 172.16.0.170，172.16.0.171**
 
@@ -571,7 +571,7 @@ test-baremetal007   Ready    <none>   7m45s   v1.19.9
 test-baremetal009   Ready    master   2m52s   v1.19.9
 ```
 
-## 3. scale down
+### 3. scale down
 
 ​     **Delete 172.16.0.170, 172.16.0.171 masters and 172.16.0.172 nodes**
 
@@ -586,7 +586,7 @@ test-baremetal009   Ready    master   2m52s   v1.19.9
     ipList:
     - 172.16.0.165
     - 172.16.0.166
-    - 172.16.0.167  
+    - 172.16.0.167
     memory: "4"
     systemDisk: "100"
   network:
@@ -601,7 +601,7 @@ test-baremetal009   Ready    master   2m52s   v1.19.9
     - "100"
     ipList:
     - 172.16.0.168
-    - 172.16.0.169 
+    - 172.16.0.169
 ```
 
 2. **execute Sealer /root/.sealer/my-cluster/Clusterfile (Successfully executed）：**
@@ -623,16 +623,17 @@ test-baremetal007   Ready    <none>   14m   v1.19.9
 ```shell
 [root@test-baremetal008 ~]# ssh root@172.16.0.170 //Enter the node that has been scaled down
 Welcome to Alibaba Cloud Elastic Compute Service !
-[root@test-baremetal009 ~]# ls /var/lib/sealer/data/my-cluster/rootfs/ 
-bin/                      cri/                      images/                   Kubefile                  README.md                 scripts/                  TREE.md                   
-cni/                      etc/                      kubeadm-join-config.yaml  Metadata                  registry/                 statics/                  
+[root@test-baremetal009 ~]# ls /var/lib/sealer/data/my-cluster/rootfs/
+bin/                      cri/                      images/
+Kubefile                  README.md                 scripts/                  TREE.md
+cni/                      etc/                      kubeadm-join-config.yaml  Metadata                  registry/                 statics/
 ```
 
-## 4. Delete
+### 4. Delete
 
 ​	**execute ： sealer delete -f /root/.sealer/my-cluster/Clusterfile （Delete successfully）：**
 
-## 5. Rerun after delete：
+### 5. Rerun after delete：
 
 ​	**execute： sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 --masters    172.16.0.165,172.16.0.166,172.16.0.167 --nodes 172.16.0.168,172.16.0.169 --passwd Seadent23（executed successfully）**
 
@@ -645,4 +646,3 @@ test-baremetal005   Ready    master   11m   v1.19.9
 test-baremetal006   Ready    <none>   11m   v1.19.9
 test-baremetal007   Ready    <none>   11m   v1.19.9
 ```
-
