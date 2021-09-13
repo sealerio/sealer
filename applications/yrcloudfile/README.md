@@ -1,6 +1,6 @@
 # YRCloudFile
 
-RCloudFile(www.yanrongyun.com) is a high performance distributed filesystem, which can be deployed either on-premise or off-premise, and fully support the Kubernetes.
+YRCloudFile(https://www.yanrongyun.com) is a high performance distributed filesystem, which can be deployed either on-premise or off-premise, and fully support the Kubernetes.
 
 By integrated with sealer, you can deploy the YRCloudFile and kubernetes seamlessly, just by one Clusterfile.
 
