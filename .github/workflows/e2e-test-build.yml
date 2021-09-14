@@ -10,7 +10,7 @@ jobs:
   build:
     name: test
     runs-on: ubuntu-latest
-    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == 'test build')) || github.event_name == 'push' }}
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test build')) || github.event_name == 'push' }}
     env:
       GO111MODULE: on
     steps:
