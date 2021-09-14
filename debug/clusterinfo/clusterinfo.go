@@ -16,7 +16,6 @@ package clusterinfo
 
 import (
 	"context"
-	"sort"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,15 +79,19 @@ func GetDNSServiceAll(ctx context.Context, client corev1client.CoreV1Interface) 
 }
 
 func removeDuplicatesAndEmpty(ss []string) []string {
-	sort.Strings(ss)
-	ret := []string{}
-	l := len(ss)
-	for i := 0; i < l; i++ {
-		if (i > 0 && ss[i] == ss[i-1]) || len(ss[i]) == 0 {
-			continue
-		}
-		ret = append(ret, ss[i])
+	if len(ss) == 0 {
+		return ss
 	}
 
-	return ret
+	res := make([]string, len(ss))
+	sMap := map[string]bool{}
+
+	for _, v := range ss {
+		if _, ok := sMap[v]; !ok && len(v) != 0 {
+			sMap[v] = true
+			res = append(res, v)
+		}
+	}
+
+	return res
 }

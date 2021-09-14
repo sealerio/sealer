@@ -219,27 +219,22 @@ func (debugger *Debugger) Run() (string, error) {
 	}
 
 	if errCon := debugger.connectPod(ctx, debugPod, restConfig); errCon != nil {
+		// There is no error handling because they are the default clean actions.
+		// Even if it returns an error, we should not return the error to user.
 		if debugger.Type == TypeDebugNode {
-			if err := clean.RemovePod(ctx, debugger.kubeClientCorev1); err != nil {
-				return "", errCon
-			}
+			_ = clean.RemovePod(ctx, debugger.kubeClientCorev1)
 		} else {
-			if err := clean.ExitEphemeralContainer(restConfig); err != nil {
-				return "", errCon
-			}
+			_ = clean.ExitEphemeralContainer(restConfig)
 		}
 
 		return "", errCon
 	}
 
+	// It is the same as before.
 	if debugger.Type == TypeDebugNode {
-		if err := clean.RemovePod(ctx, debugger.kubeClientCorev1); err != nil {
-			return "", nil
-		}
+		_ = clean.RemovePod(ctx, debugger.kubeClientCorev1)
 	} else {
-		if err := clean.ExitEphemeralContainer(restConfig); err != nil {
-			return "", nil
-		}
+		_ = clean.ExitEphemeralContainer(restConfig)
 	}
 
 	return "", nil
