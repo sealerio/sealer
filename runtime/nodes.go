@@ -58,7 +58,7 @@ func (d *Default) joinNodes(nodes []string) error {
 		masters += fmt.Sprintf(" --rs %s:6443", utils.GetHostIP(master))
 	}
 	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, d.VIP, masters)
-	templateData := string(d.JoinTemplate(""))
+
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(d.Rootfs, d.Masters[0]))
 	for _, node := range nodes {
 		wg.Add(1)
@@ -72,7 +72,9 @@ func (d *Default) joinNodes(nodes []string) error {
 					d.CmdToString(node, addRouteCmd, "")
 				}
 			*/
-			// send join node config
+			// send join node config, get cgroup driver on every join nodes
+			d.CriCGroupDriver = d.getCgroupDriverFromShell(node)
+			templateData := string(d.JoinTemplate(""))
 			cmdJoinConfig := fmt.Sprintf(RemoteJoinConfig, templateData, d.Rootfs)
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, d.VIP, d.APIServer)
 			cmd := d.Command(d.Metadata.Version, JoinNode)
@@ -108,8 +110,7 @@ func (d *Default) deleteNodes(nodes []string) error {
 }
 
 func (d *Default) deleteNode(node string) error {
-	host := utils.GetHostIP(node)
-	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Rootfs, d.Masters[0]))); err != nil {
+	if err := d.SSH.CmdAsync(node, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer), fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Rootfs, d.Masters[0]))); err != nil {
 		return err
 	}
 

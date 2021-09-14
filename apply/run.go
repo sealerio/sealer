@@ -16,7 +16,6 @@ package apply
 
 import (
 	"fmt"
-	"math/big"
 	"net"
 	"strconv"
 	"strings"
@@ -63,59 +62,12 @@ func IsIPList(args string) bool {
 }
 
 func PreProcessIPList(joinArgs *common.RunArgs) error {
-	if err := AssemblyIPList(&joinArgs.Masters); err != nil {
+	if err := utils.AssemblyIPList(&joinArgs.Masters); err != nil {
 		return err
 	}
-	if err := AssemblyIPList(&joinArgs.Nodes); err != nil {
+	if err := utils.AssemblyIPList(&joinArgs.Nodes); err != nil {
 		return err
 	}
-	return nil
-}
-
-func ipToInt(v string) *big.Int {
-	ip := net.ParseIP(v).To4()
-	if val := ip.To4(); val != nil {
-		return big.NewInt(0).SetBytes(val)
-	}
-	return big.NewInt(0).SetBytes(ip.To16())
-}
-
-func CompareIP(v1, v2 string) (int, error) {
-	i := ipToInt(v1)
-	j := ipToInt(v2)
-
-	if i == nil || j == nil {
-		return 2, fmt.Errorf("ip is invalid，check you command agrs")
-	}
-	return i.Cmp(j), nil
-}
-
-func NextIP(ip string) net.IP {
-	i := ipToInt(ip)
-	return i.Add(i, big.NewInt(1)).Bytes()
-}
-
-func AssemblyIPList(args *string) error {
-	var result string
-	var ips = strings.Split(*args, "-")
-	if *args == "" || !strings.Contains(*args, "-") {
-		return nil
-	}
-	if len(ips) != 2 {
-		return fmt.Errorf("ip is invalid，ip range format is xxx.xxx.xxx.1-xxx.xxx.xxx.2")
-	}
-	if !IsIPList(ips[0]) || !IsIPList(ips[1]) {
-		return fmt.Errorf("ip is invalid，check you command agrs")
-	}
-	for res, _ := CompareIP(ips[0], ips[1]); res <= 0; {
-		result = ips[0] + "," + result
-		ips[0] = NextIP(ips[0]).String()
-		res, _ = CompareIP(ips[0], ips[1])
-	}
-	if result == "" {
-		return fmt.Errorf("ip is invalid，check you command agrs")
-	}
-	*args = result
 	return nil
 }
 

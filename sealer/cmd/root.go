@@ -17,12 +17,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-
 	"github.com/spf13/cobra"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
 
@@ -51,37 +51,27 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file (default is $HOME/.sealer.yaml)")
+	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file (default is $HOME/.sealer.json)")
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if rootOpt.cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(rootOpt.cfgFile)
-	} else {
+	if rootOpt.cfgFile == "" {
 		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		// Search config in home directory with name ".sealer" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".sealer")
+		rootOpt.cfgFile = filepath.Join(common.GetHomeDir(), ".sealer.json")
 	}
+	// Use config file from the flag.
+	// if not set config file, Search config in home directory with name ".sealer.json" (without extension).
+	//viper.AddConfigPath(home)
+	viper.SetConfigFile(rootOpt.cfgFile)
 
 	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
 
 	logger.InitLogger(logger.Config{
 		DebugMode: rootOpt.debugModeOn,
 	})
+
+	logger.Cfg(rootOpt.debugModeOn)
 }

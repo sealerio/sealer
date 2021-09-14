@@ -65,7 +65,3 @@ if ! command_exists docker; then
 fi
 systemctl daemon-reload
 systemctl restart docker.service
-
-driver=$(docker info -f "{{.CgroupDriver}}")
-echo "driver is ${driver}"
-export criDriver=${driver}

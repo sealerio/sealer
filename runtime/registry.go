@@ -17,14 +17,10 @@ package runtime
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/alibaba/sealer/utils/mount"
 
-	"github.com/alibaba/sealer/common"
-
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -43,13 +39,14 @@ type RegistryConfig struct {
 
 func getRegistryHost(rootfs, defaultRegistry string) (host string) {
 	cf := GetRegistryConfig(rootfs, defaultRegistry)
-	return fmt.Sprintf("%s %s", cf.IP, cf.Domain)
+	ip, _ := utils.GetSSHHostIPAndPort(cf.IP)
+	return fmt.Sprintf("%s %s", ip, cf.Domain)
 }
 
 func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	var config RegistryConfig
 	var DefaultConfig = &RegistryConfig{
-		IP:     utils.GetHostIP(defaultRegistry),
+		IP:     defaultRegistry,
 		Domain: SeaHub,
 		Port:   "5000",
 	}
@@ -79,60 +76,33 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 }
 
 //Only use this for join and init, due to the initiation operations
-func (d *Default) EnsureRegistry(cluster *v1.Cluster) error {
-	var (
-		lowerLayers []string
-		target      = fmt.Sprintf("%s/registry", d.Rootfs)
-	)
-	lowerLayers = append(lowerLayers, target)
-	//get docker image layer
-	im, err := d.imageStore.GetByName(cluster.Spec.Image)
-	if err != nil {
-		return err
-	}
-
-	layerDirs := getDockerImageDiffLayerDir(im)
-	if len(layerDirs) != 0 {
-		lowerLayers = append(lowerLayers, layerDirs...)
-	}
-	// todo need to revers low layers
+func (d *Default) EnsureRegistry() error {
 	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])
 	mkdir := fmt.Sprintf("rm -rf %s %s && mkdir -p %s %s", RegistryMountUpper, RegistryMountWork,
 		RegistryMountUpper, RegistryMountWork)
 
 	mountCmd := fmt.Sprintf("%s && mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s", mkdir,
-		strings.Join(utils.Reverse(lowerLayers), ":"),
-		RegistryMountUpper, RegistryMountWork, target)
-
+		d.Rootfs,
+		RegistryMountUpper, RegistryMountWork, d.Rootfs)
+	isMount, _ := mount.GetRemoteMountDetails(d.SSH, cf.IP, d.Rootfs)
+	if isMount {
+		mountCmd = fmt.Sprintf("umount %s && %s", d.Rootfs, mountCmd)
+	}
 	if err := d.SSH.CmdAsync(cf.IP, mountCmd); err != nil {
 		return err
 	}
 
-	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s", d.Rootfs, cf.Port, target)
+	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s", d.Rootfs, cf.Port, fmt.Sprintf("%s/registry", d.Rootfs))
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }
 
 func (d *Default) RecycleRegistry() error {
 	cf := GetRegistryConfig(d.Rootfs, d.Masters[0])
-	umount := fmt.Sprintf("umount %s/registry", d.Rootfs)
-	isMount, _ := mount.GetRemoteMountDetails(d.SSH, cf.IP, filepath.Join(d.Rootfs, "registry"))
-	if isMount {
-		err := d.SSH.CmdAsync(cf.IP, umount)
-		if err != nil {
-			return fmt.Errorf("failed to %s in %s, %v", umount, cf.IP, err)
-		}
-	}
 	delDir := fmt.Sprintf("rm -rf %s %s", RegistryMountUpper, RegistryMountWork)
+	isMount, _ := mount.GetRemoteMountDetails(d.SSH, cf.IP, d.Rootfs)
+	if isMount {
+		delDir = fmt.Sprintf("umount %s && %s", d.Rootfs, delDir)
+	}
 	cmd := fmt.Sprintf("docker rm -f %s && %s ", RegistryName, delDir)
 	return d.SSH.CmdAsync(cf.IP, cmd)
-}
-
-//get docker image layer hash path
-func getDockerImageDiffLayerDir(image *v1.Image) (res []string) {
-	for _, layer := range image.Spec.Layers {
-		if layer.ID != "" && layer.Type == common.BaseImageLayerType {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
-		}
-	}
-	return
 }

@@ -5,6 +5,7 @@ Plugins can help users do some peripheral things, like change hostname, upgrade 
 ## hostname plugin
 
 If you write the plugin config in Clusterfile and apply it, sealer will help you to change all the hostnames
+
 ```yaml
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
@@ -30,7 +31,7 @@ metadata:
   name: SHELL
 spec:
   action: PostInstall
-  on: role=master
+  on: 192.168.0.2-192.168.0.4 #or 192.168.0.2,192.168.0.3,192.168.0.7
   data: |
      kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
 ```

@@ -1,0 +1,6 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0
+COPY rookceph .
+CMD kubectl apply -f rookceph/crd.yaml
+CMD kubectl apply -f rookceph/operator.yaml
+CMD kubectl apply -f rookceph/manifest.yaml
+CMD kubectl apply -f rookceph/cephblockpool.yaml

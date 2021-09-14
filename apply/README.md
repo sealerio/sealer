@@ -12,5 +12,5 @@ Apply(Clusterfile)
     JoinMasters()
     JoinNodes()
     StaticPod()
-  guest.Apply() 
+  guest.Apply()
 ```
