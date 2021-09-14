@@ -345,7 +345,7 @@ func CleanFiles(file ...string) error {
 	for _, f := range file {
 		err := os.RemoveAll(f)
 		if err != nil {
-			return fmt.Errorf("failed to clean file %s", f)
+			return fmt.Errorf("failed to clean file %s, %v", f, err)
 		}
 	}
 	return nil
