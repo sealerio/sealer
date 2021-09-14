@@ -20,6 +20,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/image/store"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -70,11 +72,19 @@ type Default struct {
 	SSH               ssh.Interface
 	Rootfs            string
 	BasePath          string
+	imageStore        store.ImageStore
+	CriSocket         string
+	CriCGroupDriver   string
+	KubeadmAPI        string
 }
 
 func NewDefaultRuntime(cluster *v1.Cluster) Interface {
-	d := &Default{}
-	err := d.initRunner(cluster)
+	c, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil
+	}
+	d := &Default{imageStore: c}
+	err = d.initRunner(cluster)
 	if err != nil {
 		logger.Error("get runtime failed %v", err)
 		return nil

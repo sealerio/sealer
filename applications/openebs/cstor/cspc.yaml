@@ -1,0 +1,41 @@
+apiVersion: cstor.openebs.io/v1
+kind: CStorPoolCluster
+metadata:
+  name: cstor-disk-pool
+  namespace: openebs
+spec:
+  pools:
+    - nodeSelector:
+        kubernetes.io/hostname: "izj6c262htpobcu36a2v97z"
+      dataRaidGroups:
+        - blockDevices:
+            - blockDeviceName: "blockdevice-b0a359f6528805bea949604b5c8c9d1d"
+      poolConfig:
+        dataRaidGroupType: "stripe"
+
+    - nodeSelector:
+        kubernetes.io/hostname: "izj6c262htpobcu36a2v99z"
+      dataRaidGroups:
+        - blockDevices:
+            - blockDeviceName: "blockdevice-d05fb991dc02eb28de73136a9905c7fc"
+      poolConfig:
+        dataRaidGroupType: "stripe"
+
+    - nodeSelector:
+        kubernetes.io/hostname: "izj6c262htpobcu36a2v98z"
+      dataRaidGroups:
+        - blockDevices:
+            - blockDeviceName: "blockdevice-d11e9709ad26c3d3c37e28b4261f3d1d"
+      poolConfig:
+        dataRaidGroupType: "stripe"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: cstor-csi-disk
+provisioner: cstor.csi.openebs.io
+allowVolumeExpansion: true
+parameters:
+  cas-type: cstor
+  cstorPoolCluster: cstor-disk-pool
+  replicaCount: "3"

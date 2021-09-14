@@ -66,7 +66,7 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return fmt.Errorf("failed to copy static files %v", err)
 	}
 
-	if err := d.EnsureRegistry(); err != nil {
+	if err := d.EnsureRegistry(cluster); err != nil {
 		return fmt.Errorf("failed to encsure registry %v", err)
 	}
 
@@ -118,6 +118,8 @@ func (d *Default) ConfigKubeadmOnMaster0() error {
 	var err error
 	var tpl []byte
 	var fileData []byte
+	// on master init .we need to get master0 cgroupdriver.
+	d.CriCGroupDriver = d.getCgroupDriverFromShell(d.Masters[0])
 	if d.KubeadmFilePath == "" {
 		tpl, err = d.defaultTemplate()
 		if err != nil {

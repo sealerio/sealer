@@ -43,7 +43,7 @@ import (
 )
 
 const (
-	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && sh init.sh"
+	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh"
 )
 
 type Interface interface {
@@ -81,14 +81,23 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 }
 
 func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
-	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
-	upperDir := filepath.Join(mountdir, "upper")
-	if utils.IsDir(mountdir) {
-		if utils.IsFileExist(upperDir) {
-			utils.CleanDir(upperDir)
-		} else {
-			logger.Info("image already mounted")
-			return nil
+	var (
+		mountdir = common.DefaultMountCloudImageDir(cluster.Name)
+		upperDir = filepath.Join(mountdir, "upper")
+		driver   = mount.NewMountDriver()
+		err      error
+	)
+	if isMount, _ := mount.GetMountDetails(mountdir); isMount {
+		err = driver.Unmount(mountdir)
+		if err != nil {
+			return fmt.Errorf("%s already mount, and failed to umount %v", mountdir, err)
+		}
+	} else {
+		if utils.IsFileExist(mountdir) {
+			err = os.RemoveAll(mountdir)
+			if err != nil {
+				return fmt.Errorf("failed to clean %s, %v", mountdir, err)
+			}
 		}
 	}
 	//get layers
@@ -100,7 +109,7 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 	if err != nil {
 		return fmt.Errorf("get layers failed: %v", err)
 	}
-	driver := mount.NewMountDriver()
+
 	if err = os.MkdirAll(upperDir, 0744); err != nil {
 		return fmt.Errorf("create upperdir failed, %s", err)
 	}
@@ -216,7 +225,7 @@ func unmountRootfs(ipList []string, cluster *v1.Cluster) error {
 	var flag bool
 	var mutex sync.Mutex
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
-	execClean := fmt.Sprintf("/bin/sh -c "+common.DefaultClusterClearFile, cluster.Name)
+	execClean := fmt.Sprintf("/bin/bash -c "+common.DefaultClusterClearBashFile, cluster.Name)
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
 	for _, ip := range ipList {
 		wg.Add(1)

@@ -7,6 +7,20 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+help: ## this help
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+fmt: ## Run go fmt against code.
+	go fmt ./...
+
+vet: ## Run go vet against code.
+	go vet ./...
+
+lint: ## Run go lint against code.
+	golangci-lint run -v ./...
+
+style: fmt vet lint ## code style: fmt,vet,lint
+
 build: clean ## build binaries by default
 	@echo "build sealer and sealutil bin"
 	hack/build.sh
@@ -22,14 +36,14 @@ test-sealer:
 clean: ## clean
 	@rm -rf _output
 
-install-addlicense:
+install-addlicense: ## check license if not exist install addlicense tools
 ifeq (, $(shell which addlicense))
 	@{ \
 	set -e ;\
 	LICENSE_TMP_DIR=$$(mktemp -d) ;\
 	cd $$LICENSE_TMP_DIR ;\
 	go mod init tmp ;\
-	go get github.com/google/addlicense ;\
+	go get -v github.com/google/addlicense ;\
 	rm -rf $$LICENSE_TMP_DIR ;\
 	}
 ADDLICENSE_BIN=$(GOBIN)/addlicense
@@ -37,10 +51,10 @@ else
 ADDLICENSE_BIN=$(shell which addlicense)
 endif
 
-
-license: install-addlicense
+filelicense: SHELL:=/bin/bash
+filelicense: ## add license
 	for file in ${Dirs} ; do \
-		if [[  $$file != '_output' && $$file != 'vendor' ]]; then \
+		if [[  $$file != '_output' && $$file != 'vendor' && $$file != 'logger' && $$file != 'applications' ]]; then \
 			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f LICENSE_TEMPLATE ./$$file ; \
 		fi \
     done

@@ -61,6 +61,14 @@ func ListNodes(client *kubernetes.Clientset) (*v1.NodeList, error) {
 	return nodes, nil
 }
 
+func UpdateNode(client *kubernetes.Clientset, node *v1.Node) (*v1.Node, error) {
+	node, err := client.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "update cluster node failed")
+	}
+	return node, nil
+}
+
 func DeleteNode(client *kubernetes.Clientset, name string) error {
 	err := client.CoreV1().Nodes().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {

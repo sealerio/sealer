@@ -81,16 +81,16 @@ func (s *SSH) RemoteMd5Sum(host, remoteFilePath string) string {
 //CmdToString is in host exec cmd and replace to spilt str
 func (s *SSH) CmdToString(host, cmd, spilt string) (string, error) {
 	data, err := s.Cmd(host, cmd)
+	str := string(data)
 	if err != nil {
-		return "", fmt.Errorf("exec remote command failed %s %s %s", host, cmd, err)
+		return str, fmt.Errorf("exec remote command failed %s %s %s", host, cmd, err)
 	}
 	if data != nil {
-		str := string(data)
 		str = strings.ReplaceAll(str, "\r\n", spilt)
 		str = strings.ReplaceAll(str, "\n", spilt)
 		return str, nil
 	}
-	return "", fmt.Errorf("command %s %s return nil", host, cmd)
+	return str, fmt.Errorf("command %s %s return nil", host, cmd)
 }
 
 //SftpConnect  is

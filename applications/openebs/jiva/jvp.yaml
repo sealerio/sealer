@@ -1,0 +1,22 @@
+---
+apiVersion: openebs.io/v1alpha1
+kind: JivaVolumePolicy
+metadata:
+  name: jivavolumepolicy
+  namespace: openebs
+spec:
+  replicaSC: openebs-hostpath
+  enableBufio: false
+  autoScaling: false
+  target:
+    replicationFactor: 1
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-jiva-csi-sc
+provisioner: jiva.csi.openebs.io
+allowVolumeExpansion: true
+parameters:
+  cas-type: "jiva"
+  policy: "jivavolumepolicy"

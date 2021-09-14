@@ -1,0 +1,5 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
+COPY rocketmq .
+CMD kubectl apply -f rocketmq/crd.yaml
+CMD kubectl apply -f rocketmq/operator.yaml
+CMD kubectl apply -f rocketmq/manifest.yaml

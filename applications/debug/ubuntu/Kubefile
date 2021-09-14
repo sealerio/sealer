@@ -1,0 +1,2 @@
+FROM kubernetes:v1.19.9
+COPY imageList manifests

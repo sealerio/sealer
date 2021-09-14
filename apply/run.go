@@ -61,6 +61,16 @@ func IsIPList(args string) bool {
 	return true
 }
 
+func PreProcessIPList(joinArgs *common.RunArgs) error {
+	if err := utils.AssemblyIPList(&joinArgs.Masters); err != nil {
+		return err
+	}
+	if err := utils.AssemblyIPList(&joinArgs.Nodes); err != nil {
+		return err
+	}
+	return nil
+}
+
 func IsCidrString(arg string) (bool, error) {
 	_, err := utils.ParseCIDR(arg)
 	var flag bool

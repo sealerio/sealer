@@ -15,27 +15,28 @@
 package common
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
 )
 
 const (
-	FROMCOMMAND = "FROM"
-	COPYCOMMAND = "COPY"
-	RUNCOMMAND  = "RUN"
-	CMDCOMMAND  = "CMD"
-	ENVCOMMAND  = "ENV"
+	FROMCOMMAND        = "FROM"
+	COPYCOMMAND        = "COPY"
+	RUNCOMMAND         = "RUN"
+	CMDCOMMAND         = "CMD"
+	ENVCOMMAND         = "ENV"
+	BaseImageLayerType = "BASE"
 )
 
 const (
 	DefaultWorkDir                = "/tmp/%s/workdir"
 	DefaultTmpDir                 = "/var/lib/sealer/tmp"
+	DefaultLogDir                 = "/var/log/sealer"
 	DefaultClusterFileName        = "Clusterfile"
 	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
-	DefaultClusterInitFile        = "/var/lib/sealer/data/%s/scripts/init.sh"
-	DefaultClusterClearFile       = "/var/lib/sealer/data/%s/rootfs/scripts/clean.sh"
+	DefaultClusterInitBashFile    = "/var/lib/sealer/data/%s/scripts/init.sh"
+	DefaultClusterClearBashFile   = "/var/lib/sealer/data/%s/rootfs/scripts/clean.sh"
 	TarGzSuffix                   = ".tar.gz"
 	YamlSuffix                    = ".yaml"
 	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
@@ -82,7 +83,9 @@ const (
 
 //CRD kind
 const (
-	CRDConfig = "Config"
+	CRDConfig  = "Config"
+	CRDPlugin  = "Plugin"
+	CRDCluster = "Cluster"
 )
 
 const (
@@ -91,6 +94,12 @@ const (
 	ContainerBuild = "container"
 	AliCloudBuild  = "cloud"
 )
+
+const (
+	JoinSubCmd   = "join"
+	DeleteSubCmd = "delete"
+)
+
 const (
 	BAREMETAL = "BAREMETAL"
 	AliCloud  = "ALI_CLOUD"
@@ -107,9 +116,9 @@ const APIServerDomain = "apiserver.cluster.local"
 const (
 	DeleteCmd       = "rm -rf %s"
 	ChmodCmd        = "chmod +x %s"
-	TmpTarFile      = "/tmp/%s.tar.gz"
+	TmpTarFile      = "/tmp/%s.tar"
 	ZipCmd          = "tar zcvf %s %s"
-	UnzipCmd        = "mkdir -p %s && tar zxvf %s -C %s"
+	UnzipCmd        = "mkdir -p %s && tar xvf %s -C %s"
 	CdAndExecCmd    = "cd %s && %s"
 	TagImageCmd     = "%s tag %s %s"
 	PushImageCmd    = "%s push %s"
@@ -123,11 +132,7 @@ const (
 )
 
 func GetClusterWorkDir(clusterName string) string {
-	home, err := homedir.Dir()
-	if err != nil {
-		return fmt.Sprintf(ClusterWorkDir, clusterName)
-	}
-	return filepath.Join(home, ".sealer", clusterName)
+	return filepath.Join(GetHomeDir(), ".sealer", clusterName)
 }
 
 func GetClusterWorkClusterfile(clusterName string) string {
@@ -135,20 +140,11 @@ func GetClusterWorkClusterfile(clusterName string) string {
 }
 
 func DefaultRegistryAuthConfigDir() string {
-	dir, err := homedir.Dir()
-	if err != nil {
-		return DefaultRegistryAuthDir
-	}
-
-	return filepath.Join(dir, ".docker/config.json")
+	return filepath.Join(GetHomeDir(), ".docker/config.json")
 }
 
 func DefaultKubeConfigDir() string {
-	home, err := homedir.Dir()
-	if err != nil {
-		return DefaultKubeDir
-	}
-	return filepath.Join(home, ".kube")
+	return filepath.Join(GetHomeDir(), ".kube")
 }
 
 func DefaultKubeConfigFile() string {
@@ -163,6 +159,18 @@ func DefaultTheClusterRootfsDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
 }
 
+func DefaultTheClusterRootfsPluginDir(clusterName string) string {
+	return filepath.Join(DefaultTheClusterRootfsDir(clusterName), "plugin")
+}
+
 func DefaultClusterBaseDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName)
+}
+
+func GetHomeDir() string {
+	home, err := homedir.Dir()
+	if err != nil {
+		return "/root"
+	}
+	return home
 }

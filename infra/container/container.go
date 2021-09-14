@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package container
 
 import (
@@ -154,8 +168,10 @@ func (c *DockerProvider) GetContainerIDByIP(containerIP string) (string, error) 
 	}
 
 	for _, item := range resp {
-		if containerIP == item.NetworkSettings.Networks[c.NetworkResource.DefaultName].IPAddress {
-			return item.ID, nil
+		if net, ok := item.NetworkSettings.Networks[c.NetworkResource.DefaultName]; ok {
+			if containerIP == net.IPAddress {
+				return item.ID, nil
+			}
 		}
 	}
 	return "", err

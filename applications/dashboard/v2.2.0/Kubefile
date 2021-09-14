@@ -1,0 +1,3 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+COPY dashboard.yaml .
+CMD kubectl apply -f dashboard.yaml

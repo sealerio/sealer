@@ -1,12 +1,10 @@
-## release note
+# release note
 
-### v0.3.0
+## v0.4.0
 
-- [x] Calico out of box, use an image containing calico instead
-- [x] Sealer lite build without kubernetes cluster instance
-- [x] Support docker container apply and build
-- [x] Support command auto-completion
-- [x] Support build cache
-- [x] Cloud rootfs support alios
-- [x] Fix incorrectly copying dir path during build
-- [x] Fix proxy ipvs model
+- [x] Fixed lite Build not cache images in manifest/*.yaml
+- [x] Cache docker image for build
+- [x] Add etcd, shell, label, hostname [plugin config feature](https://github.com/alibaba/sealer/blob/main/docs/design/plugin.md)
+- [x] Fixed not requiring login except for Cloud build
+- [x] Fixed build to support submitting private registry account passwords
+- [x] Fixed exceptions when executing kubectl or helm commands during lite builds
