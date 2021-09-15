@@ -20,7 +20,6 @@ import (
 
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 )
 
 func (d *Default) reset(cluster *v1.Cluster) error {
@@ -64,8 +63,7 @@ func (d *Default) resetMasters(nodes []string) error {
 	return nil
 }
 func (d *Default) resetNode(node string) error {
-	host := utils.GetHostIP(node)
-	if err := d.SSH.CmdAsync(host, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)),
+	if err := d.SSH.CmdAsync(node, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(d.Vlog)),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, d.APIServer),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(d.Rootfs, d.Masters[0]))); err != nil {
 		return err

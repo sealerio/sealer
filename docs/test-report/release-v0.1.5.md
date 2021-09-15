@@ -289,9 +289,7 @@ spec:
 status: {}
 ```
 
-#### 4. Scale down node machine successfully deleted：
-
-![image.png](https://intranetproxy.alipay.com/skylark/lark/0/2021/png/7656565/1622789105210-ce7d74b4-9e97-4a0e-bd5a-0c5a66a4d80f.png)
+#### 4. Scale down node machine successfully deleted
 
 ###
 

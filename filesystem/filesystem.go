@@ -231,7 +231,11 @@ func unmountRootfs(ipList []string, cluster *v1.Cluster) error {
 		wg.Add(1)
 		go func(IP string) {
 			defer wg.Done()
-			if err := SSH.CmdAsync(IP, execClean, rmRootfs); err != nil {
+			cmd := fmt.Sprintf("%s && %s", execClean, rmRootfs)
+			if mount, _ := mount.GetRemoteMountDetails(SSH, IP, clusterRootfsDir); mount {
+				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
+			}
+			if err := SSH.CmdAsync(IP, cmd); err != nil {
 				logger.Error("%s:exec %s failed, %s", IP, execClean, err)
 				mutex.Lock()
 				flag = true
