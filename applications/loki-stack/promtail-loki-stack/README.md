@@ -1,6 +1,6 @@
 # Overview
 
-This image chooses OpenEBS Jiva as its persistence storage engine.
+This image chooses OpenEBS LocalPV as its persistence storage engine.
 
 Components included in this image:
 
@@ -34,11 +34,11 @@ To access the Grafana UI, run the following command:
 Kubefile:
 
 ```shell
-FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
 # add helm repo and run helm install
 RUN helm repo add grafana https://grafana.github.io/helm-charts && helm repo update
-# set persistence.storageClass=openebs-jiva-csi-sc, which is provided by base image openebs-jiva:2.11.0.
-CMD helm install --create-namespace --namespace promtail-loki-stack-system loki grafana/loki-stack --set grafana.enabled=true,prometheus.enabled=true,prometheus.alertmanager.persistentVolume.enabled=false,prometheus.server.persistentVolume.enabled=false,loki.persistence.enabled=true,loki.persistence.storageClassName=openebs-jiva-csi-sc,loki.persistence.size=50Gi
+# set persistence.storageClass=local-hostpath, which is provided by base image openebs-localpv:2.11.0.
+CMD helm install --create-namespace --namespace promtail-loki-stack-system loki grafana/loki-stack --set grafana.enabled=true,prometheus.enabled=true,prometheus.alertmanager.persistentVolume.enabled=false,prometheus.server.persistentVolume.enabled=false,loki.persistence.enabled=true,loki.persistence.storageClassName=local-hostpath,loki.persistence.size=50Gi
 ```
 
 run below command to build it

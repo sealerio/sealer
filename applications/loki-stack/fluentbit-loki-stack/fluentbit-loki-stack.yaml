@@ -1987,7 +1987,6 @@ spec:
         - name: prometheus-pushgateway
           image: "prom/pushgateway:v1.2.0"
           imagePullPolicy: "IfNotPresent"
-          args:
           ports:
             - containerPort: 9091
           livenessProbe:
@@ -2156,7 +2155,6 @@ spec:
               mountPath: /etc/loki
             - name: storage
               mountPath: "/data"
-              subPath:
           ports:
             - name: http-metrics
               containerPort: 3100
@@ -2175,7 +2173,6 @@ spec:
             { }
           securityContext:
             readOnlyRootFilesystem: true
-          env:
       nodeSelector:
         { }
       affinity:
@@ -2198,4 +2195,4 @@ spec:
         resources:
           requests:
             storage: "50Gi"
-        storageClassName: openebs-jiva-csi-sc
+        storageClassName: local-hostpath

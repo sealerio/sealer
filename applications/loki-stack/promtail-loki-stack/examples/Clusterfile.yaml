@@ -31,23 +31,3 @@ spec:
     pk: xxx
     pkPasswd: xxx
     user: root
----
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Plugin
-metadata:
-  name: SHELL
-spec:
-  action: PostInstall
-  on: role=node
-  data: |
-    if type yum >/dev/null 2>&1;then
-    yum -y install iscsi-initiator-utils
-    systemctl enable iscsid
-    systemctl start iscsid
-    elif type apt-get >/dev/null 2>&1;then
-    apt-get update
-    apt-get -y install open-iscsi
-    systemctl enable iscsid
-    systemctl start iscsid
-    fi
----
