@@ -15,11 +15,12 @@
 package cmd
 
 import (
+	"os"
+	"strings"
+
 	"github.com/alibaba/sealer/build"
 	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
-	"os"
-	"strings"
 )
 
 var ImageName string

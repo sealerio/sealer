@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func upImageId(imageName string, Image *v1.Image) error {
+func upImageID(imageName string, Image *v1.Image) error {
 	var (
 		imageBytes []byte
 		imageStore store.ImageStore
@@ -56,5 +56,5 @@ func Merge(imageName string, images []string) error {
 			Image.Spec.Layers = append(Image.Spec.Layers, img.Spec.Layers[1:]...)
 		}
 	}
-	return upImageId(imageName, Image)
+	return upImageID(imageName, Image)
 }
