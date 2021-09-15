@@ -87,7 +87,6 @@ spec:
     - name: tcp-client
       port: 2181
       targetPort: client
-      nodePort: null
     - name: follower
       port: 2888
       targetPort: follower
@@ -143,7 +142,6 @@ spec:
       port: 9092
       protocol: TCP
       targetPort: kafka-client
-      nodePort: null
   selector:
     app.kubernetes.io/name: kafka
     app.kubernetes.io/instance: my-kafka
@@ -291,11 +289,9 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /bitnami/zookeeper
-      volumes:
   volumeClaimTemplates:
     - metadata:
         name: data
-        annotations:
       spec:
         accessModes:
           - "ReadWriteOnce"

@@ -54,7 +54,6 @@ spec:
     - name: tcp-client
       port: 2181
       targetPort: client
-      nodePort: null
     - name: follower
       port: 2888
       targetPort: follower
@@ -208,11 +207,9 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /bitnami/zookeeper
-      volumes:
   volumeClaimTemplates:
     - metadata:
         name: data
-        annotations:
       spec:
         accessModes:
           - "ReadWriteOnce"

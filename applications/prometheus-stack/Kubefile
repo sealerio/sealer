@@ -1,4 +1,4 @@
-FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
 COPY prometheus .
 CMD kubectl apply -f prometheus/crd.yaml
 CMD kubectl apply -f prometheus/operator.yaml
