@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/build"
 	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
 	"os"
@@ -21,14 +21,14 @@ merge images:
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var images []string
-		for _, v := range strings.Split(args[0], " "){
+		for _, v := range strings.Split(args[0], " ") {
 			image := strings.TrimSpace(v)
 			if image == "" {
 				continue
 			}
 			images = append(images, image)
 		}
-		if err := image.Merge(ImageName, images);err != nil{
+		if err := build.Merge(ImageName, images); err != nil {
 			logger.Error(err)
 			os.Exit(1)
 		}
@@ -40,4 +40,3 @@ func init() {
 	rootCmd.AddCommand(mergeCmd)
 	rootCmd.Flags().StringVarP(&ImageName, "imageName", "t", "", "target image name")
 }
-

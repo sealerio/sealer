@@ -59,6 +59,22 @@ func (d DefaultImageService) PullIfNotExist(imageName string) error {
 	return d.Pull(imageName)
 }
 
+// PullIfNotExistAndReturnImage is used to pull image if not exists locally and return Image
+func (d DefaultImageService) PullIfNotExistAndReturnImage(imageName string) (*v1.Image, error) {
+	var image *v1.Image
+	named, err := reference.ParseToNamed(imageName)
+	if err != nil {
+		return nil, err
+	}
+
+	image, err = d.imageStore.GetByName(named.Raw())
+	if err == nil {
+		logger.Info("image %s already exists", named.Raw())
+		return image, nil
+	}
+	return image, d.Pull(imageName)
+}
+
 // Pull always do pull action
 func (d DefaultImageService) Pull(imageName string) error {
 	named, err := reference.ParseToNamed(imageName)
