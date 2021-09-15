@@ -12,7 +12,7 @@ spec:
   image: my-kubernetes:v1.18.3 # name of CloudImage
   env: # the cluster global ENV
   - DOMAIN="sealer.alibaba.com"
-  provider: ALI_CLOUD # OR BAREMETAL
+  provider: ALI_CLOUD # OR BAREMETAL , CONTAINER.
   ssh: # host ssh config
     passwd: xxx
     pk: xxx
@@ -25,7 +25,7 @@ spec:
     - aliyun-inc.com
     - 10.0.0.2
 
-  masters: # if provider is ALI_CLOUD, you can specify the number of server, if BAREMETAL using ipList.
+  masters: # if provider is ALI_CLOUD or CONTAINER, you can specify the number of server, if BAREMETAL using ipList.
     cpu: 4
     memory: 8
     count: 3

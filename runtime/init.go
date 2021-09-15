@@ -66,7 +66,7 @@ func (d *Default) init(cluster *v1.Cluster) error {
 		return fmt.Errorf("failed to copy static files %v", err)
 	}
 
-	if err := d.EnsureRegistry(cluster); err != nil {
+	if err := d.EnsureRegistry(); err != nil {
 		return fmt.Errorf("failed to encsure registry %v", err)
 	}
 
@@ -85,7 +85,7 @@ func (d *Default) GetKubectlAndKubeconfig() error {
 	if utils.IsFileExist(common.DefaultKubeConfigFile()) {
 		return nil
 	}
-	return GetKubectlAndKubeconfig(d.SSH, utils.GetHostIP(d.Masters[0]))
+	return GetKubectlAndKubeconfig(d.SSH, d.Masters[0])
 }
 
 func (d *Default) initRunner(cluster *v1.Cluster) error {
