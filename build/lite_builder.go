@@ -79,6 +79,7 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 		l.InitDockerAndRegistry,
 		l.CacheImageToRegistry,
 		l.AddUpperLayerToImage,
+		l.local.UpdateImageMetadata,
 		l.Clear,
 	)
 	return buildPipeline, nil
@@ -124,10 +125,6 @@ func (l *LiteBuilder) AddUpperLayerToImage() error {
 
 	imageLayer.ID = layerDgst
 	l.local.newLayers = append(l.local.newLayers, imageLayer)
-	err = l.local.UpdateImageMetadata()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
