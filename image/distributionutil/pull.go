@@ -56,7 +56,7 @@ func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1
 		return nil, err
 	}
 
-	v1Image, err := puller.getRemoteImageMetadata(ctx, named, manifest.Config.Digest)
+	v1Image, err := puller.getRemoteImageMetadata(ctx, manifest.Config.Digest)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1
 				return LayerErr
 			}
 
-			LayerErr = puller.downloadLayer(ctx, named, roLayer, descriptor)
+			LayerErr = puller.downloadLayer(ctx, roLayer, descriptor)
 			if LayerErr != nil {
 				return LayerErr
 			}
@@ -108,7 +108,7 @@ func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1
 	return &v1Image, nil
 }
 
-func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Named, layer store.Layer, descriptor distribution.Descriptor) error {
+func (puller *ImagePuller) downloadLayer(ctx context.Context, layer store.Layer, descriptor distribution.Descriptor) error {
 	var (
 		layerStore  = puller.config.LayerStore
 		progressOut = puller.config.ProgressOutput
@@ -171,7 +171,7 @@ func (puller *ImagePuller) getRemoteManifest(context context.Context, named refe
 }
 
 // not docker image, get sealer image metadata
-func (puller *ImagePuller) getRemoteImageMetadata(context context.Context, named reference.Named, digest digest.Digest) (v1.Image, error) {
+func (puller *ImagePuller) getRemoteImageMetadata(context context.Context, digest digest.Digest) (v1.Image, error) {
 	repo := puller.repository
 	bs := repo.Blobs(context)
 	manifestImageBytes, err := bs.Get(context, digest)

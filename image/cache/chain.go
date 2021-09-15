@@ -85,15 +85,13 @@ func NewImageStore(fs store.Backend, ls store.LayerStore) (ChainStore, error) {
 			ls:     ls,
 		}
 
-		if err := imageChain.restore(); err != nil {
-			return
-		}
+		imageChain.restore()
 	})
 	return imageChain, nil
 }
 
 // restore reads all images saved in filesystem and calculate their chainID
-func (cs *chainStore) restore() error {
+func (cs *chainStore) restore() {
 	cs.Lock()
 	defer cs.Unlock()
 
@@ -136,8 +134,6 @@ func (cs *chainStore) restore() error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func (cs *chainStore) GetChainLayer(id ChainID) (v1.Layer, error) {

@@ -67,11 +67,11 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 			doneout := make(chan bool, 1)
 			doneerr := make(chan bool, 1)
 			go func() {
-				readPipe(stderr, true)
+				readPipe(stderr)
 				doneerr <- true
 			}()
 			go func() {
-				readPipe(stdout, false)
+				readPipe(stdout)
 				doneout <- true
 			}()
 			<-doneerr
@@ -105,7 +105,7 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	return b, nil
 }
 
-func readPipe(pipe io.Reader, isErr bool) {
+func readPipe(pipe io.Reader) {
 	r := bufio.NewReader(pipe)
 	for {
 		line, _, err := r.ReadLine()
