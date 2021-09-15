@@ -230,7 +230,7 @@ spec:
           app.kubernetes.io/instance: "my-cockroachdb"
       spec:
         accessModes: [ "ReadWriteOnce" ]
-        storageClassName: openebs-jiva-csi-sc
+        storageClassName: local-hostpath
         resources:
           requests:
             storage: "80Gi"

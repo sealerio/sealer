@@ -1,6 +1,6 @@
 # Overview
 
-This image chooses OpenEBS Jiva as its persistence storage engine.
+This image chooses OpenEBS LocalPV as its persistence storage engine.
 
 Components included in this image:
 
@@ -46,11 +46,11 @@ kubectl port-forward --namespace cassandra-system svc/my-cassandra 9042:9042 & c
 Kubefile:
 
 ```shell
-FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
 # add helm repo and run helm install
 RUN helm repo add bitnami https://charts.bitnami.com/bitnami
-# set persistence.storageClass=openebs-jiva-csi-sc, which is provided by base image openebs-jiva:2.11.0.
-CMD helm install my-cassandra --create-namespace --namespace cassandra-system --set persistence.storageClass=openebs-jiva-csi-sc bitnami/cassandra --version 8.0.3
+# set persistence.storageClass=local-hostpath, which is provided by base image openebs-localpv:2.11.0.
+CMD helm install my-cassandra --create-namespace --namespace cassandra-system --set persistence.storageClass=local-hostpath bitnami/cassandra --version 8.0.3
 ```
 
 run below command to build it

@@ -5,7 +5,7 @@
 
 ## Overview
 
-We choose OpenEBS jiva as default persistence storage to enable Stateful applications to easily access Dynamic Local PVs
+We choose OpenEBS Jiva or OpenEBS LocalPV as default persistence storage to enable Stateful applications to easily access Dynamic Local PVs
 or Replicated PVs. More details about the application can be found in its manifest directory.
 
 ### Cloud image list

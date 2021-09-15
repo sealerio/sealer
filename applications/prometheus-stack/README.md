@@ -22,7 +22,7 @@ project it provides composable jsonnet as a library for users to customize to th
 
 ## About prometheus
 
-We choose OpenEBS jiva as its default persistence storage and deploy it with two replicas resource. many prometheus rules in
+We choose OpenEBS LocalPV as its default persistence storage and deploy it with two replicas resource. many prometheus rules in
 this image will be loaded when prometheus start. you can check the`Prometheus` and `PrometheusRule` in the cluster for
 more details.
 

@@ -39735,7 +39735,7 @@ spec:
   storage:
     volumeClaimTemplate:
       spec:
-        storageClassName: openebs-jiva-csi-sc
+        storageClassName: local-hostpath
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
@@ -39820,7 +39820,7 @@ spec:
   storage:
     volumeClaimTemplate:
       spec:
-        storageClassName: openebs-jiva-csi-sc
+        storageClassName: local-hostpath
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
