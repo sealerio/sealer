@@ -92,12 +92,11 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 		if err != nil {
 			return fmt.Errorf("%s already mount, and failed to umount %v", mountdir, err)
 		}
-	} else {
-		if utils.IsFileExist(mountdir) {
-			err = os.RemoveAll(mountdir)
-			if err != nil {
-				return fmt.Errorf("failed to clean %s, %v", mountdir, err)
-			}
+	}
+	if utils.IsFileExist(mountdir) {
+		err = os.RemoveAll(mountdir)
+		if err != nil {
+			return fmt.Errorf("failed to clean %s, %v", mountdir, err)
 		}
 	}
 	//get layers

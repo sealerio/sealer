@@ -156,7 +156,11 @@ func (l *LocalBuilder) ExecBuild() error {
 	if err != nil {
 		return err
 	}
-
+	registryCache, err := NewRegistryCache()
+	if err != nil {
+		return err
+	}
+	l.DockerImageCache = registryCache
 	var (
 		canUseCache = !l.Config.NoCache
 		parentID    = cache.ChainID("")
@@ -352,19 +356,13 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 
 	prober := image.NewImageProber(service, config.NoCache)
 
-	registryCache, err := NewRegistryCache()
-	if err != nil {
-		return nil, err
-	}
-
 	return &LocalBuilder{
-		Config:           config,
-		LayerStore:       layerStore,
-		ImageStore:       imageStore,
-		ImageService:     service,
-		Prober:           prober,
-		FS:               fs,
-		DockerImageCache: registryCache,
+		Config:       config,
+		LayerStore:   layerStore,
+		ImageStore:   imageStore,
+		ImageService: service,
+		Prober:       prober,
+		FS:           fs,
 		builderLayer: builderLayer{
 			// for skip golang ci
 			baseLayers: []v1.Layer{},

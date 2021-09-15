@@ -18,17 +18,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/runtime"
-
-	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/utils/mount"
 
-	manifest "github.com/alibaba/sealer/build/lite/manifests"
+	"github.com/alibaba/sealer/runtime"
 
 	"github.com/alibaba/sealer/build/lite/charts"
 	"github.com/alibaba/sealer/build/lite/docker"
+	manifest "github.com/alibaba/sealer/build/lite/manifests"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -37,6 +34,8 @@ import (
 type LiteBuilder struct {
 	local *LocalBuilder
 }
+
+const liteBuild = "lite-build"
 
 func (l *LiteBuilder) Build(name string, context string, kubefileName string) error {
 	err := l.local.initBuilder(name, context, kubefileName)
@@ -60,7 +59,7 @@ func (l *LiteBuilder) Build(name string, context string, kubefileName string) er
 // load cluster file from disk
 func (l *LiteBuilder) InitCluster() error {
 	l.local.Cluster = &v1.Cluster{}
-	l.local.Cluster.Name = "lite-build"
+	l.local.Cluster.Name = liteBuild
 	l.local.Cluster.Spec.Image = l.local.Image.Spec.Layers[0].Value
 	return nil
 }
@@ -75,13 +74,12 @@ func (l *LiteBuilder) GetBuildPipeLine() ([]func() error, error) {
 		l.PreCheck,
 		l.local.PullBaseImageNotExist,
 		l.InitCluster,
-		l.MountImage,
 		l.local.ExecBuild,
-		l.local.UpdateImageMetadata,
-		l.ReMountImage,
+		l.MountImage,
 		l.InitDockerAndRegistry,
 		l.CacheImageToRegistry,
 		l.AddUpperLayerToImage,
+		l.local.UpdateImageMetadata,
 		l.Clear,
 	)
 	return buildPipeline, nil
@@ -96,85 +94,59 @@ func (l *LiteBuilder) PreCheck() error {
 	return nil
 }
 
-func (l *LiteBuilder) ReMountImage() error {
-	err := l.UnMountImage()
-	if err != nil {
-		return err
-	}
-	l.local.Cluster.Spec.Image = l.local.Config.ImageName
-	return l.MountImage()
-}
-
-func (l *LiteBuilder) UnMountImage() error {
-	var (
-		FileSystem filesystem.Interface
-		err        error
-	)
-	FileSystem, err = filesystem.NewFilesystem()
-	if err != nil {
-		logger.Warn(err)
-		return err
-	}
-	return FileSystem.UnMountImage(l.local.Cluster)
-}
-
 func (l *LiteBuilder) MountImage() error {
-	FileSystem, err := filesystem.NewFilesystem()
+	if isMount, _ := mount.GetMountDetails(common.DefaultMountCloudImageDir(l.local.Cluster.Name)); isMount {
+		err := mount.NewMountDriver().Unmount(common.DefaultMountCloudImageDir(l.local.Cluster.Name))
+		if err != nil {
+			return err
+		}
+	}
+	res := getBaseLayersPath(append(l.local.baseLayers, l.local.newLayers...))
+	upper := common.DefaultLiteBuildUpper
+	utils.CleanDir(upper)
+	err := utils.MkDirs(upper, common.DefaultMountCloudImageDir(l.local.Cluster.Name))
 	if err != nil {
 		return err
 	}
-	if err := FileSystem.MountImage(l.local.Cluster); err != nil {
-		return err
-	}
-	return nil
+	return mount.NewMountDriver().Mount(common.DefaultMountCloudImageDir(l.local.Cluster.Name), upper, res...)
 }
 
 func (l *LiteBuilder) AddUpperLayerToImage() error {
-	var (
-		err   error
-		Image *v1.Image
-	)
-	m := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount")
-	err = mount.NewMountDriver().Unmount(m)
-	if err != nil {
-		return err
-	}
-	upper := filepath.Join(m, "upper")
+	upper := common.DefaultLiteBuildUpper
 	imageLayer := v1.Layer{
 		Type:  "BASE",
 		Value: "registry cache",
 	}
-	utils.CleanDir(filepath.Join(upper, "scripts"))
+	utils.CleanDirs(filepath.Join(upper, "scripts"), filepath.Join(upper, "cri"))
 	layerDgst, err := l.local.registerLayer(upper)
 	if err != nil {
 		return err
 	}
 
 	imageLayer.ID = layerDgst
-	Image, err = image.GetImageByName(l.local.Config.ImageName)
-	if err != nil {
-		return err
-	}
-
-	Image.Spec.Layers = append(Image.Spec.Layers, imageLayer)
-	l.local.Image = Image
-	err = l.local.updateImageIDAndSaveImage()
-	if err != nil {
-		return err
-	}
+	l.local.newLayers = append(l.local.newLayers, imageLayer)
 	return nil
 }
 
 func (l *LiteBuilder) Clear() error {
+	mountDir := common.DefaultMountCloudImageDir(l.local.Cluster.Name)
+	err := mount.NewMountDriver().Unmount(mountDir)
+	if err != nil {
+		return fmt.Errorf("failed to umount %s, %v", mountDir, err)
+	}
 	if err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("127.0.0.1 %s", runtime.SeaHub)); err != nil {
 		logger.Warn(err)
 	}
-	return utils.CleanFiles(common.RawClusterfile, common.DefaultClusterBaseDir(l.local.Cluster.Name))
+	return utils.CleanFiles(common.RawClusterfile, common.DefaultClusterBaseDir(l.local.Cluster.Name), filepath.Join(common.DefaultTmpDir, common.DefaultLiteBuildUpper))
 }
 
 func (l *LiteBuilder) InitDockerAndRegistry() error {
 	mount := filepath.Join(common.DefaultClusterBaseDir(l.local.Cluster.Name), "mount")
-	initDockerCmd := fmt.Sprintf("cd %s  && chmod +x scripts/* && cd scripts && echo 127.0.0.1 sea.hub >> /etc/hosts && bash docker.sh", mount)
+	initDockerCmd := fmt.Sprintf("cd %s  && chmod +x scripts/* && cd scripts && bash docker.sh", mount)
+	host := fmt.Sprintf("%s %s", "127.0.0.1", runtime.SeaHub)
+	if !utils.IsFileContent(common.EtcHosts, host) {
+		initDockerCmd = fmt.Sprintf("%s && %s", fmt.Sprintf(runtime.RemoteAddEtcHosts, host), initDockerCmd)
+	}
 	initRegistryCmd := fmt.Sprintf("bash init-registry.sh 5000 %s", filepath.Join(mount, "registry"))
 	r, err := utils.RunSimpleCmd(fmt.Sprintf("%s && %s", initDockerCmd, initRegistryCmd))
 	logger.Info(r)

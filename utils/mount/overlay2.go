@@ -25,6 +25,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/alibaba/sealer/utils/ssh"
 
 	"github.com/alibaba/sealer/utils"
@@ -83,6 +85,7 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 		}
 	}()
 	mountData := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(utils.Reverse(layers), ":"), upperLayer, workdir)
+	logger.Debug("mount data : %s", mountData)
 	if err = mount("overlay", target, "overlay", 0, mountData); err != nil {
 		return fmt.Errorf("error creating overlay mount to %s: %v", target, err)
 	}
