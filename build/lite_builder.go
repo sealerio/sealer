@@ -16,17 +16,16 @@ package build
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
+	"github.com/alibaba/sealer/pkg/runtime"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/utils/mount"
-
-	"github.com/alibaba/sealer/runtime"
 
 	"github.com/alibaba/sealer/build/lite/charts"
 	"github.com/alibaba/sealer/build/lite/docker"
 	manifest "github.com/alibaba/sealer/build/lite/manifests"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )

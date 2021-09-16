@@ -15,11 +15,11 @@
 package apply
 
 import (
+	"github.com/alibaba/sealer/pkg/logger"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 

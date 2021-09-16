@@ -16,9 +16,9 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"strings"
 
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 

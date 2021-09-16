@@ -16,8 +16,7 @@ package guest
 
 import (
 	"fmt"
-
-	"github.com/alibaba/sealer/image/store"
+	store2 "github.com/alibaba/sealer/pkg/image/store"
 
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -30,11 +29,11 @@ type Interface interface {
 }
 
 type Default struct {
-	imageStore store.ImageStore
+	imageStore store2.ImageStore
 }
 
 func NewGuestManager() (Interface, error) {
-	is, err := store.NewDefaultImageStore()
+	is, err := store2.NewDefaultImageStore()
 	if err != nil {
 		return nil, err
 	}

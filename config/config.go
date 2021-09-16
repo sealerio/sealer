@@ -16,11 +16,11 @@ package config
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"io/ioutil"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )

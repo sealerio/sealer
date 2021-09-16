@@ -15,8 +15,8 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/logger"
 
 	"os"
 

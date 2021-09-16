@@ -19,15 +19,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/image/reference"
+	"github.com/alibaba/sealer/pkg/logger"
 	"io"
-
-	"github.com/alibaba/sealer/image/reference"
 
 	"github.com/alibaba/sealer/common"
 	dockerstreams "github.com/docker/cli/cli/streams"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"

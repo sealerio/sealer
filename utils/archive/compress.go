@@ -20,9 +20,8 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"syscall"
-
-	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/utils"
 

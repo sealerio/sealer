@@ -16,15 +16,15 @@ package apply
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/filesystem"
+	image2 "github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/logger"
+	runtime2 "github.com/alibaba/sealer/pkg/runtime"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
-	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/guest"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/plugin"
-	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 
@@ -36,9 +36,9 @@ import (
 type DefaultApplier struct {
 	ClusterDesired  *v1.Cluster
 	ClusterCurrent  *v1.Cluster
-	ImageManager    image.Service
+	ImageManager    image2.Service
 	FileSystem      filesystem.Interface
-	Runtime         runtime.Interface
+	Runtime         runtime2.Interface
 	Guest           guest.Interface
 	Config          config.Interface
 	Plugins         plugin.Plugins
@@ -73,7 +73,7 @@ const (
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	PullIfNotExist: func(applier *DefaultApplier) error {
 		imageName := applier.ClusterDesired.Spec.Image
-		imgSvc, err := image.NewImageService()
+		imgSvc, err := image2.NewImageService()
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		var hosts []string
 		if applier.ClusterCurrent == nil {
 			hosts = append(applier.ClusterDesired.Spec.Masters.IPList, applier.ClusterDesired.Spec.Nodes.IPList...)
-			config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(applier.ClusterDesired.Name), applier.ClusterDesired.Spec.Masters.IPList[0])
+			config := runtime2.GetRegistryConfig(common.DefaultTheClusterRootfsDir(applier.ClusterDesired.Name), applier.ClusterDesired.Spec.Masters.IPList[0])
 			if utils.NotInIPList(config.IP, applier.ClusterDesired.Spec.Masters.IPList) && utils.NotInIPList(config.IP, applier.ClusterDesired.Spec.Nodes.IPList) {
 				hosts = append(hosts, config.IP)
 			}
@@ -94,7 +94,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		if err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts); err != nil {
 			return err
 		}
-		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		applier.Runtime = runtime2.NewDefaultRuntime(applier.ClusterDesired)
 		if applier.Runtime == nil {
 			return fmt.Errorf("failed to init runtime")
 		}
@@ -128,7 +128,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.Guest.Apply(applier.ClusterDesired)
 	},
 	Reset: func(applier *DefaultApplier) error {
-		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		applier.Runtime = runtime2.NewDefaultRuntime(applier.ClusterDesired)
 		if applier.Runtime == nil {
 			return fmt.Errorf("failed to init runtime")
 		}
@@ -263,7 +263,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 }
 
 func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
-	imgSvc, err := image.NewImageService()
+	imgSvc, err := image2.NewImageService()
 	if err != nil {
 		return nil, err
 	}

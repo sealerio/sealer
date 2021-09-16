@@ -16,7 +16,7 @@ package service
 
 import (
 	"github.com/alibaba/sealer/check/checker"
-	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/logger"
 )
 
 type PostCheckerService struct {

@@ -15,6 +15,7 @@
 package checker
 
 import (
+	"github.com/alibaba/sealer/pkg/logger"
 	"text/template"
 
 	"github.com/alibaba/sealer/common"
@@ -22,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/alibaba/sealer/client"
-	"github.com/alibaba/sealer/logger"
 )
 
 type SvcChecker struct {

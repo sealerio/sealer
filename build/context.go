@@ -16,11 +16,11 @@ package build
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
+	"github.com/alibaba/sealer/pkg/runtime"
 	"os"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/runtime"
 	"github.com/alibaba/sealer/utils"
 )
 

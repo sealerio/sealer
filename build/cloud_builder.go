@@ -16,6 +16,8 @@ package build
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/infra"
+	"github.com/alibaba/sealer/pkg/logger"
 	"os"
 	"path/filepath"
 
@@ -24,8 +26,6 @@ import (
 
 	"github.com/alibaba/sealer/check/checker"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/infra"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"

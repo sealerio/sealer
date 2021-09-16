@@ -17,9 +17,9 @@ package checker
 import (
 	"context"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/image/distributionutil"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/distributionutil"
 	"github.com/alibaba/sealer/utils"
 )
 

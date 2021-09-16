@@ -17,9 +17,8 @@ package ssh
 import (
 	"bufio"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"io"
-
-	"github.com/alibaba/sealer/logger"
 )
 
 func (s *SSH) Ping(host string) error {

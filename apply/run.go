@@ -16,12 +16,12 @@ package apply
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/image"
 	"net"
 	"strconv"
 	"strings"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/utils"
 
 	"sigs.k8s.io/yaml"

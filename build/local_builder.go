@@ -16,20 +16,19 @@ package build
 
 import (
 	"fmt"
+	image2 "github.com/alibaba/sealer/pkg/image"
+	cache2 "github.com/alibaba/sealer/pkg/image/cache"
+	"github.com/alibaba/sealer/pkg/image/reference"
+	store2 "github.com/alibaba/sealer/pkg/image/store"
+	"github.com/alibaba/sealer/pkg/logger"
+	"github.com/alibaba/sealer/pkg/parser"
 	"time"
 
-	"github.com/alibaba/sealer/image/cache"
 	"github.com/pkg/errors"
 
 	"github.com/opencontainers/go-digest"
 
-	"github.com/alibaba/sealer/image/store"
-
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
@@ -54,11 +53,11 @@ type LocalBuilder struct {
 	ImageID          string
 	Context          string
 	KubeFileName     string
-	LayerStore       store.LayerStore
-	ImageStore       store.ImageStore
-	ImageService     image.Service
-	Prober           image.Prober
-	FS               store.Backend
+	LayerStore       store2.LayerStore
+	ImageStore       store2.ImageStore
+	ImageService     image2.Service
+	Prober           image2.Prober
+	FS               store2.Backend
 	DockerImageCache *MountTarget
 	builderLayer
 }
@@ -163,12 +162,12 @@ func (l *LocalBuilder) ExecBuild() error {
 	l.DockerImageCache = registryCache
 	var (
 		canUseCache = !l.Config.NoCache
-		parentID    = cache.ChainID("")
+		parentID    = cache2.ChainID("")
 		newLayers   = l.newLayers
 	)
 
 	baseLayerPaths := getBaseLayersPath(l.baseLayers)
-	chainSvc, err := cache.NewService()
+	chainSvc, err := cache2.NewService()
 	if err != nil {
 		return err
 	}
@@ -334,27 +333,27 @@ func (l *LocalBuilder) Cleanup() (err error) {
 }
 
 func NewLocalBuilder(config *Config) (Interface, error) {
-	layerStore, err := store.NewDefaultLayerStore()
+	layerStore, err := store2.NewDefaultLayerStore()
 	if err != nil {
 		return nil, err
 	}
 
-	imageStore, err := store.NewDefaultImageStore()
+	imageStore, err := store2.NewDefaultImageStore()
 	if err != nil {
 		return nil, err
 	}
 
-	service, err := image.NewImageService()
+	service, err := image2.NewImageService()
 	if err != nil {
 		return nil, err
 	}
 
-	fs, err := store.NewFSStoreBackend()
+	fs, err := store2.NewFSStoreBackend()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
 	}
 
-	prober := image.NewImageProber(service, config.NoCache)
+	prober := image2.NewImageProber(service, config.NoCache)
 
 	return &LocalBuilder{
 		Config:       config,

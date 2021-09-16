@@ -15,9 +15,8 @@
 package utils
 
 import (
+	"github.com/alibaba/sealer/pkg/logger"
 	"os"
-
-	"github.com/alibaba/sealer/logger"
 )
 
 func ErrorThenExit(err error) {

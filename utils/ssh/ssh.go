@@ -16,11 +16,11 @@ package ssh
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"net"
 	"sync"
 	"time"
 
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"

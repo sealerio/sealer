@@ -17,12 +17,15 @@ package build
 import (
 	"context"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/image"
+	infraUtils "github.com/alibaba/sealer/pkg/infra/utils"
+	"github.com/alibaba/sealer/pkg/logger"
+	"github.com/alibaba/sealer/pkg/runtime"
 	"io"
 	"io/ioutil"
 	"os"
 	"time"
 
-	"github.com/alibaba/sealer/runtime"
 	"github.com/alibaba/sealer/utils/archive"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -30,9 +33,6 @@ import (
 
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	infraUtils "github.com/alibaba/sealer/infra/utils"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/opencontainers/go-digest"

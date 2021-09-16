@@ -16,6 +16,7 @@ package ssh
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"io/ioutil"
 	"net"
 	"os"
@@ -27,8 +28,6 @@ import (
 	"github.com/alibaba/sealer/utils"
 
 	"golang.org/x/crypto/ssh"
-
-	"github.com/alibaba/sealer/logger"
 )
 
 /**

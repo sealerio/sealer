@@ -16,10 +16,9 @@ package utils
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/cert"
+	"github.com/alibaba/sealer/pkg/logger"
 	"strings"
-
-	"github.com/alibaba/sealer/cert"
-	"github.com/alibaba/sealer/logger"
 
 	"io/ioutil"
 )

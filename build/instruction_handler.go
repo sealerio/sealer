@@ -16,19 +16,17 @@ package build
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/command"
+	"github.com/alibaba/sealer/pkg/image"
+	cache2 "github.com/alibaba/sealer/pkg/image/cache"
+	"github.com/alibaba/sealer/pkg/image/store"
+	"github.com/alibaba/sealer/pkg/logger"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/store"
-
 	"github.com/alibaba/sealer/utils/archive"
-
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/cache"
-	"github.com/alibaba/sealer/logger"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -38,9 +36,9 @@ import (
 type handlerContext struct {
 	buildContext  string
 	continueCache bool
-	cacheSvc      cache.Service
+	cacheSvc      cache2.Service
 	prober        image.Prober
-	parentID      cache.ChainID
+	parentID      cache2.ChainID
 	ignoreError   bool
 }
 
@@ -56,7 +54,7 @@ func (h *handler) handleCopyCmd(layer v1.Layer) (layerID digest.Digest, cacheID 
 	//}
 	var (
 		hitCache bool
-		chainID  cache.ChainID
+		chainID  cache2.ChainID
 	)
 	defer func() {
 		h.hc.continueCache = hitCache
@@ -110,7 +108,7 @@ func (h *handler) handleCopyCmd(layer v1.Layer) (layerID digest.Digest, cacheID 
 func (h *handler) handleCMDRUNCmd(layer v1.Layer, lowerLayers ...string) (layerID digest.Digest, err error) {
 	var (
 		hitCache bool
-		chanID   cache.ChainID
+		chanID   cache2.ChainID
 	)
 	defer func() {
 		h.hc.continueCache = hitCache
@@ -207,7 +205,7 @@ func (h *handler) generateSourceFilesDigest(path string) (digest.Digest, error) 
 	return layerDgst, nil
 }
 
-func (h *handler) tryCache(parentID cache.ChainID, layer v1.Layer, cacheService cache.Service, srcFilesDgst digest.Digest) (hitCache bool, layerID digest.Digest, chainID cache.ChainID) {
+func (h *handler) tryCache(parentID cache2.ChainID, layer v1.Layer, cacheService cache2.Service, srcFilesDgst digest.Digest) (hitCache bool, layerID digest.Digest, chainID cache2.ChainID) {
 	var err error
 	cacheLayer := cacheService.NewCacheLayer(layer, srcFilesDgst)
 	cacheLayerID, err := h.hc.prober.Probe(parentID.String(), &cacheLayer)

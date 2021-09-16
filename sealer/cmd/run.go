@@ -15,15 +15,14 @@
 package cmd
 
 import (
+	"github.com/alibaba/sealer/pkg/cert"
+	"github.com/alibaba/sealer/pkg/logger"
 	"os"
 
 	"github.com/alibaba/sealer/common"
 
-	"github.com/alibaba/sealer/cert"
-
 	"github.com/alibaba/sealer/apply"
 
-	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
 )
 

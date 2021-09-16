@@ -16,10 +16,9 @@ package apply
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 
 	"github.com/alibaba/sealer/common"
-
-	"github.com/alibaba/sealer/logger"
 
 	"testing"
 )

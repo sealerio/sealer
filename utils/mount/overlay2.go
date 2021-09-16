@@ -19,13 +19,12 @@ package mount
 import (
 	"bufio"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"syscall"
-
-	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/utils/ssh"
 

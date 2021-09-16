@@ -19,6 +19,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"io"
 	"io/ioutil"
 	"os"
@@ -34,7 +35,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 )
 
 func IsExist(fileName string) bool {

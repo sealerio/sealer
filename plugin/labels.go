@@ -16,11 +16,10 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"strings"
 
 	"github.com/alibaba/sealer/client"
-	"github.com/alibaba/sealer/logger"
-
 	v1 "k8s.io/api/core/v1"
 )
 

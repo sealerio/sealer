@@ -16,10 +16,9 @@ package image
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/image/store"
 	"io"
 	"path/filepath"
-
-	"github.com/alibaba/sealer/image/store"
 
 	"github.com/alibaba/sealer/test/suites/build"
 

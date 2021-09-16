@@ -16,13 +16,13 @@ package apply
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/infra"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/alibaba/sealer/utils"
 
-	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

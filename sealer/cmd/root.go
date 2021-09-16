@@ -16,11 +16,11 @@ package cmd
 
 import (
 	"fmt"
+	logger2 "github.com/alibaba/sealer/pkg/logger"
 	"os"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -69,9 +69,9 @@ func initConfig() {
 
 	viper.AutomaticEnv() // read in environment variables that match
 
-	logger.InitLogger(logger.Config{
+	logger2.InitLogger(logger2.Config{
 		DebugMode: rootOpt.debugModeOn,
 	})
 
-	logger.Cfg(rootOpt.debugModeOn)
+	logger2.Cfg(rootOpt.debugModeOn)
 }

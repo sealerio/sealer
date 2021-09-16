@@ -16,13 +16,13 @@ package apply
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/client"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )

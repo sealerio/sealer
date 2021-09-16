@@ -17,9 +17,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"os"
 
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/version"
 	"github.com/spf13/cobra"
 )

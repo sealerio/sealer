@@ -17,7 +17,7 @@
 package mount
 
 import (
-	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/logger"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 

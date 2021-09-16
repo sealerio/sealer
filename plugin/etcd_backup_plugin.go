@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/logger"
 	"io/ioutil"
 	"time"
 
@@ -27,7 +28,6 @@ import (
 	"go.etcd.io/etcd/client/v3/snapshot"
 	"go.uber.org/zap"
 
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
