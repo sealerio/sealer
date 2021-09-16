@@ -96,6 +96,9 @@ tar zxvf sealer-v0.4.0-linux-amd64.tar.gz && mv sealer /usr/bin
 sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx
 ```
 
+>if arch is arm64：use <https://github.com/alibaba/sealer/releases/download/v0.4.0/sealer-v0.4.0-linux-arm64.tar.gz>
+> and using registry.cn-beijing.aliyuncs.com/sealer-io/kubernetes-arm64:v1.19.7 replace kubernetes:v1.19.9 image.
+
 ## User guide
 
 [get started](docs/user-guide/get-started.md)

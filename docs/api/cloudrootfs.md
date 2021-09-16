@@ -14,9 +14,6 @@ cloud rootfs will package all the dependencies refers to the kubernetes cluster 
 │   ├── kubelet
 │   ├── nerdctl
 │   └── seautil
-├── cni
-│   └── calico
-│       └── calico.yaml.tmpl
 ├── cri
 │   ├── containerd
 │   ├── containerd-shim
