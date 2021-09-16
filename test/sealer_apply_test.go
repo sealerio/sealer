@@ -18,8 +18,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/suites/image"
+
+	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
 
@@ -140,22 +141,20 @@ var _ = Describe("sealer apply", func() {
 
 		})
 
-		Context("check regular scenario that provider is bare metal", func() {
+		Context("check regular scenario that provider is bare metal, executes machine is master0", func() {
 			var tempFile string
 			BeforeEach(func() {
 				tempFile = testhelper.CreateTempFile()
 			})
 
 			AfterEach(func() {
+				apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
 				testhelper.RemoveTempFile(tempFile)
 			})
 			It("init, scale up, scale down, clean up", func() {
 				By("start to prepare infra")
 				rawCluster.Spec.Provider = settings.AliCloud
 				usedCluster := apply.CreateAliCloudInfraAndSave(rawCluster, tempFile)
-				defer func() {
-					apply.CleanUpAliCloudInfra(usedCluster)
-				}()
 				sshClient := testhelper.NewSSHClientByCluster(usedCluster)
 				Eventually(func() bool {
 					err := sshClient.SSH.Copy(sshClient.RemoteHostIP, settings.DefaultSealerBin, settings.DefaultSealerBin)
@@ -186,8 +185,58 @@ var _ = Describe("sealer apply", func() {
 				apply.WriteClusterFileToDisk(usedCluster, tempFile)
 				apply.SendAndApplyCluster(sshClient, tempFile)
 				apply.CheckNodeNumWithSSH(sshClient, 4)
-				usedCluster.Spec.Provider = settings.AliCloud
-				usedCluster = apply.CreateAliCloudInfraAndSave(usedCluster, tempFile)
+				By("start to delete cluster")
+				err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+		})
+
+		Context("check regular scenario that provider is bare metal, executes machine is not master0", func() {
+			var tempFile string
+			BeforeEach(func() {
+				tempFile = testhelper.CreateTempFile()
+			})
+
+			AfterEach(func() {
+				apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
+				testhelper.RemoveTempFile(tempFile)
+				testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+			})
+			It("init, scale up, scale down, clean up", func() {
+				By("start to prepare infra")
+				cluster := apply.LoadClusterFileFromDisk(rawClusterFilePath)
+				cluster.Spec.Provider = settings.AliCloud
+				usedCluster := apply.ChangeMasterOrderAndSave(cluster, tempFile)
+				sshClient := testhelper.NewSSHClientByCluster(usedCluster)
+				Eventually(func() bool {
+					err := sshClient.SSH.Copy(sshClient.RemoteHostIP, settings.DefaultSealerBin, settings.DefaultSealerBin)
+					return err == nil
+				}, settings.MaxWaiteTime).Should(BeTrue())
+
+				By("start to init cluster")
+				apply.SendAndApplyCluster(sshClient, tempFile)
+				apply.CheckNodeNumWithSSH(sshClient, 4)
+
+				By("Use join command to add 3master and 3node for scale up cluster in baremetal mode", func() {
+					usedCluster.Spec.Nodes.Count = "3"
+					usedCluster.Spec.Masters.Count = "3"
+					usedCluster = apply.CreateAliCloudInfraAndSave(usedCluster, tempFile)
+					joinNodes := strings.Join(usedCluster.Spec.Nodes.IPList[1:], ",")
+					//sealer join master and node
+					apply.SendAndJoinCluster(sshClient, tempFile, "", joinNodes)
+					//add 3 masters and 3 nodes
+					apply.CheckNodeNumWithSSH(sshClient, 6)
+				})
+
+				By("start to scale down cluster")
+				usedCluster.Spec.Nodes.Count = "1"
+				usedCluster.Spec.Nodes.IPList = usedCluster.Spec.Nodes.IPList[:1]
+				usedCluster.Spec.Masters.Count = "3"
+				usedCluster.Spec.Provider = settings.BAREMETAL
+				apply.WriteClusterFileToDisk(usedCluster, tempFile)
+				apply.SendAndApplyCluster(sshClient, tempFile)
+				apply.CheckNodeNumWithSSH(sshClient, 4)
 
 				By("start to delete cluster")
 				err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
