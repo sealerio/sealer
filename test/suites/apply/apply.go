@@ -99,6 +99,26 @@ func SealerJoin(masters, nodes string) {
 }
 
 func CreateAliCloudInfraAndSave(cluster *v1.Cluster, clusterFile string) *v1.Cluster {
+	CreateAliCloudInfra(cluster)
+	//save used cluster file
+	cluster.Spec.Provider = settings.BAREMETAL
+	MarshalClusterToFile(clusterFile, cluster)
+	cluster.Spec.Provider = settings.AliCloud
+	return cluster
+}
+
+func ChangeMasterOrderAndSave(cluster *v1.Cluster, clusterFile string) *v1.Cluster {
+	cluster.Spec.Masters.Count = strconv.Itoa(3)
+	CreateAliCloudInfra(cluster)
+	//change master order and save used cluster file
+	cluster.Spec.Masters.IPList[0], cluster.Spec.Masters.IPList[1] = cluster.Spec.Masters.IPList[1], cluster.Spec.Masters.IPList[0]
+	cluster.Spec.Provider = settings.BAREMETAL
+	MarshalClusterToFile(clusterFile, cluster)
+	cluster.Spec.Provider = settings.AliCloud
+	return cluster
+}
+
+func CreateAliCloudInfra(cluster *v1.Cluster) {
 	gomega.Eventually(func() bool {
 		infraManager, err := infra.NewDefaultProvider(cluster)
 		if err != nil {
@@ -107,11 +127,6 @@ func CreateAliCloudInfraAndSave(cluster *v1.Cluster, clusterFile string) *v1.Clu
 		err = infraManager.Apply()
 		return err == nil
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
-	//save used cluster file
-	cluster.Spec.Provider = settings.BAREMETAL
-	MarshalClusterToFile(clusterFile, cluster)
-	cluster.Spec.Provider = settings.AliCloud
-	return cluster
 }
 
 func SendAndApplyCluster(sshClient *testhelper.SSHClient, clusterFile string) {
@@ -132,11 +147,8 @@ func SendAndRemoteExecCluster(sshClient *testhelper.SSHClient, clusterFile strin
 		err := sshClient.SSH.Copy(sshClient.RemoteHostIP, clusterFile, clusterFile)
 		return err == nil
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
-
-	gomega.Eventually(func() bool {
-		err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, remoteCmd)
-		return err == nil
-	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
+	err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, remoteCmd)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
 func CleanUpAliCloudInfra(cluster *v1.Cluster) {

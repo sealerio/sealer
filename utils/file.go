@@ -402,7 +402,7 @@ func IsFileContent(fileName string, content string) bool {
 		logger.Error(err)
 		return false
 	}
-	return len(strings.Split(string(bs), content)) != 2
+	return len(strings.Split(string(bs), content)) == 2
 }
 
 func IsDir(path string) bool {
