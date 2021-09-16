@@ -13,7 +13,7 @@ Components included in this image:
 * 1 Deployment replica for pushgateway.
 * 1 Deployment replica for prometheus-server.
 
-# How to use it
+## How to use it
 
 Access the Grafana monitoring dashboard,you can run the kubectl port-forward command to access the Grafana monitoring
 dashboard,then open `http://localhost:3000` in your browser and log on with the default username and password.
@@ -29,7 +29,7 @@ To access the Grafana UI, run the following command:
 
 `kubectl port-forward -n fluentbit-loki-stack-system svc/loki-grafana 3000:80`
 
-# How to rebuild it use helm
+## How to rebuild it use helm
 
 Kubefile:
 
@@ -47,4 +47,4 @@ run below command to build it
 sealer build -t {Your Image Name} -f Kubefile -b cloud .
 ```
 
-More parameters see :https://grafana.github.io/helm-charts
+More parameters see [official document here](https://grafana.github.io/helm-charts)

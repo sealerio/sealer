@@ -48,8 +48,6 @@ or Replicated PVs. More details about the application can be found in its manife
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-promtail:v2.2.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-fluentbit:v2.2.0
 
-
-
 ## How to run it
 
 ### Apply a cluster
