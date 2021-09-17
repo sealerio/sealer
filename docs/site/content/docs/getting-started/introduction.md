@@ -14,9 +14,9 @@ toc = true
 top = false
 +++
 
-## Quick Start
+# Quick Start
 
-One page summary of how to start a new AdiDoks project. [Quick Start →](../quick-start/)
+One page summary of how to start a new AdiDoks project. [Quick Start →](./quick-start.md)
 
 ## Go further
 
@@ -24,8 +24,8 @@ Contributing and Help.
 
 ## Contributing
 
-Find out how to contribute to Doks. [Contributing →](../../contributing/how-to-contribute/)
+Find out how to contribute to Doks. [Contributing →](../contributing/how-to-contribute.md)
 
 ## Help
 
-Get help on Doks. [Help →](../../help/faq/)
+Get help on Doks. [Help →](../help/faq.md)

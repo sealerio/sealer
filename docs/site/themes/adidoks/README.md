@@ -166,11 +166,6 @@ possible someone has already reported the same problem.
 
 If your problem or idea is not addressed yet, [open a new issue](https://github.com/aaranxu/adidoks/issues/new).
 
-## Contributing
-
-We'd love your help! Please see [CONTRIBUTING.md](CONTRIBUTING.md) to learn
-about the kinds of contributions we're looking for.
-
 ## License
 
 **AdiDoks** is distributed under the terms of the

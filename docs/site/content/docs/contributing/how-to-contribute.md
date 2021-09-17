@@ -14,7 +14,9 @@ toc = true
 top = false
 +++
 
-👉 Make sure to read the [Code of Conduct](../code-of-conduct/).
+# Contributing
+
+👉 Make sure to read the [Code of Conduct](./code-of-conduct.md).
 
 ## Contribute to Doks
 

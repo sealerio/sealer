@@ -13,27 +13,3 @@ lead = "Answers to frequently asked questions."
 toc = true
 top = false
 +++
-
-## What is the AdiDoks?
-
-AdiDoks is a Zola theme for Documentation's sites, ported by the Hugo Theme
-[Doks](https://getdoks.org), which is a pretty nice theme. Thanks a lot to 
-[*h-enk*](https://github.com/h-enk), the creator of the [Doks](https://getdoks.org).
-
-## Keyboard shortcuts for search?
-
-- focus: `/`
-- select: `↓` and `↑`
-- open: `Enter`
-- close: `Esc`
-
-## Other documentation?
-
-- [Netlify](https://docs.netlify.com/)
-- [Zola](https://www.getzola.org/documentation/getting-started/overview/)
-
-## Contact the creator?
-
-Send *Aaran Xu* an E-mail:
-
-- <aaranxu@outlook.com>
