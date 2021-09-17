@@ -133,7 +133,7 @@ func compress(paths []string, options Options) (reader io.ReadCloser, err error)
 	return pr, nil
 }
 
-func writeWhiteout(header *tar.Header, fi os.FileInfo, path string) (*tar.Header, error) {
+func writeWhiteout(header *tar.Header, fi os.FileInfo, path string) *tar.Header {
 	// overlay whiteout process
 	// this is a whiteout file
 	if fi.Mode()&os.ModeCharDevice != 0 && header.Devminor == 0 && header.Devmajor == 0 {
@@ -170,7 +170,7 @@ func writeWhiteout(header *tar.Header, fi os.FileInfo, path string) (*tar.Header
 			}
 		}
 	}
-	return woh, nil
+	return woh
 }
 
 func readWhiteout(hdr *tar.Header, path string) (bool, error) {
@@ -239,10 +239,7 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 		// and set add Suffix WhiteoutOpaqueDir for opaque.
 		// but we still need to write its original header into tar stream,
 		// because we need to create dir on this original header.
-		woh, walkErr := writeWhiteout(header, fi, file)
-		if walkErr != nil {
-			return fmt.Errorf("failed to write white out, path: %s, err: %v", file, walkErr)
-		}
+		woh := writeWhiteout(header, fi, file)
 		walkErr = tarWriter.WriteHeader(header)
 		if walkErr != nil {
 			return fmt.Errorf("failed to write original header, path: %s, err: %v", file, walkErr)

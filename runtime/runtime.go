@@ -84,11 +84,8 @@ func NewDefaultRuntime(cluster *v1.Cluster) Interface {
 		return nil
 	}
 	d := &Default{imageStore: c}
-	err = d.initRunner(cluster)
-	if err != nil {
-		logger.Error("get runtime failed %v", err)
-		return nil
-	}
+	d.initRunner(cluster)
+
 	return d
 }
 
