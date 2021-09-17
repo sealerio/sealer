@@ -68,7 +68,11 @@ func (l *LocalBuilder) Build(name string, context string, kubefileName string) e
 	if err != nil {
 		return err
 	}
-
+	registryCache, err := NewRegistryCache()
+	if err != nil {
+		return err
+	}
+	l.DockerImageCache = registryCache
 	pipLine, err := l.GetBuildPipeLine()
 	if err != nil {
 		return err
@@ -156,11 +160,6 @@ func (l *LocalBuilder) ExecBuild() error {
 	if err != nil {
 		return err
 	}
-	registryCache, err := NewRegistryCache()
-	if err != nil {
-		return err
-	}
-	l.DockerImageCache = registryCache
 	var (
 		canUseCache = !l.Config.NoCache
 		parentID    = cache.ChainID("")
