@@ -65,7 +65,7 @@ title_addition = "Modern Documentation Theme"
 timeformat = "%B %e, %Y" # e.g. June 14, 2021
 timezone = "America/New_York"
 
-# Edit page on reposity or not
+# Edit page on repository or not
 edit_page = false
 docs_repo = "https://github.com/aaranxu/adidoks"
 repo_branch = "main"

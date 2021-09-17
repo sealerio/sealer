@@ -8,7 +8,7 @@ lead = 'Build Deliver and Run user-defined clusters in one command!'
 url = "/docs/getting-started/introduction/"
 url_button = "Get started"
 repo_license = "Apache License"
-repo_url = "https://github.com/alibaba/sealer"
+repo_url = https://github.com/alibaba/sealer
 
 [[extra.list]]
 title = "Build"

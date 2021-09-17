@@ -1,5 +1,5 @@
 # The URL the site will be built for
-base_url = "https://sealer.cloud"
+base_url = "https://sealer.vercel.app"
 title = "sealer"
 description = "Seal your applications all dependencies and kubernetes into CloudImage!"
 
@@ -46,7 +46,7 @@ highlight_code = true
 [extra]
 # Put all your custom variables here
 authors = "Alibaba"
-github = "https://github.com/alibaba/sealer"
+github = https://github.com/alibaba/sealer
 twitter = ""
 email = "fhtjob@hotmail.com"
 
@@ -68,7 +68,7 @@ title_addition = "Build Deliver and Run user-defined clusters in one command"
 timeformat = "%B %e, %Y" # e.g. June 14, 2021
 timezone = "America/New_York"
 
-# Edit page on reposity or not
+# Edit page on repository or not
 edit_page = false
 docs_repo = "https://github.com/alibaba/sealer"
 repo_branch = "main"
@@ -96,7 +96,7 @@ type = "Organization"
 logo = "logo-doks.png"
 # twitter = "https://twitter.com/aaranxu"
 linked_in = ""
-github = "https://github.com/alibaba/sealer"
+github = https://github.com/alibaba/sealer
 section = "blog" # see config.extra.main~url
 ## Sitelinks Search Box
 site_links_search_box = false
