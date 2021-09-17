@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lite
+package build
 
 import (
 	"fmt"
@@ -124,10 +124,9 @@ func (l *Builder) AddUpperLayerToImage() error {
 		Type:  "BASE",
 		Value: "registry cache",
 	}
-	utils.CleanDirs(filepath.Join(upper, "scripts"), filepath.Join(upper, "cri"))
-	layerDgst, err := l.Local.RegisterLayer(upper)
+	layerDgst, err := l.local.registerLayer(upper)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to register layer, err: %v", err)
 	}
 
 	imageLayer.ID = layerDgst
