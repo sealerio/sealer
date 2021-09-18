@@ -26,6 +26,7 @@ import (
 )
 
 type PodChecker struct {
+	client *client.K8sClient
 }
 
 type PodNamespaceStatus struct {
@@ -39,13 +40,7 @@ type PodNamespaceStatus struct {
 var PodNamespaceStatusList []PodNamespaceStatus
 
 func (n *PodChecker) Check() error {
-	// check if all the pod is Running
-	c, err := client.NewClientSet()
-	if err != nil {
-		logger.Info("failed to create k8s client  %v", err)
-		return nil
-	}
-	namespacePodList, err := client.ListAllNamespacesPods(c)
+	namespacePodList, err := n.client.ListAllNamespacesPods()
 	if err != nil {
 		return err
 	}
@@ -118,6 +113,12 @@ func getPodReadyStatus(pod *corev1.Pod) error {
 	return &NotFindReadyTypeError{}
 }
 
-func NewPodChecker() Checker {
-	return &PodChecker{}
+func NewPodChecker() (Checker, error) {
+	c, err := client.Newk8sClient()
+	if err != nil {
+		return nil, err
+	}
+	return &PodChecker{
+		client: c,
+	}, nil
 }
