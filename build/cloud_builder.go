@@ -108,12 +108,12 @@ func (c *CloudBuilder) InitClusterFile() error {
 		return nil
 	}
 
-	rawClusterFile := GetRawClusterFile(c.local.Image)
-	if rawClusterFile == "" {
-		return fmt.Errorf("failed to get cluster file from context or base image")
-	}
-	err := yaml.Unmarshal([]byte(rawClusterFile), &cluster)
+	rawClusterFile, err := GetRawClusterFile(c.local.Image)
 	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal([]byte(rawClusterFile), &cluster); err != nil {
 		return err
 	}
 

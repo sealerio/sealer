@@ -42,22 +42,21 @@ func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 	return
 }
 
-// GetClusterFileFromImage retrieve ClusterFile From image
-func GetClusterFileFromImage(imageName string) string {
-	clusterfile := GetClusterFileFromImageManifest(imageName)
-	if clusterfile != "" {
-		return clusterfile
+// GetClusterFileFromImage retrieves ClusterFile From image.
+func GetClusterFileFromImage(imageName string) (string, error) {
+	clusterFile, err := GetClusterFileFromImageManifest(imageName)
+	if err != nil {
+		return GetFileFromBaseImage(imageName, "etc", common.DefaultClusterFileName)
 	}
 
-	clusterfile = GetFileFromBaseImage(imageName, "etc", common.DefaultClusterFileName)
-	if clusterfile != "" {
-		return clusterfile
-	}
-	return ""
+	return clusterFile, nil
 }
 
-// GetClusterFileFromImageManifest retrieve ClusterFile from image manifest(image yaml)
-func GetClusterFileFromImageManifest(imageName string) string {
+// GetClusterFileFromImageManifest retrieve ClusterFiles from image manifest(image yaml).
+// When it runs into an error, returns a detailed error.
+// When content getted is empty, returns an empty error directly to avoid upper caller to
+// decide whether it is an empty.
+func GetClusterFileFromImageManifest(imageName string) (string, error) {
 	//  find cluster file from image manifest
 	var (
 		image *v1.Image
@@ -65,33 +64,34 @@ func GetClusterFileFromImageManifest(imageName string) string {
 	)
 	is, err := store.NewDefaultImageStore()
 	if err != nil {
-		logger.Error("failed to init image store, err: %s", err)
-		return ""
+		return "", fmt.Errorf("failed to init image store: %v", err)
 	}
 	image, err = is.GetByName(imageName)
 	if err != nil {
 		ims, err := NewImageMetadataService()
 		if err != nil {
-			logger.Error("failed to create image metadata svc, err: %v", err)
+			return "", fmt.Errorf("failed to create image metadata svcs: %v", err)
 		}
 
 		imageMetadata, err := ims.GetRemoteImage(imageName)
 		if err != nil {
-			logger.Error("failed to find image %s,err: %v", imageName, err)
-			return ""
+			return "", fmt.Errorf("failed to find image %s: %v", imageName, err)
 		}
 		image = &imageMetadata
 	}
-	Clusterfile, ok := image.Annotations[common.ImageAnnotationForClusterfile]
+	clusterFile, ok := image.Annotations[common.ImageAnnotationForClusterfile]
 	if !ok {
-		logger.Error("failed to find Clusterfile in local")
-		return ""
+		return "", fmt.Errorf("failed to find Clusterfile in local")
 	}
-	return Clusterfile
+
+	if clusterFile == "" {
+		return "", fmt.Errorf("ClusterFile is empty")
+	}
+	return clusterFile, nil
 }
 
 // GetFileFromBaseImage retrieve file from base image
-func GetFileFromBaseImage(imageName string, paths ...string) string {
+func GetFileFromBaseImage(imageName string, paths ...string) (string, error) {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()
 	defer func() {
@@ -100,35 +100,33 @@ func GetFileFromBaseImage(imageName string, paths ...string) string {
 
 	imgSvc, err := NewImageService()
 	if err != nil {
-		return ""
+		return "", err
 	}
-	if err = imgSvc.PullIfNotExist(imageName); err != nil {
-		return ""
+	if err := imgSvc.PullIfNotExist(imageName); err != nil {
+		return "", err
 	}
 
 	driver := mount.NewMountDriver()
 	is, err := store.NewDefaultImageStore()
 	if err != nil {
-		logger.Error("failed to init image store, err: %s", err)
-		return ""
+		return "", fmt.Errorf("failed to init image store: %s", err)
 	}
 	image, err := is.GetByName(imageName)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	layers, err := GetImageLayerDirs(image)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	err = driver.Mount(mountTarget, mountUpper, layers...)
-	if err != nil {
-		return ""
+	if err := driver.Mount(mountTarget, mountUpper, layers...); err != nil {
+		return "", err
 	}
+
 	defer func() {
-		err := driver.Unmount(mountTarget)
-		if err != nil {
+		if err := driver.Unmount(mountTarget); err != nil {
 			logger.Warn(err)
 		}
 	}()
@@ -136,11 +134,17 @@ func GetFileFromBaseImage(imageName string, paths ...string) string {
 	subPath = append(subPath, mountTarget)
 	subPath = append(subPath, paths...)
 	clusterFile := filepath.Join(subPath...)
+
 	data, err := ioutil.ReadFile(clusterFile)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return string(data)
+
+	if string(data) == "" {
+		return "", fmt.Errorf("ClusterFile is empty")
+	}
+
+	return string(data), nil
 }
 
 func GetYamlByImage(imageName string) (string, error) {
