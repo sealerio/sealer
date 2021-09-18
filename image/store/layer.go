@@ -109,8 +109,7 @@ func (rl *ROLayer) DistributionMetadata() map[string]digest.Digest {
 }
 
 func NewROLayer(LayerDigest digest.Digest, size int64, distributionMetadata map[string]digest.Digest) (*ROLayer, error) {
-	err := LayerDigest.Validate()
-	if err != nil {
+	if err := LayerDigest.Validate(); err != nil {
 		return nil, err
 	}
 	if distributionMetadata == nil {

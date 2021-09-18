@@ -282,17 +282,14 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 }
 
 func removePreviousFiles(path string) error {
-	base := filepath.Base(path)
 	dir := filepath.Dir(path)
 	existPath := path
-	if strings.HasPrefix(base, WhiteoutPrefix) {
+	if base := filepath.Base(path); strings.HasPrefix(base, WhiteoutPrefix) {
 		existPath = filepath.Join(dir, strings.TrimPrefix(base, WhiteoutPrefix))
 	}
 
-	_, err := os.Stat(existPath)
-	if err == nil {
-		err = os.RemoveAll(existPath)
-		if err != nil {
+	if _, err := os.Stat(existPath); err == nil {
+		if err := os.RemoveAll(existPath); err != nil {
 			return err
 		}
 	}

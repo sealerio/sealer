@@ -38,8 +38,7 @@ import (
 )
 
 func IsExist(fileName string) bool {
-	_, err := os.Stat(fileName)
-	if err != nil {
+	if _, err := os.Stat(fileName); err != nil {
 		return os.IsExist(err)
 	}
 	return true
@@ -102,9 +101,8 @@ func ReadAll(fileName string) ([]byte, error) {
 // file ./test/dir/xxx.txt if dir ./test/dir not exist, create it
 func MkFileFullPathDir(fileName string) error {
 	localDir := filepath.Dir(fileName)
-	err := Mkdir(localDir)
-	if err != nil {
-		return fmt.Errorf("create local dir failed %s %v", localDir, err)
+	if err := Mkdir(localDir); err != nil {
+		return fmt.Errorf("failed to create local dir %s: %v", localDir, err)
 	}
 	return nil
 }
@@ -340,8 +338,8 @@ func CleanDir(dir string) {
 	if dir == "" {
 		logger.Error("clean dir path is empty")
 	}
-	err := os.RemoveAll(dir)
-	if err != nil {
+
+	if err := os.RemoveAll(dir); err != nil {
 		logger.Warn("failed to remove dir %s ", dir)
 	}
 }

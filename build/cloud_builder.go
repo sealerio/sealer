@@ -160,9 +160,8 @@ func (c *CloudBuilder) initBuildSSH() error {
 
 // send build context dir to remote host
 func (c *CloudBuilder) SendBuildContext() error {
-	err := c.sendBuildContext()
-	if err != nil {
-		return fmt.Errorf("failed to send context")
+	if err := c.sendBuildContext(); err != nil {
+		return fmt.Errorf("failed to send context: %v", err)
 	}
 	// change local builder context to ".", because sendBuildContext will send current localBuilder.Context to remote
 	// and work within the localBuilder.Context remotely, so change context to "." is more appropriate.
