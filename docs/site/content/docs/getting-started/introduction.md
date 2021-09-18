@@ -16,7 +16,7 @@ top = false
 
 # Quick Start
 
-One page summary of how to start a new AdiDoks project. [Quick Start →](./quick-start.md)
+One page summary of how to start a new AdiDoks project.
 
 ## Go further
 
