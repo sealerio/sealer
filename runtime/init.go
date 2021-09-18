@@ -88,7 +88,7 @@ func (d *Default) GetKubectlAndKubeconfig() error {
 	return GetKubectlAndKubeconfig(d.SSH, d.Masters[0])
 }
 
-func (d *Default) initRunner(cluster *v1.Cluster) error {
+func (d *Default) initRunner(cluster *v1.Cluster) {
 	d.SSH = ssh.NewSSHByCluster(cluster)
 	d.ClusterName = cluster.Name
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
@@ -111,7 +111,6 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
 
 	// return d.LoadMetadata()
-	return nil
 }
 func (d *Default) ConfigKubeadmOnMaster0() error {
 	var templateData string

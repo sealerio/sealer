@@ -194,7 +194,7 @@ func (c *DefaultApplier) Apply() (err error) {
 		}
 	}
 
-	todoList, _ := c.diff()
+	todoList := c.diff()
 	for _, action := range todoList {
 		logger.Debug("sealer apply process %s", action)
 		err := ActionFuncMap[action](c)
@@ -212,7 +212,7 @@ func (c *DefaultApplier) Delete() (err error) {
 	return c.Apply()
 }
 
-func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
+func (c *DefaultApplier) diff() (todoList []ActionName) {
 	if c.ClusterDesired.DeletionTimestamp != nil {
 		c.MastersToDelete = c.ClusterDesired.Spec.Masters.IPList
 		c.NodesToDelete = c.ClusterDesired.Spec.Nodes.IPList
@@ -220,7 +220,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, UnMountRootfs)
 		todoList = append(todoList, UnMountImage)
 		todoList = append(todoList, CleanFS)
-		return todoList, nil
+		return todoList
 	}
 
 	if c.ClusterCurrent == nil {
@@ -239,7 +239,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		todoList = append(todoList, PluginPhasePostInstallRun)
-		return todoList, nil
+		return todoList
 	}
 
 	todoList = append(todoList, PullIfNotExist)
@@ -259,7 +259,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	}
 	todoList = append(todoList, Guest)
 	todoList = append(todoList, UnMountImage)
-	return todoList, nil
+	return todoList
 }
 
 func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {

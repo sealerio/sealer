@@ -35,6 +35,7 @@ linters:
     - unused
     - varcheck
     - nilerr
+    - unparam
 
 issues:
   exclude-rules:

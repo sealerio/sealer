@@ -113,7 +113,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		return errors.New("failed to push image, the number of layerDescriptors and pushedLayers mismatch")
 	}
 	// push sealer image metadata to registry
-	configJSON, err := pusher.putManifestConfig(ctx, named, *image)
+	configJSON, err := pusher.putManifestConfig(ctx, *image)
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, n
 	return err
 }
 
-func (pusher *ImagePusher) putManifestConfig(ctx context.Context, named reference.Named, image v1.Image) ([]byte, error) {
+func (pusher *ImagePusher) putManifestConfig(ctx context.Context, image v1.Image) ([]byte, error) {
 	repo := pusher.repository
 	configJSON, err := json.Marshal(image)
 	if err != nil {

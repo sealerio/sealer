@@ -33,9 +33,23 @@ var buildConfig *BuildFlag
 
 // buildCmd represents the build command
 var buildCmd = &cobra.Command{
-	Use:     "build [flags] PATH",
-	Short:   "cloud image local build command line",
-	Example: `sealer build -f Kubefile -t my-kubernetes:1.18.3 .`,
+	Use:   "build [flags] PATH",
+	Short: "cloud image local build command line",
+	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.9 [--buildType cloud|container|lite] [--no-cache]",
+	Example: `the current path is the context path ,default build type is cloud and use build cache
+
+cloud build :
+	sealer build -f Kubefile -t my-kubernetes:1.19.9
+
+container build :
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 -b container
+
+lite build:
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 --buildType lite
+
+build without cache:
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 --no-cache
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			logger.Error("sealer build requires exactly 1 argument.")

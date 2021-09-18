@@ -16,8 +16,10 @@ package distributionutil
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -41,7 +43,9 @@ func Login(ctx context.Context, authConfig *types.AuthConfig) error {
 	}
 
 	modifiers := dockerRegistry.Headers(dockerversion.DockerUserAgent(ctx), nil)
-	authTransport := transport.NewTransport(dockerRegistry.NewTransport(nil), modifiers...)
+	base := dockerRegistry.NewTransport(nil)
+	base.TLSClientConfig.InsecureSkipVerify = os.Getenv("SKIP_TLS_VERIFY") == "true"
+	authTransport := transport.NewTransport(base, modifiers...)
 
 	credentialAuthConfig := *authConfig
 	creds := loginCredentialStore{
@@ -60,6 +64,9 @@ func Login(ctx context.Context, authConfig *types.AuthConfig) error {
 
 	resp, err := loginClient.Do(req)
 	if err != nil {
+		if strings.Contains(err.Error(), "x509: certificate signed by unknown authority") {
+			return fmt.Errorf("%v, if you want to skip TLS verification, set the environment variable 'SKIP_TLS_VERIFY=true' ", err)
+		}
 		return err
 	}
 	defer resp.Body.Close()

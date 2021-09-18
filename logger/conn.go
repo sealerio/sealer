@@ -83,7 +83,7 @@ func (c *connLogger) LogWrite(when time.Time, msgText interface{}, level logLeve
 
 	//网络异常时，消息发出
 	if !c.illNetFlag {
-		err = c.println(when, msg)
+		err = c.println(msg)
 		//网络异常，通知处理网络的go程自动重连
 		if err != nil {
 			c.illNetFlag = true
@@ -142,7 +142,7 @@ func (c *connLogger) needToConnectOnMsg() bool {
 	return c.ReconnectOnMsg
 }
 
-func (c *connLogger) println(when time.Time, msg *loginfo) error {
+func (c *connLogger) println(msg *loginfo) error {
 	c.Lock()
 	defer c.Unlock()
 	ss, err := json.Marshal(msg)

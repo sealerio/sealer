@@ -103,7 +103,7 @@ func (l *LiteBuilder) MountImage() error {
 	}
 	res := getBaseLayersPath(append(l.local.baseLayers, l.local.newLayers...))
 	upper := common.DefaultLiteBuildUpper
-	utils.CleanDir(upper)
+	utils.CleanDirs(upper, common.DefaultMountCloudImageDir(l.local.Cluster.Name))
 	err := utils.MkDirs(upper, common.DefaultMountCloudImageDir(l.local.Cluster.Name))
 	if err != nil {
 		return err
