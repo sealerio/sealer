@@ -15,10 +15,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
+
 	"github.com/spf13/cobra"
 )
 
@@ -34,17 +36,16 @@ sealer save -o [output file name] [image name]
 save kubernetes:v1.18.3 image to kubernetes.tar.gz file:
 sealer save -o kubernetes.tar.gz kubernetes:v1.18.3`,
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ifs, err := image.NewImageFileService()
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 		if err = ifs.Save(args[0], ImageTar); err != nil {
-			logger.Error("failed to save image %s, err: %v", args[0], err)
-			os.Exit(1)
+			return fmt.Errorf("failed to save image %s: %v", args[0], err)
 		}
 		logger.Info("save image %s to %s successfully", args[0], ImageTar)
+		return nil
 	},
 }
 

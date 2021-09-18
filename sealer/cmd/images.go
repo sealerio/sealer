@@ -16,12 +16,10 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/alibaba/sealer/common"
-
 	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/logger"
+
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
@@ -37,18 +35,17 @@ const (
 var listCmd = &cobra.Command{
 	Use:     "images",
 	Short:   "list all cluster images",
+	Args:    cobra.NoArgs,
 	Example: `sealer images`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ims, err := image.NewImageMetadataService()
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 
 		imageMetadataList, err := ims.List()
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 		table := tablewriter.NewWriter(common.StdOut)
 		table.SetHeader([]string{imageID, imageName, imageCreate, imageSize})
@@ -58,6 +55,7 @@ var listCmd = &cobra.Command{
 			table.Append([]string{image.ID, image.Name, create, size})
 		}
 		table.Render()
+		return nil
 	},
 }
 

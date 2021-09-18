@@ -19,6 +19,7 @@ import (
 
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
+
 	"github.com/spf13/cobra"
 )
 
@@ -35,22 +36,13 @@ var loginCmd = &cobra.Command{
 	Short:   "login image repositories",
 	Example: `sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]`,
 	Args:    cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			logger.Error("enter the registry URL failed")
-			os.Exit(1)
-		}
-
+	RunE: func(cmd *cobra.Command, args []string) error {
 		imgSvc, err := image.NewImageService()
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 
-		if err = imgSvc.Login(args[0], loginConfig.RegistryUsername, loginConfig.RegistryPasswd); err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
+		return imgSvc.Login(args[0], loginConfig.RegistryUsername, loginConfig.RegistryPasswd)
 	},
 }
 
