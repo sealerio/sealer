@@ -148,13 +148,13 @@ var _ = Describe("sealer apply", func() {
 			})
 
 			AfterEach(func() {
-				apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
 				testhelper.RemoveTempFile(tempFile)
 			})
 			It("init, scale up, scale down, clean up", func() {
 				By("start to prepare infra")
 				rawCluster.Spec.Provider = settings.AliCloud
 				usedCluster := apply.CreateAliCloudInfraAndSave(rawCluster, tempFile)
+				defer apply.CleanUpAliCloudInfra(usedCluster)
 				sshClient := testhelper.NewSSHClientByCluster(usedCluster)
 				Eventually(func() bool {
 					err := sshClient.SSH.Copy(sshClient.RemoteHostIP, settings.DefaultSealerBin, settings.DefaultSealerBin)
@@ -199,7 +199,6 @@ var _ = Describe("sealer apply", func() {
 			})
 
 			AfterEach(func() {
-				apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
 				testhelper.RemoveTempFile(tempFile)
 				testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
 			})
@@ -208,6 +207,7 @@ var _ = Describe("sealer apply", func() {
 				cluster := apply.LoadClusterFileFromDisk(rawClusterFilePath)
 				cluster.Spec.Provider = settings.AliCloud
 				usedCluster := apply.ChangeMasterOrderAndSave(cluster, tempFile)
+				defer apply.CleanUpAliCloudInfra(usedCluster)
 				sshClient := testhelper.NewSSHClientByCluster(usedCluster)
 				Eventually(func() bool {
 					err := sshClient.SSH.Copy(sshClient.RemoteHostIP, settings.DefaultSealerBin, settings.DefaultSealerBin)
