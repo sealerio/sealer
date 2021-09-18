@@ -98,7 +98,11 @@ func (s *SSH) sshAuthMethod(password, pkFile, pkPasswd string) (auth []ssh.AuthM
 
 //Authentication with a private key,private key has password and no password to verify in this
 func (s *SSH) sshPrivateKeyMethod(pkFile, pkPassword string) (am ssh.AuthMethod, err error) {
-	pkData := s.readFile(pkFile)
+	pkData, err := ioutil.ReadFile(pkFile)
+	if err != nil {
+		return nil, err
+	}
+
 	var pk ssh.Signer
 	if pkPassword == "" {
 		pk, err = ssh.ParsePrivateKey(pkData)
@@ -121,15 +125,6 @@ func fileExist(path string) bool {
 }
 func (s *SSH) sshPasswordMethod(password string) ssh.AuthMethod {
 	return ssh.Password(password)
-}
-
-func (s *SSH) readFile(name string) []byte {
-	content, err := ioutil.ReadFile(name)
-	if err != nil {
-		logger.Error("read [%s] file failed, %s", name, err)
-		os.Exit(1)
-	}
-	return content
 }
 
 func (s *SSH) addrReformat(host, port string) string {
