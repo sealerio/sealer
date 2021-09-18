@@ -162,8 +162,7 @@ func (d DefaultImageService) Push(imageName string) error {
 func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd string) error {
 	err := distributionutil.Login(context.Background(), &types.AuthConfig{ServerAddress: RegistryURL, Username: RegistryUsername, Password: RegistryPasswd})
 	if err != nil {
-		logger.Error("%v authentication failed", RegistryURL)
-		return err
+		return fmt.Errorf("failed to authenticate %s: %v", RegistryURL, err)
 	}
 	if err := utils.SetDockerConfig(RegistryURL, RegistryUsername, RegistryPasswd); err != nil {
 		return err
