@@ -95,12 +95,13 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		} else {
 			hosts = append(applier.MastersToJoin, applier.NodesToJoin...)
 		}
-		if err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts); err != nil {
+		err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts)
+		if err != nil {
 			return err
 		}
-		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
-		if applier.Runtime == nil {
-			return fmt.Errorf("failed to init runtime")
+		applier.Runtime, err = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		if err != nil {
+			return fmt.Errorf("failed to init runtime, %v", err)
 		}
 		return nil
 	},
@@ -131,10 +132,10 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	Guest: func(applier *DefaultApplier) error {
 		return applier.Guest.Apply(applier.ClusterDesired)
 	},
-	Reset: func(applier *DefaultApplier) error {
-		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
-		if applier.Runtime == nil {
-			return fmt.Errorf("failed to init runtime")
+	Reset: func(applier *DefaultApplier) (err error) {
+		applier.Runtime, err = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		if err != nil {
+			return fmt.Errorf("failed to init runtime, %v", err)
 		}
 		return applier.Runtime.Reset(applier.ClusterDesired)
 	},
