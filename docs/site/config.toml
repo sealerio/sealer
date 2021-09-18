@@ -127,7 +127,7 @@ weight = 20
 info = 'Powered by <a href="https://www.getzola.org/">Zola</a>'
 
 [[extra.footer.nav]]
-name = "DingTakl 34619594"
+name = "DingTalk 34619594"
 url = "/"
 weight = 10
 
