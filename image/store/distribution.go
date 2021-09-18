@@ -41,7 +41,8 @@ func (fs *filesystem) LoadDistributionMetadata(layerID LayerID) (map[string]dige
 	)
 	distributionMetadataFile, err := os.Open(filepath.Join(layerDBPath, "distribution_layer_digest"))
 	if err != nil {
-		return res, nil
+		//lint:ignore nilerr https://github.com/alibaba/sealer/issues/610
+		return res, nil // ignore
 	}
 	defer distributionMetadataFile.Close()
 

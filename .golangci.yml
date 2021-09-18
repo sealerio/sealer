@@ -34,6 +34,7 @@ linters:
     - structcheck
     - unused
     - varcheck
+    - nilerr
 
 issues:
   exclude-rules:
