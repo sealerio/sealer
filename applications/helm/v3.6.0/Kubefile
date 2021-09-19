@@ -1,3 +1,0 @@
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
-COPY helm-v3.6.0-linux-amd64.tar.gz .
-CMD tar zxvf helm-v3.6.0-linux-amd64.tar.gz && cp linux-amd64/helm /usr/bin && chmod +x /usr/bin/helm
