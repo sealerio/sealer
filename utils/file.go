@@ -432,6 +432,32 @@ func CountDirFiles(dirName string) int {
 	return count
 }
 
+func GetFileSize(path string) (size int64, err error) {
+	_, err = os.Stat(path)
+	if err != nil {
+		return
+	}
+	err = filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+func GetFilesSize(paths []string) (int64, error) {
+	var size int64
+	for i := range paths {
+		s, err := GetFileSize(paths[i])
+		if err != nil {
+			return 0, err
+		}
+		size += s
+	}
+	return size, nil
+}
+
 func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {
 	decodeClusters, err := decodeCRD(filepath, common.CRDCluster)
 	if err != nil {

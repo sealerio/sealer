@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/alibaba/sealer/common"
@@ -26,8 +27,11 @@ import (
 )
 
 const (
-	imageID   = "IMAGE ID"
-	imageName = "IMAGE NAME"
+	imageID           = "IMAGE ID"
+	imageName         = "IMAGE NAME"
+	imageCreate       = "CREATE"
+	imageSize         = "SIZE"
+	timeDefaultFormat = "2006-01-02 15:04:05"
 )
 
 var listCmd = &cobra.Command{
@@ -47,9 +51,11 @@ var listCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		table := tablewriter.NewWriter(common.StdOut)
-		table.SetHeader([]string{imageID, imageName})
+		table.SetHeader([]string{imageID, imageName, imageCreate, imageSize})
 		for _, image := range imageMetadataList {
-			table.Append([]string{image.ID, image.Name})
+			create := image.CREATED.Format(timeDefaultFormat)
+			size := formatSize(image.SIZE)
+			table.Append([]string{image.ID, image.Name, create, size})
 		}
 		table.Render()
 	},
@@ -57,4 +63,17 @@ var listCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(listCmd)
+}
+
+func formatSize(size int64) (Size string) {
+	if size < 1024 {
+		Size = fmt.Sprintf("%.2fB", float64(size)/float64(1))
+	} else if size < (1024 * 1024) {
+		Size = fmt.Sprintf("%.2fKB", float64(size)/float64(1024))
+	} else if size < (1024 * 1024 * 1024) {
+		Size = fmt.Sprintf("%.2fMB", float64(size)/float64(1024*1024))
+	} else {
+		Size = fmt.Sprintf("%.2fGB", float64(size)/float64(1024*1024*1024))
+	}
+	return
 }
