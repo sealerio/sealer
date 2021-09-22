@@ -147,22 +147,21 @@ func (ls *layerStore) DisassembleTar(layerID digest.Digest, streamReader io.Read
 
 func (ls *layerStore) Delete(id LayerID) error {
 	digs := id.ToDigest()
-	layer := ls.Get(id)
-	if layer == nil {
+	if layer := ls.Get(id); layer == nil {
 		logger.Debug("layer %s is already deleted", id)
 		return nil
 	}
 
 	layerDataPath := ls.LayerDataDir(digs)
-	err := os.RemoveAll(layerDataPath)
-	if err != nil {
+	if err := os.RemoveAll(layerDataPath); err != nil {
 		return err
 	}
+
 	layerDBDir := ls.LayerDBDir(digs)
-	err = os.RemoveAll(layerDBDir)
-	if err != nil {
+	if err := os.RemoveAll(layerDBDir); err != nil {
 		return err
 	}
+
 	ls.mux.Lock()
 	defer ls.mux.Unlock()
 	delete(ls.layers, id)

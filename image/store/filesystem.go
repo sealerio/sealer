@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"sigs.k8s.io/yaml"
 
@@ -474,6 +475,7 @@ func (fs *filesystem) getImageMetadataItem(nameOrID string) (types.ImageMetadata
 }
 
 func (fs *filesystem) setImageMetadata(metadata types.ImageMetadata) error {
+	metadata.CREATED = time.Now()
 	imagesMap, err := fs.getImageMetadataMap()
 	if err != nil {
 		return err
@@ -496,8 +498,17 @@ func (fs *filesystem) saveImage(image v1.Image, name string) error {
 	if err != nil {
 		return err
 	}
-
-	return fs.setImageMetadata(types.ImageMetadata{Name: name, ID: image.Spec.ID})
+	var res []string
+	for _, layer := range image.Spec.Layers {
+		if layer.ID != "" {
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
+		}
+	}
+	size, err := pkgutils.GetFilesSize(res)
+	if err != nil {
+		return fmt.Errorf("failed to get image %s size, %v", name, err)
+	}
+	return fs.setImageMetadata(types.ImageMetadata{Name: name, ID: image.Spec.ID, SIZE: size})
 }
 
 func saveImageYaml(image v1.Image, dir string) error {

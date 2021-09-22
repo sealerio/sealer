@@ -38,8 +38,7 @@ import (
 )
 
 func IsExist(fileName string) bool {
-	_, err := os.Stat(fileName)
-	if err != nil {
+	if _, err := os.Stat(fileName); err != nil {
 		return os.IsExist(err)
 	}
 	return true
@@ -102,9 +101,8 @@ func ReadAll(fileName string) ([]byte, error) {
 // file ./test/dir/xxx.txt if dir ./test/dir not exist, create it
 func MkFileFullPathDir(fileName string) error {
 	localDir := filepath.Dir(fileName)
-	err := Mkdir(localDir)
-	if err != nil {
-		return fmt.Errorf("create local dir failed %s %v", localDir, err)
+	if err := Mkdir(localDir); err != nil {
+		return fmt.Errorf("failed to create local dir %s: %v", localDir, err)
 	}
 	return nil
 }
@@ -340,8 +338,8 @@ func CleanDir(dir string) {
 	if dir == "" {
 		logger.Error("clean dir path is empty")
 	}
-	err := os.RemoveAll(dir)
-	if err != nil {
+
+	if err := os.RemoveAll(dir); err != nil {
 		logger.Warn("failed to remove dir %s ", dir)
 	}
 }
@@ -430,6 +428,32 @@ func CountDirFiles(dirName string) int {
 		return 0
 	}
 	return count
+}
+
+func GetFileSize(path string) (size int64, err error) {
+	_, err = os.Stat(path)
+	if err != nil {
+		return
+	}
+	err = filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+func GetFilesSize(paths []string) (int64, error) {
+	var size int64
+	for i := range paths {
+		s, err := GetFileSize(paths[i])
+		if err != nil {
+			return 0, err
+		}
+		size += s
+	}
+	return size, nil
 }
 
 func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {

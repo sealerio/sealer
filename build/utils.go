@@ -20,7 +20,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/alibaba/sealer/runtime"
 	"github.com/alibaba/sealer/utils/archive"
@@ -31,8 +30,6 @@ import (
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
-	infraUtils "github.com/alibaba/sealer/infra/utils"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/opencontainers/go-digest"
@@ -44,38 +41,42 @@ import (
 )
 
 // GetClusterFile from user build context or from base image
-func GetRawClusterFile(im *v1.Image) string {
+func GetRawClusterFile(im *v1.Image) (string, error) {
 	if im.Spec.Layers[0].Value == common.ImageScratch {
 		data, err := ioutil.ReadFile(filepath.Join("etc", common.DefaultClusterFileName))
 		if err != nil {
-			return ""
+			return "", err
 		}
-		return string(data)
+		if string(data) == "" {
+			return "", fmt.Errorf("ClusterFile content is empty")
+		}
+		return string(data), nil
 	}
+
 	// find cluster file from context
-	if clusterFile := getClusterFileFromContext(im); clusterFile != nil {
-		logger.Info("get cluster file from context success!")
-		return string(clusterFile)
+	if clusterFile, err := getClusterFileFromContext(im); err == nil {
+		return clusterFile, nil
 	}
+
 	// find cluster file from base image
-	clusterFile := image.GetClusterFileFromImage(im.Spec.Layers[0].Value)
-	if clusterFile != "" {
-		logger.Info("get cluster file from base image success!")
-		return clusterFile
-	}
-	return ""
+	return image.GetClusterFileFromImage(im.Spec.Layers[0].Value)
 }
 
-func getClusterFileFromContext(image *v1.Image) []byte {
+func getClusterFileFromContext(image *v1.Image) (string, error) {
 	for i := range image.Spec.Layers {
 		layer := image.Spec.Layers[i]
 		if layer.Type == common.COPYCOMMAND && strings.Fields(layer.Value)[0] == common.DefaultClusterFileName {
-			if clusterFile, _ := utils.ReadAll(strings.Fields(layer.Value)[0]); clusterFile != nil {
-				return clusterFile
+			clusterFile, err := utils.ReadAll(strings.Fields(layer.Value)[0])
+			if err != nil {
+				return "", err
 			}
+			if string(clusterFile) == "" {
+				return "", fmt.Errorf("ClusterFile is empty")
+			}
+			return string(clusterFile), nil
 		}
 	}
-	return nil
+	return "", fmt.Errorf("failed to get ClusterFile from Context")
 }
 
 // used in build stage, where the image still has from layer
@@ -99,12 +100,12 @@ func generateImageID(image v1.Image) (string, error) {
 
 func setClusterFileToImage(image *v1.Image, name string) error {
 	var cluster v1.Cluster
-	clusterFileData := GetRawClusterFile(image)
-	if clusterFileData == "" {
-		return fmt.Errorf("failed to get cluster file from context or base image")
-	}
-	err := yaml.Unmarshal([]byte(clusterFileData), &cluster)
+	clusterFileData, err := GetRawClusterFile(image)
 	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal([]byte(clusterFileData), &cluster); err != nil {
 		return err
 	}
 	cluster.Spec.Image = name
@@ -161,36 +162,6 @@ func GetRegistryBindDir() string {
 	}
 
 	return ""
-}
-
-func IsAllPodsRunning() bool {
-	err := infraUtils.Retry(10, 5*time.Second, func() error {
-		c, err := client.NewClientSet()
-		if err != nil {
-			return fmt.Errorf("failed to create k8s client %v", err)
-		}
-		namespacePodList, err := client.ListAllNamespacesPods(c)
-		if err != nil {
-			return err
-		}
-
-		var notRunning int
-		for _, podNamespace := range namespacePodList {
-			for _, pod := range podNamespace.PodList.Items {
-				if pod.Status.Phase != "Running" && pod.Status.Phase != "Succeeded" {
-					logger.Info(podNamespace.Namespace.Name, pod.Name, pod.Status.Phase)
-					notRunning++
-					continue
-				}
-			}
-		}
-		if notRunning > 0 {
-			logger.Info("remaining %d pod not running", notRunning)
-			return fmt.Errorf("pod not running")
-		}
-		return nil
-	})
-	return err == nil
 }
 
 // parse context and kubefile. return context abs path and kubefile abs path

@@ -20,8 +20,7 @@ import (
 )
 
 func main() {
-	err := boot.OnBoot()
-	if err != nil {
+	if err := boot.OnBoot(); err != nil {
 		panic(err)
 	}
 	cmd.Execute()

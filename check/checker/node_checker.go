@@ -17,12 +17,11 @@ package checker
 import (
 	"text/template"
 
+	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
 
 	corev1 "k8s.io/api/core/v1"
-
-	"github.com/alibaba/sealer/client"
-	"github.com/alibaba/sealer/logger"
 )
 
 const (
@@ -31,6 +30,7 @@ const (
 )
 
 type NodeChecker struct {
+	client *client.K8sClient
 }
 
 type NodeClusterStatus struct {
@@ -41,13 +41,7 @@ type NodeClusterStatus struct {
 }
 
 func (n *NodeChecker) Check() error {
-	// check if all the node is ready
-	c, err := client.NewClientSet()
-	if err != nil {
-		logger.Info("failed to create k8s client  %v", err)
-		return nil
-	}
-	nodes, err := client.ListNodes(c)
+	nodes, err := n.client.ListNodes()
 	if err != nil {
 		return err
 	}
@@ -56,7 +50,7 @@ func (n *NodeChecker) Check() error {
 	var nodeCount uint32
 	var notReadyCount uint32 = 0
 	for _, node := range nodes.Items {
-		nodeIP, nodePhase := GetNodeStatus(&node)
+		nodeIP, nodePhase := getNodeStatus(&node)
 		if nodePhase != ReadyNodeStatus {
 			notReadyCount++
 			notReadyNodeList = append(notReadyNodeList, nodeIP)
@@ -103,7 +97,7 @@ func (n *NodeChecker) Output(nodeCLusterStatus NodeClusterStatus) error {
 	return nil
 }
 
-func GetNodeStatus(node *corev1.Node) (IP string, Phase string) {
+func getNodeStatus(node *corev1.Node) (IP string, Phase string) {
 	if len(node.Status.Addresses) < 1 {
 		return "", ""
 	}
@@ -128,6 +122,13 @@ func GetNodeStatus(node *corev1.Node) (IP string, Phase string) {
 	return IP, Phase
 }
 
-func NewNodeChecker() Checker {
-	return &NodeChecker{}
+func NewNodeChecker() (Checker, error) {
+	// check if all the node is ready
+	c, err := client.Newk8sClient()
+	if err != nil {
+		return nil, err
+	}
+	return &NodeChecker{
+		client: c,
+	}, nil
 }

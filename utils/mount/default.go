@@ -30,8 +30,7 @@ type Default struct {
 
 // Unmount target
 func (d *Default) Unmount(target string) error {
-	err := os.RemoveAll(target)
-	if err != nil {
+	if err := os.RemoveAll(target); err != nil {
 		return fmt.Errorf("remote target failed: %s", err)
 	}
 	return nil

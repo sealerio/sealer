@@ -30,7 +30,7 @@ type ImageStore interface {
 
 	Save(image v1.Image, name string) error
 
-	SetImageMetadataItem(name, id string) error
+	SetImageMetadataItem(imageMetadata types.ImageMetadata) error
 
 	GetImageMetadataItem(name string) (types.ImageMetadata, error)
 

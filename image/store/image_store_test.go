@@ -18,6 +18,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/alibaba/sealer/image/types"
+
 	"github.com/alibaba/sealer/common"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -116,7 +118,7 @@ func TestImageStore_ImageMetadataItem(t *testing.T) {
 	}
 
 	for _, image := range images {
-		err = is.SetImageMetadataItem(image.Name, image.Spec.ID)
+		err = is.SetImageMetadataItem(types.ImageMetadata{Name: image.Name, ID: image.Spec.ID})
 		if err != nil {
 			t.Errorf("failed to set image metadata for %s, err: %s", image.Name, err)
 		}

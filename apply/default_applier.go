@@ -17,6 +17,7 @@ package apply
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
@@ -46,6 +47,7 @@ type DefaultApplier struct {
 	MastersToDelete []string
 	NodesToJoin     []string
 	NodesToDelete   []string
+	client          *client.K8sClient
 }
 
 type ActionName string
@@ -183,7 +185,7 @@ func (c *DefaultApplier) Apply() (err error) {
 			return err
 		}
 
-		currentCluster, err := GetCurrentCluster()
+		currentCluster, err := c.GetCurrentCluster()
 		if err != nil {
 			return errors.Wrap(err, "get current cluster failed")
 		}
@@ -277,6 +279,12 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	k8sClient, err := client.Newk8sClient()
+	if err != nil {
+		return nil, err
+	}
+
 	return &DefaultApplier{
 		ClusterDesired: cluster,
 		ImageManager:   imgSvc,
@@ -284,5 +292,6 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 		Guest:          gs,
 		Config:         config.NewConfiguration(cluster.Name),
 		Plugins:        plugin.NewPlugins(cluster.Name),
+		client:         k8sClient,
 	}, nil
 }

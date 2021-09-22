@@ -36,6 +36,7 @@ linters:
     - varcheck
     - nilerr
     - unparam
+    - ifshort
 
 issues:
   exclude-rules:

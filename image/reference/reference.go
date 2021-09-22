@@ -29,8 +29,7 @@ type Named struct {
 // build a ImageNamed
 func ParseToNamed(name string) (Named, error) {
 	name = strings.TrimSpace(name)
-	err := validate(name)
-	if err != nil {
+	if err := validate(name); err != nil {
 		return Named{}, err
 	}
 
