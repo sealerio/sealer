@@ -308,7 +308,7 @@ func (l *LocalBuilder) updateBuilderLayers(image *v1.Image) error {
 
 	// and the layer 0 must be from layer
 	if layer0.Value == common.ImageScratch {
-		// give a empty image
+		// give an empty image
 		baseImage = &v1.Image{}
 	} else {
 		baseImage, err = l.ImageStore.GetByName(image.Spec.Layers[0].Value)
