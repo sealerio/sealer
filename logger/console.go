@@ -84,9 +84,9 @@ func (c *consoleLogger) LogWrite(when time.Time, msgText interface{}, level logL
 	}
 	switch level {
 	case LevelEmergency, LevelAlert, LevelCritical, LevelError:
-		c.printlnToStdErr(when, msg)
+		c.printlnToStdErr(msg)
 	default:
-		c.printlnToStdOut(when, msg)
+		c.printlnToStdOut(msg)
 	}
 
 	return nil
@@ -96,13 +96,13 @@ func (c *consoleLogger) Destroy() {
 
 }
 
-func (c *consoleLogger) printlnToStdOut(when time.Time, msg string) {
+func (c *consoleLogger) printlnToStdOut(msg string) {
 	c.stdOutMux.Lock()
 	defer c.stdOutMux.Unlock()
 	_, _ = common.StdOut.Write(append([]byte(msg), '\n'))
 }
 
-func (c *consoleLogger) printlnToStdErr(when time.Time, msg string) {
+func (c *consoleLogger) printlnToStdErr(msg string) {
 	c.stdErrMux.Lock()
 	defer c.stdErrMux.Unlock()
 	_, _ = common.StdErr.Write(append([]byte(msg), '\n'))

@@ -39,8 +39,8 @@ func (s Sheller) Run(context Context, phase Phase) error {
 	nodeIP := context.Cluster.Spec.Nodes.IPList
 	allHostIP := append(masterIP, nodeIP...)
 	//get on
-	on := context.Plugin.Spec.On
-	if on != "" {
+
+	if on := context.Plugin.Spec.On; on != "" {
 		allHostIP = utils.DisassembleIPList(on)
 	}
 

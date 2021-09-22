@@ -234,9 +234,9 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 
 	epu.startMessage()
 	if f.IsDir() {
-		s.copyLocalDirToRemote(host, sshClient, sftpClient, localPath, remotePath, epu)
+		s.copyLocalDirToRemote(host, sftpClient, localPath, remotePath, epu)
 	} else {
-		err = s.copyLocalFileToRemote(host, sshClient, sftpClient, localPath, remotePath)
+		err = s.copyLocalFileToRemote(host, sftpClient, localPath, remotePath)
 		if err != nil {
 			epu.fail(err)
 		}
@@ -245,7 +245,7 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	return nil
 }
 
-func (s *SSH) copyLocalDirToRemote(host string, sshClient *ssh.Client, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
+func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
 		logger.Error("read local path dir failed %s %s", host, localPath)
@@ -263,9 +263,9 @@ func (s *SSH) copyLocalDirToRemote(host string, sshClient *ssh.Client, sftpClien
 				logger.Error("failed to create remote path %s:%v", rfp, err)
 				return
 			}
-			s.copyLocalDirToRemote(host, sshClient, sftpClient, lfp, rfp, epu)
+			s.copyLocalDirToRemote(host, sftpClient, lfp, rfp, epu)
 		} else {
-			err := s.copyLocalFileToRemote(host, sshClient, sftpClient, lfp, rfp)
+			err := s.copyLocalFileToRemote(host, sftpClient, lfp, rfp)
 			if err != nil {
 				errMsg := fmt.Sprintf("copy local file to remote failed %v %s %s %s", err, host, lfp, rfp)
 				epu.fail(err)
@@ -279,7 +279,7 @@ func (s *SSH) copyLocalDirToRemote(host string, sshClient *ssh.Client, sftpClien
 
 // check the remote file existence before copying
 // solve the sesion
-func (s *SSH) copyLocalFileToRemote(host string, sshClient *ssh.Client, sftpClient *sftp.Client, localPath, remotePath string) error {
+func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localPath, remotePath string) error {
 	var (
 		srcMd5, dstMd5 string
 	)

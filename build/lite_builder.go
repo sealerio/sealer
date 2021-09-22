@@ -103,7 +103,7 @@ func (l *LiteBuilder) MountImage() error {
 	}
 	res := getBaseLayersPath(append(l.local.baseLayers, l.local.newLayers...))
 	upper := common.DefaultLiteBuildUpper
-	utils.CleanDir(upper)
+	utils.CleanDirs(upper, common.DefaultMountCloudImageDir(l.local.Cluster.Name))
 	err := utils.MkDirs(upper, common.DefaultMountCloudImageDir(l.local.Cluster.Name))
 	if err != nil {
 		return err
@@ -151,8 +151,7 @@ func (l *LiteBuilder) InitDockerAndRegistry() error {
 	r, err := utils.RunSimpleCmd(fmt.Sprintf("%s && %s", initDockerCmd, initRegistryCmd))
 	logger.Info(r)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Init docker and registry failed: %v", err))
-		return err
+		return fmt.Errorf("failed to init docker and registry: %v", err)
 	}
 	return nil
 }

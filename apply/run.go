@@ -121,9 +121,9 @@ func (c *ClusterArgs) SetClusterArgs() error {
 }
 
 func GetClusterFileByImageName(imageName string) (cluster *v1.Cluster, err error) {
-	clusterFile := image.GetClusterFileFromImageManifest(imageName)
-	if clusterFile == "" {
-		return nil, fmt.Errorf("failed to find Clusterfile")
+	clusterFile, err := image.GetClusterFileFromImageManifest(imageName)
+	if err != nil {
+		return nil, err
 	}
 	if err := yaml.Unmarshal([]byte(clusterFile), &cluster); err != nil {
 		return nil, err

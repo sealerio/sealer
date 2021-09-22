@@ -34,9 +34,9 @@ sealer inspect -c kubernetes:v1.18.3 to print image Clusterfile`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if clusterFilePrint {
-			cluster := image.GetClusterFileFromImageManifest(args[0])
-			if cluster == "" {
-				logger.Error("failed to find Clusterfile by image %s", args[0])
+			cluster, err := image.GetClusterFileFromImageManifest(args[0])
+			if err != nil {
+				logger.Error("failed to find Clusterfile by image %s: %v", args[0], err)
 				os.Exit(1)
 			}
 			fmt.Println(cluster)

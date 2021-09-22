@@ -18,7 +18,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/image/cache"
+	infraUtils "github.com/alibaba/sealer/infra/utils"
 	"github.com/pkg/errors"
 
 	"github.com/opencontainers/go-digest"
@@ -59,6 +61,7 @@ type LocalBuilder struct {
 	ImageService     image.Service
 	Prober           image.Prober
 	FS               store.Backend
+	client           *client.K8sClient
 	DockerImageCache *MountTarget
 	builderLayer
 }
@@ -68,7 +71,11 @@ func (l *LocalBuilder) Build(name string, context string, kubefileName string) e
 	if err != nil {
 		return err
 	}
-
+	registryCache, err := NewRegistryCache()
+	if err != nil {
+		return err
+	}
+	l.DockerImageCache = registryCache
 	pipLine, err := l.GetBuildPipeLine()
 	if err != nil {
 		return err
@@ -156,11 +163,6 @@ func (l *LocalBuilder) ExecBuild() error {
 	if err != nil {
 		return err
 	}
-	registryCache, err := NewRegistryCache()
-	if err != nil {
-		return err
-	}
-	l.DockerImageCache = registryCache
 	var (
 		canUseCache = !l.Config.NoCache
 		parentID    = cache.ChainID("")
@@ -236,7 +238,7 @@ func (l *LocalBuilder) CollectRegistryCache() error {
 	}
 	// wait resource to sync
 	time.Sleep(30 * time.Second)
-	if !IsAllPodsRunning() {
+	if !l.IsAllPodsRunning() {
 		return fmt.Errorf("cache docker image failed,cluster pod not running")
 	}
 	imageLayer := v1.Layer{
@@ -333,6 +335,32 @@ func (l *LocalBuilder) Cleanup() (err error) {
 	return err
 }
 
+func (l *LocalBuilder) IsAllPodsRunning() bool {
+	err := infraUtils.Retry(10, 5*time.Second, func() error {
+		namespacePodList, err := l.client.ListAllNamespacesPods()
+		if err != nil {
+			return err
+		}
+
+		var notRunning int
+		for _, podNamespace := range namespacePodList {
+			for _, pod := range podNamespace.PodList.Items {
+				if pod.Status.Phase != "Running" && pod.Status.Phase != "Succeeded" {
+					logger.Info(podNamespace.Namespace.Name, pod.Name, pod.Status.Phase)
+					notRunning++
+					continue
+				}
+			}
+		}
+		if notRunning > 0 {
+			logger.Info("remaining %d pod not running", notRunning)
+			return fmt.Errorf("pod not running")
+		}
+		return nil
+	})
+	return err == nil
+}
+
 func NewLocalBuilder(config *Config) (Interface, error) {
 	layerStore, err := store.NewDefaultLayerStore()
 	if err != nil {
@@ -354,6 +382,11 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
 	}
 
+	k8sClient, err := client.Newk8sClient()
+	if err != nil {
+		return nil, err
+	}
+
 	prober := image.NewImageProber(service, config.NoCache)
 
 	return &LocalBuilder{
@@ -363,6 +396,7 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 		ImageService: service,
 		Prober:       prober,
 		FS:           fs,
+		client:       k8sClient,
 		builderLayer: builderLayer{
 			// for skip golang ci
 			baseLayers: []v1.Layer{},

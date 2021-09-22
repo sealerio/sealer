@@ -119,19 +119,11 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 }
 
 func (c *FileSystem) MountImage(cluster *v1.Cluster) error {
-	err := c.mountImage(cluster)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.mountImage(cluster)
 }
 
 func (c *FileSystem) UnMountImage(cluster *v1.Cluster) error {
-	err := c.umountImage(cluster)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.umountImage(cluster)
 }
 
 func (c *FileSystem) MountRootfs(cluster *v1.Cluster, hosts []string) error {

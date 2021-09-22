@@ -108,12 +108,12 @@ func (c *CloudBuilder) InitClusterFile() error {
 		return nil
 	}
 
-	rawClusterFile := GetRawClusterFile(c.local.Image)
-	if rawClusterFile == "" {
-		return fmt.Errorf("failed to get cluster file from context or base image")
-	}
-	err := yaml.Unmarshal([]byte(rawClusterFile), &cluster)
+	rawClusterFile, err := GetRawClusterFile(c.local.Image)
 	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal([]byte(rawClusterFile), &cluster); err != nil {
 		return err
 	}
 
@@ -160,9 +160,8 @@ func (c *CloudBuilder) initBuildSSH() error {
 
 // send build context dir to remote host
 func (c *CloudBuilder) SendBuildContext() error {
-	err := c.sendBuildContext()
-	if err != nil {
-		return fmt.Errorf("failed to send context")
+	if err := c.sendBuildContext(); err != nil {
+		return fmt.Errorf("failed to send context: %v", err)
 	}
 	// change local builder context to ".", because sendBuildContext will send current localBuilder.Context to remote
 	// and work within the localBuilder.Context remotely, so change context to "." is more appropriate.

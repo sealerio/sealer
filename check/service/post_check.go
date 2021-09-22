@@ -39,7 +39,22 @@ func (d *PostCheckerService) Run() error {
 
 func (d *PostCheckerService) init() ([]checker.Checker, error) {
 	var checkerList []checker.Checker
-	checkerList = append(checkerList, checker.NewNodeChecker(), checker.NewPodChecker(), checker.NewSvcChecker())
+	nodeChecker, err := checker.NewNodeChecker()
+	if err != nil {
+		return nil, err
+	}
+
+	podChecker, err := checker.NewPodChecker()
+	if err != nil {
+		return nil, err
+	}
+
+	svcChecker, err := checker.NewSvcChecker()
+	if err != nil {
+		return nil, err
+	}
+
+	checkerList = append(checkerList, nodeChecker, podChecker, svcChecker)
 	return checkerList, nil
 }
 

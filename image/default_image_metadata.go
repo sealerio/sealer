@@ -48,7 +48,8 @@ func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
 	if err != nil {
 		return err
 	}
-	if err := d.imageStore.SetImageMetadataItem(named.Raw(), imageMetadata.ID); err != nil {
+	imageMetadata.Name = named.Raw()
+	if err := d.imageStore.SetImageMetadataItem(imageMetadata); err != nil {
 		return fmt.Errorf("failed to add tag %s, %s", tarImageName, err)
 	}
 	return nil
