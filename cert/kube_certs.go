@@ -209,8 +209,8 @@ func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, 
 		}
 		data.APIServer.DNSNames[altName] = altName
 	}
-	ip := net.ParseIP(nodeIP)
-	if ip != nil {
+
+	if ip := net.ParseIP(nodeIP); ip != nil {
 		data.APIServer.IPs[ip.String()] = ip
 	}
 

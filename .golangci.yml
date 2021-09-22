@@ -35,6 +35,7 @@ linters:
     - unused
     - varcheck
     - unparam
+    - ifshort
 
 issues:
   exclude-rules:
