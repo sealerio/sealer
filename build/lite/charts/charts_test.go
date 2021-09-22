@@ -31,12 +31,12 @@ func TestDefaultChartsRootDir(t *testing.T) {
 		{
 			"test default charts root directory",
 			args{"my_cluster"},
-			"/var/lib/sealer/data/my_cluster/rootfs/charts",
+			"/var/lib/sealer/data/my_cluster/mount/charts",
 		},
 		{
 			"test default charts root directory 2",
 			args{"second_cluster"},
-			"/var/lib/sealer/data/second_cluster/rootfs/charts",
+			"/var/lib/sealer/data/second_cluster/mount/charts",
 		},
 	}
 	for _, tt := range tests {
