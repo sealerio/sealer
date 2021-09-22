@@ -20,7 +20,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/alibaba/sealer/runtime"
 	"github.com/alibaba/sealer/utils/archive"
@@ -31,8 +30,6 @@ import (
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
-	infraUtils "github.com/alibaba/sealer/infra/utils"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/opencontainers/go-digest"
@@ -165,36 +162,6 @@ func GetRegistryBindDir() string {
 	}
 
 	return ""
-}
-
-func IsAllPodsRunning() bool {
-	err := infraUtils.Retry(10, 5*time.Second, func() error {
-		c, err := client.NewClientSet()
-		if err != nil {
-			return fmt.Errorf("failed to create k8s client %v", err)
-		}
-		namespacePodList, err := client.ListAllNamespacesPods(c)
-		if err != nil {
-			return err
-		}
-
-		var notRunning int
-		for _, podNamespace := range namespacePodList {
-			for _, pod := range podNamespace.PodList.Items {
-				if pod.Status.Phase != "Running" && pod.Status.Phase != "Succeeded" {
-					logger.Info(podNamespace.Namespace.Name, pod.Name, pod.Status.Phase)
-					notRunning++
-					continue
-				}
-			}
-		}
-		if notRunning > 0 {
-			logger.Info("remaining %d pod not running", notRunning)
-			return fmt.Errorf("pod not running")
-		}
-		return nil
-	})
-	return err == nil
 }
 
 // parse context and kubefile. return context abs path and kubefile abs path

@@ -44,7 +44,8 @@ LabelsNodes.data key = ip
 []lable{{key=ssd,value=false}, {key=hdd,value=true}}
 */
 type LabelsNodes struct {
-	data map[string][]label
+	data   map[string][]label
+	client *client.K8sClient
 }
 
 type label struct {
@@ -52,10 +53,15 @@ type label struct {
 	value string
 }
 
-func NewLabelsNodes() Interface {
-	return &LabelsNodes{
-		data: map[string][]label{},
+func NewLabelsNodes() (Interface, error) {
+	c, err := client.Newk8sClient()
+	if err != nil {
+		return nil, err
 	}
+	return &LabelsNodes{
+		data:   map[string][]label{},
+		client: c,
+	}, nil
 }
 
 func (l LabelsNodes) Run(context Context, phase Phase) error {
@@ -65,11 +71,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 	}
 	l.data = l.formatData(context.Plugin.Spec.Data)
 
-	c, err := client.NewClientSet()
-	if err != nil {
-		return fmt.Errorf("current cluster not found, %v", err)
-	}
-	nodeList, err := client.ListNodes(c)
+	nodeList, err := l.client.ListNodes()
 	if err != nil {
 		return fmt.Errorf("current cluster nodes not found, %v", err)
 	}
@@ -83,8 +85,8 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 			}
 			v.SetLabels(m)
 			v.SetResourceVersion("")
-			_, err := client.UpdateNode(c, &v)
-			if err != nil {
+
+			if _, err := l.client.UpdateNode(&v); err != nil {
 				return fmt.Errorf("current cluster nodes label failed, %v", err)
 			}
 		}

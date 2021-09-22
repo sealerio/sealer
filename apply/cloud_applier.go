@@ -82,8 +82,7 @@ func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, er
 		return false, fmt.Errorf("should not scale up and down at same time")
 	}
 
-	err = DeleteNodes(append(MastersToDelete, NodesToDelete...))
-	if err != nil {
+	if err := c.DeleteNodes(append(MastersToDelete, NodesToDelete...)); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -92,7 +91,7 @@ func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, er
 func (c *CloudApplier) Apply() error {
 	var err error
 	cluster := c.ClusterDesired
-	clusterCurrent, err := GetCurrentCluster()
+	clusterCurrent, err := c.GetCurrentCluster()
 	if err != nil {
 		return fmt.Errorf("failed to get current cluster %v", err)
 	}

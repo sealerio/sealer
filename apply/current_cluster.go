@@ -18,35 +18,22 @@ import (
 	"fmt"
 	"strconv"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const MasterRoleLabel = "node-role.kubernetes.io/master"
 
-func GetCurrentCluster() (*v1.Cluster, error) {
-	return getCurrentNodes()
+func (c *DefaultApplier) GetCurrentCluster() (*v1.Cluster, error) {
+	return c.getCurrentNodes()
 }
 
-func listNodes() (*corev1.NodeList, error) {
-	c, err := client.NewClientSet()
-	if err != nil {
-		return nil, fmt.Errorf("current cluster not found, %v", err)
-	}
-	nodes, err := client.ListNodes(c)
-	if err != nil {
-		return nil, fmt.Errorf("current cluster nodes not found, %v", err)
-	}
-	return nodes, nil
-}
-
-func getCurrentNodes() (*v1.Cluster, error) {
-	nodes, err := listNodes()
+func (c *DefaultApplier) getCurrentNodes() (*v1.Cluster, error) {
+	nodes, err := c.client.ListNodes()
 	if err != nil {
 		logger.Warn("%v, will create a new cluster", err)
 		return nil, nil
@@ -83,18 +70,9 @@ func getNodeAddress(node *corev1.Node) string {
 	return node.Status.Addresses[0].Address
 }
 
-func deleteNode(name string) error {
-	c, err := client.NewClientSet()
-	if err != nil {
-		logger.Info("current cluster not found, will create a new cluster %v", err)
-		return nil
-	}
-	return client.DeleteNode(c, name)
-}
-
-func DeleteNodes(nodeIPs []string) error {
+func (c *DefaultApplier) DeleteNodes(nodeIPs []string) error {
 	logger.Info("delete nodes %s", nodeIPs)
-	nodes, err := listNodes()
+	nodes, err := c.client.ListNodes()
 	if err != nil {
 		return err
 	}
@@ -103,7 +81,7 @@ func DeleteNodes(nodeIPs []string) error {
 		if addr == "" || utils.NotIn(addr, nodeIPs) {
 			continue
 		}
-		if err := deleteNode(node.Name); err != nil {
+		if err := c.client.DeleteNode(node.Name); err != nil {
 			return fmt.Errorf("failed to delete node %v", err)
 		}
 	}

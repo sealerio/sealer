@@ -26,7 +26,9 @@ import (
 )
 
 type SvcChecker struct {
+	client *client.K8sClient
 }
+
 type SvcNamespaceStatus struct {
 	NamespaceName       string
 	ServiceCount        int
@@ -39,13 +41,7 @@ type SvcClusterStatus struct {
 }
 
 func (n *SvcChecker) Check() error {
-	// check if all the svc is ok
-	c, err := client.NewClientSet()
-	if err != nil {
-		logger.Info("failed to create k8s client  %v", err)
-		return nil
-	}
-	namespaceSvcList, err := client.ListAllNamespacesSvcs(c)
+	namespaceSvcList, err := n.client.ListAllNamespacesSvcs()
 	var svcNamespaceStatusList []*SvcNamespaceStatus
 	if err != nil {
 		return err
@@ -54,7 +50,7 @@ func (n *SvcChecker) Check() error {
 		serviceCount := len(svcNamespace.ServiceList.Items)
 		var unhaelthService []string
 		var endpointCount = 0
-		endpointsList, err := client.GetEndpointsList(c, svcNamespace.Namespace.Name)
+		endpointsList, err := n.client.GetEndpointsList(svcNamespace.Namespace.Name)
 		if err != nil {
 			break
 		}
@@ -116,6 +112,13 @@ func IsExistEndpoint(endpointList *corev1.EndpointsList, serviceName string) boo
 	return false
 }
 
-func NewSvcChecker() Checker {
-	return &SvcChecker{}
+func NewSvcChecker() (Checker, error) {
+	// check if all the node is ready
+	c, err := client.Newk8sClient()
+	if err != nil {
+		return nil, err
+	}
+	return &SvcChecker{
+		client: c,
+	}, nil
 }
