@@ -46,8 +46,8 @@ func (is *imageStore) Save(image v1.Image, name string) error {
 	return is.backend.saveImage(image, name)
 }
 
-func (is *imageStore) SetImageMetadataItem(name, id string) error {
-	return is.backend.setImageMetadata(types.ImageMetadata{Name: name, ID: id})
+func (is *imageStore) SetImageMetadataItem(imageMetadata types.ImageMetadata) error {
+	return is.backend.setImageMetadata(imageMetadata)
 }
 
 func (is *imageStore) GetImageMetadataItem(name string) (types.ImageMetadata, error) {
