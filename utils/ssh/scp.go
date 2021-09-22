@@ -337,8 +337,7 @@ func (s *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
 	}
 	defer sftpClient.Close()
 	if _, err := sftpClient.ReadDir(remoteDirpath); err != nil {
-		//lint:ignore nilerr https://github.com/alibaba/sealer/issues/610
-		return false, nil // ignore
+		return false, err
 	}
 	return true, nil
 }
