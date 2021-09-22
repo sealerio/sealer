@@ -26,8 +26,6 @@ import (
 
 	"github.com/alibaba/sealer/runtime"
 
-	infraUtils "github.com/alibaba/sealer/infra/utils"
-
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/pkg/errors"
@@ -66,7 +64,7 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
 	if utils.IsFileExist(mountdir) {
 		var err error
-		err = infraUtils.Retry(10, time.Second, func() error {
+		err = utils.Retry(10, time.Second, func() error {
 			err = mount.NewMountDriver().Unmount(mountdir)
 			if err != nil {
 				return err

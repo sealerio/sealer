@@ -23,8 +23,6 @@ import (
 	"strings"
 	"time"
 
-	utils2 "github.com/alibaba/sealer/infra/utils"
-
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -46,7 +44,7 @@ type EcsManager struct {
 }
 
 func (a *AliProvider) RetryEcsRequest(request requests.AcsRequest, response responses.AcsResponse) error {
-	return utils2.Retry(TryTimes, TrySleepTime, func() error {
+	return utils.Retry(TryTimes, TrySleepTime, func() error {
 		err := a.EcsClient.DoAction(request, response)
 		if err != nil {
 			return err
@@ -56,7 +54,7 @@ func (a *AliProvider) RetryEcsRequest(request requests.AcsRequest, response resp
 }
 
 func (a *AliProvider) TryGetInstance(request *ecs.DescribeInstancesRequest, response *ecs.DescribeInstancesResponse, expectCount int) error {
-	return utils2.Retry(TryTimes, TrySleepTime, func() error {
+	return utils.Retry(TryTimes, TrySleepTime, func() error {
 		err := a.EcsClient.DoAction(request, response)
 		var ipList []string
 		if err != nil {

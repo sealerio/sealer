@@ -20,7 +20,6 @@ import (
 
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/image/cache"
-	infraUtils "github.com/alibaba/sealer/infra/utils"
 	"github.com/pkg/errors"
 
 	"github.com/opencontainers/go-digest"
@@ -336,7 +335,7 @@ func (l *LocalBuilder) Cleanup() (err error) {
 }
 
 func (l *LocalBuilder) IsAllPodsRunning() bool {
-	err := infraUtils.Retry(10, 5*time.Second, func() error {
+	err := utils.Retry(10, 5*time.Second, func() error {
 		namespacePodList, err := l.client.ListAllNamespacesPods()
 		if err != nil {
 			return err
