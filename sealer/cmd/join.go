@@ -18,6 +18,7 @@ import (
 	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
+
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +28,7 @@ var joinArgs *common.RunArgs
 var joinCmd = &cobra.Command{
 	Use:   "join",
 	Short: "join node to cluster",
+	Args:  cobra.NoArgs,
 	Example: `
 join to default cluster: merge
 	sealer join --masters x.x.x.x --nodes x.x.x.x
@@ -36,17 +38,20 @@ join to cluster by cloud provider, just set the number of masters or nodes:
 specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
     sealer join --masters 2 --nodes 3 -c my-cluster
 `,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if clusterName == "" {
 			cn, err := utils.GetDefaultClusterName()
-			utils.ErrorThenExit(err)
+			if err != nil {
+				return err
+			}
 			clusterName = cn
 		}
 		path := common.GetClusterWorkClusterfile(clusterName)
 		applier, err := apply.NewScaleApplierFromArgs(path, joinArgs, common.JoinSubCmd)
-		utils.ErrorThenExit(err)
-		err = applier.Apply()
-		utils.ErrorThenExit(err)
+		if err != nil {
+			return err
+		}
+		return applier.Apply()
 	},
 }
 

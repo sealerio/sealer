@@ -15,15 +15,10 @@
 package cmd
 
 import (
-	"os"
-
+	"github.com/alibaba/sealer/apply"
+	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/common"
 
-	"github.com/alibaba/sealer/cert"
-
-	"github.com/alibaba/sealer/apply"
-
-	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -45,16 +40,12 @@ create cluster to your baremetal server, appoint the iplist:
 		--nodes 192.168.0.5,192.168.0.6,192.168.0.7
 `,
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		applier, err := apply.NewApplierFromArgs(args[0], runArgs)
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
-		if err := applier.Apply(); err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
+		return applier.Apply()
 	},
 }
 
