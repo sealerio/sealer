@@ -16,7 +16,9 @@ package build
 
 import (
 	"fmt"
+
 	"path/filepath"
+	"time"
 
 	"github.com/alibaba/sealer/utils/mount"
 
@@ -153,7 +155,13 @@ func (l *LiteBuilder) InitDockerAndRegistry() error {
 	if err != nil {
 		return fmt.Errorf("failed to init docker and registry: %v", err)
 	}
-	return nil
+
+	return utils.Retry(10, 3*time.Second, func() error {
+		if !utils.IsHostPortExist("tcp", "127.0.0.1", 5000) {
+			return fmt.Errorf("registry is not ready")
+		}
+		return nil
+	})
 }
 
 func (l *LiteBuilder) CacheImageToRegistry() error {
