@@ -36,6 +36,7 @@ linters:
     - varcheck
     - unparam
     - ifshort
+    - unconvert
 
 issues:
   exclude-rules:

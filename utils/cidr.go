@@ -79,7 +79,7 @@ func (c CIDR) MaskSize() (ones, bits int) {
 // SubnetMask
 func (c CIDR) Mask() string {
 	mask, _ := hex.DecodeString(c.ipnet.Mask.String())
-	return net.IP([]byte(mask)).String()
+	return net.IP(mask).String()
 }
 
 // Fixed CIDR String
