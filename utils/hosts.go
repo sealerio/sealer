@@ -15,7 +15,10 @@
 package utils
 
 import (
+	"net"
+	"strconv"
 	"strings"
+	"time"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
@@ -47,4 +50,15 @@ func IsInContainer() bool {
 		return false
 	}
 	return strings.Contains(string(data), "container=docker")
+}
+
+func IsHostPortExist(protocol string, hostname string, port int) bool {
+	p := strconv.Itoa(port)
+	addr := net.JoinHostPort(hostname, p)
+	conn, err := net.DialTimeout(protocol, addr, 3*time.Second)
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+	return true
 }

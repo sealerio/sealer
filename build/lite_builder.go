@@ -28,7 +28,6 @@ import (
 	"github.com/alibaba/sealer/build/lite/docker"
 	manifest "github.com/alibaba/sealer/build/lite/manifests"
 	"github.com/alibaba/sealer/common"
-	infraUtils "github.com/alibaba/sealer/infra/utils"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -157,9 +156,9 @@ func (l *LiteBuilder) InitDockerAndRegistry() error {
 		return fmt.Errorf("failed to init docker and registry: %v", err)
 	}
 
-	return infraUtils.Retry(10, 3*time.Second, func() error {
-		if !IsHostPortExist("tcp", "127.0.0.1", 5000) {
-			return fmt.Errorf("registry not start")
+	return utils.Retry(10, 3*time.Second, func() error {
+		if !utils.IsHostPortExist("tcp", "127.0.0.1", 5000) {
+			return fmt.Errorf("registry is not ready")
 		}
 		return nil
 	})
