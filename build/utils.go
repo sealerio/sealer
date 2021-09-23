@@ -17,21 +17,23 @@ package build
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+
 	"github.com/alibaba/sealer/runtime"
 	"github.com/alibaba/sealer/utils/archive"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
-	"github.com/opencontainers/go-digest"
-	"io"
-	"io/ioutil"
-	"os"
 
 	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+	"github.com/opencontainers/go-digest"
+
 	"path/filepath"
 	"strings"
 
