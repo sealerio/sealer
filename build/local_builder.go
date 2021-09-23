@@ -236,9 +236,14 @@ func (l *LocalBuilder) CollectRegistryCache() error {
 		return nil
 	}
 	// wait resource to sync
-	time.Sleep(30 * time.Second)
-	if !l.IsAllPodsRunning() {
-		return fmt.Errorf("cache docker image failed,cluster pod not running")
+	err := utils.Retry(10, 3*time.Second, func() error {
+		if l.IsAllPodsRunning() {
+			return nil
+		}
+		return fmt.Errorf("pod not running")
+	})
+	if err != nil {
+		return fmt.Errorf("cache docker image failed,cluster pod not running: %v", err)
 	}
 	imageLayer := v1.Layer{
 		Type:  imageLayerType,
