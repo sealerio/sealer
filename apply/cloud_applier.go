@@ -19,9 +19,6 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/filesystem"
-	"github.com/alibaba/sealer/guest"
-	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/runtime"
@@ -39,28 +36,11 @@ type CloudApplier struct {
 }
 
 func NewAliCloudProvider(cluster *v1.Cluster) (Interface, error) {
-	imgService, err := image.NewImageService()
+	d, err := NewDefaultApplier(cluster)
 	if err != nil {
 		return nil, err
 	}
-
-	fs, err := filesystem.NewFilesystem()
-	if err != nil {
-		return nil, err
-	}
-
-	gs, err := guest.NewGuestManager()
-	if err != nil {
-		return nil, err
-	}
-
-	d := &DefaultApplier{
-		ClusterDesired: cluster,
-		ImageManager:   imgService,
-		FileSystem:     fs,
-		Guest:          gs,
-	}
-	return &CloudApplier{d}, nil
+	return &CloudApplier{d.(*DefaultApplier)}, nil
 }
 
 func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, err error) {

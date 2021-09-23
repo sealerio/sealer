@@ -33,6 +33,9 @@ func (c *DefaultApplier) GetCurrentCluster() (*v1.Cluster, error) {
 }
 
 func (c *DefaultApplier) getCurrentNodes() (*v1.Cluster, error) {
+	if c.client == nil {
+		return nil, nil
+	}
 	nodes, err := c.client.ListNodes()
 	if err != nil {
 		logger.Warn("%v, will create a new cluster", err)

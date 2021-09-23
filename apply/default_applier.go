@@ -68,6 +68,7 @@ const (
 	CleanFS                   ActionName = "CleanFS"
 	PluginDump                ActionName = "PluginDump"
 	PluginPhasePreInitRun     ActionName = "PluginPhasePreInitRun"
+	PluginPhaseOriginallyRun  ActionName = "PluginPhaseOriginallyRun"
 	PluginPhasePreInstallRun  ActionName = "PluginPhasePreInstallRun"
 	PluginPhasePostInstallRun ActionName = "PluginPhasePostInstallRun"
 )
@@ -142,6 +143,9 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	PluginDump: func(applier *DefaultApplier) error {
 		return applier.Plugins.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	},
+	PluginPhaseOriginallyRun: func(applier *DefaultApplier) error {
+		return applier.Plugins.Run(applier.ClusterDesired, "Originally")
+	},
 	PluginPhasePreInitRun: func(applier *DefaultApplier) error {
 		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
 	},
@@ -150,7 +154,6 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	},
 	PluginPhasePostInstallRun: func(applier *DefaultApplier) error {
 		return applier.Plugins.Run(applier.ClusterDesired, "PostInstall")
-
 	},
 }
 
@@ -226,9 +229,10 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 	}
 
 	if c.ClusterCurrent == nil {
+		todoList = append(todoList, PluginDump)
+		todoList = append(todoList, PluginPhaseOriginallyRun)
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, MountImage)
-		todoList = append(todoList, PluginDump)
 		todoList = append(todoList, Config)
 		todoList = append(todoList, MountRootfs)
 		todoList = append(todoList, PluginPhasePreInitRun)
@@ -282,7 +286,7 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 
 	k8sClient, err := client.Newk8sClient()
 	if err != nil {
-		return nil, err
+		logger.Warn(err)
 	}
 
 	return &DefaultApplier{

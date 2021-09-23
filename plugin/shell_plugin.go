@@ -32,8 +32,10 @@ func (s Sheller) Run(context Context, phase Phase) error {
 		return nil
 	}
 	//get cmdline content
-	pluginData := context.Plugin.Spec.Data
-	pluginCmd := fmt.Sprintf(common.CdAndExecCmd, common.DefaultTheClusterRootfsDir(context.Cluster.Name), pluginData)
+	pluginCmd := context.Plugin.Spec.Data
+	if phase != PhaseOriginally {
+		pluginCmd = fmt.Sprintf(common.CdAndExecCmd, common.DefaultTheClusterRootfsDir(context.Cluster.Name), pluginCmd)
+	}
 	//get all host ip
 	masterIP := context.Cluster.Spec.Masters.IPList
 	nodeIP := context.Cluster.Spec.Nodes.IPList

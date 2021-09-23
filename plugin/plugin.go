@@ -28,6 +28,7 @@ const (
 	PhasePreInit     = Phase("PreInit")
 	PhasePreInstall  = Phase("PreInstall")
 	PhasePostInstall = Phase("PostInstall")
+	PhaseOriginally  = Phase("Originally")
 )
 
 type Context struct {
