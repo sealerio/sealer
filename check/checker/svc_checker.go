@@ -15,18 +15,18 @@
 package checker
 
 import (
+	"github.com/alibaba/sealer/client/k8s"
 	"text/template"
 
 	"github.com/alibaba/sealer/common"
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/logger"
 )
 
 type SvcChecker struct {
-	client *client.K8sClient
+	client *k8s.K8sClient
 }
 
 type SvcNamespaceStatus struct {
@@ -114,7 +114,7 @@ func IsExistEndpoint(endpointList *corev1.EndpointsList, serviceName string) boo
 
 func NewSvcChecker() (Checker, error) {
 	// check if all the node is ready
-	c, err := client.Newk8sClient()
+	c, err := k8s.Newk8sClient()
 	if err != nil {
 		return nil, err
 	}

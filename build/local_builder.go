@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alibaba/sealer/client"
+	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/image/cache"
 	"github.com/pkg/errors"
 
@@ -60,7 +60,7 @@ type LocalBuilder struct {
 	ImageService     image.Service
 	Prober           image.Prober
 	FS               store.Backend
-	client           *client.K8sClient
+	client           *k8s.K8sClient
 	DockerImageCache *MountTarget
 	builderLayer
 }
@@ -386,7 +386,7 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
 	}
 
-	k8sClient, err := client.Newk8sClient()
+	k8sClient, err := k8s.Newk8sClient()
 	if err != nil {
 		return nil, err
 	}

@@ -15,9 +15,9 @@
 package checker
 
 import (
+	"github.com/alibaba/sealer/client/k8s"
 	"text/template"
 
-	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 
@@ -30,7 +30,7 @@ const (
 )
 
 type NodeChecker struct {
-	client *client.K8sClient
+	client *k8s.K8sClient
 }
 
 type NodeClusterStatus struct {
@@ -124,7 +124,7 @@ func getNodeStatus(node *corev1.Node) (IP string, Phase string) {
 
 func NewNodeChecker() (Checker, error) {
 	// check if all the node is ready
-	c, err := client.Newk8sClient()
+	c, err := k8s.Newk8sClient()
 	if err != nil {
 		return nil, err
 	}

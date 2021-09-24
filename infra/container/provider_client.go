@@ -17,11 +17,11 @@ package container
 import (
 	"context"
 	"fmt"
+	"github.com/docker/docker/client"
 	"os"
 	"strconv"
 	"time"
 
-	dockerClient "github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/utils/ssh"
 
 	"github.com/alibaba/sealer/common"
@@ -29,7 +29,6 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/client"
 )
 
 type DockerProvider struct {
@@ -381,7 +380,10 @@ func (c *DockerProvider) CleanUp() error {
 
 func NewClientWithCluster(cluster *v1.Cluster) (*DockerProvider, error) {
 	ctx := context.Background()
-	cli, err := dockerClient.NewDockerClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, err
+	}
 	if err != nil {
 		return nil, err
 	}

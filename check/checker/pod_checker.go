@@ -15,18 +15,18 @@
 package checker
 
 import (
+	"github.com/alibaba/sealer/client/k8s"
 	"text/template"
 
 	"github.com/alibaba/sealer/common"
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/logger"
 )
 
 type PodChecker struct {
-	client *client.K8sClient
+	client *k8s.K8sClient
 }
 
 type PodNamespaceStatus struct {
@@ -114,7 +114,7 @@ func getPodReadyStatus(pod *corev1.Pod) error {
 }
 
 func NewPodChecker() (Checker, error) {
-	c, err := client.Newk8sClient()
+	c, err := k8s.Newk8sClient()
 	if err != nil {
 		return nil, err
 	}
