@@ -212,6 +212,7 @@ func (d *Default) InitMaster0() error {
 
 	// TODO skip docker version error check for test
 	output, err := d.SSH.Cmd(d.Masters[0], cmdInit)
+	logger.Info("%s", output)
 	if err != nil {
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}

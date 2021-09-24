@@ -33,7 +33,7 @@ const (
 	DefaultWorkDir                = "/tmp/%s/workdir"
 	DefaultTmpDir                 = "/var/lib/sealer/tmp"
 	DefaultLiteBuildUpper         = "/var/lib/sealer/tmp/lite_build_upper"
-	DefaultLogDir                 = "/var/lib/sealer/log"
+	DefaultLogDir                 = "/var/log/sealer"
 	DefaultClusterFileName        = "Clusterfile"
 	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
 	DefaultClusterInitBashFile    = "/var/lib/sealer/data/%s/scripts/init.sh"
