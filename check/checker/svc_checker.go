@@ -26,7 +26,7 @@ import (
 )
 
 type SvcChecker struct {
-	client *k8s.K8sClient
+	client *k8s.Client
 }
 
 type SvcNamespaceStatus struct {

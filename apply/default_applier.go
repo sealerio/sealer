@@ -47,7 +47,7 @@ type DefaultApplier struct {
 	MastersToDelete []string
 	NodesToJoin     []string
 	NodesToDelete   []string
-	client          *k8s.K8sClient
+	client          *k8s.Client
 }
 
 type ActionName string

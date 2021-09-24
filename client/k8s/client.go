@@ -28,7 +28,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-type K8sClient struct {
+type Client struct {
 	client *kubernetes.Clientset
 }
 
@@ -42,7 +42,7 @@ type NamespaceSvc struct {
 	ServiceList *v1.ServiceList
 }
 
-func Newk8sClient() (*K8sClient, error) {
+func Newk8sClient() (*Client, error) {
 	kubeconfig := filepath.Join(common.DefaultKubeConfigDir(), "config")
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = filepath.Join(home, ".kube", "config")
@@ -59,12 +59,12 @@ func Newk8sClient() (*K8sClient, error) {
 		return nil, err
 	}
 
-	return &K8sClient{
+	return &Client{
 		client: clientSet,
 	}, nil
 }
 
-func (c *K8sClient) ListNodes() (*v1.NodeList, error) {
+func (c *Client) ListNodes() (*v1.NodeList, error) {
 	nodes, err := c.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get cluster nodes")
@@ -72,7 +72,7 @@ func (c *K8sClient) ListNodes() (*v1.NodeList, error) {
 	return nodes, nil
 }
 
-func (c *K8sClient) UpdateNode(node *v1.Node) (*v1.Node, error) {
+func (c *Client) UpdateNode(node *v1.Node) (*v1.Node, error) {
 	node, err := c.client.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update cluster node")
@@ -80,14 +80,14 @@ func (c *K8sClient) UpdateNode(node *v1.Node) (*v1.Node, error) {
 	return node, nil
 }
 
-func (c *K8sClient) DeleteNode(name string) error {
+func (c *Client) DeleteNode(name string) error {
 	if err := c.client.CoreV1().Nodes().Delete(context.TODO(), name, metav1.DeleteOptions{}); err != nil {
 		return errors.Wrapf(err, "failed to delete cluster node %s", name)
 	}
 	return nil
 }
 
-func (c *K8sClient) listNamespaces() (*v1.NamespaceList, error) {
+func (c *Client) listNamespaces() (*v1.NamespaceList, error) {
 	namespaceList, err := c.client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get namespaces")
@@ -95,7 +95,7 @@ func (c *K8sClient) listNamespaces() (*v1.NamespaceList, error) {
 	return namespaceList, nil
 }
 
-func (c *K8sClient) ListAllNamespacesPods() ([]*NamespacePod, error) {
+func (c *Client) ListAllNamespacesPods() ([]*NamespacePod, error) {
 	namespaceList, err := c.listNamespaces()
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func (c *K8sClient) ListAllNamespacesPods() ([]*NamespacePod, error) {
 	return namespacePodList, nil
 }
 
-func (c *K8sClient) ListAllNamespacesSvcs() ([]*NamespaceSvc, error) {
+func (c *Client) ListAllNamespacesSvcs() ([]*NamespaceSvc, error) {
 	namespaceList, err := c.listNamespaces()
 	if err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ func (c *K8sClient) ListAllNamespacesSvcs() ([]*NamespaceSvc, error) {
 	return namespaceSvcList, nil
 }
 
-func (c *K8sClient) GetEndpointsList(namespace string) (*v1.EndpointsList, error) {
+func (c *Client) GetEndpointsList(namespace string) (*v1.EndpointsList, error) {
 	endpointsList, err := c.client.CoreV1().Endpoints(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get endpoint in namespace %s", namespace)
@@ -144,7 +144,7 @@ func (c *K8sClient) GetEndpointsList(namespace string) (*v1.EndpointsList, error
 	return endpointsList, nil
 }
 
-func (c *K8sClient) ListSvcs(namespace string) (*v1.ServiceList, error) {
+func (c *Client) ListSvcs(namespace string) (*v1.ServiceList, error) {
 	svcs, err := c.client.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get all namespace pods")

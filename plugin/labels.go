@@ -45,7 +45,7 @@ LabelsNodes.data key = ip
 */
 type LabelsNodes struct {
 	data   map[string][]label
-	client *k8s.K8sClient
+	client *k8s.Client
 }
 
 type label struct {
