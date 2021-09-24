@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lite
+package build
 
-type Interface interface {
-	// List all the containers images in helm charts
-	ListImages(clusterName string) ([]string, error)
+type Config struct {
+	BuildType string
+	NoCache   bool
+	ImageName string
 }

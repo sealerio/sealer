@@ -12,18 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package build
+package local
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 
 	"github.com/alibaba/sealer/client/docker"
-
 	"github.com/alibaba/sealer/runtime"
-	"github.com/alibaba/sealer/utils/archive"
 	"github.com/docker/docker/api/types/mount"
 
 	"github.com/alibaba/sealer/common"
@@ -78,7 +75,7 @@ func getClusterFileFromContext(image *v1.Image) (string, error) {
 }
 
 // used in build stage, where the image still has from layer
-func getBaseLayersPath(layers []v1.Layer) (res []string) {
+func GetBaseLayersPath(layers []v1.Layer) (res []string) {
 	for _, layer := range layers {
 		if layer.ID != "" {
 			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
@@ -265,26 +262,4 @@ func ValidateContextDirectory(srcPath string) error {
 
 		return nil
 	})
-}
-
-func tarBuildContext(kubeFilePath string, context string, tarFileName string) error {
-	file, err := os.Create(tarFileName)
-	if err != nil {
-		return fmt.Errorf("failed to create %s, err: %v", tarFileName, err)
-	}
-	defer file.Close()
-
-	var pathsToCompress []string
-	pathsToCompress = append(pathsToCompress, kubeFilePath, context)
-	tarReader, err := archive.TarWithoutRootDir(pathsToCompress...)
-	if err != nil {
-		return fmt.Errorf("failed to new tar reader when send build context, err: %v", err)
-	}
-	defer tarReader.Close()
-
-	_, err = io.Copy(file, tarReader)
-	if err != nil {
-		return fmt.Errorf("failed to tar build context, err: %v", err)
-	}
-	return nil
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package build
+package local
 
 import (
 	"fmt"
@@ -148,7 +148,7 @@ func (h *handler) handleCMDRUNCmd(layer v1.Layer, lowerLayers ...string) (layerI
 		return "", fmt.Errorf("failed to exec %s, err: %v", cmd, err)
 	}
 
-	// cmd do not contains layer ,so no need to calculate layer
+	// cmd do not contain layer ,so no need to calculate layer
 	if layer.Type != common.CMDCOMMAND {
 		return h.layerStore.RegisterLayerForBuilder(target.GetMountUpper())
 	}

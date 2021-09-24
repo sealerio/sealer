@@ -14,12 +14,24 @@
 
 package build
 
-import "github.com/alibaba/sealer/common"
-
 const (
-	cacheID        = common.CacheID
-	maxLayerDeep   = 128
-	FromCmd        = "FROM"
-	imageLayerType = common.BaseImageLayerType
-	kubefile       = "Kubefile"
+	LocalBuild     = "local"
+	LiteBuild      = "lite"
+	ContainerBuild = "container"
+	AliCloudBuild  = "cloud"
 )
+
+type Interface interface {
+	Build(name string, context string, kubefileName string) error
+}
+
+func NewBuilder(config *Config) (Interface, error) {
+	switch config.BuildType {
+	case LiteBuild:
+		return NewLiteBuilder(config)
+	case LocalBuild:
+		return NewLocalBuilder(config)
+	default:
+		return NewCloudBuilder(config)
+	}
+}

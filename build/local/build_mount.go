@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package build
+package local
 
 import (
 	"fmt"
@@ -102,8 +102,8 @@ func NewRegistryCache() (*MountTarget, error) {
 	}
 	rootfs := filepath.Dir(dir)
 	// if rootfs dir not mounted, unable to get cache image layer. need to mount rootfs before init-registry
-	mount, upper := mount.GetMountDetails(rootfs)
-	if !mount {
+	isMounted, upper := mount.GetMountDetails(rootfs)
+	if !isMounted {
 		mountTarget, err := NewMountTarget(rootfs, runtime.RegistryMountUpper, []string{rootfs})
 		if err != nil {
 			return nil, err

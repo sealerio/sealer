@@ -81,7 +81,6 @@ func (d Docker) ImagePull(image string) error {
 	ImagePullOptions = types.ImagePullOptions{RegistryAuth: authStr}
 	out, err = d.cli.ImagePull(d.ctx, image, ImagePullOptions)
 	if err != nil {
-		logger.Warn("Image pull failed: %v", err)
 		return err
 	}
 	defer func() {
