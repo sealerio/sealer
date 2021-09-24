@@ -60,7 +60,7 @@ type LocalBuilder struct {
 	ImageService     image.Service
 	Prober           image.Prober
 	FS               store.Backend
-	client           *k8s.K8sClient
+	client           *k8s.Client
 	DockerImageCache *MountTarget
 	builderLayer
 }

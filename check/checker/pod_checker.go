@@ -16,13 +16,10 @@ package checker
 
 import (
 	"github.com/alibaba/sealer/client/k8s"
-	"text/template"
-
 	"github.com/alibaba/sealer/common"
-
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/alibaba/sealer/logger"
+	corev1 "k8s.io/api/core/v1"
+	"text/template"
 )
 
 type PodChecker struct {
