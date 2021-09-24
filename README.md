@@ -82,7 +82,7 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 * [x] Very fast, complete cluster installation within 3 minutes
 * [x] Support ARM x86, v1.20 and above versions support containerd, almost compatible with all Linux operating systems that support systemd
 * [x] Does not rely on ansible haproxy keepalived, high availability is achieved through ipvs, takes up less resources, is stable and reliable
-* [x] There are very few in the official warehouse. Many ecological software images can be used directly, including all dependencies, one-click installation
+* [x] Many ecological software images can be used directly, like prometheus mysql..., and you can combine then together.
 
 ## Quick start
 
