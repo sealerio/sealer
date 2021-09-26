@@ -92,6 +92,7 @@ func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
 		}
 		ipList = append(ipList, host)
 	} else {
+		host = cluster.Spec.Masters.IPList[0]
 		ipList = append(ipList, append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)...)
 	}
 	err := WaitSSHReady(sshClient, 6, ipList...)

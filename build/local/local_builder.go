@@ -251,7 +251,7 @@ func (l *Builder) CollectRegistryCache() error {
 	}
 	layerDgst, err := l.RegisterLayer(l.DockerImageCache.GetMountUpper())
 	if err != nil {
-		return fmt.Errorf("failed to register layer, err: %v", err)
+		return err
 	}
 
 	imageLayer.ID = layerDgst
