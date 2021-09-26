@@ -15,19 +15,17 @@
 package build
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 
+	"github.com/alibaba/sealer/client/docker"
+
 	"github.com/alibaba/sealer/runtime"
 	"github.com/alibaba/sealer/utils/archive"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 
-	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -138,16 +136,13 @@ func GetRegistryBindDir() string {
 	// check bind dir
 	var registryName = runtime.RegistryName
 	var registryDest = runtime.RegistryBindDest
-	ctx := context.Background()
-	cli, err := client.NewDockerClient()
+
+	dockerClient, err := docker.NewDockerClient()
 	if err != nil {
 		return ""
 	}
 
-	opts := types.ContainerListOptions{All: true}
-	opts.Filters = filters.NewArgs()
-	opts.Filters.Add("name", registryName)
-	containers, err := cli.ContainerList(ctx, opts)
+	containers, err := dockerClient.GetContainerListByName(registryName)
 
 	if err != nil {
 		return ""

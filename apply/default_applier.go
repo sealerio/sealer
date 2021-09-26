@@ -17,7 +17,8 @@ package apply
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/client"
+	"github.com/alibaba/sealer/client/k8s"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
@@ -47,7 +48,7 @@ type DefaultApplier struct {
 	MastersToDelete []string
 	NodesToJoin     []string
 	NodesToDelete   []string
-	client          *client.K8sClient
+	client          *k8s.Client
 }
 
 type ActionName string
@@ -284,7 +285,7 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 		return nil, err
 	}
 
-	k8sClient, err := client.Newk8sClient()
+	k8sClient, err := k8s.Newk8sClient()
 	if err != nil {
 		logger.Warn(err)
 	}

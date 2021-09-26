@@ -12,14 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package docker
 
-import "github.com/docker/docker/client"
+import (
+	"context"
 
-func NewDockerClient() (*client.Client, error) {
+	"github.com/docker/docker/client"
+)
+
+type Docker struct {
+	Auth     string
+	Username string
+	Password string
+	cli      *client.Client
+	ctx      context.Context
+}
+
+func NewDockerClient() (*Docker, error) {
+	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
 	}
-	return cli, err
+	return &Docker{
+		cli: cli,
+		ctx: ctx,
+	}, nil
 }

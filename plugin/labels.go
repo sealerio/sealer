@@ -18,7 +18,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/client"
+	"github.com/alibaba/sealer/client/k8s"
+
 	"github.com/alibaba/sealer/logger"
 
 	v1 "k8s.io/api/core/v1"
@@ -45,7 +46,7 @@ LabelsNodes.data key = ip
 */
 type LabelsNodes struct {
 	data   map[string][]label
-	client *client.K8sClient
+	client *k8s.Client
 }
 
 type label struct {
@@ -54,7 +55,7 @@ type label struct {
 }
 
 func NewLabelsNodes() (Interface, error) {
-	c, err := client.Newk8sClient()
+	c, err := k8s.Newk8sClient()
 	if err != nil {
 		return nil, err
 	}
