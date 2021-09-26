@@ -16,10 +16,11 @@ package build
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/client/docker"
 	"io"
 	"io/ioutil"
 	"os"
+
+	"github.com/alibaba/sealer/client/docker"
 
 	"github.com/alibaba/sealer/runtime"
 	"github.com/alibaba/sealer/utils/archive"

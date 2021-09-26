@@ -17,10 +17,11 @@ package container
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/client"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/docker/docker/client"
 
 	"github.com/alibaba/sealer/utils/ssh"
 

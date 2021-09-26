@@ -16,8 +16,9 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/client/k8s"
 	"strings"
+
+	"github.com/alibaba/sealer/client/k8s"
 
 	"github.com/alibaba/sealer/logger"
 
