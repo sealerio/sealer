@@ -30,7 +30,7 @@ func init() {
 
 	maxWaiteTime := os.Getenv("MAX_WAITE_TIME")
 	if maxWaiteTime == "" {
-		MaxWaiteTime = 1200 * time.Second
+		MaxWaiteTime = 2400 * time.Second
 	} else {
 		MaxWaiteTime, _ = time.ParseDuration(maxWaiteTime)
 	}

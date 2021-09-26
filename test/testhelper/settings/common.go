@@ -51,7 +51,7 @@ const (
 	FileMode0644 = 0644
 )
 const (
-	LocalBuild = "local"
+	LiteBuild = "lite"
 )
 const (
 	BAREMETAL         = "BAREMETAL"
