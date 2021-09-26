@@ -23,7 +23,7 @@ import (
 var tagCmd = &cobra.Command{
 	Use:     "tag",
 	Short:   "tag IMAGE[:TAG] TARGET_IMAGE[:TAG]",
-	Example: `sealer tag sealer/cloudrootfs:v1.16.9-alpha.6 registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5`,
+	Example: `sealer tag sealer/kubernetes:v1.19.9 registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9`,
 	Args:    cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ims, err := image.NewImageMetadataService()
