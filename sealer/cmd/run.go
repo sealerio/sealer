@@ -27,16 +27,16 @@ var runArgs *common.RunArgs
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "run a cluster with images and arguments",
-	Long:  `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7 --masters [arg] --nodes [arg]`,
+	Long:  `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 --masters [arg] --nodes [arg]`,
 	Example: `
 create default cluster:
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7
+	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
 
 create cluster by cloud provider, just set the number of masters or nodes:
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7 --masters 3 --nodes 3
+	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 --masters 3 --nodes 3
 
 create cluster to your baremetal server, appoint the iplist:
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.7 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
+	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 		--nodes 192.168.0.5,192.168.0.6,192.168.0.7
 `,
 	Args: cobra.ExactArgs(1),
