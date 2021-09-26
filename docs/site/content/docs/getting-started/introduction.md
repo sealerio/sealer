@@ -1,6 +1,6 @@
 +++
 title = "Introduction"
-description = "AdiDoks is a Zola theme helping you build modern documentation websites, which is a port of the Hugo theme Doks for Zola."
+description = "Sealer document guides"
 date = 2021-05-01T08:00:00+00:00
 updated = 2021-05-01T08:00:00+00:00
 draft = false
@@ -9,23 +9,33 @@ sort_by = "weight"
 template = "docs/page.html"
 
 [extra]
-lead = 'AdiDoks is a Zola theme helping you build modern documentation websites, which is a port of the Hugo theme <a href="https://github.com/h-enk/doks">Doks</a> for Zola.'
+lead = 'Seal your applications all dependencies and kubernetes into CloudImage! Build Deliver and Run user-defined clusters in one command.'
 toc = true
 top = false
 +++
 
-# Quick Start
+# Overview
 
-One page summary of how to start a new AdiDoks project.
+sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes.
 
-## Go further
+![](https://user-images.githubusercontent.com/8912557/117263291-b88b8700-ae84-11eb-8b46-838292e85c5c.png)
 
-Contributing and Help.
+We can write a Kubefile, and build a CloudImage, then using a Clusterfile to run a cluster.
+
+![](https://user-images.githubusercontent.com/8912557/117400612-97cf3a00-af35-11eb-90b9-f5dc8e8117b5.png)
+
+## Quick start
+
+Show you basic usage of how to build a CloudImage, how to run a cluster, config and plugin ability and Applications usage.
+
+## Advanced
+
+Learn more about architecture or deep customize you own features.
 
 ## Contributing
 
-Find out how to contribute to Doks. [Contributing →](../contributing/how-to-contribute.md)
+Find out how to contribute to Docs. [Contributing →](../contributing/how-to-contribute.md)
 
 ## Help
 
-Get help on Doks. [Help →](../help/faq.md)
+Get help on Docs. [Help →](../help/faq.md)

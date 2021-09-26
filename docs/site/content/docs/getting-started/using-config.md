@@ -1,6 +1,6 @@
 +++
 title = "Config"
-description = "One page summary of how to start a new AdiDoks project."
+description = "sealer config"
 date = 2021-05-01T08:20:00+00:00
 updated = 2021-05-01T08:20:00+00:00
 draft = false
@@ -9,86 +9,146 @@ sort_by = "weight"
 template = "docs/page.html"
 
 [extra]
-lead = "One page summary of how to start a new AdiDoks project."
+lead = "Config help you define application config then init the cluster. You can using config to overwrite default config files like helm values"
 toc = true
 top = false
 +++
 
-# Requirements
+# Overview
 
-Before using the theme, you need to install the [Zola](https://www.getzola.org/documentation/getting-started/installation/) ≥ 0.13.0.
+Using config, you can overwrite any config files you want. Like chart values, docker daemon.json, kubeadm config file ...
 
-## Run the Theme Directly
+# Using config overwrite mysql chart values
 
-```bash
-git clone https://github.com/aaranxu/adidoks.git
-cd adidoks
-zola serve
+Append you config metadata into Clusterfile and apply it like this:
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: registry.cn-qingdao.aliyuncs.com/sealer-app/my-SAAS-all-inone:latest
+  provider: BAREMETAL
+...
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: mysql-config
+spec:
+  path: etc/mysql.yaml
+  data: |
+       mysql-user: root
+       mysql-passwd: xxx
 ```
 
-Visit `http://127.0.0.1:1111/` in the browser.
+`sealer apply -f Clusterfile`
 
-## Installation
+sealer will use the data to overwrite the file `etc/mysql.yaml`
 
-Just earlier we showed you how to run the theme directly. Now we start to
-install the theme in an existing site step by step.
+When apply this Clusterfile, sealer will generate some values file for application config. Named etc/mysql-config.yaml etc/redis-config.yaml.
 
-### Step 1: Create a new zola site
+So if you want to use those config, Kubefile is like this:
 
-```bash
-zola init mysite
+```yaml
+FROM kuberentes:v1.19.9
+...
+CMD helm install mysql -f etc/mysql-config.yaml
 ```
 
-### Step 2: Install AdiDoks
+# User defined docker systemd config
 
-Download this theme to your themes directory:
+Of course, you can overwrite other config file in Cloudrootfs you want:
 
-```bash
-cd mysite/themes
-git clone https://github.com/aaranxu/adidoks.git
+```yaml
+.
+├── bin
+│   ├── conntrack
+│   ├── containerd-rootless-setuptool.sh
+│   ├── containerd-rootless.sh
+│   ├── crictl
+│   ├── kubeadm
+│   ├── kubectl
+│   ├── kubelet
+│   ├── nerdctl
+│   └── seautil
+├── cri
+│   ├── containerd
+│   ├── containerd-shim
+│   ├── containerd-shim-runc-v2
+│   ├── ctr
+│   ├── docker
+│   ├── dockerd
+│   ├── docker-init
+│   ├── docker-proxy
+│   ├── rootlesskit
+│   ├── rootlesskit-docker-proxy
+│   ├── runc
+│   └── vpnkit
+├── etc
+│   ├── 10-kubeadm.conf
+│   ├── Clusterfile  # image default Clusterfile
+│   ├── daemon.json
+│   ├── docker.service
+│   ├── kubeadm-config.yaml
+│   └── kubelet.service
+├── images
+│   └── registry.tar  # registry docker image, will load this image and run a local registry in cluster
+├── Kubefile
+├── Metadata
+├── README.md
+├── registry # will mount this dir to local registry
+│   └── docker
+│       └── registry
+├── scripts
+│   ├── clean.sh
+│   ├── docker.sh
+│   ├── init-kube.sh
+│   ├── init-registry.sh
+│   ├── init.sh
+│   └── kubelet-pre-start.sh
+└── statics # yaml files, sealer will render values in those files
+    └── audit-policy.yml
 ```
 
-Or install as a submodule:
+For example, overwrite the docker systemd config:
 
-```bash
-cd mysite
-git init  # if your project is a git repository already, ignore this command
-git submodule add https://github.com/aaranxu/adidoks.git themes/adidoks
+```yaml
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: docker-config
+spec:
+  path: etc/docker.service
+  data: |
+    [Unit]
+    Description=Docker Application Container Engine
+    Documentation=https://docs.docker.com
+    After=network.target
+
+    [Service]
+    Type=notify
+    # the default is not to use systemd for cgroups because the delegate issues still
+    # exists and systemd currently does not support the cgroup feature set required
+    # for containers run by docker
+    ExecStart=/usr/bin/dockerd
+    ExecReload=/bin/kill -s HUP $MAINPID
+    # Having non-zero Limit*s causes performance problems due to accounting overhead
+    # in the kernel. We recommend using cgroups to do container-local accounting.
+    LimitNOFILE=infinity
+    LimitNPROC=infinity
+    LimitCORE=infinity
+    # Uncomment TasksMax if your systemd version supports it.
+    # Only systemd 226 and above support this version.
+    #TasksMax=infinity
+    TimeoutStartSec=0
+    # set delegate yes so that systemd does not reset the cgroups of docker containers
+    Delegate=yes
+    # kill only the docker process, not all processes in the cgroup
+    KillMode=process
+
+    [Install]
+    WantedBy=multi-user.target
 ```
-
-### Step 3: Configuration
-
-Enable the theme in your `config.toml` in the site derectory:
-
-```toml
-theme = "adidoks"
-```
-
-Or copy the `config.toml.example` from the theme directory to your project's
-root directory:
-
-```bash
-cp themes/adidoks/config.toml.example config.toml
-```
-
-### Step 4: Add new content
-
-You can copy the content from the theme directory to your project:
-
-```bash
-cp -r themes/adidoks/content .
-```
-
-You can modify or add new posts in the `content/blog`, `content/docs` or other
-content directories as needed.
-
-### Step 5: Run the project
-
-Just run `zola serve` in the root path of the project:
-
-```bash
-zola serve
-```
-
-AdiDoks will start the Zola development web server accessible by default at
-`http://127.0.0.1:1111`. Saved changes will live reload in the browser.
