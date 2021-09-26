@@ -15,8 +15,13 @@
 package test
 
 import (
+	"io/ioutil"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
+
+	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/test/testhelper"
 
@@ -42,6 +47,14 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	} else {
 		settings.TestImageName = settings.CustomImageName
 	}
+	home := common.GetHomeDir()
+	logcfg := `{	"Console": {
+		"level": "DEBG",
+		"color": true
+	},
+	"TimeFormat":"2006-01-02 15:04:05"}`
+	err = ioutil.WriteFile(filepath.Join(home, ".sealer.json"), []byte(logcfg), os.ModePerm)
+	Expect(err).NotTo(HaveOccurred())
 	return nil
 }, func(data []byte) {
 	SetDefaultEventuallyTimeout(settings.DefaultWaiteTime)
