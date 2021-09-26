@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/alibaba/sealer/build/lite/lite_build"
+	"github.com/alibaba/sealer/build/lite/liteutils"
 	"github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -88,7 +88,7 @@ func GetImageList(chartPath string) ([]string, error) {
 	}
 
 	for _, v := range content {
-		images := lite_build.DecodeImages(v)
+		images := liteutils.DecodeImages(v)
 		if len(images) != 0 {
 			list = append(list, images...)
 		}
