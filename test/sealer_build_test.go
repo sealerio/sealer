@@ -34,16 +34,15 @@ import (
 
 var _ = Describe("sealer build", func() {
 	Context("testing the content of kube file", func() {
-		Context("testing local build scenario", func() {
+		Context("testing lite build scenario", func() {
 
 			BeforeEach(func() {
 				registry.Login()
-				localBuildPath := filepath.Join(build.GetFixtures(), build.GetLocalBuildDir())
-				err := os.Chdir(localBuildPath)
+				liteBuildPath := filepath.Join(build.GetFixtures(), build.GetLiteBuildDir())
+				err := os.Chdir(liteBuildPath)
 				Expect(err).NotTo(HaveOccurred())
 				//add From custom image name
-				build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(localBuildPath, "Kubefile"))
-				build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(localBuildPath, "Kubefile_only_copy"))
+				build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(liteBuildPath, "Kubefile"))
 			})
 			AfterEach(func() {
 				registry.Logout()
@@ -57,7 +56,7 @@ var _ = Describe("sealer build", func() {
 					SetKubeFile("Kubefile").
 					SetImageName(imageName).
 					SetContext(".").
-					SetBuildType(settings.LocalBuild).
+					SetBuildType(settings.LiteBuild).
 					Build()
 				sess, err := testhelper.Start(cmd)
 				Expect(err).NotTo(HaveOccurred())
@@ -67,24 +66,6 @@ var _ = Describe("sealer build", func() {
 				Expect(build.CheckClusterFile(imageName)).Should(BeTrue())
 				image.DoImageOps(settings.SubCmdForceRmiOfSealer, imageName)
 			})
-
-			It("only copy instruct", func() {
-				imageName := build.GetImageNameTemplate("only_copy")
-				cmd := build.NewArgsOfBuild().
-					SetKubeFile("Kubefile_only_copy").
-					SetImageName(imageName).
-					SetContext(".").
-					SetBuildType(settings.LocalBuild).
-					Build()
-				sess, err := testhelper.Start(cmd)
-				Expect(err).NotTo(HaveOccurred())
-				Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-				// check: sealer images whether image exist
-				Expect(build.CheckIsImageExist(imageName)).Should(BeTrue())
-				Expect(build.CheckClusterFile(imageName)).Should(BeTrue())
-				image.DoImageOps(settings.SubCmdForceRmiOfSealer, imageName)
-			})
-
 		})
 
 		Context("testing cloud build scenario", func() {
