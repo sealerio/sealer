@@ -23,7 +23,7 @@
    delete all:
        sealer delete --all [--force]
        sealer delete -f /root/.sealer/mycluster/Clusterfile [--force]
-   ``` 
+   ```
 
 - [x] Optimize the lite build step.
 - [x] Shell plugin support on field.
