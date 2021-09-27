@@ -39,7 +39,7 @@ The Apply Engine Using Clusterfile to Init a cluster witch contains kubernetes a
 
 * Infra : manage infrastructure, like create VMs in public cloud then apply the cluster on top of it. Or using docker emulation nodes.
 * Runtime : cluster installer implementation, like using kubeadm to installl cluster.
-* Config : application config, like mysql username passwd or other configs, you can using Config overwrite any file you want.
+* Config : application config, like mysql username passwd or other configs, you can use Config overwrite any file you want.
 * Plugin : plugin help us do some extra work, like exec a shell command before install, or add a label to a node after install.
 * Debug : help us check the cluster is helth or not, found reason when things unexpected.
 
@@ -48,5 +48,5 @@ The Apply Engine Using Clusterfile to Init a cluster witch contains kubernetes a
 * Filesystem : Copy CloudRootfs files to all nodes
 * Mount : mount CloudImage all layers together
 * Checker : do some precheck and post check
-* Command : a command proxy to do some task witch os don't have the command. Like ipvs or cert manager.
+* Command : a command proxy to do some tasks witch os don't have the command. Like ipvs or cert manager.
 * Guest : manage user application layer, like exec CMD command defined in Kubefile.

@@ -77,7 +77,7 @@ sealer load -i kubernetes.tar
 We can run a cluster using `sealer run` or `sealer apply` command, `sealer apply` needs you edit a Clusterfile to tell
 sealer the cluster configuration.
 
-If you don't know how to write a Clusterfile, you can inspect a image to show the default Clusterfile:
+If you don't know how to write a Clusterfile, you can inspect an image to show the default Clusterfile:
 
 ```shell script
 sealer inspect -c kubernetes:v1.19.9
@@ -227,5 +227,5 @@ cluster-name is defined in metadata.name
 sealer delete -f .sealer/[cluster-name]/Clusterfile
 ```
 
-if you using cloud mod, sealer will delete the infa resouce too.
+if you're using cloud mod, sealer will delete the infra resource too.
 

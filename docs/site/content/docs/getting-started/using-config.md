@@ -9,7 +9,7 @@ sort_by = "weight"
 template = "docs/page.html"
 
 [extra]
-lead = "Config help you define application config then init the cluster. You can using config to overwrite default config files like helm values"
+lead = "Config help you define application config then init the cluster. You can use config to overwrite default config files like helm values"
 toc = true
 top = false
 +++
@@ -49,7 +49,7 @@ sealer will use the data to overwrite the file `etc/mysql.yaml`
 
 When apply this Clusterfile, sealer will generate some values file for application config. Named etc/mysql-config.yaml etc/redis-config.yaml.
 
-So if you want to use those config, Kubefile is like this:
+So if you want to use this config, Kubefile is like this:
 
 ```yaml
 FROM kuberentes:v1.19.9
