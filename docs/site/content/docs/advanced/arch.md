@@ -1,6 +1,6 @@
 +++
 title = "Architecture"
-description = "Answers to frequently asked questions."
+description = "Show you the Architecture and core modules of sealer"
 date = 2021-05-01T19:30:00+00:00
 updated = 2021-05-01T19:30:00+00:00
 draft = false
@@ -9,7 +9,7 @@ sort_by = "weight"
 template = "docs/page.html"
 
 [extra]
-lead = "Answers to frequently asked questions."
+lead = "Architecture"
 toc = true
 top = false
 +++
