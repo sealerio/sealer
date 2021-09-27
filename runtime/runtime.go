@@ -78,15 +78,13 @@ type Default struct {
 	KubeadmAPI        string
 }
 
-func NewDefaultRuntime(cluster *v1.Cluster) Interface {
+func NewDefaultRuntime(cluster *v1.Cluster) (Interface, error) {
 	c, err := store.NewDefaultImageStore()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	d := &Default{imageStore: c}
-	d.initRunner(cluster)
-
-	return d
+	return d.initRunner(cluster)
 }
 
 func (d *Default) LoadMetadata() error {

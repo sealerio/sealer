@@ -16,6 +16,7 @@ package lite
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -64,7 +65,6 @@ func (l *Builder) Build(name string, context string, kubefileName string) error 
 	return nil
 }
 
-// load cluster file from disk
 func (l *Builder) InitCluster() error {
 	l.Local.Cluster = &v1.Cluster{}
 	l.Local.Cluster.Name = liteBuild
@@ -124,8 +124,17 @@ func (l *Builder) AddUpperLayerToImage() error {
 		Type:  "BASE",
 		Value: "registry cache",
 	}
-	utils.CleanDirs(filepath.Join(upper, "scripts"), filepath.Join(upper, "cri"))
-	layerDgst, err := l.Local.RegisterLayer(upper)
+	tmp, err := utils.MkTmpdir()
+	if err != nil {
+		return fmt.Errorf("failed to add upper layer to image, %v", err)
+	}
+	if utils.IsFileExist(filepath.Join(upper, common.RegistryDirName)) {
+		err = os.Rename(filepath.Join(upper, common.RegistryDirName), filepath.Join(tmp, common.RegistryDirName))
+		if err != nil {
+			return fmt.Errorf("failed to add upper layer to image, %v", err)
+		}
+	}
+	layerDgst, err := l.Local.RegisterLayer(tmp)
 	if err != nil {
 		return err
 	}
@@ -150,7 +159,7 @@ func (l *Builder) Cleanup() error {
 		return err
 	}
 
-	return utils.CleanFiles(common.RawClusterfile, common.DefaultClusterBaseDir(l.Local.Cluster.Name), filepath.Join(common.DefaultTmpDir, common.DefaultLiteBuildUpper))
+	return utils.CleanFiles(common.RawClusterfile, common.DefaultClusterBaseDir(l.Local.Cluster.Name), common.DefaultLiteBuildUpper)
 }
 
 func (l *Builder) InitDockerAndRegistry() error {

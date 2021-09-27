@@ -247,7 +247,7 @@ func (l *Builder) CollectRegistryCache() error {
 	}
 	imageLayer := v1.Layer{
 		Type:  imageLayerType,
-		Value: "",
+		Value: "registry cache",
 	}
 	layerDgst, err := l.RegisterLayer(l.DockerImageCache.GetMountUpper())
 	if err != nil {

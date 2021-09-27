@@ -64,7 +64,7 @@ func Login(ctx context.Context, authConfig *types.AuthConfig) error {
 
 	resp, err := loginClient.Do(req)
 	if err != nil {
-		if strings.Contains(err.Error(), "x509: certificate signed by unknown authority") {
+		if strings.Contains(err.Error(), "x509") {
 			return fmt.Errorf("%v, if you want to skip TLS verification, set the environment variable 'SKIP_TLS_VERIFY=true' ", err)
 		}
 		return err

@@ -339,7 +339,7 @@ func (d *Default) joinMasters(masters []string) error {
 	if err := d.LoadMetadata(); err != nil {
 		return fmt.Errorf("failed to load metadata %v", err)
 	}
-	if err := ssh.WaitSSHReady(d.SSH, masters...); err != nil {
+	if err := ssh.WaitSSHReady(d.SSH, 6, masters...); err != nil {
 		return errors.Wrap(err, "join masters wait for ssh ready time out")
 	}
 	if err := d.GetJoinTokenHashAndKey(); err != nil {

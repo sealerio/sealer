@@ -88,8 +88,12 @@ func (d *Default) GetKubectlAndKubeconfig() error {
 	return GetKubectlAndKubeconfig(d.SSH, d.Masters[0])
 }
 
-func (d *Default) initRunner(cluster *v1.Cluster) {
-	d.SSH = ssh.NewSSHByCluster(cluster)
+func (d *Default) initRunner(cluster *v1.Cluster) (Interface, error) {
+	client, err := ssh.NewSSHClientWithCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+	d.SSH = client.SSH
 	d.ClusterName = cluster.Name
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
@@ -109,7 +113,7 @@ func (d *Default) initRunner(cluster *v1.Cluster) {
 	d.APIServerCertSANs = append(cluster.Spec.CertSANS, d.getDefaultSANs()...)
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
-
+	return d, nil
 	// return d.LoadMetadata()
 }
 func (d *Default) ConfigKubeadmOnMaster0() error {
@@ -208,6 +212,7 @@ func (d *Default) InitMaster0() error {
 
 	// TODO skip docker version error check for test
 	output, err := d.SSH.Cmd(d.Masters[0], cmdInit)
+	logger.Info("%s", output)
 	if err != nil {
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}
