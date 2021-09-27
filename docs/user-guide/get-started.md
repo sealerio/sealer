@@ -36,8 +36,8 @@ So this case you need set cloud provider AK SK
 
 ```shell script
 # like ALI_CLOUD ak sk
-export ACCESSKEYID=LTAI5tx2dB2TgEkWAKU6wLfS
-export ACCESSKEYSECRET=l7sHQ9vE1ZbxFxBkaKFb0YNSPOBt4D
+export ACCESSKEYID=XXXXXXXXXXXXXXXXXXXXXXX
+export ACCESSKEYSECRET=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 Kubefile
