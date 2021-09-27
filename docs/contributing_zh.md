@@ -37,7 +37,7 @@ git push --set-upstream origin bugfix/calico-interface
 
 ### 需求开发
 
-可以到issue中去寻找已经贴了[kind/featue](https://github.com/alibaba/sealer/issues?q=is%3Aissue+is%3Aopen+label%3Akind%2Ffeature)标签的任务，注意有的需求
+可以到issue中去寻找已经贴了[kind/feature](https://github.com/alibaba/sealer/issues?q=is%3Aissue+is%3Aopen+label%3Akind%2Ffeature)标签的任务，注意有的需求
 没有放到里程碑里面说明正在讨论还未决定是否开发，建议认领已经放到里程碑内的需求。
 
 如果你有一些新的需求，建议先开issue讨论，再进行编码开发。
