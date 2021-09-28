@@ -1,6 +1,6 @@
 +++
 title = "Build cloud image"
-description = "One page summary of how to start a new AdiDoks project."
+description = "sealer build"
 date = 2021-05-01T08:20:00+00:00
 updated = 2021-05-01T08:20:00+00:00
 draft = false
@@ -16,7 +16,8 @@ top = false
 
 # Overview
 
-A `Kubefile` is a text document that contains all the commands a user could call on the command line to assemble an image.We can use the `Kubefile` to define a cluster image that can be shared and deployed offline. a `Kubefile` just
+A `Kubefile` is a text document that contains all the commands a user could call on the command line to assemble an
+image.We can use the `Kubefile` to define a cluster image that can be shared and deployed offline. a `Kubefile` just
 like `Dockerfile` which contains the build instructions to define the specific cluster.
 
 ## Kubefile instruction
@@ -215,7 +216,7 @@ through the following command before executing the build operation:
 sealer login registry.com -u username -p password
 ```
 
-Another dependent scenario， the kubernetes node is proxied to the private registry through the built-in registry of
+Another dependent scenario， the kubernetes node is proxies to the private registry through the built-in registry of
 sealer and the private registry needs to be authenticated, it can be configured through the custom registry config.Refer
 to [registry config](../../../../user-guide/docker-image-cache.md)
 
