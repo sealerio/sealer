@@ -25,7 +25,7 @@ import (
 var pullCmd = &cobra.Command{
 	Use:     "pull",
 	Short:   "pull cloud image to local",
-	Example: `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9`,
+	Example: `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		imgSvc, err := image.NewImageService()

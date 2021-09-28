@@ -34,7 +34,7 @@ var opts removeImageFlag
 var rmiCmd = &cobra.Command{
 	Use:     "rmi",
 	Short:   "Remove local images by name or ID",
-	Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9`,
+	Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
 	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runRemove(args)

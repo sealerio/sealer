@@ -17,7 +17,7 @@ top = false
 # sealer run Usage
 
 > Use the run command to run a user-defined Kubernetes cluster. \
->if arch is arm64：use registry.cn-beijing.aliyuncs.com/sealer-io/kubernetes-arm64:v1.19.7 replace kubernetes:v1.19.9 image.
+>if arch is arm64：use registry.cn-beijing.aliyuncs.com/sealer-io/kubernetes-arm64:v1.19.7 replace kubernetes:v1.19.8 image.
 
 ## Run on exist servers
 
@@ -28,7 +28,7 @@ server ip address| 192.168.0.1 ~ 192.168.0.11
 *Run the kubernetes cluster on the local server.*
 
 ```shell
-sealer run kubernetes:v1.19.9 -m 192.168.0.1,192.168.0.2,192.168.0.3 -n 192.168.0.4,192.168.0.5,192.168.0.6 \
+sealer run kubernetes:v1.19.8 -m 192.168.0.1,192.168.0.2,192.168.0.3 -n 192.168.0.4,192.168.0.5,192.168.0.6 \
        -p sealer123 # ssh passwd
 ```
 
@@ -75,7 +75,7 @@ export ACCESSKEYSECRET=xxx
 *You just need specify the machine(VM) resource configuration and counts.*
 
 ```shell
-sealer run kubernetes:v1.19.9 -m 3 -n 3 -p xxx #custom passwd
+sealer run kubernetes:v1.19.8 -m 3 -n 3 -p xxx #custom passwd
 ```
 
 ### scale up and down

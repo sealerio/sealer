@@ -7,7 +7,7 @@
 For example:
 
 ```shell
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 # download kubernetes dashboard yaml file
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 # when run this CloudImage, will apply a dashboard manifests
@@ -26,9 +26,9 @@ FROM: 引用一个基础镜像，并且Kubefile中第一条指令必须是FROM�
 
 使用样例：
 
-例如上面示例中,使用sealer 社区提供的`kubernetes:v1.19.9`作为基础镜像。
+例如上面示例中,使用sealer 社区提供的`kubernetes:v1.19.8`作为基础镜像。
 
-`FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9`
+`FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`
 
 ### COPY指令
 
@@ -77,7 +77,7 @@ CMD: 与RUN指令格式类似，使用系统shell执行构建命令。但CMD指�
 ## 执行构建命令解析：
 
 ```bigquery
-$ sealer build -f Kubefile -t my-kubernetes:v1.19.9 -b cloud .
+$ sealer build -f Kubefile -t my-kubernetes:v1.19.8 -b cloud .
  -f : 指定Kubefile路径，默认为当前路径下Kubefile
  -t : 指定构建产出镜像的名称
  -b : 指定构建模式[cloud |container |lite] #默认为cloud
@@ -98,7 +98,7 @@ $ sealer build -f Kubefile -t my-kubernetes:v1.19.9 -b cloud .
 [root@sea ~]# mkdir build && cd build && mv /root/recommended.yaml .
 [root@sea build]# vi Kubefile
 [root@sea build]# cat Kubefile
-FROM kubernetes:v1.19.9
+FROM kubernetes:v1.19.8
 COPY recommended.yaml .
 CMD kubectl apply -f recommended.yaml
 [root@sea build]# ls
@@ -124,7 +124,7 @@ sealer build -b container -t my-cluster:v1.19.9 .
 Kubefile 示例：
 
 ```shell
-FROM kubernetes:v1.19.9
+FROM kubernetes:v1.19.8
 COPY imageList manifests
 COPY apollo charts
 RUN helm install charts/apollo
@@ -163,6 +163,6 @@ sealer login registry.com -u username -p password
 可以通过定义Kubefile来自定义registry配置:
 
 ```shell
-FROM kubernetes:v1.19.9
+FROM kubernetes:v1.19.8
 COPY registry_config.yaml etc/
 ```

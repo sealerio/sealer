@@ -11,7 +11,7 @@ metadata:
   name: my-cluster
 spec:
   #通过集群镜像拉起集群
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
   #provider: 使用阿里云服务器设置为ALI_CLOUD，使用docker并以容器的方式创建集群设置为CONTAINER，使用自有服务器设置为BAREMETAL
   provider: ALI_CLOUD
   ssh:
@@ -72,7 +72,7 @@ sealer apply -f Clusterfile
 
 **执行成功后会生成/root/.sealer/[集群名称]/Clusterfile用来存储Cluster信息供sealer使用。**
 
-sealer官方kubernetes:v1.19.9镜像默认使用calico作为网络插件，可以以`kubernetes:v1.19.9-alpine`镜像（不含cni）为基础镜像自定义制作含有其他cni的镜像；
+sealer官方kubernetes:v1.19.8镜像默认使用calico作为网络插件，可以以`kubernetes:v1.19.8-alpine`镜像（不含cni）为基础镜像自定义制作含有其他cni的镜像；
 
 - 默认CIDR为100.64.0.0/10；
 - 默认使用IPIP模式（azure云服务器无法使用[IPIP模式](https://docs.projectcalico.org/reference/public-cloud/azure), 需修改calico配置为VXLAN）；

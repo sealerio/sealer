@@ -31,7 +31,7 @@ export RegionID={your region}
 export REGISTRY_URL={your registry}
 export REGISTRY_USERNAME={user name}
 export REGISTRY_PASSWORD={password}
-#default test image name: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+#default test image name: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 export IMAGE_NAME={test image name}
 ```
 
