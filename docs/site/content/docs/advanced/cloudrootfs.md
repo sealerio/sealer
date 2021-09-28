@@ -23,7 +23,7 @@ Contains:
 * Bin files, like docker containerd crictl kubeadm kubectl...
 * Config files, like kubelet systemd config, docker systemd config, docker daemon.json...
 * Registry docker image
-* Some Metadata, like Kuberentes version.
+* Some Metadata, like Kubernetes version.
 * Registry files, contains all the docker image, like kubernetes core components docker images...
 * Scripts, some shell script using to install docker and kubelet... sealer will call init.sh and clean.sh.
 * Other static files
@@ -82,7 +82,8 @@ Contains:
 # How can I get CloudRootfs
 
 1. Pull a BaseImage `sealer pull kubernetes:v1.19.9`
-2. Get into the BaseImage Layer `cd /var/lib/sealer/data/my-cluster/mount/`
+2. Get into the BaseImage Layer `cd /var/lib/sealer/data/overlay2/my-cluster/mount/`
+3. Cd the BaseImage hash layer `ls && cd [layer-hash-id]`
 
 You will found the CloudRootfs layer.
 
