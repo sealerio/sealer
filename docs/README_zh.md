@@ -15,16 +15,13 @@ Docker可以把一个操作系统的rootfs+应用 build成一个容器镜像，s
 
 ```shell script
 #安装sealer
-##amd架构：
-wget https://github.com/alibaba/sealer/releases/download/v0.4.0/sealer-v0.4.0-linux-amd64.tar.gz
-##arm架构：
-wget https://github.com/alibaba/sealer/releases/download/v0.4.0/sealer-v0.4.0-linux-arm64.tar.gz
-tar zxvf sealer-v0.4.0-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.5.0/sealer-v0.5.0-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.5.0-linux-amd64.tar.gz && mv sealer /usr/bin
 #运行集群（安装完成后生成`/root/.sealer/[cluster-name]/Clusterfile`文件用于存放集群相关信息）
-sealer run kubernetes:v1.19.9 # 在公有云上运行一个kubernetes集群
-sealer run kubernetes:v1.19.9 --masters 3 --nodes 3 # 在公有云上运行指定数量节点的kuberentes集群
+sealer run kubernetes:v1.19.8 # 在公有云上运行一个kubernetes集群
+sealer run kubernetes:v1.19.8 --masters 3 --nodes 3 # 在公有云上运行指定数量节点的kuberentes集群
 # 安装到已经存在的机器上
-sealer run kubernetes:v1.19.9 --masters 192.168.0.2,192.168.0.3,192.168.0.4 --nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
+sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 --nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
 ```
 
 > 安装prometheus集群
@@ -40,7 +37,7 @@ sealer run prometheus:2.26.0
 Kubefile:
 
 ```shell script
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 CMD kubectl apply -f recommended.yaml
 ```
@@ -74,7 +71,7 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ## 安装一个kubernetes集群
 
 ```shell script
-sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx #sealer使用内置docker实现镜像缓存功能，安装节点不能使用自带docker
+sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx #sealer使用内置docker实现镜像缓存功能，安装节点不能使用自带docker
 ```
 
 如果是在云上安装（需设置阿里云[AK，SK](https://ram.console.aliyun.com/manage/ak) ）:
@@ -107,7 +104,7 @@ sealer inspect registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest -c
 
 ## 使用Clusterfile拉起一个k8s集群
 
-使用已经提供好的官方基础镜像(sealer-io/kubernetes:v1.19.9)就可以快速拉起一个k8s集群。
+使用已经提供好的官方基础镜像(sealer-io/kubernetes:v1.19.8)就可以快速拉起一个k8s集群。
 
 场景1. 往已经存在的服务器上去安装，provider类型为BAREMETAL
 
@@ -119,7 +116,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
   provider: BAREMETAL
   ssh:
     # ssh的登录密码，如果使用的密钥登录则无需设置
@@ -161,7 +158,7 @@ izm5ehdjw3kru84f0kq7raz   Ready    <none>   18h   v1.16.9
 izm5ehdjw3kru84f0kq7rbz   Ready    <none>   18h   v1.16.9
 ```
 
->kubernetes:v1.19.9镜像默认使用calico镜像，服务器网卡名称需符合默认匹配规则`interface: "eth.*|en.*"`
+>kubernetes:v1.19.8镜像默认使用calico镜像，服务器网卡名称需符合默认匹配规则`interface: "eth.*|en.*"`
 可使用自定义[custom-calico.yaml](https://docs.projectcalico.org/reference/installation/api#operator.tigera.io/v1.Installation) 来[重写默认calico文件](../applications/calico/README.md)
 
 场景2. 自动申请阿里云服务器进行安装, provider: ALI_CLOUD
@@ -173,7 +170,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
   provider: ALI_CLOUD
   ssh:
     # ssh的登录密码，如果使用的密钥登录则无需设置
@@ -227,7 +224,7 @@ sealer delete --all
 新建一个dashboard目录,创建一个文件Kubefile内容为:
 
 ```
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 CMD kubectl apply -f recommended.yaml
 ```

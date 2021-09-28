@@ -26,7 +26,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: kubernetes:v1.19.9
+  image: kubernetes:v1.19.8
   provider: BAREMETAL
   ssh:
     passwd:

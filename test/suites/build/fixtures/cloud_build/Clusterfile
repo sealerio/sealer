@@ -3,7 +3,7 @@ kind: Cluster
 metadata:
   name: my-test-cluster
 spec:
-  image: sealer-io/kubernetes:v1.19.9
+  image: sealer-io/kubernetes:v1.19.8
   provider: ALI_CLOUD
   ssh:
     passwd: Sealer123

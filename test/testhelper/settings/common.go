@@ -28,7 +28,7 @@ const (
 	ImageName                         = "sealer_test_image_"
 	DefaultImageDomain                = "registry.cn-qingdao.aliyuncs.com"
 	DefaultImageRepo                  = "sealer-io"
-	DefaultImageName                  = "kubernetes:v1.19.9"
+	DefaultImageName                  = "kubernetes:v1.19.8"
 	DefaultRegistryAuthFileDir        = "/root/.docker"
 	DefaultClusterFileNeedToBeCleaned = "/root/.sealer/%s/Clusterfile"
 	SubCmdBuildOfSealer               = "build"
@@ -57,7 +57,7 @@ const (
 	BAREMETAL         = "BAREMETAL"
 	AliCloud          = "ALI_CLOUD"
 	CONTAINER         = "CONTAINER"
-	DefaultImage      = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9"
+	DefaultImage      = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8"
 	ClusterNameForRun = "my-cluster"
 	TMPClusterFile    = "/tmp/Clusterfile"
 	ClusterWorkDir    = "/root/.sealer/%s"
@@ -77,7 +77,7 @@ var (
 	AccessKey     = os.Getenv("ACCESSKEYID")
 	AccessSecret  = os.Getenv("ACCESSKEYSECRET")
 	Region        = os.Getenv("RegionID")
-	TestImageName = "" //default: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+	TestImageName = "" //default: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 )
 
 func GetClusterWorkDir(clusterName string) string {

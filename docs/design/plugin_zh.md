@@ -84,7 +84,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
   provider: BAREMETAL
   ssh:
     # ssh的私钥文件绝对路径，例如/root/.ssh/id_rsa
