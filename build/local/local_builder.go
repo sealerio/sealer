@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package build
+package local
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/alibaba/sealer/client"
+	"github.com/alibaba/sealer/client/k8s"
+
 	"github.com/alibaba/sealer/image/cache"
-	infraUtils "github.com/alibaba/sealer/infra/utils"
 	"github.com/pkg/errors"
 
 	"github.com/opencontainers/go-digest"
@@ -36,20 +36,15 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-type Config struct {
-	BuildType string
-	NoCache   bool
-	ImageName string
-}
-
 type builderLayer struct {
-	baseLayers []v1.Layer
-	newLayers  []v1.Layer
+	BaseLayers []v1.Layer
+	NewLayers  []v1.Layer
 }
 
 // LocalBuilder: local builder using local provider to build a cluster image
-type LocalBuilder struct {
-	Config           *Config
+type Builder struct {
+	BuildType        string
+	NoCache          bool
 	Image            *v1.Image
 	Cluster          *v1.Cluster
 	ImageNamed       reference.Named
@@ -61,16 +56,23 @@ type LocalBuilder struct {
 	ImageService     image.Service
 	Prober           image.Prober
 	FS               store.Backend
-	client           *client.K8sClient
+	Client           *k8s.Client
 	DockerImageCache *MountTarget
 	builderLayer
 }
 
-func (l *LocalBuilder) Build(name string, context string, kubefileName string) error {
-	err := l.initBuilder(name, context, kubefileName)
+func (l *Builder) Build(name string, context string, kubefileName string) error {
+	err := l.InitBuilder(name, context, kubefileName)
 	if err != nil {
 		return err
 	}
+
+	k8sClient, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	l.Client = k8sClient
+
 	registryCache, err := NewRegistryCache()
 	if err != nil {
 		return err
@@ -89,7 +91,7 @@ func (l *LocalBuilder) Build(name string, context string, kubefileName string) e
 	return nil
 }
 
-func (l *LocalBuilder) initBuilder(name string, context string, kubefileName string) error {
+func (l *Builder) InitBuilder(name string, context string, kubefileName string) error {
 	named, err := reference.ParseToNamed(name)
 	if err != nil {
 		return err
@@ -111,7 +113,7 @@ func (l *LocalBuilder) initBuilder(name string, context string, kubefileName str
 	return nil
 }
 
-func (l *LocalBuilder) GetBuildPipeLine() ([]func() error, error) {
+func (l *Builder) GetBuildPipeLine() ([]func() error, error) {
 	var buildPipeline []func() error
 	if err := l.InitImageSpec(); err != nil {
 		return nil, err
@@ -128,7 +130,7 @@ func (l *LocalBuilder) GetBuildPipeLine() ([]func() error, error) {
 }
 
 // init default Image metadata
-func (l *LocalBuilder) InitImageSpec() error {
+func (l *Builder) InitImageSpec() error {
 	kubeFile, err := utils.ReadAll(l.KubeFileName)
 	if err != nil {
 		return fmt.Errorf("failed to load kubefile: %v", err)
@@ -147,7 +149,7 @@ func (l *LocalBuilder) InitImageSpec() error {
 	return nil
 }
 
-func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
+func (l *Builder) PullBaseImageNotExist() (err error) {
 	if l.Image.Spec.Layers[0].Value == common.ImageScratch {
 		return nil
 	}
@@ -158,18 +160,18 @@ func (l *LocalBuilder) PullBaseImageNotExist() (err error) {
 	return nil
 }
 
-func (l *LocalBuilder) ExecBuild() error {
+func (l *Builder) ExecBuild() error {
 	err := l.updateBuilderLayers(l.Image)
 	if err != nil {
 		return err
 	}
 	var (
-		canUseCache = !l.Config.NoCache
+		canUseCache = !l.NoCache
 		parentID    = cache.ChainID("")
-		newLayers   = l.newLayers
+		newLayers   = l.NewLayers
 	)
 
-	baseLayerPaths := getBaseLayersPath(l.baseLayers)
+	baseLayerPaths := GetBaseLayersPath(l.BaseLayers)
 	chainSvc, err := cache.NewService()
 	if err != nil {
 		return err
@@ -181,7 +183,7 @@ func (l *LocalBuilder) ExecBuild() error {
 		cacheSvc:      chainSvc,
 		prober:        l.Prober,
 		parentID:      parentID,
-		ignoreError:   l.Config.BuildType == common.LiteBuild,
+		ignoreError:   l.BuildType == common.LiteBuild,
 	}
 
 	mhandler := handler{
@@ -232,37 +234,39 @@ func (l *LocalBuilder) ExecBuild() error {
 	logger.Info("exec all build instructs success !")
 	return nil
 }
-func (l *LocalBuilder) CollectRegistryCache() error {
+func (l *Builder) CollectRegistryCache() error {
 	if l.DockerImageCache == nil {
 		return nil
 	}
-	// wait resource to sync
+	logger.Info("waiting resource to sync")
+	//wait resource to sync.do sleep here,because we can't fetch the pod status immediately.
+	//if we use retry to check pod status, will pass the cache part, due to some resources has not been created yet.
 	time.Sleep(30 * time.Second)
 	if !l.IsAllPodsRunning() {
 		return fmt.Errorf("cache docker image failed,cluster pod not running")
 	}
 	imageLayer := v1.Layer{
 		Type:  imageLayerType,
-		Value: "",
+		Value: "registry cache",
 	}
-	layerDgst, err := l.registerLayer(l.DockerImageCache.GetMountUpper())
+	layerDgst, err := l.RegisterLayer(l.DockerImageCache.GetMountUpper())
 	if err != nil {
 		return err
 	}
 
 	imageLayer.ID = layerDgst
-	l.newLayers = append(l.newLayers, imageLayer)
+	l.NewLayers = append(l.NewLayers, imageLayer)
 
 	logger.Info("save image cache success")
 	return nil
 }
 
 //This function only has meaning for copy layers
-func (l *LocalBuilder) SetCacheID(layerID digest.Digest, cID string) error {
+func (l *Builder) SetCacheID(layerID digest.Digest, cID string) error {
 	return l.FS.SetMetadata(layerID, cacheID, []byte(cID))
 }
 
-func (l *LocalBuilder) registerLayer(tempTarget string) (digest.Digest, error) {
+func (l *Builder) RegisterLayer(tempTarget string) (digest.Digest, error) {
 	layerDigest, err := l.LayerStore.RegisterLayerForBuilder(tempTarget)
 	if err != nil {
 		return "", fmt.Errorf("failed to register layer, err: %v", err)
@@ -271,13 +275,13 @@ func (l *LocalBuilder) registerLayer(tempTarget string) (digest.Digest, error) {
 	return layerDigest, nil
 }
 
-func (l *LocalBuilder) UpdateImageMetadata() error {
+func (l *Builder) UpdateImageMetadata() error {
 	err := setClusterFileToImage(l.Image, l.ImageNamed.Raw())
 	if err != nil {
 		return fmt.Errorf("failed to set image metadata, err: %v", err)
 	}
 
-	l.Image.Spec.Layers = append(l.baseLayers, l.newLayers...)
+	l.Image.Spec.Layers = append(l.BaseLayers, l.NewLayers...)
 
 	err = l.updateImageIDAndSaveImage()
 	if err != nil {
@@ -288,7 +292,7 @@ func (l *LocalBuilder) UpdateImageMetadata() error {
 	return nil
 }
 
-func (l *LocalBuilder) updateImageIDAndSaveImage() error {
+func (l *Builder) updateImageIDAndSaveImage() error {
 	imageID, err := generateImageID(*l.Image)
 	if err != nil {
 		return err
@@ -298,7 +302,7 @@ func (l *LocalBuilder) updateImageIDAndSaveImage() error {
 	return l.ImageStore.Save(*l.Image, l.ImageNamed.Raw())
 }
 
-func (l *LocalBuilder) updateBuilderLayers(image *v1.Image) error {
+func (l *Builder) updateBuilderLayers(image *v1.Image) error {
 	// we do not check the len of layers here, because we checked it before.
 	// remove the first layer of image
 	var (
@@ -309,7 +313,7 @@ func (l *LocalBuilder) updateBuilderLayers(image *v1.Image) error {
 
 	// and the layer 0 must be from layer
 	if layer0.Value == common.ImageScratch {
-		// give a empty image
+		// give an empty image
 		baseImage = &v1.Image{}
 	} else {
 		baseImage, err = l.ImageStore.GetByName(image.Spec.Layers[0].Value)
@@ -318,14 +322,14 @@ func (l *LocalBuilder) updateBuilderLayers(image *v1.Image) error {
 		}
 	}
 
-	l.baseLayers = append([]v1.Layer{}, baseImage.Spec.Layers...)
-	l.newLayers = append([]v1.Layer{}, image.Spec.Layers[1:]...)
-	if len(l.baseLayers)+len(l.newLayers) > maxLayerDeep {
+	l.BaseLayers = append([]v1.Layer{}, baseImage.Spec.Layers...)
+	l.NewLayers = append([]v1.Layer{}, image.Spec.Layers[1:]...)
+	if len(l.BaseLayers)+len(l.NewLayers) > maxLayerDeep {
 		return errors.New("current number of layers exceeds 128 layers")
 	}
 	return nil
 }
-func (l *LocalBuilder) Cleanup() (err error) {
+func (l *Builder) Cleanup() (err error) {
 	// umount registry
 	if l.DockerImageCache != nil {
 		l.DockerImageCache.CleanUp()
@@ -335,9 +339,9 @@ func (l *LocalBuilder) Cleanup() (err error) {
 	return err
 }
 
-func (l *LocalBuilder) IsAllPodsRunning() bool {
-	err := infraUtils.Retry(10, 5*time.Second, func() error {
-		namespacePodList, err := l.client.ListAllNamespacesPods()
+func (l *Builder) IsAllPodsRunning() bool {
+	err := utils.Retry(10, 5*time.Second, func() error {
+		namespacePodList, err := l.Client.ListAllNamespacesPods()
 		if err != nil {
 			return err
 		}
@@ -359,48 +363,4 @@ func (l *LocalBuilder) IsAllPodsRunning() bool {
 		return nil
 	})
 	return err == nil
-}
-
-func NewLocalBuilder(config *Config) (Interface, error) {
-	layerStore, err := store.NewDefaultLayerStore()
-	if err != nil {
-		return nil, err
-	}
-
-	imageStore, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, err
-	}
-
-	service, err := image.NewImageService()
-	if err != nil {
-		return nil, err
-	}
-
-	fs, err := store.NewFSStoreBackend()
-	if err != nil {
-		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
-	}
-
-	k8sClient, err := client.Newk8sClient()
-	if err != nil {
-		return nil, err
-	}
-
-	prober := image.NewImageProber(service, config.NoCache)
-
-	return &LocalBuilder{
-		Config:       config,
-		LayerStore:   layerStore,
-		ImageStore:   imageStore,
-		ImageService: service,
-		Prober:       prober,
-		FS:           fs,
-		client:       k8sClient,
-		builderLayer: builderLayer{
-			// for skip golang ci
-			baseLayers: []v1.Layer{},
-			newLayers:  []v1.Layer{},
-		},
-	}, nil
 }

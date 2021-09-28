@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 
 	"github.com/alibaba/sealer/apply"
@@ -33,6 +32,7 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "delete a cluster",
 	Long:  `if provider is BARESERVER will delete kubernetes nodes or IPList;  if provider is ALI_CLOUD, will delete all the infra resources or count`,
+	Args:  cobra.NoArgs,
 	Example: `
 delete to default cluster: 
 	sealer delete --masters x.x.x.x --nodes x.x.x.x
@@ -45,14 +45,20 @@ delete all:
 	sealer delete --all [--force]
 	sealer delete -f /root/.sealer/mycluster/Clusterfile [--force]
 `,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		force, err := cmd.Flags().GetBool("force")
-		utils.ErrorThenExit(err)
+		if err != nil {
+			return err
+		}
 		all, err := cmd.Flags().GetBool("all")
-		utils.ErrorThenExit(err)
+		if err != nil {
+			return err
+		}
 		if deleteClusterFile == "" {
 			clusterName, err := utils.GetDefaultClusterName()
-			utils.ErrorThenExit(err)
+			if err != nil {
+				return err
+			}
 			deleteClusterFile = common.GetClusterWorkClusterfile(clusterName)
 		}
 		if all && !force {
@@ -67,21 +73,23 @@ delete all:
 				}
 				if noRx.MatchString(input) {
 					fmt.Println("You have canceled to delete the cluster!")
-					os.Exit(0)
+					return nil
 				}
 			}
 		}
 		if deleteArgs.Nodes != "" || deleteArgs.Masters != "" {
 			applier, err := apply.NewScaleApplierFromArgs(deleteClusterFile, deleteArgs, common.DeleteSubCmd)
-			utils.ErrorThenExit(err)
-			err = applier.Apply()
-			utils.ErrorThenExit(err)
-		} else {
-			applier, err := apply.NewApplierFromFile(deleteClusterFile)
-			utils.ErrorThenExit(err)
-			err = applier.Delete()
-			utils.ErrorThenExit(err)
+			if err != nil {
+				return err
+			}
+			return applier.Apply()
 		}
+
+		applier, err := apply.NewApplierFromFile(deleteClusterFile)
+		if err != nil {
+			return err
+		}
+		return applier.Delete()
 	},
 }
 

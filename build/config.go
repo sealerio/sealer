@@ -12,14 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package build
 
-import "github.com/docker/docker/client"
-
-func NewDockerClient() (*client.Client, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return nil, err
-	}
-	return cli, err
+type Config struct {
+	BuildType string
+	NoCache   bool
+	ImageName string
 }

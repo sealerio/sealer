@@ -26,8 +26,6 @@ import (
 
 	"github.com/alibaba/sealer/runtime"
 
-	infraUtils "github.com/alibaba/sealer/infra/utils"
-
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/pkg/errors"
@@ -66,7 +64,7 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
 	if utils.IsFileExist(mountdir) {
 		var err error
-		err = infraUtils.Retry(10, time.Second, func() error {
+		err = utils.Retry(10, time.Second, func() error {
 			err = mount.NewMountDriver().Unmount(mountdir)
 			if err != nil {
 				return err
@@ -153,7 +151,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	config := runtime.GetRegistryConfig(
 		common.DefaultTheClusterRootfsDir(cluster.Name),
 		cluster.Spec.Masters.IPList[0])
-	if err := ssh.WaitSSHReady(SSH, ipList...); err != nil {
+	if err := ssh.WaitSSHReady(SSH, 4, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}
 	var wg sync.WaitGroup

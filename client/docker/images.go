@@ -15,29 +15,19 @@
 package docker
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 
-	"github.com/alibaba/sealer/image/reference"
-
 	"github.com/alibaba/sealer/common"
-	dockerstreams "github.com/docker/cli/cli/streams"
-	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
-
+	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
+	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 )
-
-type Docker struct {
-	Auth     string
-	Username string
-	Password string
-}
 
 func (d Docker) ImagesPull(images []string) {
 	for _, image := range utils.RemoveDuplicate(images) {
@@ -66,7 +56,6 @@ func (d Docker) ImagePull(image string) error {
 	var (
 		named       reference.Named
 		err         error
-		cli         *client.Client
 		authConfig  types.AuthConfig
 		out         io.ReadCloser
 		encodedJSON []byte
@@ -78,12 +67,7 @@ func (d Docker) ImagePull(image string) error {
 		return err
 	}
 	var ImagePullOptions types.ImagePullOptions
-	ctx := context.Background()
-	cli, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		logger.Warn("docker client creation failed: %v", err)
-		return err
-	}
+
 	authConfig, err = utils.GetDockerAuthInfoFromDocker(named.Domain())
 	if err == nil {
 		encodedJSON, err = json.Marshal(authConfig)
@@ -95,9 +79,8 @@ func (d Docker) ImagePull(image string) error {
 	}
 
 	ImagePullOptions = types.ImagePullOptions{RegistryAuth: authStr}
-	out, err = cli.ImagePull(ctx, image, ImagePullOptions)
+	out, err = d.cli.ImagePull(d.ctx, image, ImagePullOptions)
 	if err != nil {
-		logger.Warn("Image pull failed: %v", err)
 		return err
 	}
 	defer func() {
@@ -108,4 +91,23 @@ func (d Docker) ImagePull(image string) error {
 		logger.Warn("error occurs in display progressing, err: %s", err)
 	}
 	return nil
+}
+
+func (d Docker) DockerRmi(imageID string) error {
+	if _, err := d.cli.ImageRemove(d.ctx, imageID, types.ImageRemoveOptions{Force: true, PruneChildren: true}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d Docker) ImagesList() ([]*types.ImageSummary, error) {
+	var List []*types.ImageSummary
+	images, err := d.cli.ImageList(d.ctx, types.ImageListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, image := range images {
+		List = append(List, &image)
+	}
+	return List, nil
 }

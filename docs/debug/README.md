@@ -2,7 +2,7 @@
 
 `sealer debug` can debug nodes, pods and containers with plenty of useful tools. Based on `sealer debug` , SRE can locate the problems of nodes, pods or containers.
 
-You can use `sealer debug pod mypod -it`  to debug the pod named mypod. It will create an interactive debugging session in pod mypod and immediately attach to it.  In this way, you can use plenty of useful tools to debug mypod and the first container of mypod.
+You can use `sealer debug pod mypod -it`  to debug the pod named `mypod`. It will create an interactive debugging session in pod `mypod` and immediately attach to it.  In this way, you can use plenty of useful tools to debug `mypod` and the first container of `mypod`.
 
 ![](images/example.png)
 
@@ -87,4 +87,4 @@ Just like debug node, `sealer debug pod` will create a debug container in pod, a
 
 When the debug is done, the generated debug pods or debug containers will be cleaned automatically.
 
-Besides, `sealer debug` also provide some default image for debugging. You can use `sealer debug show-images` to look th default images provided.
+Besides, `sealer debug` also provide some default images for debugging. You can use `sealer debug show-images` to look th default images provided.

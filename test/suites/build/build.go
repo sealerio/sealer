@@ -32,8 +32,8 @@ func GetFixtures() string {
 	return filepath.Join(settings.DefaultTestEnvDir, "suites", "build", "fixtures")
 }
 
-func GetLocalBuildDir() string {
-	return "local_build"
+func GetLiteBuildDir() string {
+	return "lite_build"
 }
 
 func GetCloudBuildDir() string {
@@ -88,7 +88,7 @@ func (a *ArgsOfBuild) Build() string {
 	}
 
 	if a.BuildType == "" {
-		a.BuildType = settings.LocalBuild
+		a.BuildType = settings.LiteBuild
 	}
 	return fmt.Sprintf("%s build -f %s -t %s -b %s %s", settings.DefaultSealerBin, a.KubeFile, a.ImageName, a.BuildType, a.Context)
 }

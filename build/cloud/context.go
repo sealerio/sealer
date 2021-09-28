@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package build
+package cloud
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ import (
 )
 
 //sendBuildContext:send local build context to remote server
-func (c *CloudBuilder) sendBuildContext() (err error) {
+func (c *Builder) sendBuildContext() (err error) {
 	// if remote cluster already exist,no need to pre init master0
 	if !c.SSH.IsFileExist(c.RemoteHostIP, common.RemoteSealerPath) {
 		err = runtime.PreInitMaster0(c.SSH, c.RemoteHostIP)
@@ -34,7 +34,7 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 		}
 	}
 	tarFileName := fmt.Sprintf(common.TmpTarFile, utils.GenUniqueID(32))
-	err = tarBuildContext(c.local.KubeFileName, c.local.Context, tarFileName)
+	err = tarBuildContext(c.Local.KubeFileName, c.Local.Context, tarFileName)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 		}
 	}()
 	// send to remote server
-	workdir := fmt.Sprintf(common.DefaultWorkDir, c.local.Cluster.Name)
+	workdir := fmt.Sprintf(common.DefaultWorkDir, c.Local.Cluster.Name)
 	if err = c.SSH.Copy(c.RemoteHostIP, tarFileName, tarFileName); err != nil {
 		return fmt.Errorf("failed to copy tar file: %s, err: %v", tarFileName, err)
 	}
@@ -57,6 +57,6 @@ func (c *CloudBuilder) sendBuildContext() (err error) {
 	return nil
 }
 
-func (c *CloudBuilder) changeBuilderContext() {
-	c.local.Context = "."
+func (c *Builder) changeBuilderContext() {
+	c.Local.Context = "."
 }

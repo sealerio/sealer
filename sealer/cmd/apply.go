@@ -16,10 +16,7 @@ package cmd
 
 import (
 	"github.com/alibaba/sealer/apply"
-	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
-
-	"os"
 )
 
 var clusterFile string
@@ -29,16 +26,13 @@ var applyCmd = &cobra.Command{
 	Use:     "apply",
 	Short:   "apply a kubernetes cluster",
 	Example: `sealer apply -f Clusterfile`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Args:    cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		applier, err := apply.NewApplierFromFile(clusterFile)
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
-		if err = applier.Apply(); err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
+		return applier.Apply()
 	},
 }
 

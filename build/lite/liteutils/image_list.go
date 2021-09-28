@@ -12,17 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package liteutils
 
-import (
-	"os"
-
-	"github.com/alibaba/sealer/logger"
-)
-
-func ErrorThenExit(err error) {
-	if err != nil {
-		logger.Error(err)
-		os.Exit(1)
-	}
+type Interface interface {
+	// List all the containers images in helm charts
+	ListImages(clusterName string) ([]string, error)
 }

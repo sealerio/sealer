@@ -41,7 +41,7 @@ include_content = true
 # Whether to do syntax highlighting.
 # Theme can be customised by setting the `highlight_theme`
 # variable to a theme supported by Zola
-highlight_code = true
+highlight_code = false
 
 [extra]
 # Put all your custom variables here
@@ -127,7 +127,7 @@ weight = 20
 info = 'Powered by <a href="https://www.getzola.org/">Zola</a>'
 
 [[extra.footer.nav]]
-name = "DingTakl 34619594"
+name = "DingTalk 34619594"
 url = "/"
 weight = 10
 

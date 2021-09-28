@@ -12,9 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lite
+package build
+
+const (
+	LocalBuild     = "local"
+	LiteBuild      = "lite"
+	ContainerBuild = "container"
+	AliCloudBuild  = "cloud"
+)
 
 type Interface interface {
-	// List all the containers images in helm charts
-	ListImages(clusterName string) ([]string, error)
+	Build(name string, context string, kubefileName string) error
+}
+
+func NewBuilder(config *Config) (Interface, error) {
+	switch config.BuildType {
+	case LiteBuild:
+		return NewLiteBuilder(config)
+	case LocalBuild:
+		return NewLocalBuilder(config)
+	default:
+		return NewCloudBuilder(config)
+	}
 }

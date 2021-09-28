@@ -12,22 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package build
+package local
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 
+	"github.com/alibaba/sealer/client/docker"
 	"github.com/alibaba/sealer/runtime"
-	"github.com/alibaba/sealer/utils/archive"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 
-	"github.com/alibaba/sealer/client"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -80,7 +75,7 @@ func getClusterFileFromContext(image *v1.Image) (string, error) {
 }
 
 // used in build stage, where the image still has from layer
-func getBaseLayersPath(layers []v1.Layer) (res []string) {
+func GetBaseLayersPath(layers []v1.Layer) (res []string) {
 	for _, layer := range layers {
 		if layer.ID != "" {
 			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
@@ -138,16 +133,13 @@ func GetRegistryBindDir() string {
 	// check bind dir
 	var registryName = runtime.RegistryName
 	var registryDest = runtime.RegistryBindDest
-	ctx := context.Background()
-	cli, err := client.NewDockerClient()
+
+	dockerClient, err := docker.NewDockerClient()
 	if err != nil {
 		return ""
 	}
 
-	opts := types.ContainerListOptions{All: true}
-	opts.Filters = filters.NewArgs()
-	opts.Filters.Add("name", registryName)
-	containers, err := cli.ContainerList(ctx, opts)
+	containers, err := dockerClient.GetContainerListByName(registryName)
 
 	if err != nil {
 		return ""
@@ -270,26 +262,4 @@ func ValidateContextDirectory(srcPath string) error {
 
 		return nil
 	})
-}
-
-func tarBuildContext(kubeFilePath string, context string, tarFileName string) error {
-	file, err := os.Create(tarFileName)
-	if err != nil {
-		return fmt.Errorf("failed to create %s, err: %v", tarFileName, err)
-	}
-	defer file.Close()
-
-	var pathsToCompress []string
-	pathsToCompress = append(pathsToCompress, kubeFilePath, context)
-	tarReader, err := archive.TarWithoutRootDir(pathsToCompress...)
-	if err != nil {
-		return fmt.Errorf("failed to new tar reader when send build context, err: %v", err)
-	}
-	defer tarReader.Close()
-
-	_, err = io.Copy(file, tarReader)
-	if err != nil {
-		return fmt.Errorf("failed to tar build context, err: %v", err)
-	}
-	return nil
 }

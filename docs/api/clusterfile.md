@@ -61,9 +61,9 @@ COPY my-kubeadm.yaml.tmp kubeadm.yaml.tmp
 Clusterfile only care about the common configurations.
 
 ENV and annotations can help you to extend your config values. sealer will render it in your yaml if you put then in manifest dir.
-Also sealer will generate a global.yaml witch contains all values, so if you using helm, can use global config like this:
+Also, sealer will generate a global.yaml witch contains all values, so if you're using helm, can use global config like this:
 
 ```shell script
-# global will overwite the default value
+# global will overwrite the default value
 helm install chart name -f values.yaml -f global.yaml
 ```

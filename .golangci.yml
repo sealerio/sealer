@@ -37,6 +37,7 @@ linters:
     - nilerr
     - unparam
     - ifshort
+    - unconvert
 
 issues:
   exclude-rules:

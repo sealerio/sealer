@@ -1,94 +1,101 @@
 +++
-title = "Run kubernetes cluster"
-description = "One page summary of how to start a new AdiDoks project."
+title = "Run"
+description = "sealer run"
 date = 2021-05-01T08:20:00+00:00
 updated = 2021-05-01T08:20:00+00:00
 draft = false
-weight = 20
+weight = 24
 sort_by = "weight"
 template = "docs/page.html"
 
 [extra]
-lead = "One page summary of how to start a new AdiDoks project."
+lead = "Use the run command to create a cluster."
 toc = true
 top = false
 +++
 
-# Requirements
+# sealer run Usage
 
-Before using the theme, you need to install the [Zola](https://www.getzola.org/documentation/getting-started/installation/) ≥ 0.13.0.
+> Use the run command to run a user-defined Kubernetes cluster. \
+>if arch is arm64：use registry.cn-beijing.aliyuncs.com/sealer-io/kubernetes-arm64:v1.19.7 replace kubernetes:v1.19.9 image.
 
-## Run the Theme Directly
+## Run on exist servers
 
-```bash
-git clone https://github.com/aaranxu/adidoks.git
-cd adidoks
-zola serve
+server ip address| 192.168.0.1 ~ 192.168.0.11
+---|---
+**server password**  | **sealer123**
+
+*Run the kubernetes cluster on the local server.*
+
+```shell
+sealer run kubernetes:v1.19.9 -m 192.168.0.1,192.168.0.2,192.168.0.3 -n 192.168.0.4,192.168.0.5,192.168.0.6 \
+       -p sealer123 # ssh passwd
 ```
 
-Visit `http://127.0.0.1:1111/` in the browser.
+*Check the Cluster*
 
-## Installation
-
-Just earlier we showed you how to run the theme directly. Now we start to
-install the theme in an existing site step by step.
-
-### Step 1: Create a new zola site
-
-```bash
-zola init mysite
+```shell script
+[root@iZm5e42unzb79kod55hehvZ ~]# kubectl get node
+NAME                    STATUS ROLES AGE VERSION
+izm5e42unzb79kod55hehvz Ready master 18h v1.19.9
+izm5ehdjw3kru84f0kq7r7z Ready master 18h v1.19.9
+izm5ehdjw3kru84f0kq7r8z Ready master 18h v1.19.9
+izm5ehdjw3kru84f0kq7r9z Ready <none> 18h v1.19.9
+izm5ehdjw3kru84f0kq7raz Ready <none> 18h v1.19.9
+izm5ehdjw3kru84f0kq7rbz Ready <none> 18h v1.19.9
 ```
 
-### Step 2: Install AdiDoks
+### scale up and down
 
-Download this theme to your themes directory:
+*using join command to scale up the local server.*
 
-```bash
-cd mysite/themes
-git clone https://github.com/aaranxu/adidoks.git
+```shell script
+$ sealer join --masters 192.168.0.7,192.168.0.8,192.168.0.9,192.168.0.10 --nodes 192.168.0.11,192.168.0.12,192.168.0.13
+or
+$ sealer join --masters 192.168.0.7-192.168.0.10 --nodes 192.168.0.11-192.168.0.13
 ```
 
-Or install as a submodule:
+*using delete command to scale down the local server.*
 
-```bash
-cd mysite
-git init  # if your project is a git repository already, ignore this command
-git submodule add https://github.com/aaranxu/adidoks.git themes/adidoks
+```shell
+$ sealer delete --masters 192.168.0.7,192.168.0.8,192.168.0.9,192.168.0.10 --nodes 192.168.0.11,192.168.0.12,192.168.0.13
+or
+$ sealer delete --masters 192.168.0.7-192.168.0.10 --nodes 192.168.0.11-192.168.0.13
 ```
 
-### Step 3: Configuration
+## Run on Cloud
 
-Enable the theme in your `config.toml` in the site derectory:
+Set the Cloud provider *AK SK* before you install a Cluster, Now support ALI_CLOUD.
 
-```toml
-theme = "adidoks"
+```shell script
+export ACCESSKEYID=xxx
+export ACCESSKEYSECRET=xxx
 ```
 
-Or copy the `config.toml.example` from the theme directory to your project's
-root directory:
+*You just need specify the machine(VM) resource configuration and counts.*
 
-```bash
-cp themes/adidoks/config.toml.example config.toml
+```shell
+sealer run kubernetes:v1.19.9 -m 3 -n 3 -p xxx #custom passwd
 ```
 
-### Step 4: Add new content
+### scale up and down
 
-You can copy the content from the theme directory to your project:
+*using join command to scale up the cloud server.*
 
-```bash
-cp -r themes/adidoks/content .
+```shell script
+sealer join --masters 2 --nodes 2
 ```
 
-You can modify or add new posts in the `content/blog`, `content/docs` or other
-content directories as needed.
+*using delete command to scale down the cloud server.*
 
-### Step 5: Run the project
-
-Just run `zola serve` in the root path of the project:
-
-```bash
-zola serve
+```shell
+sealer delete --masters 2 --nodes 2
 ```
 
-AdiDoks will start the Zola development web server accessible by default at
-`http://127.0.0.1:1111`. Saved changes will live reload in the browser.
+## Clean up the Kubernetes cluster
+
+```shell
+sealer delete --all
+```
+
+sealer will also remove infrastructure resources if you use cloud mod.

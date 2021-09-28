@@ -21,7 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alibaba/sealer/build/lite"
+	"github.com/alibaba/sealer/build/lite/liteutils"
+
 	"github.com/alibaba/sealer/common"
 )
 
@@ -38,7 +39,7 @@ func (manifests *Manifests) ListImages(clusterName string) ([]string, error) {
 			return fmt.Errorf("read file failed %s", er)
 		}
 		if fileInfo.IsDir() || !strings.HasSuffix(fileInfo.Name(), ".yaml") {
-			// skip directories and filename is't .yaml file
+			// skip directories and filename isn't .yaml file
 			return nil
 		}
 
@@ -46,7 +47,7 @@ func (manifests *Manifests) ListImages(clusterName string) ([]string, error) {
 		if err != nil {
 			return fmt.Errorf("read file failed %s", err)
 		}
-		images := lite.DecodeImages(string(yamlBytes))
+		images := liteutils.DecodeImages(string(yamlBytes))
 		if len(images) != 0 {
 			list = append(list, images...)
 		}
@@ -60,7 +61,7 @@ func (manifests *Manifests) ListImages(clusterName string) ([]string, error) {
 	return list, nil
 }
 
-func NewManifests() (lite.Interface, error) {
+func NewManifests() (liteutils.Interface, error) {
 	return &Manifests{}, nil
 }
 

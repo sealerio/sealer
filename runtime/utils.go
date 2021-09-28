@@ -57,7 +57,7 @@ func VersionCompare(v1, v2 string) bool {
 }
 
 func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
-	err := ssh.WaitSSHReady(sshClient, remoteHostIP)
+	err := ssh.WaitSSHReady(sshClient, 6, remoteHostIP)
 	if err != nil {
 		return fmt.Errorf("apply cloud cluster failed: %s", err)
 	}

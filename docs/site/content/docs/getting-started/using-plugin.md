@@ -1,6 +1,6 @@
 +++
 title = "Plugin"
-description = "One page summary of how to start a new AdiDoks project."
+description = "Using plugin to do some edge works"
 date = 2021-05-01T08:20:00+00:00
 updated = 2021-05-01T08:20:00+00:00
 draft = false
@@ -9,86 +9,178 @@ sort_by = "weight"
 template = "docs/page.html"
 
 [extra]
-lead = "One page summary of how to start a new AdiDoks project."
+lead = "Plugins can help users do some peripheral things, like change hostname, upgrade kernel, or add node label..."
 toc = true
 top = false
 +++
 
-# Requirements
+# Plugins Usage
 
-Before using the theme, you need to install the [Zola](https://www.getzola.org/documentation/getting-started/installation/) ≥ 0.13.0.
+Set Plugins metadata in Clusterfile and apply it~
 
-## Run the Theme Directly
+For example, set node label after install kubernetes cluster:
 
-```bash
-git clone https://github.com/aaranxu/adidoks.git
-cd adidoks
-zola serve
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: kubernetes:v1.19.9
+  provider: BAREMETAL
+  ssh:
+    passwd:
+    pk: xxx
+    pkPasswd: xxx
+    user: root
+  network:
+    podCIDR: 100.64.0.0/10
+    svcCIDR: 10.96.0.0/22
+  certSANS:
+    - aliyun-inc.com
+    - 10.0.0.2
+
+  masters:
+    ipList:
+     - 172.20.126.4
+     - 172.20.126.5
+     - 172.20.126.6
+  nodes:
+    ipList:
+     - 172.20.126.8
+     - 172.20.126.9
+     - 172.20.126.10
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: LABEL
+spec:
+  data: |
+     172.20.126.8 ssd=false,hdd=true
 ```
 
-Visit `http://127.0.0.1:1111/` in the browser.
-
-## Installation
-
-Just earlier we showed you how to run the theme directly. Now we start to
-install the theme in an existing site step by step.
-
-### Step 1: Create a new zola site
-
-```bash
-zola init mysite
+```shell script
+sealer apply -f Clusterfile
 ```
 
-### Step 2: Install AdiDoks
+## hostname plugin
 
-Download this theme to your themes directory:
+HOSTNAME plugin will help you to change all the hostnames
 
-```bash
-cd mysite/themes
-git clone https://github.com/aaranxu/adidoks.git
+```yaml
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: HOSTNAME # should not change this name
+spec:
+  data: |
+     192.168.0.2 master-0
+     192.168.0.3 master-1
+     192.168.0.4 master-2
+     192.168.0.5 node-0
+     192.168.0.6 node-1
+     192.168.0.7 node-2
 ```
 
-Or install as a submodule:
+## shell plugin
 
-```bash
-cd mysite
-git init  # if your project is a git repository already, ignore this command
-git submodule add https://github.com/aaranxu/adidoks.git themes/adidoks
+You can exec any shell command on specify node in any phase.
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: SHELL
+spec:
+  action: PostInstall # PreInit PreInstall PostInstall
+  on: 192.168.0.2-192.168.0.4 #or 192.168.0.2,192.168.0.3,192.168.0.7
+  data: |
+     kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
 ```
 
-### Step 3: Configuration
+action: the phase of command.
 
-Enable the theme in your `config.toml` in the site derectory:
+* PreInit: before init master0.
+* PreInstall: before join master and nodes.
+* PostInstall: after join all nodes.
 
-```toml
-theme = "adidoks"
+on: exec on witch node.
+
+## label plugin
+
+Help you set label after install kubernetes cluster.
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: LABEL
+spec:
+  data: |
+     192.168.0.2 ssd=true
+     192.168.0.3 ssd=true
+     192.168.0.4 ssd=true
+     192.168.0.5 ssd=false,hdd=true
+     192.168.0.6 ssd=false,hdd=true
+     192.168.0.7 ssd=false,hdd=true
 ```
 
-Or copy the `config.toml.example` from the theme directory to your project's
-root directory:
+## Etcd backup
 
-```bash
-cp themes/adidoks/config.toml.example config.toml
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: ETCD_BACKUP
+spec:
+  action: Manual
 ```
 
-### Step 4: Add new content
+Etcd backup plugin is triggered manually: `sealer plugin -f etcd_backup.yaml`
 
-You can copy the content from the theme directory to your project:
+## develop you own plugin
 
-```bash
-cp -r themes/adidoks/content .
+The plugin [interface](https://github.com/alibaba/sealer/blob/main/plugin/plugin.go)
+
+```golang
+type Interface interface {
+	Run(context Context, phase Phase) error
+}
 ```
 
-You can modify or add new posts in the `content/blog`, `content/docs` or other
-content directories as needed.
+[Example](https://github.com/alibaba/sealer/blob/main/plugin/labels.go):
 
-### Step 5: Run the project
+```golang
+func (l LabelsNodes) Run(context Context, phase Phase) error {
+	if phase != PhasePostInstall {
+		logger.Debug("label nodes is PostInstall!")
+		return nil
+	}
+	l.data = l.formatData(context.Plugin.Spec.Data)
 
-Just run `zola serve` in the root path of the project:
-
-```bash
-zola serve
+	return err
+}
 ```
 
-AdiDoks will start the Zola development web server accessible by default at
-`http://127.0.0.1:1111`. Saved changes will live reload in the browser.
+Then regist you [plugin](https://github.com/alibaba/sealer/blob/main/plugin/plugins.go):
+
+```golang
+func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
+	for _, config := range c.Plugins {
+		switch config.Name {
+		case "LABEL":
+			l := LabelsNodes{}
+			err := l.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+			if err != nil {
+				return err
+			}
+        // add you plugin here
+		default:
+			return fmt.Errorf("not find plugin %s", config.Name)
+		}
+	}
+	return nil
+}
+```
