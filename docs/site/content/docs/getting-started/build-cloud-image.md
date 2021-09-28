@@ -42,7 +42,6 @@ The `COPY` instruction used to copy the contents from the context path such as f
 the cloud image is based on the `rootfs`[rootfs结构](../../../../api/cloudrootfs.md), and the default src path is
 the `rootfs` .If the specified destination directory does not exist, sealer will create it automatically.
 
-
 > command format：COPY {src dest}
 
 USAGE：
@@ -55,7 +54,6 @@ For example , copy `mysql.yaml`to`rootfs`
 
 The RUN instruction will execute any commands in a new layer on top of the current image and commit the results. The
 resulting committed image will be used for the next step in the `Kubefile`.
-
 
 > command format：RUN {command args ...}
 
@@ -71,7 +69,6 @@ The format of CMD instruction is similar to RUN instruction, and also will execu
 the CMD command will be executed when the cluster is started . it is generally used to start applications or configure
 the cluster. and it is different with `Dockerfile` CMD ,If you list more than one CMD in a `Kubefile` ,then all of them
 will take effect.
-
 
 > command format：CMD {command args ...}
 
