@@ -54,6 +54,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file (default is $HOME/.sealer.json)")
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.DisableAutoGenTag = true
 }
 
 // initConfig reads in config file and ENV variables if set.
