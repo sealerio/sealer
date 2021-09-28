@@ -15,11 +15,8 @@ Docker可以把一个操作系统的rootfs+应用 build成一个容器镜像，s
 
 ```shell script
 #安装sealer
-##amd架构：
-wget https://github.com/alibaba/sealer/releases/download/v0.4.0/sealer-v0.4.0-linux-amd64.tar.gz
-##arm架构：
-wget https://github.com/alibaba/sealer/releases/download/v0.4.0/sealer-v0.4.0-linux-arm64.tar.gz
-tar zxvf sealer-v0.4.0-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.5.0/sealer-v0.5.0-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.5.0-linux-amd64.tar.gz && mv sealer /usr/bin
 #运行集群（安装完成后生成`/root/.sealer/[cluster-name]/Clusterfile`文件用于存放集群相关信息）
 sealer run kubernetes:v1.19.9 # 在公有云上运行一个kubernetes集群
 sealer run kubernetes:v1.19.9 --masters 3 --nodes 3 # 在公有云上运行指定数量节点的kuberentes集群
