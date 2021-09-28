@@ -337,7 +337,7 @@ func (s *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
 	}
 	defer sftpClient.Close()
 	if _, err := sftpClient.ReadDir(remoteDirpath); err != nil {
-		return false, nil
+		return false, err
 	}
 	return true, nil
 }
