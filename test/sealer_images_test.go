@@ -24,8 +24,6 @@ import (
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("sealer image", func() {
@@ -35,7 +33,7 @@ var _ = Describe("sealer image", func() {
 			image.DoImageOps(settings.SubCmdListOfSealer, settings.TestImageName)
 			beforeTestEnvMd5 := image.GetEnvDirMd5()
 			image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
-			Expect(build.CheckIsImageExist(settings.TestImageName)).Should(BeTrue())
+			testhelper.CheckBeTrue(build.CheckIsImageExist(settings.TestImageName))
 			By("show image metadata", func() {
 				testhelper.RunCmdAndCheckResult(fmt.Sprintf("%s inspect %s", settings.DefaultSealerBin, settings.TestImageName), 0)
 			})
@@ -68,31 +66,31 @@ var _ = Describe("sealer image", func() {
 
 				beforeEnvMd5 := image.GetEnvDirMd5()
 				By(fmt.Sprintf("beforeEnvMd5 is %s", beforeEnvMd5))
-				Expect(beforeEnvMd5).NotTo(Equal(""))
+				testhelper.CheckNotEqual(beforeEnvMd5, "")
 				image.TagImages(settings.TestImageName, tagImageName)
-				Expect(build.CheckIsImageExist(tagImageName)).Should(BeTrue())
+				testhelper.CheckBeTrue(build.CheckIsImageExist(tagImageName))
 				image.DoImageOps(settings.SubCmdRmiOfSealer, tagImageName)
-				Expect(build.CheckIsImageExist(tagImageName)).ShouldNot(BeTrue())
+				testhelper.CheckNotBeTrue(build.CheckIsImageExist(tagImageName))
 
 				afterEnvMd5 := image.GetEnvDirMd5()
 				By(fmt.Sprintf("afterEnvMd5 is %s", afterEnvMd5))
-				Expect(afterEnvMd5).To(Equal(beforeEnvMd5))
+				testhelper.CheckEqual(afterEnvMd5, beforeEnvMd5)
 			})
 
 			By("force remove image", func() {
-				Expect(build.CheckIsImageExist(settings.TestImageName)).Should(BeTrue())
+				testhelper.CheckBeTrue(build.CheckIsImageExist(settings.TestImageName))
 				testImageName := "image_test:v0.0"
 				for i := 1; i <= 5; i++ {
 					image.TagImages(settings.TestImageName, testImageName+strconv.Itoa(i))
 					image.DoImageOps(settings.SubCmdListOfSealer, settings.TestImageName)
-					Expect(build.CheckIsImageExist(testImageName + strconv.Itoa(i))).Should(BeTrue())
+					testhelper.CheckBeTrue(build.CheckIsImageExist(testImageName + strconv.Itoa(i)))
 				}
 				image.DoImageOps(settings.SubCmdForceRmiOfSealer, settings.TestImageName)
-				Expect(build.CheckIsImageExist(settings.TestImageName)).ShouldNot(BeTrue())
-				Expect(build.CheckIsImageExist(testImageName)).ShouldNot(BeTrue())
+				testhelper.CheckNotBeTrue(build.CheckIsImageExist(settings.TestImageName))
+				testhelper.CheckNotBeTrue(build.CheckIsImageExist(testImageName))
 				afterEnvMd5 := image.GetEnvDirMd5()
 				By(fmt.Sprintf("afterEnvMd5 is %s", afterEnvMd5))
-				Expect(afterEnvMd5).To(Equal(beforeTestEnvMd5))
+				testhelper.CheckEqual(afterEnvMd5, beforeTestEnvMd5)
 			})
 		})
 
@@ -106,9 +104,9 @@ var _ = Describe("sealer image", func() {
 			faultImageName := faultImageName
 			It(fmt.Sprintf("pull fault image %s", faultImageName), func() {
 				sess, err := testhelper.Start(fmt.Sprintf("%s %s %s", settings.DefaultSealerBin, settings.SubCmdPullOfSealer, faultImageName))
-				Expect(err).NotTo(HaveOccurred())
-				Eventually(sess, settings.MaxWaiteTime).ShouldNot(Exit(0))
-				Expect(build.CheckIsImageExist(faultImageName)).ShouldNot(BeTrue())
+				testhelper.CheckErr(err)
+				testhelper.CheckNotExit0(sess, settings.DefaultWaiteTime)
+				testhelper.CheckNotBeTrue(build.CheckIsImageExist(faultImageName))
 			})
 		}
 
@@ -120,14 +118,14 @@ var _ = Describe("sealer image", func() {
 
 			beforeEnvMd5 := image.GetEnvDirMd5()
 			By(fmt.Sprintf("beforeEnvMd5 is %s", beforeEnvMd5))
-			Expect(beforeEnvMd5).NotTo(Equal(""))
+			testhelper.CheckNotEqual(beforeEnvMd5, "")
 			image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
-			Expect(build.CheckIsImageExist(settings.TestImageName)).Should(BeTrue())
+			testhelper.CheckBeTrue(build.CheckIsImageExist(settings.TestImageName))
 			image.DoImageOps(settings.SubCmdRmiOfSealer, settings.TestImageName)
-			Expect(build.CheckIsImageExist(settings.TestImageName)).ShouldNot(BeTrue())
+			testhelper.CheckNotBeTrue(build.CheckIsImageExist(settings.TestImageName))
 			afterEnvMd5 := image.GetEnvDirMd5()
 			By(fmt.Sprintf("afterEnvMd5 is %s", afterEnvMd5))
-			Expect(beforeEnvMd5).To(Equal(afterEnvMd5))
+			testhelper.CheckEqual(beforeEnvMd5, afterEnvMd5)
 		})
 
 	})
