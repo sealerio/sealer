@@ -46,9 +46,12 @@ func (s Sheller) Run(context Context, phase Phase) error {
 		allHostIP = utils.DisassembleIPList(on)
 	}
 
-	SSH := ssh.NewSSHByCluster(context.Cluster)
+	sshClient, err := ssh.NewSSHClientWithCluster(context.Cluster)
+	if err != nil {
+		return err
+	}
 	for _, ip := range allHostIP {
-		err := SSH.CmdAsync(ip, pluginCmd)
+		err := sshClient.SSH.CmdAsync(ip, pluginCmd)
 		if err != nil {
 			return fmt.Errorf("failed to run shell cmd,  %v", err)
 		}

@@ -71,7 +71,11 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 		return nil
 	}
 	l.data = l.formatData(context.Plugin.Spec.Data)
-
+	k8sClient, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	l.client = k8sClient
 	nodeList, err := l.client.ListNodes()
 	if err != nil {
 		return fmt.Errorf("current cluster nodes not found, %v", err)
