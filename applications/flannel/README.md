@@ -7,10 +7,10 @@ sealer push kubernetes-withcalico:v1.19.9
 
 ## cni-plugin version
 
-+ 0.8.3 [https://github.com/containernetworking/plugins/releases/download/v0.8.3/cni-plugins-linux-amd64-v0.8.3.tgz]
++ 0.8.3 https://github.com/containernetworking/plugins/releases/download/v0.8.3/cni-plugins-linux-amd64-v0.8.3.tgz
 
 ## flannel version
-+ v0.14.0 [https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml]
++ v0.14.0 https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 
 
 ## Using kubernetes-withflannel CloudImage as Base Image
