@@ -90,6 +90,13 @@ const (
 )
 
 const (
+	EtcdPlugin     = "ETCD"
+	LabelPlugin    = "LABEL"
+	ShellPlugin    = "SHELL"
+	HostNamePlugin = "HOSTNAME"
+)
+
+const (
 	LocalBuild     = "local"
 	LiteBuild      = "lite"
 	ContainerBuild = "container"

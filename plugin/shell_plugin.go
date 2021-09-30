@@ -27,6 +27,10 @@ import (
 type Sheller struct {
 }
 
+func NewShellPlugin() Interface {
+	return &Sheller{}
+}
+
 func (s Sheller) Run(context Context, phase Phase) error {
 	if string(phase) != context.Plugin.Spec.Action {
 		return nil
