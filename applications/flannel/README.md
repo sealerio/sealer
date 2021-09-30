@@ -13,7 +13,7 @@ sealer push kubernetes-withcalico:v1.19.9
 + v0.14.0 [https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml]
 
 
-## Using kubernetes-withcalico CloudImage as Base Image
+## Using kubernetes-withflannel CloudImage as Base Image
 First create the directory cni ，then download cni-plugin and tar
 ```
 cni
