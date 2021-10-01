@@ -31,7 +31,7 @@ var upgradeCmd = &cobra.Command{
 	Long:  `sealer upgrade version-you-expect-to --master [args] --node [args] --passwd [args]`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return upgrade.UpgradeCluster(args[0], upgradeArgs)
+		return upgrade.ClusterUpgrade(args[0], upgradeArgs)
 	},
 }
 

@@ -16,15 +16,15 @@ package upgrade
 
 import "github.com/alibaba/sealer/utils/ssh"
 
-type debian_distribution struct {
+type debianDistribution struct {
 }
 
-func (d debian_distribution) upgradeFirstMaster(client *ssh.Client, IP, version string) {
+func (d debianDistribution) upgradeFirstMaster(client *ssh.Client, IP, version string) {
 
 }
-func (d debian_distribution) upgradeOtherMaster(client *ssh.Client, IP, version string) {
+func (d debianDistribution) upgradeOtherMaster(client *ssh.Client, IP, version string) {
 
 }
-func (d debian_distribution) upgradeNode(client *ssh.Client, IP, version string) {
+func (d debianDistribution) upgradeNode(client *ssh.Client, IP, version string) {
 
 }
