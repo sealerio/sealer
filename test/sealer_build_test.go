@@ -29,7 +29,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("sealer build", func() {
@@ -40,14 +39,14 @@ var _ = Describe("sealer build", func() {
 				registry.Login()
 				liteBuildPath := filepath.Join(build.GetFixtures(), build.GetLiteBuildDir())
 				err := os.Chdir(liteBuildPath)
-				Expect(err).NotTo(HaveOccurred())
+				testhelper.CheckErr(err)
 				//add From custom image name
 				build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(liteBuildPath, "Kubefile"))
 			})
 			AfterEach(func() {
 				registry.Logout()
 				err := os.Chdir(settings.DefaultTestEnvDir)
-				Expect(err).NotTo(HaveOccurred())
+				testhelper.CheckErr(err)
 			})
 
 			It("with all build instruct", func() {
@@ -59,11 +58,11 @@ var _ = Describe("sealer build", func() {
 					SetBuildType(settings.LiteBuild).
 					Build()
 				sess, err := testhelper.Start(cmd)
-				Expect(err).NotTo(HaveOccurred())
-				Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+				testhelper.CheckErr(err)
+				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
 				// check: sealer images whether image exist
-				Expect(build.CheckIsImageExist(imageName)).Should(BeTrue())
-				Expect(build.CheckClusterFile(imageName)).Should(BeTrue())
+				testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+				testhelper.CheckBeTrue(build.CheckClusterFile(imageName))
 				image.DoImageOps(settings.SubCmdForceRmiOfSealer, imageName)
 			})
 		})
@@ -73,14 +72,14 @@ var _ = Describe("sealer build", func() {
 				registry.Login()
 				cloudBuildPath := filepath.Join(build.GetFixtures(), build.GetCloudBuildDir())
 				err := os.Chdir(cloudBuildPath)
-				Expect(err).NotTo(HaveOccurred())
+				testhelper.CheckErr(err)
 				//add From custom image name
 				build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(cloudBuildPath, "Kubefile"))
 			})
 			AfterEach(func() {
 				registry.Logout()
 				err := os.Chdir(settings.DefaultTestEnvDir)
-				Expect(err).NotTo(HaveOccurred())
+				testhelper.CheckErr(err)
 			})
 
 			It("with all build instruct", func() {
@@ -99,8 +98,8 @@ var _ = Describe("sealer build", func() {
 						testhelper.DeleteFileLocally(settings.TMPClusterFile)
 					}
 				}()
-				Expect(err).NotTo(HaveOccurred())
-				Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
+				testhelper.CheckErr(err)
+				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
 				// check: need to pull build image and check whether image exist
 				image.DoImageOps(settings.SubCmdPullOfSealer, imageName)
 				Expect(build.CheckIsImageExist(imageName)).Should(BeTrue())

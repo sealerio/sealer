@@ -15,10 +15,13 @@
 package apply
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/utils"
 
@@ -41,22 +44,82 @@ func GetRawClusterFilePath() string {
 	return filepath.Join(fixtures, "cluster_file_for_test.yaml")
 }
 
+func GetRawConfigPluginFilePath() string {
+	fixtures := getFixtures()
+	return filepath.Join(fixtures, "config_plugin_for_test.yaml")
+}
+
 func DeleteClusterByFile(clusterFile string) {
 	testhelper.RunCmdAndCheckResult(SealerDeleteCmd(clusterFile), 0)
 }
 
 func WriteClusterFileToDisk(cluster *v1.Cluster, clusterFilePath string) {
-	gomega.Expect(cluster).NotTo(gomega.BeNil())
+	testhelper.CheckNotNil(cluster)
 	err := testhelper.MarshalYamlToFile(clusterFilePath, cluster)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	testhelper.CheckErr(err)
 }
 
 func LoadClusterFileFromDisk(clusterFilePath string) *v1.Cluster {
-	var cluster v1.Cluster
-	err := testhelper.UnmarshalYamlFile(clusterFilePath, &cluster)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.Expect(cluster).NotTo(gomega.BeNil())
-	return &cluster
+	clusters, err := utils.DecodeCluster(clusterFilePath)
+	testhelper.CheckErr(err)
+	testhelper.CheckNotNil(clusters[0])
+	return &clusters[0]
+}
+
+func LoadConfigFromDisk(clusterFilePath string) []v1.Config {
+	configs, err := utils.DecodeConfigs(clusterFilePath)
+	testhelper.CheckErr(err)
+	testhelper.CheckNotNil(configs)
+	return configs
+}
+
+func LoadPluginFromDisk(clusterFilePath string) []v1.Plugin {
+	plugins, err := utils.DecodePlugins(clusterFilePath)
+	testhelper.CheckErr(err)
+	testhelper.CheckNotNil(plugins)
+	return plugins
+}
+
+func GenerateClusterfile(clusterfile string) {
+	filepath := GetRawConfigPluginFilePath()
+	cluster := LoadClusterFileFromDisk(clusterfile)
+	if cluster.Spec.Image != settings.TestImageName {
+		cluster.Spec.Image = settings.TestImageName
+	}
+	data, err := yaml.Marshal(cluster)
+	testhelper.CheckErr(err)
+	appendData := [][]byte{data}
+	plugins := LoadPluginFromDisk(filepath)
+	configs := LoadConfigFromDisk(filepath)
+	for _, plugin := range plugins {
+		if plugin.Name == "LABEL" {
+			pluginData := "\n"
+			for _, ip := range cluster.Spec.Masters.IPList {
+				pluginData += fmt.Sprintf(" %s sealer-test=true \n", ip)
+			}
+			plugin.Spec.Data = pluginData
+		}
+		if plugin.Name == "HOSTNAME" {
+			pluginData := "\n"
+			for i, ip := range cluster.Spec.Masters.IPList {
+				pluginData += fmt.Sprintf("%s master-%s\n", ip, strconv.Itoa(i))
+			}
+			for i, ip := range cluster.Spec.Nodes.IPList {
+				pluginData += fmt.Sprintf("%s node-%s\n", ip, strconv.Itoa(i))
+			}
+			plugin.Spec.Data = pluginData
+		}
+		data, err := yaml.Marshal(plugin)
+		testhelper.CheckErr(err)
+		appendData = append(appendData, []byte("---\n"), data)
+	}
+	for _, config := range configs {
+		data, err := yaml.Marshal(config)
+		testhelper.CheckErr(err)
+		appendData = append(appendData, []byte("---\n"), data)
+	}
+	err = utils.WriteFile(clusterfile, bytes.Join(appendData, []byte("")))
+	testhelper.CheckErr(err)
 }
 
 func SealerDeleteCmd(clusterFile string) string {
@@ -148,7 +211,7 @@ func SendAndRemoteExecCluster(sshClient *testhelper.SSHClient, clusterFile strin
 		return err == nil
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
 	err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, remoteCmd)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	testhelper.CheckErr(err)
 }
 
 func CleanUpAliCloudInfra(cluster *v1.Cluster) {
@@ -178,31 +241,31 @@ func CheckNodeNumWithSSH(sshClient *testhelper.SSHClient, expectNum int) {
 	}
 	cmd := "kubectl get nodes | wc -l"
 	result, err := sshClient.SSH.CmdToString(sshClient.RemoteHostIP, cmd, "")
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	testhelper.CheckErr(err)
 	num, err := strconv.Atoi(strings.ReplaceAll(result, "\n", ""))
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.Expect(num).Should(gomega.Equal(expectNum + 1))
+	testhelper.CheckErr(err)
+	testhelper.CheckEqual(num, expectNum+1)
 }
 
 // CheckNodeNumLocally check node mum of remote cluster;for cloud apply
 func CheckNodeNumLocally(expectNum int) {
 	cmd := "sudo -E kubectl get nodes | wc -l"
 	result, err := utils.RunSimpleCmd(cmd)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	testhelper.CheckErr(err)
 	num, err := strconv.Atoi(strings.ReplaceAll(result, "\n", ""))
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.Expect(num).Should(gomega.Equal(expectNum + 1))
+	testhelper.CheckErr(err)
+	testhelper.CheckEqual(num, expectNum+1)
 }
 
 func MarshalClusterToFile(ClusterFile string, cluster *v1.Cluster) {
 	err := testhelper.MarshalYamlToFile(ClusterFile, &cluster)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.Expect(cluster).NotTo(gomega.BeNil())
+	testhelper.CheckErr(err)
+	testhelper.CheckNotNil(cluster)
 }
 
 func CheckDockerAndSwapOff() {
 	_, err := utils.RunSimpleCmd("docker -v")
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	testhelper.CheckErr(err)
 	_, err = utils.RunSimpleCmd("sudo swapoff -a")
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	testhelper.CheckErr(err)
 }
