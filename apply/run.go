@@ -122,7 +122,6 @@ func (c *ClusterArgs) SetClusterArgs() error {
 
 func GetClusterFileByImageName(imageName string) (cluster *v1.Cluster, err error) {
 	clusterFile, err := image.GetClusterFileFromImageManifest(imageName)
-	fmt.Println(clusterFile)
 	if err != nil {
 		return nil, err
 	}
