@@ -20,8 +20,9 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/alibaba/sealer/utils"
 	"sigs.k8s.io/yaml"
+
+	"github.com/alibaba/sealer/utils"
 )
 
 func (d *Default) getDefaultSANs() []string {

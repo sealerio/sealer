@@ -17,10 +17,8 @@ package plugin
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/common"
-
+	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 

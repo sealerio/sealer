@@ -23,15 +23,13 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/alibaba/sealer/utils/archive"
-
-	"github.com/alibaba/sealer/image/reference"
-
+	"github.com/opencontainers/go-digest"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
 
+	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
-	"github.com/opencontainers/go-digest"
+	"github.com/alibaba/sealer/utils/archive"
 )
 
 type layerStore struct {

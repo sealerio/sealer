@@ -18,14 +18,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alibaba/sealer/common"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
+
+	"github.com/alibaba/sealer/common"
 )
 
 func NewDebugPodCommand(options *DebuggerOptions) *cobra.Command {

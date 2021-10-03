@@ -21,15 +21,14 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"sigs.k8s.io/yaml"
 
+	"github.com/alibaba/sealer/test/testhelper/settings"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
-
-	"github.com/alibaba/sealer/test/testhelper/settings"
-	"github.com/onsi/gomega"
-	"sigs.k8s.io/yaml"
 )
 
 func GetPwd() string {

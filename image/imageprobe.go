@@ -17,9 +17,10 @@ package image
 import (
 	"fmt"
 
+	"github.com/opencontainers/go-digest"
+
 	"github.com/alibaba/sealer/image/cache"
 	"github.com/alibaba/sealer/logger"
-	"github.com/opencontainers/go-digest"
 )
 
 type Prober interface {

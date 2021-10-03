@@ -17,8 +17,10 @@ package apply
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/client/k8s"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
@@ -29,9 +31,6 @@ import (
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // cloud builder using cloud provider to build a cluster image

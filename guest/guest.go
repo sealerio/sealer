@@ -17,9 +17,8 @@ package guest
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/image/store"
-
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	ssh2 "github.com/alibaba/sealer/utils/ssh"
 )

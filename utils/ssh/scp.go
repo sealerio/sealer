@@ -25,20 +25,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibaba/sealer/common"
-
+	dockerstreams "github.com/docker/cli/cli/streams"
+	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
-
-	dockerstreams "github.com/docker/cli/cli/streams"
-	dockerioutils "github.com/docker/docker/pkg/ioutils"
-
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-
 	"github.com/alibaba/sealer/utils"
 )
 

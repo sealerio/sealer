@@ -15,9 +15,9 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/image"
-
 	"github.com/spf13/cobra"
+
+	"github.com/alibaba/sealer/image"
 )
 
 var tagCmd = &cobra.Command{

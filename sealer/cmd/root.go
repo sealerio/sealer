@@ -19,11 +19,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	"github.com/spf13/cobra"
-
-	"github.com/spf13/viper"
 )
 
 type rootOpts struct {

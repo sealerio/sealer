@@ -20,16 +20,13 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/alibaba/sealer/image/types"
-
-	"github.com/alibaba/sealer/image/store"
-
+	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 
 	"github.com/alibaba/sealer/image/distributionutil"
-	"github.com/docker/distribution"
-
 	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/image/types"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 

@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/common"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +30,8 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/alibaba/sealer/common"
 )
 
 // CleanOptions holds the the options for an invocation of debug clean.

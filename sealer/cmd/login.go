@@ -17,10 +17,10 @@ package cmd
 import (
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
-
-	"github.com/spf13/cobra"
 )
 
 type LoginFlag struct {

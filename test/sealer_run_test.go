@@ -18,10 +18,11 @@ import (
 	"strconv"
 	"strings"
 
+	. "github.com/onsi/ginkgo"
+
 	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
-	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("sealer run", func() {

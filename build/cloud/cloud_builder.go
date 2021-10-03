@@ -16,15 +16,13 @@ package cloud
 
 import (
 	"fmt"
-
 	"os"
 	"path/filepath"
-
-	"github.com/alibaba/sealer/build/local"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/alibaba/sealer/build/local"
 	"github.com/alibaba/sealer/check/checker"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/infra"

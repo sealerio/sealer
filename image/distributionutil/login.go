@@ -23,13 +23,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/client/transport"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/dockerversion"
 	dockerRegistry "github.com/docker/docker/registry"
+	"github.com/pkg/errors"
 )
 
 func Login(ctx context.Context, authConfig *types.AuthConfig) error {

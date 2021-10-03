@@ -19,10 +19,10 @@ import (
 	"io/ioutil"
 	"reflect"
 
+	"sigs.k8s.io/yaml"
+
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-
-	"sigs.k8s.io/yaml"
 )
 
 func UnmarshalYamlFile(file string, obj interface{}) error {

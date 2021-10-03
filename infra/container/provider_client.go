@@ -21,15 +21,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
-
-	"github.com/alibaba/sealer/utils/ssh"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"github.com/docker/docker/api/types/mount"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 type DockerProvider struct {

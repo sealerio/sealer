@@ -17,9 +17,10 @@ package distributionutil
 import (
 	"time"
 
+	"github.com/docker/docker/pkg/progress"
+
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
-	"github.com/docker/docker/pkg/progress"
 )
 
 type Config struct {

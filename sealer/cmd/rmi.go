@@ -18,10 +18,10 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/utils"
-
-	"github.com/spf13/cobra"
 )
 
 type removeImageFlag struct {

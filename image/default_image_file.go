@@ -22,15 +22,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/image/types"
-
 	"sigs.k8s.io/yaml"
-
-	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/image/types"
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/archive"

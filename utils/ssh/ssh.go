@@ -20,12 +20,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/common"
-
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 type Interface interface {

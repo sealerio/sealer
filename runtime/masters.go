@@ -24,13 +24,12 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils/ssh"
-
 	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/ipvs"
+	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 const (

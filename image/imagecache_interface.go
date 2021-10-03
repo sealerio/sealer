@@ -15,8 +15,9 @@
 package image
 
 import (
-	"github.com/alibaba/sealer/image/cache"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/alibaba/sealer/image/cache"
 )
 
 type CacheBuilder interface {

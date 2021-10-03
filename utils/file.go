@@ -25,16 +25,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"golang.org/x/sys/unix"
-
-	"github.com/pkg/errors"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func IsExist(fileName string) bool {

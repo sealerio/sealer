@@ -21,14 +21,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alibaba/sealer/common"
-
-	"github.com/alibaba/sealer/test/testhelper"
-
-	"github.com/alibaba/sealer/test/testhelper/settings"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/test/testhelper"
+	"github.com/alibaba/sealer/test/testhelper/settings"
 )
 
 func TestSealerTests(t *testing.T) {

@@ -24,11 +24,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibaba/sealer/utils"
-
 	"golang.org/x/crypto/ssh"
 
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 )
 
 /**

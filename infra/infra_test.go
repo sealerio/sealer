@@ -19,13 +19,13 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/alibaba/sealer/infra/aliyun"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"sigs.k8s.io/yaml"
+
+	"github.com/alibaba/sealer/infra/aliyun"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 func TestApply(t *testing.T) {

@@ -23,9 +23,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/onsi/gomega"
+
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	"github.com/alibaba/sealer/utils"
-	"github.com/onsi/gomega"
 )
 
 func GetFixtures() string {

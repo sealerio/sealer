@@ -18,13 +18,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibaba/sealer/utils"
-
-	"github.com/alibaba/sealer/logger"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 type ActionName string

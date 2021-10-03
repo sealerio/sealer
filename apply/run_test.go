@@ -15,12 +15,11 @@
 package apply
 
 import (
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
-
 	"testing"
 
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 )
 
 func TestAssemblyIPList(t *testing.T) {

@@ -17,9 +17,8 @@ package infra
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/infra/container"
-
 	"github.com/alibaba/sealer/infra/aliyun"
+	"github.com/alibaba/sealer/infra/container"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 

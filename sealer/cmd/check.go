@@ -17,9 +17,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/check/service"
-
 	"github.com/spf13/cobra"
+
+	"github.com/alibaba/sealer/check/service"
 )
 
 type CheckArgs struct {
