@@ -26,10 +26,8 @@ import (
 	"syscall"
 
 	"github.com/alibaba/sealer/logger"
-
-	"github.com/alibaba/sealer/utils/ssh"
-
 	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 type Interface interface {

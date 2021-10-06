@@ -18,12 +18,13 @@ import (
 	"fmt"
 	"strconv"
 
+	. "github.com/onsi/ginkgo"
+
 	"github.com/alibaba/sealer/test/suites/build"
 	"github.com/alibaba/sealer/test/suites/image"
 	"github.com/alibaba/sealer/test/suites/registry"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
-	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("sealer image", func() {

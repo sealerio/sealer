@@ -14,7 +14,9 @@
 
 package local
 
-import "github.com/alibaba/sealer/common"
+import (
+	"github.com/alibaba/sealer/common"
+)
 
 const (
 	cacheID        = common.CacheID

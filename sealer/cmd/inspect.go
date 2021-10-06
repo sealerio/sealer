@@ -17,8 +17,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/image"
 	"github.com/spf13/cobra"
+
+	"github.com/alibaba/sealer/image"
 )
 
 var clusterFilePrint bool

@@ -16,12 +16,10 @@ package apply
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/alibaba/sealer/common"
-
 	"github.com/alibaba/sealer/logger"
-
-	"testing"
 )
 
 func TestNewCleanApplierFromArgs(t *testing.T) {

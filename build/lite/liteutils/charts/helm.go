@@ -18,12 +18,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/alibaba/sealer/build/lite/liteutils"
 	"github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/engine"
+
+	"github.com/alibaba/sealer/build/lite/liteutils"
 )
 
 func Load(chartPath string) (*chart.Chart, error) {

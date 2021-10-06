@@ -17,8 +17,9 @@ package filesystem
 import (
 	"testing"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func TestMount(t *testing.T) {

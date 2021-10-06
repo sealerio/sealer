@@ -17,11 +17,11 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image"
 )
 
 const (

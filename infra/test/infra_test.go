@@ -20,9 +20,10 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/alibaba/sealer/infra"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestApply(t *testing.T) {

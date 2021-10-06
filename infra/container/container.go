@@ -15,12 +15,13 @@
 package container
 
 import (
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils/ssh"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 func (c *DockerProvider) getUserNsMode() (container.UsernsMode, error) {

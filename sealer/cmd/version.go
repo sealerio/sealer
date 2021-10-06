@@ -18,9 +18,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/alibaba/sealer/version"
-
 	"github.com/spf13/cobra"
+
+	"github.com/alibaba/sealer/version"
 )
 
 var shortPrint bool

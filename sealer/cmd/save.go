@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
-
-	"github.com/spf13/cobra"
 )
 
 var ImageTar string

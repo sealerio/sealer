@@ -16,12 +16,11 @@ package utils
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/logger"
-
-	"io/ioutil"
 )
 
 func GetDefaultClusterName() (string, error) {

@@ -18,13 +18,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/alibaba/sealer/image/types"
-
-	"github.com/alibaba/sealer/common"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"gotest.tools/skip"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/types"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 var images = []v1.Image{

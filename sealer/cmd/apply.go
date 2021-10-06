@@ -15,8 +15,9 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/apply"
 	"github.com/spf13/cobra"
+
+	"github.com/alibaba/sealer/apply"
 )
 
 var clusterFile string

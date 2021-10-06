@@ -19,12 +19,12 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+
 	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/suites/image"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
-
-	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("sealer apply", func() {

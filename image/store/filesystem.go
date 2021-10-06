@@ -29,20 +29,17 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/alibaba/sealer/image/types"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
-
-	"github.com/alibaba/sealer/logger"
 	"github.com/docker/docker/pkg/ioutils"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
 
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/types"
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	pkgutils "github.com/alibaba/sealer/utils"
-	"github.com/pkg/errors"
-
-	"github.com/opencontainers/go-digest"
 )
 
 // Backend is a service for image/layer read and write.

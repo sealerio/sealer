@@ -17,10 +17,11 @@ package aliyun
 import (
 	"errors"
 
-	"github.com/alibaba/sealer/utils"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
+
+	"github.com/alibaba/sealer/utils"
 )
 
 type VpcManager struct {

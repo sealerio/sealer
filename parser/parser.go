@@ -19,12 +19,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/version"
-
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/version"
 )
 
 var validLayer = []string{"FROM", "COPY", "RUN", "CMD"}

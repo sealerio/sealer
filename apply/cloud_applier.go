@@ -18,6 +18,9 @@ import (
 	"bytes"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
@@ -25,8 +28,6 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
 )
 
 const ApplyCluster = "chmod +x %s && %s apply -f %s"

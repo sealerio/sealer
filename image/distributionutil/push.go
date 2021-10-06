@@ -19,21 +19,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
-	"golang.org/x/sync/errgroup"
-
-	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-
 	"sync"
 
-	"github.com/alibaba/sealer/utils/archive"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils/archive"
 )
 
 type Pusher interface {

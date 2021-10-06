@@ -21,9 +21,8 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/alibaba/sealer/image/store"
-
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"

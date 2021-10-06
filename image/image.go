@@ -14,7 +14,9 @@
 
 package image
 
-import "github.com/alibaba/sealer/image/store"
+import (
+	"github.com/alibaba/sealer/image/store"
+)
 
 func NewImageService() (Service, error) {
 	imageStore, err := store.NewDefaultImageStore()

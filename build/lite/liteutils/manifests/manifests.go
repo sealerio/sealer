@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/alibaba/sealer/build/lite/liteutils"
-
 	"github.com/alibaba/sealer/common"
 )
 

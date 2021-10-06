@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 
 	"github.com/alibaba/sealer/build/lite/liteutils"
-
 	"github.com/alibaba/sealer/common"
 )
 

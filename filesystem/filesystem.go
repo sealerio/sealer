@@ -22,20 +22,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alibaba/sealer/image/store"
-
-	"github.com/alibaba/sealer/runtime"
-
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/pkg/errors"
-
-	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
-
+	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
 	"github.com/alibaba/sealer/utils/ssh"
 )

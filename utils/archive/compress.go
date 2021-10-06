@@ -20,21 +20,17 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"syscall"
-
-	"github.com/alibaba/sealer/logger"
-
-	"github.com/alibaba/sealer/utils"
-
-	"golang.org/x/sys/unix"
-
 	"io"
-
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 )
 
 const compressionBufSize = 32768

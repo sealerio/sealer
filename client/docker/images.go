@@ -20,13 +20,14 @@ import (
 	"fmt"
 	"io"
 
+	dockerstreams "github.com/docker/cli/cli/streams"
+	"github.com/docker/docker/api/types"
+	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
-	dockerstreams "github.com/docker/cli/cli/streams"
-	"github.com/docker/docker/api/types"
-	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 )
 
 func (d Docker) ImagesPull(images []string) {

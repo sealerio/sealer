@@ -24,15 +24,12 @@ import (
 	manifest "github.com/alibaba/sealer/build/lite/liteutils/manifests"
 	"github.com/alibaba/sealer/build/local"
 	"github.com/alibaba/sealer/client/docker"
-
-	"github.com/alibaba/sealer/utils/mount"
-
-	"github.com/alibaba/sealer/runtime"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/mount"
 )
 
 type Builder struct {

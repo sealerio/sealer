@@ -17,22 +17,20 @@ package distributionutil
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/alibaba/sealer/utils/archive"
-
-	"fmt"
-
-	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/opencontainers/go-digest"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils/archive"
 )
 
 type Puller interface {

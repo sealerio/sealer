@@ -20,12 +20,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/docker/distribution/manifest/schema2"
+	"github.com/opencontainers/go-digest"
+
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils/archive"
-
-	"github.com/docker/distribution/manifest/schema2"
-
-	"github.com/opencontainers/go-digest"
 )
 
 type LayerID digest.Digest

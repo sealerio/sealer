@@ -20,19 +20,17 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/opencontainers/go-digest"
+
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/store"
-
-	"github.com/alibaba/sealer/utils/archive"
-
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/cache"
+	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
-
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"github.com/opencontainers/go-digest"
+	"github.com/alibaba/sealer/utils/archive"
 )
 
 type handlerContext struct {

@@ -20,13 +20,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/utils"
-
 	"sigs.k8s.io/yaml"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 type ClusterArgs struct {

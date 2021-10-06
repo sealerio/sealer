@@ -19,9 +19,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/opencontainers/go-digest"
+
+	"github.com/alibaba/sealer/utils"
 )
 
 type DistributionMetadataItem struct {

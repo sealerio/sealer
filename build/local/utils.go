@@ -18,21 +18,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	"github.com/alibaba/sealer/client/docker"
-	"github.com/alibaba/sealer/runtime"
-	"github.com/docker/docker/api/types/mount"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
-	"github.com/opencontainers/go-digest"
-
 	"path/filepath"
 	"strings"
 
+	"github.com/docker/docker/api/types/mount"
+	"github.com/opencontainers/go-digest"
 	"sigs.k8s.io/yaml"
+
+	"github.com/alibaba/sealer/client/docker"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/runtime"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 // GetClusterFile from user build context or from base image

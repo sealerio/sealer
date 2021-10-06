@@ -15,11 +15,12 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/build"
-	"github.com/alibaba/sealer/logger"
+	"os"
+
 	"github.com/spf13/cobra"
 
-	"os"
+	"github.com/alibaba/sealer/build"
+	"github.com/alibaba/sealer/logger"
 )
 
 type BuildFlag struct {
