@@ -15,19 +15,15 @@
 package docker
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 )
 
 func (d Docker) ImagesPull(images []string) {
@@ -55,32 +51,13 @@ func (d Docker) ImagesPullByList(images []string) {
 
 func (d Docker) ImagePull(image string) error {
 	var (
-		named       reference.Named
-		err         error
-		authConfig  types.AuthConfig
-		out         io.ReadCloser
-		encodedJSON []byte
-		authStr     string
+		err error
+		out io.ReadCloser
 	)
-	named, err = reference.ParseToNamed(image)
-	if err != nil {
-		logger.Warn("image information parsing failed: %v", err)
-		return err
-	}
-	var ImagePullOptions types.ImagePullOptions
+	named := GetCanonicalImageName(image)
+	opts := GetCanonicalImagePullOptions(named.String())
 
-	authConfig, err = utils.GetDockerAuthInfoFromDocker(named.Domain())
-	if err == nil {
-		encodedJSON, err = json.Marshal(authConfig)
-		if err != nil {
-			logger.Warn("authConfig encodedJSON failed: %v", err)
-		} else {
-			authStr = base64.URLEncoding.EncodeToString(encodedJSON)
-		}
-	}
-
-	ImagePullOptions = types.ImagePullOptions{RegistryAuth: authStr}
-	out, err = d.cli.ImagePull(d.ctx, image, ImagePullOptions)
+	out, err = d.cli.ImagePull(d.ctx, named.String(), opts)
 	if err != nil {
 		return err
 	}
@@ -91,6 +68,7 @@ func (d Docker) ImagePull(image string) error {
 	if err != nil && err != io.ErrClosedPipe {
 		logger.Warn("error occurs in display progressing, err: %s", err)
 	}
+	logger.Info("success to pull docker image: %s ", image)
 	return nil
 }
 
