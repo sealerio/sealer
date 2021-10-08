@@ -31,6 +31,13 @@ const (
 	PhaseOriginally  = Phase("Originally")
 )
 
+const (
+	EtcdPlugin     = "ETCD"
+	LabelPlugin    = "LABEL"
+	ShellPlugin    = "SHELL"
+	HostNamePlugin = "HOSTNAME"
+)
+
 type Context struct {
 	Cluster *v1.Cluster
 	Plugin  *v1.Plugin

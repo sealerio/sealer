@@ -60,7 +60,7 @@ func NewPlugins(clusterName string) Plugins {
 func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
 	for _, config := range c.Plugins {
 		switch config.Name {
-		case common.LabelPlugin:
+		case LabelPlugin:
 			if phase != PhasePostInstall {
 				return nil
 			}
@@ -72,19 +72,19 @@ func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
 			if err != nil {
 				return err
 			}
-		case common.ShellPlugin:
+		case ShellPlugin:
 			s := NewShellPlugin()
 			err := s.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 			if err != nil {
 				return err
 			}
-		case common.EtcdPlugin:
+		case EtcdPlugin:
 			e := NewEtcdBackupPlugin()
 			err := e.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 			if err != nil {
 				return err
 			}
-		case common.HostNamePlugin:
+		case HostNamePlugin:
 			h := NewHostnamePlugin()
 			err := h.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 			if err != nil {
