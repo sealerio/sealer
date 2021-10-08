@@ -22,6 +22,7 @@ import (
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type PodChecker struct {
@@ -38,7 +39,16 @@ type PodNamespaceStatus struct {
 
 var PodNamespaceStatusList []PodNamespaceStatus
 
-func (n *PodChecker) Check() error {
+func (n *PodChecker) Check(cluster *v1.Cluster, phase string) error {
+	if phase != PhasePost {
+		return nil
+	}
+	c, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	n.client = c
+
 	namespacePodList, err := n.client.ListAllNamespacesPods()
 	if err != nil {
 		return err
@@ -95,7 +105,7 @@ func (n *PodChecker) Output(podNamespaceStatusList []PodNamespaceStatus) error {
 	t = template.Must(t, err)
 	err = t.Execute(common.StdOut, podNamespaceStatusList)
 	if err != nil {
-		logger.Error("pod checker template can not excute %s", err)
+		logger.Error("pod checkers template can not excute %s", err)
 		return err
 	}
 	return nil
@@ -112,12 +122,6 @@ func getPodReadyStatus(pod *corev1.Pod) error {
 	return &NotFindReadyTypeError{}
 }
 
-func NewPodChecker() (Checker, error) {
-	c, err := k8s.Newk8sClient()
-	if err != nil {
-		return nil, err
-	}
-	return &PodChecker{
-		client: c,
-	}, nil
+func NewPodChecker() Interface {
+	return &PodChecker{}
 }
