@@ -1,8 +1,8 @@
 # Build a kubernetes-withflannel CloudImage
 
 ```shell script
-sealer build -b lite -t kubernetes-withflannel:v1.19.9 .
-sealer push kubernetes-withcalico:v1.19.9
+sealer build -b lite -t registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9 .
+sealer push registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9
 ```
 
 ## cni-plugin version
@@ -14,8 +14,11 @@ sealer push kubernetes-withcalico:v1.19.9
 
 ## How to use it
 ```
-    sealer pull  registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9
-    sealer run registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9 --masters xxxx --nodes xxxx
+#Pull image
+sealer pull  registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9
+
+#Run it
+sealer run registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9 --masters xxxx --nodes xxxx
 ```
 
 ##  How to rebuild it
