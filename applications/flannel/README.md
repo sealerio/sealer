@@ -12,8 +12,13 @@ sealer push kubernetes-withcalico:v1.19.9
 ## flannel version
 + v0.14.0 https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 
+## How to use it
+```
+    sealer pull  registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9
+    sealer run registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9 --masters xxxx --nodes xxxx
+```
 
-## Using kubernetes-withflannel CloudImage as Base Image
+##  How to rebuild it
 First create the directory cni ，then download cni-plugin and tar
 ```
 cni
