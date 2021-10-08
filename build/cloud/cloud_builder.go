@@ -16,13 +16,12 @@ package cloud
 
 import (
 	"fmt"
+
 	"os"
 	"path/filepath"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
+	"github.com/alibaba/sealer/build/buildkit"
 
-	"github.com/alibaba/sealer/build/local"
 	"github.com/alibaba/sealer/checker"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/infra"
@@ -30,11 +29,13 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 // Builder using cloud provider to build a cluster image
 type Builder struct {
-	Local              *local.Builder
+	Local              *buildkit.Builder
 	RemoteHostIP       string
 	SSH                ssh.Interface
 	Provider           string
@@ -64,7 +65,7 @@ func (c *Builder) GetBuildPipeLine() ([]func() error, error) {
 	if err := c.Local.InitImageSpec(); err != nil {
 		return nil, err
 	}
-	if local.IsOnlyCopy(c.Local.Image.Spec.Layers) {
+	if buildkit.IsOnlyCopy(c.Local.Image.Spec.Layers) {
 		buildPipeline = append(buildPipeline,
 			c.Local.PullBaseImageNotExist,
 			c.Local.ExecBuild,
@@ -103,7 +104,7 @@ func (c *Builder) InitClusterFile() error {
 		return nil
 	}
 
-	rawClusterFile, err := local.GetRawClusterFile(c.Local.Image)
+	rawClusterFile, err := buildkit.GetRawClusterFile(c.Local.Image)
 	if err != nil {
 		return err
 	}

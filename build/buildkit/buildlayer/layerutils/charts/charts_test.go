@@ -19,37 +19,6 @@ import (
 	"testing"
 )
 
-func TestDefaultChartsRootDir(t *testing.T) {
-	type args struct {
-		clusterName string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			"test default charts root directory",
-			args{"my_cluster"},
-			"/var/lib/sealer/data/my_cluster/mount/charts",
-		},
-		{
-			"test default charts root directory 2",
-			args{"second_cluster"},
-			"/var/lib/sealer/data/second_cluster/mount/charts",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := defaultChartsRootDir(tt.args.clusterName)
-			if got != tt.want {
-				t.Errorf("defaultChartsRootDir() got = %v, want %v", got, tt.want)
-				return
-			}
-		})
-	}
-}
-
 func TestListImages(t *testing.T) {
 	type args struct {
 		clusterName string

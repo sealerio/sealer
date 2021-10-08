@@ -12,21 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package buildkit
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/opencontainers/go-digest"
+	"github.com/alibaba/sealer/client/k8s"
+
+	"github.com/alibaba/sealer/image/cache"
 	"github.com/pkg/errors"
 
-	"github.com/alibaba/sealer/client/k8s"
+	"github.com/opencontainers/go-digest"
+
+	"github.com/alibaba/sealer/image/store"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/cache"
 	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -38,7 +41,7 @@ type builderLayer struct {
 	NewLayers  []v1.Layer
 }
 
-// Builder: local builder using local provider to build a cluster image
+// Builder : local builder using local provider to build a cluster image
 type Builder struct {
 	BuildType        string
 	NoCache          bool
@@ -126,7 +129,7 @@ func (l *Builder) GetBuildPipeLine() ([]func() error, error) {
 	return buildPipeline, nil
 }
 
-// init default Image metadata
+// InitImageSpec init default Image metadata
 func (l *Builder) InitImageSpec() error {
 	kubeFile, err := utils.ReadAll(l.KubeFileName)
 	if err != nil {
@@ -156,58 +159,66 @@ func (l *Builder) PullBaseImageNotExist() error {
 		return fmt.Errorf("failed to pull baseImage: %v", err)
 	}
 	logger.Info("pull base image %s success", l.Image.Spec.Layers[0].Value)
-
 	return nil
 }
 
-func (l *Builder) ExecBuild() error {
-	err := l.updateBuilderLayers(l.Image)
-	if err != nil {
-		return err
-	}
+func (l *Builder) prepareHandlerContext() *handlerContext {
 	var (
 		canUseCache = !l.NoCache
 		parentID    = cache.ChainID("")
-		newLayers   = l.NewLayers
 	)
 
-	baseLayerPaths := GetBaseLayersPath(l.BaseLayers)
 	chainSvc, err := cache.NewService()
 	if err != nil {
-		return err
+		return nil
 	}
 
-	hc := handlerContext{
+	hc := &handlerContext{
 		buildContext:  l.Context,
+		buildType:     l.BuildType,
 		continueCache: canUseCache,
 		cacheSvc:      chainSvc,
 		prober:        l.Prober,
 		parentID:      parentID,
-		ignoreError:   l.BuildType == common.LiteBuild,
 	}
+	return hc
+}
 
-	mhandler := handler{
-		hc:         hc,
-		layerStore: l.LayerStore,
+func (l *Builder) ExecBuild() error {
+	err := l.UpdateBuilderLayers(l.Image)
+	if err != nil {
+		return err
 	}
+	newLayers := l.NewLayers
+	baseLayerPaths := GetBaseLayersPath(l.BaseLayers)
+	hc := l.prepareHandlerContext()
+
 	for i := 0; i < len(newLayers); i++ {
 		// take layer reference
 		// we are to modify the layer
 		layer := &newLayers[i]
 		logger.Info("run build layer: %s %s", layer.Type, layer.Value)
+		if l.BuildType == common.LiteBuild && layer.Type == common.CMDCOMMAND {
+			continue
+		}
+
 		var (
 			layerID digest.Digest
 			cacheID digest.Digest
 			forErr  error
 		)
-
+		mhandler := handler{
+			hc:           *hc,
+			layerStore:   l.LayerStore,
+			layerHandler: LayerValueExchange(layer),
+		}
+		// handle layer content first and exec layer instruction
 		switch layer.Type {
 		case common.CMDCOMMAND, common.RUNCOMMAND:
 			layerID, forErr = mhandler.handleCMDRUNCmd(*layer, baseLayerPaths...)
 			if forErr != nil {
 				return forErr
 			}
-
 		case common.COPYCOMMAND:
 			layerID, cacheID, forErr = mhandler.handleCopyCmd(*layer)
 			if forErr != nil {
@@ -262,7 +273,7 @@ func (l *Builder) CollectRegistryCache() error {
 	return nil
 }
 
-//This function only has meaning for copy layers
+// SetCacheID This function only has meaning for copy layers
 func (l *Builder) SetCacheID(layerID digest.Digest, cID string) error {
 	return l.FS.SetMetadata(layerID, cacheID, []byte(cID))
 }
@@ -303,7 +314,7 @@ func (l *Builder) updateImageIDAndSaveImage() error {
 	return l.ImageStore.Save(*l.Image, l.ImageNamed.Raw())
 }
 
-func (l *Builder) updateBuilderLayers(image *v1.Image) error {
+func (l *Builder) UpdateBuilderLayers(image *v1.Image) error {
 	// we do not check the len of layers here, because we checked it before.
 	// remove the first layer of image
 	var (
@@ -333,10 +344,9 @@ func (l *Builder) updateBuilderLayers(image *v1.Image) error {
 func (l *Builder) Cleanup() (err error) {
 	// umount registry
 	if l.DockerImageCache != nil {
-		l.DockerImageCache.CleanUp()
-		return
+		_ = l.DockerImageCache.TempUMount()
+		utils.CleanDirs(l.DockerImageCache.GetMountUpper())
 	}
-
 	return err
 }
 

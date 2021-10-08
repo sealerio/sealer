@@ -18,13 +18,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils"
+
 	"github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/engine"
-
-	"github.com/alibaba/sealer/build/lite/liteutils"
 )
 
 func Load(chartPath string) (*chart.Chart, error) {
@@ -89,7 +89,7 @@ func GetImageList(chartPath string) ([]string, error) {
 	}
 
 	for _, v := range content {
-		images := liteutils.DecodeImages(v)
+		images := layerutils.DecodeImages(v)
 		if len(images) != 0 {
 			list = append(list, images...)
 		}

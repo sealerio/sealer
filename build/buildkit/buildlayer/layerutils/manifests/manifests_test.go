@@ -20,37 +20,6 @@ import (
 	"testing"
 )
 
-func TestDefaultManifestsRootDir(t *testing.T) {
-	type args struct {
-		clusterName string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			"test default manifests root directory",
-			args{"my_cluster"},
-			"/var/lib/sealer/data/my_cluster/rootfs/manifests",
-		},
-		{
-			"test default manifests root directory 2",
-			args{"second_cluster"},
-			"/var/lib/sealer/data/second_cluster/rootfs/manifests",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := defaultManifestsRootDir(tt.args.clusterName)
-			if got != tt.want {
-				t.Errorf("defaultManifestsRootDir() got = %v, want %v", got, tt.want)
-				return
-			}
-		})
-	}
-}
-
 func TestListImages(t *testing.T) {
 	type args struct {
 		clusterName string

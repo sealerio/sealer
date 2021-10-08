@@ -12,28 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package buildkit
 
 import (
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/alibaba/sealer/client/docker"
+	"github.com/alibaba/sealer/runtime"
+	"github.com/docker/docker/api/types/mount"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
+	"github.com/opencontainers/go-digest"
+
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/api/types/mount"
-	"github.com/opencontainers/go-digest"
 	"sigs.k8s.io/yaml"
-
-	"github.com/alibaba/sealer/client/docker"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/runtime"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 )
 
-// GetClusterFile from user build context or from base image
+// GetRawClusterFile GetClusterFile from user build context or from base image
 func GetRawClusterFile(im *v1.Image) (string, error) {
 	if im.Spec.Layers[0].Value == common.ImageScratch {
 		data, err := ioutil.ReadFile(filepath.Join("etc", common.DefaultClusterFileName))
@@ -72,7 +74,7 @@ func getClusterFileFromContext(image *v1.Image) (string, error) {
 	return "", fmt.Errorf("failed to get ClusterFile from Context")
 }
 
-// used in build stage, where the image still has from layer
+// GetBaseLayersPath used in build stage, where the image still has from layer
 func GetBaseLayersPath(layers []v1.Layer) (res []string) {
 	for _, layer := range layers {
 		if layer.ID != "" {
@@ -154,7 +156,7 @@ func GetRegistryBindDir() string {
 	return ""
 }
 
-// parse context and kubefile. return context abs path and kubefile abs path
+// ParseBuildArgs parse context and kubefile. return context abs path and kubefile abs path
 func ParseBuildArgs(localContextDir, kubeFileName string) (string, string, error) {
 	localDir, err := resolveAndValidateContextPath(localContextDir)
 	if err != nil {

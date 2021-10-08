@@ -61,6 +61,7 @@ func (d Docker) ImagePull(image string) error {
 		out   io.ReadCloser
 		named reference.Named
 	)
+
 	named, err = GetCanonicalImageName(image)
 	if err != nil {
 		return fmt.Errorf("failed to parse canonical image name %s : %v", image, err)
@@ -74,6 +75,7 @@ func (d Docker) ImagePull(image string) error {
 	defer func() {
 		_ = out.Close()
 	}()
+
 	err = dockerjsonmessage.DisplayJSONMessagesToStream(out, dockerstreams.NewOut(common.StdOut), nil)
 	if err != nil && err != io.ErrClosedPipe {
 		logger.Warn("error occurs in display progressing, err: %s", err)
