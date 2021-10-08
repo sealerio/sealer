@@ -61,34 +61,28 @@ func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
 	for _, config := range c.Plugins {
 		switch config.Name {
 		case LabelPlugin:
-			if phase != PhasePostInstall {
-				return nil
-			}
-			l, err := NewLabelsPlugin()
+			l := NewLabelsPlugin()
+			err := l.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 			if err != nil {
 				return fmt.Errorf("failed to run label plugin, %v", err)
-			}
-			err = l.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return err
 			}
 		case ShellPlugin:
 			s := NewShellPlugin()
 			err := s.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to run shell plugin, %v", err)
 			}
 		case EtcdPlugin:
 			e := NewEtcdBackupPlugin()
 			err := e.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to run etcd plugin, %v", err)
 			}
 		case HostNamePlugin:
 			h := NewHostnamePlugin()
 			err := h.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to run hostname plugin, %v", err)
 			}
 		default:
 			return fmt.Errorf("not find plugin %s", config.Name)

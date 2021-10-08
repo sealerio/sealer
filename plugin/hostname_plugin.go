@@ -47,9 +47,7 @@ type HostnamePlugin struct {
 }
 
 func NewHostnamePlugin() Interface {
-	return &HostnamePlugin{
-		data: map[string]string{},
-	}
+	return &HostnamePlugin{data: map[string]string{}}
 }
 
 func (h HostnamePlugin) Run(context Context, phase Phase) error {
