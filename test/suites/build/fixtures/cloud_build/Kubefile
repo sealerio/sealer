@@ -4,7 +4,6 @@ COPY test1 .
 COPY recommended.yaml .
 CMD kubectl apply -f recommended.yaml
 COPY test2 .
-RUN wget helm.sh/helm
 RUN wget -O redis.tar.gz http://download.redis.io/releases/redis-5.0.3.tar.gz
 RUN tar zxvf redis.tar.gz
 CMD kubectl get nodes
