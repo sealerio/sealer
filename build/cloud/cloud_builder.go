@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/build/local"
-	"github.com/alibaba/sealer/check/checker"
+	"github.com/alibaba/sealer/checker"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
@@ -88,7 +88,7 @@ func (c *Builder) PreCheck() (err error) {
 		return nil
 	}
 	registryChecker := checker.NewRegistryChecker(c.Local.ImageNamed.Domain())
-	return registryChecker.Check()
+	return registryChecker.Check(nil, checker.PhasePre)
 }
 
 // load cluster file from disk

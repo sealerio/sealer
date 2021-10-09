@@ -22,6 +22,7 @@ import (
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type SvcChecker struct {
@@ -39,7 +40,17 @@ type SvcClusterStatus struct {
 	SvcNamespaceStatusList []*SvcNamespaceStatus
 }
 
-func (n *SvcChecker) Check() error {
+func (n *SvcChecker) Check(cluster *v1.Cluster, phase string) error {
+	if phase != PhasePost {
+		return nil
+	}
+	// checker if all the node is ready
+	c, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	n.client = c
+
 	namespaceSvcList, err := n.client.ListAllNamespacesSvcs()
 	var svcNamespaceStatusList []*SvcNamespaceStatus
 	if err != nil {
@@ -94,7 +105,7 @@ func (n *SvcChecker) Output(svcNamespaceStatusList []*SvcNamespaceStatus) error 
 	t = template.Must(t, err)
 	err = t.Execute(common.StdOut, svcNamespaceStatusList)
 	if err != nil {
-		logger.Error("service checker template can not excute %s", err)
+		logger.Error("service checkers template can not excute %s", err)
 		return err
 	}
 	return nil
@@ -111,13 +122,6 @@ func IsExistEndpoint(endpointList *corev1.EndpointsList, serviceName string) boo
 	return false
 }
 
-func NewSvcChecker() (Checker, error) {
-	// check if all the node is ready
-	c, err := k8s.Newk8sClient()
-	if err != nil {
-		return nil, err
-	}
-	return &SvcChecker{
-		client: c,
-	}, nil
+func NewSvcChecker() Interface {
+	return &SvcChecker{}
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 const (
@@ -40,7 +41,16 @@ type NodeClusterStatus struct {
 	NotReadyNodeList []string
 }
 
-func (n *NodeChecker) Check() error {
+func (n *NodeChecker) Check(cluster *v1.Cluster, phase string) error {
+	if phase != PhasePost {
+		return nil
+	}
+	// checker if all the node is ready
+	c, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	n.client = c
 	nodes, err := n.client.ListNodes()
 	if err != nil {
 		return err
@@ -91,7 +101,7 @@ func (n *NodeChecker) Output(nodeCLusterStatus NodeClusterStatus) error {
 	t = template.Must(t, err)
 	err = t.Execute(common.StdOut, nodeCLusterStatus)
 	if err != nil {
-		logger.Error("node checker template can not excute %s", err)
+		logger.Error("node checkers template can not excute %s", err)
 		return err
 	}
 	return nil
@@ -122,13 +132,6 @@ func getNodeStatus(node *corev1.Node) (IP string, Phase string) {
 	return IP, Phase
 }
 
-func NewNodeChecker() (Checker, error) {
-	// check if all the node is ready
-	c, err := k8s.Newk8sClient()
-	if err != nil {
-		return nil, err
-	}
-	return &NodeChecker{
-		client: c,
-	}, nil
+func NewNodeChecker() Interface {
+	return &NodeChecker{}
 }

@@ -12,18 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package service
+package checker
 
-import "fmt"
+import (
+	"fmt"
 
-type DefaultCheckerService struct {
+	v1 "github.com/alibaba/sealer/types/api/v1"
+)
+
+const (
+	PhasePre  = "Pre"
+	PhasePost = "Post"
+)
+
+// Define checkers when pre or post install, like checker node status, checker pod status...
+type Interface interface {
+	Check(cluster *v1.Cluster, phase string) error
 }
 
-func (d *DefaultCheckerService) Run() error {
-	fmt.Println("check cluster")
+func RunCheckList(cluster *v1.Cluster, phase string) error {
+	list := []Interface{NewNodeChecker(), NewSvcChecker(), NewPodChecker()}
+
+	for _, l := range list {
+		if err := l.Check(cluster, phase); err != nil {
+			return fmt.Errorf("failed to run checker: %v", err)
+		}
+	}
 	return nil
-}
-
-func NewDefaultCheckerService() CheckerService {
-	return &DefaultCheckerService{}
 }

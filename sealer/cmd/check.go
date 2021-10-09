@@ -19,7 +19,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/check/service"
+	"github.com/alibaba/sealer/checker"
 )
 
 type CheckArgs struct {
@@ -36,19 +36,14 @@ var checkCmd = &cobra.Command{
 	Example: `sealer check --pre or sealer check --post`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var checker service.CheckerService
 		if checkArgs.Pre && checkArgs.Post {
 			return fmt.Errorf("don't allow to set tow flags --pre and --post")
 		}
 
 		if checkArgs.Pre {
-			checker = service.NewPreCheckerService()
-		} else if checkArgs.Post {
-			checker = service.NewPostCheckerService()
-		} else {
-			checker = service.NewDefaultCheckerService()
+			return checker.RunCheckList(nil, checker.PhasePre)
 		}
-		return checker.Run()
+		return checker.RunCheckList(nil, checker.PhasePost)
 	},
 }
 
