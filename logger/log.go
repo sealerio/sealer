@@ -394,6 +394,10 @@ func Reset() {
 	defaultLogger.Reset()
 }
 
+func IsDebugModel() bool {
+	return loggerConfig.DebugMode
+}
+
 func SetLogPath(show bool) {
 	defaultLogger.SetLogPath(show)
 }

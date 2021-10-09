@@ -111,6 +111,9 @@ func (d *Default) initRunner(cluster *v1.Cluster) (Interface, error) {
 	d.APIServerCertSANs = append(cluster.Spec.CertSANS, d.getDefaultSANs()...)
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
+	if logger.IsDebugModel() {
+		d.Vlog = 6
+	}
 	return d, nil
 	// return d.LoadMetadata()
 }
