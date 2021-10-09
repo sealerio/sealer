@@ -67,7 +67,5 @@ func GetCanonicalImagePullOptions(canonicalImageName string) types.ImagePullOpti
 			authStr = base64.URLEncoding.EncodeToString(encodedJSON)
 		}
 	}
-
 	return types.ImagePullOptions{RegistryAuth: authStr}
-
 }
