@@ -10,6 +10,7 @@ sealer push registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9
 + 0.8.3 <https://github.com/containernetworking/plugins/releases/download/v0.8.3/cni-plugins-linux-amd64-v0.8.3.tgz>
 
 ## flannel version
+
 + v0.14.0 <https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml>
 
 ## How to use it
@@ -17,7 +18,6 @@ sealer push registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9
 ```shell script
 #Pull image
 sealer pull  registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9
-
 #Run it
 sealer run registry-1.docker.io/bryantrh/kubernetes-withflannel:v1.19.9 --masters xxxx --nodes xxxx
 ```
