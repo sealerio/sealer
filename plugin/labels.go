@@ -53,15 +53,8 @@ type label struct {
 	value string
 }
 
-func NewLabelsNodes() (Interface, error) {
-	c, err := k8s.Newk8sClient()
-	if err != nil {
-		return nil, err
-	}
-	return &LabelsNodes{
-		data:   map[string][]label{},
-		client: c,
-	}, nil
+func NewLabelsPlugin() Interface {
+	return &LabelsNodes{data: map[string][]label{}}
 }
 
 func (l LabelsNodes) Run(context Context, phase Phase) error {
@@ -69,6 +62,11 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 		logger.Debug("label nodes is PostInstall!")
 		return nil
 	}
+	c, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	l.client = c
 	l.data = l.formatData(context.Plugin.Spec.Data)
 
 	nodeList, err := l.client.ListNodes()

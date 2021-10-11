@@ -114,7 +114,8 @@ func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
 		go func(host string) {
 			defer wg.Done()
 			for i := 0; i < tryTimes; i++ {
-				if err = ssh.Ping(host); err == nil {
+				err = ssh.Ping(host)
+				if err == nil {
 					return
 				}
 				time.Sleep(time.Duration(i) * time.Second)
