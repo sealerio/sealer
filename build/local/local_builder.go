@@ -38,7 +38,7 @@ type builderLayer struct {
 	NewLayers  []v1.Layer
 }
 
-// LocalBuilder: local builder using local provider to build a cluster image
+// Builder: local builder using local provider to build a cluster image
 type Builder struct {
 	BuildType        string
 	NoCache          bool
@@ -132,28 +132,31 @@ func (l *Builder) InitImageSpec() error {
 	if err != nil {
 		return fmt.Errorf("failed to load kubefile: %v", err)
 	}
+
 	l.Image = parser.NewParse().Parse(kubeFile)
 	if l.Image == nil {
 		return fmt.Errorf("failed to parse kubefile, image is nil")
 	}
 
 	layer0 := l.Image.Spec.Layers[0]
-	if layer0.Type != FromCmd {
-		return fmt.Errorf("first line of kubefile must start with FROM")
+	if layer0.Type != common.FROMCOMMAND {
+		return fmt.Errorf("first line of kubefile must start with %s", common.FROMCOMMAND)
 	}
 
 	logger.Info("init image spec success!")
 	return nil
 }
 
-func (l *Builder) PullBaseImageNotExist() (err error) {
+func (l *Builder) PullBaseImageNotExist() error {
 	if l.Image.Spec.Layers[0].Value == common.ImageScratch {
 		return nil
 	}
-	if err = l.ImageService.PullIfNotExist(l.Image.Spec.Layers[0].Value); err != nil {
+
+	if err := l.ImageService.PullIfNotExist(l.Image.Spec.Layers[0].Value); err != nil {
 		return fmt.Errorf("failed to pull baseImage: %v", err)
 	}
 	logger.Info("pull base image %s success", l.Image.Spec.Layers[0].Value)
+
 	return nil
 }
 
@@ -231,6 +234,7 @@ func (l *Builder) ExecBuild() error {
 	logger.Info("exec all build instructs success !")
 	return nil
 }
+
 func (l *Builder) CollectRegistryCache() error {
 	if l.DockerImageCache == nil {
 		return nil

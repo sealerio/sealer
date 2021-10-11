@@ -26,10 +26,12 @@ func (d DefaultImageService) BuildImageCache() (Cache, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to build image cache, err: %s", err)
 	}
+
 	fs, err := store.NewFSStoreBackend()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init store backend for image cache, err: %s", err)
 	}
+
 	imageStore, err := cache.NewImageStore(fs, ls)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init image store for image cache, err: %s", err)

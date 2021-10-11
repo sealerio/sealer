@@ -27,6 +27,7 @@ import (
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
 
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils/archive"
@@ -55,7 +56,7 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 	}
 
 	curLayerDBDir := ls.LayerDBDir(layer.ID().ToDigest())
-	err := os.MkdirAll(curLayerDBDir, 0755)
+	err := os.MkdirAll(curLayerDBDir, common.FileMode0755)
 	if err != nil {
 		return fmt.Errorf("failed to init layer db for %s, err: %s", curLayerDBDir, err)
 	}

@@ -14,11 +14,8 @@
 
 package build
 
-const (
-	LocalBuild     = "local"
-	LiteBuild      = "lite"
-	ContainerBuild = "container"
-	AliCloudBuild  = "cloud"
+import (
+	"github.com/alibaba/sealer/common"
 )
 
 type Interface interface {
@@ -27,9 +24,9 @@ type Interface interface {
 
 func NewBuilder(config *Config) (Interface, error) {
 	switch config.BuildType {
-	case LiteBuild:
+	case common.LiteBuild:
 		return NewLiteBuilder(config)
-	case LocalBuild:
+	case common.LocalBuild:
 		return NewLocalBuilder(config)
 	default:
 		return NewCloudBuilder(config)

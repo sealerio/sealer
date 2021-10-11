@@ -86,13 +86,14 @@ func ReadAll(fileName string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
+
 	// step3：read file content
 	content, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-	//step4：close file
-	defer file.Close()
+
 	return content, nil
 }
 

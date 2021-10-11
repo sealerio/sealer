@@ -38,12 +38,12 @@ var buildCmd = &cobra.Command{
 	Short: "cloud image local build command line",
 	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.9 [--buildType cloud|container|lite] [--no-cache]",
 	Args:  cobra.ExactArgs(1),
-	Example: `the current path is the context path ,default build type is cloud and use build cache
+	Example: `the current path is the context path, default build type is cloud and use build cache
 
-cloud build :
+cloud build:
 	sealer build -f Kubefile -t my-kubernetes:1.19.9
 
-container build :
+container build:
 	sealer build -f Kubefile -t my-kubernetes:1.19.9 -b container
 
 lite build:
@@ -71,7 +71,7 @@ build without cache:
 func init() {
 	buildConfig = &BuildFlag{}
 	rootCmd.AddCommand(buildCmd)
-	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "buildType", "b", "", "cluster image build type,default is cloud")
+	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "buildType", "b", "", "cluster image build type, default is cloud")
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
