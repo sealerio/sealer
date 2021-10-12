@@ -11,8 +11,9 @@ If you write the plugin config in Clusterfile and apply it, sealer will help you
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: HOSTNAME
+  name: hostname
 spec:
+  type: HOSTNAME
   data: |
      192.168.0.2 master-0
      192.168.0.3 master-1
@@ -28,8 +29,9 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: SHELL
+  name: shell
 spec:
+  type: SHELL
   action: PostInstall
   on: 192.168.0.2-192.168.0.4 #or 192.168.0.2,192.168.0.3,192.168.0.7
   data: |
@@ -42,8 +44,9 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: LABEL
+  name: label
 spec:
+  type: LABEL
   data: |
      192.168.0.2 ssd=true
      192.168.0.3 ssd=true

@@ -17,6 +17,7 @@ package plugin
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
@@ -43,6 +44,7 @@ Dump will dump the config to etc/redis-config.yaml file
 
 type Plugins interface {
 	Dump(clusterfile string) error
+	Load() error
 	Run(cluster *v1.Cluster, phase Phase) error
 }
 
@@ -59,19 +61,24 @@ func NewPlugins(clusterName string) Plugins {
 }
 
 // load plugin configs in rootfs/plugin dir
-func (c *PluginsProcessor) load() error {
+func (c *PluginsProcessor) Load() error {
 	c.Plugins = nil
-	files, err := ioutil.ReadDir(common.DefaultTheClusterRootfsPluginDir(c.ClusterName))
+	path := common.DefaultTheClusterRootfsPluginDir(c.ClusterName)
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+
+	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		return fmt.Errorf("failed to load plugin dir %v", err)
 	}
 	for _, f := range files {
-		plugin := v1.Plugin{}
-		err := utils.UnmarshalYamlFile(f.Name(), plugin)
+		plugins, err := utils.DecodePlugins(filepath.Join(path, f.Name()))
 		if err != nil {
 			return fmt.Errorf("failed to load plugin %v", err)
 		}
-		c.Plugins = append(c.Plugins, plugin)
+		c.Plugins = append(c.Plugins, plugins...)
 	}
 
 	return nil
@@ -80,10 +87,6 @@ func (c *PluginsProcessor) load() error {
 func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 	var p Interface
 
-	err := c.load()
-	if err != nil {
-		return err
-	}
 	for _, config := range c.Plugins {
 		switch config.Spec.Type {
 		case LabelPlugin:
@@ -95,7 +98,7 @@ func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 		case HostNamePlugin:
 			p = NewHostnamePlugin()
 		default:
-			return fmt.Errorf("not find plugin %s", config.Name)
+			return fmt.Errorf("not find plugin %v", config)
 		}
 		err := p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 		if err != nil {

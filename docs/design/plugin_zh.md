@@ -11,8 +11,9 @@
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: HOSTNAME
+  name: hostname
 spec:
+  type: HOSTNAME
   data: |
     192.168.0.2 master-0
     192.168.0.3 master-1
@@ -32,8 +33,9 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: SHELL
+  name: shell
 spec:
+  type: SHELL
   action: PostInstall
   on: role=master
   data: |
@@ -61,8 +63,9 @@ data   : #指定执行的shell命令
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: LABEL
+  name: label
 spec:
+  type: LABEL
   data: |
     192.168.0.2 ssd=true
     192.168.0.3 ssd=true
@@ -115,8 +118,9 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: HOSTNAME
+  name: hostname
 spec:
+  type: HOSTNAME
   data: |
      192.168.0.2 master-0
      192.168.0.3 master-1
@@ -128,8 +132,9 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: SHELL
+  name: taint
 spec:
+  type: SHELL
   action: PostInstall
   on: role=master
   data: |
@@ -140,4 +145,38 @@ spec:
 sealer apply -f Clusterfile #plugin仅在安装时执行，后续apply不生效。
 ```
 
->执行上述命令后hostname，shell plugin将修改主机名并在成功安装集群后执行shell命令。
+> 执行上述命令后hostname，shell plugin将修改主机名并在成功安装集群后执行shell命令。
+
+## 在Kubefile中定义默认插件
+
+很多情况下在不使用Clusterfile的情况下也能使用插件，本质上sealer会先把Clusterfile中的插件配置先存储到 rootfs/plugin目录，再去使用，所以我们可以在制作镜像时就定义好默认插件。
+
+插件配置 shell.yaml:
+
+```
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: taint
+spec:
+  type: SHELL
+  action: PostInstall
+  on: role=master
+  data: |
+     kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
+```
+
+Kubefile:
+
+```shell script
+FROM kubernetes:v1.19.8
+COPY shell.yaml plugin
+```
+
+build一个包含去污点插件的集群镜像：
+
+```shell script
+sealer build -b lite -t kubernetes-taint:v1.19.8 .
+```
+
+后续直接run这个镜像，插件也会被执行，而不再需要在Clusterfile中定义插件：`sealer run kubernetes-taint:v1.19.8 -m x.x.x.x -p xxx`
