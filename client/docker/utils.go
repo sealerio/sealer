@@ -26,14 +26,13 @@ import (
 	dockerregistry "github.com/docker/docker/registry"
 )
 
-func GetCanonicalImageName(rawImageName string) reference.Named {
+func GetCanonicalImageName(rawImageName string) (reference.Named, error) {
 	var named reference.Named
 	named, err := reference.ParseNormalizedNamed(rawImageName)
 	if err != nil {
-		logger.Warn("parse canonical image name failed: %v", err)
-		return named
+		return nil, err
 	}
-	return named
+	return named, nil
 }
 
 func GetCanonicalImagePullOptions(canonicalImageName string) types.ImagePullOptions {
