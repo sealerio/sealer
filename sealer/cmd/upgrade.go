@@ -16,22 +16,54 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/upgrade"
+	"fmt"
+	"os"
+
+	"github.com/alibaba/sealer/apply"
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/spf13/cobra"
 )
 
-var upgradeArgs common.UpgradeArgs
+var upgradeClusterName string
+
+const (
+	clusterfilepath = `%s/.sealer/%s/Clusterfile`
+)
 
 // upgradeCmd represents the upgrade command
 var upgradeCmd = &cobra.Command{
-	Use:   "upgrade",
-	Short: "upgrade your kubernetes cluster",
-	Long:  `sealer upgrade version-you-expect-to --master [args] --node [args] --passwd [args]`,
-	Args:  cobra.ExactArgs(1),
+	Use:     "upgrade",
+	Short:   "upgrade your kubernetes cluster",
+	Long:    `sealer upgrade imagename --cluster clustername`,
+	Example: `sealer upgrade kubernetes:v1.19.9 --cluster my-cluster`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return upgrade.ClusterUpgrade(args[0], upgradeArgs)
+		var err error
+		//get clustername
+		if upgradeClusterName == "" {
+			upgradeClusterName, err = utils.GetDefaultClusterName()
+			if err != nil {
+				return nil
+			}
+		}
+		//get Clusterfile
+		userHome, _ := os.UserHomeDir()
+		var filepath = fmt.Sprintf(clusterfilepath, userHome, upgradeClusterName)
+		applier, err := apply.NewApplierFromFile(filepath)
+		if err != nil {
+			return err
+		}
+		//set currentCluster and desiredCluster
+		switch applier := applier.(type) {
+		case *apply.DefaultApplier:
+			applier.ClusterCurrent = applier.ClusterDesired.DeepCopy()
+			applier.ClusterDesired.Spec.Image = args[0]
+		case *apply.CloudApplier:
+			applier.ClusterCurrent = applier.ClusterDesired.DeepCopy()
+			applier.ClusterDesired.Spec.Image = args[0]
+		}
+		return applier.Apply()
 	},
 }
 
@@ -39,9 +71,7 @@ func init() {
 	rootCmd.AddCommand(upgradeCmd)
 
 	// Here you will define your flags and configuration settings.
-	upgradeCmd.Flags().StringVarP(&upgradeArgs.Masters, "master", "m", "", "The masters in the cluster")
-	upgradeCmd.Flags().StringVarP(&upgradeArgs.Nodes, "node", "n", "", "The nodes in the cluster")
-	upgradeCmd.Flags().StringVarP(&upgradeArgs.Passwd, "passwd", "p", "", "The root's password to log in")
+	upgradeCmd.Flags().StringVarP(&upgradeClusterName, "cluster", "c", "", "The name of your cluster to upgrade")
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// upgradeCmd.PersistentFlags().String("foo", "", "A help for foo")

@@ -23,14 +23,14 @@ import (
 //此文件下是不同linux发行版都要用到的函数
 
 const (
-	pullApiserver  = `docker pull registry.aliyuncs.com/google_containers/kube-apiserver:v%s`
-	pullController = `docker pull registry.aliyuncs.com/google_containers/kube-controller-manager:v%s`
-	pullScheduler  = `docker pull registry.aliyuncs.com/google_containers/kube-scheduler:v%s`
-	pullProxy      = `docker pull registry.aliyuncs.com/google_containers/kube-proxy:v%s`
-	tagApiserver   = `docker tag registry.aliyuncs.com/google_containers/kube-apiserver:v%s sea.hub:5000/library/kube-apiserver:v%s`
-	tagController  = `docker tag registry.aliyuncs.com/google_containers/kube-controller-manager:v%s sea.hub:5000/library/kube-controller-manager:v%s`
-	tagScheduler   = `docker tag registry.aliyuncs.com/google_containers/kube-scheduler:v%s sea.hub:5000/library/kube-scheduler:v%s`
-	tagProxy       = `docker tag registry.aliyuncs.com/google_containers/kube-proxy:v%s sea.hub:5000/library/kube-proxy:v%s`
+	pullApiserver  = `docker pull registry.aliyuncs.com/google_containers/kube-apiserver:%s`
+	pullController = `docker pull registry.aliyuncs.com/google_containers/kube-controller-manager:%s`
+	pullScheduler  = `docker pull registry.aliyuncs.com/google_containers/kube-scheduler:%s`
+	pullProxy      = `docker pull registry.aliyuncs.com/google_containers/kube-proxy:%s`
+	tagApiserver   = `docker tag registry.aliyuncs.com/google_containers/kube-apiserver:%s sea.hub:5000/library/kube-apiserver:%s`
+	tagController  = `docker tag registry.aliyuncs.com/google_containers/kube-controller-manager:%s sea.hub:5000/library/kube-controller-manager:%s`
+	tagScheduler   = `docker tag registry.aliyuncs.com/google_containers/kube-scheduler:%s sea.hub:5000/library/kube-scheduler:%s`
+	tagProxy       = `docker tag registry.aliyuncs.com/google_containers/kube-proxy:%s sea.hub:5000/library/kube-proxy:%s`
 )
 
 func pullAndTagDockerImage(client *ssh.Client, IP, version string) {
