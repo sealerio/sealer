@@ -54,6 +54,7 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	sans = utils.AppendIPList(sans, d.APIServerCertSANs)
 	sans = utils.AppendIPList(sans, []string{d.VIP})
 
+	envMap[Master0] = d.Masters[0]
 	envMap[CertSANS] = sans
 	envMap[VIP] = d.VIP
 	envMap[Masters] = utils.GetHostIPSlice(d.Masters)
