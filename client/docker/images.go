@@ -17,6 +17,9 @@ package docker
 import (
 	"fmt"
 	"io"
+	"strings"
+
+	"github.com/docker/distribution/reference"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -31,7 +34,10 @@ func (d Docker) ImagesPull(images []string) {
 		if image == "" {
 			continue
 		}
-		if err := d.ImagePull(image); err != nil {
+		if strings.HasPrefix(image, "#") {
+			continue
+		}
+		if err := d.ImagePull(strings.TrimSpace(image)); err != nil {
 			logger.Warn(fmt.Sprintf("Image %s pull failed: %v", image, err))
 		}
 	}
@@ -51,10 +57,14 @@ func (d Docker) ImagesPullByList(images []string) {
 
 func (d Docker) ImagePull(image string) error {
 	var (
-		err error
-		out io.ReadCloser
+		err   error
+		out   io.ReadCloser
+		named reference.Named
 	)
-	named := GetCanonicalImageName(image)
+	named, err = GetCanonicalImageName(image)
+	if err != nil {
+		return fmt.Errorf("failed to parse canonical image name %s : %v", image, err)
+	}
 	opts := GetCanonicalImagePullOptions(named.String())
 
 	out, err = d.cli.ImagePull(d.ctx, named.String(), opts)
