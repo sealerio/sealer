@@ -108,7 +108,7 @@ func (d *Default) Reset(cluster *v1.Cluster) error {
 }
 
 func (d *Default) Upgrade(cluster *v1.Cluster) error {
-	panic("implement upgrade !!")
+	return d.upgrade(cluster)
 }
 
 func (d *Default) JoinMasters(newMastersIPList []string) error {

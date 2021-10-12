@@ -24,9 +24,3 @@ type RunArgs struct {
 	PodCidr    string
 	SvcCidr    string
 }
-
-type UpgradeArgs struct {
-	Masters string
-	Nodes   string
-	Passwd  string
-}

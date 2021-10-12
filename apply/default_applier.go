@@ -188,19 +188,22 @@ func applyNodes(applier *DefaultApplier) error {
 
 func (c *DefaultApplier) Apply() (err error) {
 	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
+		//TODO: do not save desiredcluster if upgrade failure
 		err = utils.SaveClusterfile(c.ClusterDesired)
 		if err != nil {
 			return err
 		}
 
-		currentCluster, err := c.GetCurrentCluster()
-		if err != nil {
-			return errors.Wrap(err, "get current cluster failed")
-		}
-		if currentCluster != nil {
-			c.ClusterCurrent = c.ClusterDesired.DeepCopy()
-			c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
-			c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
+		if c.ClusterCurrent == nil {
+			currentCluster, err := c.GetCurrentCluster()
+			if err != nil {
+				return errors.Wrap(err, "get current cluster failed")
+			}
+			if currentCluster != nil {
+				c.ClusterCurrent = c.ClusterDesired.DeepCopy()
+				c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
+				c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
+			}
 		}
 	}
 
@@ -252,12 +255,19 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		todoList = append(todoList, PluginPhasePostInstallRun)
 		return todoList
 	}
-
-	todoList = append(todoList, PullIfNotExist)
 	if c.ClusterDesired.Spec.Image != c.ClusterCurrent.Spec.Image {
 		logger.Info("current image is : %s and desired image is : %s , so upgrade your cluster", c.ClusterCurrent.Spec.Image, c.ClusterDesired.Spec.Image)
+		todoList = append(todoList, PullIfNotExist)
+		todoList = append(todoList, MountImage)
+		todoList = append(todoList, MountRootfs)
 		todoList = append(todoList, Upgrade)
+		todoList = append(todoList, Guest) //看运行情况而定
+		todoList = append(todoList, UnMountImage)
+		return todoList
 	}
+
+	todoList = append(todoList, PullIfNotExist)
+
 	c.MastersToJoin, c.MastersToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
 	c.NodesToJoin, c.NodesToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
 	todoList = append(todoList, MountImage)
