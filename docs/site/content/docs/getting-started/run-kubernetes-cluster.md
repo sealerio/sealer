@@ -1,10 +1,10 @@
 +++
-title = "Run"
+title = "Run a kubernetes cluster"
 description = "sealer run"
 date = 2021-05-01T08:20:00+00:00
 updated = 2021-05-01T08:20:00+00:00
 draft = false
-weight = 24
+weight = 11
 sort_by = "weight"
 template = "docs/page.html"
 
@@ -16,8 +16,7 @@ top = false
 
 # sealer run Usage
 
-> Use the run command to run a user-defined Kubernetes cluster. \
->if arch is arm64：use registry.cn-beijing.aliyuncs.com/sealer-io/kubernetes-arm64:v1.19.7 replace kubernetes:v1.19.8 image.
+Use the run command to run a user-defined Kubernetes cluster. 
 
 ## Run on exist servers
 
