@@ -29,7 +29,7 @@ type DistributionMetadataItem struct {
 	LayerContentDigest digest.Digest `json:"layer_content_digest"`
 }
 
-// distributionMetadata is the data from {layerdb}/distribution_layer_digest
+// DistributionMetadata is the data from {layerdb}/distribution_layer_digest
 // which indicate that digest of compressedlayerStream in specific registry and repository
 type DistributionMetadata []DistributionMetadataItem
 

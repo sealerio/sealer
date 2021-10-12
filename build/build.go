@@ -65,15 +65,15 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 	}, nil
 }
 
-func NewCloudBuilder(cloudConfig *Config) (Interface, error) {
-	localBuilder, err := NewLocalBuilder(cloudConfig)
+func NewCloudBuilder(config *Config) (Interface, error) {
+	localBuilder, err := NewLocalBuilder(config)
 	if err != nil {
 		return nil, err
 	}
 
 	provider := common.AliCloud
-	if cloudConfig.BuildType != "" {
-		provider = ProviderMap[cloudConfig.BuildType]
+	if config.BuildType != "" {
+		provider = ProviderMap[config.BuildType]
 	}
 
 	return &cloud.Builder{
@@ -88,6 +88,7 @@ func NewLiteBuilder(config *Config) (Interface, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &lite.Builder{
 		Local: localBuilder.(*local.Builder),
 	}, nil

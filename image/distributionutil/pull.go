@@ -83,16 +83,16 @@ func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1
 			// roLayer now does not exist, new one
 			// descriptor.Size is temp size for this layer
 			// real size will be set within downloadLayer
-			roLayer, LayerErr := store.NewROLayer(layer.ID,
+			roLayer, layerErr := store.NewROLayer(layer.ID,
 				descriptor.Size,
 				map[string]digest.Digest{named.Domain() + "/" + named.Repo(): descriptor.Digest})
-			if LayerErr != nil {
-				return LayerErr
+			if layerErr != nil {
+				return layerErr
 			}
 
-			LayerErr = puller.downloadLayer(ctx, roLayer, descriptor)
-			if LayerErr != nil {
-				return LayerErr
+			layerErr = puller.downloadLayer(ctx, roLayer, descriptor)
+			if layerErr != nil {
+				return layerErr
 			}
 
 			return layerStore.RegisterLayerIfNotPresent(roLayer)
@@ -132,9 +132,9 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, layer store.Layer,
 	defer layerReader.Close()
 
 	digester := digest.Canonical.Digester()
-	LayerDownloadReader := ioutil.NopCloser(io.TeeReader(layerReader, digester.Hash()))
-	progressReader := progress.NewProgressReader(LayerDownloadReader, progressOut, descriptor.Size, layer.SimpleID(), "pulling")
-	size, err := archive.Decompress(progressReader, backend.LayerDataDir(digest.Digest(layer.ID())), archive.Options{Compress: true})
+	layerDownloadReader := ioutil.NopCloser(io.TeeReader(layerReader, digester.Hash()))
+	progressReader := progress.NewProgressReader(layerDownloadReader, progressOut, descriptor.Size, layer.SimpleID(), "pulling")
+	size, err := archive.Decompress(progressReader, backend.LayerDataDir(layer.ID().ToDigest()), archive.Options{Compress: true})
 	if err != nil {
 		progress.Update(progressOut, layer.SimpleID(), err.Error())
 		return err
