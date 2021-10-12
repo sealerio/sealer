@@ -58,7 +58,7 @@ func NewLabelsPlugin() Interface {
 }
 
 func (l LabelsNodes) Run(context Context, phase Phase) error {
-	if phase != PhasePostInstall {
+	if phase != PhasePostInstall || context.Plugin.Spec.Type != LabelPlugin {
 		logger.Debug("label nodes is PostInstall!")
 		return nil
 	}

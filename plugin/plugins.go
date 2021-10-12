@@ -16,6 +16,7 @@ package plugin
 
 import (
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
@@ -45,53 +46,66 @@ type Plugins interface {
 	Run(cluster *v1.Cluster, phase Phase) error
 }
 
-type PluginsProcesser struct {
+type PluginsProcessor struct {
 	Plugins     []v1.Plugin
 	ClusterName string
 }
 
 func NewPlugins(clusterName string) Plugins {
-	return &PluginsProcesser{
+	return &PluginsProcessor{
 		ClusterName: clusterName,
 		Plugins:     []v1.Plugin{},
 	}
 }
 
-func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
+// load plugin configs in rootfs/plugin dir
+func (c *PluginsProcessor) load() error {
+	c.Plugins = nil
+	files, err := ioutil.ReadDir(common.DefaultTheClusterRootfsPluginDir(c.ClusterName))
+	if err != nil {
+		return fmt.Errorf("failed to load plugin dir %v", err)
+	}
+	for _, f := range files {
+		plugin := v1.Plugin{}
+		err := utils.UnmarshalYamlFile(f.Name(), plugin)
+		if err != nil {
+			return fmt.Errorf("failed to load plugin %v", err)
+		}
+		c.Plugins = append(c.Plugins, plugin)
+	}
+
+	return nil
+}
+
+func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
+	var p Interface
+
+	err := c.load()
+	if err != nil {
+		return err
+	}
 	for _, config := range c.Plugins {
-		switch config.Name {
+		switch config.Spec.Type {
 		case LabelPlugin:
-			l := NewLabelsPlugin()
-			err := l.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return fmt.Errorf("failed to run label plugin, %v", err)
-			}
+			p = NewLabelsPlugin()
 		case ShellPlugin:
-			s := NewShellPlugin()
-			err := s.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return fmt.Errorf("failed to run shell plugin, %v", err)
-			}
+			p = NewShellPlugin()
 		case EtcdPlugin:
-			e := NewEtcdBackupPlugin()
-			err := e.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return fmt.Errorf("failed to run etcd plugin, %v", err)
-			}
+			p = NewEtcdBackupPlugin()
 		case HostNamePlugin:
-			h := NewHostnamePlugin()
-			err := h.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return fmt.Errorf("failed to run hostname plugin, %v", err)
-			}
+			p = NewHostnamePlugin()
 		default:
 			return fmt.Errorf("not find plugin %s", config.Name)
+		}
+		err := p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+		if err != nil {
+			return fmt.Errorf("failed to run plugin, %v", err)
 		}
 	}
 	return nil
 }
 
-func (c *PluginsProcesser) Dump(clusterfile string) error {
+func (c *PluginsProcessor) Dump(clusterfile string) error {
 	if clusterfile == "" {
 		logger.Debug("clusterfile is empty!")
 		return nil
@@ -108,7 +122,7 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 	return nil
 }
 
-func (c *PluginsProcesser) WriteFiles() error {
+func (c *PluginsProcessor) WriteFiles() error {
 	if len(c.Plugins) == 0 {
 		logger.Debug("plugins is nil")
 		return nil

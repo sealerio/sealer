@@ -25,9 +25,14 @@ import (
 
 // PluginSpec defines the desired state of Plugin
 type PluginSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
+	/*
+		Plugin type, like
+		EtcdPlugin     = "ETCD"
+		LabelPlugin    = "LABEL"
+		ShellPlugin    = "SHELL"
+		HostNamePlugin = "HOSTNAME"
+	*/
+	Type   string `json:"type,omitempty"`
 	Data   string `json:"data,omitempty"`
 	Action string `json:"action,omitempty"`
 	On     string `json:"on,omitempty"`
