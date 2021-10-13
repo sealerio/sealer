@@ -131,9 +131,9 @@ func (c *PluginsProcessor) WriteFiles() error {
 		return nil
 	}
 	for _, config := range c.Plugins {
-		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
+		err := utils.MarshalYamlToFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.ObjectMeta.Name), config)
 		if err != nil {
-			return fmt.Errorf("write config fileed %v", err)
+			return fmt.Errorf("write plugin metadata fileed %v", err)
 		}
 	}
 
