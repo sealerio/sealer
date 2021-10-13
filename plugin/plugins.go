@@ -16,6 +16,8 @@ package plugin
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
@@ -42,56 +44,71 @@ Dump will dump the config to etc/redis-config.yaml file
 
 type Plugins interface {
 	Dump(clusterfile string) error
+	Load() error
 	Run(cluster *v1.Cluster, phase Phase) error
 }
 
-type PluginsProcesser struct {
+type PluginsProcessor struct {
 	Plugins     []v1.Plugin
 	ClusterName string
 }
 
 func NewPlugins(clusterName string) Plugins {
-	return &PluginsProcesser{
+	return &PluginsProcessor{
 		ClusterName: clusterName,
 		Plugins:     []v1.Plugin{},
 	}
 }
 
-func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
+// load plugin configs in rootfs/plugin dir
+func (c *PluginsProcessor) Load() error {
+	c.Plugins = nil
+	path := common.DefaultTheClusterRootfsPluginDir(c.ClusterName)
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return fmt.Errorf("failed to load plugin dir %v", err)
+	}
+	for _, f := range files {
+		plugins, err := utils.DecodePlugins(filepath.Join(path, f.Name()))
+		if err != nil {
+			return fmt.Errorf("failed to load plugin %v", err)
+		}
+		c.Plugins = append(c.Plugins, plugins...)
+	}
+
+	return nil
+}
+
+func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
+	var p Interface
+
 	for _, config := range c.Plugins {
-		switch config.Name {
+		switch config.Spec.Type {
 		case LabelPlugin:
-			l := NewLabelsPlugin()
-			err := l.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return fmt.Errorf("failed to run label plugin, %v", err)
-			}
+			p = NewLabelsPlugin()
 		case ShellPlugin:
-			s := NewShellPlugin()
-			err := s.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return fmt.Errorf("failed to run shell plugin, %v", err)
-			}
+			p = NewShellPlugin()
 		case EtcdPlugin:
-			e := NewEtcdBackupPlugin()
-			err := e.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return fmt.Errorf("failed to run etcd plugin, %v", err)
-			}
+			p = NewEtcdBackupPlugin()
 		case HostNamePlugin:
-			h := NewHostnamePlugin()
-			err := h.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return fmt.Errorf("failed to run hostname plugin, %v", err)
-			}
+			p = NewHostnamePlugin()
 		default:
-			return fmt.Errorf("not find plugin %s", config.Name)
+			return fmt.Errorf("not find plugin %v", config)
+		}
+		err := p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+		if err != nil {
+			return fmt.Errorf("failed to run plugin, %v", err)
 		}
 	}
 	return nil
 }
 
-func (c *PluginsProcesser) Dump(clusterfile string) error {
+func (c *PluginsProcessor) Dump(clusterfile string) error {
 	if clusterfile == "" {
 		logger.Debug("clusterfile is empty!")
 		return nil
@@ -108,15 +125,15 @@ func (c *PluginsProcesser) Dump(clusterfile string) error {
 	return nil
 }
 
-func (c *PluginsProcesser) WriteFiles() error {
+func (c *PluginsProcessor) WriteFiles() error {
 	if len(c.Plugins) == 0 {
 		logger.Debug("plugins is nil")
 		return nil
 	}
 	for _, config := range c.Plugins {
-		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.ObjectMeta.Name), []byte(config.Spec.Data))
+		err := utils.MarshalYamlToFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.ObjectMeta.Name), config)
 		if err != nil {
-			return fmt.Errorf("write config fileed %v", err)
+			return fmt.Errorf("write plugin metadata fileed %v", err)
 		}
 	}
 

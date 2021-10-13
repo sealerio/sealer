@@ -148,6 +148,10 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.Plugins.Run(applier.ClusterDesired, "Originally")
 	},
 	PluginPhasePreInitRun: func(applier *DefaultApplier) error {
+		err := applier.Plugins.Load()
+		if err != nil {
+			return err
+		}
 		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
 	},
 	PluginPhasePreInstallRun: func(applier *DefaultApplier) error {
