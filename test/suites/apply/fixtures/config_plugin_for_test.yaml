@@ -67,26 +67,29 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: SHELL
+  name: originally
 spec:
+  type: SHELL
   action: Originally
   data: |
-    ls
+    echo "OriginallyShell was successfully run from Clusterfile"
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: SHELL
+  name: postinstall
 spec:
+  type: SHELL
   action: PostInstall
   data: |
-    ls
+    echo "PostInstallShell was successfully run from Clusterfile"
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
   name: LABEL
 spec:
+  type: LABEL
   data: |
     172.17.102.186 ssd=true
 ---
@@ -95,5 +98,6 @@ kind: Plugin
 metadata:
   name: HOSTNAME
 spec:
+  type: HOSTNAME
   data: |
     172.17.102.186 master-0

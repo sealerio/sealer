@@ -81,23 +81,20 @@ func LoadPluginFromDisk(clusterFilePath string) []v1.Plugin {
 func GenerateClusterfile(clusterfile string) {
 	filepath := GetRawConfigPluginFilePath()
 	cluster := LoadClusterFileFromDisk(clusterfile)
-	if cluster.Spec.Image != settings.TestImageName {
-		cluster.Spec.Image = settings.TestImageName
-	}
 	data, err := yaml.Marshal(cluster)
 	testhelper.CheckErr(err)
 	appendData := [][]byte{data}
 	plugins := LoadPluginFromDisk(filepath)
 	configs := LoadConfigFromDisk(filepath)
 	for _, plugin := range plugins {
-		if plugin.Name == "LABEL" {
+		if plugin.Spec.Type == "LABEL" {
 			pluginData := "\n"
 			for _, ip := range cluster.Spec.Masters.IPList {
 				pluginData += fmt.Sprintf(" %s sealer-test=true \n", ip)
 			}
 			plugin.Spec.Data = pluginData
 		}
-		if plugin.Name == "HOSTNAME" {
+		if plugin.Spec.Type == "HOSTNAME" {
 			pluginData := "\n"
 			for i, ip := range cluster.Spec.Masters.IPList {
 				pluginData += fmt.Sprintf("%s master-%s\n", ip, strconv.Itoa(i))
@@ -180,6 +177,7 @@ func ChangeMasterOrderAndSave(cluster *v1.Cluster, clusterFile string) *v1.Clust
 }
 
 func CreateAliCloudInfra(cluster *v1.Cluster) {
+	cluster.DeletionTimestamp = nil
 	gomega.Eventually(func() bool {
 		infraManager, err := infra.NewDefaultProvider(cluster)
 		if err != nil {

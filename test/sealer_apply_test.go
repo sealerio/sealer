@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibaba/sealer/test/suites/build"
+
 	. "github.com/onsi/ginkgo"
 
 	"github.com/alibaba/sealer/test/suites/apply"
@@ -151,6 +153,7 @@ var _ = Describe("sealer apply", func() {
 			It("init, scale up, scale down, clean up", func() {
 				By("start to prepare infra")
 				rawCluster.Spec.Provider = settings.AliCloud
+				rawCluster.Spec.Image = build.GetTestImageName()
 				usedCluster := apply.CreateAliCloudInfraAndSave(rawCluster, tempFile)
 				defer apply.CleanUpAliCloudInfra(usedCluster)
 				sshClient := testhelper.NewSSHClientByCluster(usedCluster)

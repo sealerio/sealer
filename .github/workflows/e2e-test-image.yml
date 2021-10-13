@@ -9,6 +9,18 @@ jobs:
     name: image-test
     if: ${{ contains(github.event.pull_request.labels.*.name, 'image-test') || contains(github.event.pull_request.labels.*.name, 'e2e-test')  }}
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      checks: write
+      contents: write
+      deployments: write
+      issues: write
+      discussions: write
+      packages: write
+      pull-requests: write
+      repository-projects: write
+      statuses: write
+      security-events: write
     env:
       GO111MODULE: on
     steps:
@@ -58,7 +70,6 @@ jobs:
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-        if: ${{ github.event.comment.body == '/test login' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
           ginkgo -v --focus="sealer login" test
 
@@ -70,6 +81,5 @@ jobs:
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           IMAGE_NAME: ${{ secrets.IMAGE_NAME}}
-        if: ${{ github.event.comment.body == '/test image' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
           ginkgo -v --focus="sealer image" test
