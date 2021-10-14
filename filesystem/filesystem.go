@@ -166,12 +166,14 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 				flag = true
 				mutex.Unlock()
 			}
-			err = SSH.CmdAsync(ip, initCmd)
-			if err != nil {
-				logger.Error("exec init.sh failed %v", err)
-				mutex.Lock()
-				flag = true
-				mutex.Unlock()
+			if cluster.Annotations[common.UpgradeCluster] != "true" {
+				err = SSH.CmdAsync(ip, initCmd)
+				if err != nil {
+					logger.Error("exec init.sh failed %v", err)
+					mutex.Lock()
+					flag = true
+					mutex.Unlock()
+				}
 			}
 		}(ip)
 	}
