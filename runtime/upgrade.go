@@ -17,8 +17,8 @@ package runtime
 import (
 	"fmt"
 	"path/filepath"
-
 	"regexp"
+
 	"strings"
 
 	"github.com/alibaba/sealer/common"
@@ -41,13 +41,16 @@ func (d *Default) upgrade(cluster *v1.Cluster) error {
 	if err != nil {
 		return err
 	}
-	version, err := getVersionFromImage(cluster.Spec.Image)
+	if d.Metadata == nil {
+		d.Metadata = NewMetedata()
+	}
+	d.Metadata.Version, err = getVersionFromImage(cluster.Spec.Image)
 	if err != nil {
 		return err
 	}
 	binpath := filepath.Join(common.DefaultTheClusterRootfsDir(cluster.Name), `bin`)
 
-	err = upgradeFirstMaster(client, cluster.Spec.Masters.IPList[0], binpath, version)
+	err = upgradeFirstMaster(client, cluster.Spec.Masters.IPList[0], binpath, d.Metadata.Version)
 	if err != nil {
 		return err
 	}
@@ -116,7 +119,7 @@ func getVersionFromImage(image string) (string, error) {
 		return "", fmt.Errorf("upgrade should have a version")
 	}
 	version := image[n+1:]
-	re := regexp.MustCompile(`v[0-9]+.[0-9]+.[0-9]+`) //eg:v1.19.10
+	re := regexp.MustCompile(`v[0-9]+\.[0-9]+\.[0-9]+`) //eg:v1.19.10
 	version = re.FindString(version)
 	if version == "" {
 		return version, fmt.Errorf("invalid version,please check your input and retry")

@@ -138,3 +138,8 @@ func (d *Default) Init(cluster *v1.Cluster) error {
 func (d *Default) Hook(cluster *v1.Cluster) error {
 	panic("implement me")
 }
+
+func NewMetedata() *Metadata {
+	meta := &Metadata{}
+	return meta
+}
