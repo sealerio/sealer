@@ -86,7 +86,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	MountRootfs: func(applier *DefaultApplier) error {
 		// TODO mount only mount desired hosts, some hosts already mounted when update cluster
 		var hosts []string
-		if applier.ClusterCurrent == nil {
+		if applier.ClusterCurrent == nil || applier.ClusterDesired.Spec.Image != applier.ClusterCurrent.Spec.Image {
 			hosts = append(applier.ClusterDesired.Spec.Masters.IPList, applier.ClusterDesired.Spec.Nodes.IPList...)
 			config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(applier.ClusterDesired.Name), applier.ClusterDesired.Spec.Masters.IPList[0])
 			if utils.NotInIPList(config.IP, applier.ClusterDesired.Spec.Masters.IPList) && utils.NotInIPList(config.IP, applier.ClusterDesired.Spec.Nodes.IPList) {

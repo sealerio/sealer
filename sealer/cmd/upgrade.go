@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/alibaba/sealer/apply"
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/spf13/cobra"
@@ -57,11 +58,19 @@ var upgradeCmd = &cobra.Command{
 		//set currentCluster and desiredCluster
 		switch applier := applier.(type) {
 		case *apply.DefaultApplier:
+			if applier.ClusterDesired.Spec.Image == args[0] {
+				return fmt.Errorf("cluster %s's status is already at %s, reinput a newer to upgrade", upgradeClusterName, args[0])
+			}
 			applier.ClusterCurrent = applier.ClusterDesired.DeepCopy()
 			applier.ClusterDesired.Spec.Image = args[0]
+			applier.ClusterDesired.SetAnnotations(common.UpgradeCluster, "true")
 		case *apply.CloudApplier:
+			if applier.ClusterDesired.Spec.Image == args[0] {
+				return fmt.Errorf("cluster %s's status is already at %s, reinput a newer to upgrade", upgradeClusterName, args[0])
+			}
 			applier.ClusterCurrent = applier.ClusterDesired.DeepCopy()
 			applier.ClusterDesired.Spec.Image = args[0]
+			applier.ClusterDesired.SetAnnotations(common.UpgradeCluster, "true")
 		}
 		return applier.Apply()
 	},
