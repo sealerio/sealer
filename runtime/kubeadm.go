@@ -92,7 +92,7 @@ func (d *Default) setKubeadmAPIByVersion() {
 
 func (d *Default) kubeadmConfig() string {
 	var sb strings.Builder
-	sb.Write([]byte(InitTemplateText))
+	sb.Write([]byte(getInitTemplateText(d.ClusterName)))
 	return sb.String()
 }
 

@@ -14,15 +14,27 @@
 
 package runtime
 
-const (
-	InitTemplateText = string(InitConfigurationDefault +
-		ClusterConfigurationDefault +
-		kubeproxyConfigDefault +
-		kubeletConfigDefault)
-	JoinCPTemplateText = string(bootstrapTokenDefault +
-		JoinConfigurationDefault +
-		kubeletConfigDefault)
+import (
+	"fmt"
+	"os"
+	"path/filepath"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
+)
+
+// Overwrite templete filename
+const (
+	bootstrapTemplateName       = "kubeadm-bootstrap.yaml.tmpl"
+	initConfigTemplateName      = "kubeadm-init.yaml.tmpl"
+	clusterConfigTemplateName   = "kubeadm-cluster-config.yaml.tmpl"
+	kubeproxyConfigTemplateName = "kubeadm-kubeproxy-config.yaml.tmpl"
+	kubeletConfigTemplateName   = "kubeadm-kubelet-config.yaml.tmpl"
+	joinConfigTemplateName      = "kubeadm-join-config.yaml.tmpl"
+)
+
+const (
 	bootstrapTokenDefault = `apiVersion: {{.KubeadmAPI}}
 caCertPath: /etc/kubernetes/pki/ca.crt
 discovery:
@@ -37,7 +49,7 @@ discovery:
     - {{.TokenDiscoveryCAHash}}
   timeout: 5m0s
 `
-	InitConfigurationDefault = `apiVersion: {{.KubeadmAPI}}
+	initConfigurationDefault = `apiVersion: {{.KubeadmAPI}}
 kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: {{.Master0}}
@@ -46,7 +58,7 @@ nodeRegistration:
   criSocket: {{.CriSocket}}
 `
 
-	JoinConfigurationDefault = `kind: JoinConfiguration
+	joinConfigurationDefault = `kind: JoinConfiguration
 {{- if .Master }}
 controlPlane:
   localAPIEndpoint:
@@ -57,8 +69,7 @@ nodeRegistration:
   criSocket: {{.CriSocket}}
 `
 
-	ClusterConfigurationDefault = `---
-apiVersion: {{.KubeadmAPI}}
+	clusterConfigurationDefault = `apiVersion: {{.KubeadmAPI}}
 kind: ClusterConfiguration
 kubernetesVersion: {{.Version}}
 controlPlaneEndpoint: "{{.ApiServer}}:6443"
@@ -120,9 +131,7 @@ etcd:
     extraArgs:
       listen-metrics-urls: http://0.0.0.0:2381
 `
-	kubeproxyConfigDefault = `
----
-apiVersion: kubeproxy.config.k8s.io/v1alpha1
+	kubeproxyConfigDefault = `apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: "ipvs"
 ipvs:
@@ -130,9 +139,7 @@ ipvs:
   - "{{.VIP}}/32"
 `
 
-	kubeletConfigDefault = `
----
-apiVersion: kubelet.config.k8s.io/v1beta1
+	kubeletConfigDefault = `apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 authentication:
   anonymous:
@@ -210,3 +217,41 @@ echo ${driver}`
 	DockerShell = `driver=$(docker info -f "{{.CgroupDriver}}")
 	echo "${driver}"`
 )
+
+// Get from rootfs or by default
+func getInitTemplateText(clusterName string) string {
+	return fmt.Sprintf("%s\n---\n%s\n---\n%s\n---\n%s",
+		readFromFileOrDefault(clusterName, initConfigTemplateName, initConfigurationDefault),
+		readFromFileOrDefault(clusterName, clusterConfigTemplateName, clusterConfigurationDefault),
+		readFromFileOrDefault(clusterName, kubeproxyConfigTemplateName, kubeproxyConfigDefault),
+		readFromFileOrDefault(clusterName, kubeletConfigTemplateName, kubeletConfigDefault),
+	)
+}
+
+func getJoinTemplateText(clusterName string) string {
+	return fmt.Sprintf("%s\n%s\n---\n%s",
+		readFromFileOrDefault(clusterName, bootstrapTemplateName, bootstrapTokenDefault),
+		readFromFileOrDefault(clusterName, joinConfigTemplateName, joinConfigurationDefault),
+		readFromFileOrDefault(clusterName, kubeletConfigTemplateName, kubeletConfigDefault),
+	)
+}
+
+// return file content or defaultContent if file not exist
+func readFromFileOrDefault(clusterName, fileName, defaultContent string) string {
+	fileName = filepath.Join(common.DefaultTheClusterRootfsDir(clusterName), common.EtcDir, fileName)
+	_, err := os.Stat(fileName)
+	if os.IsNotExist(err) {
+		return defaultContent
+	}
+	if err != nil {
+		logger.Warn("kubeadm template file stat %v", err)
+		return defaultContent
+	}
+
+	bs, err := utils.ReadAll(fileName)
+	if err != nil {
+		logger.Warn("read kubeadm template file err %v", err)
+		return defaultContent
+	}
+	return string(bs)
+}

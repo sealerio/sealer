@@ -183,9 +183,9 @@ func (d *Default) SendJoinMasterKubeConfigs(masters []string, files ...string) {
 	}
 }
 
-func joinKubeadmConfig() string {
+func (d *Default) joinKubeadmConfig() string {
 	var sb strings.Builder
-	sb.Write([]byte(JoinCPTemplateText))
+	sb.Write([]byte(getJoinTemplateText(d.ClusterName)))
 	return sb.String()
 }
 
@@ -217,7 +217,7 @@ func (d *Default) JoinTemplateFromTemplateContent(templateContent, ip string) []
 
 // JoinTemplate is generate JoinCP nodes configuration by master ip.
 func (d *Default) JoinTemplate(ip string) []byte {
-	return d.JoinTemplateFromTemplateContent(joinKubeadmConfig(), ip)
+	return d.JoinTemplateFromTemplateContent(d.joinKubeadmConfig(), ip)
 }
 
 // getCgroupDriverFromShell is get nodes container runtime cgroup by shell.
