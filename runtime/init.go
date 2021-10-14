@@ -16,7 +16,6 @@ package runtime
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path"
 	"path/filepath"
 	"strings"
@@ -121,31 +120,14 @@ func (d *Default) ConfigKubeadmOnMaster0() error {
 	var templateData string
 	var err error
 	var tpl []byte
-	var fileData []byte
 	// on master init .we need to get master0 cgroupdriver.
 	d.CriCGroupDriver = d.getCgroupDriverFromShell(d.Masters[0])
-	if d.KubeadmFilePath == "" {
-		tpl, err = d.defaultTemplate()
-		if err != nil {
-			return fmt.Errorf("failed to get default kubeadm template %v", err)
-		}
-	} else {
-		//TODO rootfs kubeadm.tmpl
-		fileData, err = ioutil.ReadFile(d.KubeadmFilePath)
-		if err != nil {
-			return err
-		}
-		tpl, err = d.templateFromContent(string(fileData))
-		if err != nil {
-			return fmt.Errorf("failed to get kubeadm template %v", err)
-		}
-	}
-
+	tpl, err = d.defaultTemplate()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get default kubeadm template %v", err)
 	}
-	templateData = string(tpl)
 
+	templateData = string(tpl)
 	cmd := fmt.Sprintf(WriteKubeadmConfigCmd, d.Rootfs, templateData)
 	err = d.SSH.CmdAsync(d.Masters[0], cmd)
 	if err != nil {

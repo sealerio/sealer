@@ -31,6 +31,7 @@ const (
 
 const (
 	DefaultWorkDir                = "/tmp/%s/workdir"
+	EtcDir                        = "etc"
 	DefaultTmpDir                 = "/var/lib/sealer/tmp"
 	DefaultLiteBuildUpper         = "/var/lib/sealer/tmp/lite_build_upper"
 	DefaultLogDir                 = "/var/lib/sealer/log"
