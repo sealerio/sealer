@@ -12,16 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package buildlayer
 
-import (
-	"github.com/alibaba/sealer/common"
-)
+import v1 "github.com/alibaba/sealer/types/api/v1"
 
-const (
-	cacheID        = common.CacheID
-	maxLayerDeep   = 128
-	FromCmd        = "FROM"
-	imageLayerType = common.BaseImageLayerType
-	kubefile       = "Kubefile"
-)
+type LayerHandler interface {
+	LayerValueHandler(buildContext string, layer v1.Layer) error
+}

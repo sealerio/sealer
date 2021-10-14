@@ -17,9 +17,9 @@ package build
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/build/cloud"
 	"github.com/alibaba/sealer/build/lite"
-	"github.com/alibaba/sealer/build/local"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/store"
@@ -54,7 +54,7 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 
 	prober := image.NewImageProber(service, config.NoCache)
 
-	return &local.Builder{
+	return &buildkit.Builder{
 		BuildType:    config.BuildType,
 		NoCache:      config.NoCache,
 		LayerStore:   layerStore,
@@ -77,7 +77,7 @@ func NewCloudBuilder(config *Config) (Interface, error) {
 	}
 
 	return &cloud.Builder{
-		Local:              localBuilder.(*local.Builder),
+		Local:              localBuilder.(*buildkit.Builder),
 		Provider:           provider,
 		TmpClusterFilePath: common.TmpClusterfile,
 	}, nil
@@ -90,6 +90,6 @@ func NewLiteBuilder(config *Config) (Interface, error) {
 	}
 
 	return &lite.Builder{
-		Local: localBuilder.(*local.Builder),
+		Local: localBuilder.(*buildkit.Builder),
 	}, nil
 }

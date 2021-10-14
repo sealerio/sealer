@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package buildkit
 
 import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/runtime"
+
+	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
 )
@@ -51,7 +52,7 @@ func (m MountTarget) CleanUp() {
 	if err := m.driver.Unmount(m.TempTarget); err != nil {
 		logger.Warn(fmt.Errorf("failed to umount %s:%v", m.TempTarget, err))
 	}
-	utils.CleanDirs(m.TempUpper)
+	utils.CleanDirs(m.TempUpper, m.TempTarget)
 }
 
 func (m MountTarget) GetMountUpper() string {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package buildkit
 
 import (
 	"fmt"
@@ -20,31 +20,36 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/opencontainers/go-digest"
+	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/store"
+
+	"github.com/alibaba/sealer/utils/archive"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/cache"
-	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/archive"
+	"github.com/opencontainers/go-digest"
 )
 
 type handlerContext struct {
 	buildContext  string
+	buildType     string
 	continueCache bool
 	cacheSvc      cache.Service
 	prober        image.Prober
 	parentID      cache.ChainID
-	ignoreError   bool
 }
 
 type handler struct {
-	hc         handlerContext
-	layerStore store.LayerStore
+	hc           handlerContext
+	layerStore   store.LayerStore
+	layerHandler buildlayer.LayerHandler
 }
 
 func (h *handler) handleCopyCmd(layer v1.Layer) (layerID digest.Digest, cacheID digest.Digest, err error) {
@@ -52,6 +57,12 @@ func (h *handler) handleCopyCmd(layer v1.Layer) (layerID digest.Digest, cacheID 
 	//if err != nil {
 	//	return "", "", fmt.Errorf("failed to create temp hard link dir %s, err: %v", tempHardLinkDir, err)
 	//}
+	if h.layerHandler != nil {
+		err := h.layerHandler.LayerValueHandler(h.hc.buildContext, layer)
+		if err != nil {
+			return "", "", err
+		}
+	}
 	var (
 		hitCache bool
 		chainID  cache.ChainID
@@ -139,10 +150,6 @@ func (h *handler) handleCMDRUNCmd(layer v1.Layer, lowerLayers ...string) (layerI
 	logger.Info(output)
 
 	if err != nil {
-		if h.hc.ignoreError {
-			logger.Warn(fmt.Sprintf("failed to exec %s, err: %v", cmd, err))
-			return "", nil
-		}
 		return "", fmt.Errorf("failed to exec %s, err: %v", cmd, err)
 	}
 
