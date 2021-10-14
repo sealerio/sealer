@@ -45,7 +45,7 @@ const (
 )
 
 type Interface interface {
-	MountRootfs(cluster *v1.Cluster, hosts []string) error
+	MountRootfs(cluster *v1.Cluster, hosts []string, initFlag bool) error
 	UnMountRootfs(cluster *v1.Cluster) error
 	MountImage(cluster *v1.Cluster) error
 	UnMountImage(cluster *v1.Cluster) error
@@ -124,10 +124,10 @@ func (c *FileSystem) UnMountImage(cluster *v1.Cluster) error {
 	return c.umountImage(cluster)
 }
 
-func (c *FileSystem) MountRootfs(cluster *v1.Cluster, hosts []string) error {
+func (c *FileSystem) MountRootfs(cluster *v1.Cluster, hosts []string, initFlag bool) error {
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	//scp roofs to all Masters and Nodes,then do init.sh
-	if err := mountRootfs(hosts, clusterRootfsDir, cluster); err != nil {
+	if err := mountRootfs(hosts, clusterRootfsDir, cluster, initFlag); err != nil {
 		return fmt.Errorf("mount rootfs failed %v", err)
 	}
 	return nil
@@ -146,7 +146,7 @@ func (c *FileSystem) UnMountRootfs(cluster *v1.Cluster) error {
 	return nil
 }
 
-func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
+func mountRootfs(ipList []string, target string, cluster *v1.Cluster, initFlag bool) error {
 	SSH := ssh.NewSSHByCluster(cluster)
 	config := runtime.GetRegistryConfig(
 		common.DefaultTheClusterRootfsDir(cluster.Name),
@@ -171,7 +171,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 				flag = true
 				mutex.Unlock()
 			}
-			if cluster.Annotations[common.UpgradeCluster] != "true" {
+			if initFlag {
 				err = SSH.CmdAsync(ip, initCmd)
 				if err != nil {
 					logger.Error("exec init.sh failed %v", err)

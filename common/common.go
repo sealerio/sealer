@@ -132,8 +132,6 @@ const (
 	WINDOWS            = "windows"
 )
 
-const UpgradeCluster = "upgradeCluster"
-
 func GetClusterWorkDir(clusterName string) string {
 	return filepath.Join(GetHomeDir(), ".sealer", clusterName)
 }

@@ -66,7 +66,7 @@ func TestMount(t *testing.T) {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 
-			if err = fileSystem.MountRootfs(tt.arg.cluster, []string{""}); err != nil {
+			if err = fileSystem.MountRootfs(tt.arg.cluster, []string{""}, true); err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 		})
