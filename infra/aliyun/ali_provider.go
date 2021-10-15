@@ -67,7 +67,7 @@ const (
 	Policy                     = "accept"
 	DestinationResource        = "InstanceType"
 	InstanceChargeType         = "PostPaid"
-	ImageID                    = "centos_7_9_x64_20G_alibase_20210128.vhd"
+	ImageID                    = "centos_7_9_x64_20G_alibase_20210927.vhd"
 	AccessKey                  = "ACCESSKEYID"
 	AccessSecret               = "ACCESSKEYSECRET"
 	Product                    = "product"

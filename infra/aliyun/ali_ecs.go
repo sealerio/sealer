@@ -45,13 +45,36 @@ type EcsManager struct {
 }
 
 func (a *AliProvider) RetryEcsRequest(request requests.AcsRequest, response responses.AcsResponse) error {
-	return utils.Retry(TryTimes, TrySleepTime, func() error {
+	return a.RetryEcsAction(request, response, TryTimes)
+}
+
+func (a *AliProvider) RetryEcsAction(request requests.AcsRequest, response responses.AcsResponse, tryTimes int) error {
+	return utils.Retry(tryTimes, TrySleepTime, func() error {
 		err := a.EcsClient.DoAction(request, response)
 		if err != nil {
 			return err
 		}
 		return nil
 	})
+}
+
+func (a *AliProvider) RetryEcsInstanceType(request requests.AcsRequest, response responses.AcsResponse, instances []string) error {
+	for i := 0; i < len(instances); i++ {
+		switch req := request.(type) {
+		case *ecs.ModifyInstanceSpecRequest:
+			req.InstanceType = instances[i]
+		case *ecs.RunInstancesRequest:
+			req.InstanceType = instances[i]
+		}
+		err := a.RetryEcsAction(request, response, 4)
+		if err == nil {
+			logger.Debug("use instance type: %s", instances[i])
+			break
+		} else if i == len(instances)-1 {
+			return fmt.Errorf("failed to get ecs instance type, %v", err)
+		}
+	}
+	return nil
 }
 
 func (a *AliProvider) TryGetInstance(request *ecs.DescribeInstancesRequest, response *ecs.DescribeInstancesResponse, expectCount int) error {
@@ -188,10 +211,9 @@ func (a *AliProvider) ChangeInstanceType(instanceID, cpu, memory string) error {
 	request := ecs.CreateModifyInstanceSpecRequest()
 	request.Scheme = Scheme
 	request.InstanceId = instanceID
-	request.InstanceType = expectInstanceType
 	//_, err = d.Client.ModifyInstanceSpec(request)
 	response := ecs.CreateModifyInstanceSpecResponse()
-	err = a.RetryEcsRequest(request, response)
+	err = a.RetryEcsInstanceType(request, response, expectInstanceType)
 	if err != nil {
 		return err
 	}
@@ -360,10 +382,11 @@ func CreateInstanceDataDisk(dataDisks []string) (instanceDisks []ecs.RunInstance
 	return
 }
 
-func (a *AliProvider) GetAvailableResource(cores int, memory float64) (instanceType string, err error) {
+func (a *AliProvider) GetAvailableResource(cores int, memory float64) (instanceType []string, err error) {
 	request := ecs.CreateDescribeAvailableResourceRequest()
 	request.Scheme = Scheme
 	request.RegionId = a.Config.RegionID
+	request.ZoneId = a.Cluster.GetAnnotationsByKey(ZoneID)
 	request.DestinationResource = DestinationResource
 	request.InstanceChargeType = InstanceChargeType
 	request.Cores = requests.NewInteger(cores)
@@ -373,20 +396,20 @@ func (a *AliProvider) GetAvailableResource(cores int, memory float64) (instanceT
 	response := ecs.CreateDescribeAvailableResourceResponse()
 	err = a.RetryEcsRequest(request, response)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(response.AvailableZones.AvailableZone) < 1 {
-		return "", fmt.Errorf("resources not find")
+		return nil, fmt.Errorf("resources not find")
 	}
 	for _, f := range response.AvailableZones.AvailableZone[0].AvailableResources.AvailableResource {
 		for _, r := range f.SupportedResources.SupportedResource {
 			if r.StatusCategory == AvailableTypeStatus {
-				return r.Value, nil
+				instanceType = append(instanceType, r.Value)
 			}
 		}
 	}
-	return "", nil
+	return
 }
 
 func (a *AliProvider) RunInstances(instanceRole string, count int) error {
@@ -420,7 +443,6 @@ func (a *AliProvider) RunInstances(instanceRole string, count int) error {
 	request.Scheme = Scheme
 	request.ImageId = ImageID
 	request.Password = a.Cluster.Spec.SSH.Passwd
-	request.InstanceType = instanceType
 	request.SecurityGroupId = a.Cluster.GetAnnotationsByKey(SecurityGroupID)
 	request.VSwitchId = a.Cluster.GetAnnotationsByKey(VSwitchID)
 	request.SystemDiskSize = systemDiskSize
@@ -431,7 +453,7 @@ func (a *AliProvider) RunInstances(instanceRole string, count int) error {
 
 	//response, err := d.Client.RunInstances(request)
 	response := ecs.CreateRunInstancesResponse()
-	err = a.RetryEcsRequest(request, response)
+	err = a.RetryEcsInstanceType(request, response, instanceType)
 	if err != nil {
 		return err
 	}
