@@ -18,6 +18,68 @@ top = false
 
 Using config, you can overwrite any config files you want. Like chart values, docker daemon.json, kubeadm config file ...
 
+# Using config overwrite calico custom configuration
+
+Cases of image `registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`:
+The default calico configuration file is $rootfs/etc/custom-resources.yaml. #[Get CloudRootfs](../../../../api/cloudrootfs.md)
+
+```yaml
+# default custom-resources.yaml：
+apiVersion: operator.tigera.io/v1
+kind: Installation
+metadata:
+  name: default
+spec:
+  calicoNetwork:
+    ipPools:
+    - blockSize: 26
+      cidr: 100.64.0.0/10
+      encapsulation: IPIP
+      natOutgoing: Enabled
+      nodeSelector: all()
+    nodeAddressAutodetectionV4:
+      interface: "eth.*|en.*"
+```
+
+If the default IP automatic detection or CIDR modification is not met, append the modified configuration metadata to the Clusterfile and apply it:
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+  provider: BAREMETAL
+...
+network:
+  podCIDR: 100.64.0.0/10 #In line with the calico config
+  svcCIDR: 10.96.0.0/22
+...
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: calico
+spec:
+  path: etc/custom-resources.yaml
+  data: |
+    apiVersion: operator.tigera.io/v1
+    kind: Installation
+    metadata:
+      name: default
+    spec:
+      calicoNetwork:
+        ipPools:
+        - blockSize: 26
+          cidr: 100.64.0.0/10 #In line with the cluster network podCIDR
+          encapsulation: IPIP
+          natOutgoing: Enabled
+          nodeSelector: all()
+        nodeAddressAutodetectionV4:
+          interface: "eth*|en*" #Change the IP automatic detection rule to a correct one
+```
+
 # Using config overwrite mysql chart values
 
 Append you config metadata into Clusterfile and apply it like this:

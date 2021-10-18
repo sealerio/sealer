@@ -39,7 +39,7 @@ For example ,use the base image `kubernetes:v1.19.9` which provided by the Seale
 ### COPY instruction
 
 The `COPY` instruction used to copy the contents from the context path such as file or directory to the `rootfs`. all
-the cloud image is based on the `rootfs`[rootfs结构](../../../../api/cloudrootfs.md), and the default src path is
+the cloud image is based on the [rootfs](../../../../api/cloudrootfs.md), and the default src path is
 the `rootfs` .If the specified destination directory does not exist, sealer will create it automatically.
 
 > command format：COPY {src dest}
