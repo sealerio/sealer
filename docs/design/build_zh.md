@@ -1,0 +1,178 @@
+# 集群镜像 build
+
+## Build 类型层
+
+该模块主要通过对不同构建类型的区分，完成对集群镜像构建前期环境的准备，例如启动K8S 集群，启动sealer registry,以及拉取用于构建的镜像，从而分别实现Build接口，完成对集群镜像的构建。
+
+### 类型介绍
+
+目前sealer 支持4种构建方式，用户可以通过命令行`-b` 参数指定，详细使用文档见[build 使用文档](../build/build_zh.md) 。
+
+#### lite build
+
+该种构建模式，根据Kubefile的定义，实现不用拉起kubernetes集群的轻量化构建。用于已知镜像清单，或者没有特殊的资源需求的场景。
+
+核心功能介绍
+
+    1，基础集群镜像的拉取和挂载。
+    2，本地缓存registry的启动和挂载。
+    3，根据kubefile执行构建指令,收集相关产物。
+    4，收集缓存的容器镜像。
+    5，清理环境，本地缓存registry的回收。
+
+#### cloud build
+
+基于云服务，自动化创建ecs并部署kubernetes集群并构建镜像，如果您要交付的环境涉及例如分布式存储这样的底层资源，建议使用此方式来进行构建。
+
+核心功能介绍
+
+    1，使用AKSK,启动云服务的基础资源,ECS,VPC等等。
+    2，使用ssh发送构建上下文以及sealer二进制，用于构建环境的准备。
+    3，远程执行ssh 命令，完成集群镜像的构建。
+    4，清理环境，云服务资源的回收。
+
+#### container build
+
+与cloud build 原理类似，通过启动多个docker容器作为kubernetes节点（模拟cloud模式的ECS）,从而启动一个kubernetes集群的方式来进行构建。
+
+#### local build
+
+集群构建核心的实现，主要通过解析kubefile，根据集群镜像的layer层定义，执行对应的指令内容和收集对应的产物，从而真正生成一个完整的集群镜像。
+
+核心功能介绍
+
+    1，kubefile 文件的解析。
+    2，基础集群镜像的拉取和挂载。
+    3，构建指令的执行,以及对应的layer内容的预处理，对应的指令产物收集。
+    4，收集缓存的容器镜像，包括layer层预处理的镜像以及对应的集群中pod的镜像。
+    5，新集群镜像的生成和对文件系统的存储。
+    6，清理环境，本地缓存registry的回收。
+
+### 接口定义
+
+`Build(name string, context string, kubefileName string) error`
+
+参数解释
+
+```yaml
+name: 新构建的集群镜像名字，不支持大写和特殊字符。
+context: 用于构建集群镜像的上下文，默认为当前目录。
+kubefilename: kubefile 用于描述集群镜像的构建过程，和Dockerfile类似。该参数为用户自定义的kubefile文件路径。
+error: 当执行构建时候，如有发生错误，则会返回该错误。
+```
+
+## Build 指令层
+
+该模块主要完成对不同的构建指令的生成和执行，包括 `copy`,`cmd`,`run` 等具体指令的实现，以及集群镜像的层级挂载，集群镜像的缓存判断，指令层的对应layer id生成，对应layer层产物的存储等等。
+
+### 指令介绍
+
+copy 指令
+
+* 实现构建上下文的copy功能。
+* 根据指令内容，实现对应的layer层功能。
+* 根据指令产物，计算对应指令的layer id。
+
+cmd 指令
+
+* 挂载基础镜像和该指令之前所以指令层产物。
+* 根据指令内容，实现对应的layer层功能。
+* 根据挂载的指令层产物，实现对应的系统命令的调用。
+* 一个kubefile，可以有多个cmd指令，但cmd指令没有产物，即不会计算对应的指令layer id。
+
+run 指令
+
+* 实现逻辑同cmd指令一致，但是会根据指令产物计算对应指令的layer id。
+
+### 接口定义
+
+```shell
+Exec(ctx ExecContext) (out Out, err error)
+```
+
+参数解释
+
+ExecContext 结构体
+
+```yaml
+    BuildContext: 构建的上下文。
+    BuildType: 构建的类型。
+    ContinueCache: 标志位，用于检测是否继续使用缓存，会在每一层layer执行的时候修改。
+    ParentID cache.ChainID: 缓存chain id，起始值为 ""。会在每一层layer执行的时候修改为包括当前layer的chain id。
+    CacheSvc cache.Service: 缓存layer生成接口，根据当前layer,和产物hash,生成对应的缓存layer，用于判断缓存是否命中。
+    Prober image.Prober: 缓存探测接口，根据不同的`ParentID`和对应内容的cacheID 来判断使用命中缓存。
+    LayerStore store.LayerStore: 构建产物存储接口，会根据当前指令执行的结果，计算对应的layerid。
+```
+
+Out 结构体
+
+```yaml
+    LayerID digest.Digest: 当前指令执行的产物hash,独一无二，将会用于当前layer的存储。
+    ParentID cache.ChainID: 缓存chain id，与ExecContext 中ParentID一致，用于下一层指令的缓存判断。
+    ContinueCache bool: 标志位，用于判断下一层指令是否继续使用缓存。
+```
+
+## Build layer层
+
+该模块主要完成对layer层内容的解析以及对应的处理函数的初始化。
+
+### 功能介绍
+
+#### 解析 imageList
+
+使用方式
+
+如果对应的Kubefile中有以下字段，则会触发解析 imageList功能。其中COPY的 src 名字为`imageList`,dest 为`manifests`。
+
+```shell
+COPY imageList manifests
+```
+
+功能介绍
+
+    1，imageList 解析，将对应`imageList`中的内容逐行获取。
+    2，镜像拉取，将解析到的对应docker镜像，使用docker client拉取到本地。
+
+#### 解析helm charts
+
+使用方式
+
+如果对应的Kubefile中有以下字段，则会触发解析helm charts功能。其中COPY的 src 名字为charts 包,dest 为`charts`。
+
+```shell
+COPY traefik charts
+```
+
+功能介绍
+
+    1，charts包 解析，将对应 charts 包 中的内容使用helm引擎获取docker 镜像列表。
+    2，镜像拉取，将解析到的对应docker镜像，使用docker client拉取到本地。
+
+#### 解析yaml 文件
+
+使用方式
+
+如果对应的Kubefile中有以下字段，则会触发解析yaml 文件缓存镜像功能。其中COPY的 src 名字为 yaml文件格式为"yaml"或者"yml",dest 为`manifests`。
+
+```shell
+COPY recommended.yml manifests
+```
+
+功能介绍
+
+    1，yaml文件解析，读取对应yaml文件中的内容，解析`image`字段获取docker镜像列表。
+    2，镜像拉取，将解析到的对应docker镜像，使用docker client拉取到本地。
+
+### 接口定义
+
+```shell
+LayerValueHandler(buildContext string, layer v1.Layer) error
+```
+
+参数解释
+
+```yaml
+buildContext: 用于构建集群镜像的上下文，默认为当前目录。
+layer: 构建阶段，对应的集群镜像层的内容，包括layer value,layer type。
+error: 当执行构建时候，如有发生错误，则会返回该错误。
+```
