@@ -27,6 +27,7 @@ import (
 
 var deleteArgs *common.RunArgs
 var deleteClusterFile string
+var deleteClusterName string
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
@@ -40,11 +41,14 @@ delete to default cluster:
 	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
 delete to cluster by cloud provider, just set the number of masters or nodes:
 	sealer delete --masters 2 --nodes 3
-specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
+specify the Clusterfile(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
 	sealer delete --masters 2 --nodes 3 -f /root/.sealer/specify-cluster/Clusterfile
+specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
+	sealer delete --masters 2 --nodes 3 -c specify-cluster
 delete all:
 	sealer delete --all [--force]
 	sealer delete -f /root/.sealer/mycluster/Clusterfile [--force]
+	sealer delete -c my-cluster [--force]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		force, err := cmd.Flags().GetBool("force")
@@ -55,13 +59,21 @@ delete all:
 		if err != nil {
 			return err
 		}
-		if deleteClusterFile == "" {
-			clusterName, err := utils.GetDefaultClusterName()
+		if deleteClusterName == "" && deleteClusterFile == "" {
+			deleteClusterName, err = utils.GetDefaultClusterName()
 			if err != nil {
 				return err
 			}
-			deleteClusterFile = common.GetClusterWorkClusterfile(clusterName)
+			deleteClusterFile = common.GetClusterWorkClusterfile(deleteClusterName)
+		} else if deleteClusterName != "" && deleteClusterFile != "" {
+			tmpClusterfile := common.GetClusterWorkClusterfile(deleteClusterName)
+			if tmpClusterfile != deleteClusterFile {
+				return fmt.Errorf("arguments error:%s and %s refer to different clusters", deleteClusterFile, tmpClusterfile)
+			}
+		} else if deleteClusterFile == "" {
+			deleteClusterFile = common.GetClusterWorkClusterfile(deleteClusterName)
 		}
+
 		if all && !force {
 			var yesRx = regexp.MustCompile("^(?:y(?:es)?)$")
 			var noRx = regexp.MustCompile("^(?:n(?:o)?)$")
@@ -100,6 +112,7 @@ func init() {
 	deleteCmd.Flags().StringVarP(&deleteArgs.Masters, "masters", "m", "", "reduce Count or IPList to masters")
 	deleteCmd.Flags().StringVarP(&deleteArgs.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
 	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
+	deleteCmd.Flags().StringVarP(&deleteClusterName, "cluster", "c", "", "delete a kubernetes cluster with cluster name")
 	deleteCmd.Flags().BoolP("force", "", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolP("all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
 }
