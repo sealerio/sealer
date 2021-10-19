@@ -15,13 +15,11 @@
 package cmd
 
 import (
-	"os"
-
-	"github.com/alibaba/sealer/check/service"
+	"fmt"
 
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/checker"
 )
 
 type CheckArgs struct {
@@ -36,22 +34,16 @@ var checkCmd = &cobra.Command{
 	Use:     "check",
 	Short:   "check the state of cluster ",
 	Example: `sealer check --pre or sealer check --post`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var checker service.CheckerService
+	Args:    cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if checkArgs.Pre && checkArgs.Post {
-			logger.Error("don't allow to set tow flags --pre and --post")
-			os.Exit(1)
-		} else if checkArgs.Pre {
-			checker = service.NewPreCheckerService()
-		} else if checkArgs.Post {
-			checker = service.NewPostCheckerService()
-		} else {
-			checker = service.NewDefaultCheckerService()
+			return fmt.Errorf("don't allow to set tow flags --pre and --post")
 		}
-		if err := checker.Run(); err != nil {
-			logger.Error(err)
-			os.Exit(1)
+
+		if checkArgs.Pre {
+			return checker.RunCheckList(nil, checker.PhasePre)
 		}
+		return checker.RunCheckList(nil, checker.PhasePost)
 	},
 }
 

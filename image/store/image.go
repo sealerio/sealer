@@ -15,10 +15,10 @@
 package store
 
 import (
+	"path/filepath"
+
 	"github.com/alibaba/sealer/common"
 	pkgutils "github.com/alibaba/sealer/utils"
-
-	"path/filepath"
 )
 
 func DeleteImageLocal(imageID string) (err error) {

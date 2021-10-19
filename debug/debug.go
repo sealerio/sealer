@@ -21,8 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibaba/sealer/debug/clusterinfo"
-
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -41,6 +39,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
+
+	"github.com/alibaba/sealer/debug/clusterinfo"
 )
 
 const (

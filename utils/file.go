@@ -25,21 +25,18 @@ import (
 	"path/filepath"
 	"strings"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"golang.org/x/sys/unix"
-
-	"github.com/pkg/errors"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func IsExist(fileName string) bool {
-	_, err := os.Stat(fileName)
-	if err != nil {
+	if _, err := os.Stat(fileName); err != nil {
 		return os.IsExist(err)
 	}
 	return true
@@ -89,28 +86,41 @@ func ReadAll(fileName string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
+
 	// step3：read file content
 	content, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-	//step4：close file
-	defer file.Close()
+
 	return content, nil
 }
 
 // file ./test/dir/xxx.txt if dir ./test/dir not exist, create it
 func MkFileFullPathDir(fileName string) error {
 	localDir := filepath.Dir(fileName)
-	err := Mkdir(localDir)
-	if err != nil {
-		return fmt.Errorf("create local dir failed %s %v", localDir, err)
+	if err := Mkdir(localDir); err != nil {
+		return fmt.Errorf("failed to create local dir %s: %v", localDir, err)
 	}
 	return nil
 }
 
 func Mkdir(dirName string) error {
 	return os.MkdirAll(dirName, os.ModePerm)
+}
+
+func MkDirs(dirs ...string) error {
+	if len(dirs) == 0 {
+		return nil
+	}
+	for _, dir := range dirs {
+		err := os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("failed to create %s, %v", dir, err)
+		}
+	}
+	return nil
 }
 
 func MkTmpdir() (string, error) {
@@ -327,8 +337,8 @@ func CleanDir(dir string) {
 	if dir == "" {
 		logger.Error("clean dir path is empty")
 	}
-	err := os.RemoveAll(dir)
-	if err != nil {
+
+	if err := os.RemoveAll(dir); err != nil {
 		logger.Warn("failed to remove dir %s ", dir)
 	}
 }
@@ -383,6 +393,15 @@ func RemoveFileContent(fileName string, content string) error {
 	return nil
 }
 
+func IsFileContent(fileName string, content string) bool {
+	bs, err := ReadAll(fileName)
+	if err != nil {
+		logger.Error(err)
+		return false
+	}
+	return len(strings.Split(string(bs), content)) == 2
+}
+
 func IsDir(path string) bool {
 	s, err := os.Stat(path)
 	if err != nil {
@@ -408,6 +427,32 @@ func CountDirFiles(dirName string) int {
 		return 0
 	}
 	return count
+}
+
+func GetFileSize(path string) (size int64, err error) {
+	_, err = os.Stat(path)
+	if err != nil {
+		return
+	}
+	err = filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+func GetFilesSize(paths []string) (int64, error) {
+	var size int64
+	for i := range paths {
+		s, err := GetFileSize(paths[i])
+		if err != nil {
+			return 0, err
+		}
+		size += s
+	}
+	return size, nil
 }
 
 func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {

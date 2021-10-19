@@ -15,32 +15,29 @@
 package cmd
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
-
-	"os"
-
-	"github.com/spf13/cobra"
 )
 
 // pullCmd represents the pull command
 var pullCmd = &cobra.Command{
 	Use:     "pull",
 	Short:   "pull cloud image to local",
-	Example: `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.5`,
+	Example: `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
 	Args:    cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		imgSvc, err := image.NewImageService()
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 
 		if err := imgSvc.Pull(args[0]); err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 		logger.Info("Pull %s success", args[0])
+		return nil
 	},
 }
 

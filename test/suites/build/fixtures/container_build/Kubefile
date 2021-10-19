@@ -1,4 +1,4 @@
-FROM kubernetes:v1.19.9
+FROM kubernetes:v1.19.8
 COPY . .
 #RUN wget https://docs.projectcalico.org/manifests/tigera-operator.yaml
 CMD kubectl apply -f tigera-operator.yaml

@@ -19,21 +19,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
-	"golang.org/x/sync/errgroup"
-
-	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-
 	"sync"
 
-	"github.com/alibaba/sealer/utils/archive"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils/archive"
 )
 
 type Pusher interface {
@@ -113,7 +111,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		return errors.New("failed to push image, the number of layerDescriptors and pushedLayers mismatch")
 	}
 	// push sealer image metadata to registry
-	configJSON, err := pusher.putManifestConfig(ctx, named, *image)
+	configJSON, err := pusher.putManifestConfig(ctx, *image)
 	if err != nil {
 		return err
 	}
@@ -216,7 +214,7 @@ func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, n
 	return err
 }
 
-func (pusher *ImagePusher) putManifestConfig(ctx context.Context, named reference.Named, image v1.Image) ([]byte, error) {
+func (pusher *ImagePusher) putManifestConfig(ctx context.Context, image v1.Image) ([]byte, error) {
 	repo := pusher.repository
 	configJSON, err := json.Marshal(image)
 	if err != nil {

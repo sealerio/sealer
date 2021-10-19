@@ -15,11 +15,12 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/build"
-	"github.com/alibaba/sealer/logger"
+	"os"
+
 	"github.com/spf13/cobra"
 
-	"os"
+	"github.com/alibaba/sealer/build"
+	"github.com/alibaba/sealer/logger"
 )
 
 type BuildFlag struct {
@@ -33,37 +34,44 @@ var buildConfig *BuildFlag
 
 // buildCmd represents the build command
 var buildCmd = &cobra.Command{
-	Use:     "build [flags] PATH",
-	Short:   "cloud image local build command line",
-	Example: `sealer build -f Kubefile -t my-kubernetes:1.18.3 .`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			logger.Error("sealer build requires exactly 1 argument.")
-			os.Exit(1)
-		}
+	Use:   "build [flags] PATH",
+	Short: "cloud image local build command line",
+	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.9 [--buildType cloud|container|lite] [--no-cache]",
+	Args:  cobra.ExactArgs(1),
+	Example: `the current path is the context path, default build type is cloud and use build cache
+
+cloud build:
+	sealer build -f Kubefile -t my-kubernetes:1.19.9
+
+container build:
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 -b container
+
+lite build:
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 --buildType lite
+
+build without cache:
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 --no-cache
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		conf := &build.Config{
 			BuildType: buildConfig.BuildType,
 			NoCache:   buildConfig.NoCache,
 			ImageName: buildConfig.ImageName,
 		}
+
 		builder, err := build.NewBuilder(conf)
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 
-		err = builder.Build(buildConfig.ImageName, args[0], buildConfig.KubefileName)
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
+		return builder.Build(buildConfig.ImageName, args[0], buildConfig.KubefileName)
 	},
 }
 
 func init() {
 	buildConfig = &BuildFlag{}
 	rootCmd.AddCommand(buildCmd)
-	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "buildType", "b", "", "cluster image build type,default is cloud")
+	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "buildType", "b", "", "cluster image build type, default is cloud")
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")

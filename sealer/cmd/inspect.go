@@ -16,11 +16,10 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+
+	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/logger"
-	"github.com/spf13/cobra"
 )
 
 var clusterFilePrint bool
@@ -32,22 +31,21 @@ var inspectCmd = &cobra.Command{
 	Long: `sealer inspect kubernetes:v1.18.3 to print image information
 sealer inspect -c kubernetes:v1.18.3 to print image Clusterfile`,
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if clusterFilePrint {
-			cluster := image.GetClusterFileFromImageManifest(args[0])
-			if cluster == "" {
-				logger.Error("failed to find Clusterfile by image %s", args[0])
-				os.Exit(1)
+			cluster, err := image.GetClusterFileFromImageManifest(args[0])
+			if err != nil {
+				return fmt.Errorf("failed to find Clusterfile by image %s: %v", args[0], err)
 			}
 			fmt.Println(cluster)
 		} else {
 			file, err := image.GetYamlByImage(args[0])
 			if err != nil {
-				logger.Error("failed to find information by image %s", args[0])
-				os.Exit(1)
+				return fmt.Errorf("failed to find information by image %s: %v", args[0], err)
 			}
 			fmt.Println(file)
 		}
+		return nil
 	},
 }
 

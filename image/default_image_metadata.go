@@ -20,16 +20,13 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/alibaba/sealer/image/types"
-
-	"github.com/alibaba/sealer/image/store"
-
+	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 
 	"github.com/alibaba/sealer/image/distributionutil"
-	"github.com/docker/distribution"
-
 	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/image/types"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
@@ -48,7 +45,8 @@ func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
 	if err != nil {
 		return err
 	}
-	if err := d.imageStore.SetImageMetadataItem(named.Raw(), imageMetadata.ID); err != nil {
+	imageMetadata.Name = named.Raw()
+	if err := d.imageStore.SetImageMetadataItem(imageMetadata); err != nil {
 		return fmt.Errorf("failed to add tag %s, %s", tarImageName, err)
 	}
 	return nil

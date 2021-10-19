@@ -18,10 +18,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/utils/mount"
-
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/mount"
 )
 
 const (

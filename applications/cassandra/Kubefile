@@ -1,3 +1,3 @@
-FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
 COPY cassandra-manifest.yaml .
 CMD kubectl apply -f cassandra-manifest.yaml

@@ -46,7 +46,7 @@ func (d *Default) joinNodes(nodes []string) error {
 	if err := d.LoadMetadata(); err != nil {
 		return fmt.Errorf("failed to load metadata %v", err)
 	}
-	if err := ssh.WaitSSHReady(d.SSH, nodes...); err != nil {
+	if err := ssh.WaitSSHReady(d.SSH, 6, nodes...); err != nil {
 		return errors.Wrap(err, "join nodes wait for ssh ready time out")
 	}
 	if err := d.GetJoinTokenHashAndKey(); err != nil {

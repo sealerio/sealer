@@ -20,12 +20,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/docker/distribution/manifest/schema2"
+	"github.com/opencontainers/go-digest"
+
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils/archive"
-
-	"github.com/docker/distribution/manifest/schema2"
-
-	"github.com/opencontainers/go-digest"
 )
 
 type LayerID digest.Digest
@@ -53,7 +52,7 @@ func (rl *ROLayer) ID() LayerID {
 }
 
 func (rl *ROLayer) SimpleID() string {
-	return digest.Digest(rl.ID()).Hex()[0:12]
+	return rl.ID().ToDigest().Hex()[0:12]
 }
 
 func (rl *ROLayer) TarStream() (io.ReadCloser, error) {
@@ -63,7 +62,7 @@ func (rl *ROLayer) TarStream() (io.ReadCloser, error) {
 	}
 
 	var (
-		tarDataPath   = filepath.Join(layerBackend.LayerDBDir(digest.Digest(rl.ID())), tarDataGZ)
+		tarDataPath   = filepath.Join(layerBackend.LayerDBDir(rl.ID().ToDigest()), tarDataGZ)
 		layerDataPath = layerBackend.LayerDataDir(rl.ID().ToDigest())
 	)
 	_, err = os.Stat(tarDataPath)
@@ -108,16 +107,15 @@ func (rl *ROLayer) DistributionMetadata() map[string]digest.Digest {
 	return rl.distributionMetadata
 }
 
-func NewROLayer(LayerDigest digest.Digest, size int64, distributionMetadata map[string]digest.Digest) (*ROLayer, error) {
-	err := LayerDigest.Validate()
-	if err != nil {
+func NewROLayer(layerDigest digest.Digest, size int64, distributionMetadata map[string]digest.Digest) (*ROLayer, error) {
+	if err := layerDigest.Validate(); err != nil {
 		return nil, err
 	}
 	if distributionMetadata == nil {
 		distributionMetadata = map[string]digest.Digest{}
 	}
 	return &ROLayer{
-		id:                   LayerID(LayerDigest),
+		id:                   LayerID(layerDigest),
 		size:                 size,
 		distributionMetadata: distributionMetadata,
 	}, nil

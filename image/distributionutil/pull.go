@@ -17,22 +17,20 @@ package distributionutil
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/alibaba/sealer/utils/archive"
-
-	"fmt"
-
-	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/opencontainers/go-digest"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils/archive"
 )
 
 type Puller interface {
@@ -56,7 +54,7 @@ func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1
 		return nil, err
 	}
 
-	v1Image, err := puller.getRemoteImageMetadata(ctx, named, manifest.Config.Digest)
+	v1Image, err := puller.getRemoteImageMetadata(ctx, manifest.Config.Digest)
 	if err != nil {
 		return nil, err
 	}
@@ -85,16 +83,16 @@ func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1
 			// roLayer now does not exist, new one
 			// descriptor.Size is temp size for this layer
 			// real size will be set within downloadLayer
-			roLayer, LayerErr := store.NewROLayer(layer.ID,
+			roLayer, layerErr := store.NewROLayer(layer.ID,
 				descriptor.Size,
 				map[string]digest.Digest{named.Domain() + "/" + named.Repo(): descriptor.Digest})
-			if LayerErr != nil {
-				return LayerErr
+			if layerErr != nil {
+				return layerErr
 			}
 
-			LayerErr = puller.downloadLayer(ctx, named, roLayer, descriptor)
-			if LayerErr != nil {
-				return LayerErr
+			layerErr = puller.downloadLayer(ctx, roLayer, descriptor)
+			if layerErr != nil {
+				return layerErr
 			}
 
 			return layerStore.RegisterLayerIfNotPresent(roLayer)
@@ -108,7 +106,7 @@ func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1
 	return &v1Image, nil
 }
 
-func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Named, layer store.Layer, descriptor distribution.Descriptor) error {
+func (puller *ImagePuller) downloadLayer(ctx context.Context, layer store.Layer, descriptor distribution.Descriptor) error {
 	var (
 		layerStore  = puller.config.LayerStore
 		progressOut = puller.config.ProgressOutput
@@ -134,9 +132,9 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, named reference.Na
 	defer layerReader.Close()
 
 	digester := digest.Canonical.Digester()
-	LayerDownloadReader := ioutil.NopCloser(io.TeeReader(layerReader, digester.Hash()))
-	progressReader := progress.NewProgressReader(LayerDownloadReader, progressOut, descriptor.Size, layer.SimpleID(), "pulling")
-	size, err := archive.Decompress(progressReader, backend.LayerDataDir(digest.Digest(layer.ID())), archive.Options{Compress: true})
+	layerDownloadReader := ioutil.NopCloser(io.TeeReader(layerReader, digester.Hash()))
+	progressReader := progress.NewProgressReader(layerDownloadReader, progressOut, descriptor.Size, layer.SimpleID(), "pulling")
+	size, err := archive.Decompress(progressReader, backend.LayerDataDir(layer.ID().ToDigest()), archive.Options{Compress: true})
 	if err != nil {
 		progress.Update(progressOut, layer.SimpleID(), err.Error())
 		return err
@@ -171,7 +169,7 @@ func (puller *ImagePuller) getRemoteManifest(context context.Context, named refe
 }
 
 // not docker image, get sealer image metadata
-func (puller *ImagePuller) getRemoteImageMetadata(context context.Context, named reference.Named, digest digest.Digest) (v1.Image, error) {
+func (puller *ImagePuller) getRemoteImageMetadata(context context.Context, digest digest.Digest) (v1.Image, error) {
 	repo := puller.repository
 	bs := repo.Blobs(context)
 	manifestImageBytes, err := bs.Get(context, digest)

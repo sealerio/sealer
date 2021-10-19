@@ -554,8 +554,6 @@ test-baremetal007   Ready    <none>   14s    v1.19.9
 
 2. **execute: sealer apply -f /root/.sealer/my-cluster/Clusterfile （executed successfully）**
 
-![image.png](https://intranetproxy.alipay.com/skylark/lark/0/2021/png/7656565/1622787574460-e4d3e59b-6025-400d-81a2-0ee08171864a.png)
-
 ```shell
 [root@test-baremetal008 ~]# kubectl get nodes -A
 NAME                STATUS   ROLES    AGE     VERSION

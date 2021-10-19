@@ -19,9 +19,10 @@ import (
 	"fmt" //nolint:imports
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/version"
-	"github.com/spf13/cobra"
 )
 
 var shortPrint bool

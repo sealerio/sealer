@@ -15,13 +15,10 @@
 package cmd
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/utils"
-	"github.com/alibaba/sealer/logger"
-
-	"os"
-
-	"github.com/spf13/cobra"
 )
 
 // pushCmd represents the push command
@@ -30,17 +27,14 @@ var pushCmd = &cobra.Command{
 	Short:   "push cloud image to registry",
 	Example: `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kuberentes-cluster-with-dashboard:latest`,
 	Args:    cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		imgsvc, err := image.NewImageService()
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 
-		if err = imgsvc.Push(args[0]); err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
+		return imgsvc.Push(args[0])
+
 	},
 	ValidArgsFunction: utils.ImageListFuncForCompletion,
 }

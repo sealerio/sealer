@@ -17,6 +17,10 @@ package apply
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
@@ -27,9 +31,6 @@ import (
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // cloud builder using cloud provider to build a cluster image
@@ -46,6 +47,7 @@ type DefaultApplier struct {
 	MastersToDelete []string
 	NodesToJoin     []string
 	NodesToDelete   []string
+	client          *k8s.Client
 }
 
 type ActionName string
@@ -66,6 +68,7 @@ const (
 	CleanFS                   ActionName = "CleanFS"
 	PluginDump                ActionName = "PluginDump"
 	PluginPhasePreInitRun     ActionName = "PluginPhasePreInitRun"
+	PluginPhaseOriginallyRun  ActionName = "PluginPhaseOriginallyRun"
 	PluginPhasePreInstallRun  ActionName = "PluginPhasePreInstallRun"
 	PluginPhasePostInstallRun ActionName = "PluginPhasePostInstallRun"
 )
@@ -91,12 +94,13 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		} else {
 			hosts = append(applier.MastersToJoin, applier.NodesToJoin...)
 		}
-		if err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts); err != nil {
+		err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts)
+		if err != nil {
 			return err
 		}
-		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
-		if applier.Runtime == nil {
-			return fmt.Errorf("failed to init runtime")
+		applier.Runtime, err = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		if err != nil {
+			return fmt.Errorf("failed to init runtime, %v", err)
 		}
 		return nil
 	},
@@ -127,10 +131,10 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	Guest: func(applier *DefaultApplier) error {
 		return applier.Guest.Apply(applier.ClusterDesired)
 	},
-	Reset: func(applier *DefaultApplier) error {
-		applier.Runtime = runtime.NewDefaultRuntime(applier.ClusterDesired)
-		if applier.Runtime == nil {
-			return fmt.Errorf("failed to init runtime")
+	Reset: func(applier *DefaultApplier) (err error) {
+		applier.Runtime, err = runtime.NewDefaultRuntime(applier.ClusterDesired)
+		if err != nil {
+			return fmt.Errorf("failed to init runtime, %v", err)
 		}
 		return applier.Runtime.Reset(applier.ClusterDesired)
 	},
@@ -140,7 +144,14 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	PluginDump: func(applier *DefaultApplier) error {
 		return applier.Plugins.Dump(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	},
+	PluginPhaseOriginallyRun: func(applier *DefaultApplier) error {
+		return applier.Plugins.Run(applier.ClusterDesired, "Originally")
+	},
 	PluginPhasePreInitRun: func(applier *DefaultApplier) error {
+		err := applier.Plugins.Load()
+		if err != nil {
+			return err
+		}
 		return applier.Plugins.Run(applier.ClusterDesired, "PreInit")
 	},
 	PluginPhasePreInstallRun: func(applier *DefaultApplier) error {
@@ -148,7 +159,6 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	},
 	PluginPhasePostInstallRun: func(applier *DefaultApplier) error {
 		return applier.Plugins.Run(applier.ClusterDesired, "PostInstall")
-
 	},
 }
 
@@ -183,7 +193,7 @@ func (c *DefaultApplier) Apply() (err error) {
 			return err
 		}
 
-		currentCluster, err := GetCurrentCluster()
+		currentCluster, err := c.GetCurrentCluster()
 		if err != nil {
 			return errors.Wrap(err, "get current cluster failed")
 		}
@@ -194,7 +204,7 @@ func (c *DefaultApplier) Apply() (err error) {
 		}
 	}
 
-	todoList, _ := c.diff()
+	todoList := c.diff()
 	for _, action := range todoList {
 		logger.Debug("sealer apply process %s", action)
 		err := ActionFuncMap[action](c)
@@ -212,7 +222,7 @@ func (c *DefaultApplier) Delete() (err error) {
 	return c.Apply()
 }
 
-func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
+func (c *DefaultApplier) diff() (todoList []ActionName) {
 	if c.ClusterDesired.DeletionTimestamp != nil {
 		c.MastersToDelete = c.ClusterDesired.Spec.Masters.IPList
 		c.NodesToDelete = c.ClusterDesired.Spec.Nodes.IPList
@@ -220,13 +230,14 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, UnMountRootfs)
 		todoList = append(todoList, UnMountImage)
 		todoList = append(todoList, CleanFS)
-		return todoList, nil
+		return todoList
 	}
 
 	if c.ClusterCurrent == nil {
+		todoList = append(todoList, PluginDump)
+		todoList = append(todoList, PluginPhaseOriginallyRun)
 		todoList = append(todoList, PullIfNotExist)
 		todoList = append(todoList, MountImage)
-		todoList = append(todoList, PluginDump)
 		todoList = append(todoList, Config)
 		todoList = append(todoList, MountRootfs)
 		todoList = append(todoList, PluginPhasePreInitRun)
@@ -239,7 +250,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		todoList = append(todoList, PluginPhasePostInstallRun)
-		return todoList, nil
+		return todoList
 	}
 
 	todoList = append(todoList, PullIfNotExist)
@@ -259,7 +270,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName, err error) {
 	}
 	todoList = append(todoList, Guest)
 	todoList = append(todoList, UnMountImage)
-	return todoList, nil
+	return todoList
 }
 
 func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
@@ -277,6 +288,12 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	k8sClient, err := k8s.Newk8sClient()
+	if err != nil {
+		logger.Warn(err)
+	}
+
 	return &DefaultApplier{
 		ClusterDesired: cluster,
 		ImageManager:   imgSvc,
@@ -284,5 +301,6 @@ func NewDefaultApplier(cluster *v1.Cluster) (Interface, error) {
 		Guest:          gs,
 		Config:         config.NewConfiguration(cluster.Name),
 		Plugins:        plugin.NewPlugins(cluster.Name),
+		client:         k8sClient,
 	}, nil
 }

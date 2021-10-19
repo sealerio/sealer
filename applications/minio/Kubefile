@@ -1,3 +1,3 @@
-FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
 COPY minio-manifest.yaml .
 CMD kubectl apply -f minio-manifest.yaml

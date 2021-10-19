@@ -16,7 +16,6 @@ metadata:
   labels:
     app.kubernetes.io/name: cassandra
     app.kubernetes.io/instance: my-cassandra
-  annotations:
 ---
 # Source: cassandra/templates/cassandra-secret.yaml
 apiVersion: v1
@@ -81,14 +80,11 @@ spec:
     - name: cql
       port: 9042
       targetPort: cql
-      nodePort: null
     - name: thrift
       port: 9160
       targetPort: thrift
-      nodePort: null
     - name: metrics
       port: 8080
-      nodePort: null
   selector:
     app.kubernetes.io/name: cassandra
     app.kubernetes.io/instance: my-cassandra
@@ -194,7 +190,6 @@ spec:
               value: "7199"
             - name: CASSANDRA_CQL_PORT_NUMBER
               value: "9042"
-          envFrom:
           livenessProbe:
             exec:
               command:
@@ -236,7 +231,6 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /bitnami/cassandra
-      volumes:
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -249,4 +243,4 @@ spec:
         resources:
           requests:
             storage: "50Gi"
-        storageClassName: openebs-jiva-csi-sc
+        storageClassName: local-hostpath

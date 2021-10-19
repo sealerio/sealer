@@ -23,7 +23,7 @@ tar zxvf helm-v3.6.0-linux-amd64.tar.gz
 Create a file Named Kubefile:
 
 ```shell script
-FROM kubernetes:v1.19.9
+FROM kubernetes:v1.19.8
 COPY linux-amd64/helm /usr/bin
 ```
 
@@ -36,14 +36,14 @@ So this case you need set cloud provider AK SK
 
 ```shell script
 # like ALI_CLOUD ak sk
-export ACCESSKEYID=LTAI5tx2dB2TgEkWAKU6wLfS
-export ACCESSKEYSECRET=l7sHQ9vE1ZbxFxBkaKFb0YNSPOBt4D
+export ACCESSKEYID=XXXXXXXXXXXXXXXXXXXXXXX
+export ACCESSKEYSECRET=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 Kubefile
 
 ```shell script
-FROM kubernetes:v1.19.9
+FROM kubernetes:v1.19.8
 RUN wget https://get.helm.sh/helm-v3.6.0-linux-amd64.tar.gz && \
     tar zxvf helm-v3.6.0-linux-amd64.tar.gz && \
     mv linux-amd64/helm /usr/bin
@@ -61,14 +61,14 @@ Push CloudImage to a registry, full docker registry compatibility:
 
 ```shell script
 sealer login registry.cn-qingdao.aliyuncs.com -u xxx -p
-sealer push registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9
-sealer pull registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9
+sealer push registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.8
+sealer pull registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.8
 ```
 
 We also can save the CloudImage as a tar file, copy and load it in your cluster.
 
 ```shell script
-sealer save registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.9 -o kubernetes.tar
+sealer save registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.8 -o kubernetes.tar
 sealer load -i kubernetes.tar
 ```
 
@@ -77,10 +77,10 @@ sealer load -i kubernetes.tar
 We can run a cluster using `sealer run` or `sealer apply` command, `sealer apply` needs you edit a Clusterfile to tell
 sealer the cluster configuration.
 
-If you don't know how to write a Clusterfile, you can inspect a image to show the default Clusterfile:
+If you don't know how to write a Clusterfile, you can inspect an image to show the default Clusterfile:
 
 ```shell script
-sealer inspect -c kubernetes:v1.19.9
+sealer inspect -c kubernetes:v1.19.8
 ```
 
 ### Run on exist servers
@@ -88,7 +88,7 @@ sealer inspect -c kubernetes:v1.19.9
 > Using sealer run
 
 ```shell script
-sealer run kubernetes:v1.19.9 -m 192.168.0.2,192.168.0.3,192.168.0.4 -n 192.168.0.5,192.168.0.6,192.168.0.7 \
+sealer run kubernetes:v1.19.8 -m 192.168.0.2,192.168.0.3,192.168.0.4 -n 192.168.0.5,192.168.0.6,192.168.0.7 \
        -p xxxx # ssh passwd
 ```
 
@@ -115,7 +115,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
   provider: BAREMETAL
   ssh:
     # SSH login password, if you use the key to log in, you don’t need to set it
@@ -172,7 +172,7 @@ export ACCESSKEYSECRET=xxx
 
 You just need specify the machine(VM) resource configuration and counts.
 
-`sealer run kubernetes:v1.19.9 -m 1 -n 1`
+`sealer run kubernetes:v1.19.8 -m 1 -n 1`
 
 > Using sealer apply, the provider should be ALI_CLOUD
 
@@ -182,7 +182,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
   provider: ALI_CLOUD
   network:
     podCIDR: 100.64.0.0/10
@@ -227,5 +227,5 @@ cluster-name is defined in metadata.name
 sealer delete -f .sealer/[cluster-name]/Clusterfile
 ```
 
-if you using cloud mod, sealer will delete the infa resouce too.
+if you're using cloud mod, sealer will delete the infra resource too.
 

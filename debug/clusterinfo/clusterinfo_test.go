@@ -19,9 +19,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/alibaba/sealer/common"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/alibaba/sealer/common"
 )
 
 func TestGetPodsIP(t *testing.T) {

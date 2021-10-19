@@ -22,15 +22,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/image/types"
-
 	"sigs.k8s.io/yaml"
-
-	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/image/types"
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/archive"
@@ -107,8 +105,11 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	if err = utils.AtomicWriteFile(imageMetadataTempFile, imgBytes, common.FileMode0644); err != nil {
 		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
 	}
-
-	repo, err := json.Marshal(&types.ImageMetadata{ID: image.Spec.ID, Name: named.Raw()})
+	metadata, err := d.imageStore.GetImageMetadataItem(named.Raw())
+	if err != nil {
+		return err
+	}
+	repo, err := json.Marshal(metadata)
 	if err != nil {
 		return err
 	}

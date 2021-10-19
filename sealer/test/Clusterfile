@@ -3,7 +3,7 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/cloudrootfs:v1.16.9-alpha.6
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
   provider: ALI_CLOUD
   ssh:
     passwd: ******

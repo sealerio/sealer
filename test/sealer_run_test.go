@@ -18,11 +18,11 @@ import (
 	"strconv"
 	"strings"
 
+	. "github.com/onsi/ginkgo"
+
 	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("sealer run", func() {
@@ -59,10 +59,10 @@ var _ = Describe("sealer run", func() {
 				apply.CleanUpAliCloudInfra(usedCluster)
 			}()
 			sshClient := testhelper.NewSSHClientByCluster(usedCluster)
-			Eventually(func() bool {
+			testhelper.CheckFuncBeTrue(func() bool {
 				err := sshClient.SSH.Copy(sshClient.RemoteHostIP, settings.DefaultSealerBin, settings.DefaultSealerBin)
 				return err == nil
-			}, settings.MaxWaiteTime).Should(BeTrue())
+			}, settings.MaxWaiteTime)
 
 			By("start to init cluster", func() {
 				masters := strings.Join(usedCluster.Spec.Masters.IPList, ",")
