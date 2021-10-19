@@ -15,9 +15,10 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/image"
 	"os"
 	"strings"
+
+	"github.com/alibaba/sealer/image"
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
