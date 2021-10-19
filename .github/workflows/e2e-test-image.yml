@@ -1,26 +1,16 @@
 name: Sealer-Test-Image
 
 on:
-  pull_request:
-    types: [ opened, synchronize, reopened, labeled ]
-
+  push:
+    branches: "release*"
+  issue_comment:
+    types:
+      - created
 jobs:
   build:
-    name: image-test
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'image-test') || contains(github.event.pull_request.labels.*.name, 'e2e-test')  }}
+    name: test
     runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      checks: write
-      contents: write
-      deployments: write
-      issues: write
-      discussions: write
-      packages: write
-      pull-requests: write
-      repository-projects: write
-      statuses: write
-      security-events: write
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test image')) || github.event_name == 'push' }}
     env:
       GO111MODULE: on
     steps:
@@ -28,7 +18,7 @@ jobs:
         id: request
         uses: octokit/request-action@v2.0.2
         with:
-          route: ${{ github.event.pull_request.url }}
+          route: ${{ github.event.issue.pull_request.url }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Get PR informations
@@ -70,6 +60,7 @@ jobs:
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+        if: ${{ github.event.comment.body == '/test login' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
           ginkgo -v --focus="sealer login" test
 
@@ -81,5 +72,6 @@ jobs:
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           IMAGE_NAME: ${{ secrets.IMAGE_NAME}}
+        if: ${{ github.event.comment.body == '/test image' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
           ginkgo -v --focus="sealer image" test
