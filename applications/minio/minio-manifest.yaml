@@ -70,7 +70,6 @@ spec:
     - name: minio
       port: 9000
       targetPort: minio
-      nodePort: null
   selector:
     app.kubernetes.io/name: minio
     app.kubernetes.io/instance: my-minio
@@ -151,7 +150,6 @@ spec:
               value: "on"
             - name: MINIO_PROMETHEUS_AUTH_TYPE
               value: "public"
-          envFrom:
           ports:
             - name: minio
               containerPort: 9000
@@ -180,7 +178,6 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
-      volumes:
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -193,4 +190,4 @@ spec:
         resources:
           requests:
             storage: "50Gi"
-        storageClassName: openebs-jiva-csi-sc
+        storageClassName: local-hostpath

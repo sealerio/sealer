@@ -17,8 +17,9 @@ package cache
 import (
 	"fmt"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/opencontainers/go-digest"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type Service interface {

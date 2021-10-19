@@ -1,6 +1,6 @@
 # Overview
 
-This image chooses OpenEBS Jiva as its persistence storage engine.
+This image chooses OpenEBS LocalPV as its persistence storage engine.
 
 Components included in this image:
 

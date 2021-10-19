@@ -22,22 +22,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alibaba/sealer/image/store"
-
-	"github.com/alibaba/sealer/runtime"
-
-	infraUtils "github.com/alibaba/sealer/infra/utils"
-
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/pkg/errors"
-
-	"github.com/alibaba/sealer/logger"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
-
+	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
 	"github.com/alibaba/sealer/utils/ssh"
 )
@@ -66,7 +59,7 @@ func (c *FileSystem) umountImage(cluster *v1.Cluster) error {
 	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
 	if utils.IsFileExist(mountdir) {
 		var err error
-		err = infraUtils.Retry(10, time.Second, func() error {
+		err = utils.Retry(10, time.Second, func() error {
 			err = mount.NewMountDriver().Unmount(mountdir)
 			if err != nil {
 				return err
@@ -92,12 +85,11 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 		if err != nil {
 			return fmt.Errorf("%s already mount, and failed to umount %v", mountdir, err)
 		}
-	} else {
-		if utils.IsFileExist(mountdir) {
-			err = os.RemoveAll(mountdir)
-			if err != nil {
-				return fmt.Errorf("failed to clean %s, %v", mountdir, err)
-			}
+	}
+	if utils.IsFileExist(mountdir) {
+		err = os.RemoveAll(mountdir)
+		if err != nil {
+			return fmt.Errorf("failed to clean %s, %v", mountdir, err)
 		}
 	}
 	//get layers
@@ -120,19 +112,11 @@ func (c *FileSystem) mountImage(cluster *v1.Cluster) error {
 }
 
 func (c *FileSystem) MountImage(cluster *v1.Cluster) error {
-	err := c.mountImage(cluster)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.mountImage(cluster)
 }
 
 func (c *FileSystem) UnMountImage(cluster *v1.Cluster) error {
-	err := c.umountImage(cluster)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.umountImage(cluster)
 }
 
 func (c *FileSystem) MountRootfs(cluster *v1.Cluster, hosts []string) error {
@@ -162,7 +146,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster) error {
 	config := runtime.GetRegistryConfig(
 		common.DefaultTheClusterRootfsDir(cluster.Name),
 		cluster.Spec.Masters.IPList[0])
-	if err := ssh.WaitSSHReady(SSH, ipList...); err != nil {
+	if err := ssh.WaitSSHReady(SSH, 4, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}
 	var wg sync.WaitGroup

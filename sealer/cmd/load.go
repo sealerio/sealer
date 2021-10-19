@@ -15,11 +15,13 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+
+	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
-	"github.com/spf13/cobra"
 )
 
 var imageSrc string
@@ -30,17 +32,16 @@ var loadCmd = &cobra.Command{
 	Short:   "load image",
 	Long:    `Load an image from a tar archive`,
 	Example: `sealer load -i kubernetes.tar.gz`,
-	Args:    cobra.ExactArgs(0),
-	Run: func(cmd *cobra.Command, args []string) {
+	Args:    cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ifs, err := image.NewImageFileService()
 		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 		if err = ifs.Load(imageSrc); err != nil {
-			logger.Error("failed to load image from %s, err: %v", imageSrc, err)
-			os.Exit(1)
+			return fmt.Errorf("failed to load image from %s: %v", imageSrc, err)
 		}
+		return nil
 	},
 }
 

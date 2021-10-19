@@ -24,13 +24,12 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils/ssh"
-
 	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/command"
 	"github.com/alibaba/sealer/ipvs"
+	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 const (
@@ -184,9 +183,9 @@ func (d *Default) SendJoinMasterKubeConfigs(masters []string, files ...string) {
 	}
 }
 
-func joinKubeadmConfig() string {
+func (d *Default) joinKubeadmConfig() string {
 	var sb strings.Builder
-	sb.Write([]byte(JoinCPTemplateText))
+	sb.Write([]byte(getJoinTemplateText(d.ClusterName)))
 	return sb.String()
 }
 
@@ -218,7 +217,7 @@ func (d *Default) JoinTemplateFromTemplateContent(templateContent, ip string) []
 
 // JoinTemplate is generate JoinCP nodes configuration by master ip.
 func (d *Default) JoinTemplate(ip string) []byte {
-	return d.JoinTemplateFromTemplateContent(joinKubeadmConfig(), ip)
+	return d.JoinTemplateFromTemplateContent(d.joinKubeadmConfig(), ip)
 }
 
 // getCgroupDriverFromShell is get nodes container runtime cgroup by shell.
@@ -339,7 +338,7 @@ func (d *Default) joinMasters(masters []string) error {
 	if err := d.LoadMetadata(); err != nil {
 		return fmt.Errorf("failed to load metadata %v", err)
 	}
-	if err := ssh.WaitSSHReady(d.SSH, masters...); err != nil {
+	if err := ssh.WaitSSHReady(d.SSH, 6, masters...); err != nil {
 		return errors.Wrap(err, "join masters wait for ssh ready time out")
 	}
 	if err := d.GetJoinTokenHashAndKey(); err != nil {

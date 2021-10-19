@@ -20,8 +20,9 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/alibaba/sealer/utils"
 	"sigs.k8s.io/yaml"
+
+	"github.com/alibaba/sealer/utils"
 )
 
 func (d *Default) getDefaultSANs() []string {
@@ -53,6 +54,7 @@ func (d *Default) templateFromContent(templateContent string) ([]byte, error) {
 	sans = utils.AppendIPList(sans, d.APIServerCertSANs)
 	sans = utils.AppendIPList(sans, []string{d.VIP})
 
+	envMap[Master0] = d.Masters[0]
 	envMap[CertSANS] = sans
 	envMap[VIP] = d.VIP
 	envMap[Masters] = utils.GetHostIPSlice(d.Masters)
@@ -90,7 +92,7 @@ func (d *Default) setKubeadmAPIByVersion() {
 
 func (d *Default) kubeadmConfig() string {
 	var sb strings.Builder
-	sb.Write([]byte(InitTemplateText))
+	sb.Write([]byte(getInitTemplateText(d.ClusterName)))
 	return sb.String()
 }
 

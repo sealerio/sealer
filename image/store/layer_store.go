@@ -23,15 +23,14 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/alibaba/sealer/utils/archive"
-
-	"github.com/alibaba/sealer/image/reference"
-
+	"github.com/opencontainers/go-digest"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
-	"github.com/opencontainers/go-digest"
+	"github.com/alibaba/sealer/utils/archive"
 )
 
 type layerStore struct {
@@ -57,7 +56,7 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 	}
 
 	curLayerDBDir := ls.LayerDBDir(layer.ID().ToDigest())
-	err := os.MkdirAll(curLayerDBDir, 0755)
+	err := os.MkdirAll(curLayerDBDir, common.FileMode0755)
 	if err != nil {
 		return fmt.Errorf("failed to init layer db for %s, err: %s", curLayerDBDir, err)
 	}
@@ -147,22 +146,21 @@ func (ls *layerStore) DisassembleTar(layerID digest.Digest, streamReader io.Read
 
 func (ls *layerStore) Delete(id LayerID) error {
 	digs := id.ToDigest()
-	layer := ls.Get(id)
-	if layer == nil {
+	if layer := ls.Get(id); layer == nil {
 		logger.Debug("layer %s is already deleted", id)
 		return nil
 	}
 
 	layerDataPath := ls.LayerDataDir(digs)
-	err := os.RemoveAll(layerDataPath)
-	if err != nil {
+	if err := os.RemoveAll(layerDataPath); err != nil {
 		return err
 	}
+
 	layerDBDir := ls.LayerDBDir(digs)
-	err = os.RemoveAll(layerDBDir)
-	if err != nil {
+	if err := os.RemoveAll(layerDBDir); err != nil {
 		return err
 	}
+
 	ls.mux.Lock()
 	defer ls.mux.Unlock()
 	delete(ls.layers, id)

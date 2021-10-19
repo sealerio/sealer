@@ -21,8 +21,8 @@ To install Sealer and prepare the test environment:
 
 ```console
 #install Sealer binaries
-wget https://github.com/alibaba/sealer/releases/download/v0.4.0/sealer-v0.4.0-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.4.0-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.5.0/sealer-v0.5.0-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.5.0-linux-amd64.tar.gz && mv sealer /usr/bin
 
 #prepare test environment
 export ACCESSKEYID={your AK}
@@ -31,7 +31,7 @@ export RegionID={your region}
 export REGISTRY_URL={your registry}
 export REGISTRY_USERNAME={user name}
 export REGISTRY_PASSWORD={password}
-#default test image name: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+#default test image name: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 export IMAGE_NAME={test image name}
 ```
 

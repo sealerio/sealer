@@ -19,9 +19,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/opencontainers/go-digest"
+
+	"github.com/alibaba/sealer/utils"
 )
 
 type DistributionMetadataItem struct {
@@ -29,7 +29,7 @@ type DistributionMetadataItem struct {
 	LayerContentDigest digest.Digest `json:"layer_content_digest"`
 }
 
-// distributionMetadata is the data from {layerdb}/distribution_layer_digest
+// DistributionMetadata is the data from {layerdb}/distribution_layer_digest
 // which indicate that digest of compressedlayerStream in specific registry and repository
 type DistributionMetadata []DistributionMetadataItem
 
@@ -41,7 +41,8 @@ func (fs *filesystem) LoadDistributionMetadata(layerID LayerID) (map[string]dige
 	)
 	distributionMetadataFile, err := os.Open(filepath.Join(layerDBPath, "distribution_layer_digest"))
 	if err != nil {
-		return res, nil
+		//lint:ignore nilerr https://github.com/alibaba/sealer/issues/610
+		return res, nil // ignore
 	}
 	defer distributionMetadataFile.Close()
 

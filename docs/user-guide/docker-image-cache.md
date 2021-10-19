@@ -76,7 +76,7 @@ health:
     threshold: 3
 ```
 
-2. or config with nothing remote registry info, we can get these info dynamically.
+2. or config with nothing remote registry info, we can get this info dynamically.
 
 ```yaml
 version: 0.1
@@ -107,8 +107,8 @@ registry config should be mounted as /etc/docker/registry/config.yml, and mount 
 ### Describe what feature you want
 
 ### Additional context
-remoteregistries could be added dynamically, but I do not store the dynamical remoteregistries info, because there would be many pair of username and password for same url probably, and maybe some image from different namespace has different auth info. Thus it's costly for adding remoteregistries dynamically, every docker pull request will generate request to real registry from local registry to get real auth endpoint.
-And for making cache registry work, there must be one remoteregistries item, so I take the following config as default registry config.yml.
+remote registry could be added dynamically, but I do not store the dynamical remote registry info, because there would be many pair of username and password for same url probably, and maybe some image from different namespace has different auth info. Thus, it's costly for adding remote registries dynamically, every docker pull request will generate request to real registry from local registry to get real auth endpoint.
+And for making cache registry work, there must be one remote registry item, so I take the following config as default registry config.yml.
 
 ```
 version: 0.1

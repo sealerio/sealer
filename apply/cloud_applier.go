@@ -18,18 +18,16 @@ import (
 	"bytes"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
+
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/filesystem"
-	"github.com/alibaba/sealer/guest"
-	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
 )
 
 const ApplyCluster = "chmod +x %s && %s apply -f %s"
@@ -39,28 +37,11 @@ type CloudApplier struct {
 }
 
 func NewAliCloudProvider(cluster *v1.Cluster) (Interface, error) {
-	imgService, err := image.NewImageService()
+	d, err := NewDefaultApplier(cluster)
 	if err != nil {
 		return nil, err
 	}
-
-	fs, err := filesystem.NewFilesystem()
-	if err != nil {
-		return nil, err
-	}
-
-	gs, err := guest.NewGuestManager()
-	if err != nil {
-		return nil, err
-	}
-
-	d := &DefaultApplier{
-		ClusterDesired: cluster,
-		ImageManager:   imgService,
-		FileSystem:     fs,
-		Guest:          gs,
-	}
-	return &CloudApplier{d}, nil
+	return &CloudApplier{d.(*DefaultApplier)}, nil
 }
 
 func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, err error) {
@@ -82,8 +63,7 @@ func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, er
 		return false, fmt.Errorf("should not scale up and down at same time")
 	}
 
-	err = DeleteNodes(append(MastersToDelete, NodesToDelete...))
-	if err != nil {
+	if err := c.DeleteNodes(append(MastersToDelete, NodesToDelete...)); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -92,7 +72,7 @@ func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, er
 func (c *CloudApplier) Apply() error {
 	var err error
 	cluster := c.ClusterDesired
-	clusterCurrent, err := GetCurrentCluster()
+	clusterCurrent, err := c.GetCurrentCluster()
 	if err != nil {
 		return fmt.Errorf("failed to get current cluster %v", err)
 	}

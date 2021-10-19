@@ -17,9 +17,9 @@ package utils
 import (
 	"strings"
 
-	"github.com/alibaba/sealer/image/store"
-
 	"github.com/spf13/cobra"
+
+	"github.com/alibaba/sealer/image/store"
 )
 
 func SimilarImageList(imageArg string) (similarImageList []string, err error) {

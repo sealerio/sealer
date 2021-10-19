@@ -45,7 +45,7 @@ Kubefile:
 #    1. kubernetes components like kubectl kubeadm kubelet and apiserver images ...
 #    2. docker engine, and a private registry
 #    3. config files, yaml, static files, scripts ...
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 # download kubernetes dashboard yaml file
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 # when run this CloudImage, will apply a dashboard manifests
@@ -82,7 +82,7 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 * [x] Very fast, complete cluster installation within 3 minutes
 * [x] Support ARM x86, v1.20 and above versions support containerd, almost compatible with all Linux operating systems that support systemd
 * [x] Does not rely on ansible haproxy keepalived, high availability is achieved through ipvs, takes up less resources, is stable and reliable
-* [x] There are very few in the official warehouse. Many ecological software images can be used directly, including all dependencies, one-click installation
+* [x] Many ecological software images can be used directly, like prometheus mysql..., and you can combine then together.
 
 ## Quick start
 
@@ -90,10 +90,10 @@ Install a kubernetes cluster
 
 ```shell script
 #install Sealer binaries
-wget https://github.com/alibaba/sealer/releases/download/v0.4.0/sealer-v0.4.0-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.4.0-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.5.0/sealer-v0.5.0-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.5.0-linux-amd64.tar.gz && mv sealer /usr/bin
 #run a kubernetes cluster
-sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx
+sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx
 ```
 
 ## User guide
@@ -104,12 +104,6 @@ sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx
 
 * [contributing guide](./CONTRIBUTING.md)
 * [贡献文档](./docs/contributing_zh.md)
-
-## Maintainers&Partners
-
-<img src="https://img.alicdn.com/tfs/TB13DzOjXP7gK0jSZFjXXc5aXXa-212-48.png" width="100px" />
-<img src="https://cdn.zcygov.cn/logo.png" width="100px" />
-<img src="http://harmonycloud.cn/uploads/images/202105/338aa0549c307208539755b8d2e0d352.png" width="100px" />
 
 ## License
 

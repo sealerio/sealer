@@ -18,11 +18,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/alibaba/sealer/common"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"gotest.tools/skip"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/types"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 var images = []v1.Image{
@@ -116,7 +117,7 @@ func TestImageStore_ImageMetadataItem(t *testing.T) {
 	}
 
 	for _, image := range images {
-		err = is.SetImageMetadataItem(image.Name, image.Spec.ID)
+		err = is.SetImageMetadataItem(types.ImageMetadata{Name: image.Name, ID: image.Spec.ID})
 		if err != nil {
 			t.Errorf("failed to set image metadata for %s, err: %s", image.Name, err)
 		}

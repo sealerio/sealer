@@ -1,6 +1,6 @@
 # Overview
 
-This image chooses OpenEBS Jiva as its persistence storage engine.
+This image chooses OpenEBS LocalPV as its persistence storage engine.
 
 Components included in this image:
 
@@ -48,11 +48,11 @@ kubectl port-forward --namespace minio-system svc/my-minio 9000:9000
 Kubefile:
 
 ```shell
-FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
 # add helm repo and run helm install
 RUN helm repo add bitnami https://charts.bitnami.com/bitnami
-# set persistence.storageClass=openebs-jiva-csi-sc, which is provided by base image openebs-jiva:2.11.0.
-CMD helm install my-minio --create-namespace --namespace minio-system --set mode=distributed --set accessKey.password=minio --set secretKey.password=minio123 --set persistence.storageClass=openebs-jiva-csi-sc --set persistence.enabled=true bitnami/minio --version 7.2.0
+# set persistence.storageClass=local-hostpath, which is provided by base image openebs-localpv:2.11.0.
+CMD helm install my-minio --create-namespace --namespace minio-system --set mode=distributed --set accessKey.password=minio --set secretKey.password=minio123 --set persistence.storageClass=local-hostpath --set persistence.enabled=true bitnami/minio --version 7.2.0
 ```
 
 run below command to build it

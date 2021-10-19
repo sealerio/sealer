@@ -1,6 +1,6 @@
 # Overview
 
-This image chooses OpenEBS Jiva as its persistence storage engine.
+This image chooses OpenEBS LocalPV as its persistence storage engine.
 
 Components included in this image:
 
@@ -44,11 +44,11 @@ For more information on using CockroachDB, please see the project's docs at [Coc
 Kubefile:
 
 ```shell
-FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
 # add helm repo and run helm install
 RUN helm repo add cockroachdb https://charts.cockroachdb.com/
-# set persistence.storageClass=openebs-jiva-csi-sc, which is provided by base image openebs-jiva:2.11.0.
-CMD helm install my-cockroachdb --create-namespace --namespace cockroachdb-system --set persistence.storageClass=openebs-jiva-csi-sc cockroachdb/cockroachdb --version 6.0.9
+# set persistence.storageClass=local-hostpath, which is provided by base image openebs-localpv:2.11.0.
+CMD helm install my-cockroachdb --create-namespace --namespace cockroachdb-system --set persistence.storageClass=local-hostpath cockroachdb/cockroachdb --version 6.0.9
 ```
 
 run below command to build it

@@ -27,7 +27,7 @@ spec:
       cpu: "1"
       memory: 400Mi
       storage: 20Gi
-    storageClassName: openebs-jiva-csi-sc
+    storageClassName: local-hostpath
     tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -94,7 +94,7 @@ spec:
       cpu: "1"
       memory: 2Gi
       storage: 50Gi
-    storageClassName: openebs-jiva-csi-sc
+    storageClassName: local-hostpath
     tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -113,7 +113,7 @@ spec:
   clusters:
     - name: basic-tidb-cluster
   storage: 50Gi
-  storageClassName: openebs-jiva-csi-sc
+  storageClassName: local-hostpath
   tolerations: [ ]
   kubePrometheusURL: ""
   nodeSelector: { }

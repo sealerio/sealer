@@ -47,13 +47,11 @@ type HostnamePlugin struct {
 }
 
 func NewHostnamePlugin() Interface {
-	return &HostnamePlugin{
-		data: map[string]string{},
-	}
+	return &HostnamePlugin{data: map[string]string{}}
 }
 
 func (h HostnamePlugin) Run(context Context, phase Phase) error {
-	if phase != PhasePreInit {
+	if phase != PhasePreInit || context.Plugin.Spec.Type != HostNamePlugin {
 		logger.Debug("hostnamePlugin nodes is not PhasePreInit!")
 		return nil
 	}

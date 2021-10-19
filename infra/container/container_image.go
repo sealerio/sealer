@@ -19,8 +19,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/alibaba/sealer/logger"
 	"github.com/docker/docker/api/types"
+
+	"github.com/alibaba/sealer/logger"
 )
 
 func (c *DockerProvider) DeleteImageResource(imageID string) error {
@@ -32,7 +33,7 @@ func (c *DockerProvider) DeleteImageResource(imageID string) error {
 }
 
 func (c *DockerProvider) PrepareImageResource() error {
-	// if exist, only set id no need to pull
+	// if existed, only set id no need to pull
 	if imageID := c.GetImageIDByName(c.ImageResource.DefaultName); imageID != "" {
 		logger.Info("image %s already exists", c.ImageResource.DefaultName)
 		c.ImageResource.ID = imageID

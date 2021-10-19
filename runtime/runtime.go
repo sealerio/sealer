@@ -20,9 +20,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/image/store"
-
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/ssh"
@@ -78,18 +77,13 @@ type Default struct {
 	KubeadmAPI        string
 }
 
-func NewDefaultRuntime(cluster *v1.Cluster) Interface {
+func NewDefaultRuntime(cluster *v1.Cluster) (Interface, error) {
 	c, err := store.NewDefaultImageStore()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	d := &Default{imageStore: c}
-	err = d.initRunner(cluster)
-	if err != nil {
-		logger.Error("get runtime failed %v", err)
-		return nil
-	}
-	return d
+	return d.initRunner(cluster)
 }
 
 func (d *Default) LoadMetadata() error {

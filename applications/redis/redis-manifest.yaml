@@ -506,11 +506,9 @@ spec:
     - name: tcp-redis
       port: 6379
       targetPort: redis
-      nodePort: null
     - name: tcp-sentinel
       port: 26379
       targetPort: redis-sentinel
-      nodePort: null
   selector:
     app.kubernetes.io/name: redis
     app.kubernetes.io/instance: my-redis
@@ -635,7 +633,6 @@ spec:
               mountPath: /health
             - name: redis-data
               mountPath: /data
-              subPath:
             - name: config
               mountPath: /opt/bitnami/redis/mounted-etc
             - name: redis-tmp-conf
@@ -713,7 +710,6 @@ spec:
               mountPath: /health
             - name: redis-data
               mountPath: /data
-              subPath:
             - name: config
               mountPath: /opt/bitnami/redis-sentinel/mounted-etc
             - name: sentinel-tmp-conf

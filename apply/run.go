@@ -20,13 +20,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/utils"
-
 	"sigs.k8s.io/yaml"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 type ClusterArgs struct {
@@ -121,9 +120,9 @@ func (c *ClusterArgs) SetClusterArgs() error {
 }
 
 func GetClusterFileByImageName(imageName string) (cluster *v1.Cluster, err error) {
-	clusterFile := image.GetClusterFileFromImageManifest(imageName)
-	if clusterFile == "" {
-		return nil, fmt.Errorf("failed to find Clusterfile")
+	clusterFile, err := image.GetClusterFileFromImageManifest(imageName)
+	if err != nil {
+		return nil, err
 	}
 	if err := yaml.Unmarshal([]byte(clusterFile), &cluster); err != nil {
 		return nil, err

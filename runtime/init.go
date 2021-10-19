@@ -16,17 +16,14 @@ package runtime
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/alibaba/sealer/common"
-
-	"github.com/alibaba/sealer/logger"
-
 	"github.com/alibaba/sealer/cert"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
@@ -88,8 +85,12 @@ func (d *Default) GetKubectlAndKubeconfig() error {
 	return GetKubectlAndKubeconfig(d.SSH, d.Masters[0])
 }
 
-func (d *Default) initRunner(cluster *v1.Cluster) error {
-	d.SSH = ssh.NewSSHByCluster(cluster)
+func (d *Default) initRunner(cluster *v1.Cluster) (Interface, error) {
+	client, err := ssh.NewSSHClientWithCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+	d.SSH = client.SSH
 	d.ClusterName = cluster.Name
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
@@ -109,39 +110,24 @@ func (d *Default) initRunner(cluster *v1.Cluster) error {
 	d.APIServerCertSANs = append(cluster.Spec.CertSANS, d.getDefaultSANs()...)
 	d.PodCIDR = cluster.Spec.Network.PodCIDR
 	d.SvcCIDR = cluster.Spec.Network.SvcCIDR
-
+	if logger.IsDebugModel() {
+		d.Vlog = 6
+	}
+	return d, nil
 	// return d.LoadMetadata()
-	return nil
 }
 func (d *Default) ConfigKubeadmOnMaster0() error {
 	var templateData string
 	var err error
 	var tpl []byte
-	var fileData []byte
 	// on master init .we need to get master0 cgroupdriver.
 	d.CriCGroupDriver = d.getCgroupDriverFromShell(d.Masters[0])
-	if d.KubeadmFilePath == "" {
-		tpl, err = d.defaultTemplate()
-		if err != nil {
-			return fmt.Errorf("failed to get default kubeadm template %v", err)
-		}
-	} else {
-		//TODO rootfs kubeadm.tmpl
-		fileData, err = ioutil.ReadFile(d.KubeadmFilePath)
-		if err != nil {
-			return err
-		}
-		tpl, err = d.templateFromContent(string(fileData))
-		if err != nil {
-			return fmt.Errorf("failed to get kubeadm template %v", err)
-		}
-	}
-
+	tpl, err = d.defaultTemplate()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get default kubeadm template %v", err)
 	}
-	templateData = string(tpl)
 
+	templateData = string(tpl)
 	cmd := fmt.Sprintf(WriteKubeadmConfigCmd, d.Rootfs, templateData)
 	err = d.SSH.CmdAsync(d.Masters[0], cmd)
 	if err != nil {
@@ -209,6 +195,7 @@ func (d *Default) InitMaster0() error {
 
 	// TODO skip docker version error check for test
 	output, err := d.SSH.Cmd(d.Masters[0], cmdInit)
+	logger.Info("%s", output)
 	if err != nil {
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}

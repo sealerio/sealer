@@ -20,21 +20,20 @@ import (
 	"io"
 	"strings"
 
-	"github.com/alibaba/sealer/common"
-
+	dockerstreams "github.com/docker/cli/cli/streams"
+	"github.com/docker/docker/api/types"
+	dockerioutils "github.com/docker/docker/pkg/ioutils"
+	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
+	dockerprogress "github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
 
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/distributionutil"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	dockerstreams "github.com/docker/cli/cli/streams"
-	"github.com/docker/docker/api/types"
-	dockerioutils "github.com/docker/docker/pkg/ioutils"
-	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
-	dockerprogress "github.com/docker/docker/pkg/progress"
 )
 
 // DefaultImageService is the default service, which is used for image pull/push
@@ -178,8 +177,7 @@ func (d DefaultImageService) Push(imageName string) error {
 func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd string) error {
 	err := distributionutil.Login(context.Background(), &types.AuthConfig{ServerAddress: RegistryURL, Username: RegistryUsername, Password: RegistryPasswd})
 	if err != nil {
-		logger.Error("%v authentication failed", RegistryURL)
-		return err
+		return fmt.Errorf("failed to authenticate %s: %v", RegistryURL, err)
 	}
 	if err := utils.SetDockerConfig(RegistryURL, RegistryUsername, RegistryPasswd); err != nil {
 		return err

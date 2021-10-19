@@ -14,7 +14,9 @@
 
 package store
 
-import "github.com/alibaba/sealer/common"
+import (
+	"github.com/alibaba/sealer/common"
+)
 
 const (
 	DefaultLayerTarName   = "layer.tar.gz"

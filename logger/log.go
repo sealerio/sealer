@@ -226,8 +226,7 @@ func (localLog *LocalLogger) SetLogger(adapterName string, configs ...string) {
 		fmt.Printf("unknown adaptername %s (forgotten Register?)", adapterName)
 	}
 
-	err := logger.Init(config)
-	if err != nil {
+	if err := logger.Init(config); err != nil {
 		fmt.Fprintf(common.StdErr, "logger Init <%s> err:%v, %s output ignore!\n",
 			adapterName, err, adapterName)
 	}
@@ -393,6 +392,10 @@ func GetlocalLogger() *LocalLogger {
 // Reset will remove all the adapter
 func Reset() {
 	defaultLogger.Reset()
+}
+
+func IsDebugModel() bool {
+	return loggerConfig.DebugMode
 }
 
 func SetLogPath(show bool) {

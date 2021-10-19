@@ -19,11 +19,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alibaba/sealer/utils"
+	"gotest.tools/skip"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	"gotest.tools/skip"
+	"github.com/alibaba/sealer/utils"
 )
 
 const fileContent = "fake file content"

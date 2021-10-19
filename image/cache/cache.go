@@ -17,12 +17,11 @@ package cache
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/logger"
-
 	"github.com/opencontainers/go-digest"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/pkg/errors"
+
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 //LocalImageCache saves all the layer

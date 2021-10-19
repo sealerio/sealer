@@ -164,7 +164,6 @@ spec:
       securityContext:
         fsGroup: 1001
         sysctls: [ ]
-      initContainers:
       containers:
         - name: mongodb-arbiter
           image: docker.io/bitnami/mongodb:4.4.8-debian-10-r9
@@ -367,7 +366,6 @@ spec:
           volumeMounts:
             - name: datadir
               mountPath: /bitnami/mongodb
-              subPath:
             - name: scripts
               mountPath: /scripts/setup.sh
               subPath: setup.sh

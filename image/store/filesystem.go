@@ -25,23 +25,20 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
-	"sigs.k8s.io/yaml"
-
-	"github.com/alibaba/sealer/image/types"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
-
-	"github.com/alibaba/sealer/logger"
 	"github.com/docker/docker/pkg/ioutils"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
+	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/types"
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	pkgutils "github.com/alibaba/sealer/utils"
-	"github.com/pkg/errors"
-
-	"github.com/opencontainers/go-digest"
 )
 
 // Backend is a service for image/layer read and write.
@@ -162,8 +159,8 @@ func (fs *filesystem) Delete(dgst digest.Digest) error {
 
 func (fs *filesystem) assembleTar(id LayerID, writer io.Writer) error {
 	var (
-		tarDataPath   = filepath.Join(fs.LayerDBDir(digest.Digest(id)), tarDataGZ)
-		layerDataPath = fs.LayerDataDir(digest.Digest(id))
+		tarDataPath   = filepath.Join(fs.LayerDBDir(id.ToDigest()), tarDataGZ)
+		layerDataPath = fs.LayerDataDir(id.ToDigest())
 	)
 
 	mf, err := os.Open(tarDataPath)
@@ -222,11 +219,11 @@ func (fs *filesystem) SetMetadata(id digest.Digest, key string, data []byte) err
 	defer fs.Unlock()
 
 	baseDir := fs.LayerDBDir(id)
-	if err := os.MkdirAll(baseDir, 0755); err != nil {
+	if err := os.MkdirAll(baseDir, common.FileMode0755); err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(baseDir, key), data, 0644)
+	return ioutil.WriteFile(filepath.Join(baseDir, key), data, common.FileMode0644)
 }
 
 func (fs *filesystem) GetMetadata(id digest.Digest, key string) ([]byte, error) {
@@ -257,7 +254,7 @@ func (fs *filesystem) LayerDataDir(digest digest.Digest) string {
 }
 
 func (fs *filesystem) storeROLayer(layer Layer) error {
-	dig := digest.Digest(layer.ID())
+	dig := layer.ID().ToDigest()
 	dbDir := fs.LayerDBDir(dig)
 	err := pkgutils.WriteFile(filepath.Join(dbDir, "size"), []byte(fmt.Sprintf("%d", layer.Size())))
 	if err != nil {
@@ -474,6 +471,7 @@ func (fs *filesystem) getImageMetadataItem(nameOrID string) (types.ImageMetadata
 }
 
 func (fs *filesystem) setImageMetadata(metadata types.ImageMetadata) error {
+	metadata.CREATED = time.Now()
 	imagesMap, err := fs.getImageMetadataMap()
 	if err != nil {
 		return err
@@ -496,8 +494,17 @@ func (fs *filesystem) saveImage(image v1.Image, name string) error {
 	if err != nil {
 		return err
 	}
-
-	return fs.setImageMetadata(types.ImageMetadata{Name: name, ID: image.Spec.ID})
+	var res []string
+	for _, layer := range image.Spec.Layers {
+		if layer.ID != "" {
+			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
+		}
+	}
+	size, err := pkgutils.GetFilesSize(res)
+	if err != nil {
+		return fmt.Errorf("failed to get image %s size, %v", name, err)
+	}
+	return fs.setImageMetadata(types.ImageMetadata{Name: name, ID: image.Spec.ID, SIZE: size})
 }
 
 func saveImageYaml(image v1.Image, dir string) error {
@@ -506,7 +513,7 @@ func saveImageYaml(image v1.Image, dir string) error {
 		return err
 	}
 
-	err = os.MkdirAll(dir, 0755)
+	err = os.MkdirAll(dir, common.FileMode0755)
 	if err != nil {
 		return err
 	}

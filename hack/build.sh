@@ -80,6 +80,17 @@ readonly SEALER_SUPPORTED_PLATFORMS=(
   linux/arm64
 )
 
+check() {
+  timestamp=$(date +"[%m%d %H:%M:%S]")
+  ret=$1
+  if [[ $ret -eq 0 ]];then
+    echo "[info] ${timestamp} ${2-} up to date."
+  else
+    echo "[err] ${timestamp} ${2-} is out of date. Please run $0"
+    exit 1
+  fi
+}
+
 build_binaries() {
   get_version_vars
   goldflags="${GOLDFLAGS=-s -w} $(ldflags)"
@@ -89,6 +100,7 @@ build_binaries() {
 
   debug "!!! build $osarch sealer"
   GOOS=${1-} GOARCH=${2-} go build -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/sealer/main.go
+  check $? "build $osarch sealer"
   debug "output bin: $THIS_PLATFORM_BIN/sealer/$osarch/sealer"
   cd ${SEALER_ROOT}/_output/bin/sealer/$osarch/
   tar czf sealer-$tarFile sealer
@@ -99,6 +111,7 @@ build_binaries() {
 
   debug "!!! build $osarch seautil"
   GOOS=${1-} GOARCH=${2-} go build -o $THIS_PLATFORM_BIN/seautil/$osarch/seautil -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/seautil/main.go
+  check $? "build $osarch seautil"
   debug "output bin: $THIS_PLATFORM_BIN/seautil/$osarch/seautil"
   cd ${SEALER_ROOT}/_output/bin/seautil/$osarch/
   tar czf seautil-$tarFile seautil

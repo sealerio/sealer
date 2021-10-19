@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/client"
-	"github.com/alibaba/sealer/logger"
-
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/alibaba/sealer/client/k8s"
+	"github.com/alibaba/sealer/logger"
 )
 
 /*
@@ -44,7 +44,8 @@ LabelsNodes.data key = ip
 []lable{{key=ssd,value=false}, {key=hdd,value=true}}
 */
 type LabelsNodes struct {
-	data map[string][]label
+	data   map[string][]label
+	client *k8s.Client
 }
 
 type label struct {
@@ -52,24 +53,23 @@ type label struct {
 	value string
 }
 
-func NewLabelsNodes() Interface {
-	return &LabelsNodes{
-		data: map[string][]label{},
-	}
+func NewLabelsPlugin() Interface {
+	return &LabelsNodes{data: map[string][]label{}}
 }
 
 func (l LabelsNodes) Run(context Context, phase Phase) error {
-	if phase != PhasePostInstall {
+	if phase != PhasePostInstall || context.Plugin.Spec.Type != LabelPlugin {
 		logger.Debug("label nodes is PostInstall!")
 		return nil
 	}
+	c, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	l.client = c
 	l.data = l.formatData(context.Plugin.Spec.Data)
 
-	c, err := client.NewClientSet()
-	if err != nil {
-		return fmt.Errorf("current cluster not found, %v", err)
-	}
-	nodeList, err := client.ListNodes(c)
+	nodeList, err := l.client.ListNodes()
 	if err != nil {
 		return fmt.Errorf("current cluster nodes not found, %v", err)
 	}
@@ -83,8 +83,8 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 			}
 			v.SetLabels(m)
 			v.SetResourceVersion("")
-			_, err := client.UpdateNode(c, &v)
-			if err != nil {
+
+			if _, err := l.client.UpdateNode(&v); err != nil {
 				return fmt.Errorf("current cluster nodes label failed, %v", err)
 			}
 		}

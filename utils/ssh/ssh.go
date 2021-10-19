@@ -20,12 +20,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/common"
-
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 )
 
 type Interface interface {
@@ -80,24 +78,27 @@ type Client struct {
 }
 
 func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
-	var host string
-	if cluster.Spec.Provider == common.CONTAINER {
-		host = cluster.Spec.Masters.IPList[0]
-	}
+	var (
+		ipList []string
+		host   string
+	)
+	sshClient := NewSSHByCluster(cluster)
 	if cluster.Spec.Provider == common.AliCloud {
 		host = cluster.GetAnnotationsByKey(common.Eip)
+		if host == "" {
+			return nil, fmt.Errorf("get cluster EIP failed")
+		}
+		ipList = append(ipList, host)
+	} else {
+		host = cluster.Spec.Masters.IPList[0]
+		ipList = append(ipList, append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)...)
 	}
-	sshClient := NewSSHByCluster(cluster)
-	if sshClient == nil {
-		return nil, fmt.Errorf("cloud build init ssh client failed")
-	}
-
-	if host == "" {
-		return nil, fmt.Errorf("get cluster EIP failed")
-	}
-	err := WaitSSHReady(sshClient, host)
+	err := WaitSSHReady(sshClient, 6, ipList...)
 	if err != nil {
 		return nil, err
+	}
+	if sshClient == nil {
+		return nil, fmt.Errorf("cloud build init ssh client failed")
 	}
 	return &Client{
 		SSH:  sshClient,
@@ -105,15 +106,16 @@ func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
 	}, nil
 }
 
-func WaitSSHReady(ssh Interface, hosts ...string) error {
+func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
 	var err error
 	var wg sync.WaitGroup
 	for _, h := range hosts {
 		wg.Add(1)
 		go func(host string) {
 			defer wg.Done()
-			for i := 0; i < 6; i++ {
-				if err := ssh.Ping(host); err == nil {
+			for i := 0; i < tryTimes; i++ {
+				err = ssh.Ping(host)
+				if err == nil {
 					return
 				}
 				time.Sleep(time.Duration(i) * time.Second)

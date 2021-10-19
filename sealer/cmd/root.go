@@ -19,11 +19,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	"github.com/spf13/cobra"
-
-	"github.com/spf13/viper"
 )
 
 type rootOpts struct {
@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 }
@@ -54,6 +54,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file (default is $HOME/.sealer.json)")
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.DisableAutoGenTag = true
 }
 
 // initConfig reads in config file and ENV variables if set.
