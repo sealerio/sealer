@@ -84,6 +84,42 @@ run 指令
 
 * 实现逻辑同cmd指令一致，但是会根据指令产物计算对应指令的layer id。
 
+### 指令缓存
+
+#### 概念介绍
+
+* layer id : 根据每一层指令运行的产物，根据时间，文件内容，文件权限等计算出该层指令独一无二的ID。
+* cache id : 根据context 中文件的内容，时间权限等计算出该层指令独一无二的ID，如没有命中，则会在该指令层，生成对应的cacheID文件，内容为cache id。
+* chain id : 用与匹配文件系统以及缓存的集群镜像。
+* parent id : 不包括当前层之前的所有指令的chain id计算结果。
+* cache layer: 包括cache id和layer value，layer type的新结构体。
+
+#### 缓存计算方式
+
+默认的parent id 起始值为""，系统会在初始化时候，按照以下生成逻辑，遍历当前文件系统存在的所有集群镜像。格式为map,key 是当前层的chain id，value为当前层对应的cache layer.
+
+Copy指令 chain id 生成举例
+
+```yaml
+chain id = ChainID（"parent id"+"cache id"+"COPY:recommended.yaml manifests"）
+```
+
+非Copy指令 chain id 生成举例
+
+非Copy指令没有cache id，则计算时候为""。
+
+```yaml
+chain id = ChainID（"parent id" +""+"CMD:kubectl apply -f etc/tigera-operator.yaml"）
+```
+
+#### 缓存命中逻辑
+
+    1，根据cache 标志位判断是否需要进行缓存。若是则走以下流程，若否则走常规计算流程。
+    2，计算context 中文件的对应的cache id,并且和当前对应的parent id进行计算，得到当前指令层的chain id。
+    3，根据 chain id 和系统中存在的所有缓存map，进行比较。
+    4，若命中，返回当前的layer id ，cache 标志设置为true，并将当前parent id替换为最新的chain id。
+    5，若没有命中，返回当前的layer id ，cache 标志设置为false，当前parent id不发生变化，并将该层对应的cache id 写入文件系统，用于下次缓存计算使用。
+
 ### 接口定义
 
 ```shell
@@ -99,9 +135,9 @@ ExecContext 结构体
     BuildType: 构建的类型。
     ContinueCache: 标志位，用于检测是否继续使用缓存，会在每一层layer执行的时候修改。
     ParentID cache.ChainID: 缓存chain id，起始值为 ""。会在每一层layer执行的时候修改为包括当前layer的chain id。
-    CacheSvc cache.Service: 缓存layer生成接口，根据当前layer,和产物hash,生成对应的缓存layer，用于判断缓存是否命中。
-    Prober image.Prober: 缓存探测接口，根据不同的`ParentID`和对应内容的cacheID 来判断使用命中缓存。
-    LayerStore store.LayerStore: 构建产物存储接口，会根据当前指令执行的结果，计算对应的layerid。
+    CacheSvc cache.Service: 缓存layer生成接口，根据当前layer和cache id,生成对应的缓存layer。用于和ParentID一起，生成当前的chain id。
+    Prober image.Prober: 缓存探测接口，用于判断对应的chain id 是否和系统中存在的缓存map命中。
+    LayerStore store.LayerStore: 构建产物存储接口，会根据当前指令执行的结果，计算对应的layerid，并将产物复制到对应的文件系统路径中。
 ```
 
 Out 结构体
