@@ -21,7 +21,7 @@ top = false
 
 ## Run on exist servers
 
-server ip address| 192.168.0.1 ~ 192.168.0.11
+server ip address| 192.168.0.1 ~ 192.168.0.13
 ---|---
 **server password**  | **sealer123**
 

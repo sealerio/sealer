@@ -81,9 +81,9 @@ Contains:
 
 # How can I get CloudRootfs
 
-1. Pull a BaseImage `sealer pull kubernetes:v1.19.9`
-2. Get into the BaseImage Layer `cd /var/lib/sealer/data/overlay2/my-cluster/mount/`
-3. Cd the BaseImage hash layer `ls && cd [layer-hash-id]`
+1. Pull a BaseImage `sealer pull kubernetes:v1.19.9-alpine`
+2. View the image layer information `sealer inspect kubernetes:v1.19.9-alpine`
+3. Get into the BaseImage Layer `ls /var/lib/sealer/data/overlay2/{layer-id}`
 
 You will found the CloudRootfs layer.
 
