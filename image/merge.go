@@ -42,8 +42,12 @@ func upImageID(imageName string, Image *v1.Image) error {
 
 func Merge(imageName string, images []string) error {
 	var Image = &v1.Image{}
+	imageStore, err := store.NewDefaultImageStore()
+	if err != nil {
+		return err
+	}
 	for k, v := range images {
-		img, err := DefaultImageService{}.PullIfNotExistAndReturnImage(v)
+		img, err := DefaultImageService{imageStore: imageStore}.PullIfNotExistAndReturnImage(v)
 		if err != nil {
 			return err
 		}

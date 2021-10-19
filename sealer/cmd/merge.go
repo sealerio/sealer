@@ -37,7 +37,7 @@ merge images:
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var images []string
-		for _, v := range strings.Split(args[0], " ") {
+		for _, v := range args {
 			image := strings.TrimSpace(v)
 			if image == "" {
 				continue
@@ -54,5 +54,5 @@ merge images:
 
 func init() {
 	rootCmd.AddCommand(mergeCmd)
-	mergeCmd.Flags().StringVarP(&ImageName, "images", "t", "", "target image name")
+	mergeCmd.Flags().StringVarP(&ImageName, "image-name", "t", "", "target image name")
 }

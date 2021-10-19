@@ -65,13 +65,16 @@ func (d DefaultImageService) PullIfNotExistAndReturnImage(imageName string) (*v1
 	if err != nil {
 		return nil, err
 	}
-
+GetImageByName:
 	image, err = d.imageStore.GetByName(named.Raw())
 	if err == nil {
-		logger.Info("image %s already exists", named.Raw())
 		return image, nil
 	}
-	return image, d.Pull(imageName)
+	err = d.Pull(imageName)
+	if err != nil {
+		return nil, err
+	}
+	goto GetImageByName
 }
 
 // Pull always do pull action
