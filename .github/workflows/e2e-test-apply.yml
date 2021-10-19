@@ -1,14 +1,16 @@
 name: Sealer-Test-Apply
 
 on:
-  pull_request:
-    types: [ opened, synchronize, reopened, labeled ]
-
+  push:
+    branches: "release*"
+  issue_comment:
+    types:
+      - created
 jobs:
   build:
-    name: apply-test
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'apply-test') || contains(github.event.pull_request.labels.*.name, 'e2e-test')  }}
+    name: test
     runs-on: ubuntu-latest
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test apply')) || github.event_name == 'push' }}
     env:
       GO111MODULE: on
     steps:
@@ -16,7 +18,7 @@ jobs:
         id: request
         uses: octokit/request-action@v2.0.2
         with:
-          route: ${{ github.event.pull_request.url }}
+          route: ${{ github.event.issue.pull_request.url }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Get PR informations
@@ -63,5 +65,6 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
+        if: ${{ github.event.comment.body == '/test apply' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
           ginkgo -v --focus="sealer apply" test
