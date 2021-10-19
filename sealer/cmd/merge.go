@@ -31,9 +31,9 @@ var mergeCmd = &cobra.Command{
 	Long:  `sealer merge image1:latest image2:latest image3:latest ......`,
 	Example: `
 merge images:
-	sealer merge kubernetes:v1.19.9 mysql:5.7.0 redis:6.0.0  
+	sealer merge kubernetes:v1.19.9 mysql:5.7.0 redis:6.0.0 -t new:0.1.0
 `,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var images []string
 		for _, v := range strings.Split(args[0], " ") {
