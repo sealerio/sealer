@@ -15,10 +15,10 @@
 package cmd
 
 import (
+	"github.com/alibaba/sealer/image"
 	"os"
 	"strings"
 
-	"github.com/alibaba/sealer/build"
 	"github.com/alibaba/sealer/logger"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +43,7 @@ merge images:
 			}
 			images = append(images, image)
 		}
-		if err := build.Merge(ImageName, images); err != nil {
+		if err := image.Merge(ImageName, images); err != nil {
 			logger.Error(err)
 			os.Exit(1)
 		}
@@ -53,5 +53,5 @@ merge images:
 
 func init() {
 	rootCmd.AddCommand(mergeCmd)
-	rootCmd.Flags().StringVarP(&ImageName, "imageName", "t", "", "target image name")
+	mergeCmd.Flags().StringVarP(&ImageName, "images", "t", "", "target image name")
 }

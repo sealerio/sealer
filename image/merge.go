@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package build
+package image
 
 import (
-	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/opencontainers/go-digest"
@@ -44,7 +43,7 @@ func upImageID(imageName string, Image *v1.Image) error {
 func Merge(imageName string, images []string) error {
 	var Image = &v1.Image{}
 	for k, v := range images {
-		img, err := image.DefaultImageService{}.PullIfNotExistAndReturnImage(v)
+		img, err := DefaultImageService{}.PullIfNotExistAndReturnImage(v)
 		if err != nil {
 			return err
 		}
