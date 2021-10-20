@@ -224,14 +224,241 @@ FROM kubernetes:v1.19.9
 COPY registry_config.yaml etc/
 ```
 
-## Kubefile example
+## Custom kubeadm configuration
 
-For example:
+Sealer will replace the default configuration with a custom configuration file in $Rootfs/etc:
 
-```shell
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
-# download kubernetes dashboard yaml file
-RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
-# when run this CloudImage, will apply a dashboard manifests
-CMD kubectl apply -f recommended.yaml
+```yaml
+   # custom config file name (file name is fixed)：
+   bootstrapTemplateName       = "kubeadm-bootstrap.yaml.tmpl"
+   initConfigTemplateName      = "kubeadm-init.yaml.tmpl"
+   clusterConfigTemplateName   = "kubeadm-cluster-config.yaml.tmpl"
+   kubeproxyConfigTemplateName = "kubeadm-kubeproxy-config.yaml.tmpl"
+   kubeletConfigTemplateName   = "kubeadm-kubelet-config.yaml.tmpl"
+   joinConfigTemplateName      = "kubeadm-join-config.yaml.tmpl"
 ```
+
+### Example: Custom configuration using the Docker Unix socket.
+
+1. define kubeadm init configuration (file name: kubeadm-init.yaml.tmpl) :
+
+```yaml
+apiVersion: {{.KubeadmAPI}}
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: {{.Master0}}
+  bindPort: 6443
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+```
+
+2. define kubeadm join configuration (file name: kubeadm-join-config.yaml.tmpl) :
+
+```yaml
+kind: JoinConfiguration
+  { { - if .Master } }
+controlPlane:
+  localAPIEndpoint:
+    advertiseAddress: {{.Master}}
+    bindPort: 6443
+  { { - end } }
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+```
+
+3. Build your own cloud image that override default configurations with custom configurations:
+
+```yaml
+#Kubefile
+FROM kubernetes:v1.19.8
+COPY kubeadm-init.yaml.tmpl ./etc
+COPY kubeadm-join-config.yaml.tmpl ./etc
+```
+
+> sealer build -b lite -t user-define-kubeadm-kubernetes:v1.19.8 .
+
+### Default template configuration file contents:
+
+> kubeadm-bootstrap.yaml.tmpl：
+> ```yaml
+> apiVersion: {{.KubeadmAPI}}
+> caCertPath: /etc/kubernetes/pki/ca.crt
+> discovery:
+>   bootstrapToken:
+>     {{- if .Master}}
+>     apiServerEndpoint: {{.Master0}}:6443
+>     {{else}}
+>     apiServerEndpoint: {{.VIP}}:6443
+>     {{end -}}
+>     token: {{.TokenDiscovery}}
+>     caCertHashes:
+>     - {{.TokenDiscoveryCAHash}}
+>     timeout: 5m0s
+> ```
+> kubeadm-init.yaml.tmpl：
+> ```yaml
+> apiVersion: {{.KubeadmAPI}}
+> kind: InitConfiguration
+> localAPIEndpoint:
+>   advertiseAddress: {{.Master0}}
+>   bindPort: 6443
+> nodeRegistration:
+>   criSocket: {{.CriSocket}}
+> ```
+> kubeadm-cluster-config.yaml.tmpl：
+> ```yaml
+> apiVersion: {{.KubeadmAPI}}
+> kind: ClusterConfiguration
+> kubernetesVersion: {{.Version}}
+> controlPlaneEndpoint: "{{.ApiServer}}:6443"
+> imageRepository: {{.Repo}}
+> networking:
+>   # dnsDomain: cluster.local
+>   podSubnet: {{.PodCIDR}}
+>   serviceSubnet: {{.SvcCIDR}}
+> apiServer:
+>   certSANs:
+>   {{range .CertSANS -}}
+>   - {{.}}
+>   {{end -}}
+>   extraArgs:
+>     etcd-servers: {{.EtcdServers}}
+>     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
+>     audit-policy-file: "/etc/kubernetes/audit-policy.yml"
+>     audit-log-path: "/var/log/kubernetes/audit.log"
+>     audit-log-format: json
+>     audit-log-maxbackup: '"10"'
+>     audit-log-maxsize: '"100"'
+>     audit-log-maxage: '"7"'
+>     enable-aggregator-routing: '"true"'
+>   extraVolumes:
+>   - name: "audit"
+>     hostPath: "/etc/kubernetes"
+>     mountPath: "/etc/kubernetes"
+>     pathType: DirectoryOrCreate
+>   - name: "audit-log"
+>     hostPath: "/var/log/kubernetes"
+>     mountPath: "/var/log/kubernetes"
+>     pathType: DirectoryOrCreate
+>   - name: localtime
+>     hostPath: /etc/localtime
+>     mountPath: /etc/localtime
+>     readOnly: true
+>     pathType: File
+> controllerManager:
+>   extraArgs:
+>     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
+>     experimental-cluster-signing-duration: 876000h
+>   extraVolumes:
+>   - hostPath: /etc/localtime
+>     mountPath: /etc/localtime
+>     name: localtime
+>     readOnly: true
+>     pathType: File
+> scheduler:
+>   extraArgs:
+>     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
+>   extraVolumes:
+>   - hostPath: /etc/localtime
+>     mountPath: /etc/localtime
+>     name: localtime
+>     readOnly: true
+>     pathType: File
+> etcd:
+>   local:
+>     extraArgs:
+>       listen-metrics-urls: http://0.0.0.0:2381
+> ```
+> kubeadm-kubeproxy-config.yaml.tmpl：
+> ```yaml
+> apiVersion: kubeproxy.config.k8s.io/v1alpha1
+> kind: KubeProxyConfiguration
+> mode: "ipvs"
+> ipvs:
+>   excludeCIDRs:
+>   - "{{.VIP}}/32"
+> ```
+> kubeadm-kubelet-config.yaml.tmpl：
+> ```yaml
+> apiVersion: kubelet.config.k8s.io/v1beta1
+> kind: KubeletConfiguration
+> authentication:
+>   anonymous:
+>     enabled: false
+>   webhook:
+>     cacheTTL: 2m0s
+>     enabled: true
+>   x509:
+>     clientCAFile: /etc/kubernetes/pki/ca.crt
+> authorization:
+>   mode: Webhook
+>   webhook:
+>     cacheAuthorizedTTL: 5m0s
+>     cacheUnauthorizedTTL: 30s
+> cgroupDriver: {{ .CgroupDriver}}
+> cgroupsPerQOS: true
+> clusterDomain: cluster.local
+> configMapAndSecretChangeDetectionStrategy: Watch
+> containerLogMaxFiles: 5
+> containerLogMaxSize: 10Mi
+> contentType: application/vnd.kubernetes.protobuf
+> cpuCFSQuota: true
+> cpuCFSQuotaPeriod: 100ms
+> cpuManagerPolicy: none
+> cpuManagerReconcilePeriod: 10s
+> enableControllerAttachDetach: true
+> enableDebuggingHandlers: true
+> enforceNodeAllocatable:
+> - pods
+> eventBurst: 10
+> eventRecordQPS: 5
+> evictionHard:
+>   imagefs.available: 15%
+>   memory.available: 100Mi
+>   nodefs.available: 10%
+>   nodefs.inodesFree: 5%
+> evictionPressureTransitionPeriod: 5m0s
+> failSwapOn: true
+> fileCheckFrequency: 20s
+> hairpinMode: promiscuous-bridge
+> healthzBindAddress: 127.0.0.1
+> healthzPort: 10248
+> httpCheckFrequency: 20s
+> imageGCHighThresholdPercent: 85
+> imageGCLowThresholdPercent: 80
+> imageMinimumGCAge: 2m0s
+> iptablesDropBit: 15
+> iptablesMasqueradeBit: 14
+> kubeAPIBurst: 10
+> kubeAPIQPS: 5
+> makeIPTablesUtilChains: true
+> maxOpenFiles: 1000000
+> maxPods: 110
+> nodeLeaseDurationSeconds: 40
+> nodeStatusReportFrequency: 10s
+> nodeStatusUpdateFrequency: 10s
+> oomScoreAdj: -999
+> podPidsLimit: -1
+> port: 10250
+> registryBurst: 10
+> registryPullQPS: 5
+> rotateCertificates: true
+> runtimeRequestTimeout: 2m0s
+> serializeImagePulls: true
+> staticPodPath: /etc/kubernetes/manifests
+> streamingConnectionIdleTimeout: 4h0m0s
+> syncFrequency: 1m0s
+> volumeStatsAggPeriod: 1m0s
+> ```
+> kubeadm-join-config.yaml.tmpl：
+> ```yaml
+> kind: JoinConfiguration
+> {{- if .Master }}
+> controlPlane:
+>   localAPIEndpoint:
+>     advertiseAddress: {{.Master}}
+>     bindPort: 6443
+> {{- end}}
+> nodeRegistration:
+>   criSocket: {{.CriSocket}}
+> ```
