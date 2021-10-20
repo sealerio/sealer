@@ -216,6 +216,7 @@ func (c *DefaultApplier) Apply() (err error) {
 			return err
 		}
 	}
+
 	todoList := c.diff()
 	for _, action := range todoList {
 		logger.Debug("sealer apply process %s", action)
@@ -248,6 +249,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		todoList = append(todoList, CleanFS)
 		return todoList
 	}
+
 	// init cluster
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PluginDump)
