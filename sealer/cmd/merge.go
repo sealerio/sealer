@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"os"
 	"strings"
 
 	"github.com/alibaba/sealer/image"
@@ -35,7 +34,7 @@ merge images:
 	sealer merge kubernetes:v1.19.9 mysql:5.7.0 redis:6.0.0 -t new:0.1.0
 `,
 	Args: cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var images []string
 		for _, v := range args {
 			image := strings.TrimSpace(v)
@@ -45,10 +44,10 @@ merge images:
 			images = append(images, image)
 		}
 		if err := image.Merge(ImageName, images); err != nil {
-			logger.Error(err)
-			os.Exit(1)
+			return err
 		}
 		logger.Info("images %s is merged to %s!", strings.Join(images, ","), ImageName)
+		return nil
 	},
 }
 
