@@ -85,7 +85,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	MountRootfs: func(applier *DefaultApplier) error {
 		// TODO mount only mount desired hosts, some hosts already mounted when update cluster
 		var hosts []string
-		if applier.ClusterCurrent == nil {
+		if applier.ClusterCurrent == nil || applier.ClusterDesired.Spec.Image != applier.ClusterCurrent.Spec.Image {
 			hosts = append(applier.ClusterDesired.Spec.Masters.IPList, applier.ClusterDesired.Spec.Nodes.IPList...)
 			config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(applier.ClusterDesired.Name), applier.ClusterDesired.Spec.Masters.IPList[0])
 			if utils.NotInIPList(config.IP, applier.ClusterDesired.Spec.Masters.IPList) && utils.NotInIPList(config.IP, applier.ClusterDesired.Spec.Nodes.IPList) {
@@ -94,7 +94,8 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		} else {
 			hosts = append(applier.MastersToJoin, applier.NodesToJoin...)
 		}
-		err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts)
+		err := applier.FileSystem.MountRootfs(applier.ClusterDesired, hosts, applier.ClusterCurrent == nil || applier.ClusterDesired.Spec.Image == applier.ClusterCurrent.Spec.Image)
+
 		if err != nil {
 			return err
 		}
@@ -120,7 +121,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.Runtime.Init(applier.ClusterDesired)
 	},
 	Upgrade: func(applier *DefaultApplier) error {
-		return applier.Runtime.Upgrade(applier.ClusterDesired)
+		return applier.Runtime.Upgrade(applier.ClusterCurrent)
 	},
 	ApplyMasters: func(applier *DefaultApplier) error {
 		return applyMasters(applier)
@@ -188,11 +189,7 @@ func applyNodes(applier *DefaultApplier) error {
 
 func (c *DefaultApplier) Apply() (err error) {
 	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
-		err = utils.SaveClusterfile(c.ClusterDesired)
-		if err != nil {
-			return err
-		}
-
+		//scale
 		currentCluster, err := c.GetCurrentCluster()
 		if err != nil {
 			return errors.Wrap(err, "get current cluster failed")
@@ -202,6 +199,22 @@ func (c *DefaultApplier) Apply() (err error) {
 			c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
 			c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
 		}
+		//upgrade
+		clusterFilePath := common.GetClusterWorkClusterfile(c.ClusterDesired.Name)
+		if utils.IsFileExist(clusterFilePath) {
+			clusterBeforeUpgrade, err := GetClusterFromFile(clusterFilePath)
+			if err != nil {
+				return err
+			}
+			if clusterBeforeUpgrade.Spec.Image != c.ClusterDesired.Spec.Image {
+				c.ClusterCurrent.Spec.Image = clusterBeforeUpgrade.Spec.Image
+			}
+		}
+		// all commands need to do
+		err = utils.SaveClusterfile(c.ClusterDesired)
+		if err != nil {
+			return err
+		}
 	}
 
 	todoList := c.diff()
@@ -210,6 +223,9 @@ func (c *DefaultApplier) Apply() (err error) {
 		err := ActionFuncMap[action](c)
 		if err != nil {
 			return err
+		}
+		if action == Upgrade {
+			c.ClusterCurrent.Spec.Image = c.ClusterDesired.Spec.Image
 		}
 	}
 
@@ -223,6 +239,7 @@ func (c *DefaultApplier) Delete() (err error) {
 }
 
 func (c *DefaultApplier) diff() (todoList []ActionName) {
+	// deleter cluster
 	if c.ClusterDesired.DeletionTimestamp != nil {
 		c.MastersToDelete = c.ClusterDesired.Spec.Masters.IPList
 		c.NodesToDelete = c.ClusterDesired.Spec.Nodes.IPList
@@ -233,6 +250,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		return todoList
 	}
 
+	// init cluster
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PluginDump)
 		todoList = append(todoList, PluginPhaseOriginallyRun)
@@ -254,14 +272,17 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 	}
 
 	todoList = append(todoList, PullIfNotExist)
+	todoList = append(todoList, MountImage)
+	// upgrade cluster
 	if c.ClusterDesired.Spec.Image != c.ClusterCurrent.Spec.Image {
 		logger.Info("current image is : %s and desired image is : %s , so upgrade your cluster", c.ClusterCurrent.Spec.Image, c.ClusterDesired.Spec.Image)
+		todoList = append(todoList, MountRootfs)
 		todoList = append(todoList, Upgrade)
 	}
+	// scale masters or nodes
+	todoList = append(todoList, MountRootfs)
 	c.MastersToJoin, c.MastersToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
 	c.NodesToJoin, c.NodesToDelete = utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
-	todoList = append(todoList, MountImage)
-	todoList = append(todoList, MountRootfs)
 	if len(c.MastersToJoin) > 0 || len(c.MastersToDelete) > 0 {
 		todoList = append(todoList, ApplyMasters)
 	}
