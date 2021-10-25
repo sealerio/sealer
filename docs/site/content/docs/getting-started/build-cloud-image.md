@@ -173,11 +173,10 @@ Lite build is suitable for the scenarios where there is a list of known images o
 Kubefile example：
 
 ```shell
-FROM kubernetes:v1.19.9
+FROM kubernetes:v1.19.8
 COPY imageList manifests
 COPY apollo charts
-RUN helm install charts/apollo
-RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
+CMD helm install charts/apollo
 COPY recommended.yaml manifests
 CMD kubectl apply -f manifests/recommended.yaml
 ```

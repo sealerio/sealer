@@ -127,8 +127,7 @@ Kubefile 示例：
 FROM kubernetes:v1.19.8
 COPY imageList manifests
 COPY apollo charts
-RUN helm install charts/apollo
-RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
+CMD helm install charts/apollo
 COPY recommended.yaml manifests
 CMD kubectl apply -f manifests/recommended.yaml
 ```
