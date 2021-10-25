@@ -90,7 +90,6 @@ Context 结构体
 BuildContext: 构建的上下文。
 BuildType: 构建的类型。
 UseCache: 标志位，用于检测是否使用缓存。
-ImageService: 用于初始化缓存探测接口。
 ```
 
 ## Build 指令层
