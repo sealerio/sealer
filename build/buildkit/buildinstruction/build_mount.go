@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildkit
+package buildinstruction
 
 import (
 	"fmt"
-	"path/filepath"
-
-	"github.com/alibaba/sealer/runtime"
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
@@ -52,6 +49,7 @@ func (m MountTarget) CleanUp() {
 	if err := m.driver.Unmount(m.TempTarget); err != nil {
 		logger.Warn(fmt.Errorf("failed to umount %s:%v", m.TempTarget, err))
 	}
+
 	utils.CleanDirs(m.TempUpper, m.TempTarget)
 }
 
@@ -68,21 +66,25 @@ func (m MountTarget) GetMountTarget() string {
 }
 
 //NewMountTarget will create temp dir if target or upper is nil. it is convenient for use in build stage
-func NewMountTarget(target, upper string, LowLayers []string) (*MountTarget, error) {
-	if len(LowLayers) == 0 {
-		return nil, fmt.Errorf("mount lowlayers can not be nil")
+func NewMountTarget(target, upper string, lowLayers []string) (*MountTarget, error) {
+	if len(lowLayers) == 0 {
+		tmp, err := utils.MkTmpdir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create tmp lower %s:%v", tmp, err)
+		}
+		lowLayers = append(lowLayers, tmp)
 	}
 	if target == "" {
 		tmp, err := utils.MkTmpdir()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create target %s:%v", tmp, err)
+			return nil, fmt.Errorf("failed to create tmp target %s:%v", tmp, err)
 		}
 		target = tmp
 	}
 	if upper == "" {
 		tmp, err := utils.MkTmpdir()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create upper %s:%v", tmp, err)
+			return nil, fmt.Errorf("failed to create tmp upper %s:%v", tmp, err)
 		}
 		upper = tmp
 	}
@@ -90,41 +92,6 @@ func NewMountTarget(target, upper string, LowLayers []string) (*MountTarget, err
 		driver:     mount.NewMountDriver(),
 		TempTarget: target,
 		TempUpper:  upper,
-		LowLayers:  LowLayers,
+		LowLayers:  lowLayers,
 	}, nil
-}
-
-func NewRegistryCache() (*MountTarget, error) {
-	//$rootfs/registry
-	dir := GetRegistryBindDir()
-	if dir == "" {
-		return nil, nil
-	}
-	rootfs := filepath.Dir(dir)
-	// if rootfs dir not mounted, unable to get cache image layer. need to mount rootfs before init-registry
-	isMounted, upper := mount.GetMountDetails(rootfs)
-	if !isMounted {
-		mountTarget, err := NewMountTarget(rootfs, runtime.RegistryMountUpper, []string{rootfs})
-		if err != nil {
-			return nil, err
-		}
-		str, err := utils.RunSimpleCmd(fmt.Sprintf("rm -rf %s && mkdir -p %s", runtime.RegistryMountUpper, runtime.RegistryMountUpper))
-		if err != nil {
-			logger.Error(str)
-			return nil, err
-		}
-		err = mountTarget.TempMount()
-		if err != nil {
-			return nil, fmt.Errorf("failed to mount %s, %v", rootfs, err)
-		}
-		str, err = utils.RunSimpleCmd(fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", rootfs, rootfs))
-		logger.Info(str)
-		if err != nil {
-			return nil, fmt.Errorf("failed to init registry, %s", err)
-		}
-		return mountTarget, nil
-	}
-
-	logger.Info("get registry cache dir :%s success ", dir)
-	return NewMountTarget(rootfs, upper, []string{rootfs})
 }

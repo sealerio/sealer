@@ -16,116 +16,58 @@ package buildkit
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
+
+	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 
 	"github.com/alibaba/sealer/client/docker"
 	"github.com/alibaba/sealer/runtime"
-	"github.com/docker/docker/api/types/mount"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
-	"github.com/opencontainers/go-digest"
+	"github.com/alibaba/sealer/utils/mount"
 
 	"path/filepath"
 	"strings"
 
-	"sigs.k8s.io/yaml"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 )
 
-// GetRawClusterFile GetClusterFile from user build context or from base image
-func GetRawClusterFile(im *v1.Image) (string, error) {
-	if im.Spec.Layers[0].Value == common.ImageScratch {
-		data, err := ioutil.ReadFile(filepath.Join("etc", common.DefaultClusterFileName))
-		if err != nil {
-			return "", err
-		}
-		if string(data) == "" {
-			return "", fmt.Errorf("ClusterFile content is empty")
-		}
-		return string(data), nil
+const (
+	kubefile = "Kubefile"
+)
+
+func NewRegistryCache() (*buildinstruction.MountTarget, error) {
+	//$rootfs/registry
+	dir := GetRegistryBindDir()
+	if dir == "" {
+		return nil, nil
+	}
+	rootfs := filepath.Dir(dir)
+	isMounted, upper := mount.GetMountDetails(rootfs)
+	if isMounted {
+		logger.Info("get registry cache dir :%s success ", dir)
+		return buildinstruction.NewMountTarget(rootfs, upper, []string{rootfs})
 	}
 
-	// find cluster file from context
-	if clusterFile, err := getClusterFileFromContext(im); err == nil {
-		return clusterFile, nil
-	}
-
-	// find cluster file from base image
-	return image.GetClusterFileFromImage(im.Spec.Layers[0].Value)
-}
-
-func getClusterFileFromContext(image *v1.Image) (string, error) {
-	for i := range image.Spec.Layers {
-		layer := image.Spec.Layers[i]
-		if layer.Type == common.COPYCOMMAND && strings.Fields(layer.Value)[0] == common.DefaultClusterFileName {
-			clusterFile, err := utils.ReadAll(strings.Fields(layer.Value)[0])
-			if err != nil {
-				return "", err
-			}
-			if string(clusterFile) == "" {
-				return "", fmt.Errorf("ClusterFile is empty")
-			}
-			return string(clusterFile), nil
-		}
-	}
-	return "", fmt.Errorf("failed to get ClusterFile from Context")
-}
-
-// GetBaseLayersPath used in build stage, where the image still has from layer
-func GetBaseLayersPath(layers []v1.Layer) (res []string) {
-	for _, layer := range layers {
-		if layer.ID != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
-		}
-	}
-	return res
-}
-
-func generateImageID(image v1.Image) (string, error) {
-	imageBytes, err := yaml.Marshal(image)
+	// if rootfs dir not mounted, unable to get cache image layer. need to mount rootfs before init-registry
+	mountTarget, err := buildinstruction.NewMountTarget(rootfs, runtime.RegistryMountUpper, []string{rootfs})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	imageID := digest.FromBytes(imageBytes).Hex()
-	return imageID, nil
-}
-
-func setClusterFileToImage(image *v1.Image, name string) error {
-	var cluster v1.Cluster
-	clusterFileData, err := GetRawClusterFile(image)
+	str, err := utils.RunSimpleCmd(fmt.Sprintf("rm -rf %s && mkdir -p %s", runtime.RegistryMountUpper, runtime.RegistryMountUpper))
 	if err != nil {
-		return err
+		logger.Error(str)
+		return nil, err
 	}
-
-	if err := yaml.Unmarshal([]byte(clusterFileData), &cluster); err != nil {
-		return err
-	}
-	cluster.Spec.Image = name
-	clusterFile, err := yaml.Marshal(cluster)
+	err = mountTarget.TempMount()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to mount %s, %v", rootfs, err)
 	}
-
-	if image.Annotations == nil {
-		image.Annotations = make(map[string]string)
+	str, err = utils.RunSimpleCmd(fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", rootfs, rootfs))
+	logger.Info(str)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init registry, %s", err)
 	}
-
-	image.Annotations[common.ImageAnnotationForClusterfile] = string(clusterFile)
-
-	return nil
-}
-
-func IsOnlyCopy(layers []v1.Layer) bool {
-	for i := 1; i < len(layers); i++ {
-		if layers[i].Type == common.RUNCOMMAND ||
-			layers[i].Type == common.CMDCOMMAND {
-			return false
-		}
-	}
-	return true
+	return mountTarget, nil
 }
 
 func GetRegistryBindDir() string {
@@ -147,7 +89,7 @@ func GetRegistryBindDir() string {
 
 	for _, c := range containers {
 		for _, m := range c.Mounts {
-			if m.Type == mount.TypeBind && m.Destination == registryDest {
+			if m.Type == "bind" && m.Destination == registryDest {
 				return m.Source
 			}
 		}

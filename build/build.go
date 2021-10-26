@@ -15,14 +15,10 @@
 package build
 
 import (
-	"fmt"
-
-	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/build/cloud"
 	"github.com/alibaba/sealer/build/lite"
+	"github.com/alibaba/sealer/build/local"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/store"
 )
 
 var ProviderMap = map[string]string{
@@ -32,64 +28,29 @@ var ProviderMap = map[string]string{
 }
 
 func NewLocalBuilder(config *Config) (Interface, error) {
-	layerStore, err := store.NewDefaultLayerStore()
-	if err != nil {
-		return nil, err
-	}
-
-	imageStore, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, err
-	}
-
-	service, err := image.NewImageService()
-	if err != nil {
-		return nil, err
-	}
-
-	fs, err := store.NewFSStoreBackend()
-	if err != nil {
-		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
-	}
-
-	prober := image.NewImageProber(service, config.NoCache)
-
-	return &buildkit.Builder{
-		BuildType:    config.BuildType,
-		NoCache:      config.NoCache,
-		LayerStore:   layerStore,
-		ImageStore:   imageStore,
-		ImageService: service,
-		Prober:       prober,
-		FS:           fs,
+	return &local.Builder{
+		BuildType: config.BuildType,
+		NoCache:   config.NoCache,
 	}, nil
 }
 
 func NewCloudBuilder(config *Config) (Interface, error) {
-	localBuilder, err := NewLocalBuilder(config)
-	if err != nil {
-		return nil, err
-	}
-
 	provider := common.AliCloud
 	if config.BuildType != "" {
 		provider = ProviderMap[config.BuildType]
 	}
 
 	return &cloud.Builder{
-		Local:              localBuilder.(*buildkit.Builder),
+		BuildType:          config.BuildType,
+		NoCache:            config.NoCache,
 		Provider:           provider,
 		TmpClusterFilePath: common.TmpClusterfile,
 	}, nil
 }
 
 func NewLiteBuilder(config *Config) (Interface, error) {
-	localBuilder, err := NewLocalBuilder(config)
-	if err != nil {
-		return nil, err
-	}
-
 	return &lite.Builder{
-		Local: localBuilder.(*buildkit.Builder),
+		BuildType: config.BuildType,
+		NoCache:   config.NoCache,
 	}, nil
 }

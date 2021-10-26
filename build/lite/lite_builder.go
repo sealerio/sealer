@@ -20,7 +20,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/alibaba/sealer/build/buildkit/buildimage"
+	"github.com/alibaba/sealer/image/reference"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/mount"
+
+	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 
 	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/client/docker"
@@ -29,28 +34,50 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
 type Builder struct {
-	Local             *buildkit.Builder
+	BuildType         string
+	NoCache           bool
+	ImageNamed        reference.Named
+	Context           string
+	KubeFileName      string
 	DockerClient      *docker.Docker
-	RootfsMountTarget *buildkit.MountTarget
+	RootfsMountTarget *buildinstruction.MountTarget
+	BuildImage        buildimage.Interface
 }
 
-const liteBuild = "lite-build"
-
 func (l *Builder) Build(name string, context string, kubefileName string) error {
-	err := l.Local.InitBuilder(name, context, kubefileName)
+	named, err := reference.ParseToNamed(name)
 	if err != nil {
 		return err
 	}
+	l.ImageNamed = named
+
+	absContext, absKubeFile, err := buildkit.ParseBuildArgs(context, kubefileName)
+	if err != nil {
+		return err
+	}
+	l.KubeFileName = absKubeFile
+
+	err = buildkit.ValidateContextDirectory(absContext)
+	if err != nil {
+		return err
+	}
+	l.Context = absContext
+
+	bi, err := buildimage.NewBuildImage(absKubeFile)
+	if err != nil {
+		return err
+	}
+	l.BuildImage = bi
 
 	l.DockerClient, err = docker.NewDockerClient()
 	if err != nil {
 		return err
 	}
+
 	pipLine, err := l.GetBuildPipeLine()
 	if err != nil {
 		return err
@@ -66,25 +93,18 @@ func (l *Builder) Build(name string, context string, kubefileName string) error 
 
 func (l *Builder) GetBuildPipeLine() ([]func() error, error) {
 	var buildPipeline []func() error
-	if err := l.Local.InitImageSpec(); err != nil {
-		return nil, err
-	}
-
 	buildPipeline = append(buildPipeline,
 		l.PreCheck,
-		l.Local.PullBaseImageNotExist,
-		l.InitCluster,
-		l.MountRootfs,
-		l.InitDockerAndRegistry,
-		l.Local.ExecBuild,
-		l.CollectLiteBuildImages,
-		l.Local.UpdateImageMetadata,
+		l.StartDockerRegistry,
+		l.ExecBuild,
+		l.SaveBuildImage,
 		l.Cleanup,
 	)
 	return buildPipeline, nil
 }
 
 func (l *Builder) PreCheck() error {
+	//todo need install sealer docker,if already installed,need to return.
 	images, _ := l.DockerClient.ImagesList()
 	if len(images) > 0 {
 		logger.Warn("The image already exists on the host. Note that the existing image cannot be cached in registry")
@@ -92,52 +112,51 @@ func (l *Builder) PreCheck() error {
 	return nil
 }
 
-func (l *Builder) InitCluster() error {
-	l.Local.Cluster = &v1.Cluster{}
-	l.Local.Cluster.Name = liteBuild
-	l.Local.Cluster.Spec.Image = l.Local.Image.Spec.Layers[0].Value
-	return nil
-}
-
-func (l *Builder) MountRootfs() error {
-	err := l.Local.UpdateBuilderLayers(l.Local.Image)
-	if err != nil {
-		return err
-	}
+func (l *Builder) mountRootfs() (bool, error) {
 	var (
-		target = common.DefaultMountCloudImageDir(l.Local.Cluster.Name)
-		upper  = common.DefaultLiteBuildUpper
-		res    = buildkit.GetBaseLayersPath(l.Local.BaseLayers)
+		res = buildinstruction.GetBaseLayersPath(l.BuildImage.GetRawImageBaseLayers())
 	)
-
-	if isMount, _ := mount.GetMountDetails(target); isMount {
-		err := mount.NewMountDriver().Unmount(target)
+	// if already mounted ,read mount details set to RootfsMountTarget and return.
+	// Negative examples:
+	//if pull images failed or exec kubefile instruction failed, run lite build again,will cache part images.
+	bindDir := buildkit.GetRegistryBindDir()
+	bindTarget := filepath.Dir(bindDir)
+	isMounted, upper := mount.GetMountDetails(bindTarget)
+	if isMounted {
+		logger.Info("get registry cache dir :%s success ", bindTarget)
+		registryCache, err := buildinstruction.NewMountTarget(bindTarget, upper, res)
 		if err != nil {
-			return err
+			return false, err
 		}
+		l.RootfsMountTarget = registryCache
+		return true, nil
 	}
 
-	utils.CleanDirs(upper, target)
-	err = utils.MkDirs(upper, target)
+	rootfs, err := buildinstruction.NewMountTarget("", "", res)
 	if err != nil {
-		return err
-	}
-
-	rootfs, err := buildkit.NewMountTarget(target, upper, res)
-	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = rootfs.TempMount()
 	if err != nil {
-		return err
+		return false, err
 	}
 	l.RootfsMountTarget = rootfs
+	return false, nil
+}
 
+func (l *Builder) StartDockerRegistry() error {
+	alreadyMount, err := l.mountRootfs()
+	if err != nil {
+		return err
+	}
+	if !alreadyMount {
+		return l.startRegistry()
+	}
 	return nil
 }
 
-func (l *Builder) InitDockerAndRegistry() error {
+func (l *Builder) startRegistry() error {
 	mountedRootfs := l.RootfsMountTarget.GetMountTarget()
 	initDockerCmd := fmt.Sprintf("cd %s  && chmod +x scripts/* && cd scripts && bash docker.sh", mountedRootfs)
 	host := fmt.Sprintf("%s %s", "127.0.0.1", runtime.SeaHub)
@@ -159,30 +178,67 @@ func (l *Builder) InitDockerAndRegistry() error {
 	})
 }
 
-func (l *Builder) CollectLiteBuildImages() error {
-	upper := l.RootfsMountTarget.GetMountUpper()
-	imageLayer := v1.Layer{
-		Type:  "BASE",
-		Value: "registry cache",
+func (l *Builder) ExecBuild() error {
+	ctx := buildimage.Context{
+		BuildContext: l.Context,
+		BuildType:    l.BuildType,
+		UseCache:     !l.NoCache,
 	}
-	tmp, err := utils.MkTmpdir()
-	if err != nil {
-		return fmt.Errorf("failed to add upper layer to image, %v", err)
-	}
-	if utils.IsFileExist(filepath.Join(upper, common.RegistryDirName)) {
-		err = os.Rename(filepath.Join(upper, common.RegistryDirName), filepath.Join(tmp, common.RegistryDirName))
-		if err != nil {
-			return fmt.Errorf("failed to add upper layer to image, %v", err)
-		}
-	}
-	layerDgst, err := l.Local.RegisterLayer(tmp)
+
+	return l.BuildImage.ExecBuild(ctx)
+}
+
+func (l *Builder) SaveBuildImage() error {
+	layers, err := l.collectLayers()
 	if err != nil {
 		return err
 	}
 
-	imageLayer.ID = layerDgst
-	l.Local.NewLayers = append(l.Local.NewLayers, imageLayer)
+	imageName := l.ImageNamed.Raw()
+	err = l.BuildImage.SaveBuildImage(imageName, layers)
+	if err != nil {
+		return err
+	}
+	logger.Info("save image %s to image system success !", imageName)
 	return nil
+}
+
+func (l *Builder) collectLayers() ([]v1.Layer, error) {
+	var layers []v1.Layer
+	layers = append(l.BuildImage.GetRawImageBaseLayers(), l.BuildImage.GetRawImageNewLayers()...)
+	layer, err := l.collectRegistryCache()
+	if err != nil {
+		return nil, err
+	}
+
+	if layer.ID == "" {
+		logger.Warn("registry cache content not found")
+		return layers, nil
+	}
+	layers = append(layers, layer)
+	return layers, nil
+}
+
+func (l *Builder) collectRegistryCache() (v1.Layer, error) {
+	var layer v1.Layer
+	upper := l.RootfsMountTarget.GetMountUpper()
+	tmp, err := utils.MkTmpdir()
+	if err != nil {
+		return layer, fmt.Errorf("failed to add upper layer to image, %v", err)
+	}
+	if utils.IsFileExist(filepath.Join(upper, common.RegistryDirName)) {
+		err = os.Rename(filepath.Join(upper, common.RegistryDirName), filepath.Join(tmp, common.RegistryDirName))
+		if err != nil {
+			return layer, fmt.Errorf("failed to add upper layer to image, %v", err)
+		}
+	}
+
+	layer, err = l.BuildImage.GenNewLayer(common.BaseImageLayerType, common.RegistryLayerValue, tmp)
+	if err != nil {
+		return layer, fmt.Errorf("failed to register layer, err: %v", err)
+	}
+
+	return layer, nil
 }
 
 func (l *Builder) Cleanup() error {

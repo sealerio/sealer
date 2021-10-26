@@ -12,26 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildkit
+package local
 
 import "github.com/alibaba/sealer/common"
 
-const (
-	cacheID        = common.CacheID
-	maxLayerDeep   = 128
-	FromCmd        = "FROM"
-	imageLayerType = common.BaseImageLayerType
-	kubefile       = "Kubefile"
-)
-
-const (
-	IsCopyToManifests  = "manifests"
-	IsCopyToChart      = "charts"
-	IsCopyOfflineImage = "images"
-	ImageList          = "imageList"
-
-	ImageListHandler    = "imageList"
-	ChartHandler        = "chart"
-	YamlHandler         = "yaml"
-	OfflineImageHandler = "offlineImage"
-)
+func CacheDockerImage(base string) bool {
+	return base != common.ImageScratch
+}

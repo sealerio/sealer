@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildlayer
+package local
 
-import (
-	v1 "github.com/alibaba/sealer/types/api/v1"
+import "github.com/alibaba/sealer/common"
+
+const (
+	registryLayerValue = common.RegistryLayerValue
+	registryLayerType  = common.BaseImageLayerType
 )
-
-type LayerHandler interface {
-	LayerValueHandler(buildContext string, layer v1.Layer) error
-}

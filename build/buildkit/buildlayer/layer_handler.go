@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildkit
+package buildlayer
 
 import (
 	"strings"
 
-	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
-// LayerValueExchange :init different layer handler to exchanging due to the layer content
-func LayerValueExchange(layer *v1.Layer) buildlayer.LayerHandler {
-	var layerParser buildlayer.LayerCopy
+// ParseLayerContent :init different layer handler to exchanging due to the layer content
+func ParseLayerContent(layer *v1.Layer) LayerHandler {
+	var layerParser LayerCopy
 	if layer.Type == common.COPYCOMMAND {
 		layerParser = parseCopyLayerValue(layer.Value)
 	}
@@ -32,24 +31,29 @@ func LayerValueExchange(layer *v1.Layer) buildlayer.LayerHandler {
 	switch layerParser.HandlerType {
 	// imageList;yaml,chart
 	case ImageListHandler:
-		return buildlayer.NewImageListHandler(layerParser)
+		return NewImageListHandler(layerParser)
 	case YamlHandler:
-		return buildlayer.NewYamlHandler(layerParser)
+		return NewYamlHandler(layerParser)
 	case ChartHandler:
-		return buildlayer.NewChartHandler(layerParser)
+		return NewChartHandler(layerParser)
 	}
 	return nil
 }
 
-func parseCopyLayerValue(layerValue string) buildlayer.LayerCopy {
+func parseCopyLayerValue(layerValue string) LayerCopy {
 	//COPY imageList manifests
 	//COPY cc charts
 	//COPY recommended.yaml manifests
 	//COPY nginx.tar images
 
-	lc := buildlayer.LayerCopy{
+	dst := strings.Fields(layerValue)[1]
+	for _, p := range []string{"./", "/"} {
+		dst = strings.TrimPrefix(dst, p)
+	}
+
+	lc := LayerCopy{
 		Src:  strings.Fields(layerValue)[0],
-		Dest: strings.TrimPrefix(strings.Fields(layerValue)[1], "./"),
+		Dest: dst,
 	}
 	if lc.Dest == IsCopyToManifests {
 		if lc.Src == ImageList {

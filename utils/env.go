@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildlayer
+package utils
 
 import (
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"fmt"
+	"os"
 )
 
-type LayerHandler interface {
-	LayerValueHandler(buildContext string, layer v1.Layer) error
+func SetRootfsBinToSystemEnv(rootfs string) error {
+	bin := fmt.Sprintf(":%s/bin", rootfs)
+	return os.Setenv("PATH", os.Getenv("PATH")+bin)
 }
