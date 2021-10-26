@@ -1,0 +1,20 @@
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: nvidia-docker
+spec:
+  type: SHELL
+  action: PreInit
+  data: |
+    sh ./nvidia-docker.sh
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: post-install
+spec:
+  type: SHELL
+  action: PostInstall
+  on: role=master
+  data: |
+    sh ./post-install.sh
