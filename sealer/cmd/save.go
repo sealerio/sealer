@@ -33,8 +33,8 @@ var saveCmd = &cobra.Command{
 	Long:  `save image to a file `,
 	Example: `
 sealer save -o [output file name] [image name]
-save kubernetes:v1.18.3 image to kubernetes.tar.gz file:
-sealer save -o kubernetes.tar.gz kubernetes:v1.18.3`,
+save kubernetes:v1.19.8 image to kubernetes.tar file:
+sealer save -o kubernetes.tar kubernetes:v1.19.8`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ifs, err := image.NewImageFileService()
