@@ -7,7 +7,7 @@
 
 ## build
 
-sealer build -f Kubefile -t registry.cn-qingdao.aliyuncs.com/sealer-app/kubernetes-nvidia:v1.19.8 -b lite .
+sealer build -f Kubefile -t registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nvidia:v1.19.8 -b lite .
 
 ## apply
 
