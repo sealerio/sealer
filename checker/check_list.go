@@ -23,6 +23,7 @@ import (
 const (
 	PhasePre  = "Pre"
 	PhasePost = "Post"
+	PhaseView = "view"
 )
 
 // Define checkers when pre or post install, like checker node status, checker pod status...

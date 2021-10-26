@@ -79,7 +79,7 @@ func (s *SSH) CmdToString(host, cmd, spilt string) (string, error) {
 	data, err := s.Cmd(host, cmd)
 	str := string(data)
 	if err != nil {
-		return str, fmt.Errorf("exec remote command failed %s %s %s", host, cmd, err)
+		return str, fmt.Errorf("exec remote command failed %s %s %v", host, cmd, err)
 	}
 	if data != nil {
 		str = strings.ReplaceAll(str, "\r\n", spilt)

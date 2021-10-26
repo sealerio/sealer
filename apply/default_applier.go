@@ -17,6 +17,8 @@ package apply
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/checker"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -65,6 +67,8 @@ const (
 	ApplyNodes                ActionName = "ApplyNodes"
 	Guest                     ActionName = "Guest"
 	Reset                     ActionName = "Reset"
+	PreCheck                  ActionName = "PreCheck"
+	PostCheck                 ActionName = "PostCheck"
 	CleanFS                   ActionName = "CleanFS"
 	PluginDump                ActionName = "PluginDump"
 	PluginPhasePreInitRun     ActionName = "PluginPhasePreInitRun"
@@ -138,6 +142,28 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 			return fmt.Errorf("failed to init runtime, %v", err)
 		}
 		return applier.Runtime.Reset(applier.ClusterDesired)
+	},
+	PreCheck: func(applier *DefaultApplier) error {
+		//need docker checker
+		checkList := []checker.Interface{checker.NewHostChecker()}
+		if applier.ClusterCurrent != nil {
+			checkList = append(checkList, checker.NewNodeChecker())
+		}
+		for _, check := range checkList {
+			if err := check.Check(applier.ClusterDesired, checker.PhasePre); err != nil {
+				return err
+			}
+		}
+		return nil
+	},
+	PostCheck: func(applier *DefaultApplier) error {
+		var checkList []checker.Interface
+		for _, check := range checkList {
+			if err := check.Check(applier.ClusterDesired, checker.PhasePost); err != nil {
+				return err
+			}
+		}
+		return nil
 	},
 	CleanFS: func(applier *DefaultApplier) error {
 		return applier.FileSystem.Clean(applier.ClusterDesired)
@@ -249,7 +275,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		todoList = append(todoList, CleanFS)
 		return todoList
 	}
-
+	todoList = append(todoList, PreCheck)
 	// init cluster
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PluginDump)
@@ -268,6 +294,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		todoList = append(todoList, PluginPhasePostInstallRun)
+		todoList = append(todoList, PostCheck)
 		return todoList
 	}
 
@@ -291,6 +318,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 	}
 	todoList = append(todoList, Guest)
 	todoList = append(todoList, UnMountImage)
+	todoList = append(todoList, PostCheck)
 	return todoList
 }
 
