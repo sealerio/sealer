@@ -11,9 +11,9 @@ sealer build -f Kubefile -t registry.cn-qingdao.aliyuncs.com/sealer-app/kubernet
 
 ## apply
 
-1. Modify Clisterfile according to the environment
+1. Modify Clusterfile according to the environment
 2. sealer apply -f ./Clusterfile
 
 ## results
 
-nvidia.com/gpu shows on 'Allocated resources' with command 'kubectl describe node' 
+`nvidia.com/gpu` shows on 'Allocated resources' with command 'kubectl describe node'.
