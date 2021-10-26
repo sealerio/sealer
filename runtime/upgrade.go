@@ -17,21 +17,22 @@ package runtime
 import (
 	"fmt"
 	"path/filepath"
-
 	"strings"
 
 	"github.com/alibaba/sealer/common"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
 const (
-	chmodCmd    = `chmod +x %s/*`
-	mvCmd       = `mv %s/* /usr/bin`
-	drainCmd    = `kubectl drain $(uname -n) --ignore-daemonsets`
-	upgradeCmd  = `kubeadm upgrade %s`
-	restartCmd  = `sudo systemctl daemon-reload && sudo systemctl restart kubelet`
-	uncordonCmd = `kubectl uncordon $(uname -n)`
+	chmodCmd       = `chmod +x %s/*`
+	mvCmd          = `mv %s/* /usr/bin`
+	getNodeNameCmd = `$(uname -n | tr '[A-Z]' '[a-z]')`
+	drainCmd       = `kubectl drain ` + getNodeNameCmd + ` --ignore-daemonsets`
+	upgradeCmd     = `kubeadm upgrade %s`
+	restartCmd     = `sudo systemctl daemon-reload && sudo systemctl restart kubelet`
+	uncordonCmd    = `kubectl uncordon ` + getNodeNameCmd
 )
 
 func (d *Default) upgrade(cluster *v1.Cluster) error {
