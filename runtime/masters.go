@@ -42,7 +42,7 @@ const (
 
 const (
 	RemoteAddEtcHosts       = "echo %s >> /etc/hosts"
-	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" < /etc/hosts > hosts && /usr/bin/cp -f hosts /etc/hosts`
+	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" < /etc/hosts > hosts && cp -f hosts /etc/hosts`
 	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
 	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
 	RemoteJoinMasterConfig  = `echo "%s" > %s/kubeadm-join-config.yaml`
