@@ -43,11 +43,13 @@ client, err := ssh.NewSSHClientWithCluster(cluster)
 ```
 
 > 所有节点的升级原理大致相同，核心是通过IP地址登录到对应节点，执行集群升级命令。以升级主控制节点为例，主要做了以下几件事情：
+
 - 将节点rootfs文件系统下bin目录中的二进制文件赋予执行权限，并移动至/usr/bin目录下。（因为/usr/bin包含在环境变量PATH的值中）
 - 用kubectl drain排空节点。
 - 用kubectl upgrade升级节点。
 - 重启节点上的kubelet。
 - 将节点标记为可调度。
+
 >其余控制节点上的操作与主控制节点一致，工作节点上不用进行“排空节点”的操作和“标记节点为可调度”的操作。
 ---
 > 最后，在upgrade操作成功之后，将`ClusterCurrent`的`Image`属性值，更新为`ClusterDesired`的`Image`属性值。
