@@ -24,11 +24,13 @@ type Interface interface {
 
 func NewBuilder(config *Config) (Interface, error) {
 	switch config.BuildType {
-	case common.LiteBuild:
-		return NewLiteBuilder(config)
+	case common.AliCloudBuild:
+		return NewCloudBuilder(config)
+	case common.ContainerBuild:
+		return NewCloudBuilder(config)
 	case common.LocalBuild:
 		return NewLocalBuilder(config)
 	default:
-		return NewCloudBuilder(config)
+		return NewLiteBuilder(config)
 	}
 }

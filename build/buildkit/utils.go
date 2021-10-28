@@ -18,85 +18,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
-
-	"github.com/alibaba/sealer/client/docker"
-	"github.com/alibaba/sealer/runtime"
-	"github.com/alibaba/sealer/utils/mount"
-
 	"path/filepath"
 	"strings"
-
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 )
 
 const (
 	kubefile = "Kubefile"
 )
-
-func NewRegistryCache() (*buildinstruction.MountTarget, error) {
-	//$rootfs/registry
-	dir := GetRegistryBindDir()
-	if dir == "" {
-		return nil, nil
-	}
-	rootfs := filepath.Dir(dir)
-	isMounted, upper := mount.GetMountDetails(rootfs)
-	if isMounted {
-		logger.Info("get registry cache dir :%s success ", dir)
-		return buildinstruction.NewMountTarget(rootfs, upper, []string{rootfs})
-	}
-
-	// if rootfs dir not mounted, unable to get cache image layer. need to mount rootfs before init-registry
-	mountTarget, err := buildinstruction.NewMountTarget(rootfs, runtime.RegistryMountUpper, []string{rootfs})
-	if err != nil {
-		return nil, err
-	}
-	str, err := utils.RunSimpleCmd(fmt.Sprintf("rm -rf %s && mkdir -p %s", runtime.RegistryMountUpper, runtime.RegistryMountUpper))
-	if err != nil {
-		logger.Error(str)
-		return nil, err
-	}
-	err = mountTarget.TempMount()
-	if err != nil {
-		return nil, fmt.Errorf("failed to mount %s, %v", rootfs, err)
-	}
-	str, err = utils.RunSimpleCmd(fmt.Sprintf("cd %s/scripts && sh init-registry.sh 5000 %s/registry", rootfs, rootfs))
-	logger.Info(str)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init registry, %s", err)
-	}
-	return mountTarget, nil
-}
-
-func GetRegistryBindDir() string {
-	// check is docker running runtime.RegistryName
-	// check bind dir
-	var registryName = runtime.RegistryName
-	var registryDest = runtime.RegistryBindDest
-
-	dockerClient, err := docker.NewDockerClient()
-	if err != nil {
-		return ""
-	}
-
-	containers, err := dockerClient.GetContainerListByName(registryName)
-
-	if err != nil {
-		return ""
-	}
-
-	for _, c := range containers {
-		for _, m := range c.Mounts {
-			if m.Type == "bind" && m.Destination == registryDest {
-				return m.Source
-			}
-		}
-	}
-
-	return ""
-}
 
 // ParseBuildArgs parse context and kubefile. return context abs path and kubefile abs path
 func ParseBuildArgs(localContextDir, kubeFileName string) (string, string, error) {

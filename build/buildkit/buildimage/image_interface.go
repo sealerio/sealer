@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package buildimage
 
-import "github.com/alibaba/sealer/common"
-
-func CacheDockerImage(base string) bool {
-	return base != common.ImageScratch
+type Interface interface {
+	ExecBuild(ctx Context) error
+	SaveBuildImage(name string) error
+	Cleanup() error
 }

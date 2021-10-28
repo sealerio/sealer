@@ -16,51 +16,39 @@ package buildimage
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
+	"github.com/alibaba/sealer/client/docker"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 	"github.com/pkg/errors"
 
 	"github.com/alibaba/sealer/logger"
+	"sigs.k8s.io/yaml"
 )
 
 const (
 	maxLayerDeep = 128
 )
 
-type Interface interface {
-	GenNewLayer(layerType, layerValue, filepath string) (v1.Layer, error)
-	SaveBuildImage(name string, layers []v1.Layer) error
-	ExecBuild(ctx Context) error
-	GetBaseImageName() string
-	GetRawImageBaseLayers() []v1.Layer
-	GetRawImageNewLayers() []v1.Layer
-}
-
 // BuildImage this struct aims to provide image object in build stage
 // include handle layers,save build images to system.
 type BuildImage struct {
-	RawImage   *v1.Image
-	BaseLayers []v1.Layer
-	NewLayers  []v1.Layer
-	// save image and get base image layers
-	ImageStore   store.ImageStore
-	LayerStore   store.LayerStore
-	ImageService image.Service
-}
-
-func (b BuildImage) GetBaseImageName() string {
-	return b.RawImage.Spec.Layers[0].Value
-}
-func (b BuildImage) GetRawImageBaseLayers() []v1.Layer {
-	return b.BaseLayers
-}
-
-func (b BuildImage) GetRawImageNewLayers() []v1.Layer {
-	return b.NewLayers
+	NeedCacheRegistry bool
+	RawImage          *v1.Image
+	BaseLayers        []v1.Layer
+	NewLayers         []v1.Layer
+	ImageStore        store.ImageStore
+	LayerStore        store.LayerStore
+	ImageService      image.Service
+	DockerClient      *docker.Docker
+	RegistryInfo      *buildinstruction.MountTarget
 }
 
 func (b BuildImage) ExecBuild(ctx Context) error {
@@ -69,13 +57,11 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		newLayers  = b.NewLayers
 		baseLayers = b.BaseLayers
 	)
-
 	if ctx.UseCache {
 		execCtx = buildinstruction.NewExecContext(ctx.BuildType, ctx.BuildContext, b.ImageService, b.LayerStore)
 	} else {
 		execCtx = buildinstruction.NewExecContextWithoutCache(ctx.BuildType, ctx.BuildContext, b.LayerStore)
 	}
-
 	for i := 0; i < len(newLayers); i++ {
 		//we are to set layer id for each new layers.
 		layer := &newLayers[i]
@@ -116,7 +102,7 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 	return nil
 }
 
-func (b BuildImage) GenNewLayer(layerType, layerValue, filepath string) (v1.Layer, error) {
+func (b BuildImage) genNewLayer(layerType, layerValue, filepath string) (v1.Layer, error) {
 	imageLayer := v1.Layer{
 		Type:  layerType,
 		Value: layerValue,
@@ -131,15 +117,19 @@ func (b BuildImage) GenNewLayer(layerType, layerValue, filepath string) (v1.Laye
 	return imageLayer, nil
 }
 
-func (b BuildImage) SaveBuildImage(name string, layers []v1.Layer) error {
-	clusterfile, err := b.getRawImageClusterData()
+func (b BuildImage) SaveBuildImage(name string) error {
+	cluster, err := b.getImageCluster()
 	if err != nil {
 		return err
 	}
-
-	err = setClusterFileToImage(clusterfile, name, b.RawImage)
+	cluster.Spec.Image = name
+	err = setClusterFileToImage(cluster, b.RawImage)
 	if err != nil {
 		return fmt.Errorf("failed to set image metadata, err: %v", err)
+	}
+	layers, err := b.collectLayers()
+	if err != nil {
+		return err
 	}
 
 	b.RawImage.Spec.Layers = layers
@@ -153,12 +143,61 @@ func (b BuildImage) SaveBuildImage(name string, layers []v1.Layer) error {
 	return nil
 }
 
-func (b BuildImage) getRawImageClusterData() (string, error) {
-	cluster, err := GetRawClusterFile(b.RawImage.Spec.Layers[0].Value, b.NewLayers)
-	if err != nil {
-		return "", fmt.Errorf("failed to get base image err: %s", err)
+func (b BuildImage) collectLayers() ([]v1.Layer, error) {
+	layers := append(b.BaseLayers, b.NewLayers...)
+
+	if !b.NeedCacheRegistry {
+		return layers, nil
 	}
-	return cluster, nil
+
+	layer, err := b.collectRegistryCache()
+	if err != nil {
+		return nil, err
+	}
+	if layer.ID == "" {
+		logger.Warn("registry cache content not found")
+		return layers, nil
+	}
+	layers = append(layers, layer)
+	return layers, nil
+}
+
+func (b BuildImage) collectRegistryCache() (v1.Layer, error) {
+	var layer v1.Layer
+	upper := b.RegistryInfo.GetMountUpper()
+
+	tmp, err := utils.MkTmpdir()
+	if err != nil {
+		return layer, fmt.Errorf("failed to add upper layer to image, %v", err)
+	}
+	defer utils.CleanDirs(tmp)
+	if utils.IsFileExist(filepath.Join(upper, common.RegistryDirName)) {
+		err = os.Rename(filepath.Join(upper, common.RegistryDirName), filepath.Join(tmp, common.RegistryDirName))
+		if err != nil {
+			return layer, fmt.Errorf("failed to add upper layer to image, %v", err)
+		}
+	}
+
+	layer, err = b.genNewLayer(common.BaseImageLayerType, common.RegistryLayerValue, tmp)
+	if err != nil {
+		return layer, fmt.Errorf("failed to register layer, err: %v", err)
+	}
+
+	return layer, nil
+}
+
+func (b BuildImage) getImageCluster() (*v1.Cluster, error) {
+	var cluster v1.Cluster
+	rawClusterFile, err := GetRawClusterFile(b.RawImage.Spec.Layers[0].Value, b.NewLayers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get base image err: %s", err)
+	}
+
+	if err := yaml.Unmarshal([]byte(rawClusterFile), &cluster); err != nil {
+		return nil, err
+	}
+
+	return &cluster, nil
 }
 
 func (b BuildImage) updateImageIDAndSaveImage(name string) error {
@@ -171,18 +210,36 @@ func (b BuildImage) updateImageIDAndSaveImage(name string) error {
 	return b.ImageStore.Save(*b.RawImage, name)
 }
 
+func (b BuildImage) Cleanup() error {
+	if !b.NeedCacheRegistry {
+		return nil
+	}
+
+	b.RegistryInfo.CleanUp()
+
+	if err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("127.0.0.1 %s", runtime.SeaHub)); err != nil {
+		logger.Warn(err)
+	}
+	//we need to delete docker registry.if not ,will only cache incremental image in the next build
+	err := b.DockerClient.RmContainerByName(runtime.RegistryName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func NewBuildImage(kubefileName string) (Interface, error) {
 	rawImage, err := InitImageSpec(kubefileName)
 	if err != nil {
 		return nil, err
 	}
 
-	imageStore, err := store.NewDefaultImageStore()
+	layerStore, err := store.NewDefaultLayerStore()
 	if err != nil {
 		return nil, err
 	}
 
-	layerStore, err := store.NewDefaultLayerStore()
+	imageStore, err := store.NewDefaultImageStore()
 	if err != nil {
 		return nil, err
 	}
@@ -193,8 +250,10 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 	}
 
 	var (
-		layer0    = rawImage.Spec.Layers[0]
-		baseImage *v1.Image
+		layer0       = rawImage.Spec.Layers[0]
+		baseImage    *v1.Image
+		dockerClient *docker.Docker
+		registryInfo *buildinstruction.MountTarget
 	)
 
 	// and the layer 0 must be from layer
@@ -217,12 +276,29 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 		return nil, errors.New("current number of layers exceeds 128 layers")
 	}
 
+	need := CacheDockerImage(layer0.Value, newLayers)
+	if need {
+		registryCache, err := NewRegistryCache(baseLayers)
+		if err != nil {
+			return nil, err
+		}
+		registryInfo = registryCache
+		client, err := docker.NewDockerClient()
+		if err != nil {
+			return nil, err
+		}
+		dockerClient = client
+	}
+
 	return &BuildImage{
-		RawImage:     rawImage,
-		ImageStore:   imageStore,
-		ImageService: service,
-		LayerStore:   layerStore,
-		BaseLayers:   baseLayers,
-		NewLayers:    newLayers,
+		RawImage:          rawImage,
+		ImageStore:        imageStore,
+		LayerStore:        layerStore,
+		ImageService:      service,
+		BaseLayers:        baseLayers,
+		NewLayers:         newLayers,
+		NeedCacheRegistry: need,
+		DockerClient:      dockerClient,
+		RegistryInfo:      registryInfo,
 	}, nil
 }

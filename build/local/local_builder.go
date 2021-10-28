@@ -20,24 +20,20 @@ import (
 
 	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
-	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
 // Builder : local builder using local provider to build a cluster image
 type Builder struct {
-	BuildType            string
-	NoCache              bool
-	ImageNamed           reference.Named
-	Context              string
-	KubeFileName         string
-	NeedCacheDockerImage bool
-	DockerImageCache     *buildinstruction.MountTarget
-	BuildImage           buildimage.Interface
+	BuildType    string
+	NoCache      bool
+	ImageNamed   reference.Named
+	Context      string
+	KubeFileName string
+	BuildImage   buildimage.Interface
 }
 
 func (l *Builder) Build(name string, context string, kubefileName string) error {
@@ -81,16 +77,6 @@ func (l *Builder) InitBuilder(name string, context string, kubefileName string) 
 		return err
 	}
 
-	need := CacheDockerImage(bi.GetBaseImageName())
-	if need {
-		registryCache, err := buildkit.NewRegistryCache()
-		if err != nil {
-			return err
-		}
-		l.DockerImageCache = registryCache
-	}
-
-	l.NeedCacheDockerImage = need
 	l.ImageNamed = named
 	l.Context = absContext
 	l.KubeFileName = absKubeFile
@@ -119,68 +105,28 @@ func (l *Builder) ExecBuild() error {
 	if err != nil {
 		return err
 	}
-	return nil
+
+	return l.checkPodStatus()
 }
 
-func (l *Builder) collectRegistryCache() (v1.Layer, error) {
-	var layer v1.Layer
-	if l.DockerImageCache == nil {
-		return layer, fmt.Errorf("cache docker image failed,cache client is null")
+func (l *Builder) checkPodStatus() error {
+	client, err := k8s.Newk8sClient()
+	if err != nil {
+		return nil
 	}
+
+	if !l.IsAllPodsRunning(client) {
+		return fmt.Errorf("cache docker image failed,cluster pod not running")
+	}
+
+	return nil
+}
+func (l *Builder) IsAllPodsRunning(k8sClient *k8s.Client) bool {
 	logger.Info("waiting resource to sync")
 	//wait resource to sync.do sleep here,because we can't fetch the pod status immediately.
 	//if we use retry to check pod status, will pass the cache part, due to some resources has not been created yet.
 	time.Sleep(30 * time.Second)
-	if !l.IsAllPodsRunning() {
-		return layer, fmt.Errorf("cache docker image failed,cluster pod not running")
-	}
-
-	layer, err := l.BuildImage.GenNewLayer(registryLayerType, registryLayerValue, l.DockerImageCache.GetMountUpper())
-	if err != nil {
-		return layer, fmt.Errorf("failed to register layer, err: %v", err)
-	}
-
-	logger.Info("save image cache success")
-	return layer, err
-}
-
-func (l *Builder) SaveBuildImage() error {
-	var layers []v1.Layer
-	layers = append(l.BuildImage.GetRawImageBaseLayers(), l.BuildImage.GetRawImageNewLayers()...)
-	if l.NeedCacheDockerImage {
-		layer, err := l.collectRegistryCache()
-		if err != nil {
-			return err
-		}
-		layers = append(layers, layer)
-	}
-
-	imageName := l.ImageNamed.Raw()
-	err := l.BuildImage.SaveBuildImage(imageName, layers)
-	if err != nil {
-		return err
-	}
-
-	logger.Info("update image %s to image metadata success !", imageName)
-	return nil
-}
-
-func (l *Builder) Cleanup() (err error) {
-	// umount registry
-	if l.DockerImageCache != nil {
-		_ = l.DockerImageCache.TempUMount()
-		utils.CleanDirs(l.DockerImageCache.GetMountUpper())
-	}
-	return err
-}
-
-func (l *Builder) IsAllPodsRunning() bool {
-	k8sClient, err := k8s.Newk8sClient()
-	if err != nil {
-		return false
-	}
-
-	err = utils.Retry(10, 5*time.Second, func() error {
+	err := utils.Retry(10, 5*time.Second, func() error {
 		namespacePodList, err := k8sClient.ListAllNamespacesPods()
 		if err != nil {
 			return err
@@ -203,4 +149,18 @@ func (l *Builder) IsAllPodsRunning() bool {
 		return nil
 	})
 	return err == nil
+}
+
+func (l *Builder) SaveBuildImage() error {
+	imageName := l.ImageNamed.Raw()
+	err := l.BuildImage.SaveBuildImage(imageName)
+	if err != nil {
+		return err
+	}
+	logger.Info("update image %s to image metadata success !", imageName)
+	return nil
+}
+
+func (l *Builder) Cleanup() (err error) {
+	return l.BuildImage.Cleanup()
 }

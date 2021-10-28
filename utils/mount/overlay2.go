@@ -111,33 +111,44 @@ func unmount(target string, flag int) error {
 	return syscall.Unmount(target, flag)
 }
 
-func GetMountDetails(target string) (mounted bool, upper string) {
+type Info struct {
+	Target string
+	Upper  string
+	Lowers []string
+}
+
+func GetMountDetails(target string) (bool, *Info) {
 	cmd := fmt.Sprintf("mount | grep %s", target)
 	result, err := utils.RunSimpleCmd(cmd)
 	if err != nil {
-		return false, ""
+		return false, nil
 	}
 	return mountCmdResultSplit(result, target)
 }
 
-func GetRemoteMountDetails(s ssh.Interface, ip string, target string) (mounted bool, upper string) {
+func GetRemoteMountDetails(s ssh.Interface, ip string, target string) (bool, *Info) {
 	result, err := s.Cmd(ip, fmt.Sprintf("mount | grep %s", target))
 	if err != nil {
-		return false, ""
+		return false, nil
 	}
 	return mountCmdResultSplit(string(result), target)
 }
 
-func mountCmdResultSplit(result string, target string) (mounted bool, upper string) {
+func mountCmdResultSplit(result string, target string) (bool, *Info) {
 	if !strings.Contains(result, target) {
-		return false, ""
+		return false, nil
 	}
 
 	data := strings.Split(result, ",upperdir=")
 	if len(data) < 2 {
-		return false, ""
+		return false, nil
 	}
 
-	data = strings.Split(data[1], ",workdir=")
-	return true, strings.TrimSpace(data[0])
+	lowers := strings.Split(strings.Split(data[0], ",lowerdir=")[1], ":")
+	upper := strings.TrimSpace(strings.Split(data[1], ",workdir=")[0])
+	return true, &Info{
+		Target: target,
+		Upper:  upper,
+		Lowers: lowers,
+	}
 }

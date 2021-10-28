@@ -17,6 +17,8 @@ package cloud
 import (
 	"fmt"
 
+	"sigs.k8s.io/yaml"
+
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
 	"github.com/alibaba/sealer/image/reference"
 
@@ -33,22 +35,21 @@ import (
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
 )
 
 // Builder using cloud provider to build a cluster image
 type Builder struct {
 	BuildType          string
 	NoCache            bool
+	Provider           string
+	TmpClusterFilePath string
 	ImageNamed         reference.Named
 	Context            string
 	KubeFileName       string
 	RemoteHostIP       string
 	SSH                ssh.Interface
 	Cluster            *v1.Cluster
-	BuildImage         buildimage.Interface
-	Provider           string
-	TmpClusterFilePath string
+	Image              *v1.Image
 }
 
 func (c *Builder) Build(name string, context string, kubefileName string) error {
@@ -70,11 +71,11 @@ func (c *Builder) Build(name string, context string, kubefileName string) error 
 	}
 	c.Context = absContext
 
-	bi, err := buildimage.NewBuildImage(absKubeFile)
+	image, err := buildimage.InitImageSpec(absKubeFile)
 	if err != nil {
 		return err
 	}
-	c.BuildImage = bi
+	c.Image = image
 
 	pipLine, err := c.GetBuildPipeLine()
 	if err != nil {
@@ -123,10 +124,9 @@ func (c *Builder) InitClusterFile() error {
 		return nil
 	}
 
-	rawClusterFile, err := buildimage.GetRawClusterFile(c.BuildImage.GetBaseImageName(),
-		c.BuildImage.GetRawImageNewLayers())
+	rawClusterFile, err := buildimage.GetRawClusterFile(c.Image.Spec.Layers[0].Value, c.Image.Spec.Layers)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get base image err: %s", err)
 	}
 
 	if err := yaml.Unmarshal([]byte(rawClusterFile), &cluster); err != nil {

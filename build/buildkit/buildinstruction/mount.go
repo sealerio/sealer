@@ -26,7 +26,8 @@ type MountTarget struct {
 	driver     mount.Interface
 	TempTarget string
 	TempUpper  string
-	LowLayers  []string
+	//driver.Mount will reverse lowers,so here we keep the order same with the image layer.
+	LowLayers []string
 }
 
 func (m MountTarget) TempMount() error {

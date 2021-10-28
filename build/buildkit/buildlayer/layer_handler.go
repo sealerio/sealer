@@ -25,7 +25,7 @@ import (
 func ParseLayerContent(layer *v1.Layer) LayerHandler {
 	var layerParser LayerCopy
 	if layer.Type == common.COPYCOMMAND {
-		layerParser = parseCopyLayerValue(layer.Value)
+		layerParser = ParseCopyLayerValue(layer.Value)
 	}
 
 	switch layerParser.HandlerType {
@@ -40,7 +40,7 @@ func ParseLayerContent(layer *v1.Layer) LayerHandler {
 	return nil
 }
 
-func parseCopyLayerValue(layerValue string) LayerCopy {
+func ParseCopyLayerValue(layerValue string) LayerCopy {
 	//COPY imageList manifests
 	//COPY cc charts
 	//COPY recommended.yaml manifests

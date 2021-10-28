@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/parser"
@@ -51,12 +52,7 @@ func InitImageSpec(kubefile string) (*v1.Image, error) {
 	return rawImage, nil
 }
 
-func setClusterFileToImage(clusterFile string, newImage string, image *v1.Image) error {
-	var cluster v1.Cluster
-	if err := yaml.Unmarshal([]byte(clusterFile), &cluster); err != nil {
-		return err
-	}
-	cluster.Spec.Image = newImage
+func setClusterFileToImage(cluster *v1.Cluster, image *v1.Image) error {
 	clusterData, err := yaml.Marshal(cluster)
 	if err != nil {
 		return err
@@ -115,4 +111,23 @@ func generateImageID(image v1.Image) (string, error) {
 	}
 	imageID := digest.FromBytes(imageBytes).Hex()
 	return imageID, nil
+}
+
+// CacheDockerImage : if base image is scratch,no need to cache.
+//if only copy and all copy is common copy, not in . no need to do cache.
+func CacheDockerImage(base string, newLayers []v1.Layer) bool {
+	if base == common.ImageScratch {
+		return false
+	}
+	for _, layer := range newLayers {
+		if layer.Type == common.RUNCOMMAND ||
+			layer.Type == common.CMDCOMMAND {
+			return true
+		}
+		lc := buildlayer.ParseCopyLayerValue(layer.Value)
+		if lc.HandlerType != "" {
+			return true
+		}
+	}
+	return false
 }
