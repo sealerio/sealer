@@ -74,12 +74,9 @@ error: 当执行构建时候，如有发生错误，则会返回该错误。
 ### 接口定义
 
 ```shell
-GenNewLayer(layerType, layerValue, filepath string) (v1.Layer, error)
-SaveBuildImage(name string, layers []v1.Layer) error
+SaveBuildImage(name string) error
 ExecBuild(ctx Context) error
-GetBaseImageName() string
-GetRawImageBaseLayers() []v1.Layer
-GetRawImageNewLayers() []v1.Layer
+Cleanup() error
 ```
 
 参数解释
@@ -91,6 +88,29 @@ BuildContext: 构建的上下文。
 BuildType: 构建的类型。
 UseCache: 标志位，用于检测是否使用缓存。
 ```
+
+### 构建流程介绍
+
+Kubefile 举例如下：
+
+```shell
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+COPY recommended.yml manifests
+COPY imageList manifests
+COPY traefik ./charts
+COPY bin/helm /bin
+RUN helm --help
+CMD kubectl apply -f manifests/recommended.yml
+CMD helm install mytest charts/traefik
+```
+
+1. 根据Kubefile 初始化对应的BuildImage `NewBuildImage(kubefileName string)`，得到一个BuildImage结构体。
+2. 根据Kubefile的内容，判断是否需要获取基础镜像，是否需要启动缓存registry，并且初始化镜像模块的接口。
+3. 按照Kubefile对应的每一层内容，初始化不同的build指令，并且执行该指令，收集对应的产物。
+4. 根据该层指令内容触发对应的layer 层的handler。例如 `COPY imageList manifests` 则会解析imageList中的镜像，并且缓存起来。
+5. 待Kubefile对应的每一层内容执行完成后，根据是否启动缓存registry，判断是否需要收集对应的docker 镜像。
+6. 待所有产物收集完毕，调用镜像模块接口将新构建的镜像保存到文件系统。
+7. 环境清理，例如构建时候产生的临时文件，缓存registry的回收等。
 
 ## Build 指令层
 
