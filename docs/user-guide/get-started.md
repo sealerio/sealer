@@ -246,7 +246,7 @@ sealer delete -f .sealer/[cluster-name]/Clusterfile
 if you're using cloud mod, sealer will delete the infra resource too.
 
 ## Upgrade 
-Specify whick image you want to use for upgrading as well as the cluster's name you want to upgrade via a flag "-c".
+Specify whick image you want to use for upgrading as well as the cluster name you want to upgrade via a flag "-c".
 
 ```shell script
 sealer upgrade registry.cn-beijing.aliyuncs.com/sealer-io/kubernetes:v1.19.9_develop -c my-cluster
