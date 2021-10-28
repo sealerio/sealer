@@ -72,7 +72,7 @@ sealer save registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.8 -o k
 sealer load -i kubernetes.tar
 ```
 
-## Run
+## Run and Scale
 
 We can run a cluster using `sealer run` or `sealer apply` command, `sealer apply` needs you edit a Clusterfile to tell
 sealer the cluster configuration.
@@ -83,7 +83,9 @@ If you don't know how to write a Clusterfile, you can inspect an image to show t
 sealer inspect -c kubernetes:v1.19.8
 ```
 
-### Run on exist servers
+### On exist servers
+
+#### Run
 
 > Using sealer run
 
@@ -149,17 +151,24 @@ spec:
 sealer apply -f Clusterfile
 ```
 
-> scale up and down
+#### Scale up and down
 
-you just need to add or delete ip in masters or nodes ipList and reapply.
+you just need edit `.sealer/my-cluster/Clusterfile` to add or delete ip in masters or nodes ipList and reapply.
 
-OR using join command to scale up.
+```shell script
+sealer apply -f .sealer/my-cluster/Clusterfile
+```
+
+OR using join command to scale up and using delete command to scale down.
 
 ```shell script
 sealer join --masters 192.168.0.2 --nodes 192.168.0.3
+sealer delete --masters 192.168.0.2 --nodes 192.168.0.3
 ```
 
-### Run on Cloud
+### On Cloud
+
+#### Run
 
 Set the Cloud provider AK SK before you install a Cluster, Now support ALI_CLOUD.
 
@@ -211,15 +220,22 @@ spec:
 sealer apply -f Clusterfile
 ```
 
-> scale up and down
+#### scale up and down
 
-just edit `.sealer/my-cluster/Clusterfile` set masters.count or nodes.count to you desired number and reapply:
+you just need edit `.sealer/my-cluster/Clusterfile` to set masters.count or nodes.count to you desired number and reapply:
 
 ```shell script
 sealer apply -f .sealer/my-cluster/Clusterfile
 ```
 
-### Clean
+OR using join command to scale up and using delete command to scale down.
+
+```shell script
+sealer join --masters 2 --nodes 1
+sealer delete --masters 2 --nodes 1
+```
+
+## Clean
 
 cluster-name is defined in metadata.name
 
@@ -229,3 +245,12 @@ sealer delete -f .sealer/[cluster-name]/Clusterfile
 
 if you're using cloud mod, sealer will delete the infra resource too.
 
+## Upgrade
+
+Specify whick image you want to use for upgrading as well as the cluster name you want to upgrade via a flag "-c".
+
+```shell script
+sealer upgrade registry.cn-beijing.aliyuncs.com/sealer-io/kubernetes:v1.19.9_develop -c my-cluster
+```
+
+if the flag "-c" is missed,sealer will use the default cluster name instead.
