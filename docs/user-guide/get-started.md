@@ -245,7 +245,8 @@ sealer delete -f .sealer/[cluster-name]/Clusterfile
 
 if you're using cloud mod, sealer will delete the infra resource too.
 
-## Upgrade 
+## Upgrade
+
 Specify whick image you want to use for upgrading as well as the cluster name you want to upgrade via a flag "-c".
 
 ```shell script
