@@ -192,7 +192,7 @@ COPY shell.yaml plugin
 Build a cluster image that contains a taint plugin (or more plugins):
 
 ```shell script
-sealer build -b lite -t kubernetes-taint:v1.19.8 .
+sealer build -m lite -t kubernetes-taint:v1.19.8 .
 ```
 
 Run the image and the plugin will also be executed without having to define the plug-in in the Clusterfile:

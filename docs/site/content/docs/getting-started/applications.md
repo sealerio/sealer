@@ -163,7 +163,7 @@ CMD helm repo add bitnami https://charts.bitnami.com/bitnami && helm install my-
 run below command to build a mysql cloud image
 
 ```shell
-sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-apps/mysql:8.8.5 -b cloud .
+sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-apps/mysql:8.8.5 -m cloud .
 ```
 
 ### Use manifest
@@ -175,5 +175,5 @@ See each manifest yaml file under application manifest directory for details , a
 Then run below command to rebuild it
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```

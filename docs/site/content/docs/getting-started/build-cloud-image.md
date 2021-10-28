@@ -91,7 +91,7 @@ Flags:
 
 ```shell
 Flags:
-  -b, --buildType string   requied,cluster image build type,default is cloud build.
+  -m, --mode string   requied,cluster image build type,default is cloud build.
   -t, --imageName string   requied,cluster image name.
   -f, --kubefile string    requied,kubefile filepath default is "Kubefile".
   --no-cache               build without cache.default is use cache to build.
@@ -106,11 +106,11 @@ Flags:
 
 ### container build
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.9 -b container`
+`sealer build -f Kubefile -t my-kubernetes:1.19.9 -m container`
 
 ### lite build
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.9 --buildType lite`
+`sealer build -f Kubefile -t my-kubernetes:1.19.9 --mode lite`
 
 ## Build type
 
@@ -148,10 +148,10 @@ Similar to the cloud build mode, we can apply a Kubernetes cluster by starting m
 nodes ( simulating cloud ECS), which consume very few resources to complete the build instruction. The disadvantage of
 the container build is that some scenarios which rely on the infra resources is not supported very well.
 
-You can specify the build type with the '-b container' argument to use container build.
+You can specify the build type with the '-m container' argument to use container build.
 
 ```shell
-sealer build -b container -t my-cluster:v1.19.9 .
+sealer build -m container -t my-cluster:v1.19.9 .
 ```
 
 ### 3.lite build mode
@@ -193,10 +193,10 @@ locations:
 * `charts` directory: this directory contains the helm chart, and lite build will resolve the image address from the
   helm chart through the helm engine.
 
-You can specify the build type with the '-b lite' argument to use lite build.
+You can specify the build type with the '-m lite' argument to use lite build.
 
 ```shell
-sealer build -b lite -t my-cluster:v1.19.9 .
+sealer build -m lite -t my-cluster:v1.19.9 .
 ```
 
 ## Private registry
@@ -274,7 +274,7 @@ COPY kubeadm-init.yaml.tmpl ./etc
 COPY kubeadm-join-config.yaml.tmpl ./etc
 ```
 
-> sealer build -b lite -t user-define-kubeadm-kubernetes:v1.19.8 .
+> sealer build -m lite -t user-define-kubeadm-kubernetes:v1.19.8 .
 
 ### Default template configuration file contents:
 
