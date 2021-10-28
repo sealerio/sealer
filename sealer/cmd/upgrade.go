@@ -44,7 +44,7 @@ var upgradeCmd = &cobra.Command{
 		if upgradeClusterName == "" {
 			upgradeClusterName, err = utils.GetDefaultClusterName()
 			if err != nil {
-				return nil
+				return err
 			}
 		}
 		//get Clusterfile
