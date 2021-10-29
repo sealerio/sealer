@@ -71,7 +71,7 @@ build without cache:
 func init() {
 	buildConfig = &BuildFlag{}
 	rootCmd.AddCommand(buildCmd)
-	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "buildType", "b", "", "cluster image build type, default is cloud")
+	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "mode", "m", "", "cluster image build type, default is lite")
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
