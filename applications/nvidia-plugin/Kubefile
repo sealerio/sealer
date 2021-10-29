@@ -1,0 +1,6 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+COPY ./nvidia-docker.tar .
+COPY ./nvidia-docker.sh .
+COPY ./post-install.sh .
+COPY plugin.yaml plugin
+COPY ./nvidia-device-plugin.yml manifests
