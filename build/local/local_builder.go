@@ -110,8 +110,8 @@ func (l *Builder) ExecBuild() error {
 }
 
 func (l *Builder) checkPodStatus() error {
-	client, err := k8s.Newk8sClient()
-	if err != nil {
+	client, _ := k8s.Newk8sClient()
+	if client == nil {
 		return nil
 	}
 

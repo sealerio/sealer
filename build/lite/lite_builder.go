@@ -15,12 +15,10 @@
 package lite
 
 import (
-	"github.com/alibaba/sealer/build/buildkit/buildimage"
-	"github.com/alibaba/sealer/image/reference"
-
 	"github.com/alibaba/sealer/build/buildkit"
+	"github.com/alibaba/sealer/build/buildkit/buildimage"
 	"github.com/alibaba/sealer/client/docker"
-
+	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
 )
 
@@ -31,7 +29,7 @@ type Builder struct {
 	Context      string
 	KubeFileName string
 	DockerClient *docker.Docker
-	BuildImage buildimage.Interface
+	BuildImage   buildimage.Interface
 }
 
 func (l *Builder) Build(name string, context string, kubefileName string) error {
