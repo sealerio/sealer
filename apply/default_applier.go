@@ -198,16 +198,16 @@ func (c *DefaultApplier) Apply() (err error) {
 			c.ClusterCurrent = c.ClusterDesired.DeepCopy()
 			c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
 			c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
-		}
-		//upgrade
-		clusterFilePath := common.GetClusterWorkClusterfile(c.ClusterDesired.Name)
-		if utils.IsFileExist(clusterFilePath) {
-			clusterBeforeUpgrade, err := GetClusterFromFile(clusterFilePath)
-			if err != nil {
-				return err
-			}
-			if clusterBeforeUpgrade.Spec.Image != c.ClusterDesired.Spec.Image {
-				c.ClusterCurrent.Spec.Image = clusterBeforeUpgrade.Spec.Image
+			//upgrade
+			clusterFilePath := common.GetClusterWorkClusterfile(c.ClusterDesired.Name)
+			if utils.IsFileExist(clusterFilePath) {
+				clusterBeforeUpgrade, err := GetClusterFromFile(clusterFilePath)
+				if err != nil {
+					return err
+				}
+				if clusterBeforeUpgrade.Spec.Image != c.ClusterDesired.Spec.Image {
+					c.ClusterCurrent.Spec.Image = clusterBeforeUpgrade.Spec.Image
+				}
 			}
 		}
 		// all commands need to do

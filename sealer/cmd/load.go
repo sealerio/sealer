@@ -31,7 +31,7 @@ var loadCmd = &cobra.Command{
 	Use:     "load",
 	Short:   "load image",
 	Long:    `Load an image from a tar archive`,
-	Example: `sealer load -i kubernetes.tar.gz`,
+	Example: `sealer load -i kubernetes.tar`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ifs, err := image.NewImageFileService()
