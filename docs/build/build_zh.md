@@ -77,10 +77,10 @@ CMD: 与RUN指令格式类似，使用系统shell执行构建命令。但CMD指�
 ## 执行构建命令解析：
 
 ```bigquery
-$ sealer build -f Kubefile -t my-kubernetes:v1.19.8 -b cloud .
+$ sealer build -f Kubefile -t my-kubernetes:v1.19.8 -m cloud .
  -f : 指定Kubefile路径，默认为当前路径下Kubefile
  -t : 指定构建产出镜像的名称
- -b : 指定构建模式[cloud |container |lite] #默认为cloud
+ -m : 指定构建模式[cloud |container |lite] #默认为lite
  .  : build上下文，指定为当前路径
 ```
 
@@ -109,10 +109,10 @@ Kubefile  recommended.yaml
 
 ### 2.container build
 
-> 与cloud build 原理类似，通过启动多个docker container作为kubernetes节点（模拟cloud模式的ECS）,从而启动一个kubernetes集群的方式来进行构建，可以消耗很少量的资源完成集群构建，缺点是不能很好的支持对底层资源依赖的场景。可以使用`-b container` 参数来指定build 类型 为container build 。
+> 与cloud build 原理类似，通过启动多个docker container作为kubernetes节点（模拟cloud模式的ECS）,从而启动一个kubernetes集群的方式来进行构建，可以消耗很少量的资源完成集群构建，缺点是不能很好的支持对底层资源依赖的场景。可以使用`-m container` 参数来指定build 类型 为container build 。
 
 ```shell
-sealer build -b container -t my-cluster:v1.19.9 .
+sealer build -m container -t my-cluster:v1.19.9 .
 ```
 
 ### 3.lite build
@@ -140,10 +140,10 @@ CMD kubectl apply -f manifests/recommended.yaml
 * manifests 目录下的yaml文件: lite build将解析manifests目录下的所有yaml文件并从中提取镜像。
 * charts 目录: helm chart应放置此目录下， lite build将通过helm引擎从helm chart中解析镜像地址。
 
-lite build 操作示例，使用`-b lite` 参数来指定build 类型为 lite build。 假设Kubefile在当前目录下：
+lite build 操作示例，使用`-m lite` 参数来指定build 类型为 lite build。 假设Kubefile在当前目录下：
 
 ```shell
-sealer build -b lite -t my-cluster:v1.19.9 .
+sealer build -m lite -t my-cluster:v1.19.9 .
 ```
 
 构建完成将生成镜像：my-cluster:v1.19.9
@@ -217,7 +217,7 @@ COPY kubeadm-init.yaml.tmpl ./etc
 COPY kubeadm-join-config.yaml.tmpl ./etc
 ```
 
-> sealer build -b lite -t user-define-kubeadm-kubernetes:v1.19.8 .
+> sealer build -m lite -t user-define-kubeadm-kubernetes:v1.19.8 .
 
 ### 默认模版配置文件内容：
 
