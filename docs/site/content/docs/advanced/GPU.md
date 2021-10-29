@@ -18,16 +18,16 @@ top = false
 
 ## Preparation
 
-1. install nvidia driver on your host.
-2. install the latest version of sealer on your host.
+1. Install nvidia driver on your host.
+2. Install the latest version of sealer on your host.
 
 ## How to build it
 
-we provide GPU base image in our official registry
+We provide GPU base image in our official registry
 named `registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nvidia:v1.19.8`.you can use is directly. meanwhile, we
 provide the build context in the applications' directory. it can be adjusted it per your request.
 
-run below command to rebuild it.
+Run below command to rebuild it.
 
 `sealer build -f Kubefile -t registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nvidia:v1.19.8 -b lite .`
 
@@ -64,11 +64,11 @@ spec:
       - 172.22.82.184
 ```
 
-2. run command `sealer apply -f Clusterfile` to apply the GPU cluster. it will take few minutes.
+2. Run command `sealer apply -f Clusterfile` to apply the GPU cluster. it will take few minutes.
 
 ## How to check the result
 
-1. check the pod status to run `kubectl get pods -n kube-system nvidia-device-plugin`, you can find the pod in Running
+1. Check the pod status to run `kubectl get pods -n kube-system nvidia-device-plugin`, you can find the pod in Running
    status.
-2. get the node details to run `kubectl describe node`, if `nvidia.com/gpu` shows on 'Allocated resources' section,you
-   get a k8s cluster with GPU. 
+2. Get the node details to run `kubectl describe node`, if `nvidia.com/gpu` shows on 'Allocated resources' section,you
+   get a k8s cluster with GPU.
