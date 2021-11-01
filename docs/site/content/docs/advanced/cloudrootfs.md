@@ -81,8 +81,8 @@ Contains:
 
 # How can I get CloudRootfs
 
-1. Pull a BaseImage `sealer pull kubernetes:v1.19.9-alpine`
-2. View the image layer information `sealer inspect kubernetes:v1.19.9-alpine`
+1. Pull a BaseImage `sealer pull kubernetes:v1.19.8-alpine`
+2. View the image layer information `sealer inspect kubernetes:v1.19.8-alpine`
 3. Get into the BaseImage Layer `ls /var/lib/sealer/data/overlay2/{layer-id}`
 
 You will found the CloudRootfs layer.
@@ -97,7 +97,7 @@ COPY . .
 ```
 
 ```shell script
-sealer build -t user-defined-kubernetes:v1.19.9 .
+sealer build -t user-defined-kubernetes:v1.19.8 .
 ```
 
 Then you can use this image as a BaseImage.
@@ -106,15 +106,15 @@ Then you can use this image as a BaseImage.
 
 Sometimes you don't want to care about the CloudRootfs context, but need custom some config.
 
-You can using `kubernetes:v1.19.9` as BaseImage, and use your own config file to overwrite the default file in CloudRootfs.
+You can using `kubernetes:v1.19.8` as BaseImage, and use your own config file to overwrite the default file in CloudRootfs.
 
 For example: daemon.json is your docker engine config, using it to overwrite default config:
 
 ```shell script
-FROM kubernetes:v1.19.9
+FROM kubernetes:v1.19.8
 COPY daemon.json etc/
 ```
 
 ```shell script
-sealer build -t user-defined-kubernetes:v1.19.9 .
+sealer build -t user-defined-kubernetes:v1.19.8 .
 ```
