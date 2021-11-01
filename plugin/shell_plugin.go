@@ -16,6 +16,9 @@ package plugin
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/alibaba/sealer/client/k8s"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
@@ -44,6 +47,22 @@ func (s Sheller) Run(context Context, phase Phase) error {
 	//get on
 
 	if on := context.Plugin.Spec.On; on != "" {
+		if strings.Contains(on, "=") {
+			if phase != PhasePostInstall {
+				return fmt.Errorf("the action must be PostInstall, When nodes is specified with a label")
+			}
+			client, err := k8s.Newk8sClient()
+			if err != nil {
+				return err
+			}
+			ipList, err := client.ListNodeIPByLabel(strings.TrimSpace(on))
+			if err != nil {
+				return err
+			}
+			if len(ipList) == 0 {
+				return fmt.Errorf("nodes is not found by label [%s]", on)
+			}
+		}
 		allHostIP = utils.DisassembleIPList(on)
 	}
 
