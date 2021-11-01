@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildlayer
+package buildimage
 
-import (
-	v1 "github.com/alibaba/sealer/types/api/v1"
-)
-
-type LayerHandler interface {
-	LayerValueHandler(buildContext string, layer v1.Layer) error
+type Interface interface {
+	ExecBuild(ctx Context) error
+	SaveBuildImage(name string) error
+	Cleanup() error
 }

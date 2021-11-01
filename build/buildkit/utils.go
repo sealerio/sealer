@@ -16,145 +16,15 @@ package buildkit
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-
-	"github.com/alibaba/sealer/client/docker"
-	"github.com/alibaba/sealer/runtime"
-	"github.com/docker/docker/api/types/mount"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
-	"github.com/opencontainers/go-digest"
 
 	"path/filepath"
 	"strings"
-
-	"sigs.k8s.io/yaml"
 )
 
-// GetRawClusterFile GetClusterFile from user build context or from base image
-func GetRawClusterFile(im *v1.Image) (string, error) {
-	if im.Spec.Layers[0].Value == common.ImageScratch {
-		data, err := ioutil.ReadFile(filepath.Join("etc", common.DefaultClusterFileName))
-		if err != nil {
-			return "", err
-		}
-		if string(data) == "" {
-			return "", fmt.Errorf("ClusterFile content is empty")
-		}
-		return string(data), nil
-	}
-
-	// find cluster file from context
-	if clusterFile, err := getClusterFileFromContext(im); err == nil {
-		return clusterFile, nil
-	}
-
-	// find cluster file from base image
-	return image.GetClusterFileFromImage(im.Spec.Layers[0].Value)
-}
-
-func getClusterFileFromContext(image *v1.Image) (string, error) {
-	for i := range image.Spec.Layers {
-		layer := image.Spec.Layers[i]
-		if layer.Type == common.COPYCOMMAND && strings.Fields(layer.Value)[0] == common.DefaultClusterFileName {
-			clusterFile, err := utils.ReadAll(strings.Fields(layer.Value)[0])
-			if err != nil {
-				return "", err
-			}
-			if string(clusterFile) == "" {
-				return "", fmt.Errorf("ClusterFile is empty")
-			}
-			return string(clusterFile), nil
-		}
-	}
-	return "", fmt.Errorf("failed to get ClusterFile from Context")
-}
-
-// GetBaseLayersPath used in build stage, where the image still has from layer
-func GetBaseLayersPath(layers []v1.Layer) (res []string) {
-	for _, layer := range layers {
-		if layer.ID != "" {
-			res = append(res, filepath.Join(common.DefaultLayerDir, layer.ID.Hex()))
-		}
-	}
-	return res
-}
-
-func generateImageID(image v1.Image) (string, error) {
-	imageBytes, err := yaml.Marshal(image)
-	if err != nil {
-		return "", err
-	}
-	imageID := digest.FromBytes(imageBytes).Hex()
-	return imageID, nil
-}
-
-func setClusterFileToImage(image *v1.Image, name string) error {
-	var cluster v1.Cluster
-	clusterFileData, err := GetRawClusterFile(image)
-	if err != nil {
-		return err
-	}
-
-	if err := yaml.Unmarshal([]byte(clusterFileData), &cluster); err != nil {
-		return err
-	}
-	cluster.Spec.Image = name
-	clusterFile, err := yaml.Marshal(cluster)
-	if err != nil {
-		return err
-	}
-
-	if image.Annotations == nil {
-		image.Annotations = make(map[string]string)
-	}
-
-	image.Annotations[common.ImageAnnotationForClusterfile] = string(clusterFile)
-
-	return nil
-}
-
-func IsOnlyCopy(layers []v1.Layer) bool {
-	for i := 1; i < len(layers); i++ {
-		if layers[i].Type == common.RUNCOMMAND ||
-			layers[i].Type == common.CMDCOMMAND {
-			return false
-		}
-	}
-	return true
-}
-
-func GetRegistryBindDir() string {
-	// check is docker running runtime.RegistryName
-	// check bind dir
-	var registryName = runtime.RegistryName
-	var registryDest = runtime.RegistryBindDest
-
-	dockerClient, err := docker.NewDockerClient()
-	if err != nil {
-		return ""
-	}
-
-	containers, err := dockerClient.GetContainerListByName(registryName)
-
-	if err != nil {
-		return ""
-	}
-
-	for _, c := range containers {
-		for _, m := range c.Mounts {
-			if m.Type == mount.TypeBind && m.Destination == registryDest {
-				return m.Source
-			}
-		}
-	}
-
-	return ""
-}
+const (
+	kubefile = "Kubefile"
+)
 
 // ParseBuildArgs parse context and kubefile. return context abs path and kubefile abs path
 func ParseBuildArgs(localContextDir, kubeFileName string) (string, string, error) {

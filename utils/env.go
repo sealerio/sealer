@@ -12,26 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildkit
+package utils
 
-import "github.com/alibaba/sealer/common"
-
-const (
-	cacheID        = common.CacheID
-	maxLayerDeep   = 128
-	FromCmd        = "FROM"
-	imageLayerType = common.BaseImageLayerType
-	kubefile       = "Kubefile"
+import (
+	"fmt"
+	"os"
 )
 
-const (
-	IsCopyToManifests  = "manifests"
-	IsCopyToChart      = "charts"
-	IsCopyOfflineImage = "images"
-	ImageList          = "imageList"
-
-	ImageListHandler    = "imageList"
-	ChartHandler        = "chart"
-	YamlHandler         = "yaml"
-	OfflineImageHandler = "offlineImage"
-)
+func SetRootfsBinToSystemEnv(rootfs string) error {
+	bin := fmt.Sprintf(":%s/bin", rootfs)
+	return os.Setenv("PATH", os.Getenv("PATH")+bin)
+}

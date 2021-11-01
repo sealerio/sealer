@@ -308,12 +308,21 @@ func CopySingleFile(src, dst string) (int64, error) {
 		return 0, err
 	}
 	defer source.Close()
-	//will over write dst when dst is exist
+	//will overwrite dst when dst is existed
 	destination, err := os.Create(dst)
 	if err != nil {
 		return 0, err
 	}
 	defer destination.Close()
+	err = destination.Chmod(sourceFileStat.Mode())
+	if err != nil {
+		return 0, err
+	}
+
+	err = os.Chown(dst, header.Uid, header.Gid)
+	if err != nil {
+		return 0, err
+	}
 	nBytes, err := io.Copy(destination, source)
 	return nBytes, err
 }

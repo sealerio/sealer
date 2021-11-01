@@ -15,42 +15,54 @@
 package lite
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"time"
-
-	"github.com/alibaba/sealer/utils/mount"
-
 	"github.com/alibaba/sealer/build/buildkit"
+	"github.com/alibaba/sealer/build/buildkit/buildimage"
 	"github.com/alibaba/sealer/client/docker"
-
-	"github.com/alibaba/sealer/runtime"
-
-	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 )
 
 type Builder struct {
-	Local             *buildkit.Builder
-	DockerClient      *docker.Docker
-	RootfsMountTarget *buildkit.MountTarget
+	BuildType    string
+	NoCache      bool
+	ImageNamed   reference.Named
+	Context      string
+	KubeFileName string
+	DockerClient *docker.Docker
+	BuildImage   buildimage.Interface
 }
 
-const liteBuild = "lite-build"
-
 func (l *Builder) Build(name string, context string, kubefileName string) error {
-	err := l.Local.InitBuilder(name, context, kubefileName)
+	named, err := reference.ParseToNamed(name)
 	if err != nil {
 		return err
 	}
+	l.ImageNamed = named
 
-	l.DockerClient, err = docker.NewDockerClient()
+	absContext, absKubeFile, err := buildkit.ParseBuildArgs(context, kubefileName)
 	if err != nil {
 		return err
 	}
+	l.KubeFileName = absKubeFile
+
+	err = buildkit.ValidateContextDirectory(absContext)
+	if err != nil {
+		return err
+	}
+	l.Context = absContext
+
+	bi, err := buildimage.NewBuildImage(absKubeFile)
+	if err != nil {
+		return err
+	}
+	l.BuildImage = bi
+
+	dockerClient, err := docker.NewDockerClient()
+	if err != nil {
+		return err
+	}
+	l.DockerClient = dockerClient
+
 	pipLine, err := l.GetBuildPipeLine()
 	if err != nil {
 		return err
@@ -66,25 +78,17 @@ func (l *Builder) Build(name string, context string, kubefileName string) error 
 
 func (l *Builder) GetBuildPipeLine() ([]func() error, error) {
 	var buildPipeline []func() error
-	if err := l.Local.InitImageSpec(); err != nil {
-		return nil, err
-	}
-
 	buildPipeline = append(buildPipeline,
 		l.PreCheck,
-		l.Local.PullBaseImageNotExist,
-		l.InitCluster,
-		l.MountRootfs,
-		l.InitDockerAndRegistry,
-		l.Local.ExecBuild,
-		l.CollectLiteBuildImages,
-		l.Local.UpdateImageMetadata,
+		l.ExecBuild,
+		l.SaveBuildImage,
 		l.Cleanup,
 	)
 	return buildPipeline, nil
 }
 
 func (l *Builder) PreCheck() error {
+	//todo need install sealer docker,if already installed,need to return.
 	images, _ := l.DockerClient.ImagesList()
 	if len(images) > 0 {
 		logger.Warn("The image already exists on the host. Note that the existing image cannot be cached in registry")
@@ -92,112 +96,26 @@ func (l *Builder) PreCheck() error {
 	return nil
 }
 
-func (l *Builder) InitCluster() error {
-	l.Local.Cluster = &v1.Cluster{}
-	l.Local.Cluster.Name = liteBuild
-	l.Local.Cluster.Spec.Image = l.Local.Image.Spec.Layers[0].Value
-	return nil
+func (l *Builder) ExecBuild() error {
+	ctx := buildimage.Context{
+		BuildContext: l.Context,
+		BuildType:    l.BuildType,
+		UseCache:     !l.NoCache,
+	}
+
+	return l.BuildImage.ExecBuild(ctx)
 }
 
-func (l *Builder) MountRootfs() error {
-	err := l.Local.UpdateBuilderLayers(l.Local.Image)
+func (l *Builder) SaveBuildImage() error {
+	imageName := l.ImageNamed.Raw()
+	err := l.BuildImage.SaveBuildImage(imageName)
 	if err != nil {
 		return err
 	}
-	var (
-		target = common.DefaultMountCloudImageDir(l.Local.Cluster.Name)
-		upper  = common.DefaultLiteBuildUpper
-		res    = buildkit.GetBaseLayersPath(l.Local.BaseLayers)
-	)
-
-	if isMount, _ := mount.GetMountDetails(target); isMount {
-		err := mount.NewMountDriver().Unmount(target)
-		if err != nil {
-			return err
-		}
-	}
-
-	utils.CleanDirs(upper, target)
-	err = utils.MkDirs(upper, target)
-	if err != nil {
-		return err
-	}
-
-	rootfs, err := buildkit.NewMountTarget(target, upper, res)
-	if err != nil {
-		return err
-	}
-
-	err = rootfs.TempMount()
-	if err != nil {
-		return err
-	}
-	l.RootfsMountTarget = rootfs
-
-	return nil
-}
-
-func (l *Builder) InitDockerAndRegistry() error {
-	mountedRootfs := l.RootfsMountTarget.GetMountTarget()
-	initDockerCmd := fmt.Sprintf("cd %s  && chmod +x scripts/* && cd scripts && bash docker.sh", mountedRootfs)
-	host := fmt.Sprintf("%s %s", "127.0.0.1", runtime.SeaHub)
-	if !utils.IsFileContent(common.EtcHosts, host) {
-		initDockerCmd = fmt.Sprintf("%s && %s", fmt.Sprintf(runtime.RemoteAddEtcHosts, host), initDockerCmd)
-	}
-
-	initRegistryCmd := fmt.Sprintf("bash init-registry.sh 5000 %s", filepath.Join(mountedRootfs, common.RegistryDirName))
-	r, err := utils.RunSimpleCmd(fmt.Sprintf("%s && %s", initDockerCmd, initRegistryCmd))
-	logger.Info(r)
-	if err != nil {
-		return fmt.Errorf("failed to init docker and registry: %v", err)
-	}
-	return utils.Retry(10, 3*time.Second, func() error {
-		if !utils.IsHostPortExist("tcp", "127.0.0.1", 5000) {
-			return fmt.Errorf("registry is not ready")
-		}
-		return nil
-	})
-}
-
-func (l *Builder) CollectLiteBuildImages() error {
-	upper := l.RootfsMountTarget.GetMountUpper()
-	imageLayer := v1.Layer{
-		Type:  "BASE",
-		Value: "registry cache",
-	}
-	tmp, err := utils.MkTmpdir()
-	if err != nil {
-		return fmt.Errorf("failed to add upper layer to image, %v", err)
-	}
-	if utils.IsFileExist(filepath.Join(upper, common.RegistryDirName)) {
-		err = os.Rename(filepath.Join(upper, common.RegistryDirName), filepath.Join(tmp, common.RegistryDirName))
-		if err != nil {
-			return fmt.Errorf("failed to add upper layer to image, %v", err)
-		}
-	}
-	layerDgst, err := l.Local.RegisterLayer(tmp)
-	if err != nil {
-		return err
-	}
-
-	imageLayer.ID = layerDgst
-	l.Local.NewLayers = append(l.Local.NewLayers, imageLayer)
+	logger.Info("save image %s to image system success !", imageName)
 	return nil
 }
 
 func (l *Builder) Cleanup() error {
-	if l.RootfsMountTarget != nil {
-		l.RootfsMountTarget.CleanUp()
-	}
-
-	if err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("127.0.0.1 %s", runtime.SeaHub)); err != nil {
-		logger.Warn(err)
-	}
-	//we need to delete docker registry.if not ,will only cache incremental image in the next lite build
-	err := l.DockerClient.RmContainerByName(runtime.RegistryName)
-	if err != nil {
-		return err
-	}
-
-	return utils.CleanFiles(common.RawClusterfile)
+	return l.BuildImage.Cleanup()
 }

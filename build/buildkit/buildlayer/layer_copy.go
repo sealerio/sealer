@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	layerutils "github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils"
+	"github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils"
 	"github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils/charts"
 	manifest "github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils/manifests"
 	"github.com/alibaba/sealer/client/docker"

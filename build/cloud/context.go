@@ -34,7 +34,7 @@ func (c *Builder) sendBuildContext() (err error) {
 		}
 	}
 	tarFileName := fmt.Sprintf(common.TmpTarFile, utils.GenUniqueID(32))
-	err = tarBuildContext(c.Local.KubeFileName, c.Local.Context, tarFileName)
+	err = tarBuildContext(c.KubeFileName, c.Context, tarFileName)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (c *Builder) sendBuildContext() (err error) {
 		}
 	}()
 	// send to remote server
-	workdir := fmt.Sprintf(common.DefaultWorkDir, c.Local.Cluster.Name)
+	workdir := fmt.Sprintf(common.DefaultWorkDir, c.Cluster.Name)
 	if err = c.SSH.Copy(c.RemoteHostIP, tarFileName, tarFileName); err != nil {
 		return fmt.Errorf("failed to copy tar file: %s, err: %v", tarFileName, err)
 	}
@@ -58,5 +58,5 @@ func (c *Builder) sendBuildContext() (err error) {
 }
 
 func (c *Builder) changeBuilderContext() {
-	c.Local.Context = "."
+	c.Context = "."
 }

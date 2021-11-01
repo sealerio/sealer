@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildlayer
+package buildinstruction
 
-import (
-	v1 "github.com/alibaba/sealer/types/api/v1"
-)
-
-type LayerHandler interface {
-	LayerValueHandler(buildContext string, layer v1.Layer) error
+// Interface Different instructions have different behavioral logic
+// each build instruction needs handle context,store context, try cache, init hook via content,and gen layer id.
+type Interface interface {
+	Exec(ctx ExecContext) (out Out, err error)
 }
