@@ -154,7 +154,7 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 				return err
 			}
 		}
-		return nil
+		return utils.SaveClusterfile(applier.ClusterDesired)
 	},
 	PostCheck: func(applier *DefaultApplier) error {
 		var checkList []checker.Interface
@@ -236,9 +236,7 @@ func (c *DefaultApplier) Apply() (err error) {
 				}
 			}
 		}
-		// all commands need to do
-		err = utils.SaveClusterfile(c.ClusterDesired)
-		if err != nil {
+		if err = ActionFuncMap[PreCheck](c); err != nil {
 			return err
 		}
 	}
@@ -275,7 +273,6 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		todoList = append(todoList, CleanFS)
 		return todoList
 	}
-	todoList = append(todoList, PreCheck)
 	// init cluster
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PluginDump)
