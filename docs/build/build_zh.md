@@ -144,11 +144,7 @@ lite build 操作示例，使用`-m lite` 参数来指定build 类型为 lite bu
 
 ```shell
 sealer build -m lite -t my-cluster:v1.19.9 .
-```F
-
-
-
-
+```
 
 构建完成将生成镜像：my-cluster:v1.19.9
 
