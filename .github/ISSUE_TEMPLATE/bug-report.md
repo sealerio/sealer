@@ -10,13 +10,24 @@ labels: kind/bug
 
 #### What happened:
 
+<!-- paste your log output here for investigation
+
+-->
+
 #### What you expected to happen:
 
 #### How to reproduce it (as minimally and precisely as possible):
 
+<!-- 
+1. if you run sealer build, pls paste your Kubefile here for investigation.
+2. if you run sealer apply, pls paste your Clusterfile here for investigation.
+
+-->
+
 #### Anything else we need to know?:
 
 #### Environment:
+
 - sealer version (use `sealer version`):
 - Cloud provider or hardware configuration:
 - OS (e.g: `cat /etc/os-release`):
