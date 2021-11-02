@@ -18,3 +18,7 @@ sealer/sealer
 cloud/dashboard/target/
 cloud/dashboard/dist/
 cloud/dashboard/Cargo.lock
+
+docs/site/node_modules
+docs/site/package-lock.json
+
