@@ -74,5 +74,3 @@ spec:
     - 100
   status: {}
 ```
-
-The Clusterfile can apply with Plugins metadata and Configs metadata，when you need to [modify the configuration](../getting-started/using-plugin.md) or [use plugins](../getting-started/using-config.md).

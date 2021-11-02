@@ -202,6 +202,7 @@ COPY kubeadm-join-config.yaml.tmpl ./etc
 ### Default template configuration file contents:
 
 kubeadm-bootstrap.yaml.tmpl：
+
 ```yaml
 apiVersion: {{.KubeadmAPI}}
 caCertPath: /etc/kubernetes/pki/ca.crt
@@ -217,7 +218,9 @@ discovery:
     - {{.TokenDiscoveryCAHash}}
     timeout: 5m0s
 ```
+
 kubeadm-init.yaml.tmpl：
+
 ```yaml
 apiVersion: {{.KubeadmAPI}}
 kind: InitConfiguration
@@ -227,7 +230,9 @@ localAPIEndpoint:
 nodeRegistration:
   criSocket: {{.CriSocket}}
 ```
+
 kubeadm-cluster-config.yaml.tmpl：
+
 ```yaml
 apiVersion: {{.KubeadmAPI}}
 kind: ClusterConfiguration
@@ -291,7 +296,9 @@ etcd:
     extraArgs:
       listen-metrics-urls: http://0.0.0.0:2381
 ```
+
 kubeadm-kubeproxy-config.yaml.tmpl：
+
 ```yaml
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
@@ -300,7 +307,9 @@ ipvs:
   excludeCIDRs:
   - "{{.VIP}}/32"
 ```
+
 kubeadm-kubelet-config.yaml.tmpl：
+
 ```yaml
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
@@ -372,7 +381,9 @@ streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
 ```
+
 kubeadm-join-config.yaml.tmpl：
+
 ```yaml
 kind: JoinConfiguration
 {{- if .Master }}

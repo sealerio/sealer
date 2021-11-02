@@ -2,10 +2,9 @@
 
 Using config, you can overwrite any config files you want. Like chart values, docker daemon.json, kubeadm config file ...
 
-# Using config overwrite calico custom configuration
+## Using config overwrite calico custom configuration
 
 Cases of image `registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`:
-The default calico configuration file is $rootfs/etc/custom-resources.yaml. #[Get CloudRootfs](../../../../api/cloudrootfs.md)
 
 ```yaml
 # default custom-resources.yaml：
@@ -64,7 +63,7 @@ spec:
           interface: "eth*|en*" #Change the IP automatic detection rule to a correct one
 ```
 
-# Using config overwrite mysql chart values
+## Using config overwrite mysql chart values
 
 Append you config metadata into Clusterfile and apply it like this:
 
@@ -103,7 +102,7 @@ FROM kuberentes:v1.19.9
 CMD helm install mysql -f etc/mysql-config.yaml
 ```
 
-# User defined docker systemd config
+## User defined docker systemd config
 
 Of course, you can overwrite other config file in Cloudrootfs you want:
 

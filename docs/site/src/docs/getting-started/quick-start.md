@@ -3,10 +3,10 @@
 ## Install a kubernetes cluster
 
 ```shell script
-#install Sealer binaries
+# install Sealer binaries
 wget https://github.com/alibaba/sealer/releases/download/v0.1.4/sealer-0.1.4-linux-amd64.tar.gz && \
 tar zxvf sealer-0.1.4-linux-amd64.tar.gz && mv sealer /usr/bin
-#run a kubernetes cluster 
+# run a kubernetes cluster
 sealer run kubernetes:v1.19.9 --masters 192.168.0.2 --passwd xxx
 ```
 

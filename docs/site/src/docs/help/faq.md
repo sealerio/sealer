@@ -1,4 +1,4 @@
-# FAQ 
+# FAQ
 
 This section is mean to answer the most frequently asked questions about sealer. And it will be updated regularly.
 

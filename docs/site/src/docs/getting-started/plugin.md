@@ -1,10 +1,6 @@
 # Plugins Usage
 
-<<<<<<< HEAD:docs/site/content/docs/getting-started/using-plugin.md
-## Set Plugins metadata in Clusterfile and apply it~
-=======
 ## Apply Plugins metadata in Clusterfile
->>>>>>> site:docs/site/src/docs/getting-started/plugin.md
 
 For example, set node label after install kubernetes cluster:
 

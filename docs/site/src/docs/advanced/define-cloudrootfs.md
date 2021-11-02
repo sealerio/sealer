@@ -63,7 +63,7 @@ Contains:
     └── audit-policy.yml
 ```
 
-# How can I get CloudRootfs
+## How can I get CloudRootfs
 
 1. Pull a BaseImage `sealer pull kubernetes:v1.19.9-alpine`
 2. View the image layer information `sealer inspect kubernetes:v1.19.9-alpine`
@@ -71,7 +71,7 @@ Contains:
 
 You will found the CloudRootfs layer.
 
-# Build your own BaseImage
+## Build your own BaseImage
 
 You can edit any files in CloudRootfs you want, for example you want define your own docker daemon.josn, just edit it and build a new CloudImage.
 
@@ -86,7 +86,7 @@ sealer build -t user-defined-kubernetes:v1.19.9 .
 
 Then you can use this image as a BaseImage.
 
-# OverWrite CloudRootfs files
+## OverWrite CloudRootfs files
 
 Sometimes you don't want to care about the CloudRootfs context, but need custom some config.
 

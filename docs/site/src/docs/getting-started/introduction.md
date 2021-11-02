@@ -20,8 +20,8 @@ Learn more about architecture or deep customize you own features.
 
 ## Contributing
 
-Find out how to contribute to Docs. [Contributing →](../contributing/how-to-contribute.md)
+Find out how to contribute to Docs.
 
 ## Help
 
-Get help on Docs. [Help →](../help/faq.md)
+Faq and some contact information.
