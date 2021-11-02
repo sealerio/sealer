@@ -14,7 +14,6 @@ toc = true
 top = false
 +++
 
-
 # Introduction
 
 This section is mean to answer the most frequently asked questions about sealer. And it will be updated regularly.
@@ -39,24 +38,24 @@ the cache feature.
       OS/Arch: linux/amd64
       Experimental: false
 
-    Server:
-      Engine:
-        Version: 19.03.14-sealer
-        API version: 1.40 (minimum version 1.12)
-        Go version: go1.13.15
-        Git commit: 711cc111cf
-        Built: Wed Jun  2 09:07:15 2021
-        OS/Arch: linux/amd64
-        Experimental: false
-      containerd:
-        Version: 1.4.11
-        GitCommit: 5b46e404f6b9f661a205e28d59c982d3634148f8
-      runc:
-        Version: 1.0.2
-        GitCommit: v1.0.2-0-g52b36a2
-      docker-init:
-        Version: 0.18.0
-        GitCommit: fec3683
+      Server:
+        Engine:
+          Version: 19.03.14-sealer
+          API version: 1.40 (minimum version 1.12)
+          Go version: go1.13.15
+          Git commit: 711cc111cf
+          Built: Wed Jun  2 09:07:15 2021
+          OS/Arch: linux/amd64
+          Experimental: false
+        containerd:
+          Version: 1.4.11
+          GitCommit: 5b46e404f6b9f661a205e28d59c982d3634148f8
+        runc:
+          Version: 1.0.2
+          GitCommit: v1.0.2-0-g52b36a2
+        docker-init:
+          Version: 0.18.0
+          GitCommit: fec3683
 
 ```
 
@@ -89,6 +88,15 @@ the cache feature.
 ```
 
 make sure the local docker config meet the required.
+
+3.check the build log,whether if the docker pull process happened,examples like below output. if no docker pull process
+happened, check your build context,make sure it is right.
+
+![img_1.png](img_1.png)
+
+if no docker registry started process,please contact the sealer team.
+
+![img_2.png](img_2.png)
 
 ### Build result check.
 
