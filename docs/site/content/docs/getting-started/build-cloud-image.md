@@ -114,6 +114,7 @@ Kubefile example：
 FROM kubernetes:v1.19.8
 COPY imageList manifests
 COPY apollo charts
+COPY helm /bin
 CMD helm install charts/apollo
 COPY recommended.yaml manifests
 CMD kubectl apply -f manifests/recommended.yaml
