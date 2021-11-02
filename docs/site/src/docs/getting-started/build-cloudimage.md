@@ -1,20 +1,4 @@
-+++
-title = "Build cloud image"
-description = "sealer build"
-date = 2021-05-01T08:20:00+00:00
-updated = 2021-05-01T08:20:00+00:00
-draft = false
-weight = 21
-sort_by = "weight"
-template = "docs/page.html"
-
-[extra]
-lead = "Sealer can build images automatically by reading the instructions from a Kubefile. Using sealer build users can create an automated build that executes several command-line instructions in succession."
-toc = true
-top = false
-+++
-
-# Overview
+# Build CloudImage
 
 ## Build command line
 
