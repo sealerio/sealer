@@ -95,6 +95,30 @@ func (c *Client) listNamespaces() (*v1.NamespaceList, error) {
 	return namespaceList, nil
 }
 
+func (c *Client) ListNodesByLabel(label string) (*v1.NodeList, error) {
+	nodes, err := c.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: label})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get cluster nodes")
+	}
+	return nodes, nil
+}
+
+func (c *Client) ListNodeIPByLabel(label string) ([]string, error) {
+	var ips []string
+	nodes, err := c.ListNodesByLabel(label)
+	if err != nil {
+		return nil, err
+	}
+	for _, node := range nodes.Items {
+		for _, v := range node.Status.Addresses {
+			if v.Type == v1.NodeInternalIP {
+				ips = append(ips, v.Address)
+			}
+		}
+	}
+	return ips, nil
+}
+
 func (c *Client) ListAllNamespacesPods() ([]*NamespacePod, error) {
 	namespaceList, err := c.listNamespaces()
 	if err != nil {
