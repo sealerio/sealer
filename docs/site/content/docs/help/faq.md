@@ -95,16 +95,16 @@ happened, check your build context,make sure it is right.
 ```text
 2021-11-01 16:31:56 [INFO] [build_image.go:68] run build layer: COPY imageList manifests
 v1.6.0: Pulling from kcr-3rd/csi-provisioner
-495922835b01: Pull complete 
+495922835b01: Pull complete
 Digest: sha256:78e3393f5fd5ff6c1e5dada2478cfa456fb7164929e573cf9a87bf6532730679  9.247MB/18.75MB
 Status: Downloaded newer image for registry.cn-shanghai.aliyuncs.com/kcr-3rd/csi-provisioner:v1.6.0
-2021-11-01 16:32:31 [INFO] [images.go:83] success to pull docker image: registry.cn-shanghai.aliyuncs.com/kcr-3rd/csi-provisioner:v1.6.0 
+2021-11-01 16:32:31 [INFO] [images.go:83] success to pull docker image: registry.cn-shanghai.aliyuncs.com/kcr-3rd/csi-provisioner:v1.6.0
 v1.1.0: Pulling from kcr-3rd/csi-node-driver-registrar
-4e1edcbff92b: Pull complete 
-bc586e01076f: Pull complete 
+4e1edcbff92b: Pull complete
+bc586e01076f: Pull complete
 Digest: sha256:de74d65da5b3ab7875e1c0259633a155762f160d3f2f64ed0a3d3197b1da0c00
 Status: Downloaded newer image for registry.cn-shanghai.aliyuncs.com/kcr-3rd/csi-node-driver-registrar:v1.1.0
-2021-11-01 16:32:44 [INFO] [images.go:83] success to pull docker image: registry.cn-shanghai.aliyuncs.com/kcr-3rd/csi-node-driver-registrar:v1.1.0 
+2021-11-01 16:32:44 [INFO] [images.go:83] success to pull docker image: registry.cn-shanghai.aliyuncs.com/kcr-3rd/csi-node-driver-registrar:v1.1.0
 ```
 
 if no docker registry started process,please contact the sealer team.
