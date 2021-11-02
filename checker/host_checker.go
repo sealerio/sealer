@@ -19,7 +19,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"github.com/alibaba/sealer/utils/ssh"
@@ -35,32 +34,34 @@ func (a HostChecker) Check(cluster *v1.Cluster, phase string) error {
 	}
 	ipList := append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
 
-	if HasDuplicateHostname(ssh.SSH, ipList) {
-		return fmt.Errorf("hostname cannot be repeated, please set diffent hostname")
+	err = checkHostnameUnique(ssh.SSH, ipList)
+	if err != nil {
+		return err
 	}
-	return TimeSync(ssh.SSH, ipList)
+	return checkTimeSync(ssh.SSH, ipList)
 }
 
 func NewHostChecker() Interface {
 	return &HostChecker{}
 }
 
-func HasDuplicateHostname(s ssh.Interface, ipList []string) bool {
+func checkHostnameUnique(s ssh.Interface, ipList []string) error {
 	hostnameList := map[string]bool{}
 	for _, ip := range ipList {
 		hostname, err := s.CmdToString(ip, "hostname", "")
 		if err != nil {
-			logger.Warn("failed to get host %s hostname, %v", ip, err)
+			return fmt.Errorf("failed to get host %s hostname, %v", ip, err)
 		}
 		if hostnameList[hostname] {
-			return true
+			return fmt.Errorf("hostname cannot be repeated, please set diffent hostname")
 		}
 		hostnameList[hostname] = true
 	}
-	return false
+	return nil
 }
 
-func TimeSync(s ssh.Interface, ipList []string) error {
+//Check whether the node time is synchronized
+func checkTimeSync(s ssh.Interface, ipList []string) error {
 	for _, ip := range ipList {
 		timeStamp, err := s.CmdToString(ip, "date +%s", "")
 		if err != nil {

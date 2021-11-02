@@ -41,9 +41,9 @@ var checkCmd = &cobra.Command{
 		}
 
 		if checkArgs.Pre {
-			return checker.RunCheckList(nil, checker.PhaseView)
+			return checker.RunViewCheckList(nil)
 		}
-		return checker.RunCheckList(nil, checker.PhaseView)
+		return checker.RunViewCheckList(nil)
 	},
 }
 

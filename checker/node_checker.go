@@ -43,7 +43,7 @@ type NodeClusterStatus struct {
 }
 
 func (n *NodeChecker) Check(cluster *v1.Cluster, phase string) error {
-	if phase != PhasePost {
+	if phase != PhasePost && phase != PhaseView {
 		return nil
 	}
 	// checker if all the node is ready

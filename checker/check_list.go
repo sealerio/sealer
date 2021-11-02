@@ -31,9 +31,13 @@ type Interface interface {
 	Check(cluster *v1.Cluster, phase string) error
 }
 
-func RunCheckList(cluster *v1.Cluster, phase string) error {
+func RunViewCheckList(cluster *v1.Cluster) error {
 	list := []Interface{NewNodeChecker(), NewSvcChecker(), NewPodChecker()}
 
+	return RunCheckList(list, cluster, PhaseView)
+}
+
+func RunCheckList(list []Interface, cluster *v1.Cluster, phase string) error {
 	for _, l := range list {
 		if err := l.Check(cluster, phase); err != nil {
 			return fmt.Errorf("failed to run checker: %v", err)

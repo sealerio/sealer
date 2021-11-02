@@ -144,26 +144,15 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		return applier.Runtime.Reset(applier.ClusterDesired)
 	},
 	PreCheck: func(applier *DefaultApplier) error {
-		//need docker checker
-		checkList := []checker.Interface{checker.NewHostChecker()}
-		if applier.ClusterCurrent != nil {
-			checkList = append(checkList, checker.NewNodeChecker())
+		//Check whether the current cluster is healthy
+		err := runApplyCheckers(applier.ClusterCurrent, checker.PhasePost)
+		if err != nil {
+			return err
 		}
-		for _, check := range checkList {
-			if err := check.Check(applier.ClusterDesired, checker.PhasePre); err != nil {
-				return err
-			}
-		}
-		return utils.SaveClusterfile(applier.ClusterDesired)
+		return runApplyCheckers(applier.ClusterDesired, checker.PhasePre)
 	},
 	PostCheck: func(applier *DefaultApplier) error {
-		var checkList []checker.Interface
-		for _, check := range checkList {
-			if err := check.Check(applier.ClusterDesired, checker.PhasePost); err != nil {
-				return err
-			}
-		}
-		return nil
+		return runApplyCheckers(applier.ClusterDesired, checker.PhasePost)
 	},
 	CleanFS: func(applier *DefaultApplier) error {
 		return applier.FileSystem.Clean(applier.ClusterDesired)
@@ -213,6 +202,21 @@ func applyNodes(applier *DefaultApplier) error {
 	return nil
 }
 
+func runApplyCheckers(cluster *v1.Cluster, phase string) error {
+	if cluster == nil {
+		return nil
+	}
+	var checkList []checker.Interface
+	switch phase {
+	case checker.PhasePre:
+		//need docker checker
+		checkList = append(checkList, checker.NewHostChecker())
+	case checker.PhasePost:
+		checkList = append(checkList, checker.NewNodeChecker())
+	}
+	return checker.RunCheckList(checkList, cluster, phase)
+}
+
 func (c *DefaultApplier) Apply() (err error) {
 	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
 		//scale
@@ -237,6 +241,9 @@ func (c *DefaultApplier) Apply() (err error) {
 			}
 		}
 		if err = ActionFuncMap[PreCheck](c); err != nil {
+			return err
+		}
+		if err = utils.SaveClusterfile(c.ClusterDesired); err != nil {
 			return err
 		}
 	}
@@ -291,7 +298,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		todoList = append(todoList, PluginPhasePostInstallRun)
-		todoList = append(todoList, PostCheck)
+		//todoList = append(todoList, PostCheck)
 		return todoList
 	}
 
@@ -315,7 +322,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 	}
 	todoList = append(todoList, Guest)
 	todoList = append(todoList, UnMountImage)
-	todoList = append(todoList, PostCheck)
+	//todoList = append(todoList, PostCheck)
 	return todoList
 }
 
