@@ -20,6 +20,8 @@ import (
 	"io"
 	"strings"
 
+	imageUtils "github.com/alibaba/sealer/image/utils"
+
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
@@ -170,50 +172,59 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 	return nil
 }
 
-func (d DefaultImageService) Delete(imageName string) error {
+func (d DefaultImageService) Delete(imageArg string) error {
 	var (
 		images        []*v1.Image
 		image         *v1.Image
 		imageTagCount int
 		imageID       string
 		imageStore    = d.imageStore
+		isName        = strings.Contains(imageArg, ":")
+		named         reference.Named
+		err           error
 	)
-	named, err := reference.ParseToNamed(imageName)
-	if err != nil {
-		return err
-	}
 
 	imageMetadataMap, err := imageStore.GetImageMetadataMap()
 	if err != nil {
 		return err
 	}
+
+	imageList, err := imageUtils.SimilarImageList(imageArg, isName)
+	if err != nil {
+		return err
+	}
+	if len(imageList) != 1 {
+		return fmt.Errorf("failed to find image with name %s", imageArg)
+	}
+	imageArg = imageList[0]
 	// example ImageName : 7e2e51b85680d827fae08853dea32ad6:latest
 	// example ImageID :   7e2e51b85680d827fae08853dea32ad6
 	// https://github.com/alibaba/sealer/blob/f9d609c7fede47a7ac229bcd03d92dd0429b5038/image/reference/util.go#L59
-	imageMetadata, ok := imageMetadataMap[named.Raw()]
-	if !ok && strings.Contains(imageName, ":") {
-		return fmt.Errorf("failed to find image with name %s", imageName)
-	}
-
-	if strings.Contains(imageName, ":") {
-		//1.untag image
-		if err = imageStore.DeleteByName(imageName); err != nil {
-			return fmt.Errorf("failed to untag image %s, err: %w", imageName, err)
-		}
-		image, err = imageStore.GetByID(imageMetadata.ID)
-		imageID = imageMetadata.ID
-	} else {
-		if err = imageStore.DeleteByID(imageName, d.ForceDeleteImage); err != nil {
+	if isName {
+		named, err = reference.ParseToNamed(imageArg)
+		if err != nil {
 			return err
 		}
-		image, err = imageStore.GetByID(imageName)
-		imageID = imageName
+		imageMetadata, ok := imageMetadataMap[named.Raw()]
+		if !ok {
+			return fmt.Errorf("failed to find image with name %s", imageArg)
+		}
+		//1.untag image
+		if err = imageStore.DeleteByName(imageArg); err != nil {
+			return fmt.Errorf("failed to untag image %s, err: %w", imageArg, err)
+		}
+		imageID = imageMetadata.ID
+	} else {
+		if err = imageStore.DeleteByID(imageArg, d.ForceDeleteImage); err != nil {
+			return err
+		}
+		imageID = imageArg
 	}
-
+	image, err = imageStore.GetByID(imageID)
 	if err != nil {
-		return fmt.Errorf("failed to get image metadata for image %s, err: %w", imageName, err)
+		return fmt.Errorf("failed to get image metadata for image %s, err: %w", imageArg, err)
 	}
-	logger.Info("untag image %s succeeded", imageName)
+	logger.Info("untag image %s succeeded", imageArg)
 
 	for _, value := range imageMetadataMap {
 		tmpImage, err := imageStore.GetByID(value.ID)
@@ -250,12 +261,12 @@ func (d DefaultImageService) Delete(imageName string) error {
 			err = layerStore.Delete(layerID)
 			if err != nil {
 				// print log and continue to delete other layers of the image
-				logger.Error("Fail to delete image %s's layer %s", imageName, layerID)
+				logger.Error("Fail to delete image %s's layer %s", imageArg, layerID)
 			}
 		}
 	}
 
-	logger.Info("image %s delete success", imageName)
+	logger.Info("image %s delete success", imageArg)
 	return nil
 }
 

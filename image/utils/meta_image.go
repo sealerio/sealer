@@ -22,28 +22,29 @@ import (
 	"github.com/alibaba/sealer/image/store"
 )
 
-func SimilarImageList(imageArg string) (similarImageList []string, err error) {
+func SimilarImageList(imageArg string, byName bool) (similarImageList []string, err error) {
 	is, err := store.NewDefaultImageStore()
 	if err != nil {
 		return nil, err
 	}
-
 	metadataMap, err := is.GetImageMetadataMap()
 	if err != nil {
 		return nil, err
 	}
 	for _, imageMetadata := range metadataMap {
 		imageMeta := imageMetadata
-		if !strings.Contains(imageMeta.Name, imageArg) && imageArg != "" {
-			continue
+		if byName && (strings.Contains(imageMeta.Name, imageArg) || imageArg == "") {
+			similarImageList = append(similarImageList, imageMeta.Name)
 		}
-		similarImageList = append(similarImageList, imageMeta.Name)
+		if !byName && (strings.Contains(imageMeta.ID, imageArg) || imageArg == "") {
+			similarImageList = append(similarImageList, imageMeta.ID)
+		}
 	}
-	return similarImageList, nil
+	return
 }
 
 func ImageListFuncForCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	similarImages, err := SimilarImageList(toComplete)
+	similarImages, err := SimilarImageList(toComplete, true)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveDefault
 	}
