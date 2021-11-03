@@ -238,7 +238,7 @@ func getJoinTemplateText(clusterName string) string {
 
 // return file content or defaultContent if file not exist
 func readFromFileOrDefault(clusterName, fileName, defaultContent string) string {
-	fileName = filepath.Join(common.DefaultTheClusterRootfsDir(clusterName), common.EtcDir, fileName)
+	fileName = filepath.Join(common.DefaultMountCloudImageDir(clusterName), common.EtcDir, fileName)
 	_, err := os.Stat(fileName)
 	if os.IsNotExist(err) {
 		return defaultContent
