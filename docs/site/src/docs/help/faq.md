@@ -179,3 +179,63 @@ drwxr-xr-x. 3 root root  78 Oct  9 16:45 d2
 
 make sure all the layers and layer content exist at the same time in this cloud images. if only part of them, please
 clean all docker images of your build machine, and run sealer build steps again.
+
+4. use docker inspect to check all the cached image layer.
+
+get all docker image layer :
+
+examples:
+
+`docker inspect --format='{{json .RootFS}}' 8c72b944d569`
+
+output:
+
+```json
+{
+  "Type": "layers",
+  "Layers": [
+    "sha256:4b0a2b20e92dcbf057d10806b8aa690b26d1d3dd33b0fc63d838f4acaf23bd07",
+    "sha256:3e1226931b2290a838eec9bbbd911e4f5da535a447f3f96481017b41bf9c0259"
+  ]
+}
+```
+
+choose "4b0a2b20e92dcbf057d10806b8aa690b26d1d3dd33b0fc63d838f4acaf23bd07" as examples to read the registry layer id from
+from distribution directory.
+
+`cat /var/lib/docker/image/overlay2/distribution/v2metadata-by-diffid/sha256/4b0a2b20e92dcbf057d10806b8aa690b26d1d3dd33b0fc63d838f4acaf23bd07`
+
+```json
+[
+  {
+    "Digest": "sha256:5d3835484afecc78dccfa2f7d4fcf273aacfe0c7600b957314e38488f3942045",
+    "SourceRepository": "docker.io/library/traefik",
+    "HMAC": ""
+  }
+]
+```
+
+check with the sealer image cache,we can see "5d3835484afecc78dccfa2f7d4fcf273aacfe0c7600b957314e38488f3942045" show
+below "_layers" directory.
+
+"8c72b944d56909f092c54c2b0804002f5501a61b7f4444e03574c0ff3455d657" is the imagedb ,not the image content layer.
+
+```text
+library
+        └── traefik
+            ├── _layers
+            │   └── sha256
+            │       ├── 0feefa6e9e49547c30d8edd85bbe6116ad1107ec138af7b22af9e087d759de0c
+            │       │   └── link
+            │       ├── 5d3835484afecc78dccfa2f7d4fcf273aacfe0c7600b957314e38488f3942045
+            │       │   └── link
+            │       └── 8c72b944d56909f092c54c2b0804002f5501a61b7f4444e03574c0ff3455d657
+            │           └── link
+            ├── _manifests
+            │   ├── revisions
+            │   │   └── sha256
+            │   │       ├── d1264267935f35aa1070a840d24bfc6bb7f55efb49949589b049f82a4c5967f4
+            │   │       │   └── link
+            │   │       └── d277007b55a8a8d972b1983ef11387d05f719821a2d2e23e8fa06ac5081a302f
+            │   │           └── link
+```
