@@ -9,7 +9,8 @@ This section is mean to answer the most frequently asked questions about sealer.
 The first thing need to know is that we hacked docker to support cache docker images,so only "sealer docker" will have
 the cache feature.
 
-1. run `cat /etc/hosts` to check the hosts file, examples like "172.18.0.2 sea.hub",make sure "sea.hub" exist in your host.
+1. run `cat /etc/hosts` to check the hosts file, examples like "172.18.0.2 sea.hub",make sure "sea.hub" exist in your
+   host.
 
 ```yaml
 172.18.0.2 sealer-master-4a04d36e4d
@@ -82,7 +83,7 @@ the cache feature.
 make sure the local docker config meet the required.
 
 4. check the build log,whether if the docker pull process happened,examples like below output. if no docker pull process
-happened, check your build context,make sure it is right.
+   happened, check your build context,make sure it is right.
 
 ```text
 2021-11-01 16:31:56 [INFO] [build_image.go:68] run build layer: COPY imageList manifests
