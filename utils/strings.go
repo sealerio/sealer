@@ -30,6 +30,10 @@ func NotIn(key string, slice []string) bool {
 	return true
 }
 
+func InList(key string, slice []string) bool {
+	return !NotIn(key, slice)
+}
+
 func NotInIPList(key string, slice []string) bool {
 	for _, s := range slice {
 		if s == "" {

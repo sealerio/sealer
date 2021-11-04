@@ -32,8 +32,11 @@ var runCmd = &cobra.Command{
 create default cluster:
 	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 
-create cluster by cloud provider, just set the number of masters or nodes:
+create cluster by cloud provider, just set the number of masters or nodes,and default provider is ALI_CLOUD:
 	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 3 --nodes 3
+
+create cluster by docker container, set the number of masters or nodes, and set provider "CONTAINER":
+	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 3 --nodes 3 --provider CONTAINER
 
 create cluster to your baremetal server, appoint the iplist:
 	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
@@ -52,6 +55,7 @@ create cluster to your baremetal server, appoint the iplist:
 func init() {
 	runArgs = &common.RunArgs{}
 	rootCmd.AddCommand(runCmd)
+	runCmd.Flags().StringVarP(&runArgs.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runArgs.Masters, "masters", "m", "", "set Count or IPList to masters")
 	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
 	runCmd.Flags().StringVarP(&runArgs.User, "user", "u", "root", "set baremetal server username")

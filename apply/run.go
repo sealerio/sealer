@@ -29,16 +29,9 @@ import (
 )
 
 type ClusterArgs struct {
-	cluster    *v1.Cluster
-	imageName  string
-	nodeArgs   string
-	masterArgs string
-	user       string
-	passwd     string
-	pk         string
-	pkPasswd   string
-	podCidr    string
-	svcCidr    string
+	cluster   *v1.Cluster
+	imageName string
+	runArgs   *common.RunArgs
 }
 
 func IsNumber(args string) bool {
@@ -83,35 +76,40 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	var err error = nil
 	var flag bool
 	c.cluster.Spec.Image = c.imageName
-	c.cluster.Spec.Provider = common.BAREMETAL
 
-	if c.podCidr != "" {
-		if flag, err = IsCidrString(c.podCidr); !flag {
+	if c.runArgs.PodCidr != "" {
+		if flag, err = IsCidrString(c.runArgs.PodCidr); !flag {
 			return err
 		}
-		c.cluster.Spec.Network.PodCIDR = c.podCidr
+		c.cluster.Spec.Network.PodCIDR = c.runArgs.PodCidr
 	}
-	if c.svcCidr != "" {
-		if flag, err = IsCidrString(c.svcCidr); !flag {
+	if c.runArgs.SvcCidr != "" {
+		if flag, err = IsCidrString(c.runArgs.SvcCidr); !flag {
 			return err
 		}
-		c.cluster.Spec.Network.SvcCIDR = c.svcCidr
+		c.cluster.Spec.Network.SvcCIDR = c.runArgs.SvcCidr
 	}
-	if c.passwd != "" {
-		c.cluster.Spec.SSH.Passwd = c.passwd
+	if c.runArgs.Password != "" {
+		c.cluster.Spec.SSH.Passwd = c.runArgs.Password
 	}
-	if IsNumber(c.masterArgs) && (IsNumber(c.nodeArgs) || c.nodeArgs == "") {
-		c.cluster.Spec.Masters.Count = c.masterArgs
-		c.cluster.Spec.Nodes.Count = c.nodeArgs
-		c.cluster.Spec.Provider = common.DefaultCloudProvider
-	} else if IsIPList(c.masterArgs) && (IsIPList(c.nodeArgs) || c.nodeArgs == "") {
-		c.cluster.Spec.Masters.IPList = strings.Split(c.masterArgs, ",")
-		if c.nodeArgs != "" {
-			c.cluster.Spec.Nodes.IPList = strings.Split(c.nodeArgs, ",")
+	if IsNumber(c.runArgs.Masters) && (IsNumber(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
+		c.cluster.Spec.Masters.Count = c.runArgs.Masters
+		c.cluster.Spec.Nodes.Count = c.runArgs.Nodes
+		if c.runArgs.Provider != "" {
+			c.cluster.Spec.Provider = c.runArgs.Provider
+			if !utils.InList(c.runArgs.Provider, []string{common.AliCloud, common.CONTAINER}) {
+				return fmt.Errorf("the provider cannot be set to %s", c.runArgs.Provider)
+			}
 		}
-		c.cluster.Spec.SSH.User = c.user
-		c.cluster.Spec.SSH.Pk = c.pk
-		c.cluster.Spec.SSH.PkPasswd = c.pkPasswd
+	} else if IsIPList(c.runArgs.Masters) && (IsIPList(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
+		c.cluster.Spec.Masters.IPList = strings.Split(c.runArgs.Masters, ",")
+		if c.runArgs.Nodes != "" {
+			c.cluster.Spec.Nodes.IPList = strings.Split(c.runArgs.Nodes, ",")
+		}
+		c.cluster.Spec.SSH.User = c.runArgs.User
+		c.cluster.Spec.SSH.Pk = c.runArgs.Pk
+		c.cluster.Spec.SSH.PkPasswd = c.runArgs.PkPassword
+		c.cluster.Spec.Provider = common.BAREMETAL
 	} else {
 		err = fmt.Errorf("enter true iplist or count")
 	}
@@ -139,16 +137,9 @@ func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (Interface, e
 		return NewApplier(cluster)
 	}
 	c := &ClusterArgs{
-		cluster:    cluster,
-		imageName:  imageName,
-		nodeArgs:   runArgs.Nodes,
-		masterArgs: runArgs.Masters,
-		user:       runArgs.User,
-		passwd:     runArgs.Password,
-		pk:         runArgs.Pk,
-		pkPasswd:   runArgs.PkPassword,
-		podCidr:    runArgs.PodCidr,
-		svcCidr:    runArgs.SvcCidr,
+		cluster:   cluster,
+		imageName: imageName,
+		runArgs:   runArgs,
 	}
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
