@@ -88,6 +88,10 @@ func (c *CloudApplier) Apply() error {
 	if err != nil {
 		return fmt.Errorf("apply infra failed %v", err)
 	}
+
+
+
+
 	if cluster.DeletionTimestamp != nil {
 		return nil
 	}
