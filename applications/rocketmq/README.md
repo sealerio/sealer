@@ -21,7 +21,7 @@ currently on the k8s node.
 Modify manifest yaml file according to your needs, then run below command to rebuild it.
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
 More parameters see [official document here](https://github.com/apache/rocketmq-operator).

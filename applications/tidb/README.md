@@ -64,7 +64,7 @@ basic-tidb-cluster-prometheus   NodePort   10.96.0.142   <none>        9090:3177
 Modify manifest yaml file according to your needs, then run below command to rebuild it.
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
 More parameters see [official document here](https://docs.pingcap.com/zh/tidb-in-kubernetes/stable).

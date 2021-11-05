@@ -110,7 +110,7 @@ CMD helm install ingress-nginx --create-namespace --namespace ingress-system ing
 run below command to build it
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
 More parameters see [official document here](https://kubernetes.github.io/ingress-nginx/deploy).
