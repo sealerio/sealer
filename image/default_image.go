@@ -44,18 +44,30 @@ type DefaultImageService struct {
 
 // PullIfNotExist is used to pull image if not exists locally
 func (d DefaultImageService) PullIfNotExist(imageName string) error {
-	named, err := reference.ParseToNamed(imageName)
+	img, err := d.GetImageByName(imageName)
 	if err != nil {
 		return err
 	}
-
-	_, err = d.imageStore.GetByName(named.Raw())
-	if err == nil {
-		logger.Info("image %s already exists", named.Raw())
+	if img != nil {
+		logger.Info("image %s already exists", imageName)
 		return nil
 	}
 
 	return d.Pull(imageName)
+}
+
+func (d DefaultImageService) GetImageByName(imageName string) (*v1.Image, error) {
+	var img *v1.Image
+	named, err := reference.ParseToNamed(imageName)
+	if err != nil {
+		return nil, err
+	}
+	img, err = d.imageStore.GetByName(named.Raw())
+	if err == nil {
+		logger.Info("image %s already exists", named)
+		return img, nil
+	}
+	return nil, nil
 }
 
 // Pull always do pull action
