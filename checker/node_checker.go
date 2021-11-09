@@ -15,6 +15,7 @@
 package checker
 
 import (
+	"fmt"
 	"text/template"
 
 	corev1 "k8s.io/api/core/v1"
@@ -42,7 +43,7 @@ type NodeClusterStatus struct {
 }
 
 func (n *NodeChecker) Check(cluster *v1.Cluster, phase string) error {
-	if phase != PhasePost {
+	if phase != PhasePost && phase != PhaseView {
 		return nil
 	}
 	// checker if all the node is ready
@@ -68,16 +69,22 @@ func (n *NodeChecker) Check(cluster *v1.Cluster, phase string) error {
 			readyCount++
 		}
 	}
-	nodeCount = notReadyCount + readyCount
-	nodeClusterStatus := NodeClusterStatus{
-		ReadyCount:       readyCount,
-		NotReadyCount:    notReadyCount,
-		NodeCount:        nodeCount,
-		NotReadyNodeList: notReadyNodeList,
+	if phase == PhaseView {
+		nodeCount = notReadyCount + readyCount
+		nodeClusterStatus := NodeClusterStatus{
+			ReadyCount:       readyCount,
+			NotReadyCount:    notReadyCount,
+			NodeCount:        nodeCount,
+			NotReadyNodeList: notReadyNodeList,
+		}
+		err = n.Output(nodeClusterStatus)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	err = n.Output(nodeClusterStatus)
-	if err != nil {
-		return err
+	if notReadyCount != 0 {
+		return fmt.Errorf("check node %v not ready", notReadyNodeList)
 	}
 	return nil
 }

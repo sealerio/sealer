@@ -17,6 +17,8 @@ package apply
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/checker"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -65,6 +67,8 @@ const (
 	ApplyNodes                ActionName = "ApplyNodes"
 	Guest                     ActionName = "Guest"
 	Reset                     ActionName = "Reset"
+	PreCheck                  ActionName = "PreCheck"
+	PostCheck                 ActionName = "PostCheck"
 	CleanFS                   ActionName = "CleanFS"
 	PluginDump                ActionName = "PluginDump"
 	PluginPhasePreInitRun     ActionName = "PluginPhasePreInitRun"
@@ -139,6 +143,17 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 		}
 		return applier.Runtime.Reset(applier.ClusterDesired)
 	},
+	PreCheck: func(applier *DefaultApplier) error {
+		//Check whether the current cluster is healthy
+		err := runApplyCheckers(applier.ClusterCurrent, checker.PhasePost)
+		if err != nil {
+			return err
+		}
+		return runApplyCheckers(applier.ClusterDesired, checker.PhasePre)
+	},
+	PostCheck: func(applier *DefaultApplier) error {
+		return runApplyCheckers(applier.ClusterDesired, checker.PhasePost)
+	},
 	CleanFS: func(applier *DefaultApplier) error {
 		return applier.FileSystem.Clean(applier.ClusterDesired)
 	},
@@ -187,6 +202,21 @@ func applyNodes(applier *DefaultApplier) error {
 	return nil
 }
 
+func runApplyCheckers(cluster *v1.Cluster, phase string) error {
+	if cluster == nil {
+		return nil
+	}
+	var checkList []checker.Interface
+	switch phase {
+	case checker.PhasePre:
+		//need docker checker
+		checkList = append(checkList, checker.NewHostChecker())
+	case checker.PhasePost:
+		checkList = append(checkList, checker.NewNodeChecker())
+	}
+	return checker.RunCheckList(checkList, cluster, phase)
+}
+
 func (c *DefaultApplier) Apply() (err error) {
 	if c.ClusterDesired.GetDeletionTimestamp().IsZero() {
 		//scale
@@ -210,9 +240,10 @@ func (c *DefaultApplier) Apply() (err error) {
 				}
 			}
 		}
-		// all commands need to do
-		err = utils.SaveClusterfile(c.ClusterDesired)
-		if err != nil {
+		if err = ActionFuncMap[PreCheck](c); err != nil {
+			return err
+		}
+		if err = utils.SaveClusterfile(c.ClusterDesired); err != nil {
 			return err
 		}
 	}
@@ -249,7 +280,6 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		todoList = append(todoList, CleanFS)
 		return todoList
 	}
-
 	// init cluster
 	if c.ClusterCurrent == nil {
 		todoList = append(todoList, PluginDump)
@@ -268,6 +298,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		todoList = append(todoList, PluginPhasePostInstallRun)
+		//todoList = append(todoList, PostCheck)
 		return todoList
 	}
 
@@ -291,6 +322,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 	}
 	todoList = append(todoList, Guest)
 	todoList = append(todoList, UnMountImage)
+	//todoList = append(todoList, PostCheck)
 	return todoList
 }
 
