@@ -16,10 +16,12 @@ package guest
 
 import (
 	"context"
-	"fmt"
+	"time"
+
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/logger"
-	"time"
+
+	"fmt"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/store"
@@ -84,7 +86,7 @@ func (d Default) Delete(cluster *v1.Cluster) error {
 
 func (d *Default) waitClusterReady(ctx context.Context) error {
 	var clusterStatusChan = make(chan string)
-	ctx, cancel := context.WithTimeout(ctx, 15 * time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -92,19 +94,19 @@ func (d *Default) waitClusterReady(ctx context.Context) error {
 		for {
 			clusterStatus := d.getClusterStatus()
 			clusterStatusChan <- clusterStatus
-			<- t.C
+			<-t.C
 		}
 	}(ticker)
 	for {
 		select {
-		case status := <- clusterStatusChan:
+		case status := <-clusterStatusChan:
 			if status == common.ClusterNotReady {
 				logger.Info("wait cluster ready ")
 			} else if status == common.ClusterReady {
 				logger.Info("cluster ready now")
 				return nil
 			}
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return fmt.Errorf("cluster is not ready, please check")
 		}
 	}

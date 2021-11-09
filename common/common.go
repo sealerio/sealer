@@ -135,8 +135,8 @@ const (
 )
 
 const (
-	ClusterNotReady       = "ClusterNotReady"
-	ClusterReady          = "ClusterReady"
+	ClusterNotReady = "ClusterNotReady"
+	ClusterReady    = "ClusterReady"
 )
 
 func GetClusterWorkDir(clusterName string) string {
