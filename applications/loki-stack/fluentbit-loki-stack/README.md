@@ -44,7 +44,7 @@ CMD helm install --create-namespace --namespace fluentbit-loki-stack-system loki
 run below command to build it
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
 More parameters see [official document here](https://grafana.github.io/helm-charts)

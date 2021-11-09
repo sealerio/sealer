@@ -58,7 +58,7 @@ CMD helm install my-minio --create-namespace --namespace minio-system --set mode
 run below command to build it
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
 More parameters see [official document here](https://artifacthub.io/packages/helm/bitnami/minio).

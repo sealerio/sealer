@@ -4,7 +4,7 @@ cloud image local build command line
 
 ### Synopsis
 
-sealer build -f Kubefile -t my-kubernetes:1.19.9 [--buildType cloud|container|lite] [--no-cache]
+sealer build -f Kubefile -t my-kubernetes:1.19.9 [--mode cloud|container|lite] [--no-cache]
 
 ```
 sealer build [flags] PATH
@@ -19,10 +19,10 @@ cloud build :
 	sealer build -f Kubefile -t my-kubernetes:1.19.9
 
 container build :
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 -b container
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 -m container
 
 lite build:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 --buildType lite
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 --mode lite
 
 build without cache:
 	sealer build -f Kubefile -t my-kubernetes:1.19.9 --no-cache
@@ -32,7 +32,7 @@ build without cache:
 ### Options
 
 ```
-  -b, --buildType string   cluster image build type,default is cloud
+  -m, --mode string   cluster image build type,default is cloud
   -h, --help               help for build
   -t, --imageName string   cluster image name
   -f, --kubefile string    kubefile filepath (default "Kubefile")

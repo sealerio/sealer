@@ -106,7 +106,7 @@ see: [mysql with ceph block examples](../../../applications/rookceph/rookceph-bl
 Modify manifest.yaml or cephblockpool.yaml file according to your needs, then run below command to rebuild it.
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
 More parameters see [official docs here](https://rook.io/docs/rook/v1.7/ceph-block.html).
