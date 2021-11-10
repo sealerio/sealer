@@ -115,16 +115,14 @@ func (d *Default) waitClusterReady(ctx context.Context) error {
 func (d *Default) getClusterStatus() string {
 	k8sClient, err := k8s.Newk8sClient()
 	if err != nil {
-		logger.Warn(err)
+		return common.ClusterNotReady
 	}
 
 	podStatusList, err := k8sClient.ListAllNamespacesPodsStatus()
-	if podStatusList == nil {
+	if podStatusList == nil || err != nil {
 		return common.ClusterNotReady
 	}
-	if err != nil {
-		return common.ClusterNotReady
-	}
+
 	for _, status := range podStatusList {
 		if !status {
 			return common.ClusterNotReady

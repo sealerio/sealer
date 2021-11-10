@@ -187,9 +187,9 @@ func (c *Client) ListAllNamespacesPodsStatus() ([]bool, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get all namespace pods")
 		}
-		// pods.Items maybe is nil, so podContainerIsReady is nil
+		// pods.Items maybe nil, so podContainerIsReady is nil
 		for _, pod := range pods.Items {
-			// pod.Status.ContainerStatus =nil because of pod contain initcontainer
+			// pod.Status.ContainerStatus == nil because of pod contain initcontainer
 			if len(pod.Status.ContainerStatuses) == 0 {
 				continue
 			}
