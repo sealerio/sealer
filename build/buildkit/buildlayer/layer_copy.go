@@ -50,8 +50,7 @@ func (h HandleImageList) LayerValueHandler(buildContext string, layer v1.Layer) 
 	if err != nil {
 		return err
 	}
-	h.DockerClient.ImagesPull(images)
-	return nil
+	return h.DockerClient.ImagesPull(images)
 }
 
 func (h HandleImageList) parseRawImageList(imageListFilePath string) ([]string, error) {
@@ -78,8 +77,7 @@ func (h HandleYamlImageList) LayerValueHandler(buildContext string, layer v1.Lay
 	if err != nil {
 		return err
 	}
-	h.DockerClient.ImagesPull(images)
-	return nil
+	return h.DockerClient.ImagesPull(images)
 }
 
 func (h HandleYamlImageList) parseYamlImages(yamlFilePath string) ([]string, error) {
@@ -104,8 +102,7 @@ func (h HandleChartImageList) LayerValueHandler(buildContext string, layer v1.La
 	if err != nil {
 		return err
 	}
-	h.DockerClient.ImagesPull(images)
-	return nil
+	return h.DockerClient.ImagesPull(images)
 }
 
 func (h HandleChartImageList) parseChartImages(chartFilePath string) ([]string, error) {
