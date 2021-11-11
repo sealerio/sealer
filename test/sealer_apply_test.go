@@ -64,7 +64,9 @@ var _ = Describe("sealer apply", func() {
 				result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
 				err = testhelper.WriteFile(tempFile, []byte(result))
 				testhelper.CheckErr(err)
-
+				By("Wait for the cluster to be ready", func() {
+					apply.WaitAllNodeRunning()
+				})
 				//2,scale up cluster to 6 nodes and write to disk
 				By("Use join command to add 3master and 3node for scale up cluster in cloud mode", func() {
 					apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(2))
@@ -116,6 +118,9 @@ var _ = Describe("sealer apply", func() {
 				err = testhelper.WriteFile(tempFile, []byte(result))
 				testhelper.CheckErr(err)
 
+				By("Wait for the cluster to be ready", func() {
+					apply.WaitAllNodeRunning()
+				})
 				//2,scale up cluster to 6 nodes and write to disk
 				By("Use join command to add 2master and 1node for scale up cluster in cloud mode", func() {
 					apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(1))
@@ -166,6 +171,10 @@ var _ = Describe("sealer apply", func() {
 				apply.GenerateClusterfile(tempFile)
 				apply.SendAndApplyCluster(sshClient, tempFile)
 				apply.CheckNodeNumWithSSH(sshClient, 2)
+
+				By("Wait for the cluster to be ready", func() {
+					apply.WaitAllNodeRunningBySSH(sshClient.SSH, sshClient.RemoteHostIP)
+				})
 
 				By("Use join command to add 3master and 3node for scale up cluster in baremetal mode", func() {
 					usedCluster.Spec.Nodes.Count = "3"
@@ -221,6 +230,10 @@ var _ = Describe("sealer apply", func() {
 				By("start to init cluster")
 				apply.SendAndApplyCluster(sshClient, tempFile)
 				apply.CheckNodeNumWithSSH(sshClient, 4)
+
+				By("Wait for the cluster to be ready", func() {
+					apply.WaitAllNodeRunningBySSH(sshClient.SSH, sshClient.RemoteHostIP)
+				})
 
 				By("Use join command to add 3master and 3node for scale up cluster in baremetal mode", func() {
 					usedCluster.Spec.Nodes.Count = "3"
