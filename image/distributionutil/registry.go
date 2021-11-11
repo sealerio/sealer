@@ -17,23 +17,35 @@ package distributionutil
 import (
 	"context"
 
+	"github.com/alibaba/sealer/logger"
+
+	"github.com/docker/docker/api/types"
+
 	"github.com/docker/distribution"
 
 	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 )
 
 func NewV2Repository(named reference.Named, actions ...string) (distribution.Repository, error) {
-	authConfig, err := utils.GetDockerAuthInfoFromDocker(named.Domain())
-	if err != nil {
-		logger.Warn("failed to get auth info, err: %s", err)
-	}
-
-	repo, err := NewRepository(context.Background(), authConfig, named.Repo(), registryConfig{Insecure: true, Domain: named.Domain()}, actions...)
+	authConfig := types.AuthConfig{ServerAddress: named.Domain()}
+	repo, err := getV2Repository(authConfig, named, actions...)
 	if err == nil {
 		return repo, nil
 	}
 
+	authConfig, authErr := utils.GetDockerAuthInfoFromDocker(named.Domain())
+	if err != nil {
+		logger.Warn("failed to get auth info, err: %s", authErr)
+		return nil, err
+	}
+	return getV2Repository(authConfig, named, actions...)
+}
+
+func getV2Repository(authConfig types.AuthConfig, named reference.Named, actions ...string) (distribution.Repository, error) {
+	repo, err := NewRepository(context.Background(), authConfig, named.Repo(), registryConfig{Insecure: true, Domain: named.Domain()}, actions...)
+	if err == nil {
+		return repo, nil
+	}
 	return NewRepository(context.Background(), authConfig, named.Repo(), registryConfig{Insecure: true, NonSSL: true, Domain: named.Domain()}, actions...)
 }
