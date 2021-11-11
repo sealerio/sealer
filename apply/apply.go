@@ -1,33 +1,20 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package apply
 
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/apply/mode"
+
+	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/filesystem"
+	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
-type Interface interface {
-	Apply() error
-	Delete() error
-}
-
-func NewApplierFromFile(clusterfile string) (Interface, error) {
+func NewApplierFromFile(clusterfile string) (mode.Interface, error) {
 	clusters, err := utils.DecodeCluster(clusterfile)
 	if err != nil {
 		return nil, err
@@ -43,22 +30,42 @@ func NewApplierFromFile(clusterfile string) (Interface, error) {
 	return NewApplier(cluster)
 }
 
-func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
-	cluster = &v1.Cluster{}
-	if err = utils.UnmarshalYamlFile(filepath, cluster); err != nil {
-		return nil, fmt.Errorf("failed to get cluster from %s, %v", filepath, err)
-	}
-	cluster.SetAnnotations(common.ClusterfileName, filepath)
-	return cluster, nil
-}
-
-func NewApplier(cluster *v1.Cluster) (Interface, error) {
+func NewApplier(cluster *v1.Cluster) (mode.Interface, error) {
 	switch cluster.Spec.Provider {
 	case common.AliCloud:
 		return NewAliCloudProvider(cluster)
 	case common.CONTAINER:
 		return NewAliCloudProvider(cluster)
 	}
-
 	return NewDefaultApplier(cluster)
+}
+
+func NewAliCloudProvider(cluster *v1.Cluster) (mode.Interface, error) {
+	return &mode.CloudApplier{
+		ClusterDesired: cluster,
+	}, nil
+}
+
+func NewDefaultApplier(cluster *v1.Cluster) (mode.Interface, error) {
+	imgSvc, err := image.NewImageService()
+	if err != nil {
+		return nil, err
+	}
+
+	fs, err := filesystem.NewFilesystem()
+	if err != nil {
+		return nil, err
+	}
+
+	k8sClient, err := k8s.Newk8sClient()
+	if err != nil {
+		logger.Warn(err)
+	}
+
+	return &mode.Applier{
+		ClusterDesired: cluster,
+		ImageManager:   imgSvc,
+		FileSystem:     fs,
+		Client:         k8sClient,
+	}, nil
 }

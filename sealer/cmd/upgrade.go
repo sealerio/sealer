@@ -51,7 +51,7 @@ var upgradeCmd = &cobra.Command{
 		//get Clusterfile
 		userHome, _ := os.UserHomeDir()
 		var filepath = fmt.Sprintf(clusterfilepath, userHome, upgradeClusterName)
-		desiredCluster, err := apply.GetClusterFromFile(filepath)
+		desiredCluster, err := utils.GetClusterFromFile(filepath)
 		if err != nil {
 			return err
 		}
