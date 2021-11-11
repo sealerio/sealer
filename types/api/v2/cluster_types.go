@@ -37,11 +37,11 @@ type ClusterSpec struct {
 }
 
 type Hosts struct {
-	IP    string   `json:"ip,omitempty"`
+	IPS   []string `json:"ips,omitempty"`
 	Roles []string `json:"roles,omitempty"`
-	// SSH config overwrite
+	//overwrite SSH config
 	SSH v1.SSH `json:"ssh,omitempty"`
-	// env overwrite
+	//overwrite env
 	Env map[string]string `json:"env,omitempty"`
 }
 
