@@ -134,11 +134,6 @@ const (
 	WINDOWS            = "windows"
 )
 
-const (
-	ClusterNotReady = "ClusterNotReady"
-	ClusterReady    = "ClusterReady"
-)
-
 func GetClusterWorkDir(clusterName string) string {
 	return filepath.Join(GetHomeDir(), ".sealer", clusterName)
 }

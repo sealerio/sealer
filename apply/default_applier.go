@@ -71,6 +71,7 @@ const (
 	PluginPhaseOriginallyRun  ActionName = "PluginPhaseOriginallyRun"
 	PluginPhasePreInstallRun  ActionName = "PluginPhasePreInstallRun"
 	PluginPhasePostInstallRun ActionName = "PluginPhasePostInstallRun"
+	PluginPhasePreGuestRun    ActionName = "PluginPhasePreGuestRun"
 )
 
 var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
@@ -157,6 +158,9 @@ var ActionFuncMap = map[ActionName]func(*DefaultApplier) error{
 	},
 	PluginPhasePreInstallRun: func(applier *DefaultApplier) error {
 		return applier.Plugins.Run(applier.ClusterDesired, "PreInstall")
+	},
+	PluginPhasePreGuestRun: func(applier *DefaultApplier) error {
+		return applier.Plugins.Run(applier.ClusterDesired, "PreGuest")
 	},
 	PluginPhasePostInstallRun: func(applier *DefaultApplier) error {
 		return applier.Plugins.Run(applier.ClusterDesired, "PostInstall")
@@ -265,6 +269,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 		c.NodesToJoin = c.ClusterDesired.Spec.Nodes.IPList
 		todoList = append(todoList, ApplyMasters)
 		todoList = append(todoList, ApplyNodes)
+		todoList = append(todoList, PluginPhasePreGuestRun)
 		todoList = append(todoList, Guest)
 		todoList = append(todoList, UnMountImage)
 		todoList = append(todoList, PluginPhasePostInstallRun)
@@ -289,6 +294,7 @@ func (c *DefaultApplier) diff() (todoList []ActionName) {
 	if len(c.NodesToJoin) > 0 || len(c.NodesToDelete) > 0 {
 		todoList = append(todoList, ApplyNodes)
 	}
+	todoList = append(todoList, PluginPhasePreGuestRun)
 	todoList = append(todoList, Guest)
 	todoList = append(todoList, UnMountImage)
 	return todoList

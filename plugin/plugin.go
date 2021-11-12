@@ -29,13 +29,20 @@ const (
 	PhasePreInstall  = Phase("PreInstall")
 	PhasePostInstall = Phase("PostInstall")
 	PhaseOriginally  = Phase("Originally")
+	PhasePreGuest    = Phase("PreGuest")
 )
 
 const (
-	EtcdPlugin     = "ETCD"
-	LabelPlugin    = "LABEL"
-	ShellPlugin    = "SHELL"
-	HostNamePlugin = "HOSTNAME"
+	EtcdPlugin         = "ETCD"
+	LabelPlugin        = "LABEL"
+	ShellPlugin        = "SHELL"
+	HostNamePlugin     = "HOSTNAME"
+	ClusterCheckPlugin = "CLUSTERCHECK"
+)
+
+const (
+	ClusterNotReady = "ClusterNotReady"
+	ClusterReady    = "ClusterReady"
 )
 
 type Context struct {

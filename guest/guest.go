@@ -15,12 +15,6 @@
 package guest
 
 import (
-	"context"
-	"time"
-
-	"github.com/alibaba/sealer/client/k8s"
-	"github.com/alibaba/sealer/logger"
-
 	"fmt"
 
 	"github.com/alibaba/sealer/common"
@@ -58,22 +52,11 @@ func (d *Default) Apply(cluster *v1.Cluster) error {
 		return fmt.Errorf("failed to found master")
 	}
 	clusterRootfs := common.DefaultTheClusterRootfsDir(cluster.Name)
-	imageCMDLayers := make([]v1.Layer, 0)
 	for i := range image.Spec.Layers {
-		if image.Spec.Layers[i].Type == common.CMDCOMMAND {
-			imageCMDLayers = append(imageCMDLayers, image.Spec.Layers[i])
+		if image.Spec.Layers[i].Type != common.CMDCOMMAND {
+			continue
 		}
-	}
-	for i := range imageCMDLayers[0:2] {
-		if err := ssh.CmdAsync(masters[0], fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, imageCMDLayers[i].Value)); err != nil {
-			return err
-		}
-	}
-	if err := d.waitClusterReady(context.TODO()); err != nil {
-		return err
-	}
-	for i := range imageCMDLayers[2:] {
-		if err := ssh.CmdAsync(masters[0], fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, imageCMDLayers[i+2].Value)); err != nil {
+		if err := ssh.CmdAsync(masters[0], fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, image.Spec.Layers[i].Value)); err != nil {
 			return err
 		}
 	}
@@ -82,51 +65,4 @@ func (d *Default) Apply(cluster *v1.Cluster) error {
 
 func (d Default) Delete(cluster *v1.Cluster) error {
 	panic("implement me")
-}
-
-func (d *Default) waitClusterReady(ctx context.Context) error {
-	var clusterStatusChan = make(chan string)
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
-	defer cancel()
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-	go func(t *time.Ticker) {
-		for {
-			clusterStatus := d.getClusterStatus()
-			clusterStatusChan <- clusterStatus
-			<-t.C
-		}
-	}(ticker)
-	for {
-		select {
-		case status := <-clusterStatusChan:
-			if status == common.ClusterNotReady {
-				logger.Info("wait cluster ready ")
-			} else if status == common.ClusterReady {
-				logger.Info("cluster ready now")
-				return nil
-			}
-		case <-ctx.Done():
-			return fmt.Errorf("cluster is not ready, please check")
-		}
-	}
-}
-
-func (d *Default) getClusterStatus() string {
-	k8sClient, err := k8s.Newk8sClient()
-	if err != nil {
-		return common.ClusterNotReady
-	}
-
-	podStatusList, err := k8sClient.ListAllNamespacesPodsStatus()
-	if podStatusList == nil || err != nil {
-		return common.ClusterNotReady
-	}
-
-	for _, status := range podStatusList {
-		if !status {
-			return common.ClusterNotReady
-		}
-	}
-	return common.ClusterReady
 }
