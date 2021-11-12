@@ -4,6 +4,29 @@ This section is mean to answer the most frequently asked questions about sealer.
 
 ## Sealer failed to cache docker image.
 
+### How do I know my new image is not cached successfully?
+
+1. run `sealer images` to check the image size, your image size = (base image + docker image + context). compare to your
+   base image,if it is smaller than your base image. please run `docker system prune -a` to clean the environment and
+   rebuild the image.
+
+```text
+[root@kaazhost1 ~]# sealer images
++------------------------------------------------------------------+-----------------------------------------------------------------------+---------------------+----------+
+|                             IMAGE ID                             |                              IMAGE NAME                               |       CREATE        |   SIZE   |
++------------------------------------------------------------------+-----------------------------------------------------------------------+---------------------+----------+
+| 3cd2e94196c9af1b9629f50e4c9c4c8aeac5f1df4cbb18b0308f60eae532470f | registry.cn-beijing.aliyuncs.com/sealer-io/kubernetes:v1.19.9_develop | 2021-11-04 08:19:19 | 614.21MB |
+| dab80fefba209773590fddc7f9125d0ebfafaeeec1b6c1fcfb998af41367dd81 | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nvidia:v1.19.8  | 2021-10-29 11:20:16 | 851.69MB |
+| bfb2810f9ad176cb9bc39e4a98d6319ea8599fa22a0911a98ae0b3e86e96b0a4 | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8         | 2021-10-28 10:02:27 | 774.05MB |
++------------------------------------------------------------------+-----------------------------------------------------------------------+---------------------+----------+
+```
+
+2. build log show some error or waning looks like "pull failed", please check your network or the registry auth and
+   run `docker system prune -a` to clean the environment and rebuild the image.
+3. if you pull the new image failed in run stage, check the registry log `docker logs sealer-registry`. if fetch some
+   blobs show "500" or "404", it means some blobs lost in the new cloud image. run `docker system prune -a` to clean the
+   environment and rebuild the image.
+
 ### Build environment check.
 
 The first thing need to know is that we hacked docker to support cache docker images,so only "sealer docker" will have
