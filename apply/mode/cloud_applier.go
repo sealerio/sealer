@@ -18,6 +18,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/infra"
@@ -33,32 +35,29 @@ import (
 const ApplyCluster = "chmod +x %s && %s apply -f %s"
 
 type CloudApplier struct {
-	ClusterDesired  *v1.Cluster
-	ClusterCurrent  *v1.Cluster
-	MastersToJoin   []string
-	MastersToDelete []string
-	NodesToJoin     []string
-	NodesToDelete   []string
-	Client          *k8s.Client
+	ClusterCurrent *v1.Cluster
+	ClusterDesired *v1.Cluster
+	Client         *k8s.Client
+	IsExist        bool
 }
 
-func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, err error) {
+func (c *CloudApplier) ScaleDownNodes() (isScaleDown bool, err error) {
 	logger.Info("desired master %s, current master %s, desired nodes %s, current nodes %s", c.ClusterDesired.Spec.Masters.Count,
-		cluster.Spec.Masters.Count,
+		c.ClusterCurrent.Spec.Masters.Count,
 		c.ClusterDesired.Spec.Nodes.Count,
-		cluster.Spec.Nodes.Count)
-	if c.ClusterDesired.Spec.Masters.Count >= cluster.Spec.Masters.Count &&
-		c.ClusterDesired.Spec.Nodes.Count >= cluster.Spec.Nodes.Count {
+		c.ClusterCurrent.Spec.Nodes.Count)
+	if c.ClusterDesired.Spec.Masters.Count >= c.ClusterCurrent.Spec.Masters.Count &&
+		c.ClusterDesired.Spec.Nodes.Count >= c.ClusterCurrent.Spec.Nodes.Count {
 		return false, nil
 	}
 
-	MastersToJoin, MastersToDelete := utils.GetDiffHosts(cluster.Spec.Masters, c.ClusterDesired.Spec.Masters)
-	NodesToJoin, NodesToDelete := utils.GetDiffHosts(cluster.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
-	if len(MastersToJoin) != 0 || len(NodesToJoin) != 0 {
+	mastersToJoin, mastersToDelete := utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
+	nodesToJoin, nodesToDelete := utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
+	if len(mastersToJoin) != 0 || len(nodesToJoin) != 0 {
 		return false, fmt.Errorf("should not scale up and down at same time")
 	}
 
-	if err := DeleteNodes(c.Client, append(MastersToDelete, NodesToDelete...)); err != nil {
+	if err := DeleteNodes(c.Client, append(mastersToDelete, nodesToDelete...)); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -70,35 +69,21 @@ func (c *CloudApplier) Apply() error {
 	if err != nil {
 		return err
 	}
-	// if delete cluster,just delete the infra.
-	if c.ClusterDesired.DeletionTimestamp != nil {
-		return nil
+	// first time to apply: create new cluster.
+	if !c.IsExist {
+		return c.runRemoteApply()
 	}
-	err = utils.SaveClusterfile(c.ClusterDesired)
+	err = c.fillClusterCurrent()
 	if err != nil {
 		return err
 	}
-
-	c.Client, err = k8s.Newk8sClient()
-	if err != nil {
-		logger.Warn(err)
-	}
-	clusterCurrent, err := GetCurrentCluster(c.Client)
-	if err != nil {
-		return fmt.Errorf("failed to get current cluster %v", err)
-	}
-	// first time to init cluster
-	if clusterCurrent == nil {
-		return c.runRemoteApply()
-	}
 	//scale down
-	scaleDown, err := c.ScaleDownNodes(clusterCurrent)
+	scaleDown, err := c.ScaleDownNodes()
 	if err != nil {
 		return fmt.Errorf("failed to scale down nodes %v", err)
 	}
 	if scaleDown {
-		//  infra already delete the host, if continue to apply will not find the host and
-		//  return ssh error
+		// infra already delete the host, if continue to apply will not find the host and return ssh error
 		logger.Info("scale the cluster success")
 		return nil
 	}
@@ -114,7 +99,7 @@ func (c *CloudApplier) Delete() error {
 	t := metav1.Now()
 	c.ClusterDesired.DeletionTimestamp = &t
 	host := c.ClusterDesired.GetAnnotationsByKey(common.Eip)
-	err := c.Apply()
+	err := c.scaleInfra()
 	if err != nil {
 		return err
 	}
@@ -138,7 +123,30 @@ func (c *CloudApplier) scaleInfra() error {
 	if cloudProvider == nil {
 		return fmt.Errorf("new cloud provider failed")
 	}
-	return cloudProvider.Apply()
+	err = cloudProvider.Apply()
+	if err != nil {
+		return err
+	}
+	return utils.SaveClusterfile(c.ClusterDesired)
+}
+
+func (c *CloudApplier) fillClusterCurrent() error {
+	client, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	c.Client = client
+	currentCluster, err := GetCurrentCluster(client)
+	if err != nil {
+		return errors.Wrap(err, "get current cluster failed")
+	}
+
+	if currentCluster != nil {
+		c.ClusterCurrent = c.ClusterDesired.DeepCopy()
+		c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
+		c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
+	}
+	return nil
 }
 
 func (c *CloudApplier) runRemoteApply() error {

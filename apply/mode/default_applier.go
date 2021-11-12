@@ -38,30 +38,28 @@ type Applier struct {
 	ClusterCurrent *v1.Cluster
 	ImageManager   image.Service
 	FileSystem     filesystem.Interface
-	Client         *k8s.Client
+	IsExist        bool
 }
 
 func (c *Applier) Delete() (err error) {
 	t := metav1.Now()
 	c.ClusterDesired.DeletionTimestamp = &t
-	return c.Apply()
+	return c.deleteCluster()
 }
 
 // Apply different actions between ClusterDesired and ClusterCurrent.
 func (c *Applier) Apply() (err error) {
-	//delete cluster
-	if c.ClusterDesired.DeletionTimestamp != nil {
-		return c.deleteCluster()
-	}
-
-	err = c.fillClusterCurrent()
+	err = utils.SaveClusterfile(c.ClusterDesired)
 	if err != nil {
 		return err
 	}
-
 	// first time to init cluster
-	if c.ClusterCurrent == nil {
+	if !c.IsExist {
 		return c.initCluster()
+	}
+	err = c.fillClusterCurrent()
+	if err != nil {
+		return err
 	}
 	// change same name of the cluster, such as upgrade,scale,install app on an existed cluster.
 	// k8s version change: upgradeCluster
@@ -112,7 +110,11 @@ func (c *Applier) Apply() (err error) {
 }
 
 func (c *Applier) fillClusterCurrent() error {
-	currentCluster, err := GetCurrentCluster(c.Client)
+	client, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	currentCluster, err := GetCurrentCluster(client)
 	if err != nil {
 		return errors.Wrap(err, "get current cluster failed")
 	}
@@ -120,10 +122,6 @@ func (c *Applier) fillClusterCurrent() error {
 		c.ClusterCurrent = c.ClusterDesired.DeepCopy()
 		c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
 		c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
-	}
-	err = utils.SaveClusterfile(c.ClusterDesired)
-	if err != nil {
-		return err
 	}
 	return nil
 }

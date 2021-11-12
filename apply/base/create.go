@@ -63,37 +63,37 @@ func (i InitApply) DoApply(cluster *v1.Cluster) error {
 func (i InitApply) GetPipeLine() ([]func(cluster *v1.Cluster) error, error) {
 	var todoList []func(cluster *v1.Cluster) error
 	todoList = append(todoList,
-		i.PluginDump,
-		i.PluginPhaseOriginallyRun,
-		i.PullIfNotExist,
+		i.RunInitPlugin,
 		i.MountImage,
-		i.UnMountImage,
 		i.RunConfig,
 		i.MountRootfs,
 		i.PluginPhasePreInitRun,
 		i.Init,
 		i.PluginPhasePreInstallRun,
-		i.ApplyMasters,
-		i.ApplyNodes,
+		i.RunApply,
 		i.RunGuest,
 		i.UnMountImage,
 		i.PluginPhasePostInstallRun,
 	)
 	return todoList, nil
 }
-func (i InitApply) PluginDump(cluster *v1.Cluster) error {
-	return i.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
-}
-
-func (i InitApply) PluginPhaseOriginallyRun(cluster *v1.Cluster) error {
-	return i.Plugins.Run(cluster, "Originally")
-}
-
-func (i InitApply) PullIfNotExist(cluster *v1.Cluster) error {
-	return i.ImageManager.PullIfNotExist(cluster.Spec.Image)
+func (i InitApply) RunInitPlugin(cluster *v1.Cluster) error {
+	err := i.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
+	if err != nil {
+		return err
+	}
+	err = i.Plugins.Run(cluster, "Originally")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (i InitApply) MountImage(cluster *v1.Cluster) error {
+	err := i.ImageManager.PullIfNotExist(cluster.Spec.Image)
+	if err != nil {
+		return err
+	}
 	return i.FileSystem.MountImage(cluster)
 }
 
@@ -102,8 +102,7 @@ func (i InitApply) RunConfig(cluster *v1.Cluster) error {
 }
 
 func (i InitApply) MountRootfs(cluster *v1.Cluster) error {
-	var hosts []string
-	hosts = append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
+	hosts := append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
 	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.Spec.Masters.IPList[0])
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
@@ -125,19 +124,15 @@ func (i InitApply) PluginPhasePreInstallRun(cluster *v1.Cluster) error {
 	return i.Plugins.Run(cluster, "PreInstall")
 }
 
-func (i InitApply) ApplyMasters(cluster *v1.Cluster) error {
+func (i InitApply) RunApply(cluster *v1.Cluster) error {
 	err := i.Runtime.JoinMasters(cluster.Spec.Masters.IPList[1:])
 	if err != nil {
 		return err
 	}
-	return nil
-}
-func (i InitApply) ApplyNodes(cluster *v1.Cluster) error {
-	err := i.Runtime.JoinNodes(cluster.Spec.Nodes.IPList)
+	err = i.Runtime.JoinNodes(cluster.Spec.Nodes.IPList)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -145,7 +140,7 @@ func (i InitApply) RunGuest(cluster *v1.Cluster) error {
 	return i.Guest.Apply(cluster)
 }
 func (i InitApply) UnMountImage(cluster *v1.Cluster) error {
-	return i.FileSystem.MountImage(cluster)
+	return i.FileSystem.UnMountImage(cluster)
 }
 
 func (i InitApply) PluginPhasePostInstallRun(cluster *v1.Cluster) error {
