@@ -22,6 +22,14 @@ import (
 	"github.com/alibaba/sealer/image/store"
 )
 
+func SimilarImageListByName(imgName string) ([]string, error) {
+	return SimilarImageList(imgName, true)
+}
+
+func SimilarImageListByID(imgID string) ([]string, error) {
+	return SimilarImageList(imgID, false)
+}
+
 func SimilarImageList(imageArg string, byName bool) (similarImageList []string, err error) {
 	is, err := store.NewDefaultImageStore()
 	if err != nil {
@@ -44,7 +52,7 @@ func SimilarImageList(imageArg string, byName bool) (similarImageList []string, 
 }
 
 func ImageListFuncForCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	similarImages, err := SimilarImageList(toComplete, true)
+	similarImages, err := SimilarImageListByName(toComplete)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveDefault
 	}

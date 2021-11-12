@@ -18,24 +18,21 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/distributionutil"
+	"github.com/alibaba/sealer/image/reference"
+	"github.com/alibaba/sealer/image/store"
 	imageUtils "github.com/alibaba/sealer/image/utils"
-
+	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	dockerprogress "github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/distributionutil"
-	"github.com/alibaba/sealer/image/reference"
-	"github.com/alibaba/sealer/image/store"
-	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 )
 
 // DefaultImageService is the default service, which is used for image pull/push
@@ -179,7 +176,6 @@ func (d DefaultImageService) Delete(imageArg string) error {
 		imageTagCount int
 		imageID       string
 		imageStore    = d.imageStore
-		isName        = strings.Contains(imageArg, ":")
 		named         reference.Named
 		err           error
 	)
@@ -188,43 +184,39 @@ func (d DefaultImageService) Delete(imageArg string) error {
 	if err != nil {
 		return err
 	}
-
-	imageList, err := imageUtils.SimilarImageList(imageArg, isName)
-	if err != nil {
-		return err
-	}
-	if len(imageList) != 1 {
-		return fmt.Errorf("failed to find image with name %s", imageArg)
-	}
-	imageArg = imageList[0]
 	// example ImageName : 7e2e51b85680d827fae08853dea32ad6:latest
 	// example ImageID :   7e2e51b85680d827fae08853dea32ad6
 	// https://github.com/alibaba/sealer/blob/f9d609c7fede47a7ac229bcd03d92dd0429b5038/image/reference/util.go#L59
-	if isName {
-		named, err = reference.ParseToNamed(imageArg)
+	named, err = reference.ParseToNamed(imageArg)
+	if err != nil {
+		return err
+	}
+	img, err := imageStore.GetByName(named.Raw())
+	//untag it if it is a name, then try to untag it as ID
+	if err == nil {
+		//1.untag image
+		if err = imageStore.DeleteByName(named.Raw()); err != nil {
+			return fmt.Errorf("failed to untag image %s, err: %v", imageArg, err)
+		}
+		imageID = img.Spec.ID
+	} else {
+		imageList, err := imageUtils.SimilarImageListByID(imageArg)
 		if err != nil {
 			return err
 		}
-		imageMetadata, ok := imageMetadataMap[named.Raw()]
-		if !ok {
-			return fmt.Errorf("failed to find image with name %s", imageArg)
+		if len(imageList) != 1 {
+			return fmt.Errorf("not to find image: %s", imageArg)
 		}
-		//1.untag image
-		if err = imageStore.DeleteByName(imageArg); err != nil {
-			return fmt.Errorf("failed to untag image %s, err: %w", imageArg, err)
-		}
-		imageID = imageMetadata.ID
-	} else {
-		if err = imageStore.DeleteByID(imageArg, d.ForceDeleteImage); err != nil {
+		if err = imageStore.DeleteByID(imageList[0], d.ForceDeleteImage); err != nil {
 			return err
 		}
-		imageID = imageArg
+		imageID = imageList[0]
 	}
 	image, err = imageStore.GetByID(imageID)
 	if err != nil {
-		return fmt.Errorf("failed to get image metadata for image %s, err: %w", imageArg, err)
+		return fmt.Errorf("failed to get image metadata for image %s, err: %w", image.Spec.ID, err)
 	}
-	logger.Info("untag image %s succeeded", imageArg)
+	logger.Info("untag image %s succeeded", image.Spec.ID)
 
 	for _, value := range imageMetadataMap {
 		tmpImage, err := imageStore.GetByID(value.ID)
@@ -261,12 +253,12 @@ func (d DefaultImageService) Delete(imageArg string) error {
 			err = layerStore.Delete(layerID)
 			if err != nil {
 				// print log and continue to delete other layers of the image
-				logger.Error("Fail to delete image %s's layer %s", imageArg, layerID)
+				logger.Error("Fail to delete image %s's layer %s", image.Spec.ID, layerID)
 			}
 		}
 	}
 
-	logger.Info("image %s delete success", imageArg)
+	logger.Info("image %s delete success", image.Spec.ID)
 	return nil
 }
 
