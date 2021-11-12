@@ -23,8 +23,9 @@ This section is mean to answer the most frequently asked questions about sealer.
 
 2. build log show some error or waning looks like "pull failed", please check your network or the registry auth and
    run `docker system prune -a` to clean the environment and rebuild the image.
-3. if your in run stage, pull the new image failed, check the registry log `docker logs sealer-registry`. if fetch some
-   blobs show "500" or "404", it means some blobs lost in the new cloud image.
+3. if you pull the new image failed in run stage, check the registry log `docker logs sealer-registry`. if fetch some
+   blobs show "500" or "404", it means some blobs lost in the new cloud image. run `docker system prune -a` to clean the
+   environment and rebuild the image.
 
 ### Build environment check.
 
