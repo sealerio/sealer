@@ -57,6 +57,7 @@ data   : #指定执行的shell命令
 
 ## label plugin
 
+
 如果你在Clusterfile后添加label插件配置并应用它，sealer将帮助你添加label：
 
 ```yaml
@@ -76,6 +77,20 @@ spec:
 ```
 
 > 节点ip与标签之前使用空格隔开，多个标签之间使用逗号隔开。
+
+## clusterCheck plugin
+
+由于服务器以及环境因素(服务器磁盘性能差)可能会导致sealer安装完kubernetes集群后，立即部署应用服务，出现部署失败的情况。cluster check插件会等待kubernetes集群稳定后再部署应用服务。
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: checkCluster
+spec:
+  type: CLUSTERCHECK
+  action: PreGuest
+```  
+
 
 ## plugin使用步骤:
 
