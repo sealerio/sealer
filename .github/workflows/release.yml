@@ -25,6 +25,23 @@ jobs:
           RELEASEVER=${{ github.ref }}
           echo "::set-output name=stringver::${RELEASEVER#refs/tags/v}"
         working-directory: src/github.com/alibaba/sealer
+
+      - name: Prepare
+        id: prepare
+        run: |
+          TAG=${{ github.ref }}
+          echo ::set-output name=tag_name::${RELEASEVER#refs/tags/v}
+        working-directory: src/github.com/alibaba/sealer
+
+      - name: Note
+        id: Note
+        env:
+          VERSION: ${{ steps.contentrel.outputs.stringver }}
+        run: |
+          sh note.sh
+          cat release_note.md
+        working-directory: src/github.com/alibaba/sealer
+
       - name: Save release notes
         uses: actions/upload-artifact@v2
         with:
@@ -33,12 +50,12 @@ jobs:
   build:
     name: Build Release Binaries
     runs-on: ${{ matrix.os }}
-    needs: [note]
+    needs: [ note ]
     timeout-minutes: 10
 
     strategy:
       matrix:
-        os: [ubuntu-18.04]
+        os: [ ubuntu-18.04 ]
 
     steps:
       - name: Install Go
@@ -67,8 +84,8 @@ jobs:
       - name: Make linux
         shell: bash
         run: |
-            export MULTI_PLATFORM_BUILD=true
-            make build
+          export MULTI_PLATFORM_BUILD=true
+          make build
         working-directory: src/github.com/alibaba/sealer
 
       - name: Save build binaries
@@ -82,7 +99,7 @@ jobs:
     name: Create sealer Release
     runs-on: ubuntu-18.04
     timeout-minutes: 10
-    needs: [build, note]
+    needs: [ build, note ]
 
     steps:
       - name: Download builds and release notes
@@ -182,3 +199,9 @@ jobs:
           asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file8 }}
           asset_name: ${{ steps.catalog.outputs.file8 }}
           asset_content_type: text/plain
+      - name: Build binareies to oss
+        run: wget http://gosspublic.alicdn.com/ossutil/1.6.19/ossutil64 && chmod 755 ossutil64 &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/${{ steps.catalog.outputs.file1 }} oss://sealer/sealers/${{ steps.prepare.outputs.tag_name }} &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/${{ steps.catalog.outputs.file5 }} oss://sealer/sealers/${{ steps.prepare.outputs.tag_name }} &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/${{ steps.catalog.outputs.file1 }} oss://sealer/latest &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/${{ steps.catalog.outputs.file5 }} oss://sealer/latest-arm64
