@@ -7,7 +7,7 @@
 echo "### Usage" >> release_note.md
 echo "
 \`\`\`sh
-# 下载并安装sealer, sealos是个golang的二进制工具，直接下载拷贝到bin目录即可, release页面也可下载
+# 下载并安装sealer, sealer是个golang的二进制工具，直接下载拷贝到bin目录即可, release页面也可下载
 $ wget -c https://sealer.oss-cn-beijing.aliyuncs.com/latest && \\
     chmod +x sealer && mv sealer /usr/bin
 \`\`\`
