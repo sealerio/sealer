@@ -86,3 +86,12 @@ func Reverse(s []string) []string {
 	}
 	return s
 }
+
+func ContainList(list []string, toComplete string) (containerList []string) {
+	for i := range list {
+		if strings.Contains(list[i], toComplete) {
+			containerList = append(containerList, list[i])
+		}
+	}
+	return
+}

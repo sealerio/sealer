@@ -15,6 +15,10 @@
 package cmd
 
 import (
+	"os"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/apply"
@@ -64,4 +68,11 @@ func init() {
 	runCmd.Flags().StringVarP(&runArgs.PkPassword, "pk-passwd", "", "", "set baremetal server  private key password")
 	runCmd.Flags().StringVarP(&runArgs.PodCidr, "podcidr", "", "", "set default pod CIDR network. example '10.233.0.0/18'")
 	runCmd.Flags().StringVarP(&runArgs.SvcCidr, "svccidr", "", "", "set default service CIDR network. example '10.233.64.0/18'")
+	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return utils.ContainList([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		logger.Error("provide completion for provider flag, err: %v", err)
+		os.Exit(1)
+	}
 }
