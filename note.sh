@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Author:wangfei
-# Time:2020-12-06 11:17:39
+# Time:2021-11-15
 # Name:./note.sh
 # Description:This is a production script.
 echo "### Usage" >> release_note.md
