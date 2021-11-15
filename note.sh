@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # Author:wangfei
-# Blog:https://fenghong.tech
 # Time:2020-12-06 11:17:39
-# Name:test/note.sh
+# Name:./note.sh
 # Description:This is a production script.
 echo "### Usage" >> release_note.md
 echo "
