@@ -1,0 +1,6 @@
+FROM kubernetes:v1.19.9-alpine
+RUN wget https://github.com/containernetworking/plugins/releases/download/v0.8.3/cni-plugins-linux-amd64-v0.8.3.tgz && mkdir cni && tar -xf cni-plugins-linux-amd64-v0.8.3.tgz -C cni/
+#COPY cni .
+COPY init-kube.sh /scripts/
+COPY kube-flannel.yml manifests/
+CMD kubectl apply -f manifests/kube-flannel.yml
