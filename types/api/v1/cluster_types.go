@@ -23,6 +23,7 @@ type SSH struct {
 	Passwd   string `json:"passwd,omitempty"`
 	Pk       string `json:"pk,omitempty"`
 	PkPasswd string `json:"pkPasswd,omitempty"`
+	Port     string `json:"port,omitempty"`
 }
 
 type Network struct {
