@@ -97,6 +97,9 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	if IsNumber(c.runArgs.Masters) && (IsNumber(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
 		c.cluster.Spec.Masters.Count = c.runArgs.Masters
 		c.cluster.Spec.Nodes.Count = c.runArgs.Nodes
+		if c.runArgs.Nodes == "" {
+			c.cluster.Spec.Nodes.Count = "0"
+		}
 		if c.runArgs.Provider != "" {
 			c.cluster.Spec.Provider = c.runArgs.Provider
 			if !utils.InList(c.runArgs.Provider, []string{common.AliCloud, common.CONTAINER}) {
