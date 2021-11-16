@@ -21,14 +21,14 @@
 echo "### Usage" >> release_note.md
 echo "
 \`\`\`sh
-# Download and install sealer. Sealer is a binary tool of golang. You can directly download and copy it to the bin directory, and the release page can also be downloaded
-$ wget -c https://sealyun.oss-cn-beijing.aliyuncs.com/latest/sealer && \\
-    chmod +x sealer && mv sealer /usr/bin
+# Download and install sealer. Sealer is a binary tool of golang. You can download and unzip it directly to the bin directory, and the release page can also be downloaded
+$ wget -c https://sealer.oss-cn-beijing.aliyuncs.com/sealer-latest.tar.gz && \\
+      tar -xvf latest.tar.gz -C /usr/bin
 \`\`\`
 " >> release_note.md
 echo "### [amd64 Download address]" >> release_note.md
 echo "[OSS Download address](http://sealer.oss-cn-beijing.aliyuncs.com/sealers/sealer-v${VERSION}-linux-amd64.tar.gz)" >> release_note.md
-echo "[latest OSS Download address](https://sealer.oss-cn-beijing.aliyuncs.com/latest)" >> release_note.md
+echo "[latest OSS Download address](https://sealer.oss-cn-beijing.aliyuncs.com/sealer-latest.tar.gz)" >> release_note.md
 echo "### [arm64 Download address]" >> release_note.md
 echo "[OSS Download address](http://sealer.oss-cn-beijing.aliyuncs.com/sealers/sealer-v${VERSION}-linux-arm64.tar.gz)" >> release_note.md
-echo "[latest OSS Download address](https://sealer.oss-cn-beijing.aliyuncs.com/latest-arm64)" >> release_note.md
+echo "[latest OSS Download address](https://sealer.oss-cn-beijing.aliyuncs.com/sealer-latest-arm64.tar.gz)" >> release_note.md
