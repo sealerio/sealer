@@ -50,8 +50,8 @@ func (c *CloudApplier) ScaleDownNodes() (isScaleDown bool, err error) {
 		return false, nil
 	}
 
-	mastersToJoin, mastersToDelete := utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
-	nodesToJoin, nodesToDelete := utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
+	mastersToJoin, mastersToDelete := utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters.IPList, c.ClusterDesired.Spec.Masters.IPList)
+	nodesToJoin, nodesToDelete := utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes.IPList, c.ClusterDesired.Spec.Nodes.IPList)
 	if len(mastersToJoin) != 0 || len(nodesToJoin) != 0 {
 		return false, fmt.Errorf("should not scale up and down at same time")
 	}

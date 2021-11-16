@@ -109,23 +109,23 @@ func (c *Applier) changeCluster() error {
 		}
 	}()
 
-	if err = c.scaleCluster(); err != nil {
+	mj, md := utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters.IPList, c.ClusterDesired.Spec.Masters.IPList)
+	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes.IPList, c.ClusterDesired.Spec.Nodes.IPList)
+
+	if err = c.scaleCluster(mj, md, nj, nd); err != nil {
 		return err
 	}
-
-	if err = c.upgradeCluster(); err != nil {
+	if err = c.upgradeCluster(mj, nj); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Applier) scaleCluster() error {
-	mj, md := utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
-	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
+func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
 		return nil
 	}
-	applier, err := applyentity.NewScaleApply(c.FileSystem, md, mj, nd, nj)
+	applier, err := applyentity.NewScaleApply(c.FileSystem, mj, md, nj, nd)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (c *Applier) scaleCluster() error {
 	return nil
 }
 
-func (c *Applier) upgradeCluster() error {
+func (c *Applier) upgradeCluster(mj, nj []string) error {
 	currentMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultTheClusterRootfsDir(c.ClusterDesired.Name),
 		common.DefaultMetadataName))
 	if err != nil {
@@ -160,7 +160,7 @@ func (c *Applier) upgradeCluster() error {
 	//	//install app
 	//}
 
-	applier, err := applyentity.NewUpgradeApply(c.FileSystem)
+	applier, err := applyentity.NewUpgradeApply(c.FileSystem, mj, nj)
 	if err != nil {
 		return err
 	}

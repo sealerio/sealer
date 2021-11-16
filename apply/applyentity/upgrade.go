@@ -26,9 +26,11 @@ import (
 )
 
 type UpgradeApply struct {
-	FileSystem filesystem.Interface
-	Runtime    runtime.Interface
-	Guest      guest.Interface
+	FileSystem    filesystem.Interface
+	Runtime       runtime.Interface
+	Guest         guest.Interface
+	MastersToJoin []string
+	NodesToJoin   []string
 }
 
 // DoApply do apply: do truly apply,input is desired cluster .
@@ -55,9 +57,10 @@ func (u UpgradeApply) DoApply(cluster *v1.Cluster) error {
 }
 
 func (u UpgradeApply) MountRootfs(cluster *v1.Cluster) error {
-	// TODO mount only mount desired hosts, some hosts already mounted when update cluster
-	var hosts []string
-	hosts = append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
+	//some hosts already mounted when scaled cluster.
+	currentHost := append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
+	addedHost := append(u.MastersToJoin, u.NodesToJoin...)
+	_, hosts := utils.GetDiffHosts(currentHost, addedHost)
 	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.Spec.Masters.IPList[0])
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
@@ -73,14 +76,16 @@ func (u UpgradeApply) RunGuest(cluster *v1.Cluster) error {
 	return u.Guest.Apply(cluster)
 }
 
-func NewUpgradeApply(fs filesystem.Interface) (Interface, error) {
+func NewUpgradeApply(fs filesystem.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
 	gs, err := guest.NewGuestManager()
 	if err != nil {
 		return nil, err
 	}
 	// only do upgrade here. cancel scale action.
 	return UpgradeApply{
-		FileSystem: fs,
-		Guest:      gs,
+		FileSystem:    fs,
+		Guest:         gs,
+		MastersToJoin: masterToJoin,
+		NodesToJoin:   nodeToJoin,
 	}, nil
 }

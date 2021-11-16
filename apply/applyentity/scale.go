@@ -87,7 +87,7 @@ func (s ScaleApply) ScaleDown() error {
 	return nil
 }
 
-func NewScaleApply(fs filesystem.Interface, masterToDelete, masterToJoin, nodeToDelete, nodeToJoin []string) (Interface, error) {
+func NewScaleApply(fs filesystem.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
 	var up bool
 	gs, err := guest.NewGuestManager()
 	if err != nil {
