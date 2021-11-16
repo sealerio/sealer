@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package apply
+package applytype
 
 import (
 	"fmt"
 	"strconv"
 
+	"github.com/alibaba/sealer/client/k8s"
 	corev1 "k8s.io/api/core/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/logger"
@@ -28,18 +30,13 @@ import (
 
 const MasterRoleLabel = "node-role.kubernetes.io/master"
 
-func (c *DefaultApplier) GetCurrentCluster() (*v1.Cluster, error) {
-	return c.getCurrentNodes()
-}
-
-func (c *DefaultApplier) getCurrentNodes() (*v1.Cluster, error) {
-	if c.client == nil {
+func GetCurrentCluster(client *k8s.Client) (*v1.Cluster, error) {
+	if client == nil {
 		return nil, nil
 	}
-	nodes, err := c.client.ListNodes()
+	nodes, err := client.ListNodes()
 	if err != nil {
-		logger.Warn("%v, will create a new cluster", err)
-		return nil, nil
+		return nil, err
 	}
 
 	cluster := &v1.Cluster{
@@ -66,16 +63,9 @@ func (c *DefaultApplier) getCurrentNodes() (*v1.Cluster, error) {
 	return cluster, nil
 }
 
-func getNodeAddress(node *corev1.Node) string {
-	if len(node.Status.Addresses) < 1 {
-		return ""
-	}
-	return node.Status.Addresses[0].Address
-}
-
-func (c *DefaultApplier) DeleteNodes(nodeIPs []string) error {
+func DeleteNodes(client *k8s.Client, nodeIPs []string) error {
 	logger.Info("delete nodes %s", nodeIPs)
-	nodes, err := c.client.ListNodes()
+	nodes, err := client.ListNodes()
 	if err != nil {
 		return err
 	}
@@ -84,9 +74,16 @@ func (c *DefaultApplier) DeleteNodes(nodeIPs []string) error {
 		if addr == "" || utils.NotIn(addr, nodeIPs) {
 			continue
 		}
-		if err := c.client.DeleteNode(node.Name); err != nil {
+		if err := client.DeleteNode(node.Name); err != nil {
 			return fmt.Errorf("failed to delete node %v", err)
 		}
 	}
 	return nil
+}
+
+func getNodeAddress(node *corev1.Node) string {
+	if len(node.Status.Addresses) < 1 {
+		return ""
+	}
+	return node.Status.Addresses[0].Address
 }

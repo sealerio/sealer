@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package apply
+package applytype
 
 import (
 	"bytes"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
+	"github.com/pkg/errors"
 
+	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
@@ -28,56 +28,95 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 const ApplyCluster = "chmod +x %s && %s apply -f %s"
 
 type CloudApplier struct {
-	*DefaultApplier
+	ClusterCurrent *v1.Cluster
+	ClusterDesired *v1.Cluster
+	Client         *k8s.Client
 }
 
-func NewAliCloudProvider(cluster *v1.Cluster) (Interface, error) {
-	d, err := NewDefaultApplier(cluster)
-	if err != nil {
-		return nil, err
-	}
-	return &CloudApplier{d.(*DefaultApplier)}, nil
-}
-
-func (c *CloudApplier) ScaleDownNodes(cluster *v1.Cluster) (isScaleDown bool, err error) {
-	if cluster == nil {
-		return false, nil
-	}
+func (c *CloudApplier) ScaleDownNodes() (isScaleDown bool, err error) {
 	logger.Info("desired master %s, current master %s, desired nodes %s, current nodes %s", c.ClusterDesired.Spec.Masters.Count,
-		cluster.Spec.Masters.Count,
+		c.ClusterCurrent.Spec.Masters.Count,
 		c.ClusterDesired.Spec.Nodes.Count,
-		cluster.Spec.Nodes.Count)
-	if c.ClusterDesired.Spec.Masters.Count >= cluster.Spec.Masters.Count &&
-		c.ClusterDesired.Spec.Nodes.Count >= cluster.Spec.Nodes.Count {
+		c.ClusterCurrent.Spec.Nodes.Count)
+	if c.ClusterDesired.Spec.Masters.Count >= c.ClusterCurrent.Spec.Masters.Count &&
+		c.ClusterDesired.Spec.Nodes.Count >= c.ClusterCurrent.Spec.Nodes.Count {
 		return false, nil
 	}
 
-	MastersToJoin, MastersToDelete := utils.GetDiffHosts(cluster.Spec.Masters, c.ClusterDesired.Spec.Masters)
-	NodesToJoin, NodesToDelete := utils.GetDiffHosts(cluster.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
-	if len(MastersToJoin) != 0 || len(NodesToJoin) != 0 {
+	mastersToJoin, mastersToDelete := utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters.IPList, c.ClusterDesired.Spec.Masters.IPList)
+	nodesToJoin, nodesToDelete := utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes.IPList, c.ClusterDesired.Spec.Nodes.IPList)
+	if len(mastersToJoin) != 0 || len(nodesToJoin) != 0 {
 		return false, fmt.Errorf("should not scale up and down at same time")
 	}
 
-	if err := c.DeleteNodes(append(MastersToDelete, NodesToDelete...)); err != nil {
+	if err := DeleteNodes(c.Client, append(mastersToDelete, nodesToDelete...)); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
 func (c *CloudApplier) Apply() error {
-	var err error
-	cluster := c.ClusterDesired
-	clusterCurrent, err := c.GetCurrentCluster()
+	// scale infra first.infra will update ClusterDesired filed.
+	err := c.scaleInfra()
 	if err != nil {
-		return fmt.Errorf("failed to get current cluster %v", err)
+		return err
+	}
+	// first time to apply: create new cluster.
+	if !utils.IsFileExist(common.DefaultKubeConfigFile()) {
+		return c.runRemoteApply()
+	}
+	err = c.fillClusterCurrent()
+	if err != nil {
+		return err
+	}
+	//scale down
+	scaleDown, err := c.ScaleDownNodes()
+	if err != nil {
+		return fmt.Errorf("failed to scale down nodes %v", err)
+	}
+	if scaleDown {
+		// infra already delete the host, if continue to apply will not find the host and return ssh error
+		logger.Info("scale the cluster success")
+		return nil
+	}
+	// scale up
+	err = c.runRemoteApply()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CloudApplier) Delete() error {
+	t := metav1.Now()
+	c.ClusterDesired.DeletionTimestamp = &t
+	host := c.ClusterDesired.GetAnnotationsByKey(common.Eip)
+	err := c.scaleInfra()
+	if err != nil {
+		return err
+	}
+	if err = utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("%s %s", host, common.APIServerDomain)); err != nil {
+		logger.Warn(err)
 	}
 
-	cloudProvider, err := infra.NewDefaultProvider(cluster)
+	if err = utils.CleanFiles(common.DefaultKubeConfigDir(), common.GetClusterWorkDir(c.ClusterDesired.Name), common.TmpClusterfile, common.KubectlPath); err != nil {
+		logger.Warn(err)
+		return nil
+	}
+
+	return nil
+}
+
+func (c *CloudApplier) scaleInfra() error {
+	logger.Info("start to scale the cluster infra")
+	cloudProvider, err := infra.NewDefaultProvider(c.ClusterDesired)
 	if err != nil {
 		return err
 	}
@@ -86,33 +125,37 @@ func (c *CloudApplier) Apply() error {
 	}
 	err = cloudProvider.Apply()
 	if err != nil {
-		return fmt.Errorf("apply infra failed %v", err)
+		return err
 	}
-	if cluster.DeletionTimestamp != nil {
-		return nil
-	}
-	err = utils.SaveClusterfile(cluster)
+	return utils.SaveClusterfile(c.ClusterDesired)
+}
+
+func (c *CloudApplier) fillClusterCurrent() error {
+	client, err := k8s.Newk8sClient()
 	if err != nil {
 		return err
 	}
-
-	scaleDown, err := c.ScaleDownNodes(clusterCurrent)
+	c.Client = client
+	currentCluster, err := GetCurrentCluster(client)
 	if err != nil {
-		return fmt.Errorf("failed to scale down nodes %v", err)
-	}
-	if scaleDown {
-		//  infra already delete the host, if continue to apply will not found the host and
-		//  return ssh error
-		logger.Info("scale the cluster success")
-		return nil
+		return errors.Wrap(err, "get current cluster failed")
 	}
 
-	client, err := ssh.NewSSHClientWithCluster(cluster)
+	if currentCluster != nil {
+		c.ClusterCurrent = c.ClusterDesired.DeepCopy()
+		c.ClusterCurrent.Spec.Masters = currentCluster.Spec.Masters
+		c.ClusterCurrent.Spec.Nodes = currentCluster.Spec.Nodes
+	}
+	return nil
+}
+
+func (c *CloudApplier) runRemoteApply() error {
+	client, err := ssh.NewSSHClientWithCluster(c.ClusterDesired)
 	if err != nil {
 		return fmt.Errorf("prepare cluster ssh client failed %v", err)
 	}
 
-	err = generateTmpClusterfile(cluster)
+	err = generateTmpClusterfile(c.ClusterDesired)
 	if err != nil {
 		return fmt.Errorf("failed to generate TmpClusterfile, %v", err)
 	}
@@ -136,27 +179,6 @@ func (c *CloudApplier) Apply() error {
 	if err != nil {
 		return fmt.Errorf("failed to copy kubeconfig and kubectl %v", err)
 	}
-
-	return nil
-}
-
-func (c *CloudApplier) Delete() error {
-	t := metav1.Now()
-	c.ClusterDesired.DeletionTimestamp = &t
-	host := c.ClusterDesired.GetAnnotationsByKey(common.Eip)
-	err := c.Apply()
-	if err != nil {
-		return err
-	}
-	if err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("%s %s", host, common.APIServerDomain)); err != nil {
-		logger.Warn(err)
-	}
-
-	if err := utils.CleanFiles(common.DefaultKubeConfigDir(), common.GetClusterWorkDir(c.ClusterDesired.Name), common.TmpClusterfile, common.KubectlPath); err != nil {
-		logger.Warn(err)
-		return nil
-	}
-
 	return nil
 }
 

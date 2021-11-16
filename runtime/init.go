@@ -41,7 +41,7 @@ const (
 )
 
 func (d *Default) init(cluster *v1.Cluster) error {
-	if err := d.LoadMetadata(); err != nil {
+	if err := d.loadMetadata(); err != nil {
 		return fmt.Errorf("failed to load metadata %v", err)
 	}
 	//config kubeadm
