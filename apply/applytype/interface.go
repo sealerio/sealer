@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package base
-
-import v1 "github.com/alibaba/sealer/types/api/v1"
+package applytype
 
 type Interface interface {
-	// DoApply do apply: do their own apply,input is desired cluster .
-	DoApply(cluster *v1.Cluster) error
+	Apply() error
+	Delete() error
 }

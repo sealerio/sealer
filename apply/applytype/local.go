@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mode
+package applytype
 
 import (
 	"path/filepath"
 
-	"github.com/alibaba/sealer/apply/base"
+	"github.com/alibaba/sealer/apply/applyentity"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/runtime"
@@ -38,7 +38,6 @@ type Applier struct {
 	ClusterCurrent *v1.Cluster
 	ImageManager   image.Service
 	FileSystem     filesystem.Interface
-	IsExist        bool
 }
 
 func (c *Applier) Delete() (err error) {
@@ -54,59 +53,10 @@ func (c *Applier) Apply() (err error) {
 		return err
 	}
 	// first time to init cluster
-	if !c.IsExist {
+	if !utils.IsFileExist(common.DefaultKubeConfigFile()) {
 		return c.initCluster()
 	}
-	err = c.fillClusterCurrent()
-	if err != nil {
-		return err
-	}
-	// change same name of the cluster, such as upgrade,scale,install app on an existed cluster.
-	// k8s version change: upgradeCluster
-	// ip change: scaleCluster
-	// no k8s version: install app
-	currentMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultTheClusterRootfsDir(c.ClusterDesired.Name),
-		common.DefaultMetadataName))
-	if err != nil {
-		return err
-	}
-
-	imageName := c.ClusterDesired.Spec.Image
-	err = c.ImageManager.PullIfNotExist(imageName)
-	if err != nil {
-		return err
-	}
-	err = c.FileSystem.MountImage(c.ClusterDesired)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = c.FileSystem.UnMountImage(c.ClusterDesired)
-		if err != nil {
-			logger.Warn("failed to umount image %s", c.ClusterDesired.ClusterName)
-		}
-	}()
-
-	desiredMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterDesired.Name),
-		common.DefaultMetadataName))
-	if err != nil {
-		return err
-	}
-	//if desiredMetadata.Version==""{
-	//	//install app
-	//  c.upgradeCluster(c.ClusterDesired)
-	//}
-	if currentMetadata.Version != desiredMetadata.Version {
-		logger.Info("different metadata (old %s,new %s) version will upgrade current cluster",
-			currentMetadata.Version, desiredMetadata.Version)
-		if err = c.upgradeCluster(); err != nil {
-			return err
-		}
-	}
-	if err = c.scaleCluster(); err != nil {
-		return err
-	}
-	return nil
+	return c.changeCluster()
 }
 
 func (c *Applier) fillClusterCurrent() error {
@@ -126,27 +76,105 @@ func (c *Applier) fillClusterCurrent() error {
 	return nil
 }
 
-func (c *Applier) upgradeCluster() error {
-	applier, err := base.NewUpgradeApply(c.FileSystem)
+func (c *Applier) mountClusterImage() error {
+	imageName := c.ClusterDesired.Spec.Image
+	err := c.ImageManager.PullIfNotExist(imageName)
 	if err != nil {
 		return err
 	}
-	return applier.DoApply(c.ClusterDesired)
+	err = c.FileSystem.MountImage(c.ClusterDesired)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Applier) unMountClusterImage() error {
+	return c.FileSystem.UnMountImage(c.ClusterDesired)
+}
+
+func (c *Applier) changeCluster() error {
+	err := c.fillClusterCurrent()
+	if err != nil {
+		return err
+	}
+	err = c.mountClusterImage()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = c.unMountClusterImage()
+		if err != nil {
+			logger.Warn("failed to umount image %s", c.ClusterDesired.ClusterName)
+		}
+	}()
+
+	if err = c.scaleCluster(); err != nil {
+		return err
+	}
+
+	if err = c.upgradeCluster(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Applier) scaleCluster() error {
 	mj, md := utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters, c.ClusterDesired.Spec.Masters)
 	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes, c.ClusterDesired.Spec.Nodes)
-	applier, err := base.NewScaleApply(c.FileSystem, md, mj, nd, nj)
+	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+		return nil
+	}
+	applier, err := applyentity.NewScaleApply(c.FileSystem, md, mj, nd, nj)
 	if err != nil {
 		return err
 	}
-	return applier.DoApply(c.ClusterDesired)
+
+	err = applier.DoApply(c.ClusterDesired)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Applier) upgradeCluster() error {
+	currentMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultTheClusterRootfsDir(c.ClusterDesired.Name),
+		common.DefaultMetadataName))
+	if err != nil {
+		return err
+	}
+
+	desiredMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterDesired.Name),
+		common.DefaultMetadataName))
+	if err != nil {
+		return err
+	}
+
+	if currentMetadata.Version == desiredMetadata.Version {
+		return nil
+	}
+
+	logger.Info("different metadata (old %s,new %s) version will upgrade current cluster",
+		currentMetadata.Version, desiredMetadata.Version)
+	//if currentMetadata.Version==""{
+	//	//install app
+	//}
+
+	applier, err := applyentity.NewUpgradeApply(c.FileSystem)
+	if err != nil {
+		return err
+	}
+	err = applier.DoApply(c.ClusterDesired)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Applier) initCluster() error {
 	logger.Info("Current cluster is nil will create new cluster")
-	applier, err := base.NewInitApply()
+	applier, err := applyentity.NewInitApply()
 	if err != nil {
 		return err
 	}
@@ -155,7 +183,7 @@ func (c *Applier) initCluster() error {
 
 func (c *Applier) deleteCluster() error {
 	logger.Info("Current cluster is nil will delete cluster")
-	applier, err := base.NewDeleteApply()
+	applier, err := applyentity.NewDeleteApply()
 	if err != nil {
 		return err
 	}

@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/apply/mode"
+	"github.com/alibaba/sealer/apply/applytype"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -27,7 +27,7 @@ import (
 )
 
 // NewScaleApplierFromArgs will filter ip list from command parameters.
-func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag string) (mode.Interface, error) {
+func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag string) (applytype.Interface, error) {
 	cluster := &v1.Cluster{}
 	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
 		return nil, err

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mode
+package applytype
 
 import (
 	"bytes"
@@ -38,7 +38,6 @@ type CloudApplier struct {
 	ClusterCurrent *v1.Cluster
 	ClusterDesired *v1.Cluster
 	Client         *k8s.Client
-	IsExist        bool
 }
 
 func (c *CloudApplier) ScaleDownNodes() (isScaleDown bool, err error) {
@@ -70,7 +69,7 @@ func (c *CloudApplier) Apply() error {
 		return err
 	}
 	// first time to apply: create new cluster.
-	if !c.IsExist {
+	if !utils.IsFileExist(common.DefaultKubeConfigFile()) {
 		return c.runRemoteApply()
 	}
 	err = c.fillClusterCurrent()
@@ -116,6 +115,7 @@ func (c *CloudApplier) Delete() error {
 }
 
 func (c *CloudApplier) scaleInfra() error {
+	logger.Info("start to scale the cluster infra")
 	cloudProvider, err := infra.NewDefaultProvider(c.ClusterDesired)
 	if err != nil {
 		return err

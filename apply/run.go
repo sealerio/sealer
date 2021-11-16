@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/apply/mode"
+	"github.com/alibaba/sealer/apply/applytype"
 
 	"sigs.k8s.io/yaml"
 
@@ -130,7 +130,7 @@ func GetClusterFileByImageName(imageName string) (cluster *v1.Cluster, err error
 	return cluster, nil
 }
 
-func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (mode.Interface, error) {
+func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (applytype.Interface, error) {
 	cluster, err := GetClusterFileByImageName(imageName)
 	if err != nil {
 		return nil, err

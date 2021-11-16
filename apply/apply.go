@@ -17,7 +17,7 @@ package apply
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/apply/mode"
+	"github.com/alibaba/sealer/apply/applytype"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
@@ -26,7 +26,7 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-func NewApplierFromFile(clusterfile string) (mode.Interface, error) {
+func NewApplierFromFile(clusterfile string) (applytype.Interface, error) {
 	clusters, err := utils.DecodeCluster(clusterfile)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func NewApplierFromFile(clusterfile string) (mode.Interface, error) {
 	return NewApplier(cluster)
 }
 
-func NewApplier(cluster *v1.Cluster) (mode.Interface, error) {
+func NewApplier(cluster *v1.Cluster) (applytype.Interface, error) {
 	switch cluster.Spec.Provider {
 	case common.AliCloud:
 		return NewAliCloudProvider(cluster)
@@ -52,23 +52,13 @@ func NewApplier(cluster *v1.Cluster) (mode.Interface, error) {
 	return NewDefaultApplier(cluster)
 }
 
-func NewAliCloudProvider(cluster *v1.Cluster) (mode.Interface, error) {
-	var isExist bool
-	if utils.IsFileExist(common.GetClusterWorkClusterfile(cluster.Name)) {
-		isExist = true
-	}
-	return &mode.CloudApplier{
+func NewAliCloudProvider(cluster *v1.Cluster) (applytype.Interface, error) {
+	return &applytype.CloudApplier{
 		ClusterDesired: cluster,
-		IsExist:        isExist,
 	}, nil
 }
 
-func NewDefaultApplier(cluster *v1.Cluster) (mode.Interface, error) {
-	var isExist bool
-	if utils.IsFileExist(common.GetClusterWorkClusterfile(cluster.Name)) {
-		isExist = true
-	}
-
+func NewDefaultApplier(cluster *v1.Cluster) (applytype.Interface, error) {
 	imgSvc, err := image.NewImageService()
 	if err != nil {
 		return nil, err
@@ -79,10 +69,9 @@ func NewDefaultApplier(cluster *v1.Cluster) (mode.Interface, error) {
 		return nil, err
 	}
 
-	return &mode.Applier{
+	return &applytype.Applier{
 		ClusterDesired: cluster,
 		ImageManager:   imgSvc,
 		FileSystem:     fs,
-		IsExist:        isExist,
 	}, nil
 }
