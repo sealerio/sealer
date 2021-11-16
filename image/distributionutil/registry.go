@@ -36,7 +36,7 @@ func NewV2Repository(named reference.Named, actions ...string) (distribution.Rep
 
 	authConfig, authErr := utils.GetDockerAuthInfoFromDocker(named.Domain())
 	if authErr != nil {
-		logger.Warn("failed to get auth info, err: %s", authErr)
+		logger.Debug("failed to get auth info, err: %s", authErr)
 		return nil, err
 	}
 	return getV2Repository(authConfig, named, actions...)
