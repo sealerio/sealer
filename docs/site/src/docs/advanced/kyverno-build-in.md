@@ -8,7 +8,7 @@ It's common that some k8s clusters have their own private image registry,and the
 
 ### step 1：choose a base image
 
-choose a base image which can create a k8s cluster with at least one master node and one work node.To demonstrate the workflow,I will use `kubernetes:v1.19.8`.you can get the same image by executing `sealer pull kubernetes:v1.19.8`.
+choose a base image which can create a k8s cluster with at least one master node and one work node.To demonstrate the workflow,I will use `kubernetes-with-raw-docker:v1.19.8`.you can get the same image by executing `sealer pull kubernetes-with-raw-docker:v1.19.8`.
 
 ### step 2:get the kyverno install yaml
 
@@ -44,7 +44,7 @@ spec:
         patchStrategicMerge:
           spec:
             containers:
-            - name: "{{ element.name }}"           
+            - name: "{{ element.name }}"
               image: "sea.hub:5000/{{ images.containers.{{element.name}}.path}}:{{images.containers.{{element.name}}.tag}}"
   - name: prepend-registry-initcontainers
     match:
@@ -64,7 +64,7 @@ spec:
         patchStrategicMerge:
           spec:
             initContainers:
-            - name: "{{ element.name }}"           
+            - name: "{{ element.name }}"
               image: "sea.hub:5000/{{ images.initContainers.{{element.name}}.path}}:{{images.initContainers.{{element.name}}.tag}}"
 
 ```
@@ -76,7 +76,7 @@ this ClusterPolicy will redirect image pull request to private registry `sea.hub
 create a directory with three files:the install.yaml in step 2、redirect-registry.yaml in step 3 and a Kubefile whose content is following:
 
 ```shell
-FROM kubernetes:v1.19.8
+FROM kubernetes-with-raw-docker:v1.19.8
 COPY . .
 CMD kubectl create -f install.yaml && kubectl create -f redirect-registry.yaml
 ```
