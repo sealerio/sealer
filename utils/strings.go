@@ -30,6 +30,10 @@ func NotIn(key string, slice []string) bool {
 	return true
 }
 
+func InList(key string, slice []string) bool {
+	return !NotIn(key, slice)
+}
+
 func NotInIPList(key string, slice []string) bool {
 	for _, s := range slice {
 		if s == "" {
@@ -81,4 +85,13 @@ func Reverse(s []string) []string {
 		s[i], s[j] = s[j], s[i]
 	}
 	return s
+}
+
+func ContainList(list []string, toComplete string) (containerList []string) {
+	for i := range list {
+		if strings.Contains(list[i], toComplete) {
+			containerList = append(containerList, list[i])
+		}
+	}
+	return
 }

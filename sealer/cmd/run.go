@@ -15,6 +15,10 @@
 package cmd
 
 import (
+	"os"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/apply"
@@ -32,8 +36,11 @@ var runCmd = &cobra.Command{
 create default cluster:
 	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 
-create cluster by cloud provider, just set the number of masters or nodes:
+create cluster by cloud provider, just set the number of masters or nodes,and default provider is ALI_CLOUD:
 	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 3 --nodes 3
+
+create cluster by docker container, set the number of masters or nodes, and set provider "CONTAINER":
+	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 3 --nodes 3 --provider CONTAINER
 
 create cluster to your baremetal server, appoint the iplist:
 	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
@@ -52,6 +59,7 @@ create cluster to your baremetal server, appoint the iplist:
 func init() {
 	runArgs = &common.RunArgs{}
 	rootCmd.AddCommand(runCmd)
+	runCmd.Flags().StringVarP(&runArgs.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runArgs.Masters, "masters", "m", "", "set Count or IPList to masters")
 	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
 	runCmd.Flags().StringVarP(&runArgs.User, "user", "u", "root", "set baremetal server username")
@@ -60,4 +68,11 @@ func init() {
 	runCmd.Flags().StringVarP(&runArgs.PkPassword, "pk-passwd", "", "", "set baremetal server  private key password")
 	runCmd.Flags().StringVarP(&runArgs.PodCidr, "podcidr", "", "", "set default pod CIDR network. example '10.233.0.0/18'")
 	runCmd.Flags().StringVarP(&runArgs.SvcCidr, "svccidr", "", "", "set default service CIDR network. example '10.233.64.0/18'")
+	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return utils.ContainList([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		logger.Error("provide completion for provider flag, err: %v", err)
+		os.Exit(1)
+	}
 }

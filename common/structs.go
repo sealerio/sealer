@@ -23,4 +23,5 @@ type RunArgs struct {
 	PkPassword string
 	PodCidr    string
 	SvcCidr    string
+	Provider   string
 }
