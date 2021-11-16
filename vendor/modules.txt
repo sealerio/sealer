@@ -822,8 +822,17 @@ k8s.io/client-go/util/homedir
 k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
+# k8s.io/component-base v0.21.0
+k8s.io/component-base/config
+k8s.io/component-base/config/v1alpha1
 # k8s.io/klog/v2 v2.8.0
 k8s.io/klog/v2
+# k8s.io/kube-proxy v0.21.0
+## explicit
+k8s.io/kube-proxy/config/v1alpha1
+# k8s.io/kubelet v0.21.0
+## explicit
+k8s.io/kubelet/config/v1beta1
 # k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
 k8s.io/utils/buffer
 k8s.io/utils/integer
