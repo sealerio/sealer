@@ -46,9 +46,9 @@ func (c *ClusterChecker) waitClusterReady(ctx goContext.Context) error {
 		select {
 		case status := <-clusterStatusChan:
 			if status == ClusterNotReady {
-				logger.Info("wait cluster ready ")
+				logger.Info("wait for the cluster to ready ")
 			} else if status == ClusterReady {
-				logger.Info("cluster ready now")
+				logger.Info("cluster is ready now")
 				return nil
 			}
 		case <-ctx.Done():
@@ -64,15 +64,10 @@ func (c *ClusterChecker) getClusterStatus() string {
 		return ClusterNotReady
 	}
 
-	podStatusList, err := c.client.ListAllNamespacesPodsStatus()
-	if podStatusList == nil || err != nil {
+	kubeSystemPodStatus, err := c.client.ListKubeSystemPodsStatus()
+	if !kubeSystemPodStatus || err != nil {
 		return ClusterNotReady
 	}
 
-	for _, status := range podStatusList {
-		if !status {
-			return ClusterNotReady
-		}
-	}
 	return ClusterReady
 }
