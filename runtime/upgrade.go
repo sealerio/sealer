@@ -31,7 +31,7 @@ const (
 	getNodeNameCmd = `$(uname -n | tr '[A-Z]' '[a-z]')`
 	drainCmd       = `kubectl drain ` + getNodeNameCmd + ` --ignore-daemonsets`
 	upgradeCmd     = `kubeadm upgrade %s`
-	restartCmd     = `sudo systemctl daemon-reload && sudo systemctl restart kubelet`
+	restartCmd     = `systemctl daemon-reload && systemctl restart kubelet`
 	uncordonCmd    = `kubectl uncordon ` + getNodeNameCmd
 )
 

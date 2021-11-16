@@ -33,13 +33,13 @@ func TestReadAll(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			"test from ./test/123.txt",
-			args{fileName: "./test/123.txt"},
+			"test from ./test/file/123.txt",
+			args{fileName: "./test/file/123.txt"},
 			[]byte("123456"),
 		},
 		{
-			"test from ./test/abc.txt",
-			args{fileName: "./test/abc.txt"},
+			"test from ./test/file/abc.txt",
+			args{fileName: "./test/file/abc.txt"},
 			[]byte("a\r\nb\r\nc\r\nd"),
 		},
 	}
@@ -294,5 +294,61 @@ func TestRecursionHardLink(t *testing.T) {
 	}()
 	if err != nil {
 		t.Fatalf("failed to make fake dir, err: %v", err)
+	}
+}
+
+func TestAppendFile(t *testing.T) {
+	type args struct {
+		content  string
+		fileName string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"add hosts",
+			args{
+				content:  "127.0.0.1 localhost",
+				fileName: "./test/file/abc.txt",
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := AppendFile(tt.args.fileName, tt.args.content); (err != nil) != tt.wantErr {
+				t.Errorf("AppendFile() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRemoveFileContent(t *testing.T) {
+	type args struct {
+		fileName string
+		content  string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"delete hosts",
+			args{
+				content:  "127.0.0.1 localhost",
+				fileName: "./test/file/abc.txt",
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := RemoveFileContent(tt.args.fileName, tt.args.content); (err != nil) != tt.wantErr {
+				t.Errorf("RemoveFileContent() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }

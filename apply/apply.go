@@ -17,17 +17,16 @@ package apply
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/apply/applytype"
+
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/filesystem"
+	"github.com/alibaba/sealer/image"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
-type Interface interface {
-	Apply() error
-	Delete() error
-}
-
-func NewApplierFromFile(clusterfile string) (Interface, error) {
+func NewApplierFromFile(clusterfile string) (applytype.Interface, error) {
 	clusters, err := utils.DecodeCluster(clusterfile)
 	if err != nil {
 		return nil, err
@@ -43,22 +42,36 @@ func NewApplierFromFile(clusterfile string) (Interface, error) {
 	return NewApplier(cluster)
 }
 
-func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
-	cluster = &v1.Cluster{}
-	if err = utils.UnmarshalYamlFile(filepath, cluster); err != nil {
-		return nil, fmt.Errorf("failed to get cluster from %s, %v", filepath, err)
-	}
-	cluster.SetAnnotations(common.ClusterfileName, filepath)
-	return cluster, nil
-}
-
-func NewApplier(cluster *v1.Cluster) (Interface, error) {
+func NewApplier(cluster *v1.Cluster) (applytype.Interface, error) {
 	switch cluster.Spec.Provider {
 	case common.AliCloud:
 		return NewAliCloudProvider(cluster)
 	case common.CONTAINER:
 		return NewAliCloudProvider(cluster)
 	}
-
 	return NewDefaultApplier(cluster)
+}
+
+func NewAliCloudProvider(cluster *v1.Cluster) (applytype.Interface, error) {
+	return &applytype.CloudApplier{
+		ClusterDesired: cluster,
+	}, nil
+}
+
+func NewDefaultApplier(cluster *v1.Cluster) (applytype.Interface, error) {
+	imgSvc, err := image.NewImageService()
+	if err != nil {
+		return nil, err
+	}
+
+	fs, err := filesystem.NewFilesystem()
+	if err != nil {
+		return nil, err
+	}
+
+	return &applytype.Applier{
+		ClusterDesired: cluster,
+		ImageManager:   imgSvc,
+		FileSystem:     fs,
+	}, nil
 }
