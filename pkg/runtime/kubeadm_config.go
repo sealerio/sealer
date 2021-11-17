@@ -15,6 +15,8 @@
 package runtime
 
 import (
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/utils"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
 
@@ -39,6 +41,43 @@ type KubeadmConfig struct {
 // If Kubeadm raw config in Clusterfile, just load it
 func (k *KubeadmConfig) LoadFromClusterfile(fileName string) error {
 	// TODO
+	Config, err := utils.DecodeCRD(fileName, common.InitConfiguration)
+	if err != nil {
+		return err
+	}
+	if Config != nil {
+		k.InitConfiguration = Config.(*v1beta2.InitConfiguration)
+	}
+	Config, err = utils.DecodeCRD(fileName, common.ClusterConfiguration)
+	if err != nil {
+		return err
+	}
+	if Config != nil {
+		k.ClusterConfiguration = Config.(*v1beta2.ClusterConfiguration)
+	}
+	Config, err = utils.DecodeCRD(fileName, common.KubeProxyConfiguration)
+	if err != nil {
+		return err
+	}
+	if Config != nil {
+		k.KubeProxyConfiguration = Config.(*v1alpha1.KubeProxyConfiguration)
+	}
+	Config, err = utils.DecodeCRD(fileName, common.KubeletConfiguration)
+	if err != nil {
+		return err
+	}
+	if Config != nil {
+		k.KubeletConfiguration = Config.(*v1beta1.KubeletConfiguration)
+	}
+
+	Config, err = utils.DecodeCRD(fileName, common.KubeConfig)
+	if err != nil {
+		return err
+	}
+	if Config != nil {
+
+	}
+
 	return nil
 }
 

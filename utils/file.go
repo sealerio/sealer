@@ -19,10 +19,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	"io"
 	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kube-proxy/config/v1alpha1"
+	"k8s.io/kubelet/config/v1beta1"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -466,7 +469,7 @@ func GetFilesSize(paths []string) (int64, error) {
 }
 
 func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {
-	decodeClusters, err := decodeCRD(filepath, common.CRDCluster)
+	decodeClusters, err := decodeCRDs(filepath, common.Cluster)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode cluster from %s, %v", filepath, err)
 	}
@@ -475,7 +478,7 @@ func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {
 }
 
 func DecodeConfigs(filepath string) (configs []v1.Config, err error) {
-	decodeConfigs, err := decodeCRD(filepath, common.CRDConfig)
+	decodeConfigs, err := decodeCRDs(filepath, common.Config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode config from %s, %v", filepath, err)
 	}
@@ -484,7 +487,7 @@ func DecodeConfigs(filepath string) (configs []v1.Config, err error) {
 }
 
 func DecodePlugins(filepath string) (plugins []v1.Plugin, err error) {
-	decodePlugins, err := decodeCRD(filepath, common.CRDPlugin)
+	decodePlugins, err := decodeCRDs(filepath, common.Plugin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode plugin from %s, %v", filepath, err)
 	}
@@ -492,8 +495,8 @@ func DecodePlugins(filepath string) (plugins []v1.Plugin, err error) {
 	return
 }
 
-func decodeCRD(filepath string, kind string) (out interface{}, err error) {
-	file, err := os.Open(path.Clean(filepath))
+func decodeCRDs(filepath string, kind string) (out interface{}, err error) {
+	file, err := os.Open(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dump config %v", err)
 	}
@@ -503,10 +506,9 @@ func decodeCRD(filepath string, kind string) (out interface{}, err error) {
 		}
 	}()
 	var (
-		i        interface{}
-		clusters []v1.Cluster
-		configs  []v1.Config
-		plugins  []v1.Plugin
+		i       interface{}
+		configs []v1.Config
+		plugins []v1.Plugin
 	)
 
 	d := yaml.NewYAMLOrJSONDecoder(file, 4096)
@@ -526,33 +528,23 @@ func decodeCRD(filepath string, kind string) (out interface{}, err error) {
 		}
 		// ext.Raw
 		switch kind {
-		case common.CRDCluster:
-			cluster := v1.Cluster{}
-			err := yaml.Unmarshal(ext.Raw, &cluster)
-			if err != nil {
-				return nil, fmt.Errorf("decode cluster failed %v", err)
-			}
-			if cluster.Kind == common.CRDCluster {
-				clusters = append(clusters, cluster)
-			}
-			i = clusters
-		case common.CRDConfig:
+		case common.Config:
 			config := v1.Config{}
 			err := yaml.Unmarshal(ext.Raw, &config)
 			if err != nil {
 				return nil, fmt.Errorf("decode config failed %v", err)
 			}
-			if config.Kind == common.CRDConfig {
+			if config.Kind == common.Config {
 				configs = append(configs, config)
 			}
 			i = configs
-		case common.CRDPlugin:
+		case common.Plugin:
 			plugin := v1.Plugin{}
 			err := yaml.Unmarshal(ext.Raw, &plugin)
 			if err != nil {
 				return nil, fmt.Errorf("decode plugin failed %v", err)
 			}
-			if plugin.Kind == common.CRDPlugin {
+			if plugin.Kind == common.Plugin {
 				plugins = append(plugins, plugin)
 			}
 			i = plugins
@@ -560,4 +552,78 @@ func decodeCRD(filepath string, kind string) (out interface{}, err error) {
 	}
 
 	return i, nil
+}
+
+func DecodeCRD(filepath string, kind string) (interface{}, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dump config %v", err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Warn("failed to dump config close clusterfile failed %v", err)
+		}
+	}()
+
+	d := yaml.NewYAMLOrJSONDecoder(file, 4096)
+
+	for {
+		ext := runtime.RawExtension{}
+		if err := d.Decode(&ext); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		// TODO: This needs to be able to handle object in other encodings and schemas.
+		ext.Raw = bytes.TrimSpace(ext.Raw)
+		if len(ext.Raw) == 0 || bytes.Equal(ext.Raw, []byte("null")) {
+			continue
+		}
+		metaType := metav1.TypeMeta{}
+		err := yaml.Unmarshal(ext.Raw, &metaType)
+		if err != nil {
+			return nil, fmt.Errorf("decode cluster failed %v", err)
+		}
+		// ext.Raw
+		if metaType.Kind == kind {
+			return TypeConversion(ext.Raw, kind)
+		}
+	}
+	return nil, nil
+}
+
+func TypeConversion(raw []byte, kind string) (i interface{}, err error) {
+	switch kind {
+	case common.Cluster:
+		cluster := v1.Cluster{}
+		err = yaml.Unmarshal(raw, &cluster)
+		i = cluster
+	//need delete
+	case common.Config:
+		config := v1.Config{}
+		err = yaml.Unmarshal(raw, &config)
+		i = config
+	case common.KubeConfig:
+		clusterStatus := v1beta2.ClusterStatus{}
+		err = yaml.Unmarshal(raw, &clusterStatus)
+		i = clusterStatus
+	case common.InitConfiguration:
+		initConfig := &v1beta2.InitConfiguration{}
+		err = yaml.Unmarshal(raw, &initConfig)
+		i = initConfig
+	case common.ClusterConfiguration:
+		clusterConfig := &v1beta2.ClusterConfiguration{}
+		err = yaml.Unmarshal(raw, &clusterConfig)
+		i = clusterConfig
+	case common.KubeProxyConfiguration:
+		kubeProxyConfig := &v1alpha1.KubeProxyConfiguration{}
+		err = yaml.Unmarshal(raw, &kubeProxyConfig)
+		i = kubeProxyConfig
+	case common.KubeletConfiguration:
+		kubeletConfig := &v1beta1.KubeletConfiguration{}
+		err = yaml.Unmarshal(raw, &kubeletConfig)
+		i = kubeletConfig
+	}
+	return i, err
 }
