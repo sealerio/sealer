@@ -12,62 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package guest
+package plugin
 
 import (
-	"path/filepath"
 	"testing"
-
-	"fmt"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
-func TestDefault_Apply(t *testing.T) {
+func TestClusterCheck_Run(t *testing.T) {
+	type fields struct{}
+
+	plugin := &v1.Plugin{}
+
 	type args struct {
-		Cluster *v1.Cluster
+		context Context
+		phase   Phase
 	}
 	tests := []struct {
 		name    string
+		fields  fields
 		args    args
-		wanterr bool
+		wantErr bool
 	}{
+		// TODO: Add test cases.
 		{
-			name: "Master exec cmd : echo 'guest_test success",
-			args: args{
-				Cluster: &v1.Cluster{
-					Spec: v1.ClusterSpec{
-						Image: "kuberentes:v1.18.6",
-						SSH: v1.SSH{
-							User:     "root",
-							Passwd:   "huaijiahui.com",
-							Pk:       "",
-							PkPasswd: "",
-						},
-						Masters: v1.Hosts{
-							IPList: []string{"192.168.56.104"},
-						},
-					},
+			"test check cluster status",
+			fields{},
+			args{
+				context: Context{
+					Plugin: plugin,
 				},
+				phase: PhasePreGuest,
 			},
-			wanterr: false,
+			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Default, err := NewGuestManager()
-			if err != nil {
-				t.Errorf("failed to NewGuestManager, err: %s", err)
-			}
-			if err := Default.Apply(tt.args.Cluster); (err != nil) != tt.wanterr {
-				t.Errorf("Apply failed, %s", err)
+			c := ClusterChecker{}
+			if err := c.Run(tt.args.context, tt.args.phase); (err != nil) != tt.wantErr {
+				t.Errorf("clusterCheck.Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
-}
-
-func TestName(t *testing.T) {
-	a := "."
-	b := "/var/lib"
-	fmt.Println(filepath.Join(a, b))
 }

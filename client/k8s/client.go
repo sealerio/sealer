@@ -175,3 +175,24 @@ func (c *Client) ListSvcs(namespace string) (*v1.ServiceList, error) {
 	}
 	return svcs, nil
 }
+
+func (c *Client) ListKubeSystemPodsStatus() (bool, error) {
+	pods, err := c.client.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get kube-system namespace pods")
+	}
+	// pods.Items maybe nil
+	if len(pods.Items) == 0 {
+		return false, nil
+	}
+	for _, pod := range pods.Items {
+		// pod.Status.ContainerStatus == nil because of pod contain initcontainer
+		if len(pod.Status.ContainerStatuses) == 0 {
+			continue
+		}
+		if !pod.Status.ContainerStatuses[0].Ready {
+			return false, nil
+		}
+	}
+	return true, nil
+}
