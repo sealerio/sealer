@@ -35,10 +35,10 @@ jobs:
           ref: ${{fromJson(steps.request.outputs.data).head.ref}}
           path: src/github.com/alibaba/sealer
 
-      - name: Set up Go 1.13
+      - name: Set up Go 1.16
         uses: actions/setup-go@v1
         with:
-          go-version: 1.13
+          go-version: 1.16
         id: go
 
       - name: Install sealer and ginkgo
