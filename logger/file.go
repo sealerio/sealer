@@ -249,7 +249,7 @@ func (f *fileLogger) createFreshFile(logTime time.Time) error {
 		return fmt.Errorf("cannot find free log number to rename %s", f.Filename)
 	}
 	err = f.fileWriter.Close()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -301,7 +301,7 @@ func (f *fileLogger) deleteOldLog() {
 }
 
 func (f *fileLogger) Destroy() {
-	f.fileWriter.Close()	// #nosec
+	f.fileWriter.Close() // #nosec
 }
 
 func init() {
