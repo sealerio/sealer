@@ -89,7 +89,7 @@ func GzipCompress(in io.Reader) (io.ReadCloser, chan struct{}) {
 		} else {
 			err := pipeWriter.Close()
 			if err != nil {
-				return 
+				return
 			}
 		}
 		close(compressionDone)

@@ -15,7 +15,7 @@
 package utils
 
 import (
-	"crypto/md5"	// #nosec
+	"crypto/md5" // #nosec
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -46,7 +46,7 @@ import (
 }*/
 
 func MD5(body []byte) string {
-	bytes := md5.Sum(body)		// #nosec
+	bytes := md5.Sum(body) // #nosec
 	return hex.EncodeToString(bytes[:])
 }
 
@@ -57,7 +57,7 @@ func FileMD5(path string) (string, error) {
 		return "", err
 	}
 
-	m := md5.New()		// #nosec
+	m := md5.New() // #nosec
 	if _, err := io.Copy(m, file); err != nil {
 		return "", err
 	}
