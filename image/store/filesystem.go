@@ -172,7 +172,7 @@ func (fs *filesystem) assembleTar(id LayerID, writer io.Writer) error {
 	mfz, err := gzip.NewReader(mf)
 	if err != nil {
 		err = mf.Close()
-		if err != nil{
+		if err != nil {
 			return err
 		}
 		return err

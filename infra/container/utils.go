@@ -15,7 +15,7 @@
 package container
 
 import (
-	"crypto/sha1"	// #nosec
+	"crypto/sha1" // #nosec
 	"encoding/binary"
 	"net"
 	"strconv"
@@ -37,7 +37,7 @@ func GenerateSubnetFromName(name string, attempt int32) string {
 	ip := make([]byte, 16)
 	ip[0] = 0xfc
 	ip[1] = 0x00
-	h := sha1.New()		// #nosec
+	h := sha1.New() // #nosec
 	_, _ = h.Write([]byte(name))
 	_ = binary.Write(h, binary.LittleEndian, attempt)
 	bs := h.Sum(nil)
