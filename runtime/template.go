@@ -34,7 +34,7 @@ const (
 	joinConfigTemplateName      = "kubeadm-join-config.yaml.tmpl"
 )
 
-const (	/* #nosec G101  */
+const ( /* #nosec G101  */
 	bootstrapTokenDefault = `apiVersion: {{.KubeadmAPI}}
 caCertPath: /etc/kubernetes/pki/ca.crt
 discovery:
