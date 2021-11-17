@@ -287,7 +287,7 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 			return nil
 		}
 	}
-	srcFile, err := os.Open(localPath)
+	srcFile, err := os.Open(filepath.Clean(localPath))
 	if err != nil {
 		return err
 	}

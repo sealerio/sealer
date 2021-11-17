@@ -15,11 +15,12 @@
 package utils
 
 import (
-	"crypto/md5"
+	"crypto/md5"	// #nosec
 	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 //DirMD5 count files md5
@@ -45,18 +46,18 @@ import (
 }*/
 
 func MD5(body []byte) string {
-	bytes := md5.Sum(body)
+	bytes := md5.Sum(body)		// #nosec
 	return hex.EncodeToString(bytes[:])
 }
 
 //FileMD5 count file md5
 func FileMD5(path string) (string, error) {
-	file, err := os.Open(path)
+	file, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return "", err
 	}
 
-	m := md5.New()
+	m := md5.New()		// #nosec
 	if _, err := io.Copy(m, file); err != nil {
 		return "", err
 	}

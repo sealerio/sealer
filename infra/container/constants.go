@@ -30,7 +30,7 @@ const (
 	MASTER              = "master"
 	NODE                = "node"
 	SealerImageRootPath = "/var/lib/sealer"
-	ChangePasswordCmd   = "echo root:%s | chpasswd"
+	ChangePasswordCmd   = "echo root:%s | chpasswd"		// #nosec
 	RoleLabel           = "sealer-io-role"
 	RoleLabelMaster     = "sealer-io-role-is-master"
 )

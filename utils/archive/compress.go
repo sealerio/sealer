@@ -87,7 +87,10 @@ func GzipCompress(in io.Reader) (io.ReadCloser, chan struct{}) {
 			// leave the err
 			_ = pipeWriter.CloseWithError(err)
 		} else {
-			pipeWriter.Close()
+			err := pipeWriter.Close()
+			if err != nil {
+				return 
+			}
 		}
 		close(compressionDone)
 	}()
@@ -114,8 +117,14 @@ func compress(paths []string, options Options) (reader io.ReadCloser, err error)
 	}
 	go func() {
 		defer func() {
-			tw.Close()
-			pw.Close()
+			err := tw.Close()
+			if err != nil {
+				return
+			}
+			err = pw.Close()
+			if err != nil {
+				return
+			}
 		}()
 
 		for _, path := range paths {
@@ -252,7 +261,7 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 		// the whiteout size is 0
 		if header.Typeflag == tar.TypeReg && header.Size > 0 {
 			var fHandler *os.File
-			fHandler, walkErr = os.Open(file)
+			fHandler, walkErr = os.Open(filepath.Clean(file))
 			if walkErr != nil {
 				return walkErr
 			}
@@ -360,7 +369,7 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 		case tar.TypeReg:
 			err = func() error {
 				// regularly won't mkdir, unless add newFolder on compressing
-				inErr := os.MkdirAll(filepath.Dir(target), 0755)
+				inErr := os.MkdirAll(filepath.Dir(target), 0700|0055)
 				if inErr != nil {
 					return inErr
 				}

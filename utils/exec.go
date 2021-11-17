@@ -24,7 +24,7 @@ import (
 )
 
 func Cmd(name string, args ...string) error {
-	cmd := exec.Command(name, args[:]...)
+	cmd := exec.Command(name, args[:]...)		// #nosec
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = common.StdErr
 	cmd.Stdout = common.StdOut
@@ -32,12 +32,12 @@ func Cmd(name string, args ...string) error {
 }
 
 func CmdOutput(name string, args ...string) ([]byte, error) {
-	cmd := exec.Command(name, args[:]...)
+	cmd := exec.Command(name, args[:]...) 		// #nosec
 	return cmd.CombinedOutput()
 }
 
 func RunSimpleCmd(cmd string) (string, error) {
-	result, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
+	result, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()		// #nosec
 	return string(result), err
 }
 

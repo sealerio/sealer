@@ -21,6 +21,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -163,19 +164,25 @@ func (fs *filesystem) assembleTar(id LayerID, writer io.Writer) error {
 		layerDataPath = fs.LayerDataDir(id.ToDigest())
 	)
 
-	mf, err := os.Open(tarDataPath)
+	mf, err := os.Open(filepath.Clean(tarDataPath))
 	if err != nil {
 		return fmt.Errorf("failed to open %s for layer %s, err: %s", tarDataGZ, id, err)
 	}
 
 	mfz, err := gzip.NewReader(mf)
 	if err != nil {
-		mf.Close()
+		err = mf.Close()
+		if err != nil{
+			return err
+		}
 		return err
 	}
 
 	gzipReader := ioutils.NewReadCloserWrapper(mfz, func() error {
-		mfz.Close()
+		err := mfz.Close()
+		if err != nil {
+			return err
+		}
 		return mf.Close()
 	})
 
@@ -230,7 +237,7 @@ func (fs *filesystem) GetMetadata(id digest.Digest, key string) ([]byte, error) 
 	fs.Lock()
 	defer fs.Unlock()
 
-	bytes, err := ioutil.ReadFile(filepath.Join(fs.LayerDBDir(id), key))
+	bytes, err := ioutil.ReadFile(path.Clean(filepath.Join(fs.LayerDBDir(id), key)))
 	if err != nil {
 		return nil, errors.Errorf("failed to read metadata, err: %v", err)
 	}
@@ -279,7 +286,7 @@ func (fs *filesystem) loadLayerID(layerDBPath string) (LayerID, error) {
 	fs.RLock()
 	defer fs.RUnlock()
 
-	idBytes, err := ioutil.ReadFile(filepath.Join(layerDBPath, "id"))
+	idBytes, err := ioutil.ReadFile(path.Clean(filepath.Join(layerDBPath, "id")))
 	if err != nil {
 		return "", err
 	}
@@ -294,7 +301,7 @@ func (fs *filesystem) loadLayerSize(layerDBPath string) (int64, error) {
 	fs.RLock()
 	defer fs.RUnlock()
 
-	sizeBytes, err := ioutil.ReadFile(filepath.Join(layerDBPath, "size"))
+	sizeBytes, err := ioutil.ReadFile(filepath.Clean(filepath.Join(layerDBPath, "size")))
 	if err != nil {
 		return 0, err
 	}

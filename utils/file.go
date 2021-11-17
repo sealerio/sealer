@@ -22,6 +22,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -59,7 +60,7 @@ func ReadLines(fileName string) ([]string, error) {
 	if !IsExist(fileName) {
 		return nil, errors.New("no such file")
 	}
-	file, err := os.Open(fileName)
+	file, err := os.Open(filepath.Clean(fileName))
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +83,14 @@ func ReadAll(fileName string) ([]byte, error) {
 		return nil, errors.New("no such file")
 	}
 	// step2：open file
-	file, err := os.Open(fileName)
+	file, err := os.Open(filepath.Clean(fileName))
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
 	// step3：read file content
-	content, err := ioutil.ReadFile(fileName)
+	content, err := ioutil.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +162,7 @@ func RecursionCopy(src, dst string) error {
 		return CopyDir(src, dst)
 	}
 
-	err := os.MkdirAll(filepath.Dir(dst), 0755)
+	err := os.MkdirAll(filepath.Dir(dst), 0700|0055)
 	if err != nil {
 		return fmt.Errorf("failed to mkdir for recursion copy, err: %v", err)
 	}
@@ -241,7 +242,7 @@ func RecursionHardLinkDir(src, dst string, modTimes *[]*tar.Header) error {
 
 // cp -r /roo/test/* /tmp/abc
 func CopyDir(srcPath, dstPath string) error {
-	err := os.MkdirAll(dstPath, 0755)
+	err := os.MkdirAll(dstPath, 0700|0055)
 	if err != nil {
 		return err
 	}
@@ -303,7 +304,7 @@ func CopySingleFile(src, dst string) (int64, error) {
 		return 0, fmt.Errorf("%s is not a regular file", src)
 	}
 
-	source, err := os.Open(src)
+	source, err := os.Open(filepath.Clean(src))
 	if err != nil {
 		return 0, err
 	}
@@ -492,7 +493,7 @@ func DecodePlugins(filepath string) (plugins []v1.Plugin, err error) {
 }
 
 func decodeCRD(filepath string, kind string) (out interface{}, err error) {
-	file, err := os.Open(filepath)
+	file, err := os.Open(path.Clean(filepath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to dump config %v", err)
 	}

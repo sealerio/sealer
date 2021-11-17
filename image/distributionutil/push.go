@@ -152,8 +152,14 @@ func (pusher *ImagePusher) uploadLayer(ctx context.Context, roLayer store.Layer)
 	progressReader := progress.NewProgressReader(layerContentStream, progressChanOut, roLayer.Size(), roLayer.SimpleID(), "pushing")
 	uploadStream, _ := archive.GzipCompress(progressReader)
 	defer func() {
-		layerContentStream.Close()
-		uploadStream.Close()
+		err := layerContentStream.Close()
+		if err != nil {
+			return
+		}
+		err = uploadStream.Close()
+		if err != nil {
+			return
+		}
 	}()
 
 	layerUploader, err := bs.Create(ctx)
