@@ -157,11 +157,12 @@ var _ = Describe("sealer apply", func() {
 			})
 			It("init, scale up, scale down, clean up", func() {
 				By("start to prepare infra")
-				rawCluster.Spec.Provider = settings.AliCloud
-				rawCluster.Spec.Image = build.GetTestImageName()
-				usedCluster := apply.CreateAliCloudInfraAndSave(rawCluster, tempFile)
-				defer apply.CleanUpAliCloudInfra(usedCluster)
-				sshClient := testhelper.NewSSHClientByCluster(usedCluster)
+				cluster := rawCluster.DeepCopy()
+				cluster.Spec.Provider = settings.AliCloud
+				cluster.Spec.Image = build.GetTestImageName()
+				cluster = apply.CreateAliCloudInfraAndSave(cluster, tempFile)
+				defer apply.CleanUpAliCloudInfra(cluster)
+				sshClient := testhelper.NewSSHClientByCluster(cluster)
 				testhelper.CheckFuncBeTrue(func() bool {
 					err := sshClient.SSH.Copy(sshClient.RemoteHostIP, settings.DefaultSealerBin, settings.DefaultSealerBin)
 					return err == nil
@@ -177,13 +178,13 @@ var _ = Describe("sealer apply", func() {
 				})
 
 				By("Use join command to add 3master and 3node for scale up cluster in baremetal mode", func() {
-					usedCluster.Spec.Nodes.Count = "3"
-					usedCluster.Spec.Masters.Count = "3"
-					usedCluster = apply.CreateAliCloudInfraAndSave(usedCluster, tempFile)
+					cluster.Spec.Nodes.Count = "3"
+					cluster.Spec.Masters.Count = "3"
+					cluster = apply.CreateAliCloudInfraAndSave(cluster, tempFile)
 					//waiting for service to start
 					time.Sleep(10 * time.Second)
-					joinMasters := strings.Join(usedCluster.Spec.Masters.IPList[1:], ",")
-					joinNodes := strings.Join(usedCluster.Spec.Nodes.IPList[1:], ",")
+					joinMasters := strings.Join(cluster.Spec.Masters.IPList[1:], ",")
+					joinNodes := strings.Join(cluster.Spec.Nodes.IPList[1:], ",")
 					//sealer join master and node
 					apply.SendAndJoinCluster(sshClient, tempFile, joinMasters, joinNodes)
 					//add 3 masters and 3 nodes
@@ -191,11 +192,11 @@ var _ = Describe("sealer apply", func() {
 				})
 
 				By("start to scale down cluster")
-				usedCluster.Spec.Nodes.Count = "1"
-				usedCluster.Spec.Nodes.IPList = usedCluster.Spec.Nodes.IPList[:1]
-				usedCluster.Spec.Masters.Count = "3"
-				usedCluster.Spec.Provider = settings.BAREMETAL
-				apply.WriteClusterFileToDisk(usedCluster, tempFile)
+				cluster.Spec.Nodes.Count = "1"
+				cluster.Spec.Nodes.IPList = cluster.Spec.Nodes.IPList[:1]
+				cluster.Spec.Masters.Count = "3"
+				cluster.Spec.Provider = settings.BAREMETAL
+				apply.WriteClusterFileToDisk(cluster, tempFile)
 				apply.SendAndApplyCluster(sshClient, tempFile)
 				apply.CheckNodeNumWithSSH(sshClient, 4)
 				By("start to delete cluster")
