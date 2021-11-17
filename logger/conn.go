@@ -97,12 +97,10 @@ func (c *connLogger) LogWrite(when time.Time, msgText interface{}, level logLeve
 }
 
 func (c *connLogger) Destroy() {
-	if c.innerWriter != nil {
 		err := c.innerWriter.Close()
 		if err != nil {
-			return 
+			return
 		}
-	}
 }
 
 func (c *connLogger) connect() error {

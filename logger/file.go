@@ -301,10 +301,7 @@ func (f *fileLogger) deleteOldLog() {
 }
 
 func (f *fileLogger) Destroy() {
-	err := f.fileWriter.Close()
-	if err != nil {
-		return
-	}
+	f.fileWriter.Close()	// #nosec
 }
 
 func init() {

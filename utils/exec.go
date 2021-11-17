@@ -24,7 +24,7 @@ import (
 )
 
 func Cmd(name string, args ...string) error {
-	cmd := exec.Command(name, args[:]...)		// #nosec
+	cmd := exec.Command(name, args[:]...)	// #nosec
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = common.StdErr
 	cmd.Stdout = common.StdOut
