@@ -80,7 +80,7 @@ spec:
 
 ## clusterCheck plugin
 
-由于服务器以及环境因素(服务器磁盘性能差)可能会导致sealer安装完kubernetes集群后，立即部署应用服务，出现部署失败的情况。cluster check插件会等待kubernetes集群稳定后再部署应用服务。
+由于服务器以及环境因素(服务器磁盘性能差)可能在sealer部署应用服务的时候，出现部署失败的情况。clusterCheck插件会等待kubernetes集群稳定后再部署应用服务。
 
 ```yaml
 apiVersion: sealer.aliyun.com/v1alpha1
