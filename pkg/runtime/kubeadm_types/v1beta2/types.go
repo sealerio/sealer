@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package runtime
+package v1beta2
 
 import (
 	v1 "k8s.io/api/core/v1"

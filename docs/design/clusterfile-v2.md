@@ -78,7 +78,7 @@ spec:
     passwd: xxx
     port: 2222
   hosts:
-  - ips: 192.168.0.2
+  - ips: [192.168.0.2]
     roles: [master]
     ssh:
       passwd: yyy
@@ -251,11 +251,11 @@ volumeStatsAggPeriod: 1m0s
 
 ### Using Kubeconfig to overwrite kubeadm configs
 
-If you don't want to care about so much Kubeadm configs, you can use `KubeConfig` object to overwrite(json patch merge) some fields.
+If you don't want to care about so much Kubeadm configs, you can use `KubeadmConfig` object to overwrite(json patch merge) some fields.
 
 ```yaml
 apiVersion: sealer.cloud/v2
-kind: KubeConfig
+kind: KubeadmConfig
 metadata:
   name: default-kubernetes-config
 spec:

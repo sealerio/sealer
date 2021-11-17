@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
 
@@ -87,6 +86,7 @@ func (debugger *Debugger) DebugPod(ctx context.Context) (*corev1.Pod, error) {
 // debugPodByEphemeralContainer runs an ephemeral container in target pod and use as a debug container.
 func (debugger *Debugger) debugPodByEphemeralContainer(ctx context.Context, pod *corev1.Pod) (*corev1.Pod, error) {
 	// get ephemeral containers
+	/* 1.22.3 remove the GetEphemeralContainers function
 	pods := debugger.kubeClientCorev1.Pods(pod.Namespace)
 	ec, err := pods.GetEphemeralContainers(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
@@ -105,6 +105,7 @@ func (debugger *Debugger) debugPodByEphemeralContainer(ctx context.Context, pod 
 	if err != nil {
 		return nil, errors.Wrapf(err, "error updating ephermeral containers")
 	}
+	*/
 
 	return pod, nil
 }
