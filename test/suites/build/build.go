@@ -123,7 +123,7 @@ func CheckClusterFile(imageName string) bool {
 func UpdateKubeFromImage(imageName string, KubefilePath string) {
 	Kube, err := ioutil.ReadFile(filepath.Clean(KubefilePath))
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	Kube = append([]byte(fmt.Sprintf("from %s", imageName)), Kube[bytes.IndexByte(Kube, '\n'):]...)
+	Kube = append([]byte(fmt.Sprintf("FROM %s", imageName)), Kube[bytes.IndexByte(Kube, '\n'):]...) // #nosec
 	err = ioutil.WriteFile(KubefilePath, Kube, os.ModePerm)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
