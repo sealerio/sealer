@@ -191,7 +191,7 @@ COPY shell.yaml plugin
 build一个包含去污点插件的集群镜像：
 
 ```shell script
-sealer build -b lite -t kubernetes-taint:v1.19.8 .
+sealer build -m lite -t kubernetes-taint:v1.19.8 .
 ```
 
 后续直接run这个镜像，插件也会被执行，而不再需要在Clusterfile中定义插件：`sealer run kubernetes-taint:v1.19.8 -m x.x.x.x -p xxx`

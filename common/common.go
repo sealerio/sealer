@@ -125,7 +125,7 @@ const (
 	CdAndExecCmd    = "cd %s && %s"
 	TagImageCmd     = "%s tag %s %s"
 	PushImageCmd    = "%s push %s"
-	BuildClusterCmd = "%s build -f %s -t %s -b %s %s"
+	BuildClusterCmd = "%s build -f %s -t %s -m %s %s"
 )
 
 const (

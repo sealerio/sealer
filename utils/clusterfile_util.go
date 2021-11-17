@@ -20,7 +20,9 @@ import (
 	"strings"
 
 	"github.com/alibaba/sealer/cert"
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func GetDefaultClusterName() (string, error) {
@@ -41,4 +43,13 @@ func GetDefaultClusterName() (string, error) {
 		return "", fmt.Errorf("Select a cluster through the -c parameter: " + strings.Join(clusters, ","))
 	}
 	return "", fmt.Errorf("existing cluster not found")
+}
+
+func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
+	cluster = &v1.Cluster{}
+	if err = UnmarshalYamlFile(filepath, cluster); err != nil {
+		return nil, fmt.Errorf("failed to get cluster from %s, %v", filepath, err)
+	}
+	cluster.SetAnnotations(common.ClusterfileName, filepath)
+	return cluster, nil
 }

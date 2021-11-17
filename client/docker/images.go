@@ -29,7 +29,7 @@ import (
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 )
 
-func (d Docker) ImagesPull(images []string) {
+func (d Docker) ImagesPull(images []string) error {
 	for _, image := range utils.RemoveDuplicate(images) {
 		if image == "" {
 			continue
@@ -38,21 +38,22 @@ func (d Docker) ImagesPull(images []string) {
 			continue
 		}
 		if err := d.ImagePull(strings.TrimSpace(image)); err != nil {
-			logger.Warn(fmt.Sprintf("Image %s pull failed: %v", image, err))
+			return fmt.Errorf("image %s pull failed: %v", image, err)
 		}
 	}
+	return nil
 }
 
-func (d Docker) ImagesPullByImageListFile(fileName string) {
+func (d Docker) ImagesPullByImageListFile(fileName string) error {
 	data, err := utils.ReadLines(fileName)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Read image list failed: %v", err))
 	}
-	d.ImagesPull(data)
+	return d.ImagesPull(data)
 }
 
-func (d Docker) ImagesPullByList(images []string) {
-	d.ImagesPull(images)
+func (d Docker) ImagesPullByList(images []string) error {
+	return d.ImagesPull(images)
 }
 
 func (d Docker) ImagePull(image string) error {

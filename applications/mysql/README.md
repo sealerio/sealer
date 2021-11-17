@@ -53,7 +53,7 @@ CMD helm install my-mysql --set architecture=replication --create-namespace --na
 run below command to build it
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
 More parameters see [officail document here](https://artifacthub.io/packages/helm/bitnami/mysql).

@@ -146,7 +146,7 @@ func mountRootfs(ipList []string, target string, cluster *v1.Cluster, initFlag b
 	config := runtime.GetRegistryConfig(
 		common.DefaultTheClusterRootfsDir(cluster.Name),
 		cluster.Spec.Masters.IPList[0])
-	if err := ssh.WaitSSHReady(SSH, 4, ipList...); err != nil {
+	if err := ssh.WaitSSHReady(SSH, 6, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}
 	var wg sync.WaitGroup

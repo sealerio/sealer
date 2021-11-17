@@ -60,6 +60,9 @@ delete all:
 			return err
 		}
 		if deleteClusterName == "" && deleteClusterFile == "" {
+			if !all && deleteArgs.Masters == "" && deleteArgs.Nodes == "" {
+				return fmt.Errorf("the delete parameter needs to be set")
+			}
 			deleteClusterName, err = utils.GetDefaultClusterName()
 			if err != nil {
 				return err
@@ -74,7 +77,7 @@ delete all:
 			deleteClusterFile = common.GetClusterWorkClusterfile(deleteClusterName)
 		}
 
-		if all && !force {
+		if !force {
 			var yesRx = regexp.MustCompile("^(?:y(?:es)?)$")
 			var noRx = regexp.MustCompile("^(?:n(?:o)?)$")
 			var input string

@@ -165,7 +165,7 @@ cat rookObj
 Modify manifest.yaml or cephobject.yaml file according to your needs, then run below command to rebuild it.
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
 More parameters see [official docs here](https://rook.io/docs/rook/v1.7/ceph-object.html).

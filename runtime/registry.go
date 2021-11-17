@@ -63,7 +63,8 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	if config.IP == "" {
 		config.IP = DefaultConfig.IP
 	} else {
-		config.IP = utils.GetHostIP(config.IP)
+		ip, port := utils.GetSSHHostIPAndPort(config.IP)
+		config.IP = fmt.Sprintf("%s:%s", ip, port)
 	}
 	if config.Port == "" {
 		config.Port = DefaultConfig.Port

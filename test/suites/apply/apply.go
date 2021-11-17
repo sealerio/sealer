@@ -20,6 +20,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/alibaba/sealer/checker"
+	"github.com/alibaba/sealer/utils/ssh"
 
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -251,6 +255,29 @@ func CheckNodeNumLocally(expectNum int) {
 	num, err := strconv.Atoi(strings.ReplaceAll(result, "\n", ""))
 	testhelper.CheckErr(err)
 	testhelper.CheckEqual(num, expectNum+1)
+}
+
+func WaitAllNodeRunning() {
+	time.Sleep(30 * time.Second)
+	err := utils.Retry(10, 5*time.Second, func() error {
+		return checker.NewNodeChecker().Check(nil, checker.PhasePost)
+	})
+	testhelper.CheckErr(err)
+}
+
+func WaitAllNodeRunningBySSH(s ssh.Interface, masterIP string) {
+	time.Sleep(30 * time.Second)
+	err := utils.Retry(10, 5*time.Second, func() error {
+		result, err := s.CmdToString(masterIP, "kubectl get nodes", "")
+		if err != nil {
+			return err
+		}
+		if strings.Contains(result, "NotReady") {
+			return fmt.Errorf("node not ready: \n %s", result)
+		}
+		return nil
+	})
+	testhelper.CheckErr(err)
 }
 
 func MarshalClusterToFile(ClusterFile string, cluster *v1.Cluster) {

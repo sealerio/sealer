@@ -49,7 +49,7 @@ CMD helm install my-postgresql --create-namespace --namespace postgresql-system 
 run below command to build it
 
 ```shell
-sealer build -t {Your Image Name} -f Kubefile -b cloud .
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
 More parameters see [official document here](https://artifacthub.io/packages/helm/bitnami/postgresql).

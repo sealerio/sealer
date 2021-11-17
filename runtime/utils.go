@@ -15,7 +15,9 @@
 package runtime
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"path"
 	"strings"
 
@@ -114,4 +116,24 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host string) error {
 	}
 
 	return nil
+}
+
+// LoadMetadata :read metadata via cluster image name.
+func LoadMetadata(metadataPath string) (*Metadata, error) {
+	var metadataFile []byte
+	var err error
+	var md Metadata
+	if !utils.IsFileExist(metadataPath) {
+		return nil, nil
+	}
+
+	metadataFile, err = ioutil.ReadFile(metadataPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CloudImage metadata %v", err)
+	}
+	err = json.Unmarshal(metadataFile, &md)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load CloudImage metadata %v", err)
+	}
+	return &md, nil
 }

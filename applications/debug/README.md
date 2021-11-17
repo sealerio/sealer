@@ -3,7 +3,7 @@ This CloudImage only contains a debug:ubuntu docker image. You can use this Clou
 # Build a kubernetes-debug-ubuntu CloudImage
 
 ```
-sealer build -b lite -t kubernetes-debug-ubuntu:v1.19.9 .
+sealer build -m lite -t kubernetes-debug-ubuntu:v1.19.9 .
 sealer push kubernetes-debug-ubuntu:v1.19.9
 ```
 

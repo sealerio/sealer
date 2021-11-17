@@ -15,9 +15,6 @@
 package runtime
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
@@ -86,29 +83,21 @@ func NewDefaultRuntime(cluster *v1.Cluster) (Interface, error) {
 	return d.initRunner(cluster)
 }
 
-func (d *Default) LoadMetadata() error {
-	metadataPath := filepath.Join(common.DefaultMountCloudImageDir(d.ClusterName), common.DefaultMetadataName)
-	var metadataFile []byte
-	var err error
-	metadata := &Metadata{}
-	metadataFile, err = ioutil.ReadFile(metadataPath)
+func (d *Default) loadMetadata() error {
+	metadata, err := LoadMetadata(filepath.Join(common.DefaultMountCloudImageDir(d.ClusterName), common.DefaultMetadataName))
 	if err != nil {
-		return fmt.Errorf("failed to read CloudImage metadata %v", err)
+		return err
 	}
-	err = json.Unmarshal(metadataFile, metadata)
-	if err != nil {
-		return fmt.Errorf("failed to load CloudImage metadata %v", err)
-	}
-	logger.Info("metadata version %s", metadata.Version)
 	d.Metadata = metadata
 	return nil
 }
+
 func (d *Default) Reset(cluster *v1.Cluster) error {
 	return d.reset(cluster)
 }
 
 func (d *Default) Upgrade(cluster *v1.Cluster) error {
-	if err := d.LoadMetadata(); err != nil {
+	if err := d.loadMetadata(); err != nil {
 		return err
 	}
 	return d.upgrade(cluster)

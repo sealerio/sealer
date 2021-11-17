@@ -4,6 +4,29 @@ This section is mean to answer the most frequently asked questions about sealer.
 
 ## Sealer failed to cache docker image.
 
+### How do I know my new image is not cached successfully?
+
+1. run `sealer images` to check the image size, your image size = (base image + docker image + context). compare to your
+   base image,if it is smaller than your base image. please run `docker system prune -a` to clean the environment and
+   rebuild the image.
+
+```text
+[root@kaazhost1 ~]# sealer images
++------------------------------------------------------------------+-----------------------------------------------------------------------+---------------------+----------+
+|                             IMAGE ID                             |                              IMAGE NAME                               |       CREATE        |   SIZE   |
++------------------------------------------------------------------+-----------------------------------------------------------------------+---------------------+----------+
+| 3cd2e94196c9af1b9629f50e4c9c4c8aeac5f1df4cbb18b0308f60eae532470f | registry.cn-beijing.aliyuncs.com/sealer-io/kubernetes:v1.19.9_develop | 2021-11-04 08:19:19 | 614.21MB |
+| dab80fefba209773590fddc7f9125d0ebfafaeeec1b6c1fcfb998af41367dd81 | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nvidia:v1.19.8  | 2021-10-29 11:20:16 | 851.69MB |
+| bfb2810f9ad176cb9bc39e4a98d6319ea8599fa22a0911a98ae0b3e86e96b0a4 | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8         | 2021-10-28 10:02:27 | 774.05MB |
++------------------------------------------------------------------+-----------------------------------------------------------------------+---------------------+----------+
+```
+
+2. build log show some error or waning looks like "pull failed", please check your network or the registry auth and
+   run `docker system prune -a` to clean the environment and rebuild the image.
+3. if you pull the new image failed in run stage, check the registry log `docker logs sealer-registry`. if fetch some
+   blobs show "500" or "404", it means some blobs lost in the new cloud image. run `docker system prune -a` to clean the
+   environment and rebuild the image.
+
 ### Build environment check.
 
 The first thing need to know is that we hacked docker to support cache docker images,so only "sealer docker" will have
@@ -179,3 +202,63 @@ drwxr-xr-x. 3 root root  78 Oct  9 16:45 d2
 
 make sure all the layers and layer content exist at the same time in this cloud images. if only part of them, please
 clean all docker images of your build machine, and run sealer build steps again.
+
+4. use docker inspect to check all the cached image layer.
+
+get all docker image layer :
+
+examples:
+
+`docker inspect --format='{{json .RootFS}}' 8c72b944d569`
+
+output:
+
+```json
+{
+  "Type": "layers",
+  "Layers": [
+    "sha256:4b0a2b20e92dcbf057d10806b8aa690b26d1d3dd33b0fc63d838f4acaf23bd07",
+    "sha256:3e1226931b2290a838eec9bbbd911e4f5da535a447f3f96481017b41bf9c0259"
+  ]
+}
+```
+
+choose "4b0a2b20e92dcbf057d10806b8aa690b26d1d3dd33b0fc63d838f4acaf23bd07" as examples to read the registry layer id from
+from distribution directory.
+
+`cat /var/lib/docker/image/overlay2/distribution/v2metadata-by-diffid/sha256/4b0a2b20e92dcbf057d10806b8aa690b26d1d3dd33b0fc63d838f4acaf23bd07`
+
+```json
+[
+  {
+    "Digest": "sha256:5d3835484afecc78dccfa2f7d4fcf273aacfe0c7600b957314e38488f3942045",
+    "SourceRepository": "docker.io/library/traefik",
+    "HMAC": ""
+  }
+]
+```
+
+check with the sealer image cache,we can see "5d3835484afecc78dccfa2f7d4fcf273aacfe0c7600b957314e38488f3942045" show
+below "_layers" directory.
+
+"8c72b944d56909f092c54c2b0804002f5501a61b7f4444e03574c0ff3455d657" is the imagedb ,not the image content layer.
+
+```text
+library
+        └── traefik
+            ├── _layers
+            │   └── sha256
+            │       ├── 0feefa6e9e49547c30d8edd85bbe6116ad1107ec138af7b22af9e087d759de0c
+            │       │   └── link
+            │       ├── 5d3835484afecc78dccfa2f7d4fcf273aacfe0c7600b957314e38488f3942045
+            │       │   └── link
+            │       └── 8c72b944d56909f092c54c2b0804002f5501a61b7f4444e03574c0ff3455d657
+            │           └── link
+            ├── _manifests
+            │   ├── revisions
+            │   │   └── sha256
+            │   │       ├── d1264267935f35aa1070a840d24bfc6bb7f55efb49949589b049f82a4c5967f4
+            │   │       │   └── link
+            │   │       └── d277007b55a8a8d972b1983ef11387d05f719821a2d2e23e8fa06ac5081a302f
+            │   │           └── link
+```
