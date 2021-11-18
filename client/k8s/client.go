@@ -18,14 +18,14 @@ import (
 	"context"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/common"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-
-	"github.com/alibaba/sealer/common"
 )
 
 type Client struct {
@@ -174,4 +174,11 @@ func (c *Client) ListSvcs(namespace string) (*v1.ServiceList, error) {
 		return nil, errors.Wrapf(err, "failed to get all namespace pods")
 	}
 	return svcs, nil
+}
+func (c *Client) GetClusterVersion() (*version.Info, error) {
+	info, err := c.client.Discovery().ServerVersion()
+	if err != nil {
+		return nil, err
+	}
+	return info, nil
 }

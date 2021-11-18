@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/filesystem"
-	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
@@ -26,7 +25,6 @@ import (
 type ScaleApply struct {
 	FileSystem      filesystem.Interface
 	Runtime         runtime.Interface
-	Guest           guest.Interface
 	MastersToJoin   []string
 	MastersToDelete []string
 	NodesToJoin     []string
@@ -68,10 +66,6 @@ func (s ScaleApply) ScaleUp(cluster *v1.Cluster) error {
 	if err != nil {
 		return err
 	}
-	err = s.Guest.Apply(cluster)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -89,11 +83,6 @@ func (s ScaleApply) ScaleDown() error {
 
 func NewScaleApply(fs filesystem.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
 	var up bool
-	gs, err := guest.NewGuestManager()
-	if err != nil {
-		return nil, err
-	}
-
 	// only scale up or scale down at a time
 	if len(masterToJoin) > 0 || len(nodeToJoin) > 0 {
 		up = true
@@ -106,6 +95,5 @@ func NewScaleApply(fs filesystem.Interface, masterToJoin, masterToDelete, nodeTo
 		NodesToJoin:     nodeToJoin,
 		IsScaleUp:       up,
 		FileSystem:      fs,
-		Guest:           gs,
 	}, nil
 }
