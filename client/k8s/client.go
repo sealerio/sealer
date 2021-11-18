@@ -182,7 +182,7 @@ func (c *Client) GetClusterVersion() (*version.Info, error) {
 		return nil, err
 	}
 	return info, nil
-
+}
 
 func (c *Client) ListKubeSystemPodsStatus() (bool, error) {
 	pods, err := c.client.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{})
@@ -203,5 +203,4 @@ func (c *Client) ListKubeSystemPodsStatus() (bool, error) {
 		}
 	}
 	return true, nil
-
 }
