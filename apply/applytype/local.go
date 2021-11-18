@@ -38,6 +38,7 @@ type Applier struct {
 	ClusterCurrent *v1.Cluster
 	ImageManager   image.Service
 	FileSystem     filesystem.Interface
+	Client         *k8s.Client
 }
 
 func (c *Applier) Delete() (err error) {
@@ -60,11 +61,7 @@ func (c *Applier) Apply() (err error) {
 }
 
 func (c *Applier) fillClusterCurrent() error {
-	client, err := k8s.Newk8sClient()
-	if err != nil {
-		return err
-	}
-	currentCluster, err := GetCurrentCluster(client)
+	currentCluster, err := GetCurrentCluster(c.Client)
 	if err != nil {
 		return errors.Wrap(err, "get current cluster failed")
 	}
@@ -94,7 +91,12 @@ func (c *Applier) unMountClusterImage() error {
 }
 
 func (c *Applier) changeCluster() error {
-	err := c.fillClusterCurrent()
+	client, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	c.Client = client
+	err = c.fillClusterCurrent()
 	if err != nil {
 		return err
 	}
@@ -138,25 +140,25 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 }
 
 func (c *Applier) upgradeCluster(mj, nj []string) error {
-	currentMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultTheClusterRootfsDir(c.ClusterDesired.Name),
-		common.DefaultMetadataName))
+	// use k8sClient to fetch current cluster version.
+	info, err := c.Client.GetClusterVersion()
 	if err != nil {
 		return err
 	}
-
+	// fetch form exec machine
 	desiredMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterDesired.Name),
 		common.DefaultMetadataName))
 	if err != nil {
 		return err
 	}
 
-	if currentMetadata.Version == desiredMetadata.Version {
+	if info.GitVersion == desiredMetadata.Version {
 		return nil
 	}
 
 	logger.Info("different metadata (old %s,new %s) version will upgrade current cluster",
-		currentMetadata.Version, desiredMetadata.Version)
-	//if currentMetadata.Version==""{
+		info.GitVersion, desiredMetadata.Version)
+	//if desiredMetadata.Version==""{
 	//	//install app
 	//}
 

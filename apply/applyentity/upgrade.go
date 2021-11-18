@@ -19,7 +19,6 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/filesystem"
-	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -28,7 +27,6 @@ import (
 type UpgradeApply struct {
 	FileSystem    filesystem.Interface
 	Runtime       runtime.Interface
-	Guest         guest.Interface
 	MastersToJoin []string
 	NodesToJoin   []string
 }
@@ -45,10 +43,6 @@ func (u UpgradeApply) DoApply(cluster *v1.Cluster) error {
 		return err
 	}
 	err = u.Upgrade(cluster)
-	if err != nil {
-		return err
-	}
-	err = u.RunGuest(cluster)
 	if err != nil {
 		return err
 	}
@@ -72,19 +66,11 @@ func (u UpgradeApply) Upgrade(cluster *v1.Cluster) error {
 	return u.Runtime.Upgrade(cluster)
 }
 
-func (u UpgradeApply) RunGuest(cluster *v1.Cluster) error {
-	return u.Guest.Apply(cluster)
-}
 
 func NewUpgradeApply(fs filesystem.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
-	gs, err := guest.NewGuestManager()
-	if err != nil {
-		return nil, err
-	}
 	// only do upgrade here. cancel scale action.
 	return UpgradeApply{
 		FileSystem:    fs,
-		Guest:         gs,
 		MastersToJoin: masterToJoin,
 		NodesToJoin:   nodeToJoin,
 	}, nil
