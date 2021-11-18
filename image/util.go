@@ -134,7 +134,7 @@ func GetFileFromBaseImage(imageName string, paths ...string) (string, error) {
 	subPath = append(subPath, paths...)
 	clusterFile := filepath.Join(subPath...)
 
-	data, err := ioutil.ReadFile(clusterFile)
+	data, err := ioutil.ReadFile(filepath.Clean(clusterFile))
 	if err != nil {
 		return "", err
 	}

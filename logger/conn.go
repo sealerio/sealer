@@ -51,7 +51,10 @@ func (c *connLogger) Init(jsonConfig string) error {
 		c.LogLevel = l
 	}
 	if c.innerWriter != nil {
-		c.innerWriter.Close()
+		err := c.innerWriter.Close()
+		if err != nil {
+			return err
+		}
 		c.innerWriter = nil
 	}
 	return nil
@@ -95,13 +98,19 @@ func (c *connLogger) LogWrite(when time.Time, msgText interface{}, level logLeve
 
 func (c *connLogger) Destroy() {
 	if c.innerWriter != nil {
-		c.innerWriter.Close()
+		err := c.innerWriter.Close()
+		if err != nil {
+			return
+		}
 	}
 }
 
 func (c *connLogger) connect() error {
 	if c.innerWriter != nil {
-		c.innerWriter.Close()
+		err := c.innerWriter.Close()
+		if err != nil {
+			return err
+		}
 		c.innerWriter = nil
 	}
 	addrs := strings.Split(c.Addr, ";")

@@ -154,7 +154,10 @@ func (f *fileLogger) newFile() error {
 		return err
 	}
 	if f.fileWriter != nil {
-		f.fileWriter.Close()
+		err := f.fileWriter.Close()
+		if err != nil {
+			return err
+		}
 	}
 	f.fileWriter = file
 
@@ -245,7 +248,10 @@ func (f *fileLogger) createFreshFile(logTime time.Time) error {
 	if err == nil {
 		return fmt.Errorf("cannot find free log number to rename %s", f.Filename)
 	}
-	f.fileWriter.Close()
+	err = f.fileWriter.Close()
+	if err != nil {
+		return err
+	}
 
 	// 当创建新文件标记为true时
 	// 当日志文件超过最大限制行
@@ -281,7 +287,10 @@ func (f *fileLogger) deleteOldLog() {
 		if f.MaxDays != -1 && !info.IsDir() && info.ModTime().Add(24*time.Hour*time.Duration(f.MaxDays)).Before(time.Now()) {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(f.fileNameOnly)) &&
 				strings.HasSuffix(filepath.Base(path), f.suffix) {
-				os.Remove(path)
+				err := os.Remove(path)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		return
@@ -292,7 +301,7 @@ func (f *fileLogger) deleteOldLog() {
 }
 
 func (f *fileLogger) Destroy() {
-	f.fileWriter.Close()
+	f.fileWriter.Close() // #nosec
 }
 
 func init() {

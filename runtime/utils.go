@@ -127,7 +127,7 @@ func LoadMetadata(metadataPath string) (*Metadata, error) {
 		return nil, nil
 	}
 
-	metadataFile, err = ioutil.ReadFile(metadataPath)
+	metadataFile, err = ioutil.ReadFile(path.Clean(metadataPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CloudImage metadata %v", err)
 	}

@@ -17,6 +17,7 @@ package manifest
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils"
 )
@@ -27,7 +28,7 @@ type Manifests struct{}
 func (manifests *Manifests) ListImages(yamlFile string) ([]string, error) {
 	var list []string
 
-	yamlBytes, err := ioutil.ReadFile(yamlFile)
+	yamlBytes, err := ioutil.ReadFile(filepath.Clean(yamlFile))
 	if err != nil {
 		return nil, fmt.Errorf("read file failed %s", err)
 	}

@@ -262,7 +262,10 @@ func (f *fileLogger) deleteOldLog() {
 		if f.MaxDays != -1 && !info.IsDir() && info.ModTime().Add(24*time.Hour*time.Duration(f.MaxDays)).Before(time.Now()) {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(f.fileNameOnly)) &&
 				strings.HasSuffix(filepath.Base(path), f.suffix) {
-				os.Remove(path)
+				err := os.Remove(path)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		return

@@ -70,6 +70,7 @@ func (i InitApply) GetPipeLine() ([]func(cluster *v1.Cluster) error, error) {
 		i.PluginPhasePreInitRun,
 		i.Init,
 		i.RunApply,
+		i.PluginPhasePreGuestRun,
 		i.RunGuest,
 		i.UnMountImage,
 		i.PluginPhasePostInstallRun,
@@ -129,6 +130,10 @@ func (i InitApply) RunApply(cluster *v1.Cluster) error {
 		return err
 	}
 	return nil
+}
+
+func (i InitApply) PluginPhasePreGuestRun(cluster *v1.Cluster) error {
+	return i.Plugins.Run(cluster, "PreGuest")
 }
 
 func (i InitApply) RunGuest(cluster *v1.Cluster) error {

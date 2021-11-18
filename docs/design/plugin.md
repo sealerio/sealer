@@ -55,3 +55,15 @@ spec:
      192.168.0.6 ssd=false,hdd=true
      192.168.0.7 ssd=false,hdd=true
 ```
+
+## clusterCheck plugin
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: checkCluster
+spec:
+  type: CLUSTERCHECK
+  action: PreGuest
+```  

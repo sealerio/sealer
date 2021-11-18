@@ -45,7 +45,7 @@ func DockerConfig() (*DockerInfo, error) {
 		return &DockerInfo{Auths: map[string]AuthItem{}}, AtomicWriteFile(authFile, []byte("{\"auths\":{}}"), common.FileMode0644)
 	}
 
-	filebyts, err := ioutil.ReadFile(authFile)
+	filebyts, err := ioutil.ReadFile(filepath.Clean(authFile))
 	if err != nil {
 		return nil, err
 	}

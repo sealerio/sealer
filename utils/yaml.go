@@ -17,6 +17,7 @@ package utils
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"reflect"
 
 	"sigs.k8s.io/yaml"
@@ -26,7 +27,7 @@ import (
 )
 
 func UnmarshalYamlFile(file string, obj interface{}) error {
-	data, err := ioutil.ReadFile(file)
+	data, err := ioutil.ReadFile(filepath.Clean(file))
 	if err != nil {
 		return err
 	}

@@ -97,6 +97,8 @@ func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 			p = NewEtcdBackupPlugin()
 		case HostNamePlugin:
 			p = NewHostnamePlugin()
+		case ClusterCheckPlugin:
+			p = NewClusterCheckerPlugin()
 		default:
 			return fmt.Errorf("not find plugin %v", config)
 		}

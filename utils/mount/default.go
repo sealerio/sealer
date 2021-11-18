@@ -114,7 +114,7 @@ func copyDir(srcPath string, dstPath string) error {
 
 func copyFile(src, dst string) error {
 	// open srcfile
-	srcFile, err := os.Open(src)
+	srcFile, err := os.Open(path.Clean(src))
 	if err != nil {
 		return fmt.Errorf("open file [%s] failed: %s", src, err)
 	}
