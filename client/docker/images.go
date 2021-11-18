@@ -37,11 +37,20 @@ func (d Docker) ImagesPull(images []string) error {
 		if strings.HasPrefix(image, "#") {
 			continue
 		}
-		if err := d.ImagePull(strings.TrimSpace(image)); err != nil {
+		if err := d.ImagePull(trimQuotes(strings.TrimSpace(image))); err != nil {
 			return fmt.Errorf("image %s pull failed: %v", image, err)
 		}
 	}
 	return nil
+}
+
+func trimQuotes(s string) string {
+	if len(s) >= 2 {
+		if c := s[len(s)-1]; s[0] == c && (c == '"' || c == '\'') {
+			return s[1 : len(s)-1]
+		}
+	}
+	return s
 }
 
 func (d Docker) ImagesPullByImageListFile(fileName string) error {
