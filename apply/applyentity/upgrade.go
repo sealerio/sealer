@@ -66,7 +66,6 @@ func (u UpgradeApply) Upgrade(cluster *v1.Cluster) error {
 	return u.Runtime.Upgrade(cluster)
 }
 
-
 func NewUpgradeApply(fs filesystem.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
 	// only do upgrade here. cancel scale action.
 	return UpgradeApply{

@@ -176,9 +176,9 @@ func (c *Client) ListSvcs(namespace string) (*v1.ServiceList, error) {
 	return svcs, nil
 }
 func (c *Client) GetClusterVersion() (*version.Info, error) {
-	info,err:=c.client.Discovery().ServerVersion()
-	if err!=nil{
+	info, err := c.client.Discovery().ServerVersion()
+	if err != nil {
 		return nil, err
 	}
-	return info,nil
+	return info, nil
 }
