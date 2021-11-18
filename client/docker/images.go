@@ -40,6 +40,53 @@ func (d Docker) ImagesCacheToRegistry(images []string, rawDocker bool) error {
 	return d.ImagesPush(images)
 }
 func (d Docker) ImagesPush(images []string) error {
+	for _, image := range utils.RemoveDuplicate(images) {
+		if image == "" {
+			continue
+		}
+		if strings.HasPrefix(image, "#") {
+			continue
+		}
+		if err := d.ImagePush(strings.TrimSpace(image)); err != nil {
+			return fmt.Errorf("image %s push failed: %v", image, err)
+		}
+	}
+	return nil
+}
+func (d Docker) ImagePush(image string) error {
+	var (
+		err          error
+		out          io.ReadCloser
+		named        reference.Named
+		registryName = `sea.hub:5000`
+		TagImageName string
+	)
+	named, err = GetCanonicalImageName(image)
+	if err != nil {
+		return fmt.Errorf("failed to parse canonical image name %s : %v", image, err)
+	}
+	TagImageName = strings.Replace(named.String(), named.String()[0:strings.Index(named.String(), `/`)], registryName, 1)
+	opts := types.ImagePushOptions(GetCanonicalImagePullOptions(named.String()))
+	if opts.RegistryAuth == "" {
+		opts.RegistryAuth = "sea.hub" //must not empty
+	}
+	err = d.cli.ImageTag(d.ctx, named.String(), TagImageName)
+	if err != nil {
+		return err
+	}
+	out, err = d.cli.ImagePush(d.ctx, TagImageName, opts)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = out.Close()
+	}()
+
+	err = dockerjsonmessage.DisplayJSONMessagesToStream(out, dockerstreams.NewOut(common.StdOut), nil)
+	if err != nil && err != io.ErrClosedPipe {
+		logger.Warn("error occurs in display progressing, err: %s", err)
+	}
+	logger.Info("success to push docker image: %s ", image)
 	return nil
 }
 func (d Docker) ImagesPull(images []string) error {
@@ -57,17 +104,17 @@ func (d Docker) ImagesPull(images []string) error {
 	return nil
 }
 
-func (d Docker) ImagesPullByImageListFile(fileName string) error {
-	data, err := utils.ReadLines(fileName)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Read image list failed: %v", err))
-	}
-	return d.ImagesPull(data)
-}
+// func (d Docker) ImagesPullByImageListFile(fileName string) error {
+// 	data, err := utils.ReadLines(fileName)
+// 	if err != nil {
+// 		logger.Error(fmt.Sprintf("Read image list failed: %v", err))
+// 	}
+// 	return d.ImagesPull(data)
+// }
 
-func (d Docker) ImagesPullByList(images []string) error {
-	return d.ImagesPull(images)
-}
+// func (d Docker) ImagesPullByList(images []string) error {
+// 	return d.ImagesPull(images)
+// }
 
 func (d Docker) ImagePull(image string) error {
 	var (
