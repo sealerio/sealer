@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 	"strings"
 )
 
@@ -92,7 +91,7 @@ func (l *Loader) LoadAll(names []string) (*Properties, error) {
 // If IgnoreMissing is true then a missing file will not be
 // reported as error.
 func (l *Loader) LoadFile(filename string) (*Properties, error) {
-	data, err := ioutil.ReadFile(path.Clean(filename))
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		if l.IgnoreMissing && os.IsNotExist(err) {
 			LogPrintf("properties: %s not found. skipping", filename)

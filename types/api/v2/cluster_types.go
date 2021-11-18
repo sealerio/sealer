@@ -30,10 +30,13 @@ type ClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Cluster. Edit Cluster_types.go to remove/update
-	Image string            `json:"image,omitempty"`
-	Env   map[string]string `json:"env,omitempty"`
-	Hosts []Hosts           `json:"hosts,omitempty"`
-	SSH   v1.SSH            `json:"ssh,omitempty"`
+	Image string `json:"image,omitempty"`
+	// Why env not using map[string]string
+	// Because some argument is list, like: CertSANS=127.0.0.1 CertSANS=localhost, if ENV is map, will merge those two values
+	// but user want to config a list, using array we can convert it to {CertSANS:[127.0.0.1, localhost]}
+	Env   []string `json:"env,omitempty"`
+	Hosts []Hosts  `json:"hosts,omitempty"`
+	SSH   v1.SSH   `json:"ssh,omitempty"`
 }
 
 type Hosts struct {
@@ -42,7 +45,7 @@ type Hosts struct {
 	//overwrite SSH config
 	SSH v1.SSH `json:"ssh,omitempty"`
 	//overwrite env
-	Env map[string]string `json:"env,omitempty"`
+	Env []string `json:"env,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster

@@ -116,6 +116,7 @@ func (d *Default) initRunner(cluster *v1.Cluster) (Interface, error) {
 	return d, nil
 	// return d.LoadMetadata()
 }
+
 func (d *Default) ConfigKubeadmOnMaster0() error {
 	var templateData string
 	var err error

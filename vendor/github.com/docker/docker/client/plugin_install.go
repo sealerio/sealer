@@ -50,27 +50,18 @@ func (cli *Client) PluginInstall(ctx context.Context, name string, options types
 		}()
 		if len(options.Args) > 0 {
 			if err := cli.PluginSet(ctx, name, options.Args); err != nil {
-				err := pw.CloseWithError(err)
-				if err != nil {
-					return
-				}
+				pw.CloseWithError(err)
 				return
 			}
 		}
 
 		if options.Disabled {
-			err := pw.Close()
-			if err != nil {
-				return
-			}
+			pw.Close()
 			return
 		}
 
 		enableErr := cli.PluginEnable(ctx, name, types.PluginEnableOptions{Timeout: 0})
-		err = pw.CloseWithError(enableErr)
-		if err != nil {
-			return
-		}
+		pw.CloseWithError(enableErr)
 	}()
 	return pr, nil
 }
