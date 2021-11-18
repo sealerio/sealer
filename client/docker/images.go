@@ -29,6 +29,19 @@ import (
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 )
 
+func (d Docker) ImagesCacheToRegistry(images []string, rawDocker bool) error {
+	if !rawDocker {
+		return d.ImagesPull(images)
+	}
+	// need a extra push step
+	if err := d.ImagesPull(images); err != nil {
+		return err
+	}
+	return d.ImagesPush(images)
+}
+func (d Docker) ImagesPush(images []string) error {
+	return nil
+}
 func (d Docker) ImagesPull(images []string) error {
 	for _, image := range utils.RemoveDuplicate(images) {
 		if image == "" {

@@ -22,7 +22,6 @@ import (
 	"github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils/charts"
 	manifest "github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils/manifests"
 	"github.com/alibaba/sealer/client/docker"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -39,18 +38,21 @@ type LayerCopy struct {
 	HandlerType string
 }
 
+//if support multiple container runtime(such as container) when build,should change element "DockerClient" to
+//a interface.involving three structs:HandleImageList,HandleYamlImageList,HandleChartImageList.
 type HandleImageList struct {
 	DockerClient *docker.Docker
 	Lc           LayerCopy
 }
 
-func (h HandleImageList) LayerValueHandler(buildContext string, layer v1.Layer) error {
+func (h HandleImageList) LayerValueHandler(buildContext string, rawDocker bool) error {
 	imageListFilePath := filepath.Join(buildContext, "imageList")
 	images, err := h.parseRawImageList(imageListFilePath)
 	if err != nil {
 		return err
 	}
-	return h.DockerClient.ImagesPull(images)
+	return h.DockerClient.ImagesCacheToRegistry(images, rawDocker)
+	//return h.DockerClient.ImagesPull(images)
 }
 
 func (h HandleImageList) parseRawImageList(imageListFilePath string) ([]string, error) {
@@ -71,13 +73,14 @@ type HandleYamlImageList struct {
 	Lc           LayerCopy
 }
 
-func (h HandleYamlImageList) LayerValueHandler(buildContext string, layer v1.Layer) error {
+func (h HandleYamlImageList) LayerValueHandler(buildContext string, rawDocker bool) error {
 	yamlFilePath := filepath.Join(buildContext, h.Lc.Src)
 	images, err := h.parseYamlImages(yamlFilePath)
 	if err != nil {
 		return err
 	}
-	return h.DockerClient.ImagesPull(images)
+	return h.DockerClient.ImagesCacheToRegistry(images, rawDocker)
+	//return h.DockerClient.ImagesPull(images)
 }
 
 func (h HandleYamlImageList) parseYamlImages(yamlFilePath string) ([]string, error) {
@@ -96,13 +99,14 @@ type HandleChartImageList struct {
 	Lc           LayerCopy
 }
 
-func (h HandleChartImageList) LayerValueHandler(buildContext string, layer v1.Layer) error {
+func (h HandleChartImageList) LayerValueHandler(buildContext string, rawDocker bool) error {
 	chartFilePath := filepath.Join(buildContext, h.Lc.Src)
 	images, err := h.parseChartImages(chartFilePath)
 	if err != nil {
 		return err
 	}
-	return h.DockerClient.ImagesPull(images)
+	return h.DockerClient.ImagesCacheToRegistry(images, rawDocker)
+	//return h.DockerClient.ImagesPull(images)
 }
 
 func (h HandleChartImageList) parseChartImages(chartFilePath string) ([]string, error) {

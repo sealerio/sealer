@@ -28,6 +28,7 @@ type BuildFlag struct {
 	KubefileName string
 	BuildType    string
 	NoCache      bool
+	RawDocker    bool
 }
 
 var buildConfig *BuildFlag
@@ -38,16 +39,16 @@ var buildCmd = &cobra.Command{
 	Short: "cloud image local build command line",
 	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.9 [--mode cloud|container|lite] [--no-cache]",
 	Args:  cobra.ExactArgs(1),
-	Example: `the current path is the context path, default build type is cloud and use build cache
+	Example: `the current path is the context path, default build type is lite and use build cache
 
 cloud build:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 -m cloud
 
 container build:
 	sealer build -f Kubefile -t my-kubernetes:1.19.9 -m container
 
 lite build:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 --mode lite
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 -m lite
 
 build without cache:
 	sealer build -f Kubefile -t my-kubernetes:1.19.9 --no-cache
@@ -57,6 +58,7 @@ build without cache:
 			BuildType: buildConfig.BuildType,
 			NoCache:   buildConfig.NoCache,
 			ImageName: buildConfig.ImageName,
+			RawDocker: buildConfig.RawDocker,
 		}
 
 		builder, err := build.NewBuilder(conf)
@@ -75,6 +77,7 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
+	buildCmd.Flags().BoolVar(&buildConfig.RawDocker, "raw-docker", false, "build on a cluster use official raw docker")
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logger.Error("failed to init flag: %v", err)
 		os.Exit(1)

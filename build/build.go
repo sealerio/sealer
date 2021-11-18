@@ -52,5 +52,6 @@ func NewLiteBuilder(config *Config) (Interface, error) {
 	return &lite.Builder{
 		BuildType: config.BuildType,
 		NoCache:   config.NoCache,
+		RawDocker: config.RawDocker,
 	}, nil
 }

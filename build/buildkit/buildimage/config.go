@@ -19,4 +19,6 @@ type Context struct {
 	BuildType    string
 	//cache flag,will change for each layer ctx
 	UseCache bool
+	//identify whether the cluster use raw docker,raw docker need one more step "push" to cache docker image.
+	RawDocker bool
 }

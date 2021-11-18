@@ -14,10 +14,6 @@
 
 package buildlayer
 
-import (
-	v1 "github.com/alibaba/sealer/types/api/v1"
-)
-
 type LayerHandler interface {
-	LayerValueHandler(buildContext string, layer v1.Layer) error
+	LayerValueHandler(buildContext string, rawDocker bool) error
 }

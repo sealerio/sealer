@@ -62,6 +62,7 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 	} else {
 		execCtx = buildinstruction.NewExecContextWithoutCache(ctx.BuildType, ctx.BuildContext, b.LayerStore)
 	}
+	execCtx.RawDocker = ctx.RawDocker
 	for i := 0; i < len(newLayers); i++ {
 		//we are to set layer id for each new layers.
 		layer := &newLayers[i]
