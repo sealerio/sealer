@@ -135,7 +135,7 @@ func (d DefaultImageFileService) load(imageSrc string) (*types.ImageMetadata, er
 		err     error
 		image   v1.Image
 	)
-	srcFile, err = os.Open(imageSrc)
+	srcFile, err = os.Open(filepath.Clean(imageSrc))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
 	}
@@ -153,7 +153,7 @@ func (d DefaultImageFileService) load(imageSrc string) (*types.ImageMetadata, er
 	repofile := filepath.Join(common.DefaultLayerDir, common.DefaultMetadataName)
 	defer os.Remove(repofile)
 
-	repo, err := ioutil.ReadFile(repofile)
+	repo, err := ioutil.ReadFile(filepath.Clean(repofile))
 	if err != nil {
 		return nil, err
 	}

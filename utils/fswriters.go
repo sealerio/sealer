@@ -27,7 +27,10 @@ type atomicFileWriter struct {
 
 func (a *atomicFileWriter) close() (err error) {
 	if err = a.f.Sync(); err != nil {
-		a.f.Close()
+		err := a.f.Close()
+		if err != nil {
+			return err
+		}
 		return err
 	}
 	if err := a.f.Close(); err != nil {

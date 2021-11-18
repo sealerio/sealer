@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -414,7 +415,7 @@ func SetLogger(param ...string) {
 	err := json.Unmarshal([]byte(c), conf)
 	if err != nil { //不是json，就认为是配置文件，如果都不是，打印日志，然后退出
 		// Open the configuration file
-		fd, err := os.Open(c)
+		fd, err := os.Open(filepath.Clean(c))
 		if err != nil {
 			fmt.Fprintf(common.StdErr, "Could not open %s for configure: %s\n", c, err)
 			os.Exit(1)

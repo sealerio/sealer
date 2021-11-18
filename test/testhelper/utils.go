@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -84,7 +85,7 @@ func IsFileExist(filename string) bool {
 }
 
 func UnmarshalYamlFile(file string, obj interface{}) error {
-	data, err := ioutil.ReadFile(file)
+	data, err := ioutil.ReadFile(path.Clean(file))
 	if err != nil {
 		return err
 	}

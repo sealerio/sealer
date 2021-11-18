@@ -20,6 +20,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -64,7 +65,10 @@ func (s *SSH) Connect(host string) (*ssh.Client, *ssh.Session, error) {
 
 	session, err := client.NewSession()
 	if err != nil {
-		client.Close()
+		err := client.Close()
+		if err != nil {
+			return nil, nil, err
+		}
 		return nil, nil, err
 	}
 
@@ -75,7 +79,10 @@ func (s *SSH) Connect(host string) (*ssh.Client, *ssh.Session, error) {
 	}
 
 	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
-		client.Close()
+		err := client.Close()
+		if err != nil {
+			return nil, nil, err
+		}
 		return nil, nil, err
 	}
 
@@ -97,7 +104,7 @@ func (s *SSH) sshAuthMethod(password, pkFile, pkPasswd string) (auth []ssh.AuthM
 
 //Authentication with a private key,private key has password and no password to verify in this
 func (s *SSH) sshPrivateKeyMethod(pkFile, pkPassword string) (am ssh.AuthMethod, err error) {
-	pkData, err := ioutil.ReadFile(pkFile)
+	pkData, err := ioutil.ReadFile(filepath.Clean(pkFile))
 	if err != nil {
 		return nil, err
 	}

@@ -83,7 +83,10 @@ delete all:
 			var input string
 			for {
 				fmt.Printf("Are you sure to delete the cluster? Yes [y/yes], No [n/no] : ")
-				fmt.Scanln(&input)
+				_, err := fmt.Scanln(&input)
+				if err != nil {
+					return err
+				}
 				if yesRx.MatchString(input) {
 					break
 				}
