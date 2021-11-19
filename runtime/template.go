@@ -32,6 +32,7 @@ const (
 	kubeproxyConfigTemplateName = "kubeadm-kubeproxy-config.yaml.tmpl"
 	kubeletConfigTemplateName   = "kubeadm-kubelet-config.yaml.tmpl"
 	joinConfigTemplateName      = "kubeadm-join-config.yaml.tmpl"
+	KubeadmConfigYamlName       = "kubeadm.yaml"
 )
 
 const ( /* #nosec G101  */
@@ -218,6 +219,15 @@ echo ${driver}`
 	echo "${driver}"`
 )
 
+func GetInitKubeadmConfigYaml(clusterName string) string {
+	return readFromFileOrDefault(clusterName, KubeadmConfigYamlName,
+		fmt.Sprintf("%s\n---\n%s\n---\n%s\n---\n%s",
+			initConfigurationDefault,
+			clusterConfigurationDefault,
+			kubeproxyConfigDefault,
+			kubeletConfigDefault))
+}
+
 // Get from rootfs or by default
 func getInitTemplateText(clusterName string) string {
 	return fmt.Sprintf("%s\n---\n%s\n---\n%s\n---\n%s",
@@ -238,6 +248,9 @@ func getJoinTemplateText(clusterName string) string {
 
 // return file content or defaultContent if file not exist
 func readFromFileOrDefault(clusterName, fileName, defaultContent string) string {
+	if clusterName == "" {
+		return defaultContent
+	}
 	fileName = filepath.Join(common.DefaultMountCloudImageDir(clusterName), common.EtcDir, fileName)
 	_, err := os.Stat(fileName)
 	if os.IsNotExist(err) {

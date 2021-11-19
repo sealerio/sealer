@@ -68,3 +68,15 @@ func YamlMatcher(path string) bool {
 	ext := filepath.Ext(path)
 	return ext == ".yaml" || ext == ".yml"
 }
+
+func MarshalConfigYaml(in ...interface{}) ([]byte, error) {
+	var configs [][]byte
+	for i := range in {
+		config, err := yaml.Marshal(in[i])
+		if err != nil {
+			return nil, err
+		}
+		configs = append(configs, []byte("---\n"), config)
+	}
+	return bytes.Join(configs, []byte("")), nil
+}

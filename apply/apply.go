@@ -15,8 +15,6 @@
 package apply
 
 import (
-	"fmt"
-
 	"github.com/alibaba/sealer/apply/applytype"
 
 	"github.com/alibaba/sealer/common"
@@ -27,17 +25,10 @@ import (
 )
 
 func NewApplierFromFile(clusterfile string) (applytype.Interface, error) {
-	clusters, err := utils.DecodeCluster(clusterfile)
+	cluster, err := utils.DecodeCluster(clusterfile)
 	if err != nil {
 		return nil, err
 	}
-	if len(clusters) == 0 {
-		return nil, fmt.Errorf("failed to found cluster from %s", clusterfile)
-	}
-	if len(clusters) > 1 {
-		return nil, fmt.Errorf("multiple clusters exist in the Clusterfile")
-	}
-	cluster := &clusters[0]
 	cluster.SetAnnotations(common.ClusterfileName, clusterfile)
 	return NewApplier(cluster)
 }

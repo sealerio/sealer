@@ -15,12 +15,17 @@
 package runtime
 
 import (
+	"fmt"
+
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
+	"github.com/alibaba/sealer/runtime"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
+	"github.com/imdario/mergo"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
-
-	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
 )
 
 // Read config from https://github.com/alibaba/sealer/blob/main/docs/design/clusterfile-v2.md and overwrite default kubeadm.yaml
@@ -40,49 +45,88 @@ type KubeadmConfig struct {
 // If has `KubeadmConfig` in Clusterfile, load every field to each configurations
 // If Kubeadm raw config in Clusterfile, just load it
 func (k *KubeadmConfig) LoadFromClusterfile(fileName string) error {
-	// TODO
-	Config, err := utils.DecodeCRD(fileName, common.InitConfiguration)
+	if err := k.init(fileName); err != nil {
+		return err
+	}
+	kubeConfig, err := utils.DecodeCRDFromFile(fileName, common.KubeConfig)
 	if err != nil {
 		return err
 	}
-	if Config != nil {
-		k.InitConfiguration = Config.(*v1beta2.InitConfiguration)
+	// type conversion
+	customConfig := KubeadmConfig{
+		InitConfiguration:      &kubeConfig.(*v2.KubeConfig).Spec.InitConfiguration,
+		ClusterConfiguration:   &kubeConfig.(*v2.KubeConfig).Spec.ClusterConfiguration,
+		KubeletConfiguration:   &kubeConfig.(*v2.KubeConfig).Spec.KubeletConfiguration,
+		KubeProxyConfiguration: &kubeConfig.(*v2.KubeConfig).Spec.KubeProxyConfiguration,
 	}
-	Config, err = utils.DecodeCRD(fileName, common.ClusterConfiguration)
-	if err != nil {
-		return err
-	}
-	if Config != nil {
-		k.ClusterConfiguration = Config.(*v1beta2.ClusterConfiguration)
-	}
-	Config, err = utils.DecodeCRD(fileName, common.KubeProxyConfiguration)
-	if err != nil {
-		return err
-	}
-	if Config != nil {
-		k.KubeProxyConfiguration = Config.(*v1alpha1.KubeProxyConfiguration)
-	}
-	Config, err = utils.DecodeCRD(fileName, common.KubeletConfiguration)
-	if err != nil {
-		return err
-	}
-	if Config != nil {
-		k.KubeletConfiguration = Config.(*v1beta1.KubeletConfiguration)
-	}
-
-	Config, err = utils.DecodeCRD(fileName, common.KubeConfig)
-	if err != nil {
-		return err
-	}
-	if Config != nil {
-
-	}
-
-	return nil
+	return mergo.Merge(k, customConfig, mergo.WithOverride, mergo.WithOverwriteWithEmptyValue)
 }
 
 // Using github.com/imdario/mergo to merge KubeadmConfig to the CloudImage default kubeadm config, overwrite some field.
 func (k *KubeadmConfig) Merge(defaultKubeadmConfig string) ([]byte, error) {
-	// TODO
-	return []byte{}, nil
+	/**
+	1. use rootfs/etc/kubeadm.yaml, if kubeadm.yaml not exist, use default raw kubeadm config
+	2. kubeadm config from Clusterfile > ⬆ merge  WithOverride
+	3. kubeConfig from Clusterfile > ⬆ merge WithOverride
+	**/
+
+	/* defaultKubeadmConfig = runtime.GetInitKubeadmConfigYaml("my-cluster") */
+
+	defaultKubeConfig, err := utils.DecodeCRDFromString(defaultKubeadmConfig, common.KubeConfig)
+	if err != nil {
+		return nil, err
+	}
+	if defaultKubeConfig == nil {
+		logger.Warn("kubeadm config not found in cloud image")
+		defaultKubeadmConfig = runtime.GetInitKubeadmConfigYaml("")
+		return k.Merge(defaultKubeadmConfig)
+	}
+	defaultConfig := KubeadmConfig{
+		InitConfiguration:      &defaultKubeConfig.(*v2.KubeConfig).Spec.InitConfiguration,
+		ClusterConfiguration:   &defaultKubeConfig.(*v2.KubeConfig).Spec.ClusterConfiguration,
+		KubeletConfiguration:   &defaultKubeConfig.(*v2.KubeConfig).Spec.KubeletConfiguration,
+		KubeProxyConfiguration: &defaultKubeConfig.(*v2.KubeConfig).Spec.KubeProxyConfiguration,
+	}
+	/*	err = k.LoadFromClusterfile("clusterfile")
+		if err != nil {
+			return nil, err
+		}*/
+
+	//Override default kubeadm config
+	err = mergo.Merge(&defaultConfig, *k, mergo.WithOverride)
+	if err != nil {
+		return nil, fmt.Errorf("failed to merge default kube config, err: %v", err)
+	}
+	return utils.MarshalConfigYaml(&defaultConfig.InitConfiguration,
+		&defaultConfig.ClusterConfiguration,
+		&defaultConfig.KubeletConfiguration,
+		&defaultConfig.KubeProxyConfiguration)
+}
+
+func (k *KubeadmConfig) init(fileName string) error {
+	initConfig, err := utils.DecodeCRDFromFile(fileName, common.InitConfiguration)
+	if err != nil {
+		return err
+	}
+	clusterConfig, err := utils.DecodeCRDFromFile(fileName, common.ClusterConfiguration)
+	if err != nil {
+		return err
+	}
+	kubeProxyConfig, err := utils.DecodeCRDFromFile(fileName, common.KubeProxyConfiguration)
+	if err != nil {
+		return err
+	}
+	kubeletConfig, err := utils.DecodeCRDFromFile(fileName, common.KubeletConfiguration)
+	if err != nil {
+		return err
+	}
+	k.InitConfiguration = initConfig.(*v1beta2.InitConfiguration)
+	k.ClusterConfiguration = clusterConfig.(*v1beta2.ClusterConfiguration)
+	k.KubeletConfiguration = kubeletConfig.(*v1beta1.KubeletConfiguration)
+	k.KubeProxyConfiguration = kubeProxyConfig.(*v1alpha1.KubeProxyConfiguration)
+	return nil
+}
+
+func NewKubeadmConfig() interface{} {
+	return &KubeadmConfig{}
 }

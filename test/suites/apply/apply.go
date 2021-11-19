@@ -62,10 +62,10 @@ func WriteClusterFileToDisk(cluster *v1.Cluster, clusterFilePath string) {
 }
 
 func LoadClusterFileFromDisk(clusterFilePath string) *v1.Cluster {
-	clusters, err := utils.DecodeCluster(clusterFilePath)
+	cluster, err := utils.DecodeCluster(clusterFilePath)
 	testhelper.CheckErr(err)
-	testhelper.CheckNotNil(clusters[0])
-	return &clusters[0]
+	testhelper.CheckNotNil(cluster)
+	return cluster
 }
 
 func LoadConfigFromDisk(clusterFilePath string) []v1.Config {
