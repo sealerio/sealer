@@ -263,3 +263,6 @@ buildContext: 用于构建集群镜像的上下文，默认为当前目录。
 layer: 构建阶段，对应的集群镜像层的内容，包括layer value,layer type。
 error: 当执行构建时候，如有发生错误，则会返回该错误。
 ```
+
+### docker镜像缓存
+如果使用的是sealer定制的docker，则docker镜像缓存到私有仓库只需要一步：从官方仓库pull镜像。因为sealer把私有仓库设置为代理，所有镜像都会先pull到私有仓库，然后才会再从私有仓库pull到本地。如果使用的是原生的docker，则docker镜像缓存到私有仓库需要两步：首先，从官方仓库pull镜像。然后，将pull到本地的镜像再push到私有仓库中。通过在命令中添加一个标志位--raw-docker来进行区分，若没有设置该标志位，则只进行pull操作，若设置了该标志位，则进行pull和push操作。
