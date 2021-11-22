@@ -38,6 +38,7 @@ const (
 	DefaultVIP                     = "10.103.97.2"
 	DefaultAPIserverDomain         = "apiserver.cluster.local"
 	DefaultRegistryPort            = 5000
+	DockerCertDir                  = "/etc/docker/certs.d"
 )
 
 func (d *Default) init(cluster *v1.Cluster) error {
@@ -105,6 +106,7 @@ func (d *Default) initRunner(cluster *v1.Cluster) (Interface, error) {
 	d.BasePath = path.Join(common.DefaultClusterRootfsDir, d.ClusterName)
 	d.CertPath = fmt.Sprintf("%s/pki", d.BasePath)
 	d.CertEtcdPath = fmt.Sprintf("%s/etcd", d.CertPath)
+	d.RegistryCertPath = fmt.Sprintf("%s/certs", d.BasePath)
 	d.StaticFileDir = fmt.Sprintf("%s/statics", d.Rootfs)
 	// TODO remote port in ipList
 	d.APIServerCertSANs = append(cluster.Spec.CertSANS, d.getDefaultSANs()...)
@@ -158,9 +160,15 @@ func (d *Default) GenerateCert() error {
 	if err != nil {
 		return fmt.Errorf("generate certs failed %v", err)
 	}
-	d.sendNewCertAndKey(d.Masters[:1])
-
-	return nil
+	err = cert.GenerateRegistryCert(filepath.Join(d.BasePath, "certs"), SeaHub)
+	if err != nil {
+		return err
+	}
+	err = d.sendNewCertAndKey(d.Masters[:1])
+	if err != nil {
+		return err
+	}
+	return d.sendRegistryCert(append(d.Masters, d.Nodes...))
 }
 
 func (d *Default) CreateKubeConfig() error {
@@ -181,11 +189,14 @@ func (d *Default) CreateKubeConfig() error {
 
 //InitMaster0 is
 func (d *Default) InitMaster0() error {
-	d.SendJoinMasterKubeConfigs(d.Masters[:1], AdminConf, ControllerConf, SchedulerConf, KubeletConf)
+	err := d.SendJoinMasterKubeConfigs(d.Masters[:1], AdminConf, ControllerConf, SchedulerConf, KubeletConf)
+	if err != nil {
+		return err
+	}
 
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(utils.GetHostIP(d.Masters[0]), d.APIServer))
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(d.Rootfs, d.Masters[0]))
-	err := d.SSH.CmdAsync(d.Masters[0], cmdAddEtcHost, cmdAddRegistryHosts)
+	err = d.SSH.CmdAsync(d.Masters[0], cmdAddEtcHost, cmdAddRegistryHosts)
 	if err != nil {
 		return err
 	}

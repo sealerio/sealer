@@ -16,6 +16,8 @@ package cert
 
 import (
 	"fmt"
+
+	"github.com/alibaba/sealer/common"
 )
 
 // CMD return sealer cert command
@@ -53,4 +55,19 @@ func GenerateCert(certPATH, certEtcdPATH string, altNames []string, hostIP, host
 		return fmt.Errorf("generator cert config failed %v", err)
 	}
 	return certConfig.GenerateAll()
+}
+
+func GenerateRegistryCert(registryCertPath string, BaseName string) error {
+	regCertConfig := Config{
+		Path:         registryCertPath,
+		BaseName:     BaseName,
+		CommonName:   BaseName,
+		Organization: []string{common.ExecBinaryFileName},
+		Year:         100,
+	}
+	cert, key, err := NewCaCertAndKey(regCertConfig)
+	if err != nil {
+		return err
+	}
+	return WriteCertAndKey(regCertConfig.Path, regCertConfig.BaseName, cert, key)
 }

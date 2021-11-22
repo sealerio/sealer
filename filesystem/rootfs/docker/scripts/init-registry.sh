@@ -45,9 +45,10 @@ if [ "$(docker ps -aq -f name=$container)" ]; then
 fi
 
 config=$(dirname "$(pwd)")'/etc/registry_config.yaml'
+certs_dir=$(cd ../;pwd)'/certs'
 
 if [ -f $config ]; then
-    docker run -d --restart=always --net=host --name $container -v $VOLUME:/var/lib/registry registry:2.7.1 -v $config:/etc/docker/registry/config.yml|| startRegistry
+    docker run -d --restart=always --net=host --name $container -v $certs_dir:/certs -v $VOLUME:/var/lib/registry registry:2.7.1 -v $config:/etc/docker/registry/config.yml -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/sea.hub.crt -e REGISTRY_HTTP_TLS_KEY=/certs/sea.hub.key || startRegistry
 else
-    docker run -d --restart=always --net=host --name $container -v $VOLUME:/var/lib/registry registry:2.7.1 || startRegistry
+    docker run -d --restart=always --net=host --name $container -v $certs_dir:/certs -v $VOLUME:/var/lib/registry registry:2.7.1 -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/sea.hub.crt -e REGISTRY_HTTP_TLS_KEY=/certs/sea.hub.key || startRegistry
 fi
