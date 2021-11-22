@@ -17,6 +17,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -37,7 +38,7 @@ func (d httpDir) Open(name string) (http.File, error) {
 		dir = "."
 	}
 
-	f, err := d.fs.Open(filepath.Join(dir, filepath.FromSlash(filepath.Clean("/"+name))))
+	f, err := d.fs.Open(filepath.Join(dir, filepath.FromSlash(path.Clean("/"+name))))
 	if err != nil {
 		return nil, err
 	}

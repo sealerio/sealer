@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path/filepath"
+	"path"
 	"regexp"
 )
 
@@ -467,7 +467,7 @@ func cleanPath(p string) string {
 	if p[0] != '/' {
 		p = "/" + p
 	}
-	np := filepath.Clean(p)
+	np := path.Clean(p)
 	// path.Clean removes trailing slash except for root;
 	// put the trailing slash back if necessary.
 	if p[len(p)-1] == '/' && np != "/" {

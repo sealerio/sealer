@@ -283,5 +283,5 @@ func cleanPath(p string) string {
 	if !path.IsAbs(p) {
 		p = "/" + p
 	}
-	return filepath.Clean(p)
+	return path.Clean(p)
 }
