@@ -17,7 +17,7 @@ package checker
 import (
 	"fmt"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
 const (
@@ -28,16 +28,16 @@ const (
 
 // Define checkers when pre or post install, like checker node status, checker pod status...
 type Interface interface {
-	Check(cluster *v1.Cluster, phase string) error
+	Check(cluster *v2.Cluster, phase string) error
 }
 
-func RunViewCheckList(cluster *v1.Cluster) error {
+func RunViewCheckList(cluster *v2.Cluster) error {
 	list := []Interface{NewNodeChecker(), NewSvcChecker(), NewPodChecker()}
 
 	return RunCheckList(list, cluster, PhaseView)
 }
 
-func RunCheckList(list []Interface, cluster *v1.Cluster, phase string) error {
+func RunCheckList(list []Interface, cluster *v2.Cluster, phase string) error {
 	for _, l := range list {
 		if err := l.Check(cluster, phase); err != nil {
 			return fmt.Errorf("failed to run checker: %v", err)

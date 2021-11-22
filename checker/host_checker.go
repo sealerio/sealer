@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"time"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/utils/ssh"
 )
@@ -27,12 +27,16 @@ import (
 type HostChecker struct {
 }
 
-func (a HostChecker) Check(cluster *v1.Cluster, phase string) error {
+func (a HostChecker) Check(cluster *v2.Cluster, phase string) error {
+	var ipList []string
 	ssh, err := ssh.NewSSHClientWithCluster(cluster)
 	if err != nil {
 		return err
 	}
-	ipList := append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)
+	for _, Hosts := range cluster.Spec.Hosts {
+		ipList = append(ipList, Hosts.IPS...)
+	}
+	//this line can delete in the future	ipList := append(cluster.Spec.Hosts, cluster.Spec.Nodes.IPList...)
 
 	err = checkHostnameUnique(ssh.SSH, ipList)
 	if err != nil {
