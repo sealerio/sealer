@@ -37,7 +37,7 @@ var checkCmd = &cobra.Command{
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if checkArgs.Pre && checkArgs.Post {
-			return fmt.Errorf("don't allow to set tow flags --pre and --post")
+			return fmt.Errorf("don't allow to set two flags --pre and --post")
 		}
 
 		if checkArgs.Pre {
