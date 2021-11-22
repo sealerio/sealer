@@ -21,7 +21,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -237,7 +236,7 @@ func (fs *filesystem) GetMetadata(id digest.Digest, key string) ([]byte, error) 
 	fs.Lock()
 	defer fs.Unlock()
 
-	bytes, err := ioutil.ReadFile(path.Clean(filepath.Join(fs.LayerDBDir(id), key)))
+	bytes, err := ioutil.ReadFile(filepath.Clean(filepath.Join(fs.LayerDBDir(id), key)))
 	if err != nil {
 		return nil, errors.Errorf("failed to read metadata, err: %v", err)
 	}
@@ -286,7 +285,7 @@ func (fs *filesystem) loadLayerID(layerDBPath string) (LayerID, error) {
 	fs.RLock()
 	defer fs.RUnlock()
 
-	idBytes, err := ioutil.ReadFile(path.Clean(filepath.Join(layerDBPath, "id")))
+	idBytes, err := ioutil.ReadFile(filepath.Clean(filepath.Join(layerDBPath, "id")))
 	if err != nil {
 		return "", err
 	}

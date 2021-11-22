@@ -16,6 +16,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -543,7 +544,7 @@ func (fi headerFileInfo) Sys() interface{}   { return fi.h }
 // Name returns the base name of the file.
 func (fi headerFileInfo) Name() string {
 	if fi.IsDir() {
-		return path.Base(path.Clean(fi.h.Name))
+		return path.Base(filepath.Clean(fi.h.Name))
 	}
 	return path.Base(fi.h.Name)
 }

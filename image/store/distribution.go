@@ -17,7 +17,6 @@ package store
 import (
 	"encoding/json"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/opencontainers/go-digest"
@@ -40,7 +39,7 @@ func (fs *filesystem) LoadDistributionMetadata(layerID LayerID) (map[string]dige
 		metadatas   = DistributionMetadata{}
 		res         = map[string]digest.Digest{}
 	)
-	distributionMetadataFile, err := os.Open(path.Clean(filepath.Join(layerDBPath, "distribution_layer_digest")))
+	distributionMetadataFile, err := os.Open(filepath.Clean(filepath.Join(layerDBPath, "distribution_layer_digest")))
 	if err != nil {
 		//lint:ignore nilerr https://github.com/alibaba/sealer/issues/610
 		return res, nil // ignore

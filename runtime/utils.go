@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -127,7 +128,7 @@ func LoadMetadata(metadataPath string) (*Metadata, error) {
 		return nil, nil
 	}
 
-	metadataFile, err = ioutil.ReadFile(path.Clean(metadataPath))
+	metadataFile, err = ioutil.ReadFile(filepath.Clean(metadataPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CloudImage metadata %v", err)
 	}
