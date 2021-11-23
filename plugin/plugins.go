@@ -26,22 +26,6 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-/*
-config in PluginConfig:
-
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Plugin
-metadata:
-  name: SHELL
-spec:
-  action: PostInstall
-  on: role=master
-  data: |
-    kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
-
-Dump will dump the config to etc/redis-config.yaml file
-*/
-
 type Plugins interface {
 	Dump(clusterfile string) error
 	Load() error
@@ -60,7 +44,7 @@ func NewPlugins(clusterName string) Plugins {
 	}
 }
 
-// load plugin configs in rootfs/plugin dir
+// Load loads plugin configs in rootfs/plugin dir
 func (c *PluginsProcessor) Load() error {
 	c.Plugins = nil
 	path := common.DefaultTheClusterRootfsPluginDir(c.ClusterName)
@@ -74,6 +58,9 @@ func (c *PluginsProcessor) Load() error {
 		return fmt.Errorf("failed to load plugin dir %v", err)
 	}
 	for _, f := range files {
+		if !utils.YamlMatcher(f.Name()) {
+			continue
+		}
 		plugins, err := utils.DecodePlugins(filepath.Join(path, f.Name()))
 		if err != nil {
 			return fmt.Errorf("failed to load plugin %v", err)
@@ -99,6 +86,8 @@ func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 			p = NewHostnamePlugin()
 		case ClusterCheckPlugin:
 			p = NewClusterCheckerPlugin()
+		case GolangPlugin:
+			p = NewGolangPlugin()
 		default:
 			return fmt.Errorf("not find plugin %v", config)
 		}

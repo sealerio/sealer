@@ -33,6 +33,9 @@ const (
 )
 
 const (
+	// Plugin used for golang so file to find the related symbol
+	Plugin             = "Plugin"
+	GolangPlugin       = "GOLANG"
 	EtcdPlugin         = "ETCD"
 	LabelPlugin        = "LABEL"
 	ShellPlugin        = "SHELL"

@@ -21,7 +21,7 @@ spec:
   provider: BAREMETAL
   ssh:
     # SSH login password, if you use the key to log in, you don’t need to set it
-    passwd: Wang1994@
+    passwd: Seadent123
     # ssh login user
     user: root
   network:
