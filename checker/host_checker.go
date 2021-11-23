@@ -29,11 +29,8 @@ type HostChecker struct {
 }
 
 func (a HostChecker) Check(cluster *v2.Cluster, phase string) error {
-	ssh, err := ssh.NewSSHClient(cluster.Spec.SSH)
-	if err != nil {
-		return err
-	}
-	err = checkHostnameUnique(ssh, cluster.Spec.Hosts)
+	ssh := ssh.NewSSHClient(&cluster.Spec.SSH)
+	err := checkHostnameUnique(ssh, cluster.Spec.Hosts)
 	if err != nil {
 		return err
 	}
@@ -49,7 +46,7 @@ func checkHostnameUnique(globalSSH ssh.Interface, HostList []v2.Hosts) error {
 	var localSSH ssh.Interface
 	for _, hosts := range HostList {
 		if hosts.SSH != (v1.SSH{}) {
-			localSSH = ssh.NewSSHClient(hosts.SSH)
+			localSSH = ssh.NewSSHClient(&hosts.SSH)
 		} else {
 			localSSH = globalSSH
 		}
@@ -72,7 +69,7 @@ func checkTimeSync(globalSSH ssh.Interface, HostList []v2.Hosts) error {
 	var localSSH ssh.Interface
 	for _, hosts := range HostList {
 		if hosts.SSH != (v1.SSH{}) {
-			localSSH = ssh.NewSSHClient(hosts.SSH)
+			localSSH = ssh.NewSSHClient(&hosts.SSH)
 		} else {
 			localSSH = globalSSH
 		}
