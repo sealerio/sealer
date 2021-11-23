@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"time"
 
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/utils/ssh"
@@ -28,56 +29,66 @@ type HostChecker struct {
 }
 
 func (a HostChecker) Check(cluster *v2.Cluster, phase string) error {
-	var ipList []string
-	ssh, err := ssh.NewSSHClientWithCluster(cluster)
+	ssh, err := ssh.NewSSHClient(cluster.Spec.SSH)
 	if err != nil {
 		return err
 	}
-	for _, Hosts := range cluster.Spec.Hosts {
-		ipList = append(ipList, Hosts.IPS...)
-	}
-	//this line can delete in the future	ipList := append(cluster.Spec.Hosts, cluster.Spec.Nodes.IPList...)
-
-	err = checkHostnameUnique(ssh.SSH, ipList)
+	err = checkHostnameUnique(ssh, cluster.Spec.Hosts)
 	if err != nil {
 		return err
 	}
-	return checkTimeSync(ssh.SSH, ipList)
+	return checkTimeSync(ssh, cluster.Spec.Hosts)
 }
 
 func NewHostChecker() Interface {
 	return &HostChecker{}
 }
 
-func checkHostnameUnique(s ssh.Interface, ipList []string) error {
+func checkHostnameUnique(globalSSH ssh.Interface, HostList []v2.Hosts) error {
 	hostnameList := map[string]bool{}
-	for _, ip := range ipList {
-		hostname, err := s.CmdToString(ip, "hostname", "")
-		if err != nil {
-			return fmt.Errorf("failed to get host %s hostname, %v", ip, err)
+	var localSSH ssh.Interface
+	for _, hosts := range HostList {
+		if hosts.SSH != (v1.SSH{}) {
+			localSSH = ssh.NewSSHClient(hosts.SSH)
+		} else {
+			localSSH = globalSSH
 		}
-		if hostnameList[hostname] {
-			return fmt.Errorf("hostname cannot be repeated, please set diffent hostname")
+		for _, IP := range hosts.IPS {
+			hostname, err := localSSH.CmdToString(IP, "hostname", "")
+			if err != nil {
+				return fmt.Errorf("failed to get host %s hostname, %v", IP, err)
+			}
+			if hostnameList[hostname] {
+				return fmt.Errorf("hostname cannot be repeated, please set diffent hostname")
+			}
+			hostnameList[hostname] = true
 		}
-		hostnameList[hostname] = true
 	}
 	return nil
 }
 
 //Check whether the node time is synchronized
-func checkTimeSync(s ssh.Interface, ipList []string) error {
-	for _, ip := range ipList {
-		timeStamp, err := s.CmdToString(ip, "date +%s", "")
-		if err != nil {
-			return fmt.Errorf("failed to get %s timestamp, %v", ip, err)
+func checkTimeSync(globalSSH ssh.Interface, HostList []v2.Hosts) error {
+	var localSSH ssh.Interface
+	for _, hosts := range HostList {
+		if hosts.SSH != (v1.SSH{}) {
+			localSSH = ssh.NewSSHClient(hosts.SSH)
+		} else {
+			localSSH = globalSSH
 		}
-		ts, err := strconv.Atoi(timeStamp)
-		if err != nil {
-			return fmt.Errorf("failed to reverse timestamp %s, %v", timeStamp, err)
-		}
-		timeDiff := time.Since(time.Unix(int64(ts), 0)).Minutes()
-		if timeDiff < -1 || timeDiff > 1 {
-			return fmt.Errorf("the time of %s node is not synchronized", ip)
+		for _, IP := range hosts.IPS {
+			timeStamp, err := localSSH.CmdToString(IP, "date +%s", "")
+			if err != nil {
+				return fmt.Errorf("failed to get %s timestamp, %v", IP, err)
+			}
+			ts, err := strconv.Atoi(timeStamp)
+			if err != nil {
+				return fmt.Errorf("failed to reverse timestamp %s, %v", timeStamp, err)
+			}
+			timeDiff := time.Since(time.Unix(int64(ts), 0)).Minutes()
+			if timeDiff < -1 || timeDiff > 1 {
+				return fmt.Errorf("the time of %s node is not synchronized", IP)
+			}
 		}
 	}
 	return nil
