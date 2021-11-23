@@ -90,7 +90,7 @@ metadata:
 spec:
   type: CLUSTERCHECK
   action: PreGuest
-```  
+```
 
 ## plugin使用步骤
 
