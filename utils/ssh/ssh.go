@@ -72,6 +72,23 @@ func NewSSHByCluster(cluster *v1.Cluster) Interface {
 	}
 }
 
+func NewSSHClient(ssh *v1.SSH) Interface {
+	if ssh.User == "" {
+		ssh.User = common.ROOT
+	}
+	address, err := utils.IsLocalHostAddrs()
+	if err != nil {
+		logger.Warn("failed to get local address, %v", err)
+	}
+	return &SSH{
+		User:         ssh.User,
+		Password:     ssh.Passwd,
+		PkFile:       ssh.Pk,
+		PkPassword:   ssh.PkPasswd,
+		LocalAddress: address,
+	}
+}
+
 type Client struct {
 	SSH  Interface
 	Host string
