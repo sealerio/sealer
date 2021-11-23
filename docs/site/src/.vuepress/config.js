@@ -67,6 +67,8 @@ module.exports = {
             'advanced/containerd-baseimage',
             'advanced/define-cloudrootfs',
             'advanced/gpu-cloudimage',
+            'advanced/kyverno-build-in',
+            'advanced/raw-docker-cloudimage',
           ]
         },
         {
