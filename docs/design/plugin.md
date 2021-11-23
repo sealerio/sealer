@@ -66,4 +66,4 @@ metadata:
 spec:
   type: CLUSTERCHECK
   action: PreGuest
-```  
+```

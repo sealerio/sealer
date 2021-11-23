@@ -56,7 +56,7 @@ export ACCESSKEYSECRET=xxx
 *You just need specify the machine(VM) resource configuration and counts.*
 
 ```shell
-sealer run kubernetes:v1.19.8 -m 3 -n 3 -p xxx #custom passwd
+sealer run kubernetes:v1.19.8 -m 3 -n 3 -p passwd --provider ALI_CLOUD
 ```
 
 ### scale up and down

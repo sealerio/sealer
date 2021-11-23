@@ -129,7 +129,7 @@ func SealerApplyCmd(clusterFile string) string {
 	return fmt.Sprintf("%s apply -f %s", settings.DefaultSealerBin, clusterFile)
 }
 
-func SealerRunCmd(masters, nodes, passwd string) string {
+func SealerRunCmd(masters, nodes, passwd string, provider string) string {
 	if masters != "" {
 		masters = fmt.Sprintf("-m %s", masters)
 	}
@@ -139,11 +139,14 @@ func SealerRunCmd(masters, nodes, passwd string) string {
 	if passwd != "" {
 		passwd = fmt.Sprintf("-p %s", passwd)
 	}
-	return fmt.Sprintf("%s run %s %s %s %s", settings.DefaultSealerBin, settings.TestImageName, masters, nodes, passwd)
+	if provider != "" {
+		provider = fmt.Sprintf("--provider %s", provider)
+	}
+	return fmt.Sprintf("%s run %s %s %s %s %s", settings.DefaultSealerBin, settings.TestImageName, masters, nodes, passwd, provider)
 }
 
-func SealerRun(masters, nodes, passwd string) {
-	testhelper.RunCmdAndCheckResult(SealerRunCmd(masters, nodes, passwd), 0)
+func SealerRun(masters, nodes, passwd, provider string) {
+	testhelper.RunCmdAndCheckResult(SealerRunCmd(masters, nodes, passwd, provider), 0)
 }
 
 func SealerJoinCmd(masters, nodes string) string {
@@ -201,7 +204,7 @@ func SendAndJoinCluster(sshClient *testhelper.SSHClient, clusterFile string, joi
 }
 
 func SendAndRunCluster(sshClient *testhelper.SSHClient, clusterFile string, joinMasters, joinNodes, passwd string) {
-	SendAndRemoteExecCluster(sshClient, clusterFile, SealerRunCmd(joinMasters, joinNodes, passwd))
+	SendAndRemoteExecCluster(sshClient, clusterFile, SealerRunCmd(joinMasters, joinNodes, passwd, ""))
 }
 
 func SendAndRemoteExecCluster(sshClient *testhelper.SSHClient, clusterFile string, remoteCmd string) {

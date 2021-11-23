@@ -28,18 +28,12 @@ import (
 )
 
 func NewV2Repository(named reference.Named, actions ...string) (distribution.Repository, error) {
-	authConfig := types.AuthConfig{ServerAddress: named.Domain()}
-	repo, err := getV2Repository(authConfig, named, actions...)
-	if err == nil {
-		return repo, nil
-	}
-
 	authConfig, authErr := utils.GetDockerAuthInfoFromDocker(named.Domain())
-	if authErr != nil {
+	repo, err := getV2Repository(authConfig, named, actions...)
+	if err != nil && authErr != nil {
 		logger.Debug("failed to get auth info, err: %s", authErr)
-		return nil, err
 	}
-	return getV2Repository(authConfig, named, actions...)
+	return repo, err
 }
 
 func getV2Repository(authConfig types.AuthConfig, named reference.Named, actions ...string) (distribution.Repository, error) {

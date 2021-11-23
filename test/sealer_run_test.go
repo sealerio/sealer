@@ -34,7 +34,7 @@ var _ = Describe("sealer run", func() {
 		It("exec sealer run", func() {
 			master := strconv.Itoa(1)
 			node := strconv.Itoa(1)
-			apply.SealerRun(master, node, "")
+			apply.SealerRun(master, node, "", settings.AliCloud)
 			apply.CheckNodeNumLocally(2)
 		})
 

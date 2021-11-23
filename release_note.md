@@ -1,14 +1,17 @@
 # release note
 
-## v0.5.1
-
-*Bugfix:*
-
-- [x] fix null point error caused by using label plugin.
-- [x] fix imageList containing spaces causing panic.
+## v0.5.2
 
 *Optimize:*
 
-- [x] lite build support add 'yml' file and skip to run cmd when its layer value contains "kubectl".
-- [x] local build support cache image from imageList，manifests/*.yaml，charts.
-- [x] support overwrite kubeadm config.
+- [x] Sealer Build replaces -b with the -m parameter (mode);
+- [x] Plugin Adds the type field to specify the plugin type.([plugin docs](https://github.com/alibaba/sealer/blob/main/docs/design/plugin.md));
+- [x] optimize returns an error when build fails to pull the image from the imageList;
+- [x] optimize the delete command;
+- [x] optimize unnecessary warn logs.
+
+*Feature:*
+
+- [x] sealer support upgrade cluster;
+- [x] sealer run support specific infra provider;
+- [x] support rmi with partial id.

@@ -216,7 +216,7 @@ func (d DefaultImageService) Delete(imageArg string) error {
 		if err != nil {
 			return err
 		}
-		if len(imageList) != 1 {
+		if len(imageList) == 0 || !d.ForceDeleteImage && len(imageList) > 1 {
 			return fmt.Errorf("not to find image: %s", imageArg)
 		}
 		if err = imageStore.DeleteByID(imageList[0], d.ForceDeleteImage); err != nil {
