@@ -15,7 +15,9 @@
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: list_nodes.so
+  name: label_nodes.so
 spec:
-  type: GOLANG
+  type: LABEL_TEST_SO
   action: PostInstall
+  data: |
+    192.168.0.2 ssd=true

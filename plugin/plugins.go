@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"plugin"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -67,7 +68,6 @@ func (c *PluginsProcessor) Load() error {
 		}
 		c.Plugins = append(c.Plugins, plugins...)
 	}
-
 	return nil
 }
 
@@ -75,6 +75,19 @@ func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 	var p Interface
 
 	for _, config := range c.Plugins {
+		if ext := filepath.Ext(config.Name); ext == ".so" {
+			// load .so file from rootfs/plugin,if .so file not found,maybe not in the right phase.
+			soFile := filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.Name)
+			if !utils.IsExist(soFile) {
+				return nil
+			}
+			out, err := c.loadOutOfTree(soFile)
+			if err != nil {
+				return err
+			}
+			return out.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+		}
+
 		switch config.Spec.Type {
 		case LabelPlugin:
 			p = NewLabelsPlugin()
@@ -86,8 +99,6 @@ func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 			p = NewHostnamePlugin()
 		case ClusterCheckPlugin:
 			p = NewClusterCheckerPlugin()
-		case GolangPlugin:
-			p = NewGolangPlugin()
 		default:
 			return fmt.Errorf("not find plugin %v", config)
 		}
@@ -97,6 +108,24 @@ func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 		}
 	}
 	return nil
+}
+
+func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, error) {
+	plug, err := plugin.Open(soFile)
+	if err != nil {
+		return nil, err
+	}
+	//look up the exposed variable named `Plugin`
+	symbol, err := plug.Lookup(Plugin)
+	if err != nil {
+		return nil, err
+	}
+
+	p, ok := symbol.(Interface)
+	if !ok {
+		return nil, fmt.Errorf("failed to find GOLANG plugin symbol")
+	}
+	return p, nil
 }
 
 func (c *PluginsProcessor) Dump(clusterfile string) error {
@@ -122,7 +151,12 @@ func (c *PluginsProcessor) WriteFiles() error {
 		return nil
 	}
 	for _, config := range c.Plugins {
-		err := utils.MarshalYamlToFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.ObjectMeta.Name), config)
+		var name = config.Name
+		if !utils.YamlMatcher(name) {
+			name = fmt.Sprintf("%s.yaml", name)
+		}
+
+		err := utils.MarshalYamlToFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), name), config)
 		if err != nil {
 			return fmt.Errorf("write plugin metadata fileed %v", err)
 		}

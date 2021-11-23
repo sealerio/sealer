@@ -1,3 +1,3 @@
 FROM kubernetes:v1.19.8
-COPY list_nodes.so plugin
-COPY post_install.yaml plugin
+COPY label_nodes.so plugin
+COPY label_nodes.yaml plugin
