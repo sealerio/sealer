@@ -25,7 +25,6 @@ import (
 type Builder struct {
 	BuildType    string
 	NoCache      bool
-	RawDocker    bool
 	ImageNamed   reference.Named
 	Context      string
 	KubeFileName string
@@ -102,7 +101,6 @@ func (l *Builder) ExecBuild() error {
 		BuildContext: l.Context,
 		BuildType:    l.BuildType,
 		UseCache:     !l.NoCache,
-		RawDocker:    l.RawDocker,
 	}
 
 	return l.BuildImage.ExecBuild(ctx)

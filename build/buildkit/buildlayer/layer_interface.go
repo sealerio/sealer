@@ -15,5 +15,5 @@
 package buildlayer
 
 type LayerHandler interface {
-	LayerValueHandler(buildContext string, rawDocker bool) error
+	LayerValueHandler(buildContext string, SealerDocker bool) error
 }

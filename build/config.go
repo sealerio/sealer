@@ -18,5 +18,4 @@ type Config struct {
 	BuildType string
 	NoCache   bool
 	ImageName string
-	RawDocker bool
 }

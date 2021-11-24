@@ -45,14 +45,13 @@ type HandleImageList struct {
 	Lc           LayerCopy
 }
 
-func (h HandleImageList) LayerValueHandler(buildContext string, rawDocker bool) error {
+func (h HandleImageList) LayerValueHandler(buildContext string, SealerDocker bool) error {
 	imageListFilePath := filepath.Join(buildContext, "imageList")
 	images, err := h.parseRawImageList(imageListFilePath)
 	if err != nil {
 		return err
 	}
-	return h.DockerClient.ImagesCacheToRegistry(images, rawDocker)
-	//return h.DockerClient.ImagesPull(images)
+	return h.DockerClient.ImagesCacheToRegistry(images, SealerDocker)
 }
 
 func (h HandleImageList) parseRawImageList(imageListFilePath string) ([]string, error) {
@@ -73,14 +72,13 @@ type HandleYamlImageList struct {
 	Lc           LayerCopy
 }
 
-func (h HandleYamlImageList) LayerValueHandler(buildContext string, rawDocker bool) error {
+func (h HandleYamlImageList) LayerValueHandler(buildContext string, SealerDocker bool) error {
 	yamlFilePath := filepath.Join(buildContext, h.Lc.Src)
 	images, err := h.parseYamlImages(yamlFilePath)
 	if err != nil {
 		return err
 	}
-	return h.DockerClient.ImagesCacheToRegistry(images, rawDocker)
-	//return h.DockerClient.ImagesPull(images)
+	return h.DockerClient.ImagesCacheToRegistry(images, SealerDocker)
 }
 
 func (h HandleYamlImageList) parseYamlImages(yamlFilePath string) ([]string, error) {
@@ -99,14 +97,13 @@ type HandleChartImageList struct {
 	Lc           LayerCopy
 }
 
-func (h HandleChartImageList) LayerValueHandler(buildContext string, rawDocker bool) error {
+func (h HandleChartImageList) LayerValueHandler(buildContext string, SealerDocker bool) error {
 	chartFilePath := filepath.Join(buildContext, h.Lc.Src)
 	images, err := h.parseChartImages(chartFilePath)
 	if err != nil {
 		return err
 	}
-	return h.DockerClient.ImagesCacheToRegistry(images, rawDocker)
-	//return h.DockerClient.ImagesPull(images)
+	return h.DockerClient.ImagesCacheToRegistry(images, SealerDocker)
 }
 
 func (h HandleChartImageList) parseChartImages(chartFilePath string) ([]string, error) {

@@ -28,7 +28,6 @@ type BuildFlag struct {
 	KubefileName string
 	BuildType    string
 	NoCache      bool
-	RawDocker    bool
 }
 
 var buildConfig *BuildFlag
@@ -58,7 +57,6 @@ build without cache:
 			BuildType: buildConfig.BuildType,
 			NoCache:   buildConfig.NoCache,
 			ImageName: buildConfig.ImageName,
-			RawDocker: buildConfig.RawDocker,
 		}
 
 		builder, err := build.NewBuilder(conf)
@@ -77,7 +75,6 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
-	buildCmd.Flags().BoolVar(&buildConfig.RawDocker, "raw-docker", false, "build on a cluster use official raw docker")
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logger.Error("failed to init flag: %v", err)
 		os.Exit(1)

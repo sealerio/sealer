@@ -39,7 +39,7 @@ type CmdInstruction struct {
 func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	// pre handle layer content
 	if c.layerHandler != nil {
-		err = c.layerHandler.LayerValueHandler(execContext.BuildContext, execContext.RawDocker)
+		err = c.layerHandler.LayerValueHandler(execContext.BuildContext, execContext.SealerDocker)
 		if err != nil {
 			return out, err
 		}
