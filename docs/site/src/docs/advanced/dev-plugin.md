@@ -92,44 +92,42 @@ apply it in your cluster: `sealer run kubernetes-post-install:v1.19.8 -m x.x.x.x
 
 The plugin [interface](https://github.com/alibaba/sealer/blob/main/plugin/plugin.go)
 
-```golang
+```shell
 type Interface interface {
-Run(context Context, phase Phase) error
+	Run(context Context, phase Phase) error
 }
 ```
 
 [Example](https://github.com/alibaba/sealer/blob/main/plugin/labels.go):
 
-```golang
+```shell
 func (l LabelsNodes) Run(context Context, phase Phase) error {
-if phase != PhasePostInstall {
-logger.Debug("label nodes is PostInstall!")
-return nil
-}
-l.data = l.formatData(context.Plugin.Spec.Data)
-return err
+	if phase != PhasePostInstall {
+		logger.Debug("label nodes is PostInstall!")
+		return nil
+	}
+	l.data = l.formatData(context.Plugin.Spec.Data)
+	return err
 }
 ```
 
 Then register you [plugin](https://github.com/alibaba/sealer/blob/main/plugin/plugins.go):
 
-```golang
+```shell
 func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
-for _, config := range c.Plugins {
-switch config.Name {
-case "LABEL":
-l := LabelsNodes{}
-err := l.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-if err != nil {
-return err
-}
-// add you plugin here
-default:
-return fmt.Errorf("not find plugin %s", config.Name)
-}
-}
-return nil
+	for _, config := range c.Plugins {
+		switch config.Name {
+		case "LABEL":
+			l := LabelsNodes{}
+			err := l.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+			if err != nil {
+				return err
+			}
+        // add you plugin here
+		default:
+			return fmt.Errorf("not find plugin %s", config.Name)
+		}
+	}
+	return nil
 }
 ```
-
-Supposing you are at the directory create at step 4.execute `sealer build --mode lite -t <image-name:image:tag> .`
