@@ -16,11 +16,13 @@ package main
 
 import (
 	"fmt"
+
+	"strings"
+
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/plugin"
 	v1 "k8s.io/api/core/v1"
-	"strings"
 )
 
 type LabelsNodes struct {
@@ -113,4 +115,5 @@ func (l LabelsNodes) getAddress(addresses []v1.NodeAddress) string {
 }
 
 // Plugin is the exposed variable sealer will look up it.
+//nolint
 var Plugin LabelsNodes
