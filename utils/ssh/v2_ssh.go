@@ -22,11 +22,12 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
+	"github.com/imdario/mergo"
 )
 
-type Interface interface {
+type V2Interface interface {
 	// copy local files to remote host
 	// scp -r /tmp root@192.168.0.2:/root/tmp => Copy("192.168.0.2","tmp","/root/tmp")
 	// need check md5sum
@@ -46,16 +47,12 @@ type Interface interface {
 	Ping(host string) error
 }
 
-type SSH struct {
-	User         string
-	Password     string
-	PkFile       string
-	PkPassword   string
-	Timeout      *time.Duration
+type V2SSH struct {
+	hosts        map[string]Interface
 	LocalAddress *[]net.Addr
 }
 
-func NewSSHByCluster(cluster *v1.Cluster) Interface {
+func NewV2SSHByCluster(cluster *v2.Cluster) V2Interface {
 	if cluster.Spec.SSH.User == "" {
 		cluster.Spec.SSH.User = common.ROOT
 	}
@@ -63,70 +60,35 @@ func NewSSHByCluster(cluster *v1.Cluster) Interface {
 	if err != nil {
 		logger.Warn("failed to get local address, %v", err)
 	}
-	return &SSH{
-		User:         cluster.Spec.SSH.User,
-		Password:     cluster.Spec.SSH.Passwd,
-		PkFile:       cluster.Spec.SSH.Pk,
-		PkPassword:   cluster.Spec.SSH.PkPasswd,
+	defaultSSH := cluster.Spec.SSH
+	hostsMap := make(map[string]Interface)
+	for i := range cluster.Spec.Hosts {
+		host := cluster.Spec.Hosts[i]
+		//use host ssh override the default ssh
+		err := mergo.Merge(&host.SSH, defaultSSH, mergo.WithOverride)
+		if err != nil {
+			logger.Error("failed to merge default ssh, err: %v", err)
+		}
+		sshClient := NewSSHClient(host.SSH)
+		for _, ip := range host.IPS {
+			hostsMap[ip] = sshClient
+		}
+	}
+	return &V2SSH{
+		hosts:        hostsMap,
 		LocalAddress: address,
 	}
 }
 
-func NewSSHClient(ssh v1.SSH) Interface {
-	if ssh.User == "" {
-		ssh.User = common.ROOT
-	}
-	address, err := utils.IsLocalHostAddrs()
-	if err != nil {
-		logger.Warn("failed to get local address, %v", err)
-	}
-	return &SSH{
-		User:         ssh.User,
-		Password:     ssh.Passwd,
-		PkFile:       ssh.Pk,
-		PkPassword:   ssh.PkPasswd,
-		LocalAddress: address,
-	}
-}
-
-type Client struct {
-	SSH  Interface
+type V2Client struct {
+	SSH  V2Interface
 	Host string
 }
 
-func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
-	var (
-		ipList []string
-		host   string
-	)
-	sshClient := NewSSHByCluster(cluster)
-	if cluster.Spec.Provider == common.AliCloud {
-		host = cluster.GetAnnotationsByKey(common.Eip)
-		if host == "" {
-			return nil, fmt.Errorf("get cluster EIP failed")
-		}
-		ipList = append(ipList, host)
-	} else {
-		host = cluster.Spec.Masters.IPList[0]
-		ipList = append(ipList, append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)...)
-	}
-	err := WaitSSHReady(sshClient, 6, ipList...)
-	if err != nil {
-		return nil, err
-	}
-	if sshClient == nil {
-		return nil, fmt.Errorf("cloud build init ssh client failed")
-	}
-	return &Client{
-		SSH:  sshClient,
-		Host: host,
-	}, nil
-}
-
-func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
+func WaitV2SSHReady(ssh V2Interface, tryTimes int, hosts ...string) error {
 	var err error
 	var wg sync.WaitGroup
-	for _, h := range hosts {
+	for _, ip := range hosts {
 		wg.Add(1)
 		go func(host string) {
 			defer wg.Done()
@@ -138,8 +100,40 @@ func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
 				time.Sleep(time.Duration(i) * time.Second)
 			}
 			err = fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
-		}(h)
+		}(ip)
 	}
 	wg.Wait()
 	return err
+}
+
+func (v V2SSH) Copy(host, srcFilePath, dstFilePath string) error {
+	return v.hosts[host].Copy(host, srcFilePath, dstFilePath)
+}
+
+func (v V2SSH) Fetch(host, srcFilePath, dstFilePath string) error {
+	return v.hosts[host].Fetch(host, srcFilePath, dstFilePath)
+}
+
+func (v V2SSH) CmdAsync(host string, cmd ...string) error {
+	return v.hosts[host].CmdAsync(host, cmd...)
+}
+
+func (v V2SSH) Cmd(host, cmd string) ([]byte, error) {
+	return v.hosts[host].Cmd(host, cmd)
+}
+
+func (v V2SSH) IsFileExist(host, remoteFilePath string) bool {
+	return v.hosts[host].IsFileExist(host, remoteFilePath)
+}
+
+func (v V2SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
+	return v.hosts[host].RemoteDirExist(host, remoteDirpath)
+}
+
+func (v V2SSH) CmdToString(host, cmd, spilt string) (string, error) {
+	return v.hosts[host].CmdToString(host, cmd, spilt)
+}
+
+func (v V2SSH) Ping(host string) error {
+	return v.hosts[host].Ping(host)
 }
