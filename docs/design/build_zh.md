@@ -269,4 +269,4 @@ error: 当执行构建时候，如有发生错误，则会返回该错误。
 
 如果使用的是原生的docker，则docker镜像缓存到私有仓库需要两步：首先，从官方仓库pull镜像。然后，将pull到本地的镜像再push到私有仓库中。
 
-通过在命令中添加一个标志位--raw-docker来进行区分，若没有设置该标志位，则只进行pull操作，若设置了该标志位，则进行pull和push操作。
+通过在build镜像层加入一个判断docker引擎版本的操作来进行区分。具体实现方式是：调用docker的sdk函数，得到docker引擎的版本信息，若docker引擎的版本中包含`sealer`字符串，则标示是sealer定制的docker，只进行pull操作。若docker引擎的版本中，不包含`sealer`字符串，则pull和push操作都会执行。

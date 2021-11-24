@@ -83,7 +83,6 @@ $ sealer build -f Kubefile -t my-kubernetes:v1.19.8 -m cloud .
  -m : 指定构建模式[cloud |container |lite] #默认为lite
  .  : build上下文，指定为当前路径
  --no-cache:构建过程中不使用缓存
- --raw-docker:构建时使用的是原生的docker（非sealer定制版docker）
 ```
 
 ## build类型
@@ -150,22 +149,6 @@ sealer build -m lite -t my-cluster:v1.19.9 .
 ```
 
 构建完成将生成镜像：my-cluster:v1.19.9
-
-## docker镜像缓存到私有仓库
-
-如果使用的是基于原生docker的集群镜像来进行lite build，需要在命令中加入--raw-docker标志位，否则Kubefile文件中的docker镜像无法缓存到私有仓库中。例如Kubefile文件如下(注意第一行)：
-
-```
-FROM kubernetes-with-raw-docker:v1.19.8
-COPY imageList manifests
-COPY apollo charts
-COPY helm /bin
-CMD helm install charts/apollo
-COPY recommended.yaml manifests
-CMD kubectl apply -f manifests/recommended.yaml
-```
-
-执行lite build时：`sealer build -m lite --raw-docker -t my-cluster:v1.19.9 .`
 
 ## 私有仓库认证
 
