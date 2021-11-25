@@ -12,7 +12,7 @@ We provide an out-of-the-box cloud image which introduces kyverno into cluster:`
 
 Of course `sealer` can help you do this,use `nginx` as an example.
 Firstly include nginx in the file `imageList`.
-You can execute `cat imageList` to make sure you have did this, and the result may seem like this:
+You can execute `cat imageList` to make sure you have done this, and the result may seem like this:
 
 ```
  [root@ubuntu ~]# cat imageList
@@ -33,7 +33,7 @@ Thirdly execute `sealer build` to build a new cloud image
  [root@ubuntu ~]# sealer build -t my-nginx-kubernetes:v1.19.8 .
 ```
 
-Just a simple command and let sealer help you cache `nginx:latest` image to private registry. You may doubt whether sealer has successfully cached the image, please execute `sealer inspect my-nginx-kubernetes:v1.19.8` and locate the `layer` attribute of the spec section, you will find there are many layers. In this case, the last layer has two `key:value` pairs: `type: BASE`, `value: registry cache`, from which we know it's about images cached to registry. Remembering this layer's id, execute `cd /var/lib/sealer/data/overlay2/{layer-id}/registry/docker/registry/v2/repositories/library`, then you will find the nginx image existing in this directory.
+Just a simple command and let sealer help you cache `nginx:latest` image to private registry. You may doubt whether sealer has successfully cached the image, please execute `sealer inspect my-nginx-kubernetes:v1.19.8` and locate the `layer` attribute of the `spec` section, you will find there are many layers. In this case, the last layer has two `key:value` pairs: `type: BASE`, `value: registry cache`, from which we know it's about images cached to registry. Remembering this layer's id, execute `cd /var/lib/sealer/data/overlay2/{layer-id}/registry/docker/registry/v2/repositories/library`, then you will find the nginx image existing in the directory.
 
 Now you can use this new cloud image to create k8s cluster. After your cluster startup, there is already a pod running `nginx:latest` image, you can see it by execute `kubectl describe pod nginx`, and you can also create more pods running `nginx:latest` image.
 
