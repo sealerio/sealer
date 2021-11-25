@@ -15,12 +15,10 @@
 package runtime
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
 	"sync"
-	"text/template"
 
 	"github.com/pkg/errors"
 
@@ -129,17 +127,20 @@ func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []
 	return []string{cmdAddRegistryHosts, certCMD, cmdAddHosts, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig}
 }
 
-func (k *KubeadmRuntime) sendKubeConfigFile(hosts []string, kubeFile string) {
+func (k *KubeadmRuntime) sendKubeConfigFile(hosts []string, kubeFile string) error {
 	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
 	sealerKubeFile := fmt.Sprintf("%s/%s", k.getBasePath(), kubeFile)
-	k.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
+	return k.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
-func (k *KubeadmRuntime) sendNewCertAndKey(hosts []string) {
-	k.sendFileToHosts(hosts, k.getCertPath(), cert.KubeDefaultCertPath)
+func (k *KubeadmRuntime) sendNewCertAndKey(hosts []string) error {
+	return k.sendFileToHosts(hosts, k.getCertPath(), cert.KubeDefaultCertPath)
 }
 
-func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) {
+func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error {
+	errCh := make(chan error, len(Hosts))
+	defer close(errCh)
+
 	var wg sync.WaitGroup
 	for _, node := range Hosts {
 		wg.Add(1)
@@ -147,14 +148,16 @@ func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) {
 			defer wg.Done()
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
-				logger.Error("send file failed %v", err)
+				errCh <- fmt.Errorf("send file failed %v", err)
 			}
 			if err := ssh.Copy(node, src, dst); err != nil {
-				logger.Error("send file failed %v", err)
+				errCh <- fmt.Errorf("send file failed %v", err)
 			}
 		}(node)
 	}
 	wg.Wait()
+
+	return ReadChanError(errCh)
 }
 
 func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []string) bool {
@@ -177,100 +180,63 @@ func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []string) bool {
 	return false
 }
 
-func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []string, files ...string) {
+func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []string, files ...string) error {
 	for _, f := range files {
-		k.sendKubeConfigFile(masters, f)
+		if err := k.sendKubeConfigFile(masters, f); err != nil {
+			return err
+		}
 	}
 	if k.ReplaceKubeConfigV1991V1992(masters) {
 		logger.Info("set kubernetes v1.19.1 v1.19.2 kube config")
 	}
-}
-
-func (k *KubeadmRuntime) joinKubeadmConfig() string {
-	var sb strings.Builder
-	// TODO get join config
-	sb.Write([]byte(getJoinTemplateText(d.ClusterName)))
-	return sb.String()
-}
-
-func (k *KubeadmRuntime) JoinTemplateFromTemplateContent(templateContent, ip string) []byte {
-	d.setKubeadmAPIByVersion()
-	tmpl, err := template.New("text").Parse(templateContent)
-	if err != nil {
-		logger.Error("template join config failed %v", err)
-		return []byte{}
-	}
-	var envMap = make(map[string]interface{})
-	envMap[Master0] = utils.GetHostIP(d.Masters[0])
-	envMap[Master] = ip
-	envMap[TokenDiscovery] = d.JoinToken
-	envMap[TokenDiscoveryCAHash] = d.TokenCaCertHash
-	envMap[VIP] = d.VIP
-	envMap[KubeadmAPI] = d.KubeadmAPI
-	envMap[CriSocket] = d.CriSocket
-	// we need to Dynamic get cgroup driver on ervery join nodes.
-	envMap[CriCGroupDriver] = d.CriCGroupDriver
-
-	var buffer bytes.Buffer
-	err = tmpl.Execute(&buffer, envMap)
-	if err != nil {
-		logger.Error("render join template failed %v", err)
-	}
-	return buffer.Bytes()
+	return nil
 }
 
 // JoinTemplate is generate JoinCP nodes configuration by master ip.
-func (d *KubeadmRuntime) JoinTemplate(ip string) []byte {
-	return d.JoinTemplateFromTemplateContent(d.joinKubeadmConfig(), ip)
-}
-
-// getCgroupDriverFromShell is get nodes container runtime cgroup by shell.
-func (d *KubeadmRuntime) getCgroupDriverFromShell(node string) string {
-	var cmd string
-	if VersionCompare(d.Metadata.Version, V1200) {
-		cmd = ContainerdShell
-	} else {
-		cmd = DockerShell
-	}
-	driver, err := d.SSH.CmdToString(node, cmd, " ")
-	if err != nil {
-		// by default if we get wrong output we set it default systemd?
-		driver = DefaultSystemdCgroupDriver
-		logger.Error("get nodes [%s] cgroup driver err: %v", node, err)
-	}
-	driver = strings.TrimSpace(driver)
-	logger.Debug("get nodes [%s] cgroup driver is [%s]", node, driver)
-	return driver
+func (k *KubeadmRuntime) JoinConfig(ip string) []byte {
+	// TODO Using join file instead template
+	return []byte{}
 }
 
 // sendJoinCPConfig send join CP nodes configuration
-func (d *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) {
+func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
+	errCh := make(chan error, len(joinMaster))
+	defer close(errCh)
+
 	var wg sync.WaitGroup
 	for _, master := range joinMaster {
 		wg.Add(1)
 		go func(master string) {
 			defer wg.Done()
 			// set d.CriCGroupDriver on every nodes.
-			d.CriCGroupDriver = d.getCgroupDriverFromShell(master)
-			templateData := string(d.JoinTemplate(utils.GetHostIP(master)))
-			cmd := fmt.Sprintf(RemoteJoinMasterConfig, templateData, d.Rootfs)
-			err := d.SSH.CmdAsync(master, cmd)
+			joinConfig := string(k.JoinConfig(master))
+			cmd := fmt.Sprintf(RemoteJoinMasterConfig, joinConfig, k.getRootfs())
+			ssh, err := k.getHostSSHClient(master)
 			if err != nil {
-				logger.Error("set join kubeadm config failed %s %s %v", master, cmd, err)
+				errCh <- fmt.Errorf("set join kubeadm config failed %s %s %v", master, cmd, err)
+				return
+			}
+			if err := ssh.CmdAsync(master, cmd); err != nil {
+				errCh <- fmt.Errorf("set join kubeadm config failed %s %s %v", master, cmd, err)
 			}
 		}(master)
 	}
 	wg.Wait()
+
+	return ReadChanError(errCh)
 }
 
-func (d *KubeadmRuntime) CmdAsyncHosts(hosts []string, cmd string) error {
+func (k *KubeadmRuntime) CmdAsyncHosts(hosts []string, cmd string) error {
 	var wg sync.WaitGroup
 	for _, host := range hosts {
 		wg.Add(1)
 		go func(host string) {
 			defer wg.Done()
-			err := d.SSH.CmdAsync(host, cmd)
+			ssh, err := k.getHostSSHClient(host)
 			if err != nil {
+				logger.Error("exec command failed %s %s %v", host, cmd, err)
+			}
+			if err := ssh.CmdAsync(host, cmd); err != nil {
 				logger.Error("exec command failed %s %s %v", host, cmd, err)
 			}
 		}(host)
@@ -316,8 +282,8 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 	return fmt.Sprintf("%s%s", v, vlogToStr(k.Vlog))
 }
 
-func (d *KubeadmRuntime) GetRemoteHostName(hostIP string) string {
-	hostName := d.CmdToString(hostIP, "hostname", "")
+func (k *KubeadmRuntime) GetRemoteHostName(hostIP string) string {
+	hostName := k.CmdToString(hostIP, "hostname", "")
 	return strings.ToLower(hostName)
 }
 
@@ -334,10 +300,16 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	if err := k.CopyStaticFiles(masters); err != nil {
 		return err
 	}
-	k.SendJoinMasterKubeConfigs(masters, AdminConf, ControllerConf, SchedulerConf)
+	if err := k.SendJoinMasterKubeConfigs(masters, AdminConf, ControllerConf, SchedulerConf); err != nil {
+		return err
+	}
 	// TODO only needs send ca?
-	k.sendNewCertAndKey(masters)
-	k.sendJoinCPConfig(masters)
+	if err := k.sendNewCertAndKey(masters); err != nil {
+		return err
+	}
+	if err := k.sendJoinCPConfig(masters); err != nil {
+		return err
+	}
 	cmd := k.Command(k.getKubeVersion(), JoinMaster)
 	// TODO for test skip dockerd dev version
 	if cmd == "" {
@@ -362,7 +334,7 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	return nil
 }
 
-func (d *KubeadmRuntime) deleteMasters(masters []string) error {
+func (k *KubeadmRuntime) deleteMasters(masters []string) error {
 	if len(masters) == 0 {
 		return nil
 	}
@@ -371,7 +343,7 @@ func (d *KubeadmRuntime) deleteMasters(masters []string) error {
 		wg.Add(1)
 		go func(master string) {
 			defer wg.Done()
-			if err := d.deleteMaster(master); err != nil {
+			if err := k.deleteMaster(master); err != nil {
 				logger.Error("delete master %s failed %v", master, err)
 			}
 		}(master)
@@ -476,7 +448,7 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 
 	ssh, err := k.getHostSSHClient(k.getMaster0IP())
 	if err != nil {
-		fmt.Errorf("failed to get join token hash and key: %v", err)
+		return fmt.Errorf("failed to get join token hash and key: %v", err)
 	}
 	out, err := ssh.Cmd(k.getMaster0IP(), cmd)
 	if err != nil {

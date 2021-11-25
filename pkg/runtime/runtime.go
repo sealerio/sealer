@@ -21,8 +21,8 @@ import (
 type Interface interface {
 	// exec kubeadm init
 	Init(cluster *v2.Cluster) error
-	Upgrade(cluster *v2.Cluster) error
-	Reset(cluster *v2.Cluster) error
+	Upgrade() error
+	Reset() error
 	JoinMasters(newMastersIPList []string) error
 	JoinNodes(newNodesIPList []string) error
 	DeleteMasters(mastersIPList []string) error
@@ -38,35 +38,35 @@ type KubeadmRuntime struct {
 	*Metadata
 	*v2.Cluster
 	*KubeadmConfig
-	*RuntimeConfig
+	*Config
 }
 
 func (k *KubeadmRuntime) Init(cluster *v2.Cluster) error {
 	return k.init(cluster)
 }
 
-func (k *KubeadmRuntime) Upgrade(cluster *v2.Cluster) error {
-	panic("implement me")
+func (k *KubeadmRuntime) Upgrade() error {
+	return k.upgrade()
 }
 
-func (k *KubeadmRuntime) Reset(cluster *v2.Cluster) error {
-	panic("implement me")
+func (k *KubeadmRuntime) Reset() error {
+	return k.reset()
 }
 
 func (k *KubeadmRuntime) JoinMasters(newMastersIPList []string) error {
-	panic("implement me")
+	return k.joinMasters(newMastersIPList)
 }
 
 func (k *KubeadmRuntime) JoinNodes(newNodesIPList []string) error {
-	panic("implement me")
+	return k.joinNodes(newNodesIPList)
 }
 
 func (k *KubeadmRuntime) DeleteMasters(mastersIPList []string) error {
-	panic("implement me")
+	return k.deleteMasters(mastersIPList)
 }
 
 func (k *KubeadmRuntime) DeleteNodes(nodesIPList []string) error {
-	panic("implement me")
+	return k.deleteNodes(nodesIPList)
 }
 
 // clusterfile is the Clusterfile path/name, runtime need read kubeadm config from it

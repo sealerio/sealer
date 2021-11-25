@@ -32,7 +32,7 @@ import (
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
-type RuntimeConfig struct {
+type Config struct {
 	Vlog         int
 	VIP          string
 	RegistryPort string
@@ -48,7 +48,7 @@ type RuntimeConfig struct {
 func newKubeadmRuntime(cluster *v2.Cluster, clusterfile string) (Interface, error) {
 	k := &KubeadmRuntime{
 		Cluster: cluster,
-		RuntimeConfig: &RuntimeConfig{
+		Config: &Config{
 			Clusterfile:     clusterfile,
 			APIServerDomain: DefaultAPIserverDomain,
 		},
@@ -78,11 +78,11 @@ func (k *KubeadmRuntime) checkList() error {
 }
 
 func (k *KubeadmRuntime) checkIPList() error {
-	if len(k.Spec.Hosts) < 1 {
-		return fmt.Errorf("master hosts should not < 1, hosts len is %s", len(k.Spec.Hosts))
+	if len(k.Spec.Hosts) == 1 {
+		return fmt.Errorf("master hosts cannot be empty")
 	}
-	if len(k.Spec.Hosts[0].IPS) < 1 {
-		return fmt.Errorf("master hosts ip should not < 1, hosts ip len is %s", len(k.Spec.Hosts[0].IPS))
+	if len(k.Spec.Hosts[0].IPS) == 1 {
+		return fmt.Errorf("master hosts ip cannot be empty")
 	}
 	return nil
 }
@@ -103,7 +103,7 @@ func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) 
 }
 
 func (k *KubeadmRuntime) getRootfs() string {
-	return common.DefaultTheClusterRootfsDir(k.Cluster.Name)
+	return common.DefaultTheClusterRootfsDir(k.getClusterName())
 }
 
 func (k *KubeadmRuntime) getBasePath() string {
@@ -111,7 +111,7 @@ func (k *KubeadmRuntime) getBasePath() string {
 }
 
 func (k *KubeadmRuntime) getMaster0IP() string {
-	// aready check ip list when new the runtime
+	// already check ip list when new the runtime
 	return k.Cluster.Spec.Hosts[0].IPS[0]
 }
 
@@ -144,7 +144,7 @@ func (k *KubeadmRuntime) getDNSDomain() string {
 }
 
 func (k *KubeadmRuntime) getAPIServerDomain() string {
-	return k.RuntimeConfig.APIServerDomain
+	return k.Config.APIServerDomain
 }
 
 func (k *KubeadmRuntime) getKubeVersion() string {
@@ -174,7 +174,9 @@ func (k *KubeadmRuntime) getHostsIPByRole(role string) (nodes []string) {
 }
 
 func (k *KubeadmRuntime) WaitSSHReady(tryTimes int, hosts ...string) error {
-	var err error
+	errCh := make(chan error, len(hosts))
+	defer close(errCh)
+
 	var wg sync.WaitGroup
 	for _, h := range hosts {
 		wg.Add(1)
@@ -192,9 +194,10 @@ func (k *KubeadmRuntime) WaitSSHReady(tryTimes int, hosts ...string) error {
 				}
 				time.Sleep(time.Duration(i) * time.Second)
 			}
-			err = fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
+			err := fmt.Errorf("wait for [%s] ssh ready timeout, ensure that the IP address or password is correct", host)
+			errCh <- err
 		}(h)
 	}
 	wg.Wait()
-	return err
+	return ReadChanError(errCh)
 }

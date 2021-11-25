@@ -48,7 +48,7 @@ func (k *KubeadmRuntime) loadMetadata() error {
 }
 
 func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
-	if err := k.LoadFromClusterfile(k.RuntimeConfig.Clusterfile); err != nil {
+	if err := k.LoadFromClusterfile(k.Config.Clusterfile); err != nil {
 		return fmt.Errorf("failed to load kubeadm config from clusterfile: %v", err)
 	}
 	// TODO handle the kubeadm config, like kubeproxy config
@@ -105,9 +105,7 @@ func (k *KubeadmRuntime) GenerateCert() error {
 	if err != nil {
 		return fmt.Errorf("generate certs failed %v", err)
 	}
-	k.sendNewCertAndKey([]string{k.getMaster0IP()})
-
-	return nil
+	return k.sendNewCertAndKey([]string{k.getMaster0IP()})
 }
 
 func (k *KubeadmRuntime) CreateKubeConfig() error {
@@ -127,7 +125,9 @@ func (k *KubeadmRuntime) CreateKubeConfig() error {
 }
 
 func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
-	var flag bool
+	errCh := make(chan error, len(nodes))
+	defer close(errCh)
+
 	for _, file := range MasterStaticFiles {
 		staticFilePath := filepath.Join(k.getStaticFileDir(), file.Name)
 		cmdLinkStatic := fmt.Sprintf(RemoteCmdCopyStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
@@ -138,23 +138,19 @@ func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
 				defer wg.Done()
 				ssh, err := k.getHostSSHClient(host)
 				if err != nil {
-					logger.Error("new ssh client failed %v", err)
-					flag = true
+					errCh <- fmt.Errorf("new ssh client failed %v", err)
 					return
 				}
 				err = ssh.CmdAsync(host, cmdLinkStatic)
 				if err != nil {
-					logger.Error("[%s] link static file failed, error:%s", host, err.Error())
-					flag = true
+					errCh <- fmt.Errorf("[%s] link static file failed, error:%s", host, err.Error())
 				}
 			}(host)
-			if flag {
-				return fmt.Errorf("link static files failed %s %s", host, cmdLinkStatic)
-			}
 		}
 		wg.Wait()
 	}
-	return nil
+
+	return ReadChanError(errCh)
 }
 
 //decode output to join token  hash and key
@@ -198,7 +194,9 @@ func (k *KubeadmRuntime) InitMaster0() error {
 		return fmt.Errorf("failed to get master0 ssh client, %v", err)
 	}
 
-	k.SendJoinMasterKubeConfigs([]string{k.getMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf)
+	if err := k.SendJoinMasterKubeConfigs([]string{k.getMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
+		return err
+	}
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain()))
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
 	err = ssh.CmdAsync(k.getMaster0IP(), cmdAddEtcHost, cmdAddRegistryHosts)

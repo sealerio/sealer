@@ -48,7 +48,7 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 	cf := GetRegistryConfig(k.getRootfs(), k.getMaster0IP())
 	ssh, err := k.getHostSSHClient(cf.IP)
 	if err != nil {
-		fmt.Errorf("failed to get registry ssh client: %v", err)
+		return fmt.Errorf("failed to get registry ssh client: %v", err)
 	}
 
 	mkdir := fmt.Sprintf("rm -rf %s %s && mkdir -p %s %s", RegistryMountUpper, RegistryMountWork,

@@ -137,3 +137,14 @@ func LoadMetadata(metadataPath string) (*Metadata, error) {
 	}
 	return &md, nil
 }
+
+func ReadChanError(errors chan error) (err error) {
+	for {
+		if len(errors) == 0 {
+			break
+		}
+		err = fmt.Errorf("%v,%v", err, <-errors)
+	}
+
+	return
+}
