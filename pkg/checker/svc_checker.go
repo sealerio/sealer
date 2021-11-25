@@ -22,7 +22,7 @@ import (
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
 type SvcChecker struct {
@@ -40,7 +40,7 @@ type SvcClusterStatus struct {
 	SvcNamespaceStatusList []*SvcNamespaceStatus
 }
 
-func (n *SvcChecker) Check(cluster *v1.Cluster, phase string) error {
+func (n *SvcChecker) Check(cluster *v2.Cluster, phase string) error {
 	if phase != PhasePost {
 		return nil
 	}

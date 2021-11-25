@@ -23,7 +23,7 @@ import (
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
 const (
@@ -42,7 +42,7 @@ type NodeClusterStatus struct {
 	NotReadyNodeList []string
 }
 
-func (n *NodeChecker) Check(cluster *v1.Cluster, phase string) error {
+func (n *NodeChecker) Check(cluster *v2.Cluster, phase string) error {
 	if phase != PhasePost && phase != PhaseView {
 		return nil
 	}
