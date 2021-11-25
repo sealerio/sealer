@@ -61,7 +61,7 @@ spec:
   hosts:
   - ips: [192.168.0.2,192.168.0.3,192.168.0.4]
     roles: [master]
-  - ips: 192.168.0.3
+  - ips: [192.168.0.3]
     roles: [node]
 ```
 
@@ -78,7 +78,7 @@ spec:
     passwd: xxx
     port: 2222
   hosts:
-  - ips: 192.168.0.2
+  - ips: [192.168.0.2]
     roles: [master]
     ssh:
       passwd: yyy

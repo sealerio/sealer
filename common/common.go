@@ -21,6 +21,11 @@ import (
 )
 
 const (
+	MASTER = "master"
+	NODE   = "node"
+)
+
+const (
 	FROMCOMMAND        = "FROM"
 	COPYCOMMAND        = "COPY"
 	RUNCOMMAND         = "RUN"
