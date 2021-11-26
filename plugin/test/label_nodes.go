@@ -12,37 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package plugin
+package main
 
 import (
 	"fmt"
-	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	"strings"
 
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/plugin"
+	v1 "k8s.io/api/core/v1"
 )
 
-/*
-labels plugin in Clusterfile:
----
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Plugin
-metadata:
-  name: LABEL
-spec:
-  data: |
-     192.168.0.2 ssd=true
-     192.168.0.3 ssd=true
-     192.168.0.4 ssd=true
-     192.168.0.5 ssd=false,hdd=true
-     192.168.0.6 ssd=false,hdd=true
-     192.168.0.7 ssd=false,hdd=true
----
-LabelsNodes.data key = ip
-[]lable{{key=ssd,value=false}, {key=hdd,value=true}}
-*/
 type LabelsNodes struct {
 	data   map[string][]label
 	client *k8s.Client
@@ -53,12 +35,8 @@ type label struct {
 	value string
 }
 
-func NewLabelsPlugin() Interface {
-	return &LabelsNodes{data: map[string][]label{}}
-}
-
-func (l LabelsNodes) Run(context Context, phase Phase) error {
-	if phase != PhasePostInstall || context.Plugin.Spec.Type != LabelPlugin {
+func (l LabelsNodes) Run(context plugin.Context, phase plugin.Phase) error {
+	if phase != plugin.PhasePostInstall || context.Plugin.Spec.Type != "LABEL_TEST_SO" {
 		logger.Debug("label nodes is PostInstall!")
 		return nil
 	}
@@ -68,7 +46,6 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 	}
 	l.client = c
 	l.data = l.formatData(context.Plugin.Spec.Data)
-
 	nodeList, err := l.client.ListNodes()
 	if err != nil {
 		return fmt.Errorf("current cluster nodes not found, %v", err)
@@ -132,3 +109,7 @@ func (l LabelsNodes) getAddress(addresses []v1.NodeAddress) string {
 	}
 	return ""
 }
+
+// Plugin is the exposed variable sealer will look up it.
+//nolint
+var Plugin LabelsNodes

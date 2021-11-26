@@ -63,3 +63,8 @@ func SaveClusterfile(cluster *v1.Cluster) error {
 	}
 	return nil
 }
+
+func YamlMatcher(path string) bool {
+	ext := filepath.Ext(path)
+	return ext == ".yaml" || ext == ".yml"
+}
