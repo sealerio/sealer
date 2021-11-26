@@ -89,7 +89,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 			}
 		}
 	}
-	return err
+	return nil
 }
 
 func (l LabelsNodes) formatData(data string) map[string][]label {
@@ -107,10 +107,6 @@ func (l LabelsNodes) formatData(data string) map[string][]label {
 		}
 		ip := tmps[0]
 		labelStr := strings.Split(tmps[1], ",")
-		if len(labelStr) == 0 {
-			logger.Warn("label data is no-compliance with the rules! label data: %v", v)
-			continue
-		}
 		var labels []label
 		for _, l := range labelStr {
 			tmp := strings.Split(l, "=")

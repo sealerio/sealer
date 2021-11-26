@@ -72,42 +72,52 @@ func (c *PluginsProcessor) Load() error {
 }
 
 func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
-	var p Interface
-
 	for _, config := range c.Plugins {
 		if ext := filepath.Ext(config.Name); ext == ".so" {
-			// load .so file from rootfs/plugin,if .so file not found,maybe not in the right phase.
-			soFile := filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.Name)
-			if !utils.IsExist(soFile) {
-				return nil
-			}
-			out, err := c.loadOutOfTree(soFile)
+			err := c.runOutOfTree(cluster, config, phase)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to run plugin, %v", err)
 			}
-			return out.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+			continue
 		}
-
-		switch config.Spec.Type {
-		case LabelPlugin:
-			p = NewLabelsPlugin()
-		case ShellPlugin:
-			p = NewShellPlugin()
-		case EtcdPlugin:
-			p = NewEtcdBackupPlugin()
-		case HostNamePlugin:
-			p = NewHostnamePlugin()
-		case ClusterCheckPlugin:
-			p = NewClusterCheckerPlugin()
-		default:
-			return fmt.Errorf("not find plugin %v", config)
-		}
-		err := p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+		err := c.runInTree(cluster, config, phase)
 		if err != nil {
 			return fmt.Errorf("failed to run plugin, %v", err)
 		}
 	}
 	return nil
+}
+
+func (c *PluginsProcessor) runOutOfTree(cluster *v1.Cluster, config v1.Plugin, phase Phase) error {
+	// load .so file from rootfs/plugin,if .so file not found,maybe not in the right phase.
+	soFile := filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.Name)
+	if !utils.IsExist(soFile) {
+		return nil
+	}
+	out, err := c.loadOutOfTree(soFile)
+	if err != nil {
+		return err
+	}
+	return out.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+}
+
+func (c *PluginsProcessor) runInTree(cluster *v1.Cluster, config v1.Plugin, phase Phase) error {
+	var p Interface
+	switch config.Spec.Type {
+	case LabelPlugin:
+		p = NewLabelsPlugin()
+	case ShellPlugin:
+		p = NewShellPlugin()
+	case EtcdPlugin:
+		p = NewEtcdBackupPlugin()
+	case HostNamePlugin:
+		p = NewHostnamePlugin()
+	case ClusterCheckPlugin:
+		p = NewClusterCheckerPlugin()
+	default:
+		return fmt.Errorf("not find plugin %v", config)
+	}
+	return p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 }
 
 func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, error) {
