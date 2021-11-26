@@ -8,7 +8,7 @@ The existing base images mostly use customized docker, but many k8s clusters use
 
 ### How to use it
 
-We provide an out-of-the-box cloud image which use official raw docker as container runtime: `kubernetes-with-raw-docker:v1.19.8`. If you want to create a k8s cluster, you can use it directly as `sealer run` command's argument or write it into your Clusterfile. If you want to use it as the base image to build other images by `sealer build`, `FROM kubernetes-with-raw-docker:v1.19.8` should be the first line in your Kubefile.
+We provide a official BaseImage which uses official raw docker as container runtime: `kubernetes-with-raw-docker:v1.19.8`. If you want to create a k8s cluster, you can use it directly as `sealer run` command's argument or write it into your Clusterfile. If you want to use it as the base image to build other images by `sealer build`, `FROM kubernetes-with-raw-docker:v1.19.8` should be the first line in your Kubefile.
 
 ### How to build raw docker BaseImage
 

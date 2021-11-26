@@ -2,13 +2,13 @@
 
 ## Motivations
 
-It's common that some k8s clusters have their own private image registry, and they don't want to pull images from other registry for safety reasons. This page is about how to introduce kyverno in k8s cluster, which will redirect image pull request to Specified registry.
+It's common that some k8s clusters have their own private image registry, and they don't want to pull images from other registry for some reasons. This page is about how to integrate kyverno into k8s cluster, which will redirect image pull request to Specified registry.
 
 ## Uses case
 
 ### How to use it
 
-We provide an out-of-the-box cloud image which introduces kyverno into cluster:`kubernetes-raw_docerk-kyverno:v1.19.8`. Note that it contains no docker images other than those necessary to run a k8s cluster, so if you want to use this cloud image and you also need other docker images(such as `nginx`) to run a container, you need to cache the docker images to your private registry.
+We provide a official BaseImage which integrates kyverno into cluster:`kubernetes-raw_docerk-kyverno:v1.19.8`. Note that it contains no docker images other than those necessary to run a k8s cluster, so if you want to use this cloud image and you also need other docker images(such as `nginx`) to run a container, you need to cache the docker images to your private registry.
 
 Of course `sealer` can help you do this,use `nginx` as an example.
 Firstly include nginx in the file `imageList`.
@@ -113,15 +113,15 @@ Because the state of kyverno pod should be running, then the ClusterPolicy will 
 ```shell
 #!/bin/bash
 
-echo "[kyverno-start]: Waiting for the kyverno to be ready"
+echo "[kyverno-start]: Waiting for the kyverno to be ready..."
 
 while true
 do
-  podstatus=`kubectl get pod -n kyverno -o go-template --template={{range.items}}.{{.status.phase}}{{end}}`
-  if [ "$podstatus" == "Running" ];then
-    break
-  fi
-  sleep 5
+    clusterPolicyStatus=`kubectl get cpol -o go-template --template={{range.items}}{{.status.ready}}{{end}}`;
+    if [ "$clusterPolicyStatus" == "true" ];then
+        break;
+    fi
+    sleep 1
 done
 
 echo "kyverno is running"
