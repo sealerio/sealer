@@ -34,6 +34,8 @@ const (
 	RemoteCmdExistNetworkInterface = "ip addr show %s | egrep \"%s\" || true"
 	WriteKubeadmConfigCmd          = "cd %s && echo \"%s\" > kubeadm-config.yaml"
 	DefaultVIP                     = "10.103.97.2"
+	DefaultPodCIDR                 = "100.64.0.0/10"
+	DefaultSvcCIDR                 = "10.96.0.0/22"
 	DefaultAPIserverDomain         = "apiserver.cluster.local"
 	DefaultRegistryPort            = 5000
 )
@@ -52,7 +54,9 @@ func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
 		return fmt.Errorf("failed to load kubeadm config from clusterfile: %v", err)
 	}
 	// TODO handle the kubeadm config, like kubeproxy config
-
+	if err := k.handleKubeadmConfig(); err != nil {
+		return fmt.Errorf("failed to handle the kubeadm config: %v", err)
+	}
 	bs, err := k.Merge(k.getDefaultKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to merge kubeadm config: %v", err)
@@ -61,6 +65,28 @@ func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
 	if err := utils.WriteFile(k.getDefaultKubeadmConfig(), bs); err != nil {
 		return fmt.Errorf("failed to dump new kubeadm config: %v", err)
 	}
+	return nil
+}
+
+func (k *KubeadmRuntime) handleKubeadmConfig() error {
+	//The configuration set here does not require merge
+	k.setCgroupDriver(k.getCgroupDriverFromShell(k.getMaster0IP()))
+	k.setKubeadmAPIAndCriSocketByVersion()
+	k.setInitLocalAPIEndpoint(k.getMaster0IP(), ApiServerPort)
+	//k.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = k.getMaster0IP()
+	//k.ClusterConfiguration.KubernetesVersion = k.Metadata.Version
+	k.setKubeVersion(k.Metadata.Version)
+	k.setControlPlaneEndpoint(fmt.Sprintf("%s:%s", k.getAPIServerDomain(), ApiServerPort))
+	//k.ClusterConfiguration.ControlPlaneEndpoint = fmt.Sprintf("%s:6443", k.getAPIServerDomain())
+	/*	k.ClusterConfiguration.APIServer.CertSANs = append(k.ClusterConfiguration.APIServer.CertSANs,
+		append([]string{"127.0.0.1", k.getAPIServerDomain(), k.VIP}, utils.GetHostIPSlice(k.getMasterIPList())...)...)*/
+	k.setApiServerCertSANs(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.VIP}, utils.GetHostIPSlice(k.getMasterIPList())...))
+	k.ClusterConfiguration.APIServer.ExtraArgs[EtcdServers] = getEtcdEndpointsWithHTTPSPrefix(k.getMasterIPList())
+	k.KubeProxyConfiguration.IPVS.ExcludeCIDRs = append(k.KubeProxyConfiguration.IPVS.ExcludeCIDRs, "%s/32", k.VIP)
+	//k.ClusterConfiguration.Networking.PodSubnet
+	//k.ClusterConfiguration.Networking.ServiceSubnet
+	//k.KubeletConfiguration.CgroupDriver = k.CgroupDriver
+
 	return nil
 }
 
@@ -175,16 +201,25 @@ func (k *KubeadmRuntime) decodeJoinCmd(cmd string) {
 		r = strings.ReplaceAll(r, "\\", "")
 		r = strings.TrimSpace(r)
 		if strings.Contains(r, "--token") {
-			k.JoinToken = stringSlice[i+1]
+			k.setJoinToken(stringSlice[i+1])
+
+			//k.JoinToken = stringSlice[i+1]
+			//k.JoinConfiguration.Discovery.BootstrapToken.Token = stringSlice[i+1]
 		}
 		if strings.Contains(r, "--discovery-token-ca-cert-hash") {
-			k.TokenCaCertHash = stringSlice[i+1]
+			k.setTokenCaCertHash([]string{stringSlice[i+1]})
+
+			//k.JoinConfiguration.Discovery.BootstrapToken.CACertHashes = []string{stringSlice[i+1]}
+			//k.TokenCaCertHash = stringSlice[i+1]
 		}
 		if strings.Contains(r, "--certificate-key") {
-			k.CertificateKey = stringSlice[i+1][:64]
+			k.setCertificateKey(stringSlice[i+1][:64])
+
+			//k.JoinConfiguration.ControlPlane.CertificateKey = stringSlice[i+1][:64]
+			//k.CertificateKey = stringSlice[i+1][:64]
 		}
 	}
-	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", k.JoinToken, k.TokenCaCertHash, k.CertificateKey)
+	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey())
 }
 
 //InitMaster0 is

@@ -66,6 +66,18 @@ func SaveClusterfile(cluster *v1.Cluster) error {
 	return nil
 }
 
+func MarshalConfigsYaml(configs ...interface{}) ([]byte, error) {
+	var cfgs [][]byte
+	for _, cfg := range configs {
+		data, err := yaml.Marshal(cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfgs = append(cfgs, data)
+	}
+	return bytes.Join(cfgs, []byte("\n---\n")), nil
+}
+
 func YamlMatcher(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	return ext == ".yaml" || ext == ".yml"

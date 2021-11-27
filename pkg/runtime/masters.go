@@ -99,7 +99,8 @@ const (
 	SvcCIDR              = "SvcCIDR"
 	Repo                 = "Repo"
 	CertSANS             = "CertSANS"
-	EtcdServers          = "EtcdServers"
+	EtcdServers          = "etcd-servers"
+	ApiServerPort        = 6443
 	CriSocket            = "CriSocket"
 	CriCGroupDriver      = "CriCGroupDriver"
 	KubeadmAPI           = "KubeadmAPI"
@@ -193,9 +194,11 @@ func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []string, files ...st
 }
 
 // JoinTemplate is generate JoinCP nodes configuration by master ip.
-func (k *KubeadmRuntime) JoinConfig(ip string) []byte {
+func (k *KubeadmRuntime) JoinConfig(masterIp string) ([]byte, error) {
 	// TODO Using join file instead template
-	return []byte{}
+	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getMaster0IP()))
+	k.setJoinLocalAPIEndpoint(masterIp, ApiServerPort)
+	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
 // sendJoinCPConfig send join CP nodes configuration
@@ -209,7 +212,13 @@ func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
 		go func(master string) {
 			defer wg.Done()
 			// set d.CriCGroupDriver on every nodes.
-			joinConfig := string(k.JoinConfig(master))
+			k.setCgroupDriver(k.getCgroupDriverFromShell(master))
+			joinConfig, err := k.JoinConfig(master)
+			if err != nil {
+				errCh <- fmt.Errorf("get join %s config failed: %v", master, err)
+				return
+			}
+
 			cmd := fmt.Sprintf(RemoteJoinMasterConfig, joinConfig, k.getRootfs())
 			ssh, err := k.getHostSSHClient(master)
 			if err != nil {
@@ -256,8 +265,8 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
 	cmds := map[CommandType]string{
 		InitMaster: fmt.Sprintf(InitMaster115Lower, k.getRootfs()),
-		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.getMaster0IP(), k.JoinToken, k.TokenCaCertHash, k.CertificateKey),
-		JoinNode:   fmt.Sprintf(JoinNode115Lower, k.getVIP(), k.JoinToken, k.TokenCaCertHash),
+		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.getMaster0IP(), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
+		JoinNode:   fmt.Sprintf(JoinNode115Lower, k.getVIP(), k.getJoinToken(), k.getTokenCaCertHash()),
 	}
 	//other version >= 1.15.x
 	if VersionCompare(version, V1150) {
@@ -457,6 +466,6 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 
 	k.decodeMaster0Output(out)
 
-	logger.Info("join token: %s hash: %s certifacate key: %s", k.JoinToken, k.TokenCaCertHash, k.CertificateKey)
+	logger.Info("join token: %s hash: %s certifacate key: %s", k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey())
 	return nil
 }

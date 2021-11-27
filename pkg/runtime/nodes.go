@@ -16,6 +16,7 @@ package runtime
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/utils"
 	"strings"
 	"sync"
 
@@ -36,9 +37,12 @@ const (
 	LvscareStaticPodCmd             = `echo "%s" > %s`
 )
 
-func (k *KubeadmRuntime) joinConfig() (string, error) {
+func (k *KubeadmRuntime) joinConfig(nodeIp string) ([]byte, error) {
 	// TODO get join config from config file
-	return "", nil
+	k.setCgroupDriver(k.getCgroupDriverFromShell(nodeIp))
+	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
+	k.setJoinLocalAPIEndpoint("", 0)
+	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
 func (k *KubeadmRuntime) joinNodes(nodes []string) error {
@@ -61,18 +65,22 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	}
 	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, k.getVIP(), masters)
 
+	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
+	k.JoinConfiguration.ControlPlane = nil
+
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
 	for _, node := range nodes {
 		wg.Add(1)
 		go func(node string) {
 			defer wg.Done()
 			// send join node config, get cgroup driver on every join nodes
-			joinConfig, err := k.joinConfig()
+			//k.CgroupDriver = k.getCgroupDriverFromShell(node)
+			joinConfig, err := k.joinConfig(node)
 			if err != nil {
 				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
 				return
 			}
-			cmdJoinConfig := fmt.Sprintf(RemoteJoinConfig, joinConfig, k.getRootfs())
+			cmdJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
 			cmd := k.Command(k.getKubeVersion(), JoinNode)
 			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.getMasterIPList(), "")
