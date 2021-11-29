@@ -19,7 +19,7 @@ const (
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-# advertiseAddress: 192.168.2.110
+  # advertiseAddress: 192.168.2.110
   bindPort: 6443
 #nodeRegistration:
 #  criSocket: /var/run/dockershim.sock
@@ -35,15 +35,14 @@ networking:
   podSubnet: 100.64.0.0/10
   serviceSubnet: 10.96.0.0/22
 apiServer:
-  certSANs:
-  - 127.0.0.1
-  - apiserver.cluster.local
-  - 192.168.2.110
-  - aliyun-inc.com
-  - 10.0.0.2
-  - 10.103.97.2
+  #  certSANs:
+  #    - 127.0.0.1
+  #    - apiserver.cluster.local
+  #    - aliyun-inc.com
+  #    - 10.0.0.2
+  #    - 10.103.97.2
   extraArgs:
-    etcd-servers: https://192.168.2.110:2379
+    #    etcd-servers: https://192.168.2.110:2379
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
     audit-policy-file: "/etc/kubernetes/audit-policy.yml"
     audit-log-path: "/var/log/kubernetes/audit.log"
@@ -53,38 +52,38 @@ apiServer:
     audit-log-maxage: '"7"'
     enable-aggregator-routing: '"true"'
   extraVolumes:
-  - name: "audit"
-    hostPath: "/etc/kubernetes"
-    mountPath: "/etc/kubernetes"
-    pathType: DirectoryOrCreate
-  - name: "audit-log"
-    hostPath: "/var/log/kubernetes"
-    mountPath: "/var/log/kubernetes"
-    pathType: DirectoryOrCreate
-  - name: localtime
-    hostPath: /etc/localtime
-    mountPath: /etc/localtime
-    readOnly: true
-    pathType: File
+    - name: "audit"
+      hostPath: "/etc/kubernetes"
+      mountPath: "/etc/kubernetes"
+      pathType: DirectoryOrCreate
+    - name: "audit-log"
+      hostPath: "/var/log/kubernetes"
+      mountPath: "/var/log/kubernetes"
+      pathType: DirectoryOrCreate
+    - name: localtime
+      hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      readOnly: true
+      pathType: File
 controllerManager:
   extraArgs:
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
     experimental-cluster-signing-duration: 876000h
   extraVolumes:
-  - hostPath: /etc/localtime
-    mountPath: /etc/localtime
-    name: localtime
-    readOnly: true
-    pathType: File
+    - hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      name: localtime
+      readOnly: true
+      pathType: File
 scheduler:
   extraArgs:
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
   extraVolumes:
-  - hostPath: /etc/localtime
-    mountPath: /etc/localtime
-    name: localtime
-    readOnly: true
-    pathType: File
+    - hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      name: localtime
+      readOnly: true
+      pathType: File
 etcd:
   local:
     extraArgs:
@@ -96,7 +95,7 @@ kind: KubeProxyConfiguration
 mode: "ipvs"
 ipvs:
   excludeCIDRs:
-  - "10.103.97.2/32"
+    - "10.103.97.2/32"
 
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
@@ -128,7 +127,7 @@ cpuManagerReconcilePeriod: 10s
 enableControllerAttachDetach: true
 enableDebuggingHandlers: true
 enforceNodeAllocatable:
-- pods
+  - pods
 eventBurst: 10
 eventRecordQPS: 5
 evictionHard:
@@ -173,6 +172,5 @@ apiVersion: kubeadm.k8s.io/v1beta2
 kind: JoinConfiguration
 caCertPath: /etc/kubernetes/pki/ca.crt
 discovery:
-  timeout: 5m0s
-`
+  timeout: 5m0s`
 )
