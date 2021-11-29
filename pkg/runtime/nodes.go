@@ -37,7 +37,7 @@ const (
 	LvscareStaticPodCmd             = `echo "%s" > %s`
 )
 
-func (k *KubeadmRuntime) joinConfig(nodeIp string) ([]byte, error) {
+func (k *KubeadmRuntime) joinNodeConfig(nodeIp string) ([]byte, error) {
 	// TODO get join config from config file
 	k.setCgroupDriver(k.getCgroupDriverFromShell(nodeIp))
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
@@ -74,8 +74,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 		go func(node string) {
 			defer wg.Done()
 			// send join node config, get cgroup driver on every join nodes
-			//k.CgroupDriver = k.getCgroupDriverFromShell(node)
-			joinConfig, err := k.joinConfig(node)
+			joinConfig, err := k.joinNodeConfig(node)
 			if err != nil {
 				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
 				return

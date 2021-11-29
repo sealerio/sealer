@@ -194,7 +194,7 @@ func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []string, files ...st
 }
 
 // JoinTemplate is generate JoinCP nodes configuration by master ip.
-func (k *KubeadmRuntime) JoinConfig(masterIp string) ([]byte, error) {
+func (k *KubeadmRuntime) joinMasterConfig(masterIp string) ([]byte, error) {
 	// TODO Using join file instead template
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getMaster0IP()))
 	k.setJoinLocalAPIEndpoint(masterIp, ApiServerPort)
@@ -213,7 +213,7 @@ func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
 			defer wg.Done()
 			// set d.CriCGroupDriver on every nodes.
 			k.setCgroupDriver(k.getCgroupDriverFromShell(master))
-			joinConfig, err := k.JoinConfig(master)
+			joinConfig, err := k.joinMasterConfig(master)
 			if err != nil {
 				errCh <- fmt.Errorf("get join %s config failed: %v", master, err)
 				return
