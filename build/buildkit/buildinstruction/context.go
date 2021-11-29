@@ -26,7 +26,6 @@ import (
 type ExecContext struct {
 	BuildContext string
 	BuildType    string
-	SealerDocker bool
 	//cache flag,will change for each layer ctx
 	ContinueCache bool
 	//cache chain to hit,will change for each layer ctx

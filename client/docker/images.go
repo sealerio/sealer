@@ -29,8 +29,12 @@ import (
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 )
 
-func (d Docker) ImagesCacheToRegistry(images []string, sealerDocker bool) error {
-	if sealerDocker {
+func (d Docker) ImagesCacheToRegistry(images []string) error {
+	version, err := d.cli.ServerVersion(d.ctx)
+	if err != nil {
+		return err
+	}
+	if strings.Contains(version.Version, `sealer`) {
 		return d.ImagesPull(images)
 	}
 	// need a extra push step

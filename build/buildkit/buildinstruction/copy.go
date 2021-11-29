@@ -42,7 +42,7 @@ type CopyInstruction struct {
 func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	// pre handle layer content
 	if c.layerHandler != nil {
-		err = c.layerHandler.LayerValueHandler(execContext.BuildContext, execContext.SealerDocker)
+		err = c.layerHandler.LayerValueHandler(execContext.BuildContext, c.rawLayer)
 		if err != nil {
 			return out, err
 		}

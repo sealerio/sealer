@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/client/docker"
@@ -35,8 +34,7 @@ import (
 )
 
 const (
-	maxLayerDeep           = 128
-	sealerDockerServerFlag = `sealer`
+	maxLayerDeep = 128
 )
 
 // BuildImage this struct aims to provide image object in build stage
@@ -64,16 +62,6 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 	} else {
 		execCtx = buildinstruction.NewExecContextWithoutCache(ctx.BuildType, ctx.BuildContext, b.LayerStore)
 	}
-	//judge the docker engine version
-	dockerServerVersion, err := b.DockerClient.GetServerVersion()
-	if err != nil {
-		return err
-	}
-	if strings.Contains(dockerServerVersion, sealerDockerServerFlag) {
-		execCtx.SealerDocker = true
-	} else {
-		execCtx.SealerDocker = false
-	} //judge the docker engine version over
 	for i := 0; i < len(newLayers); i++ {
 		//we are to set layer id for each new layers.
 		layer := &newLayers[i]

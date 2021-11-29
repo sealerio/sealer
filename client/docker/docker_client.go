@@ -39,11 +39,3 @@ func NewDockerClient() (*Docker, error) {
 		ctx: ctx,
 	}, nil
 }
-
-func (d Docker) GetServerVersion() (string, error) {
-	version, err := d.cli.ServerVersion(context.Background())
-	if err != nil {
-		return "", err
-	}
-	return version.Version, nil
-}
