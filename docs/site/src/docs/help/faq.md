@@ -209,7 +209,9 @@ get all docker image layer :
 
 examples:
 
-`docker inspect --format='{{json .RootFS}}' 8c72b944d569`
+```shell
+docker inspect --format='{{json .RootFS}}' 8c72b944d569
+```
 
 output:
 
