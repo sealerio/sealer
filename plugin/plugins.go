@@ -45,7 +45,7 @@ func NewPlugins(clusterName string) Plugins {
 	}
 }
 
-// Load loads plugin configs in rootfs/plugin dir
+// Load plugin configs in $rootfs/plugin dir.
 func (c *PluginsProcessor) Load() error {
 	c.Plugins = nil
 	path := common.DefaultTheClusterRootfsPluginDir(c.ClusterName)
@@ -71,6 +71,7 @@ func (c *PluginsProcessor) Load() error {
 	return nil
 }
 
+// Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
 func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 	for _, config := range c.Plugins {
 		if ext := filepath.Ext(config.Name); ext == ".so" {
@@ -89,8 +90,9 @@ func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 }
 
 func (c *PluginsProcessor) runOutOfTree(cluster *v1.Cluster, config v1.Plugin, phase Phase) error {
-	// load .so file from rootfs/plugin,if .so file not found,maybe not in the right phase.
+	// load share object (.so) file from $rootfs/plugin,if share object (.so) file not found,maybe not in the right phase.
 	soFile := filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.Name)
+	// if user want to run out-of-tree plugin via dumping clusterfile,need to skip load it before mount rootfs.
 	if !utils.IsExist(soFile) {
 		return nil
 	}
@@ -138,6 +140,7 @@ func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, error) {
 	return p, nil
 }
 
+// Dump each plugin config to $rootfs/plugin dir by reading the clusterfile.
 func (c *PluginsProcessor) Dump(clusterfile string) error {
 	if clusterfile == "" {
 		logger.Debug("clusterfile is empty!")
@@ -148,14 +151,14 @@ func (c *PluginsProcessor) Dump(clusterfile string) error {
 		return err
 	}
 	c.Plugins = plugins
-	err = c.WriteFiles()
+	err = c.writeFiles()
 	if err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
 	}
 	return nil
 }
 
-func (c *PluginsProcessor) WriteFiles() error {
+func (c *PluginsProcessor) writeFiles() error {
 	if len(c.Plugins) == 0 {
 		logger.Debug("plugins is nil")
 		return nil
