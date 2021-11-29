@@ -20,7 +20,8 @@ import (
 	"os"
 	"testing"
 
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -179,9 +180,8 @@ streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
 `
-	testClusterfile = `
-apiVersion: sealer.cloud/v2
-kind: KubeConfig
+	testClusterfile = `apiVersion: sealer.cloud/v2
+kind: KubeadmConfig
 metadata:
   name: default-kubernetes-config
 spec:
@@ -198,9 +198,13 @@ spec:
     serviceSubnet: 10.96.0.0/22
   apiServer:
     certSANs:
-    - sealer.cloud
-    - 127.0.0.1
+      - sealer.cloud
+      - 127.0.0.1
+      - Partial.custom.config
   clusterDomain: cluster.local
+  nodeLeaseDurationSeconds: 99
+  nodeStatusReportFrequency: 99s
+  nodeStatusUpdateFrequency: 99s
 ---
 apiVersion: sealer.cloud/v2
 kind: Cluster
@@ -219,18 +223,18 @@ spec:
     passwd: xxx
     port: 2222
   hosts:
-  - count: 3
-    role: [master]
-    cpu: 4
-    memory: 4
-    systemDisk: 100
-    dataDisk: [100,200]
-  - count: 3
-    role: [node]
-    cpu: 4
-    memory: 4
-    systemDisk: 100
-    dataDisk: [100, 200]
+    - count: 3
+      role: [ master ]
+      cpu: 4
+      memory: 4
+      systemDisk: 100
+      dataDisk: [ 100,200 ]
+    - count: 3
+      role: [ node ]
+      cpu: 4
+      memory: 4
+      systemDisk: 100
+      dataDisk: [ 100, 200 ]
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
@@ -260,7 +264,7 @@ cpuManagerReconcilePeriod: 10s
 enableControllerAttachDetach: true
 enableDebuggingHandlers: true
 enforceNodeAllocatable:
-- pods
+  - pods
 eventBurst: 10
 eventRecordQPS: 5
 evictionHard:
@@ -300,12 +304,28 @@ staticPodPath: /etc/kubernetes/manifests
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
-`
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+networking:
+  podSubnet: 100.64.0.0/10
+  serviceSubnet: 10.96.0.0/22
+apiServer:
+  certSANs:
+    - default.raw.config
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: 127.0.0.1 
+  bindPort: 6443
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock`
 )
 
 func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 	type fields struct {
-		KubeConfigSpec *v2.KubeConfigSpec
+		KubeConfig *KubeadmConfig
 	}
 	type args struct {
 		kubeadmconfig []byte
@@ -318,7 +338,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 	}{
 		{
 			name:   "test kubeadm config from Clusterfile",
-			fields: fields{KubeConfigSpec: &v2.KubeConfigSpec{}},
+			fields: fields{&KubeadmConfig{}},
 			args: args{
 				[]byte(testClusterfile),
 			},
@@ -327,10 +347,8 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k := &KubeadmConfig{
-				KubeConfigSpec: tt.fields.KubeConfigSpec,
-			}
-			testfile := "test-kubeConfig.yml"
+			k := tt.fields.KubeConfig
+			testfile := "test-Clusterfile"
 			err := ioutil.WriteFile(testfile, tt.args.kubeadmconfig, 0644)
 			if err != nil {
 				t.Errorf("WriteFile %s error = %v, wantErr %v", testfile, err, tt.wantErr)
@@ -344,7 +362,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 			if err := k.LoadFromClusterfile(testfile); (err != nil) != tt.wantErr {
 				t.Errorf("LoadFromClusterfile() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
+			logger.Info("k.InitConfiguration.Kind", k.InitConfiguration.Kind)
 			out, err := utils.MarshalConfigsToYaml(k.InitConfiguration, k.ClusterConfiguration,
 				k.JoinConfiguration, k.KubeletConfiguration, k.KubeProxyConfiguration)
 			if (err != nil) != tt.wantErr {
@@ -357,7 +375,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 
 func TestKubeadmConfig_Merge(t *testing.T) {
 	type fields struct {
-		KubeConfigSpec *v2.KubeConfigSpec
+		kubeadmConfig *KubeadmConfig
 	}
 	type args struct {
 		defaultKubeadmConfig []byte
@@ -371,7 +389,7 @@ func TestKubeadmConfig_Merge(t *testing.T) {
 	}{
 		{
 			name:   "test kubeadm config merge",
-			fields: fields{&v2.KubeConfigSpec{}},
+			fields: fields{&KubeadmConfig{}},
 			args: args{
 				[]byte(testKubeadmConfigYaml),
 			},
@@ -379,7 +397,7 @@ func TestKubeadmConfig_Merge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k := &KubeadmConfig{KubeConfigSpec: tt.fields.KubeConfigSpec}
+			k := tt.fields.kubeadmConfig
 			/*			err := k.LoadFromClusterfile("test-kubeConfig.yml")
 						if (err != nil) != tt.wantErr {
 							t.Errorf("LoadFromClusterfile() error = %v, wantErr %v", err, tt.wantErr)

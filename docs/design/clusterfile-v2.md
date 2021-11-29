@@ -255,7 +255,7 @@ If you don't want to care about so much Kubeadm configs, you can use `KubeConfig
 
 ```yaml
 apiVersion: sealer.cloud/v2
-kind: KubeConfig
+kind: KubeadmConfig
 metadata:
   name: default-kubernetes-config
 spec:

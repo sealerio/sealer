@@ -22,19 +22,14 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
-	"k8s.io/kubelet/config/v1beta1"
-
-	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
-	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/kube-proxy/config/v1alpha1"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -476,26 +471,26 @@ func GetFilesSize(paths []string) (int64, error) {
 	return size, nil
 }
 
-func DecodeCluster(filepath string) (clusters *v1.Cluster, err error) {
-	decodeClusters, err := DecodeCRDFromFile(filepath, common.Cluster)
+func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {
+	decodeClusters, err := decodeCRD(filepath, common.Cluster)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode cluster from %s, %v", filepath, err)
 	}
-	clusters = decodeClusters.(*v1.Cluster)
+	clusters = decodeClusters.([]v1.Cluster)
 	return
 }
 
-func DecodeConfigs(filePath string) (configs []v1.Config, err error) {
-	decodeConfigs, err := decodeCRDs(filePath, common.Config)
+func DecodeConfigs(filepath string) (configs []v1.Config, err error) {
+	decodeConfigs, err := decodeCRD(filepath, common.Config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode config from %s, %v", filePath, err)
+		return nil, fmt.Errorf("failed to decode config from %s, %v", filepath, err)
 	}
 	configs = decodeConfigs.([]v1.Config)
 	return
 }
 
 func DecodePlugins(filepath string) (plugins []v1.Plugin, err error) {
-	decodePlugins, err := decodeCRDs(filepath, common.Plugin)
+	decodePlugins, err := decodeCRD(filepath, common.Plugin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode plugin from %s, %v", filepath, err)
 	}
@@ -503,8 +498,8 @@ func DecodePlugins(filepath string) (plugins []v1.Plugin, err error) {
 	return
 }
 
-func decodeCRDs(filePath string, kind string) (out interface{}, err error) {
-	file, err := os.Open(filepath.Clean(filePath))
+func decodeCRD(filepath string, kind string) (out interface{}, err error) {
+	file, err := os.Open(path.Clean(filepath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to dump config %v", err)
 	}
@@ -514,9 +509,10 @@ func decodeCRDs(filePath string, kind string) (out interface{}, err error) {
 		}
 	}()
 	var (
-		i       interface{}
-		configs []v1.Config
-		plugins []v1.Plugin
+		i        interface{}
+		clusters []v1.Cluster
+		configs  []v1.Config
+		plugins  []v1.Plugin
 	)
 
 	d := yaml.NewYAMLOrJSONDecoder(file, 4096)
@@ -536,6 +532,16 @@ func decodeCRDs(filePath string, kind string) (out interface{}, err error) {
 		}
 		// ext.Raw
 		switch kind {
+		case common.Cluster:
+			cluster := v1.Cluster{}
+			err := yaml.Unmarshal(ext.Raw, &cluster)
+			if err != nil {
+				return nil, fmt.Errorf("decode cluster failed %v", err)
+			}
+			if cluster.Kind == common.Cluster {
+				clusters = append(clusters, cluster)
+			}
+			i = clusters
 		case common.Config:
 			config := v1.Config{}
 			err := yaml.Unmarshal(ext.Raw, &config)
@@ -560,78 +566,4 @@ func decodeCRDs(filePath string, kind string) (out interface{}, err error) {
 	}
 
 	return i, nil
-}
-
-func DecodeCRDFromFile(filePath string, kind string) (interface{}, error) {
-	file, err := os.Open(filepath.Clean(filePath))
-	if err != nil {
-		return nil, fmt.Errorf("failed to dump config %v", err)
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			logger.Warn("failed to dump config close clusterfile failed %v", err)
-		}
-	}()
-	return DecodeCRDFromReader(file, kind)
-}
-
-func DecodeCRDFromReader(r io.Reader, kind string) (interface{}, error) {
-	d := yaml.NewYAMLOrJSONDecoder(r, 4096)
-
-	for {
-		ext := runtime.RawExtension{}
-		if err := d.Decode(&ext); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
-		// TODO: This needs to be able to handle object in other encodings and schemas.
-		ext.Raw = bytes.TrimSpace(ext.Raw)
-		if len(ext.Raw) == 0 || bytes.Equal(ext.Raw, []byte("null")) {
-			continue
-		}
-		metaType := metav1.TypeMeta{}
-		err := yaml.Unmarshal(ext.Raw, &metaType)
-		if err != nil {
-			return nil, fmt.Errorf("decode cluster failed %v", err)
-		}
-		// ext.Raw
-		if metaType.Kind == kind {
-			return TypeConversion(ext.Raw, kind)
-		}
-	}
-	return nil, nil
-}
-
-func DecodeCRDFromString(config string, kind string) (interface{}, error) {
-	return DecodeCRDFromReader(strings.NewReader(config), kind)
-}
-
-func TypeConversion(raw []byte, kind string) (i interface{}, err error) {
-	i = typeConversion(kind)
-	if i == nil {
-		return nil, fmt.Errorf("not found type %s from %s", kind, string(raw))
-	}
-	return i, yaml.Unmarshal(raw, i)
-}
-
-func typeConversion(kind string) interface{} {
-	switch kind {
-	case common.Cluster:
-		return &v1.Cluster{}
-	case common.KubeConfig:
-		return &v2.KubeConfig{}
-	case common.InitConfiguration:
-		return &v1beta2.InitConfiguration{}
-	case common.JoinConfiguration:
-		return &v1beta2.JoinConfiguration{}
-	case common.ClusterConfiguration:
-		return &v1beta2.ClusterConfiguration{}
-	case common.KubeletConfiguration:
-		return &v1beta1.KubeletConfiguration{}
-	case common.KubeProxyConfiguration:
-		return &v1alpha1.KubeProxyConfiguration{}
-	}
-	return nil
 }

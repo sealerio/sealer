@@ -17,10 +17,10 @@ package runtime
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/common"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
-	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 	"github.com/imdario/mergo"
 	"k8s.io/kube-proxy/config/v1alpha1"
@@ -33,23 +33,35 @@ import (
 
 // https://github.com/kubernetes/kubernetes/blob/master/cmd/kubeadm/app/apis/kubeadm/v1beta2/types.go
 // Using map to overwrite Kubeadm configs
+
+//nolint
 type KubeadmConfig struct {
-	*v2.KubeConfigSpec
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	KubeConfigSpec    `json:"spec,omitempty"`
+}
+
+//nolint
+type KubeConfigSpec struct {
+	v1beta2.InitConfiguration
+	v1beta2.ClusterConfiguration
+	v1alpha1.KubeProxyConfiguration
+	v1beta1.KubeletConfiguration
+	v1beta2.JoinConfiguration
 }
 
 // Load KubeadmConfig from Clusterfile
 // If has `KubeadmConfig` in Clusterfile, load every field to each configurations
 // If Kubeadm raw config in Clusterfile, just load it
 func (k *KubeadmConfig) LoadFromClusterfile(fileName string) error {
-	kubeConfig, err := utils.DecodeCRDFromFile(fileName, common.KubeConfig)
+	kubeConfig, err := DecodeCRDFromFile(fileName, Kubeadmconfig)
 	if err != nil {
 		return err
 	} else if kubeConfig != nil {
-		kubeConfigSpec := kubeConfig.(*v2.KubeConfig).Spec
-		k.KubeConfigSpec = &kubeConfigSpec
+		k.KubeConfigSpec = kubeConfig.(*KubeadmConfig).KubeConfigSpec
 	}
 
-	kubeadmConfig, err := k.loadKubeadmConfigs(fileName, utils.DecodeCRDFromFile)
+	kubeadmConfig, err := k.loadKubeadmConfigs(fileName, DecodeCRDFromFile)
 	if err != nil {
 		return fmt.Errorf("failed to load kubeadm config from %s, err: %v", fileName, err)
 	} else if kubeConfig == nil {
@@ -66,13 +78,13 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) ([]byte, error) {
 		err                  error
 	)
 	if utils.IsFileExist(kubeadmYamlPath) {
-		defaultKubeadmConfig, err = k.loadKubeadmConfigs(kubeadmYamlPath, utils.DecodeCRDFromFile)
+		defaultKubeadmConfig, err = k.loadKubeadmConfigs(kubeadmYamlPath, DecodeCRDFromFile)
 		if err != nil {
 			logger.Warn("failed to found kubeadm config from %s : %v, will use default kubeadm config to merge empty value", kubeadmYamlPath, err)
 			return k.Merge("")
 		}
 	} else {
-		defaultKubeadmConfig, err = k.loadKubeadmConfigs(DefaultKubeadmYamlTmpl, utils.DecodeCRDFromString)
+		defaultKubeadmConfig, err = k.loadKubeadmConfigs(DefaultKubeadmYamlTmpl, DecodeCRDFromString)
 		if err != nil {
 			return nil, err
 		}
@@ -88,32 +100,32 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) ([]byte, error) {
 }
 
 func (k *KubeadmConfig) loadKubeadmConfigs(arg string, decode func(arg string, kind string) (interface{}, error)) (*KubeadmConfig, error) {
-	kubeadmConfig := &KubeadmConfig{&v2.KubeConfigSpec{}}
-	initConfig, err := decode(arg, common.InitConfiguration)
+	kubeadmConfig := &KubeadmConfig{}
+	initConfig, err := decode(arg, InitConfiguration)
 	if err != nil {
 		return nil, err
 	} else if initConfig != nil {
 		kubeadmConfig.InitConfiguration = *initConfig.(*v1beta2.InitConfiguration)
 	}
-	clusterConfig, err := decode(arg, common.ClusterConfiguration)
+	clusterConfig, err := decode(arg, ClusterConfiguration)
 	if err != nil {
 		return nil, err
 	} else if clusterConfig != nil {
 		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta2.ClusterConfiguration)
 	}
-	kubeProxyConfig, err := decode(arg, common.KubeProxyConfiguration)
+	kubeProxyConfig, err := decode(arg, KubeProxyConfiguration)
 	if err != nil {
 		return nil, err
 	} else if kubeProxyConfig != nil {
 		kubeadmConfig.KubeProxyConfiguration = *kubeProxyConfig.(*v1alpha1.KubeProxyConfiguration)
 	}
-	kubeletConfig, err := decode(arg, common.KubeletConfiguration)
+	kubeletConfig, err := decode(arg, KubeletConfiguration)
 	if err != nil {
 		return nil, err
 	} else if kubeletConfig != nil {
 		kubeadmConfig.KubeletConfiguration = *kubeletConfig.(*v1beta1.KubeletConfiguration)
 	}
-	joinConfig, err := decode(arg, common.JoinConfiguration)
+	joinConfig, err := decode(arg, JoinConfiguration)
 	if err != nil {
 		return nil, err
 	} else if joinConfig != nil {
