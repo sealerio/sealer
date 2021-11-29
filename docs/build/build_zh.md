@@ -82,6 +82,7 @@ $ sealer build -f Kubefile -t my-kubernetes:v1.19.8 -m cloud .
  -t : 指定构建产出镜像的名称
  -m : 指定构建模式[cloud |container |lite] #默认为lite
  .  : build上下文，指定为当前路径
+ --no-cache:构建过程中不使用缓存
 ```
 
 ## build类型
