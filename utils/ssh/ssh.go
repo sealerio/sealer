@@ -20,9 +20,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/imdario/mergo"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -87,6 +90,21 @@ func NewSSHClient(ssh *v1.SSH) Interface {
 		PkPassword:   ssh.PkPasswd,
 		LocalAddress: address,
 	}
+}
+
+func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
+	for _, host := range cluster.Spec.Hosts {
+		for _, ip := range host.IPS {
+			if hostIP == ip {
+				if err := mergo.Merge(&host, &cluster.Spec.SSH); err != nil {
+					return nil, err
+				}
+
+				return NewSSHClient(&host.SSH), nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
 }
 
 type Client struct {
