@@ -23,11 +23,8 @@ import (
 
 	"github.com/alibaba/sealer/utils"
 
-	"github.com/imdario/mergo"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils/ssh"
 )
@@ -64,15 +61,6 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterfile string) (Interface, erro
 	return k, nil
 }
 
-// If node has it own ssh config, over write it
-func (k *KubeadmRuntime) getSSHClient(hostSSH *v1.SSH) (ssh.Interface, error) {
-	if err := mergo.Merge(hostSSH, k.Cluster.Spec.SSH); err != nil {
-		return nil, err
-	}
-
-	return ssh.NewSSHClient(hostSSH), nil
-}
-
 func (k *KubeadmRuntime) checkList() error {
 	return k.checkIPList()
 }
@@ -92,14 +80,7 @@ func (k *KubeadmRuntime) getClusterName() string {
 }
 
 func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) {
-	for _, host := range k.Cluster.Spec.Hosts {
-		for _, ip := range host.IPS {
-			if hostIP == ip {
-				return k.getSSHClient(&host.SSH)
-			}
-		}
-	}
-	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
+	return ssh.GetHostSSHClient(hostIP, k.Cluster)
 }
 
 func (k *KubeadmRuntime) getRootfs() string {
