@@ -25,16 +25,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
 
+	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/kube-proxy/config/v1alpha1"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -143,7 +143,13 @@ func MkTmpFile(path string) (*os.File, error) {
 
 func IsFileExist(filename string) bool {
 	_, err := os.Stat(filename)
-	return !os.IsNotExist(err)
+	if !os.IsNotExist(err) {
+		if err == nil {
+			return true
+		}
+		logger.Warn(err)
+	}
+	return false
 }
 
 func WriteFile(fileName string, content []byte) error {
@@ -618,12 +624,14 @@ func typeConversion(kind string) interface{} {
 		return &v2.KubeConfig{}
 	case common.InitConfiguration:
 		return &v1beta2.InitConfiguration{}
+	case common.JoinConfiguration:
+		return &v1beta2.JoinConfiguration{}
 	case common.ClusterConfiguration:
 		return &v1beta2.ClusterConfiguration{}
-	case common.KubeProxyConfiguration:
-		return &v1alpha1.KubeProxyConfiguration{}
 	case common.KubeletConfiguration:
 		return &v1beta1.KubeletConfiguration{}
+	case common.KubeProxyConfiguration:
+		return &v1alpha1.KubeProxyConfiguration{}
 	}
 	return nil
 }

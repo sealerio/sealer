@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -69,14 +70,14 @@ func YamlMatcher(path string) bool {
 	return ext == ".yaml" || ext == ".yml"
 }
 
-func MarshalConfigYaml(in ...interface{}) ([]byte, error) {
+func MarshalConfigsToYaml(in ...interface{}) ([]byte, error) {
 	var configs [][]byte
 	for i := range in {
 		config, err := yaml.Marshal(in[i])
 		if err != nil {
 			return nil, err
 		}
-		configs = append(configs, []byte("---\n"), config)
+		configs = append(configs, config)
 	}
-	return bytes.Join(configs, []byte("")), nil
+	return bytes.Join(configs, []byte("\n---\n")), nil
 }

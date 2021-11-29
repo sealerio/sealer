@@ -20,7 +20,6 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
-	"github.com/alibaba/sealer/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 	"github.com/imdario/mergo"
@@ -35,96 +34,92 @@ import (
 // https://github.com/kubernetes/kubernetes/blob/master/cmd/kubeadm/app/apis/kubeadm/v1beta2/types.go
 // Using map to overwrite Kubeadm configs
 type KubeadmConfig struct {
-	*v1beta2.InitConfiguration
-	*v1beta2.ClusterConfiguration
-	*v1alpha1.KubeProxyConfiguration
-	*v1beta1.KubeletConfiguration
+	*v2.KubeConfigSpec
 }
 
 // Load KubeadmConfig from Clusterfile
 // If has `KubeadmConfig` in Clusterfile, load every field to each configurations
 // If Kubeadm raw config in Clusterfile, just load it
 func (k *KubeadmConfig) LoadFromClusterfile(fileName string) error {
-	if err := k.init(fileName); err != nil {
-		return err
-	}
 	kubeConfig, err := utils.DecodeCRDFromFile(fileName, common.KubeConfig)
 	if err != nil {
 		return err
+	} else if kubeConfig != nil {
+		kubeConfigSpec := kubeConfig.(*v2.KubeConfig).Spec
+		k.KubeConfigSpec = &kubeConfigSpec
 	}
-	// type conversion
-	customConfig := KubeadmConfig{
-		InitConfiguration:      &kubeConfig.(*v2.KubeConfig).Spec.InitConfiguration,
-		ClusterConfiguration:   &kubeConfig.(*v2.KubeConfig).Spec.ClusterConfiguration,
-		KubeletConfiguration:   &kubeConfig.(*v2.KubeConfig).Spec.KubeletConfiguration,
-		KubeProxyConfiguration: &kubeConfig.(*v2.KubeConfig).Spec.KubeProxyConfiguration,
+
+	kubeadmConfig, err := k.loadKubeadmConfigs(fileName, utils.DecodeCRDFromFile)
+	if err != nil {
+		return fmt.Errorf("failed to load kubeadm config from %s, err: %v", fileName, err)
+	} else if kubeConfig == nil {
+		return nil
 	}
-	return mergo.Merge(k, customConfig, mergo.WithOverride, mergo.WithOverwriteWithEmptyValue)
+	return mergo.Merge(k, kubeadmConfig)
 }
 
-// Using github.com/imdario/mergo to merge KubeadmConfig to the CloudImage default kubeadm config, overwrite some field.
-func (k *KubeadmConfig) Merge(defaultKubeadmConfig string) ([]byte, error) {
-	/**
-	1. use rootfs/etc/kubeadm.yaml, if kubeadm.yaml not exist, use default raw kubeadm config
-	2. kubeadm config from Clusterfile > ⬆ merge  WithOverride
-	3. kubeConfig from Clusterfile > ⬆ merge WithOverride
-	**/
-
-	/* defaultKubeadmConfig = runtime.GetInitKubeadmConfigYaml("my-cluster") */
-
-	defaultKubeConfig, err := utils.DecodeCRDFromString(defaultKubeadmConfig, common.KubeConfig)
-	if err != nil {
-		return nil, err
-	}
-	if defaultKubeConfig == nil {
-		logger.Warn("kubeadm config not found in cloud image")
-		defaultKubeadmConfig = runtime.GetInitKubeadmConfigYaml("")
-		return k.Merge(defaultKubeadmConfig)
-	}
-	defaultConfig := KubeadmConfig{
-		InitConfiguration:      &defaultKubeConfig.(*v2.KubeConfig).Spec.InitConfiguration,
-		ClusterConfiguration:   &defaultKubeConfig.(*v2.KubeConfig).Spec.ClusterConfiguration,
-		KubeletConfiguration:   &defaultKubeConfig.(*v2.KubeConfig).Spec.KubeletConfiguration,
-		KubeProxyConfiguration: &defaultKubeConfig.(*v2.KubeConfig).Spec.KubeProxyConfiguration,
-	}
-	/*	err = k.LoadFromClusterfile("clusterfile")
+// Merge Using github.com/imdario/mergo to merge KubeadmConfig to the CloudImage default kubeadm config, overwrite some field.
+// if defaultKubeadmConfig file not exist, use default raw kubeadm config to merge k.KubeConfigSpec empty value
+func (k *KubeadmConfig) Merge(kubeadmYamlPath string) ([]byte, error) {
+	var (
+		defaultKubeadmConfig *KubeadmConfig
+		err                  error
+	)
+	if utils.IsFileExist(kubeadmYamlPath) {
+		defaultKubeadmConfig, err = k.loadKubeadmConfigs(kubeadmYamlPath, utils.DecodeCRDFromFile)
+		if err != nil {
+			logger.Warn("failed to found kubeadm config from %s : %v, will use default kubeadm config to merge empty value", kubeadmYamlPath, err)
+			return k.Merge("")
+		}
+	} else {
+		defaultKubeadmConfig, err = k.loadKubeadmConfigs(DefaultKubeadmYamlTmpl, utils.DecodeCRDFromString)
 		if err != nil {
 			return nil, err
-		}*/
-
-	//Override default kubeadm config
-	err = mergo.Merge(&defaultConfig, *k, mergo.WithOverride)
-	if err != nil {
-		return nil, fmt.Errorf("failed to merge default kube config, err: %v", err)
+		}
 	}
-	return utils.MarshalConfigYaml(&defaultConfig.InitConfiguration,
-		&defaultConfig.ClusterConfiguration,
-		&defaultConfig.KubeletConfiguration,
-		&defaultConfig.KubeProxyConfiguration)
+
+	if err = mergo.Merge(k, defaultKubeadmConfig); err != nil {
+		return nil, err
+	}
+	return utils.MarshalConfigsToYaml(&k.InitConfiguration,
+		&k.ClusterConfiguration,
+		&k.KubeletConfiguration,
+		&k.KubeProxyConfiguration)
 }
 
-func (k *KubeadmConfig) init(fileName string) error {
-	initConfig, err := utils.DecodeCRDFromFile(fileName, common.InitConfiguration)
+func (k *KubeadmConfig) loadKubeadmConfigs(arg string, decode func(arg string, kind string) (interface{}, error)) (*KubeadmConfig, error) {
+	kubeadmConfig := &KubeadmConfig{&v2.KubeConfigSpec{}}
+	initConfig, err := decode(arg, common.InitConfiguration)
 	if err != nil {
-		return err
+		return nil, err
+	} else if initConfig != nil {
+		kubeadmConfig.InitConfiguration = *initConfig.(*v1beta2.InitConfiguration)
 	}
-	clusterConfig, err := utils.DecodeCRDFromFile(fileName, common.ClusterConfiguration)
+	clusterConfig, err := decode(arg, common.ClusterConfiguration)
 	if err != nil {
-		return err
+		return nil, err
+	} else if clusterConfig != nil {
+		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta2.ClusterConfiguration)
 	}
-	kubeProxyConfig, err := utils.DecodeCRDFromFile(fileName, common.KubeProxyConfiguration)
+	kubeProxyConfig, err := decode(arg, common.KubeProxyConfiguration)
 	if err != nil {
-		return err
+		return nil, err
+	} else if kubeProxyConfig != nil {
+		kubeadmConfig.KubeProxyConfiguration = *kubeProxyConfig.(*v1alpha1.KubeProxyConfiguration)
 	}
-	kubeletConfig, err := utils.DecodeCRDFromFile(fileName, common.KubeletConfiguration)
+	kubeletConfig, err := decode(arg, common.KubeletConfiguration)
 	if err != nil {
-		return err
+		return nil, err
+	} else if kubeletConfig != nil {
+		kubeadmConfig.KubeletConfiguration = *kubeletConfig.(*v1beta1.KubeletConfiguration)
 	}
-	k.InitConfiguration = initConfig.(*v1beta2.InitConfiguration)
-	k.ClusterConfiguration = clusterConfig.(*v1beta2.ClusterConfiguration)
-	k.KubeletConfiguration = kubeletConfig.(*v1beta1.KubeletConfiguration)
-	k.KubeProxyConfiguration = kubeProxyConfig.(*v1alpha1.KubeProxyConfiguration)
-	return nil
+	joinConfig, err := decode(arg, common.JoinConfiguration)
+	if err != nil {
+		return nil, err
+	} else if joinConfig != nil {
+		kubeadmConfig.JoinConfiguration = *joinConfig.(*v1beta2.JoinConfiguration)
+	}
+	return kubeadmConfig, nil
 }
 
 func NewKubeadmConfig() interface{} {

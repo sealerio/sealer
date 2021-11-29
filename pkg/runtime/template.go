@@ -14,77 +14,36 @@
 
 package runtime
 
-import (
-	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
-)
-
-// Overwrite templete filename
 const (
-	bootstrapTemplateName       = "kubeadm-bootstrap.yaml.tmpl"
-	initConfigTemplateName      = "kubeadm-init.yaml.tmpl"
-	clusterConfigTemplateName   = "kubeadm-cluster-config.yaml.tmpl"
-	kubeproxyConfigTemplateName = "kubeadm-kubeproxy-config.yaml.tmpl"
-	kubeletConfigTemplateName   = "kubeadm-kubelet-config.yaml.tmpl"
-	joinConfigTemplateName      = "kubeadm-join-config.yaml.tmpl"
-)
-
-const ( /* #nosec G101  */
-	bootstrapTokenDefault = `apiVersion: {{.KubeadmAPI}}
-caCertPath: /etc/kubernetes/pki/ca.crt
-discovery:
-  bootstrapToken:
-    {{- if .Master}}
-    apiServerEndpoint: {{.Master0}}:6443
-    {{else}}
-    apiServerEndpoint: {{.VIP}}:6443
-    {{end -}}
-    token: {{.TokenDiscovery}}
-    caCertHashes:
-    - {{.TokenDiscoveryCAHash}}
-  timeout: 5m0s
-`
-	initConfigurationDefault = `apiVersion: {{.KubeadmAPI}}
+	DefaultKubeadmYamlTmpl = `
+apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {{.Master0}}
+# advertiseAddress: 192.168.2.110
   bindPort: 6443
-nodeRegistration:
-  criSocket: {{.CriSocket}}
-`
+#nodeRegistration:
+#  criSocket: /var/run/dockershim.sock
 
-	joinConfigurationDefault = `kind: JoinConfiguration
-{{- if .Master }}
-controlPlane:
-  localAPIEndpoint:
-    advertiseAddress: {{.Master}}
-    bindPort: 6443
-{{- end}}
-nodeRegistration:
-  criSocket: {{.CriSocket}}
-`
-
-	clusterConfigurationDefault = `apiVersion: {{.KubeadmAPI}}
+---
+apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
-kubernetesVersion: {{.Version}}
-controlPlaneEndpoint: "{{.ApiServer}}:6443"
-imageRepository: {{.Repo}}
+#kubernetesVersion: v1.19.8
+#controlPlaneEndpoint: "apiserver.cluster.local:6443"
+imageRepository: sea.hub:5000/library
 networking:
   # dnsDomain: cluster.local
-  podSubnet: {{.PodCIDR}}
-  serviceSubnet: {{.SvcCIDR}}
+  podSubnet: 100.64.0.0/10
+  serviceSubnet: 10.96.0.0/22
 apiServer:
   certSANs:
-  {{range .CertSANS -}}
-  - {{.}}
-  {{end -}}
+  - 127.0.0.1
+  - apiserver.cluster.local
+  - 192.168.2.110
+  - aliyun-inc.com
+  - 10.0.0.2
+  - 10.103.97.2
   extraArgs:
-    etcd-servers: {{.EtcdServers}}
+    etcd-servers: https://192.168.2.110:2379
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
     audit-policy-file: "/etc/kubernetes/audit-policy.yml"
     audit-log-path: "/var/log/kubernetes/audit.log"
@@ -130,16 +89,17 @@ etcd:
   local:
     extraArgs:
       listen-metrics-urls: http://0.0.0.0:2381
-`
-	kubeproxyConfigDefault = `apiVersion: kubeproxy.config.k8s.io/v1alpha1
+
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: "ipvs"
 ipvs:
   excludeCIDRs:
-  - "{{.VIP}}/32"
-`
+  - "10.103.97.2/32"
 
-	kubeletConfigDefault = `apiVersion: kubelet.config.k8s.io/v1beta1
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 authentication:
   anonymous:
@@ -154,7 +114,7 @@ authorization:
   webhook:
     cacheAuthorizedTTL: 5m0s
     cacheUnauthorizedTTL: 30s
-cgroupDriver: {{ .CgroupDriver}}
+cgroupDriver:
 cgroupsPerQOS: true
 clusterDomain: cluster.local
 configMapAndSecretChangeDetectionStrategy: Watch
@@ -207,54 +167,12 @@ serializeImagePulls: true
 staticPodPath: /etc/kubernetes/manifests
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
-volumeStatsAggPeriod: 1m0s`
-	ContainerdShell = `if grep "SystemdCgroup = true"  /etc/containerd/config.toml &> /dev/null; then  
-driver=systemd
-else
-driver=cgroupfs
-fi
-echo ${driver}`
-	DockerShell = `driver=$(docker info -f "{{.CgroupDriver}}")
-	echo "${driver}"`
+volumeStatsAggPeriod: 1m0s
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: JoinConfiguration
+caCertPath: /etc/kubernetes/pki/ca.crt
+discovery:
+  timeout: 5m0s
+`
 )
-
-// Get from rootfs or by default
-func getInitTemplateText(clusterName string) string {
-	return fmt.Sprintf("%s\n---\n%s\n---\n%s\n---\n%s",
-		readFromFileOrDefault(clusterName, initConfigTemplateName, initConfigurationDefault),
-		readFromFileOrDefault(clusterName, clusterConfigTemplateName, clusterConfigurationDefault),
-		readFromFileOrDefault(clusterName, kubeproxyConfigTemplateName, kubeproxyConfigDefault),
-		readFromFileOrDefault(clusterName, kubeletConfigTemplateName, kubeletConfigDefault),
-	)
-}
-
-func getJoinTemplateText(clusterName string) string {
-	return fmt.Sprintf("%s\n%s\n---\n%s",
-		readFromFileOrDefault(clusterName, bootstrapTemplateName, bootstrapTokenDefault),
-		readFromFileOrDefault(clusterName, joinConfigTemplateName, joinConfigurationDefault),
-		readFromFileOrDefault(clusterName, kubeletConfigTemplateName, kubeletConfigDefault),
-	)
-}
-
-// return file content or defaultContent if file not exist
-func readFromFileOrDefault(clusterName, fileName, defaultContent string) string {
-	if clusterName == "" {
-		return defaultContent
-	}
-	fileName = filepath.Join(common.DefaultMountCloudImageDir(clusterName), common.EtcDir, fileName)
-	_, err := os.Stat(fileName)
-	if os.IsNotExist(err) {
-		return defaultContent
-	}
-	if err != nil {
-		logger.Warn("kubeadm template file stat %v", err)
-		return defaultContent
-	}
-
-	bs, err := utils.ReadAll(fileName)
-	if err != nil {
-		logger.Warn("read kubeadm template file err %v", err)
-		return defaultContent
-	}
-	return string(bs)
-}

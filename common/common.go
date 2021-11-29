@@ -96,6 +96,7 @@ const (
 	Cluster                = "Cluster"
 	KubeConfig             = "KubeConfig"
 	InitConfiguration      = "InitConfiguration"
+	JoinConfiguration      = "JoinConfiguration"
 	ClusterConfiguration   = "ClusterConfiguration"
 	KubeProxyConfiguration = "KubeProxyConfiguration"
 	KubeletConfiguration   = "KubeletConfiguration"

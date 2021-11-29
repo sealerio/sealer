@@ -36,6 +36,7 @@ type KubeConfigSpec struct {
 	v1beta2.ClusterConfiguration
 	v1alpha1.KubeProxyConfiguration
 	v1beta1.KubeletConfiguration
+	v1beta2.JoinConfiguration
 }
 
 // KubeConfigStatus defines the observed state of KubeConfig
