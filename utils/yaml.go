@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"sigs.k8s.io/yaml"
 
@@ -65,6 +66,6 @@ func SaveClusterfile(cluster *v1.Cluster) error {
 }
 
 func YamlMatcher(path string) bool {
-	ext := filepath.Ext(path)
+	ext := strings.ToLower(filepath.Ext(path))
 	return ext == ".yaml" || ext == ".yml"
 }
