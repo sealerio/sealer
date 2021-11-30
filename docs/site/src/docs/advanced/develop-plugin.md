@@ -31,7 +31,7 @@ import (
 type list string
 
 func (l *list) GetPluginType() string {
-	return "TEST_SO"
+	return "LIST_NODE"
 }
 
 func (l *list) Run(context plugin.Context, phase plugin.Phase) error {

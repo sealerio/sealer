@@ -162,7 +162,7 @@ metadata:
   name: LABEL
 spec:
   type: LABEL
-  action: PostInstall  
+  action: PostInstall
   data: |
     172.20.126.8 ssd=false,hdd=true
 ```
