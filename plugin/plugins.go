@@ -34,14 +34,16 @@ type Plugins interface {
 }
 
 type PluginsProcessor struct {
-	Plugins     []v1.Plugin
-	ClusterName string
+	Plugins            []v1.Plugin
+	ClusterName        string
+	ExistedPluginTypes map[Phase][]map[string]bool
 }
 
 func NewPlugins(clusterName string) Plugins {
 	return &PluginsProcessor{
-		ClusterName: clusterName,
-		Plugins:     []v1.Plugin{},
+		ClusterName:        clusterName,
+		Plugins:            []v1.Plugin{},
+		ExistedPluginTypes: make(map[Phase][]map[string]bool),
 	}
 }
 
@@ -74,36 +76,47 @@ func (c *PluginsProcessor) Load() error {
 // Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
 func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 	for _, config := range c.Plugins {
-		if ext := filepath.Ext(config.Name); ext == ".so" {
-			err := c.runOutOfTree(cluster, config, phase)
+		var p Interface
+		var err error
+		ext := filepath.Ext(config.Name)
+		if ext == ".so" {
+			p, err = c.getOutOfTreePlugin(config)
+			if err != nil {
+				return fmt.Errorf("failed to run plugin, %v", err)
+			}
+		} else {
+			p, err = c.getInTreePlugin(config)
+			if err != nil {
+				return fmt.Errorf("failed to run plugin, %v", err)
+			}
+		}
+
+		if p != nil {
+			err = c.process(p, cluster, config, phase)
 			if err != nil {
 				return fmt.Errorf("failed to run plugin, %v", err)
 			}
 			continue
 		}
-		err := c.runInTree(cluster, config, phase)
-		if err != nil {
-			return fmt.Errorf("failed to run plugin, %v", err)
-		}
 	}
 	return nil
 }
 
-func (c *PluginsProcessor) runOutOfTree(cluster *v1.Cluster, config v1.Plugin, phase Phase) error {
+func (c *PluginsProcessor) getOutOfTreePlugin(config v1.Plugin) (Interface, error) {
 	// load share object (.so) file from $rootfs/plugin,if share object (.so) file not found,maybe not in the right phase.
 	soFile := filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.Name)
 	// if user want to run out-of-tree plugin via dumping clusterfile,need to skip load it before mount rootfs.
 	if !utils.IsExist(soFile) {
-		return nil
+		return nil, nil
 	}
 	out, err := c.loadOutOfTree(soFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return out.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+	return out, nil
 }
 
-func (c *PluginsProcessor) runInTree(cluster *v1.Cluster, config v1.Plugin, phase Phase) error {
+func (c *PluginsProcessor) getInTreePlugin(config v1.Plugin) (Interface, error) {
 	var p Interface
 	switch config.Spec.Type {
 	case LabelPlugin:
@@ -117,9 +130,9 @@ func (c *PluginsProcessor) runInTree(cluster *v1.Cluster, config v1.Plugin, phas
 	case ClusterCheckPlugin:
 		p = NewClusterCheckerPlugin()
 	default:
-		return fmt.Errorf("not find plugin %v", config)
+		return nil, fmt.Errorf("not find plugin %v", config)
 	}
-	return p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+	return p, nil
 }
 
 func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, error) {
@@ -138,6 +151,29 @@ func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, error) {
 		return nil, fmt.Errorf("failed to find GOLANG plugin symbol")
 	}
 	return p, nil
+}
+
+func (c *PluginsProcessor) process(p Interface, cluster *v1.Cluster, config v1.Plugin, phase Phase) error {
+	// one phase could not have duplicate plugin type.
+	if Phase(config.Spec.Action) != phase {
+		return nil
+	}
+	pts := c.ExistedPluginTypes[phase]
+	for _, pt := range pts {
+		if exist := pt[p.GetPluginType()]; exist {
+			return fmt.Errorf("%s:duplicate plugin type %s", config.Name, config.Spec.Type)
+		}
+	}
+
+	err := p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+	if err != nil {
+		return err
+	}
+
+	pt := map[string]bool{p.GetPluginType(): true}
+	pts = append(pts, pt)
+	c.ExistedPluginTypes[phase] = pts
+	return nil
 }
 
 // Dump each plugin config to $rootfs/plugin dir by reading the clusterfile.

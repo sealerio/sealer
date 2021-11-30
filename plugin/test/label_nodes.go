@@ -35,6 +35,10 @@ type label struct {
 	value string
 }
 
+func (l LabelsNodes) GetPluginType() string {
+	return "LABEL_TEST_SO"
+}
+
 func (l LabelsNodes) Run(context plugin.Context, phase plugin.Phase) error {
 	if phase != plugin.PhasePostInstall || context.Plugin.Spec.Type != "LABEL_TEST_SO" {
 		logger.Debug("label nodes is PostInstall!")

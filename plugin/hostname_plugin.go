@@ -50,6 +50,10 @@ func NewHostnamePlugin() Interface {
 	return &HostnamePlugin{data: map[string]string{}}
 }
 
+func (h HostnamePlugin) GetPluginType() string {
+	return HostNamePlugin
+}
+
 func (h HostnamePlugin) Run(context Context, phase Phase) error {
 	if phase != PhasePreInit || context.Plugin.Spec.Type != HostNamePlugin {
 		logger.Debug("hostnamePlugin nodes is not PhasePreInit!")

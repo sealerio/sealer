@@ -38,9 +38,10 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: SHELL
+  name: MyShell
 spec:
-  action: PostInstall
+  action: PreInstall
+  type: SHELL
   on: role=master
   data: |
     ip a
@@ -48,7 +49,9 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: LABEL
+  name: MyLabel
 spec:
+  action: PostInstall
+  type: LABEL
   data: |
     172.17.102.186 ssd=true

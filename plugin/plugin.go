@@ -20,6 +20,7 @@ import (
 
 type Interface interface {
 	Run(context Context, phase Phase) error
+	GetPluginType() string
 }
 
 type Phase string
