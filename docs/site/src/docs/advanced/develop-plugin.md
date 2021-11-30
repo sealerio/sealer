@@ -1,4 +1,4 @@
-# Develop plugin.
+# Develop out of tree plugin.
 
 ## Motivations
 
@@ -29,6 +29,10 @@ import (
 )
 
 type list string
+
+func (l *list) GetPluginType() string {
+	return "TEST_SO"
+}
 
 func (l *list) Run(context plugin.Context, phase plugin.Phase) error {
 	client, err := k8s.Newk8sClient()
@@ -82,52 +86,8 @@ kind: Plugin
 metadata:
   name: list_nodes.so # out of tree plugin name
 spec:
-  type: LABEL_TEST_SO # define your own plugin type.
+  type: TEST_SO # define your own plugin type.
   action: PostInstall # which stage will this plugin be applied.
 ```
 
 apply it in your cluster: `sealer run kubernetes-post-install:v1.19.8 -m x.x.x.x -p xxx`
-
-### How to develop new type plugins
-
-The plugin [interface](https://github.com/alibaba/sealer/blob/main/plugin/plugin.go)
-
-```shell
-type Interface interface {
-	Run(context Context, phase Phase) error
-}
-```
-
-[Example](https://github.com/alibaba/sealer/blob/main/plugin/labels.go):
-
-```shell
-func (l LabelsNodes) Run(context Context, phase Phase) error {
-	if phase != PhasePostInstall {
-		logger.Debug("label nodes is PostInstall!")
-		return nil
-	}
-	l.data = l.formatData(context.Plugin.Spec.Data)
-	return err
-}
-```
-
-Then register you [plugin](https://github.com/alibaba/sealer/blob/main/plugin/plugins.go):
-
-```shell
-func (c *PluginsProcesser) Run(cluster *v1.Cluster, phase Phase) error {
-	for _, config := range c.Plugins {
-		switch config.Name {
-		case "LABEL":
-			l := LabelsNodes{}
-			err := l.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-			if err != nil {
-				return err
-			}
-        // add you plugin here
-		default:
-			return fmt.Errorf("not find plugin %s", config.Name)
-		}
-	}
-	return nil
-}
-```

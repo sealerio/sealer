@@ -11,9 +11,10 @@ HOSTNAME plugin will help you to change all the hostnames
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: HOSTNAME
+  name: MyHostname # Specify this plugin name,will dump in $rootfs/plugin dir.
 spec:
-  type: HOSTNAME # should not change this name
+  type: HOSTNAME # fixed string,should not change this name.
+  action: PreInit # Specify which phase to run.
   data: |
     192.168.0.2 master-0
     192.168.0.3 master-1
@@ -31,13 +32,12 @@ You can exec any shell command on specify node in any phase.
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: PostInstall.sh #Script file name
+  name: MyShell # Specify this plugin name,will dump in $rootfs/plugin dir.
 spec:
   type: SHELL
   action: PostInstall # PreInit PreInstall PostInstall
-  on: 192.168.0.2-192.168.0.4 #or 192.168.0.2,192.168.0.3,192.168.0.7
   data: |
-    kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
+    kubectl get nodes
 ```
 
 action: the phase of command.
@@ -56,9 +56,10 @@ Help you set label after install kubernetes cluster
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: LABEL
+  name: MyLabel
 spec:
   type: LABEL
+  action: PostInstall
   data: |
     192.168.0.2 ssd=true
     192.168.0.3 ssd=true
@@ -74,9 +75,10 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: ETCD_BACKUP
+  name: MyBackup
 spec:
-  action: Manual
+  type: ETCD
+  action: PostInstall
 ```
 
 Etcd backup plugin is triggered manually: `sealer plugin -f etcd_backup.yaml`
@@ -160,6 +162,7 @@ metadata:
   name: LABEL
 spec:
   type: LABEL
+  action: PostInstall  
   data: |
     172.20.126.8 ssd=false,hdd=true
 ```
