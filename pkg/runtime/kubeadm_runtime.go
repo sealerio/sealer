@@ -66,10 +66,10 @@ func (k *KubeadmRuntime) checkList() error {
 }
 
 func (k *KubeadmRuntime) checkIPList() error {
-	if len(k.Spec.Hosts) == 1 {
+	if len(k.Spec.Hosts) == 0 {
 		return fmt.Errorf("master hosts cannot be empty")
 	}
-	if len(k.Spec.Hosts[0].IPS) == 1 {
+	if len(k.Spec.Hosts[0].IPS) == 0 {
 		return fmt.Errorf("master hosts ip cannot be empty")
 	}
 	return nil
