@@ -54,11 +54,17 @@ type KubeConfigSpec struct {
 // If has `KubeadmConfig` in Clusterfile, load every field to each configurations
 // If Kubeadm raw config in Clusterfile, just load it
 func (k *KubeadmConfig) LoadFromClusterfile(fileName string) error {
+	if fileName == "" {
+		return nil
+	}
 	kubeConfig, err := DecodeCRDFromFile(fileName, Kubeadmconfig)
 	if err != nil {
 		return err
 	} else if kubeConfig != nil {
-		k.KubeConfigSpec = kubeConfig.(*KubeadmConfig).KubeConfigSpec
+		k.APIServer.CertSANs = append(k.APIServer.CertSANs, kubeConfig.(*KubeadmConfig).APIServer.CertSANs...)
+		if err := mergo.Merge(&k.KubeConfigSpec, kubeConfig.(*KubeadmConfig).KubeConfigSpec); err != nil {
+			return err
+		}
 	}
 
 	kubeadmConfig, err := k.loadKubeadmConfigs(fileName, DecodeCRDFromFile)
@@ -72,31 +78,25 @@ func (k *KubeadmConfig) LoadFromClusterfile(fileName string) error {
 
 // Merge Using github.com/imdario/mergo to merge KubeadmConfig to the CloudImage default kubeadm config, overwrite some field.
 // if defaultKubeadmConfig file not exist, use default raw kubeadm config to merge k.KubeConfigSpec empty value
-func (k *KubeadmConfig) Merge(kubeadmYamlPath string) ([]byte, error) {
+func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 	var (
 		defaultKubeadmConfig *KubeadmConfig
 		err                  error
 	)
-	if utils.IsFileExist(kubeadmYamlPath) {
-		defaultKubeadmConfig, err = k.loadKubeadmConfigs(kubeadmYamlPath, DecodeCRDFromFile)
-		if err != nil {
-			logger.Warn("failed to found kubeadm config from %s : %v, will use default kubeadm config to merge empty value", kubeadmYamlPath, err)
-			return k.Merge("")
-		}
-	} else {
+	if kubeadmYamlPath == "" || !utils.IsFileExist(kubeadmYamlPath) {
 		defaultKubeadmConfig, err = k.loadKubeadmConfigs(DefaultKubeadmConfig, DecodeCRDFromString)
 		if err != nil {
-			return nil, err
+			return err
+		}
+	} else {
+		defaultKubeadmConfig, err = k.loadKubeadmConfigs(kubeadmYamlPath, DecodeCRDFromFile)
+		if err != nil {
+			logger.Debug("failed to found kubeadm config from %s : %v, will use default kubeadm config to merge empty value", kubeadmYamlPath, err)
+			return k.Merge("")
 		}
 	}
 
-	if err = mergo.Merge(k, defaultKubeadmConfig); err != nil {
-		return nil, err
-	}
-	return utils.MarshalConfigsToYaml(&k.InitConfiguration,
-		&k.ClusterConfiguration,
-		&k.KubeletConfiguration,
-		&k.KubeProxyConfiguration)
+	return mergo.Merge(k, defaultKubeadmConfig)
 }
 
 func (k *KubeadmConfig) loadKubeadmConfigs(arg string, decode func(arg string, kind string) (interface{}, error)) (*KubeadmConfig, error) {
