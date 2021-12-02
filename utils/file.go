@@ -138,7 +138,13 @@ func MkTmpFile(path string) (*os.File, error) {
 
 func IsFileExist(filename string) bool {
 	_, err := os.Stat(filename)
-	return !os.IsNotExist(err)
+	if !os.IsNotExist(err) {
+		if err == nil {
+			return true
+		}
+		logger.Warn(err)
+	}
+	return false
 }
 
 func WriteFile(fileName string, content []byte) error {
@@ -466,7 +472,7 @@ func GetFilesSize(paths []string) (int64, error) {
 }
 
 func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {
-	decodeClusters, err := decodeCRD(filepath, common.CRDCluster)
+	decodeClusters, err := decodeCRD(filepath, common.Cluster)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode cluster from %s, %v", filepath, err)
 	}
@@ -475,7 +481,7 @@ func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {
 }
 
 func DecodeConfigs(filepath string) (configs []v1.Config, err error) {
-	decodeConfigs, err := decodeCRD(filepath, common.CRDConfig)
+	decodeConfigs, err := decodeCRD(filepath, common.Config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode config from %s, %v", filepath, err)
 	}
@@ -484,7 +490,7 @@ func DecodeConfigs(filepath string) (configs []v1.Config, err error) {
 }
 
 func DecodePlugins(filepath string) (plugins []v1.Plugin, err error) {
-	decodePlugins, err := decodeCRD(filepath, common.CRDPlugin)
+	decodePlugins, err := decodeCRD(filepath, common.Plugin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode plugin from %s, %v", filepath, err)
 	}
@@ -526,33 +532,33 @@ func decodeCRD(filepath string, kind string) (out interface{}, err error) {
 		}
 		// ext.Raw
 		switch kind {
-		case common.CRDCluster:
+		case common.Cluster:
 			cluster := v1.Cluster{}
 			err := yaml.Unmarshal(ext.Raw, &cluster)
 			if err != nil {
 				return nil, fmt.Errorf("decode cluster failed %v", err)
 			}
-			if cluster.Kind == common.CRDCluster {
+			if cluster.Kind == common.Cluster {
 				clusters = append(clusters, cluster)
 			}
 			i = clusters
-		case common.CRDConfig:
+		case common.Config:
 			config := v1.Config{}
 			err := yaml.Unmarshal(ext.Raw, &config)
 			if err != nil {
 				return nil, fmt.Errorf("decode config failed %v", err)
 			}
-			if config.Kind == common.CRDConfig {
+			if config.Kind == common.Config {
 				configs = append(configs, config)
 			}
 			i = configs
-		case common.CRDPlugin:
+		case common.Plugin:
 			plugin := v1.Plugin{}
 			err := yaml.Unmarshal(ext.Raw, &plugin)
 			if err != nil {
 				return nil, fmt.Errorf("decode plugin failed %v", err)
 			}
-			if plugin.Kind == common.CRDPlugin {
+			if plugin.Kind == common.Plugin {
 				plugins = append(plugins, plugin)
 			}
 			i = plugins
