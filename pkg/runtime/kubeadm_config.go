@@ -84,7 +84,7 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) ([]byte, error) {
 			return k.Merge("")
 		}
 	} else {
-		defaultKubeadmConfig, err = k.loadKubeadmConfigs(DefaultKubeadmYamlTmpl, DecodeCRDFromString)
+		defaultKubeadmConfig, err = k.loadKubeadmConfigs(DefaultKubeadmConfig, DecodeCRDFromString)
 		if err != nil {
 			return nil, err
 		}

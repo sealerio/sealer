@@ -15,19 +15,19 @@
 package runtime
 
 const (
-	DefaultKubeadmYamlTmpl = `
+	DefaultKubeadmConfig = `
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
   # advertiseAddress: 192.168.2.110
   bindPort: 6443
-#nodeRegistration:
-#  criSocket: /var/run/dockershim.sock
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
 
 ---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
-#kubernetesVersion: v1.19.8
+kubernetesVersion: v1.19.8
 #controlPlaneEndpoint: "apiserver.cluster.local:6443"
 imageRepository: sea.hub:5000/library
 networking:
@@ -47,10 +47,10 @@ apiServer:
     audit-policy-file: "/etc/kubernetes/audit-policy.yml"
     audit-log-path: "/var/log/kubernetes/audit.log"
     audit-log-format: json
-    audit-log-maxbackup: '"10"'
-    audit-log-maxsize: '"100"'
-    audit-log-maxage: '"7"'
-    enable-aggregator-routing: '"true"'
+    audit-log-maxbackup: '10'
+    audit-log-maxsize: '100'
+    audit-log-maxage: '7'
+    enable-aggregator-routing: 'true'
   extraVolumes:
     - name: "audit"
       hostPath: "/etc/kubernetes"
@@ -172,5 +172,11 @@ apiVersion: kubeadm.k8s.io/v1beta2
 kind: JoinConfiguration
 caCertPath: /etc/kubernetes/pki/ca.crt
 discovery:
-  timeout: 5m0s`
+  timeout: 5m0s
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+controlPlane:
+  localAPIEndpoint:
+    # advertiseAddress: 192.168.56.7
+    bindPort: 6443`
 )
