@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
@@ -46,7 +48,9 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterfile string) (Interface, erro
 			Clusterfile:     clusterfile,
 			APIServerDomain: DefaultAPIserverDomain,
 		},
+		KubeadmConfig: &KubeadmConfig{},
 	}
+	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.getMasterIPList()...))
 	// TODO args pre checks
 	if err := k.checkList(); err != nil {
 		return nil, err
@@ -97,10 +101,6 @@ func (k *KubeadmRuntime) getDefaultKubeadmConfig() string {
 	return filepath.Join(k.getRootfs(), "etc", "kubeadm.yml")
 }
 
-func (k *KubeadmRuntime) getCloudImageDir() string {
-	return filepath.Join(common.DefaultMountCloudImageDir(k.Cluster.Name))
-}
-
 func (k *KubeadmRuntime) getCertPath() string {
 	return path.Join(common.DefaultClusterRootfsDir, k.Cluster.Name, "pki")
 }
@@ -117,16 +117,23 @@ func (k *KubeadmRuntime) getSvcCIDR() string {
 	return k.ClusterConfiguration.Networking.ServiceSubnet
 }
 
+func (k *KubeadmRuntime) setCertSANS(certSANS []string) {
+	k.ClusterConfiguration.APIServer.CertSANs = utils.RemoveDuplicate(append(k.getCertSANS(), certSANS...))
+}
+
+func (k *KubeadmRuntime) getCertSANS() []string {
+	return k.ClusterConfiguration.APIServer.CertSANs
+}
+
 func (k *KubeadmRuntime) getDNSDomain() string {
+	if k.ClusterConfiguration.Networking.DNSDomain == "" {
+		k.ClusterConfiguration.Networking.DNSDomain = "cluster.local"
+	}
 	return k.ClusterConfiguration.Networking.DNSDomain
 }
 
 func (k *KubeadmRuntime) getAPIServerDomain() string {
 	return k.Config.APIServerDomain
-}
-
-func (k *KubeadmRuntime) setKubeVersion(version string) {
-	k.KubernetesVersion = version
 }
 
 func (k *KubeadmRuntime) getKubeVersion() string {
@@ -137,50 +144,62 @@ func (k *KubeadmRuntime) getVIP() string {
 	return DefaultVIP
 }
 
-func (k *KubeadmRuntime) setApiServerCertSANs(certSans []string) {
-	k.APIServer.CertSANs = append(k.getCertSANS(), certSans...)
-}
-
-func (k *KubeadmRuntime) getApiServerCertSANs() []string {
-	return k.APIServer.CertSANs
+func (k *KubeadmRuntime) getBoostrapToken() *v1beta2.BootstrapTokenDiscovery {
+	if k.JoinConfiguration.Discovery.BootstrapToken == nil {
+		k.JoinConfiguration.Discovery.BootstrapToken = &v1beta2.BootstrapTokenDiscovery{}
+	}
+	return k.JoinConfiguration.Discovery.BootstrapToken
 }
 
 func (k *KubeadmRuntime) getJoinToken() string {
-	return k.JoinConfiguration.Discovery.BootstrapToken.Token
+	return k.getBoostrapToken().Token
 }
 
 func (k *KubeadmRuntime) setJoinToken(token string) {
-	k.JoinConfiguration.Discovery.BootstrapToken.Token = token
+	k.getBoostrapToken().Token = token
 }
 
 func (k *KubeadmRuntime) getTokenCaCertHash() string {
-	return k.JoinConfiguration.Discovery.BootstrapToken.CACertHashes[0]
+	caCertHashes := k.getBoostrapToken().CACertHashes
+	if len(caCertHashes) == 0 {
+		return ""
+	}
+	return caCertHashes[0]
 }
 
 func (k *KubeadmRuntime) setTokenCaCertHash(tokenCaCertHash []string) {
-	k.JoinConfiguration.Discovery.BootstrapToken.CACertHashes = tokenCaCertHash
+	k.getBoostrapToken().CACertHashes = tokenCaCertHash
+}
+
+func (k *KubeadmRuntime) getJoinControlPlane() *v1beta2.JoinControlPlane {
+	if k.JoinConfiguration.ControlPlane == nil {
+		k.JoinConfiguration.ControlPlane = &v1beta2.JoinControlPlane{}
+	}
+	return k.JoinConfiguration.ControlPlane
 }
 
 func (k *KubeadmRuntime) getCertificateKey() string {
-	return k.JoinConfiguration.ControlPlane.CertificateKey
+	return k.getJoinControlPlane().CertificateKey
 }
 
-func (k *KubeadmRuntime) setCertificateKey(certificateKey string) {
-	k.JoinConfiguration.ControlPlane.CertificateKey = certificateKey
+func (k *KubeadmRuntime) setInitCertificateKey(certificateKey string) {
+	k.CertificateKey = certificateKey
 }
 
 func (k *KubeadmRuntime) setAPIServerEndpoint(endpoint string) {
 	k.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = endpoint
 }
 
-func (k *KubeadmRuntime) setInitLocalAPIEndpoint(advertiseAddress string, bindPort int32) {
+func (k *KubeadmRuntime) setInitAdvertiseAddress(advertiseAddress string) {
 	k.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
-	k.InitConfiguration.LocalAPIEndpoint.BindPort = bindPort
 }
 
-func (k *KubeadmRuntime) setJoinLocalAPIEndpoint(advertiseAddress string, bindPort int32) {
-	k.JoinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
-	k.JoinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort = bindPort
+func (k *KubeadmRuntime) setJoinLocalAPIEndpoint(advertiseAddress string) {
+	k.getJoinControlPlane().LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
+}
+
+func (k *KubeadmRuntime) cleanJoinLocalAPIEndPoint() {
+	k.JoinConfiguration.ControlPlane = nil
 }
 
 func (k *KubeadmRuntime) setControlPlaneEndpoint(endpoint string) {

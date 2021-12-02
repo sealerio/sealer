@@ -100,7 +100,6 @@ const (
 	Repo                 = "Repo"
 	CertSANS             = "CertSANS"
 	EtcdServers          = "etcd-servers"
-	ApiServerPort        = 6443
 	CriSocket            = "CriSocket"
 	CriCGroupDriver      = "CriCGroupDriver"
 	KubeadmAPI           = "KubeadmAPI"
@@ -194,10 +193,11 @@ func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []string, files ...st
 }
 
 // JoinTemplate is generate JoinCP nodes configuration by master ip.
-func (k *KubeadmRuntime) joinMasterConfig(masterIp string) ([]byte, error) {
+func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
 	// TODO Using join file instead template
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getMaster0IP()))
-	k.setJoinLocalAPIEndpoint(masterIp, ApiServerPort)
+	k.setJoinLocalAPIEndpoint(masterIP)
+	k.setCgroupDriver(k.getCgroupDriverFromShell(masterIP))
 	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
@@ -212,7 +212,6 @@ func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
 		go func(master string) {
 			defer wg.Done()
 			// set d.CriCGroupDriver on every nodes.
-			k.setCgroupDriver(k.getCgroupDriverFromShell(master))
 			joinConfig, err := k.joinMasterConfig(master)
 			if err != nil {
 				errCh <- fmt.Errorf("get join %s config failed: %v", master, err)
@@ -299,6 +298,10 @@ func (k *KubeadmRuntime) GetRemoteHostName(hostIP string) string {
 func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	if len(masters) == 0 {
 		return nil
+	}
+	// if its do not Load and Merge kubeadm config via init, need to redo it
+	if err := k.MergeKubeadmConfig(); err != nil {
+		return err
 	}
 	if err := k.WaitSSHReady(6, masters...); err != nil {
 		return errors.Wrap(err, "join masters wait for ssh ready time out")

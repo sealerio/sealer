@@ -16,9 +16,10 @@ package runtime
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/utils"
 	"strings"
 	"sync"
+
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/pkg/errors"
 
@@ -37,11 +38,10 @@ const (
 	LvscareStaticPodCmd             = `echo "%s" > %s`
 )
 
-func (k *KubeadmRuntime) joinNodeConfig(nodeIp string) ([]byte, error) {
+func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
 	// TODO get join config from config file
-	k.setCgroupDriver(k.getCgroupDriverFromShell(nodeIp))
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
-	k.setJoinLocalAPIEndpoint("", 0)
+	k.setCgroupDriver(k.getCgroupDriverFromShell(nodeIP))
 	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
@@ -52,6 +52,10 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	if len(nodes) == 0 {
 		return nil
 	}
+	if err := k.MergeKubeadmConfig(); err != nil {
+		return err
+	}
+
 	if err := k.WaitSSHReady(6, nodes...); err != nil {
 		return errors.Wrap(err, "join nodes wait for ssh ready time out")
 	}
@@ -66,7 +70,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, k.getVIP(), masters)
 
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
-	k.JoinConfiguration.ControlPlane = nil
+	k.cleanJoinLocalAPIEndPoint()
 
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
 	for _, node := range nodes {
