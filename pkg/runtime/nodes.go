@@ -66,7 +66,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	for _, node := range nodes {
 		wg.Add(1)
 		go func(node string) {
-			logger.Info("Start join %s as worker", node)
+			logger.Info("Start to join %s as worker", node)
 
 			defer wg.Done()
 			// send join node config, get cgroup driver on every join nodes
@@ -109,7 +109,7 @@ func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
 		wg.Add(1)
 		go func(node string) {
 			defer wg.Done()
-			logger.Info("Start delete worker %s", node)
+			logger.Info("Start to delete worker %s", node)
 			if err := k.deleteNode(node); err != nil {
 				errCh <- fmt.Errorf("delete node %s failed %v", node, err)
 			}

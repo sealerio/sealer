@@ -317,7 +317,7 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	}
 
 	for _, master := range masters {
-		logger.Info("Start join %s as master", master)
+		logger.Info("Start to join %s as master", master)
 
 		hostname := k.GetRemoteHostName(master)
 		if hostname == "" {
@@ -347,7 +347,7 @@ func (k *KubeadmRuntime) deleteMasters(masters []string) error {
 		wg.Add(1)
 		go func(master string) {
 			defer wg.Done()
-			logger.Info("Start delete master %s", master)
+			logger.Info("Start to delete master %s", master)
 			if err := k.deleteMaster(master); err != nil {
 				logger.Error("delete master %s failed %v", master, err)
 			}
