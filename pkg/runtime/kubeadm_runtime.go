@@ -18,8 +18,11 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
 
 	"github.com/alibaba/sealer/utils"
 
@@ -36,10 +39,6 @@ type Config struct {
 	// Clusterfile path and name, we needs read kubeadm config from Clusterfile
 	Clusterfile     string
 	APIServerDomain string
-
-	// TODO move into kubeadm config
-	JoinToken       string
-	TokenCaCertHash string
 }
 
 func newKubeadmRuntime(cluster *v2.Cluster, clusterfile string) (Interface, error) {
@@ -49,7 +48,9 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterfile string) (Interface, erro
 			Clusterfile:     clusterfile,
 			APIServerDomain: DefaultAPIserverDomain,
 		},
+		KubeadmConfig: &KubeadmConfig{},
 	}
+	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.getMasterIPList()...))
 	// TODO args pre checks
 	if err := k.checkList(); err != nil {
 		return nil, err
@@ -100,10 +101,6 @@ func (k *KubeadmRuntime) getDefaultKubeadmConfig() string {
 	return filepath.Join(k.getRootfs(), "etc", "kubeadm.yml")
 }
 
-func (k *KubeadmRuntime) getCloudImageDir() string {
-	return filepath.Join(common.DefaultMountCloudImageDir(k.Cluster.Name))
-}
-
 func (k *KubeadmRuntime) getCertPath() string {
 	return path.Join(common.DefaultClusterRootfsDir, k.Cluster.Name, "pki")
 }
@@ -120,7 +117,18 @@ func (k *KubeadmRuntime) getSvcCIDR() string {
 	return k.ClusterConfiguration.Networking.ServiceSubnet
 }
 
+func (k *KubeadmRuntime) setCertSANS(certSANS []string) {
+	k.ClusterConfiguration.APIServer.CertSANs = utils.RemoveDuplicate(append(k.getCertSANS(), certSANS...))
+}
+
+func (k *KubeadmRuntime) getCertSANS() []string {
+	return k.ClusterConfiguration.APIServer.CertSANs
+}
+
 func (k *KubeadmRuntime) getDNSDomain() string {
+	if k.ClusterConfiguration.Networking.DNSDomain == "" {
+		k.ClusterConfiguration.Networking.DNSDomain = "cluster.local"
+	}
 	return k.ClusterConfiguration.Networking.DNSDomain
 }
 
@@ -134,6 +142,72 @@ func (k *KubeadmRuntime) getKubeVersion() string {
 
 func (k *KubeadmRuntime) getVIP() string {
 	return DefaultVIP
+}
+
+func (k *KubeadmRuntime) getBoostrapToken() *v1beta2.BootstrapTokenDiscovery {
+	if k.JoinConfiguration.Discovery.BootstrapToken == nil {
+		k.JoinConfiguration.Discovery.BootstrapToken = &v1beta2.BootstrapTokenDiscovery{}
+	}
+	return k.JoinConfiguration.Discovery.BootstrapToken
+}
+
+func (k *KubeadmRuntime) getJoinToken() string {
+	return k.getBoostrapToken().Token
+}
+
+func (k *KubeadmRuntime) setJoinToken(token string) {
+	k.getBoostrapToken().Token = token
+}
+
+func (k *KubeadmRuntime) getTokenCaCertHash() string {
+	caCertHashes := k.getBoostrapToken().CACertHashes
+	if len(caCertHashes) == 0 {
+		return ""
+	}
+	return caCertHashes[0]
+}
+
+func (k *KubeadmRuntime) setTokenCaCertHash(tokenCaCertHash []string) {
+	k.getBoostrapToken().CACertHashes = tokenCaCertHash
+}
+
+func (k *KubeadmRuntime) getJoinControlPlane() *v1beta2.JoinControlPlane {
+	if k.JoinConfiguration.ControlPlane == nil {
+		k.JoinConfiguration.ControlPlane = &v1beta2.JoinControlPlane{}
+	}
+	return k.JoinConfiguration.ControlPlane
+}
+
+func (k *KubeadmRuntime) getCertificateKey() string {
+	return k.getJoinControlPlane().CertificateKey
+}
+
+func (k *KubeadmRuntime) setInitCertificateKey(certificateKey string) {
+	k.CertificateKey = certificateKey
+}
+
+func (k *KubeadmRuntime) setAPIServerEndpoint(endpoint string) {
+	k.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = endpoint
+}
+
+func (k *KubeadmRuntime) setInitAdvertiseAddress(advertiseAddress string) {
+	k.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
+}
+
+func (k *KubeadmRuntime) setJoinLocalAPIEndpoint(advertiseAddress string) {
+	k.getJoinControlPlane().LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
+}
+
+func (k *KubeadmRuntime) cleanJoinLocalAPIEndPoint() {
+	k.JoinConfiguration.ControlPlane = nil
+}
+
+func (k *KubeadmRuntime) setControlPlaneEndpoint(endpoint string) {
+	k.ControlPlaneEndpoint = endpoint
+}
+
+func (k *KubeadmRuntime) setCgroupDriver(cGroup string) {
+	k.KubeletConfiguration.CgroupDriver = cGroup
 }
 
 func (k *KubeadmRuntime) getMasterIPList() (masters []string) {
@@ -152,6 +226,14 @@ func (k *KubeadmRuntime) getHostsIPByRole(role string) (nodes []string) {
 	}
 
 	return
+}
+
+func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
+	var tmpSlice []string
+	for _, ip := range masters {
+		tmpSlice = append(tmpSlice, fmt.Sprintf("https://%s:2379", utils.GetHostIP(ip)))
+	}
+	return strings.Join(tmpSlice, ",")
 }
 
 func (k *KubeadmRuntime) WaitSSHReady(tryTimes int, hosts ...string) error {

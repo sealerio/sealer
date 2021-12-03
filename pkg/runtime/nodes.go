@@ -19,6 +19,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/pkg/errors"
 
 	"github.com/alibaba/sealer/ipvs"
@@ -36,9 +38,11 @@ const (
 	LvscareStaticPodCmd             = `echo "%s" > %s`
 )
 
-func (k *KubeadmRuntime) joinConfig() (string, error) {
+func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
 	// TODO get join config from config file
-	return "", nil
+	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
+	k.setCgroupDriver(k.getCgroupDriverFromShell(nodeIP))
+	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
 func (k *KubeadmRuntime) joinNodes(nodes []string) error {
@@ -48,6 +52,10 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	if len(nodes) == 0 {
 		return nil
 	}
+	if err := k.MergeKubeadmConfig(); err != nil {
+		return err
+	}
+
 	if err := k.WaitSSHReady(6, nodes...); err != nil {
 		return errors.Wrap(err, "join nodes wait for ssh ready time out")
 	}
@@ -61,18 +69,21 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	}
 	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, k.getVIP(), masters)
 
+	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
+	k.cleanJoinLocalAPIEndPoint()
+
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
 	for _, node := range nodes {
 		wg.Add(1)
 		go func(node string) {
 			defer wg.Done()
 			// send join node config, get cgroup driver on every join nodes
-			joinConfig, err := k.joinConfig()
+			joinConfig, err := k.joinNodeConfig(node)
 			if err != nil {
 				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
 				return
 			}
-			cmdJoinConfig := fmt.Sprintf(RemoteJoinConfig, joinConfig, k.getRootfs())
+			cmdJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
 			cmd := k.Command(k.getKubeVersion(), JoinNode)
 			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.getMasterIPList(), "")
