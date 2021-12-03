@@ -89,7 +89,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
 			}
 
-			logger.Info("Succeeded to join %s as worker", node)
+			logger.Info("Succeeded in joining %s as worker", node)
 		}(node)
 	}
 
@@ -113,7 +113,7 @@ func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
 			if err := k.deleteNode(node); err != nil {
 				errCh <- fmt.Errorf("delete node %s failed %v", node, err)
 			}
-			logger.Info("Succeeded to delete worker %s", node)
+			logger.Info("Succeeded in deleting worker %s", node)
 		}(node)
 	}
 	wg.Wait()

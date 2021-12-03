@@ -358,7 +358,7 @@ func (d *Default) joinMasters(masters []string) error {
 	}
 
 	for _, master := range masters {
-		logger.Info("Start join %s as master", master)
+		logger.Info("Start to join %s as master", master)
 
 		hostname := d.GetRemoteHostName(master)
 		if hostname == "" {
@@ -369,7 +369,7 @@ func (d *Default) joinMasters(masters []string) error {
 			return fmt.Errorf("exec command failed %s %v %v", master, cmds, err)
 		}
 
-		logger.Info("Succeeded to join %s as master", master)
+		logger.Info("Succeeded in joining %s as master", master)
 	}
 	return nil
 }
@@ -412,11 +412,11 @@ func (d *Default) deleteMasters(masters []string) error {
 		wg.Add(1)
 		go func(master string) {
 			defer wg.Done()
-			logger.Info("Start delete master %s", master)
+			logger.Info("Start to delete master %s", master)
 			if err := d.deleteMaster(master); err != nil {
 				logger.Error("delete master %s failed %v", master, err)
 			}
-			logger.Info("Succeeded to delete master %s", master)
+			logger.Info("Succeeded in deleting master %s", master)
 		}(master)
 	}
 	wg.Wait()

@@ -333,7 +333,7 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 			return fmt.Errorf("exec command failed %s %v %v", master, cmds, err)
 		}
 
-		logger.Info("Succeeded to join %s as master", master)
+		logger.Info("Succeeded in joining %s as master", master)
 	}
 	return nil
 }
@@ -351,7 +351,7 @@ func (k *KubeadmRuntime) deleteMasters(masters []string) error {
 			if err := k.deleteMaster(master); err != nil {
 				logger.Error("delete master %s failed %v", master, err)
 			}
-			logger.Info("Succeeded to delete master %s", master)
+			logger.Info("Succeeded in deleting master %s", master)
 		}(master)
 	}
 	wg.Wait()

@@ -63,7 +63,7 @@ func (d *Default) joinNodes(nodes []string) error {
 	for _, node := range nodes {
 		wg.Add(1)
 		go func(node string) {
-			logger.Info("Start join %s as worker", node)
+			logger.Info("Start to join %s as worker", node)
 
 			defer wg.Done()
 			/*
@@ -86,7 +86,7 @@ func (d *Default) joinNodes(nodes []string) error {
 				logger.Error("exec commands failed %s %v", node, err)
 			}
 
-			logger.Info("Succeeded to join %s as worker", node)
+			logger.Info("Succeeded in joining %s as worker", node)
 		}(node)
 	}
 
@@ -103,11 +103,11 @@ func (d *Default) deleteNodes(nodes []string) error {
 		wg.Add(1)
 		go func(node string) {
 			defer wg.Done()
-			logger.Info("Start delete worker %s", node)
+			logger.Info("Start to delete worker %s", node)
 			if err := d.deleteNode(node); err != nil {
 				logger.Error("delete node %s failed %v", node, err)
 			}
-			logger.Info("Succeeded to delete worker %s", node)
+			logger.Info("Succeeded in deleting worker %s", node)
 		}(node)
 	}
 	wg.Wait()

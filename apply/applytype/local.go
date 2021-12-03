@@ -129,7 +129,7 @@ func (c *Applier) changeCluster() error {
 	if !scaled && !upgraded {
 		logger.Info("Nothing need to change")
 	} else {
-		logger.Info("Succeeded to change this cluster")
+		logger.Info("Succeeded in changing this cluster")
 	}
 
 	return nil
@@ -152,7 +152,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) (bool, error) {
 		return true, err
 	}
 
-	logger.Info("Succeeded to scale this cluster")
+	logger.Info("Succeeded in scaling this cluster")
 
 	return true, nil
 }
@@ -188,7 +188,7 @@ func (c *Applier) upgradeCluster(mj, nj []string) (bool, error) {
 		return true, err
 	}
 
-	logger.Info("Succeeded to upgrade current cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
+	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
 
 	return true, nil
 }
@@ -204,7 +204,7 @@ func (c *Applier) initCluster() error {
 		return err
 	}
 
-	logger.Info("Succeeded to create a new cluster, enjoy it!")
+	logger.Info("Succeeded in creating a new cluster, enjoy it!")
 
 	return nil
 }
@@ -220,7 +220,7 @@ func (c *Applier) deleteCluster() error {
 		return err
 	}
 
-	logger.Info("Succeeded to delete current cluster")
+	logger.Info("Succeeded in deleting current cluster")
 
 	return nil
 }
