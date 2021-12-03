@@ -65,10 +65,7 @@ func (s *SSH) Connect(host string) (*ssh.Client, *ssh.Session, error) {
 
 	session, err := client.NewSession()
 	if err != nil {
-		err := client.Close()
-		if err != nil {
-			return nil, nil, err
-		}
+		_ = client.Close()
 		return nil, nil, err
 	}
 
@@ -79,10 +76,8 @@ func (s *SSH) Connect(host string) (*ssh.Client, *ssh.Session, error) {
 	}
 
 	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
-		err := client.Close()
-		if err != nil {
-			return nil, nil, err
-		}
+		_ = session.Close()
+		_ = client.Close()
 		return nil, nil, err
 	}
 

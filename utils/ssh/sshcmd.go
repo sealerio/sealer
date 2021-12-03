@@ -48,7 +48,10 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 				logger.Error("[ssh %s]create ssh session failed, %s", host, err)
 				return
 			}
-			defer client.Close()
+			defer func() {
+				_ = session.Close()
+				_ = client.Close()
+			}()
 			logger.Info("[ssh][%s] : %s", host, cmd)
 			stdout, err := session.StdoutPipe()
 			if err != nil {
@@ -100,7 +103,10 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[ssh][%s] create ssh session failed, %s", host, err)
 	}
-	defer client.Close()
+	defer func() {
+		_ = session.Close()
+		_ = client.Close()
+	}()
 	b, err := session.CombinedOutput(cmd)
 	if err != nil {
 		return b, fmt.Errorf("[ssh][%s]run command failed [%s]", host, cmd)
