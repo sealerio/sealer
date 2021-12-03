@@ -24,6 +24,7 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 type rootOpts struct {
@@ -75,4 +76,6 @@ func initConfig() {
 	})
 
 	logger.Cfg(rootOpt.debugModeOn)
+
+	ssh.DebugMode = rootOpt.debugModeOn
 }

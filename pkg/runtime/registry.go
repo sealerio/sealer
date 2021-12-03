@@ -114,6 +114,6 @@ func (k *KubeadmRuntime) DeleteRegistry() error {
 	if isMount {
 		delDir = fmt.Sprintf("umount %s && %s", k.getRootfs(), delDir)
 	}
-	cmd := fmt.Sprintf("docker rm -f %s && %s ", RegistryName, delDir)
+	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %s;fi && %s ", RegistryName, RegistryName, delDir)
 	return ssh.CmdAsync(cf.IP, cmd)
 }

@@ -64,6 +64,10 @@ delete all:
 				return fmt.Errorf("the delete parameter needs to be set")
 			}
 			deleteClusterName, err = utils.GetDefaultClusterName()
+			if err == utils.ErrClusterNotExist {
+				fmt.Println("Find no exist cluster, skip delete")
+				return nil
+			}
 			if err != nil {
 				return err
 			}

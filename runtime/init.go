@@ -196,9 +196,9 @@ func (d *Default) InitMaster0() error {
 
 	// TODO skip docker version error check for test
 	output, err := d.SSH.Cmd(d.Masters[0], cmdInit)
-	logger.Info("%s", output)
+	logger.Debug("%s", output)
 	if err != nil {
-		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
+		return fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err.Error())
 	}
 	d.decodeMaster0Output(output)
 	err = d.SSH.CmdAsync(d.Masters[0], RemoteCopyKubeConfig)
@@ -240,7 +240,7 @@ func (d *Default) decodeMaster0Output(output []byte) {
 	logger.Debug("[globals]decodeOutput: %s", s0)
 	slice := strings.Split(s0, "kubeadm join")
 	slice1 := strings.Split(slice[1], "Please note")
-	logger.Info("[globals]join command is: %s", slice1[0])
+	logger.Info("[globals]join command is: kubeadm join %s", slice1[0])
 	d.decodeJoinCmd(slice1[0])
 }
 

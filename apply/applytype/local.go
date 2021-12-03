@@ -57,6 +57,7 @@ func (c *Applier) Apply() (err error) {
 	if !utils.IsFileExist(common.DefaultKubeConfigFile()) {
 		return c.initCluster()
 	}
+
 	return c.changeCluster()
 }
 
@@ -91,22 +92,23 @@ func (c *Applier) unMountClusterImage() error {
 }
 
 func (c *Applier) changeCluster() error {
+	logger.Info("There is an existing cluster, start changing this cluster")
+
 	client, err := k8s.Newk8sClient()
 	if err != nil {
 		return err
 	}
 	c.Client = client
-	err = c.fillClusterCurrent()
-	if err != nil {
+
+	if err := c.fillClusterCurrent(); err != nil {
 		return err
 	}
-	err = c.mountClusterImage()
-	if err != nil {
+
+	if err := c.mountClusterImage(); err != nil {
 		return err
 	}
 	defer func() {
-		err = c.unMountClusterImage()
-		if err != nil {
+		if err := c.unMountClusterImage(); err != nil {
 			logger.Warn("failed to umount image %s", c.ClusterDesired.ClusterName)
 		}
 	}()
@@ -114,80 +116,111 @@ func (c *Applier) changeCluster() error {
 	mj, md := utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters.IPList, c.ClusterDesired.Spec.Masters.IPList)
 	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes.IPList, c.ClusterDesired.Spec.Nodes.IPList)
 
-	if err = c.scaleCluster(mj, md, nj, nd); err != nil {
+	scaled, err := c.scaleCluster(mj, md, nj, nd)
+	if err != nil {
 		return err
 	}
-	if err = c.upgradeCluster(mj, nj); err != nil {
+
+	upgraded, err := c.upgradeCluster(mj, nj)
+	if err != nil {
 		return err
 	}
+
+	if !scaled && !upgraded {
+		logger.Info("Nothing need to change")
+	} else {
+		logger.Info("Succeeded to change this cluster")
+	}
+
 	return nil
 }
 
-func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
+func (c *Applier) scaleCluster(mj, md, nj, nd []string) (bool, error) {
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
-		return nil
+		return false, nil
 	}
+
+	logger.Info("Start scaling this cluster")
+
 	applier, err := applyentity.NewScaleApply(c.FileSystem, mj, md, nj, nd)
 	if err != nil {
-		return err
+		return true, err
 	}
 
 	err = applier.DoApply(c.ClusterDesired)
 	if err != nil {
-		return err
+		return true, err
 	}
-	return nil
+
+	logger.Info("Succeeded to scale this cluster")
+
+	return true, nil
 }
 
-func (c *Applier) upgradeCluster(mj, nj []string) error {
+func (c *Applier) upgradeCluster(mj, nj []string) (bool, error) {
 	// use k8sClient to fetch current cluster version.
 	info, err := c.Client.GetClusterVersion()
 	if err != nil {
-		return err
+		return false, err
 	}
 	// fetch form exec machine
 	desiredMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterDesired.Name),
 		common.DefaultMetadataName))
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if info.GitVersion == desiredMetadata.Version {
-		return nil
+		return false, nil
 	}
 
-	logger.Info("different metadata (old %s,new %s) version will upgrade current cluster",
-		info.GitVersion, desiredMetadata.Version)
+	logger.Info("Start upgrading current cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
 	//if desiredMetadata.Version==""{
 	//	//install app
 	//}
 
 	applier, err := applyentity.NewUpgradeApply(c.FileSystem, mj, nj)
 	if err != nil {
-		return err
+		return true, err
 	}
 	err = applier.DoApply(c.ClusterDesired)
 	if err != nil {
-		return err
+		return true, err
 	}
 
-	return nil
+	logger.Info("Succeeded to upgrade current cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
+
+	return true, nil
 }
 
 func (c *Applier) initCluster() error {
-	logger.Info("Current cluster is nil will create new cluster")
+	logger.Info("There is NOT an existing cluster, start creating a new cluster")
 	applier, err := applyentity.NewInitApply()
 	if err != nil {
 		return err
 	}
-	return applier.DoApply(c.ClusterDesired)
+
+	if err := applier.DoApply(c.ClusterDesired); err != nil {
+		return err
+	}
+
+	logger.Info("Succeeded to create a new cluster, enjoy it!")
+
+	return nil
 }
 
 func (c *Applier) deleteCluster() error {
-	logger.Info("Current cluster is nil will delete cluster")
+	logger.Info("Start deleting current cluster")
 	applier, err := applyentity.NewDeleteApply()
 	if err != nil {
 		return err
 	}
-	return applier.DoApply(c.ClusterDesired)
+
+	if err := applier.DoApply(c.ClusterDesired); err != nil {
+		return err
+	}
+
+	logger.Info("Succeeded to delete current cluster")
+
+	return nil
 }

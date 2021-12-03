@@ -25,6 +25,8 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
+var ErrClusterNotExist = fmt.Errorf("no cluster exist")
+
 func GetDefaultClusterName() (string, error) {
 	files, err := ioutil.ReadDir(fmt.Sprintf("%s/.sealer", cert.GetUserHomeDir()))
 	if err != nil {
@@ -42,7 +44,8 @@ func GetDefaultClusterName() (string, error) {
 	} else if len(clusters) > 1 {
 		return "", fmt.Errorf("Select a cluster through the -c parameter: " + strings.Join(clusters, ","))
 	}
-	return "", fmt.Errorf("existing cluster not found")
+
+	return "", ErrClusterNotExist
 }
 
 func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {

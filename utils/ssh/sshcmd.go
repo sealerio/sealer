@@ -18,9 +18,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"strings"
+	"sync"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 )
+
+var DebugMode bool
 
 func (s *SSH) Ping(host string) error {
 	client, _, err := s.Connect(host)
@@ -35,59 +39,53 @@ func (s *SSH) Ping(host string) error {
 }
 
 func (s *SSH) CmdAsync(host string, cmds ...string) error {
-	var flag bool
-
 	for _, cmd := range cmds {
 		if cmd == "" {
 			continue
 		}
-		func(cmd string) {
+
+		if err := func(cmd string) error {
 			client, session, err := s.Connect(host)
 			if err != nil {
-				flag = true
-				logger.Error("[ssh %s]create ssh session failed, %s", host, err)
-				return
+				return fmt.Errorf("failed to create ssh session for %s: %v", host, err)
 			}
 			defer client.Close()
-			logger.Info("[ssh][%s] : %s", host, cmd)
+			defer session.Close()
+
 			stdout, err := session.StdoutPipe()
 			if err != nil {
-				flag = true
-				logger.Error("[ssh %s]create stdout pipe failed, %s", host, err)
-				return
+				return fmt.Errorf("failed to create stdout pipe for %s: %v", host, err)
 			}
 			stderr, err := session.StderrPipe()
 			if err != nil {
-				flag = true
-				logger.Error("[ssh %s]create stderr pipe failed, %s", host, err)
-				return
+				return fmt.Errorf("failed to create stderr pipe for %s: %v", host, err)
 			}
+
 			if err := session.Start(cmd); err != nil {
-				flag = true
-				logger.Error("[%s]run command failed, %v", cmd, err)
-				return
+				return fmt.Errorf("failed to start command %s on %s: %v", cmd, host, err)
 			}
-			doneout := make(chan bool, 1)
-			doneerr := make(chan bool, 1)
+
+			var combineSlice []string
+			var combineLock sync.Mutex
+			doneout := make(chan error, 1)
+			doneerr := make(chan error, 1)
 			go func() {
-				readPipe(stderr)
-				doneerr <- true
+				doneerr <- readPipe(stderr, &combineSlice, &combineLock)
 			}()
 			go func() {
-				readPipe(stdout)
-				doneout <- true
+				doneout <- readPipe(stdout, &combineSlice, &combineLock)
 			}()
 			<-doneerr
 			<-doneout
+
 			err = session.Wait()
 			if err != nil {
-				flag = true
-				logger.Error("exec command failed %v", err)
-				return
+				return utils.WrapExecResult(host, cmd, []byte(strings.Join(combineSlice, "\n")), err)
 			}
-		}(cmd)
-		if flag {
-			return fmt.Errorf("exec command failed %s %s", host, cmd)
+
+			return nil
+		}(cmd); err != nil {
+			return err
 		}
 	}
 
@@ -95,31 +93,34 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 }
 
 func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
-	//logger.Info("[ssh][%s] %s", host, cmd)
 	client, session, err := s.Connect(host)
 	if err != nil {
 		return nil, fmt.Errorf("[ssh][%s] create ssh session failed, %s", host, err)
 	}
 	defer client.Close()
+	defer session.Close()
+
 	b, err := session.CombinedOutput(cmd)
 	if err != nil {
 		return b, fmt.Errorf("[ssh][%s]run command failed [%s]", host, cmd)
 	}
+
 	return b, nil
 }
 
-func readPipe(pipe io.Reader) {
+func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex) error {
 	r := bufio.NewReader(pipe)
 	for {
 		line, _, err := r.ReadLine()
-		if line == nil {
-			return
-		}
-		// should not using logger
-		fmt.Println(string(line))
 		if err != nil {
-			logger.Error("%v", err)
-			return
+			return err
 		}
+
+		combineLock.Lock()
+		*combineSlice = append(*combineSlice, string(line))
+		if DebugMode {
+			fmt.Println(string(line))
+		}
+		combineLock.Unlock()
 	}
 }
