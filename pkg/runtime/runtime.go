@@ -35,7 +35,6 @@ type Metadata struct {
 }
 
 type KubeadmRuntime struct {
-	*Metadata
 	*v2.Cluster
 	*KubeadmConfig
 	*Config

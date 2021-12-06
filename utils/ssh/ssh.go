@@ -96,7 +96,7 @@ func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
 			if hostIP == ip {
-				if err := mergo.Merge(&host, &cluster.Spec.SSH); err != nil {
+				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
 					return nil, err
 				}
 

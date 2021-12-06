@@ -18,13 +18,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 	dockerstreams "github.com/docker/cli/cli/streams"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
@@ -32,10 +33,6 @@ import (
 	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 )
 
 const KByte = 1024
@@ -90,44 +87,15 @@ func (s *SSH) CmdToString(host, cmd, spilt string) (string, error) {
 }
 
 //SftpConnect  is
-func (s *SSH) sftpConnect(host string) (*sftp.Client, error) {
-	var (
-		auth         []ssh.AuthMethod
-		addr         string
-		clientConfig *ssh.ClientConfig
-		sshClient    *ssh.Client
-		sftpClient   *sftp.Client
-		err          error
-	)
-	// get auth method
-	auth = s.sshAuthMethod(s.Password, s.PkFile, s.PkPassword)
-
-	clientConfig = &ssh.ClientConfig{
-		User:    s.User,
-		Auth:    auth,
-		Timeout: 30 * time.Second,
-		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			return nil
-		},
-		Config: ssh.Config{
-			Ciphers: []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128", "aes128-cbc", "3des-cbc", "aes192-cbc", "aes256-cbc"},
-		},
-	}
-
-	// connet to ssh
-	ip, port := utils.GetSSHHostIPAndPort(host)
-	addr = s.addrReformat(ip, port)
-
-	if sshClient, err = ssh.Dial("tcp", addr, clientConfig); err != nil {
-		return nil, err
+func (s *SSH) sftpConnect(host string) (*ssh.Client, *sftp.Client, error) {
+	sshClient, err := s.connect(host)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// create sftp client
-	if sftpClient, err = sftp.NewClient(sshClient); err != nil {
-		return nil, err
-	}
-
-	return sftpClient, nil
+	sftpClient, err := sftp.NewClient(sshClient)
+	return sshClient, sftpClient, err
 }
 
 // CopyRemoteFileToLocal is scp remote file to local
@@ -139,11 +107,14 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 		}
 		return nil
 	}
-	sftpClient, err := s.sftpConnect(host)
+	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return fmt.Errorf("new sftp client failed %v", err)
 	}
-	defer sftpClient.Close()
+	defer func() {
+		_ = sftpClient.Close()
+		_ = sshClient.Close()
+	}()
 	// open remote source file
 	srcFile, err := sftpClient.Open(remoteFilePath)
 	if err != nil {
@@ -173,16 +144,14 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 		return utils.RecursionCopy(localPath, remotePath)
 	}
 	logger.Debug("remote copy files src %s to dst %s", localPath, remotePath)
-	sftpClient, err := s.sftpConnect(host)
+	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return fmt.Errorf("new sftp client failed %s", err)
 	}
-	sshClient, err := s.connect(host)
-	if err != nil {
-		return fmt.Errorf("new ssh client failed %s", err)
-	}
-	defer sftpClient.Close()
-	defer sshClient.Close()
+	defer func() {
+		_ = sftpClient.Close()
+		_ = sshClient.Close()
+	}()
 
 	f, err := os.Stat(localPath)
 	if err != nil {
@@ -327,11 +296,14 @@ func LocalMd5Sum(localPath string) string {
 
 //if remote file not exist return false and nil
 func (s *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
-	sftpClient, err := s.sftpConnect(host)
+	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return false, err
 	}
-	defer sftpClient.Close()
+	defer func() {
+		_ = sftpClient.Close()
+		_ = sshClient.Close()
+	}()
 	if _, err := sftpClient.ReadDir(remoteDirpath); err != nil {
 		return false, err
 	}

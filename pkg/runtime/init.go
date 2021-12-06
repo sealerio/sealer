@@ -38,34 +38,44 @@ const (
 	DefaultRegistryPort            = 5000
 )
 
-func (k *KubeadmRuntime) loadMetadata() error {
-	metadata, err := LoadMetadata(filepath.Join(k.getCloudImageDir(), common.DefaultMetadataName))
-	if err != nil {
-		return err
-	}
-	k.Metadata = metadata
-	return nil
-}
-
 func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
 	if err := k.LoadFromClusterfile(k.Config.Clusterfile); err != nil {
 		return fmt.Errorf("failed to load kubeadm config from clusterfile: %v", err)
 	}
 	// TODO handle the kubeadm config, like kubeproxy config
-
-	bs, err := k.Merge(k.getDefaultKubeadmConfig())
-	if err != nil {
-		return fmt.Errorf("failed to merge kubeadm config: %v", err)
+	k.handleKubeadmConfig()
+	if err := k.KubeadmConfig.Merge(k.getDefaultKubeadmConfig()); err != nil {
+		return err
 	}
-
-	if err := utils.WriteFile(k.getDefaultKubeadmConfig(), bs); err != nil {
+	bs, err := k.generateConfigs()
+	if err != nil {
+		return err
+	}
+	if err := utils.WriteFile(fmt.Sprintf("%s/kubeadm-config.yaml", k.getRootfs()), bs); err != nil {
 		return fmt.Errorf("failed to dump new kubeadm config: %v", err)
 	}
 	return nil
 }
 
-func (k *KubeadmRuntime) getCertSANS() []string {
-	return k.ClusterConfiguration.APIServer.CertSANs
+func (k *KubeadmRuntime) generateConfigs() ([]byte, error) {
+	//getCgroupDriverFromShell need get CRISocket, so after merge
+	k.setCgroupDriver(k.getCgroupDriverFromShell(k.getMaster0IP()))
+	k.setKubeadmAPIVersion()
+	return utils.MarshalConfigsYaml(&k.InitConfiguration,
+		&k.ClusterConfiguration,
+		&k.KubeletConfiguration,
+		&k.KubeProxyConfiguration)
+}
+
+func (k *KubeadmRuntime) handleKubeadmConfig() {
+	//The configuration set here does not require merge
+	k.setInitAdvertiseAddress(k.getMaster0IP())
+	k.setControlPlaneEndpoint(fmt.Sprintf("%s:6443", k.getAPIServerDomain()))
+	if k.APIServer.ExtraArgs == nil {
+		k.APIServer.ExtraArgs = make(map[string]string)
+	}
+	k.APIServer.ExtraArgs[EtcdServers] = getEtcdEndpointsWithHTTPSPrefix(k.getMasterIPList())
+	k.IPVS.ExcludeCIDRs = append(k.KubeProxyConfiguration.IPVS.ExcludeCIDRs, fmt.Sprintf("%s/32", k.getVIP()))
 }
 
 //CmdToString is in host exec cmd and replace to spilt str
@@ -175,16 +185,16 @@ func (k *KubeadmRuntime) decodeJoinCmd(cmd string) {
 		r = strings.ReplaceAll(r, "\\", "")
 		r = strings.TrimSpace(r)
 		if strings.Contains(r, "--token") {
-			k.JoinToken = stringSlice[i+1]
+			k.setJoinToken(stringSlice[i+1])
 		}
 		if strings.Contains(r, "--discovery-token-ca-cert-hash") {
-			k.TokenCaCertHash = stringSlice[i+1]
+			k.setTokenCaCertHash([]string{stringSlice[i+1]})
 		}
 		if strings.Contains(r, "--certificate-key") {
-			k.CertificateKey = stringSlice[i+1][:64]
+			k.setInitCertificateKey(stringSlice[i+1][:64])
 		}
 	}
-	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", k.JoinToken, k.TokenCaCertHash, k.CertificateKey)
+	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey())
 }
 
 //InitMaster0 is
@@ -235,9 +245,6 @@ func (k *KubeadmRuntime) GetKubectlAndKubeconfig() error {
 }
 
 func (k *KubeadmRuntime) init(cluster *v2.Cluster) error {
-	if err := k.loadMetadata(); err != nil {
-		return fmt.Errorf("failed to load metadata %v", err)
-	}
 	//config kubeadm
 	if err := k.ConfigKubeadmOnMaster0(); err != nil {
 		return fmt.Errorf("failed to config kubeadmin on master0 %v", err)

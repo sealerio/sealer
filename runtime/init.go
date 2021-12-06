@@ -34,7 +34,7 @@ const (
 	RemoteApplyYaml                = `echo '%s' | kubectl apply -f -`
 	RemoteCmdGetNetworkInterface   = "ls /sys/class/net"
 	RemoteCmdExistNetworkInterface = "ip addr show %s | egrep \"%s\" || true"
-	WriteKubeadmConfigCmd          = "cd %s && echo \"%s\" > kubeadm-config.yaml"
+	WriteKubeadmConfigCmd          = `cd %s && echo "%s" > kubeadm-config.yaml`
 	DefaultVIP                     = "10.103.97.2"
 	DefaultAPIserverDomain         = "apiserver.cluster.local"
 	DefaultRegistryPort            = 5000

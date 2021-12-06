@@ -51,7 +51,6 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 			}
 			defer client.Close()
 			defer session.Close()
-
 			stdout, err := session.StdoutPipe()
 			if err != nil {
 				return fmt.Errorf("failed to create stdout pipe for %s: %v", host, err)
@@ -99,7 +98,6 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	}
 	defer client.Close()
 	defer session.Close()
-
 	b, err := session.CombinedOutput(cmd)
 	if err != nil {
 		return b, fmt.Errorf("[ssh][%s]run command failed [%s]", host, cmd)

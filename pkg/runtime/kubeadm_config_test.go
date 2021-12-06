@@ -416,12 +416,11 @@ func TestKubeadmConfig_Merge(t *testing.T) {
 					return
 				}
 			}()
-			got, err := k.Merge(testfile)
+			err = k.Merge(testfile)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Merge() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			fmt.Println(string(got))
 		})
 	}
 }
