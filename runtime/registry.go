@@ -103,6 +103,6 @@ func (d *Default) RecycleRegistry() error {
 	if isMount {
 		delDir = fmt.Sprintf("umount %s && %s", d.Rootfs, delDir)
 	}
-	cmd := fmt.Sprintf("docker rm -f %s && %s ", RegistryName, delDir)
+	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %s;fi && %s ", RegistryName, RegistryName, delDir)
 	return d.SSH.CmdAsync(cf.IP, cmd)
 }

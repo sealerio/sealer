@@ -57,6 +57,7 @@ func (c *Applier) Apply() (err error) {
 	if !utils.IsFileExist(common.DefaultKubeConfigFile()) {
 		return c.initCluster()
 	}
+
 	return c.changeCluster()
 }
 
@@ -96,17 +97,16 @@ func (c *Applier) changeCluster() error {
 		return err
 	}
 	c.Client = client
-	err = c.fillClusterCurrent()
-	if err != nil {
+
+	if err := c.fillClusterCurrent(); err != nil {
 		return err
 	}
-	err = c.mountClusterImage()
-	if err != nil {
+
+	if err := c.mountClusterImage(); err != nil {
 		return err
 	}
 	defer func() {
-		err = c.unMountClusterImage()
-		if err != nil {
+		if err := c.unMountClusterImage(); err != nil {
 			logger.Warn("failed to umount image %s", c.ClusterDesired.ClusterName)
 		}
 	}()
@@ -114,12 +114,14 @@ func (c *Applier) changeCluster() error {
 	mj, md := utils.GetDiffHosts(c.ClusterCurrent.Spec.Masters.IPList, c.ClusterDesired.Spec.Masters.IPList)
 	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.Spec.Nodes.IPList, c.ClusterDesired.Spec.Nodes.IPList)
 
-	if err = c.scaleCluster(mj, md, nj, nd); err != nil {
+	if err := c.scaleCluster(mj, md, nj, nd); err != nil {
 		return err
 	}
-	if err = c.upgradeCluster(mj, nj); err != nil {
+
+	if err := c.upgradeCluster(mj, nj); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -127,6 +129,9 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
 		return nil
 	}
+
+	logger.Info("Start to scale this cluster")
+
 	applier, err := applyentity.NewScaleApply(c.FileSystem, mj, md, nj, nd)
 	if err != nil {
 		return err
@@ -136,6 +141,9 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	if err != nil {
 		return err
 	}
+
+	logger.Info("Succeeded in scaling this cluster")
+
 	return nil
 }
 
@@ -156,8 +164,7 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 		return nil
 	}
 
-	logger.Info("different metadata (old %s,new %s) version will upgrade current cluster",
-		info.GitVersion, desiredMetadata.Version)
+	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
 	//if desiredMetadata.Version==""{
 	//	//install app
 	//}
@@ -171,23 +178,39 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 		return err
 	}
 
+	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
+
 	return nil
 }
 
 func (c *Applier) initCluster() error {
-	logger.Info("Current cluster is nil will create new cluster")
+	logger.Info("Start to create a new cluster")
 	applier, err := applyentity.NewInitApply()
 	if err != nil {
 		return err
 	}
-	return applier.DoApply(c.ClusterDesired)
+
+	if err := applier.DoApply(c.ClusterDesired); err != nil {
+		return err
+	}
+
+	logger.Info("Succeeded in creating a new cluster, enjoy it!")
+
+	return nil
 }
 
 func (c *Applier) deleteCluster() error {
-	logger.Info("Current cluster is nil will delete cluster")
+	logger.Info("Start to delete current cluster")
 	applier, err := applyentity.NewDeleteApply()
 	if err != nil {
 		return err
 	}
-	return applier.DoApply(c.ClusterDesired)
+
+	if err := applier.DoApply(c.ClusterDesired); err != nil {
+		return err
+	}
+
+	logger.Info("Succeeded in deleting current cluster")
+
+	return nil
 }

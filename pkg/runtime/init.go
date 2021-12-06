@@ -166,10 +166,10 @@ func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
 //decode output to join token  hash and key
 func (k *KubeadmRuntime) decodeMaster0Output(output []byte) {
 	s0 := string(output)
-	logger.Debug("[globals]decodeOutput: %s", s0)
+	logger.Debug("decodeOutput: %s", s0)
 	slice := strings.Split(s0, "kubeadm join")
 	slice1 := strings.Split(slice[1], "Please note")
-	logger.Info("[globals]join command is: %s", slice1[0])
+	logger.Info("join command is: kubeadm join %s", slice1[0])
 	k.decodeJoinCmd(slice1[0])
 }
 

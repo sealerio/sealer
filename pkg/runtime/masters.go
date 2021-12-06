@@ -49,7 +49,7 @@ const (
 	InitMaser115Upper       = `kubeadm init --config=%s/kubeadm-config.yaml --upload-certs`
 	JoinMaster115Upper      = "kubeadm join --config=%s/kubeadm-join-config.yaml"
 	JoinNode115Upper        = "kubeadm join --config=%s/kubeadm-join-config.yaml"
-	RemoteCleanMasterOrNode = `kubeadm reset -f %s && \
+	RemoteCleanMasterOrNode = `if which kubeadm;then kubeadm reset -f %s;fi && \
 modprobe -r ipip  && lsmod && \
 rm -rf ~/.kube/ && rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
@@ -329,6 +329,8 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	}
 
 	for _, master := range masters {
+		logger.Info("Start to join %s as master", master)
+
 		hostname := k.GetRemoteHostName(master)
 		if hostname == "" {
 			return fmt.Errorf("get remote hostname failed %s", master)
@@ -342,6 +344,8 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 		if err := ssh.CmdAsync(master, cmds...); err != nil {
 			return fmt.Errorf("exec command failed %s %v %v", master, cmds, err)
 		}
+
+		logger.Info("Succeeded in joining %s as master", master)
 	}
 	return nil
 }
@@ -355,9 +359,11 @@ func (k *KubeadmRuntime) deleteMasters(masters []string) error {
 		wg.Add(1)
 		go func(master string) {
 			defer wg.Done()
+			logger.Info("Start to delete master %s", master)
 			if err := k.deleteMaster(master); err != nil {
 				logger.Error("delete master %s failed %v", master, err)
 			}
+			logger.Info("Succeeded in deleting master %s", master)
 		}(master)
 	}
 	wg.Wait()

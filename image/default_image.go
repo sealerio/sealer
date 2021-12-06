@@ -48,7 +48,7 @@ func (d DefaultImageService) PullIfNotExist(imageName string) error {
 		return err
 	}
 	if img != nil {
-		logger.Info("image %s already exists", imageName)
+		logger.Debug("image %s already exists", imageName)
 		return nil
 	}
 
@@ -63,7 +63,7 @@ func (d DefaultImageService) GetImageByName(imageName string) (*v1.Image, error)
 	}
 	img, err = d.imageStore.GetByName(named.Raw())
 	if err == nil {
-		logger.Info("image %s already exists", named)
+		logger.Debug("image %s already exists", named)
 		return img, nil
 	}
 	return nil, nil

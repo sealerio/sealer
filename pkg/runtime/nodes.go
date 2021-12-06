@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/alibaba/sealer/ipvs"
+	"github.com/alibaba/sealer/logger"
 )
 
 const (
@@ -76,6 +77,8 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	for _, node := range nodes {
 		wg.Add(1)
 		go func(node string) {
+			logger.Info("Start to join %s as worker", node)
+
 			defer wg.Done()
 			// send join node config, get cgroup driver on every join nodes
 			joinConfig, err := k.joinNodeConfig(node)
@@ -96,6 +99,8 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			if err := ssh.CmdAsync(node, cmdAddRegistryHosts, cmdJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd); err != nil {
 				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
 			}
+
+			logger.Info("Succeeded in joining %s as worker", node)
 		}(node)
 	}
 
@@ -115,9 +120,11 @@ func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
 		wg.Add(1)
 		go func(node string) {
 			defer wg.Done()
+			logger.Info("Start to delete worker %s", node)
 			if err := k.deleteNode(node); err != nil {
 				errCh <- fmt.Errorf("delete node %s failed %v", node, err)
 			}
+			logger.Info("Succeeded in deleting worker %s", node)
 		}(node)
 	}
 	wg.Wait()
