@@ -139,15 +139,15 @@ func (c *FileSystem) UnMountRootfs(cluster *v2.Cluster) error {
 }
 
 func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
-	config := runtime.GetRegistryConfig(
-		common.DefaultTheClusterRootfsDir(cluster.Name),
-		runtime.GetMaster0Ip(cluster))
+	errCh := make(chan error, len(ipList))
+	defer close(errCh)
 	/*	if err := ssh.WaitSSHToReady(*cluster, 6, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}*/
 	var wg sync.WaitGroup
-	var flag bool
-	var mutex sync.Mutex
+	config := runtime.GetRegistryConfig(
+		common.DefaultTheClusterRootfsDir(cluster.Name),
+		runtime.GetMaster0Ip(cluster))
 	src := common.DefaultMountCloudImageDir(cluster.Name)
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
@@ -157,37 +157,24 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 			defer wg.Done()
 			ssh, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
-				logger.Error("get host ssh client failed %v", err)
-				mutex.Lock()
-				flag = true
-				mutex.Unlock()
+				errCh <- fmt.Errorf("get host ssh client failed %v", err)
 				return
 			}
 			err = CopyFiles(ssh, ip == config.IP, ip, src, target)
 			if err != nil {
-				logger.Error("copy rootfs failed %v", err)
-				mutex.Lock()
-				flag = true
-				mutex.Unlock()
+				errCh <- fmt.Errorf("copy rootfs failed %v", err)
 				return
 			}
 			if initFlag {
 				err = ssh.CmdAsync(ip, initCmd)
 				if err != nil {
-					logger.Error("exec init.sh failed %v", err)
-					mutex.Lock()
-					flag = true
-					mutex.Unlock()
-					return
+					errCh <- fmt.Errorf("exec init.sh failed %v", err)
 				}
 			}
 		}(IP)
 	}
 	wg.Wait()
-	if flag {
-		return fmt.Errorf("mountRootfs failed")
-	}
-	return nil
+	return runtime.ReadChanError(errCh)
 }
 
 func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
