@@ -18,10 +18,10 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/config"
 	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/guest"
 	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/pkg/config"
 	"github.com/alibaba/sealer/plugin"
 	"github.com/alibaba/sealer/runtime"
 	"github.com/alibaba/sealer/utils"
