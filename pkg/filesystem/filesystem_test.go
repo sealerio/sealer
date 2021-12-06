@@ -17,12 +17,38 @@ package filesystem
 import (
 	"testing"
 
+	"github.com/alibaba/sealer/pkg/runtime"
+
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	k8sV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
+
+var testCluster = &v2.Cluster{
+	ObjectMeta: k8sV1.ObjectMeta{Name: "my-cluster"},
+	Spec: v2.ClusterSpec{
+		Image: "kubernetes:v1.19.9",
+		Hosts: []v2.Host{
+			{
+				IPS: []string{
+					"192.168.56.111",
+				},
+				Roles: []string{"master"},
+			}, {
+				IPS: []string{
+					"192.168.56.112",
+				},
+				Roles: []string{"node"},
+			},
+		},
+		SSH: v1.SSH{
+			User:   "root",
+			Passwd: "******",
+		},
+	},
+}
 
 func TestMount(t *testing.T) {
 	type args struct {
@@ -36,31 +62,7 @@ func TestMount(t *testing.T) {
 		{
 			name: "test mount",
 			arg: args{
-				cluster: &v2.Cluster{
-					ObjectMeta: k8sV1.ObjectMeta{
-						Name: "cluster",
-					},
-					Spec: v2.ClusterSpec{
-						Image: "kuberentes:v1.18.6",
-						Hosts: []v2.Host{
-							{
-								IPS: []string{
-									"192.168.56.111",
-								},
-								Roles: []string{"master"},
-							}, {
-								IPS: []string{
-									"192.168.56.112",
-								},
-								Roles: []string{"node"},
-							},
-						},
-						SSH: v1.SSH{
-							User:   "root",
-							Passwd: "******",
-						},
-					},
-				},
+				cluster: testCluster,
 			},
 			wantErr: false,
 		},
@@ -72,7 +74,7 @@ func TestMount(t *testing.T) {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 
-			if err = fileSystem.MountRootfs(tt.arg.cluster, []string{""}, true); err != nil {
+			if err = fileSystem.MountRootfs(tt.arg.cluster, append(runtime.GetMasterIPList(testCluster), runtime.GetNodeIPList(testCluster)...), true); err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 		})
@@ -91,31 +93,7 @@ func TestUnMount(t *testing.T) {
 		{
 			name: "test unmount",
 			arg: args{
-				cluster: &v2.Cluster{
-					ObjectMeta: k8sV1.ObjectMeta{
-						Name: "cluster",
-					},
-					Spec: v2.ClusterSpec{
-						Image: "kuberentes:v1.18.6",
-						Hosts: []v2.Host{
-							{
-								IPS: []string{
-									"192.168.56.111",
-								},
-								Roles: []string{"master"},
-							}, {
-								IPS: []string{
-									"192.168.56.112",
-								},
-								Roles: []string{"node"},
-							},
-						},
-						SSH: v1.SSH{
-							User:   "root",
-							Passwd: "huaijiahui.com",
-						},
-					},
-				},
+				cluster: testCluster,
 			},
 			wantErr: false,
 		},

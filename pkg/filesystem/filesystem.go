@@ -55,21 +55,19 @@ func (c *FileSystem) Clean(cluster *v2.Cluster) error {
 }
 
 func (c *FileSystem) umountImage(cluster *v2.Cluster) error {
-	mountdir := common.DefaultMountCloudImageDir(cluster.Name)
-	if utils.IsFileExist(mountdir) {
-		var err error
-		err = utils.Retry(10, time.Second, func() error {
-			err = mount.NewMountDriver().Unmount(mountdir)
-			if err != nil {
-				return err
-			}
-			return os.RemoveAll(mountdir)
+	mountDir := common.DefaultMountCloudImageDir(cluster.Name)
+	if !utils.IsFileExist(mountDir) {
+		return nil
+	}
+	if isMount, _ := mount.GetMountDetails(mountDir); isMount {
+		err := utils.Retry(10, time.Second, func() error {
+			return mount.NewMountDriver().Unmount(mountDir)
 		})
 		if err != nil {
-			logger.Warn("failed to unmount dir %s,err: %v", mountdir, err)
+			return fmt.Errorf("failed to unmount dir %s,err: %v", mountDir, err)
 		}
 	}
-	return nil
+	return os.RemoveAll(mountDir)
 }
 
 func (c *FileSystem) mountImage(cluster *v2.Cluster) error {
@@ -153,7 +151,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	src := common.DefaultMountCloudImageDir(cluster.Name)
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
-	for _, ip := range ipList {
+	for _, IP := range ipList {
 		wg.Add(1)
 		go func(ip string) {
 			defer wg.Done()
@@ -163,6 +161,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 				mutex.Lock()
 				flag = true
 				mutex.Unlock()
+				return
 			}
 			err = CopyFiles(ssh, ip == config.IP, ip, src, target)
 			if err != nil {
@@ -170,6 +169,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 				mutex.Lock()
 				flag = true
 				mutex.Unlock()
+				return
 			}
 			if initFlag {
 				err = ssh.CmdAsync(ip, initCmd)
@@ -178,9 +178,10 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 					mutex.Lock()
 					flag = true
 					mutex.Unlock()
+					return
 				}
 			}
-		}(ip)
+		}(IP)
 	}
 	wg.Wait()
 	if flag {
@@ -217,30 +218,30 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	execClean := fmt.Sprintf("/bin/bash -c "+common.DefaultClusterClearBashFile, cluster.Name)
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
-	for _, ip := range ipList {
+	for _, IP := range ipList {
 		wg.Add(1)
-		go func(IP string) {
+		go func(ip string) {
 			defer wg.Done()
-			SSH, err := ssh.GetHostSSHClient(IP, cluster)
+			SSH, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
-				logger.Error("failed to get %s ssh client: %v", IP, err)
+				logger.Error("failed to get %s ssh client: %v", ip, err)
 				mutex.Lock()
 				flag = true
 				mutex.Unlock()
 				return
 			}
 			cmd := fmt.Sprintf("%s && %s", execClean, rmRootfs)
-			if mount, _ := mount.GetRemoteMountDetails(SSH, IP, clusterRootfsDir); mount {
+			if mount, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mount {
 				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
 			}
-			if err := SSH.CmdAsync(IP, cmd); err != nil {
-				logger.Error("%s:exec %s failed, %s", IP, execClean, err)
+			if err := SSH.CmdAsync(ip, cmd); err != nil {
+				logger.Error("%s:exec %s failed, %s", ip, execClean, err)
 				mutex.Lock()
 				flag = true
 				mutex.Unlock()
 				return
 			}
-		}(ip)
+		}(IP)
 	}
 	wg.Wait()
 	if flag {
