@@ -29,12 +29,18 @@ import (
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 )
 
+const (
+	sealerDockerString = `sealer`
+	registryAuthString = `sea.hub`
+	registryName       = `sea.hub:5000`
+)
+
 func (d Docker) ImagesCacheToRegistry(images []string) error {
 	version, err := d.cli.ServerVersion(d.ctx)
 	if err != nil {
 		return err
 	}
-	if strings.Contains(version.Version, `sealer`) {
+	if strings.Contains(version.Version, sealerDockerString) {
 		return d.ImagesPull(images)
 	}
 	// need a extra push step
@@ -43,56 +49,7 @@ func (d Docker) ImagesCacheToRegistry(images []string) error {
 	}
 	return d.ImagesPush(images)
 }
-func (d Docker) ImagesPush(images []string) error {
-	for _, image := range utils.RemoveDuplicate(images) {
-		if image == "" {
-			continue
-		}
-		if strings.HasPrefix(image, "#") {
-			continue
-		}
-		if err := d.ImagePush(strings.TrimSpace(image)); err != nil {
-			return fmt.Errorf("image %s push failed: %v", image, err)
-		}
-	}
-	return nil
-}
-func (d Docker) ImagePush(image string) error {
-	var (
-		err          error
-		out          io.ReadCloser
-		named        reference.Named
-		registryName = `sea.hub:5000`
-		TagImageName string
-	)
-	named, err = GetCanonicalImageName(image)
-	if err != nil {
-		return fmt.Errorf("failed to parse canonical image name %s : %v", image, err)
-	}
-	TagImageName = strings.Replace(named.String(), named.String()[0:strings.Index(named.String(), `/`)], registryName, 1)
-	opts := types.ImagePushOptions(GetCanonicalImagePullOptions(named.String()))
-	if opts.RegistryAuth == "" {
-		opts.RegistryAuth = "sea.hub" //must not empty
-	}
-	err = d.cli.ImageTag(d.ctx, named.String(), TagImageName)
-	if err != nil {
-		return err
-	}
-	out, err = d.cli.ImagePush(d.ctx, TagImageName, opts)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = out.Close()
-	}()
 
-	err = dockerjsonmessage.DisplayJSONMessagesToStream(out, dockerstreams.NewOut(common.StdOut), nil)
-	if err != nil && err != io.ErrClosedPipe {
-		logger.Warn("error occurs in display progressing, err: %s", err)
-	}
-	logger.Info("success to push docker image: %s ", image)
-	return nil
-}
 func (d Docker) ImagesPull(images []string) error {
 	for _, image := range utils.RemoveDuplicate(images) {
 		if image == "" {
@@ -101,24 +58,33 @@ func (d Docker) ImagesPull(images []string) error {
 		if strings.HasPrefix(image, "#") {
 			continue
 		}
-		if err := d.ImagePull(strings.TrimSpace(image)); err != nil {
+		if err := d.ImagePull(trimQuotes(strings.TrimSpace(image))); err != nil {
 			return fmt.Errorf("image %s pull failed: %v", image, err)
 		}
 	}
 	return nil
 }
 
-// func (d Docker) ImagesPullByImageListFile(fileName string) error {
-// 	data, err := utils.ReadLines(fileName)
-// 	if err != nil {
-// 		logger.Error(fmt.Sprintf("Read image list failed: %v", err))
-// 	}
-// 	return d.ImagesPull(data)
-// }
+func trimQuotes(s string) string {
+	if len(s) >= 2 {
+		if c := s[len(s)-1]; s[0] == c && (c == '"' || c == '\'') {
+			return s[1 : len(s)-1]
+		}
+	}
+	return s
+}
 
-// func (d Docker) ImagesPullByList(images []string) error {
-// 	return d.ImagesPull(images)
-// }
+func (d Docker) ImagesPullByImageListFile(fileName string) error {
+	data, err := utils.ReadLines(fileName)
+	if err != nil {
+		logger.Error(fmt.Sprintf("Read image list failed: %v", err))
+	}
+	return d.ImagesPull(data)
+}
+
+func (d Docker) ImagesPullByList(images []string) error {
+	return d.ImagesPull(images)
+}
 
 func (d Docker) ImagePull(image string) error {
 	var (
@@ -149,6 +115,42 @@ func (d Docker) ImagePull(image string) error {
 	return nil
 }
 
+func (d Docker) ImagePush(image string) error {
+	var (
+		err          error
+		out          io.ReadCloser
+		named        reference.Named
+		TagImageName string
+	)
+	named, err = GetCanonicalImageName(image)
+	if err != nil {
+		return fmt.Errorf("failed to parse canonical image name %s : %v", image, err)
+	}
+	TagImageName = strings.Replace(named.String(), named.String()[0:strings.Index(named.String(), `/`)], registryName, 1)
+	opts := types.ImagePushOptions(GetCanonicalImagePullOptions(named.String()))
+	if opts.RegistryAuth == "" {
+		opts.RegistryAuth = registryAuthString //must not empty
+	}
+	err = d.cli.ImageTag(d.ctx, named.String(), TagImageName)
+	if err != nil {
+		return fmt.Errorf("tag error: %v", err)
+	}
+	out, err = d.cli.ImagePush(d.ctx, TagImageName, opts)
+	if err != nil {
+		return fmt.Errorf("push error: %v", err)
+	}
+	defer func() {
+		_ = out.Close()
+	}()
+
+	err = dockerjsonmessage.DisplayJSONMessagesToStream(out, dockerstreams.NewOut(common.StdOut), nil)
+	if err != nil && err != io.ErrClosedPipe {
+		logger.Warn("error occurs in display progressing, err: %s", err)
+	}
+	logger.Info("success to push docker image: %s ", image)
+	return nil
+}
+
 func (d Docker) DockerRmi(imageID string) error {
 	if _, err := d.cli.ImageRemove(d.ctx, imageID, types.ImageRemoveOptions{Force: true, PruneChildren: true}); err != nil {
 		return err
@@ -169,4 +171,19 @@ func (d Docker) ImagesList() ([]*types.ImageSummary, error) {
 	}
 
 	return list, nil
+}
+
+func (d Docker) ImagesPush(images []string) error {
+	for _, image := range utils.RemoveDuplicate(images) {
+		if image == "" {
+			continue
+		}
+		if strings.HasPrefix(image, "#") {
+			continue
+		}
+		if err := d.ImagePush(trimQuotes(strings.TrimSpace(image))); err != nil {
+			return fmt.Errorf("image %s push failed: %v", image, err)
+		}
+	}
+	return nil
 }
