@@ -35,10 +35,6 @@ type label struct {
 	value string
 }
 
-func (l LabelsNodes) GetPluginType() string {
-	return "LABEL_TEST_SO"
-}
-
 func (l LabelsNodes) Run(context plugin.Context, phase plugin.Phase) error {
 	if phase != plugin.PhasePostInstall || context.Plugin.Spec.Type != "LABEL_TEST_SO" {
 		logger.Debug("label nodes is PostInstall!")
@@ -117,3 +113,7 @@ func (l LabelsNodes) getAddress(addresses []v1.NodeAddress) string {
 // Plugin is the exposed variable sealer will look up it.
 //nolint
 var Plugin LabelsNodes
+
+// PluginType is the exposed variable defined the type of this plugin.
+//nolint
+var PluginType = "LABEL_TEST_SO"

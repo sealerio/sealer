@@ -50,8 +50,8 @@ func NewHostnamePlugin() Interface {
 	return &HostnamePlugin{data: map[string]string{}}
 }
 
-func (h HostnamePlugin) GetPluginType() string {
-	return HostNamePlugin
+func init() {
+	Register(HostNamePlugin, &HostnamePlugin{})
 }
 
 func (h HostnamePlugin) Run(context Context, phase Phase) error {

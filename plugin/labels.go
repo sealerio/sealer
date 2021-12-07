@@ -57,8 +57,8 @@ func NewLabelsPlugin() Interface {
 	return &LabelsNodes{data: map[string][]label{}}
 }
 
-func (l LabelsNodes) GetPluginType() string {
-	return LabelPlugin
+func init() {
+	Register(LabelPlugin, &LabelsNodes{})
 }
 
 func (l LabelsNodes) Run(context Context, phase Phase) error {

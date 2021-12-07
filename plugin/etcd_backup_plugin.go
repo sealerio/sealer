@@ -40,8 +40,8 @@ func NewEtcdBackupPlugin() Interface {
 	return &EtcdBackupPlugin{}
 }
 
-func (e EtcdBackupPlugin) GetPluginType() string {
-	return EtcdPlugin
+func init() {
+	Register(EtcdPlugin, &EtcdBackupPlugin{})
 }
 
 func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {
