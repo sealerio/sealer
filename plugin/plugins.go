@@ -27,13 +27,23 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
+type InvalidPluginTypeError struct {
+	Name string
+}
+
+func (err InvalidPluginTypeError) Error() string {
+	return fmt.Sprintf("plugin type not registered: %s", err.Name)
+}
+
 type Plugins interface {
 	Dump(clusterfile string) error
 	Load() error
 	Run(cluster *v1.Cluster, phase Phase) error
 }
 
+// PluginsProcessor : process two list: plugin config list and embed pluginFactories that contains plugin interface.
 type PluginsProcessor struct {
+	// plugin config list
 	Plugins     []v1.Plugin
 	ClusterName string
 }
@@ -45,7 +55,7 @@ func NewPlugins(clusterName string) Plugins {
 	}
 }
 
-// Load plugin configs in $rootfs/plugin dir.
+// Load plugin configs and shared object(.so) file from $rootfs/plugin dir.
 func (c *PluginsProcessor) Load() error {
 	c.Plugins = nil
 	path := common.DefaultTheClusterRootfsPluginDir(c.ClusterName)
@@ -59,14 +69,22 @@ func (c *PluginsProcessor) Load() error {
 		return fmt.Errorf("failed to load plugin dir %v", err)
 	}
 	for _, f := range files {
-		if !utils.YamlMatcher(f.Name()) {
-			continue
+		// load shared object(.so) file
+		if filepath.Ext(f.Name()) == ".so" {
+			soFile := filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), f.Name())
+			p, pt, err := c.loadOutOfTree(soFile)
+			if err != nil {
+				return err
+			}
+			Register(pt, p)
 		}
-		plugins, err := utils.DecodePlugins(filepath.Join(path, f.Name()))
-		if err != nil {
-			return fmt.Errorf("failed to load plugin %v", err)
+		if utils.YamlMatcher(f.Name()) {
+			plugins, err := utils.DecodePlugins(filepath.Join(path, f.Name()))
+			if err != nil {
+				return fmt.Errorf("failed to load plugin %v", err)
+			}
+			c.Plugins = append(c.Plugins, plugins...)
 		}
-		c.Plugins = append(c.Plugins, plugins...)
 	}
 	return nil
 }
@@ -74,70 +92,45 @@ func (c *PluginsProcessor) Load() error {
 // Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
 func (c *PluginsProcessor) Run(cluster *v1.Cluster, phase Phase) error {
 	for _, config := range c.Plugins {
-		if ext := filepath.Ext(config.Name); ext == ".so" {
-			err := c.runOutOfTree(cluster, config, phase)
-			if err != nil {
-				return fmt.Errorf("failed to run plugin, %v", err)
-			}
-			continue
+		p, ok := pluginFactories[config.Spec.Type]
+		if !ok {
+			return InvalidPluginTypeError{config.Spec.Type}
 		}
-		err := c.runInTree(cluster, config, phase)
+		err := p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 		if err != nil {
-			return fmt.Errorf("failed to run plugin, %v", err)
+			return err
 		}
 	}
 	return nil
 }
 
-func (c *PluginsProcessor) runOutOfTree(cluster *v1.Cluster, config v1.Plugin, phase Phase) error {
-	// load share object (.so) file from $rootfs/plugin,if share object (.so) file not found,maybe not in the right phase.
-	soFile := filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), config.Name)
-	// if user want to run out-of-tree plugin via dumping clusterfile,need to skip load it before mount rootfs.
-	if !utils.IsExist(soFile) {
-		return nil
-	}
-	out, err := c.loadOutOfTree(soFile)
-	if err != nil {
-		return err
-	}
-	return out.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-}
-
-func (c *PluginsProcessor) runInTree(cluster *v1.Cluster, config v1.Plugin, phase Phase) error {
-	var p Interface
-	switch config.Spec.Type {
-	case LabelPlugin:
-		p = NewLabelsPlugin()
-	case ShellPlugin:
-		p = NewShellPlugin()
-	case EtcdPlugin:
-		p = NewEtcdBackupPlugin()
-	case HostNamePlugin:
-		p = NewHostnamePlugin()
-	case ClusterCheckPlugin:
-		p = NewClusterCheckerPlugin()
-	default:
-		return fmt.Errorf("not find plugin %v", config)
-	}
-	return p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
-}
-
-func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, error) {
+func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, string, error) {
 	plug, err := plugin.Open(soFile)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	//look up the exposed variable named `Plugin`
 	symbol, err := plug.Lookup(Plugin)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	p, ok := symbol.(Interface)
 	if !ok {
-		return nil, fmt.Errorf("failed to find GOLANG plugin symbol")
+		return nil, "", fmt.Errorf("failed to find Plugin symbol")
 	}
-	return p, nil
+
+	//look up the exposed variable named `PluginType`
+	pts, err := plug.Lookup(PluginType)
+	if err != nil {
+		return nil, "", err
+	}
+
+	pt, ok := pts.(*string)
+	if !ok {
+		return nil, "", fmt.Errorf("failed to find PluginType symbol")
+	}
+	return p, *pt, nil
 }
 
 // Dump each plugin config to $rootfs/plugin dir by reading the clusterfile.

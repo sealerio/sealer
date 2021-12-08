@@ -57,6 +57,10 @@ func NewLabelsPlugin() Interface {
 	return &LabelsNodes{data: map[string][]label{}}
 }
 
+func init() {
+	Register(LabelPlugin, &LabelsNodes{})
+}
+
 func (l LabelsNodes) Run(context Context, phase Phase) error {
 	if phase != PhasePostInstall || context.Plugin.Spec.Type != LabelPlugin {
 		logger.Debug("label nodes is PostInstall!")

@@ -78,3 +78,7 @@ func (s Sheller) Run(context Context, phase Phase) error {
 	}
 	return nil
 }
+
+func init() {
+	Register(ShellPlugin, &Sheller{})
+}

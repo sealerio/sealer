@@ -32,6 +32,10 @@ func NewClusterCheckerPlugin() Interface {
 	return &ClusterChecker{}
 }
 
+func init() {
+	Register(ClusterCheckPlugin, &ClusterChecker{})
+}
+
 func (c *ClusterChecker) Run(context Context, phase Phase) error {
 	if phase != PhasePreGuest || context.Plugin.Spec.Type != ClusterCheckPlugin {
 		logger.Debug("check cluster is PreGuest!")

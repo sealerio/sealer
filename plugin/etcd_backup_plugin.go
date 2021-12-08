@@ -40,6 +40,10 @@ func NewEtcdBackupPlugin() Interface {
 	return &EtcdBackupPlugin{}
 }
 
+func init() {
+	Register(EtcdPlugin, &EtcdBackupPlugin{})
+}
+
 func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {
 	masterIP, err := getMasterIP(context)
 	if err != nil {
