@@ -50,16 +50,18 @@ func (c *Applier) Delete() (err error) {
 
 // Apply different actions between ClusterDesired and ClusterCurrent.
 func (c *Applier) Apply() (err error) {
-	err = utils.SaveClusterInfoToFile(c.ClusterDesired, c.ClusterDesired.Name)
-	if err != nil {
-		return err
-	}
 	// first time to init cluster
 	if !utils.IsFileExist(common.DefaultKubeConfigFile()) {
-		return c.initCluster()
+		if err = c.initCluster(); err != nil {
+			return err
+		}
+	} else {
+		if err = c.changeCluster(); err != nil {
+			return err
+		}
 	}
 
-	return c.changeCluster()
+	return utils.SaveClusterInfoToFile(c.ClusterDesired, c.ClusterDesired.Name)
 }
 
 func (c *Applier) fillClusterCurrent() error {
@@ -110,8 +112,8 @@ func (c *Applier) changeCluster() error {
 			logger.Warn("failed to umount image %s", c.ClusterDesired.ClusterName)
 		}
 	}()
-	mj, md := utils.GetDiffHosts(c.ClusterCurrent.GetMasterIPList(), utils.RemoveIPList(c.ClusterDesired.GetMasterIPList(), c.ClusterDesired.GetHostsIPByRole(common.DELETE)))
-	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.GetNodeIPList(), utils.RemoveIPList(c.ClusterDesired.GetNodeIPList(), c.ClusterDesired.GetHostsIPByRole(common.DELETE)))
+	mj, md := utils.GetDiffHosts(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
+	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
 
 	if err := c.scaleCluster(mj, md, nj, nd); err != nil {
 		return err
@@ -135,8 +137,18 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	if err != nil {
 		return err
 	}
-
-	err = applier.DoApply(c.ClusterDesired)
+	var cluster *v2.Cluster
+	if !applier.(applyentity.ScaleApply).IsScaleUp {
+		c, err := runtime.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
+		if err != nil {
+			return err
+		} else if c != nil {
+			cluster = c.(*v2.Cluster)
+		}
+	} else {
+		cluster = c.ClusterDesired
+	}
+	err = applier.DoApply(cluster)
 	if err != nil {
 		return err
 	}

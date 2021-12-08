@@ -23,7 +23,6 @@ import (
 const (
 	MASTER = "master"
 	NODE   = "node"
-	DELETE = "delete"
 )
 
 const (

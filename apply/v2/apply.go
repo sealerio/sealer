@@ -16,6 +16,7 @@ package apply
 
 import (
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/alibaba/sealer/apply/v2/applytype"
 
@@ -26,7 +27,7 @@ import (
 )
 
 func NewApplierFromFile(clusterfile string) (applytype.Interface, error) {
-	clusterData, err := ioutil.ReadFile(clusterfile)
+	clusterData, err := ioutil.ReadFile(filepath.Clean(clusterfile))
 	if err != nil {
 		return nil, err
 	}

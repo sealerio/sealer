@@ -47,9 +47,9 @@ func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag
 		return nil, err
 	}
 
-	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
+	/*	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
 		return nil, err
-	}
+	}*/
 	applier, err := NewApplier(cluster)
 	if err != nil {
 		return nil, err
@@ -78,18 +78,21 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
 	if (!IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
+	// join nodes cannot be in the current cluster
+	if len(utils.ReduceIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ",")), cluster.GetMasterIPList())) != 0 ||
+		len(utils.ReduceIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ",")), cluster.GetNodeIPList())) != 0 {
+		return fmt.Errorf("join nodes already in the current cluster")
+	}
+
 	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
-			//if a separate `node` role exists for host, add ip to host
-			if len(role) == 1 && utils.InList(common.MASTER, role) {
+			if utils.InList(common.MASTER, role) {
 				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ","))...)
 				break
 			}
-			//if not, create a new host
 			if i == len(cluster.Spec.Hosts)-1 {
-				hosts := v2.Host{IPS: removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ",")), Roles: []string{common.MASTER}}
-				cluster.Spec.Hosts = append(cluster.Spec.Hosts, hosts)
+				return fmt.Errorf("not found `master` role from file")
 			}
 		}
 	}
@@ -97,7 +100,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
 	if scaleArgs.Nodes != "" && IsIPList(scaleArgs.Nodes) {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
-			if len(role) == 1 && utils.InList(common.NODE, role) {
+			if utils.InList(common.NODE, role) {
 				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ","))...)
 				break
 			}
@@ -142,16 +145,26 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error 
 	if (!IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
-	//add role to 'delete' and ips to host of the node to be deleted
-	host := v2.Host{Roles: []string{common.DELETE}}
+	//delete node must be in the current cluster
+	if len(utils.RemoveIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ",")), cluster.GetMasterIPList())) != 0 ||
+		len(utils.RemoveIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ",")), cluster.GetNodeIPList())) != 0 {
+		return fmt.Errorf("delete nodes are not in the current cluster")
+	}
+
 	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
-		host.IPS = append(host.IPS, strings.Split(scaleArgs.Masters, ",")...)
+		for i := range cluster.Spec.Hosts {
+			if utils.InList(common.MASTER, cluster.Spec.Hosts[i].Roles) {
+				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ","))
+			}
+		}
 	}
 	if scaleArgs.Nodes != "" && IsIPList(scaleArgs.Nodes) {
-		host.IPS = append(host.IPS, strings.Split(scaleArgs.Nodes, ",")...)
+		for i := range cluster.Spec.Hosts {
+			if utils.InList(common.NODE, cluster.Spec.Hosts[i].Roles) {
+				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ","))
+			}
+		}
 	}
-	host.IPS = removeIPListDuplicatesAndEmpty(host.IPS)
-	cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
 	return nil
 }
 

@@ -18,8 +18,6 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
@@ -52,25 +50,7 @@ func (s ScaleApply) DoApply(cluster *v2.Cluster) error {
 	if s.IsScaleUp {
 		return s.ScaleUp(cluster)
 	}
-	//if scale down, need to remove `delete` role host ips
-	if err := s.ScaleDown(); err != nil {
-		return err
-	}
-	s.removeHostByRole(cluster)
-	return utils.SaveClusterInfoToFile(cluster, cluster.Name)
-}
-
-func (s ScaleApply) removeHostByRole(cluster *v2.Cluster) {
-	if cluster == nil {
-		return
-	}
-	ips := cluster.GetHostsIPByRole(common.DELETE)
-	for i := range cluster.Spec.Hosts {
-		cluster.Spec.Hosts[i].IPS = utils.RemoveIPList(cluster.Spec.Hosts[i].IPS, ips)
-		if len(cluster.Spec.Hosts[i].IPS) == 0 {
-			cluster.Spec.Hosts = append(cluster.Spec.Hosts[:i], cluster.Spec.Hosts[i+1:]...)
-		}
-	}
+	return s.ScaleDown()
 }
 
 func (s ScaleApply) ScaleUp(cluster *v2.Cluster) error {
