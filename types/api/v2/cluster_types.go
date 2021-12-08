@@ -18,7 +18,6 @@ package v2
 
 import (
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -88,11 +87,14 @@ func (in *Cluster) GetMaster0Ip() string {
 func (in *Cluster) GetHostsIPByRole(role string) []string {
 	var hosts []string
 	for _, host := range in.Spec.Hosts {
-		if utils.InList(role, host.Roles) {
-			hosts = append(hosts, host.IPS...)
+		for _, hostRole := range host.Roles {
+			if role == hostRole {
+				hosts = append(hosts, host.IPS...)
+				continue
+			}
 		}
 	}
-	return utils.RemoveDuplicate(hosts)
+	return hosts
 }
 func (in *Cluster) GetAnnotationsByKey(key string) string {
 	return in.Annotations[key]
