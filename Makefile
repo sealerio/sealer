@@ -58,3 +58,18 @@ filelicense: ## add license
 			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f LICENSE_TEMPLATE ./$$file ; \
 		fi \
     done
+
+
+install-gosec: ## check license if not exist install addlicense tools
+ifeq (, $(shell which gosec))
+	@{ \
+	set -e ;\
+	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(GOBIN) v2.2.0 ;\
+	}
+GOSEC_BIN=$(GOBIN)/gosec
+else
+GOSEC_BIN=$(shell which gosec)
+endif
+
+gosec: install-gosec
+	$(GOSEC_BIN) ./...
