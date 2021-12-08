@@ -22,6 +22,10 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
+func (in *Cluster) GetAnnotationsByKey(key string) string {
+	return in.Annotations[key]
+}
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // ClusterSpec defines the desired state of Cluster

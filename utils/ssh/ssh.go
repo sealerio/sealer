@@ -58,6 +58,23 @@ type SSH struct {
 	LocalAddress *[]net.Addr
 }
 
+func NewSSHByCluster1(cluster *v2.Cluster) Interface {
+	if cluster.Spec.SSH.User == "" {
+		cluster.Spec.SSH.User = common.ROOT
+	}
+	address, err := utils.IsLocalHostAddrs()
+	if err != nil {
+		logger.Warn("failed to get local address, %v", err)
+	}
+	return &SSH{
+		User:         cluster.Spec.SSH.User,
+		Password:     cluster.Spec.SSH.Passwd,
+		PkFile:       cluster.Spec.SSH.Pk,
+		PkPassword:   cluster.Spec.SSH.PkPasswd,
+		LocalAddress: address,
+	}
+}
+
 func NewSSHByCluster(cluster *v1.Cluster) Interface {
 	if cluster.Spec.SSH.User == "" {
 		cluster.Spec.SSH.User = common.ROOT
@@ -110,6 +127,44 @@ func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
 type Client struct {
 	SSH  Interface
 	Host string
+}
+
+func NewSSHClientWithCluster1(cluster *v2.Cluster) (*Client,error) {
+	var (
+		ipList []string
+		host   string
+	)
+	sshClient := NewSSHByCluster1(cluster)
+	for _, hosts := range cluster.Spec.Hosts{
+		cluster.GetAnnotationsByKey(common.Eip)
+		if host == "" {
+			return nil, fmt.Errorf("get cluster EIP failed")
+		}
+		ipList = append(ipList, host)
+		host = hosts.IPS[0]
+		ipList = append(ipList, append(hosts.IPS)...)
+	}
+	//if cluster.Spec.Provider == common.AliCloud {
+	//	host = cluster.GetAnnotationsByKey(common.Eip)
+	//	if host == "" {
+	//		return nil, fmt.Errorf("get cluster EIP failed")
+	//	}
+	//	ipList = append(ipList, host)
+	//} else {
+	//	host = cluster.Spec.Masters.IPList[0]
+	//	ipList = append(ipList, append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)...)
+	//}
+	err := WaitSSHReady(sshClient, 6, ipList...)
+	if err != nil {
+		return nil, err
+	}
+	if sshClient == nil {
+		return nil, fmt.Errorf("cloud build init ssh client failed")
+	}
+	return &Client{
+		SSH:  sshClient,
+		Host: host,
+	}, nil
 }
 
 func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
