@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package container
+package client
 
 import (
 	"github.com/docker/docker/api/types"
@@ -24,8 +24,8 @@ import (
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
-func (c *DockerProvider) getUserNsMode() (container.UsernsMode, error) {
-	sysInfo, err := c.DockerClient.Info(c.Ctx)
+func (p *Provider) getUserNsMode() (container.UsernsMode, error) {
+	sysInfo, err := p.DockerClient.Info(p.Ctx)
 	if err != nil {
 		return "", err
 	}
@@ -39,45 +39,11 @@ func (c *DockerProvider) getUserNsMode() (container.UsernsMode, error) {
 	return usernsMode, err
 }
 
-func (c *DockerProvider) setContainerMount(opts *CreateOptsForContainer) []mount.Mount {
-	mounts := []mount.Mount{
-		{
-			Type:     mount.TypeBind,
-			Source:   "/lib/modules",
-			Target:   "/lib/modules",
-			ReadOnly: true,
-			BindOptions: &mount.BindOptions{
-				Propagation: mount.PropagationRPrivate,
-			},
-		},
-		{
-			Type:     mount.TypeVolume,
-			Source:   "",
-			Target:   "/var",
-			ReadOnly: false,
-			VolumeOptions: &mount.VolumeOptions{
-				DriverConfig: &mount.Driver{
-					Name: "local",
-				},
-			},
-		},
-		{
-			Type:     mount.TypeTmpfs,
-			Source:   "",
-			Target:   "/tmp",
-			ReadOnly: false,
-		},
-		{
-			Type:     mount.TypeTmpfs,
-			Source:   "",
-			Target:   "/run",
-			ReadOnly: false,
-		},
-	}
+func (p *Provider) setContainerMount(opts *CreateOptsForContainer) []mount.Mount {
+	mounts := DefaultMounts()
 	if opts.Mount != nil {
 		mounts = append(mounts, *opts.Mount)
 	}
-
 	// only master0 need to bind root path
 	if opts.IsMaster0 {
 		sealerMount := mount.Mount{
@@ -94,7 +60,7 @@ func (c *DockerProvider) setContainerMount(opts *CreateOptsForContainer) []mount
 	return mounts
 }
 
-func (c *DockerProvider) RunContainer(opts *CreateOptsForContainer) (string, error) {
+func (p *Provider) RunContainer(opts *CreateOptsForContainer) (string, error) {
 	//docker run --hostname master1 --name master1
 	//--privileged
 	//--security-opt seccomp=unconfined --security-opt apparmor=unconfined
@@ -103,11 +69,11 @@ func (c *DockerProvider) RunContainer(opts *CreateOptsForContainer) (string, err
 	//--device /dev/fuse
 	//--detach --tty --restart=on-failure:1 --init=false sealer-io/sealer-base-image:latest
 	// prepare run args according to docker server
-	mod, _ := c.getUserNsMode()
-	mounts := c.setContainerMount(opts)
+	mod, _ := p.getUserNsMode()
+	mounts := p.setContainerMount(opts)
 	falseOpts := false
-	resp, err := c.DockerClient.ContainerCreate(c.Ctx, &container.Config{
-		Image:        c.ImageResource.DefaultName,
+	resp, err := p.DockerClient.ContainerCreate(p.Ctx, &container.Config{
+		Image:        opts.ImageName,
 		Tty:          true,
 		Labels:       opts.ContainerLabel,
 		Hostname:     opts.ContainerHostName,
@@ -130,8 +96,8 @@ func (c *DockerProvider) RunContainer(opts *CreateOptsForContainer) (string, err
 			Mounts:       mounts,
 		}, &network.NetworkingConfig{
 			EndpointsConfig: map[string]*network.EndpointSettings{
-				c.NetworkResource.DefaultName: {
-					NetworkID: c.NetworkResource.ID,
+				opts.NetworkName: {
+					NetworkID: opts.NetworkId,
 				},
 			},
 		}, nil, opts.ContainerName)
@@ -140,7 +106,7 @@ func (c *DockerProvider) RunContainer(opts *CreateOptsForContainer) (string, err
 		return "", err
 	}
 
-	err = c.DockerClient.ContainerStart(c.Ctx, resp.ID, types.ContainerStartOptions{})
+	err = p.DockerClient.ContainerStart(p.Ctx, resp.ID, types.ContainerStartOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -148,28 +114,28 @@ func (c *DockerProvider) RunContainer(opts *CreateOptsForContainer) (string, err
 	return resp.ID, nil
 }
 
-func (c *DockerProvider) GetContainerInfo(containerID string) (*Container, error) {
-	resp, err := c.DockerClient.ContainerInspect(c.Ctx, containerID)
+func (p *Provider) GetContainerInfo(containerID string, networkName string) (*Container, error) {
+	resp, err := p.DockerClient.ContainerInspect(p.Ctx, containerID)
 	if err != nil {
 		return nil, err
 	}
 	return &Container{
 		ContainerName:     resp.Name,
-		ContainerIP:       resp.NetworkSettings.Networks[c.NetworkResource.DefaultName].IPAddress,
+		ContainerIP:       resp.NetworkSettings.Networks[networkName].IPAddress,
 		ContainerHostName: resp.Config.Hostname,
 		ContainerLabel:    resp.Config.Labels,
 		Status:            resp.State.Status,
 	}, nil
 }
 
-func (c *DockerProvider) GetContainerIDByIP(containerIP string) (string, error) {
-	resp, err := c.DockerClient.ContainerList(c.Ctx, types.ContainerListOptions{})
+func (p *Provider) GetContainerIDByIP(containerIP string, networkName string) (string, error) {
+	resp, err := p.DockerClient.ContainerList(p.Ctx, types.ContainerListOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	for _, item := range resp {
-		if net, ok := item.NetworkSettings.Networks[c.NetworkResource.DefaultName]; ok {
+		if net, ok := item.NetworkSettings.Networks[networkName]; ok {
 			if containerIP == net.IPAddress {
 				return item.ID, nil
 			}
@@ -178,8 +144,8 @@ func (c *DockerProvider) GetContainerIDByIP(containerIP string) (string, error) 
 	return "", err
 }
 
-func (c *DockerProvider) RmContainer(containerID string) error {
-	err := c.DockerClient.ContainerRemove(c.Ctx, containerID, types.ContainerRemoveOptions{
+func (p *Provider) RmContainer(containerID string) error {
+	err := p.DockerClient.ContainerRemove(p.Ctx, containerID, types.ContainerRemoveOptions{
 		RemoveVolumes: true,
 		Force:         true,
 	})
@@ -192,7 +158,7 @@ func (c *DockerProvider) RmContainer(containerID string) error {
 	return nil
 }
 
-func (c *DockerProvider) RunSSHCMDInContainer(sshClient ssh.Interface, containerIP, cmd string) error {
+func (p *Provider) RunSSHCMDInContainer(sshClient ssh.Interface, containerIP, cmd string) error {
 	_, err := sshClient.Cmd(containerIP, cmd)
 	return err
 }

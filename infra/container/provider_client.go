@@ -15,14 +15,11 @@
 package container
 
 import (
-	"context"
 	"fmt"
+	"github.com/alibaba/sealer/infra/container/client"
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/client"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -31,47 +28,24 @@ import (
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
+const (
+	CONTAINER         = "CONTAINER"
+	NETWROKID         = "NetworkId"
+	IMAGEID           = "ImageId"
+	DockerHost        = "/var/run/docker.sock"
+	DefaultPassword   = "Seadent123"
+	MASTER            = "master"
+	NODE              = "node"
+	ChangePasswordCmd = "echo root:%s | chpasswd" // #nosec
+	RoleLabel         = "sealer-io-role"
+	RoleLabelMaster   = "sealer-io-role-is-master"
+	NetworkName       = "sealer-network"
+	ImageName         = "registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-base-image:latest"
+)
+
 type DockerProvider struct {
-	DockerClient    *client.Client
-	Ctx             context.Context
-	Cluster         *v1.Cluster
-	ImageResource   *Resource
-	NetworkResource *Resource
-	Containers      []Container
-}
-
-type Resource struct {
-	ID          string
-	Type        string
-	DefaultName string
-}
-
-type Container struct {
-	ContainerID       string
-	ContainerName     string
-	ContainerHostName string
-	ContainerIP       string
-	Status            string
-	ContainerLabel    map[string]string
-}
-
-type CreateOptsForContainer struct {
-	ContainerName     string
-	ContainerHostName string
-	ContainerLabel    map[string]string
-	Mount             *mount.Mount
-	IsMaster0         bool
-}
-
-type DockerInfo struct {
-	CgroupDriver    string
-	CgroupVersion   string
-	StorageDriver   string
-	MemoryLimit     bool
-	PidsLimit       bool
-	CPUShares       bool
-	CPUNumber       int
-	SecurityOptions []string
+	Cluster        *v1.Cluster
+	DockerProvider *client.Provider
 }
 
 type ApplyResult struct {
@@ -119,12 +93,44 @@ func (c *DockerProvider) Apply() error {
 	return nil
 }
 
+func (c *DockerProvider) CheckServerInfo() error {
+	/*
+		1,rootless docker:do not support rootless docker currently.if support, CgroupVersion must = 2
+		2,StorageDriver:overlay2
+		3,cpu num >1
+		4,docker host : /var/run/docker.sock. set env DOCKER_HOST to override
+	*/
+	info, err := c.DockerProvider.GetServerInfo()
+	if err != nil {
+		return fmt.Errorf("failed to get docker server, please check docker server running status")
+	}
+	if info.StorageDriver != "overlay2" {
+		return fmt.Errorf("only support storage driver overlay2 ,but current is :%s", info.StorageDriver)
+	}
+
+	if info.CPUNumber <= 1 {
+		return fmt.Errorf("cpu number of docker server must greater than 1 ,but current is :%d", info.CPUNumber)
+	}
+
+	for _, opt := range info.SecurityOptions {
+		if opt == "name=rootless" {
+			return fmt.Errorf("do not support rootless docker currently")
+		}
+	}
+
+	if !utils.IsFileExist(DockerHost) && os.Getenv("DOCKER_HOST") == "" {
+		return fmt.Errorf("sealer user default docker host /var/run/docker.sock, please set env DOCKER_HOST='' to override it")
+	}
+
+	return nil
+}
+
 func (c *DockerProvider) ReconcileContainer() error {
 	// check image id and network id!= nil . if so return error
 	// scale up: apply diff container, append ip list.
 	// scale down: delete diff container by id,delete ip list. if no container,need do cleanup
 	if c.Cluster.Annotations[NETWROKID] == "" || c.Cluster.Annotations[IMAGEID] == "" {
-		return fmt.Errorf("network %s or image %s not found", c.NetworkResource.DefaultName, c.ImageResource.DefaultName)
+		return fmt.Errorf("network %s or image %s not found", NetworkName, ImageName)
 	}
 	currentMasterNum := len(c.Cluster.Spec.Masters.IPList)
 
@@ -204,7 +210,10 @@ func (c *DockerProvider) applyToJoin(toJoinNumber int, role string) ([]string, e
 	var toJoinIPList []string
 	for i := 0; i < toJoinNumber; i++ {
 		name := fmt.Sprintf("sealer-%s-%s", role, utils.GenUniqueID(10))
-		opts := &CreateOptsForContainer{
+		opts := &client.CreateOptsForContainer{
+			ImageName:         ImageName,
+			NetworkId:         c.Cluster.Annotations[NETWROKID],
+			NetworkName:       NetworkName,
 			ContainerHostName: name,
 			ContainerName:     name,
 			ContainerLabel: map[string]string{
@@ -216,12 +225,12 @@ func (c *DockerProvider) applyToJoin(toJoinNumber int, role string) ([]string, e
 			opts.IsMaster0 = true
 		}
 
-		containerID, err := c.RunContainer(opts)
+		containerID, err := c.DockerProvider.RunContainer(opts)
 		if err != nil {
 			return toJoinIPList, fmt.Errorf("failed to create container %s,error is %v", opts.ContainerName, err)
 		}
 		time.Sleep(3 * time.Second)
-		info, err := c.GetContainerInfo(containerID)
+		info, err := c.DockerProvider.GetContainerInfo(containerID, NetworkName)
 		if err != nil {
 			return toJoinIPList, fmt.Errorf("failed to get container info of %s,error is %v", containerID, err)
 		}
@@ -255,16 +264,17 @@ func (c *DockerProvider) changeDefaultPasswd(containerIP string) error {
 	}
 
 	cmd := fmt.Sprintf(ChangePasswordCmd, c.Cluster.Spec.SSH.Passwd)
-	return c.RunSSHCMDInContainer(sshClient, containerIP, cmd)
+	return c.DockerProvider.RunSSHCMDInContainer(sshClient, containerIP, cmd)
 }
+
 func (c *DockerProvider) applyToDelete(deleteIPList []string) error {
 	// delete container and return deleted ip list
 	for _, ip := range deleteIPList {
-		id, err := c.GetContainerIDByIP(ip)
+		id, err := c.DockerProvider.GetContainerIDByIP(ip, NetworkName)
 		if err != nil {
 			return fmt.Errorf("failed to get container id %s while delte it ", ip)
 		}
-		err = c.RmContainer(id)
+		err = c.DockerProvider.RmContainer(id)
 		if err != nil {
 			return fmt.Errorf("failed to delete container:%s", id)
 		}
@@ -273,65 +283,15 @@ func (c *DockerProvider) applyToDelete(deleteIPList []string) error {
 	return nil
 }
 
-func (c *DockerProvider) CheckServerInfo() error {
-	/*
-		1,rootless docker:do not support rootless docker currently.if support, CgroupVersion must = 2
-		2,StorageDriver:overlay2
-		3,cpu num >1
-		4,docker host : /var/run/docker.sock. set env DOCKER_HOST to override
-	*/
-	info, err := c.GetServerInfo()
-	if err != nil {
-		return fmt.Errorf("failed to get docker server, please check docker server running status")
-	}
-	if info.StorageDriver != "overlay2" {
-		return fmt.Errorf("only support storage driver overlay2 ,but current is :%s", info.StorageDriver)
-	}
-
-	if info.CPUNumber <= 1 {
-		return fmt.Errorf("cpu number of docker server must greater than 1 ,but current is :%d", info.CPUNumber)
-	}
-
-	for _, opt := range info.SecurityOptions {
-		if opt == "name=rootless" {
-			return fmt.Errorf("do not support rootless docker currently")
-		}
-	}
-
-	if !utils.IsFileExist(DockerHost) && os.Getenv("DOCKER_HOST") == "" {
-		return fmt.Errorf("sealer user default docker host /var/run/docker.sock, please set env DOCKER_HOST='' to override it")
-	}
-
-	return nil
-}
-
-func (c *DockerProvider) GetServerInfo() (*DockerInfo, error) {
-	sysInfo, err := c.DockerClient.Info(c.Ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DockerInfo{
-		CgroupDriver:    sysInfo.CgroupDriver,
-		CgroupVersion:   sysInfo.CgroupVersion,
-		StorageDriver:   sysInfo.Driver,
-		MemoryLimit:     sysInfo.MemoryLimit,
-		PidsLimit:       sysInfo.PidsLimit,
-		CPUShares:       sysInfo.CPUShares,
-		CPUNumber:       sysInfo.NCPU,
-		SecurityOptions: sysInfo.SecurityOptions,
-	}, nil
-}
-
 func (c *DockerProvider) PrepareBaseResource() error {
 	// prepare network
-	err := c.PrepareNetworkResource()
+	networkId, err := c.DockerProvider.PrepareNetworkResource(NetworkName)
 	if err != nil {
 		logger.Error("failed to prepare network resource:", err)
 		return err
 	}
 	// prepare image
-	err = c.PrepareImageResource()
+	imageId, err := c.DockerProvider.PrepareImageResource(ImageName)
 	if err != nil {
 		logger.Error("failed to prepare image resource:", err)
 		return err
@@ -340,9 +300,9 @@ func (c *DockerProvider) PrepareBaseResource() error {
 	if c.Cluster.Annotations == nil {
 		c.Cluster.Annotations = make(map[string]string)
 	}
-	c.Cluster.Annotations[NETWROKID] = c.NetworkResource.ID
-	c.Cluster.Annotations[IMAGEID] = c.ImageResource.ID
-	logger.Info("prepare base image %s and network %s successfully ", c.ImageResource.DefaultName, c.NetworkResource.DefaultName)
+	c.Cluster.Annotations[NETWROKID] = networkId
+	c.Cluster.Annotations[IMAGEID] = imageId
+	logger.Info("prepare base image %s and network %s successfully ", ImageName, NetworkName)
 	return nil
 }
 
@@ -355,11 +315,11 @@ func (c *DockerProvider) CleanUp() error {
 	iplist = append(iplist, c.Cluster.Spec.Nodes.IPList...)
 
 	for _, ip := range iplist {
-		id, err := c.GetContainerIDByIP(ip)
+		id, err := c.DockerProvider.GetContainerIDByIP(ip, NetworkName)
 		if err != nil {
 			return fmt.Errorf("failed to get container id %s while delte it ", ip)
 		}
-		err = c.RmContainer(id)
+		err = c.DockerProvider.RmContainer(id)
 		if err != nil {
 			// log it
 			logger.Info("failed to delete container:%s", id)
@@ -367,37 +327,17 @@ func (c *DockerProvider) CleanUp() error {
 		continue
 	}
 	utils.CleanDir(common.DefaultClusterBaseDir(c.Cluster.Name))
-
-	deleteNetErr := c.DeleteNetworkResource(c.Cluster.Annotations[NETWROKID])
-
-	if deleteNetErr != nil {
-		logger.Error("failed to clean up resource: %v", deleteNetErr)
-		return nil
-	}
-	logger.Info("delete network  %s successfully", c.NetworkResource.DefaultName)
 	return nil
 }
 
 func NewClientWithCluster(cluster *v1.Cluster) (*DockerProvider, error) {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	p, err := client.NewClientProvider()
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, err
-	}
+
 	return &DockerProvider{
-		Ctx:          ctx,
-		DockerClient: cli,
-		Cluster:      cluster,
-		NetworkResource: &Resource{
-			Type:        ResourceNetwork,
-			DefaultName: DefaultNetworkName,
-		},
-		ImageResource: &Resource{
-			Type:        ResourceImage,
-			DefaultName: DefaultImageName,
-		},
+		Cluster:        cluster,
+		DockerProvider: p,
 	}, nil
 }
