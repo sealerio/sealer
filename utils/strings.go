@@ -56,6 +56,16 @@ func ReduceIPList(src, dst []string) []string {
 	return ipList
 }
 
+func RemoveIPList(src, dst []string) []string {
+	var ipList []string
+	for _, ip := range src {
+		if NotIn(ip, dst) {
+			ipList = append(ipList, ip)
+		}
+	}
+	return ipList
+}
+
 func AppendIPList(src, dst []string) []string {
 	for _, ip := range dst {
 		if NotIn(ip, src) {

@@ -246,6 +246,8 @@ func TypeConversion(raw []byte, kind string) (i interface{}, err error) {
 
 func typeConversion(kind string) interface{} {
 	switch kind {
+	case Cluster:
+		return &v2.Cluster{}
 	case Kubeadmconfig:
 		return &KubeadmConfig{}
 	case InitConfiguration:
