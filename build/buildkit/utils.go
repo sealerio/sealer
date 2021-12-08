@@ -16,7 +16,10 @@ package buildkit
 
 import (
 	"fmt"
+	"io"
 	"os"
+
+	"github.com/alibaba/sealer/utils/archive"
 
 	"path/filepath"
 	"strings"
@@ -25,6 +28,28 @@ import (
 const (
 	kubefile = "Kubefile"
 )
+
+func TarFile(tarFileName string, content ...string) error {
+	file, err := os.Create(tarFileName)
+	if err != nil {
+		return fmt.Errorf("failed to create %s, err: %v", tarFileName, err)
+	}
+	defer file.Close()
+
+	var pathsToCompress []string
+	pathsToCompress = append(pathsToCompress, content...)
+	tarReader, err := archive.TarWithoutRootDir(pathsToCompress...)
+	if err != nil {
+		return fmt.Errorf("failed to new tar reader when send build context, err: %v", err)
+	}
+	defer tarReader.Close()
+
+	_, err = io.Copy(file, tarReader)
+	if err != nil {
+		return fmt.Errorf("failed to tar build context, err: %v", err)
+	}
+	return nil
+}
 
 // ParseBuildArgs parse context and kubefile. return context abs path and kubefile abs path
 func ParseBuildArgs(localContextDir, kubeFileName string) (string, string, error) {

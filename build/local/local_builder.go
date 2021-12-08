@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alibaba/sealer/build/buildkit"
-	"github.com/alibaba/sealer/build/buildkit/buildimage"
+	"github.com/alibaba/sealer/build/v2/buildkit"
+	"github.com/alibaba/sealer/build/v2/buildkit/buildimage"
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
