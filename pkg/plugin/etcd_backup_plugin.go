@@ -59,7 +59,7 @@ func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {
 }
 
 func getMasterIP(context Context) (string, error) {
-	ipList := context.Cluster.Spec.Masters.IPList
+	ipList := context.Host.IPS
 	if len(ipList) == 0 {
 		return "", errors.New("cluster master does not exist")
 	}
@@ -67,7 +67,7 @@ func getMasterIP(context Context) (string, error) {
 }
 
 func fetchRemoteCert(context Context, masterIP string) error {
-	SSH := ssh.NewSSHByCluster(context.Cluster)
+	SSH := ssh.NewSSHByCluster1(context.Cluster)
 	certs := []string{"healthcheck-client.crt", "healthcheck-client.key", "ca.crt"}
 	for _, cert := range certs {
 		if err := SSH.Fetch(masterIP, "/tmp/"+cert, "/etc/kubernetes/pki/etcd/"+cert); err != nil {

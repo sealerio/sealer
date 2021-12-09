@@ -129,31 +129,21 @@ type Client struct {
 	Host string
 }
 
-func NewSSHClientWithCluster1(cluster *v2.Cluster) (*Client,error) {
+func NewSSHClientWithCluster1(cluster *v2.Cluster) (*Client, error) {
 	var (
 		ipList []string
 		host   string
 	)
 	sshClient := NewSSHByCluster1(cluster)
-	for _, hosts := range cluster.Spec.Hosts{
+	for _, hosts := range cluster.Spec.Hosts {
 		cluster.GetAnnotationsByKey(common.Eip)
 		if host == "" {
 			return nil, fmt.Errorf("get cluster EIP failed")
 		}
 		ipList = append(ipList, host)
 		host = hosts.IPS[0]
-		ipList = append(ipList, append(hosts.IPS)...)
+		ipList = append(ipList, append(hosts.IPS, hosts.IPS...)...)
 	}
-	//if cluster.Spec.Provider == common.AliCloud {
-	//	host = cluster.GetAnnotationsByKey(common.Eip)
-	//	if host == "" {
-	//		return nil, fmt.Errorf("get cluster EIP failed")
-	//	}
-	//	ipList = append(ipList, host)
-	//} else {
-	//	host = cluster.Spec.Masters.IPList[0]
-	//	ipList = append(ipList, append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)...)
-	//}
 	err := WaitSSHReady(sshClient, 6, ipList...)
 	if err != nil {
 		return nil, err
