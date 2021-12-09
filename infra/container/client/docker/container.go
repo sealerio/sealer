@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package docker
 
 import (
+	"github.com/alibaba/sealer/infra/container/client"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils/ssh"
 )
 
 func (p *Provider) getUserNsMode() (container.UsernsMode, error) {
@@ -39,28 +39,15 @@ func (p *Provider) getUserNsMode() (container.UsernsMode, error) {
 	return usernsMode, err
 }
 
-func (p *Provider) setContainerMount(opts *CreateOptsForContainer) []mount.Mount {
+func (p *Provider) setContainerMount(opts *client.CreateOptsForContainer) []mount.Mount {
 	mounts := DefaultMounts()
 	if opts.Mount != nil {
-		mounts = append(mounts, *opts.Mount)
-	}
-	// only master0 need to bind root path
-	if opts.IsMaster0 {
-		sealerMount := mount.Mount{
-			Type:     mount.TypeBind,
-			Source:   SealerImageRootPath,
-			Target:   SealerImageRootPath,
-			ReadOnly: false,
-			BindOptions: &mount.BindOptions{
-				Propagation: mount.PropagationRPrivate,
-			},
-		}
-		mounts = append(mounts, sealerMount)
+		mounts = append(mounts, opts.Mount...)
 	}
 	return mounts
 }
 
-func (p *Provider) RunContainer(opts *CreateOptsForContainer) (string, error) {
+func (p *Provider) RunContainer(opts *client.CreateOptsForContainer) (string, error) {
 	//docker run --hostname master1 --name master1
 	//--privileged
 	//--security-opt seccomp=unconfined --security-opt apparmor=unconfined
@@ -68,7 +55,16 @@ func (p *Provider) RunContainer(opts *CreateOptsForContainer) (string, error) {
 	//--volume /var --volume /lib/modules:/lib/modules:ro
 	//--device /dev/fuse
 	//--detach --tty --restart=on-failure:1 --init=false sealer-io/sealer-base-image:latest
-	// prepare run args according to docker server
+	networkID, err := p.PrepareNetworkResource(opts.NetworkName)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = p.PullImage(opts.ImageName)
+	if err != nil {
+		return "", err
+	}
+
 	mod, _ := p.getUserNsMode()
 	mounts := p.setContainerMount(opts)
 	falseOpts := false
@@ -97,7 +93,7 @@ func (p *Provider) RunContainer(opts *CreateOptsForContainer) (string, error) {
 		}, &network.NetworkingConfig{
 			EndpointsConfig: map[string]*network.EndpointSettings{
 				opts.NetworkName: {
-					NetworkID: opts.NetworkId,
+					NetworkID: networkID,
 				},
 			},
 		}, nil, opts.ContainerName)
@@ -114,12 +110,12 @@ func (p *Provider) RunContainer(opts *CreateOptsForContainer) (string, error) {
 	return resp.ID, nil
 }
 
-func (p *Provider) GetContainerInfo(containerID string, networkName string) (*Container, error) {
+func (p *Provider) GetContainerInfo(containerID string, networkName string) (*client.Container, error) {
 	resp, err := p.DockerClient.ContainerInspect(p.Ctx, containerID)
 	if err != nil {
 		return nil, err
 	}
-	return &Container{
+	return &client.Container{
 		ContainerName:     resp.Name,
 		ContainerIP:       resp.NetworkSettings.Networks[networkName].IPAddress,
 		ContainerHostName: resp.Config.Hostname,
@@ -158,7 +154,20 @@ func (p *Provider) RmContainer(containerID string) error {
 	return nil
 }
 
-func (p *Provider) RunSSHCMDInContainer(sshClient ssh.Interface, containerIP, cmd string) error {
-	_, err := sshClient.Cmd(containerIP, cmd)
-	return err
+func (p *Provider) GetServerInfo() (*client.DockerInfo, error) {
+	sysInfo, err := p.DockerClient.Info(p.Ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.DockerInfo{
+		CgroupDriver:    sysInfo.CgroupDriver,
+		CgroupVersion:   sysInfo.CgroupVersion,
+		StorageDriver:   sysInfo.Driver,
+		MemoryLimit:     sysInfo.MemoryLimit,
+		PidsLimit:       sysInfo.PidsLimit,
+		CPUShares:       sysInfo.CPUShares,
+		CPUNumber:       sysInfo.NCPU,
+		SecurityOptions: sysInfo.SecurityOptions,
+	}, nil
 }

@@ -15,9 +15,6 @@
 package container
 
 import (
-	"crypto/sha1" // #nosec
-	"encoding/binary"
-	"net"
 	"strconv"
 	"strings"
 
@@ -31,24 +28,6 @@ func IsDockerAvailable() bool {
 		return false
 	}
 	return strings.Contains(lines, "docker version")
-}
-
-func GenerateSubnetFromName(name string, attempt int32) string {
-	ip := make([]byte, 16)
-	ip[0] = 0xfc
-	ip[1] = 0x00
-	h := sha1.New() // #nosec
-	_, _ = h.Write([]byte(name))
-	_ = binary.Write(h, binary.LittleEndian, attempt)
-	bs := h.Sum(nil)
-	for i := 2; i < 8; i++ {
-		ip[i] = bs[i]
-	}
-	subnet := &net.IPNet{
-		IP:   net.IP(ip),
-		Mask: net.CIDRMask(64, 128),
-	}
-	return subnet.String()
 }
 
 func getDiff(host v1.Hosts) (int, []string, error) {

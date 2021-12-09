@@ -15,18 +15,20 @@
 package client
 
 import (
-	"context"
 	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/client"
 )
 
-type Provider struct {
-	DockerClient *client.Client
-	Ctx          context.Context
+type ProviderService interface {
+	GetServerInfo() (*DockerInfo, error)
+	RunContainer(opts *CreateOptsForContainer) (string, error)
+	GetContainerInfo(containerID string, networkName string) (*Container, error)
+	RmContainer(containerID string) error
+	PullImage(imageName string) (string, error)
 }
 
 type Container struct {
 	ContainerID       string
+	NetworkID         string
 	ContainerName     string
 	ContainerHostName string
 	ContainerIP       string
@@ -36,13 +38,11 @@ type Container struct {
 
 type CreateOptsForContainer struct {
 	ImageName         string
-	NetworkId         string
 	NetworkName       string
 	ContainerName     string
 	ContainerHostName string
 	ContainerLabel    map[string]string
-	Mount             *mount.Mount
-	IsMaster0         bool
+	Mount             []mount.Mount
 }
 
 type DockerInfo struct {
@@ -54,34 +54,4 @@ type DockerInfo struct {
 	CPUShares       bool
 	CPUNumber       int
 	SecurityOptions []string
-}
-
-func (p *Provider) GetServerInfo() (*DockerInfo, error) {
-	sysInfo, err := p.DockerClient.Info(p.Ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DockerInfo{
-		CgroupDriver:    sysInfo.CgroupDriver,
-		CgroupVersion:   sysInfo.CgroupVersion,
-		StorageDriver:   sysInfo.Driver,
-		MemoryLimit:     sysInfo.MemoryLimit,
-		PidsLimit:       sysInfo.PidsLimit,
-		CPUShares:       sysInfo.CPUShares,
-		CPUNumber:       sysInfo.NCPU,
-		SecurityOptions: sysInfo.SecurityOptions,
-	}, nil
-}
-
-func NewClientProvider() (*Provider, error) {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return nil, err
-	}
-	return &Provider{
-		Ctx:          ctx,
-		DockerClient: cli,
-	}, nil
 }

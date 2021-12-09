@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package docker
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
-	"io"
-
-	"github.com/alibaba/sealer/logger"
 )
 
 func (p *Provider) DeleteImageResource(imageID string) error {
@@ -33,10 +33,9 @@ func (p *Provider) DeleteImageResource(imageID string) error {
 	return err
 }
 
-func (p *Provider) PrepareImageResource(imageName string) (string, error) {
-	// if existed, only set id no need to pull
+func (p *Provider) PullImage(imageName string) (string, error) {
+	// if existed, only set id no need to pull.
 	if imageID := p.GetImageIDByName(imageName); imageID != "" {
-		logger.Info("image %s already exists", imageName)
 		return imageID, nil
 	}
 	out, err := p.DockerClient.ImagePull(p.Ctx, imageName, types.ImagePullOptions{})

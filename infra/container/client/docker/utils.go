@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package docker
 
 import (
 	"crypto/sha1" // #nosec
 	"encoding/binary"
-	"github.com/docker/docker/api/types/mount"
 	"net"
+
+	"github.com/docker/docker/api/types/mount"
 )
 
 func DefaultMounts() []mount.Mount {
@@ -76,4 +77,3 @@ func GenerateSubnetFromName(name string, attempt int32) string {
 	}
 	return subnet.String()
 }
-

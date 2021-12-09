@@ -12,9 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package docker
 
+import (
+	"context"
 
-const (
-	SealerImageRootPath = "/var/lib/sealer"
+	"github.com/alibaba/sealer/infra/container/client"
+	dc "github.com/docker/docker/client"
 )
+
+type Provider struct {
+	DockerClient *dc.Client
+	Ctx          context.Context
+}
+
+func NewDockerProvider() (client.ProviderService, error) {
+	ctx := context.Background()
+	cli, err := dc.NewClientWithOpts(dc.FromEnv, dc.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, err
+	}
+	return &Provider{
+		Ctx:          ctx,
+		DockerClient: cli,
+	}, nil
+}
