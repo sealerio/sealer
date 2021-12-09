@@ -18,7 +18,7 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"testing"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	//v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func TestEtcdBackupPlugin_Run(t *testing.T) {
@@ -34,8 +34,10 @@ func TestEtcdBackupPlugin_Run(t *testing.T) {
 	cluster := &v2.Cluster{}
 	cluster.Spec.SSH.User = "root"
 	cluster.Spec.SSH.Passwd = "123456"
-	cluster.Spec.Masters.IPList = []string{"172.17.189.55"}
-
+	for _ ,host := range cluster.Spec.Hosts{
+		host.IPS = []string{"172.17.189.55"}
+	}
+	//cluster.Spec.Masters.IPList = []string{"172.17.189.55"}
 	tests := []struct {
 		name    string
 		fields  etcdBackup
