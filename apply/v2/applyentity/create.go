@@ -38,6 +38,8 @@ type InitApply struct {
 	Plugins      plugin.Plugins
 }
 
+var pluginPhases = []plugin.Phase{plugin.PhaseOriginally, plugin.PhasePreInit, plugin.PhasePreGuest, plugin.PhasePostInstall}
+
 func (i InitApply) DoApply(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {
@@ -45,7 +47,9 @@ func (i InitApply) DoApply(cluster *v2.Cluster) error {
 	}
 	i.Runtime = runTime
 	i.Config = config.NewConfiguration(cluster.Name)
-	i.Plugins = plugin.NewPlugins(cluster.Name)
+	if err := i.initPlugin(cluster); err != nil {
+		return err
+	}
 
 	pipLine, err := i.GetPipeLine()
 	if err != nil {
@@ -122,31 +126,18 @@ func (i InitApply) UnMountImage(cluster *v2.Cluster) error {
 	return i.FileSystem.UnMountImage(cluster)
 }
 
-/*func (i InitApply) RunInitPlugin(cluster *v2.Cluster) error {
-	err := i.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
-	if err != nil {
+func (i InitApply) initPlugin(cluster *v2.Cluster) error {
+	i.Plugins = plugin.NewPlugins(cluster.Name)
+	if err := i.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName)); err != nil {
 		return err
 	}
-	err = i.Plugins.Run(cluster, "Originally")
-	if err != nil {
-		return err
-	}
-	return nil
+	return i.Plugins.Load()
 }
 
-func (i InitApply) PluginPhasePreInitRun(cluster *v2.Cluster) error {
-	if err := i.Plugins.Load(); err != nil {
-		return err
-	}
-	return i.Plugins.Run(cluster, "PreInit")
-}
-
-func (i InitApply) PluginPhasePreGuestRun(cluster *v2.Cluster) error {
-	return i.Plugins.Run(cluster, "PreGuest")
-}
-
-func (i InitApply) PluginPhasePostInstallRun(cluster *v2.Cluster) error {
-	return i.Plugins.Run(cluster, "PostInstall")
+/*func (i InitApply) RunPhasePlugin(cluster *v2.Cluster) error {
+	err := i.Plugins.Run(cluster, pluginPhases[0])
+	pluginPhases = pluginPhases[1:]
+	return err
 }*/
 
 func NewInitApply() (Interface, error) {
