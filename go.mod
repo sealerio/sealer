@@ -4,11 +4,11 @@ go 1.14
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.985
+	github.com/distribution/distribution/v3 v3.0.0-20211125133600-cc4627fc6e5f
 	github.com/docker/cli v20.10.6+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.7+incompatible
 	github.com/docker/go-connections v0.4.0
-	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/imdario/mergo v0.3.12
 	github.com/mitchellh/go-homedir v1.1.0
@@ -26,10 +26,10 @@ require (
 	github.com/vbatts/tar-split v0.11.1
 	go.etcd.io/etcd/client/v3 v3.5.0
 	go.uber.org/zap v1.17.0
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40
+	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
 	gotest.tools v2.2.0+incompatible
 	helm.sh/helm/v3 v3.6.2
 	k8s.io/api v0.21.0
