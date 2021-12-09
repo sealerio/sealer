@@ -15,8 +15,9 @@
 package plugin
 
 import (
-	v2 "github.com/alibaba/sealer/types/api/v2"
 	"testing"
+
+	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
