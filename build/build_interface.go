@@ -27,7 +27,7 @@ func NewBuilder(config *Config) (Interface, error) {
 	case common.AliCloudBuild:
 		return NewCloudBuilder(config)
 	case common.ContainerBuild:
-		return NewCloudBuilder(config)
+		return NewContainerBuilder(config)
 	case common.LocalBuild:
 		return NewLocalBuilder(config)
 	default:

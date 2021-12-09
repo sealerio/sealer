@@ -16,6 +16,7 @@ package build
 
 import (
 	"github.com/alibaba/sealer/build/cloud"
+	"github.com/alibaba/sealer/build/container"
 	"github.com/alibaba/sealer/build/lite"
 	"github.com/alibaba/sealer/build/local"
 	"github.com/alibaba/sealer/common"
@@ -41,6 +42,20 @@ func NewCloudBuilder(config *Config) (Interface, error) {
 	}
 
 	return &cloud.Builder{
+		BuildType:          config.BuildType,
+		NoCache:            config.NoCache,
+		Provider:           provider,
+		TmpClusterFilePath: common.TmpClusterfile,
+	}, nil
+}
+
+func NewContainerBuilder(config *Config) (Interface, error) {
+	provider := common.CONTAINER
+	if config.BuildType != "" {
+		provider = ProviderMap[config.BuildType]
+	}
+
+	return &container.Builder{
 		BuildType:          config.BuildType,
 		NoCache:            config.NoCache,
 		Provider:           provider,

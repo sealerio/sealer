@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cloud
+package container
 
 import (
 	"fmt"
@@ -27,7 +27,6 @@ import (
 
 	"github.com/alibaba/sealer/build/buildkit"
 
-	"github.com/alibaba/sealer/checker"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
@@ -38,7 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Builder using cloud provider to build a cluster image
+// Builder using container provider to build a cluster image
 type Builder struct {
 	BuildType          string
 	NoCache            bool
@@ -92,9 +91,7 @@ func (c *Builder) Build(name string, context string, kubefileName string) error 
 
 func (c *Builder) GetBuildPipeLine() ([]func() error, error) {
 	var buildPipeline []func() error
-
 	buildPipeline = append(buildPipeline,
-		c.PreCheck,
 		c.InitClusterFile,
 		c.ApplyInfra,
 		c.SendBuildContext,
@@ -102,12 +99,6 @@ func (c *Builder) GetBuildPipeLine() ([]func() error, error) {
 		c.Cleanup,
 	)
 	return buildPipeline, nil
-}
-
-// PreCheck : check env before run cloud build
-func (c *Builder) PreCheck() (err error) {
-	registryChecker := checker.NewRegistryChecker(c.ImageNamed.Domain())
-	return registryChecker.Check(nil, checker.PhasePre)
 }
 
 // InitClusterFile load cluster file from disk
@@ -140,7 +131,7 @@ func (c *Builder) InitClusterFile() error {
 // ApplyInfra apply infra create vms
 func (c *Builder) ApplyInfra() (err error) {
 	//bare_metal: no need to apply infra
-	//ali_cloud: apply infra as cluster content
+	//ali_cloud,container: apply infra as cluster content
 	if c.Cluster.Spec.Provider == common.BAREMETAL {
 		return c.initBuildSSH()
 	}
@@ -236,10 +227,6 @@ func (c *Builder) runBuildCommands() (err error) {
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.Cluster.Name)
 	build := fmt.Sprintf(common.BuildClusterCmd, common.RemoteSealerPath,
 		filepath.Base(c.KubeFileName), c.ImageNamed.Raw(), common.LocalBuild, ".")
-
-	push := fmt.Sprintf(common.PushImageCmd, common.RemoteSealerPath,
-		c.ImageNamed.Raw())
-	build = fmt.Sprintf("%s && %s", build, push)
 	logger.Info("run remote shell %s", build)
 	cmd := fmt.Sprintf("cd %s && %s", workdir, build)
 	return c.SSH.CmdAsync(c.RemoteHostIP, cmd)
