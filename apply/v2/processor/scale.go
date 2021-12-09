@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package applyentity
+package processor
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
-type ScaleApply struct {
+type Scale struct {
 	FileSystem      filesystem.Interface
 	Runtime         runtime.Interface
 	MastersToJoin   []string
@@ -34,7 +34,7 @@ type ScaleApply struct {
 }
 
 // DoApply do apply: do truly apply,input is desired cluster .
-func (s ScaleApply) DoApply(cluster *v2.Cluster) error {
+func (s Scale) Execute(cluster *v2.Cluster) error {
 	/*
 		1. master scale up + master scale up :support
 		2. master scale down + master scale down :support
@@ -53,7 +53,7 @@ func (s ScaleApply) DoApply(cluster *v2.Cluster) error {
 	return s.ScaleDown()
 }
 
-func (s ScaleApply) ScaleUp(cluster *v2.Cluster) error {
+func (s Scale) ScaleUp(cluster *v2.Cluster) error {
 	hosts := append(s.MastersToJoin, s.NodesToJoin...)
 	err := s.FileSystem.MountRootfs(cluster, hosts, true)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s ScaleApply) ScaleUp(cluster *v2.Cluster) error {
 	return nil
 }
 
-func (s ScaleApply) ScaleDown() error {
+func (s Scale) ScaleDown() error {
 	err := s.Runtime.DeleteMasters(s.MastersToDelete)
 	if err != nil {
 		return err
@@ -82,14 +82,14 @@ func (s ScaleApply) ScaleDown() error {
 	return nil
 }
 
-func NewScaleApply(fs filesystem.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
+func NewScaleProcessor(fs filesystem.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
 	var up bool
 	// only scale up or scale down at a time
 	if len(masterToJoin) > 0 || len(nodeToJoin) > 0 {
 		up = true
 	}
 
-	return ScaleApply{
+	return Scale{
 		MastersToDelete: masterToDelete,
 		MastersToJoin:   masterToJoin,
 		NodesToDelete:   nodeToDelete,

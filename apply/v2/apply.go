@@ -18,7 +18,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/apply/v2/applytype"
+	"github.com/alibaba/sealer/apply/v2/applydriver"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
@@ -26,7 +26,7 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
-func NewApplierFromFile(clusterfile string) (applytype.Interface, error) {
+func NewApplierFromFile(clusterfile string) (applydriver.Interface, error) {
 	clusterData, err := ioutil.ReadFile(filepath.Clean(clusterfile))
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func NewApplierFromFile(clusterfile string) (applytype.Interface, error) {
 	return NewApplier(cluster)
 }
 
-func NewApplier(cluster *v2.Cluster) (applytype.Interface, error) {
+func NewApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 	/*	switch cluster.Spec.Provider {
 		case common.AliCloud:
 			return NewAliCloudProvider(cluster)
@@ -49,13 +49,13 @@ func NewApplier(cluster *v2.Cluster) (applytype.Interface, error) {
 	return NewDefaultApplier(cluster)
 }
 
-/*func NewAliCloudProvider(cluster *v2.Cluster) (applytype.Interface, error) {
-	return &applytype.CloudApplier{
+/*func NewAliCloudProvider(cluster *v2.Cluster) (applydriver.Interface, error) {
+	return &applydriver.CloudApplier{
 		ClusterDesired: cluster,
 	}, nil
 }*/
 
-func NewDefaultApplier(cluster *v2.Cluster) (applytype.Interface, error) {
+func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 	imgSvc, err := image.NewImageService()
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func NewDefaultApplier(cluster *v2.Cluster) (applytype.Interface, error) {
 		return nil, err
 	}
 
-	return &applytype.Applier{
+	return &applydriver.Applier{
 		ClusterDesired: cluster,
 		ImageManager:   imgSvc,
 		FileSystem:     fs,

@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package applyentity
+package processor
 
 import v2 "github.com/alibaba/sealer/types/api/v2"
 
 type Interface interface {
 	// DoApply do apply: do their own apply,input is desired cluster .
-	DoApply(cluster *v2.Cluster) error
+	Execute(cluster *v2.Cluster) error
 }

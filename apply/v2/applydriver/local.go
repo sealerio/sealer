@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package applytype
+package applydriver
 
 import (
 	"path/filepath"
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
-	"github.com/alibaba/sealer/apply/v2/applyentity"
+	"github.com/alibaba/sealer/apply/v2/processor"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/runtime"
@@ -56,7 +56,7 @@ func (c *Applier) Apply() (err error) {
 			return err
 		}
 	} else {
-		if err = c.changeCluster(); err != nil {
+		if err = c.reconcileCluster(); err != nil {
 			return err
 		}
 	}
@@ -93,7 +93,7 @@ func (c *Applier) unMountClusterImage() error {
 	return c.FileSystem.UnMountImage(c.ClusterDesired)
 }
 
-func (c *Applier) changeCluster() error {
+func (c *Applier) reconcileCluster() error {
 	client, err := k8s.Newk8sClient()
 	if err != nil {
 		return err
@@ -133,12 +133,12 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 
 	logger.Info("Start to scale this cluster")
 
-	applier, err := applyentity.NewScaleApply(c.FileSystem, mj, md, nj, nd)
+	applier, err := processor.NewScaleProcessor(c.FileSystem, mj, md, nj, nd)
 	if err != nil {
 		return err
 	}
 	var cluster *v2.Cluster
-	if !applier.(applyentity.ScaleApply).IsScaleUp {
+	if !applier.(processor.Scale).IsScaleUp {
 		c, err := runtime.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
 		if err != nil {
 			return err
@@ -148,7 +148,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	} else {
 		cluster = c.ClusterDesired
 	}
-	err = applier.DoApply(cluster)
+	err = applier.Execute(cluster)
 	if err != nil {
 		return err
 	}
@@ -180,11 +180,11 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 	//	//install app
 	//}
 
-	applier, err := applyentity.NewUpgradeApply(c.FileSystem, mj, nj)
+	applier, err := processor.NewUpgradeProcessor(c.FileSystem, mj, nj)
 	if err != nil {
 		return err
 	}
-	err = applier.DoApply(c.ClusterDesired)
+	err = applier.Execute(c.ClusterDesired)
 	if err != nil {
 		return err
 	}
@@ -196,12 +196,12 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 
 func (c *Applier) initCluster() error {
 	logger.Info("Start to create a new cluster")
-	applier, err := applyentity.NewInitApply()
+	applier, err := processor.NewCreateProcessor()
 	if err != nil {
 		return err
 	}
 
-	if err := applier.DoApply(c.ClusterDesired); err != nil {
+	if err := applier.Execute(c.ClusterDesired); err != nil {
 		return err
 	}
 
@@ -212,12 +212,12 @@ func (c *Applier) initCluster() error {
 
 func (c *Applier) deleteCluster() error {
 	logger.Info("Start to delete current cluster")
-	applier, err := applyentity.NewDeleteApply()
+	deleteProcessor, err := processor.NewDeleteProcessor()
 	if err != nil {
 		return err
 	}
 
-	if err := applier.DoApply(c.ClusterDesired); err != nil {
+	if err := deleteProcessor.Execute(c.ClusterDesired); err != nil {
 		return err
 	}
 

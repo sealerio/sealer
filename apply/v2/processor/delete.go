@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package applyentity
+package processor
 
 import (
 	"fmt"
@@ -24,12 +24,12 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
-type DeleteApply struct {
+type Deletion struct {
 	FileSystem filesystem.Interface
 }
 
 // DoApply do apply: do truly apply,input is desired cluster .
-func (d DeleteApply) DoApply(cluster *v2.Cluster) (err error) {
+func (d Deletion) Execute(cluster *v2.Cluster) (err error) {
 	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
@@ -53,7 +53,7 @@ func (d DeleteApply) DoApply(cluster *v2.Cluster) (err error) {
 
 	return nil
 }
-func (d DeleteApply) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+func (d Deletion) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
 		d.UnMountRootfs,
@@ -63,24 +63,24 @@ func (d DeleteApply) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	return todoList, nil
 }
 
-func (d DeleteApply) UnMountRootfs(cluster *v2.Cluster) error {
+func (d Deletion) UnMountRootfs(cluster *v2.Cluster) error {
 	return d.FileSystem.UnMountRootfs(cluster)
 }
-func (d DeleteApply) UnMountImage(cluster *v2.Cluster) error {
+func (d Deletion) UnMountImage(cluster *v2.Cluster) error {
 	return d.FileSystem.UnMountImage(cluster)
 }
 
-func (d DeleteApply) CleanFS(cluster *v2.Cluster) error {
+func (d Deletion) CleanFS(cluster *v2.Cluster) error {
 	return d.FileSystem.Clean(cluster)
 }
 
-func NewDeleteApply() (Interface, error) {
+func NewDeleteProcessor() (Interface, error) {
 	fs, err := filesystem.NewFilesystem()
 	if err != nil {
 		return nil, err
 	}
 
-	return DeleteApply{
+	return Deletion{
 		FileSystem: fs,
 	}, nil
 }

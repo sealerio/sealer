@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package applyentity
+package processor
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-type InitApply struct {
+type Creation struct {
 	ImageManager image.Service
 	FileSystem   filesystem.Interface
 	Runtime      runtime.Interface
@@ -38,20 +38,20 @@ type InitApply struct {
 	Plugins      plugin.Plugins
 }
 
-var pluginPhases = []plugin.Phase{plugin.PhaseOriginally, plugin.PhasePreInit, plugin.PhasePreGuest, plugin.PhasePostInstall}
+//var pluginPhases = []plugin.Phase{plugin.PhaseOriginally, plugin.PhasePreInit, plugin.PhasePreGuest, plugin.PhasePostInstall}
 
-func (i InitApply) DoApply(cluster *v2.Cluster) error {
+func (c Creation) Execute(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
 	}
-	i.Runtime = runTime
-	i.Config = config.NewConfiguration(cluster.Name)
-	if err := i.initPlugin(cluster); err != nil {
+	c.Runtime = runTime
+	c.Config = config.NewConfiguration(cluster.Name)
+	if err := c.initPlugin(cluster); err != nil {
 		return err
 	}
 
-	pipLine, err := i.GetPipeLine()
+	pipLine, err := c.GetPipeLine()
 	if err != nil {
 		return err
 	}
@@ -64,83 +64,85 @@ func (i InitApply) DoApply(cluster *v2.Cluster) error {
 
 	return nil
 }
-func (i InitApply) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+func (c Creation) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
-		//i.RunInitPlugin,
-		i.MountImage,
-		i.RunConfig,
-		i.MountRootfs,
-		//i.PluginPhasePreInitRun,
-		i.Init,
-		i.RunApply,
-		//i.PluginPhasePreGuestRun,
-		i.RunGuest,
-		i.UnMountImage,
-		//i.PluginPhasePostInstallRun,
+		//c.RunInitPlugin,
+		c.MountImage,
+		c.RunConfig,
+		c.MountRootfs,
+		//c.PluginPhasePreInitRun,
+		c.Init,
+		c.Join,
+		//c.PluginPhasePreGuestRun,
+		c.RunGuest,
+		c.UnMountImage,
+		//c.PluginPhasePostInstallRun,
 	)
 	return todoList, nil
 }
 
-func (i InitApply) MountImage(cluster *v2.Cluster) error {
-	err := i.ImageManager.PullIfNotExist(cluster.Spec.Image)
+func (c Creation) MountImage(cluster *v2.Cluster) error {
+	err := c.ImageManager.PullIfNotExist(cluster.Spec.Image)
 	if err != nil {
 		return err
 	}
-	return i.FileSystem.MountImage(cluster)
+	return c.FileSystem.MountImage(cluster)
 }
 
-func (i InitApply) RunConfig(cluster *v2.Cluster) error {
-	return i.Config.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
+func (c Creation) RunConfig(cluster *v2.Cluster) error {
+	return c.Config.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
 }
 
-func (i InitApply) MountRootfs(cluster *v2.Cluster) error {
+func (c Creation) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0Ip())
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
-	return i.FileSystem.MountRootfs(cluster, hosts, true)
+	return c.FileSystem.MountRootfs(cluster, hosts, true)
 }
 
-func (i InitApply) Init(cluster *v2.Cluster) error {
-	return i.Runtime.Init(cluster)
+func (c Creation) Init(cluster *v2.Cluster) error {
+	return c.Runtime.Init(cluster)
 }
 
-func (i InitApply) RunApply(cluster *v2.Cluster) error {
-	err := i.Runtime.JoinMasters(cluster.GetMasterIPList()[1:])
+func (c Creation) Join(cluster *v2.Cluster) error {
+	err := c.Runtime.JoinMasters(cluster.GetMasterIPList()[1:])
 	if err != nil {
 		return err
 	}
-	err = i.Runtime.JoinNodes(cluster.GetNodeIPList())
+	err = c.Runtime.JoinNodes(cluster.GetNodeIPList())
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (i InitApply) RunGuest(cluster *v2.Cluster) error {
-	return i.Guest.Apply(cluster)
+func (c Creation) RunGuest(cluster *v2.Cluster) error {
+	return c.Guest.Apply(cluster)
 }
-func (i InitApply) UnMountImage(cluster *v2.Cluster) error {
-	return i.FileSystem.UnMountImage(cluster)
+func (c Creation) UnMountImage(cluster *v2.Cluster) error {
+	return c.FileSystem.UnMountImage(cluster)
 }
 
-func (i InitApply) initPlugin(cluster *v2.Cluster) error {
-	i.Plugins = plugin.NewPlugins(cluster.Name)
-	if err := i.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName)); err != nil {
-		return err
+func (c Creation) initPlugin(cluster *v2.Cluster) error {
+	c.Plugins = plugin.NewPlugins(cluster.Name)
+	return c.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
+}
+
+/*func (i Creation) RunPhasePlugin(cluster *v2.Cluster) error {
+	if pluginPhases[0] == plugin.PhasePreInit {
+		if err := i.Plugins.Load(); err != nil {
+			return err
+		}
 	}
-	return i.Plugins.Load()
-}
-
-/*func (i InitApply) RunPhasePlugin(cluster *v2.Cluster) error {
 	err := i.Plugins.Run(cluster, pluginPhases[0])
 	pluginPhases = pluginPhases[1:]
 	return err
 }*/
 
-func NewInitApply() (Interface, error) {
+func NewCreateProcessor() (Interface, error) {
 	imgSvc, err := image.NewImageService()
 	if err != nil {
 		return nil, err
@@ -156,7 +158,7 @@ func NewInitApply() (Interface, error) {
 		return nil, err
 	}
 
-	return InitApply{
+	return Creation{
 		ImageManager: imgSvc,
 		FileSystem:   fs,
 		Guest:        gs,

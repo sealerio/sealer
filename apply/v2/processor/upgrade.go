@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package applyentity
+package processor
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-type UpgradeApply struct {
+type Upgrade struct {
 	FileSystem    filesystem.Interface
 	Runtime       runtime.Interface
 	MastersToJoin []string
@@ -33,7 +33,7 @@ type UpgradeApply struct {
 }
 
 // DoApply do apply: do truly apply,input is desired cluster .
-func (u UpgradeApply) DoApply(cluster *v2.Cluster) error {
+func (u Upgrade) Execute(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.Annotations[common.ClusterfileName])
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
@@ -51,7 +51,7 @@ func (u UpgradeApply) DoApply(cluster *v2.Cluster) error {
 	return nil
 }
 
-func (u UpgradeApply) MountRootfs(cluster *v2.Cluster) error {
+func (u Upgrade) MountRootfs(cluster *v2.Cluster) error {
 	//some hosts already mounted when scaled cluster.
 	currentHost := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	addedHost := append(u.MastersToJoin, u.NodesToJoin...)
@@ -63,13 +63,13 @@ func (u UpgradeApply) MountRootfs(cluster *v2.Cluster) error {
 	return u.FileSystem.MountRootfs(cluster, hosts, false)
 }
 
-func (u UpgradeApply) Upgrade() error {
+func (u Upgrade) Upgrade() error {
 	return u.Runtime.Upgrade()
 }
 
-func NewUpgradeApply(fs filesystem.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
+func NewUpgradeProcessor(fs filesystem.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
 	// only do upgrade here. cancel scale action.
-	return UpgradeApply{
+	return Upgrade{
 		FileSystem:    fs,
 		MastersToJoin: masterToJoin,
 		NodesToJoin:   nodeToJoin,

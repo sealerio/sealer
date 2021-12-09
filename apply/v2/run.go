@@ -24,7 +24,7 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/alibaba/sealer/apply/v2/applytype"
+	"github.com/alibaba/sealer/apply/v2/applydriver"
 
 	"sigs.k8s.io/yaml"
 
@@ -140,7 +140,7 @@ func GetClusterFromDataCompatV1(data string) (*v2.Cluster, error) {
 	return cluster, nil
 }
 
-func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (applytype.Interface, error) {
+func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (applydriver.Interface, error) {
 	cluster, err := GetClusterFileByImageName(imageName)
 	if err != nil {
 		return nil, err
