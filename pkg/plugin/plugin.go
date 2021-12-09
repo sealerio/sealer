@@ -51,5 +51,5 @@ const (
 type Context struct {
 	Cluster *v2.Cluster
 	Plugin  *v1.Plugin
-	Host *v2.Host
+	Host    *v2.Host
 }
