@@ -17,7 +17,6 @@ package buildimage
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
@@ -88,24 +87,13 @@ func mountRootfs(res []string) (*buildinstruction.MountTarget, error) {
 	if err != nil {
 		return nil, err
 	}
-	//if is sealer docker ,we need to start docker registry to collect docker image.some image in the crd operator, or copy offline image.
-	//if not ,no need to start docker registry. image name show in kuebfile layer :manifests,imageList ,charts.
-	if IsSealerDocker() {
-		err = startRegistry(rootfs.GetMountTarget())
-		if err != nil {
-			return nil, err
-		}
-	}
-	return rootfs, nil
-}
 
-func IsSealerDocker() bool {
-	// docker bin not found: false
-	lines, err := utils.RunSimpleCmd("docker version | grep sealer")
+	err = startRegistry(rootfs.GetMountTarget())
 	if err != nil {
-		return false
+		return nil, err
 	}
-	return strings.Contains(lines, "sealer")
+
+	return rootfs, nil
 }
 
 func startRegistry(mountedRootfs string) error {
