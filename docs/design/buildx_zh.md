@@ -10,7 +10,7 @@
 
 启动arm 容器，启动registry,使用sealer-docker，通过挂载本地docker.sock，实现docker镜像获取。
 
-## 配置主机内核支持qemu-user-static
+## 配置系统内核兼容arm指令
 
 `docker run --rm --privileged multiarch/qemu-user-static:register`
 可以看见对应的arm 二进制文件的 interpreter。
@@ -58,7 +58,7 @@ sealer build -f Kubefile -t myimage:v1 -m lite .
 
 启动arm 容器，完成sealer build 的产物和过程收集，docker镜像通过集成docker registry 源码实现镜像的拉取。这样只需要启动arm容器，与docker 无关。
 
-## 配置主机内核支持qemu-user-static
+## 配置系统内核兼容arm指令
 
 `docker run --rm --privileged multiarch/qemu-user-static:register`
 可以看见对应的arm 二进制文件的 interpreter。
@@ -85,3 +85,36 @@ docker cp sealer {containerID}:/usr/local/bin/sealer
 ```shell
 sealer build -f Kubefile -t myimage:v1 -m lite .
 ```
+
+# 方案三
+
+不启动arm容器，本地也无需额外配置docker环境。只需要配置qemu 模拟器以及对应的环境就可以。
+
+## 配置系统内核兼容arm指令
+
+`docker run --rm --privileged multiarch/qemu-user-static:register`
+可以看见对应的arm 二进制文件的 interpreter。
+`ll /proc/sys/fs/binfmt_misc/`
+
+## 配置qemu 模拟器
+
+下载qemu user static 模拟器到本地，这样对应的arm二进制都可以被该模拟器运行。
+
+```shell
+curl -L -o qemu-arm-static-v2.11.1.tar.gz https://github.com/multiarch/qemu-user-static/releases/download/v6.1.0-8/qemu-aarch64-static.tar.gz
+tar xzf qemu-arm-static-v2.11.1.tar.gz
+cp qemu-arm-static /usr/bin/
+```
+
+举例运行arm 版本的二进制docker文件
+
+```shell
+/usr/bin/qemu-arm-static docker ps
+```
+
+## build流程中接管所有build 指令
+
+## 对应产物收集
+
+* 构建过程产物收集
+* docker arm 镜像收集
