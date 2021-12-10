@@ -15,184 +15,297 @@
 package container
 
 import (
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/network"
+	"fmt"
+	"os"
+	"strconv"
+	"time"
 
+	"github.com/alibaba/sealer/infra/container/client"
+	"github.com/alibaba/sealer/infra/container/client/docker"
+	"github.com/docker/docker/api/types/mount"
+
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
-func (c *DockerProvider) getUserNsMode() (container.UsernsMode, error) {
-	sysInfo, err := c.DockerClient.Info(c.Ctx)
-	if err != nil {
-		return "", err
-	}
+const (
+	CONTAINER           = "CONTAINER"
+	DockerHost          = "/var/run/docker.sock"
+	DefaultPassword     = "Seadent123"
+	MASTER              = "master"
+	NODE                = "node"
+	ChangePasswordCmd   = "echo root:%s | chpasswd" // #nosec
+	RoleLabel           = "sealer-io-role"
+	RoleLabelMaster     = "sealer-io-role-is-master"
+	NetworkName         = "sealer-network"
+	ImageName           = "registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-base-image:latest"
+	SealerImageRootPath = "/var/lib/sealer"
+)
 
-	var usernsMode container.UsernsMode
-	for _, opt := range sysInfo.SecurityOptions {
-		if opt == "name=userns" {
-			usernsMode = "host"
+type ApplyProvider struct {
+	Cluster  *v1.Cluster
+	Provider client.ProviderService
+}
+
+type ApplyResult struct {
+	ToJoinNumber   int
+	ToDeleteIPList []string
+	Role           string
+}
+
+func (a *ApplyProvider) Apply() error {
+	// delete apply
+	if a.Cluster.DeletionTimestamp != nil {
+		logger.Info("deletion timestamp not nil, will clear infra")
+		return a.CleanUp()
+	}
+	// new apply
+	if a.Cluster.Annotations == nil {
+		err := a.CheckServerInfo()
+		if err != nil {
+			return err
 		}
+		a.Cluster.Annotations = make(map[string]string)
 	}
-	return usernsMode, err
-}
-
-func (c *DockerProvider) setContainerMount(opts *CreateOptsForContainer) []mount.Mount {
-	mounts := []mount.Mount{
-		{
-			Type:     mount.TypeBind,
-			Source:   "/lib/modules",
-			Target:   "/lib/modules",
-			ReadOnly: true,
-			BindOptions: &mount.BindOptions{
-				Propagation: mount.PropagationRPrivate,
-			},
-		},
-		{
-			Type:     mount.TypeVolume,
-			Source:   "",
-			Target:   "/var",
-			ReadOnly: false,
-			VolumeOptions: &mount.VolumeOptions{
-				DriverConfig: &mount.Driver{
-					Name: "local",
-				},
-			},
-		},
-		{
-			Type:     mount.TypeTmpfs,
-			Source:   "",
-			Target:   "/tmp",
-			ReadOnly: false,
-		},
-		{
-			Type:     mount.TypeTmpfs,
-			Source:   "",
-			Target:   "/run",
-			ReadOnly: false,
-		},
+	// change apply: scale up or scale down,count!=len(iplist)
+	if a.Cluster.Spec.Masters.Count != strconv.Itoa(len(a.Cluster.Spec.Masters.IPList)) ||
+		a.Cluster.Spec.Nodes.Count != strconv.Itoa(len(a.Cluster.Spec.Nodes.IPList)) {
+		return a.ReconcileContainer()
 	}
-	if opts.Mount != nil {
-		mounts = append(mounts, *opts.Mount)
-	}
-
-	// only master0 need to bind root path
-	if opts.IsMaster0 {
-		sealerMount := mount.Mount{
-			Type:     mount.TypeBind,
-			Source:   SealerImageRootPath,
-			Target:   SealerImageRootPath,
-			ReadOnly: false,
-			BindOptions: &mount.BindOptions{
-				Propagation: mount.PropagationRPrivate,
-			},
-		}
-		mounts = append(mounts, sealerMount)
-	}
-	return mounts
-}
-
-func (c *DockerProvider) RunContainer(opts *CreateOptsForContainer) (string, error) {
-	//docker run --hostname master1 --name master1
-	//--privileged
-	//--security-opt seccomp=unconfined --security-opt apparmor=unconfined
-	//--tmpfs /tmp --tmpfs /run
-	//--volume /var --volume /lib/modules:/lib/modules:ro
-	//--device /dev/fuse
-	//--detach --tty --restart=on-failure:1 --init=false sealer-io/sealer-base-image:latest
-	// prepare run args according to docker server
-	mod, _ := c.getUserNsMode()
-	mounts := c.setContainerMount(opts)
-	falseOpts := false
-	resp, err := c.DockerClient.ContainerCreate(c.Ctx, &container.Config{
-		Image:        c.ImageResource.DefaultName,
-		Tty:          true,
-		Labels:       opts.ContainerLabel,
-		Hostname:     opts.ContainerHostName,
-		AttachStdin:  false,
-		AttachStdout: false,
-		AttachStderr: false,
-	},
-		&container.HostConfig{
-			UsernsMode: mod,
-			SecurityOpt: []string{
-				"seccomp=unconfined", "apparmor=unconfined",
-			},
-			RestartPolicy: container.RestartPolicy{
-				Name:              "on-failure",
-				MaximumRetryCount: 1,
-			},
-			Init:         &falseOpts,
-			CgroupnsMode: "host",
-			Privileged:   true,
-			Mounts:       mounts,
-		}, &network.NetworkingConfig{
-			EndpointsConfig: map[string]*network.EndpointSettings{
-				c.NetworkResource.DefaultName: {
-					NetworkID: c.NetworkResource.ID,
-				},
-			},
-		}, nil, opts.ContainerName)
-
-	if err != nil {
-		return "", err
-	}
-
-	err = c.DockerClient.ContainerStart(c.Ctx, resp.ID, types.ContainerStartOptions{})
-	if err != nil {
-		return "", err
-	}
-	logger.Info("create container %s successfully", opts.ContainerName)
-	return resp.ID, nil
-}
-
-func (c *DockerProvider) GetContainerInfo(containerID string) (*Container, error) {
-	resp, err := c.DockerClient.ContainerInspect(c.Ctx, containerID)
-	if err != nil {
-		return nil, err
-	}
-	return &Container{
-		ContainerName:     resp.Name,
-		ContainerIP:       resp.NetworkSettings.Networks[c.NetworkResource.DefaultName].IPAddress,
-		ContainerHostName: resp.Config.Hostname,
-		ContainerLabel:    resp.Config.Labels,
-		Status:            resp.State.Status,
-	}, nil
-}
-
-func (c *DockerProvider) GetContainerIDByIP(containerIP string) (string, error) {
-	resp, err := c.DockerClient.ContainerList(c.Ctx, types.ContainerListOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	for _, item := range resp {
-		if net, ok := item.NetworkSettings.Networks[c.NetworkResource.DefaultName]; ok {
-			if containerIP == net.IPAddress {
-				return item.ID, nil
-			}
-		}
-	}
-	return "", err
-}
-
-func (c *DockerProvider) RmContainer(containerID string) error {
-	err := c.DockerClient.ContainerRemove(c.Ctx, containerID, types.ContainerRemoveOptions{
-		RemoveVolumes: true,
-		Force:         true,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	logger.Info("delete container %s successfully", containerID)
 	return nil
 }
 
-func (c *DockerProvider) RunSSHCMDInContainer(sshClient ssh.Interface, containerIP, cmd string) error {
+func (a *ApplyProvider) CheckServerInfo() error {
+	/*
+		1,rootless docker:do not support rootless docker currently.if support, CgroupVersion must = 2
+		2,StorageDriver:overlay2
+		3,cpu num >1
+		4,docker host : /var/run/docker.sock. set env DOCKER_HOST to override
+	*/
+	info, err := a.Provider.GetServerInfo()
+	if err != nil {
+		return fmt.Errorf("failed to get docker server, please check docker server running status")
+	}
+	if info.StorageDriver != "overlay2" {
+		return fmt.Errorf("only support storage driver overlay2 ,but current is :%s", info.StorageDriver)
+	}
+
+	if info.CPUNumber <= 1 {
+		return fmt.Errorf("cpu number of docker server must greater than 1 ,but current is :%d", info.CPUNumber)
+	}
+
+	for _, opt := range info.SecurityOptions {
+		if opt == "name=rootless" {
+			return fmt.Errorf("do not support rootless docker currently")
+		}
+	}
+
+	if !utils.IsFileExist(DockerHost) && os.Getenv("DOCKER_HOST") == "" {
+		return fmt.Errorf("sealer user default docker host /var/run/docker.sock, please set env DOCKER_HOST='' to override it")
+	}
+
+	return nil
+}
+
+func (a *ApplyProvider) ReconcileContainer() error {
+	// scale up: apply diff container, append ip list.
+	// scale down: delete diff container by id,delete ip list. if no container,need do cleanup
+	currentMasterNum := len(a.Cluster.Spec.Masters.IPList)
+	num, list, _ := getDiff(a.Cluster.Spec.Masters)
+	masterApplyResult := &ApplyResult{
+		ToJoinNumber:   num,
+		ToDeleteIPList: list,
+		Role:           MASTER,
+	}
+	num, list, _ = getDiff(a.Cluster.Spec.Nodes)
+	nodeApplyResult := &ApplyResult{
+		ToJoinNumber:   num,
+		ToDeleteIPList: list,
+		Role:           NODE,
+	}
+	//Abnormal scene :master number must > 0
+	if currentMasterNum+masterApplyResult.ToJoinNumber-len(masterApplyResult.ToDeleteIPList) <= 0 {
+		return fmt.Errorf("master number can not be 0")
+	}
+	logger.Info("master apply result: ToJoinNumber %d, ToDeleteIpList : %s",
+		masterApplyResult.ToJoinNumber, masterApplyResult.ToDeleteIPList)
+
+	logger.Info("node apply result: ToJoinNumber %d, ToDeleteIpList : %s",
+		nodeApplyResult.ToJoinNumber, nodeApplyResult.ToDeleteIPList)
+
+	if err := a.applyResult(masterApplyResult); err != nil {
+		return err
+	}
+	if err := a.applyResult(nodeApplyResult); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *ApplyProvider) applyResult(result *ApplyResult) error {
+	// create or delete an update iplist
+	if result.Role == MASTER {
+		if result.ToJoinNumber > 0 {
+			joinIPList, err := a.applyToJoin(result.ToJoinNumber, result.Role)
+			if err != nil {
+				return err
+			}
+			a.Cluster.Spec.Masters.IPList = append(a.Cluster.Spec.Masters.IPList, joinIPList...)
+		}
+		if len(result.ToDeleteIPList) > 0 {
+			err := a.applyToDelete(result.ToDeleteIPList)
+			if err != nil {
+				return err
+			}
+			a.Cluster.Spec.Masters.IPList = a.Cluster.Spec.Masters.IPList[:len(a.Cluster.Spec.Masters.IPList)-
+				len(result.ToDeleteIPList)]
+		}
+	}
+
+	if result.Role == NODE {
+		if result.ToJoinNumber > 0 {
+			joinIPList, err := a.applyToJoin(result.ToJoinNumber, result.Role)
+			if err != nil {
+				return err
+			}
+			a.Cluster.Spec.Nodes.IPList = append(a.Cluster.Spec.Nodes.IPList, joinIPList...)
+		}
+		if len(result.ToDeleteIPList) > 0 {
+			err := a.applyToDelete(result.ToDeleteIPList)
+			if err != nil {
+				return err
+			}
+			a.Cluster.Spec.Nodes.IPList = a.Cluster.Spec.Nodes.IPList[:len(a.Cluster.Spec.Nodes.IPList)-
+				len(result.ToDeleteIPList)]
+		}
+	}
+	return nil
+}
+
+func (a *ApplyProvider) applyToJoin(toJoinNumber int, role string) ([]string, error) {
+	// run container and return append ip list
+	var toJoinIPList []string
+	for i := 0; i < toJoinNumber; i++ {
+		name := fmt.Sprintf("sealer-%s-%s", role, utils.GenUniqueID(10))
+		opts := &client.CreateOptsForContainer{
+			ImageName:         ImageName,
+			NetworkName:       NetworkName,
+			ContainerHostName: name,
+			ContainerName:     name,
+			ContainerLabel: map[string]string{
+				RoleLabel: role,
+			},
+		}
+		if len(a.Cluster.Spec.Masters.IPList) == 0 && i == 0 {
+			opts.ContainerLabel[RoleLabelMaster] = "true"
+			sealerMount := mount.Mount{
+				Type:     mount.TypeBind,
+				Source:   SealerImageRootPath,
+				Target:   SealerImageRootPath,
+				ReadOnly: false,
+				BindOptions: &mount.BindOptions{
+					Propagation: mount.PropagationRPrivate,
+				},
+			}
+			opts.Mount = append(opts.Mount, sealerMount)
+		}
+
+		containerID, err := a.Provider.RunContainer(opts)
+		if err != nil {
+			return toJoinIPList, fmt.Errorf("failed to create container %s,error is %v", opts.ContainerName, err)
+		}
+		time.Sleep(3 * time.Second)
+		info, err := a.Provider.GetContainerInfo(containerID, NetworkName)
+		if err != nil {
+			return toJoinIPList, fmt.Errorf("failed to get container info of %s,error is %v", containerID, err)
+		}
+
+		err = a.changeDefaultPasswd(info.ContainerIP)
+		if err != nil {
+			return nil, fmt.Errorf("failed to change container password of %s,error is %v", containerID, err)
+		}
+
+		a.Cluster.Annotations[info.ContainerIP] = containerID
+		toJoinIPList = append(toJoinIPList, info.ContainerIP)
+	}
+	return toJoinIPList, nil
+}
+
+func (a *ApplyProvider) changeDefaultPasswd(containerIP string) error {
+	if a.Cluster.Spec.SSH.Passwd == "" {
+		return nil
+	}
+
+	if a.Cluster.Spec.SSH.Passwd == DefaultPassword {
+		return nil
+	}
+
+	user := "root"
+	if a.Cluster.Spec.SSH.User != "" {
+		user = a.Cluster.Spec.SSH.User
+	}
+	sshClient := &ssh.SSH{
+		User:     user,
+		Password: DefaultPassword,
+	}
+
+	cmd := fmt.Sprintf(ChangePasswordCmd, a.Cluster.Spec.SSH.Passwd)
 	_, err := sshClient.Cmd(containerIP, cmd)
 	return err
+}
+
+func (a *ApplyProvider) applyToDelete(deleteIPList []string) error {
+	// delete container and return deleted ip list
+	for _, ip := range deleteIPList {
+		id, ok := a.Cluster.Annotations[ip]
+		if !ok {
+			logger.Warn("failed to delete container %s", ip)
+			continue
+		}
+		err := a.Provider.RmContainer(id)
+		if err != nil {
+			return fmt.Errorf("failed to delete container:%s", id)
+		}
+		delete(a.Cluster.Annotations, ip)
+	}
+	return nil
+}
+
+func (a *ApplyProvider) CleanUp() error {
+	/*	a,clean up container,cleanup image,clean up network
+		b,rm -rf /var/lib/sealer/data/my-cluster
+	*/
+	var iplist []string
+	iplist = append(iplist, a.Cluster.Spec.Masters.IPList...)
+	iplist = append(iplist, a.Cluster.Spec.Nodes.IPList...)
+
+	for _, ip := range iplist {
+		id, ok := a.Cluster.Annotations[ip]
+		if !ok {
+			continue
+		}
+		err := a.Provider.RmContainer(id)
+		if err != nil {
+			// log it
+			logger.Info("failed to delete container:%s", id)
+		}
+		continue
+	}
+	utils.CleanDir(common.DefaultClusterBaseDir(a.Cluster.Name))
+	return nil
+}
+
+func NewClientWithCluster(cluster *v1.Cluster) (*ApplyProvider, error) {
+	p, err := docker.NewDockerProvider()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ApplyProvider{
+		Cluster:  cluster,
+		Provider: p,
+	}, nil
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package container
+package docker
 
 import (
 	"fmt"
@@ -21,21 +21,21 @@ import (
 	"github.com/docker/docker/api/types/network"
 )
 
-func (c *DockerProvider) DeleteNetworkResource(id string) error {
-	return c.DockerClient.NetworkRemove(c.Ctx, id)
+func (p *Provider) DeleteNetworkResource(id string) error {
+	return p.DockerClient.NetworkRemove(p.Ctx, id)
 }
 
-func (c *DockerProvider) PrepareNetworkResource() error {
-	networks, err := c.DockerClient.NetworkList(c.Ctx, types.NetworkListOptions{})
+func (p *Provider) PrepareNetworkResource(networkName string) (string, error) {
+	networks, err := p.DockerClient.NetworkList(p.Ctx, types.NetworkListOptions{})
 	if err != nil {
-		return err
+		return "", err
 	}
 	var targetIDs []string
 
 	for _, net := range networks {
-		if net.Name == c.NetworkResource.DefaultName {
+		if net.Name == networkName {
 			if len(net.Containers) > 1 {
-				return fmt.Errorf("duplicate bridge name with default %s", net.Name)
+				return "", fmt.Errorf("duplicate bridge name with default %s", net.Name)
 			}
 			targetIDs = append(targetIDs, net.ID)
 		}
@@ -43,14 +43,13 @@ func (c *DockerProvider) PrepareNetworkResource() error {
 
 	if len(targetIDs) > 0 {
 		// reuse sealer network
-		c.NetworkResource.ID = targetIDs[0]
 		for i := 1; i < len(targetIDs); i++ {
-			err = c.DeleteNetworkResource(targetIDs[i])
+			err = p.DeleteNetworkResource(targetIDs[i])
 			if err != nil {
-				return err
+				return "", err
 			}
 		}
-		return nil
+		return targetIDs[0], nil
 	}
 
 	defaultBridgeID := ""
@@ -65,15 +64,15 @@ func (c *DockerProvider) PrepareNetworkResource() error {
 
 	// get default network bridge config
 	if defaultBridgeID != "" {
-		defaultBridge, err := c.DockerClient.NetworkInspect(c.Ctx, defaultBridgeID, types.NetworkInspectOptions{})
+		defaultBridge, err := p.DockerClient.NetworkInspect(p.Ctx, defaultBridgeID, types.NetworkInspectOptions{})
 		if err != nil {
-			return err
+			return "", err
 		}
 		mtu = defaultBridge.Options["com.docker.network.driver.mtu"]
 	}
 
 	// create sealer network
-	resp, err := c.DockerClient.NetworkCreate(c.Ctx, DefaultNetworkName, types.NetworkCreate{
+	resp, err := p.DockerClient.NetworkCreate(p.Ctx, networkName, types.NetworkCreate{
 		Driver:     "bridge",
 		EnableIPv6: true,
 		Options: map[string]string{
@@ -82,21 +81,19 @@ func (c *DockerProvider) PrepareNetworkResource() error {
 		},
 		IPAM: &network.IPAM{
 			Config: []network.IPAMConfig{
-				{Subnet: GenerateSubnetFromName(c.NetworkResource.DefaultName, 0)},
+				{Subnet: GenerateSubnetFromName(networkName, 0)},
 			},
 		},
 	})
 
 	if err != nil {
-		return err
+		return "", err
 	}
-	//create network and set id
-	c.NetworkResource.ID = resp.ID
-	return nil
+	return resp.ID, nil
 }
 
-func (c *DockerProvider) GetNetworkResourceByID(id string) (*types.NetworkResource, error) {
-	net, err := c.DockerClient.NetworkInspect(c.Ctx, id, types.NetworkInspectOptions{})
+func (p *Provider) GetNetworkResourceByID(id string) (*types.NetworkResource, error) {
+	net, err := p.DockerClient.NetworkInspect(p.Ctx, id, types.NetworkInspectOptions{})
 	if err != nil {
 		return nil, err
 	}

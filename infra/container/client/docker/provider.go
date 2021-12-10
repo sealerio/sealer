@@ -12,40 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package container
+package docker
 
 import (
-	"strconv"
-	"strings"
+	"context"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/infra/container/client"
+	dc "github.com/docker/docker/client"
 )
 
-func IsDockerAvailable() bool {
-	lines, err := utils.RunSimpleCmd("docker -v")
-	if err != nil || len(lines) != 1 {
-		return false
-	}
-	return strings.Contains(lines, "docker version")
+type Provider struct {
+	DockerClient *dc.Client
+	Ctx          context.Context
 }
 
-func getDiff(host v1.Hosts) (int, []string, error) {
-	var num int
-	var iplist []string
-	count, err := strconv.Atoi(host.Count)
+func NewDockerProvider() (client.ProviderService, error) {
+	ctx := context.Background()
+	cli, err := dc.NewClientWithOpts(dc.FromEnv, dc.WithAPIVersionNegotiation())
 	if err != nil {
-		return 0, nil, err
+		return nil, err
 	}
-	if count > len(host.IPList) {
-		//scale up
-		num = count - len(host.IPList)
-	}
-
-	if count < len(host.IPList) {
-		//scale down
-		iplist = host.IPList[count:]
-	}
-
-	return num, iplist, nil
+	return &Provider{
+		Ctx:          ctx,
+		DockerClient: cli,
+	}, nil
 }

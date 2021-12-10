@@ -20,13 +20,13 @@ import (
 	"testing"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/alibaba/sealer/infra/container"
+	dc "github.com/alibaba/sealer/infra/container/client"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func SetUpClient() (*container.DockerProvider, error) {
+func SetUpClient() (*container.ApplyProvider, error) {
 	cluster := &v1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
@@ -68,76 +68,19 @@ func SetUpClient() (*container.DockerProvider, error) {
 func TestContainerResource(t *testing.T) {
 	//setup Container client
 	client, _ := SetUpClient()
-
-	t.Run("apply docker image", func(t *testing.T) {
-		err := client.PrepareImageResource()
-		if err != nil {
-			t.Logf("apply docker images failed %v", err)
-			return
-		}
-		imageID := client.GetImageIDByName(client.ImageResource.DefaultName)
-		if imageID == "" {
-			t.Logf("check failed. image:%s not found", client.ImageResource.DefaultName)
-			return
-		}
-
-		resp, err := client.GetImageResourceByID(imageID)
-		if err != nil {
-			t.Logf("get image info failed %v", err)
-			return
-		}
-		t.Logf("get image info success %s %s", resp.ID, resp.RepoTags)
-
-		err = client.DeleteImageResource(imageID)
-		if err != nil {
-			t.Logf("check failed.failed to delete image %s.error is %v", client.ImageResource.DefaultName, err)
-			return
-		}
-		t.Logf("succuss to apply docker image")
-	})
-
-	t.Run("apply docker network", func(t *testing.T) {
-		err := client.PrepareNetworkResource()
-		if err != nil {
-			t.Logf("apply docker network failed %v", err)
-			return
-		}
-
-		net, err := client.GetNetworkResourceByID(client.NetworkResource.ID)
-		if err != nil {
-			t.Logf("get network info failed %v", err)
-			return
-		}
-		if net.Name != client.NetworkResource.DefaultName {
-			t.Logf("check failed. network: %s not found", client.NetworkResource.DefaultName)
-			return
-		}
-
-		t.Logf("get network info success %s %s", net.Name, net.ID)
-		err = client.DeleteNetworkResource(client.NetworkResource.ID)
-		if err != nil {
-			t.Logf("check failed.failed to delete network %s.error is %v", client.NetworkResource.DefaultName, err)
-			return
-		}
-		t.Logf("succuss to apply docker network")
-	})
-
 	t.Run("apply docker container", func(t *testing.T) {
-		err := client.PrepareBaseResource()
-		if err != nil {
-			t.Logf("failed to prepare base resource %v", err)
-			return
-		}
-		id, err := client.RunContainer(&container.CreateOptsForContainer{
+		id, err := client.Provider.RunContainer(&dc.CreateOptsForContainer{
 			ContainerName:     "test-container",
 			ContainerHostName: "test-container-host-name",
+			ImageName:         container.ImageName,
+			NetworkName:       container.NetworkName,
 		})
 		if err != nil {
 			t.Logf("failed to run container %v", err)
 			return
 		}
 
-		info, err := client.GetContainerInfo(id)
+		info, err := client.Provider.GetContainerInfo(id, container.NetworkName)
 		if err != nil {
 			t.Logf("failed to get container info of %s ,error is %v", id, err)
 			return
@@ -146,18 +89,9 @@ func TestContainerResource(t *testing.T) {
 			t.Logf("failed to get container info %s,container is %v", id, info.Status)
 			return
 		}
-		err = client.RmContainer(id)
+		err = client.Provider.RmContainer(id)
 		if err != nil {
 			t.Logf("failed to delete container:%s", id)
-			return
-		}
-
-		fmt.Println(client.Cluster.Annotations)
-		deleteNetErr := client.DeleteNetworkResource(client.Cluster.Annotations[container.NETWROKID])
-		deleteImageErr := client.DeleteImageResource(client.Cluster.Annotations[container.IMAGEID])
-
-		if deleteNetErr != nil || deleteImageErr != nil {
-			t.Logf("clean up err: %v %v", deleteNetErr, deleteImageErr)
 			return
 		}
 
@@ -248,7 +182,6 @@ func TestContainerApply(t *testing.T) {
 
 func CheckContainerApplyResult(cluster *v1.Cluster) bool {
 	// return false if result do not meet expectation
-	// network id ,image id should not be nil
 	// len(iplist) must equal count
 	masterCount, err := strconv.Atoi(cluster.Spec.Masters.Count)
 	if err != nil {
@@ -259,9 +192,7 @@ func CheckContainerApplyResult(cluster *v1.Cluster) bool {
 		return true
 	}
 
-	if cluster.Annotations[container.IMAGEID] == "" ||
-		cluster.Annotations[container.NETWROKID] == "" ||
-		len(cluster.Spec.Masters.IPList) != masterCount ||
+	if len(cluster.Spec.Masters.IPList) != masterCount ||
 		len(cluster.Spec.Nodes.IPList) != nodeCount {
 		return true
 	}
