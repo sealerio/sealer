@@ -15,6 +15,8 @@
 package runtime
 
 import (
+	"sync"
+
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
@@ -35,6 +37,7 @@ type Metadata struct {
 }
 
 type KubeadmRuntime struct {
+	*sync.Mutex
 	*v2.Cluster
 	*KubeadmConfig
 	*Config

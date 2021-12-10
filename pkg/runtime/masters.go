@@ -194,9 +194,11 @@ func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []string, files ...st
 
 // JoinTemplate is generate JoinCP nodes configuration by master ip.
 func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
+	k.Lock()
+	defer k.Unlock()
 	// TODO Using join file instead template
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getMaster0IP()))
-	k.setJoinLocalAPIEndpoint(masterIP)
+	k.setJoinAdvertiseAddress(masterIP)
 	k.setCgroupDriver(k.getCgroupDriverFromShell(masterIP))
 	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
 }
@@ -205,7 +207,7 @@ func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
 func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
 	errCh := make(chan error, len(joinMaster))
 	defer close(errCh)
-
+	k.Mutex = &sync.Mutex{}
 	var wg sync.WaitGroup
 	for _, master := range joinMaster {
 		wg.Add(1)

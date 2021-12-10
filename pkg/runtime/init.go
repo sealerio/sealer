@@ -32,7 +32,7 @@ const (
 	RemoteApplyYaml                = `echo '%s' | kubectl apply -f -`
 	RemoteCmdGetNetworkInterface   = "ls /sys/class/net"
 	RemoteCmdExistNetworkInterface = "ip addr show %s | egrep \"%s\" || true"
-	WriteKubeadmConfigCmd          = "cd %s && echo \"%s\" > kubeadm-config.yaml"
+	WriteKubeadmConfigCmd          = `cd %s && echo '%s' > kubeadm-config.yaml`
 	DefaultVIP                     = "10.103.97.2"
 	DefaultAPIserverDomain         = "apiserver.cluster.local"
 	DefaultRegistryPort            = 5000
@@ -51,10 +51,12 @@ func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
 	if err != nil {
 		return err
 	}
-	if err := utils.WriteFile(fmt.Sprintf("%s/kubeadm-config.yaml", k.getRootfs()), bs); err != nil {
-		return fmt.Errorf("failed to dump new kubeadm config: %v", err)
+	cmd := fmt.Sprintf(WriteKubeadmConfigCmd, k.getRootfs(), string(bs))
+	sshClient, err := k.getHostSSHClient(k.getMaster0IP())
+	if err != nil {
+		return err
 	}
-	return nil
+	return sshClient.CmdAsync(k.getMaster0IP(), cmd)
 }
 
 func (k *KubeadmRuntime) generateConfigs() ([]byte, error) {
