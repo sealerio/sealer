@@ -68,7 +68,7 @@ func (s Sheller) Run(context Context, phase Phase) error {
 		allHostIP = utils.DisassembleIPList(on)
 	}
 
-	sshClient, err := ssh.NewSSHClientWithCluster1(context.Cluster)
+	sshClient, err := ssh.IsNewSSHClientWithCluster(context.Cluster)
 	if err != nil {
 		return err
 	}

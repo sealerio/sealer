@@ -58,7 +58,7 @@ type SSH struct {
 	LocalAddress *[]net.Addr
 }
 
-func NewSSHByCluster1(cluster *v2.Cluster) Interface {
+func IsNewSSHByCluster(cluster *v2.Cluster) Interface {
 	if cluster.Spec.SSH.User == "" {
 		cluster.Spec.SSH.User = common.ROOT
 	}
@@ -129,12 +129,12 @@ type Client struct {
 	Host string
 }
 
-func NewSSHClientWithCluster1(cluster *v2.Cluster) (*Client, error) {
+func IsNewSSHClientWithCluster(cluster *v2.Cluster) (*Client, error) {
 	var (
 		ipList []string
 		host   string
 	)
-	sshClient := NewSSHByCluster1(cluster)
+	sshClient := IsNewSSHByCluster(cluster)
 	for _, hosts := range cluster.Spec.Hosts {
 		cluster.GetAnnotationsByKey(common.Eip)
 		if host == "" {

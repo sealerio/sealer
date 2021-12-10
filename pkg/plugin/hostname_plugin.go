@@ -56,7 +56,7 @@ func (h HostnamePlugin) Run(context Context, phase Phase) error {
 		return nil
 	}
 	h.data = h.formatData(context.Plugin.Spec.Data)
-	SSH := ssh.NewSSHByCluster1(context.Cluster)
+	SSH := ssh.IsNewSSHByCluster(context.Cluster)
 	for ip, hostname := range h.data {
 		err := h.changeNodeName(hostname, ip, SSH)
 		if err != nil {
