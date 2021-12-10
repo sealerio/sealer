@@ -67,11 +67,11 @@ type Cluster struct {
 }
 
 func (in *Cluster) GetMasterIPList() []string {
-	return in.GetHostsIPByRole(common.MASTER)
+	return in.GetIPSByRole(common.MASTER)
 }
 
 func (in *Cluster) GetNodeIPList() []string {
-	return in.GetHostsIPByRole(common.NODE)
+	return in.GetIPSByRole(common.NODE)
 }
 
 func (in *Cluster) GetMaster0Ip() string {
@@ -84,7 +84,7 @@ func (in *Cluster) GetMaster0Ip() string {
 	return in.Spec.Hosts[0].IPS[0]
 }
 
-func (in *Cluster) GetHostsIPByRole(role string) []string {
+func (in *Cluster) GetIPSByRole(role string) []string {
 	var hosts []string
 	for _, host := range in.Spec.Hosts {
 		for _, hostRole := range host.Roles {

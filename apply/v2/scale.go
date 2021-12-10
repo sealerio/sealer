@@ -150,7 +150,10 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error 
 		len(utils.RemoveIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ",")), cluster.GetNodeIPList())) != 0 {
 		return fmt.Errorf("delete nodes are not in the current cluster")
 	}
-
+	//master0 machine cannot be deleted
+	if utils.InList(cluster.GetMaster0Ip(), strings.Split(scaleArgs.Masters, ",")) {
+		return fmt.Errorf("master0 machine cannot be deleted")
+	}
 	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
 		for i := range cluster.Spec.Hosts {
 			if utils.InList(common.MASTER, cluster.Spec.Hosts[i].Roles) {
