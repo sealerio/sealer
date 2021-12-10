@@ -144,42 +144,39 @@ func (k *KubeadmRuntime) getVIP() string {
 	return DefaultVIP
 }
 
-func (k *KubeadmRuntime) getBoostrapToken() *v1beta2.BootstrapTokenDiscovery {
-	if k.JoinConfiguration.Discovery.BootstrapToken == nil {
-		k.JoinConfiguration.Discovery.BootstrapToken = &v1beta2.BootstrapTokenDiscovery{}
-	}
-	return k.JoinConfiguration.Discovery.BootstrapToken
-}
-
 func (k *KubeadmRuntime) getJoinToken() string {
-	return k.getBoostrapToken().Token
+	if k.Discovery.BootstrapToken == nil {
+		return ""
+	}
+	return k.JoinConfiguration.Discovery.BootstrapToken.Token
 }
 
 func (k *KubeadmRuntime) setJoinToken(token string) {
-	k.getBoostrapToken().Token = token
+	if k.Discovery.BootstrapToken == nil {
+		k.Discovery.BootstrapToken = &v1beta2.BootstrapTokenDiscovery{}
+	}
+	k.Discovery.BootstrapToken.Token = token
 }
 
 func (k *KubeadmRuntime) getTokenCaCertHash() string {
-	caCertHashes := k.getBoostrapToken().CACertHashes
-	if len(caCertHashes) == 0 {
+	if k.Discovery.BootstrapToken == nil || len(k.Discovery.BootstrapToken.CACertHashes) == 0 {
 		return ""
 	}
-	return caCertHashes[0]
+	return k.Discovery.BootstrapToken.CACertHashes[0]
 }
 
 func (k *KubeadmRuntime) setTokenCaCertHash(tokenCaCertHash []string) {
-	k.getBoostrapToken().CACertHashes = tokenCaCertHash
-}
-
-func (k *KubeadmRuntime) getJoinControlPlane() *v1beta2.JoinControlPlane {
-	if k.JoinConfiguration.ControlPlane == nil {
-		k.JoinConfiguration.ControlPlane = &v1beta2.JoinControlPlane{}
+	if k.Discovery.BootstrapToken == nil {
+		k.Discovery.BootstrapToken = &v1beta2.BootstrapTokenDiscovery{}
 	}
-	return k.JoinConfiguration.ControlPlane
+	k.Discovery.BootstrapToken.CACertHashes = tokenCaCertHash
 }
 
 func (k *KubeadmRuntime) getCertificateKey() string {
-	return k.getJoinControlPlane().CertificateKey
+	if k.JoinConfiguration.ControlPlane == nil {
+		return ""
+	}
+	return k.JoinConfiguration.ControlPlane.CertificateKey
 }
 
 func (k *KubeadmRuntime) setInitCertificateKey(certificateKey string) {
@@ -194,8 +191,11 @@ func (k *KubeadmRuntime) setInitAdvertiseAddress(advertiseAddress string) {
 	k.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
 }
 
-func (k *KubeadmRuntime) setJoinLocalAPIEndpoint(advertiseAddress string) {
-	k.getJoinControlPlane().LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
+func (k *KubeadmRuntime) setJoinAdvertiseAddress(advertiseAddress string) {
+	if k.JoinConfiguration.ControlPlane == nil {
+		k.JoinConfiguration.ControlPlane = &v1beta2.JoinControlPlane{}
+	}
+	k.JoinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
 }
 
 func (k *KubeadmRuntime) cleanJoinLocalAPIEndPoint() {
