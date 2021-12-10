@@ -67,7 +67,7 @@ func getMasterIP(context Context) (string, error) {
 }
 
 func fetchRemoteCert(context Context, masterIP string) error {
-	SSH := ssh.NewSSHByCluster1(context.Cluster)
+	SSH := ssh.IsNewSSHByCluster(context.Cluster)
 	certs := []string{"healthcheck-client.crt", "healthcheck-client.key", "ca.crt"}
 	for _, cert := range certs {
 		if err := SSH.Fetch(masterIP, "/tmp/"+cert, "/etc/kubernetes/pki/etcd/"+cert); err != nil {
