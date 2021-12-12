@@ -98,102 +98,24 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           path: builds
-      - name: Catalog build assets for upload
-        id: catalog
-        run: |
-          _filenum=1
-          for i in "linux-amd64" "linux-arm64"; do
-            for f in `ls builds/sealer-binaries/ | grep ${i}`; do
-              echo "::set-output name=file${_filenum}::${f}"
-              let "_filenum+=1"
-            done
-          done
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1.1.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: sealer ${{ needs.note.outputs.stringver }}
-          body_path: ./builds/sealer-release-notes/release_note.md
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fail_on_unmatched_files: true
+          name: sealer ${{ needs.note.outputs.stringver }}
           draft: false
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
-      - name: Upload Linux sealer linux amd64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file1 }}
-          asset_name: ${{ steps.catalog.outputs.file1 }}
-          asset_content_type: application/gzip
-      - name: Upload Linux sealer linux amd64 sha256 sum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file2 }}
-          asset_name: ${{ steps.catalog.outputs.file2 }}
-          asset_content_type: text/plain
-      - name: Upload Linux seautil linux amd64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file3 }}
-          asset_name: ${{ steps.catalog.outputs.file3 }}
-          asset_content_type: application/gzip
-      - name: Upload Linux seautil linux amd64 sha256 sum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file4 }}
-          asset_name: ${{ steps.catalog.outputs.file4 }}
-          asset_content_type: text/plain
-      - name: Upload Linux sealer linux arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file5 }}
-          asset_name: ${{ steps.catalog.outputs.file5 }}
-          asset_content_type: application/gzip
-      - name: Upload Linux sealer linux arm64 sha256 sum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file6 }}
-          asset_name: ${{ steps.catalog.outputs.file6 }}
-          asset_content_type: text/plain
-      - name: Upload Linux seautil linux arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file7 }}
-          asset_name: ${{ steps.catalog.outputs.file7 }}
-          asset_content_type: application/gzip
-      - name: Upload Linux seautil linux arm64 sha256 sum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./builds/sealer-binaries/${{ steps.catalog.outputs.file8 }}
-          asset_name: ${{ steps.catalog.outputs.file8 }}
-          asset_content_type: text/plain
+          body_path: ./builds/sealer-release-notes/release_note.md
+          files: |
+            builds/sealer-binaries/*
       - name: Build binareies to oss
-        run: wget http://gosspublic.alicdn.com/ossutil/1.6.19/ossutil64 && chmod 755 ossutil64 &&
-          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/${{ steps.catalog.outputs.file1 }} oss://sealer/sealers/${{ steps.prepare.outputs.tag_name }} &&
-          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/${{ steps.catalog.outputs.file5 }} oss://sealer/sealers/${{ steps.prepare.outputs.tag_name }} &&
-          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/${{ steps.catalog.outputs.file1 }} oss://sealer/sealer-latest.tar.gz &&
-          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/${{ steps.catalog.outputs.file5 }} oss://sealer/sealer-latest-arm64.tar.gz
+        run: |
+          releasever=${{ github.ref }}
+          releasever="${releasever#refs/tags/}"
+          wget http://gosspublic.alicdn.com/ossutil/1.6.19/ossutil64 && chmod 755 ossutil64 &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-amd64.tar.gz oss://sealer/sealers/sealer-$releasever-amd64.tar.gz &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-arm64.tar.gz oss://sealer/sealers/sealer-$releasever-arm64.tar.gz &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-amd64.tar.gz oss://sealer/sealer-latest.tar.gz &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-arm64.tar.gz oss://sealer/sealer-latest-arm64.tar.gz
