@@ -87,10 +87,12 @@ func mountRootfs(res []string) (*buildinstruction.MountTarget, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = startRegistry(rootfs.GetMountTarget())
 	if err != nil {
 		return nil, err
 	}
+
 	return rootfs, nil
 }
 

@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	v2 "github.com/alibaba/sealer/types/api/v2"
+
 	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
@@ -52,7 +54,7 @@ func InitImageSpec(kubefile string) (*v1.Image, error) {
 	return rawImage, nil
 }
 
-func setClusterFileToImage(cluster *v1.Cluster, image *v1.Image) error {
+func setClusterFileToImage(cluster *v2.Cluster, image *v1.Image) error {
 	clusterData, err := yaml.Marshal(cluster)
 	if err != nil {
 		return err

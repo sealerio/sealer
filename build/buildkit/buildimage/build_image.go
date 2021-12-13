@@ -19,6 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
+	v2 "github.com/alibaba/sealer/types/api/v2"
+
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/client/docker"
 	"github.com/alibaba/sealer/common"
@@ -186,8 +188,8 @@ func (b BuildImage) collectRegistryCache() (v1.Layer, error) {
 	return layer, nil
 }
 
-func (b BuildImage) getImageCluster() (*v1.Cluster, error) {
-	var cluster v1.Cluster
+func (b BuildImage) getImageCluster() (*v2.Cluster, error) {
+	var cluster v2.Cluster
 	rawClusterFile, err := GetRawClusterFile(b.RawImage.Spec.Layers[0].Value, b.NewLayers)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get base image err: %s", err)
