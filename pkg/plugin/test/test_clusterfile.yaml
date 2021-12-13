@@ -12,41 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.aliyun.com/v2alpha1
 kind: Cluster
 metadata:
   name: my-cluster
 spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
-  provider: BAREMETAL
   ssh:
     # SSH login password, if you use the key to log in, you don’t need to set it
     passwd: Seadent123
     # ssh login user
     user: root
-  network:
-    podCIDR: 100.64.0.0/10
-    svcCIDR: 10.96.0.0/22
-  certSANS:
-    - aliyun-inc.com
-    - 10.0.0.2
+    pk: xxx
+    pkPasswd: xxx
 
-  masters:
-    ipList:
-      - 172.17.102.186
+  hosts:
+  - ips: [172.17.102.186]
+    roles: [master]
 ---
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.aliyun.com/v2alpha1
 kind: Plugin
 metadata:
   name: MyShell
 spec:
   action: PreInstall
   type: SHELL
-  on: role=master
+  on: "node-role.kubernetes.io/master="
   data: |
     ip a
 ---
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.aliyun.com/v2alpha1
 kind: Plugin
 metadata:
   name: MyLabel

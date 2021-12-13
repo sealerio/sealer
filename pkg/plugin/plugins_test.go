@@ -80,7 +80,7 @@ func TestDumperPlugin_Run(t *testing.T) {
 	plugins := []v1.Plugin{
 		{
 			Spec: v1.PluginSpec{
-				On:     "role=master",
+				On:     "node-role.kubernetes.io/master=",
 				Data:   "kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule",
 				Action: "PostInstall",
 			},

@@ -18,10 +18,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/client/k8s"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
@@ -41,11 +42,7 @@ func (s Sheller) Run(context Context, phase Phase) error {
 		pluginCmd = fmt.Sprintf(common.CdAndExecCmd, common.DefaultTheClusterRootfsDir(context.Cluster.Name), pluginCmd)
 	}
 	//get all host ip
-	masterIP := context.Host.IPS
-	nodeIP := context.Host.IPS
-	allHostIP := append(masterIP, nodeIP...)
-	//get on
-
+	allHostIP := append(context.Cluster.GetMasterIPList(), context.Cluster.GetNodeIPList()...)
 	if on := context.Plugin.Spec.On; on != "" {
 		if strings.Contains(on, "=") {
 			if phase != PhasePostInstall {
@@ -62,16 +59,20 @@ func (s Sheller) Run(context Context, phase Phase) error {
 			if len(ipList) == 0 {
 				return fmt.Errorf("nodes is not found by label [%s]", on)
 			}
+			allHostIP = ipList
+		} else {
+			allHostIP = utils.DisassembleIPList(on)
 		}
-		allHostIP = utils.DisassembleIPList(on)
 	}
-
 	for _, ip := range allHostIP {
-		_, err := ssh.GetHostSSHClient(ip, context.Cluster)
+		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster)
 		if err != nil {
 			return err
 		}
-
+		err = sshClient.CmdAsync(ip, pluginCmd)
+		if err != nil {
+			return fmt.Errorf("failed to run shell cmd,  %v", err)
+		}
 	}
 	return nil
 }

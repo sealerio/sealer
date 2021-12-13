@@ -28,6 +28,7 @@ kind: Plugin
 metadata:
   name: SHELL
 spec:
+  type: LABEL
   action: PostInstall
   on: role=master
   data: |

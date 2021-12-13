@@ -32,6 +32,7 @@ kind: Plugin
 metadata:
   name: LABEL
 spec:
+  type: LABEL
   data: |
      192.168.0.2 ssd=true
      192.168.0.3 ssd=true

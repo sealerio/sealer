@@ -26,6 +26,7 @@ kind: Plugin
 metadata:
   name: HOSTNAME
 spec:
+  type: LABEL
   data: |
      192.168.0.2 master-0
      192.168.0.3 master-1

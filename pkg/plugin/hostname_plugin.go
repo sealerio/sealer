@@ -30,6 +30,7 @@ kind: Plugin
 metadata:
   name: HOSTNAME
 spec:
+  type: HOSTNAME
   data: |
      192.168.0.2 master-0
      192.168.0.3 master-1
@@ -60,14 +61,16 @@ func (h HostnamePlugin) Run(context Context, phase Phase) error {
 		return nil
 	}
 	h.data = h.formatData(context.Plugin.Spec.Data)
-	SSH := ssh.NewSSHByClusterV2(context.Cluster)
 	for ip, hostname := range h.data {
-		err := h.changeNodeName(hostname, ip, SSH)
+		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster)
+		if err != nil {
+			return err
+		}
+		err = h.changeNodeName(hostname, ip, sshClient)
 		if err != nil {
 			return fmt.Errorf("current cluster nodes hostname change failed, %v", err)
 		}
 	}
-
 	return nil
 }
 

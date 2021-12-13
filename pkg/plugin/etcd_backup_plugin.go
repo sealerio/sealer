@@ -32,8 +32,6 @@ import (
 )
 
 type EtcdBackupPlugin struct {
-	name    string
-	backDir string
 }
 
 func NewEtcdBackupPlugin() Interface {
@@ -59,20 +57,18 @@ func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {
 		return err
 	}
 
-	return snapshotEtcd(&e, cfg)
+	return snapshotEtcd(context.Plugin.Spec.On, cfg)
 }
 
 func getMasterIP(context Context) (string, error) {
-	ipList := context.Host.IPS
-	//ipList := context.Cluster.Spec.Masters.IPList
-	if len(ipList) == 0 {
+	masterIPList := context.Cluster.GetMasterIPList()
+	if len(masterIPList) == 0 {
 		return "", errors.New("cluster master does not exist")
 	}
-	return ipList[0], nil
+	return masterIPList[0], nil
 }
 
 func fetchRemoteCert(context Context, masterIP string) error {
-	//SSH := ssh.NewSSHByCluster(context.Cluster)
 	certs := []string{"healthcheck-client.crt", "healthcheck-client.key", "ca.crt"}
 	for _, cert := range certs {
 		sshClient, err := ssh.GetHostSSHClient(masterIP, context.Cluster)
@@ -87,10 +83,12 @@ func fetchRemoteCert(context Context, masterIP string) error {
 }
 
 func connEtcd(masterIP string) (clientv3.Config, error) {
-	const dialTimeout = 5 * time.Second
-	const etcdCert = "/tmp/healthcheck-client.crt"
-	const etcdCertKey = "/tmp/healthcheck-client.key"
-	const etcdCa = "/tmp/ca.crt"
+	const(
+		dialTimeout = 5 * time.Second
+	 	etcdCert = "/tmp/healthcheck-client.crt"
+	 	etcdCertKey = "/tmp/healthcheck-client.key"
+	 	etcdCa = "/tmp/ca.crt"
+		)
 
 	cert, err := tls.LoadX509KeyPair(etcdCert, etcdCertKey)
 	if err != nil {
@@ -129,7 +127,7 @@ func connEtcd(masterIP string) (clientv3.Config, error) {
 	return cfg, nil
 }
 
-func snapshotEtcd(e *EtcdBackupPlugin, cfg clientv3.Config) error {
+func snapshotEtcd(snapshotPath string, cfg clientv3.Config) error {
 	lg, err := zap.NewProduction()
 	if err != nil {
 		return fmt.Errorf("get zap logger error, err:%v", err)
@@ -138,11 +136,10 @@ func snapshotEtcd(e *EtcdBackupPlugin, cfg clientv3.Config) error {
 	ctx, cancel := ctx.WithCancel(ctx.Background())
 	defer cancel()
 
-	var dbPath = fmt.Sprintf("%s/%s", e.backDir, e.name)
-	if err := snapshot.Save(ctx, lg, cfg, dbPath); err != nil {
+	if err := snapshot.Save(ctx, lg, cfg, snapshotPath); err != nil {
 		return fmt.Errorf("snapshot save err: %v", err)
 	}
-	logger.Info("Snapshot saved at %s\n", dbPath)
+	logger.Info("Snapshot saved at %s\n", snapshotPath)
 
 	return nil
 }
