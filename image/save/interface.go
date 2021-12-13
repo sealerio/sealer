@@ -24,14 +24,16 @@ type ImageSave interface {
 }
 
 type DefaultImageSaver struct {
-	ctx context.Context
+	ctx            context.Context
+	domainToImages map[string][]Named
 }
 
-func NewImageSaver(ctx context.Context) *DefaultImageSaver {
+func NewImageSaver(ctx context.Context) ImageSave {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	return &DefaultImageSaver{
-		ctx: ctx,
+		ctx:            ctx,
+		domainToImages: make(map[string][]Named),
 	}
 }

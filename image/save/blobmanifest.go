@@ -40,7 +40,7 @@ type Blob struct {
 func getBlobList(blobListJSON distribution.Manifest) ([]digest.Digest, error) {
 	_, list, err := blobListJSON.Payload()
 	if err != nil {
-		return nil, fmt.Errorf("get payload error: %v", err)
+		return nil, fmt.Errorf("failed to get blob list: %v", err)
 	}
 	var blobList BlobList
 	err = json.Unmarshal(list, &blobList)

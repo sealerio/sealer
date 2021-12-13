@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/distribution/distribution/v3/context"
 	"github.com/distribution/distribution/v3/registry/client/auth"
 	"github.com/distribution/distribution/v3/registry/client/auth/challenge"
 )
@@ -44,7 +43,7 @@ func configureAuth(username, password, remoteURL string) (auth.CredentialStore, 
 	}
 
 	for _, url := range authURLs {
-		context.GetLogger(context.Background()).Infof("Discovered token authentication URL: %s", url)
+		//	context.GetLogger(context.Background()).Infof("Discovered token authentication URL: %s", url)
 		creds[url] = userpass{
 			username: username,
 			password: password,

@@ -47,7 +47,7 @@ type Platform struct {
 func getImageManifestDigest(manifestListJSON distribution.Manifest, arch string) (digest.Digest, error) {
 	_, list, err := manifestListJSON.Payload()
 	if err != nil {
-		return "", fmt.Errorf("get payload error: %v", err)
+		return "", fmt.Errorf("failed to get manifestList: %v", err)
 	}
 	var manifestList ManifestList
 	err = json.Unmarshal(list, &manifestList)

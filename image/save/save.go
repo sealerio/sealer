@@ -17,8 +17,8 @@ package save
 import (
 	"context"
 	"fmt"
+	"sync"
 
-	"github.com/alibaba/sealer/logger"
 	distribution "github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/reference"
@@ -29,43 +29,46 @@ import (
 )
 
 const (
-	proxyURL      = `https://registry-1.docker.io`
-	configFileSys = `filesystem`
-	configRootDir = `rootdirectory`
+	urlPrefix           = "https://"
+	defauleProxyURL     = `https://registry-1.docker.io`
+	configFileSys       = `filesystem`
+	configRootDir       = `rootdirectory`
+	maxPullGoroutineNum = 10
 )
 
-func (ls *DefaultImageSaver) SaveImages(images []string, dir, arch string) error {
-	logger.Info("Saving images from %s into %s...", proxyURL, dir)
-	registry, err := NewProxyRegistry(ls.ctx, dir)
-	if err != nil {
-		return fmt.Errorf("init registry error: %v", err)
-	}
+func (is *DefaultImageSaver) SaveImages(images []string, dir, arch string) error {
 	for _, image := range images {
-		err := ls.save(image, arch, registry)
+		named, err := parseNormalizedNamed(image)
 		if err != nil {
-			return fmt.Errorf("save image %s error: %v", image, err)
+			return fmt.Errorf("parse image name error: %v", err)
+		}
+		is.domainToImages[named.domain] = append(is.domainToImages[named.domain], named)
+	}
+	for domain, nameds := range is.domainToImages {
+		registry, err := NewProxyRegistry(is.ctx, dir, domain)
+		if err != nil {
+			return fmt.Errorf("init registry error: %v", err)
+		}
+		err = is.save(nameds, arch, registry)
+		if err != nil {
+			return fmt.Errorf("save domain %s image error: %v", domain, err)
 		}
 	}
 	return nil
 }
 
-func (ls *DefaultImageSaver) save(image string, arch string, registry distribution.Namespace) error {
-	named, err := parseNormalizedNamed(image)
-	if err != nil {
-		return fmt.Errorf("parse image name error: %v", err)
-	}
-
-	repo, err := ls.getRepository(named, registry)
+func (is *DefaultImageSaver) save(nameds []Named, arch string, registry distribution.Namespace) error {
+	repo, err := is.getRepository(nameds[0], registry)
 	if err != nil {
 		return err
 	}
 
-	imageDigest, err := ls.saveManifestAndGetDigest(named, repo, arch)
+	imageDigests, err := is.saveManifestAndGetDigest(nameds, repo, arch)
 	if err != nil {
 		return err
 	}
 
-	err = ls.saveBlobs(named, repo, imageDigest)
+	err = is.saveBlobs(imageDigests, repo)
 	if err != nil {
 		return err
 	}
@@ -73,7 +76,13 @@ func (ls *DefaultImageSaver) save(image string, arch string, registry distributi
 	return nil
 }
 
-func NewProxyRegistry(ctx context.Context, rootdir string) (distribution.Namespace, error) {
+func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution.Namespace, error) {
+	// set the URL of registry
+	proxyURL := urlPrefix + domain
+	if domain == defaultDomain {
+		proxyURL = defauleProxyURL
+	}
+
 	config := configuration.Configuration{
 		Proxy: configuration.Proxy{
 			RemoteURL: proxyURL,
@@ -98,63 +107,115 @@ func NewProxyRegistry(ctx context.Context, rootdir string) (distribution.Namespa
 	return proxy, nil
 }
 
-func (ls *DefaultImageSaver) getRepository(named Named, registry distribution.Namespace) (distribution.Repository, error) {
+func (is *DefaultImageSaver) getRepository(named Named, registry distribution.Namespace) (distribution.Repository, error) {
 	repoName, err := reference.WithName(named.Repo())
 	if err != nil {
 		return nil, fmt.Errorf("get repository name error: %v", err)
 	}
-	logger.Info("Saving image %s/%s:%s...\n", named.domain, named.repo, named.tag)
-	repo, err := registry.Repository(ls.ctx, repoName)
+	repo, err := registry.Repository(is.ctx, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("get repository error: %v", err)
 	}
 	return repo, nil
 }
 
-func (ls *DefaultImageSaver) saveManifestAndGetDigest(named Named, repo distribution.Repository, arch string) (digest.Digest, error) {
-	manifest, err := repo.Manifests(ls.ctx, make([]distribution.ManifestServiceOption, 0)...)
+func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distribution.Repository, arch string) ([]digest.Digest, error) {
+	manifest, err := repo.Manifests(is.ctx, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
-		return digest.Digest(""), fmt.Errorf("get manifest service error: %v", err)
+		return nil, fmt.Errorf("get manifest service error: %v", err)
+	}
+	digestCh := make(chan digest.Digest)
+	numCh := make(chan bool, maxPullGoroutineNum)
+	errCh := make(chan error)
+	imageDigests := make([]digest.Digest, 0)
+	for _, named := range nameds {
+		tmpnamed := named
+		numCh <- true
+		go func(named Named) {
+			desc, err := repo.Tags(is.ctx).Get(is.ctx, named.tag)
+			if err != nil {
+				errCh <- fmt.Errorf("get %s tag descriptor error: %v", named.repo, err)
+			}
+
+			manifestListJSON, err := manifest.Get(is.ctx, desc.Digest, make([]distribution.ManifestServiceOption, 0)...)
+			if err != nil {
+				errCh <- fmt.Errorf("get image manifest list error: %v", err)
+			}
+
+			imageDigest, err := getImageManifestDigest(manifestListJSON, arch)
+			if err != nil {
+				errCh <- fmt.Errorf("get digest error: %v", err)
+			}
+			digestCh <- imageDigest
+			<-numCh
+		}(tmpnamed)
+	}
+	for range nameds {
+		select {
+		case imageDigest := <-digestCh:
+			imageDigests = append(imageDigests, imageDigest)
+		case err = <-errCh:
+			return nil, err
+		}
 	}
 
-	desc, err := repo.Tags(ls.ctx).Get(ls.ctx, named.tag)
-	if err != nil {
-		return digest.Digest(""), fmt.Errorf("get tag descriptor error: %v", err)
-	}
-
-	manifestListJSON, err := manifest.Get(ls.ctx, desc.Digest, make([]distribution.ManifestServiceOption, 0)...)
-	if err != nil {
-		return digest.Digest(""), fmt.Errorf("get image manifest list error: %v", err)
-	}
-
-	imageDigest, err := getImageManifestDigest(manifestListJSON, arch)
-	if err != nil {
-		return digest.Digest(""), fmt.Errorf("get digest error: %v", err)
-	}
-
-	return imageDigest, nil
+	return imageDigests, nil
 }
 
-func (ls *DefaultImageSaver) saveBlobs(named Named, repo distribution.Repository, imageDigest digest.Digest) error {
-	manifest, err := repo.Manifests(ls.ctx, make([]distribution.ManifestServiceOption, 0)...)
+func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distribution.Repository) error {
+	manifest, err := repo.Manifests(is.ctx, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
 		return fmt.Errorf("get blob service error: %v", err)
 	}
-	blobListJSON, err := manifest.Get(ls.ctx, imageDigest, make([]distribution.ManifestServiceOption, 0)...)
-	if err != nil {
-		return fmt.Errorf("get blob manifest error: %v", err)
+	blobDigestCh := make(chan []digest.Digest)
+	errCh := make(chan error)
+	numCh := make(chan bool, maxPullGoroutineNum)
+	blobList := make([]digest.Digest, 0)
+	blobMap := make(map[digest.Digest]bool)
+	for _, imageDigest := range imageDigests {
+		tmpImageDigest := imageDigest
+		numCh <- true
+		go func(digest digest.Digest) {
+			blobListJSON, err := manifest.Get(is.ctx, digest, make([]distribution.ManifestServiceOption, 0)...)
+			if err != nil {
+				errCh <- fmt.Errorf("get blob manifest error: %v", err)
+			}
+			blobList, err := getBlobList(blobListJSON)
+			if err != nil {
+				errCh <- fmt.Errorf("get blob list error: %v", err)
+			}
+			blobDigestCh <- blobList
+			<-numCh
+		}(tmpImageDigest)
 	}
-	blobList, err := getBlobList(blobListJSON)
-	if err != nil {
-		return fmt.Errorf("get blob list error: %v", err)
-	}
-	blobStore := repo.Blobs(ls.ctx)
-	for _, blob := range blobList {
-		_, err = blobStore.Get(ls.ctx, blob)
-		if err != nil {
-			return fmt.Errorf("get blob %s error: %v", blob, err)
+	for range imageDigests {
+		select {
+		case blobDigest := <-blobDigestCh:
+			for _, digest := range blobDigest {
+				if !blobMap[digest] {
+					blobList = append(blobList, digest)
+					blobMap[digest] = true
+				}
+			}
+		case err = <-errCh:
+			return err
 		}
 	}
-	logger.Info("Successfully saved image %s/%s:%s\n", named.domain, named.repo, named.tag)
+	var wg = sync.WaitGroup{}
+	blobStore := repo.Blobs(is.ctx)
+	for _, blob := range blobList {
+		tmpBlob := blob
+		numCh <- true
+		wg.Add(1)
+		go func(blob digest.Digest) {
+			_, err = blobStore.Get(is.ctx, blob)
+			if err != nil {
+				errCh <- fmt.Errorf("get blob %s error: %v", blob, err)
+			}
+			<-numCh
+			wg.Done()
+		}(tmpBlob)
+	}
+	wg.Wait()
 	return nil
 }
