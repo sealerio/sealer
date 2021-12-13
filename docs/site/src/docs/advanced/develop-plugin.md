@@ -16,6 +16,7 @@ if user doesn't want their plugin code to be open sourced, we can develop an out
 
 * package name must be "main"
 * exposed variable must be "Plugin"
+* exposed variable must be "PluginType"
 
 Examples:list_nodes.go
 
@@ -29,10 +30,6 @@ import (
 )
 
 type list string
-
-func (l *list) GetPluginType() string {
-	return "LIST_NODE"
-}
 
 func (l *list) Run(context plugin.Context, phase plugin.Phase) error {
 	client, err := k8s.Newk8sClient()
@@ -49,6 +46,7 @@ func (l *list) Run(context plugin.Context, phase plugin.Phase) error {
 	return nil
 }
 
+var PluginType = "LIST_NODE"
 var Plugin list
 ```
 
@@ -86,7 +84,7 @@ kind: Plugin
 metadata:
   name: list_nodes.so # out of tree plugin name
 spec:
-  type: TEST_SO # define your own plugin type.
+  type: LIST_NODE # define your own plugin type.
   action: PostInstall # which stage will this plugin be applied.
 ```
 
