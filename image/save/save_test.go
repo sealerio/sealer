@@ -20,42 +20,99 @@ import (
 )
 
 func TestSaveImages(t *testing.T) {
-	images := []string{"ubuntu", "ubuntu:18.04", "registry.aliyuncs.com/google_containers/coredns:1.6.5", "fanux/lvscare"}
+	tests := []string{"ubuntu", "ubuntu:18.04", "registry.aliyuncs.com/google_containers/coredns:1.6.5", "fanux/lvscare"}
 	is := NewImageSaver(context.Background())
-	err := is.SaveImages(images, "/var/lib/registry", "amd64")
+	err := is.SaveImages(tests, "/var/lib/registry", "amd64")
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func Test_splitDockerDomain(t *testing.T) {
-	names := []string{"docker.io/library/alpine:latest", "k8s.gcr.io/kube-apiserver", "ubuntu"}
-	domain, remainder := splitDockerDomain(names[0])
-	if domain != defaultDomain || remainder != "library/alpine:latest" {
-		t.Errorf("split %s error", names[0])
+	tests := []struct {
+		name       string
+		imageName  string
+		wantDomain string
+		wantRemain string
+	}{
+		{
+			name:       "test1",
+			imageName:  "docker.io/library/alpine:latest",
+			wantDomain: defaultDomain,
+			wantRemain: "library/alpine:latest",
+		},
+		{
+			name:       "test2",
+			imageName:  "ubuntu",
+			wantDomain: defaultDomain,
+			wantRemain: "library/ubuntu",
+		},
+		{
+			name:       "test3",
+			imageName:  "k8s.gcr.io/kube-apiserver",
+			wantDomain: "k8s.gcr.io",
+			wantRemain: "kube-apiserver",
+		},
 	}
-	domain, remainder = splitDockerDomain(names[1])
-	if domain != "k8s.gcr.io" || remainder != "kube-apiserver" {
-		t.Errorf("split %s error", names[1])
-	}
-	domain, remainder = splitDockerDomain(names[2])
-	if domain != defaultDomain || remainder != "library/ubuntu" {
-		t.Errorf("split %s error", names[2])
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if domain, remainer := splitDockerDomain(tt.imageName); domain != tt.wantDomain || remainer != tt.wantRemain {
+				t.Errorf("split image %s error", tt.name)
+			}
+		})
 	}
 }
 
 func Test_parseNormalizedNamed(t *testing.T) {
-	names := []string{"docker.io/library/alpine:latest", "k8s.gcr.io/kube-apiserver", "ubuntu"}
-	named, err := parseNormalizedNamed(names[0])
-	if err != nil || named.domain != defaultDomain || named.repo != "library/alpine" || named.tag != defaultTag {
-		t.Errorf("parse %s error", names[0])
+	tests := []struct {
+		name       string
+		imageName  string
+		wantDomain string
+		wantRepo   string
+		wantTag    string
+	}{
+		{
+			name:       "test1",
+			imageName:  "docker.io/library/alpine:latest",
+			wantDomain: defaultDomain,
+			wantRepo:   "library/alpine",
+			wantTag:    defaultTag,
+		},
+		{
+			name:       "test2",
+			imageName:  "ubuntu",
+			wantDomain: defaultDomain,
+			wantRepo:   "library/ubuntu",
+			wantTag:    defaultTag,
+		},
+		{
+			name:       "test3",
+			imageName:  "k8s.gcr.io/kube-apiserver",
+			wantDomain: "k8s.gcr.io",
+			wantRepo:   "kube-apiserver",
+			wantTag:    defaultTag,
+		},
+		{
+			name:       "test4",
+			imageName:  "fanux/lvscare",
+			wantDomain: defaultDomain,
+			wantRepo:   "fanux/lvscare",
+			wantTag:    defaultTag,
+		},
+		{
+			name:       "test5",
+			imageName:  "alpine",
+			wantDomain: defaultDomain,
+			wantRepo:   "library/alpine",
+			wantTag:    defaultTag,
+		},
 	}
-	named, err = parseNormalizedNamed(names[1])
-	if err != nil || named.domain != "k8s.gcr.io" || named.repo != "kube-apiserver" || named.tag != defaultTag {
-		t.Errorf("parse %s error", names[1])
-	}
-	named, err = parseNormalizedNamed(names[2])
-	if err != nil || named.domain != defaultDomain || named.repo != "library/ubuntu" || named.tag != defaultTag {
-		t.Errorf("parse %s error", names[2])
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if named, err := parseNormalizedNamed(tt.imageName); err != nil || named.Domain() != tt.wantDomain || named.Repo() != tt.wantRepo || named.tag != tt.wantTag {
+				t.Errorf("parse image %s error", tt.name)
+			}
+		})
 	}
 }

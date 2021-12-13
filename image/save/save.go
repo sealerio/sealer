@@ -42,16 +42,16 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir, arch string) error
 		if err != nil {
 			return fmt.Errorf("parse image name error: %v", err)
 		}
-		is.domainToImages[named.domain] = append(is.domainToImages[named.domain], named)
+		is.domainToImages[named.domain+named.repo] = append(is.domainToImages[named.domain+named.repo], named)
 	}
-	for domain, nameds := range is.domainToImages {
-		registry, err := NewProxyRegistry(is.ctx, dir, domain)
+	for _, nameds := range is.domainToImages {
+		registry, err := NewProxyRegistry(is.ctx, dir, nameds[0].domain)
 		if err != nil {
 			return fmt.Errorf("init registry error: %v", err)
 		}
 		err = is.save(nameds, arch, registry)
 		if err != nil {
-			return fmt.Errorf("save domain %s image error: %v", domain, err)
+			return fmt.Errorf("save domain %s image error: %v", nameds[0].domain, err)
 		}
 	}
 	return nil
