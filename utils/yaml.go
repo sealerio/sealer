@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
@@ -55,6 +57,19 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 
 func SaveClusterfile(cluster *v1.Cluster) error {
 	fileName := common.GetClusterWorkClusterfile(cluster.Name)
+	err := MkFileFullPathDir(fileName)
+	if err != nil {
+		return fmt.Errorf("mkdir failed %s %v", fileName, err)
+	}
+	err = MarshalYamlToFile(fileName, cluster)
+	if err != nil {
+		return fmt.Errorf("marshal cluster file failed %v", err)
+	}
+	return nil
+}
+
+func SaveClusterInfoToFile(cluster runtime.Object, clusterName string) error {
+	fileName := common.GetClusterWorkClusterfile(clusterName)
 	err := MkFileFullPathDir(fileName)
 	if err != nil {
 		return fmt.Errorf("mkdir failed %s %v", fileName, err)

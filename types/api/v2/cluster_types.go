@@ -17,6 +17,7 @@ limitations under the License.
 package v2
 
 import (
+	"github.com/alibaba/sealer/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -63,6 +64,47 @@ type Cluster struct {
 
 	Spec   ClusterSpec   `json:"spec,omitempty"`
 	Status ClusterStatus `json:"status,omitempty"`
+}
+
+func (in *Cluster) GetMasterIPList() []string {
+	return in.GetIPSByRole(common.MASTER)
+}
+
+func (in *Cluster) GetNodeIPList() []string {
+	return in.GetIPSByRole(common.NODE)
+}
+
+func (in *Cluster) GetMaster0Ip() string {
+	if len(in.Spec.Hosts) == 0 {
+		return ""
+	}
+	if len(in.Spec.Hosts[0].IPS) == 0 {
+		return ""
+	}
+	return in.Spec.Hosts[0].IPS[0]
+}
+
+func (in *Cluster) GetIPSByRole(role string) []string {
+	var hosts []string
+	for _, host := range in.Spec.Hosts {
+		for _, hostRole := range host.Roles {
+			if role == hostRole {
+				hosts = append(hosts, host.IPS...)
+				continue
+			}
+		}
+	}
+	return hosts
+}
+func (in *Cluster) GetAnnotationsByKey(key string) string {
+	return in.Annotations[key]
+}
+
+func (in *Cluster) SetAnnotations(key, value string) {
+	if in.Annotations == nil {
+		in.Annotations = make(map[string]string)
+	}
+	in.Annotations[key] = value
 }
 
 // +kubebuilder:object:root=true

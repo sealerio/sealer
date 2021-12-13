@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package processor
 
-const (
-	Cluster                = "Cluster"
-	Kubeadmconfig          = "KubeadmConfig"
-	InitConfiguration      = "InitConfiguration"
-	JoinConfiguration      = "JoinConfiguration"
-	ClusterConfiguration   = "ClusterConfiguration"
-	KubeProxyConfiguration = "KubeProxyConfiguration"
-	KubeletConfiguration   = "KubeletConfiguration"
-)
+import v2 "github.com/alibaba/sealer/types/api/v2"
+
+type Interface interface {
+	// DoApply do apply: do their own apply,input is desired cluster .
+	Execute(cluster *v2.Cluster) error
+}

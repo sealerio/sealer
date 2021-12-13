@@ -17,7 +17,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/apply"
+	"github.com/alibaba/sealer/apply/v2"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
 )

@@ -19,10 +19,11 @@ import (
 	"io/ioutil"
 	"strings"
 
+	v2 "github.com/alibaba/sealer/types/api/v2"
+
 	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 var ErrClusterNotExist = fmt.Errorf("no cluster exist")
@@ -48,8 +49,8 @@ func GetDefaultClusterName() (string, error) {
 	return "", ErrClusterNotExist
 }
 
-func GetClusterFromFile(filepath string) (cluster *v1.Cluster, err error) {
-	cluster = &v1.Cluster{}
+func GetClusterFromFile(filepath string) (cluster *v2.Cluster, err error) {
+	cluster = &v2.Cluster{}
 	if err = UnmarshalYamlFile(filepath, cluster); err != nil {
 		return nil, fmt.Errorf("failed to get cluster from %s, %v", filepath, err)
 	}
