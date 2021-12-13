@@ -24,12 +24,12 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
-type Deletion struct {
+type DeleteProcessor struct {
 	FileSystem filesystem.Interface
 }
 
 // DoApply do apply: do truly apply,input is desired cluster .
-func (d Deletion) Execute(cluster *v2.Cluster) (err error) {
+func (d DeleteProcessor) Execute(cluster *v2.Cluster) (err error) {
 	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
@@ -53,7 +53,7 @@ func (d Deletion) Execute(cluster *v2.Cluster) (err error) {
 
 	return nil
 }
-func (d Deletion) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+func (d DeleteProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
 		d.UnMountRootfs,
@@ -63,14 +63,14 @@ func (d Deletion) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	return todoList, nil
 }
 
-func (d Deletion) UnMountRootfs(cluster *v2.Cluster) error {
+func (d DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
 	return d.FileSystem.UnMountRootfs(cluster)
 }
-func (d Deletion) UnMountImage(cluster *v2.Cluster) error {
+func (d DeleteProcessor) UnMountImage(cluster *v2.Cluster) error {
 	return d.FileSystem.UnMountImage(cluster)
 }
 
-func (d Deletion) CleanFS(cluster *v2.Cluster) error {
+func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
 	return d.FileSystem.Clean(cluster)
 }
 
@@ -80,7 +80,7 @@ func NewDeleteProcessor() (Interface, error) {
 		return nil, err
 	}
 
-	return Deletion{
+	return DeleteProcessor{
 		FileSystem: fs,
 	}, nil
 }

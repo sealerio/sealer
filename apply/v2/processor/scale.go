@@ -23,7 +23,7 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
-type Scale struct {
+type ScaleProcessor struct {
 	FileSystem      filesystem.Interface
 	Runtime         runtime.Interface
 	MastersToJoin   []string
@@ -34,7 +34,7 @@ type Scale struct {
 }
 
 // DoApply do apply: do truly apply,input is desired cluster .
-func (s Scale) Execute(cluster *v2.Cluster) error {
+func (s ScaleProcessor) Execute(cluster *v2.Cluster) error {
 	/*
 		1. master scale up + master scale up :support
 		2. master scale down + master scale down :support
@@ -53,7 +53,7 @@ func (s Scale) Execute(cluster *v2.Cluster) error {
 	return s.ScaleDown()
 }
 
-func (s Scale) ScaleUp(cluster *v2.Cluster) error {
+func (s ScaleProcessor) ScaleUp(cluster *v2.Cluster) error {
 	hosts := append(s.MastersToJoin, s.NodesToJoin...)
 	err := s.FileSystem.MountRootfs(cluster, hosts, true)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s Scale) ScaleUp(cluster *v2.Cluster) error {
 	return nil
 }
 
-func (s Scale) ScaleDown() error {
+func (s ScaleProcessor) ScaleDown() error {
 	err := s.Runtime.DeleteMasters(s.MastersToDelete)
 	if err != nil {
 		return err
@@ -89,7 +89,7 @@ func NewScaleProcessor(fs filesystem.Interface, masterToJoin, masterToDelete, no
 		up = true
 	}
 
-	return Scale{
+	return ScaleProcessor{
 		MastersToDelete: masterToDelete,
 		MastersToJoin:   masterToJoin,
 		NodesToDelete:   nodeToDelete,

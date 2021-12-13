@@ -138,7 +138,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 		return err
 	}
 	var cluster *v2.Cluster
-	if !applier.(processor.Scale).IsScaleUp {
+	if !applier.(processor.ScaleProcessor).IsScaleUp {
 		c, err := runtime.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
 		if err != nil {
 			return err

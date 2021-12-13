@@ -29,7 +29,7 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-type Creation struct {
+type CreateProcessor struct {
 	ImageManager image.Service
 	FileSystem   filesystem.Interface
 	Runtime      runtime.Interface
@@ -40,7 +40,7 @@ type Creation struct {
 
 //var pluginPhases = []plugin.Phase{plugin.PhaseOriginally, plugin.PhasePreInit, plugin.PhasePreGuest, plugin.PhasePostInstall}
 
-func (c Creation) Execute(cluster *v2.Cluster) error {
+func (c CreateProcessor) Execute(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
@@ -64,7 +64,7 @@ func (c Creation) Execute(cluster *v2.Cluster) error {
 
 	return nil
 }
-func (c Creation) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+func (c CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
 		//c.RunInitPlugin,
@@ -82,7 +82,7 @@ func (c Creation) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	return todoList, nil
 }
 
-func (c Creation) MountImage(cluster *v2.Cluster) error {
+func (c CreateProcessor) MountImage(cluster *v2.Cluster) error {
 	err := c.ImageManager.PullIfNotExist(cluster.Spec.Image)
 	if err != nil {
 		return err
@@ -90,11 +90,11 @@ func (c Creation) MountImage(cluster *v2.Cluster) error {
 	return c.FileSystem.MountImage(cluster)
 }
 
-func (c Creation) RunConfig(cluster *v2.Cluster) error {
+func (c CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 	return c.Config.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
 }
 
-func (c Creation) MountRootfs(cluster *v2.Cluster) error {
+func (c CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0Ip())
 	if utils.NotInIPList(regConfig.IP, hosts) {
@@ -103,11 +103,11 @@ func (c Creation) MountRootfs(cluster *v2.Cluster) error {
 	return c.FileSystem.MountRootfs(cluster, hosts, true)
 }
 
-func (c Creation) Init(cluster *v2.Cluster) error {
+func (c CreateProcessor) Init(cluster *v2.Cluster) error {
 	return c.Runtime.Init(cluster)
 }
 
-func (c Creation) Join(cluster *v2.Cluster) error {
+func (c CreateProcessor) Join(cluster *v2.Cluster) error {
 	err := c.Runtime.JoinMasters(cluster.GetMasterIPList()[1:])
 	if err != nil {
 		return err
@@ -119,19 +119,19 @@ func (c Creation) Join(cluster *v2.Cluster) error {
 	return nil
 }
 
-func (c Creation) RunGuest(cluster *v2.Cluster) error {
+func (c CreateProcessor) RunGuest(cluster *v2.Cluster) error {
 	return c.Guest.Apply(cluster)
 }
-func (c Creation) UnMountImage(cluster *v2.Cluster) error {
+func (c CreateProcessor) UnMountImage(cluster *v2.Cluster) error {
 	return c.FileSystem.UnMountImage(cluster)
 }
 
-func (c Creation) initPlugin(cluster *v2.Cluster) error {
+func (c CreateProcessor) initPlugin(cluster *v2.Cluster) error {
 	c.Plugins = plugin.NewPlugins(cluster.Name)
 	return c.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
 }
 
-/*func (i Creation) RunPhasePlugin(cluster *v2.Cluster) error {
+/*func (i CreateProcessor) RunPhasePlugin(cluster *v2.Cluster) error {
 	if pluginPhases[0] == plugin.PhasePreInit {
 		if err := i.Plugins.Load(); err != nil {
 			return err
@@ -158,7 +158,7 @@ func NewCreateProcessor() (Interface, error) {
 		return nil, err
 	}
 
-	return Creation{
+	return CreateProcessor{
 		ImageManager: imgSvc,
 		FileSystem:   fs,
 		Guest:        gs,
