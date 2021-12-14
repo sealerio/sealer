@@ -17,6 +17,7 @@ package plugin
 import (
 	"testing"
 
+	"github.com/alibaba/sealer/common"
 	typev1 "github.com/alibaba/sealer/types/api/v1"
 	typev2 "github.com/alibaba/sealer/types/api/v2"
 )
@@ -28,7 +29,7 @@ kind: Plugin
 metadata:
   name: SHELL
 spec:
-  type: LABEL
+  type: SHELL
   action: PostInstall
   on: role=master
   data: |
@@ -44,8 +45,11 @@ func TestSheller_Run(t *testing.T) {
 	cluster := &typev2.Cluster{}
 	cluster.Spec.SSH.User = "root"
 	cluster.Spec.SSH.Passwd = "7758521"
-	for _, host := range cluster.Spec.Hosts {
-		host.IPS = []string{"192.168.59.11"}
+	cluster.Spec.Hosts = []typev2.Host{
+		{
+			IPS:   []string{"192.168.59.11"},
+			Roles: []string{common.MASTER},
+		},
 	}
 	//cluster.Spec.Nodes.IPList = []string{"192.168.59.11"}
 	plugin := &typev1.Plugin{}

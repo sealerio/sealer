@@ -33,7 +33,7 @@ func TestEtcdBackupPlugin_Run(t *testing.T) {
 	cluster.Spec.SSH.Passwd = "123456"
 	cluster.Spec.Hosts = []v2.Host{
 		{
-			IPS: []string{"192.168.0.2"},
+			IPS:   []string{"192.168.0.2"},
 			Roles: []string{common.MASTER},
 		},
 	}
@@ -49,8 +49,7 @@ func TestEtcdBackupPlugin_Run(t *testing.T) {
 			args{
 				context: Context{
 					Cluster: cluster,
-					Plugin: &plugin,
-
+					Plugin:  &plugin,
 				},
 				phase: PhasePostInstall,
 			},
@@ -59,8 +58,7 @@ func TestEtcdBackupPlugin_Run(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := EtcdBackupPlugin{
-			}
+			e := EtcdBackupPlugin{}
 			if err := e.Run(tt.args.context, tt.args.phase); (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
