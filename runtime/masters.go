@@ -17,6 +17,7 @@ package runtime
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -132,17 +133,30 @@ func (d *Default) JoinMasterCommands(master, joinCmd, hostname string) []string 
 	return []string{cmdAddRegistryHosts, certCMD, cmdAddHosts, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig}
 }
 
-func (d *Default) sendKubeConfigFile(hosts []string, kubeFile string) {
+func (d *Default) sendKubeConfigFile(hosts []string, kubeFile string) error {
 	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
 	sealerKubeFile := fmt.Sprintf("%s/%s", d.BasePath, kubeFile)
-	d.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
+	return d.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
-func (d *Default) sendNewCertAndKey(hosts []string) {
-	d.sendFileToHosts(hosts, d.CertPath, cert.KubeDefaultCertPath)
+func (d *Default) sendNewCertAndKey(hosts []string) error {
+	err := d.sendFileToHosts(hosts, d.CertPath, cert.KubeDefaultCertPath)
+	if err != nil {
+		return err
+	}
+	return d.sendFileToHosts(d.Masters[:1], filepath.Join(d.BasePath, "certs"), filepath.Join(d.Rootfs, "certs"))
 }
 
-func (d *Default) sendFileToHosts(Hosts []string, src, dst string) {
+func (d *Default) sendRegistryCert(host []string) error {
+	err := d.sendFileToHosts(host, fmt.Sprintf("%s/certs/%s.crt", d.BasePath, SeaHub), fmt.Sprintf("%s/%s/%s.crt", DockerCertDir, SeaHub, SeaHub))
+	if err != nil {
+		return err
+	}
+	return d.sendFileToHosts(host, fmt.Sprintf("%s/certs/%s.crt", d.BasePath, SeaHub), fmt.Sprintf("%s/%s:%d/%s.crt", DockerCertDir, SeaHub, d.RegistryPort, SeaHub))
+}
+
+func (d *Default) sendFileToHosts(Hosts []string, src, dst string) error {
+	var flag bool
 	var wg sync.WaitGroup
 	for _, node := range Hosts {
 		wg.Add(1)
@@ -150,11 +164,16 @@ func (d *Default) sendFileToHosts(Hosts []string, src, dst string) {
 			defer wg.Done()
 			err := d.SSH.Copy(node, src, dst)
 			if err != nil {
-				logger.Error("send file failed %v", err)
+				logger.Error("failed to send file %s to [%s]:%s , err: %v", src, dst, err)
+				flag = true
 			}
 		}(node)
 	}
+	if flag {
+		return fmt.Errorf("send file failed")
+	}
 	wg.Wait()
+	return nil
 }
 
 func (d *Default) ReplaceKubeConfigV1991V1992(masters []string) bool {
@@ -174,13 +193,17 @@ func (d *Default) ReplaceKubeConfigV1991V1992(masters []string) bool {
 	return false
 }
 
-func (d *Default) SendJoinMasterKubeConfigs(masters []string, files ...string) {
+func (d *Default) SendJoinMasterKubeConfigs(masters []string, files ...string) error {
 	for _, f := range files {
-		d.sendKubeConfigFile(masters, f)
+		err := d.sendKubeConfigFile(masters, f)
+		if err != nil {
+			return err
+		}
 	}
 	if d.ReplaceKubeConfigV1991V1992(masters) {
 		logger.Info("set kubernetes v1.19.1 v1.19.2 kube config")
 	}
+	return nil
 }
 
 func (d *Default) joinKubeadmConfig() string {
@@ -347,9 +370,15 @@ func (d *Default) joinMasters(masters []string) error {
 	if err := d.CopyStaticFiles(masters); err != nil {
 		return err
 	}
-	d.SendJoinMasterKubeConfigs(masters, AdminConf, ControllerConf, SchedulerConf)
+	err := d.SendJoinMasterKubeConfigs(masters, AdminConf, ControllerConf, SchedulerConf)
+	if err != nil {
+		return err
+	}
 	// TODO only needs send ca?
-	d.sendNewCertAndKey(masters)
+	err = d.sendNewCertAndKey(masters)
+	if err != nil {
+		return err
+	}
 	d.sendJoinCPConfig(masters)
 	cmd := d.Command(d.Metadata.Version, JoinMaster)
 	// TODO for test skip dockerd dev version

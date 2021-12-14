@@ -50,6 +50,7 @@ type Default struct {
 	PodCIDR           string
 	ControlPlaneRepo  string
 	RegistryPort      int
+	RegistryCertPath  string
 	DNSDomain         string
 	Masters           []string
 	APIServer         string

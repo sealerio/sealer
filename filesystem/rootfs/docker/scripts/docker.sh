@@ -26,6 +26,12 @@ get_distribution() {
     # case statements don't act unless you provide an actual value
     echo "$lsb_dist"
 }
+disable_selinux(){
+    if [ -s /etc/selinux/config ] && grep 'SELINUX=enforcing' /etc/selinux/config; then
+        sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+        setenforce 0
+    fi
+}
 set -x
 storage=${1:-/var/lib/docker}
 mkdir -p $storage
@@ -65,5 +71,6 @@ if ! command_exists docker; then
     sed -i "s/$2:5000/$2:$3/g" /etc/docker/daemon.json
   fi
 fi
+disable_selinux
 systemctl daemon-reload
 systemctl restart docker.service
