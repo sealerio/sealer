@@ -83,12 +83,12 @@ func fetchRemoteCert(context Context, masterIP string) error {
 }
 
 func connEtcd(masterIP string) (clientv3.Config, error) {
-	const(
+	const (
 		dialTimeout = 5 * time.Second
-	 	etcdCert = "/tmp/healthcheck-client.crt"
-	 	etcdCertKey = "/tmp/healthcheck-client.key"
-	 	etcdCa = "/tmp/ca.crt"
-		)
+		etcdCert    = "/tmp/healthcheck-client.crt"
+		etcdCertKey = "/tmp/healthcheck-client.key"
+		etcdCa      = "/tmp/ca.crt"
+	)
 
 	cert, err := tls.LoadX509KeyPair(etcdCert, etcdCertKey)
 	if err != nil {
