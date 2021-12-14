@@ -18,14 +18,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	distribution "github.com/distribution/distribution/v3"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 //this package unmarshal manifests from json into a ManifestList struct
-//then choose corresponding manifest by arch
-
+//then choose corresponding manifest by platform
 type ManifestList struct {
 	List      []ImageMainfest `json:"manifests"`
 	MediaType string          `json:"mediaType"`
@@ -39,13 +37,9 @@ type ImageMainfest struct {
 	Size      int
 }
 
-func getImageManifestDigest(manifestListJSON distribution.Manifest, platform v1.Platform) (digest.Digest, error) {
-	_, list, err := manifestListJSON.Payload()
-	if err != nil {
-		return "", fmt.Errorf("failed to get manifestList: %v", err)
-	}
+func getImageManifestDigest(payload []byte, platform v1.Platform) (digest.Digest, error) {
 	var manifestList ManifestList
-	err = json.Unmarshal(list, &manifestList)
+	err := json.Unmarshal(payload, &manifestList)
 	if err != nil {
 		return "", fmt.Errorf("json unmarshal error: %v", err)
 	}

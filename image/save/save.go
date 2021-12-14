@@ -34,6 +34,9 @@ const (
 	defauleProxyURL     = "https://registry-1.docker.io"
 	configRootDir       = "rootdirectory"
 	maxPullGoroutineNum = 10
+
+	manifestV2   = "application/vnd.docker.distribution.manifest.v2+json"
+	manifestList = "application/vnd.docker.distribution.manifest.list.v2+json"
 )
 
 func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1.Platform) error {
@@ -137,12 +140,7 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 				errCh <- fmt.Errorf("get %s tag descriptor error: %v", named.repo, err)
 			}
 
-			manifestListJSON, err := manifest.Get(is.ctx, desc.Digest, make([]distribution.ManifestServiceOption, 0)...)
-			if err != nil {
-				errCh <- fmt.Errorf("get image manifest list error: %v", err)
-			}
-
-			imageDigest, err := getImageManifestDigest(manifestListJSON, platform)
+			imageDigest, err := is.handleManifest(manifest, desc.Digest, platform)
 			if err != nil {
 				errCh <- fmt.Errorf("get digest error: %v", err)
 			}
@@ -160,6 +158,28 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 	}
 
 	return imageDigests, nil
+}
+
+func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestService, imagedigest digest.Digest, platform v1.Platform) (digest.Digest, error) {
+	mani, err := manifest.Get(is.ctx, imagedigest, make([]distribution.ManifestServiceOption, 0)...)
+	if err != nil {
+		return digest.Digest(""), fmt.Errorf("get image manifest error: %v", err)
+	}
+	ct, p, err := mani.Payload()
+	if err != nil {
+		return digest.Digest(""), fmt.Errorf("failed to get image manifest payload: %v", err)
+	}
+	switch ct {
+	case manifestV2:
+		return imagedigest, nil
+	case manifestList:
+		imageDigest, err := getImageManifestDigest(p, platform)
+		if err != nil {
+			return digest.Digest(""), fmt.Errorf("get digest from manifest list error: %v", err)
+		}
+		return imageDigest, nil
+	}
+	return digest.Digest(""), fmt.Errorf("handle manifest error")
 }
 
 func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distribution.Repository) error {
