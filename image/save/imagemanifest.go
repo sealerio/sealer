@@ -51,23 +51,23 @@ func getImageManifestDigest(manifestListJSON distribution.Manifest, platform v1.
 	}
 	// look up manifest of the corresponding architecture
 	for _, item := range manifestList.List {
-		if equalPlatForm(item.Platform, platform) {
+		if equalPlatform(item.Platform, platform) {
 			return digest.Digest(item.Digest), nil
 		}
 	}
-	return "", fmt.Errorf("no manifest of the corresponding architecture")
+	return "", fmt.Errorf("no manifest of the corresponding platform")
 }
 
-func equalPlatForm(src, target v1.Platform) bool {
-	if src.OS != "" && src.OS != target.OS {
+func equalPlatform(src, target v1.Platform) bool {
+	if target.OS != "" && src.OS != target.OS {
 		return false
 	}
 
-	if src.Architecture != "" && src.Architecture != target.Architecture {
+	if target.Architecture != "" && src.Architecture != target.Architecture {
 		return false
 	}
 
-	if src.Variant != "" && src.Variant != target.Variant {
+	if target.Variant != "" && src.Variant != target.Variant {
 		return false
 	}
 	return true
