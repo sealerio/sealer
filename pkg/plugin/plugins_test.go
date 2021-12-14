@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
 func TestDumperPlugin_Dump(t *testing.T) {
@@ -28,7 +29,7 @@ func TestDumperPlugin_Dump(t *testing.T) {
 	plugins := []v1.Plugin{
 		{
 			Spec: v1.PluginSpec{
-				On:     "node-role.kubernetes.io/master=",
+				On:     "role=master",
 				Data:   "kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule",
 				Action: "PostInstall",
 			},
@@ -73,7 +74,7 @@ func TestDumperPlugin_Run(t *testing.T) {
 		clusterName string
 	}
 	type args struct {
-		cluster *v1.Cluster
+		cluster *v2.Cluster
 		phase   Phase
 	}
 	plugins := []v1.Plugin{
@@ -86,7 +87,7 @@ func TestDumperPlugin_Run(t *testing.T) {
 		},
 	}
 	//TODO cluster is where?
-	cluster := &v1.Cluster{}
+	cluster := &v2.Cluster{}
 	tests := []struct {
 		name    string
 		fields  fields
