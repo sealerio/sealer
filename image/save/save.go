@@ -26,17 +26,17 @@ import (
 	"github.com/distribution/distribution/v3/registry/storage"
 	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
 	"github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
 	urlPrefix           = "https://"
-	defauleProxyURL     = `https://registry-1.docker.io`
-	configFileSys       = `filesystem`
-	configRootDir       = `rootdirectory`
+	defauleProxyURL     = "https://registry-1.docker.io"
+	configRootDir       = "rootdirectory"
 	maxPullGoroutineNum = 10
 )
 
-func (is *DefaultImageSaver) SaveImages(images []string, dir, arch string) error {
+func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1.Platform) error {
 	for _, image := range images {
 		named, err := parseNormalizedNamed(image)
 		if err != nil {
@@ -49,7 +49,7 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir, arch string) error
 		if err != nil {
 			return fmt.Errorf("init registry error: %v", err)
 		}
-		err = is.save(nameds, arch, registry)
+		err = is.save(nameds, platform, registry)
 		if err != nil {
 			return fmt.Errorf("save domain %s image error: %v", nameds[0].domain, err)
 		}
@@ -57,13 +57,13 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir, arch string) error
 	return nil
 }
 
-func (is *DefaultImageSaver) save(nameds []Named, arch string, registry distribution.Namespace) error {
+func (is *DefaultImageSaver) save(nameds []Named, platform v1.Platform, registry distribution.Namespace) error {
 	repo, err := is.getRepository(nameds[0], registry)
 	if err != nil {
 		return err
 	}
 
-	imageDigests, err := is.saveManifestAndGetDigest(nameds, repo, arch)
+	imageDigests, err := is.saveManifestAndGetDigest(nameds, repo, platform)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 			RemoteURL: proxyURL,
 		},
 		Storage: configuration.Storage{
-			configFileSys: configuration.Parameters{configRootDir: rootdir},
+			driverName: configuration.Parameters{configRootDir: rootdir},
 		},
 	}
 	driver, err := factory.Create(config.Storage.Type(), config.Storage.Parameters())
@@ -119,7 +119,7 @@ func (is *DefaultImageSaver) getRepository(named Named, registry distribution.Na
 	return repo, nil
 }
 
-func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distribution.Repository, arch string) ([]digest.Digest, error) {
+func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distribution.Repository, platform v1.Platform) ([]digest.Digest, error) {
 	manifest, err := repo.Manifests(is.ctx, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
 		return nil, fmt.Errorf("get manifest service error: %v", err)
@@ -142,7 +142,7 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 				errCh <- fmt.Errorf("get image manifest list error: %v", err)
 			}
 
-			imageDigest, err := getImageManifestDigest(manifestListJSON, arch)
+			imageDigest, err := getImageManifestDigest(manifestListJSON, platform)
 			if err != nil {
 				errCh <- fmt.Errorf("get digest error: %v", err)
 			}

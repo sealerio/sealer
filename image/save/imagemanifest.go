@@ -20,6 +20,7 @@ import (
 
 	distribution "github.com/distribution/distribution/v3"
 	"github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 //this package unmarshal manifests from json into a ManifestList struct
@@ -34,17 +35,11 @@ type ManifestList struct {
 type ImageMainfest struct {
 	Digest    string `json:"digest"`
 	MediaType string `json:"mediaType"`
-	Platform  Platform
+	Platform  v1.Platform
 	Size      int
 }
 
-type Platform struct {
-	Arch    string `json:"architecture"`
-	Os      string `json:"os"`
-	Variant string `json:"variant,omitempty"`
-}
-
-func getImageManifestDigest(manifestListJSON distribution.Manifest, arch string) (digest.Digest, error) {
+func getImageManifestDigest(manifestListJSON distribution.Manifest, platform v1.Platform) (digest.Digest, error) {
 	_, list, err := manifestListJSON.Payload()
 	if err != nil {
 		return "", fmt.Errorf("failed to get manifestList: %v", err)
@@ -56,9 +51,24 @@ func getImageManifestDigest(manifestListJSON distribution.Manifest, arch string)
 	}
 	// look up manifest of the corresponding architecture
 	for _, item := range manifestList.List {
-		if item.Platform.Arch == arch {
+		if equalPlatForm(item.Platform, platform) {
 			return digest.Digest(item.Digest), nil
 		}
 	}
 	return "", fmt.Errorf("no manifest of the corresponding architecture")
+}
+
+func equalPlatForm(src, target v1.Platform) bool {
+	if src.OS != "" && src.OS != target.OS {
+		return false
+	}
+
+	if src.Architecture != "" && src.Architecture != target.Architecture {
+		return false
+	}
+
+	if src.Variant != "" && src.Variant != target.Variant {
+		return false
+	}
+	return true
 }

@@ -16,11 +16,13 @@ package save
 
 import (
 	"context"
+
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-//SaveImage can save a list of images of the specified architecture
+//SaveImage can save a list of images of the specified platform
 type ImageSave interface {
-	SaveImages(images []string, dir, arch string) error
+	SaveImages(images []string, dir string, platform v1.Platform) error
 }
 
 type DefaultImageSaver struct {

@@ -17,12 +17,14 @@ package save
 import (
 	"context"
 	"testing"
+
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 func TestSaveImages(t *testing.T) {
 	tests := []string{"ubuntu", "ubuntu:18.04", "registry.aliyuncs.com/google_containers/coredns:1.6.5", "fanux/lvscare"}
 	is := NewImageSaver(context.Background())
-	err := is.SaveImages(tests, "/var/lib/registry", "amd64")
+	err := is.SaveImages(tests, "/var/lib/registry", v1.Platform{OS: "linux", Architecture: "amd64"})
 	if err != nil {
 		t.Error(err)
 	}
