@@ -24,8 +24,8 @@ import (
 	"github.com/alibaba/sealer/pkg/config"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/guest"
+	"github.com/alibaba/sealer/pkg/plugin"
 	"github.com/alibaba/sealer/pkg/runtime"
-	"github.com/alibaba/sealer/plugin"
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -38,7 +38,7 @@ type CreateProcessor struct {
 	Plugins      plugin.Plugins
 }
 
-//var pluginPhases = []plugin.Phase{plugin.PhaseOriginally, plugin.PhasePreInit, plugin.PhasePreGuest, plugin.PhasePostInstall}
+var pluginPhases = []plugin.Phase{plugin.PhaseOriginally, plugin.PhasePreInit, plugin.PhasePreGuest, plugin.PhasePostInstall}
 
 func (c CreateProcessor) Execute(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
@@ -67,17 +67,17 @@ func (c CreateProcessor) Execute(cluster *v2.Cluster) error {
 func (c CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
-		//c.RunInitPlugin,
+		c.RunPhasePlugin,
 		c.MountImage,
 		c.RunConfig,
 		c.MountRootfs,
-		//c.PluginPhasePreInitRun,
+		c.RunPhasePlugin,
 		c.Init,
 		c.Join,
-		//c.PluginPhasePreGuestRun,
+		c.RunPhasePlugin,
 		c.RunGuest,
 		c.UnMountImage,
-		//c.PluginPhasePostInstallRun,
+		c.RunPhasePlugin,
 	)
 	return todoList, nil
 }
@@ -131,16 +131,16 @@ func (c CreateProcessor) initPlugin(cluster *v2.Cluster) error {
 	return c.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
 }
 
-/*func (i CreateProcessor) RunPhasePlugin(cluster *v2.Cluster) error {
+func (c CreateProcessor) RunPhasePlugin(cluster *v2.Cluster) error {
 	if pluginPhases[0] == plugin.PhasePreInit {
-		if err := i.Plugins.Load(); err != nil {
+		if err := c.Plugins.Load(); err != nil {
 			return err
 		}
 	}
-	err := i.Plugins.Run(cluster, pluginPhases[0])
+	err := c.Plugins.Run(cluster, pluginPhases[0])
 	pluginPhases = pluginPhases[1:]
 	return err
-}*/
+}
 
 func NewCreateProcessor() (Interface, error) {
 	imgSvc, err := image.NewImageService()
