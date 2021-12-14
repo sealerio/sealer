@@ -34,6 +34,7 @@ type Interface interface {
 type Metadata struct {
 	Version string `json:"version"`
 	Arch    string `json:"arch"`
+	Variant string `json:"variant"`
 }
 
 type KubeadmRuntime struct {

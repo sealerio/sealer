@@ -17,11 +17,9 @@ package buildimage
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/client/docker"
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -29,7 +27,7 @@ import (
 	"github.com/alibaba/sealer/utils/mount"
 )
 
-func GetRegistryBindDir() string {
+func getRegistryBindDir() string {
 	// check is docker running runtime.RegistryName
 	// check bind dir
 	var registryName = runtime.RegistryName
@@ -59,7 +57,7 @@ func GetRegistryBindDir() string {
 
 func NewRegistryCache(baseLayers []v1.Layer) (*buildinstruction.MountTarget, error) {
 	//$rootfs/registry
-	dir := GetRegistryBindDir()
+	dir := getRegistryBindDir()
 	if dir == "" {
 		return mountRootfs(buildinstruction.GetBaseLayersPath(baseLayers))
 	}
@@ -87,32 +85,5 @@ func mountRootfs(res []string) (*buildinstruction.MountTarget, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	err = startRegistry(rootfs.GetMountTarget())
-	if err != nil {
-		return nil, err
-	}
-
 	return rootfs, nil
-}
-
-func startRegistry(mountedRootfs string) error {
-	initDockerCmd := fmt.Sprintf("cd %s  && chmod +x scripts/* && cd scripts && bash docker.sh", mountedRootfs)
-	host := fmt.Sprintf("%s %s", "127.0.0.1", runtime.SeaHub)
-	if !utils.IsFileContent(common.EtcHosts, host) {
-		initDockerCmd = fmt.Sprintf("%s && %s", fmt.Sprintf(runtime.RemoteAddEtcHosts, host), initDockerCmd)
-	}
-
-	initRegistryCmd := fmt.Sprintf("bash init-registry.sh 5000 %s", filepath.Join(mountedRootfs, common.RegistryDirName))
-	r, err := utils.RunSimpleCmd(fmt.Sprintf("%s && %s", initDockerCmd, initRegistryCmd))
-	logger.Info(r)
-	if err != nil {
-		return fmt.Errorf("failed to init docker and registry: %v", err)
-	}
-	return utils.Retry(10, 3*time.Second, func() error {
-		if !utils.IsHostPortExist("tcp", "127.0.0.1", 5000) {
-			return fmt.Errorf("registry is not ready")
-		}
-		return nil
-	})
 }

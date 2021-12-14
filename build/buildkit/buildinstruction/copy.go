@@ -130,10 +130,11 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 		return nil, err
 	}
 	layerValue := strings.Fields(ctx.CurrentLayer.Value)
+	plo := buildlayer.NewParseLayerOpts(ctx.ImageSaveDir, ctx.Platform)
 	return &CopyInstruction{
 		fs:           fs,
 		mounter:      *target,
-		layerHandler: buildlayer.ParseLayerContent(ctx.CurrentLayer),
+		layerHandler: buildlayer.ParseLayerContent(ctx.CurrentLayer, plo),
 		rawLayer:     *ctx.CurrentLayer,
 		src:          layerValue[0],
 		dest:         layerValue[1],

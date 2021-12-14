@@ -18,20 +18,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	r "runtime"
 
+	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
-	"github.com/alibaba/sealer/client/docker"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/store"
-	"github.com/alibaba/sealer/runtime"
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-
-	"github.com/alibaba/sealer/logger"
 	"sigs.k8s.io/yaml"
 )
 
@@ -49,7 +49,7 @@ type BuildImage struct {
 	ImageStore        store.ImageStore
 	LayerStore        store.LayerStore
 	ImageService      image.Service
-	DockerClient      *docker.Docker
+	Platform          ocispecs.Platform
 	RegistryInfo      *buildinstruction.MountTarget
 }
 
@@ -72,11 +72,17 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		if ctx.BuildType == common.LiteBuild && layer.Type == common.CMDCOMMAND {
 			continue
 		}
-
+		var isd string
+		if b.RegistryInfo != nil {
+			// use registry sdk to save image,here we keep same with the rootfs: $rootfs/registry.
+			isd = filepath.Join(b.RegistryInfo.GetMountTarget(), common.RegistryDirName)
+		}
 		//run layer instruction exec to get layer id and cache id
 		ic := buildinstruction.InstructionContext{
 			BaseLayers:   baseLayers,
 			CurrentLayer: layer,
+			Platform:     b.Platform,
+			ImageSaveDir: isd,
 		}
 		inst, err := buildinstruction.NewInstruction(ic)
 		if err != nil {
@@ -218,15 +224,6 @@ func (b BuildImage) Cleanup() error {
 	}
 
 	b.RegistryInfo.CleanUp()
-
-	if err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("127.0.0.1 %s", runtime.SeaHub)); err != nil {
-		logger.Warn(err)
-	}
-	//we need to delete docker registry.if not ,will only cache incremental image in the next build
-	err := b.DockerClient.RmContainerByName(runtime.RegistryName)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -254,7 +251,6 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 	var (
 		layer0       = rawImage.Spec.Layers[0]
 		baseImage    *v1.Image
-		dockerClient *docker.Docker
 		registryInfo *buildinstruction.MountTarget
 	)
 
@@ -277,7 +273,7 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 	if len(baseLayers)+len(newLayers) > maxLayerDeep {
 		return nil, errors.New("current number of layers exceeds 128 layers")
 	}
-
+	var cp = ocispecs.Platform{}
 	need := CacheDockerImage(layer0.Value, newLayers)
 	if need {
 		registryCache, err := NewRegistryCache(baseLayers)
@@ -285,11 +281,18 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 			return nil, err
 		}
 		registryInfo = registryCache
-		client, err := docker.NewDockerClient()
+
+		meta, err := runtime.LoadMetadata(filepath.Join(registryCache.GetMountTarget(),
+			common.DefaultMetadataName))
 		if err != nil {
 			return nil, err
 		}
-		dockerClient = client
+		// current we only support build on linux
+		cp = ocispecs.Platform{
+			Architecture: meta.Arch,
+			OS:           r.GOOS,
+			Variant:      meta.Variant,
+		}
 	}
 
 	return &BuildImage{
@@ -300,7 +303,7 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 		BaseLayers:        baseLayers,
 		NewLayers:         newLayers,
 		NeedCacheRegistry: need,
-		DockerClient:      dockerClient,
 		RegistryInfo:      registryInfo,
+		Platform:          cp,
 	}, nil
 }

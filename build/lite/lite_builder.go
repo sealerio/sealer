@@ -17,7 +17,6 @@ package lite
 import (
 	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
-	"github.com/alibaba/sealer/client/docker"
 	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
 )
@@ -28,7 +27,6 @@ type Builder struct {
 	ImageNamed   reference.Named
 	Context      string
 	KubeFileName string
-	DockerClient *docker.Docker
 	BuildImage   buildimage.Interface
 }
 
@@ -57,12 +55,6 @@ func (l *Builder) Build(name string, context string, kubefileName string) error 
 	}
 	l.BuildImage = bi
 
-	dockerClient, err := docker.NewDockerClient()
-	if err != nil {
-		return err
-	}
-	l.DockerClient = dockerClient
-
 	pipLine, err := l.GetBuildPipeLine()
 	if err != nil {
 		return err
@@ -88,11 +80,6 @@ func (l *Builder) GetBuildPipeLine() ([]func() error, error) {
 }
 
 func (l *Builder) PreCheck() error {
-	//todo need install sealer docker,if already installed,need to return.
-	images, _ := l.DockerClient.ImagesList()
-	if len(images) > 0 {
-		logger.Warn("The image already exists on the host. Note that the existing image cannot be cached in registry")
-	}
 	return nil
 }
 

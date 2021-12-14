@@ -17,15 +17,34 @@ package buildlayer
 import (
 	"strings"
 
+	"github.com/alibaba/sealer/utils"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
+
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
+type ParseLayerOpts struct {
+	ImageSaveDir string
+	Platform     ocispecs.Platform
+}
+
+func NewParseLayerOpts(saveDir string, platform ocispecs.Platform) *ParseLayerOpts {
+	return &ParseLayerOpts{
+		ImageSaveDir: saveDir,
+		Platform:     platform,
+	}
+}
+
 // ParseLayerContent :init different layer handler to exchanging due to the layer content
-func ParseLayerContent(layer *v1.Layer) LayerHandler {
-	var layerParser LayerCopy
+func ParseLayerContent(layer *v1.Layer, opts *ParseLayerOpts) LayerHandler {
+	var layerParser CopyLayer
 	if layer.Type == common.COPYCOMMAND {
+		// parse copy attr
 		layerParser = ParseCopyLayerValue(layer.Value)
+		// parse image attr
+		layerParser.ImageSaveDir = opts.ImageSaveDir
+		layerParser.Platform = opts.Platform
 	}
 
 	switch layerParser.HandlerType {
@@ -40,7 +59,7 @@ func ParseLayerContent(layer *v1.Layer) LayerHandler {
 	return nil
 }
 
-func ParseCopyLayerValue(layerValue string) LayerCopy {
+func ParseCopyLayerValue(layerValue string) CopyLayer {
 	//COPY imageList manifests
 	//COPY cc charts
 	//COPY recommended.yaml manifests
@@ -51,7 +70,7 @@ func ParseCopyLayerValue(layerValue string) LayerCopy {
 		dst = strings.TrimPrefix(dst, p)
 	}
 
-	lc := LayerCopy{
+	lc := CopyLayer{
 		Src:  strings.Fields(layerValue)[0],
 		Dest: dst,
 	}
@@ -59,7 +78,7 @@ func ParseCopyLayerValue(layerValue string) LayerCopy {
 		if lc.Src == ImageList {
 			lc.HandlerType = ImageListHandler
 		}
-		if strings.HasSuffix(lc.Src, ".yaml") || strings.HasSuffix(lc.Src, ".yml") {
+		if utils.YamlMatcher(lc.Src) {
 			lc.HandlerType = YamlHandler
 		}
 		return lc

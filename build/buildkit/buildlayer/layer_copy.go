@@ -18,12 +18,13 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/build/buildkit/buildlayer/content"
 	"github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils"
 	"github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils/charts"
 	manifest "github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils/manifests"
-	"github.com/alibaba/sealer/client/docker"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // layer handler : implement some ops form the content of each layer
@@ -33,15 +34,17 @@ import (
 // 2,copy nginx.tar registry: load the offline images and push to registry.
 // 3,some cmd or run instruction need to do something from the layer content.
 
-type LayerCopy struct {
-	Src         string
-	Dest        string
-	HandlerType string
+type CopyLayer struct {
+	Src          string
+	Dest         string
+	HandlerType  string
+	Platform     ocispecs.Platform
+	ImageSaveDir string
 }
 
 type HandleImageList struct {
-	DockerClient *docker.Docker
-	Lc           LayerCopy
+	puller   content.Processor
+	platform ocispecs.Platform
 }
 
 func (h HandleImageList) LayerValueHandler(buildContext string, layer v1.Layer) error {
@@ -50,7 +53,12 @@ func (h HandleImageList) LayerValueHandler(buildContext string, layer v1.Layer) 
 	if err != nil {
 		return err
 	}
-	return h.DockerClient.ImagesPull(images)
+
+	if len(images) == 0 {
+		return nil
+	}
+	// do pull
+	return h.puller.Pull(images, h.platform)
 }
 
 func (h HandleImageList) parseRawImageList(imageListFilePath string) ([]string, error) {
@@ -62,22 +70,26 @@ func (h HandleImageList) parseRawImageList(imageListFilePath string) ([]string, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file content %s:%v", imageListFilePath, err)
 	}
-	return images, nil
+	return FormatImages(images), nil
 }
 
 type HandleYamlImageList struct {
-	DockerClient *docker.Docker
-	YamlHandler  layerutils.Interface
-	Lc           LayerCopy
+	YamlHandler layerutils.Interface
+	puller      content.Processor
+	platform    ocispecs.Platform
+	src         string
 }
 
 func (h HandleYamlImageList) LayerValueHandler(buildContext string, layer v1.Layer) error {
-	yamlFilePath := filepath.Join(buildContext, h.Lc.Src)
+	yamlFilePath := filepath.Join(buildContext, h.src)
 	images, err := h.parseYamlImages(yamlFilePath)
 	if err != nil {
 		return err
 	}
-	return h.DockerClient.ImagesPull(images)
+	if len(images) == 0 {
+		return nil
+	}
+	return h.puller.Pull(images, h.platform)
 }
 
 func (h HandleYamlImageList) parseYamlImages(yamlFilePath string) ([]string, error) {
@@ -86,23 +98,26 @@ func (h HandleYamlImageList) parseYamlImages(yamlFilePath string) ([]string, err
 	if err != nil {
 		return nil, err
 	}
-
-	return yamlImages, nil
+	return FormatImages(yamlImages), nil
 }
 
 type HandleChartImageList struct {
-	DockerClient *docker.Docker
 	ChartHandler layerutils.Interface
-	Lc           LayerCopy
+	puller       content.Processor
+	platform     ocispecs.Platform
+	src          string
 }
 
 func (h HandleChartImageList) LayerValueHandler(buildContext string, layer v1.Layer) error {
-	chartFilePath := filepath.Join(buildContext, h.Lc.Src)
+	chartFilePath := filepath.Join(buildContext, h.src)
 	images, err := h.parseChartImages(chartFilePath)
 	if err != nil {
 		return err
 	}
-	return h.DockerClient.ImagesPull(images)
+	if len(images) == 0 {
+		return nil
+	}
+	return h.puller.Pull(images, h.platform)
 }
 
 func (h HandleChartImageList) parseChartImages(chartFilePath string) ([]string, error) {
@@ -111,46 +126,32 @@ func (h HandleChartImageList) parseChartImages(chartFilePath string) ([]string, 
 	if err != nil {
 		return nil, err
 	}
-
-	return chartImages, nil
+	return FormatImages(chartImages), nil
 }
 
-func NewYamlHandler(lc LayerCopy) *HandleYamlImageList {
-	dockerClient, err := docker.NewDockerClient()
-	if err != nil {
-		return nil
-	}
+func NewYamlHandler(lc CopyLayer) *HandleYamlImageList {
 	m, _ := manifest.NewManifests()
-
 	return &HandleYamlImageList{
-		DockerClient: dockerClient,
-		Lc:           lc,
-		YamlHandler:  m,
+		puller:      content.NewPullContent(lc.ImageSaveDir),
+		platform:    lc.Platform,
+		YamlHandler: m,
+		src:         lc.Src,
 	}
 }
 
-func NewChartHandler(lc LayerCopy) *HandleChartImageList {
-	dockerClient, err := docker.NewDockerClient()
-	if err != nil {
-		return nil
-	}
+func NewChartHandler(lc CopyLayer) *HandleChartImageList {
 	c, _ := charts.NewCharts()
-
 	return &HandleChartImageList{
-		DockerClient: dockerClient,
-		Lc:           lc,
+		puller:       content.NewPullContent(lc.ImageSaveDir),
+		platform:     lc.Platform,
+		src:          lc.Src,
 		ChartHandler: c,
 	}
 }
 
-func NewImageListHandler(lc LayerCopy) *HandleImageList {
-	dockerClient, err := docker.NewDockerClient()
-	if err != nil {
-		return nil
-	}
-
+func NewImageListHandler(lc CopyLayer) *HandleImageList {
 	return &HandleImageList{
-		DockerClient: dockerClient,
-		Lc:           lc,
+		puller:   content.NewPullContent(lc.ImageSaveDir),
+		platform: lc.Platform,
 	}
 }
