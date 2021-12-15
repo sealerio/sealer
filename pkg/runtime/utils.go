@@ -23,7 +23,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
+
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -149,6 +152,24 @@ func LoadMetadata(metadataPath string) (*Metadata, error) {
 		return nil, fmt.Errorf("failed to load CloudImage metadata %v", err)
 	}
 	return &md, nil
+}
+
+func GetCloudImagePlatform(rootfs string) ocispecs.Platform {
+	cp := ocispecs.Platform{
+		Architecture: runtime.GOARCH,
+		OS:           runtime.GOOS,
+		Variant:      "",
+	}
+	meta, err := LoadMetadata(filepath.Join(rootfs, common.DefaultMetadataName))
+	if err != nil {
+		return cp
+	}
+	// current we only support build on linux
+	return ocispecs.Platform{
+		Architecture: meta.Arch,
+		OS:           runtime.GOOS,
+		Variant:      meta.Variant,
+	}
 }
 
 func ReadChanError(errors chan error) (err error) {

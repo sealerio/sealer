@@ -15,75 +15,39 @@
 package buildimage
 
 import (
-	"fmt"
-	"path/filepath"
-
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
-	"github.com/alibaba/sealer/client/docker"
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
 )
 
-func getRegistryBindDir() string {
-	// check is docker running runtime.RegistryName
-	// check bind dir
-	var registryName = runtime.RegistryName
-	var registryDest = runtime.RegistryBindDest
-
-	dockerClient, err := docker.NewDockerClient()
-	if err != nil {
-		return ""
+// GetRootfsMountInfo to get rootfs mount info.
+//1, already mount: runtime docker registry mount info,just get related mount info.
+//2, already mount: if exec build cmd failed and return ,need to collect related old mount info
+//3, new mount: just mount and return related info.
+func GetRootfsMountInfo(baseLayers []v1.Layer) (*buildinstruction.MountTarget, error) {
+	isMounted, target := mount.GetBuildMountInfo("overlay", "sealer")
+	lowerLayers := buildinstruction.GetBaseLayersPath(baseLayers)
+	if !isMounted {
+		return mountRootfs(lowerLayers)
 	}
 
-	containers, err := dockerClient.GetContainerListByName(registryName)
-
-	if err != nil {
-		return ""
-	}
-
-	for _, c := range containers {
-		for _, m := range c.Mounts {
-			if m.Type == "bind" && m.Destination == registryDest {
-				return m.Source
-			}
-		}
-	}
-
-	return ""
-}
-
-func NewRegistryCache(baseLayers []v1.Layer) (*buildinstruction.MountTarget, error) {
-	//$rootfs/registry
-	dir := getRegistryBindDir()
-	if dir == "" {
-		return mountRootfs(buildinstruction.GetBaseLayersPath(baseLayers))
-	}
-	rootfs := filepath.Dir(dir)
-	// if already mounted ,read mount details set to RootfsMountTarget and return.
-	// Negative examples:
-	//if pull images failed or exec kubefile instruction failed, rerun build again,will cache part images.
-	isMounted, info := mount.GetMountDetails(rootfs)
-	if isMounted {
-		logger.Info("get registry cache dir :%s success ", dir)
-		//nolint
-		return buildinstruction.NewMountTarget(rootfs, info.Upper, utils.Reverse(info.Lowers))
-	}
-
-	return nil, fmt.Errorf("sealer registry is already exist,but not mounted")
+	_, info := mount.GetMountDetails(target)
+	logger.Info("get rootfs mount dir :%s success ", target)
+	//nolint
+	return buildinstruction.NewMountTarget(target, info.Upper, utils.Reverse(info.Lowers))
 }
 
 func mountRootfs(res []string) (*buildinstruction.MountTarget, error) {
-	rootfs, err := buildinstruction.NewMountTarget("", "", res)
+	mounter, err := buildinstruction.NewMountTarget("", "", res)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rootfs.TempMount()
+	err = mounter.TempMount()
 	if err != nil {
 		return nil, err
 	}
-	return rootfs, nil
+	return mounter, nil
 }

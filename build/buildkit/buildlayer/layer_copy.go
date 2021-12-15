@@ -24,7 +24,6 @@ import (
 	manifest "github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils/manifests"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // layer handler : implement some ops form the content of each layer
@@ -35,16 +34,13 @@ import (
 // 3,some cmd or run instruction need to do something from the layer content.
 
 type CopyLayer struct {
-	Src          string
-	Dest         string
-	HandlerType  string
-	Platform     ocispecs.Platform
-	ImageSaveDir string
+	Src    string
+	Dest   string
+	Rootfs string
 }
 
 type HandleImageList struct {
-	puller   content.Processor
-	platform ocispecs.Platform
+	puller content.Processor
 }
 
 func (h HandleImageList) LayerValueHandler(buildContext string, layer v1.Layer) error {
@@ -58,7 +54,7 @@ func (h HandleImageList) LayerValueHandler(buildContext string, layer v1.Layer) 
 		return nil
 	}
 	// do pull
-	return h.puller.Pull(images, h.platform)
+	return h.puller.Pull(images)
 }
 
 func (h HandleImageList) parseRawImageList(imageListFilePath string) ([]string, error) {
@@ -76,7 +72,6 @@ func (h HandleImageList) parseRawImageList(imageListFilePath string) ([]string, 
 type HandleYamlImageList struct {
 	YamlHandler layerutils.Interface
 	puller      content.Processor
-	platform    ocispecs.Platform
 	src         string
 }
 
@@ -89,7 +84,7 @@ func (h HandleYamlImageList) LayerValueHandler(buildContext string, layer v1.Lay
 	if len(images) == 0 {
 		return nil
 	}
-	return h.puller.Pull(images, h.platform)
+	return h.puller.Pull(images)
 }
 
 func (h HandleYamlImageList) parseYamlImages(yamlFilePath string) ([]string, error) {
@@ -104,7 +99,6 @@ func (h HandleYamlImageList) parseYamlImages(yamlFilePath string) ([]string, err
 type HandleChartImageList struct {
 	ChartHandler layerutils.Interface
 	puller       content.Processor
-	platform     ocispecs.Platform
 	src          string
 }
 
@@ -117,7 +111,7 @@ func (h HandleChartImageList) LayerValueHandler(buildContext string, layer v1.La
 	if len(images) == 0 {
 		return nil
 	}
-	return h.puller.Pull(images, h.platform)
+	return h.puller.Pull(images)
 }
 
 func (h HandleChartImageList) parseChartImages(chartFilePath string) ([]string, error) {
@@ -132,8 +126,7 @@ func (h HandleChartImageList) parseChartImages(chartFilePath string) ([]string, 
 func NewYamlHandler(lc CopyLayer) *HandleYamlImageList {
 	m, _ := manifest.NewManifests()
 	return &HandleYamlImageList{
-		puller:      content.NewPullContent(lc.ImageSaveDir),
-		platform:    lc.Platform,
+		puller:      content.NewPullContent(lc.Rootfs),
 		YamlHandler: m,
 		src:         lc.Src,
 	}
@@ -142,8 +135,7 @@ func NewYamlHandler(lc CopyLayer) *HandleYamlImageList {
 func NewChartHandler(lc CopyLayer) *HandleChartImageList {
 	c, _ := charts.NewCharts()
 	return &HandleChartImageList{
-		puller:       content.NewPullContent(lc.ImageSaveDir),
-		platform:     lc.Platform,
+		puller:       content.NewPullContent(lc.Rootfs),
 		src:          lc.Src,
 		ChartHandler: c,
 	}
@@ -151,7 +143,6 @@ func NewChartHandler(lc CopyLayer) *HandleChartImageList {
 
 func NewImageListHandler(lc CopyLayer) *HandleImageList {
 	return &HandleImageList{
-		puller:   content.NewPullContent(lc.ImageSaveDir),
-		platform: lc.Platform,
+		puller: content.NewPullContent(lc.Rootfs),
 	}
 }

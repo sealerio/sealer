@@ -14,13 +14,11 @@
 
 package content
 
-import ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
-
 // more info about layer content,
 // we may have many pre hooks for Copy Layer Content
 // 1. action1 :pull images according to layer content.
 // 2. action2 : copy content out of side build context.
 
 type Processor interface {
-	Pull(images []string, platform ocispecs.Platform) error
+	Pull(images []string) error
 }

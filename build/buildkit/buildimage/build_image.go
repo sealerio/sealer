@@ -18,9 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	r "runtime"
 
-	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
@@ -30,7 +28,6 @@ import (
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
@@ -49,8 +46,7 @@ type BuildImage struct {
 	ImageStore        store.ImageStore
 	LayerStore        store.LayerStore
 	ImageService      image.Service
-	Platform          ocispecs.Platform
-	RegistryInfo      *buildinstruction.MountTarget
+	RootfsMountInfo   *buildinstruction.MountTarget
 }
 
 func (b BuildImage) ExecBuild(ctx Context) error {
@@ -72,17 +68,15 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		if ctx.BuildType == common.LiteBuild && layer.Type == common.CMDCOMMAND {
 			continue
 		}
-		var isd string
-		if b.RegistryInfo != nil {
-			// use registry sdk to save image,here we keep same with the rootfs: $rootfs/registry.
-			isd = filepath.Join(b.RegistryInfo.GetMountTarget(), common.RegistryDirName)
+		var tempRoot string
+		if b.RootfsMountInfo != nil {
+			tempRoot = b.RootfsMountInfo.GetMountTarget()
 		}
 		//run layer instruction exec to get layer id and cache id
 		ic := buildinstruction.InstructionContext{
 			BaseLayers:   baseLayers,
 			CurrentLayer: layer,
-			Platform:     b.Platform,
-			ImageSaveDir: isd,
+			Rootfs:       tempRoot,
 		}
 		inst, err := buildinstruction.NewInstruction(ic)
 		if err != nil {
@@ -172,7 +166,7 @@ func (b BuildImage) collectLayers() ([]v1.Layer, error) {
 
 func (b BuildImage) collectRegistryCache() (v1.Layer, error) {
 	var layer v1.Layer
-	upper := b.RegistryInfo.GetMountUpper()
+	upper := b.RootfsMountInfo.GetMountUpper()
 
 	tmp, err := utils.MkTmpdir()
 	if err != nil {
@@ -223,7 +217,7 @@ func (b BuildImage) Cleanup() error {
 		return nil
 	}
 
-	b.RegistryInfo.CleanUp()
+	b.RootfsMountInfo.CleanUp()
 	return nil
 }
 
@@ -249,9 +243,9 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 	}
 
 	var (
-		layer0       = rawImage.Spec.Layers[0]
-		baseImage    *v1.Image
-		registryInfo *buildinstruction.MountTarget
+		layer0    = rawImage.Spec.Layers[0]
+		baseImage *v1.Image
+		mountInfo *buildinstruction.MountTarget
 	)
 
 	// and the layer 0 must be from layer
@@ -273,25 +267,11 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 	if len(baseLayers)+len(newLayers) > maxLayerDeep {
 		return nil, errors.New("current number of layers exceeds 128 layers")
 	}
-	var cp = ocispecs.Platform{}
 	need := CacheDockerImage(layer0.Value, newLayers)
 	if need {
-		registryCache, err := NewRegistryCache(baseLayers)
+		mountInfo, err = GetRootfsMountInfo(baseLayers)
 		if err != nil {
 			return nil, err
-		}
-		registryInfo = registryCache
-
-		meta, err := runtime.LoadMetadata(filepath.Join(registryCache.GetMountTarget(),
-			common.DefaultMetadataName))
-		if err != nil {
-			return nil, err
-		}
-		// current we only support build on linux
-		cp = ocispecs.Platform{
-			Architecture: meta.Arch,
-			OS:           r.GOOS,
-			Variant:      meta.Variant,
 		}
 	}
 
@@ -303,7 +283,6 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 		BaseLayers:        baseLayers,
 		NewLayers:         newLayers,
 		NeedCacheRegistry: need,
-		RegistryInfo:      registryInfo,
-		Platform:          cp,
+		RootfsMountInfo:   mountInfo,
 	}, nil
 }

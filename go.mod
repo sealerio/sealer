@@ -21,10 +21,12 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.0
 	github.com/sealyun/lvscare v1.1.2-alpha.2
+	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.0
 	github.com/vbatts/tar-split v0.11.1
+	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.0
 	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5

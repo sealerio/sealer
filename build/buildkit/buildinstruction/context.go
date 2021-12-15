@@ -21,7 +21,6 @@ import (
 	"github.com/alibaba/sealer/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/opencontainers/go-digest"
-	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 type ExecContext struct {
@@ -42,8 +41,7 @@ type InstructionContext struct {
 	// dynamic method to init different instruction
 	CurrentLayer *v1.Layer
 	BaseLayers   []v1.Layer
-	Platform     ocispecs.Platform
-	ImageSaveDir string
+	Rootfs       string
 }
 
 type Out struct {

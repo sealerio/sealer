@@ -16,19 +16,25 @@ package content
 
 import (
 	"context"
+	"path/filepath"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/runtime"
+
 	"github.com/alibaba/sealer/image/save"
 	"github.com/alibaba/sealer/logger"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 type pullContent struct {
-	puller  save.ImageSave
-	ctx     context.Context
-	saveDir string
+	puller   save.ImageSave
+	platform ocispecs.Platform
+	ctx      context.Context
+	saveDir  string
 }
 
-func (p pullContent) Pull(images []string, platform ocispecs.Platform) error {
-	err := p.puller.SaveImages(images, p.saveDir, platform)
+func (p pullContent) Pull(images []string) error {
+	err := p.puller.SaveImages(images, p.saveDir, p.platform)
 	if err != nil {
 		logger.Error("failed to pull cache image with error :%v", err)
 		return err
@@ -36,13 +42,13 @@ func (p pullContent) Pull(images []string, platform ocispecs.Platform) error {
 	return nil
 }
 
-func NewPullContent(saveDir string) Processor {
+func NewPullContent(rootfs string) Processor {
 	//new registry puller
 	ctx := context.Background()
-	p := save.NewImageSaver(ctx)
 	return pullContent{
-		puller:  p,
-		ctx:     ctx,
-		saveDir: saveDir,
+		puller:   save.NewImageSaver(ctx),
+		ctx:      ctx,
+		saveDir:  filepath.Join(rootfs, common.RegistryDirName),
+		platform: runtime.GetCloudImagePlatform(rootfs),
 	}
 }

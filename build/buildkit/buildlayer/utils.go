@@ -41,3 +41,38 @@ func trimQuotes(s string) string {
 	}
 	return s
 }
+
+func GetCopyLayerHandlerType(src, dest string) string {
+	//COPY imageList manifests
+	//COPY cc charts
+	//COPY recommended.yaml manifests
+	//COPY nginx.tar images
+
+	if dest == IsCopyToChart {
+		return ChartHandler
+	}
+
+	if dest == IsCopyOfflineImage {
+		return OfflineImageHandler
+	}
+
+	if dest == IsCopyToManifests {
+		if src == ImageList {
+			return ImageListHandler
+		}
+		if utils.YamlMatcher(src) {
+			return YamlHandler
+		}
+	}
+
+	return ""
+}
+
+func ParseCopyLayerContent(layerValue string) (src, dst string) {
+	dst = strings.Fields(layerValue)[1]
+	for _, p := range []string{"./", "/"} {
+		dst = strings.TrimPrefix(dst, p)
+	}
+	src = strings.Fields(layerValue)[0]
+	return
+}
