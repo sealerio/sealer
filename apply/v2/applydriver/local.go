@@ -15,6 +15,7 @@
 package applydriver
 
 import (
+	"fmt"
 	"path/filepath"
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
@@ -165,22 +166,30 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 		return err
 	}
 	// fetch form exec machine
-	desiredMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterDesired.Name),
-		common.DefaultMetadataName))
+	rt, err := runtime.NewDefaultRuntime(c.ClusterDesired, c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to init runtime, %v", err)
+	}
+	KubeadmConfig := &runtime.KubeadmConfig{}
+	err = KubeadmConfig.LoadFromClusterfile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+	if err != nil {
+		return fmt.Errorf("failed to load kubeadm config: %v", err)
+	}
+	err = KubeadmConfig.Merge(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterDesired.Name), "etc", "kubeadm.yaml"))
+	if err != nil {
+		return fmt.Errorf("failed to merge default kubeadm config: %v", err)
 	}
 
-	if info.GitVersion == desiredMetadata.Version {
+	if info.GitVersion == KubeadmConfig.KubernetesVersion {
 		return nil
 	}
 
-	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
+	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, KubeadmConfig.KubernetesVersion)
 	//if desiredMetadata.Version==""{
 	//	//install app
 	//}
 
-	applier, err := processor.NewUpgradeProcessor(c.FileSystem, mj, nj)
+	applier, err := processor.NewUpgradeProcessor(c.FileSystem, rt, mj, nj)
 	if err != nil {
 		return err
 	}
@@ -189,7 +198,7 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 		return err
 	}
 
-	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
+	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", info.GitVersion, KubeadmConfig.KubernetesVersion)
 
 	return nil
 }
