@@ -25,16 +25,10 @@ import (
 //this package unmarshal blobs from json into a BlobList struct
 //then return a slice of blob digest
 type BlobList struct {
-	Layers    []Blob `json:"layers"`
-	Config    Blob   `json:"config"`
-	MediaType string `json:"mediaType"`
-	Schema    int    `json:"schemaVersion"`
-}
-
-type Blob struct {
-	Digest    string `json:"digest"`
-	MediaType string `json:"mediaType"`
-	Size      int
+	Layers    []distribution.Descriptor `json:"layers"`
+	Config    distribution.Descriptor   `json:"config"`
+	MediaType string                    `json:"mediaType"`
+	Schema    int                       `json:"schemaVersion"`
 }
 
 func getBlobList(blobListJSON distribution.Manifest) ([]digest.Digest, error) {
@@ -48,9 +42,9 @@ func getBlobList(blobListJSON distribution.Manifest) ([]digest.Digest, error) {
 		return nil, fmt.Errorf("json unmarshal error: %v", err)
 	}
 	var blobDigests []digest.Digest
-	blobDigests = append(blobDigests, digest.Digest(blobList.Config.Digest))
+	blobDigests = append(blobDigests, blobList.Config.Digest)
 	for _, layer := range blobList.Layers {
-		blobDigests = append(blobDigests, digest.Digest(layer.Digest))
+		blobDigests = append(blobDigests, layer.Digest)
 	}
 	return blobDigests, nil
 }

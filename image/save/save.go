@@ -35,8 +35,10 @@ const (
 	configRootDir       = "rootdirectory"
 	maxPullGoroutineNum = 10
 
-	manifestV2   = "application/vnd.docker.distribution.manifest.v2+json"
-	manifestList = "application/vnd.docker.distribution.manifest.list.v2+json"
+	manifestV2       = "application/vnd.docker.distribution.manifest.v2+json"
+	manifestOCI      = "application/vnd.oci.image.manifest.v1+json"
+	manifestList     = "application/vnd.docker.distribution.manifest.list.v2+json"
+	manifestOCIIndex = "application/vnd.oci.image.index.v1+json"
 )
 
 func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1.Platform) error {
@@ -170,9 +172,9 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 		return digest.Digest(""), fmt.Errorf("failed to get image manifest payload: %v", err)
 	}
 	switch ct {
-	case manifestV2:
+	case manifestV2, manifestOCI:
 		return imagedigest, nil
-	case manifestList:
+	case manifestList, manifestOCIIndex:
 		imageDigest, err := getImageManifestDigest(p, platform)
 		if err != nil {
 			return digest.Digest(""), fmt.Errorf("get digest from manifest list error: %v", err)
