@@ -15,6 +15,7 @@
 package reference
 
 import (
+	"errors"
 	"strings"
 )
 
@@ -37,6 +38,9 @@ func ParseToNamed(name string) (Named, error) {
 	named.raw = buildRaw(name)
 	named.domain, named.repoTag = normalizeDomainRepoTag(name)
 	named.repo, named.tag = buildRepoAndTag(named.repoTag)
+	if strings.ToLower(named.repo) != named.repo {
+		return named, errors.New("uppercase is not allowed in image name")
+	}
 	return named, nil
 }
 
