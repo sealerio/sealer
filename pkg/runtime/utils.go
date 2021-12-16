@@ -23,7 +23,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -154,22 +153,25 @@ func LoadMetadata(metadataPath string) (*Metadata, error) {
 	return &md, nil
 }
 
-func GetCloudImagePlatform(rootfs string) ocispecs.Platform {
-	cp := ocispecs.Platform{
-		Architecture: runtime.GOARCH,
-		OS:           runtime.GOOS,
+func GetCloudImagePlatform(rootfs string) (cp ocispecs.Platform) {
+	cp = ocispecs.Platform{
+		Architecture: "amd64",
+		OS:           "linux",
 		Variant:      "",
 	}
 	meta, err := LoadMetadata(filepath.Join(rootfs, common.DefaultMetadataName))
 	if err != nil {
-		return cp
+		return
+	}
+
+	if meta.Arch != "" {
+		cp.Architecture = meta.Arch
+	}
+	if meta.Variant != "" {
+		cp.Variant = meta.Variant
 	}
 	// current we only support build on linux
-	return ocispecs.Platform{
-		Architecture: meta.Arch,
-		OS:           runtime.GOOS,
-		Variant:      meta.Variant,
-	}
+	return
 }
 
 func ReadChanError(errors chan error) (err error) {
