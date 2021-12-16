@@ -33,10 +33,6 @@ func validate(name string) error {
 	}
 
 	for _, c := range name {
-		if unicode.IsUpper(c) {
-			return errors.New("uppercase is not allowed in image name")
-		}
-
 		if unicode.IsSpace(c) {
 			return errors.New("space is not allowed in image name")
 		}
