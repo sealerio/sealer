@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package content
+package imagepuller
 
 import (
 	"context"
@@ -26,14 +26,14 @@ import (
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-type pullContent struct {
+type puller struct {
 	puller   save.ImageSave
 	platform ocispecs.Platform
 	ctx      context.Context
 	saveDir  string
 }
 
-func (p pullContent) Pull(images []string) error {
+func (p puller) Pull(images []string) error {
 	err := p.puller.SaveImages(images, p.saveDir, p.platform)
 	if err != nil {
 		logger.Error("failed to pull cache image with error :%v", err)
@@ -42,10 +42,9 @@ func (p pullContent) Pull(images []string) error {
 	return nil
 }
 
-func NewPullContent(rootfs string) Processor {
-	//new registry puller
+func NewPuller(rootfs string) Processor {
 	ctx := context.Background()
-	return pullContent{
+	return puller{
 		puller:   save.NewImageSaver(ctx),
 		ctx:      ctx,
 		saveDir:  filepath.Join(rootfs, common.RegistryDirName),

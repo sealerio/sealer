@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package content
+package imagepuller
 
 // more info about layer content,
-// we may have many pre hooks for Copy Layer Content
+// we may have many processor for Copy Layer Content
 // 1. action1 :pull images according to layer content.
-// 2. action2 : copy content out of side build context.
+// 2. action2 :copy content out of side build context.
 
 type Processor interface {
 	Pull(images []string) error

@@ -18,7 +18,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/build/buildkit/buildlayer/content"
+	"github.com/alibaba/sealer/build/buildkit/buildlayer/imagepuller"
+
 	"github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils"
 	"github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils/charts"
 	manifest "github.com/alibaba/sealer/build/buildkit/buildlayer/layerutils/manifests"
@@ -40,7 +41,7 @@ type CopyLayer struct {
 }
 
 type HandleImageList struct {
-	puller content.Processor
+	puller imagepuller.Processor
 }
 
 func (h HandleImageList) LayerValueHandler(buildContext string, layer v1.Layer) error {
@@ -71,7 +72,7 @@ func (h HandleImageList) parseRawImageList(imageListFilePath string) ([]string, 
 
 type HandleYamlImageList struct {
 	YamlHandler layerutils.Interface
-	puller      content.Processor
+	puller      imagepuller.Processor
 	src         string
 }
 
@@ -98,7 +99,7 @@ func (h HandleYamlImageList) parseYamlImages(yamlFilePath string) ([]string, err
 
 type HandleChartImageList struct {
 	ChartHandler layerutils.Interface
-	puller       content.Processor
+	puller       imagepuller.Processor
 	src          string
 }
 
@@ -126,7 +127,7 @@ func (h HandleChartImageList) parseChartImages(chartFilePath string) ([]string, 
 func NewYamlHandler(lc CopyLayer) *HandleYamlImageList {
 	m, _ := manifest.NewManifests()
 	return &HandleYamlImageList{
-		puller:      content.NewPullContent(lc.Rootfs),
+		puller:      imagepuller.NewPuller(lc.Rootfs),
 		YamlHandler: m,
 		src:         lc.Src,
 	}
@@ -135,7 +136,7 @@ func NewYamlHandler(lc CopyLayer) *HandleYamlImageList {
 func NewChartHandler(lc CopyLayer) *HandleChartImageList {
 	c, _ := charts.NewCharts()
 	return &HandleChartImageList{
-		puller:       content.NewPullContent(lc.Rootfs),
+		puller:       imagepuller.NewPuller(lc.Rootfs),
 		src:          lc.Src,
 		ChartHandler: c,
 	}
@@ -143,6 +144,6 @@ func NewChartHandler(lc CopyLayer) *HandleChartImageList {
 
 func NewImageListHandler(lc CopyLayer) *HandleImageList {
 	return &HandleImageList{
-		puller: content.NewPullContent(lc.Rootfs),
+		puller: imagepuller.NewPuller(lc.Rootfs),
 	}
 }

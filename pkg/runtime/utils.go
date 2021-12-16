@@ -154,6 +154,7 @@ func LoadMetadata(metadataPath string) (*Metadata, error) {
 }
 
 func GetCloudImagePlatform(rootfs string) (cp ocispecs.Platform) {
+	// current we only support build on linux
 	cp = ocispecs.Platform{
 		Architecture: "amd64",
 		OS:           "linux",
@@ -170,7 +171,6 @@ func GetCloudImagePlatform(rootfs string) (cp ocispecs.Platform) {
 	if meta.Variant != "" {
 		cp.Variant = meta.Variant
 	}
-	// current we only support build on linux
 	return
 }
 
