@@ -18,14 +18,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	distribution "github.com/distribution/distribution/v3"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 //this package unmarshal manifests from json into a ManifestList struct
-//then choose corresponding manifest by arch
-
+//then choose corresponding manifest by platform
 type ManifestList struct {
 	List      []ImageMainfest `json:"manifests"`
 	MediaType string          `json:"mediaType"`
@@ -39,36 +37,45 @@ type ImageMainfest struct {
 	Size      int
 }
 
-func getImageManifestDigest(manifestListJSON distribution.Manifest, platform v1.Platform) (digest.Digest, error) {
-	_, list, err := manifestListJSON.Payload()
-	if err != nil {
-		return "", fmt.Errorf("failed to get manifestList: %v", err)
-	}
+func getImageManifestDigest(payload []byte, platform v1.Platform) (digest.Digest, error) {
 	var manifestList ManifestList
-	err = json.Unmarshal(list, &manifestList)
+	err := json.Unmarshal(payload, &manifestList)
 	if err != nil {
 		return "", fmt.Errorf("json unmarshal error: %v", err)
 	}
+
 	// look up manifest of the corresponding architecture
+	var maxWeight uint64
+	var resDigest digest.Digest
 	for _, item := range manifestList.List {
-		if equalPlatForm(item.Platform, platform) {
-			return digest.Digest(item.Digest), nil
+		tmpWeight := getWeightByPlatform(item.Platform, platform)
+		if tmpWeight > maxWeight {
+			resDigest = digest.Digest(item.Digest)
+			maxWeight = tmpWeight
 		}
 	}
-	return "", fmt.Errorf("no manifest of the corresponding architecture")
+	if maxWeight != 0 {
+		return resDigest, nil
+	}
+	return "", fmt.Errorf("no manifest of the corresponding platform")
 }
 
-func equalPlatForm(src, target v1.Platform) bool {
-	if src.OS != "" && src.OS != target.OS {
-		return false
+func getWeightByPlatform(src, target v1.Platform) uint64 {
+	var weight uint64
+	if target.OS != "" && src.OS == target.OS {
+		weight++
 	}
 
-	if src.Architecture != "" && src.Architecture != target.Architecture {
-		return false
+	if target.Architecture != "" && src.Architecture == target.Architecture {
+		weight++
 	}
 
-	if src.Variant != "" && src.Variant != target.Variant {
-		return false
+	if target.Variant != "" && src.Variant == target.Variant {
+		weight++
 	}
-	return true
+
+	if target.OSVersion != "" && src.OSVersion == target.OSVersion {
+		weight++
+	}
+	return weight
 }
