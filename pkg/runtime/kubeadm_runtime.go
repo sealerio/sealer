@@ -80,6 +80,17 @@ func (k *KubeadmRuntime) getClusterName() string {
 	return k.Cluster.Name
 }
 
+func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
+	metadata := &Metadata{}
+	if k.getKubeVersion() == "" {
+		if err := k.MergeKubeadmConfig(); err != nil {
+			return nil, err
+		}
+	}
+	metadata.Version = k.getKubeVersion()
+	return metadata, nil
+}
+
 func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) {
 	return ssh.GetHostSSHClient(hostIP, k.Cluster)
 }
@@ -98,7 +109,7 @@ func (k *KubeadmRuntime) getMaster0IP() string {
 }
 
 func (k *KubeadmRuntime) getDefaultKubeadmConfig() string {
-	return filepath.Join(k.getRootfs(), "etc", "kubeadm.yml")
+	return filepath.Join(common.DefaultMountCloudImageDir(k.getClusterName()), "etc", "kubeadm.yml")
 }
 
 func (k *KubeadmRuntime) getCertPath() string {
