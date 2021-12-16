@@ -38,9 +38,7 @@ type CreateProcessor struct {
 	Plugins      plugin.Plugins
 }
 
-var pluginPhases = []plugin.Phase{plugin.PhaseOriginally, plugin.PhasePreInit, plugin.PhasePreGuest, plugin.PhasePostInstall}
-
-func (c CreateProcessor) Execute(cluster *v2.Cluster) error {
+func (c *CreateProcessor) Execute(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
@@ -64,25 +62,25 @@ func (c CreateProcessor) Execute(cluster *v2.Cluster) error {
 
 	return nil
 }
-func (c CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
-		c.RunPhasePlugin,
+		c.GetPhasePluginFunc(plugin.PhaseOriginally),
 		c.MountImage,
 		c.RunConfig,
 		c.MountRootfs,
-		c.RunPhasePlugin,
+		c.GetPhasePluginFunc(plugin.PhasePreInit),
 		c.Init,
 		c.Join,
-		c.RunPhasePlugin,
+		c.GetPhasePluginFunc(plugin.PhasePreGuest),
 		c.RunGuest,
 		c.UnMountImage,
-		c.RunPhasePlugin,
+		c.GetPhasePluginFunc(plugin.PhasePostInstall),
 	)
 	return todoList, nil
 }
 
-func (c CreateProcessor) MountImage(cluster *v2.Cluster) error {
+func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 	err := c.ImageManager.PullIfNotExist(cluster.Spec.Image)
 	if err != nil {
 		return err
@@ -90,11 +88,11 @@ func (c CreateProcessor) MountImage(cluster *v2.Cluster) error {
 	return c.FileSystem.MountImage(cluster)
 }
 
-func (c CreateProcessor) RunConfig(cluster *v2.Cluster) error {
+func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 	return c.Config.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
 }
 
-func (c CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
+func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0Ip())
 	if utils.NotInIPList(regConfig.IP, hosts) {
@@ -103,11 +101,11 @@ func (c CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	return c.FileSystem.MountRootfs(cluster, hosts, true)
 }
 
-func (c CreateProcessor) Init(cluster *v2.Cluster) error {
+func (c *CreateProcessor) Init(cluster *v2.Cluster) error {
 	return c.Runtime.Init(cluster)
 }
 
-func (c CreateProcessor) Join(cluster *v2.Cluster) error {
+func (c *CreateProcessor) Join(cluster *v2.Cluster) error {
 	err := c.Runtime.JoinMasters(cluster.GetMasterIPList()[1:])
 	if err != nil {
 		return err
@@ -119,27 +117,27 @@ func (c CreateProcessor) Join(cluster *v2.Cluster) error {
 	return nil
 }
 
-func (c CreateProcessor) RunGuest(cluster *v2.Cluster) error {
+func (c *CreateProcessor) RunGuest(cluster *v2.Cluster) error {
 	return c.Guest.Apply(cluster)
 }
-func (c CreateProcessor) UnMountImage(cluster *v2.Cluster) error {
+func (c *CreateProcessor) UnMountImage(cluster *v2.Cluster) error {
 	return c.FileSystem.UnMountImage(cluster)
 }
 
-func (c CreateProcessor) initPlugin(cluster *v2.Cluster) error {
+func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) error {
 	c.Plugins = plugin.NewPlugins(cluster.Name)
 	return c.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
 }
 
-func (c CreateProcessor) RunPhasePlugin(cluster *v2.Cluster) error {
-	if pluginPhases[0] == plugin.PhasePreInit {
-		if err := c.Plugins.Load(); err != nil {
-			return err
+func (c *CreateProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {
+	return func(cluster *v2.Cluster) error {
+		if phase == plugin.PhasePreInit {
+			if err := c.Plugins.Load(); err != nil {
+				return err
+			}
 		}
+		return c.Plugins.Run(cluster, phase)
 	}
-	err := c.Plugins.Run(cluster, pluginPhases[0])
-	pluginPhases = pluginPhases[1:]
-	return err
 }
 
 func NewCreateProcessor() (Interface, error) {
@@ -158,7 +156,7 @@ func NewCreateProcessor() (Interface, error) {
 		return nil, err
 	}
 
-	return CreateProcessor{
+	return &CreateProcessor{
 		ImageManager: imgSvc,
 		FileSystem:   fs,
 		Guest:        gs,
