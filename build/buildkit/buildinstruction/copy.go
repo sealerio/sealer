@@ -17,7 +17,6 @@ package buildinstruction
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/store"
@@ -129,13 +128,13 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 	if err != nil {
 		return nil, err
 	}
-	layerValue := strings.Fields(ctx.CurrentLayer.Value)
+	src, dest := buildlayer.ParseCopyLayerContent(ctx.CurrentLayer.Value)
 	return &CopyInstruction{
 		fs:           fs,
 		mounter:      *target,
-		layerHandler: buildlayer.ParseLayerContent(ctx.CurrentLayer),
+		layerHandler: buildlayer.ParseLayerContent(ctx.Rootfs, ctx.CurrentLayer),
 		rawLayer:     *ctx.CurrentLayer,
-		src:          layerValue[0],
-		dest:         layerValue[1],
+		src:          src,
+		dest:         dest,
 	}, nil
 }

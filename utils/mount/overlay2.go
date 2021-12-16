@@ -28,6 +28,7 @@ import (
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/shirou/gopsutil/disk"
 )
 
 type Interface interface {
@@ -151,4 +152,14 @@ func mountCmdResultSplit(result string, target string) (bool, *Info) {
 		Upper:  upper,
 		Lowers: lowers,
 	}
+}
+
+func GetBuildMountInfo(fsType, filter string) (bool, string) {
+	ps, _ := disk.Partitions(true)
+	for _, p := range ps {
+		if p.Fstype == fsType && strings.Contains(p.Mountpoint, filter) {
+			return true, p.Mountpoint
+		}
+	}
+	return false, ""
 }

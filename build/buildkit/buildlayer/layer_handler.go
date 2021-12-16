@@ -15,65 +15,36 @@
 package buildlayer
 
 import (
-	"strings"
-
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 // ParseLayerContent :init different layer handler to exchanging due to the layer content
-func ParseLayerContent(layer *v1.Layer) LayerHandler {
-	var layerParser LayerCopy
-	if layer.Type == common.COPYCOMMAND {
-		layerParser = ParseCopyLayerValue(layer.Value)
+func ParseLayerContent(rootfs string, layer *v1.Layer) LayerHandler {
+	if layer.Type != common.COPYCOMMAND {
+		return nil
+	}
+	src, dest := ParseCopyLayerContent(layer.Value)
+	// parse copy attr
+	ht := GetCopyLayerHandlerType(src, dest)
+	if ht == "" {
+		return nil
 	}
 
-	switch layerParser.HandlerType {
+	cl := CopyLayer{
+		Src:    src,
+		Dest:   dest,
+		Rootfs: rootfs,
+	}
+
+	switch ht {
 	// imageList;yaml,chart
 	case ImageListHandler:
-		return NewImageListHandler(layerParser)
+		return NewImageListHandler(cl)
 	case YamlHandler:
-		return NewYamlHandler(layerParser)
+		return NewYamlHandler(cl)
 	case ChartHandler:
-		return NewChartHandler(layerParser)
+		return NewChartHandler(cl)
 	}
 	return nil
-}
-
-func ParseCopyLayerValue(layerValue string) LayerCopy {
-	//COPY imageList manifests
-	//COPY cc charts
-	//COPY recommended.yaml manifests
-	//COPY nginx.tar images
-
-	dst := strings.Fields(layerValue)[1]
-	for _, p := range []string{"./", "/"} {
-		dst = strings.TrimPrefix(dst, p)
-	}
-
-	lc := LayerCopy{
-		Src:  strings.Fields(layerValue)[0],
-		Dest: dst,
-	}
-	if lc.Dest == IsCopyToManifests {
-		if lc.Src == ImageList {
-			lc.HandlerType = ImageListHandler
-		}
-		if strings.HasSuffix(lc.Src, ".yaml") || strings.HasSuffix(lc.Src, ".yml") {
-			lc.HandlerType = YamlHandler
-		}
-		return lc
-	}
-
-	if lc.Dest == IsCopyToChart {
-		lc.HandlerType = ChartHandler
-		return lc
-	}
-
-	if lc.Dest == IsCopyOfflineImage {
-		lc.HandlerType = OfflineImageHandler
-		return lc
-	}
-
-	return lc
 }

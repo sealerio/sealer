@@ -100,7 +100,7 @@ func NewCmdInstruction(ctx InstructionContext) (*CmdInstruction, error) {
 
 	return &CmdInstruction{
 		mounter:      *target,
-		layerHandler: buildlayer.ParseLayerContent(ctx.CurrentLayer),
+		layerHandler: buildlayer.ParseLayerContent(ctx.Rootfs, ctx.CurrentLayer),
 		cmdValue:     ctx.CurrentLayer.Value,
 		rawLayer:     *ctx.CurrentLayer,
 	}, nil

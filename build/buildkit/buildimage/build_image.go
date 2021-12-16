@@ -22,16 +22,13 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
-	"github.com/alibaba/sealer/client/docker"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/store"
-	"github.com/alibaba/sealer/runtime"
+	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/pkg/errors"
-
-	"github.com/alibaba/sealer/logger"
 	"sigs.k8s.io/yaml"
 )
 
@@ -49,8 +46,7 @@ type BuildImage struct {
 	ImageStore        store.ImageStore
 	LayerStore        store.LayerStore
 	ImageService      image.Service
-	DockerClient      *docker.Docker
-	RegistryInfo      *buildinstruction.MountTarget
+	RootfsMountInfo   *buildinstruction.MountTarget
 }
 
 func (b BuildImage) ExecBuild(ctx Context) error {
@@ -72,11 +68,15 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		if ctx.BuildType == common.LiteBuild && layer.Type == common.CMDCOMMAND {
 			continue
 		}
-
+		var tempRoot string
+		if b.RootfsMountInfo != nil {
+			tempRoot = b.RootfsMountInfo.GetMountTarget()
+		}
 		//run layer instruction exec to get layer id and cache id
 		ic := buildinstruction.InstructionContext{
 			BaseLayers:   baseLayers,
 			CurrentLayer: layer,
+			Rootfs:       tempRoot,
 		}
 		inst, err := buildinstruction.NewInstruction(ic)
 		if err != nil {
@@ -166,7 +166,7 @@ func (b BuildImage) collectLayers() ([]v1.Layer, error) {
 
 func (b BuildImage) collectRegistryCache() (v1.Layer, error) {
 	var layer v1.Layer
-	upper := b.RegistryInfo.GetMountUpper()
+	upper := b.RootfsMountInfo.GetMountUpper()
 
 	tmp, err := utils.MkTmpdir()
 	if err != nil {
@@ -217,16 +217,7 @@ func (b BuildImage) Cleanup() error {
 		return nil
 	}
 
-	b.RegistryInfo.CleanUp()
-
-	if err := utils.RemoveFileContent(common.EtcHosts, fmt.Sprintf("127.0.0.1 %s", runtime.SeaHub)); err != nil {
-		logger.Warn(err)
-	}
-	//we need to delete docker registry.if not ,will only cache incremental image in the next build
-	err := b.DockerClient.RmContainerByName(runtime.RegistryName)
-	if err != nil {
-		return err
-	}
+	b.RootfsMountInfo.CleanUp()
 	return nil
 }
 
@@ -252,10 +243,9 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 	}
 
 	var (
-		layer0       = rawImage.Spec.Layers[0]
-		baseImage    *v1.Image
-		dockerClient *docker.Docker
-		registryInfo *buildinstruction.MountTarget
+		layer0    = rawImage.Spec.Layers[0]
+		baseImage *v1.Image
+		mountInfo *buildinstruction.MountTarget
 	)
 
 	// and the layer 0 must be from layer
@@ -277,19 +267,12 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 	if len(baseLayers)+len(newLayers) > maxLayerDeep {
 		return nil, errors.New("current number of layers exceeds 128 layers")
 	}
-
 	need := CacheDockerImage(layer0.Value, newLayers)
 	if need {
-		registryCache, err := NewRegistryCache(baseLayers)
+		mountInfo, err = GetRootfsMountInfo(baseLayers)
 		if err != nil {
 			return nil, err
 		}
-		registryInfo = registryCache
-		client, err := docker.NewDockerClient()
-		if err != nil {
-			return nil, err
-		}
-		dockerClient = client
 	}
 
 	return &BuildImage{
@@ -300,7 +283,6 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 		BaseLayers:        baseLayers,
 		NewLayers:         newLayers,
 		NeedCacheRegistry: need,
-		DockerClient:      dockerClient,
-		RegistryInfo:      registryInfo,
+		RootfsMountInfo:   mountInfo,
 	}, nil
 }

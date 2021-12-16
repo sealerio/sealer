@@ -149,6 +149,9 @@ github.com/fsnotify/fsnotify
 github.com/go-errors/errors
 # github.com/go-logr/logr v0.4.0
 github.com/go-logr/logr
+# github.com/go-ole/go-ole v1.2.6
+github.com/go-ole/go-ole
+github.com/go-ole/go-ole/oleutil
 # github.com/go-openapi/jsonpointer v0.19.3
 github.com/go-openapi/jsonpointer
 # github.com/go-openapi/jsonreference v0.19.3
@@ -360,6 +363,10 @@ github.com/sealyun/lvscare/internal/sets
 github.com/sealyun/lvscare/internal/version
 github.com/sealyun/lvscare/service
 github.com/sealyun/lvscare/utils
+# github.com/shirou/gopsutil v3.21.11+incompatible
+## explicit
+github.com/shirou/gopsutil/disk
+github.com/shirou/gopsutil/internal/common
 # github.com/shopspring/decimal v1.2.0
 github.com/shopspring/decimal
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
@@ -406,6 +413,9 @@ github.com/xeipuuv/gojsonreference
 github.com/xeipuuv/gojsonschema
 # github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
 github.com/xlab/treeprint
+# github.com/yusufpapurcu/wmi v1.2.2
+## explicit
+github.com/yusufpapurcu/wmi
 # go.etcd.io/etcd/api/v3 v3.5.0
 go.etcd.io/etcd/api/v3/authpb
 go.etcd.io/etcd/api/v3/etcdserverpb

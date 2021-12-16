@@ -41,6 +41,7 @@ type InstructionContext struct {
 	// dynamic method to init different instruction
 	CurrentLayer *v1.Layer
 	BaseLayers   []v1.Layer
+	Rootfs       string
 }
 
 type Out struct {

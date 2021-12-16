@@ -126,8 +126,8 @@ func CacheDockerImage(base string, newLayers []v1.Layer) bool {
 			layer.Type == common.CMDCOMMAND {
 			return true
 		}
-		lc := buildlayer.ParseCopyLayerValue(layer.Value)
-		if lc.HandlerType != "" {
+		ht := buildlayer.GetCopyLayerHandlerType(buildlayer.ParseCopyLayerContent(layer.Value))
+		if ht != "" {
 			return true
 		}
 	}
