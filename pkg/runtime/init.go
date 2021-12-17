@@ -246,36 +246,25 @@ func (k *KubeadmRuntime) GetKubectlAndKubeconfig() error {
 	return GetKubectlAndKubeconfig(ssh, k.getMaster0IP())
 }
 
+func (k *KubeadmRuntime) CopyStaticFilesTomasters() error {
+	return k.CopyStaticFiles(k.getMasterIPList())
+}
+
 func (k *KubeadmRuntime) init(cluster *v2.Cluster) error {
-	//config kubeadm
-	if err := k.ConfigKubeadmOnMaster0(); err != nil {
-		return fmt.Errorf("failed to config kubeadmin on master0 %v", err)
+	pipeline := []func() error{
+		k.ConfigKubeadmOnMaster0,
+		k.GenerateCert,
+		k.CreateKubeConfig,
+		k.CopyStaticFilesTomasters,
+		k.ApplyRegistry,
+		k.InitMaster0,
+		k.GetKubectlAndKubeconfig,
 	}
 
-	//generate certs
-	if err := k.GenerateCert(); err != nil {
-		return fmt.Errorf("failed to gernerate cert %v", err)
-	}
-
-	//create kubeConfig for master0
-	if err := k.CreateKubeConfig(); err != nil {
-		return fmt.Errorf("failed to create kubeConfig for master0 %v", err)
-	}
-
-	if err := k.CopyStaticFiles(k.getMasterIPList()); err != nil {
-		return fmt.Errorf("failed to copy static files %v", err)
-	}
-
-	if err := k.ApplyRegistry(); err != nil {
-		return fmt.Errorf("failed to encsure registry %v", err)
-	}
-
-	if err := k.InitMaster0(); err != nil {
-		return fmt.Errorf("failed to init master0 %v", err)
-	}
-
-	if err := k.GetKubectlAndKubeconfig(); err != nil {
-		return fmt.Errorf("failed to get kubectl and kubeConfig %v", err)
+	for _, f := range pipeline {
+		if err := f(); err != nil {
+			return fmt.Errorf("failed to init master0 %v", err)
+		}
 	}
 
 	return nil
