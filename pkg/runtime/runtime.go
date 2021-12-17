@@ -29,6 +29,7 @@ type Interface interface {
 	JoinNodes(newNodesIPList []string) error
 	DeleteMasters(mastersIPList []string) error
 	DeleteNodes(nodesIPList []string) error
+	GetClusterMetadata() (*Metadata, error)
 }
 
 type Metadata struct {
@@ -70,6 +71,10 @@ func (k *KubeadmRuntime) DeleteMasters(mastersIPList []string) error {
 
 func (k *KubeadmRuntime) DeleteNodes(nodesIPList []string) error {
 	return k.deleteNodes(nodesIPList)
+}
+
+func (k *KubeadmRuntime) GetClusterMetadata() (*Metadata, error) {
+	return k.getClusterMetadata()
 }
 
 // clusterfile is the Clusterfile path/name, runtime need read kubeadm config from it

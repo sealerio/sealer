@@ -15,7 +15,7 @@
 package applydriver
 
 import (
-	"path/filepath"
+	"fmt"
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
@@ -109,7 +109,7 @@ func (c *Applier) reconcileCluster() error {
 	}
 	defer func() {
 		if err := c.unMountClusterImage(); err != nil {
-			logger.Warn("failed to umount image %s", c.ClusterDesired.ClusterName)
+			logger.Warn("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
 		}
 	}()
 	mj, md := utils.GetDiffHosts(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
@@ -133,12 +133,12 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 
 	logger.Info("Start to scale this cluster")
 
-	applier, err := processor.NewScaleProcessor(c.FileSystem, mj, md, nj, nd)
+	scaleProcessor, err := processor.NewScaleProcessor(c.FileSystem, mj, md, nj, nd)
 	if err != nil {
 		return err
 	}
 	var cluster *v2.Cluster
-	if !applier.(processor.ScaleProcessor).IsScaleUp {
+	if !scaleProcessor.(processor.ScaleProcessor).IsScaleUp {
 		c, err := runtime.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
 		if err != nil {
 			return err
@@ -148,7 +148,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	} else {
 		cluster = c.ClusterDesired
 	}
-	err = applier.Execute(cluster)
+	err = scaleProcessor.Execute(cluster)
 	if err != nil {
 		return err
 	}
@@ -165,43 +165,45 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 		return err
 	}
 	// fetch form exec machine
-	desiredMetadata, err := runtime.LoadMetadata(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterDesired.Name),
-		common.DefaultMetadataName))
+	runtimeInterface, err := runtime.NewDefaultRuntime(c.ClusterDesired, c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to init runtime, %v", err)
 	}
-
-	if info.GitVersion == desiredMetadata.Version {
+	clusterMetadata, err := runtimeInterface.GetClusterMetadata()
+	if err != nil {
+		return fmt.Errorf("failed to get cluster metadata: %v", err)
+	}
+	if info.GitVersion == clusterMetadata.Version {
 		return nil
 	}
 
-	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
+	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, clusterMetadata.Version)
 	//if desiredMetadata.Version==""{
 	//	//install app
 	//}
 
-	applier, err := processor.NewUpgradeProcessor(c.FileSystem, mj, nj)
+	upgradeProcessor, err := processor.NewUpgradeProcessor(c.FileSystem, runtimeInterface, mj, nj)
 	if err != nil {
 		return err
 	}
-	err = applier.Execute(c.ClusterDesired)
+	err = upgradeProcessor.Execute(c.ClusterDesired)
 	if err != nil {
 		return err
 	}
 
-	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", info.GitVersion, desiredMetadata.Version)
+	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", info.GitVersion, clusterMetadata.Version)
 
 	return nil
 }
 
 func (c *Applier) initCluster() error {
 	logger.Info("Start to create a new cluster")
-	applier, err := processor.NewCreateProcessor()
+	createProcessor, err := processor.NewCreateProcessor()
 	if err != nil {
 		return err
 	}
 
-	if err := applier.Execute(c.ClusterDesired); err != nil {
+	if err := createProcessor.Execute(c.ClusterDesired); err != nil {
 		return err
 	}
 

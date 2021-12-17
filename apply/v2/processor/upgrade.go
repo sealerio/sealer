@@ -15,8 +15,6 @@
 package processor
 
 import (
-	"fmt"
-
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
@@ -34,12 +32,7 @@ type UpgradeProcessor struct {
 
 // DoApply do apply: do truly apply,input is desired cluster .
 func (u UpgradeProcessor) Execute(cluster *v2.Cluster) error {
-	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.Annotations[common.ClusterfileName])
-	if err != nil {
-		return fmt.Errorf("failed to init runtime, %v", err)
-	}
-	u.Runtime = runTime
-	err = u.MountRootfs(cluster)
+	err := u.MountRootfs(cluster)
 	if err != nil {
 		return err
 	}
@@ -67,10 +60,11 @@ func (u UpgradeProcessor) Upgrade() error {
 	return u.Runtime.Upgrade()
 }
 
-func NewUpgradeProcessor(fs filesystem.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
+func NewUpgradeProcessor(fs filesystem.Interface, rt runtime.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
 	// only do upgrade here. cancel scale action.
 	return UpgradeProcessor{
 		FileSystem:    fs,
+		Runtime:       rt,
 		MastersToJoin: masterToJoin,
 		NodesToJoin:   nodeToJoin,
 	}, nil
