@@ -192,8 +192,19 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 			return digest.Digest(""), fmt.Errorf("get digest from manifest list error: %v", err)
 		}
 		return imageDigest, nil
+	case "":
+		//OCI image or image index - no media type in the content
+
+		//First see if it is a list
+		imageDigest, _ := getImageManifestDigest(p, platform)
+		if imageDigest != "" {
+			return imageDigest, nil
+		}
+		//If not list, then assume it must be an image manifest
+		return imagedigest, nil
+	default:
+		return digest.Digest(""), fmt.Errorf("unrecognized manifest content type")
 	}
-	return digest.Digest(""), fmt.Errorf("handle manifest error")
 }
 
 func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distribution.Repository) error {
