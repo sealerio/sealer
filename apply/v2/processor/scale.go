@@ -33,7 +33,7 @@ type ScaleProcessor struct {
 	IsScaleUp       bool
 }
 
-// DoApply do apply: do truly apply,input is desired cluster .
+// Execute :according to the different of desired cluster to scale cluster.
 func (s ScaleProcessor) Execute(cluster *v2.Cluster) error {
 	/*
 		1. master scale up + master scale up :support

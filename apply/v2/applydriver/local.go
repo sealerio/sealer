@@ -178,9 +178,6 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 	}
 
 	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, clusterMetadata.Version)
-	//if desiredMetadata.Version==""{
-	//	//install app
-	//}
 
 	upgradeProcessor, err := processor.NewUpgradeProcessor(c.FileSystem, runtimeInterface, mj, nj)
 	if err != nil {

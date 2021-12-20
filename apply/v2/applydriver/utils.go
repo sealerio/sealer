@@ -38,8 +38,8 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 	}
 
 	cluster := &v2.Cluster{}
-	masterIPList := []string{}
-	nodeIPList := []string{}
+	var masterIPList []string
+	var nodeIPList []string
 
 	for _, node := range nodes.Items {
 		addr := getNodeAddress(&node)

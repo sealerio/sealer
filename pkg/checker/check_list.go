@@ -26,7 +26,7 @@ const (
 	PhaseView = "view"
 )
 
-// Define checkers when pre or post install, like checker node status, checker pod status...
+// Interface Define checkers when pre or post install, like checker node status, checker pod status...
 type Interface interface {
 	Check(cluster *v2.Cluster, phase string) error
 }

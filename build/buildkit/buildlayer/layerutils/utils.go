@@ -21,7 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// decode image from yaml content
+// DecodeImages decode image from yaml content
 func DecodeImages(body string) []string {
 	var list []string
 

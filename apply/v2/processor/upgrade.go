@@ -30,7 +30,7 @@ type UpgradeProcessor struct {
 	NodesToJoin   []string
 }
 
-// DoApply do apply: do truly apply,input is desired cluster .
+// Execute :according to the different of desired cluster to upgrade cluster.
 func (u UpgradeProcessor) Execute(cluster *v2.Cluster) error {
 	err := u.MountRootfs(cluster)
 	if err != nil {

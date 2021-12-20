@@ -50,9 +50,9 @@ type KubeConfigSpec struct {
 	v1beta2.JoinConfiguration
 }
 
-// Load KubeadmConfig from Clusterfile
-// If has `KubeadmConfig` in Clusterfile, load every field to each configurations
-// If Kubeadm raw config in Clusterfile, just load it
+// LoadFromClusterfile :Load KubeadmConfig from Clusterfile.
+// If it has `KubeadmConfig` in Clusterfile, load every field to each configuration.
+// If Kubeadm raw config in Clusterfile, just load it.
 func (k *KubeadmConfig) LoadFromClusterfile(fileName string) error {
 	if fileName == "" {
 		return nil

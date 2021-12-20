@@ -17,6 +17,6 @@ package processor
 import v2 "github.com/alibaba/sealer/types/api/v2"
 
 type Interface interface {
-	// DoApply do apply: do their own apply,input is desired cluster .
+	// Execute :according to the different of desired cluster to do cluster apply.
 	Execute(cluster *v2.Cluster) error
 }
