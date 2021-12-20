@@ -257,12 +257,12 @@ func (k *KubeadmRuntime) WaitSSHReady(tryTimes int, hosts ...string) error {
 		go func(host string) {
 			defer wg.Done()
 			for i := 0; i < tryTimes; i++ {
-				ssh, err := k.getHostSSHClient(host)
+				sshClient, err := k.getHostSSHClient(host)
 				if err != nil {
 					return
 				}
 
-				err = ssh.Ping(host)
+				err = sshClient.Ping(host)
 				if err == nil {
 					return
 				}

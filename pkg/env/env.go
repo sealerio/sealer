@@ -28,13 +28,13 @@ import (
 const templateSufix = ".tmpl"
 
 type Interface interface {
-	// If host already set env like DATADISK=/data
+	// WrapperShell :If host already set env like DATADISK=/data
 	// This function add env to the shell, like:
 	// Input shell: cat /etc/hosts
 	// Output shell: DATADISK=/data cat /etc/hosts
 	// So that you can get env values in you shell script
 	WrapperShell(host, shell string) string
-	// render env to all the files in dir
+	// RenderAll :render env to all the files in dir
 	RenderAll(host, dir string) error
 }
 

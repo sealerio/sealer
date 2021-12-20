@@ -18,7 +18,7 @@ const (
 	AuditPolicyYml = "audit-policy.yml"
 )
 
-// static file should not be template, will never be changed while initialization
+// StaticFile :static file should not be template, will never be changed while initialization.
 type StaticFile struct {
 	DestinationDir string
 	Name           string

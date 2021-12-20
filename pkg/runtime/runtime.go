@@ -21,7 +21,7 @@ import (
 )
 
 type Interface interface {
-	// exec kubeadm init
+	// Init exec kubeadm init
 	Init(cluster *v2.Cluster) error
 	Upgrade() error
 	Reset() error
@@ -77,7 +77,7 @@ func (k *KubeadmRuntime) GetClusterMetadata() (*Metadata, error) {
 	return k.getClusterMetadata()
 }
 
-// clusterfile is the Clusterfile path/name, runtime need read kubeadm config from it
+// NewDefaultRuntime arg "clusterfile" is the Clusterfile path/name, runtime need read kubeadm config from it
 func NewDefaultRuntime(cluster *v2.Cluster, clusterfile string) (Interface, error) {
 	return newKubeadmRuntime(cluster, clusterfile)
 }

@@ -28,7 +28,7 @@ type DeleteProcessor struct {
 	FileSystem filesystem.Interface
 }
 
-// DoApply do apply: do truly apply,input is desired cluster .
+// Execute :according to the different of desired cluster to delete cluster.
 func (d DeleteProcessor) Execute(cluster *v2.Cluster) (err error) {
 	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {

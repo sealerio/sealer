@@ -24,26 +24,6 @@ import (
 	"github.com/alibaba/sealer/logger"
 )
 
-/*
-labels plugin in Clusterfile:
----
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Plugin
-metadata:
-  name: LABEL
-spec:
-  type: LABEL
-  data: |
-     192.168.0.2 ssd=true
-     192.168.0.3 ssd=true
-     192.168.0.4 ssd=true
-     192.168.0.5 ssd=false,hdd=true
-     192.168.0.6 ssd=false,hdd=true
-     192.168.0.7 ssd=false,hdd=true
----
-LabelsNodes.data key = ip
-[]lable{{key=ssd,value=false}, {key=hdd,value=true}}
-*/
 type LabelsNodes struct {
 	data   map[string][]label
 	client *k8s.Client

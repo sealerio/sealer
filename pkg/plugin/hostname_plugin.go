@@ -22,27 +22,6 @@ import (
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
-/*
-hostnames plugin in Clusterfile:
----
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Plugin
-metadata:
-  name: HOSTNAME
-spec:
-  type: HOSTNAME
-  data: |
-     192.168.0.2 master-0
-     192.168.0.3 master-1
-     192.168.0.4 master-2
-     192.168.0.5 node-0
-     192.168.0.6 node-1
-     192.168.0.7 node-2
----
-HostnamePlugin.data
-key = ip
-value = target hostname
-*/
 type HostnamePlugin struct {
 	data map[string]string
 }

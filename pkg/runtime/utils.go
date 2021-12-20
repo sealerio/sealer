@@ -44,7 +44,7 @@ import (
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
-// if v1 >= v2 return true, else return false
+// VersionCompare :if v1 >= v2 return true, else return false
 func VersionCompare(v1, v2 string) bool {
 	v1 = strings.Replace(v1, "v", "", -1)
 	v2 = strings.Replace(v2, "v", "", -1)

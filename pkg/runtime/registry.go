@@ -43,7 +43,7 @@ func getRegistryHost(rootfs, defaultRegistry string) (host string) {
 	return fmt.Sprintf("%s %s", ip, cf.Domain)
 }
 
-//Only use this for join and init, due to the initiation operations
+// ApplyRegistry Only use this for join and init, due to the initiation operations.
 func (k *KubeadmRuntime) ApplyRegistry() error {
 	cf := GetRegistryConfig(k.getRootfs(), k.getMaster0IP())
 	ssh, err := k.getHostSSHClient(cf.IP)

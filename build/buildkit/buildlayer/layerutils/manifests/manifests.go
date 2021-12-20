@@ -24,7 +24,7 @@ import (
 
 type Manifests struct{}
 
-// List all the containers images in manifest files
+// ListImages List all the containers images in manifest files
 func (manifests *Manifests) ListImages(yamlFile string) ([]string, error) {
 	var list []string
 

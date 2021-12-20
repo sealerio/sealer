@@ -155,18 +155,18 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 		wg.Add(1)
 		go func(ip string) {
 			defer wg.Done()
-			ssh, err := ssh.GetHostSSHClient(ip, cluster)
+			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
 				errCh <- fmt.Errorf("get host ssh client failed %v", err)
 				return
 			}
-			err = CopyFiles(ssh, ip == config.IP, ip, src, target)
+			err = CopyFiles(sshClient, ip == config.IP, ip, src, target)
 			if err != nil {
 				errCh <- fmt.Errorf("copy rootfs failed %v", err)
 				return
 			}
 			if initFlag {
-				err = ssh.CmdAsync(ip, initCmd)
+				err = sshClient.CmdAsync(ip, initCmd)
 				if err != nil {
 					errCh <- fmt.Errorf("exec init.sh failed %v", err)
 				}
@@ -218,7 +218,7 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 				return
 			}
 			cmd := fmt.Sprintf("%s && %s", execClean, rmRootfs)
-			if mount, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mount {
+			if mounted, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mounted {
 				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
 			}
 			if err := SSH.CmdAsync(ip, cmd); err != nil {

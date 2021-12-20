@@ -15,7 +15,7 @@
 package plugin
 
 import (
-	ctx "context"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -133,7 +133,7 @@ func snapshotEtcd(snapshotPath string, cfg clientv3.Config) error {
 		return fmt.Errorf("get zap logger error, err:%v", err)
 	}
 
-	ctx, cancel := ctx.WithCancel(ctx.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	if err := snapshot.Save(ctx, lg, cfg, snapshotPath); err != nil {
