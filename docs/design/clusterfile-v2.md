@@ -338,6 +338,13 @@ spec:
     memory: 4
     systemDisk: 100
     dataDisk: [100,200]
+    options:
+      dataCategory: cloud_efficiency
+      systemCategory: cloud_essd
+      imageID: anolisos_7_7_arm64_20G_anck_alibase_20211118.vhd
+      isSeize: true
+      instanceType: ecs.c6r.large
+      platform: amd64
   - count: 3
     role: [node]
     cpu: 4
