@@ -19,12 +19,14 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/alibaba/sealer/utils"
 	distribution "github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/proxy"
 	"github.com/distribution/distribution/v3/registry/storage"
 	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
+	"github.com/docker/docker/api/types"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -88,9 +90,19 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 		proxyURL = defauleProxyURL
 	}
 
+	var defaultAuth = types.AuthConfig{ServerAddress: domain}
+	auth, err := utils.GetDockerAuthInfoFromDocker(domain)
+	//ignore err when is there is no username and password.
+	//regard it as a public registry
+	//only report parse error
+	if err != nil && auth != defaultAuth {
+		return nil, fmt.Errorf("get authentication info error: %v", err)
+	}
 	config := configuration.Configuration{
 		Proxy: configuration.Proxy{
 			RemoteURL: proxyURL,
+			Username:  auth.Username,
+			Password:  auth.Password,
 		},
 		Storage: configuration.Storage{
 			driverName: configuration.Parameters{configRootDir: rootdir},
@@ -139,7 +151,7 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 		go func(named Named) {
 			desc, err := repo.Tags(is.ctx).Get(is.ctx, named.tag)
 			if err != nil {
-				errCh <- fmt.Errorf("get %s tag descriptor error: %v", named.repo, err)
+				errCh <- fmt.Errorf("get %s tag descriptor error: %v, try \"docker login\" if you are using a private registry", named.repo, err)
 			}
 
 			imageDigest, err := is.handleManifest(manifest, desc.Digest, platform)

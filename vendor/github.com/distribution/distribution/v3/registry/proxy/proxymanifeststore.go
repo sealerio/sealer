@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/distribution/distribution/v3"
-	dcontext "github.com/distribution/distribution/v3/context"
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/proxy/scheduler"
 	"github.com/opencontainers/go-digest"
@@ -71,13 +70,13 @@ func (pms proxyManifestStore) Get(ctx context.Context, dgst digest.Digest, optio
 		}
 
 		// Schedule the manifest blob for removal
-		repoBlob, err := reference.WithDigest(pms.repositoryName, dgst)
-		if err != nil {
-			dcontext.GetLogger(ctx).Errorf("Error creating reference: %s", err)
-			return nil, err
-		}
+		// repoBlob, err := reference.WithDigest(pms.repositoryName, dgst)
+		// if err != nil {
+		// 	dcontext.GetLogger(ctx).Errorf("Error creating reference: %s", err)
+		// 	return nil, err
+		// }
 
-		pms.scheduler.AddManifest(repoBlob, repositoryTTL)
+		// pms.scheduler.AddManifest(repoBlob, repositoryTTL)
 		// Ensure the manifest blob is cleaned up
 		//pms.scheduler.AddBlob(blobRef, repositoryTTL)
 
