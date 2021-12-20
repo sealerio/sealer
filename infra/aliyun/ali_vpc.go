@@ -135,6 +135,7 @@ func (a *AliProvider) AllocateEipAddress() (eIP, eIPID string, err error) {
 	request := vpc.CreateAllocateEipAddressRequest()
 	request.Scheme = Scheme
 	request.Bandwidth = Bandwidth
+	request.InternetChargeType = InternetChargeType
 	//response, err := d.Client.AllocateEipAddress(request)
 	response := vpc.CreateAllocateEipAddressResponse()
 	err = a.RetryVpcRequest(request, response)
