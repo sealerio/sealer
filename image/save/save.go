@@ -17,7 +17,6 @@ package save
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/alibaba/sealer/utils"
 	distribution "github.com/distribution/distribution/v3"
@@ -29,6 +28,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -51,35 +51,27 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 		}
 		is.domainToImages[named.domain+named.repo] = append(is.domainToImages[named.domain+named.repo], named)
 	}
+	eg, _ := errgroup.WithContext(context.Background())
+	numCh := make(chan struct{}, maxPullGoroutineNum)
 	for _, nameds := range is.domainToImages {
-		registry, err := NewProxyRegistry(is.ctx, dir, nameds[0].domain)
-		if err != nil {
-			return fmt.Errorf("init registry error: %v", err)
-		}
-		err = is.save(nameds, platform, registry)
-		if err != nil {
-			return fmt.Errorf("save domain %s image error: %v", nameds[0].domain, err)
-		}
+		tmpnameds := nameds
+		numCh <- struct{}{}
+		eg.Go(func() error {
+			registry, err := NewProxyRegistry(is.ctx, dir, tmpnameds[0].domain)
+			if err != nil {
+				return fmt.Errorf("init registry error: %v", err)
+			}
+			err = is.save(tmpnameds, platform, registry)
+			if err != nil {
+				return fmt.Errorf("save domain %s image error: %v", tmpnameds[0].domain, err)
+			}
+			<-numCh
+			return nil
+		})
 	}
-	return nil
-}
-
-func (is *DefaultImageSaver) save(nameds []Named, platform v1.Platform, registry distribution.Namespace) error {
-	repo, err := is.getRepository(nameds[0], registry)
-	if err != nil {
+	if err := eg.Wait(); err != nil {
 		return err
 	}
-
-	imageDigests, err := is.saveManifestAndGetDigest(nameds, repo, platform)
-	if err != nil {
-		return err
-	}
-
-	err = is.saveBlobs(imageDigests, repo)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -124,6 +116,25 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 	return proxy, nil
 }
 
+func (is *DefaultImageSaver) save(nameds []Named, platform v1.Platform, registry distribution.Namespace) error {
+	repo, err := is.getRepository(nameds[0], registry)
+	if err != nil {
+		return err
+	}
+
+	imageDigests, err := is.saveManifestAndGetDigest(nameds, repo, platform)
+	if err != nil {
+		return err
+	}
+
+	err = is.saveBlobs(imageDigests, repo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (is *DefaultImageSaver) getRepository(named Named, registry distribution.Namespace) (distribution.Repository, error) {
 	repoName, err := reference.WithName(named.Repo())
 	if err != nil {
@@ -141,34 +152,28 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 	if err != nil {
 		return nil, fmt.Errorf("get manifest service error: %v", err)
 	}
-	digestCh := make(chan digest.Digest)
-	numCh := make(chan bool, maxPullGoroutineNum)
-	errCh := make(chan error)
+	eg, _ := errgroup.WithContext(context.Background())
+	numCh := make(chan struct{}, maxPullGoroutineNum)
 	imageDigests := make([]digest.Digest, 0)
 	for _, named := range nameds {
 		tmpnamed := named
-		numCh <- true
-		go func(named Named) {
-			desc, err := repo.Tags(is.ctx).Get(is.ctx, named.tag)
+		numCh <- struct{}{}
+		eg.Go(func() error {
+			desc, err := repo.Tags(is.ctx).Get(is.ctx, tmpnamed.tag)
 			if err != nil {
-				errCh <- fmt.Errorf("get %s tag descriptor error: %v, try \"docker login\" if you are using a private registry", named.repo, err)
+				return fmt.Errorf("get %s tag descriptor error: %v, try \"docker login\" if you are using a private registry", tmpnamed.repo, err)
 			}
-
 			imageDigest, err := is.handleManifest(manifest, desc.Digest, platform)
 			if err != nil {
-				errCh <- fmt.Errorf("get digest error: %v", err)
+				return fmt.Errorf("get digest error: %v", err)
 			}
-			digestCh <- imageDigest
-			<-numCh
-		}(tmpnamed)
-	}
-	for range nameds {
-		select {
-		case imageDigest := <-digestCh:
 			imageDigests = append(imageDigests, imageDigest)
-		case err = <-errCh:
-			return nil, err
-		}
+			<-numCh
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
 	}
 
 	return imageDigests, nil
@@ -192,8 +197,19 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 			return digest.Digest(""), fmt.Errorf("get digest from manifest list error: %v", err)
 		}
 		return imageDigest, nil
+	case "":
+		//OCI image or image index - no media type in the content
+
+		//First see if it is a list
+		imageDigest, _ := getImageManifestDigest(p, platform)
+		if imageDigest != "" {
+			return imageDigest, nil
+		}
+		//If not list, then assume it must be an image manifest
+		return imagedigest, nil
+	default:
+		return digest.Digest(""), fmt.Errorf("unrecognized manifest content type")
 	}
-	return digest.Digest(""), fmt.Errorf("handle manifest error")
 }
 
 func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distribution.Repository) error {
@@ -201,55 +217,46 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 	if err != nil {
 		return fmt.Errorf("get blob service error: %v", err)
 	}
-	blobDigestCh := make(chan []digest.Digest)
-	errCh := make(chan error)
-	numCh := make(chan bool, maxPullGoroutineNum)
-	blobList := make([]digest.Digest, 0)
-	blobMap := make(map[digest.Digest]bool)
+	eg, _ := errgroup.WithContext(context.Background())
+	numCh := make(chan struct{}, maxPullGoroutineNum)
+	blobLists := make([]digest.Digest, 0)
 	for _, imageDigest := range imageDigests {
 		tmpImageDigest := imageDigest
-		numCh <- true
-		go func(digest digest.Digest) {
-			blobListJSON, err := manifest.Get(is.ctx, digest, make([]distribution.ManifestServiceOption, 0)...)
+		numCh <- struct{}{}
+		eg.Go(func() error {
+			blobListJSON, err := manifest.Get(is.ctx, tmpImageDigest, make([]distribution.ManifestServiceOption, 0)...)
 			if err != nil {
-				errCh <- fmt.Errorf("get blob manifest error: %v", err)
+				return err
 			}
+
 			blobList, err := getBlobList(blobListJSON)
 			if err != nil {
-				errCh <- fmt.Errorf("get blob list error: %v", err)
+				return fmt.Errorf("get blob list error: %v", err)
 			}
-			blobDigestCh <- blobList
+			blobLists = append(blobLists, blobList...)
 			<-numCh
-		}(tmpImageDigest)
+			return nil
+		})
 	}
-	for range imageDigests {
-		select {
-		case blobDigest := <-blobDigestCh:
-			for _, digest := range blobDigest {
-				if !blobMap[digest] {
-					blobList = append(blobList, digest)
-					blobMap[digest] = true
-				}
-			}
-		case err = <-errCh:
-			return err
-		}
+	if err = eg.Wait(); err != nil {
+		return err
 	}
-	var wg = sync.WaitGroup{}
+
 	blobStore := repo.Blobs(is.ctx)
-	for _, blob := range blobList {
+	for _, blob := range blobLists {
 		tmpBlob := blob
-		numCh <- true
-		wg.Add(1)
-		go func(blob digest.Digest) {
-			_, err = blobStore.Get(is.ctx, blob)
+		numCh <- struct{}{}
+		eg.Go(func() error {
+			_, err = blobStore.Get(is.ctx, tmpBlob)
 			if err != nil {
-				errCh <- fmt.Errorf("get blob %s error: %v", blob, err)
+				return fmt.Errorf("get blob %s error: %v", tmpBlob, err)
 			}
 			<-numCh
-			wg.Done()
-		}(tmpBlob)
+			return nil
+		})
 	}
-	wg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
 	return nil
 }
