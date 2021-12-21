@@ -30,6 +30,7 @@ import (
 type Builder struct {
 	BuildType    string
 	NoCache      bool
+	NoBase       bool
 	ImageNamed   reference.Named
 	Context      string
 	KubeFileName string
@@ -153,7 +154,7 @@ func (l *Builder) IsAllPodsRunning(k8sClient *k8s.Client) bool {
 
 func (l *Builder) SaveBuildImage() error {
 	imageName := l.ImageNamed.Raw()
-	err := l.BuildImage.SaveBuildImage(imageName)
+	err := l.BuildImage.SaveBuildImage(imageName, l.NoBase)
 	if err != nil {
 		return err
 	}

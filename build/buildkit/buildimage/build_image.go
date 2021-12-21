@@ -119,7 +119,7 @@ func (b BuildImage) genNewLayer(layerType, layerValue, filepath string) (v1.Laye
 	return imageLayer, nil
 }
 
-func (b BuildImage) SaveBuildImage(name string) error {
+func (b BuildImage) SaveBuildImage(name string, noBase bool) error {
 	cluster, err := b.getImageCluster()
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func (b BuildImage) SaveBuildImage(name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to set image metadata, err: %v", err)
 	}
-	layers, err := b.collectLayers()
+	layers, err := b.collectLayers(noBase)
 	if err != nil {
 		return err
 	}
@@ -145,8 +145,14 @@ func (b BuildImage) SaveBuildImage(name string) error {
 	return nil
 }
 
-func (b BuildImage) collectLayers() ([]v1.Layer, error) {
-	layers := append(b.BaseLayers, b.NewLayers...)
+func (b BuildImage) collectLayers(noBase bool) ([]v1.Layer, error) {
+	var layers []v1.Layer
+
+	if noBase {
+		layers = b.NewLayers
+	} else {
+		layers = append(b.BaseLayers, b.NewLayers...)
+	}
 
 	if !b.NeedCacheRegistry {
 		return layers, nil
