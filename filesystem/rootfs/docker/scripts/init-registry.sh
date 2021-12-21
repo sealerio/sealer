@@ -23,6 +23,10 @@ REGISTRY_PORT=${1-5000}
 VOLUME=${2-/var/lib/registry}
 
 container=sealer-registry
+rootfs=$(dirname "$(pwd)")
+config="$rootfs/etc/registry_config.yaml"
+htpasswd="$rootfs/etc/registry_htpasswd"
+certs_dir="$rootfs/certs"
 
 mkdir -p $VOLUME || true
 
@@ -31,7 +35,7 @@ startRegistry() {
     while (( $n <= 3 ))
     do
         echo "attempt to start registry"
-        (docker start $container && break) || true
+        (docker start $container && break) || (( n < 3))
         (( n++ ))
         sleep 3
     done
@@ -44,11 +48,25 @@ if [ "$(docker ps -aq -f name=$container)" ]; then
     docker rm -f $container
 fi
 
-config=$(dirname "$(pwd)")'/etc/registry_config.yaml'
-certs_dir=$(cd ../;pwd)'/certs'
+regArgs="-d --restart=always \
+--net=host \
+--name $container \
+-v $certs_dir:/certs \
+-v $VOLUME:/var/lib/registry \
+-e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/sea.hub.crt \
+-e REGISTRY_HTTP_TLS_KEY=/certs/sea.hub.key"
 
 if [ -f $config ]; then
-    docker run -d --restart=always --net=host --name $container -v $certs_dir:/certs -v $VOLUME:/var/lib/registry registry:2.7.1 -v $config:/etc/docker/registry/config.yml -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/sea.hub.crt -e REGISTRY_HTTP_TLS_KEY=/certs/sea.hub.key || startRegistry
+    regArgs = "$regArgs \
+    -v $config:/etc/docker/registry/config.yml"
+fi
+
+if [ -f $htpasswd ]; then
+docker run $regArgs \
+            -v $htpasswd:/htpasswd \
+            -e REGISTRY_AUTH=htpasswd \
+            -e REGISTRY_AUTH_HTPASSWD_PATH=/htpasswd \
+            -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" registry:2.7.1 || startRegistry
 else
-    docker run -d --restart=always --net=host --name $container -v $certs_dir:/certs -v $VOLUME:/var/lib/registry registry:2.7.1 -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/sea.hub.crt -e REGISTRY_HTTP_TLS_KEY=/certs/sea.hub.key || startRegistry
+docker run $regArgs registry:2.7.1 || startRegistry
 fi
