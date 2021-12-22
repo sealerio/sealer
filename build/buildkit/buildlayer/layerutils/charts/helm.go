@@ -51,14 +51,6 @@ func RenderHelmChart(chartPath string) (map[string]string, error) {
 		return nil, err
 	}
 
-	/*
-		values := map[string]interface{}{
-			"Release": map[string]interface{}{
-				"Name": "dryrun",
-			},
-			"Values": ch.Values,
-		}
-	*/
 	options := chartutil.ReleaseOptions{
 		Name: "dryrun",
 	}
@@ -73,10 +65,6 @@ func RenderHelmChart(chartPath string) (map[string]string, error) {
 		logrus.Debugf("values is %s", b)
 		return nil, fmt.Errorf("render helm chart error %s", err.Error())
 	}
-
-	//for k, v := range content {
-	//	fmt.Println(k, v)
-	//}
 
 	return content, nil
 }

@@ -52,8 +52,8 @@ func NewCloudBuilder(config *Config) (Interface, error) {
 
 func NewLiteBuilder(config *Config) (Interface, error) {
 	return &lite.Builder{
-		BuildType: config.BuildType,
-		NoCache:   config.NoCache,
-		NoBase:    config.NoBase,
+		BuildType:   config.BuildType,
+		NoCache:     config.NoCache,
+		NoBase:      config.NoBase,
 	}, nil
 }

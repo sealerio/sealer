@@ -28,7 +28,7 @@ type BuildFlag struct {
 	KubefileName string
 	BuildType    string
 	NoCache      bool
-	NoBase       bool
+	Base         bool
 }
 
 var buildConfig *BuildFlag
@@ -61,7 +61,7 @@ build without base:
 			BuildType: buildConfig.BuildType,
 			NoCache:   buildConfig.NoCache,
 			ImageName: buildConfig.ImageName,
-			NoBase:    buildConfig.NoBase,
+			NoBase:    !buildConfig.Base,
 		}
 
 		builder, err := build.NewBuilder(conf)
@@ -80,7 +80,7 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
-	buildCmd.Flags().BoolVar(&buildConfig.NoBase, "no-base", false, "build without base image")
+	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image,default value is true.")
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logger.Error("failed to init flag: %v", err)
 		os.Exit(1)

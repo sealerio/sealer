@@ -16,6 +16,6 @@ package buildimage
 
 type Interface interface {
 	ExecBuild(ctx Context) error
-	SaveBuildImage(name string, noBase bool) error
+	SaveBuildImage(name string, opts SaveOpts) error
 	Cleanup() error
 }

@@ -20,3 +20,8 @@ type Context struct {
 	//cache flag,will change for each layer ctx
 	UseCache bool
 }
+
+type SaveOpts struct {
+	WithoutBase bool
+	Labels      map[string]string
+}

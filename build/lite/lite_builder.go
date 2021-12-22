@@ -96,7 +96,10 @@ func (l *Builder) ExecBuild() error {
 
 func (l *Builder) SaveBuildImage() error {
 	imageName := l.ImageNamed.Raw()
-	err := l.BuildImage.SaveBuildImage(imageName, l.NoBase)
+
+	err := l.BuildImage.SaveBuildImage(imageName, buildimage.SaveOpts{
+		WithoutBase: l.NoBase,
+	})
 	if err != nil {
 		return err
 	}
