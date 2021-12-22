@@ -17,6 +17,8 @@ package settings
 import (
 	"os"
 	"time"
+
+	"github.com/alibaba/sealer/logger"
 )
 
 // init test params and settings
@@ -39,4 +41,7 @@ func init() {
 	if pollingInterval == "" {
 		DefaultPollingInterval = 10
 	}
+	logger.InitLogger(logger.Config{
+		DebugMode: true,
+	})
 }
