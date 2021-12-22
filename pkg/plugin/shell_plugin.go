@@ -16,6 +16,7 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/pkg/env"
 	"strings"
 
 	"github.com/alibaba/sealer/utils"
@@ -26,7 +27,8 @@ import (
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
-type Sheller struct{}
+type Sheller struct{
+}
 
 func NewShellPlugin() Interface {
 	return &Sheller{}
@@ -79,4 +81,21 @@ func (s Sheller) Run(context Context, phase Phase) error {
 
 func init() {
 	Register(ShellPlugin, &Sheller{})
+}
+
+func CustomEnv(context Context)(env.Interface,error) {
+	envProcessor := env.NewEnvProcessor(context.Cluster)
+	pluginCmd := context.Plugin.Spec.Data
+	allHostIP := append(context.Cluster.GetMasterIPList(), context.Cluster.GetNodeIPList()...)
+	for _, ip := range allHostIP {
+		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster)
+		if err != nil {
+			return nil,err
+		}
+		err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip,pluginCmd))
+		if err != nil {
+			return nil,fmt.Errorf("failed to run shell cmd,  %v", err)
+		}
+	}
+	return nil,nil
 }
