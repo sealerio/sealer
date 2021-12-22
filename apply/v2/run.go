@@ -78,6 +78,9 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	c.cluster.Spec.SSH.User = c.runArgs.User
 	c.cluster.Spec.SSH.Pk = c.runArgs.Pk
 	c.cluster.Spec.SSH.PkPasswd = c.runArgs.PkPassword
+	if c.runArgs.CustomEnv != nil {
+		c.cluster.Spec.Env = c.runArgs.CustomEnv
+	}
 	if c.runArgs.Password != "" {
 		c.cluster.Spec.SSH.Passwd = c.runArgs.Password
 	}

@@ -24,5 +24,5 @@ type RunArgs struct {
 	PodCidr    string
 	SvcCidr    string
 	Provider   string
-	CustomEnv  string
+	CustomEnv  []string
 }
