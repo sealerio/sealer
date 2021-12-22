@@ -112,7 +112,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		Domain: SeaHub,
 		Port:   "5000",
 	}
-	registryConfigPath := filepath.Join(rootfs, "etc", "registry.yaml")
+	registryConfigPath := filepath.Join(rootfs, "etc", "registry.yml")
 	if !utils.IsFileExist(registryConfigPath) {
 		logger.Debug("use default registry config")
 		return DefaultConfig

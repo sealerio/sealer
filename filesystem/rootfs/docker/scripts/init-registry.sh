@@ -24,7 +24,7 @@ VOLUME=${2-/var/lib/registry}
 
 container=sealer-registry
 rootfs=$(dirname "$(pwd)")
-config="$rootfs/etc/registry_config.yaml"
+config="$rootfs/etc/registry_config.yml"
 htpasswd="$rootfs/etc/registry_htpasswd"
 certs_dir="$rootfs/certs"
 
@@ -41,7 +41,7 @@ startRegistry() {
     done
 }
 
-[ -f ../images/registry.tar  ] && docker load -q -i ../images/registry.tar 
+[ -f ../images/registry.tar  ] && docker load -q -i ../images/registry.tar
 
 ## rm container if exist.
 if [ "$(docker ps -aq -f name=$container)" ]; then
@@ -57,16 +57,16 @@ regArgs="-d --restart=always \
 -e REGISTRY_HTTP_TLS_KEY=/certs/sea.hub.key"
 
 if [ -f $config ]; then
-    regArgs = "$regArgs \
+    regArgs="$regArgs \
     -v $config:/etc/docker/registry/config.yml"
 fi
 
 if [ -f $htpasswd ]; then
-docker run $regArgs \
+    docker run $regArgs \
             -v $htpasswd:/htpasswd \
             -e REGISTRY_AUTH=htpasswd \
             -e REGISTRY_AUTH_HTPASSWD_PATH=/htpasswd \
             -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" registry:2.7.1 || startRegistry
 else
-docker run $regArgs registry:2.7.1 || startRegistry
+    docker run $regArgs registry:2.7.1 || startRegistry
 fi
