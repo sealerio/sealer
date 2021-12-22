@@ -15,7 +15,10 @@
 package cmd
 
 import (
+	"sync"
+
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 	"github.com/spf13/cobra"
@@ -46,13 +49,22 @@ specify the cluster name(If there is only one cluster in the $HOME/.sealer direc
 			return err
 		}
 		ipList := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
+		var wg sync.WaitGroup
 		for _, ip := range ipList {
 			sshCli, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
 				return err
 			}
-			go sshCli.CmdAsync(ip, args...)
+			wg.Add(1)
+			go func(ip string) {
+				defer wg.Done()
+				err := sshCli.CmdAsync(ip, args...)
+				if err != nil {
+					logger.Error("sealer exec failed %v", err)
+				}
+			}(ip)
 		}
+		wg.Wait()
 		return nil
 	},
 }
@@ -62,4 +74,3 @@ func init() {
 	execCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "submit one cluster name")
 
 }
-
