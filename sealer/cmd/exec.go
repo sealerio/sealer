@@ -30,11 +30,11 @@ var execCmd = &cobra.Command{
 	Short: "exec a shell command or script on all node.",
 	Example: `
 exec to default cluster: my-cluster
-	sealer exec cat /etc/hosts
+	sealer exec 'cat /etc/hosts'
 specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
-    sealer exec -c my-cluster cat /etc/hosts
+    sealer exec -c my-cluster 'cat /etc/hosts'
 `,
-	Args: cobra.NoArgs,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if clusterName == "" {
 			var err error
@@ -72,5 +72,4 @@ specify the cluster name(If there is only one cluster in the $HOME/.sealer direc
 func init() {
 	rootCmd.AddCommand(execCmd)
 	execCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "submit one cluster name")
-
 }
