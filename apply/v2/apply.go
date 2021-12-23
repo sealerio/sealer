@@ -18,6 +18,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/image/store"
+
 	"github.com/alibaba/sealer/apply/v2/applydriver"
 
 	"github.com/alibaba/sealer/common"
@@ -66,9 +68,15 @@ func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 		return nil, err
 	}
 
+	is, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+
 	return &applydriver.Applier{
 		ClusterDesired: cluster,
 		ImageManager:   imgSvc,
 		FileSystem:     fs,
+		ImageStore:     is,
 	}, nil
 }

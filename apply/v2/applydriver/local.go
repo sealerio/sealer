@@ -21,6 +21,7 @@ import (
 
 	"github.com/alibaba/sealer/apply/v2/processor"
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/runtime"
 
@@ -40,6 +41,7 @@ type Applier struct {
 	ImageManager   image.Service
 	FileSystem     filesystem.Interface
 	Client         *k8s.Client
+	ImageStore     store.ImageStore
 }
 
 func (c *Applier) Delete() (err error) {
@@ -112,6 +114,16 @@ func (c *Applier) reconcileCluster() error {
 			logger.Warn("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
 		}
 	}()
+
+	baseImage, err := c.ImageStore.GetByName(c.ClusterDesired.Spec.Image)
+	if err != nil {
+		return fmt.Errorf("failed to get base image err: %s", err)
+	}
+	// if no rootfs ,try to install applications
+	if !withRootfs(baseImage) {
+		return c.installApp()
+	}
+
 	mj, md := utils.GetDiffHosts(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
 	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
 
@@ -122,7 +134,6 @@ func (c *Applier) reconcileCluster() error {
 	if err := c.upgradeCluster(mj, nj); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -173,12 +184,12 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get cluster metadata: %v", err)
 	}
+
 	if info.GitVersion == clusterMetadata.Version {
 		return nil
 	}
 
 	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, clusterMetadata.Version)
-
 	upgradeProcessor, err := processor.NewUpgradeProcessor(c.FileSystem, runtimeInterface, mj, nj)
 	if err != nil {
 		return err
@@ -189,6 +200,36 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 	}
 
 	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", info.GitVersion, clusterMetadata.Version)
+
+	return nil
+}
+
+func (c *Applier) installApp() error {
+	rootfs := common.DefaultMountCloudImageDir(c.ClusterDesired.Name)
+	// use k8sClient to fetch current cluster version.
+	info, err := c.Client.GetClusterVersion()
+	if err != nil {
+		return err
+	}
+
+	clusterMetadata, err := runtime.LoadMetadata(rootfs)
+	if err != nil {
+		return err
+	}
+	if clusterMetadata != nil {
+		if !VersionCompatible(info.GitVersion, clusterMetadata.KubeVersion) {
+			return fmt.Errorf("incompatible application version, need: %s", clusterMetadata.KubeVersion)
+		}
+	}
+
+	installProcessor, err := processor.NewInstallProcessor(c.FileSystem)
+	if err != nil {
+		return err
+	}
+	err = installProcessor.Execute(c.ClusterDesired)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
