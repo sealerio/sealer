@@ -17,12 +17,13 @@ package save
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 
+	"github.com/alibaba/sealer/image/save/distributionpkg/proxy"
 	"github.com/alibaba/sealer/utils"
 	distribution "github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/reference"
-	"github.com/distribution/distribution/v3/registry/proxy"
 	"github.com/distribution/distribution/v3/registry/storage"
 	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
 	"github.com/docker/docker/api/types"
@@ -247,9 +248,22 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 		tmpBlob := blob
 		numCh <- struct{}{}
 		eg.Go(func() error {
-			_, err = blobStore.Get(is.ctx, tmpBlob)
+			_, err = blobStore.Stat(is.ctx, tmpBlob)
+			if err == nil { //blob already exist
+				return err
+			}
+			reader, err := blobStore.Open(is.ctx, tmpBlob)
 			if err != nil {
 				return fmt.Errorf("get blob %s error: %v", tmpBlob, err)
+			}
+			defer reader.Close()
+			content, err := ioutil.ReadAll(reader)
+			if err != nil {
+				return fmt.Errorf("blob %s content error: %v", tmpBlob, err)
+			}
+			_, err = blobStore.Put(is.ctx, "", content)
+			if err != nil {
+				return fmt.Errorf("store blob %s to local error: %v", tmpBlob, err)
 			}
 			<-numCh
 			return nil
