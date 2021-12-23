@@ -1,3 +1,17 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package proxy
 
 import (
@@ -69,7 +83,7 @@ func (pbs *proxyBlobStore) serveLocal(ctx context.Context, w http.ResponseWriter
 	if err != nil {
 		// Stat can report a zero sized file here if it's checked between creation
 		// and population.  Return nil error, and continue
-		return false, nil
+		return false, err
 	}
 
 	proxyMetrics.BlobPush(uint64(localDesc.Size))
@@ -121,8 +135,7 @@ func (pbs *proxyBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter,
 	}
 
 	mu.Lock()
-	_, ok := inflight[dgst]
-	if ok {
+	if _, ok := inflight[dgst]; ok {
 		mu.Unlock()
 		_, err := pbs.copyContent(ctx, dgst, w)
 		return err
@@ -141,7 +154,7 @@ func (pbs *proxyBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter,
 			return
 		}
 
-		pbs.scheduler.AddBlob(blobRef, repositoryTTL)
+		_ = pbs.scheduler.AddBlob(blobRef, repositoryTTL)
 	}(dgst)
 
 	_, err = pbs.copyContent(ctx, dgst, w)
@@ -154,18 +167,22 @@ func (pbs *proxyBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter,
 func (pbs *proxyBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
 	desc, err := pbs.localStore.Stat(ctx, dgst)
 	if err == nil {
-		return desc, err
+		return desc, nil
 	}
 
 	return distribution.Descriptor{}, err
 }
 
 func (pbs *proxyBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
+	blob, err := pbs.localStore.Get(ctx, dgst)
+	if err == nil {
+		return blob, nil
+	}
 	if err := pbs.authChallenger.tryEstablishChallenges(ctx); err != nil {
 		return []byte{}, err
 	}
 
-	blob, err := pbs.remoteStore.Get(ctx, dgst)
+	blob, err = pbs.remoteStore.Get(ctx, dgst)
 	if err != nil {
 		return []byte{}, err
 	}

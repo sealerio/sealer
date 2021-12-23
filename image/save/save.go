@@ -17,16 +17,23 @@ package save
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/save/distributionpkg/proxy"
+	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 	distribution "github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/storage"
 	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
+	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
+	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
+	"github.com/docker/docker/pkg/progress"
+	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/sync/errgroup"
@@ -36,7 +43,7 @@ const (
 	urlPrefix           = "https://"
 	defauleProxyURL     = "https://registry-1.docker.io"
 	configRootDir       = "rootdirectory"
-	maxPullGoroutineNum = 10
+	maxPullGoroutineNum = 2
 
 	manifestV2       = "application/vnd.docker.distribution.manifest.v2+json"
 	manifestOCI      = "application/vnd.oci.image.manifest.v1+json"
@@ -45,13 +52,32 @@ const (
 )
 
 func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1.Platform) error {
+	//init a pipe for display pull message
+	reader, writer := io.Pipe()
+	defer func() {
+		_ = reader.Close()
+		_ = writer.Close()
+	}()
+	is.progressOut = streamformatter.NewJSONProgressOutput(writer, false)
+
+	go func() {
+		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
+		if err != nil && err != io.ErrClosedPipe {
+			logger.Warn("error occurs in display progressing, err: %s", err)
+		}
+	}()
+
+	//handle image name
 	for _, image := range images {
 		named, err := parseNormalizedNamed(image)
 		if err != nil {
 			return fmt.Errorf("parse image name error: %v", err)
 		}
 		is.domainToImages[named.domain+named.repo] = append(is.domainToImages[named.domain+named.repo], named)
+		progress.Message(is.progressOut, "", fmt.Sprintf("Pulling image: %s", named.FullName()))
 	}
+
+	//perform image save ability
 	eg, _ := errgroup.WithContext(context.Background())
 	numCh := make(chan struct{}, maxPullGoroutineNum)
 	for _, nameds := range is.domainToImages {
@@ -73,6 +99,7 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 	if err := eg.Wait(); err != nil {
 		return err
 	}
+	progress.Message(is.progressOut, "", "Status: images save success")
 	return nil
 }
 
@@ -101,10 +128,13 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 			driverName: configuration.Parameters{configRootDir: rootdir},
 		},
 	}
+
 	driver, err := factory.Create(config.Storage.Type(), config.Storage.Parameters())
 	if err != nil {
 		return nil, fmt.Errorf("create storage driver error: %v", err)
 	}
+
+	//create a local registry service
 	registry, err := storage.NewRegistry(ctx, driver, make([]storage.RegistryOption, 0)...)
 	if err != nil {
 		return nil, fmt.Errorf("create local registry error: %v", err)
@@ -189,6 +219,7 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 	if err != nil {
 		return digest.Digest(""), fmt.Errorf("failed to get image manifest payload: %v", err)
 	}
+
 	switch ct {
 	case manifestV2, manifestOCI:
 		return imagedigest, nil
@@ -221,6 +252,9 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 	eg, _ := errgroup.WithContext(context.Background())
 	numCh := make(chan struct{}, maxPullGoroutineNum)
 	blobLists := make([]digest.Digest, 0)
+
+	//get blob list
+	//each blob identified by a digest
 	for _, imageDigest := range imageDigests {
 		tmpImageDigest := imageDigest
 		numCh <- struct{}{}
@@ -243,21 +277,39 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 		return err
 	}
 
+	//pull and save each blob
 	blobStore := repo.Blobs(is.ctx)
 	for _, blob := range blobLists {
 		tmpBlob := blob
 		numCh <- struct{}{}
 		eg.Go(func() error {
+			simpleDgst := string(tmpBlob)[7:19]
+
 			_, err = blobStore.Stat(is.ctx, tmpBlob)
 			if err == nil { //blob already exist
-				return err
+				progress.Message(is.progressOut, simpleDgst, "already exists")
+				return nil
 			}
 			reader, err := blobStore.Open(is.ctx, tmpBlob)
 			if err != nil {
 				return fmt.Errorf("get blob %s error: %v", tmpBlob, err)
 			}
-			defer reader.Close()
-			content, err := ioutil.ReadAll(reader)
+
+			size, err := reader.Seek(0, io.SeekEnd)
+			if err != nil {
+				return fmt.Errorf("seek end error when save blob %s: %v", tmpBlob, err)
+			}
+			_, err = reader.Seek(0, io.SeekStart)
+			if err != nil {
+				return fmt.Errorf("seek start error when save blob %s: %v", tmpBlob, err)
+			}
+			preader := progress.NewProgressReader(reader, is.progressOut, size, simpleDgst, "Downloading")
+			defer func() {
+				_ = reader.Close()
+				progress.Update(is.progressOut, simpleDgst, "Download complete")
+			}()
+
+			content, err := ioutil.ReadAll(preader)
 			if err != nil {
 				return fmt.Errorf("blob %s content error: %v", tmpBlob, err)
 			}
@@ -265,10 +317,12 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 			if err != nil {
 				return fmt.Errorf("store blob %s to local error: %v", tmpBlob, err)
 			}
+
 			<-numCh
 			return nil
 		})
 	}
+
 	if err := eg.Wait(); err != nil {
 		return err
 	}

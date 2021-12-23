@@ -17,6 +17,7 @@ package save
 import (
 	"context"
 
+	"github.com/docker/docker/pkg/progress"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -28,6 +29,7 @@ type ImageSave interface {
 type DefaultImageSaver struct {
 	ctx            context.Context
 	domainToImages map[string][]Named
+	progressOut    progress.Output
 }
 
 func NewImageSaver(ctx context.Context) ImageSave {
