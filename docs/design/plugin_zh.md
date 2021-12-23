@@ -38,7 +38,7 @@ metadata:
 spec:
   type: SHELL
   action: PostInstall
-  on: role=master
+  on: node-role.kubernetes.io/master=
   data: |
     kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
 ```
@@ -49,10 +49,10 @@ action : [PreInit| PreInstall| PostInstall] # 指定执行shell的时机
   在安装集群之前执行命令    action: PreInstall
   在安装集群之后执行命令    action: PostInstall
 on     : #指定执行命令的机器
-  在所有master上执行    on: role=master
-  在所有node上执行      on: role=node
+  为空时默认在所有节点执行
   在指定IP上执行        on: 192.168.56.113,192.168.56.114,192.168.56.115,192.168.56.116
   在有连续IP的机器上执行  on: 192.168.56.113-192.168.56.116
+  在指定label节点上执行(action需设置为PostInstall)    on: node-role.kubernetes.io/master=
 data   : #指定执行的shell命令
 ```
 
@@ -151,7 +151,7 @@ metadata:
 spec:
   type: SHELL
   action: PostInstall
-  on: role=master
+  on: node-role.kubernetes.io/master=
   data: |
      kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
 ```
@@ -176,7 +176,7 @@ metadata:
 spec:
   type: SHELL
   action: PostInstall
-  on: role=master
+  on: node-role.kubernetes.io/master=
   data: |
      kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
 ```
