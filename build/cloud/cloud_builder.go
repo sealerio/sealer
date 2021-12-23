@@ -203,7 +203,7 @@ func (c *Builder) runBuildCommands() (err error) {
 	build := fmt.Sprintf(common.BuildClusterCmd, common.RemoteSealerPath,
 		filepath.Base(c.KubeFileName), c.ImageNamed.Raw(), common.LocalBuild, ".")
 	if c.NoBase {
-		build = fmt.Sprintf("%s %s", build, "--no-base=true")
+		build = fmt.Sprintf("%s %s", build, "--base=false")
 	}
 	if c.NoCache {
 		build = fmt.Sprintf("%s %s", build, "--no-cache=true")

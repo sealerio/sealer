@@ -120,7 +120,7 @@ func (b BuildImage) genNewLayer(layerType, layerValue, filepath string) (v1.Laye
 	return imageLayer, nil
 }
 
-func (b BuildImage) checkImageMataData() error {
+func (b BuildImage) checkImageMetadata() error {
 	lowerLayers := buildinstruction.GetBaseLayersPath(b.NewLayers)
 	target, err := buildinstruction.NewMountTarget("", "", lowerLayers)
 	if err != nil {
@@ -146,7 +146,7 @@ func (b BuildImage) checkImageMataData() error {
 	return nil
 }
 func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
-	err := b.checkImageMataData()
+	err := b.checkImageMetadata()
 	if err != nil {
 		return err
 	}
