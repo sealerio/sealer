@@ -37,7 +37,7 @@ set role label to exec cmd:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		execCmd, err := exec.NewExecCmd(clusterName, roles)
 		if err != nil {
-			return nil
+			return err
 		}
 		return execCmd.RunCmd(args...)
 	},
