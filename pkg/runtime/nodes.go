@@ -73,7 +73,11 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	k.cleanJoinLocalAPIEndPoint()
 
-	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
+	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
+	cf := GetRegistryConfig(k.getImageMountDir(), k.getMaster0IP())
+	if cf.Username != "" && cf.Password != "" {
+		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
+	}
 	for _, node := range nodes {
 		wg.Add(1)
 		go func(node string) {
@@ -86,7 +90,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
 				return
 			}
-			cmdJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
+			cmdWriteJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
 			cmd := k.Command(k.getKubeVersion(), JoinNode)
 			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.getMasterIPList(), "")
@@ -96,7 +100,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
 				return
 			}
-			if err := ssh.CmdAsync(node, cmdAddRegistryHosts, cmdJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd); err != nil {
+			if err := ssh.CmdAsync(node, addRegistryHostsAndLogin, cmdWriteJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd); err != nil {
 				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
 			}
 

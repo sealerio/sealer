@@ -16,6 +16,7 @@ package runtime
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -121,10 +122,15 @@ func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
 	certCMD := command.RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
 	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain()))
+	joinCommands := []string{cmdAddRegistryHosts, certCMD, cmdAddHosts}
+	cf := GetRegistryConfig(k.getImageMountDir(), k.getMaster0IP())
+	if cf.Username != "" && cf.Password != "" {
+		joinCommands = append(joinCommands, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
+	}
 	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain()),
 		getAPIServerHost(utils.GetHostIP(master), k.getAPIServerDomain()))
 
-	return []string{cmdAddRegistryHosts, certCMD, cmdAddHosts, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig}
+	return append(joinCommands, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig)
 }
 
 func (k *KubeadmRuntime) sendKubeConfigFile(hosts []string, kubeFile string) error {
@@ -134,7 +140,19 @@ func (k *KubeadmRuntime) sendKubeConfigFile(hosts []string, kubeFile string) err
 }
 
 func (k *KubeadmRuntime) sendNewCertAndKey(hosts []string) error {
-	return k.sendFileToHosts(hosts, k.getCertPath(), cert.KubeDefaultCertPath)
+	err := k.sendFileToHosts(hosts, k.getCertPath(), cert.KubeDefaultCertPath)
+	if err != nil {
+		return err
+	}
+	return k.sendFileToHosts(k.getMasterIPList()[:1], k.getGenerateRegistryCertDir(), filepath.Join(k.getRootfs(), "certs"))
+}
+
+func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
+	err := k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getGenerateRegistryCertDir(), SeaHub), fmt.Sprintf("%s/%s/%s.crt", DockerCertDir, SeaHub, SeaHub))
+	if err != nil {
+		return err
+	}
+	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getGenerateRegistryCertDir(), SeaHub), fmt.Sprintf("%s/%s:%d/%s.crt", DockerCertDir, SeaHub, k.getDefaultRegistryPort(), SeaHub))
 }
 
 func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error {

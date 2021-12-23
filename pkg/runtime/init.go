@@ -36,6 +36,7 @@ const (
 	DefaultVIP                     = "10.103.97.2"
 	DefaultAPIserverDomain         = "apiserver.cluster.local"
 	DefaultRegistryPort            = 5000
+	DockerCertDir                  = "/etc/docker/certs.d"
 )
 
 func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
@@ -117,7 +118,15 @@ func (k *KubeadmRuntime) GenerateCert() error {
 	if err != nil {
 		return fmt.Errorf("generate certs failed %v", err)
 	}
-	return k.sendNewCertAndKey([]string{k.getMaster0IP()})
+	err = cert.GenerateRegistryCert(k.getGenerateRegistryCertDir(), SeaHub)
+	if err != nil {
+		return err
+	}
+	err = k.sendNewCertAndKey(k.getMasterIPList()[:1])
+	if err != nil {
+		return err
+	}
+	return k.sendRegistryCert(append(k.getMasterIPList(), k.getNodesIPList()...))
 }
 
 func (k *KubeadmRuntime) CreateKubeConfig() error {

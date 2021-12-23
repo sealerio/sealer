@@ -52,7 +52,7 @@ func (d *Default) init(cluster *v1.Cluster) error {
 
 	//generate certs
 	if err := d.GenerateCert(); err != nil {
-		return fmt.Errorf("failed to gernerate cert %v", err)
+		return fmt.Errorf("failed to generate cert %v", err)
 	}
 
 	//create kubeConfig for master0

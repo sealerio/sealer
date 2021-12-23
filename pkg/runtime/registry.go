@@ -18,23 +18,29 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
 )
 
 const (
-	RegistryName       = "sealer-registry"
-	RegistryBindDest   = "/var/lib/registry"
-	RegistryMountUpper = "/var/lib/sealer/tmp/upper"
-	RegistryMountWork  = "/var/lib/sealer/tmp/work"
-	SeaHub             = "sea.hub"
+	RegistryName                = "sealer-registry"
+	RegistryBindDest            = "/var/lib/registry"
+	RegistryMountUpper          = "/var/lib/sealer/tmp/upper"
+	RegistryMountWork           = "/var/lib/sealer/tmp/work"
+	SeaHub                      = "sea.hub"
+	DefaultRegistryHtPasswdFile = "registry_htpasswd"
+	DockerLoginCommand          = "docker login %s -u %s -p %s"
 )
 
 type RegistryConfig struct {
-	IP     string `yaml:"ip,omitempty"`
-	Domain string `yaml:"domain,omitempty"`
-	Port   string `yaml:"port,omitempty"`
+	IP       string `yaml:"ip,omitempty"`
+	Domain   string `yaml:"domain,omitempty"`
+	Port     string `yaml:"port,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 func getRegistryHost(rootfs, defaultRegistry string) (host string) {
@@ -64,9 +70,39 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 	if err := ssh.CmdAsync(cf.IP, mountCmd); err != nil {
 		return err
 	}
+	if cf.Username != "" && cf.Password != "" {
+		htpasswd, err := cf.GenerateHtPasswd()
+		if err != nil {
+			return err
+		}
+		err = ssh.CmdAsync(cf.IP, fmt.Sprintf("echo '%s' >> %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
+		if err != nil {
+			return err
+		}
+	}
+	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s", k.getRootfs(), cf.Port, fmt.Sprintf("%s/registry", k.getRootfs()))
+	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
+	if err = ssh.CmdAsync(cf.IP, initRegistry); err != nil {
+		return err
+	}
+	if err = ssh.CmdAsync(k.getMaster0IP(), addRegistryHosts); err != nil {
+		return err
+	}
+	if cf.Username == "" || cf.Password == "" {
+		return nil
+	}
+	return ssh.CmdAsync(k.getMaster0IP(), fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
+}
 
-	cmd := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s", k.getRootfs(), cf.Port, fmt.Sprintf("%s/registry", k.getRootfs()))
-	return ssh.CmdAsync(cf.IP, cmd)
+func (r *RegistryConfig) GenerateHtPasswd() (string, error) {
+	if r.Username == "" || r.Password == "" {
+		return "", fmt.Errorf("generate htpasswd failed: registry username or passwodr is empty")
+	}
+	pwdHash, err := bcrypt.GenerateFromPassword([]byte(r.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate registry password: %v", err)
+	}
+	return r.Username + ":" + string(pwdHash), nil
 }
 
 func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
@@ -76,13 +112,12 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		Domain: SeaHub,
 		Port:   "5000",
 	}
-	registryConfigPath := filepath.Join(rootfs, "/etc/registry.yaml")
+	registryConfigPath := filepath.Join(rootfs, "etc", "registry.yml")
 	if !utils.IsFileExist(registryConfigPath) {
 		logger.Debug("use default registry config")
 		return DefaultConfig
 	}
 	err := utils.UnmarshalYamlFile(registryConfigPath, &config)
-	logger.Info(fmt.Sprintf("show registry info, IP: %s, Domain: %s", config.IP, config.Domain))
 	if err != nil {
 		logger.Error("Failed to read registry config! ")
 		return DefaultConfig
@@ -99,6 +134,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	if config.Domain == "" {
 		config.Domain = DefaultConfig.Domain
 	}
+	logger.Debug(fmt.Sprintf("show registry info, IP: %s, Domain: %s", config.IP, config.Domain))
 	return &config
 }
 

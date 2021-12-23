@@ -91,11 +91,23 @@ func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
 	return metadata, nil
 }
 
+func (k *KubeadmRuntime) getGenerateRegistryCertDir() string {
+	return filepath.Join(k.getBasePath(), "certs")
+}
+
+func (k *KubeadmRuntime) getDefaultRegistryPort() int {
+	return DefaultRegistryPort
+}
+
 func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) {
 	return ssh.GetHostSSHClient(hostIP, k.Cluster)
 }
 
 func (k *KubeadmRuntime) getRootfs() string {
+	return common.DefaultTheClusterRootfsDir(k.getClusterName())
+}
+
+func (k *KubeadmRuntime) getImageMountDir() string {
 	return common.DefaultTheClusterRootfsDir(k.getClusterName())
 }
 
@@ -109,7 +121,7 @@ func (k *KubeadmRuntime) getMaster0IP() string {
 }
 
 func (k *KubeadmRuntime) getDefaultKubeadmConfig() string {
-	return filepath.Join(common.DefaultMountCloudImageDir(k.getClusterName()), "etc", "kubeadm.yml")
+	return filepath.Join(k.getRootfs(), "etc", "kubeadm.yml")
 }
 
 func (k *KubeadmRuntime) getCertPath() string {
