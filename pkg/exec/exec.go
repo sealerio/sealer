@@ -59,7 +59,7 @@ func NewExecCmd(clusterName string, roles string) (ExecCmd, error) {
 	return ExecCmd{cluster: cluster, ipList: ipList}, nil
 }
 
-func (exec *ExecCmd) RunCmd(args ...string) error {
+func (exec ExecCmd) RunCmd(args ...string) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	ipList := exec.ipList
 	for _, ip := range ipList {
@@ -76,8 +76,7 @@ func (exec *ExecCmd) RunCmd(args ...string) error {
 			return nil
 		})
 	}
-	err := eg.Wait()
-	if err != nil {
+	if err := eg.Wait(); err != nil {
 		return fmt.Errorf("failed to sealer exec command, err: %v", err)
 	}
 	return nil
