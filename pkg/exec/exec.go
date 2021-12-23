@@ -26,23 +26,23 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type ExecCmd struct {
+type Exec struct {
 	cluster *v2.Cluster
 	ipList  []string
 }
 
-func NewExecCmd(clusterName string, roles string) (ExecCmd, error) {
+func NewExecCmd(clusterName string, roles string) (Exec, error) {
 	if clusterName == "" {
 		var err error
 		clusterName, err = utils.GetDefaultClusterName()
 		if err != nil {
-			return ExecCmd{}, err
+			return Exec{}, err
 		}
 	}
 	clusterFile := common.GetClusterWorkClusterfile(clusterName)
 	cluster, err := utils.GetClusterFromFile(clusterFile)
 	if err != nil {
-		return ExecCmd{}, err
+		return Exec{}, err
 	}
 	var ipList []string
 	if roles == "" {
@@ -53,13 +53,13 @@ func NewExecCmd(clusterName string, roles string) (ExecCmd, error) {
 			ipList = append(ipList, cluster.GetIPSByRole(role)...)
 		}
 		if len(ipList) == 0 {
-			return ExecCmd{}, fmt.Errorf("failed to get ipList, please check your roles label")
+			return Exec{}, fmt.Errorf("failed to get ipList, please check your roles label")
 		}
 	}
-	return ExecCmd{cluster: cluster, ipList: ipList}, nil
+	return Exec{cluster: cluster, ipList: ipList}, nil
 }
 
-func (exec ExecCmd) RunCmd(args ...string) error {
+func (exec *Exec) RunCmd(args ...string) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	ipList := exec.ipList
 	for _, ip := range ipList {
