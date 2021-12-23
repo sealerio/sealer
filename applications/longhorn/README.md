@@ -1,6 +1,6 @@
 # Overview
 
-This image is based on kubernetes:v1.19.9,  add longhorn  to provide persistent-volume. 
+This image is based on kubernetes:v1.19.9,  add longhorn  to provide persistent-volume.
 
 Components included in this image:
 
@@ -25,13 +25,11 @@ Once Longhorn has been installed in your Kubernetes cluster, you can access the 
 
 1. Get the Longhorn’s external service IP:
 
-​		``` kubectl -n longhorn-system get svc```
+​        ``` kubectl -n longhorn-system get svc```
 
-​		For Longhorn v0.8.0, the output should look like this, and the `CLUSTER-IP` of the `longhorn-frontend` is used to access the Longhorn UI:
+​        For Longhorn v0.8.0, the output should look like this, and the `CLUSTER-IP` of the `longhorn-frontend` is used to access the Longhorn UI:
 
 2. Navigate to the IP of `longhorn-frontend` in your browser.
-
-
 
 ## How to rebuild it use helm
 
@@ -49,6 +47,4 @@ run below command to build it
 sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
-
-
-More parameters see [official document here](https://artifacthub.io/packages/helm/bitnami/minio).
+More parameters see [official document here](https://longhorn.io/docs/1.2.3/).
