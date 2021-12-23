@@ -219,8 +219,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 		return err
 	}
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain()))
-	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
-	err = ssh.CmdAsync(k.getMaster0IP(), cmdAddEtcHost, cmdAddRegistryHosts)
+	err = ssh.CmdAsync(k.getMaster0IP(), cmdAddEtcHost)
 	if err != nil {
 		return err
 	}
