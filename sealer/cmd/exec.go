@@ -15,14 +15,11 @@
 package cmd
 
 import (
-	"sync"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/alibaba/sealer/pkg/exec"
 	"github.com/spf13/cobra"
 )
+
+var roles string
 
 // execCmd represents the exec command
 var execCmd = &cobra.Command{
@@ -33,43 +30,21 @@ exec to default cluster: my-cluster
 	sealer exec 'cat /etc/hosts'
 specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
     sealer exec -c my-cluster 'cat /etc/hosts'
+set role label to exec cmd:
+    sealer exec -c my-cluster -r master,slave,node1 'cat /etc/hosts'		
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if clusterName == "" {
-			var err error
-			clusterName, err = utils.GetDefaultClusterName()
-			if err != nil {
-				return err
-			}
-		}
-		clusterFile := common.GetClusterWorkClusterfile(clusterName)
-		cluster, err := utils.GetClusterFromFile(clusterFile)
+		execCmd, err := exec.NewExecCmd(clusterName, roles)
 		if err != nil {
-			return err
+			return nil
 		}
-		ipList := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-		var wg sync.WaitGroup
-		for _, ip := range ipList {
-			sshCli, err := ssh.GetHostSSHClient(ip, cluster)
-			if err != nil {
-				return err
-			}
-			wg.Add(1)
-			go func(ip string) {
-				defer wg.Done()
-				err := sshCli.CmdAsync(ip, args...)
-				if err != nil {
-					logger.Error("sealer exec failed %v", err)
-				}
-			}(ip)
-		}
-		wg.Wait()
-		return nil
+		return execCmd.RunCmd(args...)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(execCmd)
 	execCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "submit one cluster name")
+	execCmd.Flags().StringVarP(&roles, "roles", "r", "", "set role label to roles")
 }
