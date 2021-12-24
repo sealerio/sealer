@@ -1,5 +1,5 @@
 # seautil
 
-seautil是一个二进制工具，帮助远程执行一些操作而这些操作系统中没有自带shell命令。
+seautil is a binary tool, Help operating systems that do not have their own shell commands to remotely perform some operations.
 
-如创建ipvs规则，生成证书等.
+Such as creating ipvs rules, generating certificates, etc.
