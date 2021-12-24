@@ -1,0 +1,4 @@
+FROM longhorn:1.2.3
+
+COPY fluentbit-loki-stack-system.yaml .
+CMD  kubectl create ns fluentbit-loki-stack-system && kubectl apply -f fluentbit-loki-stack-system.yaml
