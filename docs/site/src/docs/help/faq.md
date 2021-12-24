@@ -270,7 +270,7 @@ library
 in some case ,when you failed to run sealer apply ,and the hints show a little that is not enough to use, this section
 will guild you how to clean your host manually.
 
-you may follow the below clean steps.
+you may follow the below clean steps when init cluster failed.
 
 ### umount rootfs or apply mount if it existed
 
@@ -296,4 +296,23 @@ rm -rf /var/lib/sealer/data/my-cluster
 ```shell
 rm -rf /etc/kubernetes
 rm -rf /etc/cni
+```
+
+you may follow the below clean steps when if your cluster is up.
+
+## kubeadm reset
+
+```shell
+kubeadm reset -f
+```
+
+## delete kube config and kubelet if it existed
+
+```shell
+rm -rf $HOME/.kube/config
+rm -rf ~/.kube/ && rm -rf /etc/kubernetes/ && \
+rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
+rm -rf /usr/bin/kube* && rm -rf /usr/bin/crictl && \
+rm -rf /etc/cni && rm -rf /opt/cni && \
+rm -rf /var/lib/etcd && rm -rf /var/etcd 
 ```
