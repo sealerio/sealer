@@ -28,8 +28,7 @@ import (
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
-type Sheller struct {
-}
+type Sheller struct {}
 
 func NewShellPlugin() Interface {
 	return &Sheller{}
