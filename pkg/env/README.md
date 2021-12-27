@@ -4,7 +4,7 @@ This module will merge the host env and global env, then render env into cloudro
 
 ## ENV template render
 
-ENV module only render the filename has sufix ".tmpl", and render the result into a new file.
+ENV module only render the filename has ".tmpl" suffix, and render the result into a new file.
 
 Like: test.yaml.tmpl -> test.yaml
 

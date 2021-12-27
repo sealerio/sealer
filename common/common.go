@@ -171,6 +171,14 @@ func DefaultTheClusterRootfsPluginDir(clusterName string) string {
 	return filepath.Join(DefaultTheClusterRootfsDir(clusterName), "plugin")
 }
 
+func TheDefaultClusterPKIDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "pki")
+}
+
+func TheDefaultClusterCertDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "certs")
+}
+
 func DefaultClusterBaseDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName)
 }

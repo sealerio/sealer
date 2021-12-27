@@ -107,7 +107,7 @@ func (k *KubeadmRuntime) getRemoteHostName(hostIP string) string {
 
 func (k *KubeadmRuntime) GenerateCert() error {
 	err := cert.GenerateCert(
-		k.getCertPath(),
+		k.getPKIPath(),
 		k.getEtcdCertPath(),
 		k.getCertSANS(),
 		k.getMaster0IP(),
@@ -118,7 +118,7 @@ func (k *KubeadmRuntime) GenerateCert() error {
 	if err != nil {
 		return fmt.Errorf("generate certs failed %v", err)
 	}
-	err = cert.GenerateRegistryCert(k.getGenerateRegistryCertDir(), SeaHub)
+	err = cert.GenerateRegistryCert(k.getCertsDir(), SeaHub)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (k *KubeadmRuntime) GenerateCert() error {
 func (k *KubeadmRuntime) CreateKubeConfig() error {
 	hostname := k.getRemoteHostName(k.getMaster0IP())
 	certConfig := cert.Config{
-		Path:     k.getCertPath(),
+		Path:     k.getPKIPath(),
 		BaseName: "ca",
 	}
 

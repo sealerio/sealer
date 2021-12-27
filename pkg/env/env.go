@@ -25,7 +25,7 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-const templateSufix = ".tmpl"
+const templateSuffix = ".tmpl"
 
 type Interface interface {
 	// WrapperShell :If host already set env like DATADISK=/data
@@ -60,10 +60,10 @@ func (p *processor) RenderAll(host, dir string) error {
 		if errIn != nil {
 			return errIn
 		}
-		if info.IsDir() || !strings.HasSuffix(info.Name(), templateSufix) {
+		if info.IsDir() || !strings.HasSuffix(info.Name(), templateSuffix) {
 			return nil
 		}
-		writer, err := os.OpenFile(strings.TrimSuffix(path, templateSufix), os.O_CREATE|os.O_RDWR, os.ModePerm)
+		writer, err := os.OpenFile(strings.TrimSuffix(path, templateSuffix), os.O_CREATE|os.O_RDWR, os.ModePerm)
 		if err != nil {
 			return fmt.Errorf("failed to open file [%s] when render env: %v", path, err)
 		}
@@ -80,21 +80,6 @@ func (p *processor) RenderAll(host, dir string) error {
 		return nil
 	})
 }
-
-/*
-func sameKey(keysrc string, list []string) bool {
-	s := strings.SplitN(keysrc, "=", 2)
-	if len(s) != 2 {
-		return false
-	}
-	for _, l := range list {
-		if strings.HasPrefix(l, s[0]) {
-			return true
-		}
-	}
-	return false
-}
-*/
 
 func mergeList(dst, src []string) []string {
 	for _, s := range src {

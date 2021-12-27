@@ -140,19 +140,19 @@ func (k *KubeadmRuntime) sendKubeConfigFile(hosts []string, kubeFile string) err
 }
 
 func (k *KubeadmRuntime) sendNewCertAndKey(hosts []string) error {
-	err := k.sendFileToHosts(hosts, k.getCertPath(), cert.KubeDefaultCertPath)
+	err := k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
 	if err != nil {
 		return err
 	}
-	return k.sendFileToHosts(k.getMasterIPList()[:1], k.getGenerateRegistryCertDir(), filepath.Join(k.getRootfs(), "certs"))
+	return k.sendFileToHosts(k.getMasterIPList()[:1], k.getCertsDir(), filepath.Join(k.getRootfs(), "certs"))
 }
 
 func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
-	err := k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getGenerateRegistryCertDir(), SeaHub), fmt.Sprintf("%s/%s/%s.crt", DockerCertDir, SeaHub, SeaHub))
+	err := k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), SeaHub), fmt.Sprintf("%s/%s/%s.crt", DockerCertDir, SeaHub, SeaHub))
 	if err != nil {
 		return err
 	}
-	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getGenerateRegistryCertDir(), SeaHub), fmt.Sprintf("%s/%s:%d/%s.crt", DockerCertDir, SeaHub, k.getDefaultRegistryPort(), SeaHub))
+	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), SeaHub), fmt.Sprintf("%s/%s:%d/%s.crt", DockerCertDir, SeaHub, k.getDefaultRegistryPort(), SeaHub))
 }
 
 func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error {
