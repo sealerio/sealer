@@ -49,10 +49,15 @@ func NewEnvProcessor(cluster *v2.Cluster) Interface {
 func (p *processor) WrapperShell(host, shell string) string {
 	var env string
 	for k, v := range p.getHostEnv(host) {
-		env = fmt.Sprintf("%s%s=%s ", env, k, v)
+		switch value := v.(type) {
+		case []string:
+			env = fmt.Sprintf("%s%s=(%s) ", env, k, strings.Join(value, " "))
+		case string:
+			env = fmt.Sprintf("%s%s=%s ", env, k, value)
+		}
 	}
 
-	return fmt.Sprintf("%s && %s", env, shell)
+	return fmt.Sprintf("%s&& %s", env, shell)
 }
 
 func (p *processor) RenderAll(host, dir string) error {
