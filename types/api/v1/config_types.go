@@ -78,6 +78,7 @@ type ConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Config is the Schema for the configs API
 type Config struct {
@@ -89,6 +90,7 @@ type Config struct {
 }
 
 // +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ConfigList contains a list of Config
 type ConfigList struct {

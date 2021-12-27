@@ -49,6 +49,7 @@ type ImageStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Image is the Schema for the images API
 type Image struct {
@@ -60,6 +61,7 @@ type Image struct {
 }
 
 // +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageList contains a list of Image
 type ImageList struct {
