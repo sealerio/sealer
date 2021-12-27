@@ -7,6 +7,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/alibaba/sealer)](https://goreportcard.com/report/github.com/alibaba/sealer)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5205/badge)](https://bestpractices.coreinfrastructure.org/en/projects/5205)
 
+[简体中文](./docs/README_zh.md)
+
 ## Contents
 
 * [Introduction](#introduction)

@@ -31,6 +31,7 @@ const (
 	PhasePostInstall = Phase("PostInstall")
 	PhaseOriginally  = Phase("Originally")
 	PhasePreGuest    = Phase("PreGuest")
+	PhasePostClean   = Phase("PostClean")
 )
 
 const (
