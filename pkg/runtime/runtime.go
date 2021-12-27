@@ -36,6 +36,8 @@ type Metadata struct {
 	Version string `json:"version"`
 	Arch    string `json:"arch"`
 	Variant string `json:"variant"`
+	//KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
+	KubeVersion string `json:"kubeVersion"`
 }
 
 type KubeadmRuntime struct {

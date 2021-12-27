@@ -18,15 +18,15 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	v2 "github.com/alibaba/sealer/types/api/v2"
-
 	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 	"github.com/opencontainers/go-digest"
+	"helm.sh/helm/v3/pkg/chartutil"
 
 	"path/filepath"
 	"strings"
@@ -132,4 +132,38 @@ func CacheDockerImage(base string, newLayers []v1.Layer) bool {
 		}
 	}
 	return false
+}
+
+func getKubeVersion(rootfs string) string {
+	chartsPath := filepath.Join(rootfs, "charts")
+	if !utils.IsExist(chartsPath) {
+		return ""
+	}
+	kv, err := readCharts(chartsPath)
+	if err == nil {
+		return kv
+	}
+	return ""
+}
+
+func readCharts(chartsPath string) (string, error) {
+	fis, err := ioutil.ReadDir(chartsPath)
+	if err != nil {
+		return "", err
+	}
+	for _, f := range fis {
+		cf := filepath.Join(chartsPath, f.Name())
+		if f.IsDir() {
+			return readCharts(cf)
+		}
+		if f.Name() != "Chart.yaml" {
+			continue
+		}
+		meta, err := chartutil.LoadChartfile(cf)
+		if err != nil {
+			return "", err
+		}
+		return meta.KubeVersion, nil
+	}
+	return "", nil
 }

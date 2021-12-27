@@ -18,6 +18,7 @@ import (
 	"archive/tar"
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -566,4 +567,16 @@ func decodeCRD(filepath string, kind string) (out interface{}, err error) {
 	}
 
 	return i, nil
+}
+
+func MarshalJSONToFile(file string, obj interface{}) error {
+	data, err := json.Marshal(obj)
+	if err != nil {
+		return err
+	}
+
+	if err = WriteFile(file, data); err != nil {
+		return err
+	}
+	return nil
 }

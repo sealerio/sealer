@@ -28,6 +28,7 @@ type BuildFlag struct {
 	KubefileName string
 	BuildType    string
 	NoCache      bool
+	Base         bool
 }
 
 var buildConfig *BuildFlag
@@ -51,12 +52,16 @@ lite build:
 
 build without cache:
 	sealer build -f Kubefile -t my-kubernetes:1.19.9 --no-cache
+
+build without base:
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 --no-base
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conf := &build.Config{
 			BuildType: buildConfig.BuildType,
 			NoCache:   buildConfig.NoCache,
 			ImageName: buildConfig.ImageName,
+			NoBase:    !buildConfig.Base,
 		}
 
 		builder, err := build.NewBuilder(conf)
@@ -75,6 +80,7 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
+	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image,default value is true.")
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logger.Error("failed to init flag: %v", err)
 		os.Exit(1)

@@ -41,6 +41,7 @@ import (
 type Builder struct {
 	BuildType          string
 	NoCache            bool
+	NoBase             bool
 	Provider           string
 	TmpClusterFilePath string
 	ImageNamed         reference.Named
@@ -201,6 +202,12 @@ func (c *Builder) runBuildCommands() (err error) {
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.Cluster.Name)
 	build := fmt.Sprintf(common.BuildClusterCmd, common.RemoteSealerPath,
 		filepath.Base(c.KubeFileName), c.ImageNamed.Raw(), common.LocalBuild, ".")
+	if c.NoBase {
+		build = fmt.Sprintf("%s %s", build, "--base=false")
+	}
+	if c.NoCache {
+		build = fmt.Sprintf("%s %s", build, "--no-cache=true")
+	}
 
 	if c.Provider == common.AliCloud {
 		push := fmt.Sprintf(common.PushImageCmd, common.RemoteSealerPath,

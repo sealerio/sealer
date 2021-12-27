@@ -32,7 +32,7 @@ const (
 	CMDCOMMAND         = "CMD"
 	ENVCOMMAND         = "ENV"
 	BaseImageLayerType = "BASE"
-	RegistryLayerValue = "registry cache"
+	RootfsLayerValue   = "rootfs cache"
 )
 
 const (

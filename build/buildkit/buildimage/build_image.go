@@ -16,9 +16,11 @@ package buildimage
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/utils"
+
+	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
@@ -27,7 +29,6 @@ import (
 	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
@@ -39,14 +40,14 @@ const (
 // BuildImage this struct aims to provide image object in build stage
 // include handle layers,save build images to system.
 type BuildImage struct {
-	NeedCacheRegistry bool
-	RawImage          *v1.Image
-	BaseLayers        []v1.Layer
-	NewLayers         []v1.Layer
-	ImageStore        store.ImageStore
-	LayerStore        store.LayerStore
-	ImageService      image.Service
-	RootfsMountInfo   *buildinstruction.MountTarget
+	RawImage        *v1.Image
+	BaseLayers      []v1.Layer
+	NewLayers       []v1.Layer
+	ImageStore      store.ImageStore
+	LayerStore      store.LayerStore
+	ImageService    image.Service
+	RootfsMountInfo *buildinstruction.MountTarget
+	ImageMataData   *runtime.Metadata
 }
 
 func (b BuildImage) ExecBuild(ctx Context) error {
@@ -119,7 +120,37 @@ func (b BuildImage) genNewLayer(layerType, layerValue, filepath string) (v1.Laye
 	return imageLayer, nil
 }
 
-func (b BuildImage) SaveBuildImage(name string) error {
+func (b BuildImage) checkImageMetadata() error {
+	lowerLayers := buildinstruction.GetBaseLayersPath(b.NewLayers)
+	target, err := buildinstruction.NewMountTarget("", "", lowerLayers)
+	if err != nil {
+		return err
+	}
+	err = target.TempMount()
+	if err != nil {
+		return err
+	}
+	defer target.CleanUp()
+	// if rootfs metadata changed,will overwrite it.
+	kv := getKubeVersion(target.GetMountTarget())
+	if b.ImageMataData.KubeVersion == kv {
+		return nil
+	}
+
+	b.ImageMataData.KubeVersion = kv
+	mf := filepath.Join(b.RootfsMountInfo.GetMountTarget(), common.DefaultMetadataName)
+	if err = utils.MarshalJSONToFile(mf, b.ImageMataData); err != nil {
+		return fmt.Errorf("failed to set image Metadata file, err: %v", err)
+	}
+
+	return nil
+}
+func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
+	err := b.checkImageMetadata()
+	if err != nil {
+		return err
+	}
+
 	cluster, err := b.getImageCluster()
 	if err != nil {
 		return err
@@ -129,7 +160,8 @@ func (b BuildImage) SaveBuildImage(name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to set image metadata, err: %v", err)
 	}
-	layers, err := b.collectLayers()
+
+	layers, err := b.collectLayers(opts)
 	if err != nil {
 		return err
 	}
@@ -145,42 +177,32 @@ func (b BuildImage) SaveBuildImage(name string) error {
 	return nil
 }
 
-func (b BuildImage) collectLayers() ([]v1.Layer, error) {
-	layers := append(b.BaseLayers, b.NewLayers...)
+func (b BuildImage) collectLayers(opts SaveOpts) ([]v1.Layer, error) {
+	var layers []v1.Layer
 
-	if !b.NeedCacheRegistry {
-		return layers, nil
+	if opts.WithoutBase {
+		layers = b.NewLayers
+	} else {
+		layers = append(b.BaseLayers, b.NewLayers...)
 	}
 
-	layer, err := b.collectRegistryCache()
+	layer, err := b.collectRootfsDiff()
 	if err != nil {
 		return nil, err
 	}
 	if layer.ID == "" {
-		logger.Warn("registry cache content not found")
+		logger.Warn("no rootfs diff content found")
 		return layers, nil
 	}
 	layers = append(layers, layer)
 	return layers, nil
 }
 
-func (b BuildImage) collectRegistryCache() (v1.Layer, error) {
+func (b BuildImage) collectRootfsDiff() (v1.Layer, error) {
 	var layer v1.Layer
 	upper := b.RootfsMountInfo.GetMountUpper()
 
-	tmp, err := utils.MkTmpdir()
-	if err != nil {
-		return layer, fmt.Errorf("failed to add upper layer to image, %v", err)
-	}
-	defer utils.CleanDirs(tmp)
-	if utils.IsFileExist(filepath.Join(upper, common.RegistryDirName)) {
-		err = os.Rename(filepath.Join(upper, common.RegistryDirName), filepath.Join(tmp, common.RegistryDirName))
-		if err != nil {
-			return layer, fmt.Errorf("failed to add upper layer to image, %v", err)
-		}
-	}
-
-	layer, err = b.genNewLayer(common.BaseImageLayerType, common.RegistryLayerValue, tmp)
+	layer, err := b.genNewLayer(common.BaseImageLayerType, common.RootfsLayerValue, upper)
 	if err != nil {
 		return layer, fmt.Errorf("failed to register layer, err: %v", err)
 	}
@@ -213,10 +235,6 @@ func (b BuildImage) updateImageIDAndSaveImage(name string) error {
 }
 
 func (b BuildImage) Cleanup() error {
-	if !b.NeedCacheRegistry {
-		return nil
-	}
-
 	b.RootfsMountInfo.CleanUp()
 	return nil
 }
@@ -267,22 +285,25 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 	if len(baseLayers)+len(newLayers) > maxLayerDeep {
 		return nil, errors.New("current number of layers exceeds 128 layers")
 	}
-	need := CacheDockerImage(layer0.Value, newLayers)
-	if need {
-		mountInfo, err = GetRootfsMountInfo(baseLayers)
-		if err != nil {
-			return nil, err
-		}
+
+	mountInfo, err = GetRootfsMountInfo(baseLayers)
+	if err != nil {
+		return nil, err
+	}
+
+	meta, err := runtime.LoadMetadata(filepath.Join(mountInfo.GetMountTarget()))
+	if err != nil {
+		return nil, err
 	}
 
 	return &BuildImage{
-		RawImage:          rawImage,
-		ImageStore:        imageStore,
-		LayerStore:        layerStore,
-		ImageService:      service,
-		BaseLayers:        baseLayers,
-		NewLayers:         newLayers,
-		NeedCacheRegistry: need,
-		RootfsMountInfo:   mountInfo,
+		RawImage:        rawImage,
+		ImageStore:      imageStore,
+		LayerStore:      layerStore,
+		ImageService:    service,
+		BaseLayers:      baseLayers,
+		NewLayers:       newLayers,
+		RootfsMountInfo: mountInfo,
+		ImageMataData:   meta,
 	}, nil
 }
