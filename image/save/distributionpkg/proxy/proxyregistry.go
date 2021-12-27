@@ -241,9 +241,9 @@ func (r *remoteAuthChallenger) tryEstablishChallenges(ctx context.Context) error
 	}
 
 	// establish challenge type with upstream
-	// if err := ping(r.cm, remoteURL.String()); err != nil {
-	// 	return err
-	// }
+	if err := ping(r.cm, remoteURL.String()); err != nil {
+		return err
+	}
 
 	//	dcontext.GetLogger(ctx).Infof("Challenge established with upstream : %s %s", remoteURL, r.cm)
 	return nil

@@ -23,6 +23,9 @@ import (
 	"github.com/distribution/distribution/v3/registry/client/auth/challenge"
 )
 
+// comment this const because not used
+//const challengeHeader = "Docker-Distribution-Api-Version"
+
 type userpass struct {
 	username string
 	password string
@@ -81,4 +84,14 @@ func getAuthURLs(remoteURL string) ([]string, error) {
 	}
 
 	return authURLs, nil
+}
+
+func ping(manager challenge.Manager, endpoint string) error {
+	resp, err := http.Get(endpoint)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return manager.AddResponse(resp)
 }
