@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alibaba/sealer/pkg/env"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/client/k8s"
@@ -65,11 +67,12 @@ func (s Sheller) Run(context Context, phase Phase) error {
 		}
 	}
 	for _, ip := range allHostIP {
+		envProcessor := env.NewEnvProcessor(context.Cluster)
 		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster)
 		if err != nil {
 			return err
 		}
-		err = sshClient.CmdAsync(ip, pluginCmd)
+		err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, pluginCmd))
 		if err != nil {
 			return fmt.Errorf("failed to run shell cmd,  %v", err)
 		}
