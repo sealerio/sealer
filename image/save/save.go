@@ -41,7 +41,7 @@ import (
 
 const (
 	urlPrefix           = "https://"
-	defauleProxyURL     = "https://registry-1.docker.io"
+	defaultProxyURL     = "https://registry-1.docker.io"
 	configRootDir       = "rootdirectory"
 	maxPullGoroutineNum = 2
 
@@ -107,7 +107,7 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 	// set the URL of registry
 	proxyURL := urlPrefix + domain
 	if domain == defaultDomain {
-		proxyURL = defauleProxyURL
+		proxyURL = defaultProxyURL
 	}
 
 	var defaultAuth = types.AuthConfig{ServerAddress: domain}
