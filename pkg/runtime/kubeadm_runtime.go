@@ -108,7 +108,7 @@ func (k *KubeadmRuntime) getRootfs() string {
 }
 
 func (k *KubeadmRuntime) getImageMountDir() string {
-	return common.DefaultTheClusterRootfsDir(k.getClusterName())
+	return common.DefaultMountCloudImageDir(k.getClusterName())
 }
 
 func (k *KubeadmRuntime) getBasePath() string {
@@ -121,7 +121,7 @@ func (k *KubeadmRuntime) getMaster0IP() string {
 }
 
 func (k *KubeadmRuntime) getDefaultKubeadmConfig() string {
-	return filepath.Join(k.getRootfs(), "etc", "kubeadm.yml")
+	return filepath.Join(k.getImageMountDir(), "etc", "kubeadm.yml")
 }
 
 func (k *KubeadmRuntime) getCertPath() string {
