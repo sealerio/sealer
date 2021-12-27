@@ -34,6 +34,10 @@ type Named struct {
 	tag    string //eg. latest
 }
 
+func (n Named) FullName() string {
+	return n.domain + "/" + n.repo + ":" + n.tag
+}
+
 func (n Named) Domain() string {
 	return n.domain
 }
