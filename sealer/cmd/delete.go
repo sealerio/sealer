@@ -41,9 +41,7 @@ delete to default cluster:
 	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
 delete to cluster by cloud provider, just set the number of masters or nodes:
 	sealer delete --masters 2 --nodes 3
-specify the Clusterfile(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
-	sealer delete --masters 2 --nodes 3 -f /root/.sealer/specify-cluster/Clusterfile
-specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
+specify the cluster name(If there is more than one cluster in the $HOME/.sealer directory, it should be applied. ):
 	sealer delete --masters 2 --nodes 3 -c specify-cluster
 delete all:
 	sealer delete --all [--force]

@@ -189,7 +189,7 @@ name: taint
 spec:
 type: SHELL
 action: PostInstall
-on: role=master
+on: node-role.kubernetes.io/master=
 data: |
   kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
 ---
@@ -199,7 +199,6 @@ metadata:
   name: SHELL
 spec:
   action: PostInstall
-  on: role=node
   data: |
     if type yum >/dev/null 2>&1;then
     yum -y install iscsi-initiator-utils
