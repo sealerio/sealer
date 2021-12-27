@@ -27,10 +27,10 @@ The fluentbit-loki-stack component include:
 
   1. Run ``kubectl get svc -n fluentbit-loki-stack-system | grep grafana`` To get pod IP address.
 
-     ```shell
+  ```
      # kubectl get svc -n fluentbit-loki-stack-system | grep grafana
      fluentbit-loki-stack-grafana                    ClusterIP   10.96.1.50    <none>        80/TCP     37s
-     ```
+  ```
 
   2. you can easily browser the dashboard in you cluster network.
 
@@ -45,7 +45,7 @@ The fluentbit-loki-stack component include:
 
 * you can get the  username with these command.
 
-  ```shell
+  ```
   kubectl get secret -n fluentbit-loki-stack-system fluentbit-loki-stack-grafana -o jsonpath="{.data.admin-user}" | base64 --decode ; echo
   kubectl get secret -n fluentbit-loki-stack-system fluentbit-loki-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
   ```
@@ -54,7 +54,7 @@ The fluentbit-loki-stack component include:
 
 Kubefile:
 
-```shell
+```
 FROM longhorn:latest
 
 CMD helm repo add grafana https://grafana.github.io/helm-charts
@@ -75,7 +75,7 @@ CMD helm install fluentbit-loki-stack grafana/loki-stack \
 
 run below command to build it
 
-```shell
+```
 sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
