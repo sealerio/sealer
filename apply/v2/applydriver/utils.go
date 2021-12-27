@@ -17,8 +17,10 @@ package applydriver
 import (
 	"fmt"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	corev1 "k8s.io/api/core/v1"
 
@@ -80,4 +82,30 @@ func getNodeAddress(node *corev1.Node) string {
 		return ""
 	}
 	return node.Status.Addresses[0].Address
+}
+
+func VersionCompatible(version, constraint string) bool {
+	if constraint == "" {
+		return true
+	}
+	// ">= 1.19.8, <= 1.21.0"
+	c, err := semver.NewConstraint(constraint)
+	if err != nil {
+		return false
+	}
+
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return false
+	}
+
+	return c.Check(v)
+}
+
+func withRootfs(image *v1.Image) bool {
+	layer0 := image.Spec.Layers[0]
+	if layer0.Value == ". ." && layer0.Type == common.COPYCOMMAND {
+		return true
+	}
+	return false
 }
