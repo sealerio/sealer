@@ -52,7 +52,7 @@ func (k *KubeadmRuntime) setKubeadmAPIVersion() {
 	}
 }
 
-// getCgroupDriverFromShell is get nodes container runtime cgroup by shell.
+// getCgroupDriverFromShell is get nodes container runtime CGroup by shell.
 func (k *KubeadmRuntime) getCgroupDriverFromShell(node string) string {
 	var cmd string
 	if k.InitConfiguration.NodeRegistration.CRISocket == DefaultContainerdCRISocket {

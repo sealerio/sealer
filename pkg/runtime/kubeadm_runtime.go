@@ -16,7 +16,6 @@ package runtime
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -36,7 +35,7 @@ type Config struct {
 	Vlog         int
 	VIP          string
 	RegistryPort string
-	// Clusterfile path and name, we needs read kubeadm config from Clusterfile
+	// Clusterfile: the absolute path, we need to read kubeadm config from Clusterfile
 	Clusterfile     string
 	APIServerDomain string
 }
@@ -63,10 +62,6 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterfile string) (Interface, erro
 }
 
 func (k *KubeadmRuntime) checkList() error {
-	return k.checkIPList()
-}
-
-func (k *KubeadmRuntime) checkIPList() error {
 	if len(k.Spec.Hosts) == 0 {
 		return fmt.Errorf("master hosts cannot be empty")
 	}
@@ -80,6 +75,10 @@ func (k *KubeadmRuntime) getClusterName() string {
 	return k.Cluster.Name
 }
 
+func (k *KubeadmRuntime) getMaster0IP() string {
+	// already check ip list when new the runtime
+	return k.Cluster.Spec.Hosts[0].IPS[0]
+}
 func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
 	metadata := &Metadata{}
 	if k.getKubeVersion() == "" {
@@ -91,10 +90,6 @@ func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
 	return metadata, nil
 }
 
-func (k *KubeadmRuntime) getGenerateRegistryCertDir() string {
-	return filepath.Join(k.getBasePath(), "certs")
-}
-
 func (k *KubeadmRuntime) getDefaultRegistryPort() int {
 	return DefaultRegistryPort
 }
@@ -103,37 +98,44 @@ func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) 
 	return ssh.GetHostSSHClient(hostIP, k.Cluster)
 }
 
+// /var/lib/sealer/data/my-cluster
+func (k *KubeadmRuntime) getBasePath() string {
+	return common.DefaultClusterBaseDir(k.getClusterName())
+}
+
+// /var/lib/sealer/data/my-cluster/rootfs
 func (k *KubeadmRuntime) getRootfs() string {
 	return common.DefaultTheClusterRootfsDir(k.getClusterName())
 }
 
+// /var/lib/sealer/data/my-cluster/mount
 func (k *KubeadmRuntime) getImageMountDir() string {
 	return common.DefaultMountCloudImageDir(k.getClusterName())
 }
 
-func (k *KubeadmRuntime) getBasePath() string {
-	return path.Join(common.DefaultClusterRootfsDir, k.Cluster.Name)
+// /var/lib/sealer/data/my-cluster/certs
+func (k *KubeadmRuntime) getCertsDir() string {
+	return common.TheDefaultClusterCertDir(k.getClusterName())
 }
 
-func (k *KubeadmRuntime) getMaster0IP() string {
-	// already check ip list when new the runtime
-	return k.Cluster.Spec.Hosts[0].IPS[0]
+// /var/lib/sealer/data/my-cluster/pki
+func (k *KubeadmRuntime) getPKIPath() string {
+	return common.TheDefaultClusterPKIDir(k.getClusterName())
 }
 
+// /var/lib/sealer/data/my-cluster/mount/etc/kubeadm.yml
 func (k *KubeadmRuntime) getDefaultKubeadmConfig() string {
 	return filepath.Join(k.getImageMountDir(), "etc", "kubeadm.yml")
 }
 
-func (k *KubeadmRuntime) getCertPath() string {
-	return path.Join(common.DefaultClusterRootfsDir, k.Cluster.Name, "pki")
-}
-
+// /var/lib/sealer/data/my-cluster/pki/etcd
 func (k *KubeadmRuntime) getEtcdCertPath() string {
-	return path.Join(common.DefaultClusterRootfsDir, k.Cluster.Name, "pki", "etcd")
+	return filepath.Join(k.getPKIPath(), "etcd")
 }
 
+// /var/lib/sealer/data/my-cluster/rootfs/statics
 func (k *KubeadmRuntime) getStaticFileDir() string {
-	return path.Join(k.getRootfs(), "statics")
+	return filepath.Join(k.getRootfs(), "statics")
 }
 
 func (k *KubeadmRuntime) getSvcCIDR() string {

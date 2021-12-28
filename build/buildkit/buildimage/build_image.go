@@ -47,7 +47,7 @@ type BuildImage struct {
 	LayerStore      store.LayerStore
 	ImageService    image.Service
 	RootfsMountInfo *buildinstruction.MountTarget
-	ImageMataData   *runtime.Metadata
+	ImageMataData   runtime.Metadata
 }
 
 func (b BuildImage) ExecBuild(ctx Context) error {
@@ -304,6 +304,6 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 		BaseLayers:      baseLayers,
 		NewLayers:       newLayers,
 		RootfsMountInfo: mountInfo,
-		ImageMataData:   meta,
+		ImageMataData:   *meta,
 	}, nil
 }
