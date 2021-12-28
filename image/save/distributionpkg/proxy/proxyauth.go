@@ -86,6 +86,7 @@ func getAuthURLs(remoteURL string) ([]string, error) {
 	return authURLs, nil
 }
 
+// #nosec
 func ping(manager challenge.Manager, endpoint string) error {
 	resp, err := http.Get(endpoint)
 	if err != nil {
