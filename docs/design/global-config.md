@@ -47,7 +47,7 @@ CMD kubectl apply -f manifests/dashobard.yaml
 For users, they only need to specify the cluster environment variables:
 
 ```shell script
-sealer run -e DashBoardPort=8443 mydashboard:latest
+sealer run -e DashBoardPort=8443 mydashboard:latest -m xxx -n xxx -p xxx
 ```
 
 Or specify in Clusterfile:

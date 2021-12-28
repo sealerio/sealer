@@ -42,7 +42,7 @@ CMD kubectl apply -f manifests/dashobard.yaml
 对于使用者只需要指定集群环境变量即可：
 
 ```shell script
-sealer run -e DashBoardPort=8443 mydashboard:latest
+sealer run -e DashBoardPort=8443 mydashboard:latest -m xxx -n xxx -p xxx
 ```
 
 或者在Clusterfile中指定：
