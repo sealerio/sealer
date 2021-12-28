@@ -82,9 +82,9 @@ func Test_processor_WrapperShell(t *testing.T) {
 			fields{Cluster: getTestCluster()},
 			args{
 				host:  "192.168.0.2",
-				shell: "cd /etc/hosts",
+				shell: "echo $foo ${IP[@]}",
 			},
-			"key=[bar foo value] foo=bar IP=[127.0.0.2 127.0.0.1] cd /etc/hosts",
+			"key=(bar foo value) foo=bar IP=(127.0.0.2 127.0.0.1) && echo $foo ${IP[@]}",
 		},
 	}
 	for _, tt := range tests {
