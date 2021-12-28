@@ -8,7 +8,7 @@ require (
 	github.com/distribution/distribution/v3 v3.0.0-20211125133600-cc4627fc6e5f
 	github.com/docker/cli v20.10.6+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v20.10.7+incompatible
+	github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/imdario/mergo v0.3.12
@@ -26,6 +26,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.0
+	github.com/tonistiigi/fsutil v0.0.0-20211208191308-f95797418e48
 	github.com/vbatts/tar-split v0.11.1
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.0

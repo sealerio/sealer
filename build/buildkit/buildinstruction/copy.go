@@ -15,11 +15,13 @@
 package buildinstruction
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/store"
+	fsutil "github.com/tonistiigi/fsutil/copy"
 
 	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 	"github.com/alibaba/sealer/image/cache"
@@ -110,7 +112,9 @@ func (c CopyInstruction) copyFiles(buildContext, rawSrcFileName, rawDstFileName,
 		return fmt.Errorf("failed to stat file %s at copy stage", absSrc)
 	}
 
-	return utils.RecursionCopy(absSrc, filepath.Join(paresCopyDestPath(rawDstFileName, tempBuildDir), filepath.Base(rawSrcFileName)))
+	dstRoot := paresCopyDestPath(rawDstFileName, tempBuildDir)
+
+	return fsutil.Copy(context.TODO(), buildContext, rawSrcFileName, dstRoot, filepath.Base(rawSrcFileName))
 }
 
 // SetCacheID This function only has meaning for copy layers

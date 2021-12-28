@@ -1,5 +1,3 @@
-// +build windows
-
 /*
    Copyright The containerd Authors.
 
@@ -16,16 +14,10 @@
    limitations under the License.
 */
 
-package platforms
+package sysx
 
 import (
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	"syscall"
 )
 
-// Default returns the default matcher for the platform.
-func Default() MatchComparer {
-	return Ordered(DefaultSpec(), specs.Platform{
-		OS:           "linux",
-		Architecture: "amd64",
-	})
-}
+const ENODATA = syscall.ENODATA
