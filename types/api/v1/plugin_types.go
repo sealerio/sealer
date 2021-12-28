@@ -46,6 +46,7 @@ type PluginStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Plugin is the Schema for the plugins API
 type Plugin struct {
@@ -57,6 +58,7 @@ type Plugin struct {
 }
 
 //+kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // PluginList contains a list of Plugin
 type PluginList struct {
