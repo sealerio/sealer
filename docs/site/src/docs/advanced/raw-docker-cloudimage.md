@@ -30,7 +30,7 @@ Replace `/var/lib/sealer/data/overlay2/{layer-id-1}/cri/docker.tar.gz` with the 
 
 #### Step 5: replace sealer hacked registry
 
-Pull the official "registry" image and replace existing customized "registry" image at `/var/lib/sealer/data/overlay2/{layer-id-1}/etc/registry.tar`. Firstly make sure raw docker have already installed, then execute `docker pull registry:2.7.1 && docker save -o registry.tar registry:2.7.1 && mv registry.tar /var/lib/sealer/data/overlay2/{layer-id-1}/etc/registry.tar`.
+Pull the official "registry" image and replace existing customized "registry" image at `/var/lib/sealer/data/overlay2/{layer-id-1}/images/registry.tar`. Firstly make sure raw docker have already installed, then execute `docker pull registry:2.7.1 && docker save -o registry.tar registry:2.7.1 && mv registry.tar /var/lib/sealer/data/overlay2/{layer-id-1}/images/registry.tar`.
 
 #### Step 6: modify daemon.json
 
