@@ -291,11 +291,14 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 		return nil, err
 	}
 
+	md := runtime.Metadata{}
 	meta, err := runtime.LoadMetadata(filepath.Join(mountInfo.GetMountTarget()))
 	if err != nil {
 		return nil, err
 	}
-
+	if meta != nil {
+		md = *meta
+	}
 	return &BuildImage{
 		RawImage:        rawImage,
 		ImageStore:      imageStore,
@@ -304,6 +307,6 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 		BaseLayers:      baseLayers,
 		NewLayers:       newLayers,
 		RootfsMountInfo: mountInfo,
-		ImageMataData:   *meta,
+		ImageMataData:   md,
 	}, nil
 }
