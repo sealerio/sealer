@@ -84,6 +84,10 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 		tmpnameds := nameds
 		numCh <- struct{}{}
 		eg.Go(func() error {
+			defer func() {
+				<-numCh
+			}()
+
 			registry, err := NewProxyRegistry(is.ctx, dir, tmpnameds[0].domain)
 			if err != nil {
 				return fmt.Errorf("init registry error: %v", err)
@@ -92,7 +96,6 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 			if err != nil {
 				return fmt.Errorf("save domain %s image error: %v", tmpnameds[0].domain, err)
 			}
-			<-numCh
 			return nil
 		})
 	}
@@ -190,6 +193,10 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 		tmpnamed := named
 		numCh <- struct{}{}
 		eg.Go(func() error {
+			defer func() {
+				<-numCh
+			}()
+
 			desc, err := repo.Tags(is.ctx).Get(is.ctx, tmpnamed.tag)
 			if err != nil {
 				return fmt.Errorf("get %s tag descriptor error: %v, try \"docker login\" if you are using a private registry", tmpnamed.repo, err)
@@ -199,7 +206,6 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 				return fmt.Errorf("get digest error: %v", err)
 			}
 			imageDigests = append(imageDigests, imageDigest)
-			<-numCh
 			return nil
 		})
 	}
@@ -259,6 +265,10 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 		tmpImageDigest := imageDigest
 		numCh <- struct{}{}
 		eg.Go(func() error {
+			defer func() {
+				<-numCh
+			}()
+
 			blobListJSON, err := manifest.Get(is.ctx, tmpImageDigest, make([]distribution.ManifestServiceOption, 0)...)
 			if err != nil {
 				return err
@@ -269,7 +279,6 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 				return fmt.Errorf("get blob list error: %v", err)
 			}
 			blobLists = append(blobLists, blobList...)
-			<-numCh
 			return nil
 		})
 	}
@@ -283,6 +292,10 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 		tmpBlob := blob
 		numCh <- struct{}{}
 		eg.Go(func() error {
+			defer func() {
+				<-numCh
+			}()
+
 			simpleDgst := string(tmpBlob)[7:19]
 
 			_, err = blobStore.Stat(is.ctx, tmpBlob)
@@ -304,11 +317,14 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 				return fmt.Errorf("seek start error when save blob %s: %v", tmpBlob, err)
 			}
 			preader := progress.NewProgressReader(reader, is.progressOut, size, simpleDgst, "Downloading")
+
 			defer func() {
 				_ = reader.Close()
+				_ = preader.Close()
 				progress.Update(is.progressOut, simpleDgst, "Download complete")
 			}()
 
+			//store to local filesystem
 			content, err := ioutil.ReadAll(preader)
 			if err != nil {
 				return fmt.Errorf("blob %s content error: %v", tmpBlob, err)
@@ -318,7 +334,6 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 				return fmt.Errorf("store blob %s to local error: %v", tmpBlob, err)
 			}
 
-			<-numCh
 			return nil
 		})
 	}
