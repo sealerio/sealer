@@ -75,7 +75,7 @@ func NewRepository(ctx context.Context, authConfig types.AuthConfig, repoName st
 	if err != nil {
 		return nil, err
 	}
-	// typically this filed would be empty
+	// typically, this filed would be empty
 	if authConfig.RegistryToken != "" {
 		passThruTokenHandler := &existingTokenHandler{token: authConfig.RegistryToken}
 		modifiers = append(modifiers, dockerAuth.NewAuthorizer(challengeManager, passThruTokenHandler))
