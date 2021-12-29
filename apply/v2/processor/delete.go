@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/plugin"
+
 	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/pkg/filesystem"
@@ -71,6 +73,14 @@ func (d DeleteProcessor) UnMountImage(cluster *v2.Cluster) error {
 }
 
 func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
+	err := d.FileSystem.Clean(cluster)
+	if err != nil {
+		return err
+	}
+	plugins := plugin.NewPlugins(cluster.Name)
+	if err = plugins.Load(); err != nil {
+		return err
+	}
 	return d.FileSystem.Clean(cluster)
 }
 
