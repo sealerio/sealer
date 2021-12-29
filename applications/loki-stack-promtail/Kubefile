@@ -1,0 +1,5 @@
+FROM longhorn:v1.2.3
+
+COPY promtail-loki-stack.yaml .
+
+CMD  kubectl create ns promtail-loki-stack-system && kubectl apply -f promtail-loki-stack.yaml
