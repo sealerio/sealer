@@ -81,7 +81,7 @@ func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
 	if err = plugins.Load(); err != nil {
 		return err
 	}
-	return d.FileSystem.Clean(cluster)
+	return plugins.Run(cluster, plugin.PhasePostClean)
 }
 
 func NewDeleteProcessor() (Interface, error) {
