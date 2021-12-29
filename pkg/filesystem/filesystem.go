@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alibaba/sealer/pkg/env"
+
 	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
@@ -151,6 +153,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	src := common.DefaultMountCloudImageDir(cluster.Name)
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
+	envProcessor := env.NewEnvProcessor(cluster)
 	for _, IP := range ipList {
 		wg.Add(1)
 		go func(ip string) {
@@ -166,7 +169,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 				return
 			}
 			if initFlag {
-				err = sshClient.CmdAsync(ip, initCmd)
+				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, initCmd))
 				if err != nil {
 					errCh <- fmt.Errorf("exec init.sh failed %v", err)
 				}
@@ -205,6 +208,7 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	execClean := fmt.Sprintf("/bin/bash -c "+common.DefaultClusterClearBashFile, cluster.Name)
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
+	envProcessor := env.NewEnvProcessor(cluster)
 	for _, IP := range ipList {
 		wg.Add(1)
 		go func(ip string) {
@@ -221,7 +225,7 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 			if mounted, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mounted {
 				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
 			}
-			if err := SSH.CmdAsync(ip, cmd); err != nil {
+			if err := SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd)); err != nil {
 				logger.Error("%s:exec %s failed, %s", ip, execClean, err)
 				mutex.Lock()
 				flag = true
