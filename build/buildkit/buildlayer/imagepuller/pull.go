@@ -27,14 +27,13 @@ import (
 )
 
 type puller struct {
-	puller   save.ImageSave
+	puller   save.Image
 	platform ocispecs.Platform
 	ctx      context.Context
-	saveDir  string
 }
 
 func (p puller) Pull(images []string) error {
-	err := p.puller.SaveImages(images, p.saveDir, p.platform)
+	err := p.puller.SaveImages(images, p.platform)
 	if err != nil {
 		logger.Error("failed to pull cache image with error :%v", err)
 		return err
@@ -43,11 +42,11 @@ func (p puller) Pull(images []string) error {
 }
 
 func NewPuller(rootfs string) Processor {
+	saveDir := filepath.Join(rootfs, common.RegistryDirName)
 	ctx := context.Background()
 	return puller{
-		puller:   save.NewImageSaver(ctx),
+		puller:   save.NewSaver(ctx, saveDir),
 		ctx:      ctx,
-		saveDir:  filepath.Join(rootfs, common.RegistryDirName),
 		platform: runtime.GetCloudImagePlatform(rootfs),
 	}
 }

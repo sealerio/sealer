@@ -21,23 +21,44 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-//SaveImage can save a list of images of the specified platform
-type ImageSave interface {
-	SaveImages(images []string, dir string, platform v1.Platform) error
+//Image interface can save a list of images of the specified platform, it's not concurrent safe
+type Image interface {
+	SaveImages(images []string, platform v1.Platform) error
 }
 
-type DefaultImageSaver struct {
-	ctx            context.Context
-	domainToImages map[string][]Named
-	progressOut    progress.Output
+type chart struct {
+	name string // e.g: mysql
+	repo string // e.g: https://charts.bitnami.com/bitnami
 }
 
-func NewImageSaver(ctx context.Context) ImageSave {
+// Chart interface can save a list of helm charts, it's not concurrent safe
+type Chart interface {
+	SaveCharts(charts []chart) error
+}
+
+//ChartImage interface can save both docker images and helm charts
+type ChartImage interface {
+	Image
+	Chart
+}
+
+//DefaultSaver implement ChartImage interface
+type DefaultSaver struct {
+	ctx         context.Context
+	rootdir     string
+	progressOut progress.Output
+}
+
+//NewSaver receive two arguments and create a DefaultSaver
+func NewSaver(ctx context.Context, rootdir string) ChartImage {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return &DefaultImageSaver{
-		ctx:            ctx,
-		domainToImages: make(map[string][]Named),
+	if rootdir[len(rootdir)-1] == '/' {
+		rootdir = rootdir[:len(rootdir)-1]
+	}
+	return &DefaultSaver{
+		ctx:     ctx,
+		rootdir: rootdir,
 	}
 }
