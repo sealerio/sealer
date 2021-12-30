@@ -1,0 +1,10 @@
+FROM longhorn:v1.2.3
+
+COPY kube-prometheus-stack.yaml .
+COPY crds.yaml .
+COPY hooks.yaml .
+
+CMD kubectl create ns kube-prometheus-stack 
+CMD kubectl create -f crds.yaml
+CMD kubectl apply -f kube-prometheus-stack.yaml
+CMD kubectl apply -f hooks.yaml 

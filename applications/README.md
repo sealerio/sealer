@@ -24,6 +24,7 @@ or Replicated PVs. More details about the application can be found in its manife
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/ceph-file:v16.2.5
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/ceph-object:v16.2.5
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/minio:2021.6.17
+* registry.cn-beijing.aliyuncs.com/mahmut/longhorn:v1.2.3
 
 #### Database image
 
@@ -47,6 +48,9 @@ or Replicated PVs. More details about the application can be found in its manife
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/prometheus-stack:v2.28.1
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-promtail:v2.2.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-fluentbit:v2.2.0
+* registry.cn-beijing.aliyuncs.com/mahmut/kube-prometheus-stack:0.53.1
+* registry.cn-beijing.aliyuncs.com/mahmut/loki-stack-fluentbit:2.2.0
+* registry.cn-beijing.aliyuncs.com/mahmut/loki-stack-promtail:2.2.0
 
 ## How to run it
 
