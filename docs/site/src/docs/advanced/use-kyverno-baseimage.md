@@ -45,9 +45,16 @@ The following is a sequence steps of building kyverno build-in cloud image
 
 Choose a base image which can create a k8s cluster with at least one master node and one work node. To demonstrate the workflow, I will use `kubernetes-with-raw-docker:v1.19.8`. You can get the same image by executing `sealer pull kubernetes-with-raw-docker:v1.19.8`.
 
-#### Step 2: get the kyverno install yaml
+#### Step 2: get the kyverno install yaml and cache the image
 
 Download the install yaml of kyverno at `https://raw.githubusercontent.com/kyverno/kyverno/release-1.5/definitions/release/install.yaml`, you can replace the verion to what you want. I use 1.5 in this demonstration.
+
+In order to use kyverno BaseImage in offline environment, you need to cache the image used in `install.yaml`. In this case, threr are two docker images need to be cached: `ghcr.io/kyverno/kyverno:v1.5.1` and `ghcr.io/kyverno/kyvernopre:v1.5.1`. So firstly rename them to `sea.hub:5000/kyverno/kyverno:v1.5.1` and `sea.hub:5000/kyverno/kyvernopre:v1.5.1` in the `install.yaml`, where `sea.hub:5000` is the private registry domain in your k8s cluster. Then create a file `imageList` with the following content:
+
+```
+ghcr.io/kyverno/kyverno:v1.5.1
+ghcr.io/kyverno/kyvernopre:v1.5.1
+```
 
 #### Step 3: create a ClusterPolicy
 
@@ -131,11 +138,12 @@ I named this file `wait-kyverno-ready.sh`.
 
 #### Step 5: create the build content
 
-Create a directory with three files: the install.yaml in step 2, redirect-registry.yaml in step 3 and a Kubefile whose content is following:
+Create a directory with five files: the install.yaml and imageList in step 2, redirect-registry.yaml in step 3, wait-kyverno-ready.sh in step 4 and a Kubefile whose content is following:
 
 ```shell
 FROM kubernetes-with-raw-docker:v1.19.8
 COPY . .
+COPY imageList manifests
 CMD kubectl create -f install.yaml && kubectl create -f redirect-registry.yaml
 CMD bash wait-kyverno-ready.sh
 ```

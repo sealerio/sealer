@@ -26,7 +26,7 @@ Choose a raw docker binary version from `https://download.docker.com/linux/stati
 
 #### Step 4: replace sealer hacked docker
 
-Replace `/var/lib/sealer/data/overlay2/{layer-id-1}/cri/docker.tar.gz` with the file you download in step 3. **Attention** that you should make sure the file name is same as 'docker.tar.gz' after replacement.
+Replace `/var/lib/sealer/data/overlay2/{layer-id-1}/cri/docker.tar.gz` with the file you download in step 3, Before replacement you should do some handles.  **Attention** that you should make sure after replacement the compressed file name and untarred working directory tree is same as before. In this case, you should untar the file you download in step 3, enter the `docker` directory and tar all files in this directory with an output file whose name is `docker.tar.gz`.
 
 #### Step 5: replace sealer hacked registry
 
