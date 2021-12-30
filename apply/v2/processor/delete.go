@@ -73,12 +73,11 @@ func (d DeleteProcessor) UnMountImage(cluster *v2.Cluster) error {
 }
 
 func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
-	err := d.FileSystem.Clean(cluster)
-	if err != nil {
+	if err := d.FileSystem.Clean(cluster); err != nil {
 		return err
 	}
 	plugins := plugin.NewPlugins(cluster.Name)
-	if err = plugins.Load(); err != nil {
+	if err := plugins.Load(); err != nil {
 		return err
 	}
 	return plugins.Run(cluster, plugin.PhasePostClean)
