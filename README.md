@@ -1,110 +1,169 @@
-# Sealer -- Build, Share and Run Any Distributed Applications
+# Prerequisites
 
-[![License](https://img.shields.io/badge/license-Apache%202-brightgreen.svg)](https://github.com/alibaba/sealer/blob/master/LICENSE)
-[![Go](https://github.com/alibaba/sealer/actions/workflows/go.yml/badge.svg)](https://github.com/alibaba/sealer/actions/workflows/go.yml)
-[![Release](https://github.com/alibaba/sealer/actions/workflows/release.yml/badge.svg)](https://github.com/alibaba/sealer/actions/workflows/release.yml)
-[![GoDoc](https://godoc.org/github.com/alibaba/sealer?status.svg)](https://godoc.org/github.com/alibaba/sealer)
-[![Go Report Card](https://goreportcard.com/badge/github.com/alibaba/sealer)](https://goreportcard.com/report/github.com/alibaba/sealer)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5205/badge)](https://bestpractices.coreinfrastructure.org/en/projects/5205)
+* install sealer in your machine
+* if your want to run cloud image on alibaba cloud, need AK,SK first.
 
-## Contents
+## Overview
 
-* [Introduction](#introduction)
-* [Quick Start](#quick-start)
-* [Contributing](./CONTRIBUTING.md)
-* [FAQ](./FAQ.md)
-* [Adopters](./Adopters.md)
-* [LICENSE](LICENSE)
+We choose OpenEBS Jiva or OpenEBS LocalPV as default persistence storage to enable Stateful applications to easily access Dynamic Local PVs
+or Replicated PVs. More details about the application can be found in its manifest directory.
 
-## Introduction
+### Cloud image list
 
-sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes.
+#### Install tools image
 
-![image](https://user-images.githubusercontent.com/8912557/117263291-b88b8700-ae84-11eb-8b46-838292e85c5c.png)
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0
 
-> Concept
+#### Infra image
 
-* CloudImage : like Dockerimage, but the rootfs is kubernetes, and contains all the dependencies(docker images,yaml files or helm chart...) your application needs.
-* Kubefile : the file describe how to build a CloudImage.
-* Clusterfile : the config of using CloudImage to run a cluster.
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-cstor:2.11.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/ingress-nginx-controller:v1.0.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/ceph-block:v16.2.5
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/ceph-file:v16.2.5
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/ceph-object:v16.2.5
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/minio:2021.6.17
+* registry.cn-beijing.aliyuncs.com/mahmut/longhorn:v1.2.3
 
-![image](https://user-images.githubusercontent.com/8912557/117400612-97cf3a00-af35-11eb-90b9-f5dc8e8117b5.png)
 
-We can write a Kubefile, and build a CloudImage, then using a Clusterfile to run a cluster.
+#### Database image
 
-sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes.
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/mysql:8.0.26
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/redis:6.2.5
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/mongodb:4.4.8
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/postgresql:11.12.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/cassandra:4.0.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/tidb:v1.2.1
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/cockroach:v21.1.7
 
-It solves the delivery problem of complex applications by packaging distributed applications and dependencies(like database,middleware) together.
+#### Message queue image
 
-For example, build a dashboard CloudImage:
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/kafka:2.8.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/zookeeper:3.7.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/rocketmq:4.5.0
+
+#### Application image
+
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/dashboard:v2.2.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/prometheus-stack:v2.28.1
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-promtail:v2.2.0
+* registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-fluentbit:v2.2.0
+* registry.cn-beijing.aliyuncs.com/mahmut/kube-prometheus-stack:0.53.1
+* registry.cn-beijing.aliyuncs.com/mahmut/loki-stack-fluentbit:2.2.0
+* registry.cn-beijing.aliyuncs.com/mahmut/loki-stack-promtail:2.2.0
+
+## How to run it
+
+### Apply a cluster
+
+you can modify the image name and save it as "clusterfile.yaml", then run sealer apply
+cmd  `sealer apply -f clusterfile.yaml`
+
+```yaml
+apiVersion: zlink.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  creationTimestamp: null
+  name: my-cluster
+spec:
+  certSANS:
+    - aliyun-inc.com
+    - 10.0.0.2
+  image: { your cloud image name }
+  masters:
+    count: "3"
+    cpu: "4"
+    dataDisks:
+      - "100"
+    memory: "4"
+    systemDisk: "100"
+  network:
+    podCIDR: 100.64.0.0/10
+    svcCIDR: 10.96.0.0/22
+  nodes:
+    count: "3"
+    cpu: "4"
+    dataDisks:
+      - "100"
+    memory: "4"
+    systemDisk: "100"
+  provider: ALI_CLOUD
+  ssh:
+    passwd: Seadent123
+    pk: xxx
+    pkPasswd: xxx
+    user: root
+```
+
+if you want to apply a cloud image which need persistence storage. we provide openebs as cloud storage backend. OpenEBS
+provides block volume support through the iSCSI protocol. Therefore, the iSCSI client (initiator) presence on all
+Kubernetes nodes is required. Choose the platform below to find the steps to verify if the iSCSI client is installed and
+running or to find the steps to install the iSCSI client.For openebs, different storage engine need to config different
+prerequisite. more to see [openebs website](https://docs.openebs.io/).
+
+We provide plugin mechanism, you only need to append below example to "clusterfile.yaml" and apply them together.
+
+For example, if we use jiva engine as storage backend :
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: SHELL
+spec:
+  action: PostInstall
+  on: role=node
+  data: |
+    if type yum >/dev/null 2>&1;then
+    yum -y install iscsi-initiator-utils
+    systemctl enable iscsid
+    systemctl start iscsid
+    elif type apt-get >/dev/null 2>&1;then
+    apt-get update
+    apt-get -y install open-iscsi
+    systemctl enable iscsid
+    systemctl start iscsid
+    fi
+---
+```
+
+## How to use it
+
+See README.md of each application for more details.
+
+## How to rebuild it
+
+Use it as base image to build another useful image .For example, use helm image to build a mysql CloudImage:
+
+### Use helm
 
 Kubefile:
 
-```shell script
+```shell
 # base CloudImage contains all the files that run a kubernetes cluster needed.
 #    1. kubernetes components like kubectl kubeadm kubelet and apiserver images ...
 #    2. docker engine, and a private registry
 #    3. config files, yaml, static files, scripts ...
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
-# download kubernetes dashboard yaml file
-RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
-# when run this CloudImage, will apply a dashboard manifests
-CMD kubectl apply -f recommended.yaml
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0
+# add helm repo and run helm install
+CMD helm repo add bitnami https://charts.bitnami.com/bitnami && helm install my-mysql bitnami/mysql --version 8.8.5
 ```
 
-Build dashobard CloudImage:
+run below command to build a mysql cloud image
 
-```shell script
-sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest .
+```shell
+sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-apps/mysql:8.8.5 -m cloud .
 ```
 
-Run a kubernetes cluster with dashboard:
+### Use manifest
 
-```shell script
-# sealer will install a kubernetes on host 192.168.0.2 then apply the dashboard manifests
-sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest --masters 192.168.0.2 --passwd xxx
-# check the pod
-kubectl get pod -A|grep dashboard
+Kubefile:
+
+See each manifest yaml file under application manifest directory for details , and modify it according to your needs.
+
+Then run below command to rebuild it
+
+```shell
+sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
-
-Push the CloudImage to the registry
-
-```shell script
-# you can push the CloudImage to docker hub, Ali ACR, or Harbor
-sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
-```
-
-## Usage scenarios & features
-
-* [x] An extremely simple way to install kubernetes and other software in the kubernetes ecosystem in a production or offline environment.
-* [x] Through Kubefile, you can easily customize the kubernetes CloudImage to package the cluster and applications, and submit them to the registry.
-* [x] Powerful life cycle management capabilities, to perform operations such as cluster upgrade, cluster backup and recovery, node expansion and contraction in unimaginable simple ways
-* [x] Very fast, complete cluster installation within 3 minutes
-* [x] Support ARM x86, v1.20 and above versions support containerd, almost compatible with all Linux operating systems that support systemd
-* [x] Does not rely on ansible haproxy keepalived, high availability is achieved through ipvs, takes up less resources, is stable and reliable
-* [x] Many ecological software images can be used directly, like prometheus mysql..., and you can combine then together.
-
-## Quick start
-
-Install a kubernetes cluster
-
-```shell script
-#install Sealer binaries
-wget https://github.com/alibaba/sealer/releases/download/v0.5.2/sealer-v0.5.2-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.5.2-linux-amd64.tar.gz && mv sealer /usr/bin
-#run a kubernetes cluster
-sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx
-```
-
-## User guide
-
-[get started](docs/user-guide/get-started.md)
-
-## Developing Sealer
-
-* [contributing guide](./CONTRIBUTING.md)
-* [贡献文档](./docs/contributing_zh.md)
-
-## License
-
-Sealer is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
