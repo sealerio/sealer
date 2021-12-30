@@ -1,7 +1,7 @@
 # Global configuration
 
 The feature of global configuration is to expose the parameters of distributed applications in the entire cluster mirror.
-It is highly recommended to expose only a few parameters that users need to care about.
+It is highly recommended exposing only a few parameters that users need to care about.
 
 If too many parameters need to be exposed, for example, the entire helm's values ​​want to be exposed,
 then it is recommended to build a new image and put the configuration in to overwrite it.
@@ -35,7 +35,7 @@ spec:
 ...
 ```
 
-To write kubefile, you need to copy yaml to the manifests directory at this time,
+To write kubefile, you need to copy yaml to the "manifests" directory at this time,
 sealer only renders the files in this directory:
 
 ```yaml

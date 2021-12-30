@@ -5,7 +5,7 @@
 Clusterfile v1 not match some requirement.
 
 * Different node has different ssh config like passwd.
-* Not clean, confused about what argument should put into Clusterfile.
+* Not clear, confused about what argument should put into Clusterfile.
 * Coupling the infra config and cluster config.
 
 ## Proposal
@@ -47,7 +47,7 @@ spec:
 
 ### Apply a simple cluster by default
 
-3 masters and a node, its so clearly and simple, cool
+3 masters and a node, It's so clearly and simple, cool
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -61,11 +61,11 @@ spec:
   hosts:
   - ips: [192.168.0.2,192.168.0.3,192.168.0.4]
     roles: [master]
-  - ips: [192.168.0.3]
+  - ips: [192.168.0.5]
     roles: [node]
 ```
 
-### Overwite ssh config (for example password,and port)
+### Overwrite ssh config (for example password,and port)
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -85,13 +85,13 @@ spec:
       port: 22
   - ips: [192.168.0.3,192.168.0.4]
     roles: [master]
-  - ips: [192.168.0.3]
+  - ips: [192.168.0.5]
     roles: [node]
 ```
 
 ### How to define your own kubeadm config
 
-The better way is add kubeadm config directly into Clusterfile, of course every CloudImage has it default config:
+The better way is to add kubeadm config directly into Clusterfile, of course every CloudImage has it default config:
 You can only define part of those configs, sealer will merge then into default config.
 
 ```yaml
@@ -307,11 +307,11 @@ echo $docker-dir
 ```
 
 When sealer run the script will set ENV like this: `docker-dir=/data/docker && sh init.sh`
-In the case, master ENV is `/data/docker`, node ENV is by default `/var/lib/docker`
+In this case, master ENV is `/data/docker`, node ENV is by default `/var/lib/docker`
 
-### How to using cloud infra
+### How to use cloud infra
 
-If you using public cloud, you needn't to config the ip field in Cluster Object.
+If you're using public cloud, you needn't to config the ip field in Cluster Object.
 The infra Object will tell sealer to apply resource from public cloud, then render the ip list to Cluster Object.
 
 ```yaml

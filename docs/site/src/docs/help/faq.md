@@ -225,8 +225,7 @@ output:
 }
 ```
 
-choose "4b0a2b20e92dcbf057d10806b8aa690b26d1d3dd33b0fc63d838f4acaf23bd07" as examples to read the registry layer id from
-from distribution directory.
+choose "4b0a2b20e92dcbf057d10806b8aa690b26d1d3dd33b0fc63d838f4acaf23bd07" as examples to read the registry layer id from distribution directory.
 
 `cat /var/lib/docker/image/overlay2/distribution/v2metadata-by-diffid/sha256/4b0a2b20e92dcbf057d10806b8aa690b26d1d3dd33b0fc63d838f4acaf23bd07`
 

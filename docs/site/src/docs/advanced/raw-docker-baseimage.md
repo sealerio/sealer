@@ -8,13 +8,13 @@ The existing base images mostly use customized docker, but many k8s clusters use
 
 ### How to use it
 
-We provide a official BaseImage which uses official raw docker as container runtime: `kubernetes-with-raw-docker:v1.19.8`. If you want to create a k8s cluster, you can use it directly as `sealer run` command's argument or write it into your Clusterfile. If you want to use it as the base image to build other images by `sealer build`, `FROM kubernetes-with-raw-docker:v1.19.8` should be the first line in your Kubefile.
+We provide an official BaseImage which uses official raw docker as container runtime: `kubernetes-with-raw-docker:v1.19.8`. If you want to create a k8s cluster, you can use it directly as `sealer run` command's argument or write it into your Clusterfile. If you want to use it as the base image to build other images by `sealer build`, `FROM kubernetes-with-raw-docker:v1.19.8` should be the first line in your Kubefile.
 
 ### How to build raw docker BaseImage
 
 #### Step 1：choose a base image
 
-Get a image which you will modify it later, you may think it as your base image. To demonstrate the workflow, I will use `kubernetes:v1.19.8`. You can get the same image by executing `sealer pull kubernetes:v1.19.8`.
+Get an image which you will modify it later, you may think it as your base image. To demonstrate the workflow, I will use `kubernetes:v1.19.8`. You can get the same image by executing `sealer pull kubernetes:v1.19.8`.
 
 #### Step 2: find the layers you will use later
 
@@ -22,7 +22,7 @@ Find the image layer id by executing `sealer inspect kubernetes:v1.19.8`. There 
 
 #### Step 3: get official raw docker
 
-Choose a raw docker binary version from `https://download.docker.com/linux/static/stable/x86_64/` if your marchine is based on x86_64 architecture, and download it. (other architecture can be find at `https://download.docker.com/linux/static/stable/`)
+Choose a raw docker binary version from `https://download.docker.com/linux/static/stable/x86_64/` if your machine is based on x86_64 architecture, and download it. (other architecture can be found at `https://download.docker.com/linux/static/stable/`)
 
 #### Step 4: replace sealer hacked docker
 
