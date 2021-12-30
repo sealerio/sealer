@@ -15,7 +15,6 @@
 package test
 
 import (
-	"strconv"
 	"strings"
 	"time"
 
@@ -24,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo"
 
 	"github.com/alibaba/sealer/test/suites/apply"
-	"github.com/alibaba/sealer/test/suites/image"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
 )
@@ -41,110 +39,110 @@ var _ = Describe("sealer apply", func() {
 				apply.MarshalClusterToFile(rawClusterFilePath, rawCluster)
 			}
 		})
-		Context("check regular scenario that provider is ali cloud", func() {
-			var tempFile string
-			BeforeEach(func() {
-				tempFile = testhelper.CreateTempFile()
-			})
+		/*		Context("check regular scenario that provider is ali cloud", func() {
+					var tempFile string
+					BeforeEach(func() {
+						tempFile = testhelper.CreateTempFile()
+					})
 
-			AfterEach(func() {
-				apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
-				testhelper.RemoveTempFile(tempFile)
-				testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-			})
+					AfterEach(func() {
+						apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
+						testhelper.RemoveTempFile(tempFile)
+						testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+					})
 
-			It("init, scale up, scale down, clean up", func() {
-				// 1,init cluster to 2 nodes and write to disk
-				By("start to init cluster")
-				sess, err := testhelper.Start(apply.SealerApplyCmd(rawClusterFilePath))
-				testhelper.CheckErr(err)
-				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-				apply.CheckNodeNumLocally(2)
+					It("init, scale up, scale down, clean up", func() {
+						// 1,init cluster to 2 nodes and write to disk
+						By("start to init cluster")
+						sess, err := testhelper.Start(apply.SealerApplyCmd(rawClusterFilePath))
+						testhelper.CheckErr(err)
+						testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+						apply.CheckNodeNumLocally(2)
 
-				result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-				err = testhelper.WriteFile(tempFile, []byte(result))
-				testhelper.CheckErr(err)
-				By("Wait for the cluster to be ready", func() {
-					apply.WaitAllNodeRunning()
-				})
-				//2,scale up cluster to 6 nodes and write to disk
-				By("Use join command to add 3master and 3node for scale up cluster in cloud mode", func() {
-					apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(2))
-					apply.CheckNodeNumLocally(6)
-				})
+						result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+						err = testhelper.WriteFile(tempFile, []byte(result))
+						testhelper.CheckErr(err)
+						By("Wait for the cluster to be ready", func() {
+							apply.WaitAllNodeRunning()
+						})
+						//2,scale up cluster to 6 nodes and write to disk
+						By("Use join command to add 3master and 3node for scale up cluster in cloud mode", func() {
+							apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(2))
+							apply.CheckNodeNumLocally(6)
+						})
 
-				result = testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-				err = testhelper.WriteFile(tempFile, []byte(result))
-				testhelper.CheckErr(err)
-				usedCluster := apply.LoadClusterFileFromDisk(tempFile)
+						result = testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+						err = testhelper.WriteFile(tempFile, []byte(result))
+						testhelper.CheckErr(err)
+						usedCluster := apply.LoadClusterFileFromDisk(tempFile)
 
-				//3,scale down cluster to 4 nodes and write to disk
-				By("start to scale down cluster")
-				usedCluster.Spec.Nodes.Count = "1"
-				usedCluster.Spec.Masters.Count = "3"
-				apply.WriteClusterFileToDisk(usedCluster, tempFile)
-				sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
-				testhelper.CheckErr(err)
-				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-				apply.CheckNodeNumLocally(4)
+						//3,scale down cluster to 4 nodes and write to disk
+						By("start to scale down cluster")
+						usedCluster.Spec.Nodes.Count = "1"
+						usedCluster.Spec.Masters.Count = "3"
+						apply.WriteClusterFileToDisk(usedCluster, tempFile)
+						sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
+						testhelper.CheckErr(err)
+						testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+						apply.CheckNodeNumLocally(4)
 
-			})
+					})
 
-		})
-
-		Context("check regular scenario that provider is container", func() {
-			tempFile := testhelper.CreateTempFile()
-			BeforeEach(func() {
-				rawCluster.Spec.Provider = settings.CONTAINER
-				apply.MarshalClusterToFile(tempFile, rawCluster)
-				apply.CheckDockerAndSwapOff()
-			})
-
-			AfterEach(func() {
-				apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
-				testhelper.RemoveTempFile(tempFile)
-				testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-			})
-
-			It("init, scale up, scale down, clean up", func() {
-				// 1,init cluster to 2 nodes and write to disk
-				By("start to init cluster")
-				sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-				testhelper.CheckErr(err)
-				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-				apply.CheckNodeNumLocally(2)
-
-				result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-				err = testhelper.WriteFile(tempFile, []byte(result))
-				testhelper.CheckErr(err)
-
-				By("Wait for the cluster to be ready", func() {
-					apply.WaitAllNodeRunning()
-				})
-				//2,scale up cluster to 6 nodes and write to disk
-				By("Use join command to add 2master and 1node for scale up cluster in cloud mode", func() {
-					apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(1))
-					apply.CheckNodeNumLocally(5)
 				})
 
-				result = testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-				err = testhelper.WriteFile(tempFile, []byte(result))
-				testhelper.CheckErr(err)
-				usedCluster := apply.LoadClusterFileFromDisk(tempFile)
+				Context("check regular scenario that provider is container", func() {
+					tempFile := testhelper.CreateTempFile()
+					BeforeEach(func() {
+						rawCluster.Spec.Provider = settings.CONTAINER
+						apply.MarshalClusterToFile(tempFile, rawCluster)
+						apply.CheckDockerAndSwapOff()
+					})
 
-				//3,scale down cluster to 4 nodes and write to disk
-				By("start to scale down cluster")
-				usedCluster.Spec.Nodes.Count = "1"
-				usedCluster.Spec.Masters.Count = "3"
-				apply.WriteClusterFileToDisk(usedCluster, tempFile)
-				sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
-				testhelper.CheckErr(err)
-				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-				apply.CheckNodeNumLocally(4)
-				image.DoImageOps(settings.SubCmdRmiOfSealer, settings.TestImageName)
-			})
+					AfterEach(func() {
+						apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
+						testhelper.RemoveTempFile(tempFile)
+						testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+					})
 
-		})
+					It("init, scale up, scale down, clean up", func() {
+						// 1,init cluster to 2 nodes and write to disk
+						By("start to init cluster")
+						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
+						testhelper.CheckErr(err)
+						testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+						apply.CheckNodeNumLocally(2)
+
+						result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+						err = testhelper.WriteFile(tempFile, []byte(result))
+						testhelper.CheckErr(err)
+
+						By("Wait for the cluster to be ready", func() {
+							apply.WaitAllNodeRunning()
+						})
+						//2,scale up cluster to 6 nodes and write to disk
+						By("Use join command to add 2master and 1node for scale up cluster in cloud mode", func() {
+							apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(1))
+							apply.CheckNodeNumLocally(5)
+						})
+
+						result = testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
+						err = testhelper.WriteFile(tempFile, []byte(result))
+						testhelper.CheckErr(err)
+						usedCluster := apply.LoadClusterFileFromDisk(tempFile)
+
+						//3,scale down cluster to 4 nodes and write to disk
+						By("start to scale down cluster")
+						usedCluster.Spec.Nodes.Count = "1"
+						usedCluster.Spec.Masters.Count = "3"
+						apply.WriteClusterFileToDisk(usedCluster, tempFile)
+						sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
+						testhelper.CheckErr(err)
+						testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+						apply.CheckNodeNumLocally(4)
+						image.DoImageOps(settings.SubCmdRmiOfSealer, settings.TestImageName)
+					})
+
+				})*/
 
 		Context("check regular scenario that provider is bare metal, executes machine is master0", func() {
 			var tempFile string

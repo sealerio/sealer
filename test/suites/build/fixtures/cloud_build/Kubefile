@@ -3,8 +3,8 @@ COPY Clusterfile etc
 COPY test1 .
 COPY recommended.yaml .
 COPY Plugins.yaml plugin
+COPY imageList manifests
 CMD kubectl apply -f recommended.yaml
 COPY test2 .
-RUN wget -O redis.tar.gz http://download.redis.io/releases/redis-5.0.3.tar.gz
-RUN tar zxvf redis.tar.gz
+RUN wget -O redis.tar.gz http://download.redis.io/releases/redis-5.0.3.tar.gz && tar zxvf redis.tar.gz && rm -f redis.tar.gz
 CMD kubectl get nodes

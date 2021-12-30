@@ -1,9 +1,8 @@
-FROM sealer-io/test:v1
+FROM sealer-io/kubernetes:v1.19.8
 COPY test1 .
 COPY recommended.yaml manifests
 COPY test2 .
 COPY test3 .
-RUN wget -O redis.tar.gz http://download.redis.io/releases/redis-5.0.3.tar.gz
-RUN tar zxvf redis.tar.gz
+RUN wget -O redis.tar.gz http://download.redis.io/releases/redis-5.0.3.tar.gz && tar zxvf redis.tar.gz && rm -f redis.tar.gz
 CMD ls -l
 COPY imageList manifests

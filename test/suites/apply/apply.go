@@ -85,6 +85,7 @@ func LoadPluginFromDisk(clusterFilePath string) []v1.Plugin {
 func GenerateClusterfile(clusterfile string) {
 	filepath := GetRawConfigPluginFilePath()
 	cluster := LoadClusterFileFromDisk(clusterfile)
+	cluster.Spec.Env = []string{"env=TestEnv"}
 	data, err := yaml.Marshal(cluster)
 	testhelper.CheckErr(err)
 	appendData := [][]byte{data}
@@ -122,11 +123,11 @@ func GenerateClusterfile(clusterfile string) {
 }
 
 func SealerDeleteCmd(clusterFile string) string {
-	return fmt.Sprintf("%s delete -f %s --force", settings.DefaultSealerBin, clusterFile)
+	return fmt.Sprintf("%s delete -f %s --force -d", settings.DefaultSealerBin, clusterFile)
 }
 
 func SealerApplyCmd(clusterFile string) string {
-	return fmt.Sprintf("%s apply -f %s", settings.DefaultSealerBin, clusterFile)
+	return fmt.Sprintf("%s apply -f %s -d", settings.DefaultSealerBin, clusterFile)
 }
 
 func SealerRunCmd(masters, nodes, passwd string, provider string) string {
@@ -142,7 +143,7 @@ func SealerRunCmd(masters, nodes, passwd string, provider string) string {
 	if provider != "" {
 		provider = fmt.Sprintf("--provider %s", provider)
 	}
-	return fmt.Sprintf("%s run %s %s %s %s %s", settings.DefaultSealerBin, settings.TestImageName, masters, nodes, passwd, provider)
+	return fmt.Sprintf("%s run %s %s %s %s %s -d", settings.DefaultSealerBin, settings.TestImageName, masters, nodes, passwd, provider)
 }
 
 func SealerRun(masters, nodes, passwd, provider string) {
@@ -156,7 +157,7 @@ func SealerJoinCmd(masters, nodes string) string {
 	if nodes != "" {
 		nodes = fmt.Sprintf("-n %s", nodes)
 	}
-	return fmt.Sprintf("%s join %s %s -c my-test-cluster", settings.DefaultSealerBin, masters, nodes)
+	return fmt.Sprintf("%s join %s %s -c my-test-cluster -d", settings.DefaultSealerBin, masters, nodes)
 }
 
 func SealerJoin(masters, nodes string) {

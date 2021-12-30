@@ -72,7 +72,7 @@ spec:
   type: SHELL
   action: Originally
   data: |
-    echo "OriginallyShell was successfully run from Clusterfile"
+    echo "$env: OriginallyShell was successfully run from Clusterfile"
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
@@ -82,7 +82,7 @@ spec:
   type: SHELL
   action: PostInstall
   data: |
-    echo "PostInstallShell was successfully run from Clusterfile"
+    echo "$env: PostInstallShell was successfully run from Clusterfile"
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
