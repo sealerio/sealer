@@ -93,7 +93,13 @@ func (c *PluginsProcessor) Load() error {
 // Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
 func (c *PluginsProcessor) Run(cluster *v2.Cluster, phase Phase) error {
 	for _, config := range c.Plugins {
+		if config.Spec.Action != string(phase) {
+			continue
+		}
 		p, ok := pluginFactories[config.Spec.Type]
+		// if we use cluster file dump plugin config,some plugin load after mount rootfs,
+		// we still need to return those not find error.
+		// apply module to judged whiter to show errors.
 		if !ok {
 			return InvalidPluginTypeError{config.Spec.Type}
 		}

@@ -127,6 +127,7 @@ func GetClusterFromDataCompatV1(data string) (*v2.Cluster, error) {
 		}
 		cluster.APIVersion = typeV2
 		cluster.Spec.SSH = c1.Spec.SSH
+		cluster.Spec.Env = c1.Spec.Env
 		cluster.Spec.Hosts = hosts
 		cluster.Spec.Image = c1.Spec.Image
 		cluster.Name = c1.Name

@@ -306,7 +306,7 @@ Using ENV in init.sh script:
 echo $docker-dir
 ```
 
-When sealer run the script will set ENV like this: `docker-dir=/data/docker sh init.sh`
+When sealer run the script will set ENV like this: `docker-dir=/data/docker && sh init.sh`
 In the case, master ENV is `/data/docker`, node ENV is by default `/var/lib/docker`
 
 ### How to using cloud infra
