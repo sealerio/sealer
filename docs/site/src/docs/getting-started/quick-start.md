@@ -47,7 +47,7 @@ RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deplo
 CMD kubectl apply -f recommended.yaml
 ```
 
-Build dashobard CloudImage:
+Build dashboard CloudImage:
 
 ```shell script
 sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest .

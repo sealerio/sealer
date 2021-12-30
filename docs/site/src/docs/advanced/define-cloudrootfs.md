@@ -1,14 +1,14 @@
 # Define your own CloudRootfs
 
-All the files witch run a kubernetes cluster needs.
+All the files which run a kubernetes cluster needs.
 
 Contains:
 
-* Bin files, like docker containerd crictl kubeadm kubectl...
+* Bin files, like docker, containerd, crictl ,kubeadm, kubectl...
 * Config files, like kubelet systemd config, docker systemd config, docker daemon.json...
-* Registry docker image
+* Registry docker image.
 * Some Metadata, like Kubernetes version.
-* Registry files, contains all the docker image, like kubernetes core components docker images...
+* Registry files, contains all the docker image, like kubernetes core component docker images...
 * Scripts, some shell script using to install docker and kubelet... sealer will call init.sh and clean.sh.
 * Other static files
 
@@ -69,11 +69,11 @@ Contains:
 2. View the image layer information `sealer inspect kubernetes:v1.19.9-alpine`
 3. Get into the BaseImage Layer `ls /var/lib/sealer/data/overlay2/{layer-id}`
 
-You will found the CloudRootfs layer.
+You will find the CloudRootfs layer.
 
 ## Build your own BaseImage
 
-You can edit any files in CloudRootfs you want, for example you want define your own docker daemon.josn, just edit it and build a new CloudImage.
+You can edit any files in CloudRootfs you want, for example you want to define your own docker daemon.json, just edit it and build a new CloudImage.
 
 ```shell script
 FROM scratch
@@ -90,7 +90,7 @@ Then you can use this image as a BaseImage.
 
 Sometimes you don't want to care about the CloudRootfs context, but need custom some config.
 
-You can using `kubernetes:v1.19.9` as BaseImage, and use your own config file to overwrite the default file in CloudRootfs.
+You can use `kubernetes:v1.19.9` as BaseImage, and use your own config file to overwrite the default file in CloudRootfs.
 
 For example: daemon.json is your docker engine config, using it to overwrite default config:
 

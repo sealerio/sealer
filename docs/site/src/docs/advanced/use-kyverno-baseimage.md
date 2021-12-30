@@ -8,7 +8,7 @@ It's common that some k8s clusters have their own private image registry, and th
 
 ### How to use it
 
-We provide a official BaseImage which integrates kyverno into cluster:`kubernetes-raw_docerk-kyverno:v1.19.8`. Note that it contains no docker images other than those necessary to run a k8s cluster, so if you want to use this cloud image and you also need other docker images(such as `nginx`) to run a container, you need to cache the docker images to your private registry.
+We provide an official BaseImage which integrates kyverno into cluster:`kubernetes-raw_docerk-kyverno:v1.19.8`. Note that it contains no docker images other than those necessary to run a k8s cluster, so if you want to use this cloud image, and you also need other docker images(such as `nginx`) to run a container, you need to cache the docker images to your private registry.
 
 Of course `sealer` can help you do this,use `nginx` as an example.
 Firstly include nginx in the file `imageList`.
@@ -47,7 +47,7 @@ Choose a base image which can create a k8s cluster with at least one master node
 
 #### Step 2: get the kyverno install yaml and cache the image
 
-Download the install yaml of kyverno at `https://raw.githubusercontent.com/kyverno/kyverno/release-1.5/definitions/release/install.yaml`, you can replace the verion to what you want. I use 1.5 in this demonstration.
+Download the "install.yaml" of kyverno at `https://raw.githubusercontent.com/kyverno/kyverno/release-1.5/definitions/release/install.yaml`, you can replace the version to what you want. I use 1.5 in this demonstration.
 
 In order to use kyverno BaseImage in offline environment, you need to cache the image used in `install.yaml`. In this case, threr are two docker images need to be cached: `ghcr.io/kyverno/kyverno:v1.5.1` and `ghcr.io/kyverno/kyvernopre:v1.5.1`. So firstly rename them to `sea.hub:5000/kyverno/kyverno:v1.5.1` and `sea.hub:5000/kyverno/kyvernopre:v1.5.1` in the `install.yaml`, where `sea.hub:5000` is the private registry domain in your k8s cluster. Then create a file `imageList` with the following content:
 
