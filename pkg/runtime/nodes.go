@@ -60,6 +60,9 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	if err := k.WaitSSHReady(6, nodes...); err != nil {
 		return errors.Wrap(err, "join nodes wait for ssh ready time out")
 	}
+	if err := k.sendRegistryCert(nodes); err != nil {
+		return err
+	}
 	if err := k.GetJoinTokenHashAndKey(); err != nil {
 		return err
 	}
