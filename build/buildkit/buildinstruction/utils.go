@@ -61,7 +61,7 @@ func paresCopyDestPath(rawDstFileName, tempBuildDir string) string {
 	// copy abc charts/test = $rootfs/charts/test/abc
 	// copy abc /tmp = $rootfs/tmp/abc
 	dst := rawDstFileName
-	if dst == "." {
+	if dst == "." || dst == "./" || dst == "/" || dst == "/." {
 		return tempBuildDir
 	}
 

@@ -37,8 +37,9 @@ github.com/beorn7/perks/quantile
 github.com/cespare/xxhash/v2
 # github.com/containerd/containerd v1.4.4
 github.com/containerd/containerd/errdefs
-github.com/containerd/containerd/log
-github.com/containerd/containerd/platforms
+# github.com/containerd/continuity v0.1.0
+github.com/containerd/continuity/fs
+github.com/containerd/continuity/sysx
 # github.com/coreos/go-semver v0.3.0
 github.com/coreos/go-semver/semver
 # github.com/coreos/go-systemd/v22 v22.3.2
@@ -95,7 +96,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v20.10.7+incompatible
+# github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -116,6 +117,7 @@ github.com/docker/docker/api/types/volume
 github.com/docker/docker/client
 github.com/docker/docker/dockerversion
 github.com/docker/docker/errdefs
+github.com/docker/docker/pkg/fileutils
 github.com/docker/docker/pkg/homedir
 github.com/docker/docker/pkg/ioutils
 github.com/docker/docker/pkg/jsonmessage
@@ -394,6 +396,11 @@ github.com/spf13/viper
 github.com/stretchr/testify/assert
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
+# github.com/tonistiigi/fsutil v0.0.0-20211208191308-f95797418e48
+## explicit
+github.com/tonistiigi/fsutil
+github.com/tonistiigi/fsutil/copy
+github.com/tonistiigi/fsutil/types
 # github.com/vbatts/tar-split v0.11.1
 ## explicit
 github.com/vbatts/tar-split/archive/tar

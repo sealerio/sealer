@@ -71,11 +71,11 @@ func NewRepository(ctx context.Context, authConfig types.AuthConfig, repoName st
 	modifiers := dockerRegistry.Headers(dockerversion.DockerUserAgent(ctx), nil)
 	authTransport := dockerTransport.NewTransport(base, modifiers...)
 
-	challengeManager, _, err := dockerRegistry.PingV2Registry(rurl, authTransport)
+	challengeManager, err := dockerRegistry.PingV2Registry(rurl, authTransport)
 	if err != nil {
 		return nil, err
 	}
-	// typically this filed would be empty
+	// typically, this filed would be empty
 	if authConfig.RegistryToken != "" {
 		passThruTokenHandler := &existingTokenHandler{token: authConfig.RegistryToken}
 		modifiers = append(modifiers, dockerAuth.NewAuthorizer(challengeManager, passThruTokenHandler))

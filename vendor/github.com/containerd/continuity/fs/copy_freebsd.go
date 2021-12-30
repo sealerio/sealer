@@ -1,3 +1,5 @@
+// +build freebsd
+
 /*
    Copyright The containerd Authors.
 
@@ -14,25 +16,27 @@
    limitations under the License.
 */
 
-package platforms
+package fs
 
 import (
-	"runtime"
+	"os"
+	"syscall"
 
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
-// DefaultString returns the default string specifier for the platform.
-func DefaultString() string {
-	return Format(DefaultSpec())
+func copyDevice(dst string, fi os.FileInfo) error {
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return errors.New("unsupported stat type")
+	}
+	return unix.Mknod(dst, uint32(fi.Mode()), st.Rdev)
 }
 
-// DefaultSpec returns the current platform's default platform specification.
-func DefaultSpec() specs.Platform {
-	return specs.Platform{
-		OS:           runtime.GOOS,
-		Architecture: runtime.GOARCH,
-		// The Variant field will be empty if arch != ARM.
-		Variant: cpuVariant,
-	}
+func utimesNano(name string, atime, mtime syscall.Timespec) error {
+	at := unix.NsecToTimespec(atime.Nano())
+	mt := unix.NsecToTimespec(mtime.Nano())
+	utimes := [2]unix.Timespec{at, mt}
+	return unix.UtimesNanoAt(unix.AT_FDCWD, name, utimes[0:], unix.AT_SYMLINK_NOFOLLOW)
 }

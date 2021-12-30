@@ -80,7 +80,7 @@ func Login(ctx context.Context, authConfig *types.AuthConfig) error {
 }
 
 func authHTTPClient(endpoint *url.URL, authTransport http.RoundTripper, modifiers []transport.RequestModifier, creds auth.CredentialStore, scopes []auth.Scope) (*http.Client, error) {
-	challengeManager, _, err := dockerRegistry.PingV2Registry(endpoint, authTransport)
+	challengeManager, err := dockerRegistry.PingV2Registry(endpoint, authTransport)
 	if err != nil {
 		return nil, err
 	}
