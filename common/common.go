@@ -61,6 +61,8 @@ const (
 	DefaultCloudProvider          = AliCloud
 	ClusterfileName               = "ClusterfileName"
 	CacheID                       = "cacheID"
+	RenderChartsDir               = "charts"
+	RenderManifestsDir            = "manifests"
 )
 
 // image module

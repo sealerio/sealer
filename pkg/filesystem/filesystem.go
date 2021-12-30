@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/alibaba/sealer/pkg/env"
 
 	"github.com/alibaba/sealer/pkg/runtime"
@@ -146,38 +148,45 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	/*	if err := ssh.WaitSSHToReady(*cluster, 6, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}*/
-	var wg sync.WaitGroup
+	g := new(errgroup.Group)
 	config := runtime.GetRegistryConfig(
 		common.DefaultTheClusterRootfsDir(cluster.Name),
 		runtime.GetMaster0Ip(cluster))
 	src := common.DefaultMountCloudImageDir(cluster.Name)
+	renderEtc := filepath.Join(common.DefaultMountCloudImageDir(cluster.Name), common.EtcDir)
+	renderChart := filepath.Join(common.DefaultMountCloudImageDir(cluster.Name), common.RenderChartsDir)
+	renderManifests := filepath.Join(common.DefaultMountCloudImageDir(cluster.Name), common.RenderManifestsDir)
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	envProcessor := env.NewEnvProcessor(cluster)
 	for _, IP := range ipList {
-		wg.Add(1)
-		go func(ip string) {
-			defer wg.Done()
-			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
-			if err != nil {
-				errCh <- fmt.Errorf("get host ssh client failed %v", err)
-				return
-			}
-			err = CopyFiles(sshClient, ip == config.IP, ip, src, target)
-			if err != nil {
-				errCh <- fmt.Errorf("copy rootfs failed %v", err)
-				return
-			}
-			if initFlag {
-				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, initCmd))
-				if err != nil {
-					errCh <- fmt.Errorf("exec init.sh failed %v", err)
+		g.Go(func() error {
+			for _, dir := range []string{renderEtc, renderChart, renderManifests} {
+				if utils.IsExist(dir) {
+					err := envProcessor.RenderAll(IP, dir)
+					if err != nil {
+						return err
+					}
 				}
 			}
-		}(IP)
+			sshClient, err := ssh.GetHostSSHClient(IP, cluster)
+			if err != nil {
+				return fmt.Errorf("get host ssh client failed %v", err)
+			}
+			err = CopyFiles(sshClient, IP == config.IP, IP, src, target)
+			if err != nil {
+				return fmt.Errorf("copy rootfs failed %v", err)
+			}
+			if initFlag {
+				err = sshClient.CmdAsync(IP, envProcessor.WrapperShell(IP, initCmd))
+				if err != nil {
+					return fmt.Errorf("exec init.sh failed %v", err)
+				}
+			}
+			return err
+		})
 	}
-	wg.Wait()
-	return runtime.ReadChanError(errCh)
+	return g.Wait()
 }
 
 func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
