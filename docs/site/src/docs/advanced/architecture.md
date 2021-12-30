@@ -5,7 +5,7 @@
 Sealer has two top module: Build Engine & Apply Engine
 
 The Build Engine Using Kubefile and build context as input, and build a CloudImage that contains all the dependencies.
-The Apply Engine Using Clusterfile to Init a cluster which contains kubernetes and other applications.
+The Apply Engine Using Clusterfile to init a cluster which contains kubernetes and other applications.
 
 ## Build Engine
 
