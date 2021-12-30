@@ -208,6 +208,7 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	execClean := fmt.Sprintf("/bin/bash -c "+common.DefaultClusterClearBashFile, cluster.Name)
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
+	rmDockerCert := fmt.Sprintf("rm -rf %s/%s*", runtime.DockerCertDir, runtime.SeaHub)
 	envProcessor := env.NewEnvProcessor(cluster)
 	for _, IP := range ipList {
 		wg.Add(1)
@@ -221,7 +222,7 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 				mutex.Unlock()
 				return
 			}
-			cmd := fmt.Sprintf("%s && %s", execClean, rmRootfs)
+			cmd := fmt.Sprintf("%s && %s && %s", execClean, rmRootfs, rmDockerCert)
 			if mounted, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mounted {
 				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
 			}

@@ -335,6 +335,9 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	if err := k.SendJoinMasterKubeConfigs(masters, AdminConf, ControllerConf, SchedulerConf); err != nil {
 		return err
 	}
+	if err := k.sendRegistryCert(masters); err != nil {
+		return err
+	}
 	// TODO only needs send ca?
 	if err := k.sendNewCertAndKey(masters); err != nil {
 		return err

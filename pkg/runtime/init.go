@@ -126,7 +126,7 @@ func (k *KubeadmRuntime) GenerateCert() error {
 	if err != nil {
 		return err
 	}
-	return k.sendRegistryCert(append(k.getMasterIPList(), k.getNodesIPList()...))
+	return k.sendRegistryCert(k.getMasterIPList()[:1])
 }
 
 func (k *KubeadmRuntime) CreateKubeConfig() error {
