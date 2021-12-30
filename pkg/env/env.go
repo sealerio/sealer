@@ -56,7 +56,9 @@ func (p *processor) WrapperShell(host, shell string) string {
 			env = fmt.Sprintf("%s%s=%s ", env, k, value)
 		}
 	}
-
+	if env == "" {
+		return shell
+	}
 	return fmt.Sprintf("%s&& %s", env, shell)
 }
 
