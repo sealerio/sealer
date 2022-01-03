@@ -1,4 +1,4 @@
-# Raw docker CloudImage
+# Raw docker BaseImage
 
 ## Motivations
 
@@ -8,7 +8,7 @@ The existing base images mostly use customized docker, but many k8s clusters use
 
 ### How to use it
 
-We provide an official BaseImage which uses official raw docker as container runtime: `kubernetes-with-raw-docker:v1.19.8`. If you want to create a k8s cluster, you can use it directly as `sealer run` command's argument or write it into your Clusterfile. If you want to use it as the base image to build other images by `sealer build`, `FROM kubernetes-with-raw-docker:v1.19.8` should be the first line in your Kubefile.
+We provide an official BaseImage which uses official raw docker as container runtime: `kubernetes-rawdocker:v1.19.8`. If you want to create a k8s cluster, you can use it directly as `sealer run` command's argument or write it into your Clusterfile. If you want to use it as the base image to build other images by `sealer build`, `FROM kubernetes-rawdocker:v1.19.8` should be the first line in your Kubefile.
 
 ### How to build raw docker BaseImage
 
@@ -36,18 +36,43 @@ Pull the official "registry" image and replace existing customized "registry" im
 
 Edit the file 'daemon.json' at `/var/lib/sealer/data/overlay2/{layer-id-1}/etc/`, delete the `mirror-registries` attribute.
 
-#### Step 7: add network components
-
-Now the base image still need network components to create k8s clusters, so move the file "tigera-operator.yaml" and the file "custom-resources.yaml" from `/var/lib/sealer/data/overlay2/{layer-id-2}/etc/` to `/var/lib/sealer/data/overlay2/{layer-id-1}/etc/`.
-
-#### Step 8: build the image
+#### Step 7: build rawdocker alpine image
 
 Switch to directory `/var/lib/sealer/data/overlay2/{layer-id-1}/`, edit the `Kubefile` and make sure it's content is:
 
 ```shell script
 FROM scratch
 COPY . .
+```
+
+Then build image by execute `sealer build --mode lite -t kubernetes-rawdocker:v1.19.8-alpine .`.
+
+#### Extension
+
+#### Step 8: add network components to alpine image
+
+Now the base image still need network components to make k8s clusters work well, here we provide a guide for adding calico as network components.
+First of all, create a `rawdockerBuild` directory as your build environment. Then you should move the file "tigera-operator.yaml" and the file "custom-resources.yaml" from `/var/lib/sealer/data/overlay2/{layer-id-2}/etc/` to `rawdockerBuild/etc`. After that you still need modify some contents in those two files to make sure the pods they create will pull docker images from your private registry, which will make your k8s clusters still work well in offline situations. In this case, firstly add a map-key value in "custom-resources.yaml", the key is `spec.registry` and the value is `sea.hub:5000`, secondly modify all docker image names in "tigera-operator.yaml" from `<registry>/<repository>/<imageName>:<imageTag>` to `sea.hub:5000/<repository>/<imageName>:<imageTag>`.
+Next create a `imageList` file at `rawdockerBuild` directory, with the following content:
+
+- calico/cni:v3.19.1
+- calico/kube-controllers:v3.19.1
+- calico/node:v3.19.1
+- calico/pod2daemon-flexvol:v3.19.1
+- calico/typha:v3.19.1
+- tigrea/operator:v1.17.4
+
+They are all the images needed to create network components, make sure that the tag is consistent with declared in the yaml file "tigera-operator.yaml" and "custom-resources.yaml".
+
+#### Step 9: build rawdocker image
+
+Switch to directory `rawdockerBuild`, create a `Kubefile` and make sure it's content is:
+
+```shell script
+FROM kubernetes-rawdocker:v1.19.8-alpine
+COPY imageList manifests
+COPY etc .
 CMD kubectl apply -f etc/tigera-operator.yaml && kubectl apply -f etc/custom-resources.yaml
 ```
 
-Then build image by execute `sealer build --mode lite -t <image-name:image-tag> .`.
+Then build image by execute `sealer build --mode lite -t kubernetes-rawdocker:v1.19.8 .`.

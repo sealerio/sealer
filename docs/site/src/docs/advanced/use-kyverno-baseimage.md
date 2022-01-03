@@ -1,4 +1,4 @@
-# Kyverno build-in
+# Kyverno BaseImage
 
 ## Motivations
 
@@ -8,7 +8,7 @@ It's common that some k8s clusters have their own private image registry, and th
 
 ### How to use it
 
-We provide an official BaseImage which integrates kyverno into cluster:`kubernetes-raw_docerk-kyverno:v1.19.8`. Note that it contains no docker images other than those necessary to run a k8s cluster, so if you want to use this cloud image, and you also need other docker images(such as `nginx`) to run a container, you need to cache the docker images to your private registry.
+We provide an official BaseImage which integrates kyverno into cluster:`kubernetes-kyverno:v1.19.8`. Note that it contains no docker images other than those necessary to run a k8s cluster, so if you want to use this cloud image, and you also need other docker images(such as `nginx`) to run a container, you need to cache the docker images to your private registry.
 
 Of course `sealer` can help you do this,use `nginx` as an example.
 Firstly include nginx in the file `imageList`.
@@ -22,7 +22,7 @@ You can execute `cat imageList` to make sure you have done this, and the result 
 Secondly edit a Kubefile with the following content:
 
 ```
-FROM kubernetes-raw_docerk-kyverno:v1.19.8
+FROM kubernetes-kyverno:v1.19.8
 COPY imageList manifests
 CMD kubectl run nginx --image=nginx:latest
 ```
@@ -43,13 +43,13 @@ The following is a sequence steps of building kyverno build-in cloud image
 
 #### Step 1: choose a base image
 
-Choose a base image which can create a k8s cluster with at least one master node and one work node. To demonstrate the workflow, I will use `kubernetes-with-raw-docker:v1.19.8`. You can get the same image by executing `sealer pull kubernetes-with-raw-docker:v1.19.8`.
+Choose a base image which can create a k8s cluster with at least one master node and one work node. To demonstrate the workflow, I will use `kubernetes-rawdocker:v1.19.8`. You can get the same image by executing `sealer pull kubernetes-rawdocker:v1.19.8`.
 
 #### Step 2: get the kyverno install yaml and cache the image
 
 Download the "install.yaml" of kyverno at `https://raw.githubusercontent.com/kyverno/kyverno/release-1.5/definitions/release/install.yaml`, you can replace the version to what you want. I use 1.5 in this demonstration.
 
-In order to use kyverno BaseImage in offline environment, you need to cache the image used in `install.yaml`. In this case, threr are two docker images need to be cached: `ghcr.io/kyverno/kyverno:v1.5.1` and `ghcr.io/kyverno/kyvernopre:v1.5.1`. So firstly rename them to `sea.hub:5000/kyverno/kyverno:v1.5.1` and `sea.hub:5000/kyverno/kyvernopre:v1.5.1` in the `install.yaml`, where `sea.hub:5000` is the private registry domain in your k8s cluster. Then create a file `imageList` with the following content:
+In order to use kyverno BaseImage in offline environment, you need to cache the image used in `install.yaml`. In this case, there are two docker images need to be cached: `ghcr.io/kyverno/kyverno:v1.5.1` and `ghcr.io/kyverno/kyvernopre:v1.5.1`. So firstly rename them to `sea.hub:5000/kyverno/kyverno:v1.5.1` and `sea.hub:5000/kyverno/kyvernopre:v1.5.1` in the `install.yaml`, where `sea.hub:5000` is the private registry domain in your k8s cluster. Then create a file `imageList` with the following content:
 
 ```
 ghcr.io/kyverno/kyverno:v1.5.1
@@ -87,7 +87,7 @@ spec:
           spec:
             containers:
             - name: "{{ element.name }}"
-              image: "sea.hub:5000/library/{{ images.containers.{{element.name}}.path}}:{{images.containers.{{element.name}}.tag}}"
+              image: "sea.hub:5000/{{ images.containers.{{element.name}}.path}}:{{images.containers.{{element.name}}.tag}}"
   - name: prepend-registry-initcontainers
     match:
       resources:
@@ -107,7 +107,7 @@ spec:
           spec:
             initContainers:
             - name: "{{ element.name }}"
-              image: "sea.hub:5000/library/{{ images.initContainers.{{element.name}}.path}}:{{images.initContainers.{{element.name}}.tag}}"
+              image: "sea.hub:5000/{{ images.initContainers.{{element.name}}.path}}:{{images.initContainers.{{element.name}}.tag}}"
 
 ```
 
@@ -138,16 +138,17 @@ I named this file `wait-kyverno-ready.sh`.
 
 #### Step 5: create the build content
 
-Create a directory with five files: the install.yaml and imageList in step 2, redirect-registry.yaml in step 3, wait-kyverno-ready.sh in step 4 and a Kubefile whose content is following:
+Create a `kyvernoBuild` directory with five files: the etc/install.yaml and imageList in step 2, etc/redirect-registry.yaml in step 3, scripts/wait-kyverno-ready.sh in step 4 and a Kubefile whose content is following:
 
 ```shell
-FROM kubernetes-with-raw-docker:v1.19.8
-COPY . .
+FROM kubernetes-rawdocker:v1.19.8
 COPY imageList manifests
-CMD kubectl create -f install.yaml && kubectl create -f redirect-registry.yaml
-CMD bash wait-kyverno-ready.sh
+COPY etc .
+COPY scripts .
+CMD kubectl create -f etc/install.yaml && kubectl create -f etc/redirect-registry.yaml
+CMD bash scripts/wait-kyverno-ready.sh
 ```
 
 #### Step 6: build the image
 
-Supposing you are at the directory create at step 4, please execute `sealer build --mode lite -t <image-name:image:tag> .`
+Supposing you are at the `kyvernoBuild` directory, please execute `sealer build --mode lite -t kubernetes-kyverno:v1.19.8 .`
