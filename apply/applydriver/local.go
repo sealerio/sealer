@@ -19,7 +19,7 @@ import (
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
-	"github.com/alibaba/sealer/apply/v2/processor"
+	"github.com/alibaba/sealer/apply/processor"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alibaba/sealer/apply/v2"
+	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/spf13/cobra"

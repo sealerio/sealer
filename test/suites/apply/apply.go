@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibaba/sealer/checker"
+	"github.com/alibaba/sealer/pkg/checker"
 	"github.com/alibaba/sealer/utils/ssh"
 
 	"github.com/onsi/gomega"

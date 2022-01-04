@@ -20,7 +20,7 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/runtime"
+	"github.com/alibaba/sealer/pkg/runtime"
 	"github.com/alibaba/sealer/utils"
 )
 

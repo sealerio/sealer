@@ -17,11 +17,12 @@ package cmd
 import (
 	"os"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/apply/v2"
+	"github.com/alibaba/sealer/apply"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/common"
 )
