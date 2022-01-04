@@ -94,7 +94,7 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 
 // Unmount target
 func (o *Overlay2) Unmount(target string) error {
-	return unmount(target, 0)
+	return unmount(target, syscall.MNT_FORCE)
 }
 
 func mount(device, target, mType string, flag uintptr, data string) error {
