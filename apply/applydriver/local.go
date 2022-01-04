@@ -25,23 +25,24 @@ import (
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/runtime"
 
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/utils"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/version"
 )
 
 // Applier cloud builder using cloud provider to build a cluster image
 type Applier struct {
-	ClusterDesired *v2.Cluster
-	ClusterCurrent *v2.Cluster
-	ImageManager   image.Service
-	FileSystem     filesystem.Interface
-	Client         *k8s.Client
-	ImageStore     store.ImageStore
+	ClusterDesired     *v2.Cluster
+	ClusterCurrent     *v2.Cluster
+	ImageManager       image.Service
+	FileSystem         filesystem.Interface
+	Client             *k8s.Client
+	ImageStore         store.ImageStore
+	CurrentClusterInfo *version.Info
 }
 
 func (c *Applier) Delete() (err error) {
@@ -100,7 +101,12 @@ func (c *Applier) reconcileCluster() error {
 	if err != nil {
 		return err
 	}
+	info, err := c.Client.GetClusterVersion()
+	if err != nil {
+		return err
+	}
 	c.Client = client
+	c.CurrentClusterInfo = info
 
 	if err := c.fillClusterCurrent(); err != nil {
 		return err
@@ -171,10 +177,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 
 func (c *Applier) upgradeCluster(mj, nj []string) error {
 	// use k8sClient to fetch current cluster version.
-	info, err := c.Client.GetClusterVersion()
-	if err != nil {
-		return err
-	}
+	info := c.CurrentClusterInfo
 	// fetch form exec machine
 	runtimeInterface, err := runtime.NewDefaultRuntime(c.ClusterDesired, c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	if err != nil {
@@ -207,10 +210,7 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 func (c *Applier) installApp() error {
 	rootfs := common.DefaultMountCloudImageDir(c.ClusterDesired.Name)
 	// use k8sClient to fetch current cluster version.
-	info, err := c.Client.GetClusterVersion()
-	if err != nil {
-		return err
-	}
+	info := c.CurrentClusterInfo
 
 	clusterMetadata, err := runtime.LoadMetadata(rootfs)
 	if err != nil {
