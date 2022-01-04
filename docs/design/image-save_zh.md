@@ -1,8 +1,67 @@
-# docker镜像保存
+# docker镜像及helm chart包保存
 
-save模块的位置在image/save目录下，其作用是拉取其他仓库中的docker镜像，并保存到本地的文件系统中。
+save模块的位置在image/save目录下，其作用是拉取其他仓库中的docker镜像或者helm chart包，并保存到本地的文件系统中。
 
-## 整体工作流程
+## 使用示例
+
+### Helm chart包
+ 
+> workflow: 用helm push 推送chart包到registry中->使用sealer build将chart包存储到集群镜像中->用build后的集群镜像建立集群，使用helm pull拉取仓库中的chart包
+
+#### Step1: helm push 推送chart包到registry中
+
+例如，本地存在两个已经构建好的chart包：mysql-8.8.19-tgz和rabbitmq-8.24.13.tgz。首先用registry:2.7.1镜像启动docker容器监听5000端口，然后设置环境变量`HELM_EXPERIMENTAL_OCI=1`，接着执行`helm push mysql-8.8.19-tgz oci://localhost:5000/helm-charts`,`helm push rabbitmq-8.24.13.tgz oci://localhost:5000/helm-charts`。
+
+#### Step2: 使用sealer build将chart包存储到集群镜像中
+
+在一个空目录下创建两个文件，一个是`Kubefile`文件，一个是`imageList`文件。`Kubefile`文件内容如下:
+
+```
+FROM kubernetes-clusterv2:v1.19.8
+COPY imageList manifests
+```
+
+`imageList`文件内容如下:
+
+```
+localhost:5000/helm-charts/mysql:8.8.19
+localhost:5000/helm-charts/rabbitmq:8.24.13
+```
+
+在该目录下执行`sealer build -t test:1 .`
+
+#### Step3: 建立集群并用helm pull拉取仓库中的chart包
+
+需要一台额外的机器来创建k8s集群，其ip地址用`x.x.x.x`表示。执行`sealer run test:1 -m x.x.x.x -p x`创建集群。集群创建成功后，进入ip地址为`x.x.x.x`的机器，安装helm，设置环境变量`HELM_EXPERIMENTAL_OCI=1`。然后可以通过执行`helm pull oci://sea.hub:5000/helm-charts/mysql --version 8.8.19`和`helm pull oci://sea.hub:5000/helm-charts/rabbitmq --version 8.24.13`来拉取相应的chart包。
+
+### Docker 镜像
+
+> workflow: 使用sealer build将docker镜像存储到集群镜像中->用build后的集群镜像建立集群，使用docker pull拉取仓库中的docker镜像
+
+#### Step1: 使用sealer build将docker镜像存储到集群镜像中
+
+在一个空目录下创建两个文件，一个是`Kubefile`文件，一个是`imageList`文件。`Kubefile`文件内容如下:
+
+```
+FROM kubernetes-clusterv2:v1.19.8
+COPY imageList manifests
+```
+
+`imageList`文件内容如下:
+
+```
+mysql:latest
+ubuntu:18.04
+```
+
+如果要拉取私有仓库的镜像，请先执行`docker login` 登录。在该目录下执行`sealer build -t test:1 .`
+
+#### Step2: 建立集群并用docker pull拉取仓库中的docker镜像
+
+需要一台额外的机器来创建k8s集群，其ip地址用`x.x.x.x`表示。执行`sealer run test:1 -m x.x.x.x -p x`创建集群。集群创建成功后，进入ip地址为`x.x.x.x`的机器，执行`docker pull sea.hub:5000/mysql:latest`和`docker pull sea.hub:5000/ubuntu:18.04`来拉取相应的docker镜像。
+
+
+## 模块工作流程
 
 1. 解析镜像名称，获得三个重要信息：域名（registry），仓库名（repository），镜像名（image），把相同域名的镜像放在一个切片中，以便后续一起处理。
 2. 根据域名建立与相应的registry的连接。然后就能获取到repository service, manifest service, tag service, blob service. 通过这些service来拉取和保存镜像数据。
