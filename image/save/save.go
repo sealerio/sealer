@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/image/save/distributionpkg/proxy"
@@ -40,7 +41,8 @@ import (
 )
 
 const (
-	urlPrefix           = "https://"
+	HTTPS               = "https://"
+	HTTP                = "http://"
 	defaultProxyURL     = "https://registry-1.docker.io"
 	configRootDir       = "rootdirectory"
 	maxPullGoroutineNum = 2
@@ -108,7 +110,7 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 
 func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution.Namespace, error) {
 	// set the URL of registry
-	proxyURL := urlPrefix + domain
+	proxyURL := HTTPS + domain
 	if domain == defaultDomain {
 		proxyURL = defaultProxyURL
 	}
@@ -143,11 +145,15 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 		return nil, fmt.Errorf("create local registry error: %v", err)
 	}
 
-	proxy, err := proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
-	if err != nil {
-		return nil, fmt.Errorf("create proxy registry error: %v", err)
+	proxyRegistry, err := proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
+	if err != nil { // try http
+		config.Proxy.RemoteURL = strings.Replace(config.Proxy.RemoteURL, HTTPS, HTTP, 1)
+		proxyRegistry, err = proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
+		if err != nil {
+			return nil, fmt.Errorf("create proxy registry error: %v", err)
+		}
 	}
-	return proxy, nil
+	return proxyRegistry, nil
 }
 
 func (is *DefaultImageSaver) save(nameds []Named, platform v1.Platform, registry distribution.Namespace) error {
