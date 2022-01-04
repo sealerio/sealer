@@ -70,9 +70,10 @@ func (k *KubeadmConfig) LoadFromClusterfile(fileName string) error {
 	kubeadmConfig, err := k.loadKubeadmConfigs(fileName, DecodeCRDFromFile)
 	if err != nil {
 		return fmt.Errorf("failed to load kubeadm config from %s, err: %v", fileName, err)
-	} else if kubeConfig == nil {
+	} else if kubeadmConfig == nil {
 		return nil
 	}
+	k.APIServer.CertSANs = append(k.APIServer.CertSANs, kubeadmConfig.APIServer.CertSANs...)
 	return mergo.Merge(k, kubeadmConfig)
 }
 
