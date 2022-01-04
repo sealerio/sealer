@@ -5,7 +5,7 @@ save模块的位置在image/save目录下，其作用是拉取其他仓库中的
 ## 使用示例
 
 ### Helm chart包
- 
+
 > workflow: 用helm push 推送chart包到registry中->使用sealer build将chart包存储到集群镜像中->用build后的集群镜像建立集群，使用helm pull拉取仓库中的chart包
 
 #### Step1: helm push 推送chart包到registry中
@@ -59,7 +59,6 @@ ubuntu:18.04
 #### Step2: 建立集群并用docker pull拉取仓库中的docker镜像
 
 需要一台额外的机器来创建k8s集群，其ip地址用`x.x.x.x`表示。执行`sealer run test:1 -m x.x.x.x -p x`创建集群。集群创建成功后，进入ip地址为`x.x.x.x`的机器，执行`docker pull sea.hub:5000/mysql:latest`和`docker pull sea.hub:5000/ubuntu:18.04`来拉取相应的docker镜像。
-
 
 ## 模块工作流程
 
