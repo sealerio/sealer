@@ -51,6 +51,7 @@ or Replicated PVs. More details about the application can be found in its manife
 * registry.cn-beijing.aliyuncs.com/mahmut/kube-prometheus-stack:0.53.1
 * registry.cn-beijing.aliyuncs.com/mahmut/loki-stack-fluentbit:2.2.0
 * registry.cn-beijing.aliyuncs.com/mahmut/loki-stack-promtail:2.2.0
+* registry.cn-beijing.aliyuncs.com/mahmut/skywaking:8.0.1
 
 ## How to run it
 
