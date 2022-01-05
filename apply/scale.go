@@ -19,16 +19,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/apply/applytype"
+	"github.com/alibaba/sealer/apply/applydriver"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 )
 
 // NewScaleApplierFromArgs will filter ip list from command parameters.
-func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag string) (applytype.Interface, error) {
-	cluster := &v1.Cluster{}
+func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag string) (applydriver.Interface, error) {
+	cluster := &v2.Cluster{}
 	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
 		return nil, err
 	}
@@ -47,9 +47,9 @@ func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag
 		return nil, err
 	}
 
-	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
+	/*	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
 		return nil, err
-	}
+	}*/
 	applier, err := NewApplier(cluster)
 	if err != nil {
 		return nil, err
@@ -57,46 +57,58 @@ func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag
 	return applier, nil
 }
 
-func Join(cluster *v1.Cluster, scalingArgs *common.RunArgs) error {
-	switch cluster.Spec.Provider {
-	case common.BAREMETAL:
-		return joinBaremetalNodes(cluster, scalingArgs)
-	case common.AliCloud:
-		return joinInfraNodes(cluster, scalingArgs)
-	case common.CONTAINER:
-		return joinInfraNodes(cluster, scalingArgs)
-	default:
-		return fmt.Errorf(" clusterfile provider type is not found ！")
-	}
+func Join(cluster *v2.Cluster, scalingArgs *common.RunArgs) error {
+	/*	switch cluster.Spec.Provider {
+		case common.BAREMETAL:
+			return joinBaremetalNodes(cluster, scalingArgs)
+		case common.AliCloud:
+			return joinInfraNodes(cluster, scalingArgs)
+		case common.CONTAINER:
+			return joinInfraNodes(cluster, scalingArgs)
+		default:
+			return fmt.Errorf(" clusterfile provider type is not found ！")
+		}*/
+	return joinBaremetalNodes(cluster, scalingArgs)
 }
 
-func joinBaremetalNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
+func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
 	if err := PreProcessIPList(scaleArgs); err != nil {
 		return err
 	}
 	if (!IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
-	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
-		margeMasters := append(cluster.Spec.Masters.IPList, strings.Split(scaleArgs.Masters, ",")...)
-		cluster.Spec.Masters.IPList = removeIPListDuplicatesAndEmpty(margeMasters)
+	// join nodes cannot be in the current cluster
+	if len(utils.ReduceIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ",")), cluster.GetMasterIPList())) != 0 ||
+		len(utils.ReduceIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ",")), cluster.GetNodeIPList())) != 0 {
+		return fmt.Errorf("join nodes already in the current cluster")
 	}
-	if scaleArgs.Nodes != "" && IsIPList(scaleArgs.Nodes) {
-		margeNodes := append(cluster.Spec.Nodes.IPList, strings.Split(scaleArgs.Nodes, ",")...)
-		cluster.Spec.Nodes.IPList = removeIPListDuplicatesAndEmpty(margeNodes)
-	}
-	return nil
-}
 
-func joinInfraNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
-	if (!IsNumber(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsNumber(scaleArgs.Masters) && scaleArgs.Masters != "") {
-		return fmt.Errorf(" Parameter error: The number of join masters or nodes that must be submitted to use cloud service！")
+	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
+		for i := 0; i < len(cluster.Spec.Hosts); i++ {
+			role := cluster.Spec.Hosts[i].Roles
+			if utils.InList(common.MASTER, role) {
+				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ","))...)
+				break
+			}
+			if i == len(cluster.Spec.Hosts)-1 {
+				return fmt.Errorf("not found `master` role from file")
+			}
+		}
 	}
-	if scaleArgs.Masters != "" && IsNumber(scaleArgs.Masters) {
-		cluster.Spec.Masters.Count = strconv.Itoa(StrToInt(cluster.Spec.Masters.Count) + StrToInt(scaleArgs.Masters))
-	}
-	if scaleArgs.Nodes != "" && IsNumber(scaleArgs.Nodes) {
-		cluster.Spec.Nodes.Count = strconv.Itoa(StrToInt(cluster.Spec.Nodes.Count) + StrToInt(scaleArgs.Nodes))
+	//add join node
+	if scaleArgs.Nodes != "" && IsIPList(scaleArgs.Nodes) {
+		for i := 0; i < len(cluster.Spec.Hosts); i++ {
+			role := cluster.Spec.Hosts[i].Roles
+			if utils.InList(common.NODE, role) {
+				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ","))...)
+				break
+			}
+			if i == len(cluster.Spec.Hosts)-1 {
+				hosts := v2.Host{IPS: removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ",")), Roles: []string{common.NODE}}
+				cluster.Spec.Hosts = append(cluster.Spec.Hosts, hosts)
+			}
+		}
 	}
 	return nil
 }
@@ -122,51 +134,38 @@ func removeIPListDuplicatesAndEmpty(ipList []string) []string {
 	return newList
 }
 
-func Delete(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
-	switch cluster.Spec.Provider {
-	case common.BAREMETAL:
-		return deleteBaremetalNodes(cluster, scaleArgs)
-	case common.AliCloud:
-		return deleteInfraNodes(cluster, scaleArgs)
-	case common.CONTAINER:
-		return deleteInfraNodes(cluster, scaleArgs)
-	default:
-		return fmt.Errorf(" clusterfile provider type is not found ！")
-	}
+func Delete(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
+	return deleteBaremetalNodes(cluster, scaleArgs)
 }
 
-func deleteBaremetalNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
+func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
 	if err := PreProcessIPList(scaleArgs); err != nil {
 		return err
 	}
 	if (!IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
+	//delete node must be in the current cluster
+	if len(utils.RemoveIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ",")), cluster.GetMasterIPList())) != 0 ||
+		len(utils.RemoveIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ",")), cluster.GetNodeIPList())) != 0 {
+		return fmt.Errorf("delete nodes are not in the current cluster")
+	}
+	//master0 machine cannot be deleted
+	if utils.InList(cluster.GetMaster0Ip(), strings.Split(scaleArgs.Masters, ",")) {
+		return fmt.Errorf("master0 machine cannot be deleted")
+	}
 	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
-		margeMasters := returnFilteredIPList(cluster.Spec.Masters.IPList, strings.Split(scaleArgs.Masters, ","))
-		cluster.Spec.Masters.IPList = removeIPListDuplicatesAndEmpty(margeMasters)
-	}
-	if scaleArgs.Nodes != "" && IsIPList(scaleArgs.Nodes) {
-		margeNodes := returnFilteredIPList(cluster.Spec.Nodes.IPList, strings.Split(scaleArgs.Nodes, ","))
-		cluster.Spec.Nodes.IPList = removeIPListDuplicatesAndEmpty(margeNodes)
-	}
-	return nil
-}
-
-func deleteInfraNodes(cluster *v1.Cluster, scaleArgs *common.RunArgs) error {
-	if (!IsNumber(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsNumber(scaleArgs.Masters) && scaleArgs.Masters != "") {
-		return fmt.Errorf(" Parameter error: The number of join masters or nodes that must be submitted to use cloud service！")
-	}
-	if scaleArgs.Masters != "" && IsNumber(scaleArgs.Masters) {
-		cluster.Spec.Masters.Count = strconv.Itoa(StrToInt(cluster.Spec.Masters.Count) - StrToInt(scaleArgs.Masters))
-		if StrToInt(cluster.Spec.Masters.Count) <= 0 {
-			return fmt.Errorf("parameter error: the number of clean masters or nodes that must be less than definition in Clusterfile")
+		for i := range cluster.Spec.Hosts {
+			if utils.InList(common.MASTER, cluster.Spec.Hosts[i].Roles) {
+				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ","))
+			}
 		}
 	}
-	if scaleArgs.Nodes != "" && IsNumber(scaleArgs.Nodes) {
-		cluster.Spec.Nodes.Count = strconv.Itoa(StrToInt(cluster.Spec.Nodes.Count) - StrToInt(scaleArgs.Nodes))
-		if StrToInt(cluster.Spec.Nodes.Count) <= 0 {
-			return fmt.Errorf("parameter error: the number of clean masters or nodes that must be less than definition in Clusterfile")
+	if scaleArgs.Nodes != "" && IsIPList(scaleArgs.Nodes) {
+		for i := range cluster.Spec.Hosts {
+			if utils.InList(common.NODE, cluster.Spec.Hosts[i].Roles) {
+				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ","))
+			}
 		}
 	}
 	return nil

@@ -15,50 +15,49 @@
 package apply
 
 import (
-	"fmt"
+	"io/ioutil"
+	"path/filepath"
 
-	"github.com/alibaba/sealer/apply/applytype"
+	"github.com/alibaba/sealer/image/store"
+
+	"github.com/alibaba/sealer/apply/applydriver"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/filesystem"
 	"github.com/alibaba/sealer/image"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/pkg/filesystem"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
-func NewApplierFromFile(clusterfile string) (applytype.Interface, error) {
-	clusters, err := utils.DecodeCluster(clusterfile)
+func NewApplierFromFile(clusterfile string) (applydriver.Interface, error) {
+	clusterData, err := ioutil.ReadFile(filepath.Clean(clusterfile))
 	if err != nil {
 		return nil, err
 	}
-	if len(clusters) == 0 {
-		return nil, fmt.Errorf("failed to found cluster from %s", clusterfile)
+	cluster, err := GetClusterFromDataCompatV1(string(clusterData))
+	if err != nil {
+		return nil, err
 	}
-	if len(clusters) > 1 {
-		return nil, fmt.Errorf("multiple clusters exist in the Clusterfile")
-	}
-	cluster := &clusters[0]
 	cluster.SetAnnotations(common.ClusterfileName, clusterfile)
 	return NewApplier(cluster)
 }
 
-func NewApplier(cluster *v1.Cluster) (applytype.Interface, error) {
-	switch cluster.Spec.Provider {
-	case common.AliCloud:
-		return NewAliCloudProvider(cluster)
-	case common.CONTAINER:
-		return NewAliCloudProvider(cluster)
-	}
+func NewApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
+	/*	switch cluster.Spec.Provider {
+		case common.AliCloud:
+			return NewAliCloudProvider(cluster)
+		case common.CONTAINER:
+			return NewAliCloudProvider(cluster)
+		}*/
 	return NewDefaultApplier(cluster)
 }
 
-func NewAliCloudProvider(cluster *v1.Cluster) (applytype.Interface, error) {
-	return &applytype.CloudApplier{
+/*func NewAliCloudProvider(cluster *v2.Cluster) (applydriver.Interface, error) {
+	return &applydriver.CloudApplier{
 		ClusterDesired: cluster,
 	}, nil
-}
+}*/
 
-func NewDefaultApplier(cluster *v1.Cluster) (applytype.Interface, error) {
+func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 	imgSvc, err := image.NewImageService()
 	if err != nil {
 		return nil, err
@@ -69,9 +68,15 @@ func NewDefaultApplier(cluster *v1.Cluster) (applytype.Interface, error) {
 		return nil, err
 	}
 
-	return &applytype.Applier{
+	is, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+
+	return &applydriver.Applier{
 		ClusterDesired: cluster,
 		ImageManager:   imgSvc,
 		FileSystem:     fs,
+		ImageStore:     is,
 	}, nil
 }

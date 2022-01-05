@@ -12,25 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package applytype
+package applydriver
 
 import (
 	"fmt"
-	"strconv"
 
-	"github.com/alibaba/sealer/client/k8s"
+	"github.com/Masterminds/semver/v3"
 	corev1 "k8s.io/api/core/v1"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/alibaba/sealer/client/k8s"
+	"github.com/alibaba/sealer/common"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
 const MasterRoleLabel = "node-role.kubernetes.io/master"
 
-func GetCurrentCluster(client *k8s.Client) (*v1.Cluster, error) {
+func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 	if client == nil {
 		return nil, nil
 	}
@@ -39,12 +40,9 @@ func GetCurrentCluster(client *k8s.Client) (*v1.Cluster, error) {
 		return nil, err
 	}
 
-	cluster := &v1.Cluster{
-		TypeMeta:   metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{},
-		Spec:       v1.ClusterSpec{},
-		Status:     v1.ClusterStatus{},
-	}
+	cluster := &v2.Cluster{}
+	var masterIPList []string
+	var nodeIPList []string
 
 	for _, node := range nodes.Items {
 		addr := getNodeAddress(&node)
@@ -52,13 +50,12 @@ func GetCurrentCluster(client *k8s.Client) (*v1.Cluster, error) {
 			continue
 		}
 		if _, ok := node.Labels[MasterRoleLabel]; ok {
-			cluster.Spec.Masters.IPList = append(cluster.Spec.Masters.IPList, addr)
+			masterIPList = append(masterIPList, addr)
 			continue
 		}
-		cluster.Spec.Nodes.IPList = append(cluster.Spec.Nodes.IPList, addr)
+		nodeIPList = append(nodeIPList, addr)
 	}
-	cluster.Spec.Masters.Count = strconv.Itoa(len(cluster.Spec.Masters.IPList))
-	cluster.Spec.Nodes.Count = strconv.Itoa(len(cluster.Spec.Nodes.IPList))
+	cluster.Spec.Hosts = []v2.Host{{IPS: masterIPList, Roles: []string{common.MASTER}}, {IPS: nodeIPList, Roles: []string{common.NODE}}}
 
 	return cluster, nil
 }
@@ -86,4 +83,30 @@ func getNodeAddress(node *corev1.Node) string {
 		return ""
 	}
 	return node.Status.Addresses[0].Address
+}
+
+func VersionCompatible(version, constraint string) bool {
+	if constraint == "" {
+		return true
+	}
+	// ">= 1.19.8, <= 1.21.0"
+	c, err := semver.NewConstraint(constraint)
+	if err != nil {
+		return false
+	}
+
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return false
+	}
+
+	return c.Check(v)
+}
+
+func withRootfs(image *v1.Image) bool {
+	layer0 := image.Spec.Layers[0]
+	if layer0.Value == ". ." && layer0.Type == common.COPYCOMMAND {
+		return true
+	}
+	return false
 }
