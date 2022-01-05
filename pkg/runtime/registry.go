@@ -81,7 +81,8 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 		}
 	}
 	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s", k.getRootfs(), cf.Port, fmt.Sprintf("%s/registry", k.getRootfs()))
-	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
+	registryHost := getRegistryHost(k.getRootfs(), k.getMaster0IP())
+	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	if err = ssh.CmdAsync(cf.IP, initRegistry); err != nil {
 		return err
 	}

@@ -76,7 +76,8 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	k.cleanJoinLocalAPIEndPoint()
 
-	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
+	registryHost := getRegistryHost(k.getRootfs(), k.getMaster0IP())
+	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	cf := GetRegistryConfig(k.getImageMountDir(), k.getMaster0IP())
 	if cf.Username != "" && cf.Password != "" {
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
@@ -145,12 +146,18 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 		return fmt.Errorf("failed to delete node: %v", err)
 	}
 
-	if err := ssh.CmdAsync(node, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP()))); err != nil {
+	remoteRemoveCmds := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP()))}
+	address, err := utils.GetLocalHostAddresses()
+	//if the node to be removed is the execution machine, kubelet, ~./kube and apiServer host will not be removed
+	if err != nil || !utils.IsLocalIP(node, address) {
+		remoteRemoveCmds = append(remoteRemoveCmds,
+			RemoveKubeConfig,
+			fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()))
+	}
+	if err := ssh.CmdAsync(node, remoteRemoveCmds...); err != nil {
 		return err
 	}
-
 	//remove node
 	if len(k.getMasterIPList()) > 0 {
 		hostname := k.isHostName(k.getMaster0IP(), node)
