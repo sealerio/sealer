@@ -108,41 +108,47 @@ func GetClusterFileByImageName(imageName string) (*v2.Cluster, error) {
 }
 
 func GetClusterFromDataCompatV1(data string) (*v2.Cluster, error) {
-	cluster := &v2.Cluster{}
-	metaType := metav1.TypeMeta{}
-	err := yaml.Unmarshal([]byte(data), &metaType)
-	if err != nil {
-		return nil, fmt.Errorf("decode cluster failed %v", err)
-	}
-	if metaType.APIVersion == typeV1 {
-		c1 := &v1.Cluster{}
-		if err := yaml.Unmarshal([]byte(data), &c1); err != nil {
-			return nil, err
-		}
-		var hosts []v2.Host
-		if len(c1.Spec.Masters.IPList) != 0 {
-			hosts = append(hosts, v2.Host{IPS: c1.Spec.Masters.IPList, Roles: []string{common.MASTER}})
-		}
-		if len(c1.Spec.Nodes.IPList) != 0 {
-			hosts = append(hosts, v2.Host{IPS: c1.Spec.Nodes.IPList, Roles: []string{common.NODE}})
-		}
-		cluster.APIVersion = typeV2
-		cluster.Spec.SSH = c1.Spec.SSH
-		cluster.Spec.Env = c1.Spec.Env
-		cluster.Spec.Hosts = hosts
-		cluster.Spec.Image = c1.Spec.Image
-		cluster.Name = c1.Name
-		cluster.Kind = c1.Kind
-	} else {
-		c, err := runtime.DecodeCRDFromString(data, common.Cluster)
+	for _, clusterData := range strings.Split(data, "---") {
+		cluster := &v2.Cluster{}
+		metaType := metav1.TypeMeta{}
+		err := yaml.Unmarshal([]byte(clusterData), &metaType)
 		if err != nil {
 			return nil, err
-		} else if c == nil {
-			return nil, fmt.Errorf("not found type cluster from %s", data)
 		}
-		cluster = c.(*v2.Cluster)
+		if metaType.Kind != common.Cluster {
+			continue
+		}
+		if metaType.APIVersion == typeV1 {
+			clusterV1 := &v1.Cluster{}
+			if err := yaml.Unmarshal([]byte(clusterData), &clusterV1); err != nil {
+				return nil, err
+			}
+			var hosts []v2.Host
+			if len(clusterV1.Spec.Masters.IPList) != 0 {
+				hosts = append(hosts, v2.Host{IPS: clusterV1.Spec.Masters.IPList, Roles: []string{common.MASTER}})
+			}
+			if len(clusterV1.Spec.Nodes.IPList) != 0 {
+				hosts = append(hosts, v2.Host{IPS: clusterV1.Spec.Nodes.IPList, Roles: []string{common.NODE}})
+			}
+			cluster.APIVersion = typeV2
+			cluster.Spec.SSH = clusterV1.Spec.SSH
+			cluster.Spec.Env = clusterV1.Spec.Env
+			cluster.Spec.Hosts = hosts
+			cluster.Spec.Image = clusterV1.Spec.Image
+			cluster.Name = clusterV1.Name
+			cluster.Kind = clusterV1.Kind
+		} else {
+			c, err := runtime.DecodeCRDFromString(clusterData, common.Cluster)
+			if err != nil {
+				return nil, err
+			} else if c == nil {
+				break
+			}
+			cluster = c.(*v2.Cluster)
+		}
+		return cluster, nil
 	}
-	return cluster, nil
+	return nil, fmt.Errorf("not found type cluster from: \n%s", data)
 }
 
 func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (applydriver.Interface, error) {
