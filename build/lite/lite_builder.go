@@ -50,7 +50,7 @@ func (l *Builder) Build(name string, context string, kubefileName string) error 
 	}
 	l.Context = absContext
 
-	bi, err := buildimage.NewBuildImage(absKubeFile)
+	bi, err := buildimage.NewBuildImage(absKubeFile, l.BuildType)
 	if err != nil {
 		return err
 	}
