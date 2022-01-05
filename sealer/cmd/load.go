@@ -20,8 +20,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image"
 )
 
 var imageSrc string

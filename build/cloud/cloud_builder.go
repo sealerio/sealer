@@ -16,25 +16,25 @@ package cloud
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
-	"github.com/alibaba/sealer/image/reference"
-
-	"os"
-	"path/filepath"
+	"github.com/alibaba/sealer/pkg/image/reference"
 
 	"github.com/alibaba/sealer/build/buildkit"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/infra"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/checker"
+	"github.com/alibaba/sealer/pkg/infra"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Builder using cloud provider to build a cluster image

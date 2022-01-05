@@ -18,13 +18,13 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/pkg/image/store"
 
 	"github.com/alibaba/sealer/apply/applydriver"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/pkg/filesystem"
+	"github.com/alibaba/sealer/pkg/image"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 

@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/distributionutil"
+	"github.com/alibaba/sealer/pkg/image/distributionutil"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 )

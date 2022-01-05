@@ -20,9 +20,9 @@ import (
 
 	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
-	"github.com/alibaba/sealer/client/k8s"
-	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/client/k8s"
+	"github.com/alibaba/sealer/pkg/image/reference"
 	"github.com/alibaba/sealer/utils"
 )
 

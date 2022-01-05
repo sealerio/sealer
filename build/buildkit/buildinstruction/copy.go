@@ -19,16 +19,18 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/store"
 	fsutil "github.com/tonistiigi/fsutil/copy"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/image/store"
+
+	"github.com/opencontainers/go-digest"
+
 	"github.com/alibaba/sealer/build/buildkit/buildlayer"
-	"github.com/alibaba/sealer/image/cache"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image/cache"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"github.com/opencontainers/go-digest"
 )
 
 type CopyInstruction struct {

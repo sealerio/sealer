@@ -21,9 +21,9 @@ import (
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
-	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/cert"
 )
 
 var ErrClusterNotExist = fmt.Errorf("no cluster exist")

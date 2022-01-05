@@ -20,10 +20,10 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/pkg/config"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/guest"
+	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/plugin"
 	"github.com/alibaba/sealer/pkg/runtime"
 	"github.com/alibaba/sealer/utils"

@@ -17,19 +17,19 @@ package buildimage
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
+	"strings"
 
-	"github.com/alibaba/sealer/build/buildkit/buildlayer"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/parser"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils"
 	"github.com/opencontainers/go-digest"
 	"helm.sh/helm/v3/pkg/chartutil"
 
-	"path/filepath"
-	"strings"
+	"github.com/alibaba/sealer/build/buildkit/buildlayer"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/parser"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/alibaba/sealer/utils"
 
 	"sigs.k8s.io/yaml"
 )

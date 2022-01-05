@@ -23,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/alibaba/sealer/ipvs"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/ipvs"
 )
 
 const (
