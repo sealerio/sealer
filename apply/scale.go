@@ -78,11 +78,6 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
 	if (!IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
-	// join nodes cannot be in the current cluster
-	if len(utils.ReduceIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ",")), cluster.GetMasterIPList())) != 0 ||
-		len(utils.ReduceIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ",")), cluster.GetNodeIPList())) != 0 {
-		return fmt.Errorf("join nodes already in the current cluster")
-	}
 
 	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
@@ -144,11 +139,6 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error 
 	}
 	if (!IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
-	}
-	//delete node must be in the current cluster
-	if len(utils.RemoveIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ",")), cluster.GetMasterIPList())) != 0 ||
-		len(utils.RemoveIPList(removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ",")), cluster.GetNodeIPList())) != 0 {
-		return fmt.Errorf("delete nodes are not in the current cluster")
 	}
 	//master0 machine cannot be deleted
 	if utils.InList(cluster.GetMaster0Ip(), strings.Split(scaleArgs.Masters, ",")) {
