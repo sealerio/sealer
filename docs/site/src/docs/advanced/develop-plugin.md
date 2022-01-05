@@ -53,7 +53,7 @@ var Plugin list
 2. build the new plugin as so file. plugin file and sealer source code must in the same golang runtime in order to avoid
    compilation problems. we suggest the so file must build with the specific sealer version you used. otherwise,sealer
    will fail to load the so file. you can replace the build file at the test directory
-   under [Example](https://github.com/alibaba/sealer/blob/main/plugin) to build your own so file.
+   under [Example](https://github.com/alibaba/sealer/blob/main/pkg/plugin) to build your own so file.
 
 ```shell
 go build -buildmode=plugin -o list_nodes.so list_nodes.go

@@ -143,6 +143,6 @@ In this way, the value in global.yaml will override the default port parameter i
 ## Development Document
 
 Before applying guest, perform template rendering on the files in the manifest directory,
-and render environment variables and annotations to the [configuration file](https://github.com/alibaba/sealer/blob/main/guest/guest.go#L28),
+and render environment variables and annotations to the [configuration file](https://github.com/alibaba/sealer/blob/main/pkg/guest/guest.go#L28),
 guest module It is to deal with instructions such as RUN CMD in Kubefile.
 Generate the global.yaml file to the etc directory
