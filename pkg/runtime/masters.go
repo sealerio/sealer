@@ -39,7 +39,7 @@ const (
 )
 
 const (
-	RemoteAddEtcHosts       = "echo %s >> /etc/hosts"
+	RemoteAddEtcHosts       = "cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts"
 	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" < /etc/hosts > hosts && cp -f hosts /etc/hosts`
 	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
 	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
@@ -50,11 +50,13 @@ const (
 	InitMaser115Upper       = `kubeadm init --config=%s/kubeadm-config.yaml --upload-certs`
 	JoinMaster115Upper      = "kubeadm join --config=%s/kubeadm-join-config.yaml"
 	JoinNode115Upper        = "kubeadm join --config=%s/kubeadm-join-config.yaml"
+	RemoveKubeConfig        = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
 	RemoteCleanMasterOrNode = `if which kubeadm;then kubeadm reset -f %s;fi && \
 modprobe -r ipip  && lsmod && \
-rm -rf ~/.kube/ && rm -rf /etc/kubernetes/ && \
+rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
-rm -rf /usr/bin/kube* && rm -rf /usr/bin/crictl && \
+rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
+rm -rf /usr/bin/kubelet && rm -rf /usr/bin/crictl && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd && rm -rf /var/etcd 
 `
@@ -119,15 +121,17 @@ func getAPIServerHost(ipAddr, APIServer string) (host string) {
 }
 
 func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []string {
-	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, getRegistryHost(k.getRootfs(), k.getMaster0IP()))
+	registryHost := getRegistryHost(k.getRootfs(), k.getMaster0IP())
+	apiServerHost := getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain())
+	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	certCMD := command.RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
-	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain()))
+	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
 	joinCommands := []string{cmdAddRegistryHosts, certCMD, cmdAddHosts}
 	cf := GetRegistryConfig(k.getImageMountDir(), k.getMaster0IP())
 	if cf.Username != "" && cf.Password != "" {
 		joinCommands = append(joinCommands, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
 	}
-	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain()),
+	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, apiServerHost,
 		getAPIServerHost(utils.GetHostIP(master), k.getAPIServerDomain()))
 
 	return append(joinCommands, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig)
@@ -428,11 +432,20 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete master: %v", err)
 	}
+	remoteCleanCmd := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP())),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 
-	if err := ssh.CmdAsync(master,
-		fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP()))); err != nil {
+	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.
+	address, err := utils.GetLocalHostAddresses()
+	if err != nil || !utils.IsLocalIP(master, address) {
+		remoteCleanCmd = append(remoteCleanCmd, RemoveKubeConfig)
+	} else {
+		apiServerHost := getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain())
+		remoteCleanCmd = append(remoteCleanCmd,
+			fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost))
+	}
+	if err := ssh.CmdAsync(master, remoteCleanCmd...); err != nil {
 		return err
 	}
 

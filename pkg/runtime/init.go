@@ -218,7 +218,8 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	if err := k.SendJoinMasterKubeConfigs([]string{k.getMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
 		return err
 	}
-	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain()))
+	apiServerHost := getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain())
+	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
 	err = ssh.CmdAsync(k.getMaster0IP(), cmdAddEtcHost)
 	if err != nil {
 		return err
