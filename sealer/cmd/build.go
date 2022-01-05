@@ -54,7 +54,7 @@ build without cache:
 	sealer build -f Kubefile -t my-kubernetes:1.19.9 --no-cache
 
 build without base:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 --no-base
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 --base=false
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conf := &build.Config{
