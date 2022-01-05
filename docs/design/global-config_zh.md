@@ -88,5 +88,5 @@ CMD helm install dashboard dashboard-chart -f etc/global.yaml
 ## 开发文档
 
 1. 在apply guest之前对manifest目录下的文件进行模板渲染，把环境变量和annotations渲染到[配置文件中](
-   https://github.com/alibaba/sealer/blob/main/guest/guest.go#L28), guest模块就是去处理Kubefile中RUN CMD这类指令的。
+   https://github.com/alibaba/sealer/blob/main/pkg/guest/guest.go#L28), guest模块就是去处理Kubefile中RUN CMD这类指令的。
 2. 生成global.yaml文件到etc目录下。
