@@ -69,15 +69,12 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		if ctx.BuildType == common.LiteBuild && layer.Type == common.CMDCOMMAND {
 			continue
 		}
-		var tempRoot string
-		if b.RootfsMountInfo != nil {
-			tempRoot = b.RootfsMountInfo.GetMountTarget()
-		}
+
 		//run layer instruction exec to get layer id and cache id
 		ic := buildinstruction.InstructionContext{
 			BaseLayers:   baseLayers,
 			CurrentLayer: layer,
-			Rootfs:       tempRoot,
+			Rootfs:       b.RootfsMountInfo.GetMountTarget(),
 		}
 		inst, err := buildinstruction.NewInstruction(ic)
 		if err != nil {
@@ -239,7 +236,7 @@ func (b BuildImage) Cleanup() error {
 	return nil
 }
 
-func NewBuildImage(kubefileName string) (Interface, error) {
+func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 	rawImage, err := InitImageSpec(kubefileName)
 	if err != nil {
 		return nil, err
@@ -263,7 +260,6 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 	var (
 		layer0    = rawImage.Spec.Layers[0]
 		baseImage *v1.Image
-		mountInfo *buildinstruction.MountTarget
 	)
 
 	// and the layer 0 must be from layer
@@ -286,18 +282,14 @@ func NewBuildImage(kubefileName string) (Interface, error) {
 		return nil, errors.New("current number of layers exceeds 128 layers")
 	}
 
-	mountInfo, err = GetRootfsMountInfo(baseLayers)
+	mountInfo, err := GetRootfsMountInfo(baseLayers, buildType)
 	if err != nil {
 		return nil, err
 	}
 
-	md := runtime.Metadata{}
-	meta, err := runtime.LoadMetadata(filepath.Join(mountInfo.GetMountTarget()))
+	md, err := GetBaseImageMetadata(filepath.Join(mountInfo.GetMountTarget()))
 	if err != nil {
 		return nil, err
-	}
-	if meta != nil {
-		md = *meta
 	}
 	return &BuildImage{
 		RawImage:        rawImage,

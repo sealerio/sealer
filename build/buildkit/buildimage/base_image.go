@@ -15,10 +15,14 @@
 package buildimage
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
+	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
 )
 
@@ -26,17 +30,32 @@ import (
 //1, already mount: runtime docker registry mount info,just get related mount info.
 //2, already mount: if exec build cmd failed and return ,need to collect related old mount info
 //3, new mount: just mount and return related info.
-func GetRootfsMountInfo(baseLayers []v1.Layer) (*buildinstruction.MountTarget, error) {
-	isMounted, target := mount.GetBuildMountInfo("overlay", "sealer")
-	lowerLayers := buildinstruction.GetBaseLayersPath(baseLayers)
-	if !isMounted {
-		return mountRootfs(lowerLayers)
+func GetRootfsMountInfo(baseLayers []v1.Layer, buildType string) (*buildinstruction.MountTarget, error) {
+	filter := map[string]string{
+		common.LocalBuild: "rootfs",
+		common.LiteBuild:  "tmp",
+	}
+	mountInfos := mount.GetBuildMountInfo(filter[buildType])
+
+	if buildType == common.LocalBuild {
+		if len(mountInfos) != 1 {
+			return nil, fmt.Errorf("multi rootfs mounted")
+		}
+		info := mountInfos[0]
+		return buildinstruction.NewMountTarget(info.Target, info.Upper, info.Lowers)
 	}
 
-	_, info := mount.GetMountDetails(target)
-	logger.Info("get rootfs mount dir :%s success ", target)
-	//nolint
-	return buildinstruction.NewMountTarget(target, info.Upper, utils.Reverse(info.Lowers))
+	lowerLayers := buildinstruction.GetBaseLayersPath(baseLayers)
+	for _, info := range mountInfos {
+		// if info.Lowers equal lowerLayers,means image already mounted.
+		if strings.Join(lowerLayers, ":") == strings.Join(info.Lowers, ":") {
+			logger.Info("get rootfs mount dir :%s success ", info.Target)
+			//nolint
+			return buildinstruction.NewMountTarget(info.Target, info.Upper, info.Lowers)
+		}
+	}
+
+	return mountRootfs(lowerLayers)
 }
 
 func mountRootfs(res []string) (*buildinstruction.MountTarget, error) {
@@ -50,4 +69,16 @@ func mountRootfs(res []string) (*buildinstruction.MountTarget, error) {
 		return nil, err
 	}
 	return mounter, nil
+}
+
+func GetBaseImageMetadata(rootfs string) (runtime.Metadata, error) {
+	md := runtime.Metadata{}
+	meta, err := runtime.LoadMetadata(rootfs)
+	if err != nil {
+		return md, err
+	}
+	if meta != nil {
+		md = *meta
+	}
+	return md, nil
 }

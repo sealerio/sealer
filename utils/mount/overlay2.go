@@ -151,16 +151,25 @@ func mountCmdResultSplit(result string, target string) (bool, *Info) {
 	return true, &Info{
 		Target: target,
 		Upper:  upper,
-		Lowers: lowers,
+		Lowers: utils.Reverse(lowers),
 	}
 }
 
-func GetBuildMountInfo(fsType, filter string) (bool, string) {
+func GetBuildMountInfo(filter string) []Info {
+	var infos []Info
+	var mp []string
 	ps, _ := disk.Partitions(true)
 	for _, p := range ps {
-		if p.Fstype == fsType && strings.Contains(p.Mountpoint, filter) {
-			return true, p.Mountpoint
+		if p.Fstype == "overlay" && strings.Contains(p.Mountpoint, "sealer") &&
+			strings.Contains(p.Mountpoint, filter) {
+			mp = append(mp, p.Mountpoint)
 		}
 	}
-	return false, ""
+	for _, p := range mp {
+		_, info := GetMountDetails(p)
+		if info != nil {
+			infos = append(infos, *info)
+		}
+	}
+	return infos
 }
