@@ -73,6 +73,7 @@ func ParseCopyLayerContent(layerValue string) (src, dst string) {
 	for _, p := range []string{"./", "/"} {
 		dst = strings.TrimPrefix(dst, p)
 	}
+	dst = strings.TrimSuffix(dst, "/")
 	src = strings.Fields(layerValue)[0]
 	return
 }
