@@ -23,7 +23,9 @@ metadata:
 spec:
   image: kubernetes:v1.19.8
   env:
-    key: value
+    - key1=value1
+    - key2=value2
+    - key2=value3 #key2=[value2, value3]
   ssh:
     passwd:
     pk: xxx
@@ -31,16 +33,16 @@ spec:
     user: root
     port: 2222
   hosts:
-  - ips: [192.168.0.2]
-    roles: [master] # add role field to specify the node role
-    env: # rewrite some nodes has different env config
-      etcd-dir: /data/etcd
-    ssh: # rewrite ssh config if some node has different passwd...
-      user: xxx
-      passwd: xxx
-      port: 2222
-  - ips: [192.168.0.3]
-    roles: [node,db]
+    - ips: [ 192.168.0.2 ]
+      roles: [ master ] # add role field to specify the node role
+      env: # rewrite some nodes has different env config
+        - etcd-dir=/data/etcd
+      ssh: # rewrite ssh config if some node has different passwd...
+        user: xxx
+        passwd: xxx
+        port: 2222
+    - ips: [ 192.168.0.3 ]
+      roles: [ node,db ]
 ```
 
 ## Use cases
@@ -59,10 +61,10 @@ spec:
   ssh:
     passwd: xxx
   hosts:
-  - ips: [192.168.0.2,192.168.0.3,192.168.0.4]
-    roles: [master]
-  - ips: [192.168.0.5]
-    roles: [node]
+    - ips: [ 192.168.0.2,192.168.0.3,192.168.0.4 ]
+      roles: [ master ]
+    - ips: [ 192.168.0.5 ]
+      roles: [ node ]
 ```
 
 ### Overwrite ssh config (for example password,and port)
@@ -78,15 +80,15 @@ spec:
     passwd: xxx
     port: 2222
   hosts:
-  - ips: [192.168.0.2]
-    roles: [master]
-    ssh:
-      passwd: yyy
-      port: 22
-  - ips: [192.168.0.3,192.168.0.4]
-    roles: [master]
-  - ips: [192.168.0.5]
-    roles: [node]
+    - ips: [ 192.168.0.2 ]
+      roles: [ master ]
+      ssh:
+        passwd: yyy
+        port: 22
+    - ips: [ 192.168.0.3,192.168.0.4 ]
+      roles: [ master ]
+    - ips: [ 192.168.0.5 ]
+      roles: [ node ]
 ```
 
 ### How to define your own kubeadm config
@@ -98,7 +100,7 @@ You can only define part of those configs, sealer will merge then into default c
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: 192.168.2.110
+  # advertiseAddress: 192.168.2.110
   bindPort: 6443
 nodeRegistration:
   criSocket: /var/run/dockershim.sock
@@ -115,55 +117,55 @@ networking:
   serviceSubnet: 10.96.0.0/22
 apiServer:
   certSANs:
-  - 127.0.0.1
-  - apiserver.cluster.local
-  - 192.168.2.110
-  - aliyun-inc.com
-  - 10.0.0.2
-  - 10.103.97.2
+    - 127.0.0.1
+    - apiserver.cluster.local
+    - 192.168.2.110
+    - aliyun-inc.com
+    - 10.0.0.2
+    - 10.103.97.2
   extraArgs:
     etcd-servers: https://192.168.2.110:2379
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
     audit-policy-file: "/etc/kubernetes/audit-policy.yml"
     audit-log-path: "/var/log/kubernetes/audit.log"
     audit-log-format: json
-    audit-log-maxbackup: '"10"'
-    audit-log-maxsize: '"100"'
-    audit-log-maxage: '"7"'
-    enable-aggregator-routing: '"true"'
+    audit-log-maxbackup: '10'
+    audit-log-maxsize: '100'
+    audit-log-maxage: '7'
+    enable-aggregator-routing: 'true'
   extraVolumes:
-  - name: "audit"
-    hostPath: "/etc/kubernetes"
-    mountPath: "/etc/kubernetes"
-    pathType: DirectoryOrCreate
-  - name: "audit-log"
-    hostPath: "/var/log/kubernetes"
-    mountPath: "/var/log/kubernetes"
-    pathType: DirectoryOrCreate
-  - name: localtime
-    hostPath: /etc/localtime
-    mountPath: /etc/localtime
-    readOnly: true
-    pathType: File
+    - name: "audit"
+      hostPath: "/etc/kubernetes"
+      mountPath: "/etc/kubernetes"
+      pathType: DirectoryOrCreate
+    - name: "audit-log"
+      hostPath: "/var/log/kubernetes"
+      mountPath: "/var/log/kubernetes"
+      pathType: DirectoryOrCreate
+    - name: localtime
+      hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      readOnly: true
+      pathType: File
 controllerManager:
   extraArgs:
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
     experimental-cluster-signing-duration: 876000h
   extraVolumes:
-  - hostPath: /etc/localtime
-    mountPath: /etc/localtime
-    name: localtime
-    readOnly: true
-    pathType: File
+    - hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      name: localtime
+      readOnly: true
+      pathType: File
 scheduler:
   extraArgs:
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
   extraVolumes:
-  - hostPath: /etc/localtime
-    mountPath: /etc/localtime
-    name: localtime
-    readOnly: true
-    pathType: File
+    - hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      name: localtime
+      readOnly: true
+      pathType: File
 etcd:
   local:
     extraArgs:
@@ -175,7 +177,7 @@ kind: KubeProxyConfiguration
 mode: "ipvs"
 ipvs:
   excludeCIDRs:
-  - "10.103.97.2/32"
+    - "10.103.97.2/32"
 
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
@@ -207,7 +209,7 @@ cpuManagerReconcilePeriod: 10s
 enableControllerAttachDetach: true
 enableDebuggingHandlers: true
 enforceNodeAllocatable:
-- pods
+  - pods
 eventBurst: 10
 eventRecordQPS: 5
 evictionHard:
@@ -247,6 +249,18 @@ staticPodPath: /etc/kubernetes/manifests
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: JoinConfiguration
+caCertPath: /etc/kubernetes/pki/ca.crt
+discovery:
+  timeout: 5m0s
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+controlPlane:
+  localAPIEndpoint:
+    # advertiseAddress: 192.168.56.7
+    bindPort: 6443
 ```
 
 ### Using Kubeconfig to overwrite kubeadm configs
@@ -272,8 +286,8 @@ spec:
     serviceSubnet: 10.96.0.0/22
   apiServer:
     certSANs:
-    - sealer.cloud
-    - 127.0.0.1
+      - sealer.cloud
+      - 127.0.0.1
   clusterDomain: cluster.local
 ```
 
@@ -291,12 +305,12 @@ spec:
   env:
     docker-dir: /var/lib/docker
   hosts:
-  - ips: [192.168.0.2]
-    roles: [master] # add role field to specify the node role
-    env: # overwrite some nodes has different env config
-      docker-dir: /data/docker
-  - ips: [192.168.0.3]
-    roles: [node]
+    - ips: [ 192.168.0.2 ]
+      roles: [ master ] # add role field to specify the node role
+      env: # overwrite some nodes has different env config
+        docker-dir: /data/docker
+    - ips: [ 192.168.0.3 ]
+      roles: [ node ]
 ```
 
 Using ENV in init.sh script:
@@ -311,8 +325,8 @@ In this case, master ENV is `/data/docker`, node ENV is by default `/var/lib/doc
 
 ### How to use cloud infra
 
-If you're using public cloud, you needn't to config the ip field in Cluster Object.
-The infra Object will tell sealer to apply resource from public cloud, then render the ip list to Cluster Object.
+If you're using public cloud, you needn't to config the ip field in Cluster Object. The infra Object will tell sealer to
+apply resource from public cloud, then render the ip list to Cluster Object.
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -332,18 +346,18 @@ spec:
     passwd: xxx
     port: 2222
   hosts:
-  - count: 3
-    role: [master]
-    cpu: 4
-    memory: 4
-    systemDisk: 100
-    dataDisk: [100,200]
-  - count: 3
-    role: [node]
-    cpu: 4
-    memory: 4
-    systemDisk: 100
-    dataDisk: [100, 200]
+    - count: 3
+      role: [ master ]
+      cpu: 4
+      memory: 4
+      systemDisk: 100
+      dataDisk: [ 100,200 ]
+    - count: 3
+      role: [ node ]
+      cpu: 4
+      memory: 4
+      systemDisk: 100
+      dataDisk: [ 100, 200 ]
 ```
 
 After `sealer apply -f Clusterfile`, The cluster object will update:
@@ -358,8 +372,9 @@ spec:
   ssh:
     passwd: xxx
     port: 2222
-  - ips: [192.168.0.3]
-    roles: [master]
+  hosts:
+    - ips: [ 192.168.0.3 ]
+      roles: [ master ]
 ...
 ```
 

@@ -25,7 +25,7 @@ metadata:
 spec:
   ports:
     - port: 443
-      targetPort: {{ DashBoardPort }}
+      targetPort: {{ .DashBoardPort }}
   selector:
     k8s-app: kubernetes-dashboard
 ...
@@ -56,7 +56,7 @@ spec:
   image: mydashobard:latest
   provider: BAREMETAL
   env:
-    DashBoardPort: 6443 # 在这里指定自定义端口, 会被渲染到镜像的yaml中
+    - DashBoardPort=6443 # 在这里指定自定义端口, 会被渲染到镜像的yaml中
   ssh:
     passwd:
     pk: xxx
@@ -72,7 +72,7 @@ dashboard的chart values就可以这样写：
 ```yaml
 spec:
   env:
-    DashboardPort: 6443
+    - DashboardPort=6443
 ```
 
 Kubefile:
@@ -87,6 +87,6 @@ CMD helm install dashboard dashboard-chart -f etc/global.yaml
 
 ## 开发文档
 
-1. 在apply guest之前对manifest目录下的文件进行模板渲染，把环境变量和annotations渲染到[配置文件中](
-   https://github.com/alibaba/sealer/blob/main/pkg/guest/guest.go#L28), guest模块就是去处理Kubefile中RUN CMD这类指令的。
+1. 在apply mountRootfs之前对etc,charts,manifest目录下的文件进行模板渲染，把环境变量和annotations渲染到[配置文件中](
+   https://github.com/alibaba/sealer/blob/main/pkg/filesystem/filesystem.go#L145) 。
 2. 生成global.yaml文件到etc目录下。

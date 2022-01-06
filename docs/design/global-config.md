@@ -29,7 +29,7 @@ metadata:
 spec:
   ports:
     - port: 443
-      targetPort: {{ DashBoardPort }}
+      targetPort: {{ .DashBoardPort }}
   selector:
     k8s-app: kubernetes-dashboard
 ...
@@ -61,7 +61,7 @@ spec:
   image: mydashobard:latest
   provider: BAREMETAL
   env:
-    DashBoardPort: 6443 # Specify a custom port here, which will be rendered into the mirrored yaml
+    DashBoardPort=6443 # Specify a custom port here, which will be rendered into the mirrored yaml
   ssh:
     passwd:
     pk: xxx
@@ -127,7 +127,7 @@ The chart values ​​of the dashboard can be written like this:
 ```yaml
 spec:
   env:
-    DashboardPort: 6443
+    - DashboardPort=6443
 ```
 
 Kubefile:
@@ -142,7 +142,7 @@ In this way, the value in global.yaml will override the default port parameter i
 
 ## Development Document
 
-Before applying guest, perform template rendering on the files in the manifest directory,
-and render environment variables and annotations to the [configuration file](https://github.com/alibaba/sealer/blob/main/pkg/guest/guest.go#L28),
-guest module It is to deal with instructions such as RUN CMD in Kubefile.
+Before mounting Rootfs, templates need to be rendered for the files in etc, charts, and manifest directories,
+and render environment variables and annotations to the [configuration file](
+https://github.com/alibaba/sealer/blob/main/pkg/filesystem/filesystem.go#L145).
 Generate the global.yaml file to the etc directory
