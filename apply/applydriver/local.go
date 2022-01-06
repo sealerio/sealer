@@ -101,11 +101,11 @@ func (c *Applier) reconcileCluster() error {
 	if err != nil {
 		return err
 	}
+	c.Client = client
 	info, err := c.Client.GetClusterVersion()
 	if err != nil {
 		return err
 	}
-	c.Client = client
 	c.CurrentClusterInfo = info
 
 	if err := c.fillClusterCurrent(); err != nil {

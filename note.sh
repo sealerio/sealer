@@ -18,7 +18,8 @@
 # Time:2021-11-15
 # Name:./note.sh
 # Description:This is a production script.
-echo "### Usage" >> release_note.md
+echo "
+### Usage" >> release_note.md
 echo "
 \`\`\`sh
 # Download and install sealer. Sealer is a binary tool of golang. You can download and unzip it directly to the bin directory, and the release page can also be downloaded
@@ -28,7 +29,5 @@ $ wget -c https://sealer.oss-cn-beijing.aliyuncs.com/sealer-latest.tar.gz && \\
 " >> release_note.md
 echo "### [amd64 Download address]" >> release_note.md
 echo "[OSS Download address](http://sealer.oss-cn-beijing.aliyuncs.com/sealers/sealer-v${VERSION}-linux-amd64.tar.gz)" >> release_note.md
-echo "[latest OSS Download address](https://sealer.oss-cn-beijing.aliyuncs.com/sealer-latest.tar.gz)" >> release_note.md
 echo "### [arm64 Download address]" >> release_note.md
 echo "[OSS Download address](http://sealer.oss-cn-beijing.aliyuncs.com/sealers/sealer-v${VERSION}-linux-arm64.tar.gz)" >> release_note.md
-echo "[latest OSS Download address](https://sealer.oss-cn-beijing.aliyuncs.com/sealer-latest-arm64.tar.gz)" >> release_note.md

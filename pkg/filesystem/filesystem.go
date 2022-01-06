@@ -160,25 +160,26 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	envProcessor := env.NewEnvProcessor(cluster)
 	for _, IP := range ipList {
+		ip := IP
 		g.Go(func() error {
 			for _, dir := range []string{renderEtc, renderChart, renderManifests} {
 				if utils.IsExist(dir) {
-					err := envProcessor.RenderAll(IP, dir)
+					err := envProcessor.RenderAll(ip, dir)
 					if err != nil {
 						return err
 					}
 				}
 			}
-			sshClient, err := ssh.GetHostSSHClient(IP, cluster)
+			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
 			}
-			err = CopyFiles(sshClient, IP == config.IP, IP, src, target)
+			err = CopyFiles(sshClient, ip == config.IP, ip, src, target)
 			if err != nil {
 				return fmt.Errorf("copy rootfs failed %v", err)
 			}
 			if initFlag {
-				err = sshClient.CmdAsync(IP, envProcessor.WrapperShell(IP, initCmd))
+				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, initCmd))
 				if err != nil {
 					return fmt.Errorf("exec init.sh failed %v", err)
 				}
