@@ -15,10 +15,15 @@
 package buildinstruction
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/cache"
-	"path/filepath"
+	"github.com/alibaba/sealer/utils"
+	fsutil "github.com/tonistiigi/fsutil/copy"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -46,7 +51,6 @@ func tryCache(parentID cache.ChainID,
 	if err != nil {
 		return false, "", ""
 	}
-	fmt.Println("chain id ", cID)
 	return true, cacheLayerID, cID
 }
 
@@ -65,7 +69,50 @@ func paresCopyDestPath(rawDstFileName, tempBuildDir string) string {
 	return filepath.Join(tempBuildDir, dst)
 }
 
-func GenerateSourceFilesDigest(path string) (digest.Digest, error) {
+func GenerateSourceFilesDigest(root, src string) (digest.Digest, error) {
+	m, err := fsutil.ResolveWildcards(root, src, true)
+	if err != nil {
+		return "", err
+	}
+
+	// wrong wildcards: no such file or directory
+	if len(m) == 0 {
+		return "", fmt.Errorf("%s not found", src)
+	}
+
+	if len(m) == 1 {
+		return generateDigest(filepath.Join(root, src))
+	}
+
+	tmp, err := utils.MkTmpdir()
+	if err != nil {
+		return "", fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
+	}
+
+	defer func() {
+		if err = os.RemoveAll(tmp); err != nil {
+			logger.Warn(err)
+		}
+	}()
+
+	xattrErrorHandler := func(dst, src, key string, err error) error {
+		logger.Warn(err)
+		return nil
+	}
+	opt := []fsutil.Opt{
+		fsutil.WithXAttrErrorHandler(xattrErrorHandler),
+	}
+
+	for _, s := range m {
+		if err := fsutil.Copy(context.TODO(), root, s, tmp, filepath.Base(s), opt...); err != nil {
+			return "", err
+		}
+	}
+
+	return generateDigest(tmp)
+}
+
+func generateDigest(path string) (digest.Digest, error) {
 	layerDgst, _, err := archive.TarCanonicalDigest(path)
 	if err != nil {
 		return "", err

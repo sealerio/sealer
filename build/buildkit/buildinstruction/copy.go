@@ -59,9 +59,9 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		out.ParentID = chainID
 	}()
 
-	cacheID, err = GenerateSourceFilesDigest(filepath.Join(execContext.BuildContext, c.src))
+	cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, c.src)
 	if err != nil {
-		logger.Warn("failed to generate src digest, discard cache, err: %s", err)
+		logger.Warn("failed to generate src digest,discard cache,%s", err)
 	}
 
 	if execContext.ContinueCache {
@@ -112,10 +112,10 @@ func (c CopyInstruction) copyFiles(buildContext, rawSrcFileName, rawDstFileName,
 	if err != nil {
 		return err
 	}
-	if len(m) == 0 {
-		return fsutil.Copy(context.TODO(), buildContext, rawSrcFileName, dstRoot, filepath.Base(rawSrcFileName), opt...)
-	}
 
+	if len(m) == 0 {
+		return fmt.Errorf("%s not found", rawSrcFileName)
+	}
 	for _, s := range m {
 		if err := fsutil.Copy(context.TODO(), buildContext, s, dstRoot, filepath.Base(s), opt...); err != nil {
 			return err
