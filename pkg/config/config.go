@@ -76,7 +76,7 @@ func (c *Dumper) Dump(clusterfile string) error {
 
 func (c *Dumper) WriteFiles() error {
 	if c.Configs == nil {
-		logger.Debug("config is nil")
+		logger.Debug("empty config found")
 		return nil
 	}
 	for _, config := range c.Configs {

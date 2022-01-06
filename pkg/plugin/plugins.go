@@ -160,7 +160,7 @@ func (c *PluginsProcessor) Dump(clusterfile string) error {
 
 func (c *PluginsProcessor) writeFiles() error {
 	if len(c.Plugins) == 0 {
-		logger.Debug("plugins is nil")
+		logger.Debug("empty plugin config found")
 		return nil
 	}
 	for _, config := range c.Plugins {

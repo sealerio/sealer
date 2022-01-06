@@ -174,7 +174,7 @@ func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
 	return ReadChanError(errCh)
 }
 
-//decode output to join token  hash and key
+//decode output to join token hash and key
 func (k *KubeadmRuntime) decodeMaster0Output(output []byte) {
 	s0 := string(output)
 	logger.Debug("decodeOutput: %s", s0)
@@ -230,7 +230,6 @@ func (k *KubeadmRuntime) InitMaster0() error {
 
 	// TODO skip docker version error check for test
 	output, err := ssh.Cmd(k.getMaster0IP(), cmdInit)
-	logger.Info("%s", output)
 	if err != nil {
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}
