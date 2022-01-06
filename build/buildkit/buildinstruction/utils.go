@@ -16,11 +16,9 @@ package buildinstruction
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
-
 	"github.com/alibaba/sealer/image"
 	"github.com/alibaba/sealer/image/cache"
+	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -64,17 +62,12 @@ func paresCopyDestPath(rawDstFileName, tempBuildDir string) string {
 	if dst == "." || dst == "./" || dst == "/" || dst == "/." {
 		return tempBuildDir
 	}
-
-	for _, p := range []string{"./", "/"} {
-		dst = strings.TrimPrefix(dst, p)
-	}
 	return filepath.Join(tempBuildDir, dst)
 }
 
 func GenerateSourceFilesDigest(path string) (digest.Digest, error) {
 	layerDgst, _, err := archive.TarCanonicalDigest(path)
 	if err != nil {
-		logger.Error(err)
 		return "", err
 	}
 	return layerDgst, nil
