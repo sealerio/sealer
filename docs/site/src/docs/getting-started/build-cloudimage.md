@@ -184,7 +184,7 @@ controlPlane:
 ```yaml
 #Kubefile
 FROM kubernetes-clusterv2:v1.19.8
-COPY kubeadm.yml etc 
+COPY kubeadm.yml etc
 ```
 
 > sealer build -t user-define-kubeadm-kubernetes:v1.19.8 .

@@ -46,6 +46,7 @@ action: the phase of command.
 * PreInstall: before join master and nodes.
 * PostInstall: after join all nodes.
 * PostClean : after clean cluster.
+
 on: exec on which node.
 
 ### label plugin
@@ -135,10 +136,10 @@ spec:
   ssh:
     passwd: xxx
   hosts:
-    - ips: [192.168.0.2,192.168.0.3,192.168.0.4]
-      roles: [master]
-    - ips: [192.168.0.5]
-      roles: [node]
+    - ips: [ 192.168.0.2,192.168.0.3,192.168.0.4 ]
+      roles: [ master ]
+    - ips: [ 192.168.0.5 ]
+      roles: [ node ]
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
