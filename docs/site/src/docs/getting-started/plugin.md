@@ -45,7 +45,7 @@ action: the phase of command.
 * PreInit: before init master0.
 * PreInstall: before join master and nodes.
 * PostInstall: after join all nodes.
-
+* PostClean : after clean cluster.
 on: exec on which node.
 
 ### label plugin
@@ -126,35 +126,19 @@ sealer build -m lite -t kubernetes-post-install:v1.19.8 .
 For example, set node label after install kubernetes cluster:
 
 ```yaml
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.cloud/v2
 kind: Cluster
 metadata:
-  name: my-cluster
+  name: default-kubernetes-cluster
 spec:
   image: kubernetes:v1.19.8
-  provider: BAREMETAL
   ssh:
-    passwd:
-    pk: xxx
-    pkPasswd: xxx
-    user: root
-  network:
-    podCIDR: 100.64.0.0/10
-    svcCIDR: 10.96.0.0/22
-  certSANS:
-    - aliyun-inc.com
-    - 10.0.0.2
-
-  masters:
-    ipList:
-      - 172.20.126.4
-      - 172.20.126.5
-      - 172.20.126.6
-  nodes:
-    ipList:
-      - 172.20.126.8
-      - 172.20.126.9
-      - 172.20.126.10
+    passwd: xxx
+  hosts:
+    - ips: [192.168.0.2,192.168.0.3,192.168.0.4]
+      roles: [master]
+    - ips: [192.168.0.5]
+      roles: [node]
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin

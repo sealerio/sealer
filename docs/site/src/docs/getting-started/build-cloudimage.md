@@ -148,169 +148,133 @@ COPY registry_config.yaml etc/
 
 ## Custom kubeadm configuration
 
-Sealer will replace the default configuration with a custom configuration file in $Rootfs/etc:
-
-```yaml
-   # custom config file name (file name is fixed)：
-   bootstrapTemplateName       = "kubeadm-bootstrap.yaml.tmpl"
-   initConfigTemplateName      = "kubeadm-init.yaml.tmpl"
-   clusterConfigTemplateName   = "kubeadm-cluster-config.yaml.tmpl"
-   kubeproxyConfigTemplateName = "kubeadm-kubeproxy-config.yaml.tmpl"
-   kubeletConfigTemplateName   = "kubeadm-kubelet-config.yaml.tmpl"
-   joinConfigTemplateName      = "kubeadm-join-config.yaml.tmpl"
-```
+Sealer will replace the default configuration with a custom configuration file in $Rootfs/etc/kubeadm.yml:
 
 ### Example: Custom configuration using the Docker Unix socket.
 
-1. define kubeadm init configuration (file name: kubeadm-init.yaml.tmpl) :
+1. customize kubeadm init configuration:
 
 ```yaml
-apiVersion: {{.KubeadmAPI}}
+apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {{.Master0}}
   bindPort: 6443
 nodeRegistration:
   criSocket: /var/run/dockershim.sock
 ```
 
-2. define kubeadm join configuration (file name: kubeadm-join-config.yaml.tmpl) :
+2. customize kubeadm join configuration:
 
 ```yaml
+apiVersion: kubeadm.k8s.io/v1beta2
 kind: JoinConfiguration
-  { { - if .Master } }
-controlPlane:
-  localAPIEndpoint:
-    advertiseAddress: {{.Master}}
-    bindPort: 6443
-  { { - end } }
+caCertPath: /etc/kubernetes/pki/ca.crt
+discovery:
+  timeout: 5m0s
 nodeRegistration:
   criSocket: /var/run/dockershim.sock
+controlPlane:
+  localAPIEndpoint:
+    bindPort: 6443
 ```
 
-3. Build your own cloud image that override default configurations with custom configurations:
+3. Build your own cloud image that override default configurations with custom configurations. Note that,the file name "
+   kubeadm.yml" is fixed:
 
 ```yaml
 #Kubefile
-FROM kubernetes:v1.19.8
-COPY kubeadm-init.yaml.tmpl ./etc
-COPY kubeadm-join-config.yaml.tmpl ./etc
+FROM kubernetes-clusterv2:v1.19.8
+COPY kubeadm.yml etc 
 ```
 
-> sealer build -m lite -t user-define-kubeadm-kubernetes:v1.19.8 .
+> sealer build -t user-define-kubeadm-kubernetes:v1.19.8 .
 
-### Default template configuration file contents:
+## Default kubeadm configuration file completely contents:
 
-kubeadm-bootstrap.yaml.tmpl：
-
-```yaml
-apiVersion: {{.KubeadmAPI}}
-caCertPath: /etc/kubernetes/pki/ca.crt
-discovery:
-  bootstrapToken:
-    {{- if .Master}}
-    apiServerEndpoint: {{.Master0}}:6443
-    {{else}}
-    apiServerEndpoint: {{.VIP}}:6443
-    {{end -}}
-    token: {{.TokenDiscovery}}
-    caCertHashes:
-    - {{.TokenDiscoveryCAHash}}
-    timeout: 5m0s
-```
-
-kubeadm-init.yaml.tmpl：
+kubeadm.yml：
 
 ```yaml
-apiVersion: {{.KubeadmAPI}}
+apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {{.Master0}}
+  # advertiseAddress: 192.168.2.110
   bindPort: 6443
 nodeRegistration:
-  criSocket: {{.CriSocket}}
-```
+  criSocket: /var/run/dockershim.sock
 
-kubeadm-cluster-config.yaml.tmpl：
-
-```yaml
-apiVersion: {{.KubeadmAPI}}
+---
+apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
-kubernetesVersion: {{.Version}}
-controlPlaneEndpoint: "{{.ApiServer}}:6443"
-imageRepository: {{.Repo}}
+kubernetesVersion: v1.19.8
+#controlPlaneEndpoint: "apiserver.cluster.local:6443"
+imageRepository: sea.hub:5000/library
 networking:
   # dnsDomain: cluster.local
-  podSubnet: {{.PodCIDR}}
-  serviceSubnet: {{.SvcCIDR}}
+  podSubnet: 100.64.0.0/10
+  serviceSubnet: 10.96.0.0/22
 apiServer:
-  certSANs:
-  {{range .CertSANS -}}
-  - {{.}}
-  {{end -}}
+  #  certSANs:
+  #    - 127.0.0.1
+  #    - apiserver.cluster.local
+  #    - aliyun-inc.com
+  #    - 10.0.0.2
+  #    - 10.103.97.2
   extraArgs:
-    etcd-servers: {{.EtcdServers}}
+    #    etcd-servers: https://192.168.2.110:2379
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
     audit-policy-file: "/etc/kubernetes/audit-policy.yml"
     audit-log-path: "/var/log/kubernetes/audit.log"
     audit-log-format: json
-    audit-log-maxbackup: '"10"'
-    audit-log-maxsize: '"100"'
-    audit-log-maxage: '"7"'
-    enable-aggregator-routing: '"true"'
+    audit-log-maxbackup: '10'
+    audit-log-maxsize: '100'
+    audit-log-maxage: '7'
+    enable-aggregator-routing: 'true'
   extraVolumes:
-  - name: "audit"
-    hostPath: "/etc/kubernetes"
-    mountPath: "/etc/kubernetes"
-    pathType: DirectoryOrCreate
-  - name: "audit-log"
-    hostPath: "/var/log/kubernetes"
-    mountPath: "/var/log/kubernetes"
-    pathType: DirectoryOrCreate
-  - name: localtime
-    hostPath: /etc/localtime
-    mountPath: /etc/localtime
-    readOnly: true
-    pathType: File
+    - name: "audit"
+      hostPath: "/etc/kubernetes"
+      mountPath: "/etc/kubernetes"
+      pathType: DirectoryOrCreate
+    - name: "audit-log"
+      hostPath: "/var/log/kubernetes"
+      mountPath: "/var/log/kubernetes"
+      pathType: DirectoryOrCreate
+    - name: localtime
+      hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      readOnly: true
+      pathType: File
 controllerManager:
   extraArgs:
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
     experimental-cluster-signing-duration: 876000h
   extraVolumes:
-  - hostPath: /etc/localtime
-    mountPath: /etc/localtime
-    name: localtime
-    readOnly: true
-    pathType: File
+    - hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      name: localtime
+      readOnly: true
+      pathType: File
 scheduler:
   extraArgs:
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
   extraVolumes:
-  - hostPath: /etc/localtime
-    mountPath: /etc/localtime
-    name: localtime
-    readOnly: true
-    pathType: File
+    - hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      name: localtime
+      readOnly: true
+      pathType: File
 etcd:
   local:
     extraArgs:
       listen-metrics-urls: http://0.0.0.0:2381
-```
-
-kubeadm-kubeproxy-config.yaml.tmpl：
-
-```yaml
+---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: "ipvs"
 ipvs:
   excludeCIDRs:
-  - "{{.VIP}}/32"
-```
+    - "10.103.97.2/32"
 
-kubeadm-kubelet-config.yaml.tmpl：
-
-```yaml
+---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 authentication:
@@ -326,7 +290,7 @@ authorization:
   webhook:
     cacheAuthorizedTTL: 5m0s
     cacheUnauthorizedTTL: 30s
-cgroupDriver: {{ .CgroupDriver}}
+cgroupDriver:
 cgroupsPerQOS: true
 clusterDomain: cluster.local
 configMapAndSecretChangeDetectionStrategy: Watch
@@ -340,7 +304,7 @@ cpuManagerReconcilePeriod: 10s
 enableControllerAttachDetach: true
 enableDebuggingHandlers: true
 enforceNodeAllocatable:
-- pods
+  - pods
 eventBurst: 10
 eventRecordQPS: 5
 evictionHard:
@@ -380,18 +344,15 @@ staticPodPath: /etc/kubernetes/manifests
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
-```
-
-kubeadm-join-config.yaml.tmpl：
-
-```yaml
+---
+apiVersion: kubeadm.k8s.io/v1beta2
 kind: JoinConfiguration
-{{- if .Master }}
+caCertPath: /etc/kubernetes/pki/ca.crt
+discovery:
+  timeout: 5m0s
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
 controlPlane:
   localAPIEndpoint:
-    advertiseAddress: {{.Master}}
     bindPort: 6443
-{{- end}}
-nodeRegistration:
-  criSocket: {{.CriSocket}}
 ```

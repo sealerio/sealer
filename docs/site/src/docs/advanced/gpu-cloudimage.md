@@ -20,32 +20,19 @@ Run below command to rebuild it.
 1. Modify the Clusterfile according to your infra environment,here is the Clusterfile for example.
 
 ```yaml
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.cloud/v2
 kind: Cluster
 metadata:
-  name: my-cluster
+  name: default-kubernetes-cluster
 spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nvidia:v1.19.8
-  # if Using local host to apply, the provider should be BAREMETAL
-  provider: BAREMETAL
   ssh:
-    # SSH login password, if you use the key to log in, you don’t need to set it
-    passwd: *
-    ## The absolute path of the ssh private key file, for example /root/.ssh/id_rsa
-    pk: ""
-    #  The password of the ssh private key file, if there is none, set it to ""
-    pkPasswd: ""
-    # ssh login user
-    user: root
-  network:
-    podCIDR: 100.64.0.0/10
-    svcCIDR: 10.96.0.0/22
-  certSANS:
-    - aliyun-inc.com
-    - 10.0.0.2
-  masters:
-    ipList:
-      - 172.22.82.184
+    passwd: xxx
+  hosts:
+    - ips: [ 192.168.0.2,192.168.0.3,192.168.0.4 ]
+      roles: [ master ]
+    - ips: [ 192.168.0.5 ]
+      roles: [ node ]
 ```
 
 2. Run command `sealer apply -f Clusterfile` to apply the GPU cluster. it will take few minutes.
