@@ -43,6 +43,12 @@ merge images:
 			}
 			images = append(images, image)
 		}
+		if ImageName == ""{
+			ImageName = "merged:latest"
+		}
+		if len(strings.Split(ImageName, ":")) == 1{
+			ImageName = ImageName+":latest"
+		}
 		if err := image.Merge(ImageName, images); err != nil {
 			return err
 		}
