@@ -17,11 +17,10 @@ $ sealer run kubernetes:v1.19.8 -m 192.168.56.113,192.168.56.114 -n 192.168.56.1
   -n, --nodes   : node 节点数量
   -u, --user    : 机器用户名，默认为root用户
   -p, --passwd  : 为[CLOUD | CONTAINER]模式自定义密码，BAREMETAL模式为已有机器密码
+  -e, --env     : 设置自定义环境变量
   --provider    : 设置启动模式：[ALI_CLOUD | CONTAINER ｜BAREMETAL]，默认为BAREMETAL
   --pk          : BAREMETAL模式设置私钥文件，默认为$HOME/.ssh/id_rsa文件
   --pk-passwd   : BAREMETAL模式设置私钥密码
-  --podcidr     : 设置默认pod CIDR （需要与calico中自定义配置的podCIDR一致）
-  --svccidr     : 设置默认service CIDR
 ```
 
 查看镜像默认启动配置：
