@@ -15,6 +15,7 @@
 package ssh
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -42,6 +43,13 @@ const (
 	Md5sumCmd = "md5sum %s | cut -d\" \" -f1"
 )
 
+var (
+	reader          *io.PipeReader
+	writer          *io.PipeWriter
+	writeFlusher    *dockerioutils.WriteFlusher
+	progressChanOut progress.Output
+)
+
 type easyProgressUtil struct {
 	output         progress.Output
 	copyID         string
@@ -60,6 +68,29 @@ func (epu *easyProgressUtil) fail(err error) {
 
 func (epu *easyProgressUtil) startMessage() {
 	progress.Update(epu.output, epu.copyID, fmt.Sprintf("%d/%d", epu.completeNumber, epu.total))
+}
+
+//this func receive an argument created by context.WithCancel()
+//this func can only be ended by calling cancel()
+func DisplayInit(ctx context.Context) {
+	var blockChan = make(chan struct{})
+	reader, writer = io.Pipe()
+	writeFlusher = dockerioutils.NewWriteFlusher(writer)
+	progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
+
+	go func() {
+		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
+		if err != nil && err != io.ErrClosedPipe {
+			logger.Warn("error occurs in display progressing, err: %s", err)
+		}
+	}()
+	<-blockChan
+}
+
+func DisplayClean() {
+	_ = reader.Close()
+	_ = writer.Close()
+	_ = writeFlusher.Close()
 }
 
 func (s *SSH) RemoteMd5Sum(host, remoteFilePath string) string {
@@ -173,29 +204,13 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	if number == 0 {
 		return nil
 	}
-	var (
-		reader, writer  = io.Pipe()
-		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
-		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
-		streamOut       = dockerstreams.NewOut(common.StdOut)
-		epu             = &easyProgressUtil{
-			output:         progressChanOut,
-			completeNumber: 0,
-			total:          number,
-			copyID:         "copying files to " + host,
-		}
-	)
-	defer func() {
-		_ = reader.Close()
-		_ = writer.Close()
-		_ = writeFlusher.Close()
-	}()
-	go func() {
-		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
-		if err != nil && err != io.ErrClosedPipe {
-			logger.Warn("error occurs in display progressing, err: %s", err)
-		}
-	}()
+
+	var epu = &easyProgressUtil{
+		output:         progressChanOut,
+		completeNumber: 0,
+		total:          number,
+		copyID:         "copying files to " + host,
+	}
 
 	epu.startMessage()
 	if f.IsDir() {

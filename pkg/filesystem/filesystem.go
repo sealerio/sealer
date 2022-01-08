@@ -15,6 +15,7 @@
 package filesystem
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -159,6 +160,14 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	envProcessor := env.NewEnvProcessor(cluster)
+	ctx, cancelfunc := context.WithCancel(context.Background())
+	go ssh.DisplayInit(ctx)
+	// cancel first, clean second
+	defer func() {
+		ssh.DisplayClean()
+		cancelfunc()
+	}()
+
 	for _, IP := range ipList {
 		ip := IP
 		g.Go(func() error {
