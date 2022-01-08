@@ -78,6 +78,7 @@ func DisplayInit(ctx context.Context) {
 	initOnce.Do(displayInit)
 }
 
+//better call DisplayInit instead of this func
 func displayInit() {
 	reader, writer = io.Pipe()
 	writeFlusher = dockerioutils.NewWriteFlusher(writer)
@@ -86,7 +87,6 @@ func displayInit() {
 	if err != nil && err != io.ErrClosedPipe {
 		logger.Warn("error occurs in display progressing, err: %s", err)
 	}
-
 }
 
 func DisplayClean() {
