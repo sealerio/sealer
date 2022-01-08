@@ -23,6 +23,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -73,18 +74,19 @@ func (epu *easyProgressUtil) startMessage() {
 //this func receive an argument created by context.WithCancel()
 //this func can only be ended by calling cancel()
 func DisplayInit(ctx context.Context) {
-	var blockChan = make(chan struct{})
+	var initOnce sync.Once
+	initOnce.Do(displayInit)
+}
+
+func displayInit() {
 	reader, writer = io.Pipe()
 	writeFlusher = dockerioutils.NewWriteFlusher(writer)
 	progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
+	err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
+	if err != nil && err != io.ErrClosedPipe {
+		logger.Warn("error occurs in display progressing, err: %s", err)
+	}
 
-	go func() {
-		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
-		if err != nil && err != io.ErrClosedPipe {
-			logger.Warn("error occurs in display progressing, err: %s", err)
-		}
-	}()
-	<-blockChan
 }
 
 func DisplayClean() {
