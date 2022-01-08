@@ -23,6 +23,7 @@ import (
 
 //SaveImage can save a list of images of the specified platform
 type ImageSave interface {
+	// SaveImages is not concurrently safe
 	SaveImages(images []string, dir string, platform v1.Platform) error
 }
 
