@@ -49,6 +49,7 @@ var (
 	writer          *io.PipeWriter
 	writeFlusher    *dockerioutils.WriteFlusher
 	progressChanOut progress.Output
+	epuMap          = map[string]*easyProgressUtil{}
 )
 
 type easyProgressUtil struct {
@@ -56,6 +57,24 @@ type easyProgressUtil struct {
 	copyID         string
 	completeNumber int
 	total          int
+}
+
+//must call DisplayInit first
+func RegisterEpu(ip string, total int) {
+	if progressChanOut == nil {
+		logger.Warn("call DisplayInit first")
+		return
+	}
+	if _, ok := epuMap[ip]; !ok {
+		epuMap[ip] = &easyProgressUtil{
+			output:         progressChanOut,
+			copyID:         "copying files to " + ip,
+			completeNumber: 0,
+			total:          total,
+		}
+	} else {
+		logger.Warn("%s already exist in easyProgressUtil", ip)
+	}
 }
 
 func (epu *easyProgressUtil) increment() {
@@ -206,12 +225,9 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	if number == 0 {
 		return nil
 	}
-
-	var epu = &easyProgressUtil{
-		output:         progressChanOut,
-		completeNumber: 0,
-		total:          number,
-		copyID:         "copying files to " + host,
+	epu, ok := epuMap[host]
+	if !ok {
+		logger.Warn("%s didn't register", host)
 	}
 
 	epu.startMessage()

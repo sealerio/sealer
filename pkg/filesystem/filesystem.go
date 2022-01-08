@@ -199,20 +199,22 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	return g.Wait()
 }
 
-func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
+func CopyFiles(sshEntry ssh.Interface, isRegistry bool, ip, src, target string) error {
 	files, err := ioutil.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("failed to copy files %s", err)
 	}
 
 	if isRegistry {
-		return ssh.Copy(ip, src, target)
+		ssh.RegisterEpu(ip, utils.CountDirFiles(src))
+		return sshEntry.Copy(ip, src, target)
 	}
+	ssh.RegisterEpu(ip, utils.CountDirFiles(src)-utils.CountDirFiles(filepath.Join(src, common.RegistryDirName)))
 	for _, f := range files {
 		if f.Name() == common.RegistryDirName {
 			continue
 		}
-		err = ssh.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
+		err = sshEntry.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
 		if err != nil {
 			return fmt.Errorf("failed to copy sub files %v", err)
 		}
