@@ -25,7 +25,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/pkg/image/store"
 	"github.com/alibaba/sealer/test/suites/build"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"

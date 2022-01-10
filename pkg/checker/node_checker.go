@@ -20,9 +20,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/client/k8s"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 

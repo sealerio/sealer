@@ -31,9 +31,9 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/image/store"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
 	"github.com/alibaba/sealer/utils/ssh"

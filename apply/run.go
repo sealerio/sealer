@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/pkg/image"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 )

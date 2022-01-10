@@ -23,8 +23,8 @@ import (
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
 
-	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/cert"
 )
 
 var runArgs *common.RunArgs

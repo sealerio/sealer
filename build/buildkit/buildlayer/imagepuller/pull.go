@@ -21,9 +21,10 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/runtime"
 
-	"github.com/alibaba/sealer/image/save"
-	"github.com/alibaba/sealer/logger"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image/save"
 )
 
 type puller struct {

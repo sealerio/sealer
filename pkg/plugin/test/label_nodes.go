@@ -16,13 +16,13 @@ package main
 
 import (
 	"fmt"
-
 	"strings"
 
-	"github.com/alibaba/sealer/client/k8s"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/plugin"
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/client/k8s"
+	"github.com/alibaba/sealer/pkg/plugin"
 )
 
 type LabelsNodes struct {
