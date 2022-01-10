@@ -16,21 +16,20 @@ package buildimage
 
 import (
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 
-	"github.com/opencontainers/go-digest"
-	"helm.sh/helm/v3/pkg/chartutil"
-
-	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/parser"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
+	"github.com/opencontainers/go-digest"
+	"helm.sh/helm/v3/pkg/chartutil"
 
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/parser"
 	"sigs.k8s.io/yaml"
 )
 
@@ -115,55 +114,57 @@ func generateImageID(image v1.Image) (string, error) {
 	return imageID, nil
 }
 
-// CacheDockerImage : if base image is scratch,no need to cache.
-//if only copy and all copy is common copy, not in . no need to do cache.
-func CacheDockerImage(base string, newLayers []v1.Layer) bool {
-	if base == common.ImageScratch {
-		return false
-	}
-	for _, layer := range newLayers {
-		if layer.Type == common.RUNCOMMAND ||
-			layer.Type == common.CMDCOMMAND {
-			return true
-		}
-		ht := buildlayer.GetCopyLayerHandlerType(buildlayer.ParseCopyLayerContent(layer.Value))
-		if ht != "" {
-			return true
-		}
-	}
-	return false
-}
-
 func getKubeVersion(rootfs string) string {
 	chartsPath := filepath.Join(rootfs, "charts")
 	if !utils.IsExist(chartsPath) {
 		return ""
 	}
-	kv, err := readCharts(chartsPath)
-	if err == nil {
-		return kv
-	}
-	return ""
+	return readCharts(chartsPath)
 }
 
-func readCharts(chartsPath string) (string, error) {
-	fis, err := ioutil.ReadDir(chartsPath)
-	if err != nil {
-		return "", err
-	}
-	for _, f := range fis {
-		cf := filepath.Join(chartsPath, f.Name())
-		if f.IsDir() {
-			return readCharts(cf)
+func readCharts(chartsPath string) string {
+	var kv string
+	err := filepath.Walk(chartsPath, func(path string, f fs.FileInfo, err error) error {
+		if kv != "" {
+			return nil
 		}
-		if f.Name() != "Chart.yaml" {
+		if f.IsDir() || f.Name() != "Chart.yaml" {
+			return nil
+		}
+		meta, walkErr := chartutil.LoadChartfile(path)
+		if walkErr != nil {
+			return walkErr
+		}
+		if meta.KubeVersion != "" {
+			kv = meta.KubeVersion
+		}
+		return nil
+	})
+
+	if err != nil {
+		return ""
+	}
+	return kv
+}
+
+func FormatImages(images []string) (res []string) {
+	for _, ima := range utils.RemoveDuplicate(images) {
+		if ima == "" {
 			continue
 		}
-		meta, err := chartutil.LoadChartfile(cf)
-		if err != nil {
-			return "", err
+		if strings.HasPrefix(ima, "#") {
+			continue
 		}
-		return meta.KubeVersion, nil
+		res = append(res, trimQuotes(strings.TrimSpace(ima)))
 	}
-	return "", nil
+	return
+}
+
+func trimQuotes(s string) string {
+	if len(s) >= 2 {
+		if c := s[len(s)-1]; s[0] == c && (c == '"' || c == '\'') {
+			return s[1 : len(s)-1]
+		}
+	}
+	return s
 }

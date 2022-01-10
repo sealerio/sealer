@@ -87,7 +87,6 @@ func (l *Builder) PreCheck() error {
 func (l *Builder) ExecBuild() error {
 	ctx := buildimage.Context{
 		BuildContext: l.Context,
-		BuildType:    l.BuildType,
 		UseCache:     !l.NoCache,
 	}
 

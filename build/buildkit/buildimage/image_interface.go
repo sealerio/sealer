@@ -14,8 +14,18 @@
 
 package buildimage
 
+import (
+	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
+)
+
 type Interface interface {
 	ExecBuild(ctx Context) error
 	SaveBuildImage(name string, opts SaveOpts) error
 	Cleanup() error
+}
+
+type Differ interface {
+	// Process :diff changes by build-in handler and save to dst,like pull docker image from manifests or helm charts
+	//diff Metadata file changes save to the base layer.generally dst is the rootfs.
+	Process(src, dst buildinstruction.MountTarget) error
 }
