@@ -23,14 +23,15 @@ import (
 	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
-	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/store"
-	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
+
+	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/image/store"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 const (

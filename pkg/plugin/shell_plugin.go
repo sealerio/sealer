@@ -22,7 +22,7 @@ import (
 
 	"github.com/alibaba/sealer/utils"
 
-	"github.com/alibaba/sealer/client/k8s"
+	"github.com/alibaba/sealer/pkg/client/k8s"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils/ssh"

@@ -21,7 +21,7 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/store"
+	"github.com/alibaba/sealer/pkg/image/store"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 

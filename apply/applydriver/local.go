@@ -21,17 +21,18 @@ import (
 
 	"github.com/alibaba/sealer/apply/processor"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image/store"
 	"github.com/alibaba/sealer/pkg/runtime"
 
-	"github.com/alibaba/sealer/client/k8s"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/pkg/filesystem"
-	"github.com/alibaba/sealer/utils"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
+
+	"github.com/alibaba/sealer/pkg/client/k8s"
+	"github.com/alibaba/sealer/pkg/filesystem"
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/utils"
 )
 
 // Applier cloud builder using cloud provider to build a cluster image

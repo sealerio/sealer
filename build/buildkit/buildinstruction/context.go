@@ -15,12 +15,13 @@
 package buildinstruction
 
 import (
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/cache"
-	"github.com/alibaba/sealer/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/image/cache"
+	"github.com/alibaba/sealer/pkg/image/store"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type ExecContext struct {

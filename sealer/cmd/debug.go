@@ -17,7 +17,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/debug"
+	"github.com/alibaba/sealer/pkg/debug"
 )
 
 var debugOptions = debug.NewDebugOptions()

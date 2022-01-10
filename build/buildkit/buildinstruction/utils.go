@@ -20,16 +20,18 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/cache"
-	"github.com/alibaba/sealer/utils"
 	fsutil "github.com/tonistiigi/fsutil/copy"
+
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/image/cache"
+	"github.com/alibaba/sealer/utils"
+
+	"github.com/opencontainers/go-digest"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/archive"
-	"github.com/opencontainers/go-digest"
 )
 
 func tryCache(parentID cache.ChainID,
