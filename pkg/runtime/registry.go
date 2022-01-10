@@ -135,7 +135,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	if config.Domain == "" {
 		config.Domain = DefaultConfig.Domain
 	}
-	logger.Debug(fmt.Sprintf("show registry info, IP: %s, Domain: %s", config.IP, config.Domain))
+	logger.Debug("show registry info, IP: %s, Domain: %s", config.IP, config.Domain)
 	return &config
 }
 

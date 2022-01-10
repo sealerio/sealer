@@ -254,18 +254,6 @@ func CopyDir(srcPath, dstPath string) error {
 		return err
 	}
 
-	opaque, err := Lgetxattr(srcPath, "trusted.overlay.opaque")
-	if err != nil {
-		logger.Debug("failed to get trusted.overlay.opaque. err: %v", err)
-	}
-
-	if len(opaque) == 1 && opaque[0] == 'y' {
-		err = unix.Setxattr(dstPath, "trusted.overlay.opaque", []byte{'y'}, 0)
-		if err != nil {
-			return fmt.Errorf("failed to set trusted.overlay.opaque, err: %v", err)
-		}
-	}
-
 	fis, err := ioutil.ReadDir(srcPath)
 	if err != nil {
 		return err
