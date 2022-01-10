@@ -83,7 +83,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
 			if utils.InList(common.MASTER, role) {
-				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Masters, ","))...)
+				cluster.Spec.Hosts[i].IPS = removeIPListDuplicatesAndEmpty(append(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ",")...))
 				break
 			}
 			if i == len(cluster.Spec.Hosts)-1 {
@@ -96,7 +96,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
 			if utils.InList(common.NODE, role) {
-				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ","))...)
+				cluster.Spec.Hosts[i].IPS = removeIPListDuplicatesAndEmpty(append(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ",")...))
 				break
 			}
 			if i == len(cluster.Spec.Hosts)-1 {
@@ -118,15 +118,7 @@ func StrToInt(str string) int {
 }
 
 func removeIPListDuplicatesAndEmpty(ipList []string) []string {
-	count := len(ipList)
-	var newList []string
-	for i := 0; i < count; i++ {
-		if (i > 0 && ipList[i-1] == ipList[i]) || len(ipList[i]) == 0 {
-			continue
-		}
-		newList = append(newList, ipList[i])
-	}
-	return newList
+	return utils.DedupeStrSlice(utils.RemoveStrSlice(ipList, []string{""}))
 }
 
 func Delete(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
