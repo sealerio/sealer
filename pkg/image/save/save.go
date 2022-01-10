@@ -148,6 +148,7 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 
 	proxyRegistry, err := proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
 	if err != nil { // try http
+		logger.Warn("https error: %v, sealer try to use http", err)
 		config.Proxy.RemoteURL = strings.Replace(config.Proxy.RemoteURL, HTTPS, HTTP, 1)
 		proxyRegistry, err = proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
 		if err != nil {
