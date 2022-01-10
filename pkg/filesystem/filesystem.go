@@ -15,6 +15,7 @@
 package filesystem
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -159,6 +160,14 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	envProcessor := env.NewEnvProcessor(cluster)
+	ctx, cancelfunc := context.WithCancel(context.Background())
+	go ssh.DisplayInit(ctx)
+	// cancel first, clean second
+	defer func() {
+		ssh.DisplayClean()
+		cancelfunc()
+	}()
+
 	for _, IP := range ipList {
 		ip := IP
 		g.Go(func() error {
@@ -190,20 +199,22 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	return g.Wait()
 }
 
-func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
+func CopyFiles(sshEntry ssh.Interface, isRegistry bool, ip, src, target string) error {
 	files, err := ioutil.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("failed to copy files %s", err)
 	}
 
 	if isRegistry {
-		return ssh.Copy(ip, src, target)
+		ssh.RegisterEpu(ip, utils.CountDirFiles(src))
+		return sshEntry.Copy(ip, src, target)
 	}
+	ssh.RegisterEpu(ip, utils.CountDirFiles(src)-utils.CountDirFiles(filepath.Join(src, common.RegistryDirName)))
 	for _, f := range files {
 		if f.Name() == common.RegistryDirName {
 			continue
 		}
-		err = ssh.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
+		err = sshEntry.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
 		if err != nil {
 			return fmt.Errorf("failed to copy sub files %v", err)
 		}
