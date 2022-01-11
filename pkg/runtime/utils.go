@@ -117,9 +117,10 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to copy kubeconfig")
 	}
-	err = utils.AppendFile(common.EtcHosts, fmt.Sprintf("%s %s", host, common.APIServerDomain))
+	_, err = utils.RunSimpleCmd(fmt.Sprintf("cat /etc/hosts |grep '%s %s' || echo '%s %s' >> /etc/hosts",
+		host, common.APIServerDomain, host, common.APIServerDomain))
 	if err != nil {
-		return errors.Wrap(err, "failed to append master IP to etc hosts")
+		return errors.Wrap(err, "failed to add master IP to etc hosts")
 	}
 	err = ssh.Fetch(host, common.KubectlPath, common.KubectlPath)
 	if err != nil {

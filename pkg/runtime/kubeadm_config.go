@@ -19,7 +19,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	"github.com/alibaba/sealer/utils"
 	"github.com/imdario/mergo"
@@ -89,15 +88,19 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 		if err != nil {
 			return err
 		}
-	} else {
-		defaultKubeadmConfig, err = k.loadKubeadmConfigs(kubeadmYamlPath, DecodeCRDFromFile)
-		if err != nil {
-			logger.Debug("failed to found kubeadm config from %s : %v, will use default kubeadm config to merge empty value", kubeadmYamlPath, err)
-			return k.Merge("")
-		}
+		return mergo.Merge(k, defaultKubeadmConfig)
 	}
-
-	return mergo.Merge(k, defaultKubeadmConfig)
+	defaultKubeadmConfig, err = k.loadKubeadmConfigs(kubeadmYamlPath, DecodeCRDFromFile)
+	if err != nil {
+		return fmt.Errorf("failed to found kubeadm config from %s: %v", kubeadmYamlPath, err)
+	}
+	k.APIServer.CertSANs = append(k.APIServer.CertSANs, defaultKubeadmConfig.APIServer.CertSANs...)
+	err = mergo.Merge(k, defaultKubeadmConfig)
+	if err != nil {
+		return fmt.Errorf("failed to merge kubeadm config: %v", err)
+	}
+	//using the DefaultKubeadmConfig configuration merge
+	return k.Merge("")
 }
 
 func (k *KubeadmConfig) loadKubeadmConfigs(arg string, decode func(arg string, kind string) (interface{}, error)) (*KubeadmConfig, error) {

@@ -43,13 +43,13 @@ const (
 	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" < /etc/hosts > hosts && cp -f hosts /etc/hosts`
 	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
 	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
-	RemoteJoinMasterConfig  = `echo "%s" > %s/kubeadm-join-config.yaml`
-	InitMaster115Lower      = `kubeadm init --config=%s/kubeadm-config.yaml --experimental-upload-certs`
+	RemoteJoinMasterConfig  = `echo "%s" > %s/etc/kubeadm.yml`
+	InitMaster115Lower      = `kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs`
 	JoinMaster115Lower      = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s"
 	JoinNode115Lower        = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s"
-	InitMaser115Upper       = `kubeadm init --config=%s/kubeadm-config.yaml --upload-certs`
-	JoinMaster115Upper      = "kubeadm join --config=%s/kubeadm-join-config.yaml"
-	JoinNode115Upper        = "kubeadm join --config=%s/kubeadm-join-config.yaml"
+	InitMaser115Upper       = `kubeadm init --config=%s/etc/kubeadm.yml --upload-certs`
+	JoinMaster115Upper      = "kubeadm join --config=%s/etc/kubeadm.yml"
+	JoinNode115Upper        = "kubeadm join --config=%s/etc/kubeadm.yml"
 	RemoveKubeConfig        = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
 	RemoteCleanMasterOrNode = `if which kubeadm;then kubeadm reset -f %s;fi && \
 modprobe -r ipip  && lsmod && \
@@ -132,7 +132,7 @@ func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []
 		joinCommands = append(joinCommands, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
 	}
 	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, apiServerHost,
-		getAPIServerHost(utils.GetHostIP(master), k.getAPIServerDomain()))
+		getAPIServerHost(master, k.getAPIServerDomain()))
 
 	return append(joinCommands, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig)
 }

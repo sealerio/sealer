@@ -18,12 +18,18 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/logger"
 )
 
 func (k *KubeadmRuntime) reset() error {
 	k.resetNodes(k.getNodesIPList())
 	k.resetMasters(k.getMasterIPList())
+	//if the executing machine is not in the cluster
+	if _, err := utils.RunSimpleCmd(fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())); err != nil {
+		return err
+	}
 	return k.DeleteRegistry()
 }
 

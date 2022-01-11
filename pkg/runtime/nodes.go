@@ -30,7 +30,7 @@ import (
 const (
 	RemoteAddIPVS                   = "seautil ipvs --vs %s:6443 %s --health-path /healthz --health-schem https --run-once"
 	RemoteStaticPodMkdir            = "mkdir -p /etc/kubernetes/manifests"
-	RemoteJoinConfig                = `echo "%s" > %s/kubeadm-join-config.yaml`
+	RemoteJoinConfig                = `echo "%s" > %s/etc/kubeadm.yml`
 	LvscareDefaultStaticPodFileName = "/etc/kubernetes/manifests/kube-lvscare.yaml"
 	RemoteAddIPVSEtcHosts           = "echo %s %s >> /etc/hosts"
 	RemoteCheckRoute                = "seautil route --host %s"
@@ -146,16 +146,18 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 		return fmt.Errorf("failed to delete node: %v", err)
 	}
 
-	remoteRemoveCmds := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP()))}
+	remoteCleanCmds := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP())),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 	address, err := utils.GetLocalHostAddresses()
-	//if the node to be removed is the execution machine, kubelet, ~./kube and apiServer host will not be removed
+	//if the node to be removed is the execution machine, kubelet, ~./kube and ApiServer host will be added
 	if err != nil || !utils.IsLocalIP(node, address) {
-		remoteRemoveCmds = append(remoteRemoveCmds,
-			RemoveKubeConfig,
-			fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()))
+		remoteCleanCmds = append(remoteCleanCmds, RemoveKubeConfig)
+	} else {
+		apiServerHost := getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain())
+		remoteCleanCmds = append(remoteCleanCmds, fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost))
 	}
-	if err := ssh.CmdAsync(node, remoteRemoveCmds...); err != nil {
+	if err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {
 		return err
 	}
 	//remove node
