@@ -296,7 +296,7 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 		if err != nil {
 			return err
 		}
-		hosts.IPList = utils.AppendIPList(hosts.IPList, ipList)
+		hosts.IPList = utils.AppendDiffSlice(hosts.IPList, ipList)
 		logger.Info("get scale up IP list %v, append iplist %v, host count %s", ipList, hosts.IPList, hosts.Count)
 	} else if len(instances) > i {
 		var deleteInstancesIDs []string
@@ -323,7 +323,7 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 		if err != nil {
 			return err
 		}
-		hosts.IPList = utils.ReduceIPList(hosts.IPList, ipList)
+		hosts.IPList = utils.ReduceStrSlice(hosts.IPList, ipList)
 	}
 
 	cpu, err := strconv.Atoi(hosts.CPU)
