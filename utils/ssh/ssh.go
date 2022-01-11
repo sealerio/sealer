@@ -15,10 +15,12 @@
 package ssh
 
 import (
+	"context"
 	"fmt"
 	"net"
-	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/imdario/mergo"
 
@@ -143,21 +145,19 @@ func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
 
 func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
 	var err error
-	var wg sync.WaitGroup
+	g, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
-		wg.Add(1)
-		go func(host string) {
-			defer wg.Done()
+		host := h
+		g.Go(func() error {
 			for i := 0; i < tryTimes; i++ {
 				err = ssh.Ping(host)
 				if err == nil {
-					return
+					return nil
 				}
 				time.Sleep(time.Duration(i) * time.Second)
 			}
-			err = fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
-		}(h)
+			return fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
+		})
 	}
-	wg.Wait()
-	return err
+	return g.Wait()
 }

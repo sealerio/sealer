@@ -15,11 +15,13 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
 
@@ -262,30 +264,23 @@ func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
 }
 
 func (k *KubeadmRuntime) WaitSSHReady(tryTimes int, hosts ...string) error {
-	errCh := make(chan error, len(hosts))
-	defer close(errCh)
-
-	var wg sync.WaitGroup
+	g, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
-		wg.Add(1)
-		go func(host string) {
-			defer wg.Done()
+		host := h
+		g.Go(func() error {
 			for i := 0; i < tryTimes; i++ {
 				sshClient, err := k.getHostSSHClient(host)
 				if err != nil {
-					return
+					return err
 				}
-
 				err = sshClient.Ping(host)
 				if err == nil {
-					return
+					return nil
 				}
 				time.Sleep(time.Duration(i) * time.Second)
 			}
-			err := fmt.Errorf("wait for [%s] ssh ready timeout, ensure that the IP address or password is correct", host)
-			errCh <- err
-		}(h)
+			return fmt.Errorf("wait for [%s] ssh ready timeout, ensure that the IP address or password is correct", host)
+		})
 	}
-	wg.Wait()
-	return ReadChanError(errCh)
+	return g.Wait()
 }
