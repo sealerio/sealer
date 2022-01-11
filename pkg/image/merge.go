@@ -15,30 +15,60 @@
 package image
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/alibaba/sealer/common"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/opencontainers/go-digest"
+	"golang.org/x/sync/errgroup"
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/pkg/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
-func upImageID(imageName string, Image *v1.Image) error {
+func save(imageName string, image *v1.Image) error {
 	var (
 		imageBytes []byte
 		imageStore store.ImageStore
 		err        error
 	)
-	imageBytes, err = yaml.Marshal(Image)
-	if err != nil {
-		return err
-	}
-	imageID := digest.FromBytes(imageBytes).Hex()
-	Image.Spec.ID = imageID
 	imageStore, err = store.NewDefaultImageStore()
 	if err != nil {
 		return err
 	}
-	return imageStore.Save(*Image, imageName)
+
+	imageBytes, err = yaml.Marshal(image)
+	if err != nil {
+		return err
+	}
+	imageID := digest.FromBytes(imageBytes).Hex()
+	image.Spec.ID = imageID
+	err = setClusterFile(imageName, image)
+	if err != nil {
+		return err
+	}
+	return imageStore.Save(*image, imageName)
+}
+
+func setClusterFile(imageName string, image *v1.Image) error {
+	var cluster v2.Cluster
+	if image.Annotations == nil {
+		return nil
+	}
+	raw := image.Annotations[common.ImageAnnotationForClusterfile]
+	if err := yaml.Unmarshal([]byte(raw), &cluster); err != nil {
+		return err
+	}
+	cluster.Spec.Image = imageName
+	clusterData, err := yaml.Marshal(cluster)
+	if err != nil {
+		return err
+	}
+
+	image.Annotations[common.ImageAnnotationForClusterfile] = string(clusterData)
+	return nil
 }
 
 func RemoveLayersDuplicate(list []v1.Layer) []v1.Layer {
@@ -54,6 +84,9 @@ func RemoveLayersDuplicate(list []v1.Layer) []v1.Layer {
 }
 
 func Merge(imageName string, images []string) error {
+	if imageName == "" {
+		return fmt.Errorf("target image name should not be nil")
+	}
 	var (
 		err        error
 		Image      = &v1.Image{}
@@ -65,12 +98,25 @@ func Merge(imageName string, images []string) error {
 	if err != nil {
 		return err
 	}
+
+	d := DefaultImageService{imageStore: imageStore}
+	eg, _ := errgroup.WithContext(context.Background())
+
+	for _, ima := range images {
+		im := ima
+		eg.Go(func() error {
+			err = d.PullIfNotExist(im)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
 	for k, v := range images {
-		d := DefaultImageService{imageStore: imageStore}
-		err = d.PullIfNotExist(v)
-		if err != nil {
-			return err
-		}
 		img, err = d.GetImageByName(v)
 		if err != nil {
 			return err
@@ -80,9 +126,10 @@ func Merge(imageName string, images []string) error {
 			Image.Name = imageName
 			layers = img.Spec.Layers
 		} else {
-			layers = append(Image.Spec.Layers, img.Spec.Layers[1:]...)
+			layers = append(Image.Spec.Layers, img.Spec.Layers...)
 		}
 		Image.Spec.Layers = RemoveLayersDuplicate(layers)
 	}
-	return upImageID(imageName, Image)
+
+	return save(imageName, Image)
 }

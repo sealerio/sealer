@@ -47,7 +47,7 @@ merge images:
 		if err := image.Merge(ImageName, images); err != nil {
 			return err
 		}
-		logger.Info("images %s is merged to %s!", strings.Join(images, ","), ImageName)
+		logger.Info("images %s is merged to %s", strings.Join(images, ","), ImageName)
 		return nil
 	},
 }
