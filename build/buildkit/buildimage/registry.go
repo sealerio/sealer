@@ -17,7 +17,7 @@ package buildimage
 import (
 	"context"
 	"fmt"
-	"io/fs" //#nosec
+	"io/fs" // #nosec
 	"io/ioutil"
 	"path/filepath"
 
