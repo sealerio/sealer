@@ -5,12 +5,8 @@ on: [push, pull_request]
 jobs:
   golang-security-action:
     runs-on: ubuntu-latest
-    env:
-      GO111MODULE: on
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v2
-      - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
+      - uses: actions/checkout@v1
+      - uses: ynniss/golang-security-action@master
         with:
-          args: ./...
+          CODE_PATH: "./..."
