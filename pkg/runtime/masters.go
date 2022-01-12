@@ -163,10 +163,10 @@ func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
 }
 
 func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error {
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range Hosts {
 		node := node
-		g.Go(func() error {
+		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
 				return fmt.Errorf("send file failed %v", err)
@@ -177,7 +177,7 @@ func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error 
 			return err
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []string) bool {
@@ -226,10 +226,10 @@ func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
 // sendJoinCPConfig send join CP nodes configuration
 func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
 	k.Mutex = &sync.Mutex{}
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range joinMaster {
 		master := master
-		g.Go(func() error {
+		eg.Go(func() error {
 			joinConfig, err := k.joinMasterConfig(master)
 			if err != nil {
 				return fmt.Errorf("get join %s config failed: %v", master, err)
@@ -245,14 +245,14 @@ func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
 			return err
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) CmdAsyncHosts(hosts []string, cmd string) error {
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, host := range hosts {
 		host := host
-		g.Go(func() error {
+		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(host)
 			if err != nil {
 				logger.Error("exec command failed %s %s %v", host, cmd, err)
@@ -263,7 +263,7 @@ func (k *KubeadmRuntime) CmdAsyncHosts(hosts []string, cmd string) error {
 			return err
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func vlogToStr(vlog int) string {
@@ -370,20 +370,21 @@ func (k *KubeadmRuntime) deleteMasters(masters []string) error {
 	if len(masters) == 0 {
 		return nil
 	}
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range masters {
 		master := master
-		g.Go(func() error {
+		eg.Go(func() error {
 			master := master
 			logger.Info("Start to delete master %s", master)
 			if err := k.deleteMaster(master); err != nil {
 				logger.Error("delete master %s failed %v", master, err)
+			} else {
+				logger.Info("Succeeded in deleting master %s", master)
 			}
-			logger.Info("Succeeded in deleting master %s", master)
 			return nil
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func SliceRemoveStr(ss []string, s string) (result []string) {
@@ -451,10 +452,10 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 		}
 	}
 	yaml := ipvs.LvsStaticPodYaml(k.getVIP(), masterIPs, "")
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range k.getNodesIPList() {
 		node := node
-		g.Go(func() error {
+		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
 				logger.Error("update lvscare static pod failed %s %v", node, err)
@@ -465,7 +466,7 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 			return err
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {

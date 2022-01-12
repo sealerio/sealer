@@ -34,17 +34,17 @@ func (k *KubeadmRuntime) reset() error {
 }
 
 func (k *KubeadmRuntime) resetNodes(nodes []string) {
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range nodes {
 		node := node
-		g.Go(func() error {
+		eg.Go(func() error {
 			if err := k.resetNode(node); err != nil {
 				logger.Error("delete node %s failed %v", node, err)
 			}
 			return nil
 		})
 	}
-	if err := g.Wait(); err != nil {
+	if err := eg.Wait(); err != nil {
 		return
 	}
 }

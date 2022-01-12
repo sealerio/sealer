@@ -145,10 +145,10 @@ func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
 
 func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
 	var err error
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
 		host := h
-		g.Go(func() error {
+		eg.Go(func() error {
 			for i := 0; i < tryTimes; i++ {
 				err = ssh.Ping(host)
 				if err == nil {
@@ -159,5 +159,5 @@ func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
 			return fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }

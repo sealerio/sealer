@@ -150,10 +150,10 @@ func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
 	for _, file := range MasterStaticFiles {
 		staticFilePath := filepath.Join(k.getStaticFileDir(), file.Name)
 		cmdLinkStatic := fmt.Sprintf(RemoteCmdCopyStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
-		g, _ := errgroup.WithContext(context.Background())
+		eg, _ := errgroup.WithContext(context.Background())
 		for _, host := range nodes {
 			host := host
-			g.Go(func() error {
+			eg.Go(func() error {
 				ssh, err := k.getHostSSHClient(host)
 				if err != nil {
 					return fmt.Errorf("new ssh client failed %v", err)
@@ -165,7 +165,7 @@ func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
 				return err
 			})
 		}
-		if err := g.Wait(); err != nil {
+		if err := eg.Wait(); err != nil {
 			return err
 		}
 	}

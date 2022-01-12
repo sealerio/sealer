@@ -64,7 +64,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 		return err
 	}
 	var masters string
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range k.getMasterIPList() {
 		masters += fmt.Sprintf(" --rs %s:6443", master)
 	}
@@ -81,7 +81,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	}
 	for _, node := range nodes {
 		node := node
-		g.Go(func() error {
+		eg.Go(func() error {
 			logger.Info("Start to join %s as worker", node)
 			// send join node config, get cgroup driver on every join nodes
 			joinConfig, err := k.joinNodeConfig(node)
@@ -104,17 +104,17 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			return err
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
 	if len(nodes) == 0 {
 		return nil
 	}
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range nodes {
 		node := node
-		g.Go(func() error {
+		eg.Go(func() error {
 			logger.Info("Start to delete worker %s", node)
 			if err := k.deleteNode(node); err != nil {
 				return fmt.Errorf("delete node %s failed %v", node, err)
@@ -123,7 +123,7 @@ func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
 			return nil
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) deleteNode(node string) error {

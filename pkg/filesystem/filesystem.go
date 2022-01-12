@@ -156,7 +156,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	envProcessor := env.NewEnvProcessor(cluster)
 	ctx, cancelfunc := context.WithCancel(context.Background())
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	go ssh.DisplayInit(ctx)
 	// cancel first, clean second
 	defer func() {
@@ -166,7 +166,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 
 	for _, IP := range ipList {
 		ip := IP
-		g.Go(func() error {
+		eg.Go(func() error {
 			for _, dir := range []string{renderEtc, renderChart, renderManifests} {
 				if utils.IsExist(dir) {
 					err := envProcessor.RenderAll(ip, dir)
@@ -192,7 +192,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 			return err
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func CopyFiles(sshEntry ssh.Interface, isRegistry bool, ip, src, target string) error {
@@ -225,10 +225,10 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
 	rmDockerCert := fmt.Sprintf("rm -rf %s/%s*", runtime.DockerCertDir, runtime.SeaHub)
 	envProcessor := env.NewEnvProcessor(cluster)
-	g, _ := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {
 		ip := IP
-		g.Go(func() error {
+		eg.Go(func() error {
 			SSH, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
 				return err
@@ -240,13 +240,13 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 			if err := SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd)); err != nil {
 				return err
 			}
-			return err
+			return nil
 		})
 	}
 	if flag {
 		return fmt.Errorf("unmountRootfs failed")
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func NewFilesystem() (Interface, error) {
