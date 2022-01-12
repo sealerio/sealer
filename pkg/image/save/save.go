@@ -308,7 +308,7 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 
 			_, err = blobStore.Stat(is.ctx, tmpBlob)
 			if err == nil { //blob already exist
-				progress.Message(is.progressOut, simpleDgst, "already exists")
+				progress.Update(is.progressOut, simpleDgst, "already exists")
 				return nil
 			}
 			reader, err := blobStore.Open(is.ctx, tmpBlob)
