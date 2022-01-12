@@ -61,7 +61,7 @@ func (n *NodeChecker) Check(cluster *v2.Cluster, phase string) error {
 	var nodeCount uint32
 	var notReadyCount uint32 = 0
 	for _, node := range nodes.Items {
-		nodeIP, nodePhase := getNodeStatus(&node)
+		nodeIP, nodePhase := getNodeStatus(node)
 		if nodePhase != ReadyNodeStatus {
 			notReadyCount++
 			notReadyNodeList = append(notReadyNodeList, nodeIP)
@@ -111,7 +111,7 @@ func (n *NodeChecker) Output(nodeCLusterStatus NodeClusterStatus) error {
 	return nil
 }
 
-func getNodeStatus(node *corev1.Node) (IP string, Phase string) {
+func getNodeStatus(node corev1.Node) (IP string, Phase string) {
 	if len(node.Status.Addresses) < 1 {
 		return "", ""
 	}

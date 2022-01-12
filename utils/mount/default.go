@@ -22,6 +22,8 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -118,14 +120,22 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("open file [%s] failed: %s", src, err)
 	}
-	defer srcFile.Close()
-
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	// create dstfile
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("create file err: %s", err)
 	}
-	defer dstFile.Close()
+	defer func() {
+		if err := dstFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
+
 	// copy  file
 	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {

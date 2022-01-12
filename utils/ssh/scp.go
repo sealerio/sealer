@@ -172,8 +172,11 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	if err != nil {
 		return fmt.Errorf("open remote file failed %v, remote path: %s", err, remoteFilePath)
 	}
-	defer srcFile.Close()
-
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	err = utils.MkFileFullPathDir(localFilePath)
 	if err != nil {
 		return err
@@ -183,7 +186,11 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	if err != nil {
 		return fmt.Errorf("create local file failed %v", err)
 	}
-	defer dstFile.Close()
+	defer func() {
+		if err := dstFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	// copy to local file
 	_, err = srcFile.WriteTo(dstFile)
 	return err
@@ -293,7 +300,12 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
+
 	dstFile, err := sftpClient.Create(remotePath)
 	if err != nil {
 		return err
@@ -306,7 +318,11 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 	if err := dstFile.Chmod(fileStat.Mode()); err != nil {
 		return fmt.Errorf("chmod remote file failed %v", err)
 	}
-	defer dstFile.Close()
+	defer func() {
+		if err := dstFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {
 		return err

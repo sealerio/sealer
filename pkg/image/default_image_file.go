@@ -81,8 +81,11 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}
-	defer file.Close()
-
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	var pathsToCompress []string
 	layerDirs, err := GetImageLayerDirs(image)
 	if err != nil {
@@ -139,8 +142,11 @@ func (d DefaultImageFileService) load(imageSrc string) (*types.ImageMetadata, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
 	}
-	defer srcFile.Close()
-
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	srcFi, err := srcFile.Stat()
 	if err != nil {
 		return nil, err

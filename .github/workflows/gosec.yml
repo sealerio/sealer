@@ -1,12 +1,22 @@
-name: Sample workflow using golang-security-action
+name: Run Gosec
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   golang-security-action:
     runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
     steps:
-      - uses: actions/checkout@v1
-      - uses: ynniss/golang-security-action@master
+      - name: Checkout Source
+        uses: actions/checkout@v2
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
         with:
-          CODE_PATH: "./..."
+          args: ./...

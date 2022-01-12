@@ -73,12 +73,12 @@ func (c *Client) ListNodes() (*v1.NodeList, error) {
 	return nodes, nil
 }
 
-func (c *Client) UpdateNode(node *v1.Node) (*v1.Node, error) {
-	node, err := c.client.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
+func (c *Client) UpdateNode(node v1.Node) (*v1.Node, error) {
+	n, err := c.client.CoreV1().Nodes().Update(context.TODO(), &node, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update cluster node")
 	}
-	return node, nil
+	return n, nil
 }
 
 func (c *Client) DeleteNode(name string) error {

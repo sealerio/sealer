@@ -102,7 +102,7 @@ func connEtcd(masterIP string) (clientv3.Config, error) {
 
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM(caData)
-
+	// #nosec
 	_tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      pool,

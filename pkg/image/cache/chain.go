@@ -102,7 +102,7 @@ func (cs *chainStore) restore() {
 				err     error
 			)
 
-			cacheLayer, err := cs.newCacheLayer(&layer)
+			cacheLayer, err := cs.newCacheLayer(layer)
 			if err != nil {
 				logger.Warn("failed to new a cache layer for %v, err: %s", layer, err)
 				continue
@@ -170,7 +170,7 @@ func (cs *chainStore) Images() map[ImageID]*v1.Image {
 	return images
 }
 
-func (cs *chainStore) newCacheLayer(layer *v1.Layer) (*Layer, error) {
+func (cs *chainStore) newCacheLayer(layer v1.Layer) (*Layer, error) {
 	var cacheLayer = Layer{Type: layer.Type, Value: layer.Value}
 	// only copy layer needs the cache id.
 	if layer.Type != common.COPYCOMMAND {

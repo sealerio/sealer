@@ -102,17 +102,10 @@ func (d Docker) DockerRmi(imageID string) error {
 	return nil
 }
 
-func (d Docker) ImagesList() ([]*types.ImageSummary, error) {
-	var list []*types.ImageSummary
-
+func (d Docker) ImagesList() ([]types.ImageSummary, error) {
 	images, err := d.cli.ImageList(d.ctx, types.ImageListOptions{})
 	if err != nil {
 		return nil, err
 	}
-
-	for _, image := range images {
-		list = append(list, &image)
-	}
-
-	return list, nil
+	return images, nil
 }

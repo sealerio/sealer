@@ -123,15 +123,24 @@ func (ls *layerStore) RegisterLayerForBuilder(path string) (digest.Digest, error
 
 func (ls *layerStore) DisassembleTar(layerID digest.Digest, streamReader io.ReadCloser) error {
 	layerDBDir := ls.LayerDBDir(layerID)
+	// #nosec
 	mf, err := os.OpenFile(filepath.Join(layerDBDir, tarDataGZ), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0600))
 	if err != nil {
 		return err
 	}
-	defer mf.Close()
 
+	defer func() {
+		if err := mf.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	mfz := gzip.NewWriter(mf)
-	defer mfz.Close()
 
+	defer func() {
+		if err := mfz.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	metaPacker := storage.NewJSONPacker(mfz)
 	// we're passing nil here for the file putter, because the ApplyDiff will
 	// handle the extraction of the archive

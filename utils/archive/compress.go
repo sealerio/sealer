@@ -162,8 +162,9 @@ func writeWhiteout(header *tar.Header, fi os.FileInfo, path string) *tar.Header 
 			}
 
 			woh = &tar.Header{
-				Typeflag:   tar.TypeReg,
-				Mode:       header.Mode & int64(os.ModePerm),
+				Typeflag: tar.TypeReg,
+				Mode:     header.Mode & int64(os.ModePerm),
+				// #nosec
 				Name:       filepath.Join(header.Name, WhiteoutOpaqueDir),
 				Size:       0,
 				Uid:        header.Uid,
@@ -265,8 +266,11 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 			if walkErr != nil {
 				return walkErr
 			}
-			defer fHandler.Close()
-
+			defer func() {
+				if err := fHandler.Close(); err != nil {
+					logger.Fatal("failed to close file")
+				}
+			}()
 			bufWriter.Reset(tarWriter)
 			defer bufWriter.Reset(nil)
 
@@ -341,7 +345,7 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 			return 0, fmt.Errorf("tar contained invalid name error %q", header.Name)
 		}
 
-		// overwrite previous files
+		// #nosec
 		target := filepath.Join(dst, header.Name)
 		err = removePreviousFiles(target)
 		if err != nil {
@@ -373,13 +377,17 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 				if inErr != nil {
 					return inErr
 				}
-
+				// #nosec
 				fileToWrite, inErr := os.OpenFile(target, os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.FileMode(header.Mode))
 				if inErr != nil {
 					return inErr
 				}
 
-				defer fileToWrite.Close()
+				defer func() {
+					if err := fileToWrite.Close(); err != nil {
+						logger.Fatal("failed to close file")
+					}
+				}()
 				if _, inErr = io.Copy(fileToWrite, tr); inErr != nil {
 					return inErr
 				}
@@ -394,6 +402,7 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 	}
 
 	for _, h := range dirs {
+		// #nosec
 		path := filepath.Join(dst, h.Name)
 		err = os.Chtimes(path, h.AccessTime, h.ModTime)
 		if err != nil {
