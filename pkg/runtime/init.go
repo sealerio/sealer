@@ -15,16 +15,17 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/cert"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -146,32 +147,29 @@ func (k *KubeadmRuntime) CreateKubeConfig() error {
 }
 
 func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
-	errCh := make(chan error, len(nodes))
-	defer close(errCh)
-
 	for _, file := range MasterStaticFiles {
 		staticFilePath := filepath.Join(k.getStaticFileDir(), file.Name)
 		cmdLinkStatic := fmt.Sprintf(RemoteCmdCopyStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
-		var wg sync.WaitGroup
+		eg, _ := errgroup.WithContext(context.Background())
 		for _, host := range nodes {
-			wg.Add(1)
-			go func(host string) {
-				defer wg.Done()
+			host := host
+			eg.Go(func() error {
 				ssh, err := k.getHostSSHClient(host)
 				if err != nil {
-					errCh <- fmt.Errorf("new ssh client failed %v", err)
-					return
+					return fmt.Errorf("new ssh client failed %v", err)
 				}
 				err = ssh.CmdAsync(host, cmdLinkStatic)
 				if err != nil {
-					errCh <- fmt.Errorf("[%s] link static file failed, error:%s", host, err.Error())
+					return fmt.Errorf("[%s] link static file failed, error:%s", host, err.Error())
 				}
-			}(host)
+				return err
+			})
 		}
-		wg.Wait()
+		if err := eg.Wait(); err != nil {
+			return err
+		}
 	}
-
-	return ReadChanError(errCh)
+	return nil
 }
 
 //decode output to join token hash and key

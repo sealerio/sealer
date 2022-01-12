@@ -15,11 +15,12 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/alibaba/sealer/utils"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/pkg/errors"
 
@@ -47,16 +48,12 @@ func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
 }
 
 func (k *KubeadmRuntime) joinNodes(nodes []string) error {
-	errCh := make(chan error, len(nodes))
-	defer close(errCh)
-
 	if len(nodes) == 0 {
 		return nil
 	}
 	if err := k.MergeKubeadmConfig(); err != nil {
 		return err
 	}
-
 	if err := k.WaitSSHReady(6, nodes...); err != nil {
 		return errors.Wrap(err, "join nodes wait for ssh ready time out")
 	}
@@ -67,7 +64,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 		return err
 	}
 	var masters string
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range k.getMasterIPList() {
 		masters += fmt.Sprintf(" --rs %s:6443", master)
 	}
@@ -83,16 +80,13 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
 	}
 	for _, node := range nodes {
-		wg.Add(1)
-		go func(node string) {
+		node := node
+		eg.Go(func() error {
 			logger.Info("Start to join %s as worker", node)
-
-			defer wg.Done()
 			// send join node config, get cgroup driver on every join nodes
 			joinConfig, err := k.joinNodeConfig(node)
 			if err != nil {
-				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
-				return
+				return fmt.Errorf("failed to join node %s %v", node, err)
 			}
 			cmdWriteJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
@@ -101,43 +95,35 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
-				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
-				return
+				return fmt.Errorf("failed to join node %s %v", node, err)
 			}
 			if err := ssh.CmdAsync(node, addRegistryHostsAndLogin, cmdWriteJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd); err != nil {
-				errCh <- fmt.Errorf("failed to join node %s %v", node, err)
+				return fmt.Errorf("failed to join node %s %v", node, err)
 			}
-
 			logger.Info("Succeeded in joining %s as worker", node)
-		}(node)
+			return err
+		})
 	}
-
-	wg.Wait()
-	return ReadChanError(errCh)
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
-	errCh := make(chan error, len(nodes))
-	defer close(errCh)
-
 	if len(nodes) == 0 {
 		return nil
 	}
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range nodes {
-		wg.Add(1)
-		go func(node string) {
-			defer wg.Done()
+		node := node
+		eg.Go(func() error {
 			logger.Info("Start to delete worker %s", node)
 			if err := k.deleteNode(node); err != nil {
-				errCh <- fmt.Errorf("delete node %s failed %v", node, err)
+				return fmt.Errorf("delete node %s failed %v", node, err)
 			}
 			logger.Info("Succeeded in deleting worker %s", node)
-		}(node)
+			return nil
+		})
 	}
-	wg.Wait()
-
-	return ReadChanError(errCh)
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) deleteNode(node string) error {

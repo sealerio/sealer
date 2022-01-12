@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -31,7 +30,6 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/image/store"
 	"github.com/alibaba/sealer/utils"
@@ -144,12 +142,9 @@ func (c *FileSystem) UnMountRootfs(cluster *v2.Cluster) error {
 }
 
 func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
-	errCh := make(chan error, len(ipList))
-	defer close(errCh)
 	/*	if err := ssh.WaitSSHToReady(*cluster, 6, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}*/
-	g := new(errgroup.Group)
 	config := runtime.GetRegistryConfig(
 		common.DefaultTheClusterRootfsDir(cluster.Name),
 		runtime.GetMaster0Ip(cluster))
@@ -161,6 +156,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	envProcessor := env.NewEnvProcessor(cluster)
 	ctx, cancelfunc := context.WithCancel(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	go ssh.DisplayInit(ctx)
 	// cancel first, clean second
 	defer func() {
@@ -170,7 +166,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 
 	for _, IP := range ipList {
 		ip := IP
-		g.Go(func() error {
+		eg.Go(func() error {
 			for _, dir := range []string{renderEtc, renderChart, renderManifests} {
 				if utils.IsExist(dir) {
 					err := envProcessor.RenderAll(ip, dir)
@@ -196,7 +192,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 			return err
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
 func CopyFiles(sshEntry ssh.Interface, isRegistry bool, ip, src, target string) error {
@@ -223,44 +219,34 @@ func CopyFiles(sshEntry ssh.Interface, isRegistry bool, ip, src, target string) 
 }
 
 func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
-	var wg sync.WaitGroup
 	var flag bool
-	var mutex sync.Mutex
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	execClean := fmt.Sprintf("/bin/bash -c "+common.DefaultClusterClearBashFile, cluster.Name)
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
 	rmDockerCert := fmt.Sprintf("rm -rf %s/%s*", runtime.DockerCertDir, runtime.SeaHub)
 	envProcessor := env.NewEnvProcessor(cluster)
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {
-		wg.Add(1)
-		go func(ip string) {
-			defer wg.Done()
+		ip := IP
+		eg.Go(func() error {
 			SSH, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
-				logger.Error("failed to get %s ssh client: %v", ip, err)
-				mutex.Lock()
-				flag = true
-				mutex.Unlock()
-				return
+				return err
 			}
 			cmd := fmt.Sprintf("%s && %s && %s", execClean, rmRootfs, rmDockerCert)
 			if mounted, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mounted {
 				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
 			}
 			if err := SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd)); err != nil {
-				logger.Error("%s:exec %s failed, %s", ip, execClean, err)
-				mutex.Lock()
-				flag = true
-				mutex.Unlock()
-				return
+				return err
 			}
-		}(IP)
+			return nil
+		})
 	}
-	wg.Wait()
 	if flag {
 		return fmt.Errorf("unmountRootfs failed")
 	}
-	return nil
+	return eg.Wait()
 }
 
 func NewFilesystem() (Interface, error) {
