@@ -219,7 +219,11 @@ func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
 	// TODO Using join file instead template
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getMaster0IP()))
 	k.setJoinAdvertiseAddress(masterIP)
-	k.setCgroupDriver(k.getCgroupDriverFromShell(masterIP))
+	cGroupDriver, err := k.getCgroupDriverFromShell(masterIP)
+	if err != nil {
+		return nil, err
+	}
+	k.setCgroupDriver(cGroupDriver)
 	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
@@ -303,11 +307,6 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 	return fmt.Sprintf("%s%s", v, vlogToStr(k.Vlog))
 }
 
-func (k *KubeadmRuntime) GetRemoteHostName(hostIP string) string {
-	hostName := k.CmdToString(hostIP, "hostname", "")
-	return strings.ToLower(hostName)
-}
-
 func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	if len(masters) == 0 {
 		return nil
@@ -347,9 +346,9 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	for _, master := range masters {
 		logger.Info("Start to join %s as master", master)
 
-		hostname := k.GetRemoteHostName(master)
-		if hostname == "" {
-			return fmt.Errorf("get remote hostname failed %s", master)
+		hostname, err := k.getRemoteHostName(master)
+		if err != nil {
+			return err
 		}
 		cmds := k.JoinMasterCommands(master, cmd, hostname)
 		ssh, err := k.getHostSSHClient(master)
@@ -396,9 +395,15 @@ func SliceRemoveStr(ss []string, s string) (result []string) {
 	return
 }
 
-func (k *KubeadmRuntime) isHostName(master, host string) string {
-	hostString := k.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
-	hostName := k.CmdToString(host, "hostname", "")
+func (k *KubeadmRuntime) isHostName(master, host string) (string, error) {
+	hostString, err := k.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
+	if err != nil {
+		return "", err
+	}
+	hostName, err := k.CmdToString(host, "hostname", "")
+	if err != nil {
+		return "", err
+	}
 	hosts := strings.Split(hostString, ",")
 	var name string
 	for _, h := range hosts {
@@ -413,7 +418,7 @@ func (k *KubeadmRuntime) isHostName(master, host string) string {
 			}
 		}
 	}
-	return name
+	return name, nil
 }
 
 func (k *KubeadmRuntime) deleteMaster(master string) error {
@@ -441,7 +446,10 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 	//remove master
 	masterIPs := SliceRemoveStr(k.getMasterIPList(), master)
 	if len(masterIPs) > 0 {
-		hostname := k.isHostName(k.getMaster0IP(), master)
+		hostname, err := k.isHostName(k.getMaster0IP(), master)
+		if err != nil {
+			return err
+		}
 		master0SSH, err := k.getHostSSHClient(k.getMaster0IP())
 		if err != nil {
 			return fmt.Errorf("failed to remove master ip: %v", err)
@@ -477,7 +485,10 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 		[upload-certs] Using certificate key:
 		8376c70aaaf285b764b3c1a588740728aff493d7c2239684e84a7367c6a437cf
 	*/
-	output := k.CmdToString(k.getMaster0IP(), cmd, "\r\n")
+	output, err := k.CmdToString(k.getMaster0IP(), cmd, "\r\n")
+	if err != nil {
+		return err
+	}
 	logger.Debug("[globals]decodeCertCmd: %s", output)
 	slice := strings.Split(output, "Using certificate key:")
 	if len(slice) != 2 {

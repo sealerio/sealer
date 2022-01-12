@@ -43,7 +43,11 @@ const (
 func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
 	// TODO get join config from config file
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
-	k.setCgroupDriver(k.getCgroupDriverFromShell(nodeIP))
+	cGroupDriver, err := k.getCgroupDriverFromShell(nodeIP)
+	if err != nil {
+		return nil, err
+	}
+	k.setCgroupDriver(cGroupDriver)
 	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
@@ -148,7 +152,10 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 	}
 	//remove node
 	if len(k.getMasterIPList()) > 0 {
-		hostname := k.isHostName(k.getMaster0IP(), node)
+		hostname, err := k.isHostName(k.getMaster0IP(), node)
+		if err != nil {
+			return err
+		}
 		ssh, err := k.getHostSSHClient(k.getMaster0IP())
 		if err != nil {
 			return fmt.Errorf("failed to delete node on master0,%v", err)

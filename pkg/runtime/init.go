@@ -63,7 +63,11 @@ func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
 
 func (k *KubeadmRuntime) generateConfigs() ([]byte, error) {
 	//getCgroupDriverFromShell need get CRISocket, so after merge
-	k.setCgroupDriver(k.getCgroupDriverFromShell(k.getMaster0IP()))
+	cGroupDriver, err := k.getCgroupDriverFromShell(k.getMaster0IP())
+	if err != nil {
+		return nil, err
+	}
+	k.setCgroupDriver(cGroupDriver)
 	k.setKubeadmAPIVersion()
 	return utils.MarshalConfigsYaml(&k.InitConfiguration,
 		&k.ClusterConfiguration,
@@ -83,36 +87,45 @@ func (k *KubeadmRuntime) handleKubeadmConfig() {
 }
 
 //CmdToString is in host exec cmd and replace to spilt str
-func (k *KubeadmRuntime) CmdToString(host, cmd, split string) string {
+func (k *KubeadmRuntime) CmdToString(host, cmd, split string) (string, error) {
 	ssh, err := k.getHostSSHClient(host)
 	if err != nil {
-		logger.Error("failed to get host ssh client, %s %v", cmd, err)
-		return ""
+		return "", fmt.Errorf("failed to get host ssh client, %s %v", cmd, err)
 	}
 	data, err := ssh.Cmd(host, cmd)
 	if err != nil {
-		logger.Error("exec remote cmd failed, %s %v", cmd, err)
+		return "", fmt.Errorf("exec remote cmd failed, %s %v", cmd, err)
 	}
 	if data != nil {
 		str := string(data)
 		str = strings.ReplaceAll(str, "\r\n", split)
-		return str
+		return str, nil
 	}
-	return ""
+	return "", nil
 }
 
-func (k *KubeadmRuntime) getRemoteHostName(hostIP string) string {
-	hostName := k.CmdToString(hostIP, "hostname", "")
-	return strings.ToLower(hostName)
+func (k *KubeadmRuntime) getRemoteHostName(hostIP string) (string, error) {
+	hostName, err := k.CmdToString(hostIP, "hostname", "")
+	if err != nil {
+		return "", err
+	}
+	if hostName == "" {
+		return "", fmt.Errorf("get remote hostname failed %s", hostIP)
+	}
+	return strings.ToLower(hostName), nil
 }
 
 func (k *KubeadmRuntime) GenerateCert() error {
-	err := cert.GenerateCert(
+	hostName, err := k.getRemoteHostName(k.getMaster0IP())
+	if err != nil {
+		return err
+	}
+	err = cert.GenerateCert(
 		k.getPKIPath(),
 		k.getEtcdCertPath(),
 		k.getCertSANS(),
 		k.getMaster0IP(),
-		k.getRemoteHostName(k.getMaster0IP()),
+		hostName,
 		k.getSvcCIDR(),
 		k.getDNSDomain(),
 	)
@@ -131,14 +144,17 @@ func (k *KubeadmRuntime) GenerateCert() error {
 }
 
 func (k *KubeadmRuntime) CreateKubeConfig() error {
-	hostname := k.getRemoteHostName(k.getMaster0IP())
+	hostname, err := k.getRemoteHostName(k.getMaster0IP())
+	if err != nil {
+		return err
+	}
 	certConfig := cert.Config{
 		Path:     k.getPKIPath(),
 		BaseName: "ca",
 	}
 
 	controlPlaneEndpoint := fmt.Sprintf("https://%s:6443", k.getAPIServerDomain())
-	err := cert.CreateJoinControlPlaneKubeConfigFiles(k.getBasePath(),
+	err = cert.CreateJoinControlPlaneKubeConfigFiles(k.getBasePath(),
 		certConfig, hostname, controlPlaneEndpoint, "kubernetes")
 	if err != nil {
 		return fmt.Errorf("generator kubeconfig failed %s", err)
