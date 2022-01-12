@@ -38,6 +38,7 @@ func TestSSH_Cmd(t *testing.T) {
 					"huaijiahui.com",
 					"",
 					"",
+					"",
 					nil,
 					&[]net.Addr{},
 				},
@@ -53,6 +54,7 @@ func TestSSH_Cmd(t *testing.T) {
 				ssh: SSH{
 					"root",
 					"huaijiahui.com",
+					"",
 					"",
 					"",
 					nil,
@@ -72,6 +74,7 @@ func TestSSH_Cmd(t *testing.T) {
 					"huaijiahui.com",
 					"",
 					"",
+					"",
 					nil,
 					&[]net.Addr{},
 				},
@@ -87,6 +90,7 @@ func TestSSH_Cmd(t *testing.T) {
 				ssh: SSH{
 					"root",
 					"huaijiahui.com",
+					"",
 					"",
 					"",
 					nil,
@@ -133,6 +137,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 					"huaijiahui.com",
 					"",
 					"",
+					"",
 					nil,
 					&[]net.Addr{},
 				},
@@ -147,6 +152,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 				ssh: SSH{
 					"root",
 					"huaijiahui.com",
+					"",
 					"",
 					"",
 					nil,
@@ -165,6 +171,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 					"huaijiahui.com",
 					"",
 					"",
+					"",
 					nil,
 					&[]net.Addr{},
 				},
@@ -179,6 +186,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 				ssh: SSH{
 					"root",
 					"huaijiahui.com",
+					"",
 					"",
 					"",
 					nil,
