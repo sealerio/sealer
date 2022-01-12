@@ -68,7 +68,7 @@ func (s Sheller) Run(context Context, phase Phase) error {
 	}
 	for _, ip := range allHostIP {
 		envProcessor := env.NewEnvProcessor(context.Cluster)
-		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster)
+		sshClient, err := ssh.NewStdoutSSHClient(ip, context.Cluster)
 		if err != nil {
 			return err
 		}

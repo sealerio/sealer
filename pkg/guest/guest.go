@@ -48,7 +48,7 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 	if err != nil {
 		return fmt.Errorf("get cluster image failed, %s", err)
 	}
-	sshClient, err := ssh.GetHostSSHClient(runtime.GetMaster0Ip(cluster), cluster)
+	sshClient, err := ssh.NewStdoutSSHClient(runtime.GetMaster0Ip(cluster), cluster)
 	if err != nil {
 		return err
 	}

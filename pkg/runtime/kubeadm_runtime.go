@@ -97,7 +97,7 @@ func (k *KubeadmRuntime) getDefaultRegistryPort() int {
 }
 
 func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) {
-	return ssh.GetHostSSHClient(hostIP, k.Cluster)
+	return ssh.NewStdoutSSHClient(hostIP, k.Cluster)
 }
 
 // /var/lib/sealer/data/my-cluster
