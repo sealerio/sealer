@@ -64,15 +64,14 @@ func (e *Exec) RunCmd(cmd string) error {
 	for _, ipAddr := range e.ipList {
 		ip := ipAddr
 		eg.Go(func() error {
-			sshClient, sshErr := ssh.GetHostSSHClient(ip, e.cluster)
+			sshClient, sshErr := ssh.NewStdoutSSHClient(ip, e.cluster)
 			if sshErr != nil {
 				return sshErr
 			}
-			bytes, err := sshClient.Cmd(ip, cmd)
+			err := sshClient.CmdAsync(ip, cmd)
 			if err != nil {
 				return err
 			}
-			fmt.Println(string(bytes))
 			return nil
 		})
 	}

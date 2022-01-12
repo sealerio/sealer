@@ -50,6 +50,7 @@ type Interface interface {
 }
 
 type SSH struct {
+	isStdout     bool
 	User         string
 	Password     string
 	PkFile       string
@@ -75,7 +76,7 @@ func NewSSHByCluster(cluster *v1.Cluster) Interface {
 	}
 }
 
-func NewSSHClient(ssh *v1.SSH) Interface {
+func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 	if ssh.User == "" {
 		ssh.User = common.ROOT
 	}
@@ -84,6 +85,7 @@ func NewSSHClient(ssh *v1.SSH) Interface {
 		logger.Warn("failed to get local address, %v", err)
 	}
 	return &SSH{
+		isStdout:     isStdout,
 		User:         ssh.User,
 		Password:     ssh.Passwd,
 		PkFile:       ssh.Pk,
@@ -92,6 +94,7 @@ func NewSSHClient(ssh *v1.SSH) Interface {
 	}
 }
 
+// GetHostSSHClient is used to executed bash command and no std out to be printed.
 func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
@@ -99,8 +102,7 @@ func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
 				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
 					return nil, err
 				}
-
-				return NewSSHClient(&host.SSH), nil
+				return NewSSHClient(&host.SSH, false), nil
 			}
 		}
 	}
@@ -160,4 +162,19 @@ func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
 	}
 	wg.Wait()
 	return err
+}
+
+// NewStdoutSSHClient is used to show std out when execute bash command.
+func NewStdoutSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
+	for _, host := range cluster.Spec.Hosts {
+		for _, ip := range host.IPS {
+			if hostIP == ip {
+				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
+					return nil, err
+				}
+				return NewSSHClient(&host.SSH, true), nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
 }
