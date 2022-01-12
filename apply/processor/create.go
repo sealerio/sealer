@@ -114,7 +114,7 @@ func (c *CreateProcessor) Join(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return utils.SaveClusterInfoToFile(cluster, cluster.Name)
 }
 
 func (c *CreateProcessor) RunGuest(cluster *v2.Cluster) error {

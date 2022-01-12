@@ -149,7 +149,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 		return nil
 	}
 
-	logger.Info("Start to scale this cluster")
+	logger.Info("Start to scale this cluster, current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
 
 	scaleProcessor, err := processor.NewScaleProcessor(c.FileSystem, mj, md, nj, nd)
 	if err != nil {
@@ -236,7 +236,7 @@ func (c *Applier) installApp() error {
 }
 
 func (c *Applier) initCluster() error {
-	logger.Info("Start to create a new cluster")
+	logger.Info("Start to create a new cluster: master %s, worker %s", c.ClusterDesired.GetMasterIPList(), c.ClusterDesired.GetNodeIPList())
 	createProcessor, err := processor.NewCreateProcessor()
 	if err != nil {
 		return err
@@ -252,7 +252,6 @@ func (c *Applier) initCluster() error {
 }
 
 func (c *Applier) deleteCluster() error {
-	logger.Info("Start to delete current cluster")
 	deleteProcessor, err := processor.NewDeleteProcessor()
 	if err != nil {
 		return err
