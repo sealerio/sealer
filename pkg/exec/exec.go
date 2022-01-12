@@ -59,20 +59,20 @@ func NewExecCmd(clusterName string, roles string) (Exec, error) {
 	return Exec{cluster: cluster, ipList: ipList}, nil
 }
 
-func (exec *Exec) RunCmd(args ...string) error {
+func (e *Exec) RunCmd(cmd string) error {
 	eg, _ := errgroup.WithContext(context.Background())
-	ipList := exec.ipList
-	for _, ip := range ipList {
-		ip := ip
+	for _, ipAddr := range e.ipList {
+		ip := ipAddr
 		eg.Go(func() error {
-			sshClient, sshErr := ssh.GetHostSSHClient(ip, exec.cluster)
+			sshClient, sshErr := ssh.GetHostSSHClient(ip, e.cluster)
 			if sshErr != nil {
 				return sshErr
 			}
-			err := sshClient.CmdAsync(ip, args...)
+			bytes, err := sshClient.Cmd(ip, cmd)
 			if err != nil {
 				return err
 			}
+			fmt.Println(string(bytes))
 			return nil
 		})
 	}
