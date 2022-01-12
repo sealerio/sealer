@@ -15,16 +15,20 @@
 package proxy
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/alibaba/sealer/logger"
 	"github.com/distribution/distribution/v3/registry/client/auth"
 	"github.com/distribution/distribution/v3/registry/client/auth/challenge"
 )
 
 // comment this const because not used
 //const challengeHeader = "Docker-Distribution-Api-Version"
+
+const certUnknown = "x509: certificate signed by unknown authority"
 
 type userpass struct {
 	username string
@@ -73,7 +77,15 @@ func getAuthURLs(remoteURL string) ([]string, error) {
 
 	resp, err := http.Get(remoteURL + "/v2/")
 	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), certUnknown) {
+			logger.Warn("create connect with unauthenticated registry url: %s", remoteURL)
+			resp, err = newClientSkipVerify().Get(remoteURL + "/v2/")
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 	defer resp.Body.Close()
 
@@ -90,9 +102,27 @@ func getAuthURLs(remoteURL string) ([]string, error) {
 func ping(manager challenge.Manager, endpoint string) error {
 	resp, err := http.Get(endpoint)
 	if err != nil {
-		return err
+		if strings.Contains(err.Error(), certUnknown) {
+			resp, err = newClientSkipVerify().Get(endpoint)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	defer resp.Body.Close()
 
 	return manager.AddResponse(resp)
+}
+
+// #nosec
+func newClientSkipVerify() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
 }

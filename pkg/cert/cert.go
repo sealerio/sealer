@@ -88,6 +88,7 @@ func NewSelfSignedCACert(key crypto.Signer, commonName string, organization []st
 			CommonName:   commonName,
 			Organization: organization,
 		},
+		DNSNames:              []string{commonName},
 		NotBefore:             now.UTC(),
 		NotAfter:              now.Add(duration365d * year).UTC(),
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,

@@ -16,8 +16,10 @@ package proxy
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/distribution/distribution/v3"
@@ -131,6 +133,7 @@ func (pr *proxyingRegistry) Repositories(ctx context.Context, repos []string, la
 	return pr.embedded.Repositories(ctx, repos, last)
 }
 
+// #nosec
 func (pr *proxyingRegistry) Repository(ctx context.Context, name reference.Named) (distribution.Repository, error) {
 	c := pr.authChallenger
 
@@ -145,10 +148,17 @@ func (pr *proxyingRegistry) Repository(ctx context.Context, name reference.Named
 		},
 		Logger: dcontext.GetLogger(ctx),
 	}
-
 	tr := transport.NewTransport(http.DefaultTransport,
 		auth.NewAuthorizer(c.challengeManager(),
 			auth.NewTokenHandlerWithOptions(tkopts)))
+
+	tryClient := &http.Client{Transport: tr}
+	_, err := tryClient.Get(pr.remoteURL.String())
+	if err != nil && strings.Contains(err.Error(), certUnknown) {
+		tr = transport.NewTransport(&http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+			auth.NewAuthorizer(c.challengeManager(),
+				auth.NewTokenHandlerWithOptions(tkopts)))
+	}
 
 	localRepo, err := pr.embedded.Repository(ctx, name)
 	if err != nil {
