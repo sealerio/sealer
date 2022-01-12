@@ -39,11 +39,11 @@ var checkCmd = &cobra.Command{
 		if checkArgs.Pre && checkArgs.Post {
 			return fmt.Errorf("don't allow to set two flags --pre and --post")
 		}
-
+		list := []checker.Interface{checker.NewNodeChecker(), checker.NewSvcChecker(), checker.NewPodChecker()}
 		if checkArgs.Pre {
-			return checker.RunViewCheckList(nil)
+			return checker.RunCheckList(list, nil, checker.PhasePre)
 		}
-		return checker.RunViewCheckList(nil)
+		return checker.RunCheckList(list, nil, checker.PhasePost)
 	},
 }
 

@@ -43,7 +43,7 @@ type NodeClusterStatus struct {
 }
 
 func (n *NodeChecker) Check(cluster *v2.Cluster, phase string) error {
-	if phase != PhasePost && phase != PhaseView {
+	if phase != PhasePost {
 		return nil
 	}
 	// checker if all the node is ready
@@ -69,19 +69,16 @@ func (n *NodeChecker) Check(cluster *v2.Cluster, phase string) error {
 			readyCount++
 		}
 	}
-	if phase == PhaseView {
-		nodeCount = notReadyCount + readyCount
-		nodeClusterStatus := NodeClusterStatus{
-			ReadyCount:       readyCount,
-			NotReadyCount:    notReadyCount,
-			NodeCount:        nodeCount,
-			NotReadyNodeList: notReadyNodeList,
-		}
-		err = n.Output(nodeClusterStatus)
-		if err != nil {
-			return err
-		}
-		return nil
+	nodeCount = notReadyCount + readyCount
+	nodeClusterStatus := NodeClusterStatus{
+		ReadyCount:       readyCount,
+		NotReadyCount:    notReadyCount,
+		NodeCount:        nodeCount,
+		NotReadyNodeList: notReadyNodeList,
+	}
+	err = n.Output(nodeClusterStatus)
+	if err != nil {
+		return err
 	}
 	if notReadyCount != 0 {
 		return fmt.Errorf("check node %v not ready", notReadyNodeList)
