@@ -32,6 +32,7 @@ disable_selinux(){
         setenforce 0
     fi
 }
+set -e
 set -x
 storage=${1:-/var/lib/docker}
 mkdir -p $storage
