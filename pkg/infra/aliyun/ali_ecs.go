@@ -136,9 +136,12 @@ func (a *AliProvider) CreatePassword() {
 	all := digits + specials + letter
 	length := PasswordLength
 	buf := make([]byte, length)
+	// #nosec
 	buf[0] = digits[rand.Intn(len(digits))]
+	// #nosec
 	buf[1] = specials[rand.Intn(len(specials))]
 	for i := 2; i < length; i++ {
+		// #nosec
 		buf[i] = all[rand.Intn(len(all))]
 	}
 	rand.Shuffle(len(buf), func(i, j int) {

@@ -69,7 +69,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 			v.SetLabels(m)
 			v.SetResourceVersion("")
 
-			if _, err := l.client.UpdateNode(&v); err != nil {
+			if _, err := l.client.UpdateNode(v); err != nil {
 				return fmt.Errorf("current cluster nodes label failed, %v", err)
 			}
 		}

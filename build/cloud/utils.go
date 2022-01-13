@@ -19,6 +19,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/alibaba/sealer/utils/archive"
 )
 
@@ -27,7 +29,12 @@ func tarBuildContext(kubeFilePath string, context string, tarFileName string) er
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", tarFileName, err)
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 
 	var pathsToCompress []string
 	pathsToCompress = append(pathsToCompress, kubeFilePath, context)

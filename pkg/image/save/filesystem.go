@@ -25,6 +25,8 @@ import (
 	"path"
 	"time"
 
+	"github.com/alibaba/sealer/logger"
+
 	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/distribution/distribution/v3/registry/storage/driver/base"
 	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
@@ -151,7 +153,11 @@ func (d *driver) PutContent(ctx context.Context, subPath string, contents []byte
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
+	defer func() {
+		if err := writer.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	_, err = io.Copy(writer, bytes.NewReader(contents))
 	if err != nil {
 		return writer.Cancel()
@@ -195,7 +201,7 @@ func (d *driver) Writer(ctx context.Context, subPath string, append bool) (stora
 	if err := os.MkdirAll(parentDir, 0750); err != nil {
 		return nil, err
 	}
-
+	// #nosec
 	fp, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, err
@@ -243,7 +249,7 @@ func (d *driver) Stat(ctx context.Context, subPath string) (storagedriver.FileIn
 // path.
 func (d *driver) List(ctx context.Context, subPath string) ([]string, error) {
 	fullPath := d.fullPath(subPath)
-
+	// #nosec
 	dir, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -252,8 +258,11 @@ func (d *driver) List(ctx context.Context, subPath string) ([]string, error) {
 		return nil, err
 	}
 
-	defer dir.Close()
-
+	defer func() {
+		if err := dir.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	fileNames, err := dir.Readdirnames(0)
 	if err != nil {
 		return nil, err

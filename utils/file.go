@@ -65,7 +65,11 @@ func ReadLines(fileName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	br := bufio.NewReader(file)
 	for {
 		line, _, c := br.ReadLine()
@@ -88,8 +92,11 @@ func ReadAll(fileName string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
-
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	// step3：read file content
 	content, err := ioutil.ReadFile(filepath.Clean(fileName))
 	if err != nil {
@@ -303,13 +310,21 @@ func CopySingleFile(src, dst string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer source.Close()
+	defer func() {
+		if err := source.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	//will overwrite dst when dst is existed
 	destination, err := os.Create(dst)
 	if err != nil {
 		return 0, err
 	}
-	defer destination.Close()
+	defer func() {
+		if err := destination.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	err = destination.Chmod(sourceFileStat.Mode())
 	if err != nil {
 		return 0, err

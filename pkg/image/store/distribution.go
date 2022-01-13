@@ -19,6 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/opencontainers/go-digest"
 
 	"github.com/alibaba/sealer/utils"
@@ -44,8 +46,11 @@ func (fs *filesystem) LoadDistributionMetadata(layerID LayerID) (map[string]dige
 		//lint:ignore nilerr https://github.com/alibaba/sealer/issues/610
 		return res, nil // ignore
 	}
-	defer distributionMetadataFile.Close()
-
+	defer func() {
+		if err := distributionMetadataFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	err = json.NewDecoder(distributionMetadataFile).Decode(&metadatas)
 	if err != nil {
 		return res, err

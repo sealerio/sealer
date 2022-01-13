@@ -117,6 +117,7 @@ func DisassembleIPList(arg string) (res []string) {
 	ipList := strings.Split(arg, ",")
 	for _, i := range ipList {
 		if strings.Contains(i, "-") {
+			// #nosec
 			if err := AssemblyIPList(&i); err != nil {
 				fmt.Printf("failed to get Addrs, %s", err.Error())
 				continue

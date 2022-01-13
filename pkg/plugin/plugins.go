@@ -103,6 +103,7 @@ func (c *PluginsProcessor) Run(cluster *v2.Cluster, phase Phase) error {
 		if !ok {
 			return InvalidPluginTypeError{config.Spec.Type}
 		}
+		// #nosec
 		err := p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 		if err != nil {
 			return err

@@ -20,6 +20,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/moby/term"
 )
 
@@ -79,7 +81,11 @@ func (t TTY) Safe(fn SafeFunc) error {
 
 	if !isTerminal && t.TryDev {
 		if f, err := os.Open("/dev/tty"); err == nil {
-			defer f.Close()
+			defer func() {
+				if err := f.Close(); err != nil {
+					logger.Fatal("failed to close file")
+				}
+			}()
 			inFd = f.Fd()
 			isTerminal = term.IsTerminal(inFd)
 		}

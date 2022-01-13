@@ -59,7 +59,7 @@ func (n *PodChecker) Check(cluster *v2.Cluster, phase string) error {
 		var podCount uint32
 		var notRunningPodList []*corev1.Pod
 		for _, pod := range podNamespace.PodList.Items {
-			if err := getPodReadyStatus(&pod); err != nil {
+			if err := getPodReadyStatus(pod); err != nil {
 				notRunningCount++
 				newPod := pod
 				notRunningPodList = append(notRunningPodList, &newPod)
@@ -111,7 +111,7 @@ func (n *PodChecker) Output(podNamespaceStatusList []PodNamespaceStatus) error {
 	return nil
 }
 
-func getPodReadyStatus(pod *corev1.Pod) error {
+func getPodReadyStatus(pod corev1.Pod) error {
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == "Ready" {
 			if condition.Status == "True" {

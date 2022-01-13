@@ -184,7 +184,11 @@ func (f *fileLogger) lines() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer fd.Close()
+	defer func() {
+		if err := fd.Close(); err != nil {
+			fmt.Println("failed to close file", err)
+		}
+	}()
 
 	buf := make([]byte, 32768) // 32k
 	count := 0
