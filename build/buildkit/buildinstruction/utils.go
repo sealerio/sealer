@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	fsutil "github.com/tonistiigi/fsutil/copy"
 
@@ -130,4 +131,14 @@ func GetBaseLayersPath(layers []v1.Layer) (res []string) {
 		}
 	}
 	return res
+}
+
+func ParseCopyLayerContent(layerValue string) (src, dst string) {
+	dst = strings.Fields(layerValue)[1]
+	for _, p := range []string{"./", "/"} {
+		dst = strings.TrimPrefix(dst, p)
+	}
+	dst = strings.TrimSuffix(dst, "/")
+	src = strings.Fields(layerValue)[0]
+	return
 }

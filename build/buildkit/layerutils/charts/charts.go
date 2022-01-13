@@ -12,16 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildlayer
+package charts
 
-const (
-	IsCopyToManifests  = "manifests"
-	IsCopyToChart      = "charts"
-	IsCopyOfflineImage = "images"
-	ImageList          = "imageList"
+import (
+	"fmt"
 
-	ImageListHandler    = "imageList"
-	ChartHandler        = "chart"
-	YamlHandler         = "yaml"
-	OfflineImageHandler = "offlineImage"
+	"github.com/alibaba/sealer/build/buildkit/layerutils"
 )
+
+type Charts struct{}
+
+// ListImages List all the containers images in helm charts
+func (charts *Charts) ListImages(chartPath string) ([]string, error) {
+	var list []string
+	images, err := GetImageList(chartPath)
+	if err != nil {
+		return list, fmt.Errorf("get images failed,chart path:%s, err: %s", chartPath, err)
+	}
+	if len(images) != 0 {
+		list = append(list, images...)
+	}
+	return list, nil
+}
+
+func NewCharts() (layerutils.Interface, error) {
+	return &Charts{}, nil
+}

@@ -136,12 +136,11 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
 	}
-	src, dest := buildlayer.ParseCopyLayerContent(ctx.CurrentLayer.Value)
+	src, dest := ParseCopyLayerContent(ctx.CurrentLayer.Value)
 	return &CopyInstruction{
-		fs:           fs,
-		layerHandler: buildlayer.ParseLayerContent(ctx.Rootfs, ctx.CurrentLayer),
-		rawLayer:     *ctx.CurrentLayer,
-		src:          src,
-		dest:         dest,
+		fs:       fs,
+		rawLayer: *ctx.CurrentLayer,
+		src:      src,
+		dest:     dest,
 	}, nil
 }

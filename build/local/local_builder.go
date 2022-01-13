@@ -98,7 +98,6 @@ func (l *Builder) GetBuildPipeLine() ([]func() error, error) {
 func (l *Builder) ExecBuild() error {
 	ctx := buildimage.Context{
 		BuildContext: l.Context,
-		BuildType:    l.BuildType,
 		UseCache:     !l.NoCache,
 	}
 
