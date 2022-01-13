@@ -43,7 +43,7 @@ func init() {
 }
 
 func (l LabelsNodes) Run(context Context, phase Phase) error {
-	if phase != PhasePostInstall || context.Plugin.Spec.Type != LabelPlugin {
+	if phase != PhasePreGuest || context.Plugin.Spec.Type != LabelPlugin {
 		logger.Debug("label nodes is PostInstall!")
 		return nil
 	}
