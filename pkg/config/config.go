@@ -16,7 +16,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
@@ -80,11 +79,7 @@ func (c *Dumper) WriteFiles() error {
 		return nil
 	}
 	for _, config := range c.Configs {
-		err := utils.WriteFile(filepath.Join(common.DefaultTheClusterRootfsDir(c.ClusterName), config.Spec.Path), []byte(config.Spec.Data))
-		if err != nil {
-			return fmt.Errorf("write config fileed %v", err)
-		}
-		err = ioutil.WriteFile(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterName), config.Spec.Path), []byte(config.Spec.Data), common.FileMode0644)
+		err := utils.WriteFile(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterName), config.Spec.Path), []byte(config.Spec.Data))
 		if err != nil {
 			return fmt.Errorf("write config file failed %v", err)
 		}
