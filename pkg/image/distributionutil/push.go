@@ -222,7 +222,13 @@ func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, n
 
 func (pusher *ImagePusher) putManifestConfig(ctx context.Context, image v1.Image) ([]byte, error) {
 	repo := pusher.repository
-	configJSON, err := json.Marshal(image)
+
+	dockerImageConfig, err := addDockerManifestConfig(image)
+	if err != nil {
+		return nil, err
+	}
+
+	configJSON, err := json.Marshal(dockerImageConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -234,6 +240,43 @@ func (pusher *ImagePusher) putManifestConfig(ctx context.Context, image v1.Image
 	}
 
 	return configJSON, err
+}
+
+type dockerImageLayerInfo struct {
+	Created    string `json:"created,omitempty"`
+	CreatedBy  string `json:"created_by,omitempty"`
+	EmptyLayer bool   `json:"empty_layer,omitempty"`
+}
+
+type dockerManifestConfig struct {
+	v1.Image
+	Architecture string                 `json:"architecture,omitempty"`
+	OS           string                 `json:"os,omitempty"`
+	History      []dockerImageLayerInfo `json:"history,omitempty"`
+}
+
+func addDockerManifestConfig(image v1.Image) (*dockerManifestConfig, error) {
+	var dockerImage = &dockerManifestConfig{}
+	config, err := json.Marshal(image)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(config, dockerImage)
+	if err != nil {
+		return nil, err
+	}
+
+	dockerImage.OS = image.Spec.Platform.OS
+	dockerImage.Architecture = image.Spec.Platform.Architecture
+
+	for _, layer := range image.Spec.Layers {
+		var tmpLayerInfo = dockerImageLayerInfo{CreatedBy: layer.Type + " " + layer.Value}
+		if layer.ID == "" {
+			tmpLayerInfo.EmptyLayer = true
+		}
+		dockerImage.History = append(dockerImage.History, tmpLayerInfo)
+	}
+	return dockerImage, nil
 }
 
 func buildBlobs(dig digest.Digest, size int64, mediaType string) distribution.Descriptor {
