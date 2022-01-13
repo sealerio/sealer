@@ -55,15 +55,17 @@ func (k *KubeadmRuntime) setKubeadmAPIVersion() {
 }
 
 // getCgroupDriverFromShell is get nodes container runtime CGroup by shell.
-func (k *KubeadmRuntime) getCgroupDriverFromShell(node string) string {
+func (k *KubeadmRuntime) getCgroupDriverFromShell(node string) (string, error) {
 	var cmd string
 	if k.InitConfiguration.NodeRegistration.CRISocket == DefaultContainerdCRISocket {
 		cmd = ContainerdShell
 	} else {
 		cmd = DockerShell
 	}
-	driver := k.CmdToString(node, cmd, " ")
-	//driver, err := k.SSH.CmdToString(node, cmd, " ")
+	driver, err := k.CmdToString(node, cmd, " ")
+	if err != nil {
+		return "", fmt.Errorf("failed to get nodes [%s] cgroup driver: %v", node, err)
+	}
 	if driver == "" {
 		// by default if we get wrong output we set it default systemd?
 		logger.Error("failed to get nodes [%s] cgroup driver", node)
@@ -71,7 +73,7 @@ func (k *KubeadmRuntime) getCgroupDriverFromShell(node string) string {
 	}
 	driver = strings.TrimSpace(driver)
 	logger.Debug("get nodes [%s] cgroup driver is [%s]", node, driver)
-	return driver
+	return driver, nil
 }
 
 func (k *KubeadmRuntime) MergeKubeadmConfig() error {
