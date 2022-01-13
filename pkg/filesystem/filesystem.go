@@ -233,7 +233,10 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 			if err != nil {
 				return err
 			}
-			cmd := fmt.Sprintf("%s && %s && %s", execClean, rmRootfs, rmDockerCert)
+			cmd := fmt.Sprintf("%s && %s", rmRootfs, rmDockerCert)
+			if exists := SSH.IsFileExist(ip, fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)); exists {
+				cmd = fmt.Sprintf("%s && %s", execClean, cmd)
+			}
 			if mounted, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mounted {
 				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
 			}
