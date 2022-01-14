@@ -140,6 +140,10 @@ func (k *KubeadmRuntime) GenerateCert() error {
 	if err != nil {
 		return err
 	}
+	err = k.sendRegistryCertAndKey()
+	if err != nil {
+		return err
+	}
 	return k.sendRegistryCert(k.getMasterIPList()[:1])
 }
 

@@ -63,6 +63,7 @@ func (k *KubeadmRuntime) resetNode(node string) error {
 		return fmt.Errorf("reset node failed %v", err)
 	}
 	if err := ssh.CmdAsync(node, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
+		RemoveKubeConfig,
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP()))); err != nil {
 		return err

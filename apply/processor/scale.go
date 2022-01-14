@@ -50,7 +50,7 @@ func (s ScaleProcessor) Execute(cluster *v2.Cluster) error {
 	if s.IsScaleUp {
 		return s.ScaleUp(cluster)
 	}
-	return s.ScaleDown()
+	return s.ScaleDown(cluster)
 }
 
 func (s ScaleProcessor) ScaleUp(cluster *v2.Cluster) error {
@@ -70,7 +70,7 @@ func (s ScaleProcessor) ScaleUp(cluster *v2.Cluster) error {
 	return nil
 }
 
-func (s ScaleProcessor) ScaleDown() error {
+func (s ScaleProcessor) ScaleDown(cluster *v2.Cluster) error {
 	err := s.Runtime.DeleteMasters(s.MastersToDelete)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func (s ScaleProcessor) ScaleDown() error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return s.FileSystem.UnMountRootfs(cluster, append(s.MastersToDelete, s.NodesToDelete...))
 }
 
 func NewScaleProcessor(fs filesystem.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {

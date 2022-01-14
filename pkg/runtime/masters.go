@@ -58,8 +58,8 @@ const (
 modprobe -r ipip  && lsmod && \
 rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
-rm -rf /usr/bin/kubelet-pre-start.sh && \
-rm -rf /usr/bin/kube* && rm -rf /usr/bin/crictl && \
+rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
+rm -rf /usr/bin/kubelet && rm -rf /usr/bin/crictl && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd && rm -rf /var/etcd 
 `
@@ -147,10 +147,10 @@ func (k *KubeadmRuntime) sendKubeConfigFile(hosts []string, kubeFile string) err
 }
 
 func (k *KubeadmRuntime) sendNewCertAndKey(hosts []string) error {
-	err := k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
-	if err != nil {
-		return err
-	}
+	return k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
+}
+
+func (k *KubeadmRuntime) sendRegistryCertAndKey() error {
 	return k.sendFileToHosts(k.getMasterIPList()[:1], k.getCertsDir(), filepath.Join(k.getRootfs(), "certs"))
 }
 
