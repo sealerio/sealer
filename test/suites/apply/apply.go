@@ -127,7 +127,7 @@ func SealerDeleteCmd(clusterFile string) string {
 }
 
 func SealerApplyCmd(clusterFile string) string {
-	return fmt.Sprintf("%s apply -f %s -d", settings.DefaultSealerBin, clusterFile)
+	return fmt.Sprintf("%s apply -f %s --force -d", settings.DefaultSealerBin, clusterFile)
 }
 
 func SealerRunCmd(masters, nodes, passwd string, provider string) string {
