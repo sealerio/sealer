@@ -71,8 +71,8 @@ func (r registry) Process(src, dst buildinstruction.MountTarget) error {
 	if err := eg.Wait(); err != nil {
 		return err
 	}
-	platform := runtime.GetCloudImagePlatform(rootfs)
-	return r.puller.SaveImages(images, filepath.Join(rootfs, common.RegistryDirName), platform)
+	plat := runtime.GetCloudImagePlatform(rootfs)
+	return r.puller.SaveImages(images, filepath.Join(rootfs, common.RegistryDirName), plat)
 }
 
 func NewRegistryDiffer() Differ {
@@ -113,6 +113,9 @@ func parseChartImages(srcPath string) ([]string, error) {
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	return FormatImages(images), nil
 }
 
