@@ -225,7 +225,7 @@ func (pusher *ImagePusher) putManifestConfig(ctx context.Context, image v1.Image
 
 	dockerImageConfig, err := addDockerManifestConfig(image)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("add docker manifest config error: %s", err)
 	}
 
 	configJSON, err := json.Marshal(dockerImageConfig)
@@ -248,6 +248,7 @@ type dockerImageLayerInfo struct {
 	EmptyLayer bool   `json:"empty_layer,omitempty"`
 }
 
+//wrap v1.Image with docker image config fields
 type dockerManifestConfig struct {
 	v1.Image
 	Architecture string                 `json:"architecture,omitempty"`
@@ -255,6 +256,8 @@ type dockerManifestConfig struct {
 	History      []dockerImageLayerInfo `json:"history,omitempty"`
 }
 
+// add docker image config fields to display some metedata on docker hub
+// os, architecture and each layer command
 func addDockerManifestConfig(image v1.Image) (*dockerManifestConfig, error) {
 	var dockerImage = &dockerManifestConfig{}
 	config, err := json.Marshal(image)
