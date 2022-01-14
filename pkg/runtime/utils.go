@@ -161,12 +161,15 @@ func GetCloudImagePlatform(rootfs string) (cp ocispecs.Platform) {
 		Architecture: "amd64",
 		OS:           "linux",
 		Variant:      "",
+		OSVersion:    "",
 	}
 	meta, err := LoadMetadata(rootfs)
 	if err != nil {
 		return
 	}
-
+	if meta == nil {
+		return
+	}
 	if meta.Arch != "" {
 		cp.Architecture = meta.Arch
 	}
