@@ -20,8 +20,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/utils/ssh"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/pkg/runtime"
@@ -86,9 +84,6 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	c.cluster.Spec.Env = c.runArgs.CustomEnv
 	if c.runArgs.Password != "" {
 		c.cluster.Spec.SSH.Passwd = c.runArgs.Password
-	}
-	if c.runArgs.Port == "" {
-		c.runArgs.Port = ssh.DefaultSSHPort
 	}
 	if IsIPList(c.runArgs.Masters) && (IsIPList(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
 		masters := strings.Split(c.runArgs.Masters, ",")
