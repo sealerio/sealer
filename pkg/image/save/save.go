@@ -105,7 +105,9 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 	if err := eg.Wait(); err != nil {
 		return err
 	}
-	progress.Message(is.progressOut, "", "Status: images save success")
+	if len(images) != 0 {
+		progress.Message(is.progressOut, "", "Status: images save success")
+	}
 	return nil
 }
 
