@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
@@ -95,23 +94,25 @@ func parseChartImages(srcPath string) ([]string, error) {
 		return nil, err
 	}
 
-	files, err := ioutil.ReadDir(chartsPath)
-	if err != nil {
-		return images, fmt.Errorf("failed to walk charts dir:%s", err)
-	}
-
-	for _, file := range files {
-		if !file.IsDir() {
-			continue
-		}
-		path := filepath.Join(chartsPath, file.Name())
-		ima, err := imageSearcher.ListImages(path)
+	err = filepath.Walk(chartsPath, func(path string, f fs.FileInfo, err error) error {
 		if err != nil {
-			return nil, fmt.Errorf("failed to render charts %s:%v", file.Name(), err)
+			return err
 		}
 
-		images = append(images, ima...)
-	}
+		if !f.IsDir() {
+			return nil
+		}
+
+		if utils.IsExist(filepath.Join(path, "Chart.yaml")) && utils.IsExist(filepath.Join(path, "values.yaml")) &&
+			utils.IsExist(filepath.Join(path, "templates")) {
+			ima, err := imageSearcher.ListImages(path)
+			if err != nil {
+				return err
+			}
+			images = append(images, ima...)
+		}
+		return nil
+	})
 	return FormatImages(images), nil
 }
 
