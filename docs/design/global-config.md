@@ -15,7 +15,7 @@ Use global configuration capabilities
 For the image builder, this parameter needs to be extracted when making the image.
 Take the yaml of the dashboard as an example:
 
-dashboard.yaml:
+dashboard.yaml.tmpl:
 
 ```yaml
 ...
@@ -38,9 +38,11 @@ spec:
 To write kubefile, you need to copy yaml to the "manifests" directory at this time,
 sealer only renders the files in this directory:
 
+sealer will render the .tmpl file and create a new file named `dashboard.yaml`
+
 ```yaml
 FROM kubernetes:1.16.9
-COPY dashobard.yaml manifests/
+COPY dashobard.yaml.tmpl manifests/ # only support render template files in `manifests etc charts` dirs
 CMD kubectl apply -f manifests/dashobard.yaml
 ```
 
@@ -59,14 +61,14 @@ metadata:
   name: my-cluster
 spec:
   image: mydashobard:latest
-  provider: BAREMETAL
   env:
     DashBoardPort=6443 # Specify a custom port here, which will be rendered into the mirrored yaml
-  ssh:
-    passwd:
-    pk: xxx
 ...
 ```
+
+## Using Env in shell plugin or other scripts
+
+[Using env in scripts](https://github.com/alibaba/sealer/blob/main/docs/design/clusterfile-v2.md#using-env-in-configs-and-script)
 
 ## Application config
 
@@ -116,29 +118,6 @@ FROM kuberentes:v1.19.9
 CMD helm install mysql -f etc/mysql-config.yaml
 CMD helm install mysql -f etc/redis-config.yaml
 ```
-
-## Use with helm
-
-The sealer will also generate a very complete Clusterfile file to the etc directory when it is running,
-which means that these parameters can be obtained in a certain way in the helm chart.
-
-The chart values ​​of the dashboard can be written like this:
-
-```yaml
-spec:
-  env:
-    - DashboardPort=6443
-```
-
-Kubefile:
-
-```shell script
-FROM kubernetes:v1.16.9
-COPY dashboard-chart.
-CMD helm install dashboard dashboard-chart -f etc/global.yaml
-```
-
-In this way, the value in global.yaml will override the default port parameter in the dashboard.
 
 ## Development Document
 
