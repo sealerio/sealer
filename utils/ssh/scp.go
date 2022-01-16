@@ -15,7 +15,6 @@
 package ssh
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -45,6 +44,7 @@ const (
 )
 
 var (
+	displayInitOnce sync.Once
 	reader          *io.PipeReader
 	writer          *io.PipeWriter
 	writeFlusher    *dockerioutils.WriteFlusher
@@ -60,7 +60,7 @@ type easyProgressUtil struct {
 }
 
 //must call DisplayInit first
-func RegisterEpu(ip string, total int) {
+func registerEpu(ip string, total int) {
 	if progressChanOut == nil {
 		logger.Warn("call DisplayInit first")
 		return
@@ -90,28 +90,19 @@ func (epu *easyProgressUtil) startMessage() {
 	progress.Update(epu.output, epu.copyID, fmt.Sprintf("%d/%d", epu.completeNumber, epu.total))
 }
 
-//this func receive an argument created by context.WithCancel()
-//this func can only be ended by calling cancel()
-func DisplayInit(ctx context.Context) {
-	var initOnce sync.Once
-	initOnce.Do(displayInit)
-}
-
-//better call DisplayInit instead of this func
 func displayInit() {
 	reader, writer = io.Pipe()
 	writeFlusher = dockerioutils.NewWriteFlusher(writer)
+	defer func() {
+		_ = reader.Close()
+		_ = writer.Close()
+		_ = writeFlusher.Close()
+	}()
 	progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
 	err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
 	if err != nil && err != io.ErrClosedPipe {
 		logger.Warn("error occurs in display progressing, err: %s", err)
 	}
-}
-
-func DisplayClean() {
-	_ = reader.Close()
-	_ = writer.Close()
-	_ = writeFlusher.Close()
 }
 
 func (s *SSH) RemoteMd5Sum(host, remoteFilePath string) string {
@@ -198,6 +189,7 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 
 // CopyLocalToRemote is copy file or dir to remotePath, add md5 validate
 func (s *SSH) Copy(host, localPath, remotePath string) error {
+	go displayInitOnce.Do(displayInit)
 	if utils.IsLocalIP(host, s.LocalAddress) {
 		logger.Debug("local copy files src %s to dst %s", localPath, remotePath)
 		return utils.RecursionCopy(localPath, remotePath)
@@ -234,7 +226,10 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	}
 	epu, ok := epuMap[host]
 	if !ok {
-		logger.Warn("%s didn't register", host)
+		registerEpu(host, number)
+		epu = epuMap[host]
+	} else {
+		epu.total += number
 	}
 
 	epu.startMessage()
