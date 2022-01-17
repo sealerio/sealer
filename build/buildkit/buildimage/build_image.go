@@ -17,12 +17,10 @@ package buildimage
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/alibaba/sealer/pkg/runtime"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/pkg/errors"
-	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/common"
@@ -30,6 +28,7 @@ import (
 	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -144,23 +143,12 @@ func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
 		return err
 	}
 
-	cluster, err := b.getImageCluster()
-	if err != nil {
-		return err
-	}
-	cluster.Spec.Image = name
-	err = setClusterFileToImage(cluster, b.RawImage)
-	if err != nil {
-		return fmt.Errorf("failed to set image metadata, err: %v", err)
-	}
-
 	layers, err := b.collectLayers(opts)
 	if err != nil {
 		return err
 	}
 
 	b.RawImage.Spec.Layers = layers
-
 	err = b.save(name)
 	if err != nil {
 		return fmt.Errorf("failed to save image metadata, err: %v", err)
@@ -203,27 +191,27 @@ func (b BuildImage) collectRootfsDiff() (v1.Layer, error) {
 	return layer, nil
 }
 
-func (b BuildImage) getImageCluster() (*v2.Cluster, error) {
-	var cluster v2.Cluster
-	rawClusterFile, err := GetRawClusterFile(b.RawImage.Spec.Layers[0].Value, b.NewLayers)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get base image err: %s", err)
-	}
-
-	if err := yaml.Unmarshal([]byte(rawClusterFile), &cluster); err != nil {
-		return nil, err
-	}
-
-	return &cluster, nil
-}
-
 func (b BuildImage) save(name string) error {
+	mi, err := GetLayerMountInfo(b.RawImage.Spec.Layers, b.BuildType)
+	if err != nil {
+		return err
+	}
+	defer mi.CleanUp()
+
+	rootfsPath := mi.GetMountTarget()
+	b.RawImage.Name = name
+	is := []ImageSetter{NewAnnotationSetter(rootfsPath), NewPlatformSetter(rootfsPath)}
+	for _, s := range is {
+		if err = s.Set(b.RawImage); err != nil {
+			return err
+		}
+	}
 	imageID, err := generateImageID(*b.RawImage)
 	if err != nil {
 		return err
 	}
 	b.RawImage.Spec.ID = imageID
-	b.RawImage.Name = name
+
 	return b.ImageStore.Save(*b.RawImage, name)
 }
 
@@ -293,4 +281,51 @@ func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 		NewLayers:       newLayers,
 		RootfsMountInfo: mountInfo,
 	}, nil
+}
+
+type annotation struct {
+	source string
+}
+
+func (a annotation) Set(ima *v1.Image) error {
+	return a.setClusterFile(ima)
+}
+
+func (a annotation) setClusterFile(ima *v1.Image) error {
+	cluster, err := LoadClusterFile(filepath.Join(a.source, "etc", common.DefaultClusterFileName))
+	if err != nil {
+		return fmt.Errorf("failed to load clusterfile, err: %v", err)
+	}
+	cluster.Spec.Image = ima.Name
+	err = setClusterFileToImage(cluster, ima)
+	if err != nil {
+		return fmt.Errorf("failed to set image metadata, err: %v", err)
+	}
+	return nil
+}
+
+func NewAnnotationSetter(rootfs string) ImageSetter {
+	return annotation{
+		source: rootfs,
+	}
+}
+
+type platform struct {
+	source string
+}
+
+func (p platform) Set(ima *v1.Image) error {
+	plat := runtime.GetCloudImagePlatform(p.source)
+	ima.Spec.Platform = v1.Platform{
+		Architecture: plat.Architecture,
+		OS:           plat.OS,
+		OSVersion:    plat.OSVersion,
+		Variant:      plat.Variant,
+	}
+	return nil
+}
+func NewPlatformSetter(rootfs string) ImageSetter {
+	return platform{
+		source: rootfs,
+	}
 }
