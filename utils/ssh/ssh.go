@@ -55,6 +55,7 @@ type SSH struct {
 	isStdout     bool
 	User         string
 	Password     string
+	Port         string
 	PkFile       string
 	PkPassword   string
 	Timeout      *time.Duration
@@ -72,6 +73,7 @@ func NewSSHByCluster(cluster *v1.Cluster) Interface {
 	return &SSH{
 		User:         cluster.Spec.SSH.User,
 		Password:     cluster.Spec.SSH.Passwd,
+		Port:         cluster.Spec.SSH.Port,
 		PkFile:       cluster.Spec.SSH.Pk,
 		PkPassword:   cluster.Spec.SSH.PkPasswd,
 		LocalAddress: address,
@@ -90,6 +92,7 @@ func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 		isStdout:     isStdout,
 		User:         ssh.User,
 		Password:     ssh.Passwd,
+		Port:         ssh.Port,
 		PkFile:       ssh.Pk,
 		PkPassword:   ssh.PkPasswd,
 		LocalAddress: address,

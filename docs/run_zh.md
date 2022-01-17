@@ -12,12 +12,20 @@ $ sealer run kubernetes:v1.19.8 -m 3 -n 3 -p [自定义密码] --provider ALI_CL
 $ sealer run kubernetes:v1.19.8 -m 3 -n 3 -p [自定义密码] --provider CONTAINER #CONTAINER模式 自定义节点数量
 或
 $ sealer run kubernetes:v1.19.8 -m 192.168.56.113,192.168.56.114 -n 192.168.56.115,192.168.56.116 -p xxx  #BAREMETAL模式 使用已有机器
+#指定ssh访问端口（默认使用22端口）：
+##服务器ssh端口相同:
+$ sealer run kubernetes:v1.19.8 -m 192.168.0.2,192.168.0.3,192.168.0.4 \
+  -n 192.168.0.5,192.168.0.6,192.168.0.7 --port 24 -p xxx
+##服务器ssh端口不同:
+$ sealer run kubernetes:v1.19.8 -m 192.168.0.2,192.168.0.3:23,192.168.0.4:24 \
+  -n 192.168.0.5:25,192.168.0.6:26,192.168.0.7:27 -p xxx
 
   -m, --masters : master节点数量
   -n, --nodes   : node 节点数量
   -u, --user    : 机器用户名，默认为root用户
   -p, --passwd  : 为[CLOUD | CONTAINER]模式自定义密码，BAREMETAL模式为已有机器密码
   -e, --env     : 设置自定义环境变量
+  --port        : 指定服务器ssh访问端口
   --provider    : 设置启动模式：[ALI_CLOUD | CONTAINER ｜BAREMETAL]，默认为BAREMETAL
   --pk          : BAREMETAL模式设置私钥文件，默认为$HOME/.ssh/id_rsa文件
   --pk-passwd   : BAREMETAL模式设置私钥密码

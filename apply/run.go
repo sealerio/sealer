@@ -42,6 +42,7 @@ type ClusterArgs struct {
 	cluster   *v2.Cluster
 	imageName string
 	runArgs   *common.RunArgs
+	hosts     []v2.Host
 }
 
 func IsNumber(args string) bool {
@@ -79,24 +80,47 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	c.cluster.Spec.SSH.User = c.runArgs.User
 	c.cluster.Spec.SSH.Pk = c.runArgs.Pk
 	c.cluster.Spec.SSH.PkPasswd = c.runArgs.PkPassword
-	if c.runArgs.CustomEnv != nil {
-		c.cluster.Spec.Env = c.runArgs.CustomEnv
-	}
+	c.cluster.Spec.SSH.Port = c.runArgs.Port
+	c.cluster.Spec.Env = append(c.cluster.Spec.Env, c.runArgs.CustomEnv...)
 	if c.runArgs.Password != "" {
 		c.cluster.Spec.SSH.Passwd = c.runArgs.Password
 	}
 	if IsIPList(c.runArgs.Masters) && (IsIPList(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
-		var hosts []v2.Host
-		hosts = append(hosts, v2.Host{IPS: strings.Split(c.runArgs.Masters, ","), Roles: []string{common.MASTER}})
-		if c.runArgs.Nodes != "" {
-			hosts = append(hosts, v2.Host{IPS: strings.Split(c.runArgs.Nodes, ","), Roles: []string{common.NODE}})
+		masters := strings.Split(c.runArgs.Masters, ",")
+		nodes := strings.Split(c.runArgs.Nodes, ",")
+		c.hosts = []v2.Host{}
+		c.setHostWithIpsPort(masters, common.MASTER)
+		if len(nodes) != 0 {
+			c.setHostWithIpsPort(nodes, common.NODE)
 		}
-		c.cluster.Spec.Hosts = hosts
+		c.cluster.Spec.Hosts = c.hosts
 	} else {
 		err = fmt.Errorf("enter true iplist or count")
 	}
 
 	return err
+}
+
+func (c *ClusterArgs) setHostWithIpsPort(ips []string, role string) {
+	//map[ssh port]*host
+	hostMap := map[string]*v2.Host{}
+	for i := range ips {
+		ip, port := utils.GetHostIPAndPortOrDefault(ips[i], c.runArgs.Port)
+		if _, ok := hostMap[port]; !ok {
+			hostMap[port] = &v2.Host{IPS: []string{ip}, Roles: []string{role}, SSH: v1.SSH{Port: port}}
+			continue
+		}
+		hostMap[port].IPS = append(hostMap[port].IPS, ip)
+	}
+	_, master0Port := utils.GetHostIPAndPortOrDefault(ips[0], c.runArgs.Port)
+	for port, host := range hostMap {
+		host.IPS = removeIPListDuplicatesAndEmpty(host.IPS)
+		if port == master0Port && role == common.MASTER {
+			c.hosts = append([]v2.Host{*host}, c.hosts...)
+			continue
+		}
+		c.hosts = append(c.hosts, *host)
+	}
 }
 
 func GetClusterFileByImageName(imageName string) (*v2.Cluster, error) {

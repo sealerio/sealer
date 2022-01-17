@@ -17,6 +17,8 @@ package cmd
 import (
 	"os"
 
+	"github.com/alibaba/sealer/utils/ssh"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/apply"
@@ -34,18 +36,22 @@ var runCmd = &cobra.Command{
 	Short: "run a cluster with images and arguments",
 	Long:  `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`,
 	Example: `
-create default cluster:
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
-
 create cluster by cloud provider, just set the number of masters or nodes,and default provider is ALI_CLOUD:
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 3 --nodes 3 --provider ALI_CLOUD
+	sealer run kubernetes:v1.19.8 --masters 3 --nodes 3 --provider ALI_CLOUD
 
 create cluster by docker container, set the number of masters or nodes, and set provider "CONTAINER":
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 3 --nodes 3 --provider CONTAINER
+	sealer run kubernetes:v1.19.8 --masters 3 --nodes 3 --provider CONTAINER
 
 create cluster to your baremetal server, appoint the iplist:
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
-		--nodes 192.168.0.5,192.168.0.6,192.168.0.7
+	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
+		--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
+  Specify server SSH port :
+  All servers use the same SSH port (default port: 22)：
+	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
+	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --port 24 --passwd xxx
+  Different SSH port numbers exist：
+	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3:23,192.168.0.4:24 \
+	--nodes 192.168.0.5:25,192.168.0.6:25,192.168.0.7:27 --passwd xxx
 create a cluster with custom environment variables:
 	sealer run -e DashBoardPort=8443 mydashboard:latest registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters 3 --nodes 3
 `,
@@ -67,8 +73,9 @@ func init() {
 	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
 	runCmd.Flags().StringVarP(&runArgs.User, "user", "u", "root", "set baremetal server username")
 	runCmd.Flags().StringVarP(&runArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
-	runCmd.Flags().StringVarP(&runArgs.Pk, "pk", "", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
-	runCmd.Flags().StringVarP(&runArgs.PkPassword, "pk-passwd", "", "", "set baremetal server  private key password")
+	runCmd.Flags().StringVar(&runArgs.Port, "port", ssh.DefaultSSHPort, "set the sshd service port number for the server (default port: 22)")
+	runCmd.Flags().StringVar(&runArgs.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
+	runCmd.Flags().StringVar(&runArgs.PkPassword, "pk-passwd", "", "set baremetal server  private key password")
 	runCmd.Flags().StringSliceVarP(&runArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return utils.ContainList([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp

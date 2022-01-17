@@ -28,12 +28,14 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 )
 
 /**
   SSH connection operation
 */
+
+const DefaultSSHPort = "22"
+
 func (s *SSH) connect(host string) (*ssh.Client, error) {
 	auth := s.sshAuthMethod(s.Password, s.PkFile, s.PkPassword)
 	config := ssh.Config{
@@ -52,9 +54,10 @@ func (s *SSH) connect(host string) (*ssh.Client, error) {
 			return nil
 		},
 	}
-	ip, port := utils.GetSSHHostIPAndPort(host)
-	addr := s.addrReformat(ip, port)
-	return ssh.Dial("tcp", addr, clientConfig)
+	if s.Port == "" {
+		s.Port = DefaultSSHPort
+	}
+	return ssh.Dial("tcp", fmt.Sprintf("%s:%s", host, s.Port), clientConfig)
 }
 
 func (s *SSH) Connect(host string) (*ssh.Client, *ssh.Session, error) {
@@ -126,13 +129,6 @@ func fileExist(path string) bool {
 }
 func (s *SSH) sshPasswordMethod(password string) ssh.AuthMethod {
 	return ssh.Password(password)
-}
-
-func (s *SSH) addrReformat(host, port string) string {
-	if !strings.Contains(host, ":") {
-		host = fmt.Sprintf("%s:%s", host, port)
-	}
-	return host
 }
 
 //RemoteFileExist is
