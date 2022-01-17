@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/runtime"
@@ -48,6 +50,10 @@ func (s ScaleProcessor) Execute(cluster *v2.Cluster) error {
 	s.Runtime = runTime
 
 	if s.IsScaleUp {
+		err = utils.SaveClusterInfoToFile(cluster, cluster.Name)
+		if err != nil {
+			return err
+		}
 		return s.ScaleUp(cluster)
 	}
 	return s.ScaleDown(cluster)

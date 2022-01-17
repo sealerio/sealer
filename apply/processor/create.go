@@ -48,7 +48,10 @@ func (c *CreateProcessor) Execute(cluster *v2.Cluster) error {
 	if err := c.initPlugin(cluster); err != nil {
 		return err
 	}
-
+	err = utils.SaveClusterInfoToFile(cluster, cluster.Name)
+	if err != nil {
+		return err
+	}
 	pipLine, err := c.GetPipeLine()
 	if err != nil {
 		return err
