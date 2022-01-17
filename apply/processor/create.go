@@ -94,7 +94,7 @@ func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 
 func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0Ip())
+	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}

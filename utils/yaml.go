@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 func UnmarshalYamlFile(file string, obj interface{}) error {
@@ -55,19 +54,6 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 	return nil
 }
 
-func SaveClusterfile(cluster *v1.Cluster) error {
-	fileName := common.GetClusterWorkClusterfile(cluster.Name)
-	err := MkFileFullPathDir(fileName)
-	if err != nil {
-		return fmt.Errorf("mkdir failed %s %v", fileName, err)
-	}
-	err = MarshalYamlToFile(fileName, cluster)
-	if err != nil {
-		return fmt.Errorf("marshal cluster file failed %v", err)
-	}
-	return nil
-}
-
 func SaveClusterInfoToFile(cluster runtime.Object, clusterName string) error {
 	fileName := common.GetClusterWorkClusterfile(clusterName)
 	err := MkFileFullPathDir(fileName)
@@ -81,7 +67,7 @@ func SaveClusterInfoToFile(cluster runtime.Object, clusterName string) error {
 	return nil
 }
 
-func MarshalConfigsYaml(configs ...interface{}) ([]byte, error) {
+func MarshalYamlConfigs(configs ...interface{}) ([]byte, error) {
 	var cfgs [][]byte
 	for _, cfg := range configs {
 		data, err := yaml.Marshal(cfg)
@@ -96,16 +82,4 @@ func MarshalConfigsYaml(configs ...interface{}) ([]byte, error) {
 func YamlMatcher(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	return ext == ".yaml" || ext == ".yml"
-}
-
-func MarshalConfigsToYaml(in ...interface{}) ([]byte, error) {
-	var configs [][]byte
-	for i := range in {
-		config, err := yaml.Marshal(in[i])
-		if err != nil {
-			return nil, err
-		}
-		configs = append(configs, config)
-	}
-	return bytes.Join(configs, []byte("\n---\n")), nil
 }

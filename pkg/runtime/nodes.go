@@ -48,7 +48,7 @@ func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
 		return nil, err
 	}
 	k.setCgroupDriver(cGroupDriver)
-	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
+	return utils.MarshalYamlConfigs(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
 func (k *KubeadmRuntime) joinNodes(nodes []string) error {
@@ -69,7 +69,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	}
 	var masters string
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, master := range k.getMasterIPList() {
+	for _, master := range k.GetMasterIPList() {
 		masters += fmt.Sprintf(" --rs %s:6443", master)
 	}
 	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, k.getVIP(), masters)
@@ -77,9 +77,9 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	k.cleanJoinLocalAPIEndPoint()
 
-	registryHost := getRegistryHost(k.getRootfs(), k.getMaster0IP())
+	registryHost := getRegistryHost(k.getRootfs(), k.GetMaster0IP())
 	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
-	cf := GetRegistryConfig(k.getImageMountDir(), k.getMaster0IP())
+	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	if cf.Username != "" && cf.Password != "" {
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
 	}
@@ -95,7 +95,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			cmdWriteJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
 			cmd := k.Command(k.getKubeVersion(), JoinNode)
-			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.getMasterIPList(), "")
+			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.GetMasterIPList(), "")
 			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
@@ -137,30 +137,30 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 	}
 
 	remoteCleanCmds := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP())),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.GetMaster0IP())),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 	address, err := utils.GetLocalHostAddresses()
 	//if the node to be removed is the execution machine, kubelet, ~./kube and ApiServer host will be added
 	if err != nil || !utils.IsLocalIP(node, address) {
 		remoteCleanCmds = append(remoteCleanCmds, RemoveKubeConfig)
 	} else {
-		apiServerHost := getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain())
+		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 		remoteCleanCmds = append(remoteCleanCmds, fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost))
 	}
 	if err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {
 		return err
 	}
 	//remove node
-	if len(k.getMasterIPList()) > 0 {
-		hostname, err := k.isHostName(k.getMaster0IP(), node)
+	if len(k.GetMasterIPList()) > 0 {
+		hostname, err := k.isHostName(k.GetMaster0IP(), node)
 		if err != nil {
 			return err
 		}
-		ssh, err := k.getHostSSHClient(k.getMaster0IP())
+		ssh, err := k.getHostSSHClient(k.GetMaster0IP())
 		if err != nil {
 			return fmt.Errorf("failed to delete node on master0,%v", err)
 		}
-		if err := ssh.CmdAsync(k.getMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
+		if err := ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
 			return fmt.Errorf("delete node %s failed %v", hostname, err)
 		}
 	}

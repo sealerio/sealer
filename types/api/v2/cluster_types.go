@@ -75,7 +75,7 @@ func (in *Cluster) GetNodeIPList() []string {
 	return in.GetIPSByRole(common.NODE)
 }
 
-func (in *Cluster) GetMaster0Ip() string {
+func (in *Cluster) GetMaster0IP() string {
 	if len(in.Spec.Hosts) == 0 {
 		return ""
 	}

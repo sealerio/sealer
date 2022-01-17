@@ -24,8 +24,8 @@ import (
 )
 
 func (k *KubeadmRuntime) reset() error {
-	k.resetNodes(k.getNodesIPList())
-	k.resetMasters(k.getMasterIPList())
+	k.resetNodes(k.GetNodeIPList())
+	k.resetMasters(k.GetMasterIPList())
 	//if the executing machine is not in the cluster
 	if _, err := utils.RunSimpleCmd(fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())); err != nil {
 		return err
@@ -65,7 +65,7 @@ func (k *KubeadmRuntime) resetNode(node string) error {
 	if err := ssh.CmdAsync(node, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
 		RemoveKubeConfig,
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP()))); err != nil {
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.GetMaster0IP()))); err != nil {
 		return err
 	}
 	return nil

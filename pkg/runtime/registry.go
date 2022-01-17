@@ -51,7 +51,7 @@ func getRegistryHost(rootfs, defaultRegistry string) (host string) {
 
 // ApplyRegistry Only use this for join and init, due to the initiation operations.
 func (k *KubeadmRuntime) ApplyRegistry() error {
-	cf := GetRegistryConfig(k.getRootfs(), k.getMaster0IP())
+	cf := GetRegistryConfig(k.getRootfs(), k.GetMaster0IP())
 	ssh, err := k.getHostSSHClient(cf.IP)
 	if err != nil {
 		return fmt.Errorf("failed to get registry ssh client: %v", err)
@@ -81,18 +81,18 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 		}
 	}
 	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s", k.getRootfs(), cf.Port, fmt.Sprintf("%s/registry", k.getRootfs()))
-	registryHost := getRegistryHost(k.getRootfs(), k.getMaster0IP())
+	registryHost := getRegistryHost(k.getRootfs(), k.GetMaster0IP())
 	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	if err = ssh.CmdAsync(cf.IP, initRegistry); err != nil {
 		return err
 	}
-	if err = ssh.CmdAsync(k.getMaster0IP(), addRegistryHosts); err != nil {
+	if err = ssh.CmdAsync(k.GetMaster0IP(), addRegistryHosts); err != nil {
 		return err
 	}
 	if cf.Username == "" || cf.Password == "" {
 		return nil
 	}
-	return ssh.CmdAsync(k.getMaster0IP(), fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
+	return ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
 }
 
 func (r *RegistryConfig) GenerateHtPasswd() (string, error) {
@@ -140,7 +140,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 }
 
 func (k *KubeadmRuntime) DeleteRegistry() error {
-	cf := GetRegistryConfig(k.getRootfs(), k.getMaster0IP())
+	cf := GetRegistryConfig(k.getRootfs(), k.GetMaster0IP())
 	delDir := fmt.Sprintf("rm -rf %s %s", RegistryMountUpper, RegistryMountWork)
 	ssh, err := k.getHostSSHClient(cf.IP)
 	if err != nil {
