@@ -55,7 +55,7 @@ func InitImageSpec(kubefile string) (*v1.Image, error) {
 
 func LoadClusterFile(path string) (*v2.Cluster, error) {
 	var cluster v2.Cluster
-	rawClusterFile, err := ioutil.ReadFile(path)
+	rawClusterFile, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
