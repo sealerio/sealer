@@ -18,6 +18,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/alibaba/sealer/version"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
@@ -76,6 +79,8 @@ func TestParser_Parse(t *testing.T) {
 
 # this is annotations
 COPY dashboard .
+RUN echo "Config ssh ..." \
+    && echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 RUN kubectl apply -f dashboard`)
 
 	type args struct {
@@ -93,7 +98,30 @@ RUN kubectl apply -f dashboard`)
 				kubeFile: kubeFile,
 				name:     "",
 			},
-			nil,
+			&v1.Image{
+				TypeMeta: metaV1.TypeMeta{APIVersion: "", Kind: "Image"},
+				Spec: v1.ImageSpec{
+					SealerVersion: version.Get().GitVersion,
+					Layers: []v1.Layer{
+						{
+							Type:  "FROM",
+							Value: "kubernetes:1.18.1",
+						},
+						{
+							Type:  "COPY",
+							Value: "dashboard .",
+						},
+						{
+							Type:  "RUN",
+							Value: "echo \"Config ssh ...\"     && echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config",
+						},
+						{
+							Type:  "RUN",
+							Value: "kubectl apply -f dashboard",
+						},
+					},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
