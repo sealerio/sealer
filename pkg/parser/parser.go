@@ -16,8 +16,11 @@ package parser
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
+	"unicode"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -26,7 +29,24 @@ import (
 	"github.com/alibaba/sealer/version"
 )
 
-var validLayer = []string{"FROM", "COPY", "RUN", "CMD"}
+const (
+	Run  = "RUN"
+	Cmd  = "CMD"
+	Copy = "COPY"
+	From = "FROM"
+)
+
+var validCommands = map[string]bool{
+	Run:  true,
+	Cmd:  true,
+	Copy: true,
+	From: true,
+}
+
+var (
+	reWhitespace = regexp.MustCompile(`[\t\v\f\r ]+`)
+	utf8bom      = []byte{0xEF, 0xBB, 0xBF}
+)
 
 type Interface interface {
 	Parse(kubeFile []byte) *v1.Image
@@ -44,50 +64,118 @@ func (p *Parser) Parse(kubeFile []byte) *v1.Image {
 		Spec:     v1.ImageSpec{SealerVersion: version.Get().GitVersion},
 		Status:   v1.ImageStatus{},
 	}
-	scanner := bufio.NewScanner(strings.NewReader(string(kubeFile)))
+
+	currentLine := 0
+	scanner := bufio.NewScanner(bytes.NewReader(kubeFile))
+	scanner.Split(scanLines)
+	var err error
 	for scanner.Scan() {
-		text := scanner.Text()
-		text = strings.Trim(text, " \t\n")
-		if text == "" || strings.HasPrefix(text, "#") {
+		bytesRead := scanner.Bytes()
+		if currentLine == 0 {
+			// First line, strip the BOM.
+			bytesRead = bytes.TrimPrefix(bytesRead, utf8bom)
+		}
+		if bytes.HasPrefix(bytesRead, []byte("#")) {
 			continue
 		}
-		layerType, layerValue, err := decodeLine(text)
+		bytesRead = processLine(bytesRead, true)
+		currentLine++
+
+		line, isEndOfLine := trimContinuationCharacter(string(bytesRead))
+		if isEndOfLine && line == "" {
+			continue
+		}
+
+		for !isEndOfLine && scanner.Scan() {
+			bytesRead = processLine(scanner.Bytes(), false)
+			if err != nil {
+				return nil
+			}
+
+			if bytes.HasPrefix(bytesRead, []byte("#")) {
+				continue
+			}
+
+			currentLine++
+
+			if isEmptyContinuationLine(bytesRead) {
+				continue
+			}
+			continuationLine := string(bytesRead)
+			continuationLine, isEndOfLine = trimContinuationCharacter(continuationLine)
+			line += continuationLine
+		}
+
+		layerType, layerValue, err := decodeLine(line)
 		if err != nil {
-			logger.Warn("decode kubeFile line failed, err: %v", err)
+			logger.Error("decode kubeFile line failed, err: %v", err)
 			return nil
 		}
 		if layerType == "" {
 			continue
 		}
 
-		//TODO count layer hash
 		image.Spec.Layers = append(image.Spec.Layers, v1.Layer{
 			ID:    "",
 			Type:  layerType,
 			Value: layerValue,
 		})
 	}
+
 	return image
 }
 
 func decodeLine(line string) (string, string, error) {
-	if line == "" || strings.HasPrefix(line, "#") {
-		return "", "", nil
+	cmdline := trimCommand(line)
+	cmd := strings.ToUpper(cmdline[0])
+	if !validCommands[cmd] {
+		return "", "", fmt.Errorf("invalid command %s %s", cmdline[0], line)
 	}
-	//line = strings.TrimPrefix(line, " ")
-	ss := strings.SplitN(line, " ", 2)
-	if len(ss) != 2 {
-		return "", "", fmt.Errorf("unknown line %s", line)
-	}
-	var flag bool
-	for _, v := range validLayer {
-		if ss[0] == v {
-			flag = true
-		}
-	}
-	if !flag {
-		return "", "", fmt.Errorf("invalid command %s %s", ss[0], line)
-	}
+	return cmd, cmdline[1], nil
+}
 
-	return ss[0], strings.TrimSpace(ss[1]), nil
+func trimNewline(src []byte) []byte {
+	return bytes.TrimRight(src, "\r\n")
+}
+func trimLeadingWhitespace(src []byte) []byte {
+	return bytes.TrimLeftFunc(src, unicode.IsSpace)
+}
+
+func isEmptyContinuationLine(line []byte) bool {
+	return len(trimLeadingWhitespace(trimNewline(line))) == 0
+}
+
+func scanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		return i + 1, data[0 : i+1], nil
+	}
+	if atEOF {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
+}
+
+func processLine(token []byte, stripLeftWhitespace bool) []byte {
+	token = trimNewline(token)
+	if stripLeftWhitespace {
+		token = trimLeadingWhitespace(token)
+	}
+	return token
+}
+
+func trimContinuationCharacter(line string) (string, bool) {
+	s := "\\"
+	var re = regexp.MustCompile(`([^\` + s + `])\` + s + `[ \t]*$|^\` + s + `[ \t]*$`)
+	if re.MatchString(line) {
+		line = re.ReplaceAllString(line, "$1")
+		return line, false
+	}
+	return line, true
+}
+
+func trimCommand(line string) []string {
+	return reWhitespace.Split(strings.TrimSpace(line), 2)
 }
