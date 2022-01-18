@@ -51,7 +51,7 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterfile string) (Interface, erro
 		},
 		KubeadmConfig: &KubeadmConfig{},
 	}
-	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.getMasterIPList()...))
+	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.GetMasterIPList()...))
 	// TODO args pre checks
 	if err := k.checkList(); err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (k *KubeadmRuntime) checkList() error {
 	if len(k.Spec.Hosts) == 0 {
 		return fmt.Errorf("master hosts cannot be empty")
 	}
-	if len(k.Spec.Hosts[0].IPS) == 0 {
+	if k.GetMaster0IP() == "" {
 		return fmt.Errorf("master hosts ip cannot be empty")
 	}
 	return nil
@@ -77,10 +77,6 @@ func (k *KubeadmRuntime) getClusterName() string {
 	return k.Cluster.Name
 }
 
-func (k *KubeadmRuntime) getMaster0IP() string {
-	// already check ip list when new the runtime
-	return k.Cluster.Spec.Hosts[0].IPS[0]
-}
 func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
 	metadata := &Metadata{}
 	if k.getKubeVersion() == "" {
@@ -235,24 +231,6 @@ func (k *KubeadmRuntime) setControlPlaneEndpoint(endpoint string) {
 
 func (k *KubeadmRuntime) setCgroupDriver(cGroup string) {
 	k.KubeletConfiguration.CgroupDriver = cGroup
-}
-
-func (k *KubeadmRuntime) getMasterIPList() (masters []string) {
-	return k.getHostsIPByRole(common.MASTER)
-}
-
-func (k *KubeadmRuntime) getNodesIPList() (nodes []string) {
-	return k.getHostsIPByRole(common.NODE)
-}
-
-func (k *KubeadmRuntime) getHostsIPByRole(role string) (nodes []string) {
-	for _, host := range k.Spec.Hosts {
-		if utils.InList(role, host.Roles) {
-			nodes = append(nodes, host.IPS...)
-		}
-	}
-
-	return
 }
 
 func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {

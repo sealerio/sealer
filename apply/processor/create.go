@@ -48,7 +48,10 @@ func (c *CreateProcessor) Execute(cluster *v2.Cluster) error {
 	if err := c.initPlugin(cluster); err != nil {
 		return err
 	}
-
+	err = utils.SaveClusterInfoToFile(cluster, cluster.Name)
+	if err != nil {
+		return err
+	}
 	pipLine, err := c.GetPipeLine()
 	if err != nil {
 		return err
@@ -94,7 +97,7 @@ func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 
 func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0Ip())
+	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}

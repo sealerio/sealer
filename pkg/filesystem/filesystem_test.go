@@ -104,7 +104,7 @@ func TestUnMount(t *testing.T) {
 			if err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
-			if err = fileSystem.UnMountRootfs(tt.arg.cluster); err != nil {
+			if err = fileSystem.UnMountRootfs(tt.arg.cluster, append(tt.arg.cluster.GetMasterIPList(), tt.arg.cluster.GetNodeIPList()...)); err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 		})

@@ -112,7 +112,7 @@ func (a *AliProvider) ReconcileResource(resourceKey string, action Alifunc) erro
 			return err
 		}
 		logger.Info("create resource success %s: %s", resourceKey, a.Cluster.Annotations[resourceKey])
-		return utils.SaveClusterfile(a.Cluster)
+		return utils.SaveClusterInfoToFile(a.Cluster, a.Cluster.Name)
 	}
 	return nil
 }

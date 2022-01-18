@@ -58,8 +58,8 @@ const (
 modprobe -r ipip  && lsmod && \
 rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
-rm -rf /usr/bin/kubelet-pre-start.sh && \
-rm -rf /usr/bin/kube* && rm -rf /usr/bin/crictl && \
+rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
+rm -rf /usr/bin/kubelet && rm -rf /usr/bin/crictl && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd && rm -rf /var/etcd 
 `
@@ -124,13 +124,13 @@ func getAPIServerHost(ipAddr, APIServer string) (host string) {
 }
 
 func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []string {
-	registryHost := getRegistryHost(k.getRootfs(), k.getMaster0IP())
-	apiServerHost := getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain())
+	registryHost := getRegistryHost(k.getRootfs(), k.GetMaster0IP())
+	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	certCMD := command.RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
 	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
 	joinCommands := []string{cmdAddRegistryHosts, certCMD, cmdAddHosts}
-	cf := GetRegistryConfig(k.getImageMountDir(), k.getMaster0IP())
+	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	if cf.Username != "" && cf.Password != "" {
 		joinCommands = append(joinCommands, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
 	}
@@ -147,11 +147,11 @@ func (k *KubeadmRuntime) sendKubeConfigFile(hosts []string, kubeFile string) err
 }
 
 func (k *KubeadmRuntime) sendNewCertAndKey(hosts []string) error {
-	err := k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
-	if err != nil {
-		return err
-	}
-	return k.sendFileToHosts(k.getMasterIPList()[:1], k.getCertsDir(), filepath.Join(k.getRootfs(), "certs"))
+	return k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
+}
+
+func (k *KubeadmRuntime) sendRegistryCertAndKey() error {
+	return k.sendFileToHosts(k.GetMasterIPList()[:1], k.getCertsDir(), filepath.Join(k.getRootfs(), "certs"))
 }
 
 func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
@@ -217,14 +217,14 @@ func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
 	k.Lock()
 	defer k.Unlock()
 	// TODO Using join file instead template
-	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getMaster0IP()))
+	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.GetMaster0IP()))
 	k.setJoinAdvertiseAddress(masterIP)
 	cGroupDriver, err := k.getCgroupDriverFromShell(masterIP)
 	if err != nil {
 		return nil, err
 	}
 	k.setCgroupDriver(cGroupDriver)
-	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
+	return utils.MarshalYamlConfigs(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
 // sendJoinCPConfig send join CP nodes configuration
@@ -281,7 +281,7 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
 	cmds := map[CommandType]string{
 		InitMaster: fmt.Sprintf(InitMaster115Lower, k.getRootfs()),
-		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.getMaster0IP(), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
+		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.GetMaster0IP(), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
 		JoinNode:   fmt.Sprintf(JoinNode115Lower, k.getVIP(), k.getJoinToken(), k.getTokenCaCertHash()),
 	}
 	//other version >= 1.15.x
@@ -427,7 +427,7 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 		return fmt.Errorf("failed to delete master: %v", err)
 	}
 	remoteCleanCmd := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP())),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.GetMaster0IP())),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 
 	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.
@@ -435,7 +435,7 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 	if err != nil || !utils.IsLocalIP(master, address) {
 		remoteCleanCmd = append(remoteCleanCmd, RemoveKubeConfig)
 	} else {
-		apiServerHost := getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain())
+		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 		remoteCleanCmd = append(remoteCleanCmd,
 			fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost))
 	}
@@ -444,24 +444,24 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 	}
 
 	//remove master
-	masterIPs := SliceRemoveStr(k.getMasterIPList(), master)
+	masterIPs := SliceRemoveStr(k.GetMasterIPList(), master)
 	if len(masterIPs) > 0 {
-		hostname, err := k.isHostName(k.getMaster0IP(), master)
+		hostname, err := k.isHostName(k.GetMaster0IP(), master)
 		if err != nil {
 			return err
 		}
-		master0SSH, err := k.getHostSSHClient(k.getMaster0IP())
+		master0SSH, err := k.getHostSSHClient(k.GetMaster0IP())
 		if err != nil {
 			return fmt.Errorf("failed to remove master ip: %v", err)
 		}
 
-		if err := master0SSH.CmdAsync(k.getMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
+		if err := master0SSH.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
 			return fmt.Errorf("delete node %s failed %v", hostname, err)
 		}
 	}
 	yaml := ipvs.LvsStaticPodYaml(k.getVIP(), masterIPs, "")
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, node := range k.getNodesIPList() {
+	for _, node := range k.GetNodeIPList() {
 		node := node
 		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(node)
@@ -485,7 +485,7 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 		[upload-certs] Using certificate key:
 		8376c70aaaf285b764b3c1a588740728aff493d7c2239684e84a7367c6a437cf
 	*/
-	output, err := k.CmdToString(k.getMaster0IP(), cmd, "\r\n")
+	output, err := k.CmdToString(k.GetMaster0IP(), cmd, "\r\n")
 	if err != nil {
 		return err
 	}
@@ -498,11 +498,11 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 	k.CertificateKey = strings.Replace(key, "\n", "", -1)
 	cmd = fmt.Sprintf("kubeadm token create --print-join-command -v %d", k.Vlog)
 
-	ssh, err := k.getHostSSHClient(k.getMaster0IP())
+	ssh, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
 		return fmt.Errorf("failed to get join token hash and key: %v", err)
 	}
-	out, err := ssh.Cmd(k.getMaster0IP(), cmd)
+	out, err := ssh.Cmd(k.GetMaster0IP(), cmd)
 	if err != nil {
 		return fmt.Errorf("create kubeadm join token failed %v", err)
 	}

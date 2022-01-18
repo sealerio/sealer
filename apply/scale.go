@@ -133,7 +133,7 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error 
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
 	//master0 machine cannot be deleted
-	if utils.InList(cluster.GetMaster0Ip(), strings.Split(scaleArgs.Masters, ",")) {
+	if utils.InList(cluster.GetMaster0IP(), strings.Split(scaleArgs.Masters, ",")) {
 		return fmt.Errorf("master0 machine cannot be deleted")
 	}
 	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {

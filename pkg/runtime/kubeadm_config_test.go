@@ -363,7 +363,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 				t.Errorf("LoadFromClusterfile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			logger.Info("k.InitConfiguration.Kind", k.InitConfiguration.Kind)
-			out, err := utils.MarshalConfigsToYaml(k.InitConfiguration, k.ClusterConfiguration,
+			out, err := utils.MarshalYamlConfigs(k.InitConfiguration, k.ClusterConfiguration,
 				k.JoinConfiguration, k.KubeletConfiguration, k.KubeProxyConfiguration)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MarshalConfigsToYaml() error = %v, wantErr %v", err, tt.wantErr)

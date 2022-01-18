@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/pkg/plugin"
 
 	"github.com/alibaba/sealer/common"
@@ -67,7 +69,12 @@ func (d DeleteProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 }
 
 func (d DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
-	return d.FileSystem.UnMountRootfs(cluster)
+	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
+	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), runtime.GetMaster0Ip(cluster))
+	if utils.NotIn(config.IP, hosts) {
+		hosts = append(hosts, config.IP)
+	}
+	return d.FileSystem.UnMountRootfs(cluster, hosts)
 }
 func (d DeleteProcessor) UnMountImage(cluster *v2.Cluster) error {
 	return d.FileSystem.UnMountImage(cluster)

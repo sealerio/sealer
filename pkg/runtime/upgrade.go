@@ -34,15 +34,15 @@ func (k *KubeadmRuntime) upgrade() error {
 	var err error
 	binpath := filepath.Join(k.getRootfs(), `bin`)
 
-	err = k.upgradeFirstMaster(k.getMaster0IP(), binpath, k.getKubeVersion())
+	err = k.upgradeFirstMaster(k.GetMaster0IP(), binpath, k.getKubeVersion())
 	if err != nil {
 		return err
 	}
-	err = k.upgradeOtherMasters(k.getMasterIPList()[1:], binpath)
+	err = k.upgradeOtherMasters(k.GetMasterIPList()[1:], binpath)
 	if err != nil {
 		return err
 	}
-	err = k.upgradeNodes(k.getNodesIPList(), binpath)
+	err = k.upgradeNodes(k.GetNodeIPList(), binpath)
 	if err != nil {
 		return err
 	}

@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/runtime"
@@ -48,9 +50,13 @@ func (s ScaleProcessor) Execute(cluster *v2.Cluster) error {
 	s.Runtime = runTime
 
 	if s.IsScaleUp {
+		err = utils.SaveClusterInfoToFile(cluster, cluster.Name)
+		if err != nil {
+			return err
+		}
 		return s.ScaleUp(cluster)
 	}
-	return s.ScaleDown()
+	return s.ScaleDown(cluster)
 }
 
 func (s ScaleProcessor) ScaleUp(cluster *v2.Cluster) error {
@@ -70,7 +76,7 @@ func (s ScaleProcessor) ScaleUp(cluster *v2.Cluster) error {
 	return nil
 }
 
-func (s ScaleProcessor) ScaleDown() error {
+func (s ScaleProcessor) ScaleDown(cluster *v2.Cluster) error {
 	err := s.Runtime.DeleteMasters(s.MastersToDelete)
 	if err != nil {
 		return err
@@ -79,7 +85,7 @@ func (s ScaleProcessor) ScaleDown() error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return s.FileSystem.UnMountRootfs(cluster, append(s.MastersToDelete, s.NodesToDelete...))
 }
 
 func NewScaleProcessor(fs filesystem.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
