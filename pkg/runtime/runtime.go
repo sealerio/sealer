@@ -15,7 +15,7 @@
 package runtime
 
 import (
-	"os"
+	"fmt"
 	"sync"
 
 	"github.com/alibaba/sealer/logger"
@@ -108,7 +108,7 @@ func (k *KubeadmRuntime) confirmDeleteNodes() error {
 		if pass, err := utils.ConfirmOperation("Are you sure to delete these nodes? "); err != nil {
 			return err
 		} else if !pass {
-			os.Exit(0)
+			return fmt.Errorf("exit the operation of delete these nodes")
 		}
 	}
 	return nil

@@ -149,7 +149,8 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 		return nil
 	}
 
-	logger.Info("Start to scale this cluster, current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
+	logger.Info("Start to scale this cluster")
+	logger.Debug("current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
 
 	scaleProcessor, err := processor.NewScaleProcessor(c.FileSystem, mj, md, nj, nd)
 	if err != nil {

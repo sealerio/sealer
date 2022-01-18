@@ -52,7 +52,6 @@ func ConfirmOperation(promptInfo string) (bool, error) {
 			break
 		}
 		if noRx.MatchString(input) {
-			fmt.Println("You have cancelled the operation")
 			return false, nil
 		}
 	}
