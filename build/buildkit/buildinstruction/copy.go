@@ -19,16 +19,18 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image/store"
 	fsutil "github.com/tonistiigi/fsutil/copy"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/image/store"
+
+	"github.com/opencontainers/go-digest"
+
 	"github.com/alibaba/sealer/build/buildkit/buildlayer"
-	"github.com/alibaba/sealer/image/cache"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image/cache"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
-	"github.com/opencontainers/go-digest"
 )
 
 type CopyInstruction struct {
@@ -134,12 +136,11 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
 	}
-	src, dest := buildlayer.ParseCopyLayerContent(ctx.CurrentLayer.Value)
+	src, dest := ParseCopyLayerContent(ctx.CurrentLayer.Value)
 	return &CopyInstruction{
-		fs:           fs,
-		layerHandler: buildlayer.ParseLayerContent(ctx.Rootfs, ctx.CurrentLayer),
-		rawLayer:     *ctx.CurrentLayer,
-		src:          src,
-		dest:         dest,
+		fs:       fs,
+		rawLayer: *ctx.CurrentLayer,
+		src:      src,
+		dest:     dest,
 	}, nil
 }

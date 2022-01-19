@@ -49,7 +49,7 @@ func (u UpgradeProcessor) MountRootfs(cluster *v2.Cluster) error {
 	currentHost := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	addedHost := append(u.MastersToJoin, u.NodesToJoin...)
 	_, hosts := utils.GetDiffHosts(currentHost, addedHost)
-	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0Ip())
+	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}

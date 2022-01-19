@@ -27,17 +27,19 @@ spec:
 If the default IP automatic detection or CIDR modification is not met, append the modified configuration metadata to the Clusterfile and apply it:
 
 ```yaml
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.cloud/v2
 kind: Cluster
 metadata:
-  name: my-cluster
+  name: default-kubernetes-cluster
 spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
-  provider: BAREMETAL
-...
-network:
-  podCIDR: 100.64.0.0/10 #In line with the calico config
-  svcCIDR: 10.96.0.0/22
+  ssh:
+    passwd: xxx
+  hosts:
+    - ips: [192.168.0.2,192.168.0.3,192.168.0.4]
+      roles: [master]
+    - ips: [192.168.0.5]
+      roles: [node]
 ...
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
@@ -104,7 +106,7 @@ CMD helm install mysql -f etc/mysql-config.yaml
 
 ## User defined docker systemd config
 
-Of course, you can overwrite other config file in Cloudrootfs you want:
+Of course, you can overwrite other config file in rootfs you want:
 
 ```yaml
 .

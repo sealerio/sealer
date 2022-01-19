@@ -15,10 +15,12 @@
 package ssh
 
 import (
+	"context"
 	"fmt"
 	"net"
-	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/imdario/mergo"
 
@@ -50,8 +52,10 @@ type Interface interface {
 }
 
 type SSH struct {
+	isStdout     bool
 	User         string
 	Password     string
+	Port         string
 	PkFile       string
 	PkPassword   string
 	Timeout      *time.Duration
@@ -69,13 +73,14 @@ func NewSSHByCluster(cluster *v1.Cluster) Interface {
 	return &SSH{
 		User:         cluster.Spec.SSH.User,
 		Password:     cluster.Spec.SSH.Passwd,
+		Port:         cluster.Spec.SSH.Port,
 		PkFile:       cluster.Spec.SSH.Pk,
 		PkPassword:   cluster.Spec.SSH.PkPasswd,
 		LocalAddress: address,
 	}
 }
 
-func NewSSHClient(ssh *v1.SSH) Interface {
+func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 	if ssh.User == "" {
 		ssh.User = common.ROOT
 	}
@@ -84,14 +89,17 @@ func NewSSHClient(ssh *v1.SSH) Interface {
 		logger.Warn("failed to get local address, %v", err)
 	}
 	return &SSH{
+		isStdout:     isStdout,
 		User:         ssh.User,
 		Password:     ssh.Passwd,
+		Port:         ssh.Port,
 		PkFile:       ssh.Pk,
 		PkPassword:   ssh.PkPasswd,
 		LocalAddress: address,
 	}
 }
 
+// GetHostSSHClient is used to executed bash command and no std out to be printed.
 func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
@@ -99,8 +107,7 @@ func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
 				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
 					return nil, err
 				}
-
-				return NewSSHClient(&host.SSH), nil
+				return NewSSHClient(&host.SSH, false), nil
 			}
 		}
 	}
@@ -143,21 +150,34 @@ func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
 
 func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
 	var err error
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
-		wg.Add(1)
-		go func(host string) {
-			defer wg.Done()
+		host := h
+		eg.Go(func() error {
 			for i := 0; i < tryTimes; i++ {
 				err = ssh.Ping(host)
 				if err == nil {
-					return
+					return nil
 				}
 				time.Sleep(time.Duration(i) * time.Second)
 			}
-			err = fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
-		}(h)
+			return fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
+		})
 	}
-	wg.Wait()
-	return err
+	return eg.Wait()
+}
+
+// NewStdoutSSHClient is used to show std out when execute bash command.
+func NewStdoutSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
+	for _, host := range cluster.Spec.Hosts {
+		for _, ip := range host.IPS {
+			if hostIP == ip {
+				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
+					return nil, err
+				}
+				return NewSSHClient(&host.SSH, true), nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
 }

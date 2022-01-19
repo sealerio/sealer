@@ -46,7 +46,8 @@ func NotInIPList(key string, slice []string) bool {
 	return true
 }
 
-func ReduceIPList(src, dst []string) []string {
+// ReduceStrSlice get a slice of src containing dst elements
+func ReduceStrSlice(src, dst []string) []string {
 	var ipList []string
 	for _, ip := range src {
 		if !NotIn(ip, dst) {
@@ -56,7 +57,8 @@ func ReduceIPList(src, dst []string) []string {
 	return ipList
 }
 
-func RemoveIPList(src, dst []string) []string {
+// RemoveStrSlice remove dst element from src slice
+func RemoveStrSlice(src, dst []string) []string {
 	var ipList []string
 	for _, ip := range src {
 		if NotIn(ip, dst) {
@@ -66,7 +68,8 @@ func RemoveIPList(src, dst []string) []string {
 	return ipList
 }
 
-func AppendIPList(src, dst []string) []string {
+// AppendDiffSlice append elements of dst slices that do not exist in src to src slices
+func AppendDiffSlice(src, dst []string) []string {
 	for _, ip := range dst {
 		if NotIn(ip, src) {
 			src = append(src, ip)

@@ -15,30 +15,38 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
-	"sync"
 
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
+	"golang.org/x/sync/errgroup"
 )
 
 func (k *KubeadmRuntime) reset() error {
-	k.resetNodes(k.getNodesIPList())
-	k.resetMasters(k.getMasterIPList())
+	k.resetNodes(k.GetNodeIPList())
+	k.resetMasters(k.GetMasterIPList())
+	//if the executing machine is not in the cluster
+	if _, err := utils.RunSimpleCmd(fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())); err != nil {
+		return err
+	}
 	return k.DeleteRegistry()
 }
 
 func (k *KubeadmRuntime) resetNodes(nodes []string) {
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range nodes {
-		wg.Add(1)
-		go func(node string) {
-			defer wg.Done()
+		node := node
+		eg.Go(func() error {
 			if err := k.resetNode(node); err != nil {
 				logger.Error("delete node %s failed %v", node, err)
 			}
-		}(node)
+			return nil
+		})
 	}
-	wg.Wait()
+	if err := eg.Wait(); err != nil {
+		return
+	}
 }
 
 func (k *KubeadmRuntime) resetMasters(nodes []string) {
@@ -55,8 +63,9 @@ func (k *KubeadmRuntime) resetNode(node string) error {
 		return fmt.Errorf("reset node failed %v", err)
 	}
 	if err := ssh.CmdAsync(node, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
+		RemoveKubeConfig,
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP()))); err != nil {
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.GetMaster0IP()))); err != nil {
 		return err
 	}
 	return nil

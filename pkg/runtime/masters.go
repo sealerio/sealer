@@ -15,18 +15,21 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/pkg/errors"
 
-	"github.com/alibaba/sealer/cert"
-	"github.com/alibaba/sealer/command"
-	"github.com/alibaba/sealer/ipvs"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/cert"
+	"github.com/alibaba/sealer/pkg/command"
+	"github.com/alibaba/sealer/pkg/ipvs"
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -43,13 +46,13 @@ const (
 	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" < /etc/hosts > hosts && cp -f hosts /etc/hosts`
 	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
 	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
-	RemoteJoinMasterConfig  = `echo "%s" > %s/kubeadm-join-config.yaml`
-	InitMaster115Lower      = `kubeadm init --config=%s/kubeadm-config.yaml --experimental-upload-certs`
+	RemoteJoinMasterConfig  = `echo "%s" > %s/etc/kubeadm.yml`
+	InitMaster115Lower      = `kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs`
 	JoinMaster115Lower      = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s"
 	JoinNode115Lower        = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s"
-	InitMaser115Upper       = `kubeadm init --config=%s/kubeadm-config.yaml --upload-certs`
-	JoinMaster115Upper      = "kubeadm join --config=%s/kubeadm-join-config.yaml"
-	JoinNode115Upper        = "kubeadm join --config=%s/kubeadm-join-config.yaml"
+	InitMaser115Upper       = `kubeadm init --config=%s/etc/kubeadm.yml --upload-certs`
+	JoinMaster115Upper      = "kubeadm join --config=%s/etc/kubeadm.yml"
+	JoinNode115Upper        = "kubeadm join --config=%s/etc/kubeadm.yml"
 	RemoveKubeConfig        = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
 	RemoteCleanMasterOrNode = `if which kubeadm;then kubeadm reset -f %s;fi && \
 modprobe -r ipip  && lsmod && \
@@ -121,18 +124,18 @@ func getAPIServerHost(ipAddr, APIServer string) (host string) {
 }
 
 func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []string {
-	registryHost := getRegistryHost(k.getRootfs(), k.getMaster0IP())
-	apiServerHost := getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain())
+	registryHost := getRegistryHost(k.getRootfs(), k.GetMaster0IP())
+	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	certCMD := command.RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
 	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
 	joinCommands := []string{cmdAddRegistryHosts, certCMD, cmdAddHosts}
-	cf := GetRegistryConfig(k.getImageMountDir(), k.getMaster0IP())
+	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	if cf.Username != "" && cf.Password != "" {
 		joinCommands = append(joinCommands, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
 	}
 	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, apiServerHost,
-		getAPIServerHost(utils.GetHostIP(master), k.getAPIServerDomain()))
+		getAPIServerHost(master, k.getAPIServerDomain()))
 
 	return append(joinCommands, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig)
 }
@@ -144,11 +147,11 @@ func (k *KubeadmRuntime) sendKubeConfigFile(hosts []string, kubeFile string) err
 }
 
 func (k *KubeadmRuntime) sendNewCertAndKey(hosts []string) error {
-	err := k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
-	if err != nil {
-		return err
-	}
-	return k.sendFileToHosts(k.getMasterIPList()[:1], k.getCertsDir(), filepath.Join(k.getRootfs(), "certs"))
+	return k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
+}
+
+func (k *KubeadmRuntime) sendRegistryCertAndKey() error {
+	return k.sendFileToHosts(k.GetMasterIPList()[:1], k.getCertsDir(), filepath.Join(k.getRootfs(), "certs"))
 }
 
 func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
@@ -160,26 +163,21 @@ func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
 }
 
 func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error {
-	errCh := make(chan error, len(Hosts))
-	defer close(errCh)
-
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range Hosts {
-		wg.Add(1)
-		go func(node string) {
-			defer wg.Done()
+		node := node
+		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
-				errCh <- fmt.Errorf("send file failed %v", err)
+				return fmt.Errorf("send file failed %v", err)
 			}
 			if err := ssh.Copy(node, src, dst); err != nil {
-				errCh <- fmt.Errorf("send file failed %v", err)
+				return fmt.Errorf("send file failed %v", err)
 			}
-		}(node)
+			return err
+		})
 	}
-	wg.Wait()
-
-	return ReadChanError(errCh)
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []string) bool {
@@ -219,51 +217,46 @@ func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
 	k.Lock()
 	defer k.Unlock()
 	// TODO Using join file instead template
-	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getMaster0IP()))
+	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.GetMaster0IP()))
 	k.setJoinAdvertiseAddress(masterIP)
-	k.setCgroupDriver(k.getCgroupDriverFromShell(masterIP))
-	return utils.MarshalConfigsYaml(k.JoinConfiguration, k.KubeletConfiguration)
+	cGroupDriver, err := k.getCgroupDriverFromShell(masterIP)
+	if err != nil {
+		return nil, err
+	}
+	k.setCgroupDriver(cGroupDriver)
+	return utils.MarshalYamlConfigs(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
 // sendJoinCPConfig send join CP nodes configuration
 func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
-	errCh := make(chan error, len(joinMaster))
-	defer close(errCh)
 	k.Mutex = &sync.Mutex{}
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range joinMaster {
-		wg.Add(1)
-		go func(master string) {
-			defer wg.Done()
-			// set d.CriCGroupDriver on every nodes.
+		master := master
+		eg.Go(func() error {
 			joinConfig, err := k.joinMasterConfig(master)
 			if err != nil {
-				errCh <- fmt.Errorf("get join %s config failed: %v", master, err)
-				return
+				return fmt.Errorf("get join %s config failed: %v", master, err)
 			}
-
 			cmd := fmt.Sprintf(RemoteJoinMasterConfig, joinConfig, k.getRootfs())
 			ssh, err := k.getHostSSHClient(master)
 			if err != nil {
-				errCh <- fmt.Errorf("set join kubeadm config failed %s %s %v", master, cmd, err)
-				return
+				return fmt.Errorf("set join kubeadm config failed %s %s %v", master, cmd, err)
 			}
 			if err := ssh.CmdAsync(master, cmd); err != nil {
-				errCh <- fmt.Errorf("set join kubeadm config failed %s %s %v", master, cmd, err)
+				return fmt.Errorf("set join kubeadm config failed %s %s %v", master, cmd, err)
 			}
-		}(master)
+			return err
+		})
 	}
-	wg.Wait()
-
-	return ReadChanError(errCh)
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) CmdAsyncHosts(hosts []string, cmd string) error {
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, host := range hosts {
-		wg.Add(1)
-		go func(host string) {
-			defer wg.Done()
+		host := host
+		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(host)
 			if err != nil {
 				logger.Error("exec command failed %s %s %v", host, cmd, err)
@@ -271,10 +264,10 @@ func (k *KubeadmRuntime) CmdAsyncHosts(hosts []string, cmd string) error {
 			if err := ssh.CmdAsync(host, cmd); err != nil {
 				logger.Error("exec command failed %s %s %v", host, cmd, err)
 			}
-		}(host)
+			return err
+		})
 	}
-	wg.Wait()
-	return nil
+	return eg.Wait()
 }
 
 func vlogToStr(vlog int) string {
@@ -288,7 +281,7 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
 	cmds := map[CommandType]string{
 		InitMaster: fmt.Sprintf(InitMaster115Lower, k.getRootfs()),
-		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.getMaster0IP(), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
+		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.GetMaster0IP(), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
 		JoinNode:   fmt.Sprintf(JoinNode115Lower, k.getVIP(), k.getJoinToken(), k.getTokenCaCertHash()),
 	}
 	//other version >= 1.15.x
@@ -312,11 +305,6 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 	}
 
 	return fmt.Sprintf("%s%s", v, vlogToStr(k.Vlog))
-}
-
-func (k *KubeadmRuntime) GetRemoteHostName(hostIP string) string {
-	hostName := k.CmdToString(hostIP, "hostname", "")
-	return strings.ToLower(hostName)
 }
 
 func (k *KubeadmRuntime) joinMasters(masters []string) error {
@@ -358,9 +346,9 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	for _, master := range masters {
 		logger.Info("Start to join %s as master", master)
 
-		hostname := k.GetRemoteHostName(master)
-		if hostname == "" {
-			return fmt.Errorf("get remote hostname failed %s", master)
+		hostname, err := k.getRemoteHostName(master)
+		if err != nil {
+			return err
 		}
 		cmds := k.JoinMasterCommands(master, cmd, hostname)
 		ssh, err := k.getHostSSHClient(master)
@@ -381,21 +369,21 @@ func (k *KubeadmRuntime) deleteMasters(masters []string) error {
 	if len(masters) == 0 {
 		return nil
 	}
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range masters {
-		wg.Add(1)
-		go func(master string) {
-			defer wg.Done()
+		master := master
+		eg.Go(func() error {
+			master := master
 			logger.Info("Start to delete master %s", master)
 			if err := k.deleteMaster(master); err != nil {
 				logger.Error("delete master %s failed %v", master, err)
+			} else {
+				logger.Info("Succeeded in deleting master %s", master)
 			}
-			logger.Info("Succeeded in deleting master %s", master)
-		}(master)
+			return nil
+		})
 	}
-	wg.Wait()
-
-	return nil
+	return eg.Wait()
 }
 
 func SliceRemoveStr(ss []string, s string) (result []string) {
@@ -407,9 +395,15 @@ func SliceRemoveStr(ss []string, s string) (result []string) {
 	return
 }
 
-func (k *KubeadmRuntime) isHostName(master, host string) string {
-	hostString := k.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
-	hostName := k.CmdToString(host, "hostname", "")
+func (k *KubeadmRuntime) isHostName(master, host string) (string, error) {
+	hostString, err := k.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
+	if err != nil {
+		return "", err
+	}
+	hostName, err := k.CmdToString(host, "hostname", "")
+	if err != nil {
+		return "", err
+	}
 	hosts := strings.Split(hostString, ",")
 	var name string
 	for _, h := range hosts {
@@ -424,7 +418,7 @@ func (k *KubeadmRuntime) isHostName(master, host string) string {
 			}
 		}
 	}
-	return name
+	return name, nil
 }
 
 func (k *KubeadmRuntime) deleteMaster(master string) error {
@@ -433,7 +427,7 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 		return fmt.Errorf("failed to delete master: %v", err)
 	}
 	remoteCleanCmd := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.getMaster0IP())),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.GetMaster0IP())),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 
 	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.
@@ -441,7 +435,7 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 	if err != nil || !utils.IsLocalIP(master, address) {
 		remoteCleanCmd = append(remoteCleanCmd, RemoveKubeConfig)
 	} else {
-		apiServerHost := getAPIServerHost(k.getMaster0IP(), k.getAPIServerDomain())
+		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 		remoteCleanCmd = append(remoteCleanCmd,
 			fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost))
 	}
@@ -450,24 +444,26 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 	}
 
 	//remove master
-	masterIPs := SliceRemoveStr(k.getMasterIPList(), master)
+	masterIPs := SliceRemoveStr(k.GetMasterIPList(), master)
 	if len(masterIPs) > 0 {
-		hostname := k.isHostName(k.getMaster0IP(), master)
-		master0SSH, err := k.getHostSSHClient(k.getMaster0IP())
+		hostname, err := k.isHostName(k.GetMaster0IP(), master)
+		if err != nil {
+			return err
+		}
+		master0SSH, err := k.getHostSSHClient(k.GetMaster0IP())
 		if err != nil {
 			return fmt.Errorf("failed to remove master ip: %v", err)
 		}
 
-		if err := master0SSH.CmdAsync(k.getMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
+		if err := master0SSH.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
 			return fmt.Errorf("delete node %s failed %v", hostname, err)
 		}
 	}
 	yaml := ipvs.LvsStaticPodYaml(k.getVIP(), masterIPs, "")
-	var wg sync.WaitGroup
-	for _, node := range k.getNodesIPList() {
-		wg.Add(1)
-		go func(node string) {
-			defer wg.Done()
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, node := range k.GetNodeIPList() {
+		node := node
+		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
 				logger.Error("update lvscare static pod failed %s %v", node, err)
@@ -475,11 +471,10 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 			if err := ssh.CmdAsync(node, RemoveLvscareStaticPod, fmt.Sprintf(CreateLvscareStaticPod, yaml)); err != nil {
 				logger.Error("update lvscare static pod failed %s %v", node, err)
 			}
-		}(node)
+			return err
+		})
 	}
-	wg.Wait()
-
-	return nil
+	return eg.Wait()
 }
 
 func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
@@ -490,7 +485,10 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 		[upload-certs] Using certificate key:
 		8376c70aaaf285b764b3c1a588740728aff493d7c2239684e84a7367c6a437cf
 	*/
-	output := k.CmdToString(k.getMaster0IP(), cmd, "\r\n")
+	output, err := k.CmdToString(k.GetMaster0IP(), cmd, "\r\n")
+	if err != nil {
+		return err
+	}
 	logger.Debug("[globals]decodeCertCmd: %s", output)
 	slice := strings.Split(output, "Using certificate key:")
 	if len(slice) != 2 {
@@ -500,11 +498,11 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 	k.CertificateKey = strings.Replace(key, "\n", "", -1)
 	cmd = fmt.Sprintf("kubeadm token create --print-join-command -v %d", k.Vlog)
 
-	ssh, err := k.getHostSSHClient(k.getMaster0IP())
+	ssh, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
 		return fmt.Errorf("failed to get join token hash and key: %v", err)
 	}
-	out, err := ssh.Cmd(k.getMaster0IP(), cmd)
+	out, err := ssh.Cmd(k.GetMaster0IP(), cmd)
 	if err != nil {
 		return fmt.Errorf("create kubeadm join token failed %v", err)
 	}

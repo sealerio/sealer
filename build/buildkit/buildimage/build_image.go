@@ -15,22 +15,20 @@
 package buildimage
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/pkg/runtime"
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/store"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -40,6 +38,7 @@ const (
 // BuildImage this struct aims to provide image object in build stage
 // include handle layers,save build images to system.
 type BuildImage struct {
+	BuildType       string
 	RawImage        *v1.Image
 	BaseLayers      []v1.Layer
 	NewLayers       []v1.Layer
@@ -47,7 +46,6 @@ type BuildImage struct {
 	LayerStore      store.LayerStore
 	ImageService    image.Service
 	RootfsMountInfo *buildinstruction.MountTarget
-	ImageMataData   runtime.Metadata
 }
 
 func (b BuildImage) ExecBuild(ctx Context) error {
@@ -57,16 +55,16 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		baseLayers = b.BaseLayers
 	)
 	if ctx.UseCache {
-		execCtx = buildinstruction.NewExecContext(ctx.BuildType, ctx.BuildContext, b.ImageService, b.LayerStore)
+		execCtx = buildinstruction.NewExecContext(b.BuildType, ctx.BuildContext, b.ImageService, b.LayerStore)
 	} else {
-		execCtx = buildinstruction.NewExecContextWithoutCache(ctx.BuildType, ctx.BuildContext, b.LayerStore)
+		execCtx = buildinstruction.NewExecContextWithoutCache(b.BuildType, ctx.BuildContext, b.LayerStore)
 	}
 	for i := 0; i < len(newLayers); i++ {
 		//we are to set layer id for each new layers.
 		layer := &newLayers[i]
 		logger.Info("run build layer: %s %s", layer.Type, layer.Value)
 
-		if ctx.BuildType == common.LiteBuild && layer.Type == common.CMDCOMMAND {
+		if b.BuildType == common.LiteBuild && layer.Type == common.CMDCOMMAND {
 			continue
 		}
 
@@ -74,7 +72,6 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		ic := buildinstruction.InstructionContext{
 			BaseLayers:   baseLayers,
 			CurrentLayer: layer,
-			Rootfs:       b.RootfsMountInfo.GetMountTarget(),
 		}
 		inst, err := buildinstruction.NewInstruction(ic)
 		if err != nil {
@@ -117,45 +114,33 @@ func (b BuildImage) genNewLayer(layerType, layerValue, filepath string) (v1.Laye
 	return imageLayer, nil
 }
 
-func (b BuildImage) checkImageMetadata() error {
-	lowerLayers := buildinstruction.GetBaseLayersPath(b.NewLayers)
-	target, err := buildinstruction.NewMountTarget("", "", lowerLayers)
+func (b BuildImage) checkDiff() error {
+	mi, err := GetLayerMountInfo(b.NewLayers, b.BuildType)
 	if err != nil {
 		return err
 	}
-	err = target.TempMount()
-	if err != nil {
-		return err
-	}
-	defer target.CleanUp()
-	// if rootfs metadata changed,will overwrite it.
-	kv := getKubeVersion(target.GetMountTarget())
-	if b.ImageMataData.KubeVersion == kv {
-		return nil
-	}
+	defer mi.CleanUp()
 
-	b.ImageMataData.KubeVersion = kv
-	mf := filepath.Join(b.RootfsMountInfo.GetMountTarget(), common.DefaultMetadataName)
-	if err = utils.MarshalJSONToFile(mf, b.ImageMataData); err != nil {
-		return fmt.Errorf("failed to set image Metadata file, err: %v", err)
-	}
+	differs := []Differ{NewRegistryDiffer(), NewMetadataDiffer()}
+	eg, _ := errgroup.WithContext(context.Background())
 
-	return nil
+	for _, diff := range differs {
+		d := diff
+		eg.Go(func() error {
+			err = d.Process(*mi, *b.RootfsMountInfo)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+	return eg.Wait()
 }
-func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
-	err := b.checkImageMetadata()
-	if err != nil {
-		return err
-	}
 
-	cluster, err := b.getImageCluster()
+func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
+	err := b.checkDiff()
 	if err != nil {
 		return err
-	}
-	cluster.Spec.Image = name
-	err = setClusterFileToImage(cluster, b.RawImage)
-	if err != nil {
-		return fmt.Errorf("failed to set image metadata, err: %v", err)
 	}
 
 	layers, err := b.collectLayers(opts)
@@ -164,8 +149,7 @@ func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
 	}
 
 	b.RawImage.Spec.Layers = layers
-
-	err = b.updateImageIDAndSaveImage(name)
+	err = b.save(name)
 	if err != nil {
 		return fmt.Errorf("failed to save image metadata, err: %v", err)
 	}
@@ -207,27 +191,27 @@ func (b BuildImage) collectRootfsDiff() (v1.Layer, error) {
 	return layer, nil
 }
 
-func (b BuildImage) getImageCluster() (*v2.Cluster, error) {
-	var cluster v2.Cluster
-	rawClusterFile, err := GetRawClusterFile(b.RawImage.Spec.Layers[0].Value, b.NewLayers)
+func (b BuildImage) save(name string) error {
+	mi, err := GetLayerMountInfo(b.RawImage.Spec.Layers, b.BuildType)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get base image err: %s", err)
+		return err
 	}
+	defer mi.CleanUp()
 
-	if err := yaml.Unmarshal([]byte(rawClusterFile), &cluster); err != nil {
-		return nil, err
+	rootfsPath := mi.GetMountTarget()
+	b.RawImage.Name = name
+	is := []ImageSetter{NewAnnotationSetter(rootfsPath), NewPlatformSetter(rootfsPath)}
+	for _, s := range is {
+		if err = s.Set(b.RawImage); err != nil {
+			return err
+		}
 	}
-
-	return &cluster, nil
-}
-
-func (b BuildImage) updateImageIDAndSaveImage(name string) error {
 	imageID, err := generateImageID(*b.RawImage)
 	if err != nil {
 		return err
 	}
-
 	b.RawImage.Spec.ID = imageID
+
 	return b.ImageStore.Save(*b.RawImage, name)
 }
 
@@ -282,16 +266,13 @@ func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 		return nil, errors.New("current number of layers exceeds 128 layers")
 	}
 
-	mountInfo, err := GetRootfsMountInfo(baseLayers, buildType)
+	mountInfo, err := GetLayerMountInfo(baseLayers, buildType)
 	if err != nil {
 		return nil, err
 	}
 
-	md, err := GetBaseImageMetadata(filepath.Join(mountInfo.GetMountTarget()))
-	if err != nil {
-		return nil, err
-	}
 	return &BuildImage{
+		BuildType:       buildType,
 		RawImage:        rawImage,
 		ImageStore:      imageStore,
 		LayerStore:      layerStore,
@@ -299,6 +280,52 @@ func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 		BaseLayers:      baseLayers,
 		NewLayers:       newLayers,
 		RootfsMountInfo: mountInfo,
-		ImageMataData:   md,
 	}, nil
+}
+
+type annotation struct {
+	source string
+}
+
+func (a annotation) Set(ima *v1.Image) error {
+	return a.setClusterFile(ima)
+}
+
+func (a annotation) setClusterFile(ima *v1.Image) error {
+	cluster, err := LoadClusterFile(filepath.Join(a.source, "etc", common.DefaultClusterFileName))
+	if err != nil {
+		return fmt.Errorf("failed to load clusterfile, err: %v", err)
+	}
+	cluster.Spec.Image = ima.Name
+	err = setClusterFileToImage(cluster, ima)
+	if err != nil {
+		return fmt.Errorf("failed to set image metadata, err: %v", err)
+	}
+	return nil
+}
+
+func NewAnnotationSetter(rootfs string) ImageSetter {
+	return annotation{
+		source: rootfs,
+	}
+}
+
+type platform struct {
+	source string
+}
+
+func (p platform) Set(ima *v1.Image) error {
+	plat := runtime.GetCloudImagePlatform(p.source)
+	ima.Spec.Platform = v1.Platform{
+		Architecture: plat.Architecture,
+		OS:           plat.OS,
+		OSVersion:    plat.OSVersion,
+		Variant:      plat.Variant,
+	}
+	return nil
+}
+func NewPlatformSetter(rootfs string) ImageSetter {
+	return platform{
+		source: rootfs,
+	}
 }

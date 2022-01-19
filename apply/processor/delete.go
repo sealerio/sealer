@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/pkg/plugin"
 
 	"github.com/alibaba/sealer/common"
@@ -58,6 +60,7 @@ func (d DeleteProcessor) Execute(cluster *v2.Cluster) (err error) {
 func (d DeleteProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
+		d.ApplyCleanPlugin,
 		d.UnMountRootfs,
 		d.UnMountImage,
 		d.CleanFS,
@@ -66,21 +69,30 @@ func (d DeleteProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 }
 
 func (d DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
-	return d.FileSystem.UnMountRootfs(cluster)
+	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
+	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), runtime.GetMaster0Ip(cluster))
+	if utils.NotIn(config.IP, hosts) {
+		hosts = append(hosts, config.IP)
+	}
+	return d.FileSystem.UnMountRootfs(cluster, hosts)
 }
 func (d DeleteProcessor) UnMountImage(cluster *v2.Cluster) error {
 	return d.FileSystem.UnMountImage(cluster)
 }
 
-func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
-	if err := d.FileSystem.Clean(cluster); err != nil {
+func (d DeleteProcessor) ApplyCleanPlugin(cluster *v2.Cluster) error {
+	plugins := plugin.NewPlugins(cluster.Name)
+	if err := plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName)); err != nil {
 		return err
 	}
-	plugins := plugin.NewPlugins(cluster.Name)
 	if err := plugins.Load(); err != nil {
 		return err
 	}
 	return plugins.Run(cluster, plugin.PhasePostClean)
+}
+
+func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
+	return d.FileSystem.Clean(cluster)
 }
 
 func NewDeleteProcessor() (Interface, error) {

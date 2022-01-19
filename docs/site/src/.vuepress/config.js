@@ -52,6 +52,7 @@ module.exports = {
           children: [
             'getting-started/introduction',
             'getting-started/quick-start',
+            'getting-started/using-clusterfile',
             'getting-started/run-cluster',
             'getting-started/build-cloudimage',
             'getting-started/config',

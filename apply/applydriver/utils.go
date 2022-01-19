@@ -20,8 +20,8 @@ import (
 	"github.com/Masterminds/semver/v3"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/client/k8s"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
@@ -45,7 +45,7 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 	var nodeIPList []string
 
 	for _, node := range nodes.Items {
-		addr := getNodeAddress(&node)
+		addr := getNodeAddress(node)
 		if addr == "" {
 			continue
 		}
@@ -67,7 +67,7 @@ func DeleteNodes(client *k8s.Client, nodeIPs []string) error {
 		return err
 	}
 	for _, node := range nodes.Items {
-		addr := getNodeAddress(&node)
+		addr := getNodeAddress(node)
 		if addr == "" || utils.NotIn(addr, nodeIPs) {
 			continue
 		}
@@ -78,7 +78,7 @@ func DeleteNodes(client *k8s.Client, nodeIPs []string) error {
 	return nil
 }
 
-func getNodeAddress(node *corev1.Node) string {
+func getNodeAddress(node corev1.Node) string {
 	if len(node.Status.Addresses) < 1 {
 		return ""
 	}

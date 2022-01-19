@@ -15,11 +15,11 @@
 package filesystem
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -30,9 +30,8 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/store"
-	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/image/store"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
 	"github.com/alibaba/sealer/utils/ssh"
@@ -44,7 +43,7 @@ const (
 
 type Interface interface {
 	MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error
-	UnMountRootfs(cluster *v2.Cluster) error
+	UnMountRootfs(cluster *v2.Cluster, hosts []string) error
 	MountImage(cluster *v2.Cluster) error
 	UnMountImage(cluster *v2.Cluster) error
 	Clean(cluster *v2.Cluster) error
@@ -54,8 +53,33 @@ type FileSystem struct {
 	imageStore store.ImageStore
 }
 
+func (c *FileSystem) MountImage(cluster *v2.Cluster) error {
+	return c.mountImage(cluster)
+}
+
+func (c *FileSystem) UnMountImage(cluster *v2.Cluster) error {
+	return c.umountImage(cluster)
+}
+
+func (c *FileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error {
+	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
+	//scp roofs to all Masters and Nodes,then do init.sh
+	if err := mountRootfs(hosts, clusterRootfsDir, cluster, initFlag); err != nil {
+		return fmt.Errorf("mount rootfs failed %v", err)
+	}
+	return nil
+}
+
+func (c *FileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) error {
+	//do clean.sh,then remove all Masters and Nodes roofs
+	if err := unmountRootfs(hosts, cluster); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *FileSystem) Clean(cluster *v2.Cluster) error {
-	return utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultClusterBaseDir(cluster.Name), common.DefaultKubeConfigDir())
+	return utils.CleanFiles(common.GetClusterWorkDir(cluster.Name), common.DefaultClusterBaseDir(cluster.Name), common.DefaultKubeConfigDir(), common.KubectlPath)
 }
 
 func (c *FileSystem) umountImage(cluster *v2.Cluster) error {
@@ -112,56 +136,25 @@ func (c *FileSystem) mountImage(cluster *v2.Cluster) error {
 	return nil
 }
 
-func (c *FileSystem) MountImage(cluster *v2.Cluster) error {
-	return c.mountImage(cluster)
-}
-
-func (c *FileSystem) UnMountImage(cluster *v2.Cluster) error {
-	return c.umountImage(cluster)
-}
-
-func (c *FileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error {
-	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
-	//scp roofs to all Masters and Nodes,then do init.sh
-	if err := mountRootfs(hosts, clusterRootfsDir, cluster, initFlag); err != nil {
-		return fmt.Errorf("mount rootfs failed %v", err)
-	}
-	return nil
-}
-
-func (c *FileSystem) UnMountRootfs(cluster *v2.Cluster) error {
-	//do clean.sh,then remove all Masters and Nodes roofs
-	IPList := append(runtime.GetMasterIPList(cluster), runtime.GetNodeIPList(cluster)...)
-	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), runtime.GetMaster0Ip(cluster))
-	if utils.NotIn(config.IP, IPList) {
-		IPList = append(IPList, config.IP)
-	}
-	if err := unmountRootfs(IPList, cluster); err != nil {
-		return err
-	}
-	return nil
-}
-
 func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
-	errCh := make(chan error, len(ipList))
-	defer close(errCh)
 	/*	if err := ssh.WaitSSHToReady(*cluster, 6, ipList...); err != nil {
 		return errors.Wrap(err, "check for node ssh service time out")
 	}*/
-	g := new(errgroup.Group)
 	config := runtime.GetRegistryConfig(
 		common.DefaultTheClusterRootfsDir(cluster.Name),
 		runtime.GetMaster0Ip(cluster))
 	src := common.DefaultMountCloudImageDir(cluster.Name)
-	renderEtc := filepath.Join(common.DefaultMountCloudImageDir(cluster.Name), common.EtcDir)
-	renderChart := filepath.Join(common.DefaultMountCloudImageDir(cluster.Name), common.RenderChartsDir)
-	renderManifests := filepath.Join(common.DefaultMountCloudImageDir(cluster.Name), common.RenderManifestsDir)
+	renderEtc := filepath.Join(src, common.EtcDir)
+	renderChart := filepath.Join(src, common.RenderChartsDir)
+	renderManifests := filepath.Join(src, common.RenderManifestsDir)
 	// TODO scp sdk has change file mod bug
 	initCmd := fmt.Sprintf(RemoteChmod, target)
 	envProcessor := env.NewEnvProcessor(cluster)
+	eg, _ := errgroup.WithContext(context.Background())
+
 	for _, IP := range ipList {
 		ip := IP
-		g.Go(func() error {
+		eg.Go(func() error {
 			for _, dir := range []string{renderEtc, renderChart, renderManifests} {
 				if utils.IsExist(dir) {
 					err := envProcessor.RenderAll(ip, dir)
@@ -187,23 +180,23 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 			return err
 		})
 	}
-	return g.Wait()
+	return eg.Wait()
 }
 
-func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error {
+func CopyFiles(sshEntry ssh.Interface, isRegistry bool, ip, src, target string) error {
 	files, err := ioutil.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("failed to copy files %s", err)
 	}
 
 	if isRegistry {
-		return ssh.Copy(ip, src, target)
+		return sshEntry.Copy(ip, src, target)
 	}
 	for _, f := range files {
 		if f.Name() == common.RegistryDirName {
 			continue
 		}
-		err = ssh.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
+		err = sshEntry.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
 		if err != nil {
 			return fmt.Errorf("failed to copy sub files %v", err)
 		}
@@ -212,44 +205,33 @@ func CopyFiles(ssh ssh.Interface, isRegistry bool, ip, src, target string) error
 }
 
 func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
-	var wg sync.WaitGroup
-	var flag bool
-	var mutex sync.Mutex
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	execClean := fmt.Sprintf("/bin/bash -c "+common.DefaultClusterClearBashFile, cluster.Name)
 	rmRootfs := fmt.Sprintf("rm -rf %s", clusterRootfsDir)
 	rmDockerCert := fmt.Sprintf("rm -rf %s/%s*", runtime.DockerCertDir, runtime.SeaHub)
 	envProcessor := env.NewEnvProcessor(cluster)
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {
-		wg.Add(1)
-		go func(ip string) {
-			defer wg.Done()
+		ip := IP
+		eg.Go(func() error {
 			SSH, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
-				logger.Error("failed to get %s ssh client: %v", ip, err)
-				mutex.Lock()
-				flag = true
-				mutex.Unlock()
-				return
+				return err
 			}
-			cmd := fmt.Sprintf("%s && %s && %s", execClean, rmRootfs, rmDockerCert)
+			cmd := fmt.Sprintf("%s && %s", rmRootfs, rmDockerCert)
+			if exists := SSH.IsFileExist(ip, fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)); exists {
+				cmd = fmt.Sprintf("%s && %s", execClean, cmd)
+			}
 			if mounted, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mounted {
 				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
 			}
 			if err := SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd)); err != nil {
-				logger.Error("%s:exec %s failed, %s", ip, execClean, err)
-				mutex.Lock()
-				flag = true
-				mutex.Unlock()
-				return
+				return err
 			}
-		}(IP)
+			return nil
+		})
 	}
-	wg.Wait()
-	if flag {
-		return fmt.Errorf("unmountRootfs failed")
-	}
-	return nil
+	return eg.Wait()
 }
 
 func NewFilesystem() (Interface, error) {

@@ -15,11 +15,13 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
 
@@ -49,7 +51,7 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterfile string) (Interface, erro
 		},
 		KubeadmConfig: &KubeadmConfig{},
 	}
-	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.getMasterIPList()...))
+	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.GetMasterIPList()...))
 	// TODO args pre checks
 	if err := k.checkList(); err != nil {
 		return nil, err
@@ -65,7 +67,7 @@ func (k *KubeadmRuntime) checkList() error {
 	if len(k.Spec.Hosts) == 0 {
 		return fmt.Errorf("master hosts cannot be empty")
 	}
-	if len(k.Spec.Hosts[0].IPS) == 0 {
+	if k.GetMaster0IP() == "" {
 		return fmt.Errorf("master hosts ip cannot be empty")
 	}
 	return nil
@@ -75,10 +77,6 @@ func (k *KubeadmRuntime) getClusterName() string {
 	return k.Cluster.Name
 }
 
-func (k *KubeadmRuntime) getMaster0IP() string {
-	// already check ip list when new the runtime
-	return k.Cluster.Spec.Hosts[0].IPS[0]
-}
 func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
 	metadata := &Metadata{}
 	if k.getKubeVersion() == "" {
@@ -95,7 +93,7 @@ func (k *KubeadmRuntime) getDefaultRegistryPort() int {
 }
 
 func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) {
-	return ssh.GetHostSSHClient(hostIP, k.Cluster)
+	return ssh.NewStdoutSSHClient(hostIP, k.Cluster)
 }
 
 // /var/lib/sealer/data/my-cluster
@@ -235,24 +233,6 @@ func (k *KubeadmRuntime) setCgroupDriver(cGroup string) {
 	k.KubeletConfiguration.CgroupDriver = cGroup
 }
 
-func (k *KubeadmRuntime) getMasterIPList() (masters []string) {
-	return k.getHostsIPByRole(common.MASTER)
-}
-
-func (k *KubeadmRuntime) getNodesIPList() (nodes []string) {
-	return k.getHostsIPByRole(common.NODE)
-}
-
-func (k *KubeadmRuntime) getHostsIPByRole(role string) (nodes []string) {
-	for _, host := range k.Spec.Hosts {
-		if utils.InList(role, host.Roles) {
-			nodes = append(nodes, host.IPS...)
-		}
-	}
-
-	return
-}
-
 func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
 	var tmpSlice []string
 	for _, ip := range masters {
@@ -262,30 +242,23 @@ func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
 }
 
 func (k *KubeadmRuntime) WaitSSHReady(tryTimes int, hosts ...string) error {
-	errCh := make(chan error, len(hosts))
-	defer close(errCh)
-
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
-		wg.Add(1)
-		go func(host string) {
-			defer wg.Done()
+		host := h
+		eg.Go(func() error {
 			for i := 0; i < tryTimes; i++ {
 				sshClient, err := k.getHostSSHClient(host)
 				if err != nil {
-					return
+					return err
 				}
-
 				err = sshClient.Ping(host)
 				if err == nil {
-					return
+					return nil
 				}
 				time.Sleep(time.Duration(i) * time.Second)
 			}
-			err := fmt.Errorf("wait for [%s] ssh ready timeout, ensure that the IP address or password is correct", host)
-			errCh <- err
-		}(h)
+			return fmt.Errorf("wait for [%s] ssh ready timeout, ensure that the IP address or password is correct", host)
+		})
 	}
-	wg.Wait()
-	return ReadChanError(errCh)
+	return eg.Wait()
 }

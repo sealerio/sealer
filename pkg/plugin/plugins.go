@@ -103,6 +103,7 @@ func (c *PluginsProcessor) Run(cluster *v2.Cluster, phase Phase) error {
 		if !ok {
 			return InvalidPluginTypeError{config.Spec.Type}
 		}
+		// #nosec
 		err := p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
 		if err != nil {
 			return err
@@ -160,7 +161,7 @@ func (c *PluginsProcessor) Dump(clusterfile string) error {
 
 func (c *PluginsProcessor) writeFiles() error {
 	if len(c.Plugins) == 0 {
-		logger.Debug("plugins is nil")
+		logger.Debug("empty plugin config found")
 		return nil
 	}
 	for _, config := range c.Plugins {

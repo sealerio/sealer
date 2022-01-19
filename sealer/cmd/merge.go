@@ -18,10 +18,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alibaba/sealer/image"
+	"github.com/alibaba/sealer/pkg/image"
+
+	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/logger"
-	"github.com/spf13/cobra"
 )
 
 var ImageName string
@@ -50,7 +51,7 @@ merge images:
 		if err := image.Merge(ImageName, images); err != nil {
 			return err
 		}
-		logger.Info("images %s is merged to %s!", strings.Join(images, ","), ImageName)
+		logger.Info("images %s is merged to %s", strings.Join(images, ","), ImageName)
 		return nil
 	},
 }

@@ -20,8 +20,8 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/client/k8s"
 )
 
 type LabelsNodes struct {
@@ -43,7 +43,7 @@ func init() {
 }
 
 func (l LabelsNodes) Run(context Context, phase Phase) error {
-	if phase != PhasePostInstall || context.Plugin.Spec.Type != LabelPlugin {
+	if phase != PhasePreGuest || context.Plugin.Spec.Type != LabelPlugin {
 		logger.Debug("label nodes is PostInstall!")
 		return nil
 	}
@@ -69,7 +69,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 			v.SetLabels(m)
 			v.SetResourceVersion("")
 
-			if _, err := l.client.UpdateNode(&v); err != nil {
+			if _, err := l.client.UpdateNode(v); err != nil {
 				return fmt.Errorf("current cluster nodes label failed, %v", err)
 			}
 		}

@@ -20,9 +20,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/alibaba/sealer/client/k8s"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/client/k8s"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
@@ -43,7 +43,7 @@ type NodeClusterStatus struct {
 }
 
 func (n *NodeChecker) Check(cluster *v2.Cluster, phase string) error {
-	if phase != PhasePost && phase != PhaseView {
+	if phase != PhasePost {
 		return nil
 	}
 	// checker if all the node is ready
@@ -61,7 +61,7 @@ func (n *NodeChecker) Check(cluster *v2.Cluster, phase string) error {
 	var nodeCount uint32
 	var notReadyCount uint32 = 0
 	for _, node := range nodes.Items {
-		nodeIP, nodePhase := getNodeStatus(&node)
+		nodeIP, nodePhase := getNodeStatus(node)
 		if nodePhase != ReadyNodeStatus {
 			notReadyCount++
 			notReadyNodeList = append(notReadyNodeList, nodeIP)
@@ -69,19 +69,16 @@ func (n *NodeChecker) Check(cluster *v2.Cluster, phase string) error {
 			readyCount++
 		}
 	}
-	if phase == PhaseView {
-		nodeCount = notReadyCount + readyCount
-		nodeClusterStatus := NodeClusterStatus{
-			ReadyCount:       readyCount,
-			NotReadyCount:    notReadyCount,
-			NodeCount:        nodeCount,
-			NotReadyNodeList: notReadyNodeList,
-		}
-		err = n.Output(nodeClusterStatus)
-		if err != nil {
-			return err
-		}
-		return nil
+	nodeCount = notReadyCount + readyCount
+	nodeClusterStatus := NodeClusterStatus{
+		ReadyCount:       readyCount,
+		NotReadyCount:    notReadyCount,
+		NodeCount:        nodeCount,
+		NotReadyNodeList: notReadyNodeList,
+	}
+	err = n.Output(nodeClusterStatus)
+	if err != nil {
+		return err
 	}
 	if notReadyCount != 0 {
 		return fmt.Errorf("check node %v not ready", notReadyNodeList)
@@ -114,7 +111,7 @@ func (n *NodeChecker) Output(nodeCLusterStatus NodeClusterStatus) error {
 	return nil
 }
 
-func getNodeStatus(node *corev1.Node) (IP string, Phase string) {
+func getNodeStatus(node corev1.Node) (IP string, Phase string) {
 	if len(node.Status.Addresses) < 1 {
 		return "", ""
 	}

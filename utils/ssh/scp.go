@@ -22,6 +22,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -42,11 +43,38 @@ const (
 	Md5sumCmd = "md5sum %s | cut -d\" \" -f1"
 )
 
+var (
+	displayInitOnce sync.Once
+	reader          *io.PipeReader
+	writer          *io.PipeWriter
+	writeFlusher    *dockerioutils.WriteFlusher
+	progressChanOut progress.Output
+	epuMap          = map[string]*easyProgressUtil{}
+)
+
 type easyProgressUtil struct {
 	output         progress.Output
 	copyID         string
 	completeNumber int
 	total          int
+}
+
+//must call DisplayInit first
+func registerEpu(ip string, total int) {
+	if progressChanOut == nil {
+		logger.Warn("call DisplayInit first")
+		return
+	}
+	if _, ok := epuMap[ip]; !ok {
+		epuMap[ip] = &easyProgressUtil{
+			output:         progressChanOut,
+			copyID:         "copying files to " + ip,
+			completeNumber: 0,
+			total:          total,
+		}
+	} else {
+		logger.Warn("%s already exist in easyProgressUtil", ip)
+	}
 }
 
 func (epu *easyProgressUtil) increment() {
@@ -60,6 +88,21 @@ func (epu *easyProgressUtil) fail(err error) {
 
 func (epu *easyProgressUtil) startMessage() {
 	progress.Update(epu.output, epu.copyID, fmt.Sprintf("%d/%d", epu.completeNumber, epu.total))
+}
+
+func displayInit() {
+	reader, writer = io.Pipe()
+	writeFlusher = dockerioutils.NewWriteFlusher(writer)
+	defer func() {
+		_ = reader.Close()
+		_ = writer.Close()
+		_ = writeFlusher.Close()
+	}()
+	progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
+	err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
+	if err != nil && err != io.ErrClosedPipe {
+		logger.Warn("error occurs in display progressing, err: %s", err)
+	}
 }
 
 func (s *SSH) RemoteMd5Sum(host, remoteFilePath string) string {
@@ -120,8 +163,11 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	if err != nil {
 		return fmt.Errorf("open remote file failed %v, remote path: %s", err, remoteFilePath)
 	}
-	defer srcFile.Close()
-
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	err = utils.MkFileFullPathDir(localFilePath)
 	if err != nil {
 		return err
@@ -131,7 +177,11 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	if err != nil {
 		return fmt.Errorf("create local file failed %v", err)
 	}
-	defer dstFile.Close()
+	defer func() {
+		if err := dstFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	// copy to local file
 	_, err = srcFile.WriteTo(dstFile)
 	return err
@@ -139,6 +189,7 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 
 // CopyLocalToRemote is copy file or dir to remotePath, add md5 validate
 func (s *SSH) Copy(host, localPath, remotePath string) error {
+	go displayInitOnce.Do(displayInit)
 	if utils.IsLocalIP(host, s.LocalAddress) {
 		logger.Debug("local copy files src %s to dst %s", localPath, remotePath)
 		return utils.RecursionCopy(localPath, remotePath)
@@ -173,29 +224,13 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	if number == 0 {
 		return nil
 	}
-	var (
-		reader, writer  = io.Pipe()
-		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
-		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
-		streamOut       = dockerstreams.NewOut(common.StdOut)
-		epu             = &easyProgressUtil{
-			output:         progressChanOut,
-			completeNumber: 0,
-			total:          number,
-			copyID:         "copying files to " + host,
-		}
-	)
-	defer func() {
-		_ = reader.Close()
-		_ = writer.Close()
-		_ = writeFlusher.Close()
-	}()
-	go func() {
-		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
-		if err != nil && err != io.ErrClosedPipe {
-			logger.Warn("error occurs in display progressing, err: %s", err)
-		}
-	}()
+	epu, ok := epuMap[host]
+	if !ok {
+		registerEpu(host, number)
+		epu = epuMap[host]
+	} else {
+		epu.total += number
+	}
 
 	epu.startMessage()
 	if f.IsDir() {
@@ -260,7 +295,12 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
+
 	dstFile, err := sftpClient.Create(remotePath)
 	if err != nil {
 		return err
@@ -273,7 +313,11 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 	if err := dstFile.Chmod(fileStat.Mode()); err != nil {
 		return fmt.Errorf("chmod remote file failed %v", err)
 	}
-	defer dstFile.Close()
+	defer func() {
+		if err := dstFile.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {
 		return err

@@ -15,9 +15,9 @@ seautil/seautil
 sealer/sealer
 *.swp
 
-cloud/dashboard/target/
-cloud/dashboard/dist/
-cloud/dashboard/Cargo.lock
+pkg/cloud/dashboard/target/
+pkg/cloud/dashboard/dist/
+pkg/cloud/dashboard/Cargo.lock
 
 docs/site/node_modules
 docs/site/package-lock.json

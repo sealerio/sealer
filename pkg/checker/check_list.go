@@ -23,18 +23,11 @@ import (
 const (
 	PhasePre  = "Pre"
 	PhasePost = "Post"
-	PhaseView = "view"
 )
 
 // Interface Define checkers when pre or post install, like checker node status, checker pod status...
 type Interface interface {
 	Check(cluster *v2.Cluster, phase string) error
-}
-
-func RunViewCheckList(cluster *v2.Cluster) error {
-	list := []Interface{NewNodeChecker(), NewSvcChecker(), NewPodChecker()}
-
-	return RunCheckList(list, cluster, PhaseView)
 }
 
 func RunCheckList(list []Interface, cluster *v2.Cluster, phase string) error {

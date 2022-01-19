@@ -19,17 +19,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/alibaba/sealer/image"
-	"github.com/alibaba/sealer/image/cache"
-	"github.com/alibaba/sealer/utils"
 	fsutil "github.com/tonistiigi/fsutil/copy"
+
+	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/image/cache"
+	"github.com/alibaba/sealer/utils"
+
+	"github.com/opencontainers/go-digest"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils/archive"
-	"github.com/opencontainers/go-digest"
 )
 
 func tryCache(parentID cache.ChainID,
@@ -128,4 +131,14 @@ func GetBaseLayersPath(layers []v1.Layer) (res []string) {
 		}
 	}
 	return res
+}
+
+func ParseCopyLayerContent(layerValue string) (src, dst string) {
+	dst = strings.Fields(layerValue)[1]
+	for _, p := range []string{"./", "/"} {
+		dst = strings.TrimPrefix(dst, p)
+	}
+	dst = strings.TrimSuffix(dst, "/")
+	src = strings.Fields(layerValue)[0]
+	return
 }

@@ -33,7 +33,7 @@ import (
 )
 
 type Interface interface {
-	// merged layer files
+	// Mount merged layer files
 	Mount(target string, upperDir string, layers ...string) error
 	Unmount(target string) error
 }
@@ -56,7 +56,11 @@ func supportsOverlay() bool {
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			logger.Fatal("failed to close file")
+		}
+	}()
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		if s.Text() == "nodev\toverlay" {
@@ -66,7 +70,7 @@ func supportsOverlay() bool {
 	return false
 }
 
-// using overlay2 to merged layer files
+// Mount using overlay2 to merged layer files
 func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) error {
 	if target == "" {
 		return fmt.Errorf("target cannot be empty")

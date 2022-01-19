@@ -19,8 +19,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/cert"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/cert"
 )
 
 type Flag struct {

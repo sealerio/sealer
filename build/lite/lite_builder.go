@@ -17,8 +17,8 @@ package lite
 import (
 	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
-	"github.com/alibaba/sealer/image/reference"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image/reference"
 )
 
 type Builder struct {
@@ -87,7 +87,6 @@ func (l *Builder) PreCheck() error {
 func (l *Builder) ExecBuild() error {
 	ctx := buildimage.Context{
 		BuildContext: l.Context,
-		BuildType:    l.BuildType,
 		UseCache:     !l.NoCache,
 	}
 
