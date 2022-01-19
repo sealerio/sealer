@@ -19,4 +19,5 @@ type Config struct {
 	NoCache   bool
 	NoBase    bool
 	ImageName string
+	BuildArgs map[string]string
 }

@@ -27,6 +27,7 @@ import (
 type ExecContext struct {
 	BuildContext string
 	BuildType    string
+	BuildArgs    map[string]string
 	//cache flag,will change for each layer ctx
 	ContinueCache bool
 	//cache chain to hit,will change for each layer ctx
@@ -62,15 +63,16 @@ func NewInstruction(ic InstructionContext) (Interface, error) {
 	return nil, nil
 }
 
-func NewExecContextWithoutCache(buildType, buildContext string, layerStore store.LayerStore) ExecContext {
+func NewExecContextWithoutCache(buildType, buildContext string, buildArgs map[string]string, layerStore store.LayerStore) ExecContext {
 	return ExecContext{
 		LayerStore:   layerStore,
 		BuildContext: buildContext,
 		BuildType:    buildType,
+		BuildArgs:    buildArgs,
 	}
 }
 
-func NewExecContext(buildType, buildContext string, imageService image.Service, layerStore store.LayerStore) ExecContext {
+func NewExecContext(buildType, buildContext string, buildArgs map[string]string, imageService image.Service, layerStore store.LayerStore) ExecContext {
 	chainSvc, err := cache.NewService()
 	if err != nil {
 		return ExecContext{}
@@ -81,6 +83,7 @@ func NewExecContext(buildType, buildContext string, imageService image.Service, 
 		LayerStore:    layerStore,
 		BuildContext:  buildContext,
 		BuildType:     buildType,
+		BuildArgs:     buildArgs,
 		CacheSvc:      chainSvc,
 		ParentID:      cache.ChainID(""),
 		Prober:        prober,

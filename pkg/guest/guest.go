@@ -17,6 +17,10 @@ package guest
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils"
+
+	"github.com/moby/buildkit/frontend/dockerfile/shell"
+
 	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
@@ -53,11 +57,27 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 		return err
 	}
 	clusterRootfs := common.DefaultTheClusterRootfsDir(cluster.Name)
+
+	ex := shell.NewLex('\\')
+	var buildArgs []string
+	if image.Spec.ImageConfig.Args != nil {
+		buildArgs = append(buildArgs, utils.ConvertMapToEnvList(image.Spec.ImageConfig.Args)...)
+	}
+	if len(cluster.Spec.Env) != 0 {
+		buildArgs = append(buildArgs, cluster.Spec.Env...)
+	}
+	arg := utils.ConvertEnvListToMap(buildArgs)
 	for i := range image.Spec.Layers {
 		if image.Spec.Layers[i].Type != common.CMDCOMMAND {
 			continue
 		}
-		if err := sshClient.CmdAsync(runtime.GetMaster0Ip(cluster), fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, image.Spec.Layers[i].Value)); err != nil {
+
+		cmdline, err := ex.ProcessWordWithMap(image.Spec.Layers[i].Value, arg)
+		if err != nil {
+			return fmt.Errorf("failed to render build args: %v", err)
+		}
+
+		if err := sshClient.CmdAsync(runtime.GetMaster0Ip(cluster), fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, cmdline)); err != nil {
 			return err
 		}
 	}

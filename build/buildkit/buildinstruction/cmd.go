@@ -17,6 +17,8 @@ package buildinstruction
 import (
 	"fmt"
 
+	"github.com/moby/buildkit/frontend/dockerfile/shell"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/opencontainers/go-digest"
@@ -35,6 +37,7 @@ type CmdInstruction struct {
 	rawLayer     v1.Layer
 	layerHandler buildlayer.LayerHandler
 	mounter      MountTarget
+	ex           *shell.Lex
 }
 
 func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
@@ -75,7 +78,12 @@ func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		return out, fmt.Errorf("failed to set temp rootfs %s to system $PATH : %v", c.mounter.GetMountTarget(), err)
 	}
 
-	cmd := fmt.Sprintf(common.CdAndExecCmd, c.mounter.GetMountTarget(), c.cmdValue)
+	cmdline, err := c.ex.ProcessWordWithMap(c.cmdValue, execContext.BuildArgs)
+	if err != nil {
+		return out, fmt.Errorf("failed to render build args: %v", err)
+	}
+
+	cmd := fmt.Sprintf(common.CdAndExecCmd, c.mounter.GetMountTarget(), cmdline)
 	output, err := command.NewSimpleCommand(cmd).Exec()
 	logger.Info(output)
 
@@ -98,10 +106,11 @@ func NewCmdInstruction(ctx InstructionContext) (*CmdInstruction, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	ex := shell.NewLex('\\')
 	return &CmdInstruction{
 		mounter:  *target,
 		cmdValue: ctx.CurrentLayer.Value,
 		rawLayer: *ctx.CurrentLayer,
+		ex:       ex,
 	}, nil
 }

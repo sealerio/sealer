@@ -10,7 +10,7 @@ github.com/Masterminds/goutils
 github.com/Masterminds/semver/v3
 # github.com/Masterminds/sprig/v3 v3.2.2
 github.com/Masterminds/sprig/v3
-# github.com/Microsoft/go-winio v0.4.16
+# github.com/Microsoft/go-winio v0.4.17
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
 # github.com/PuerkitoBio/purell v1.1.1
@@ -35,7 +35,7 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/vpc
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/containerd/containerd v1.4.4
+# github.com/containerd/containerd v1.5.8
 github.com/containerd/containerd/errdefs
 # github.com/containerd/continuity v0.1.0
 github.com/containerd/continuity/fs
@@ -77,7 +77,7 @@ github.com/distribution/distribution/v3/registry/storage/driver
 github.com/distribution/distribution/v3/registry/storage/driver/base
 github.com/distribution/distribution/v3/registry/storage/driver/factory
 github.com/distribution/distribution/v3/uuid
-# github.com/docker/cli v20.10.6+incompatible
+# github.com/docker/cli v20.10.7+incompatible
 ## explicit
 github.com/docker/cli/cli/streams
 # github.com/docker/distribution v2.7.1+incompatible
@@ -96,7 +96,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible
+# github.com/docker/docker v20.10.7+incompatible => github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -184,7 +184,7 @@ github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 # github.com/google/btree v1.0.0
 github.com/google/btree
-# github.com/google/go-cmp v0.5.5
+# github.com/google/go-cmp v0.5.6
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
@@ -194,7 +194,7 @@ github.com/google/go-cmp/cmp/internal/value
 github.com/google/gofuzz
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 github.com/google/shlex
-# github.com/google/uuid v1.1.2
+# github.com/google/uuid v1.2.0
 github.com/google/uuid
 # github.com/googleapis/gnostic v0.5.1
 github.com/googleapis/gnostic/compiler
@@ -252,10 +252,13 @@ github.com/mitchellh/copystructure
 # github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
-# github.com/mitchellh/mapstructure v1.1.2
+# github.com/mitchellh/mapstructure v1.3.1
 github.com/mitchellh/mapstructure
 # github.com/mitchellh/reflectwalk v1.0.1
 github.com/mitchellh/reflectwalk
+# github.com/moby/buildkit v0.9.3
+## explicit
+github.com/moby/buildkit/frontend/dockerfile/shell
 # github.com/moby/ipvs v1.0.1
 github.com/moby/ipvs
 # github.com/moby/spdystream v0.2.0
@@ -327,7 +330,7 @@ github.com/opencontainers/go-digest
 ## explicit
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/pelletier/go-toml v1.2.0
+# github.com/pelletier/go-toml v1.9.1
 github.com/pelletier/go-toml
 # github.com/peterbourgon/diskv v2.0.1+incompatible
 github.com/peterbourgon/diskv
@@ -385,7 +388,7 @@ github.com/spf13/cast
 ## explicit
 github.com/spf13/cobra
 github.com/spf13/cobra/doc
-# github.com/spf13/jwalterweatherman v1.0.0
+# github.com/spf13/jwalterweatherman v1.1.0
 github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
@@ -406,9 +409,9 @@ github.com/tonistiigi/fsutil/types
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vishvananda/netlink v1.1.0
+# github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 github.com/vishvananda/netlink/nl
-# github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df
+# github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae
 github.com/vishvananda/netns
 # github.com/wonderivan/logger v1.0.0
 github.com/wonderivan/logger
@@ -589,7 +592,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.26.0
+# google.golang.org/protobuf v1.27.1
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
@@ -622,7 +625,7 @@ google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
-# gopkg.in/ini.v1 v1.51.0
+# gopkg.in/ini.v1 v1.56.0
 gopkg.in/ini.v1
 # gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 gopkg.in/tomb.v1
@@ -974,3 +977,4 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit
 sigs.k8s.io/yaml
+# github.com/docker/docker => github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible

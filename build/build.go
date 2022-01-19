@@ -32,6 +32,7 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 		BuildType: config.BuildType,
 		NoCache:   config.NoCache,
 		NoBase:    config.NoBase,
+		BuildArgs: config.BuildArgs,
 	}, nil
 }
 
@@ -45,6 +46,7 @@ func NewCloudBuilder(config *Config) (Interface, error) {
 		BuildType:          config.BuildType,
 		NoCache:            config.NoCache,
 		NoBase:             config.NoBase,
+		BuildArgs:          config.BuildArgs,
 		Provider:           provider,
 		TmpClusterFilePath: common.TmpClusterfile,
 	}, nil
@@ -55,5 +57,6 @@ func NewLiteBuilder(config *Config) (Interface, error) {
 		BuildType: config.BuildType,
 		NoCache:   config.NoCache,
 		NoBase:    config.NoBase,
+		BuildArgs: config.BuildArgs,
 	}, nil
 }

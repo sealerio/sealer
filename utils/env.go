@@ -17,9 +17,34 @@ package utils
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 func SetRootfsBinToSystemEnv(rootfs string) error {
 	bin := fmt.Sprintf(":%s/bin", rootfs)
 	return os.Setenv("PATH", os.Getenv("PATH")+bin)
+}
+
+func ConvertMapToEnvList(m map[string]string) []string {
+	result := []string{}
+	for k, v := range m {
+		result = append(result, k+"="+v)
+	}
+	return result
+}
+
+func ConvertEnvListToMap(env []string) map[string]string {
+	envs := map[string]string{}
+	for _, e := range env {
+		i := strings.Index(e, "=")
+
+		if i < 0 {
+			envs[e] = ""
+		} else {
+			k := e[:i]
+			v := e[i+1:]
+			envs[k] = v
+		}
+	}
+	return envs
 }

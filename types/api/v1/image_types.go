@@ -34,11 +34,12 @@ type ImageSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Image. Edit Image_types.go to remove/update
-	ID            string   `json:"id,omitempty"`
-	MergedLayer   string   `json:"mergedLayer,omitempty"`
-	Layers        []Layer  `json:"layers,omitempty"`
-	SealerVersion string   `json:"sealer_version,omitempty"`
-	Platform      Platform `json:"platform"`
+	ID            string      `json:"id,omitempty"`
+	MergedLayer   string      `json:"mergedLayer,omitempty"`
+	Layers        []Layer     `json:"layers,omitempty"`
+	SealerVersion string      `json:"sealer_version,omitempty"`
+	Platform      Platform    `json:"platform"`
+	ImageConfig   ImageConfig `json:"image_config"`
 }
 
 // ImageStatus defines the observed state of Image
@@ -68,6 +69,11 @@ type ImageList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Image `json:"items,omitempty"`
+}
+
+type ImageConfig struct {
+	Args   map[string]string `json:"args"`
+	Labels map[string]string `json:"labels"`
 }
 
 type Platform struct {
