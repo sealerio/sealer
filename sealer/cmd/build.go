@@ -60,7 +60,7 @@ build without base:
 	sealer build -f Kubefile -t my-kubernetes:1.19.9 --base=false .
 
 build with args:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 --build-args MY_ARG=abc,PASSWORD=Sealer123 .
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conf := &build.Config{

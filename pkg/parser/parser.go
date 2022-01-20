@@ -22,6 +22,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/alibaba/sealer/utils"
+
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/logger"
@@ -140,10 +142,15 @@ func dispatchArg(layerValue string, ima *v1.Image) {
 	}
 	valueLine := strings.SplitN(layerValue, "=", 2)
 	if len(valueLine) != 2 {
-		logger.Error("invalid value %s. key=value format", layerValue)
+		logger.Error("invalid ARG value %s. ARG format must be key=value", layerValue)
+		return
 	}
-
-	ima.Spec.ImageConfig.Args[strings.TrimSpace(valueLine[0])] = strings.TrimSpace(valueLine[1])
+	k := strings.TrimSpace(valueLine[0])
+	if !utils.IsLetterOrNumber(k) {
+		logger.Error("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
+		return
+	}
+	ima.Spec.ImageConfig.Args[k] = strings.TrimSpace(valueLine[1])
 }
 
 func dispatchDefault(layerType, layerValue string, ima *v1.Image) {

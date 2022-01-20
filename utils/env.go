@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 )
 
 func SetRootfsBinToSystemEnv(rootfs string) error {
@@ -33,18 +34,35 @@ func ConvertMapToEnvList(m map[string]string) []string {
 	return result
 }
 
+func IsLetterOrNumber(k string) bool {
+	for _, r := range k {
+		if !unicode.IsLetter(r) && !unicode.IsNumber(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// ConvertEnvListToMap :if env list containers Unicode punctuation character,will ignore this element.
 func ConvertEnvListToMap(env []string) map[string]string {
 	envs := map[string]string{}
+	var k, v string
 	for _, e := range env {
-		i := strings.Index(e, "=")
-
-		if i < 0 {
-			envs[e] = ""
-		} else {
-			k := e[:i]
-			v := e[i+1:]
-			envs[k] = v
+		if e == "" {
+			continue
 		}
+		i := strings.Index(e, "=")
+		if i < 0 {
+			k = e
+		} else {
+			k = e[:i]
+			v = e[i+1:]
+		}
+		// ensure map key not containers special character.
+		if !IsLetterOrNumber(k) {
+			continue
+		}
+		envs[k] = v
 	}
 	return envs
 }

@@ -53,22 +53,30 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		execCtx    buildinstruction.ExecContext
 		newLayers  = b.NewLayers
 		baseLayers = b.BaseLayers
+		buildArgs  = map[string]string{}
 	)
 
-	if len(ctx.BuildArgs) != 0 {
-		for k, v := range ctx.BuildArgs {
-			b.RawImage.Spec.ImageConfig.Args[k] = v
+	if b.RawImage.Spec.ImageConfig.Args != nil {
+		for k, v := range b.RawImage.Spec.ImageConfig.Args {
+			buildArgs[k] = v
 		}
 	}
 
+	if len(ctx.BuildArgs) != 0 {
+		for k, v := range ctx.BuildArgs {
+			buildArgs[k] = v
+		}
+	}
+	b.RawImage.Spec.ImageConfig.Args = buildArgs
+
 	if ctx.UseCache {
 		execCtx = buildinstruction.NewExecContext(b.BuildType, ctx.BuildContext,
-			b.RawImage.Spec.ImageConfig.Args,
+			buildArgs,
 			b.ImageService, b.LayerStore)
 	} else {
 		execCtx = buildinstruction.NewExecContextWithoutCache(b.BuildType,
 			ctx.BuildContext,
-			b.RawImage.Spec.ImageConfig.Args,
+			buildArgs,
 			b.LayerStore)
 	}
 	for i := 0; i < len(newLayers); i++ {

@@ -78,6 +78,8 @@ func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		return out, fmt.Errorf("failed to set temp rootfs %s to system $PATH : %v", c.mounter.GetMountTarget(), err)
 	}
 
+	// if no variable at cmd value,nothing will change.
+	// if no build args is matched at cmd value,then the variable will be null.
 	cmdline, err := c.ex.ProcessWordWithMap(c.cmdValue, execContext.BuildArgs)
 	if err != nil {
 		return out, fmt.Errorf("failed to render build args: %v", err)
