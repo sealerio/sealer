@@ -318,6 +318,7 @@ func (in *ImageSpec) DeepCopyInto(out *ImageSpec) {
 		copy(*out, *in)
 	}
 	out.Platform = in.Platform
+	out.ImageConfig = in.ImageConfig
 	return
 }
 

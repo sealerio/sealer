@@ -28,6 +28,7 @@ type Builder struct {
 	ImageNamed   reference.Named
 	Context      string
 	KubeFileName string
+	BuildArgs    map[string]string
 	BuildImage   buildimage.Interface
 }
 
@@ -88,6 +89,7 @@ func (l *Builder) ExecBuild() error {
 	ctx := buildimage.Context{
 		BuildContext: l.Context,
 		UseCache:     !l.NoCache,
+		BuildArgs:    l.BuildArgs,
 	}
 
 	return l.BuildImage.ExecBuild(ctx)

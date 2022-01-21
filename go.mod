@@ -6,13 +6,14 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.985
 	github.com/distribution/distribution/v3 v3.0.0-20211125133600-cc4627fc6e5f
-	github.com/docker/cli v20.10.6+incompatible
+	github.com/docker/cli v20.10.7+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible
+	github.com/docker/docker v20.10.7+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/imdario/mergo v0.3.12
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/moby/buildkit v0.9.3
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/onsi/ginkgo v1.16.2
@@ -46,3 +47,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.8.1
 	sigs.k8s.io/yaml v1.2.0
 )
+
+replace github.com/docker/docker => github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible

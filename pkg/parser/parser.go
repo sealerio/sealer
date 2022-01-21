@@ -22,6 +22,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/alibaba/sealer/utils"
+
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/alibaba/sealer/logger"
@@ -34,6 +36,7 @@ const (
 	Cmd  = "CMD"
 	Copy = "COPY"
 	From = "FROM"
+	Arg  = "ARG"
 )
 
 var validCommands = map[string]bool{
@@ -41,6 +44,7 @@ var validCommands = map[string]bool{
 	Cmd:  true,
 	Copy: true,
 	From: true,
+	Arg:  true,
 }
 
 var (
@@ -111,17 +115,14 @@ func (p *Parser) Parse(kubeFile []byte) *v1.Image {
 			logger.Error("decode kubeFile line failed, err: %v", err)
 			return nil
 		}
-		if layerType == "" {
-			continue
+
+		switch layerType {
+		case Arg:
+			dispatchArg(layerValue, image)
+		default:
+			dispatchDefault(layerType, layerValue, image)
 		}
-
-		image.Spec.Layers = append(image.Spec.Layers, v1.Layer{
-			ID:    "",
-			Type:  layerType,
-			Value: layerValue,
-		})
 	}
-
 	return image
 }
 
@@ -131,7 +132,33 @@ func decodeLine(line string) (string, string, error) {
 	if !validCommands[cmd] {
 		return "", "", fmt.Errorf("invalid command %s %s", cmdline[0], line)
 	}
+
 	return cmd, cmdline[1], nil
+}
+
+func dispatchArg(layerValue string, ima *v1.Image) {
+	if ima.Spec.ImageConfig.Args == nil {
+		ima.Spec.ImageConfig.Args = map[string]string{}
+	}
+	valueLine := strings.SplitN(layerValue, "=", 2)
+	if len(valueLine) != 2 {
+		logger.Error("invalid ARG value %s. ARG format must be key=value", layerValue)
+		return
+	}
+	k := strings.TrimSpace(valueLine[0])
+	if !utils.IsLetterOrNumber(k) {
+		logger.Error("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
+		return
+	}
+	ima.Spec.ImageConfig.Args[k] = strings.TrimSpace(valueLine[1])
+}
+
+func dispatchDefault(layerType, layerValue string, ima *v1.Image) {
+	ima.Spec.Layers = append(ima.Spec.Layers, v1.Layer{
+		ID:    "",
+		Type:  layerType,
+		Value: layerValue,
+	})
 }
 
 func trimNewline(src []byte) []byte {

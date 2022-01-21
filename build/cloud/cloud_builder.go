@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"sigs.k8s.io/yaml"
 
@@ -48,6 +49,7 @@ type Builder struct {
 	Context            string
 	KubeFileName       string
 	RemoteHostIP       string
+	BuildArgs          map[string]string
 	SSH                ssh.Interface
 	Cluster            *v1.Cluster
 	Image              *v1.Image
@@ -208,7 +210,10 @@ func (c *Builder) runBuildCommands() (err error) {
 	if c.NoCache {
 		build = fmt.Sprintf("%s %s", build, "--no-cache=true")
 	}
-
+	if len(c.BuildArgs) != 0 {
+		arg := strings.Join(utils.ConvertMapToEnvList(c.BuildArgs), " ")
+		build = fmt.Sprintf("%s %s %s", build, "--build-arg", arg)
+	}
 	if c.Provider == common.AliCloud {
 		push := fmt.Sprintf(common.PushImageCmd, common.RemoteSealerPath,
 			c.ImageNamed.Raw())
