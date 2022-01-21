@@ -138,18 +138,22 @@ func (b BuildImage) checkDiff() error {
 }
 
 func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
+	b.RawImage.Name = name
 	err := b.checkDiff()
 	if err != nil {
 		return err
 	}
 
-	layers, err := b.collectLayers(opts)
+	err = b.collectLayers()
 	if err != nil {
 		return err
 	}
 
-	b.RawImage.Spec.Layers = layers
-	err = b.save(name)
+	err = b.setImageAttribute()
+	if err != nil {
+		return err
+	}
+	err = b.save(name, opts)
 	if err != nil {
 		return fmt.Errorf("failed to save image metadata, err: %v", err)
 	}
@@ -158,40 +162,23 @@ func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
 	return nil
 }
 
-func (b BuildImage) collectLayers(opts SaveOpts) ([]v1.Layer, error) {
-	var layers []v1.Layer
-
-	if opts.WithoutBase {
-		layers = b.NewLayers
-	} else {
-		layers = append(b.BaseLayers, b.NewLayers...)
-	}
-
-	layer, err := b.collectRootfsDiff()
+func (b BuildImage) collectLayers() error {
+	upper := b.RootfsMountInfo.GetMountUpper()
+	layer, err := b.genNewLayer(common.BaseImageLayerType, common.RootfsLayerValue, upper)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to register layer, err: %v", err)
 	}
 	if layer.ID == "" {
 		logger.Warn("no rootfs diff content found")
-		return layers, nil
-	}
-	layers = append(layers, layer)
-	return layers, nil
-}
-
-func (b BuildImage) collectRootfsDiff() (v1.Layer, error) {
-	var layer v1.Layer
-	upper := b.RootfsMountInfo.GetMountUpper()
-
-	layer, err := b.genNewLayer(common.BaseImageLayerType, common.RootfsLayerValue, upper)
-	if err != nil {
-		return layer, fmt.Errorf("failed to register layer, err: %v", err)
+		return nil
 	}
 
-	return layer, nil
+	b.NewLayers = append(b.NewLayers, layer)
+	b.RawImage.Spec.Layers = append(b.BaseLayers, b.NewLayers...)
+	return nil
 }
 
-func (b BuildImage) save(name string) error {
+func (b BuildImage) setImageAttribute() error {
 	mi, err := GetLayerMountInfo(b.RawImage.Spec.Layers, b.BuildType)
 	if err != nil {
 		return err
@@ -199,19 +186,24 @@ func (b BuildImage) save(name string) error {
 	defer mi.CleanUp()
 
 	rootfsPath := mi.GetMountTarget()
-	b.RawImage.Name = name
 	is := []ImageSetter{NewAnnotationSetter(rootfsPath), NewPlatformSetter(rootfsPath)}
 	for _, s := range is {
 		if err = s.Set(b.RawImage); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (b BuildImage) save(name string, opts SaveOpts) error {
+	if opts.WithoutBase {
+		b.RawImage.Spec.Layers = b.RawImage.Spec.Layers[len(b.BaseLayers):]
+	}
 	imageID, err := generateImageID(*b.RawImage)
 	if err != nil {
 		return err
 	}
 	b.RawImage.Spec.ID = imageID
-
 	return b.ImageStore.Save(*b.RawImage, name)
 }
 

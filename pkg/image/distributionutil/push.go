@@ -256,7 +256,7 @@ type dockerManifestConfig struct {
 	History      []dockerImageLayerInfo `json:"history,omitempty"`
 }
 
-// add docker image config fields to display some metedata on docker hub
+// add docker image config fields to display some metadata on docker hub
 // os, architecture and each layer command
 func addDockerManifestConfig(image v1.Image) (*dockerManifestConfig, error) {
 	var dockerImage = &dockerManifestConfig{}
