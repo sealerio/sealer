@@ -140,17 +140,21 @@ func dispatchArg(layerValue string, ima *v1.Image) {
 	if ima.Spec.ImageConfig.Args == nil {
 		ima.Spec.ImageConfig.Args = map[string]string{}
 	}
-	valueLine := strings.SplitN(layerValue, "=", 2)
-	if len(valueLine) != 2 {
-		logger.Error("invalid ARG value %s. ARG format must be key=value", layerValue)
-		return
+
+	kv := strings.Split(layerValue, ",")
+	for _, element := range kv {
+		valueLine := strings.SplitN(element, "=", 2)
+		if len(valueLine) != 2 {
+			logger.Error("invalid ARG value %s. ARG format must be key=value", layerValue)
+			return
+		}
+		k := strings.TrimSpace(valueLine[0])
+		if !utils.IsLetterOrNumber(k) {
+			logger.Error("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
+			return
+		}
+		ima.Spec.ImageConfig.Args[k] = strings.TrimSpace(valueLine[1])
 	}
-	k := strings.TrimSpace(valueLine[0])
-	if !utils.IsLetterOrNumber(k) {
-		logger.Error("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
-		return
-	}
-	ima.Spec.ImageConfig.Args[k] = strings.TrimSpace(valueLine[1])
 }
 
 func dispatchDefault(layerType, layerValue string, ima *v1.Image) {
