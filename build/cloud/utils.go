@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/alibaba/sealer/logger"
 
@@ -25,7 +26,7 @@ import (
 )
 
 func tarBuildContext(kubeFilePath string, context string, tarFileName string) error {
-	file, err := os.Create(tarFileName)
+	file, err := os.Create(filepath.Clean(tarFileName))
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", tarFileName, err)
 	}

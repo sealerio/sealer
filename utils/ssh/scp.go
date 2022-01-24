@@ -173,7 +173,7 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 		return err
 	}
 	// open local Destination file
-	dstFile, err := os.Create(localFilePath)
+	dstFile, err := os.Create(filepath.Clean(localFilePath))
 	if err != nil {
 		return fmt.Errorf("create local file failed %v", err)
 	}

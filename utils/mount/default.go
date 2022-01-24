@@ -126,7 +126,7 @@ func copyFile(src, dst string) error {
 		}
 	}()
 	// create dstfile
-	dstFile, err := os.Create(dst)
+	dstFile, err := os.Create(filepath.Clean(dst))
 	if err != nil {
 		return fmt.Errorf("create file err: %s", err)
 	}
