@@ -77,7 +77,7 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.Create(imageTar)
+	file, err := os.Create(filepath.Clean(imageTar))
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}

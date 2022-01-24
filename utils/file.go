@@ -316,7 +316,7 @@ func CopySingleFile(src, dst string) (int64, error) {
 		}
 	}()
 	//will overwrite dst when dst is existed
-	destination, err := os.Create(dst)
+	destination, err := os.Create(filepath.Clean(dst))
 	if err != nil {
 		return 0, err
 	}
