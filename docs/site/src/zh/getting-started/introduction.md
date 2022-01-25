@@ -1,27 +1,32 @@
-# Introduction
+# 概览
 
-## Overview
+sealer[ˈsiːlər] 可以像docker那样把整个集群制作成镜像，实现分布式软件的构建、交付、运行。
 
-sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes.
+应用场景：
+
+* kubernetes集群安装
+* kubernetes集群、数据库、中间件、SaaS应用整体打包，一键交付
+* 离线交付，多架构支持，国产化支持
+* 各种在kubernetes上编排的分布式应用交付
 
 ![](https://user-images.githubusercontent.com/8912557/117263291-b88b8700-ae84-11eb-8b46-838292e85c5c.png)
 
-We can write a Kubefile, and build a CloudImage, then using a Clusterfile to run a cluster.
+编写一个和Dockerfile很类似的Kubefile，就可以构建一个集群镜像，使用Clusterfile去运行一个集群。
 
 ![](https://user-images.githubusercontent.com/8912557/117400612-97cf3a00-af35-11eb-90b9-f5dc8e8117b5.png)
 
-## Quick start
+Docker镜像很好的解决了单应用的打包问题，但是没有解决分布式应用的镜像问题。helm这类编排工具解决了编排问题，没有解决打包问题。
 
-Show you basic usage of how to build a CloudImage, how to run a cluster, config and plugin ability and Applications usage.
+目前集群没有打包标准，构建一个自定义的kubernetes集群也比较复杂，整个集群+分布式应用部署也是面向过程，交付问题爆炸屡屡得不到干净利索的解决，集群整体交付一致性差。
 
-## Advanced
+特别是在专有云交付领域，一个分布式软件往往有非常多的配置，以及很多应用镜像和依赖，甚至有些情况还需要在离线情况下进行交付，交付过程面临着非常大的挑战。
 
-Learn more about architecture or deep customize you own features.
+集群镜像把整个集群看成一台服务器，把k8s看成云操作系统，实现整个集群的镜像化打包和交付，为企业级软件提供一种“开箱即用”的应用封装技术。
 
-## Contributing
+通过非常简单的方式把一个应用的所有依赖进行标准化打包，一键运行到客户的集群中去，并且可以兼容复杂的基础设施，保障集群镜像构建过程没问题运行就没问题。
 
-Find out how to contribute to Docs.
+集群镜像市场中会提供非常多已经构建好的可复用镜像，软件的使用者可以像搭建积木一样灵活的组合这些镜像服务与自己的应用，如SaaS应用依赖的数据库，消息队列，甚至k8s本身都可以直接在市场中找到。
 
-## Help
+使用集群镜像技术最终能帮助企业一键拉起一个复杂的自定义集群，大幅提升交付效率，降低交付出错率，直接复用成熟稳定的组件也可使软件稳定性大大提升。
 
-Faq and some contact information.
+交付人员不用再关心复杂的部署细节，解决了软件生产者和使用者之间的协作问题。
