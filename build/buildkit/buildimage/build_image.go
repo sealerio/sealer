@@ -188,12 +188,13 @@ func (b BuildImage) collectLayers() error {
 	if err != nil {
 		return fmt.Errorf("failed to register layer, err: %v", err)
 	}
-	if layer.ID == "" {
+
+	if layer.ID != "" {
+		b.NewLayers = append(b.NewLayers, layer)
+	} else {
 		logger.Warn("no rootfs diff content found")
-		return nil
 	}
 
-	b.NewLayers = append(b.NewLayers, layer)
 	b.RawImage.Spec.Layers = append(b.BaseLayers, b.NewLayers...)
 	return nil
 }

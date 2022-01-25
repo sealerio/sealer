@@ -36,6 +36,9 @@ func ConvertMapToEnvList(m map[string]string) []string {
 
 func IsLetterOrNumber(k string) bool {
 	for _, r := range k {
+		if r == '_' {
+			continue
+		}
 		if !unicode.IsLetter(r) && !unicode.IsNumber(r) {
 			return false
 		}
