@@ -15,7 +15,10 @@
 package config
 
 import (
+	"io/ioutil"
 	"testing"
+
+	"github.com/alibaba/sealer/common"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
@@ -52,6 +55,47 @@ func TestDumper_Dump(t *testing.T) {
 			}
 			if err := c.Dump(tt.args.clusterfile); (err != nil) != tt.wantErr {
 				t.Errorf("Dump() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_getMergeConfig(t *testing.T) {
+	type args struct {
+		path string
+		data []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "test",
+			args: args{
+				data: []byte("spec:\n  image: kubernetes:v1.19.8"),
+				path: "test_clusterfile.yaml",
+			},
+		}, {
+			name: "test",
+			args: args{
+				data: []byte("spec:\n  template:\n    metadata:\n      labels:\n        name: tigera-operatorssssss"),
+				path: "tigera-operator.yaml",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getMergeConfigData(tt.args.path, tt.args.data)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			err = ioutil.WriteFile("test_"+tt.args.path, got, common.FileMode0644)
+			if err != nil {
+				t.Error(err)
 			}
 		})
 	}

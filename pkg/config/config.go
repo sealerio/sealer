@@ -15,8 +15,12 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -39,6 +43,11 @@ spec:
 
 Dump will dump the config to etc/redis-config.yaml file
 */
+
+const (
+	Merge     = "merge"
+	Overwrite = "overwrite"
+)
 
 type Interface interface {
 	// Dump Config in Clusterfile to the cluster rootfs disk
@@ -73,17 +82,79 @@ func (c *Dumper) Dump(clusterfile string) error {
 	return nil
 }
 
-func (c *Dumper) WriteFiles() error {
+func (c *Dumper) WriteFiles() (err error) {
 	if c.Configs == nil {
 		logger.Debug("empty config found")
 		return nil
 	}
 	for _, config := range c.Configs {
-		err := utils.WriteFile(filepath.Join(common.DefaultMountCloudImageDir(c.ClusterName), config.Spec.Path), []byte(config.Spec.Data))
+		configData := []byte(config.Spec.Data)
+		configPath := filepath.Join(common.DefaultMountCloudImageDir(c.ClusterName), config.Spec.Path)
+		//only the YAML format is supported
+		if config.Spec.Strategy == Merge {
+			configData, err = getMergeConfigData(configPath, configData)
+			if err != nil {
+				return err
+			}
+		}
+		err = utils.WriteFile(configPath, configData)
 		if err != nil {
 			return fmt.Errorf("write config file failed %v", err)
 		}
 	}
 
 	return nil
+}
+
+//merge the contents of data into the path file
+func getMergeConfigData(path string, data []byte) ([]byte, error) {
+	var configs [][]byte
+	context, err := ioutil.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil, err
+	}
+	mergeConfigMap := make(map[string]interface{})
+	err = yaml.Unmarshal(data, &mergeConfigMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal merge map: %v", err)
+	}
+	for _, rawCfgData := range bytes.Split(context, []byte("---\n")) {
+		configMap := make(map[string]interface{})
+		err = yaml.Unmarshal(rawCfgData, &configMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal config: %v", err)
+		}
+		if len(configMap) == 0 {
+			continue
+		}
+		deepMerge(&configMap, &mergeConfigMap)
+
+		cfg, err := yaml.Marshal(&configMap)
+		if err != nil {
+			return nil, err
+		}
+		configs = append(configs, cfg)
+	}
+	return bytes.Join(configs, []byte("\n---\n")), nil
+}
+
+func deepMerge(dst, src *map[string]interface{}) {
+	for srcK, srcV := range *src {
+		dstV, ok := (*dst)[srcK]
+		if !ok {
+			continue
+		}
+		dV, ok := dstV.(map[string]interface{})
+		// dstV is string type
+		if !ok {
+			(*dst)[srcK] = srcV
+			continue
+		}
+		sV, ok := srcV.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		deepMerge(&dV, &sV)
+		(*dst)[srcK] = dV
+	}
 }
