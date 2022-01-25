@@ -15,7 +15,11 @@
 package runtime
 
 import (
+	"fmt"
 	"sync"
+
+	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/utils"
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
@@ -47,6 +51,8 @@ type KubeadmRuntime struct {
 	*Config
 }
 
+var ForceDelete bool
+
 func (k *KubeadmRuntime) Init(cluster *v2.Cluster) error {
 	return k.init(cluster)
 }
@@ -56,23 +62,56 @@ func (k *KubeadmRuntime) Upgrade() error {
 }
 
 func (k *KubeadmRuntime) Reset() error {
+	logger.Info("Start to delete cluster: master %s, node %s", k.Cluster.GetMasterIPList(), k.Cluster.GetNodeIPList())
+	if err := k.confirmDeleteNodes(); err != nil {
+		return err
+	}
 	return k.reset()
 }
 
 func (k *KubeadmRuntime) JoinMasters(newMastersIPList []string) error {
+	if len(newMastersIPList) != 0 {
+		logger.Info("%s will be added as master", newMastersIPList)
+	}
 	return k.joinMasters(newMastersIPList)
 }
 
 func (k *KubeadmRuntime) JoinNodes(newNodesIPList []string) error {
+	if len(newNodesIPList) != 0 {
+		logger.Info("%s will be added as worker", newNodesIPList)
+	}
 	return k.joinNodes(newNodesIPList)
 }
 
 func (k *KubeadmRuntime) DeleteMasters(mastersIPList []string) error {
+	if len(mastersIPList) != 0 {
+		logger.Info("master %s will be deleted", mastersIPList)
+		if err := k.confirmDeleteNodes(); err != nil {
+			return err
+		}
+	}
 	return k.deleteMasters(mastersIPList)
 }
 
 func (k *KubeadmRuntime) DeleteNodes(nodesIPList []string) error {
+	if len(nodesIPList) != 0 {
+		logger.Info("worker %s will be deleted", nodesIPList)
+		if err := k.confirmDeleteNodes(); err != nil {
+			return err
+		}
+	}
 	return k.deleteNodes(nodesIPList)
+}
+
+func (k *KubeadmRuntime) confirmDeleteNodes() error {
+	if !ForceDelete {
+		if pass, err := utils.ConfirmOperation("Are you sure to delete these nodes? "); err != nil {
+			return err
+		} else if !pass {
+			return fmt.Errorf("exit the operation of delete these nodes")
+		}
+	}
+	return nil
 }
 
 func (k *KubeadmRuntime) GetClusterMetadata() (*Metadata, error) {

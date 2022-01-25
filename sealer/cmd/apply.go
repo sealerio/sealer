@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"github.com/alibaba/sealer/pkg/runtime"
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/apply"
@@ -40,4 +41,5 @@ var applyCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(applyCmd)
 	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "apply a kubernetes cluster")
+	applyCmd.Flags().BoolVar(&runtime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
 }

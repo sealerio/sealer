@@ -16,7 +16,8 @@ package cmd
 
 import (
 	"fmt"
-	"regexp"
+
+	"github.com/alibaba/sealer/pkg/runtime"
 
 	"github.com/spf13/cobra"
 
@@ -25,9 +26,11 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-var deleteArgs *common.RunArgs
-var deleteClusterFile string
-var deleteClusterName string
+var (
+	deleteArgs        *common.RunArgs
+	deleteClusterFile string
+	deleteClusterName string
+)
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
@@ -49,10 +52,6 @@ delete all:
 	sealer delete -c my-cluster [--force]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		force, err := cmd.Flags().GetBool("force")
-		if err != nil {
-			return err
-		}
 		all, err := cmd.Flags().GetBool("all")
 		if err != nil {
 			return err
@@ -78,26 +77,6 @@ delete all:
 		} else if deleteClusterFile == "" {
 			deleteClusterFile = common.GetClusterWorkClusterfile(deleteClusterName)
 		}
-
-		if !force {
-			var yesRx = regexp.MustCompile("^(?:y(?:es)?)$")
-			var noRx = regexp.MustCompile("^(?:n(?:o)?)$")
-			var input string
-			for {
-				fmt.Printf("Are you sure to delete the cluster? Yes [y/yes], No [n/no] : ")
-				_, err := fmt.Scanln(&input)
-				if err != nil {
-					return err
-				}
-				if yesRx.MatchString(input) {
-					break
-				}
-				if noRx.MatchString(input) {
-					fmt.Println("You have canceled to delete the cluster!")
-					return nil
-				}
-			}
-		}
 		if deleteArgs.Nodes != "" || deleteArgs.Masters != "" {
 			applier, err := apply.NewScaleApplierFromArgs(deleteClusterFile, deleteArgs, common.DeleteSubCmd)
 			if err != nil {
@@ -121,6 +100,6 @@ func init() {
 	deleteCmd.Flags().StringVarP(&deleteArgs.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
 	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
 	deleteCmd.Flags().StringVarP(&deleteClusterName, "cluster", "c", "", "delete a kubernetes cluster with cluster name")
-	deleteCmd.Flags().BoolP("force", "", false, "We also can input an --force flag to delete cluster by force")
+	deleteCmd.Flags().BoolVar(&runtime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolP("all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
 }

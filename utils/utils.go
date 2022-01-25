@@ -16,6 +16,7 @@ package utils
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 )
 
@@ -34,4 +35,25 @@ func Retry(tryTimes int, trySleepTime time.Duration, action func() error) error 
 
 func WrapExecResult(host, command string, output []byte, err error) error {
 	return fmt.Errorf("failed to execute command(%s) on host(%s): output(%s), error(%v)", command, host, output, err)
+}
+
+// ConfirmOperation confirm whether to continue with the operation，typing yes will return true.
+func ConfirmOperation(promptInfo string) (bool, error) {
+	var yesRx = regexp.MustCompile("^(?:y(?:es)?)$")
+	var noRx = regexp.MustCompile("^(?:n(?:o)?)$")
+	var input string
+	for {
+		fmt.Printf(promptInfo + " Yes [y/yes], No [n/no] : ")
+		_, err := fmt.Scanln(&input)
+		if err != nil {
+			return false, err
+		}
+		if yesRx.MatchString(input) {
+			break
+		}
+		if noRx.MatchString(input) {
+			return false, nil
+		}
+	}
+	return true, nil
 }
