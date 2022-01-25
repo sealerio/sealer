@@ -19,8 +19,8 @@ jobs:
           echo $version
           arch=`echo "$commentbody"|cut -d" " -f3`
           echo $arch
-          wget http://sealer.oss-cn-beijing.aliyuncs.com/auto-build/k8sv1.20.14.tar.gz
-          tar -xvf k8sv1.20.14.tar.gz
+          wget http://sealer.oss-cn-beijing.aliyuncs.com/auto-build/rootfs.tar.gz
+          tar -xvf rootfs.tar.gz
           wget https://dl.k8s.io/$version/kubernetes-server-linux-$arch.tar.gz
           tar -xvf kubernetes-server-linux-$arch.tar.gz
           sudo cp ./kubernetes/server/bin/kubectl ./rootfs/bin/
