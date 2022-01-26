@@ -74,3 +74,7 @@ func buildRaw(name string) string {
 	}
 	return name + ":" + defaultTag
 }
+
+func init() {
+	rootCmd.AddCommand(getMergeCmd())
+}
