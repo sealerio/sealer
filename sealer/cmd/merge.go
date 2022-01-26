@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"os"
 	"strings"
 
 	"github.com/alibaba/sealer/pkg/image"
@@ -27,32 +26,41 @@ import (
 
 var ImageName string
 
-var mergeCmd = &cobra.Command{
-	Use:   "merge",
-	Short: "Merge multiple images into one",
-	Long:  `sealer merge image1:latest image2:latest image3:latest ......`,
-	Example: `
+func getMergeCmd() *cobra.Command {
+	var mergeCmd = &cobra.Command{
+		Use:   "merge",
+		Short: "Merge multiple images into one",
+		Long:  `sealer merge image1:latest image2:latest image3:latest ......`,
+		Example: `
 merge images:
 	sealer merge kubernetes:v1.19.9 mysql:5.7.0 redis:6.0.0 -t new:0.1.0
 `,
-	Args: cobra.MinimumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var images []string
-		for _, v := range args {
-			image := strings.TrimSpace(v)
-			if image == "" {
-				continue
-			}
-			images = append(images, image)
-		}
+		Args: cobra.MinimumNArgs(1),
+		RunE: getMergeFunc,
+	}
+	mergeCmd.Flags().StringVarP(&ImageName, "target-image", "t", "", "target image name")
+	if err := mergeCmd.MarkFlagRequired("target-image"); err != nil {
+		logger.Error("failed to init flag target image: %v", err)
+	}
+	return mergeCmd
+}
 
-		ima := buildRaw(ImageName)
-		if err := image.Merge(ima, images); err != nil {
-			return err
+func getMergeFunc(cmd *cobra.Command, args []string) error {
+	var images []string
+	for _, v := range args {
+		imageName := strings.TrimSpace(v)
+		if imageName == "" {
+			continue
 		}
-		logger.Info("images %s is merged to %s", strings.Join(images, ","), ima)
-		return nil
-	},
+		images = append(images, imageName)
+	}
+
+	ima := buildRaw(ImageName)
+	if err := image.Merge(ima, images); err != nil {
+		return err
+	}
+	logger.Info("images %s is merged to %s", strings.Join(images, ","), ima)
+	return nil
 }
 
 func buildRaw(name string) string {
@@ -65,13 +73,4 @@ func buildRaw(name string) string {
 		return name
 	}
 	return name + ":" + defaultTag
-}
-
-func init() {
-	rootCmd.AddCommand(mergeCmd)
-	mergeCmd.Flags().StringVarP(&ImageName, "target-image", "t", "", "target image name")
-	if err := mergeCmd.MarkFlagRequired("target-image"); err != nil {
-		logger.Error("failed to init flag target image: %v", err)
-		os.Exit(1)
-	}
 }
