@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"os"
 	"strings"
 
 	"github.com/alibaba/sealer/pkg/image"
@@ -44,15 +45,33 @@ merge images:
 			}
 			images = append(images, image)
 		}
-		if err := image.Merge(ImageName, images); err != nil {
+
+		ima := buildRaw(ImageName)
+		if err := image.Merge(ima, images); err != nil {
 			return err
 		}
-		logger.Info("images %s is merged to %s", strings.Join(images, ","), ImageName)
+		logger.Info("images %s is merged to %s", strings.Join(images, ","), ima)
 		return nil
 	},
 }
 
+func buildRaw(name string) string {
+	defaultTag := "latest"
+	i := strings.LastIndexByte(name, ':')
+	if i == -1 {
+		return name + ":" + defaultTag
+	}
+	if i > strings.LastIndexByte(name, '/') {
+		return name
+	}
+	return name + ":" + defaultTag
+}
+
 func init() {
 	rootCmd.AddCommand(mergeCmd)
-	mergeCmd.Flags().StringVarP(&ImageName, "image-name", "t", "", "target image name")
+	mergeCmd.Flags().StringVarP(&ImageName, "target-image", "t", "", "target image name")
+	if err := mergeCmd.MarkFlagRequired("target-image"); err != nil {
+		logger.Error("failed to init flag target image: %v", err)
+		os.Exit(1)
+	}
 }

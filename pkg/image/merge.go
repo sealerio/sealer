@@ -34,6 +34,7 @@ func save(imageName string, image *v1.Image) error {
 		imageStore store.ImageStore
 		err        error
 	)
+	image.Name = imageName
 	imageStore, err = store.NewDefaultImageStore()
 	if err != nil {
 		return err
@@ -71,28 +72,14 @@ func setClusterFile(imageName string, image *v1.Image) error {
 	return nil
 }
 
-func RemoveLayersDuplicate(list []v1.Layer) []v1.Layer {
-	var result []v1.Layer
-	flagMap := map[string]struct{}{}
-	for _, v := range list {
-		if _, ok := flagMap[v.ID.String()]; !ok {
-			flagMap[v.ID.String()] = struct{}{}
-			result = append(result, v)
-		}
-	}
-	return result
-}
-
 func Merge(imageName string, images []string) error {
 	if imageName == "" {
 		return fmt.Errorf("target image name should not be nil")
 	}
 	var (
 		err        error
-		Image      = &v1.Image{}
-		img        *v1.Image
+		newIma     *v1.Image
 		imageStore store.ImageStore
-		layers     []v1.Layer
 	)
 	imageStore, err = store.NewDefaultImageStore()
 	if err != nil {
@@ -116,20 +103,68 @@ func Merge(imageName string, images []string) error {
 		return err
 	}
 
-	for k, v := range images {
-		img, err = d.GetImageByName(v)
+	for i, v := range images {
+		img, err := d.GetImageByName(v)
 		if err != nil {
 			return err
 		}
-		if k == 0 {
-			Image = img
-			Image.Name = imageName
-			layers = img.Spec.Layers
+		if i == 0 {
+			newIma = img
+			continue
 		} else {
-			layers = append(Image.Spec.Layers, img.Spec.Layers...)
+			newIma, err = merge(newIma, img)
+			if err != nil {
+				return err
+			}
 		}
-		Image.Spec.Layers = RemoveLayersDuplicate(layers)
+	}
+	return save(imageName, newIma)
+}
+
+func merge(base, ima *v1.Image) (*v1.Image, error) {
+	if base == nil || ima == nil {
+		return nil, fmt.Errorf(" merge base or new can not be nil")
+	}
+	// merge image platform
+	if base.Spec.Platform.OS != ima.Spec.Platform.OS ||
+		base.Spec.Platform.Architecture != ima.Spec.Platform.Architecture ||
+		base.Spec.Platform.Variant != ima.Spec.Platform.Variant {
+		return nil, fmt.Errorf("can not merge different platform")
+	}
+	// merge image config arg
+	if base.Spec.ImageConfig.Args == nil {
+		base.Spec.ImageConfig.Args = map[string]string{}
+	}
+	for k, v := range ima.Spec.ImageConfig.Args {
+		base.Spec.ImageConfig.Args[k] = v
 	}
 
-	return save(imageName, Image)
+	// merge image layer
+	res := append(base.Spec.Layers, ima.Spec.Layers...)
+	base.Spec.Layers = removeDuplicateLayers(res)
+	return base, nil
+}
+
+func removeDuplicateLayers(list []v1.Layer) []v1.Layer {
+	var result []v1.Layer
+	flagMap := map[string]struct{}{}
+	valueMap := map[string]struct{}{}
+	for _, v := range list {
+		// if type is cmd,remove duplicate value,this covers cmd instruction.
+		if v.Type == "CMD" {
+			if _, ok := valueMap[v.Value]; !ok {
+				valueMap[v.Value] = struct{}{}
+				result = append(result, v)
+			}
+			continue
+		}
+		// if id is not nil,remove duplicate id,this covers run and copy instruction.
+		if v.ID.String() != "" {
+			if _, ok := flagMap[v.ID.String()]; !ok {
+				flagMap[v.ID.String()] = struct{}{}
+				result = append(result, v)
+			}
+		}
+	}
+	return result
 }
