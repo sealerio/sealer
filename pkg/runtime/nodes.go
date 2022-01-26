@@ -43,7 +43,7 @@ const (
 	AddRouteCmd                     = "ip route |grep %s || ip route add %s"
 	DeleteRouteFromFile             = "if [ -f /etc/sysconfig/network-scripts/route-%s ]; then sed -i \"/%s/d\" /etc/sysconfig/network-scripts/route-%s;fi"
 	AddStaticRouteFile              = "cat /etc/sysconfig/network-scripts/route-%s|grep %s || echo %s >> /etc/sysconfig/network-scripts/route-%s"
-	GetNetworkInterface             = "ip route |grep -v %s |grep %s| awk -F '[ \\t*]' '{print $3}'"
+	GetNetworkInterface             = "ifconfig |grep %s -1 |head -n1|cut -d\":\" -f1"
 )
 
 func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
@@ -191,7 +191,7 @@ func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
 	if err == nil {
 		return nil
 	}
-	netInterface, err := sshClient.CmdToString(node, fmt.Sprintf(GetNetworkInterface, k.getVIP(), node), "")
+	netInterface, err := sshClient.CmdToString(node, fmt.Sprintf(GetNetworkInterface, node), "")
 	if err != nil {
 		return fmt.Errorf("failed to found %s network interface: %v", node, err)
 	}
@@ -217,7 +217,7 @@ func (k *KubeadmRuntime) deleteVIPRoute(node string) error {
 	if err != nil {
 		return err
 	}
-	netInterface, err := sshClient.CmdToString(node, fmt.Sprintf(GetNetworkInterface, k.getVIP(), node), "")
+	netInterface, err := sshClient.CmdToString(node, fmt.Sprintf(GetNetworkInterface, node), "")
 	if err != nil {
 		return fmt.Errorf("failed to found %s network interface: %v", node, err)
 	}
