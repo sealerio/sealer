@@ -22,7 +22,19 @@ Take the image of version 1.20.14 as an example. You don't need to pay attention
 ```shell
 /imagebuild 1.20.14 amd64
 ```
+output:
+
+```shell
+kubernetes: version-auto
+```
+`version`: kubernetes version
+
+For example:
+
+```shell
+kubernetes:v1.20.14-auto
+```
 
 After inputting, GitHub action will start to execute the automatic construction of the basic image of the corresponding version of kubernetes.
 
-When `kubernetes: version auto` appears in the comment area, it indicates that the image construction is completed.
+When `kubernetes: version-auto` appears in the comment area, it indicates that the image construction is completed.
