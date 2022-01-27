@@ -8,6 +8,7 @@ Standard directive:
 ```shell
 /imagebuild + version + arch
 ```
+
 `/imagebuild` : To trigger an automated build.
 
 `version` : The version corresponding to kubernetes.
