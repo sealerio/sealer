@@ -3,7 +3,7 @@
 ## Build command line
 
 You can run the build command line after sealer installed. The current path is the context path ,default build type is
-cloud and use build cache.
+`lite` and use build cache.
 
 ```shell
 sealer build [flags] PATH
@@ -13,26 +13,28 @@ Flags:
 
 ```shell
 Flags:
-  -m, --mode string   requied,cluster image build type,default is cloud build.
-  -t, --imageName string   requied,cluster image name.
-  -f, --kubefile string    requied,kubefile filepath default is "Kubefile".
-  --no-cache               build without cache.default is use cache to build.
-  -h, --help               help for build.
+      --base                build with base image,default value is true. (default true)
+      --build-arg strings   set custom build arg variables
+  -h, --help                help for build
+  -t, --imageName string    cluster image name
+  -f, --kubefile string     kubefile filepath (default "Kubefile")
+  -m, --mode string         cluster image build type, default is lite (default "lite")
+      --no-cache            build without cache
 ```
 
 ### More Examples
 
+### lite build
+
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 .`
+
 ### cloud build
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.9`
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --mode cloud .`
 
 ### container build
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.9 -m container`
-
-### lite build
-
-`sealer build -f Kubefile -t my-kubernetes:1.19.9 --mode lite`
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 -m container .`
 
 ## Build type
 
@@ -120,6 +122,39 @@ You can specify the build type with the '-m lite' argument to use lite build.
 
 ```shell
 sealer build -m lite -t my-cluster:v1.19.9 .
+```
+
+## Build arg
+
+If the user wants to customize some parameters in the build stage, or in the image startup stage. could
+set `--build-arg` or write `ARG` in the Kubefile.
+
+### used build arg in Kubefile
+
+examples:
+
+```shell
+FROM kubernetes:v1.19.8
+ARG Version=4.0.0 # set default version is 4.0.0, this will be used to install mongo application.
+COPY mongo manifests # mongo dir contains many mongo version yaml file.
+CMD kubectl apply -f mongo-${Version}.yaml # use Version arg to install mongo application.
+```
+
+this will use `ARG` value 4.0.0 to build the image.
+
+```shell
+sealer build -t my-mongo:v1 .
+```
+
+### used build arg in command line
+
+examples:
+
+use `--build-arg` value to overwrite the `ARG` value set in the kuebfile. this will install mongo application with
+version 4.0.7.
+
+```shell
+sealer build -t my-mongo:v1 --build-arg Version=4.0.7 .
 ```
 
 ## Private registry
