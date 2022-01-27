@@ -30,8 +30,10 @@ jobs:
           sudo tar -xvf sealer.tar.gz -C /usr/bin
           sudo sealer login ${{secrets.PRIVATEWAREHOUSE}}
           sudo sed -i "s/v1.20.14/$version/g" ./rootfs/etc/kubeadm.yml
+          sudo sed -i "s/v1.20.14/$version/g" ./rootfs/Metadata
+          sudo sed -i "s/amd64/$arch/g" ./rootfs/Metadata
+          sudo ./kubernetes/server/bin/kubeadm config images list --config ./rootfs/etc/kubeadm.yml 2>&1>>./rootfs/imageList
           cd ./rootfs
-          sudo ./bin/kubeadm config images list --config ./etc/kubeadm.yml 2>&1>>imageList
           sudo sealer build -f Kubefile -m lite -t kubernetes:$version-auto .
           sudo sealer push kubernetes:$version-auto
       - name: Auto build image
