@@ -1,98 +1,20 @@
-# Build CloudImage
+# 构建集群镜像
 
-## Build command line
+集群镜像的构建过程与构建Docker镜像很类似，通过定义一个Kubefile文件，文件中定义一些指令，build结束就可以把集群启动依赖的所有文件和docker镜像打包成集群镜像了。
 
-You can run the build command line after sealer installed. The current path is the context path ,default build type is
-cloud and use build cache.
+## 构建模式
 
-```shell
-sealer build [flags] PATH
-```
+目前sealer支持三种构建模式：
 
-Flags:
+* 默认模式，lite build, 这种方式构建过程中不需要启动一个k8s集群，通过解析用户提供的yaml文件或者helm chart或者用户自定义的imageList来拉取集群中依赖的容易镜像
+* Cloud build，这种模式会在云上启动一个kubernetes集群，并在集群中执行Kubefile中的指令，依赖公有云，需要配置AK SK，好处是能发现CRD里面依赖的容器镜像。
+* container build, 这种模式也会起一个kubernetes集群，不过是通过docker模拟了虚拟机节点，可以在本地直接构建。
 
-```shell
-Flags:
-  -m, --mode string   requied,cluster image build type,default is cloud build.
-  -t, --imageName string   requied,cluster image name.
-  -f, --kubefile string    requied,kubefile filepath default is "Kubefile".
-  --no-cache               build without cache.default is use cache to build.
-  -h, --help               help for build.
-```
+### lite build 模式
 
-### More Examples
+这是默认的构建模式，比较轻量快速，会解析用户的yaml文件或者helm chart 分析出里面包含的容器镜像，并拉取下来存储到集群镜像自带的registry中
 
-### cloud build
-
-`sealer build -f Kubefile -t my-kubernetes:1.19.9`
-
-### container build
-
-`sealer build -f Kubefile -t my-kubernetes:1.19.9 -m container`
-
-### lite build
-
-`sealer build -f Kubefile -t my-kubernetes:1.19.9 --mode lite`
-
-## Build type
-
-Currently, sealer build supports three build approaches for different requirement scenarios.
-
-### 1.cloud build mode
-
-The default build type. Based on cloud (currently only supported by Ali Cloud, welcome to contribute other cloud
-providers), sealer can automatically create infra resources, deploy Kubernetes cluster and build images. And cloud Build
-is the most compatible construction method and can basically meet the construction requirements of 100%. This build
-approach is recommended if you are delivering a cloud image that involves infra resources such as persistence storage.
-But the downside is that there is a cost associated with creating the cloud resources.
-
-For example ,log in to the image registry, and create the build context directory,then put the files required for
-building the image . In Cloud build, sealer will pull up the cluster and send the context to the cloud to build an image
-,also will push the image automatically.
-
-```shell
-[root@sea ~]# sealer login registry.cn-qingdao.aliyuncs.com -u username -p password
-[root@sea ~]# mkdir build && cd build && mv /root/recommended.yaml .
-[root@sea build]# vi Kubefile
-[root@sea build]# cat Kubefile
-FROM kubernetes:v1.19.8
-COPY recommended.yaml .
-CMD kubectl apply -f recommended.yaml
-[root@sea build]# ls
-Kubefile  recommended.yaml
-#start to build
-[root@sea build]# sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/my-cluster:v1.19.9 .
-```
-
-### 2.container build mode
-
-Similar to the cloud build mode, we can apply a Kubernetes cluster by starting multiple Docker containers as Kubernetes
-nodes ( simulating cloud ECS), which consume very few resources to complete the build instruction. The disadvantage of
-the container build is that some scenarios which rely on the infra resources is not supported very well.
-
-You can specify the build type with the '-m container' argument to use container build.
-
-```shell
-sealer build -m container -t my-cluster:v1.19.9 .
-```
-
-### 3.lite build mode
-
-The lightest build mode. By parsing the helm Chart, submitting the image list, parsing the kubernetes resource file
-under the manifest to build the cloud image. and this can be done without starting the cluster
-
-The advantages of this build mode is the lowest resource consumption . Any host installed sealer can use this mode to
-build cloud image.
-
-The disadvantage is that some scenarios cannot be covered. For example, the image deployed through the operator cannot
-be obtained, and some images delivered through proprietary management tools are also can not be used.
-
-In addition, some command such as `kubectl apply` or `helm install` will execute failed because the lite build process
-will not pull up the cluster, but it will be saved as a layer of the image in the build stage.
-
-Lite build is suitable for the scenarios where there is a list of known images or no special resource requirements.
-
-Kubefile example：
+Kubefile:
 
 ```shell
 FROM kubernetes:v1.19.8
@@ -104,55 +26,69 @@ COPY recommended.yaml manifests
 CMD kubectl apply -f manifests/recommended.yaml
 ```
 
-As in the above example, the lite build will parse and cache the list of images to the registry from the following three
-locations:
+* `manifests` 目录: 这是一个特殊的目录，sealer build的时候会解析这个目录下面的所有yaml文件并把里面的容器镜像地址提取出来，然后拉取。用户标准的kubernetes yaml不放在这个目录的话不会处理。
+* `charts` 目录: 这也是一个特殊目录，sealer会执行helm template的能力，然后提取chart中的容器镜像地址，拉取并存储到集群镜像中。chart不拷贝到这个目录下不处理。
+* `manifests/imageList`: 这是个特殊的文件里面是其它需要拉取的镜像地址列表，比如镜像地址在CRD中sealer解析不到，那就需要手动配置到这个文件中。
 
-* `manifests/imageList`: The content is a list of images line by line, If this file exists, will be extracted to the
-  desired image list . The file name of `imageList` must be fixed, unchangeable, and must be placed under manifests.
+imageList 内容示例：
 
-* `manifests` directory: Lite build will parse all the yaml files in the manifests directory and extract it to the
-  desired image list.
-
-* `charts` directory: this directory contains the helm chart, and lite build will resolve the image address from the
-  helm chart through the helm engine.
-
-You can specify the build type with the '-m lite' argument to use lite build.
-
-```shell
-sealer build -m lite -t my-cluster:v1.19.9 .
+```
+nginx:latest
+mysql:5.6
 ```
 
-## Private registry
-
-Sealer optimizes and expands the docker registry, so that it can support proxy caching of multiple domain names and
-multiple private registry at the same time.
-
-During the build process, there will be a scenario where it uses a private registry which requires authentication. In
-this scenario, the authentication of docker is required for image caching. You can perform the login operation first
-through the following command before executing the build operation:
+Build集群镜像：
 
 ```shell
-sealer login registry.com -u username -p password
+sealer build -t my-cluster:v1.19.9 .
 ```
 
-Another dependent scenario， the kubernetes node is proxies to the private registry through the built-in registry of
-sealer and the private registry needs to be authenticated, it can be configured through the custom registry config.Refer
-to [registry config](../../../../user-guide/docker-image-cache.md)
+### Cloud build 模式
 
-You can customize the registry configuration by defining Kubefile:
+Cloud build的模式不会要求yaml文件或者helm chart等放的具体位置，因为会真的创建一个集群就可以在集群内获取到集群中依赖的容器镜像信息，所以可以直接Build:
+
+```shell script
+sealer build -m cloud -t my-cluster:v1.19.9 .
+```
+
+container build，无须指定AK SK也可build:
+
+```shell script
+sealer build -m container -t my-cluster:v1.19.8 .
+```
+
+## 私有镜像仓库
+
+集群镜像也可以被推送到docker registry中
+
+```shell
+sealer login registry.cn-qingdao.aliyuncs.com -u username -p password
+sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/kuberentes:v1.19.8
+sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kuberentes:v1.19.8
+```
+
+集群镜像中自带一个docker registry, 所有容器镜像会存储在这个registry中，可以自定义该registry的一些配置：
+
+[registry config](../../../../user-guide/docker-image-cache.md)
+
+编辑好 `registry_config.yaml`配置文件，然后在Kubefile中进行overwrite:
 
 ```shell
 FROM kubernetes:v1.19.8
 COPY registry_config.yaml etc/
 ```
 
-## Custom kubeadm configuration
+## 自定义 kubeadm 配置
 
-Sealer will replace the default configuration with a custom configuration file in $Rootfs/etc/kubeadm.yml:
+Sealer 会把用户自定义的kubeadm配置文件与默认文件merge, 集群镜像中 $Rootfs/etc/kubeadm.yml 文件为镜像默认的Kubeadm配置，
 
-### Example: Custom configuration using the Docker Unix socket.
+用户可以直接在镜像中覆盖它，或者在Clusterfile中定义kubeadm配置文件，执行时会把Clusterfile中的kubeadm配置与镜像中的合并。
 
-1. customize kubeadm init configuration:
+这里合并时只覆盖对应字段，而不是全部替换，比如你只关心 `bindPort` 这一个参数，那只需要在Clusterfile中配置这一个字段即可，不用写全量配置。
+
+### 如自定义 Docker Unix socket.
+
+1. 修改 kubeadm init configuration:
 
 ```yaml
 apiVersion: kubeadm.k8s.io/v1beta2
@@ -163,7 +99,7 @@ nodeRegistration:
   criSocket: /var/run/dockershim.sock
 ```
 
-2. customize kubeadm join configuration:
+2. 修改 kubeadm join configuration:
 
 ```yaml
 apiVersion: kubeadm.k8s.io/v1beta2
@@ -178,8 +114,7 @@ controlPlane:
     bindPort: 6443
 ```
 
-3. Build your own cloud image that override default configurations with custom configurations. Note that,the file name "
-   kubeadm.yml" is fixed:
+3. 把该文件命名为kubeadm.yml, 构建时拷贝到etc/下即可
 
 ```yaml
 #Kubefile
@@ -187,9 +122,13 @@ FROM kubernetes-clusterv2:v1.19.8
 COPY kubeadm.yml etc
 ```
 
+这里注意kubeadm.yml中也不需要全量配置，只需要配置对应关心的字段，sealer会与默认配置合并。
+
+merge规则：Clusterfile中的配置 > 集群镜像中的配置 > 默认kubeadm配置(硬编码在代码中)
+
 > sealer build -t user-define-kubeadm-kubernetes:v1.19.8 .
 
-## Default kubeadm configuration file completely contents:
+## 默认kubeadm 配置文件全内容:
 
 kubeadm.yml：
 
