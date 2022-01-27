@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/alibaba/sealer/utils"
@@ -38,6 +39,8 @@ const (
 	RemoteAddRoute                  = "seautil route add --host %s --gateway %s"
 	RouteOK                         = "ok"
 	LvscareStaticPodCmd             = `echo "%s" > %s`
+	ReplaceImageSocket              = `sed '/KUBELET_EXTRA_ARGS/ s!$! --image-service-endpoint=/var/run/cri-resmgr/cri-resmgr.sock!' -i /etc/systemd/system/kubelet.service.d/10-kubeadm.conf `
+	RestartKubelet                  = `systemctl start sealer-cri-shim && systemctl daemon-reload && systemctl restart kubelet`
 )
 
 func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
@@ -83,6 +86,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	if cf.Username != "" && cf.Password != "" {
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
 	}
+	var sealerCriShim = filepath.Join(k.getImageMountDir(), `bin/sealer-cri-shim`)
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
@@ -103,6 +107,13 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			}
 			if err := ssh.CmdAsync(node, addRegistryHostsAndLogin, cmdWriteJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd); err != nil {
 				return fmt.Errorf("failed to join node %s %v", node, err)
+			}
+
+			if utils.IsFileExist(sealerCriShim) {
+				var copyCriShimCmd = `cp ` + filepath.Join(k.getRootfs(), `etc/sealer-cri-shim.service`) + ` /etc/systemd/system`
+				if err := ssh.CmdAsync(node, copyCriShimCmd, ReplaceImageSocket, RestartKubelet); err != nil {
+					return fmt.Errorf("failed to join node %s %v", node, err)
+				}
 			}
 			logger.Info("Succeeded in joining %s as worker", node)
 			return err
