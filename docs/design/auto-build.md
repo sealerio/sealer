@@ -22,11 +22,13 @@ Take the image of version 1.20.14 as an example. You don't need to pay attention
 ```shell
 /imagebuild 1.20.14 amd64
 ```
+
 output:
 
 ```shell
 kubernetes: version-auto
 ```
+
 `version`: kubernetes version
 
 For example:
