@@ -34,16 +34,10 @@ const (
 	RemoteJoinConfig                = `echo "%s" > %s/etc/kubeadm.yml`
 	LvscareDefaultStaticPodFileName = "/etc/kubernetes/manifests/kube-lvscare.yaml"
 	RemoteAddIPVSEtcHosts           = "echo %s %s >> /etc/hosts"
-	RemoteCheckRoute                = "seautil route --host %s"
+	RemoteCheckRoute                = "seautil route check --host %s"
 	RemoteAddRoute                  = "seautil route add --host %s --gateway %s"
-	RouteOK                         = "ok"
+	RemoteDelRoute                  = "seautil route del --host %s --gateway %s"
 	LvscareStaticPodCmd             = `echo "%s" > %s`
-	CheckNetworkIsDefaultRoute      = "ip route show |grep default |grep %s"
-	DeleteRouteCmd                  = "if ip route |grep %s;then ip route del %s;fi"
-	AddRouteCmd                     = "ip route |grep %s || ip route add %s"
-	DeleteRouteFromFile             = "if [ -f /etc/sysconfig/network-scripts/route-%s ]; then sed -i \"/%s/d\" /etc/sysconfig/network-scripts/route-%s;fi"
-	AddStaticRouteFile              = "cat /etc/sysconfig/network-scripts/route-%s|grep %s || echo %s >> /etc/sysconfig/network-scripts/route-%s"
-	GetNetworkInterface             = "ifconfig |grep %s -1 |head -n1|cut -d\":\" -f1"
 )
 
 func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
@@ -133,7 +127,7 @@ func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
 			if err := k.deleteNode(node); err != nil {
 				return fmt.Errorf("delete node %s failed %v", node, err)
 			}
-			err := k.deleteVIPRoute(node)
+			err := k.deleteVIPRouteIfExist(node)
 			if err != nil {
 				return fmt.Errorf("failed to delete %s route: %v", node, err)
 			}
@@ -187,40 +181,22 @@ func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
 	if err != nil {
 		return err
 	}
-	_, err = sshClient.Cmd(node, fmt.Sprintf("ip route show |grep %s", k.getVIP()))
-	if err == nil {
-		return nil
-	}
-	netInterface, err := sshClient.CmdToString(node, fmt.Sprintf(GetNetworkInterface, node), "")
+	result, err := sshClient.CmdToString(node, fmt.Sprintf(RemoteCheckRoute, node), "")
 	if err != nil {
-		return fmt.Errorf("failed to found %s network interface: %v", node, err)
+		return err
 	}
-	// check network interface is the default route
-	// check the error is not result err
-	_, err = sshClient.Cmd(node, fmt.Sprintf(CheckNetworkIsDefaultRoute, netInterface))
-	if err == nil {
+	if result == utils.RouteOK {
 		return nil
 	}
-	route := fmt.Sprintf("%s via %s dev %s", k.getVIP(), node, netInterface)
-	//temporary set: "ip route add $route"
-	//persistent set: "echo $route >> /etc/sysconfig/network-scripts/route-%s"
-	return sshClient.CmdAsync(node, fmt.Sprintf(AddRouteCmd, k.getVIP(), route),
-		fmt.Sprintf(AddStaticRouteFile, netInterface, route, route, netInterface))
+	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getVIP(), node))
+	return err
 }
 
-func (k *KubeadmRuntime) deleteVIPRoute(node string) error {
+func (k *KubeadmRuntime) deleteVIPRouteIfExist(node string) error {
 	sshClient, err := k.getHostSSHClient(node)
 	if err != nil {
 		return err
 	}
-	_, err = sshClient.Cmd(node, fmt.Sprintf(DeleteRouteCmd, k.getVIP(), k.getVIP()))
-	if err != nil {
-		return err
-	}
-	netInterface, err := sshClient.CmdToString(node, fmt.Sprintf(GetNetworkInterface, node), "")
-	if err != nil {
-		return fmt.Errorf("failed to found %s network interface: %v", node, err)
-	}
-	_, err = sshClient.Cmd(node, fmt.Sprintf(DeleteRouteFromFile, netInterface, k.getVIP(), netInterface))
+	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteDelRoute, k.getVIP(), node))
 	return err
 }

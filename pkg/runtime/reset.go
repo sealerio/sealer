@@ -31,7 +31,7 @@ func (k *KubeadmRuntime) reset() error {
 		return err
 	}
 	for _, node := range k.GetNodeIPList() {
-		err := k.deleteVIPRoute(node)
+		err := k.deleteVIPRouteIfExist(node)
 		if err != nil {
 			return fmt.Errorf("failed to delete %s route: %v", node, err)
 		}

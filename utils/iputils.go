@@ -48,6 +48,26 @@ func GetHostIPSlice(hosts []string) (res []string) {
 	return
 }
 
+func GetHostNetInterface(host string) (string, error) {
+	netInterfaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+	for i := 0; i < len(netInterfaces); i++ {
+		if (netInterfaces[i].Flags & net.FlagUp) == 0 {
+			continue
+		}
+		addrs, err := netInterfaces[i].Addrs()
+		if err != nil {
+			return "", fmt.Errorf("failed to get Addrs, %v", err)
+		}
+		if IsLocalIP(host, &addrs) {
+			return netInterfaces[i].Name, nil
+		}
+	}
+	return "", nil
+}
+
 func GetLocalHostAddresses() (*[]net.Addr, error) {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
