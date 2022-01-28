@@ -87,6 +87,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
 	}
 	var sealerCriShim = filepath.Join(k.getImageMountDir(), `bin/sealer-cri-shim`)
+	var criShimService = filepath.Join(k.getImageMountDir(), `etc/sealer-cri-shim.service`)
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
@@ -109,7 +110,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 				return fmt.Errorf("failed to join node %s %v", node, err)
 			}
 
-			if utils.IsFileExist(sealerCriShim) {
+			if utils.IsFileExist(sealerCriShim) && utils.IsFileExist(criShimService) {
 				var copyCriShimCmd = `cp ` + filepath.Join(k.getRootfs(), `etc/sealer-cri-shim.service`) + ` /etc/systemd/system`
 				if err := ssh.CmdAsync(node, copyCriShimCmd, ReplaceImageSocket, RestartKubelet); err != nil {
 					return fmt.Errorf("failed to join node %s %v", node, err)
