@@ -75,7 +75,8 @@ func init() {
 	runCmd.Flags().StringVarP(&runArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	runCmd.Flags().StringVar(&runArgs.Port, "port", ssh.DefaultSSHPort, "set the sshd service port number for the server (default port: 22)")
 	runCmd.Flags().StringVar(&runArgs.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
-	runCmd.Flags().StringVar(&runArgs.PkPassword, "pk-passwd", "", "set baremetal server  private key password")
+	runCmd.Flags().StringVar(&runArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
+	runCmd.Flags().StringSliceVar(&runArgs.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return utils.ContainList([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp

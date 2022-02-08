@@ -34,9 +34,10 @@ type ClusterSpec struct {
 	// Why env not using map[string]string
 	// Because some argument is list, like: CertSANS=127.0.0.1 CertSANS=localhost, if ENV is map, will merge those two values
 	// but user want to config a list, using array we can convert it to {CertSANS:[127.0.0.1, localhost]}
-	Env   []string `json:"env,omitempty"`
-	Hosts []Host   `json:"hosts,omitempty"`
-	SSH   v1.SSH   `json:"ssh,omitempty"`
+	Env     []string `json:"env,omitempty"`
+	CMDArgs []string `json:"cmd_args,omitempty"`
+	Hosts   []Host   `json:"hosts,omitempty"`
+	SSH     v1.SSH   `json:"ssh,omitempty"`
 }
 
 type Host struct {

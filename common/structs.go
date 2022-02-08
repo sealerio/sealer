@@ -26,4 +26,5 @@ type RunArgs struct {
 	SvcCidr    string
 	Provider   string
 	CustomEnv  []string
+	CMDArgs    []string
 }

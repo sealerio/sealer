@@ -39,7 +39,7 @@ var buildConfig *BuildFlag
 // buildCmd represents the build command
 var buildCmd = &cobra.Command{
 	Use:   "build [flags] PATH",
-	Short: "cloud image local build command line",
+	Short: "Build an cloud image from a Kubefile",
 	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.9 [--mode cloud|container|lite] [--no-cache]",
 	Args:  cobra.ExactArgs(1),
 	Example: `the current path is the context path, default build type is lite and use build cache
@@ -88,7 +88,7 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
 	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image,default value is true.")
-	buildCmd.Flags().StringSliceVar(&buildConfig.BuildArgs, "build-arg", []string{}, "set custom build arg variables")
+	buildCmd.Flags().StringSliceVar(&buildConfig.BuildArgs, "build-arg", []string{}, "set custom build args")
 
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logger.Error("failed to init flag: %v", err)

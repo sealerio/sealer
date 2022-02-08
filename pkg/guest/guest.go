@@ -59,14 +59,14 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 	clusterRootfs := common.DefaultTheClusterRootfsDir(cluster.Name)
 
 	ex := shell.NewLex('\\')
-	var buildArgs []string
+	var args []string
 	if image.Spec.ImageConfig.Args != nil {
-		buildArgs = append(buildArgs, utils.ConvertMapToEnvList(image.Spec.ImageConfig.Args)...)
+		args = append(args, utils.ConvertMapToEnvList(image.Spec.ImageConfig.Args)...)
 	}
-	if len(cluster.Spec.Env) != 0 {
-		buildArgs = append(buildArgs, cluster.Spec.Env...)
+	if len(cluster.Spec.CMDArgs) != 0 {
+		args = append(args, cluster.Spec.CMDArgs...)
 	}
-	arg := utils.ConvertEnvListToMap(buildArgs)
+	arg := utils.ConvertEnvListToMap(args)
 	for i := range image.Spec.Layers {
 		if image.Spec.Layers[i].Type != common.CMDCOMMAND {
 			continue
