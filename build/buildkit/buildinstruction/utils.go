@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/alibaba/sealer/utils/collector"
+
 	fsutil "github.com/tonistiigi/fsutil/copy"
 
 	"github.com/alibaba/sealer/pkg/image"
@@ -55,21 +57,6 @@ func tryCache(parentID cache.ChainID,
 		return false, "", ""
 	}
 	return true, cacheLayerID, cID
-}
-
-func paresCopyDestPath(rawDstFileName, tempBuildDir string) string {
-	// pares copy dest,default workdir is rootfs
-	//copy . . = $rootfs
-	// copy abc .= $rootfs/abc
-	// copy abc ./manifest = $rootfs/manifest/abc
-	// copy abc charts = $rootfs/charts/abc
-	// copy abc charts/test = $rootfs/charts/test/abc
-	// copy abc /tmp = $rootfs/tmp/abc
-	dst := rawDstFileName
-	if dst == "." || dst == "./" || dst == "/" || dst == "/." {
-		return tempBuildDir
-	}
-	return filepath.Join(tempBuildDir, dst)
 }
 
 func GenerateSourceFilesDigest(root, src string) (digest.Digest, error) {
@@ -141,4 +128,11 @@ func ParseCopyLayerContent(layerValue string) (src, dst string) {
 	dst = strings.TrimSuffix(dst, "/")
 	src = strings.Fields(layerValue)[0]
 	return
+}
+
+func isRemoteSource(src string) bool {
+	if collector.IsURL(src) || collector.IsGitURL(src) {
+		return true
+	}
+	return false
 }

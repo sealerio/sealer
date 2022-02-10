@@ -15,14 +15,12 @@
 package buildinstruction
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 
-	fsutil "github.com/tonistiigi/fsutil/copy"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/image/store"
+	"github.com/alibaba/sealer/utils/collector"
 
 	"github.com/opencontainers/go-digest"
 
@@ -39,6 +37,7 @@ type CopyInstruction struct {
 	rawLayer     v1.Layer
 	layerHandler buildlayer.LayerHandler
 	fs           store.Backend
+	collector    collector.Collector
 }
 
 func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
@@ -61,18 +60,20 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		out.ParentID = chainID
 	}()
 
-	cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, c.src)
-	if err != nil {
-		logger.Warn("failed to generate src digest,discard cache,%s", err)
-	}
+	if !isRemoteSource(c.src) {
+		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, c.src)
+		if err != nil {
+			logger.Warn("failed to generate src digest,discard cache,%s", err)
+		}
 
-	if execContext.ContinueCache {
-		hitCache, layerID, chainID = tryCache(execContext.ParentID, c.rawLayer, execContext.CacheSvc, execContext.Prober, cacheID)
-		// we hit the cache, so we will reuse the layerID layer.
-		if hitCache {
-			// update chanid as parentid via defer
-			out.LayerID = layerID
-			return out, nil
+		if execContext.ContinueCache {
+			hitCache, layerID, chainID = tryCache(execContext.ParentID, c.rawLayer, execContext.CacheSvc, execContext.Prober, cacheID)
+			// we hit the cache, so we will reuse the layerID layer.
+			if hitCache {
+				// update chanid as parentid via defer
+				out.LayerID = layerID
+				return out, nil
+			}
 		}
 	}
 
@@ -81,9 +82,9 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		return out, fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
 	}
 
-	err = c.copyFiles(execContext.BuildContext, c.src, c.dest, tmp)
+	err = c.collector.Send(execContext.BuildContext, c.src, filepath.Join(tmp, c.dest))
 	if err != nil {
-		return out, fmt.Errorf("failed to copy files to temp dir %s, err: %v", tmp, err)
+		return out, fmt.Errorf("failed to collector files to temp dir %s, err: %v", tmp, err)
 	}
 	// if we come here, its new layer need set cacheid .
 	layerID, err = execContext.LayerStore.RegisterLayerForBuilder(tmp)
@@ -99,33 +100,6 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	return out, nil
 }
 
-func (c CopyInstruction) copyFiles(buildContext, rawSrcFileName, rawDstFileName, tempBuildDir string) error {
-	xattrErrorHandler := func(dst, src, key string, err error) error {
-		logger.Warn(err)
-		return nil
-	}
-	opt := []fsutil.Opt{
-		fsutil.WithXAttrErrorHandler(xattrErrorHandler),
-	}
-
-	dstRoot := paresCopyDestPath(rawDstFileName, tempBuildDir)
-
-	m, err := fsutil.ResolveWildcards(buildContext, rawSrcFileName, true)
-	if err != nil {
-		return err
-	}
-
-	if len(m) == 0 {
-		return fmt.Errorf("%s not found", rawSrcFileName)
-	}
-	for _, s := range m {
-		if err := fsutil.Copy(context.TODO(), buildContext, s, dstRoot, filepath.Base(s), opt...); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // SetCacheID This function only has meaning for copy layers
 func (c CopyInstruction) SetCacheID(layerID digest.Digest, cID string) error {
 	return c.fs.SetMetadata(layerID, common.CacheID, []byte(cID))
@@ -137,10 +111,15 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
 	}
 	src, dest := ParseCopyLayerContent(ctx.CurrentLayer.Value)
+	c, err := collector.NewCollector(src)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init copy Collector, err: %s", err)
+	}
 	return &CopyInstruction{
-		fs:       fs,
-		rawLayer: *ctx.CurrentLayer,
-		src:      src,
-		dest:     dest,
+		fs:        fs,
+		rawLayer:  *ctx.CurrentLayer,
+		src:       src,
+		dest:      dest,
+		collector: c,
 	}, nil
 }
