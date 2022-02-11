@@ -43,11 +43,11 @@ startRegistry() {
 }
 
 
-for image in $image_dir
+for image in "$image_dir"/*
 do
- if [ -f "$image_dir"/"${image}" ]
+ if [ -f "${image}" ]
  then
-  docker load -q -i  "$image_dir"/"${image}"
+  docker load -q -i "${image}"
  fi
 done
 
