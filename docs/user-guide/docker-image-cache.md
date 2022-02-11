@@ -110,7 +110,7 @@ registry config should be mounted as /etc/docker/registry/config.yml, and mount 
 remote registry could be added dynamically, but I do not store the dynamical remote registry info, because there would be many pair of username and password for same url probably, and maybe some image from different namespace has different auth info. Thus, it's costly for adding remote registries dynamically, every docker pull request will generate request to real registry from local registry to get real auth endpoint.
 And for making cache registry work, there must be one remote registry item, so I take the following config as default registry config.yml.
 
-```
+```yaml
 version: 0.1
 log:
   fields:
@@ -139,7 +139,7 @@ health:
 at the runtime, I guess not everyone needs the cache ability, So I recommend turn the cache off, leave the choice to users.
 the following config will turn off cache ability, and the registry will behave like the community version.
 
-```
+```yaml
 version: 0.1
 log:
   fields:
@@ -164,7 +164,7 @@ docker run -v  {pathToTheConfigAbove}:/etc/docker/registry/config.yml
 
 if you do not want to provide any remote url, depend on request to config auth info dynamically. should config registry by following way:
 
-```
+```yaml
 version: 0.1
 log:
   fields:
