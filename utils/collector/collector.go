@@ -31,7 +31,7 @@ func NewCollector(src string) (Collector, error) {
 		return NewGitCollector(), nil
 	case IsURL(src):
 		// remote web context
-		return NewFileCollector(), nil
+		return NewWebFileCollector(), nil
 	default:
 		//local context
 		return NewLocalCollector(), nil

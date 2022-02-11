@@ -25,10 +25,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
-type fileCollector struct {
+type webFileCollector struct {
 }
 
-func (f fileCollector) Send(buildContext, src, savePath string) error {
+func (w webFileCollector) Send(buildContext, src, savePath string) error {
 	client := grab.NewClient()
 	i := strings.LastIndexByte(src, '/')
 	req, err := grab.NewRequest(filepath.Join(savePath, src[i+1:]), src)
@@ -43,8 +43,8 @@ func (f fileCollector) Send(buildContext, src, savePath string) error {
 	return nil
 }
 
-func NewFileCollector() Collector {
-	return fileCollector{}
+func NewWebFileCollector() Collector {
+	return webFileCollector{}
 }
 
 type gitCollector struct {

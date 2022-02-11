@@ -84,7 +84,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 
 	err = c.collector.Send(execContext.BuildContext, c.src, filepath.Join(tmp, c.dest))
 	if err != nil {
-		return out, fmt.Errorf("failed to collector files to temp dir %s, err: %v", tmp, err)
+		return out, fmt.Errorf("failed to collect files to temp dir %s, err: %v", tmp, err)
 	}
 	// if we come here, its new layer need set cacheid .
 	layerID, err = execContext.LayerStore.RegisterLayerForBuilder(tmp)
