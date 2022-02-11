@@ -43,8 +43,7 @@ startRegistry() {
 }
 
 
-# shellcheck disable=SC2045
-for image in $(ls "$image_dir")
+for image in $image_dir
 do
  if [ -f "$image_dir"/"${image}" ]
  then
