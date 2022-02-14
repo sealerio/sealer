@@ -27,11 +27,11 @@ input:
 /imagebuild 1.20.14 amd64
 ```
 
-When `Image built successfully : kubernetes: version-auto` appears in the comment area, it indicates that the image build is completed.
+When `Image built successfully : kubernetes: version` appears in the comment area, it indicates that the image build is completed.
 
 Image name:
 
 ```shell
-kubernetes:v1.20.14-auto
+kubernetes:v1.20.14
 ```
 
