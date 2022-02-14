@@ -176,7 +176,7 @@ type: SHELL
 action: PostInstall
 on: node-role.kubernetes.io/master=
 data: |
-  kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
+  kubectl taint nodes --all node-role.kubernetes.io/master-
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin

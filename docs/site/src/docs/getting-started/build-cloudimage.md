@@ -135,9 +135,14 @@ examples:
 
 ```shell
 FROM kubernetes:v1.19.8
-ARG Version=4.0.0 # set default version is 4.0.0, this will be used to install mongo application.
-COPY mongo manifests # mongo dir contains many mongo version yaml file.
-CMD kubectl apply -f mongo-${Version}.yaml # use Version arg to install mongo application.
+# set default version is 4.0.0, this will be used to install mongo application.
+ARG Version=4.0.0 
+# mongo dir contains many mongo version yaml file.
+COPY mongo manifests
+# arg Version can be used with RUN instruction.
+RUN echo ${Version} 
+# use Version arg to install mongo application.
+CMD kubectl apply -f mongo-${Version}.yaml 
 ```
 
 this will use `ARG` value 4.0.0 to build the image.
@@ -146,7 +151,7 @@ this will use `ARG` value 4.0.0 to build the image.
 sealer build -t my-mongo:v1 .
 ```
 
-### used build arg in command line
+### use build arg in sealer build command line
 
 examples:
 
@@ -155,6 +160,48 @@ version 4.0.7.
 
 ```shell
 sealer build -t my-mongo:v1 --build-arg Version=4.0.7 .
+```
+
+### use build arg in sealer run command line
+
+examples:
+
+use `--cmd-args` to overwrite the `ARG` value of CMD instruction set in the kuebfile. this will install mongo
+application equals run  `kubectl apply -f mongo-5.1.1.yaml`.
+
+```shell
+sealer run --cmd-args Version=5.1.1 -m 172.16.0.227 -p passsword my-mongo:v1
+```
+
+### use build arg in Clusterfile
+
+examples:
+
+use `cmd_args` fields to overwrite the `ARG` value of CMD instruction set in the kuebfile. this will install mongo
+application equals run  `kubectl apply -f mongo-4.9.0.yaml`.
+
+```yaml
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  creationTimestamp: null
+  name: my-cluster
+spec:
+  cmd_args:
+    - Version=4.9.0
+  hosts:
+    - ips:
+        - 172.16.0.227
+  image: my-mongo:v1
+  ssh:
+    passwd: passsword
+    pk: /root/.ssh/id_rsa
+    port: "22"
+    user: root
+```
+
+```shell
+sealer apply -f Clusterfile
 ```
 
 ## Private registry
