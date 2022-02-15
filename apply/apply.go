@@ -15,6 +15,7 @@
 package apply
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -36,6 +37,9 @@ func NewApplierFromFile(clusterfile string) (applydriver.Interface, error) {
 	cluster, err := GetClusterFromDataCompatV1(string(clusterData))
 	if err != nil {
 		return nil, err
+	}
+	if cluster.Name == "" {
+		return nil, fmt.Errorf("cluster name cannot be empty, make sure %s file is correct", clusterfile)
 	}
 	cluster.SetAnnotations(common.ClusterfileName, clusterfile)
 	return NewApplier(cluster)
