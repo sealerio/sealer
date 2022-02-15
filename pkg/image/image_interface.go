@@ -43,6 +43,7 @@ type Service interface {
 	Push(imageName string) error
 	Delete(imageName string) error
 	Login(RegistryURL, RegistryUsername, RegistryPasswd string) error
+	Prune() error
 	CacheBuilder
 }
 
