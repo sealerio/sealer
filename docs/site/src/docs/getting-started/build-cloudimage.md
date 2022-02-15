@@ -136,13 +136,13 @@ examples:
 ```shell
 FROM kubernetes:v1.19.8
 # set default version is 4.0.0, this will be used to install mongo application.
-ARG Version=4.0.0 
+ARG Version=4.0.0
 # mongo dir contains many mongo version yaml file.
 COPY mongo manifests
 # arg Version can be used with RUN instruction.
-RUN echo ${Version} 
+RUN echo ${Version}
 # use Version arg to install mongo application.
-CMD kubectl apply -f mongo-${Version}.yaml 
+CMD kubectl apply -f mongo-${Version}.yaml
 ```
 
 this will use `ARG` value 4.0.0 to build the image.
