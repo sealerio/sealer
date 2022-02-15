@@ -2,27 +2,19 @@ on:
   issue_comment:
     types:
       - created
+  push:
+    tags:
+      - 'test*'
 name: Static page
 jobs:
   build:
     runs-on: ubuntu-latest
-    if:  ${{ github.event.comment.body == '/docs' }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           node-version: '14'
-      - run: npm install
-        working-directory: docs/site
-      - name: Static website hosting
-        run: npm run build
-        working-directory: docs/site
-      - name: Build static to oss
-        run: wget http://gosspublic.alicdn.com/ossutil/1.6.19/ossutil64 && chmod 755 ossutil64 &&
-          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf docs/site/src/.vuepress/dist oss://sealer/
-       - name: Update docs
-         uses: peter-evans/create-or-update-comment@v1
-         with:
-           issue-number: ${{ github.event.issue.number }}
-           body: |
-             update success!
+      - name: Dump steps context
+        env:
+          STEPS_CONTEXT: ${{ toJson(github.event) }}
+        run: echo "$STEPS_CONTEXT"
