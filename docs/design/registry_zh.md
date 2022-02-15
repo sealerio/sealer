@@ -51,7 +51,7 @@ spec:
 sealer apply -f Clusterfile
 ```
 
-## 自定义registry密码：
+## 自定义registry域名，端口，用户名及密码：
 
 Clusterfile:
 
@@ -73,6 +73,8 @@ metadata:
 spec:
   path: etc/registry.yml
   data: |
+    domain: sea.hub
+    port: "5000"
     username: sealerUser
     password: sealerPWD
 ```

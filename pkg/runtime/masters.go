@@ -155,11 +155,8 @@ func (k *KubeadmRuntime) sendRegistryCertAndKey() error {
 }
 
 func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
-	err := k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), SeaHub), fmt.Sprintf("%s/%s/%s.crt", DockerCertDir, SeaHub, SeaHub))
-	if err != nil {
-		return err
-	}
-	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), SeaHub), fmt.Sprintf("%s/%s:%d/%s.crt", DockerCertDir, SeaHub, k.getDefaultRegistryPort(), SeaHub))
+	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
+	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, cf.Domain, cf.Port, cf.Domain))
 }
 
 func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error {

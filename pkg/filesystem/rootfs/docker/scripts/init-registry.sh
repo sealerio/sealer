@@ -19,8 +19,9 @@ set -x
 # prepare registry storage as directory
 cd $(dirname $0)
 
-REGISTRY_PORT=${1-5000}
-VOLUME=${2-/var/lib/registry}
+REGISTRY_DOMAIN=${1-sea.hub}
+REGISTRY_PORT=${2-5000}
+VOLUME=${3-/var/lib/registry}
 
 container=sealer-registry
 rootfs=$(dirname "$(pwd)")
@@ -61,8 +62,8 @@ regArgs="-d --restart=always \
 --name $container \
 -v $certs_dir:/certs \
 -v $VOLUME:/var/lib/registry \
--e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/sea.hub.crt \
--e REGISTRY_HTTP_TLS_KEY=/certs/sea.hub.key"
+-e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/$REGISTRY_DOMAIN.crt \
+-e REGISTRY_HTTP_TLS_KEY=/certs/$REGISTRY_DOMAIN.key"
 
 if [ -f $config ]; then
     regArgs="$regArgs \

@@ -88,10 +88,6 @@ func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
 	return metadata, nil
 }
 
-func (k *KubeadmRuntime) getDefaultRegistryPort() int {
-	return DefaultRegistryPort
-}
-
 func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) {
 	return ssh.NewStdoutSSHClient(hostIP, k.Cluster)
 }

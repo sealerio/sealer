@@ -27,6 +27,10 @@ import (
 const (
 	RegistryName                = "sealer-registry"
 	RegistryBindDest            = "/var/lib/registry"
+	RegistryMountUpper          = "/var/lib/sealer/tmp/upper"
+	RegistryMountWork           = "/var/lib/sealer/tmp/work"
+	RegistryBindConfig          = "registry_config.yml"
+	RegistryCustomConfig        = "registry.yml"
 	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerLoginCommand          = "docker login %s -u %s -p %s"
@@ -59,7 +63,7 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 		if err != nil {
 			return err
 		}
-		err = ssh.CmdAsync(cf.IP, fmt.Sprintf("echo '%s' >> %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
+		err = ssh.CmdAsync(cf.IP, fmt.Sprintf("echo '%s' > %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
 		if err != nil {
 			return err
 		}
@@ -97,7 +101,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		Domain: SeaHub,
 		Port:   "5000",
 	}
-	registryConfigPath := filepath.Join(rootfs, "etc", "registry.yml")
+	registryConfigPath := filepath.Join(rootfs, "etc", RegistryCustomConfig)
 	if !utils.IsFileExist(registryConfigPath) {
 		logger.Debug("use default registry config")
 		return DefaultConfig
