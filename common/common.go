@@ -75,6 +75,7 @@ const (
 	DefaultImageDBRootDir        = "/var/lib/sealer/metadata/imagedb"
 	DefaultImageMetadataFile     = "/var/lib/sealer/metadata/images_metadata.json"
 	DefaultLayerDir              = "/var/lib/sealer/data/overlay2"
+	DefaultNydusdfileDir         = "/var/lib/sealer/data/nydusdfile"
 	DefaultLayerDBRoot           = "/var/lib/sealer/metadata/layerdb"
 )
 
@@ -167,6 +168,10 @@ func DefaultMountCloudImageDir(clusterName string) string {
 
 func DefaultTheClusterRootfsDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
+}
+
+func DefaultTheClusterNydusdDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "nydusd")
 }
 
 func DefaultTheClusterRootfsPluginDir(clusterName string) string {

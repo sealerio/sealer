@@ -43,6 +43,7 @@ type Metadata struct {
 	Variant string `json:"variant"`
 	//KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
 	KubeVersion string `json:"kubeVersion"`
+	NydusFlag   bool   `json:"NydusFlag"`
 }
 
 type KubeadmRuntime struct {
