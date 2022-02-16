@@ -240,5 +240,5 @@ func NewFilesystem() (Interface, error) {
 		return nil, err
 	}
 
-	return &FileSystem{imageStore: dis}, nil
+	return &NydusFileSystem{&FileSystem{imageStore: dis}}, nil
 }
