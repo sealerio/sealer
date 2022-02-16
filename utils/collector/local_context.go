@@ -26,7 +26,7 @@ import (
 type localCollector struct {
 }
 
-func (l localCollector) Send(buildContext, src, savePath string) error {
+func (l localCollector) Collect(buildContext, src, savePath string) error {
 	xattrErrorHandler := func(dst, src, key string, err error) error {
 		logger.Warn(err)
 		return nil

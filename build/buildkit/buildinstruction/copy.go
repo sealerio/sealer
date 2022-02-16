@@ -82,7 +82,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		return out, fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
 	}
 
-	err = c.collector.Send(execContext.BuildContext, c.src, filepath.Join(tmp, c.dest))
+	err = c.collector.Collect(execContext.BuildContext, c.src, filepath.Join(tmp, c.dest))
 	if err != nil {
 		return out, fmt.Errorf("failed to collect files to temp dir %s, err: %v", tmp, err)
 	}

@@ -28,7 +28,7 @@ import (
 type webFileCollector struct {
 }
 
-func (w webFileCollector) Send(buildContext, src, savePath string) error {
+func (w webFileCollector) Collect(buildContext, src, savePath string) error {
 	client := grab.NewClient()
 	i := strings.LastIndexByte(src, '/')
 	req, err := grab.NewRequest(filepath.Join(savePath, src[i+1:]), src)
@@ -50,7 +50,7 @@ func NewWebFileCollector() Collector {
 type gitCollector struct {
 }
 
-func (g gitCollector) Send(buildContext, src, savePath string) error {
+func (g gitCollector) Collect(buildContext, src, savePath string) error {
 	co := &git.CloneOptions{
 		URL:               src,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,

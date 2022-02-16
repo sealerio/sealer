@@ -17,8 +17,8 @@ package collector
 import "fmt"
 
 type Collector interface {
-	// Send git package;download common file work as wget or curl;copy local file to dst.
-	Send(buildContext, src, savePath string) error
+	// Collect git package;download common file work as wget or curl;copy local file to dst.
+	Collect(buildContext, src, savePath string) error
 }
 
 func NewCollector(src string) (Collector, error) {
