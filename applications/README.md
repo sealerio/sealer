@@ -100,7 +100,7 @@ if you want to apply a cloud image which need persistence storage. we provide op
 provides block volume support through the iSCSI protocol. Therefore, the iSCSI client (initiator) presence on all
 Kubernetes nodes is required. Choose the platform below to find the steps to verify if the iSCSI client is installed and
 running or to find the steps to install the iSCSI client.For openebs, different storage engine need to config different
-prerequisite. more to see [openebs website](https://docs.openebs.io/).
+prerequisite. more to see [openebs website](https://openebs.io).
 
 We provide plugin mechanism, you only need to append below example to "clusterfile.yaml" and apply them together.
 
