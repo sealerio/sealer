@@ -585,7 +585,7 @@ func MarshalJSONToFile(file string, obj interface{}) error {
 }
 
 func UnMarshalJSONFile(file string, obj interface{}) error {
-	data, err := ioutil.ReadFile(file)
+	data, err := ioutil.ReadFile(filepath.Clean(file))
 	if err != nil {
 		return err
 	}
