@@ -2,11 +2,14 @@ on:
   issue_comment:
     types:
       - created
+  push:
+    tags:
+      - 'v*'
 name: Static page
 jobs:
   build:
     runs-on: ubuntu-latest
-    if:  ${{ github.event.comment.body == '/docs' }}
+    if: ${{ github.repository == 'alibaba/sealer' && (github.ref_type=='tag' || github.event.comment.body == '/docs') }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
