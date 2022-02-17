@@ -29,6 +29,7 @@ type BuildFlag struct {
 	ImageName    string
 	KubefileName string
 	BuildType    string
+	Output       string
 	BuildArgs    []string
 	NoCache      bool
 	Base         bool
@@ -41,7 +42,6 @@ var buildCmd = &cobra.Command{
 	Use:   "build [flags] PATH",
 	Short: "Build an cloud image from a Kubefile",
 	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.9 [--mode cloud|container|lite] [--no-cache]",
-	Args:  cobra.ExactArgs(1),
 	Example: `the current path is the context path, default build type is lite and use build cache
 
 lite build:
@@ -61,6 +61,9 @@ build without base:
 
 build with args:
 	sealer build -f Kubefile -t my-kubernetes:1.19.9 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
+
+build with different save:
+	sealer build -f Kubefile -t my-kubernetes:1.19.9 --output type=local,dest=/path/to/my-image.tar .
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conf := &build.Config{
@@ -68,6 +71,7 @@ build with args:
 			NoCache:   buildConfig.NoCache,
 			ImageName: buildConfig.ImageName,
 			NoBase:    !buildConfig.Base,
+			Output:    buildConfig.Output,
 			BuildArgs: utils.ConvertEnvListToMap(buildConfig.BuildArgs),
 		}
 
@@ -76,7 +80,12 @@ build with args:
 			return err
 		}
 
-		return builder.Build(buildConfig.ImageName, args[0], buildConfig.KubefileName)
+		var context = "."
+		if len(args) != 0 {
+			context = args[0]
+		}
+
+		return builder.Build(buildConfig.ImageName, context, buildConfig.KubefileName)
 	},
 }
 
@@ -89,6 +98,7 @@ func init() {
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
 	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image,default value is true.")
 	buildCmd.Flags().StringSliceVar(&buildConfig.BuildArgs, "build-arg", []string{}, "set custom build args")
+	buildCmd.Flags().StringVarP(&buildConfig.Output, "output", "o", "", "cluster image build output, default is filesystem")
 
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logger.Error("failed to init flag: %v", err)

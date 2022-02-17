@@ -17,19 +17,21 @@ package lite
 import (
 	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
+	"github.com/alibaba/sealer/build/buildkit/buildstorage"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/image/reference"
 )
 
 type Builder struct {
-	BuildType    string
-	NoCache      bool
-	NoBase       bool
-	ImageNamed   reference.Named
-	Context      string
-	KubeFileName string
-	BuildArgs    map[string]string
-	BuildImage   buildimage.Interface
+	BuildType     string
+	NoCache       bool
+	NoBase        bool
+	ImageNamed    reference.Named
+	Context       string
+	KubeFileName  string
+	BuildArgs     map[string]string
+	BuildImage    buildimage.Interface
+	StorageDriver buildstorage.StorageDriver
 }
 
 func (l *Builder) Build(name string, context string, kubefileName string) error {
@@ -96,15 +98,18 @@ func (l *Builder) ExecBuild() error {
 }
 
 func (l *Builder) SaveBuildImage() error {
+	saver, err := buildstorage.Create(l.StorageDriver.DriverType, l.StorageDriver.Parameters)
+	if err != nil {
+		return err
+	}
 	imageName := l.ImageNamed.Raw()
-
-	err := l.BuildImage.SaveBuildImage(imageName, buildimage.SaveOpts{
+	err = l.BuildImage.SaveBuildImage(imageName, saver, buildimage.SaveOpts{
 		WithoutBase: l.NoBase,
 	})
 	if err != nil {
 		return err
 	}
-	logger.Info("save image %s to image system success !", imageName)
+	logger.Info("save image %s to image system success", imageName)
 	return nil
 }
 

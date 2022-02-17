@@ -15,6 +15,11 @@
 package build
 
 import (
+	"encoding/csv"
+	"fmt"
+	"strings"
+
+	"github.com/alibaba/sealer/build/buildkit/buildstorage"
 	"github.com/alibaba/sealer/build/cloud"
 	"github.com/alibaba/sealer/build/lite"
 	"github.com/alibaba/sealer/build/local"
@@ -53,10 +58,56 @@ func NewCloudBuilder(config *Config) (Interface, error) {
 }
 
 func NewLiteBuilder(config *Config) (Interface, error) {
+	storage, err := parseOutputStorage(config.Output)
+	if err != nil {
+		return nil, err
+	}
 	return &lite.Builder{
-		BuildType: config.BuildType,
-		NoCache:   config.NoCache,
-		NoBase:    config.NoBase,
-		BuildArgs: config.BuildArgs,
+		BuildType:     config.BuildType,
+		NoCache:       config.NoCache,
+		NoBase:        config.NoBase,
+		BuildArgs:     config.BuildArgs,
+		StorageDriver: storage,
 	}, nil
+}
+
+func parseOutputStorage(s string) (buildstorage.StorageDriver, error) {
+	sd := buildstorage.StorageDriver{
+		DriverType: buildstorage.FileSystemFactory,
+		Parameters: map[string]string{},
+	}
+	if s == "" {
+		return sd, nil
+	}
+
+	csvReader := csv.NewReader(strings.NewReader(s))
+	fields, err := csvReader.Read()
+	if err != nil {
+		return sd, err
+	}
+	for _, field := range fields {
+		parts := strings.SplitN(field, "=", 2)
+		if len(parts) != 2 {
+			return sd, fmt.Errorf("invalid value %s", field)
+		}
+		key := strings.ToLower(parts[0])
+		value := parts[1]
+		switch key {
+		case "type":
+			sd.DriverType = value
+		default:
+			sd.Parameters[key] = value
+		}
+	}
+
+	// filesystem type do not need dest parameter.
+	if sd.DriverType == buildstorage.FileSystemFactory {
+		return sd, nil
+	}
+
+	if _, ok := sd.Parameters["dest"]; !ok {
+		return sd, fmt.Errorf("--output requires dest=<dest>")
+	}
+
+	return sd, nil
 }

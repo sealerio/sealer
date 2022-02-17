@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alibaba/sealer/build/buildkit/buildstorage"
+
 	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
 	"github.com/alibaba/sealer/logger"
@@ -155,14 +157,19 @@ func (l *Builder) IsAllPodsRunning(k8sClient *k8s.Client) bool {
 
 func (l *Builder) SaveBuildImage() error {
 	imageName := l.ImageNamed.Raw()
-
-	err := l.BuildImage.SaveBuildImage(imageName, buildimage.SaveOpts{
+	// local build use local filesystem storage driver,
+	// that's because local build run as cloud build remote agent,will push cloud image to ALI ACR automatically.
+	saver, err := buildstorage.NewFileSystem()
+	if err != nil {
+		return err
+	}
+	err = l.BuildImage.SaveBuildImage(imageName, saver, buildimage.SaveOpts{
 		WithoutBase: l.NoBase,
 	})
 	if err != nil {
 		return err
 	}
-	logger.Info("update image %s to image metadata success !", imageName)
+	logger.Info("save image %s success", imageName)
 	return nil
 }
 

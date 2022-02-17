@@ -16,6 +16,7 @@ package build
 
 type Config struct {
 	BuildType string
+	Output    string
 	NoCache   bool
 	NoBase    bool
 	ImageName string

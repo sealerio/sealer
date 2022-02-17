@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/build/buildkit/buildstorage"
+
 	"github.com/alibaba/sealer/pkg/runtime"
 	"golang.org/x/sync/errgroup"
 
@@ -115,7 +117,7 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		baseLayers = append(baseLayers, *layer)
 	}
 
-	logger.Info("exec all build instructs success !")
+	logger.Info("exec all build instructs success")
 	return nil
 }
 
@@ -157,7 +159,7 @@ func (b BuildImage) checkDiff() error {
 	return eg.Wait()
 }
 
-func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
+func (b BuildImage) SaveBuildImage(name string, saver buildstorage.ImageSaver, opts SaveOpts) error {
 	b.RawImage.Name = name
 	err := b.checkDiff()
 	if err != nil {
@@ -173,12 +175,12 @@ func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
 	if err != nil {
 		return err
 	}
-	err = b.save(name, opts)
+	err = b.save(saver, opts)
 	if err != nil {
-		return fmt.Errorf("failed to save image metadata, err: %v", err)
+		return fmt.Errorf("failed to save image, err: %v", err)
 	}
 
-	logger.Info("update image %s to image metadata success !", name)
+	logger.Info("save image %s success", name)
 	return nil
 }
 
@@ -216,7 +218,7 @@ func (b BuildImage) setImageAttribute() error {
 	return nil
 }
 
-func (b BuildImage) save(name string, opts SaveOpts) error {
+func (b BuildImage) save(saver buildstorage.ImageSaver, opts SaveOpts) error {
 	if opts.WithoutBase {
 		b.RawImage.Spec.Layers = b.RawImage.Spec.Layers[len(b.BaseLayers):]
 	}
@@ -225,7 +227,7 @@ func (b BuildImage) save(name string, opts SaveOpts) error {
 		return err
 	}
 	b.RawImage.Spec.ID = imageID
-	return b.ImageStore.Save(*b.RawImage, name)
+	return saver.Save(b.RawImage)
 }
 
 func (b BuildImage) Cleanup() error {

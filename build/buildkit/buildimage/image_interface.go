@@ -16,12 +16,13 @@ package buildimage
 
 import (
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
+	"github.com/alibaba/sealer/build/buildkit/buildstorage"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type Interface interface {
 	ExecBuild(ctx Context) error
-	SaveBuildImage(name string, opts SaveOpts) error
+	SaveBuildImage(name string, saver buildstorage.ImageSaver, opts SaveOpts) error
 	Cleanup() error
 }
 

@@ -18,6 +18,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/alibaba/sealer/pkg/image/reference"
+	"github.com/alibaba/sealer/pkg/image/store"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/logger"
@@ -41,7 +44,20 @@ sealer save -o kubernetes.tar kubernetes:v1.19.8`,
 		if err != nil {
 			return err
 		}
-		if err = ifs.Save(args[0], ImageTar); err != nil {
+		named, err := reference.ParseToNamed(args[0])
+		if err != nil {
+			return err
+		}
+		imageStore, err := store.NewDefaultImageStore()
+		if err != nil {
+			return err
+		}
+		image, err := imageStore.GetByName(named.Raw())
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%+v\n", image)
+		if err = ifs.Save(image, ImageTar); err != nil {
 			return fmt.Errorf("failed to save image %s: %v", args[0], err)
 		}
 		logger.Info("save image %s to %s successfully", args[0], ImageTar)

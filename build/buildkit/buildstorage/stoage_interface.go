@@ -1,0 +1,62 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package buildstorage
+
+import (
+	"fmt"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
+)
+
+var storageFactories = make(map[string]StorageDriverFactory)
+
+const (
+	FileSystemFactory = "filesystem"
+	LocalFileFactory  = "local"
+)
+
+type StorageDriver struct {
+	DriverType string
+	Parameters map[string]string
+}
+
+type ImageSaver interface {
+	// Save :save image as local registry,local file,or oss file store.default is local registry.
+	Save(image *v1.Image) error
+}
+
+type StorageDriverFactory interface {
+	Create(parameters map[string]string) (ImageSaver, error)
+}
+
+func Register(name string, factory StorageDriverFactory) {
+	if factory == nil {
+		panic("Can not provide nil ImageSaver")
+	}
+	_, registered := storageFactories[name]
+	if registered {
+		panic(fmt.Sprintf("ImageSaver name %s already registered", name))
+	}
+
+	storageFactories[name] = factory
+}
+
+func Create(name string, parameters map[string]string) (ImageSaver, error) {
+	factory, ok := storageFactories[name]
+	if !ok {
+		return nil, fmt.Errorf("invalid build storage name %s", name)
+	}
+	return factory.Create(parameters)
+}
