@@ -62,7 +62,7 @@ Contains:
 
 You will find the CloudRootfs layer.
 
-## Build your own BaseImage
+## Build your own CloudRootfs
 
 You can edit any files in CloudRootfs you want, for example you want to define your own docker daemon.json, just edit it
 and build a new CloudImage.
