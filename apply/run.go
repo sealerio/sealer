@@ -75,7 +75,6 @@ func PreProcessIPList(joinArgs *common.RunArgs) error {
 }
 
 func (c *ClusterArgs) SetClusterArgs() error {
-	var err error = nil
 	c.cluster.Spec.Image = c.imageName
 	c.cluster.Spec.SSH.User = c.runArgs.User
 	c.cluster.Spec.SSH.Pk = c.runArgs.Pk
@@ -85,6 +84,10 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	c.cluster.Spec.CMDArgs = append(c.cluster.Spec.CMDArgs, c.runArgs.CMDArgs...)
 	if c.runArgs.Password != "" {
 		c.cluster.Spec.SSH.Passwd = c.runArgs.Password
+	}
+	err := PreProcessIPList(c.runArgs)
+	if err != nil {
+		return err
 	}
 	if IsIPList(c.runArgs.Masters) && (IsIPList(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
 		masters := strings.Split(c.runArgs.Masters, ",")

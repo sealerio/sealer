@@ -80,7 +80,7 @@ func IsLocalIP(ip string, addrs *[]net.Addr) bool {
 }
 
 func AssemblyIPList(args *string) error {
-	var result string
+	var result []string
 	var ips = strings.Split(*args, "-")
 	if *args == "" || !strings.Contains(*args, "-") {
 		return nil
@@ -91,15 +91,16 @@ func AssemblyIPList(args *string) error {
 	if !CheckIP(ips[0]) || !CheckIP(ips[1]) {
 		return fmt.Errorf("ip is invalid，check you command agrs")
 	}
+	//ips[0],ips[1] = 192.168.56.3, 192.168.56.7;  result = [192.168.56.3, 192.168.56.4, 192.168.56.5, 192.168.56.6, 192.168.56.7]
 	for res, _ := CompareIP(ips[0], ips[1]); res <= 0; {
-		result = ips[0] + "," + result
+		result = append(result, ips[0])
 		ips[0] = NextIP(ips[0]).String()
 		res, _ = CompareIP(ips[0], ips[1])
 	}
-	if result == "" {
+	if len(result) == 0 {
 		return fmt.Errorf("ip is invalid，check you command agrs")
 	}
-	*args = result
+	*args = strings.Join(result, ",")
 	return nil
 }
 
