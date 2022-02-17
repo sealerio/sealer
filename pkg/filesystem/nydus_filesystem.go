@@ -44,8 +44,9 @@ func (c *NydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initF
 		return fmt.Errorf("LoadMetadata failed %v", err)
 	}
 	if md.NydusFlag {
-		nydusdfiledir := filepath.Join(common.DefaultMountCloudImageDir(cluster.Name), "nydusdfile")
-		nydusdcp := fmt.Sprintf("rm -rf %s && cp -r %s %s", common.DefaultNydusdfileDir, nydusdfiledir, common.DefaultNydusdfileDir)
+		mountnydusdfile := filepath.Join(common.DefaultMountCloudImageDir(cluster.Name), "nydusdfile")
+		clusternydusdfile := common.DefaultTheClusterNydusdFileDir(cluster.Name)
+		nydusdcp := fmt.Sprintf("rm -rf %s && cp -r %s %s", clusternydusdfile, mountnydusdfile, clusternydusdfile)
 		_, err := utils.RunSimpleCmd(nydusdcp)
 		if err != nil {
 			return fmt.Errorf("cp nydusdfile failed %v", err)
@@ -62,8 +63,6 @@ func (c *NydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initF
 }
 
 const (
-	NydusdMountUpper = "/var/lib/sealer/tmp/nydusdupper"
-	NydusdMountWork  = "/var/lib/sealer/tmp/nydusdwork"
 	RemoteNydusdInit = "cd %s && chmod +x *.sh && bash start.sh %s"
 	RemoteNydusdStop = "sh %s && rm -rf %s"
 )
@@ -82,7 +81,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 
 	nydusdsrc := common.DefaultTheClusterNydusdDir(cluster.Name)
 	scptarget := common.DefaultTheClusterNydusdDir(cluster.Name)
-	nydusdfiledir := common.DefaultNydusdfileDir
+	nydusdfiledir := common.DefaultTheClusterNydusdFileDir(cluster.Name)
 	//convert image and start nydusd_http_server
 	nydusdservercmd := fmt.Sprintf("cd %s && chmod +x serverstart.sh && ./serverstart.sh %s %s", nydusdfiledir, src, nydusdsrc)
 	_, err := utils.RunSimpleCmd(nydusdservercmd)
