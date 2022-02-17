@@ -124,7 +124,7 @@ func getAPIServerHost(ipAddr, APIServer string) (host string) {
 }
 
 func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []string {
-	registryHost := getRegistryHost(k.getRootfs(), k.GetMaster0IP())
+	registryHost := getRegistryHost(k.getImageMountDir(), k.GetMaster0IP())
 	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	certCMD := command.RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")

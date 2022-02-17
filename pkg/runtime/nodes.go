@@ -77,7 +77,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	k.cleanJoinLocalAPIEndPoint()
 
-	registryHost := getRegistryHost(k.getRootfs(), k.GetMaster0IP())
+	registryHost := getRegistryHost(k.getImageMountDir(), k.GetMaster0IP())
 	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	if cf.Username != "" && cf.Password != "" {

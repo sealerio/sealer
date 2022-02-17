@@ -19,9 +19,9 @@ set -x
 # prepare registry storage as directory
 cd $(dirname $0)
 
-REGISTRY_DOMAIN=${1-sea.hub}
-REGISTRY_PORT=${2-5000}
-VOLUME=${3-/var/lib/registry}
+REGISTRY_PORT=${1-5000}
+VOLUME=${2-/var/lib/registry}
+REGISTRY_DOMAIN=${3-sea.hub}
 
 container=sealer-registry
 rootfs=$(dirname "$(pwd)")

@@ -34,6 +34,10 @@ const (
 	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerLoginCommand          = "docker login %s -u %s -p %s"
+	DockerDaemonFileName        = "daemon.json"
+	RestartDockerService        = "systemctl restart docker.service"
+	DefaultDaemonFilePath       = "/etc/docker/daemon.json"
+	MirrorRegistries            = "mirror-registries"
 )
 
 type RegistryConfig struct {
@@ -52,7 +56,7 @@ func getRegistryHost(rootfs, defaultRegistry string) (host string) {
 
 // ApplyRegistry Only use this for join and init, due to the initiation operations.
 func (k *KubeadmRuntime) ApplyRegistry() error {
-	cf := GetRegistryConfig(k.getRootfs(), k.GetMaster0IP())
+	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	ssh, err := k.getHostSSHClient(cf.IP)
 	if err != nil {
 		return fmt.Errorf("failed to get registry ssh client: %v", err)
