@@ -66,6 +66,7 @@ regArgs="-d --restart=always \
 -e REGISTRY_HTTP_TLS_KEY=/certs/$REGISTRY_DOMAIN.key"
 
 if [ -f $config ]; then
+    sed -i "s/5000/$1/g" $config
     regArgs="$regArgs \
     -v $config:/etc/docker/registry/config.yml"
 fi
