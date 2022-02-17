@@ -77,13 +77,13 @@ Examples:
 ```shell
 FROM kubernetes:v1.19.8
 # set default version is 4.0.0, this will be used to install mongo application.
-ARG Version=4.0.0 
+ARG Version=4.0.0
 # mongo dir contains many mongo version yaml file.
 COPY mongo manifests
 # arg Version can be used with RUN instruction.
-RUN echo ${Version} 
+RUN echo ${Version}
 # use Version arg to install mongo application.
-CMD kubectl apply -f mongo-${Version}.yaml 
+CMD kubectl apply -f mongo-${Version}.yaml
 ```
 
 This means run `kubectl apply -f mongo-4.0.0.yaml` in the CMD instruction.
@@ -317,15 +317,14 @@ sealer apply -f Clusterfile
 
 ### base image with sealer docker
 
-|image name |platform| kubernetes version|docker version| 
---- | --- | ---| ---|  
-|kubernetes:v1.19.8|AMD| 1.19.8|19.03.14| 
-|kubernetes-arm64:v1.19.7|ARM| 1.19.7|19.03.14| 
+|image name |platform| kubernetes version|docker version|
+--- | --- | ---| ---|
+|kubernetes:v1.19.8|AMD| 1.19.8|19.03.14|
+|kubernetes-arm64:v1.19.7|ARM| 1.19.7|19.03.14|
 
 ### base image with native docker
 
-|image name |platform| kubernetes version|docker version| 
---- | --- | ---| ---|  
-|kubernetes-kyverno:v1.19.8|AMD| 1.19.8|19.03.14| 
-|kubernetes-kyverno-arm64:v1.19.7|ARM| 1.19.7|19.03.14| 
-
+|image name |platform| kubernetes version|docker version|
+--- | --- | ---| ---|
+|kubernetes-kyverno:v1.19.8|AMD| 1.19.8|19.03.15|
+|kubernetes-kyverno-arm64:v1.19.7|ARM| 1.19.7|19.03.15|

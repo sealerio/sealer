@@ -1,4 +1,6 @@
-# Define your own CloudRootfs
+# Customize Cloud image
+
+## Customize the CloudRootfs
 
 All the files which run a kubernetes cluster needs.
 
@@ -11,6 +13,8 @@ Contains:
 * Registry files, contains all the docker image, like kubernetes core component docker images...
 * Scripts, some shell script using to install docker and kubelet... sealer will call init.sh and clean.sh.
 * Other static files
+
+rootfs dendrogram
 
 ```
 .
@@ -25,12 +29,12 @@ Contains:
 │   ├── nerdctl
 │   └── seautil
 ├── cri
-│   └── docker.tar.gz # cri bin files include docker,containerd,runc. 
+│   └── docker.tar.gz # cri bin files include docker,containerd,runc.
 ├── etc
 │   ├── 10-kubeadm.conf
 │   ├── Clusterfile  # image default Clusterfile
-│   ├── daemon.json # docker daemon config file. 
-│   ├── docker.service 
+│   ├── daemon.json # docker daemon config file.
+│   ├── docker.service
 │   ├── kubeadm.yml # kubeadm config including Cluster Configuration,JoinConfiguration and so on.
 │   ├── kubelet.service
 │   ├── registry_config.yml # docker registry config including storage root directory and http related config.
@@ -54,7 +58,7 @@ Contains:
     └── audit-policy.yml
 ```
 
-## How can I get CloudRootfs
+### How can I get CloudRootfs
 
 1. Pull a BaseImage `sealer pull kubernetes:v1.19.8-alpine`
 2. View the image layer information `sealer inspect kubernetes:v1.19.8-alpine`
@@ -62,7 +66,7 @@ Contains:
 
 You will find the CloudRootfs layer.
 
-## Build your own CloudRootfs
+### Build your own CloudRootfs
 
 You can edit any files in CloudRootfs you want, for example you want to define your own docker daemon.json, just edit it
 and build a new CloudImage.
@@ -78,7 +82,7 @@ sealer build -t user-defined-kubernetes:v1.19.8 .
 
 Then you can use this image as a BaseImage.
 
-## OverWrite CloudRootfs files
+### OverWrite CloudRootfs files
 
 Sometimes you don't want to care about the CloudRootfs context, but need custom some config.
 
@@ -96,9 +100,9 @@ COPY daemon.json etc/
 sealer build -t user-defined-kubernetes:v1.19.8 .
 ```
 
-# Build your own cloud image
+## Build the cloud image
 
-## Build with specific directory
+### Build with specific directory
 
 #### images directory
 
@@ -150,7 +154,7 @@ directory, and downloads and saves the corresponding container image.
 Examples: copy "imageList" file to this directory.
 
 ```shell
-[root@iZbp143f9driomgoqx2krlZ build]# cat imageList 
+[root@iZbp143f9driomgoqx2krlZ build]# cat imageList
 busybox
 ```
 
@@ -160,7 +164,7 @@ Examples: copy dashboard yaml file to this directory.
 
 `COPY recommend.yaml manifests`
 
-## Customize the private registry
+### Customize the private registry
 
 Sealer optimizes and expands the docker registry, so that it can support proxy caching of multiple domain names and
 multiple private registry at the same time.
@@ -184,11 +188,11 @@ FROM kubernetes:v1.19.8
 COPY registry_config.yaml etc/
 ```
 
-## Customize the kubeadm configuration
+### Customize the kubeadm configuration
 
 Sealer will replace the default configuration with a custom configuration file in $Rootfs/etc/kubeadm.yml.
 
-### Example: Custom configuration using the Docker Unix socket.
+#### Example: Custom configuration using the Docker Unix socket.
 
 1. customize kubeadm init configuration:
 
@@ -227,7 +231,7 @@ COPY kubeadm.yml etc
 
 > sealer build -t user-define-kubeadm-kubernetes:v1.19.8 .
 
-### Default kubeadm configuration file with completely contents:
+#### Default kubeadm configuration file with completely contents:
 
 pick any section of kubeadm.yml to customize:
 
