@@ -14,27 +14,106 @@ Flags:
 ```shell
 Flags:
       --base                build with base image,default value is true. (default true)
-      --build-arg strings   set custom build arg variables
+      --build-arg strings   set custom build args
   -h, --help                help for build
   -t, --imageName string    cluster image name
   -f, --kubefile string     kubefile filepath (default "Kubefile")
   -m, --mode string         cluster image build type, default is lite (default "lite")
       --no-cache            build without cache
+  -o, --output string       cluster image build output, default is filesystem
 ```
 
-### More Examples
+## Build instruction
 
-### lite build
+### FROM instruction
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 .`
+FROM: Refers to a base image, and the first instruction in the Kubefile must be a FROM instruction. If the base image is
+a private repository image, the repository authentication information is required, and the sealer community also
+provides an official base image for use.
 
-### cloud build
+> instruction format: FROM {your base image name}
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 --mode cloud .`
+Examples:
 
-### container build
+use `kubernetes:v1.19.8` which provided by sealer community as base image。
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 -m container .`
+`FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`
+
+### COPY instruction
+
+COPY: Copy files or directories in the build context to rootfs。
+
+The cluster image file structure is based on the rootfs structure. The default target path is rootfs, and it will be
+automatically created when the specified target directory does not exist.
+
+> instruction format: COPY {src dest}
+
+Examples:
+
+Copy mysql.yaml to the rootfs directory.
+
+`COPY mysql.yaml .`
+
+Copy the executable binary "helm" to the system $PATH.
+
+`COPY helm ./bin`
+
+Copy remote web file or git repository to cloud image.
+
+`COPY https://github.com/alibaba/sealer/raw/main/applications/cassandra/cassandra-manifest.yaml manifests`
+
+Support wildcard copy, copy all yaml files in the test directory to rootfs manifests directory.
+
+`COPY test/*.yaml manifests`
+
+### ARG instruction
+
+ARG: Supports setting command line parameters in the build phase for use with CMD and RUN instruction。
+
+> instruction format: ARG <parameter name>[=<default value>]
+
+Examples:
+
+```shell
+FROM kubernetes:v1.19.8
+# set default version is 4.0.0, this will be used to install mongo application.
+ARG Version=4.0.0 
+# mongo dir contains many mongo version yaml file.
+COPY mongo manifests
+# arg Version can be used with RUN instruction.
+RUN echo ${Version} 
+# use Version arg to install mongo application.
+CMD kubectl apply -f mongo-${Version}.yaml 
+```
+
+This means run `kubectl apply -f mongo-4.0.0.yaml` in the CMD instruction.
+
+### RUN instruction
+
+RUN: Use the system shell to execute the build command,accept multiple command parameters, and save the command
+execution result during build. If the system command does not exist, this instruction will return error.
+
+> instruction format: RUN {command args ...}
+
+Examples:
+
+Use the wget command to download a kubernetes dashboard。
+
+`RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
+
+### CMD instruction
+
+CMD: Similar to the RUN instruction format, use the system shell to execute build commands. However, the CMD command
+will be executed when sealer run, generally used to start and configure the cluster. In addition, unlike the CMD
+instructions in the Dockerfile, there can be multiple CMD instructions in a kubefile.
+
+> instruction format: CMD {command args ...}
+
+Examples:
+
+Install a kubernetes dashboard using the kubectl command。
+
+`CMD kubectl apply -f recommended.yaml`
 
 ## Build type
 
@@ -94,7 +173,7 @@ will not pull up the cluster, but it will be saved as a layer of the image in th
 
 Lite build is suitable for the scenarios where there is a list of known images or no special resource requirements.
 
-Kubefile example：
+Kubefile example:
 
 ```shell
 FROM kubernetes:v1.19.8
@@ -204,237 +283,49 @@ spec:
 sealer apply -f Clusterfile
 ```
 
-## Private registry
+## More build examples
 
-Sealer optimizes and expands the docker registry, so that it can support proxy caching of multiple domain names and
-multiple private registry at the same time.
+### lite build:
 
-During the build process, there will be a scenario where it uses a private registry which requires authentication. In
-this scenario, the authentication of docker is required for image caching. You can perform the login operation first
-through the following command before executing the build operation:
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 .`
 
-```shell
-sealer login registry.com -u username -p password
-```
+### container build:
 
-Another dependent scenario， the kubernetes node is proxies to the private registry through the built-in registry of
-sealer and the private registry needs to be authenticated, it can be configured through the custom registry config.Refer
-to [registry config](../../../../user-guide/docker-image-cache.md)
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 -m container .`
 
-You can customize the registry configuration by defining Kubefile:
+### cloud build:
 
-```shell
-FROM kubernetes:v1.19.8
-COPY registry_config.yaml etc/
-```
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --mode cloud .`
 
-## Custom kubeadm configuration
+### build without cache:
 
-Sealer will replace the default configuration with a custom configuration file in $Rootfs/etc/kubeadm.yml:
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .`
 
-### Example: Custom configuration using the Docker Unix socket.
+### build without base:
 
-1. customize kubeadm init configuration:
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --base=false .`
 
-```yaml
-apiVersion: kubeadm.k8s.io/v1beta2
-kind: InitConfiguration
-localAPIEndpoint:
-  bindPort: 6443
-nodeRegistration:
-  criSocket: /var/run/dockershim.sock
-```
+### build with args:
 
-2. customize kubeadm join configuration:
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .`
 
-```yaml
-apiVersion: kubeadm.k8s.io/v1beta2
-kind: JoinConfiguration
-caCertPath: /etc/kubernetes/pki/ca.crt
-discovery:
-  timeout: 5m0s
-nodeRegistration:
-  criSocket: /var/run/dockershim.sock
-controlPlane:
-  localAPIEndpoint:
-    bindPort: 6443
-```
+### build with specific output:
 
-3. Build your own cloud image that override default configurations with custom configurations. Note that,the file name "
-   kubeadm.yml" is fixed:
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --output type=local,dest=/path/to/my-image.tar .`
 
-```yaml
-#Kubefile
-FROM kubernetes-clusterv2:v1.19.8
-COPY kubeadm.yml etc
-```
+## Base image list
 
-> sealer build -t user-define-kubeadm-kubernetes:v1.19.8 .
+### base image with sealer docker
 
-## Default kubeadm configuration file completely contents:
+|image name |platform| kubernetes version|docker version| 
+--- | --- | ---| ---|  
+|kubernetes:v1.19.8|AMD| 1.19.8|19.03.14| 
+|kubernetes-arm64:v1.19.7|ARM| 1.19.7|19.03.14| 
 
-kubeadm.yml：
+### base image with native docker
 
-```yaml
-apiVersion: kubeadm.k8s.io/v1beta2
-kind: InitConfiguration
-localAPIEndpoint:
-  # advertiseAddress: 192.168.2.110
-  bindPort: 6443
-nodeRegistration:
-  criSocket: /var/run/dockershim.sock
+|image name |platform| kubernetes version|docker version| 
+--- | --- | ---| ---|  
+|kubernetes-kyverno:v1.19.8|AMD| 1.19.8|19.03.14| 
+|kubernetes-kyverno-arm64:v1.19.7|ARM| 1.19.7|19.03.14| 
 
----
-apiVersion: kubeadm.k8s.io/v1beta2
-kind: ClusterConfiguration
-kubernetesVersion: v1.19.8
-#controlPlaneEndpoint: "apiserver.cluster.local:6443"
-imageRepository: sea.hub:5000/library
-networking:
-  # dnsDomain: cluster.local
-  podSubnet: 100.64.0.0/10
-  serviceSubnet: 10.96.0.0/22
-apiServer:
-  #  certSANs:
-  #    - 127.0.0.1
-  #    - apiserver.cluster.local
-  #    - aliyun-inc.com
-  #    - 10.0.0.2
-  #    - 10.103.97.2
-  extraArgs:
-    #    etcd-servers: https://192.168.2.110:2379
-    feature-gates: TTLAfterFinished=true,EphemeralContainers=true
-    audit-policy-file: "/etc/kubernetes/audit-policy.yml"
-    audit-log-path: "/var/log/kubernetes/audit.log"
-    audit-log-format: json
-    audit-log-maxbackup: '10'
-    audit-log-maxsize: '100'
-    audit-log-maxage: '7'
-    enable-aggregator-routing: 'true'
-  extraVolumes:
-    - name: "audit"
-      hostPath: "/etc/kubernetes"
-      mountPath: "/etc/kubernetes"
-      pathType: DirectoryOrCreate
-    - name: "audit-log"
-      hostPath: "/var/log/kubernetes"
-      mountPath: "/var/log/kubernetes"
-      pathType: DirectoryOrCreate
-    - name: localtime
-      hostPath: /etc/localtime
-      mountPath: /etc/localtime
-      readOnly: true
-      pathType: File
-controllerManager:
-  extraArgs:
-    feature-gates: TTLAfterFinished=true,EphemeralContainers=true
-    experimental-cluster-signing-duration: 876000h
-  extraVolumes:
-    - hostPath: /etc/localtime
-      mountPath: /etc/localtime
-      name: localtime
-      readOnly: true
-      pathType: File
-scheduler:
-  extraArgs:
-    feature-gates: TTLAfterFinished=true,EphemeralContainers=true
-  extraVolumes:
-    - hostPath: /etc/localtime
-      mountPath: /etc/localtime
-      name: localtime
-      readOnly: true
-      pathType: File
-etcd:
-  local:
-    extraArgs:
-      listen-metrics-urls: http://0.0.0.0:2381
----
-apiVersion: kubeproxy.config.k8s.io/v1alpha1
-kind: KubeProxyConfiguration
-mode: "ipvs"
-ipvs:
-  excludeCIDRs:
-    - "10.103.97.2/32"
-
----
-apiVersion: kubelet.config.k8s.io/v1beta1
-kind: KubeletConfiguration
-authentication:
-  anonymous:
-    enabled: false
-  webhook:
-    cacheTTL: 2m0s
-    enabled: true
-  x509:
-    clientCAFile: /etc/kubernetes/pki/ca.crt
-authorization:
-  mode: Webhook
-  webhook:
-    cacheAuthorizedTTL: 5m0s
-    cacheUnauthorizedTTL: 30s
-cgroupDriver:
-cgroupsPerQOS: true
-clusterDomain: cluster.local
-configMapAndSecretChangeDetectionStrategy: Watch
-containerLogMaxFiles: 5
-containerLogMaxSize: 10Mi
-contentType: application/vnd.kubernetes.protobuf
-cpuCFSQuota: true
-cpuCFSQuotaPeriod: 100ms
-cpuManagerPolicy: none
-cpuManagerReconcilePeriod: 10s
-enableControllerAttachDetach: true
-enableDebuggingHandlers: true
-enforceNodeAllocatable:
-  - pods
-eventBurst: 10
-eventRecordQPS: 5
-evictionHard:
-  imagefs.available: 15%
-  memory.available: 100Mi
-  nodefs.available: 10%
-  nodefs.inodesFree: 5%
-evictionPressureTransitionPeriod: 5m0s
-failSwapOn: true
-fileCheckFrequency: 20s
-hairpinMode: promiscuous-bridge
-healthzBindAddress: 127.0.0.1
-healthzPort: 10248
-httpCheckFrequency: 20s
-imageGCHighThresholdPercent: 85
-imageGCLowThresholdPercent: 80
-imageMinimumGCAge: 2m0s
-iptablesDropBit: 15
-iptablesMasqueradeBit: 14
-kubeAPIBurst: 10
-kubeAPIQPS: 5
-makeIPTablesUtilChains: true
-maxOpenFiles: 1000000
-maxPods: 110
-nodeLeaseDurationSeconds: 40
-nodeStatusReportFrequency: 10s
-nodeStatusUpdateFrequency: 10s
-oomScoreAdj: -999
-podPidsLimit: -1
-port: 10250
-registryBurst: 10
-registryPullQPS: 5
-rotateCertificates: true
-runtimeRequestTimeout: 2m0s
-serializeImagePulls: true
-staticPodPath: /etc/kubernetes/manifests
-streamingConnectionIdleTimeout: 4h0m0s
-syncFrequency: 1m0s
-volumeStatsAggPeriod: 1m0s
----
-apiVersion: kubeadm.k8s.io/v1beta2
-kind: JoinConfiguration
-caCertPath: /etc/kubernetes/pki/ca.crt
-discovery:
-  timeout: 5m0s
-nodeRegistration:
-  criSocket: /var/run/dockershim.sock
-controlPlane:
-  localAPIEndpoint:
-    bindPort: 6443
-```
