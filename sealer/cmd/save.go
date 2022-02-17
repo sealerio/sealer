@@ -56,7 +56,7 @@ sealer save -o kubernetes.tar kubernetes:v1.19.8`,
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%+v\n", image)
+
 		if err = ifs.Save(image, ImageTar); err != nil {
 			return fmt.Errorf("failed to save image %s: %v", args[0], err)
 		}

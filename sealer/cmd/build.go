@@ -41,29 +41,29 @@ var buildConfig *BuildFlag
 var buildCmd = &cobra.Command{
 	Use:   "build [flags] PATH",
 	Short: "Build an cloud image from a Kubefile",
-	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.9 [--mode cloud|container|lite] [--no-cache]",
+	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.8 [--mode cloud|container|lite] [--no-cache]",
 	Example: `the current path is the context path, default build type is lite and use build cache
 
 lite build:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 .
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 .
 
 container build:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 -m container .
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 -m container .
 
 cloud build:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 --mode cloud .
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 --mode cloud .
 
 build without cache:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 --no-cache .
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .
 
 build without base:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 --base=false .
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 --base=false .
 
 build with args:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
 
-build with different save:
-	sealer build -f Kubefile -t my-kubernetes:1.19.9 --output type=local,dest=/path/to/my-image.tar .
+build with specific output:
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 --output type=local,dest=/path/to/my-image.tar .
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conf := &build.Config{

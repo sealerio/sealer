@@ -33,7 +33,7 @@ type StorageDriver struct {
 }
 
 type ImageSaver interface {
-	// Save :save image as local registry,local file,or oss file store.default is local registry.
+	// Save :save image at filesystem,local file,or oss file store.default is filesystem.
 	Save(image *v1.Image) error
 }
 
