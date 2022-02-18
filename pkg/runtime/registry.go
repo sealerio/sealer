@@ -22,14 +22,11 @@ import (
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/mount"
 )
 
 const (
 	RegistryName                = "sealer-registry"
 	RegistryBindDest            = "/var/lib/registry"
-	RegistryMountUpper          = "/var/lib/sealer/tmp/upper"
-	RegistryMountWork           = "/var/lib/sealer/tmp/work"
 	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerLoginCommand          = "docker login %s -u %s -p %s"
@@ -57,19 +54,6 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 		return fmt.Errorf("failed to get registry ssh client: %v", err)
 	}
 
-	mkdir := fmt.Sprintf("rm -rf %s %s && mkdir -p %s %s", RegistryMountUpper, RegistryMountWork,
-		RegistryMountUpper, RegistryMountWork)
-
-	mountCmd := fmt.Sprintf("%s && mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s", mkdir,
-		k.getRootfs(),
-		RegistryMountUpper, RegistryMountWork, k.getRootfs())
-	isMount, _ := mount.GetRemoteMountDetails(ssh, cf.IP, k.getRootfs())
-	if isMount {
-		mountCmd = fmt.Sprintf("umount %s && %s", k.getRootfs(), mountCmd)
-	}
-	if err := ssh.CmdAsync(cf.IP, mountCmd); err != nil {
-		return err
-	}
 	if cf.Username != "" && cf.Password != "" {
 		htpasswd, err := cf.GenerateHtPasswd()
 		if err != nil {
@@ -141,16 +125,11 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 
 func (k *KubeadmRuntime) DeleteRegistry() error {
 	cf := GetRegistryConfig(k.getRootfs(), k.GetMaster0IP())
-	delDir := fmt.Sprintf("rm -rf %s %s", RegistryMountUpper, RegistryMountWork)
 	ssh, err := k.getHostSSHClient(cf.IP)
 	if err != nil {
 		return fmt.Errorf("failed to delete registry: %v", err)
 	}
 
-	isMount, _ := mount.GetRemoteMountDetails(ssh, cf.IP, k.getRootfs())
-	if isMount {
-		delDir = fmt.Sprintf("umount %s && %s", k.getRootfs(), delDir)
-	}
-	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %s;fi && %s ", RegistryName, RegistryName, delDir)
+	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %s;fi", RegistryName, RegistryName)
 	return ssh.CmdAsync(cf.IP, cmd)
 }

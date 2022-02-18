@@ -219,11 +219,11 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 				return err
 			}
 			cmd := fmt.Sprintf("%s && %s", rmRootfs, rmDockerCert)
-			if exists := SSH.IsFileExist(ip, fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)); exists {
-				cmd = fmt.Sprintf("%s && %s", execClean, cmd)
-			}
 			if mounted, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mounted {
 				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
+			}
+			if exists := SSH.IsFileExist(ip, fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)); exists {
+				cmd = fmt.Sprintf("%s && %s", execClean, cmd)
 			}
 			if err := SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd)); err != nil {
 				return err
@@ -240,5 +240,5 @@ func NewFilesystem() (Interface, error) {
 		return nil, err
 	}
 
-	return &FileSystem{imageStore: dis}, nil
+	return &NydusFileSystem{&FileSystem{imageStore: dis}}, nil
 }

@@ -169,6 +169,14 @@ func DefaultTheClusterRootfsDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
 }
 
+func DefaultTheClusterNydusdDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "nydusd")
+}
+
+func DefaultTheClusterNydusdFileDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "nydusdfile")
+}
+
 func DefaultTheClusterRootfsPluginDir(clusterName string) string {
 	return filepath.Join(DefaultTheClusterRootfsDir(clusterName), "plugin")
 }
