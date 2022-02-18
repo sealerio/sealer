@@ -1,0 +1,3 @@
+FROM kubernetes:v1.19.8
+COPY nydusdfile .
+COPY Metadata .
