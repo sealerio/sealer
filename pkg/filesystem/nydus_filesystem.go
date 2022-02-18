@@ -62,6 +62,22 @@ func (c *NydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initF
 	return nil
 }
 
+func (c *NydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) error {
+	//do clean.sh,then remove all Masters and Nodes roofs
+	if err := unmountRootfs(hosts, cluster); err != nil {
+		return err
+	}
+	nydusdserverclean := filepath.Join(common.DefaultTheClusterNydusdFileDir(cluster.Name), "serverclean.sh")
+	if utils.IsExist(nydusdserverclean) {
+		cleancmd := fmt.Sprintf("sh %s && rm -rf %s", nydusdserverclean, common.DefaultTheClusterNydusdDir(cluster.Name))
+		_, err := utils.RunSimpleCmd(cleancmd)
+		if err != nil {
+			return fmt.Errorf("stop nydusdserver failed %v", err)
+		}
+	}
+	return nil
+}
+
 const (
 	RemoteNydusdInit = "cd %s && chmod +x *.sh && bash start.sh %s"
 	RemoteNydusdStop = "sh %s && rm -rf %s"
