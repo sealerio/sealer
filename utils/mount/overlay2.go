@@ -88,7 +88,20 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 			_ = os.RemoveAll(workdir)
 		}
 	}()
-	mountData := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(utils.Reverse(layers), ":"), upperLayer, workdir)
+
+	var indexOff string
+	// figure out whether "index=off" option is recognized by the kernel
+	_, err = os.Stat("/sys/module/overlay/parameters/index")
+	switch {
+	case err == nil:
+		indexOff = "index=off,"
+	case os.IsNotExist(err):
+		// old kernel, no index -- do nothing
+	default:
+		logger.Warn("Unable to detect whether overlay kernel module supports index parameter: %s", err)
+	}
+
+	mountData := fmt.Sprintf("%slowerdir=%s,upperdir=%s,workdir=%s", indexOff, strings.Join(utils.Reverse(layers), ":"), upperLayer, workdir)
 	logger.Debug("mount data : %s", mountData)
 	if err = mount("overlay", target, "overlay", 0, mountData); err != nil {
 		return fmt.Errorf("error creating overlay mount to %s: %v", target, err)
