@@ -41,7 +41,7 @@ func (m MountTarget) TempMount() error {
 func (m MountTarget) TempUMount() error {
 	err := m.driver.Unmount(m.TempTarget)
 	if err != nil {
-		return fmt.Errorf("failed to mount target %s:%v", m.TempTarget, err)
+		return fmt.Errorf("failed to umount target %s:%v", m.TempTarget, err)
 	}
 	return nil
 }
