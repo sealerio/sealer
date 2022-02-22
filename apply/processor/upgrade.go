@@ -15,6 +15,7 @@
 package processor
 
 import (
+	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
@@ -24,7 +25,7 @@ import (
 )
 
 type UpgradeProcessor struct {
-	FileSystem    filesystem.Interface
+	fileSystem    cloudfilesystem.Interface
 	Runtime       runtime.Interface
 	MastersToJoin []string
 	NodesToJoin   []string
@@ -53,17 +54,22 @@ func (u UpgradeProcessor) MountRootfs(cluster *v2.Cluster) error {
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
-	return u.FileSystem.MountRootfs(cluster, hosts, false)
+	return u.fileSystem.MountRootfs(cluster, hosts, false)
 }
 
 func (u UpgradeProcessor) Upgrade() error {
 	return u.Runtime.Upgrade()
 }
 
-func NewUpgradeProcessor(fs filesystem.Interface, rt runtime.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
+func NewUpgradeProcessor(rootfs string, rt runtime.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
 	// only do upgrade here. cancel scale action.
+	fs, err := filesystem.NewFilesystem(rootfs)
+	if err != nil {
+		return nil, err
+	}
+
 	return UpgradeProcessor{
-		FileSystem:    fs,
+		fileSystem:    fs,
 		Runtime:       rt,
 		MastersToJoin: masterToJoin,
 		NodesToJoin:   nodeToJoin,

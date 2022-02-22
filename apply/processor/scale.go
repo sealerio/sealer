@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
@@ -26,7 +28,7 @@ import (
 )
 
 type ScaleProcessor struct {
-	FileSystem      filesystem.Interface
+	fileSystem      cloudfilesystem.Interface
 	Runtime         runtime.Interface
 	MastersToJoin   []string
 	MastersToDelete []string
@@ -61,7 +63,7 @@ func (s ScaleProcessor) Execute(cluster *v2.Cluster) error {
 
 func (s ScaleProcessor) ScaleUp(cluster *v2.Cluster) error {
 	hosts := append(s.MastersToJoin, s.NodesToJoin...)
-	err := s.FileSystem.MountRootfs(cluster, hosts, true)
+	err := s.fileSystem.MountRootfs(cluster, hosts, true)
 	if err != nil {
 		return err
 	}
@@ -85,22 +87,25 @@ func (s ScaleProcessor) ScaleDown(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	return s.FileSystem.UnMountRootfs(cluster, append(s.MastersToDelete, s.NodesToDelete...))
+	return s.fileSystem.UnMountRootfs(cluster, append(s.MastersToDelete, s.NodesToDelete...))
 }
 
-func NewScaleProcessor(fs filesystem.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
+func NewScaleProcessor(rootfs string, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
 	var up bool
 	// only scale up or scale down at a time
 	if len(masterToJoin) > 0 || len(nodeToJoin) > 0 {
 		up = true
 	}
-
+	fs, err := filesystem.NewFilesystem(rootfs)
+	if err != nil {
+		return nil, err
+	}
 	return ScaleProcessor{
 		MastersToDelete: masterToDelete,
 		MastersToJoin:   masterToJoin,
 		NodesToDelete:   nodeToDelete,
 		NodesToJoin:     nodeToJoin,
 		IsScaleUp:       up,
-		FileSystem:      fs,
+		fileSystem:      fs,
 	}, nil
 }

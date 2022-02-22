@@ -67,7 +67,7 @@ func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 		return nil, err
 	}
 
-	fs, err := filesystem.NewFilesystem()
+	mounter, err := filesystem.NewCloudImageMounter()
 	if err != nil {
 		return nil, err
 	}
@@ -78,9 +78,9 @@ func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 	}
 
 	return &applydriver.Applier{
-		ClusterDesired: cluster,
-		ImageManager:   imgSvc,
-		FileSystem:     fs,
-		ImageStore:     is,
+		ClusterDesired:    cluster,
+		ImageManager:      imgSvc,
+		CloudImageMounter: mounter,
+		ImageStore:        is,
 	}, nil
 }

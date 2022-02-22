@@ -67,9 +67,10 @@ func TestMount(t *testing.T) {
 			wantErr: false,
 		},
 	}
+	rootfs := "/var/lib/sealer/data/overlay2/"
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileSystem, err := NewFilesystem()
+			fileSystem, err := NewFilesystem(rootfs)
 			if err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
@@ -98,9 +99,10 @@ func TestUnMount(t *testing.T) {
 			wantErr: false,
 		},
 	}
+	rootfs := "/var/lib/sealer/data/overlay2/"
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileSystem, err := NewFilesystem()
+			fileSystem, err := NewFilesystem(rootfs)
 			if err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}

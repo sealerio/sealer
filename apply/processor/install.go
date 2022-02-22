@@ -16,12 +16,13 @@ package processor
 
 import (
 	"github.com/alibaba/sealer/pkg/filesystem"
+	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/alibaba/sealer/pkg/guest"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
 type InstallProcessor struct {
-	FileSystem filesystem.Interface
+	fileSystem cloudfilesystem.Interface
 	Guest      guest.Interface
 }
 
@@ -42,20 +43,26 @@ func (i InstallProcessor) Execute(cluster *v2.Cluster) error {
 func (i InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	//initFlag : no need to do init cmd like installing docker service and so on.
-	return i.FileSystem.MountRootfs(cluster, hosts, false)
+	return i.fileSystem.MountRootfs(cluster, hosts, false)
 }
 
 func (i InstallProcessor) Install(cluster *v2.Cluster) error {
 	return i.Guest.Apply(cluster)
 }
 
-func NewInstallProcessor(fs filesystem.Interface) (Interface, error) {
+func NewInstallProcessor(rootfs string) (Interface, error) {
 	gs, err := guest.NewGuestManager()
 	if err != nil {
 		return nil, err
 	}
+
+	fs, err := filesystem.NewFilesystem(rootfs)
+	if err != nil {
+		return nil, err
+	}
+
 	return InstallProcessor{
-		FileSystem: fs,
+		fileSystem: fs,
 		Guest:      gs,
 	}, nil
 }
