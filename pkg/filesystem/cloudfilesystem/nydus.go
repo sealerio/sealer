@@ -90,10 +90,9 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 		nydusdInitCmd     = fmt.Sprintf(RemoteNydusdInit, nydusdDir, target)
 		nydusdCleanCmd    = fmt.Sprintf(RemoteNydusdStop, filepath.Join(nydusdDir, "clean.sh"), nydusdDir)
 		cleanCmd          = fmt.Sprintf("echo '%s' >> "+common.DefaultClusterClearBashFile, nydusdCleanCmd, cluster.Name)
-		initCmd           = fmt.Sprintf(RemoteChmod, target)
 		envProcessor      = env.NewEnvProcessor(cluster)
-		config            = runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name),
-			runtime.GetMaster0Ip(cluster))
+		config            = runtime.GetRegistryConfig(src, runtime.GetMaster0Ip(cluster))
+		initCmd           = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 	)
 
 	// use env list to render image mount dir: etc,charts,manifests.

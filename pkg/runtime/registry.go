@@ -28,8 +28,6 @@ import (
 const (
 	RegistryName                = "sealer-registry"
 	RegistryBindDest            = "/var/lib/registry"
-	RegistryMountUpper          = "/var/lib/sealer/tmp/upper"
-	RegistryMountWork           = "/var/lib/sealer/tmp/work"
 	RegistryBindConfig          = "registry_config.yml"
 	RegistryCustomConfig        = "registry.yml"
 	SeaHub                      = "sea.hub"
