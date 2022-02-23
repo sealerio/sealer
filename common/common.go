@@ -63,6 +63,8 @@ const (
 	CacheID                       = "cacheID"
 	RenderChartsDir               = "charts"
 	RenderManifestsDir            = "manifests"
+	APIVersion                    = "saler.cool/v2"
+	Kind                          = "Cluster"
 )
 
 // image module
