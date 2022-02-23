@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
@@ -272,6 +273,43 @@ func (d DefaultImageService) Delete(imageArg string) error {
 	}
 
 	logger.Info("image %s delete success", image.Spec.ID)
+	return nil
+}
+
+// Prune delete the unused Layer in the `DefaultLayerDir` directory
+func (d DefaultImageService) Prune() error {
+	imageMetadataMap, err := d.imageStore.GetImageMetadataMap()
+	var allImageLayerDirs []string
+	if err != nil {
+		return err
+	}
+
+	for _, imageMetadata := range imageMetadataMap {
+		image, err := d.imageStore.GetByID(imageMetadata.ID)
+		if err != nil {
+			return err
+		}
+		res, err := GetImageLayerDirs(image)
+		if err != nil {
+			return err
+		}
+		allImageLayerDirs = append(allImageLayerDirs, res...)
+	}
+	allImageLayerDirs = utils.RemoveDuplicate(allImageLayerDirs)
+	dirs, err := store.GetDirListInDir(common.DefaultLayerDir)
+	if err != nil {
+		return err
+	}
+	dirs = utils.RemoveStrSlice(dirs, allImageLayerDirs)
+	for _, dir := range dirs {
+		if err := os.RemoveAll(dir); err != nil {
+			return err
+		}
+		_, err = common.StdOut.WriteString(fmt.Sprintf("%s layer deleted\n", dir))
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
