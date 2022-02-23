@@ -12,7 +12,6 @@
 
 * [Introduction](#introduction)
 * [Quick Start](#quick-start)
-* [Official website](#Official website)
 * [Contributing](./CONTRIBUTING.md)
 * [FAQ](./FAQ.md)
 * [Adopters](./Adopters.md)
