@@ -20,7 +20,6 @@ Flags:
   -f, --kubefile string     kubefile filepath (default "Kubefile")
   -m, --mode string         cluster image build type, default is lite (default "lite")
       --no-cache            build without cache
-  -o, --output string       cluster image build output, default is filesystem
 ```
 
 ## Build instruction
@@ -308,10 +307,6 @@ sealer apply -f Clusterfile
 ### build with args:
 
 `sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .`
-
-### build with specific output:
-
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 --output type=local,dest=/path/to/my-image.tar .`
 
 ## Base image list
 
