@@ -162,7 +162,7 @@ func (l *Builder) SaveBuildImage() error {
 	if err != nil {
 		return err
 	}
-	logger.Info("update image %s to image metadata success !", imageName)
+	logger.Info("save image %s success", imageName)
 	return nil
 }
 

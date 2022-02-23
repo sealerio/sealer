@@ -115,7 +115,7 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		baseLayers = append(baseLayers, *layer)
 	}
 
-	logger.Info("exec all build instructs success !")
+	logger.Info("exec all build instructs success")
 	return nil
 }
 
@@ -175,10 +175,10 @@ func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
 	}
 	err = b.save(name, opts)
 	if err != nil {
-		return fmt.Errorf("failed to save image metadata, err: %v", err)
+		return fmt.Errorf("failed to save image, err: %v", err)
 	}
 
-	logger.Info("update image %s to image metadata success !", name)
+	logger.Info("save image %s success", name)
 	return nil
 }
 

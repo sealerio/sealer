@@ -37,15 +37,15 @@ type mounter struct {
 	imageStore store.ImageStore
 }
 
-func (p *mounter) MountImage(cluster *v2.Cluster) error {
-	return p.mountImage(cluster)
+func (m *mounter) MountImage(cluster *v2.Cluster) error {
+	return m.mountImage(cluster)
 }
 
-func (p *mounter) UnMountImage(cluster *v2.Cluster) error {
-	return p.umountImage(cluster)
+func (m *mounter) UnMountImage(cluster *v2.Cluster) error {
+	return m.umountImage(cluster)
 }
 
-func (p *mounter) umountImage(cluster *v2.Cluster) error {
+func (m *mounter) umountImage(cluster *v2.Cluster) error {
 	mountDir := common.DefaultMountCloudImageDir(cluster.Name)
 	if !utils.IsFileExist(mountDir) {
 		return nil
@@ -61,7 +61,7 @@ func (p *mounter) umountImage(cluster *v2.Cluster) error {
 	return os.RemoveAll(mountDir)
 }
 
-func (p *mounter) mountImage(cluster *v2.Cluster) error {
+func (m *mounter) mountImage(cluster *v2.Cluster) error {
 	var (
 		mountdir = common.DefaultMountCloudImageDir(cluster.Name)
 		upperDir = filepath.Join(mountdir, "upper")
@@ -81,7 +81,7 @@ func (p *mounter) mountImage(cluster *v2.Cluster) error {
 		}
 	}
 	//get layers
-	Image, err := p.imageStore.GetByName(cluster.Spec.Image)
+	Image, err := m.imageStore.GetByName(cluster.Spec.Image)
 	if err != nil {
 		return err
 	}

@@ -104,7 +104,7 @@ func (l *Builder) SaveBuildImage() error {
 	if err != nil {
 		return err
 	}
-	logger.Info("save image %s to image system success !", imageName)
+	logger.Info("save image %s to image system success", imageName)
 	return nil
 }
 

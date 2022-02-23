@@ -191,6 +191,9 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 func (s *SSH) Copy(host, localPath, remotePath string) error {
 	go displayInitOnce.Do(displayInit)
 	if utils.IsLocalIP(host, s.LocalAddress) {
+		if localPath == remotePath {
+			return nil
+		}
 		logger.Debug("local copy files src %s to dst %s", localPath, remotePath)
 		return utils.RecursionCopy(localPath, remotePath)
 	}
