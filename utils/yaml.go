@@ -81,5 +81,5 @@ func MarshalYamlConfigs(configs ...interface{}) ([]byte, error) {
 
 func YamlMatcher(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
-	return ext == ".yaml" || ext == ".yml" || ext == ".tmpl"
+	return ext == ".yaml" || ext == ".yml"
 }
