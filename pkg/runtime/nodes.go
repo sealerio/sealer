@@ -36,7 +36,7 @@ const (
 	RemoteAddIPVSEtcHosts           = "echo %s %s >> /etc/hosts"
 	RemoteCheckRoute                = "seautil route check --host %s"
 	RemoteAddRoute                  = "seautil route add --host %s --gateway %s"
-	RemoteDelRoute                  = "seautil route del --host %s --gateway %s"
+	RemoteDelRoute                  = "if command -v seautil > /dev/null 2>&1; then seautil route del --host %s --gateway %s; fi"
 	LvscareStaticPodCmd             = `echo "%s" > %s`
 )
 

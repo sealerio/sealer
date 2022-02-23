@@ -29,8 +29,11 @@ import (
 )
 
 const (
-	RouteArg           = "%s via %s dev %s metric 50"
-	DelStaticRouteFile = "if [ -f /etc/sysconfig/network-scripts/route-%s ]; then sed -i \"/%s/d\" /etc/sysconfig/network-scripts/route-%s;fi"
+	RouteArg                    = "%s via %s dev %s metric 50"
+	BackupAndDelStaticRouteFile = `if [ -f /etc/sysconfig/network-scripts/route-%s ]; then
+  yes | cp /etc/sysconfig/network-scripts/route-%s /etc/sysconfig/network-scripts/.route-%s
+  sed -i "/%s/d" /etc/sysconfig/network-scripts/route-%s
+fi`
 	AddStaticRouteFile = `cat /etc/sysconfig/network-scripts/route-%s|grep "%s" || echo "%s" >> /etc/sysconfig/network-scripts/route-%s`
 )
 
@@ -104,8 +107,9 @@ func (r *Route) DelRoute() error {
 	}
 	if netInterface != "" {
 		route := fmt.Sprintf(RouteArg, r.Host, r.Gateway, netInterface)
-		_, err = RunSimpleCmd(fmt.Sprintf(DelStaticRouteFile, netInterface, route, netInterface))
+		out, err := RunSimpleCmd(fmt.Sprintf(BackupAndDelStaticRouteFile, netInterface, netInterface, netInterface, route, netInterface))
 		if err != nil {
+			logger.Info(out)
 			return err
 		}
 	}
