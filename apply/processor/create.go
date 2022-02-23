@@ -17,6 +17,7 @@ package processor
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
@@ -30,12 +31,12 @@ import (
 )
 
 type CreateProcessor struct {
-	ImageManager image.Service
-	FileSystem   filesystem.Interface
-	Runtime      runtime.Interface
-	Guest        guest.Interface
-	Config       config.Interface
-	Plugins      plugin.Plugins
+	ImageManager      image.Service
+	cloudImageMounter cloudimage.Interface
+	Runtime           runtime.Interface
+	Guest             guest.Interface
+	Config            config.Interface
+	Plugins           plugin.Plugins
 }
 
 func (c *CreateProcessor) Execute(cluster *v2.Cluster) error {
@@ -88,7 +89,8 @@ func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	return c.FileSystem.MountImage(cluster)
+
+	return c.cloudImageMounter.MountImage(cluster)
 }
 
 func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
@@ -101,7 +103,13 @@ func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
-	return c.FileSystem.MountRootfs(cluster, hosts, true)
+
+	fs, err := filesystem.NewFilesystem(common.DefaultMountCloudImageDir(cluster.Name))
+	if err != nil {
+		return err
+	}
+
+	return fs.MountRootfs(cluster, hosts, true)
 }
 
 func (c *CreateProcessor) Init(cluster *v2.Cluster) error {
@@ -124,7 +132,7 @@ func (c *CreateProcessor) RunGuest(cluster *v2.Cluster) error {
 	return c.Guest.Apply(cluster)
 }
 func (c *CreateProcessor) UnMountImage(cluster *v2.Cluster) error {
-	return c.FileSystem.UnMountImage(cluster)
+	return c.cloudImageMounter.UnMountImage(cluster)
 }
 
 func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) error {
@@ -149,7 +157,7 @@ func NewCreateProcessor() (Interface, error) {
 		return nil, err
 	}
 
-	fs, err := filesystem.NewFilesystem()
+	mounter, err := filesystem.NewCloudImageMounter()
 	if err != nil {
 		return nil, err
 	}
@@ -160,8 +168,8 @@ func NewCreateProcessor() (Interface, error) {
 	}
 
 	return &CreateProcessor{
-		ImageManager: imgSvc,
-		FileSystem:   fs,
-		Guest:        gs,
+		ImageManager:      imgSvc,
+		cloudImageMounter: mounter,
+		Guest:             gs,
 	}, nil
 }
