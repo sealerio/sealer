@@ -30,6 +30,12 @@ func (k *KubeadmRuntime) reset() error {
 	if _, err := utils.RunSimpleCmd(fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())); err != nil {
 		return err
 	}
+	for _, node := range k.GetNodeIPList() {
+		err := k.deleteVIPRouteIfExist(node)
+		if err != nil {
+			return fmt.Errorf("failed to delete %s route: %v", node, err)
+		}
+	}
 	return k.DeleteRegistry()
 }
 
