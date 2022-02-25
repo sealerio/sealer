@@ -31,7 +31,7 @@ helm push mysql-8.8.25.tgz oci://localhost:5000/helm-charts
 Prepare Kubefile:
 
 ```shell
-[root@iZbp16ikro46xwgqzij67sZ build]# cat Kubefile 
+[root@iZbp16ikro46xwgqzij67sZ build]# cat Kubefile
 FROM kubernetes:v1.19.8
 COPY imageList manifests
 ```
@@ -39,7 +39,7 @@ COPY imageList manifests
 Prepare imageList file:
 
 ```shell
-[root@iZbp16ikro46xwgqzij67sZ build]# cat imageList 
+[root@iZbp16ikro46xwgqzij67sZ build]# cat imageList
 localhost:5000/helm-charts/mysql:8.8.25
 localhost:5000/helm-charts/nginx:9.8.0
 ```
@@ -65,4 +65,3 @@ When the cluster is up, we can pull the helm chart package use helm pull:
 export HELM_EXPERIMENTAL_OCI=1
 helm pull oci://sea.hub:5000/helm-charts/mysql --version 8.8.25
 ```
- 
