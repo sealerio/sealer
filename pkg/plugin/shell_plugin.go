@@ -63,9 +63,9 @@ func (s Sheller) Run(context Context, phase Phase) error {
 			}
 			allHostIP = ipList
 		} else if on == common.MASTER || on == common.NODE {
-			allHostIP := context.Cluster.GetIPSByRole(on)
+			allHostIP = context.Cluster.GetIPSByRole(on)
 			if allHostIP == nil {
-				return fmt.Errorf("role is not found")
+				return fmt.Errorf("role is not found [%s]",on)
 			}
 		} else {
 			allHostIP = utils.DisassembleIPList(on)
