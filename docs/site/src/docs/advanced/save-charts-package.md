@@ -65,3 +65,54 @@ When the cluster is up, we can pull the helm chart package use helm pull:
 export HELM_EXPERIMENTAL_OCI=1
 helm pull oci://sea.hub:5000/helm-charts/mysql --version 8.8.25
 ```
+
+## Save ACR chart
+
+Example to pull `chart-registry.cn-shanghai.cr.aliyuncs.com/aliyun-inc.com/elasticsearch:1.0.1-elasticsearch.elasticsearch` chart.
+
+1. Login your ACR registry
+
+```shell script
+sealer login sealer login chart-registry.cn-shanghai.cr.aliyuncs.com \
+   --username cnx-platform@prod.trusteeship.aliyunid.com --passwd xxx
+```
+
+2. Create Kubefile and imageList
+
+```shell script
+[root@iZ2zeasfsez3jrior15rpbZ chart]# cat imageList
+chart-registry.cn-shanghai.cr.aliyuncs.com/aliyun-inc.com/elasticsearch:1.0.1-elasticsearch.elasticsearch
+[root@iZ2zeasfsez3jrior15rpbZ chart]# cat Kubefile
+FROM kubernetes:v1.19.8
+COPY imageList manifests
+```
+
+3. Build CloudImage and save ACR remote chart to local registry
+
+```shell script
+sealer build -t chart:latest .
+```
+
+4. Run a cluster
+
+```shell script
+sealer run chart:latest -m x.x.x.x -p xxx
+```
+
+5. Try to pull chart using helm from local registry
+
+```shell script
+[root@iZ2zeasfsez3jrior15rpbZ certs]# helm pull oci://sea.hub:5000/aliyun-inc.com/elasticsearch --version 1.0.1-elasticsearch.elasticsearch
+Warning: chart media type application/tar+gzip is deprecated
+Pulled: sea.hub:5000/aliyun-inc.com/elasticsearch:1.0.1-elasticsearch.elasticsearch
+Digest: sha256:c247fd56b985cfa4ad58c8697dc867a69ee1861a1a625b96a7b9d78ed5d9df95
+[root@iZ2zeasfsez3jrior15rpbZ certs]# ls
+elasticsearch-1.0.1-elasticsearch.elasticsearch.tgz
+```
+
+If you got `Error: failed to do request: Head "https://sea.hub:5000/v2/aliyun-inc.com/elasticsearch/manifests/1.0.1-elasticsearch.elasticsearch": x509: certificate signed by unknown authority
+` error, trust registry cert on your host:
+
+```shell script
+cp /var/lib/sealer/data/my-cluster/certs/sea.hub.crt /etc/pki/ca-trust/source/anchors/ && update-ca-trust extract
+```
