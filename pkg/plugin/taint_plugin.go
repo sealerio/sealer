@@ -18,19 +18,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
 
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/client/k8s"
-)
-
-const (
-	DelSymbol   = "-"
-	EqualSymbol = "="
-	ColonSymbol = ":"
 )
 
 var TaintEffectValues = []v1.TaintEffect{v1.TaintEffectNoSchedule, v1.TaintEffectNoExecute, v1.TaintEffectPreferNoSchedule}
@@ -64,33 +57,16 @@ func newTaintStruct(key, value, effect string) v1.Taint {
 //  data: key1=value1:NoSchedule ## add taint
 //  #data: key1=value1:NoSchedule- ## del taint
 
-func (l *Taint) Run(context Context, phase Phase) error {
+func (l *Taint) Run(context Context, phase Phase) (err error) {
 	if phase != PhasePreGuest || context.Plugin.Spec.Type != TaintPlugin {
 		logger.Debug("label nodes is PostInstall!")
 		return nil
 	}
 	allHostIP := append(context.Cluster.GetMasterIPList(), context.Cluster.GetNodeIPList()...)
 	if on := context.Plugin.Spec.On; on != "" {
-		if strings.Contains(on, EqualSymbol) {
-			if phase != PhasePostInstall {
-				return fmt.Errorf("the action must be PostInstall, When nodes is specified with a label")
-			}
-			client, err := k8s.Newk8sClient()
-			if err != nil {
-				return err
-			}
-			ipList, err := client.ListNodeIPByLabel(strings.TrimSpace(on))
-			if err != nil {
-				return err
-			}
-			if len(ipList) == 0 {
-				return fmt.Errorf("nodes is not found by label [%s]", on)
-			}
-			allHostIP = ipList
-		} else if on == common.MASTER || on == common.NODE {
-			allHostIP = context.Cluster.GetIPSByRole(on)
-		} else {
-			allHostIP = utils.DisassembleIPList(on)
+		allHostIP, err = GetIpsByOnField(on, context, phase)
+		if err != nil {
+			return err
 		}
 	}
 	if len(allHostIP) == 0 {
@@ -98,7 +74,7 @@ func (l *Taint) Run(context Context, phase Phase) error {
 		return nil
 	}
 
-	err := l.formatData(context.Plugin.Spec.Data)
+	err = l.formatData(context.Plugin.Spec.Data)
 	if err != nil {
 		return fmt.Errorf("failed to format data from %s: %v", context.Plugin.Spec.Data, err)
 	}
