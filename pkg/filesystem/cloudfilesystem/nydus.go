@@ -82,11 +82,15 @@ func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) err
 }
 
 func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
+	localIP, err := utils.GetLocalIP(cluster.GetMaster0IP() + ":22")
+	if err != nil {
+		return fmt.Errorf("failed to get local address, %v", err)
+	}
 	var (
 		src               = common.DefaultMountCloudImageDir(cluster.Name)
 		nydusdDir         = common.DefaultTheClusterNydusdDir(cluster.Name)
 		nydusdFileDir     = common.DefaultTheClusterNydusdFileDir(cluster.Name)
-		startNydusdServer = fmt.Sprintf("cd %s && chmod +x serverstart.sh && ./serverstart.sh %s %s", nydusdFileDir, src, nydusdDir)
+		startNydusdServer = fmt.Sprintf("cd %s && chmod +x serverstart.sh && ./serverstart.sh %s %s %s", nydusdFileDir, src, nydusdDir, localIP)
 		nydusdInitCmd     = fmt.Sprintf(RemoteNydusdInit, nydusdDir, target)
 		nydusdCleanCmd    = fmt.Sprintf(RemoteNydusdStop, filepath.Join(nydusdDir, "clean.sh"), nydusdDir)
 		cleanCmd          = fmt.Sprintf("echo '%s' >> "+common.DefaultClusterClearBashFile, nydusdCleanCmd, cluster.Name)
@@ -97,7 +101,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	)
 
 	// use env list to render image mount dir: etc,charts,manifests.
-	err := renderENV(src, ipList, envProcessor)
+	err = renderENV(src, ipList, envProcessor)
 	if err != nil {
 		return err
 	}

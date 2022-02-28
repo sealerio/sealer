@@ -99,6 +99,15 @@ func IsLocalIP(ip string, addrs *[]net.Addr) bool {
 	return false
 }
 
+func GetLocalIP(master0IP string) (string, error) {
+	conn, err := net.Dial("udp", master0IP)
+	if err != nil {
+		return "", err
+	}
+	localAddr := conn.LocalAddr().String()
+	return strings.Split(localAddr, ":")[0], err
+}
+
 func AssemblyIPList(args *string) error {
 	var result []string
 	var ips = strings.Split(*args, "-")
