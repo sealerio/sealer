@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh"
+	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh /var/lib/docker %s %s"
 )
 
 type overlayFileSystem struct {
@@ -54,10 +54,9 @@ func (o *overlayFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) e
 func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
 	var (
 		src          = common.DefaultMountCloudImageDir(cluster.Name)
-		initCmd      = fmt.Sprintf(RemoteChmod, target)
 		envProcessor = env.NewEnvProcessor(cluster)
-		config       = runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name),
-			runtime.GetMaster0Ip(cluster))
+		config       = runtime.GetRegistryConfig(src, runtime.GetMaster0Ip(cluster))
+		initCmd      = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 	)
 
 	// use env list to render image mount dir: etc,charts,manifests.

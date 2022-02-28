@@ -69,7 +69,7 @@ if ! command_exists docker; then
   systemctl restart docker.service
   cp ../etc/daemon.json /etc/docker
   if [[ -n $1 && -n $2 ]]; then
-    sed -i "s/$2:5000/$2:$3/g" /etc/docker/daemon.json
+    sed -i "s/sea.hub:5000/$2:$3/g" /etc/docker/daemon.json
   fi
 fi
 disable_selinux

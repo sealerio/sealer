@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
+	yaml2 "sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -128,8 +129,7 @@ func getMergeConfigData(path string, data []byte) ([]byte, error) {
 			continue
 		}
 		deepMerge(&configMap, &mergeConfigMap)
-
-		cfg, err := yaml.Marshal(&configMap)
+		cfg, err := yaml2.Marshal(&configMap)
 		if err != nil {
 			return nil, err
 		}

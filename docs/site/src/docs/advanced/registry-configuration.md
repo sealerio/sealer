@@ -1,8 +1,9 @@
-# 集群镜像 registry 配置
+# sealer registry configuration
 
-集群镜像在制作时将依赖的镜像缓存在集群镜像之中，通过集群镜像安装集群时将启动包含镜像缓存数据的registry
+The dependent images will be cached in the cluster images during the creation of the cluster images,
+and Registry containing the cached data will be started when the cluster is installed through the cluster images
 
-## 自定义config文件配置集群registry:
+## Customize the config file to configure the cluster Registry:
 
 Clusterfile:
 
@@ -47,12 +48,12 @@ spec:
 ```
 
 ```shell
-#sealer将会在registry启动前将data中的数据写入到`$rootfs/etc/registry_config.yml`文件，在启动registry时将该文件挂载到registry的config文件`/etc/docker/registry/config.yml`。
-#docker run ... -v $rootfs/etc/registry_config.yml:/etc/docker/registry/config.yml registry:2.7.1
+#sealer will write data from the data to '$rootfs/etc/registry_config.yml' file before registry starts. When to start the registry will mount the file to the registry ` config file/etc/docker/registry/config. Yml `.
+#example: docker run ... -v $rootfs/etc/registry_config.yml:/etc/docker/registry/config.yml registry:2.7.1
 sealer apply -f Clusterfile
 ```
 
-## 自定义registry域名，端口，用户名及密码：
+## registry custom domain, port, username and password:
 
 Clusterfile:
 
@@ -81,7 +82,7 @@ spec:
 ```
 
 ```shell
-#sealer将生成该认证的加密密码并写入`$rootfs/etc/registry_htpasswd`文件，在registry启动时将会挂载该文件并设置认证为htpasswd。
+# Sealer will generate the encrypted password for this authentication and write to the '$rootfs/etc/registry_htpasswd' file, which will be mounted and set to htpasswd authentication when Registry starts.
 #docker run ... \
 #        -v $rootfs/etc/registry_htpasswd:/htpasswd \
 #        -e REGISTRY_AUTH=htpasswd \

@@ -38,6 +38,7 @@ enSideBar = {
           'advanced/develop-plugin',
           'advanced/gpu-cloudimage',
           'advanced/raw-docker-baseimage',
+          'advanced/registry-configuration',
           'advanced/use-kyverno-baseimage',
         ]
       },
@@ -110,6 +111,7 @@ zhSideBar = {
           'advanced/develop-plugin',
           'advanced/gpu-cloudimage',
           'advanced/raw-docker-baseimage',
+          'advanced/registry-configuration',
           'advanced/use-kyverno-baseimage',
         ]
       },

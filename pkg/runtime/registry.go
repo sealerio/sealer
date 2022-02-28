@@ -18,15 +18,18 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
 	RegistryName                = "sealer-registry"
 	RegistryBindDest            = "/var/lib/registry"
+	RegistryBindConfig          = "registry_config.yml"
+	RegistryCustomConfig        = "registry.yml"
 	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerLoginCommand          = "docker login %s -u %s -p %s"
@@ -48,7 +51,7 @@ func getRegistryHost(rootfs, defaultRegistry string) (host string) {
 
 // ApplyRegistry Only use this for join and init, due to the initiation operations.
 func (k *KubeadmRuntime) ApplyRegistry() error {
-	cf := GetRegistryConfig(k.getRootfs(), k.GetMaster0IP())
+	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	ssh, err := k.getHostSSHClient(cf.IP)
 	if err != nil {
 		return fmt.Errorf("failed to get registry ssh client: %v", err)
@@ -59,13 +62,13 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 		if err != nil {
 			return err
 		}
-		err = ssh.CmdAsync(cf.IP, fmt.Sprintf("echo '%s' >> %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
+		err = ssh.CmdAsync(cf.IP, fmt.Sprintf("echo '%s' > %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
 		if err != nil {
 			return err
 		}
 	}
-	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s", k.getRootfs(), cf.Port, fmt.Sprintf("%s/registry", k.getRootfs()))
-	registryHost := getRegistryHost(k.getRootfs(), k.GetMaster0IP())
+	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s %s", k.getRootfs(), cf.Port, fmt.Sprintf("%s/registry", k.getRootfs()), cf.Domain)
+	registryHost := getRegistryHost(k.getImageMountDir(), k.GetMaster0IP())
 	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	if err = ssh.CmdAsync(cf.IP, initRegistry); err != nil {
 		return err
@@ -97,7 +100,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		Domain: SeaHub,
 		Port:   "5000",
 	}
-	registryConfigPath := filepath.Join(rootfs, "etc", "registry.yml")
+	registryConfigPath := filepath.Join(rootfs, common.EtcDir, RegistryCustomConfig)
 	if !utils.IsFileExist(registryConfigPath) {
 		logger.Debug("use default registry config")
 		return DefaultConfig

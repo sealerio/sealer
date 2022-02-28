@@ -132,7 +132,7 @@ func (k *KubeadmRuntime) GenerateCert() error {
 	if err != nil {
 		return fmt.Errorf("generate certs failed %v", err)
 	}
-	err = cert.GenerateRegistryCert(k.getCertsDir(), SeaHub)
+	err = cert.GenerateRegistryCert(k.getCertsDir(), GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP()).Domain)
 	if err != nil {
 		return err
 	}
@@ -249,6 +249,10 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	// TODO skip docker version error check for test
 	output, err := ssh.Cmd(k.GetMaster0IP(), cmdInit)
 	if err != nil {
+		_, err = common.StdOut.WriteString(string(output))
+		if err != nil {
+			return err
+		}
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}
 	k.decodeMaster0Output(output)
