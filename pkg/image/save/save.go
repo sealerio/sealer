@@ -72,7 +72,7 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 
 	//handle image name
 	for _, image := range images {
-		named, err := parseNormalizedNamed(image)
+		named, err := parseNormalizedNamed(image, "")
 		if err != nil {
 			return fmt.Errorf("parse image name error: %v", err)
 		}
@@ -90,7 +90,6 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 			defer func() {
 				<-numCh
 			}()
-
 			registry, err := NewProxyRegistry(is.ctx, dir, tmpnameds[0].domain)
 			if err != nil {
 				return fmt.Errorf("init registry error: %v", err)
@@ -111,53 +110,61 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 	return nil
 }
 
-func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution.Namespace, error) {
-	// set the URL of registry
-	proxyURL := HTTPS + domain
-	if domain == defaultDomain {
-		proxyURL = defaultProxyURL
-	}
+func (is *DefaultImageSaver) SaveImagesWithAuth(imageList ImageListWithAuth, dir string, platform v1.Platform) error {
+	//init a pipe for display pull message
+	reader, writer := io.Pipe()
+	defer func() {
+		_ = reader.Close()
+		_ = writer.Close()
+	}()
+	is.progressOut = streamformatter.NewJSONProgressOutput(writer, false)
+	is.ctx = context.Background()
+	go func() {
+		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
+		if err != nil && err != io.ErrClosedPipe {
+			logger.Warn("error occurs in display progressing, err: %s", err)
+		}
+	}()
 
-	var defaultAuth = types.AuthConfig{ServerAddress: domain}
-	auth, err := utils.GetDockerAuthInfoFromDocker(domain)
-	//ignore err when is there is no username and password.
-	//regard it as a public registry
-	//only report parse error
-	if err != nil && auth != defaultAuth {
-		return nil, fmt.Errorf("get authentication info error: %v", err)
-	}
-	config := configuration.Configuration{
-		Proxy: configuration.Proxy{
-			RemoteURL: proxyURL,
-			Username:  auth.Username,
-			Password:  auth.Password,
-		},
-		Storage: configuration.Storage{
-			driverName: configuration.Parameters{configRootDir: rootdir},
-		},
-	}
+	//perform image save ability
+	eg, _ := errgroup.WithContext(context.Background())
+	numCh := make(chan struct{}, maxPullGoroutineNum)
 
-	driver, err := factory.Create(config.Storage.Type(), config.Storage.Parameters())
-	if err != nil {
-		return nil, fmt.Errorf("create storage driver error: %v", err)
-	}
-
-	//create a local registry service
-	registry, err := storage.NewRegistry(ctx, driver, make([]storage.RegistryOption, 0)...)
-	if err != nil {
-		return nil, fmt.Errorf("create local registry error: %v", err)
-	}
-
-	proxyRegistry, err := proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
-	if err != nil { // try http
-		logger.Warn("https error: %v, sealer try to use http", err)
-		config.Proxy.RemoteURL = strings.Replace(config.Proxy.RemoteURL, HTTPS, HTTP, 1)
-		proxyRegistry, err = proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
+	//handle imageList
+	for auth, section := range imageList {
+		username, password, err := utils.DecodeAuth(auth)
 		if err != nil {
-			return nil, fmt.Errorf("create proxy registry error: %v", err)
+			return err
+		}
+		for _, nameds := range section {
+			tmpnameds := nameds
+			progress.Message(is.progressOut, "", fmt.Sprintf("Pulling image: %s", tmpnameds[0].FullName()))
+			numCh <- struct{}{}
+			eg.Go(func() error {
+				defer func() {
+					<-numCh
+				}()
+
+				registry, err := NewProxyRegistryWithAuth(is.ctx, username, password, dir, tmpnameds[0].domain)
+				if err != nil {
+					return fmt.Errorf("init registry error: %v", err)
+				}
+				err = is.save(tmpnameds, platform, registry)
+				if err != nil {
+					return fmt.Errorf("save domain %s image error: %v", tmpnameds[0], err)
+				}
+				return nil
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			return err
 		}
 	}
-	return proxyRegistry, nil
+
+	if len(imageList) != 0 {
+		progress.Message(is.progressOut, "", "Status: images save success")
+	}
+	return nil
 }
 
 func (is *DefaultImageSaver) save(nameds []Named, platform v1.Platform, registry distribution.Namespace) error {
@@ -352,4 +359,78 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 		return err
 	}
 	return nil
+}
+
+func NewProxyRegistryWithAuth(ctx context.Context, username, password, rootdir, domain string) (distribution.Namespace, error) {
+	// set the URL of registry
+	proxyURL := HTTPS + domain
+	if domain == defaultDomain {
+		proxyURL = defaultProxyURL
+	}
+
+	config := configuration.Configuration{
+		Proxy: configuration.Proxy{
+			RemoteURL: proxyURL,
+			Username:  username,
+			Password:  password,
+		},
+		Storage: configuration.Storage{
+			driverName: configuration.Parameters{configRootDir: rootdir},
+		},
+	}
+	return newProxyRegistry(ctx, config)
+}
+
+func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution.Namespace, error) {
+	// set the URL of registry
+	proxyURL := HTTPS + domain
+	if domain == defaultDomain {
+		proxyURL = defaultProxyURL
+	}
+
+	var defaultAuth = types.AuthConfig{ServerAddress: domain}
+	auth, err := utils.GetDockerAuthInfoFromDocker(domain)
+	//ignore err when is there is no username and password.
+	//regard it as a public registry
+	//only report parse error
+	if err != nil && auth != defaultAuth {
+		return nil, fmt.Errorf("get authentication info error: %v", err)
+	}
+
+	config := configuration.Configuration{
+		Proxy: configuration.Proxy{
+			RemoteURL: proxyURL,
+			Username:  auth.Username,
+			Password:  auth.Password,
+		},
+		Storage: configuration.Storage{
+			driverName: configuration.Parameters{configRootDir: rootdir},
+		},
+	}
+
+	return newProxyRegistry(ctx, config)
+}
+
+func newProxyRegistry(ctx context.Context, config configuration.Configuration) (distribution.Namespace, error) {
+	driver, err := factory.Create(config.Storage.Type(), config.Storage.Parameters())
+	if err != nil {
+		return nil, fmt.Errorf("create storage driver error: %v", err)
+	}
+
+	//create a local registry service
+	registry, err := storage.NewRegistry(ctx, driver, make([]storage.RegistryOption, 0)...)
+	if err != nil {
+		return nil, fmt.Errorf("create local registry error: %v", err)
+	}
+
+	proxyRegistry, err := proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
+	if err != nil { // try http
+		logger.Warn("https error: %v, sealer try to use http", err)
+		config.Proxy.RemoteURL = strings.Replace(config.Proxy.RemoteURL, HTTPS, HTTP, 1)
+		proxyRegistry, err = proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
+		if err != nil {
+			return nil, fmt.Errorf("create proxy registry error: %v", err)
+		}
+	}
+	return proxyRegistry, nil
 }

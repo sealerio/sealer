@@ -58,7 +58,7 @@ func Test_splitDockerDomain(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if domain, remainer := splitDockerDomain(tt.imageName); domain != tt.wantDomain || remainer != tt.wantRemain {
+			if domain, remainer := splitDockerDomain(tt.imageName, ""); domain != tt.wantDomain || remainer != tt.wantRemain {
 				t.Errorf("split image %s error", tt.name)
 			}
 		})
@@ -112,7 +112,7 @@ func Test_parseNormalizedNamed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if named, err := parseNormalizedNamed(tt.imageName); err != nil || named.Domain() != tt.wantDomain || named.Repo() != tt.wantRepo || named.tag != tt.wantTag {
+			if named, err := parseNormalizedNamed(tt.imageName, ""); err != nil || named.Domain() != tt.wantDomain || named.Repo() != tt.wantRepo || named.tag != tt.wantTag {
 				t.Errorf("parse image %s error", tt.name)
 			}
 		})
