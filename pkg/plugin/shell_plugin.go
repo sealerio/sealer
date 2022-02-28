@@ -34,6 +34,10 @@ func NewShellPlugin() Interface {
 	return &Sheller{}
 }
 
+func init() {
+	Register(ShellPlugin, NewShellPlugin())
+}
+
 func (s Sheller) Run(context Context, phase Phase) error {
 	if string(phase) != context.Plugin.Spec.Action || context.Plugin.Spec.Type != ShellPlugin {
 		return nil
@@ -83,8 +87,4 @@ func (s Sheller) Run(context Context, phase Phase) error {
 		}
 	}
 	return nil
-}
-
-func init() {
-	Register(ShellPlugin, &Sheller{})
 }

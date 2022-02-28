@@ -41,6 +41,7 @@ const (
 	EtcdPlugin         = "ETCD"
 	LabelPlugin        = "LABEL"
 	ShellPlugin        = "SHELL"
+	TaintPlugin        = "Taint"
 	HostNamePlugin     = "HOSTNAME"
 	ClusterCheckPlugin = "CLUSTERCHECK"
 )

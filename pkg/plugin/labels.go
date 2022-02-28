@@ -39,7 +39,7 @@ func NewLabelsPlugin() Interface {
 }
 
 func init() {
-	Register(LabelPlugin, &LabelsNodes{})
+	Register(LabelPlugin, NewLabelsPlugin())
 }
 
 func (l LabelsNodes) Run(context Context, phase Phase) error {

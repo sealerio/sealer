@@ -34,7 +34,7 @@ func NewClusterCheckerPlugin() Interface {
 }
 
 func init() {
-	Register(ClusterCheckPlugin, &ClusterChecker{})
+	Register(ClusterCheckPlugin, NewClusterCheckerPlugin())
 }
 
 func (c *ClusterChecker) Run(context Context, phase Phase) error {
