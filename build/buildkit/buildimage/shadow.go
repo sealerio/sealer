@@ -72,7 +72,7 @@ func (s ShadowPuller) Process(context, rootfs string) error {
 
 		ia[auth] = domainToImages
 	}
-	fmt.Println(ia)
+
 	if len(ia) == 0 {
 		return nil
 	}
