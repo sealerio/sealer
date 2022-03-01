@@ -40,14 +40,21 @@ spec:
     kubectl get nodes
 ```
 
-action: the phase of command.
-
-* PreInit: before init master0.
-* PreInstall: before join master and nodes.
-* PostInstall: after join all nodes.
-* PostClean : after clean cluster.
-
-on: exec on which node.
+```shell
+action : [PreInit| PreInstall| PostInstall] # Specify phases to execute the shell
+  Pre-initialization phase            |   action: PreInit
+  before installing the cluster phase |   action: PreInstall
+  after  installing the cluster phase |   action: PostInstall
+  after clean cluster phase           |   action: PostClean
+on     : #Specifies the machine to execute the command
+  If null, it is executed on all nodes by default
+  on all master nodes                 |  on: master
+  on all work nodes                   |  on: node
+  on the specified IP address         |  on: 192.168.56.113,192.168.56.114,192.168.56.115,192.168.56.116
+  on a machine with continuous IP     |  on: 192.168.56.113-192.168.56.116
+  on the specified label node (action must be set to PostInstall)  |  on: node-role.kubernetes.io/master=
+data   : #Specifies the shell command to execute
+```
 
 ### label plugin
 
@@ -70,6 +77,21 @@ spec:
     192.168.0.7 ssd=false,hdd=true
 ```
 
+## clusterCheck plugin
+
+Server and environmental factors (poor server disk performance) may cause Sealer to deploy the application services immediately after installing the Kubernetes cluster, causing deployment failures.
+The Cluster Check plugin waits for the Kubernetes cluster to stabilize before deploying the application service.
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: checkCluster
+spec:
+  type: CLUSTERCHECK
+  action: PreGuest
+```
+
 ### Etcd backup plugin
 
 ```yaml
@@ -83,6 +105,32 @@ spec:
 ```
 
 Etcd backup plugin is triggered manually: `sealer plugin -f etcd_backup.yaml`
+
+### taint plugin
+
+Add or remove taint by adding the taint plugin for the PreGuest phase:
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: taint
+spec:
+  type: Taint
+  action: PreGuest
+  data: |
+    192.168.56.3 key1=value1:NoSchedule
+    192.168.56.4 key2=value2:NoSchedule-
+    192.168.56.3-192.168.56.7 key3:NoSchedule
+    192.168.56.3,192.168.56.4,192.168.56.5,192.168.56.6,192.168.56.7 key4:NoSchedule
+    192.168.56.3 key5=:NoSchedule
+    192.168.56.3 key6:NoSchedule-
+    192.168.56.4 key7:NoSchedule-
+```
+
+>The value of data is `ips taint_argument`,
+>ips: Multiple IP addresses are connected through ',', and consecutive IP addresses are written as the first IP address and the last IP address;
+>taint_argument: Same as kubernetes add or remove taints writing (key=value:effect #The effect must be NoSchedule, PreferNoSchedule or NoExecute)。
 
 ### Out of tree plugin
 
@@ -161,23 +209,12 @@ sealer apply -f Clusterfile
 Define the default plugin in Kubefile to build the image and run it.
 
 In many cases it is possible to use plugins without using Clusterfile, essentially sealer stores the Clusterfile plugin
-configuration in the Rootfs/Plugin directory before using it, so we can define the default plugin when we build the
+configuration in the Rootfs/Plugins directory before using it, so we can define the default plugin when we build the
 image.
 
 Plugin configuration shell.yaml:
 
 ```yaml
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Plugin
-metadata:
-name: taint
-spec:
-type: SHELL
-action: PostInstall
-on: node-role.kubernetes.io/master=
-data: |
-  kubectl taint nodes --all node-role.kubernetes.io/master-
----
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
@@ -207,8 +244,8 @@ COPY shell.yaml plugin
 Build a cluster image that contains a taint plugin (or more plugins):
 
 ```shell script
-sealer build -m lite -t kubernetes-taint:v1.19.8 .
+sealer build -m lite -t kubernetes-iscsi:v1.19.8 .
 ```
 
 Run the image and the plugin will also be executed without having to define the plug-in in the Clusterfile:
-`sealer run kubernetes-taint:v1.19.8 -m x.x.x.x -p xxx`
+`sealer run kubernetes-iscsi:v1.19.8 -m x.x.x.x -p xxx`

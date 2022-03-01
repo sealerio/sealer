@@ -1,20 +1,20 @@
-# Plugin Usage
+# 集群镜像插件使用
 
-## Plugin type list
+## 插件类型列表
 
-### hostname plugin
+### 主机名插件
 
-HOSTNAME plugin will help you to change all the hostnames
+主机名插件将帮助您更改所有主机名
 
 ```yaml
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: MyHostname # Specify this plugin name,will dump in $rootfs/plugin dir.
+  name: MyHostname # 指定插件名称，将会转储到$rootfs/plugins目录下。
 spec:
-  type: HOSTNAME # fixed string,should not change this name.
-  action: PreInit # Specify which phase to run.
+  type: HOSTNAME #插件类型
+  action: PreInit # 指定运行阶段
   data: |
     192.168.0.2 master-0
     192.168.0.3 master-1
@@ -24,34 +24,42 @@ spec:
     192.168.0.7 node-2
 ```
 
-### shell plugin
+### 脚本插件
 
-You can exec any shell command on specify node in any phase.
+你可以在指定节点的任何阶段执行任何shell命令。
 
 ```yaml
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: MyShell # Specify this plugin name,will dump in $rootfs/plugin dir.
+  name: MyShell
 spec:
   type: SHELL
-  action: PostInstall # PreInit PreInstall PostInstall
+  action: PostInstall # # 指定运行阶段【PreInit ｜ PreInstall ｜ PostInstall ｜ PostClean】
+  on: node-role.kubernetes.io/master=
   data: |
     kubectl get nodes
 ```
 
-action: the phase of command.
+```shell
+action : [PreInit| PreInstall| PostInstall] # 指定执行shell的时机
+  在初始化之前之前执行命令  |  action: PreInit
+  在安装集群之前执行命令    |  action: PreInstall
+  在安装集群之后执行命令    |  action: PostInstall
+  在清理集群后执行命令      |  action: PostClean
+on     : #指定执行命令的机器
+  为空时默认在所有节点执行
+  在所有master节点上执行  on: master
+  在所有node节点上执行    on: node
+  在指定IP上执行         on: 192.168.56.113,192.168.56.114,192.168.56.115,192.168.56.116
+  在有连续IP的机器上执行   on: 192.168.56.113-192.168.56.116
+  在指定label节点上执行(action需设置为PostInstall)    on: node-role.kubernetes.io/master=
+data   : #指定执行的shell命令
+```
 
-* PreInit: before init master0.
-* PreInstall: before join master and nodes.
-* PostInstall: after join all nodes.
-* PostClean : after clean cluster.
+### 标签插件
 
-on: exec on which node.
-
-### label plugin
-
-Help you set label after install kubernetes cluster
+帮助您在安装kubernetes集群后设置标签
 
 ```yaml
 apiVersion: sealer.aliyun.com/v1alpha1
@@ -70,7 +78,47 @@ spec:
     192.168.0.7 ssd=false,hdd=true
 ```
 
-### Etcd backup plugin
+### 集群检测插件
+
+由于服务器以及环境因素(服务器磁盘性能差)可能会导致sealer安装完kubernetes集群后，立即部署应用服务，出现部署失败的情况。cluster check插件会等待kubernetes集群稳定后再部署应用服务。
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: checkCluster
+spec:
+  type: CLUSTERCHECK
+  action: PreGuest
+```
+
+### 污点插件
+
+如果你在Clusterfile后添加taint插件配置并应用它，sealer将帮助你添加污点和去污点：
+
+```yaml
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: taint
+spec:
+  type: Taint
+  action: PreGuest
+  data: |
+    192.168.56.3 key1=value1:NoSchedule
+    192.168.56.4 key2=value2:NoSchedule-
+    192.168.56.3-192.168.56.7 key3:NoSchedule
+    192.168.56.3,192.168.56.4,192.168.56.5,192.168.56.6,192.168.56.7 key4:NoSchedule
+    192.168.56.3 key5=:NoSchedule
+    192.168.56.3 key6:NoSchedule-
+    192.168.56.4 key7:NoSchedule-
+```
+
+> data写法为`ips taint_argument`
+> ips           : 多个ip通过`,`连接，连续ip写法为 首ip-末尾ip
+> taint_argument: 同kubernetes 添加或去污点写法(key=value:effect #effect必须为：NoSchedule, PreferNoSchedule 或 NoExecute)。
+
+### Etcd 备份插件
 
 ```yaml
 apiVersion: sealer.aliyun.com/v1alpha1
@@ -81,8 +129,6 @@ spec:
   type: ETCD
   action: PostInstall
 ```
-
-Etcd backup plugin is triggered manually: `sealer plugin -f etcd_backup.yaml`
 
 ### Out of tree plugin
 
@@ -120,11 +166,11 @@ Build a cluster image that contains the golang plugin (or more plugins):
 sealer build -m lite -t kubernetes-post-install:v1.19.8 .
 ```
 
-## How to use plugin
+## 如何使用插件
 
-### use it via Clusterfile
+### 通过Clusterfile使用插件
 
-For example, set node label after install kubernetes cluster:
+例如，在安装kubernetes集群后设置节点标签:
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -156,15 +202,11 @@ spec:
 sealer apply -f Clusterfile
 ```
 
-### use it via Kubefile
+### 在Kubefile中使用默认插件
 
-Define the default plugin in Kubefile to build the image and run it.
+在很多情况下，可以不使用Clusterfile而使用插件，本质上是在使用插件之前存储了Clusterfile插件到$rootfs/plugins目录下 所以当我们构建镜像时可以添加自定义默认插件。
 
-In many cases it is possible to use plugins without using Clusterfile, essentially sealer stores the Clusterfile plugin
-configuration in the Rootfs/Plugin directory before using it, so we can define the default plugin when we build the
-image.
-
-Plugin configuration shell.yaml:
+插件配置文件 shell.yaml:
 
 ```yaml
 apiVersion: sealer.aliyun.com/v1alpha1
@@ -176,7 +218,7 @@ type: SHELL
 action: PostInstall
 on: node-role.kubernetes.io/master=
 data: |
-  kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
+  kubectl get nodes
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
@@ -204,11 +246,11 @@ FROM kubernetes:v1.19.8
 COPY shell.yaml plugin
 ```
 
-Build a cluster image that contains a taint plugin (or more plugins):
+构建一个包含安装iscsi的插件(或更多插件)的集群镜像:
 
 ```shell script
-sealer build -m lite -t kubernetes-taint:v1.19.8 .
+sealer build -m lite -t kubernetes-iscsi:v1.19.8 .
 ```
 
-Run the image and the plugin will also be executed without having to define the plug-in in the Clusterfile:
-`sealer run kubernetes-taint:v1.19.8 -m x.x.x.x -p xxx`
+通过镜像启动集群后插件也将被执行，而无需在Clusterfile中定义插件:
+`sealer run kubernetes-iscsi:v1.19.8 -m x.x.x.x -p xxx`
