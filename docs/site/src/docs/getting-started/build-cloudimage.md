@@ -347,8 +347,8 @@ total 12
 -rw-r--r-- 1 root root   7 Feb 28 14:10 imageList
 -rw-r--r-- 1 root root 450 Mar  1 10:20 imageListWithAuth.yaml
 -rw-r--r-- 1 root root  49 Feb 28 14:06 Kubefile
-[root@iZbp16ikro46xwgqzij67sZ build]# 
-[root@iZbp16ikro46xwgqzij67sZ build]# cat Kubefile 
+[root@iZbp16ikro46xwgqzij67sZ build]#
+[root@iZbp16ikro46xwgqzij67sZ build]# cat Kubefile
 FROM kubernetes:v1.19.8
 COPY imageList manifests
 ```
