@@ -63,6 +63,8 @@ const (
 	CacheID                       = "cacheID"
 	RenderChartsDir               = "charts"
 	RenderManifestsDir            = "manifests"
+	APIVersion                    = "saler.cool/v2"
+	Kind                          = "Cluster"
 )
 
 // image module
@@ -167,6 +169,14 @@ func DefaultMountCloudImageDir(clusterName string) string {
 
 func DefaultTheClusterRootfsDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
+}
+
+func DefaultTheClusterNydusdDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "nydusd")
+}
+
+func DefaultTheClusterNydusdFileDir(clusterName string) string {
+	return filepath.Join(DefaultClusterRootfsDir, clusterName, "nydusdfile")
 }
 
 func DefaultTheClusterRootfsPluginDir(clusterName string) string {

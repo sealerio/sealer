@@ -18,18 +18,18 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/mount"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
 	RegistryName                = "sealer-registry"
 	RegistryBindDest            = "/var/lib/registry"
-	RegistryMountUpper          = "/var/lib/sealer/tmp/upper"
-	RegistryMountWork           = "/var/lib/sealer/tmp/work"
+	RegistryBindConfig          = "registry_config.yml"
+	RegistryCustomConfig        = "registry.yml"
 	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerLoginCommand          = "docker login %s -u %s -p %s"
@@ -51,37 +51,24 @@ func getRegistryHost(rootfs, defaultRegistry string) (host string) {
 
 // ApplyRegistry Only use this for join and init, due to the initiation operations.
 func (k *KubeadmRuntime) ApplyRegistry() error {
-	cf := GetRegistryConfig(k.getRootfs(), k.GetMaster0IP())
+	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	ssh, err := k.getHostSSHClient(cf.IP)
 	if err != nil {
 		return fmt.Errorf("failed to get registry ssh client: %v", err)
 	}
 
-	mkdir := fmt.Sprintf("rm -rf %s %s && mkdir -p %s %s", RegistryMountUpper, RegistryMountWork,
-		RegistryMountUpper, RegistryMountWork)
-
-	mountCmd := fmt.Sprintf("%s && mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s", mkdir,
-		k.getRootfs(),
-		RegistryMountUpper, RegistryMountWork, k.getRootfs())
-	isMount, _ := mount.GetRemoteMountDetails(ssh, cf.IP, k.getRootfs())
-	if isMount {
-		mountCmd = fmt.Sprintf("umount %s && %s", k.getRootfs(), mountCmd)
-	}
-	if err := ssh.CmdAsync(cf.IP, mountCmd); err != nil {
-		return err
-	}
 	if cf.Username != "" && cf.Password != "" {
 		htpasswd, err := cf.GenerateHtPasswd()
 		if err != nil {
 			return err
 		}
-		err = ssh.CmdAsync(cf.IP, fmt.Sprintf("echo '%s' >> %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
+		err = ssh.CmdAsync(cf.IP, fmt.Sprintf("echo '%s' > %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
 		if err != nil {
 			return err
 		}
 	}
-	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s", k.getRootfs(), cf.Port, fmt.Sprintf("%s/registry", k.getRootfs()))
-	registryHost := getRegistryHost(k.getRootfs(), k.GetMaster0IP())
+	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s %s", k.getRootfs(), cf.Port, fmt.Sprintf("%s/registry", k.getRootfs()), cf.Domain)
+	registryHost := getRegistryHost(k.getImageMountDir(), k.GetMaster0IP())
 	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	if err = ssh.CmdAsync(cf.IP, initRegistry); err != nil {
 		return err
@@ -113,7 +100,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		Domain: SeaHub,
 		Port:   "5000",
 	}
-	registryConfigPath := filepath.Join(rootfs, "etc", "registry.yml")
+	registryConfigPath := filepath.Join(rootfs, common.EtcDir, RegistryCustomConfig)
 	if !utils.IsFileExist(registryConfigPath) {
 		logger.Debug("use default registry config")
 		return DefaultConfig
@@ -141,16 +128,11 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 
 func (k *KubeadmRuntime) DeleteRegistry() error {
 	cf := GetRegistryConfig(k.getRootfs(), k.GetMaster0IP())
-	delDir := fmt.Sprintf("rm -rf %s %s", RegistryMountUpper, RegistryMountWork)
 	ssh, err := k.getHostSSHClient(cf.IP)
 	if err != nil {
 		return fmt.Errorf("failed to delete registry: %v", err)
 	}
 
-	isMount, _ := mount.GetRemoteMountDetails(ssh, cf.IP, k.getRootfs())
-	if isMount {
-		delDir = fmt.Sprintf("umount %s && %s", k.getRootfs(), delDir)
-	}
-	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %s;fi && %s ", RegistryName, RegistryName, delDir)
+	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %s;fi", RegistryName, RegistryName)
 	return ssh.CmdAsync(cf.IP, cmd)
 }

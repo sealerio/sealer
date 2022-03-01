@@ -17,6 +17,8 @@ package applydriver
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
+
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/apply/processor"
@@ -30,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/version"
 
 	"github.com/alibaba/sealer/pkg/client/k8s"
-	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/utils"
 )
@@ -40,7 +41,7 @@ type Applier struct {
 	ClusterDesired     *v2.Cluster
 	ClusterCurrent     *v2.Cluster
 	ImageManager       image.Service
-	FileSystem         filesystem.Interface
+	CloudImageMounter  cloudimage.Interface
 	Client             *k8s.Client
 	ImageStore         store.ImageStore
 	CurrentClusterInfo *version.Info
@@ -86,7 +87,7 @@ func (c *Applier) mountClusterImage() error {
 	if err != nil {
 		return err
 	}
-	err = c.FileSystem.MountImage(c.ClusterDesired)
+	err = c.CloudImageMounter.MountImage(c.ClusterDesired)
 	if err != nil {
 		return err
 	}
@@ -94,7 +95,7 @@ func (c *Applier) mountClusterImage() error {
 }
 
 func (c *Applier) unMountClusterImage() error {
-	return c.FileSystem.UnMountImage(c.ClusterDesired)
+	return c.CloudImageMounter.UnMountImage(c.ClusterDesired)
 }
 
 func (c *Applier) reconcileCluster() error {
@@ -126,7 +127,7 @@ func (c *Applier) reconcileCluster() error {
 	if err != nil {
 		return fmt.Errorf("failed to get base image err: %s", err)
 	}
-	// if no rootfs ,try to install applications
+	// if no rootfs ,try to install applications.
 	if !withRootfs(baseImage) {
 		return c.installApp()
 	}
@@ -152,7 +153,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	logger.Info("Start to scale this cluster")
 	logger.Debug("current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
 
-	scaleProcessor, err := processor.NewScaleProcessor(c.FileSystem, mj, md, nj, nd)
+	scaleProcessor, err := processor.NewScaleProcessor(common.DefaultTheClusterRootfsDir(c.ClusterDesired.Name), mj, md, nj, nd)
 	if err != nil {
 		return err
 	}
@@ -195,7 +196,7 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 	}
 
 	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, clusterMetadata.Version)
-	upgradeProcessor, err := processor.NewUpgradeProcessor(c.FileSystem, runtimeInterface, mj, nj)
+	upgradeProcessor, err := processor.NewUpgradeProcessor(common.DefaultMountCloudImageDir(c.ClusterDesired.Name), runtimeInterface, mj, nj)
 	if err != nil {
 		return err
 	}
@@ -224,7 +225,7 @@ func (c *Applier) installApp() error {
 		}
 	}
 
-	installProcessor, err := processor.NewInstallProcessor(c.FileSystem)
+	installProcessor, err := processor.NewInstallProcessor(rootfs)
 	if err != nil {
 		return err
 	}

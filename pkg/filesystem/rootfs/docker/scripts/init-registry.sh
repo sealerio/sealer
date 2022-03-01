@@ -21,6 +21,7 @@ cd $(dirname $0)
 
 REGISTRY_PORT=${1-5000}
 VOLUME=${2-/var/lib/registry}
+REGISTRY_DOMAIN=${3-sea.hub}
 
 container=sealer-registry
 rootfs=$(dirname "$(pwd)")
@@ -61,10 +62,11 @@ regArgs="-d --restart=always \
 --name $container \
 -v $certs_dir:/certs \
 -v $VOLUME:/var/lib/registry \
--e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/sea.hub.crt \
--e REGISTRY_HTTP_TLS_KEY=/certs/sea.hub.key"
+-e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/$REGISTRY_DOMAIN.crt \
+-e REGISTRY_HTTP_TLS_KEY=/certs/$REGISTRY_DOMAIN.key"
 
 if [ -f $config ]; then
+    sed -i "s/5000/$1/g" $config
     regArgs="$regArgs \
     -v $config:/etc/docker/registry/config.yml"
 fi

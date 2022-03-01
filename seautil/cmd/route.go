@@ -15,31 +15,73 @@
 package cmd
 
 import (
-	"fmt"
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/spf13/cobra"
 )
 
-// routeCmd represents the route command
-var routeCmd = &cobra.Command{
-	Use:   "route",
-	Short: "A brief description of your command",
-	Long:  `seautil route --host 192.168.0.2`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("route called")
-	},
+type RouteFlag struct {
+	host      string
+	gatewayIP string
+}
+
+var routeFlag *RouteFlag
+
+func NewRouteCmd() *cobra.Command {
+	var routeCmd = &cobra.Command{
+		Use:   "route",
+		Short: "A brief description of your command",
+	}
+	routeFlag = &RouteFlag{}
+	routeCmd.AddCommand(RouteAddCmd())
+	routeCmd.AddCommand(RouteDelCmd())
+	routeCmd.AddCommand(RouteCheckCmd())
+	return routeCmd
+}
+
+func RouteCheckCmd() *cobra.Command {
+	var checkCmd = &cobra.Command{
+		Use:   "check",
+		Short: "A brief description of your command",
+		Long:  `seautil route check --host 192.168.56.3`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return utils.CheckIsDefaultRoute(routeFlag.host)
+		},
+	}
+	checkCmd.Flags().StringVar(&routeFlag.host, "host", "", "check host ip address is default iFace")
+	return checkCmd
+}
+
+func RouteAddCmd() *cobra.Command {
+	var addCmd = &cobra.Command{
+		Use:   "add",
+		Short: "A brief description of your command",
+		Long:  `seautil route add --host 192.168.0.2 --gateway 10.0.0.2`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r := utils.NewRouter(routeFlag.host, routeFlag.gatewayIP)
+			return r.SetRoute()
+		},
+	}
+	addCmd.Flags().StringVar(&routeFlag.host, "host", "", "route host ,ex ip route add host via gateway")
+	addCmd.Flags().StringVar(&routeFlag.gatewayIP, "gateway", "", "route gateway ,ex ip route add host via gateway")
+	return addCmd
+}
+
+func RouteDelCmd() *cobra.Command {
+	var delCmd = &cobra.Command{
+		Use:   "del",
+		Short: "delete router",
+		Long:  `seautil route del --host 192.168.0.2 --gateway 10.0.0.2`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r := utils.NewRouter(routeFlag.host, routeFlag.gatewayIP)
+			return r.DelRoute()
+		},
+	}
+	delCmd.Flags().StringVar(&routeFlag.host, "host", "", "route host ,ex ip route del host via gateway")
+	delCmd.Flags().StringVar(&routeFlag.gatewayIP, "gateway", "", "route gateway ,ex ip route del host via gateway")
+	return delCmd
 }
 
 func init() {
-	rootCmd.AddCommand(routeCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// routeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// routeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.AddCommand(NewRouteCmd())
 }

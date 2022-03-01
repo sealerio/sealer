@@ -1,0 +1,26 @@
+# Except for the secret key, none of these are actually needed; Rocket has sane
+# defaults. We show all of them here explicitly for demonstrative purposes.
+
+[default.limits]
+forms = "64 kB"
+json = "1 MiB"
+msgpack = "2 MiB"
+"file/jpg" = "5 MiB"
+
+[default]
+extra = false
+ident = "Rocket"
+
+[debug]
+address = "127.0.0.1"
+port = 8000
+workers = 10
+keep_alive = 1
+log_level = "normal"
+
+[release]
+address = "0.0.0.0"
+port = 8000
+workers = 12
+keep_alive = 5
+log_level = "critical"

@@ -1,13 +1,13 @@
 # Overview
 
 OpenEBS provides block volume support through the iSCSI protocol. Install iSCSI tools and make sure that iSCSI service
-is running. See [iSCSI installation](https://docs.openebs.io/docs/next/prerequisites.html)
+is running. See [iSCSI installation](https://openebs.io/docs/user-guides/prerequisites)
 
 There are three OpenEBS Data Engine included in this section:
 
-* [cStor](https://docs.openebs.io/docs/next/cstor.html)
-* [Jiva](https://docs.openebs.io/docs/next/jiva.html)
-* [LocalPV](https://docs.openebs.io/docs/next/localpv.html)
+* [cStor](https://openebs.io/docs/concepts/cstor)
+* [Jiva](https://openebs.io/docs/concepts/jiva)
+* [LocalPV](https://openebs.io/docs/concepts/localpv)
 
 ## About cStor
 
@@ -32,7 +32,7 @@ use example/Clusterfile.yaml to apply "openebs-cstor" by modifying the image fil
 as `image: registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-cstor:2.11.0`,and then run
 command `sealer apply -f Clusterfile.yaml`
 
-2, Create [CStorPoolCluster](https://docs.openebs.io/docs/next/ugcstor-csi.html#creating-cstor-storage-pools) to make
+2, Create [CStorPoolCluster](https://openebs.io/docs/user-guides/cstor) to make
 the storage cluster in ready status. example see cstor/cspc.yaml
 
 ## How to use it
@@ -140,4 +140,4 @@ Modify manifest yaml file according to your needs, then run below command to reb
 sealer build -t {Your Image Name} -f Kubefile -m cloud .
 ```
 
-More information see [official document here](https://docs.openebs.io).
+More information see [official document here](https://openebs.io).

@@ -42,12 +42,12 @@ jobs:
   build:
     name: Build Release Binaries
     runs-on: ${{ matrix.os }}
-    needs: [note]
+    needs: [ note ]
     timeout-minutes: 10
 
     strategy:
       matrix:
-        os: [ubuntu-18.04]
+        os: [ ubuntu-18.04 ]
 
     steps:
       - name: Install Go
@@ -76,8 +76,8 @@ jobs:
       - name: Make linux
         shell: bash
         run: |
-            export MULTI_PLATFORM_BUILD=true
-            make build
+          export MULTI_PLATFORM_BUILD=true
+          make build
         working-directory: src/github.com/alibaba/sealer
 
       - name: Save build binaries
@@ -91,7 +91,7 @@ jobs:
     name: Create sealer Release
     runs-on: ubuntu-18.04
     timeout-minutes: 10
-    needs: [build, note]
+    needs: [ build, note ]
 
     steps:
       - name: Download builds and release notes
@@ -111,6 +111,7 @@ jobs:
           files: |
             builds/sealer-binaries/*
       - name: Build binareies to oss
+        if: ${{ github.repository == 'alibaba/sealer' && github.ref_type=='tag' }}
         run: |
           releasever=${{ github.ref }}
           releasever="${releasever#refs/tags/}"

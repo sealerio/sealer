@@ -34,6 +34,7 @@ type Interface interface {
 	DeleteMasters(mastersIPList []string) error
 	DeleteNodes(nodesIPList []string) error
 	GetClusterMetadata() (*Metadata, error)
+	UpdateCert(certs []string) error
 }
 
 type Metadata struct {
@@ -42,6 +43,7 @@ type Metadata struct {
 	Variant string `json:"variant"`
 	//KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
 	KubeVersion string `json:"kubeVersion"`
+	NydusFlag   bool   `json:"NydusFlag"`
 }
 
 type KubeadmRuntime struct {
@@ -116,6 +118,10 @@ func (k *KubeadmRuntime) confirmDeleteNodes() error {
 
 func (k *KubeadmRuntime) GetClusterMetadata() (*Metadata, error) {
 	return k.getClusterMetadata()
+}
+
+func (k *KubeadmRuntime) UpdateCert(certs []string) error {
+	return k.updateCert(certs)
 }
 
 // NewDefaultRuntime arg "clusterfile" is the Clusterfile path/name, runtime need read kubeadm config from it

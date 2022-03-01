@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"strings"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/build/buildkit/layerutils/charts"
@@ -135,9 +136,15 @@ func parseYamlImages(srcPath string) ([]string, error) {
 		if err != nil {
 			return err
 		}
-		if f.IsDir() || !utils.YamlMatcher(f.Name()) {
+		if f.IsDir() {
 			return nil
 		}
+
+		ext := strings.ToLower(filepath.Ext(f.Name()))
+		if ext != ".yaml" && ext != ".yml" && ext != ".tmpl" {
+			return nil
+		}
+
 		ima, err := imageSearcher.ListImages(path)
 
 		if err != nil {

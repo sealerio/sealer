@@ -69,7 +69,7 @@ sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kuberentes:v1.19.8
 
 集群镜像中自带一个docker registry, 所有容器镜像会存储在这个registry中，可以自定义该registry的一些配置：
 
-[registry config](../../../../user-guide/docker-image-cache.md)
+[registry config](../../../../design/docker-image-cache.md)
 
 编辑好 `registry_config.yaml`配置文件，然后在Kubefile中进行overwrite:
 

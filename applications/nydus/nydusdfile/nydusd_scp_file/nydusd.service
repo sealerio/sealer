@@ -1,0 +1,8 @@
+[Unit]
+Description=sealer nydusd rootfs
+[Service]
+TimeoutStartSec=3
+ExecStart=/var/lib/sealer/nydusd.sh
+Restart=always
+[Install]
+WantedBy=multi-user.target

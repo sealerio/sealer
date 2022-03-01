@@ -47,36 +47,36 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 	return err
 }
 
-func (d DefaultImageFileService) Save(imageName string, imageTar string) error {
+func (d DefaultImageFileService) Save(image *v1.Image, imageTar string) error {
 	if imageTar == "" {
 		return fmt.Errorf("imagetar cannot be empty")
 	}
 
-	if utils.IsFileExist(imageTar) {
-		return fmt.Errorf("file %s already exists", imageTar)
+	dir, file := filepath.Split(imageTar)
+	if dir == "" {
+		dir = "."
+	}
+	if file == "" {
+		file = fmt.Sprintf("%s.tar", image.Name)
+	}
+	imageTar = filepath.Join(dir, file)
+	// only file path like "/tmp" will lose add image tar name,make sure imageTar with full file name.
+	if filepath.Ext(imageTar) != ".tar" {
+		imageTar = filepath.Join(imageTar, fmt.Sprintf("%s.tar", image.Name))
 	}
 
 	if err := utils.MkFileFullPathDir(imageTar); err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}
 
-	return d.save(imageName, imageTar)
+	return d.save(image, imageTar)
 }
 
 func (d DefaultImageFileService) Merge(image *v1.Image) error {
 	panic("implement me")
 }
 
-func (d DefaultImageFileService) save(imageName, imageTar string) error {
-	named, err := reference.ParseToNamed(imageName)
-	if err != nil {
-		return err
-	}
-
-	image, err := d.imageStore.GetByName(named.Raw())
-	if err != nil {
-		return err
-	}
+func (d DefaultImageFileService) save(image *v1.Image, imageTar string) error {
 	file, err := os.Create(filepath.Clean(imageTar))
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
@@ -108,7 +108,7 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	if err = utils.AtomicWriteFile(imageMetadataTempFile, imgBytes, common.FileMode0644); err != nil {
 		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
 	}
-	metadata, err := d.imageStore.GetImageMetadataItem(named.Raw())
+	metadata, err := d.imageStore.GetImageMetadataItem(image.Name)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (d DefaultImageFileService) save(imageName, imageTar string) error {
 	pathsToCompress = append(pathsToCompress, imageMetadataTempFile, repofile)
 	tarReader, err := archive.TarWithRootDir(pathsToCompress...)
 	if err != nil {
-		return fmt.Errorf("failed to get tar reader for %s, err: %s", named.Raw(), err)
+		return fmt.Errorf("failed to get tar reader for %s, err: %s", image.Name, err)
 	}
 	defer tarReader.Close()
 

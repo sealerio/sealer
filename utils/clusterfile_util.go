@@ -17,6 +17,7 @@ package utils
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
@@ -56,4 +57,18 @@ func GetClusterFromFile(filepath string) (cluster *v2.Cluster, err error) {
 	}
 	cluster.SetAnnotations(common.ClusterfileName, filepath)
 	return cluster, nil
+}
+
+func GetDefaultCluster() (cluster *v2.Cluster, err error) {
+	name, err := GetDefaultClusterName()
+	if err != nil {
+		return nil, err
+	}
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+	var filepath = fmt.Sprintf("%s/.sealer/%s/Clusterfile", userHome, name)
+
+	return GetClusterFromFile(filepath)
 }

@@ -22,7 +22,7 @@ REGISTRY_PORT=${3-5000}
 
 # Install docker
 chmod a+x docker.sh
-#./docker.sh  /var/docker/lib  127.0.0.1
+#./docker.sh  /var/docker/lib  sealer.hub 5001
 bash docker.sh ${STORAGE} ${REGISTRY_DOMAIN} $REGISTRY_PORT
 
 chmod a+x init-kube.sh

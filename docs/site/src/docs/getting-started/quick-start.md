@@ -23,7 +23,7 @@ izm5ehdjw3kru84f0kq7raz Ready <none> 18h v1.19.8
 izm5ehdjw3kru84f0kq7rbz Ready <none> 18h v1.19.8
 ```
 
-## clean the cluster
+## Clean the cluster
 
 Some information of the basic settings will be written to the Clusterfile and stored in /root/.sealer/[cluster-name]/Clusterfile.
 

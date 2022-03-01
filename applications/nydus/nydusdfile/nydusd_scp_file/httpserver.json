@@ -1,0 +1,27 @@
+{
+  "device": {
+    "backend": {
+      "type": "registry",
+      "config": {
+        "scheme": "http",
+	"host": "192.168.0.2:8000",
+	"repo": "sealer"
+      }
+    },
+    "cache": {
+      "type": "blobcache",
+      "config": {
+        "work_dir": "./cache"
+      }
+    }
+  },
+  "mode": "direct",
+  "digest_validate": false,
+  "enable_xattr": true,
+  "fs_prefetch": {
+    "enable": true,
+    "threads_count": 1,
+    "merging_size": 131072,
+    "bandwidth_rate":10485760
+  }
+}

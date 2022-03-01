@@ -48,6 +48,26 @@ func GetHostIPSlice(hosts []string) (res []string) {
 	return
 }
 
+func GetHostNetInterface(host string) (string, error) {
+	netInterfaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+	for i := 0; i < len(netInterfaces); i++ {
+		if (netInterfaces[i].Flags & net.FlagUp) == 0 {
+			continue
+		}
+		addrs, err := netInterfaces[i].Addrs()
+		if err != nil {
+			return "", fmt.Errorf("failed to get Addrs, %v", err)
+		}
+		if IsLocalIP(host, &addrs) {
+			return netInterfaces[i].Name, nil
+		}
+	}
+	return "", nil
+}
+
 func GetLocalHostAddresses() (*[]net.Addr, error) {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
@@ -79,8 +99,17 @@ func IsLocalIP(ip string, addrs *[]net.Addr) bool {
 	return false
 }
 
+func GetLocalIP(master0IP string) (string, error) {
+	conn, err := net.Dial("udp", master0IP)
+	if err != nil {
+		return "", err
+	}
+	localAddr := conn.LocalAddr().String()
+	return strings.Split(localAddr, ":")[0], err
+}
+
 func AssemblyIPList(args *string) error {
-	var result string
+	var result []string
 	var ips = strings.Split(*args, "-")
 	if *args == "" || !strings.Contains(*args, "-") {
 		return nil
@@ -91,15 +120,16 @@ func AssemblyIPList(args *string) error {
 	if !CheckIP(ips[0]) || !CheckIP(ips[1]) {
 		return fmt.Errorf("ip is invalid，check you command agrs")
 	}
+	//ips[0],ips[1] = 192.168.56.3, 192.168.56.7;  result = [192.168.56.3, 192.168.56.4, 192.168.56.5, 192.168.56.6, 192.168.56.7]
 	for res, _ := CompareIP(ips[0], ips[1]); res <= 0; {
-		result = ips[0] + "," + result
+		result = append(result, ips[0])
 		ips[0] = NextIP(ips[0]).String()
 		res, _ = CompareIP(ips[0], ips[1])
 	}
-	if result == "" {
+	if len(result) == 0 {
 		return fmt.Errorf("ip is invalid，check you command agrs")
 	}
-	*args = result
+	*args = strings.Join(result, ",")
 	return nil
 }
 

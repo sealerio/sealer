@@ -34,9 +34,9 @@ const (
 	RemoteJoinConfig                = `echo "%s" > %s/etc/kubeadm.yml`
 	LvscareDefaultStaticPodFileName = "/etc/kubernetes/manifests/kube-lvscare.yaml"
 	RemoteAddIPVSEtcHosts           = "echo %s %s >> /etc/hosts"
-	RemoteCheckRoute                = "seautil route --host %s"
+	RemoteCheckRoute                = "seautil route check --host %s"
 	RemoteAddRoute                  = "seautil route add --host %s --gateway %s"
-	RouteOK                         = "ok"
+	RemoteDelRoute                  = "if command -v seautil > /dev/null 2>&1; then seautil route del --host %s --gateway %s; fi"
 	LvscareStaticPodCmd             = `echo "%s" > %s`
 )
 
@@ -77,7 +77,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	k.cleanJoinLocalAPIEndPoint()
 
-	registryHost := getRegistryHost(k.getRootfs(), k.GetMaster0IP())
+	registryHost := getRegistryHost(k.getImageMountDir(), k.GetMaster0IP())
 	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	if cf.Username != "" && cf.Password != "" {
@@ -87,6 +87,10 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 		node := node
 		eg.Go(func() error {
 			logger.Info("Start to join %s as worker", node)
+			err := k.checkMultiNetworkAddVIPRoute(node)
+			if err != nil {
+				return fmt.Errorf("failed to check multi network: %v", err)
+			}
 			// send join node config, get cgroup driver on every join nodes
 			joinConfig, err := k.joinNodeConfig(node)
 			if err != nil {
@@ -122,6 +126,10 @@ func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
 			logger.Info("Start to delete worker %s", node)
 			if err := k.deleteNode(node); err != nil {
 				return fmt.Errorf("delete node %s failed %v", node, err)
+			}
+			err := k.deleteVIPRouteIfExist(node)
+			if err != nil {
+				return fmt.Errorf("failed to delete %s route: %v", node, err)
 			}
 			logger.Info("Succeeded in deleting worker %s", node)
 			return nil
@@ -166,4 +174,29 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 	}
 
 	return nil
+}
+
+func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
+	sshClient, err := k.getHostSSHClient(node)
+	if err != nil {
+		return err
+	}
+	result, err := sshClient.CmdToString(node, fmt.Sprintf(RemoteCheckRoute, node), "")
+	if err != nil {
+		return err
+	}
+	if result == utils.RouteOK {
+		return nil
+	}
+	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getVIP(), node))
+	return err
+}
+
+func (k *KubeadmRuntime) deleteVIPRouteIfExist(node string) error {
+	sshClient, err := k.getHostSSHClient(node)
+	if err != nil {
+		return err
+	}
+	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteDelRoute, k.getVIP(), node))
+	return err
 }

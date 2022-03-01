@@ -25,7 +25,7 @@ import (
 //	digest.SHA512.String(): true,
 //}
 
-func getDirListInDir(dir string) ([]string, error) {
+func GetDirListInDir(dir string) ([]string, error) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -42,14 +42,14 @@ func getDirListInDir(dir string) ([]string, error) {
 
 func traverseLayerDB(layerDBRoot string) ([]string, error) {
 	// TODO maybe there no need to traverse layerdb, just clarify how many sha supported in a list
-	shaDirs, err := getDirListInDir(layerDBRoot)
+	shaDirs, err := GetDirListInDir(layerDBRoot)
 	if err != nil {
 		return nil, err
 	}
 
 	var layerDirs []string
 	for _, shaDir := range shaDirs {
-		layerDirList, err := getDirListInDir(shaDir)
+		layerDirList, err := GetDirListInDir(shaDir)
 		if err != nil {
 			return nil, err
 		}

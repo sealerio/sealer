@@ -32,7 +32,7 @@ type MetadataService interface {
 // FileService is the interface for file operations
 type FileService interface {
 	Load(imageSrc string) error
-	Save(imageName string, imageTar string) error
+	Save(image *v1.Image, imageTar string) error
 	Merge(image *v1.Image) error
 }
 
@@ -43,6 +43,7 @@ type Service interface {
 	Push(imageName string) error
 	Delete(imageName string) error
 	Login(RegistryURL, RegistryUsername, RegistryPasswd string) error
+	Prune() error
 	CacheBuilder
 }
 

@@ -573,7 +573,7 @@ func decodeCRD(filepath string, kind string) (out interface{}, err error) {
 }
 
 func MarshalJSONToFile(file string, obj interface{}) error {
-	data, err := json.Marshal(obj)
+	data, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -582,4 +582,13 @@ func MarshalJSONToFile(file string, obj interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func UnMarshalJSONFile(file string, obj interface{}) error {
+	data, err := ioutil.ReadFile(filepath.Clean(file))
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, obj)
 }

@@ -17,6 +17,9 @@ package processor
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
+	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/pkg/plugin"
@@ -29,7 +32,7 @@ import (
 )
 
 type DeleteProcessor struct {
-	FileSystem filesystem.Interface
+	cloudImageMounter cloudimage.Interface
 }
 
 // Execute :according to the different of desired cluster to delete cluster.
@@ -74,10 +77,16 @@ func (d DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
 	if utils.NotIn(config.IP, hosts) {
 		hosts = append(hosts, config.IP)
 	}
-	return d.FileSystem.UnMountRootfs(cluster, hosts)
+	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(cluster.Name))
+	if err != nil {
+		return err
+	}
+
+	return fs.UnMountRootfs(cluster, hosts)
 }
+
 func (d DeleteProcessor) UnMountImage(cluster *v2.Cluster) error {
-	return d.FileSystem.UnMountImage(cluster)
+	return d.cloudImageMounter.UnMountImage(cluster)
 }
 
 func (d DeleteProcessor) ApplyCleanPlugin(cluster *v2.Cluster) error {
@@ -92,16 +101,16 @@ func (d DeleteProcessor) ApplyCleanPlugin(cluster *v2.Cluster) error {
 }
 
 func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
-	return d.FileSystem.Clean(cluster)
+	return cloudfilesystem.CleanFilesystem(cluster.Name)
 }
 
 func NewDeleteProcessor() (Interface, error) {
-	fs, err := filesystem.NewFilesystem()
+	mounter, err := filesystem.NewCloudImageMounter()
 	if err != nil {
 		return nil, err
 	}
 
 	return DeleteProcessor{
-		FileSystem: fs,
+		cloudImageMounter: mounter,
 	}, nil
 }
