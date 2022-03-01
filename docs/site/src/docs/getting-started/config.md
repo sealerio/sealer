@@ -240,5 +240,5 @@ spec:
           interface: "enp*" #change the automatic IP detection rule to a matching rule
 ```
 
->  Merge config supports only yaml configuration.
-> `spec.calicoNetwork.nodeAddressAutodetectionV4.interface="enp*"` modify success。
+>Merge config supports only yaml configuration.
+>`spec.calicoNetwork.nodeAddressAutodetectionV4.interface="enp*"` modify success。
