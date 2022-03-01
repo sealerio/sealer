@@ -18,13 +18,12 @@ import (
 	"testing"
 
 	"github.com/alibaba/sealer/logger"
-	v1 "k8s.io/api/core/v1"
 )
 
 func TestTaint_formatData(t *testing.T) {
 	type fields struct {
-		DelTaintList []v1.Taint
-		AddTaintList []v1.Taint
+		IPList    []string
+		TaintList TaintList
 	}
 	type args struct {
 		data string
@@ -39,7 +38,7 @@ func TestTaint_formatData(t *testing.T) {
 			"1",
 			fields{},
 			args{
-				data: "addKey1=addValue1:NoSchedule\ndelKey1=delValue1:NoSchedule-\naddKey2=:NoSchedule\ndelKey2=:NoSchedule-;addKey3:NoSchedule;delKey3:NoSchedule-\n",
+				data: "192.168.56.3 addKey1=addValue1:NoSchedule\n192.168.56.2 delKey1=delValue1:NoSchedule-\n192.168.56.3 addKey2=:NoSchedule\n192.168.56.1 delKey2=:NoSchedule-\n192.168.56.2 addKey3:NoSchedule\n192.168.56.4 delKey3:NoSchedule-\n",
 			},
 			false,
 		},
@@ -47,7 +46,7 @@ func TestTaint_formatData(t *testing.T) {
 			"invalid taint argument",
 			fields{},
 			args{
-				data: "addKey1==addValue1:NoSchedule\n",
+				data: "192.168.56.3 addKey1==addValue1:NoSchedule\n",
 			},
 			true,
 		},
@@ -55,7 +54,7 @@ func TestTaint_formatData(t *testing.T) {
 			"invalid taint argument",
 			fields{},
 			args{
-				data: "addKey1=add:Value1:NoSchedule\n",
+				data: "192.168.56.3 addKey1=add:Value1:NoSchedule\n",
 			},
 			true,
 		},
@@ -63,7 +62,7 @@ func TestTaint_formatData(t *testing.T) {
 			"no key",
 			fields{},
 			args{
-				data: "=addValue1:NoSchedule\n",
+				data: "192.168.56.3 =addValue1:NoSchedule\n",
 			},
 			true,
 		},
@@ -71,22 +70,24 @@ func TestTaint_formatData(t *testing.T) {
 			"no effect",
 			fields{},
 			args{
-				data: "addKey1=addValue1:\n",
+				data: "192.168.56.3 addKey1=addValue1:\n",
 			},
 			true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			l := Taint{
-				DelTaintList: tt.fields.DelTaintList,
-				AddTaintList: tt.fields.AddTaintList,
+			l := &Taint{
+				IPList:    tt.fields.IPList,
+				TaintList: map[string]*taintList{},
 			}
 			if err := l.formatData(tt.args.data); (err != nil) != tt.wantErr {
-				t.Errorf("formatData() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("formatData(%s) error = %v, wantErr %v", tt.args.data, err, tt.wantErr)
 			} else {
-				logger.Info(l.DelTaintList)
-				logger.Info(l.AddTaintList)
+				logger.Info("IPList:", l.IPList)
+				for k, v := range l.TaintList {
+					logger.Info("[%s] taints: %v", k, *v)
+				}
 			}
 		})
 	}
