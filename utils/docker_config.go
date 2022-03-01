@@ -15,13 +15,13 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/docker/docker/api/types"
 
@@ -77,13 +77,13 @@ func DecodeAuth(auth string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
+	i := bytes.IndexRune(decode, ':')
 
-	spts := strings.Split(string(decode), ":")
-	if len(spts) != 2 {
+	if i == -1 {
 		return "", "", fmt.Errorf("auth base64 has problem of format")
 	}
 
-	return spts[0], spts[1], nil
+	return string(decode[:i]), string(decode[i+1:]), nil
 }
 
 func SetDockerConfig(hostname, username, password string) error {
