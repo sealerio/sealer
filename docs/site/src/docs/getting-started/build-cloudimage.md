@@ -308,6 +308,51 @@ sealer apply -f Clusterfile
 
 `sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .`
 
+### build with private image registry
+
+### different registry have different users
+
+just to login it,for example :
+
+`sealer login registry.cn-qingdao.aliyuncs.com -u username -p password`
+
+### same registry have different users
+
+you need to write the credential file named at "imageListWithAuth.yaml" in your build context. and its format like
+below, it is still possible to trigger sealer build to pull docker images, works like `COPY imageList manifests`.
+
+```yaml
+- registry: registry.cn-shanghai.aliyuncs.com
+  username: user1
+  password: pw
+  images:
+    - registry.cn-shanghai.aliyuncs.com/xxx/xxx1:v1.1
+    - registry.cn-shanghai.aliyuncs.com/xxx/xxx2:v1.1
+- registry: registry.cn-shanghai.aliyuncs.com
+  username: user2
+  password: pw
+  images:
+    - registry.cn-shanghai.aliyuncs.com/xxx/xxx3:v1.1
+    - registry.cn-shanghai.aliyuncs.com/xxx/xxx4:v1.1
+```
+
+filed "registry" is optional , if not present sealer will use the default "docker.io" as its domain name. below is
+example build context: this will trigger pull images form `imageList` and `imageListWithAuth.yaml`.
+
+For example:
+
+```shell
+[root@iZbp16ikro46xwgqzij67sZ build]# ll
+total 12
+-rw-r--r-- 1 root root   7 Feb 28 14:10 imageList
+-rw-r--r-- 1 root root 450 Mar  1 10:20 imageListWithAuth.yaml
+-rw-r--r-- 1 root root  49 Feb 28 14:06 Kubefile
+[root@iZbp16ikro46xwgqzij67sZ build]# 
+[root@iZbp16ikro46xwgqzij67sZ build]# cat Kubefile 
+FROM kubernetes:v1.19.8
+COPY imageList manifests
+```
+
 ## Base image list
 
 ### base image with sealer docker
