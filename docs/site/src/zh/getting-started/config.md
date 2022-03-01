@@ -263,4 +263,5 @@ spec:
       interface: "enp*"
 ```
 
->spec.calicoNetwork.nodeAddressAutodetectionV4.interface="enp*"修改成功。
+> merge config 仅支持yaml格式配置。
+>`spec.calicoNetwork.nodeAddressAutodetectionV4.interface="enp*"`修改成功。
