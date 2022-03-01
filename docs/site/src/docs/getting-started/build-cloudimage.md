@@ -310,13 +310,13 @@ sealer apply -f Clusterfile
 
 ### build with private image registry
 
-### different registry have different users
+#### different registry have different users
 
-just to login it,for example :
+just to login,for example :
 
 `sealer login registry.cn-qingdao.aliyuncs.com -u username -p password`
 
-### same registry have different users
+#### same registry have different users
 
 you need to write the credential file named at "imageListWithAuth.yaml" in your build context. and its format like
 below, it is still possible to trigger sealer build to pull docker images, works like `COPY imageList manifests`.
