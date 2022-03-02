@@ -249,8 +249,8 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	// TODO skip docker version error check for test
 	output, err := ssh.Cmd(k.GetMaster0IP(), cmdInit)
 	if err != nil {
-		_, err = common.StdOut.WriteString(string(output))
-		if err != nil {
+		_, wErr := common.StdOut.WriteString(string(output))
+		if wErr != nil {
 			return err
 		}
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())

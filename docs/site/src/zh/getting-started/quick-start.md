@@ -4,8 +4,8 @@
 
 ```shell script
 # 下载和安装sealer二进制
-wget https://github.com/alibaba/sealer/releases/download/v0.6.1/sealer-v0.6.1-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.6.1-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.7.0/sealer-v0.7.0-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.7.0-linux-amd64.tar.gz && mv sealer /usr/bin
 # 运行一个六节点的kubernetes集群
 sealer run kubernetes:v1.19.8 \
   --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
