@@ -130,7 +130,7 @@ func (b BuildImage) checkShadow(buildContext string) error {
 		rootfs  = b.RootfsMountInfo.GetMountTarget()
 		shadows = []Shadow{NewShadowPuller()}
 	)
-
+	logger.Info("start to check the shadow file")
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, shadow := range shadows {
 		s := shadow
