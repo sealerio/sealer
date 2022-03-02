@@ -17,20 +17,21 @@ package processor
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/clusterfile"
 	"github.com/alibaba/sealer/pkg/config"
 	"github.com/alibaba/sealer/pkg/filesystem"
+	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
 	"github.com/alibaba/sealer/pkg/guest"
 	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/plugin"
 	"github.com/alibaba/sealer/pkg/runtime"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 )
 
 type CreateProcessor struct {
+	ClusterFile       clusterfile.Interface
 	ImageManager      image.Service
 	cloudImageMounter cloudimage.Interface
 	Runtime           runtime.Interface
@@ -40,7 +41,7 @@ type CreateProcessor struct {
 }
 
 func (c *CreateProcessor) Execute(cluster *v2.Cluster) error {
-	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
+	runTime, err := runtime.NewDefaultRuntime(cluster, c.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
 	}
@@ -94,7 +95,7 @@ func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 }
 
 func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
-	return c.Config.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
+	return c.Config.Dump(c.ClusterFile.GetConfigs())
 }
 
 func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
@@ -137,7 +138,7 @@ func (c *CreateProcessor) UnMountImage(cluster *v2.Cluster) error {
 
 func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) error {
 	c.Plugins = plugin.NewPlugins(cluster.Name)
-	return c.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
+	return c.Plugins.Dump(c.ClusterFile.GetPlugins())
 }
 
 func (c *CreateProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {
@@ -151,7 +152,7 @@ func (c *CreateProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 	}
 }
 
-func NewCreateProcessor() (Interface, error) {
+func NewCreateProcessor(clusterFile clusterfile.Interface) (Interface, error) {
 	imgSvc, err := image.NewImageService()
 	if err != nil {
 		return nil, err
@@ -168,6 +169,7 @@ func NewCreateProcessor() (Interface, error) {
 	}
 
 	return &CreateProcessor{
+		ClusterFile:       clusterFile,
 		ImageManager:      imgSvc,
 		cloudImageMounter: mounter,
 		Guest:             gs,

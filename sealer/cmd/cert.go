@@ -19,11 +19,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alibaba/sealer/pkg/clusterfile"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/runtime"
-	"github.com/alibaba/sealer/utils"
 )
 
 var altNames string
@@ -45,11 +46,18 @@ var certCmd = &cobra.Command{
     4. kubectl get pod, to check it works or not
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cluster, err := utils.GetDefaultCluster()
+		cluster, err := clusterfile.GetDefaultCluster()
 		if err != nil {
 			return fmt.Errorf("get default cluster failed, %v", err)
 		}
-		r, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
+		clusterFile := clusterfile.NewClusterFile(cluster.GetAnnotationsByKey(common.ClusterfileName))
+		if cluster.GetAnnotationsByKey(common.ClusterfileName) != "" {
+			err = clusterFile.Process()
+			if err != nil {
+				return err
+			}
+		}
+		r, err := runtime.NewDefaultRuntime(cluster, clusterFile.GetKubeadmConfig())
 		if err != nil {
 			return fmt.Errorf("get default runtime failed, %v", err)
 		}

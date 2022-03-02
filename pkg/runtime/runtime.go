@@ -124,7 +124,7 @@ func (k *KubeadmRuntime) UpdateCert(certs []string) error {
 	return k.updateCert(certs)
 }
 
-// NewDefaultRuntime arg "clusterfile" is the Clusterfile path/name, runtime need read kubeadm config from it
-func NewDefaultRuntime(cluster *v2.Cluster, clusterfile string) (Interface, error) {
-	return newKubeadmRuntime(cluster, clusterfile)
+// NewDefaultRuntime arg "clusterfileKubeConfig" is the Clusterfile path/name, runtime need read kubeadm config from it
+func NewDefaultRuntime(cluster *v2.Cluster, clusterfileKubeConfig *KubeadmConfig) (Interface, error) {
+	return newKubeadmRuntime(cluster, clusterfileKubeConfig)
 }

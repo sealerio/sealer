@@ -37,7 +37,7 @@ func (err InvalidPluginTypeError) Error() string {
 }
 
 type Plugins interface {
-	Dump(clusterfile string) error
+	Dump(plugins []v1.Plugin) error
 	Load() error
 	Run(cluster *v2.Cluster, phase Phase) error
 }
@@ -142,18 +142,13 @@ func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, string, erro
 }
 
 // Dump each plugin config to $rootfs/plugins dir by reading the clusterfile.
-func (c *PluginsProcessor) Dump(clusterfile string) error {
-	if clusterfile == "" {
-		logger.Debug("clusterfile is empty!")
+func (c *PluginsProcessor) Dump(plugins []v1.Plugin) error {
+	if plugins == nil {
+		logger.Debug("clusterfile plugins is empty!")
 		return nil
 	}
-	plugins, err := utils.DecodePlugins(clusterfile)
-	if err != nil {
-		return err
-	}
 	c.Plugins = plugins
-	err = c.writeFiles()
-	if err != nil {
+	if err := c.writeFiles(); err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
 	}
 	return nil

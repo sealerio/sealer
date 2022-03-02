@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/logger"
 )
 
@@ -80,8 +78,8 @@ func (k *KubeadmRuntime) MergeKubeadmConfig() error {
 	if k.getKubeVersion() != "" {
 		return nil
 	}
-	if k.Config.Clusterfile != "" && utils.IsFileExist(k.Config.Clusterfile) {
-		if err := k.LoadFromClusterfile(k.Config.Clusterfile); err != nil {
+	if k.Config.ClusterFileKubeConfig != nil {
+		if err := k.LoadFromClusterfile(k.Config.ClusterFileKubeConfig); err != nil {
 			return fmt.Errorf("failed to load kubeadm config from clusterfile: %v", err)
 		}
 	}

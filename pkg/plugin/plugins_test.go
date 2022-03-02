@@ -17,6 +17,8 @@ package plugin
 import (
 	"testing"
 
+	"github.com/alibaba/sealer/pkg/clusterfile"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
@@ -61,7 +63,12 @@ func TestDumperPlugin_Dump(t *testing.T) {
 				Plugins:     tt.fields.configs,
 				ClusterName: tt.fields.clusterName,
 			}
-			if err := c.Dump(tt.args.clusterfile); (err != nil) != tt.wantErr {
+			clusterFile := clusterfile.NewClusterFile(tt.args.clusterfile)
+			if err := clusterFile.Process(); err != nil {
+				t.Error(err)
+				return
+			}
+			if err := c.Dump(clusterFile.GetPlugins()); (err != nil) != tt.wantErr {
 				t.Errorf("Dump() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

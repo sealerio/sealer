@@ -17,8 +17,6 @@ package runtime
 import (
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	"github.com/alibaba/sealer/utils"
 	"github.com/imdario/mergo"
@@ -35,13 +33,6 @@ import (
 
 //nolint
 type KubeadmConfig struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	KubeConfigSpec    `json:"spec,omitempty"`
-}
-
-//nolint
-type KubeConfigSpec struct {
 	v1beta2.InitConfiguration
 	v1beta2.ClusterConfiguration
 	v1alpha1.KubeProxyConfiguration
@@ -52,24 +43,8 @@ type KubeConfigSpec struct {
 // LoadFromClusterfile :Load KubeadmConfig from Clusterfile.
 // If it has `KubeadmConfig` in Clusterfile, load every field to each configuration.
 // If Kubeadm raw config in Clusterfile, just load it.
-func (k *KubeadmConfig) LoadFromClusterfile(fileName string) error {
-	if fileName == "" {
-		return nil
-	}
-	kubeConfig, err := DecodeCRDFromFile(fileName, Kubeadmconfig)
-	if err != nil {
-		return err
-	} else if kubeConfig != nil {
-		k.APIServer.CertSANs = append(k.APIServer.CertSANs, kubeConfig.(*KubeadmConfig).APIServer.CertSANs...)
-		if err := mergo.Merge(&k.KubeConfigSpec, kubeConfig.(*KubeadmConfig).KubeConfigSpec); err != nil {
-			return err
-		}
-	}
-
-	kubeadmConfig, err := k.loadKubeadmConfigs(fileName, DecodeCRDFromFile)
-	if err != nil {
-		return fmt.Errorf("failed to load kubeadm config from %s, err: %v", fileName, err)
-	} else if kubeadmConfig == nil {
+func (k *KubeadmConfig) LoadFromClusterfile(kubeadmConfig *KubeadmConfig) error {
+	if kubeadmConfig == nil {
 		return nil
 	}
 	k.APIServer.CertSANs = append(k.APIServer.CertSANs, kubeadmConfig.APIServer.CertSANs...)
@@ -84,13 +59,13 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 		err                  error
 	)
 	if kubeadmYamlPath == "" || !utils.IsFileExist(kubeadmYamlPath) {
-		defaultKubeadmConfig, err = k.loadKubeadmConfigs(DefaultKubeadmConfig, DecodeCRDFromString)
+		defaultKubeadmConfig, err = LoadKubeadmConfigs(DefaultKubeadmConfig, DecodeCRDFromString)
 		if err != nil {
 			return err
 		}
 		return mergo.Merge(k, defaultKubeadmConfig)
 	}
-	defaultKubeadmConfig, err = k.loadKubeadmConfigs(kubeadmYamlPath, DecodeCRDFromFile)
+	defaultKubeadmConfig, err = LoadKubeadmConfigs(kubeadmYamlPath, DecodeCRDFromFile)
 	if err != nil {
 		return fmt.Errorf("failed to found kubeadm config from %s: %v", kubeadmYamlPath, err)
 	}
@@ -103,7 +78,7 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 	return k.Merge("")
 }
 
-func (k *KubeadmConfig) loadKubeadmConfigs(arg string, decode func(arg string, kind string) (interface{}, error)) (*KubeadmConfig, error) {
+func LoadKubeadmConfigs(arg string, decode func(arg string, kind string) (interface{}, error)) (*KubeadmConfig, error) {
 	kubeadmConfig := &KubeadmConfig{}
 	initConfig, err := decode(arg, InitConfiguration)
 	if err != nil {

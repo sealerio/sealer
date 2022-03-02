@@ -19,9 +19,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alibaba/sealer/pkg/clusterfile"
+
 	"github.com/alibaba/sealer/common"
 	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
 )
@@ -34,13 +35,13 @@ type Exec struct {
 func NewExecCmd(clusterName string, roles string) (Exec, error) {
 	if clusterName == "" {
 		var err error
-		clusterName, err = utils.GetDefaultClusterName()
+		clusterName, err = clusterfile.GetDefaultClusterName()
 		if err != nil {
 			return Exec{}, err
 		}
 	}
 	clusterFile := common.GetClusterWorkClusterfile(clusterName)
-	cluster, err := utils.GetClusterFromFile(clusterFile)
+	cluster, err := clusterfile.GetClusterFromFile(clusterFile)
 	if err != nil {
 		return Exec{}, err
 	}

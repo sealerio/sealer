@@ -276,8 +276,6 @@ func typeConversion(kind string) interface{} {
 	switch kind {
 	case Cluster:
 		return &v2.Cluster{}
-	case Kubeadmconfig:
-		return &KubeadmConfig{}
 	case InitConfiguration:
 		return &v1beta2.InitConfiguration{}
 	case JoinConfiguration:

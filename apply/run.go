@@ -20,23 +20,17 @@ import (
 	"strconv"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/alibaba/sealer/pkg/clusterfile"
 
-	"github.com/alibaba/sealer/pkg/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"github.com/alibaba/sealer/apply/applydriver"
-
-	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/image"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 )
-
-const typeV1 = "zlink.aliyun.com/v1alpha1"
-const typeV2 = "sealer.cloud/v2"
 
 type ClusterArgs struct {
 	cluster   *v2.Cluster
@@ -132,64 +126,19 @@ func GetClusterFileByImageName(imageName string) (*v2.Cluster, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	c, err := GetClusterFromDataCompatV1(clusterFile)
+	c, err := clusterfile.GetClusterFromDataCompatV1([]byte(clusterFile))
 	if err != nil {
 		return nil, err
 	}
 
 	// if run an application image on the existed cluster,use the existed cluster name as the desired one,
 	// make sure we do any changes on the same cluster.
-	name, err := utils.GetDefaultClusterName()
+	name, err := clusterfile.GetDefaultClusterName()
 	if err == nil {
 		c.Name = name
 	}
 
 	return c, nil
-}
-
-func GetClusterFromDataCompatV1(data string) (*v2.Cluster, error) {
-	for _, clusterData := range strings.Split(data, "---") {
-		cluster := &v2.Cluster{}
-		metaType := metav1.TypeMeta{}
-		err := yaml.Unmarshal([]byte(clusterData), &metaType)
-		if err != nil {
-			return nil, err
-		}
-		if metaType.Kind != common.Cluster {
-			continue
-		}
-		if metaType.APIVersion == typeV1 {
-			clusterV1 := &v1.Cluster{}
-			if err := yaml.Unmarshal([]byte(clusterData), &clusterV1); err != nil {
-				return nil, err
-			}
-			var hosts []v2.Host
-			if len(clusterV1.Spec.Masters.IPList) != 0 {
-				hosts = append(hosts, v2.Host{IPS: clusterV1.Spec.Masters.IPList, Roles: []string{common.MASTER}})
-			}
-			if len(clusterV1.Spec.Nodes.IPList) != 0 {
-				hosts = append(hosts, v2.Host{IPS: clusterV1.Spec.Nodes.IPList, Roles: []string{common.NODE}})
-			}
-			cluster.APIVersion = typeV2
-			cluster.Spec.SSH = clusterV1.Spec.SSH
-			cluster.Spec.Env = clusterV1.Spec.Env
-			cluster.Spec.Hosts = hosts
-			cluster.Spec.Image = clusterV1.Spec.Image
-			cluster.Name = clusterV1.Name
-			cluster.Kind = clusterV1.Kind
-		} else {
-			c, err := runtime.DecodeCRDFromString(clusterData, common.Cluster)
-			if err != nil {
-				return nil, err
-			} else if c == nil {
-				break
-			}
-			cluster = c.(*v2.Cluster)
-		}
-		return cluster, nil
-	}
-	return nil, fmt.Errorf("not found type cluster from: \n%s", data)
 }
 
 func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (applydriver.Interface, error) {

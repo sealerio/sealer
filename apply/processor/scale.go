@@ -21,7 +21,6 @@ import (
 
 	"github.com/alibaba/sealer/utils"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
@@ -30,6 +29,7 @@ import (
 type ScaleProcessor struct {
 	fileSystem      cloudfilesystem.Interface
 	Runtime         runtime.Interface
+	KubeadmConfig   *runtime.KubeadmConfig
 	MastersToJoin   []string
 	MastersToDelete []string
 	NodesToJoin     []string
@@ -45,7 +45,7 @@ func (s ScaleProcessor) Execute(cluster *v2.Cluster) error {
 		3. master scale up + node scale down: not support
 		4. master scale up + master scale down: not support
 	*/
-	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.Annotations[common.ClusterfileName])
+	runTime, err := runtime.NewDefaultRuntime(cluster, s.KubeadmConfig)
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
 	}
@@ -90,7 +90,7 @@ func (s ScaleProcessor) ScaleDown(cluster *v2.Cluster) error {
 	return s.fileSystem.UnMountRootfs(cluster, append(s.MastersToDelete, s.NodesToDelete...))
 }
 
-func NewScaleProcessor(rootfs string, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
+func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, rootfs string, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
 	var up bool
 	// only scale up or scale down at a time
 	if len(masterToJoin) > 0 || len(nodeToJoin) > 0 {
@@ -105,6 +105,7 @@ func NewScaleProcessor(rootfs string, masterToJoin, masterToDelete, nodeToJoin, 
 		MastersToJoin:   masterToJoin,
 		NodesToDelete:   nodeToDelete,
 		NodesToJoin:     nodeToJoin,
+		KubeadmConfig:   kubeadmConfig,
 		IsScaleUp:       up,
 		fileSystem:      fs,
 	}, nil

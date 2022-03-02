@@ -52,7 +52,7 @@ const (
 
 type Interface interface {
 	// Dump Config in Clusterfile to the cluster rootfs disk
-	Dump(clusterfile string) error
+	Dump(configs []v1.Config) error
 }
 
 type Dumper struct {
@@ -66,18 +66,17 @@ func NewConfiguration(clusterName string) Interface {
 	}
 }
 
-func (c *Dumper) Dump(clusterfile string) error {
-	if clusterfile == "" {
-		logger.Debug("clusterfile is empty!")
+func (c *Dumper) Dump(configs []v1.Config) error {
+	if configs == nil {
+		logger.Debug("clusterfile config is empty!")
 		return nil
 	}
-	configs, err := utils.DecodeConfigs(clusterfile)
-	if err != nil {
-		return fmt.Errorf("failed to dump config %v", err)
-	}
+	/*	configs, err := utils.DecodeConfigs(clusterfile)
+		if err != nil {
+			return fmt.Errorf("failed to dump config %v", err)
+		}*/
 	c.Configs = configs
-	err = c.WriteFiles()
-	if err != nil {
+	if err := c.WriteFiles(); err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
 	}
 	return nil

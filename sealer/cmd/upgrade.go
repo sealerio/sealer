@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alibaba/sealer/apply"
-	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/pkg/clusterfile"
 
+	"github.com/alibaba/sealer/apply"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +43,7 @@ var upgradeCmd = &cobra.Command{
 		var err error
 		//get clustername
 		if upgradeClusterName == "" {
-			upgradeClusterName, err = utils.GetDefaultClusterName()
+			upgradeClusterName, err = clusterfile.GetDefaultClusterName()
 			if err != nil {
 				return err
 			}
@@ -51,7 +51,7 @@ var upgradeCmd = &cobra.Command{
 		//get Clusterfile
 		userHome, _ := os.UserHomeDir()
 		var filepath = fmt.Sprintf(clusterfilepath, userHome, upgradeClusterName)
-		desiredCluster, err := utils.GetClusterFromFile(filepath)
+		desiredCluster, err := clusterfile.GetClusterFromFile(filepath)
 		if err != nil {
 			return err
 		}

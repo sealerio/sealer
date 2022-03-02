@@ -28,6 +28,7 @@ import (
 const templateSuffix = ".tmpl"
 
 type Interface interface {
+	PreProcessor
 	// WrapperShell :If host already set env like DATADISK=/data
 	// This function add env to the shell, like:
 	// Input shell: cat /etc/hosts
@@ -112,11 +113,11 @@ func (p *processor) getHostEnv(hostIP string) (env map[string]interface{}) {
 
 	hostEnv = mergeList(hostEnv, p.Spec.Env)
 
-	return convertEnv(hostEnv)
+	return ConvertEnv(hostEnv)
 }
 
-// Covert Env []string to map[string]interface{}, example [IP=127.0.0.1,IP=192.160.0.2,Key=value] will convert to {IP:[127.0.0.1,192.168.0.2],key:value}
-func convertEnv(envList []string) (env map[string]interface{}) {
+// ConvertEnv []string to map[string]interface{}, example [IP=127.0.0.1,IP=192.160.0.2,Key=value] will convert to {IP:[127.0.0.1,192.168.0.2],key:value}
+func ConvertEnv(envList []string) (env map[string]interface{}) {
 	temp := make(map[string][]string)
 	env = make(map[string]interface{})
 

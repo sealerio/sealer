@@ -41,7 +41,7 @@ const (
 )
 
 func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
-	if err := k.LoadFromClusterfile(k.Config.Clusterfile); err != nil {
+	if err := k.LoadFromClusterfile(k.Config.ClusterFileKubeConfig); err != nil {
 		return fmt.Errorf("failed to load kubeadm config from clusterfile: %v", err)
 	}
 	// TODO handle the kubeadm config, like kubeproxy config

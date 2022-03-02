@@ -16,33 +16,57 @@ package apply
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/pkg/image/store"
-
 	"github.com/alibaba/sealer/apply/applydriver"
-
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/clusterfile"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/image"
+	"github.com/alibaba/sealer/pkg/image/store"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
-func NewApplierFromFile(clusterfile string) (applydriver.Interface, error) {
-	clusterData, err := ioutil.ReadFile(filepath.Clean(clusterfile))
+func NewApplierFromFile(path string) (applydriver.Interface, error) {
+	if !filepath.IsAbs(path) {
+		pa, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		path = filepath.Join(pa, path)
+	}
+	Clusterfile := clusterfile.NewClusterFile(path)
+
+	if err := Clusterfile.Process(); err != nil {
+		return nil, err
+	}
+	imgSvc, err := image.NewImageService()
 	if err != nil {
 		return nil, err
 	}
-	cluster, err := GetClusterFromDataCompatV1(string(clusterData))
+
+	mounter, err := filesystem.NewCloudImageMounter()
 	if err != nil {
 		return nil, err
 	}
+
+	is, err := store.NewDefaultImageStore()
+	if err != nil {
+		return nil, err
+	}
+	cluster := Clusterfile.GetCluster()
 	if cluster.Name == "" {
-		return nil, fmt.Errorf("cluster name cannot be empty, make sure %s file is correct", clusterfile)
+		return nil, fmt.Errorf("cluster name cannot be empty, make sure %s file is correct", path)
 	}
-	cluster.SetAnnotations(common.ClusterfileName, clusterfile)
-	return NewApplier(cluster)
+	cluster.SetAnnotations(common.ClusterfileName, path)
+	return &applydriver.Applier{
+		ClusterDesired:    &cluster,
+		ClusterFile:       Clusterfile,
+		ImageManager:      imgSvc,
+		CloudImageMounter: mounter,
+		ImageStore:        is,
+	}, nil
 }
 
 func NewApplier(cluster *v2.Cluster) (applydriver.Interface, error) {

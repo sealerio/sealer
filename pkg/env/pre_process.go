@@ -12,13 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package env
 
-const (
-	Cluster                = "Cluster"
-	InitConfiguration      = "InitConfiguration"
-	JoinConfiguration      = "JoinConfiguration"
-	ClusterConfiguration   = "ClusterConfiguration"
-	KubeProxyConfiguration = "KubeProxyConfiguration"
-	KubeletConfiguration   = "KubeletConfiguration"
+import (
+	"bytes"
+	"text/template"
 )
+
+type PreProcessor interface {
+	Process(path string) ([]byte, error)
+}
+
+func (p *processor) Process(path string) ([]byte, error) {
+	tem, err := template.ParseFiles(path)
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewBuffer([]byte{})
+	environ := ConvertEnv(p.Spec.Env)
+	err = tem.Execute(buf, environ)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
