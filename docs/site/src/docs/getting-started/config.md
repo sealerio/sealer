@@ -1,8 +1,10 @@
 # Using Config
 
-Using config, you can overwrite any config files you want. Like chart values, docker daemon.json, kubeadm config file ...
+Using config, you can overwrite or merge any config files you want. Like chart values, docker daemon.json, kubeadm config file ...
 
-## Using config overwrite calico custom configuration
+## overwrite configuration
+
+### Using config overwrite calico custom configuration
 
 Cases of image `registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`:
 
@@ -65,7 +67,7 @@ spec:
           interface: "eth*|en*" #Change the IP automatic detection rule to a correct one
 ```
 
-## Using config overwrite mysql chart values
+### Using config overwrite mysql chart values
 
 Append you config metadata into Clusterfile and apply it like this:
 
@@ -104,7 +106,7 @@ FROM kuberentes:v1.19.9
 CMD helm install mysql -f etc/mysql-config.yaml
 ```
 
-## User defined docker systemd config
+### User defined docker systemd config
 
 Of course, you can overwrite other config file in rootfs you want:
 
@@ -245,3 +247,45 @@ If strategy is `tojson|tobase64` the hole data will convert to json then convert
 You can freely combine these processors.
 
 This feature is useful for kubernetes secret.
+
+
+## deep merge configuration (YAML format)
+
+### merge *calico* custom configuration using Config feature
+
+To image ` registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 `, for example:
+
+The calico IP automatic detection rule configuration needs to be modified only by merging the configuration:
+
+```yaml
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: default-kubernetes-cluster
+spec:
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+  ssh:
+    passwd: xxx
+  hosts:
+    - ips: [192.168.0.2,192.168.0.3,192.168.0.4]
+      roles: [master]
+    - ips: [192.168.0.5]
+      roles: [node]
+...
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: calico
+spec:
+  strategy: merge #merge Config, default value is overwrite
+  path: etc/custom-resources.yaml
+  data: |
+    spec:
+      calicoNetwork:
+        nodeAddressAutodetectionV4:
+          interface: "enp*" #change the automatic IP detection rule to a matching rule
+```
+
+Merge config supports only yaml configuration.
+`spec.calicoNetwork.nodeAddressAutodetectionV4.interface="enp*"` modify success。
