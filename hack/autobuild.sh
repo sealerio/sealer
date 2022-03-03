@@ -16,11 +16,11 @@
 # -----------------------------------------------------------------------------
 #The script format is similar to that of auto build：
 #If we need to make kubernetes:1.20.14 image，We just need to enter: kubernetes v1.20.14 amd64
-echo "Start the way ,eg: sh autobuild.sh kubernetes v1.20.14 amd64"
-version=`echo "$imageName"|cut -d" " -f3`
-echo "$version"
-arch=`echo "$imageName"|cut -d" " -f4`
-echo $arch
+echo "Start the way ,eg: sh autobuild.sh v1.20.14 amd64"
+version=$1
+echo "version: $version"
+arch=$2
+echo "arch: $arch"
 wget http://sealer.oss-cn-beijing.aliyuncs.com/auto-build/rootfs.tar.gz
 tar -xvf rootfs.tar.gz
 wget https://dl.k8s.io/$version/kubernetes-server-linux-$arch.tar.gz

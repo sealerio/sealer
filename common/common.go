@@ -180,7 +180,7 @@ func DefaultTheClusterNydusdFileDir(clusterName string) string {
 }
 
 func DefaultTheClusterRootfsPluginDir(clusterName string) string {
-	return filepath.Join(DefaultTheClusterRootfsDir(clusterName), "plugin")
+	return filepath.Join(DefaultTheClusterRootfsDir(clusterName), "plugins")
 }
 
 func TheDefaultClusterPKIDir(clusterName string) string {

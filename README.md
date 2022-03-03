@@ -91,8 +91,8 @@ Install a kubernetes cluster
 
 ```shell script
 #install Sealer binaries
-wget https://github.com/alibaba/sealer/releases/download/v0.6.1/sealer-v0.6.1-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.6.1-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.7.0/sealer-v0.7.0-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.7.0-linux-amd64.tar.gz && mv sealer /usr/bin
 #run a kubernetes cluster
 sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx
 ```
