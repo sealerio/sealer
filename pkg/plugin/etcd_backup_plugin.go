@@ -39,7 +39,7 @@ func NewEtcdBackupPlugin() Interface {
 }
 
 func init() {
-	Register(EtcdPlugin, &EtcdBackupPlugin{})
+	Register(EtcdPlugin, NewEtcdBackupPlugin())
 }
 
 func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {

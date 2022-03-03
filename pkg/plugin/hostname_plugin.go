@@ -31,7 +31,7 @@ func NewHostnamePlugin() Interface {
 }
 
 func init() {
-	Register(HostNamePlugin, &HostnamePlugin{})
+	Register(HostNamePlugin, NewHostnamePlugin())
 }
 
 func (h HostnamePlugin) Run(context Context, phase Phase) error {

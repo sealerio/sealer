@@ -16,13 +16,8 @@ package plugin
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/alibaba/sealer/pkg/env"
-
-	"github.com/alibaba/sealer/utils"
-
-	"github.com/alibaba/sealer/pkg/client/k8s"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils/ssh"
@@ -34,7 +29,11 @@ func NewShellPlugin() Interface {
 	return &Sheller{}
 }
 
-func (s Sheller) Run(context Context, phase Phase) error {
+func init() {
+	Register(ShellPlugin, NewShellPlugin())
+}
+
+func (s Sheller) Run(context Context, phase Phase) (err error) {
 	if string(phase) != context.Plugin.Spec.Action || context.Plugin.Spec.Type != ShellPlugin {
 		return nil
 	}
@@ -46,29 +45,9 @@ func (s Sheller) Run(context Context, phase Phase) error {
 	//get all host ip
 	allHostIP := append(context.Cluster.GetMasterIPList(), context.Cluster.GetNodeIPList()...)
 	if on := context.Plugin.Spec.On; on != "" {
-		if strings.Contains(on, "=") {
-			if phase != PhasePostInstall {
-				return fmt.Errorf("the action must be PostInstall, When nodes is specified with a label")
-			}
-			client, err := k8s.Newk8sClient()
-			if err != nil {
-				return err
-			}
-			ipList, err := client.ListNodeIPByLabel(strings.TrimSpace(on))
-			if err != nil {
-				return err
-			}
-			if len(ipList) == 0 {
-				return fmt.Errorf("nodes is not found by label [%s]", on)
-			}
-			allHostIP = ipList
-		} else if on == common.MASTER || on == common.NODE {
-			allHostIP = context.Cluster.GetIPSByRole(on)
-			if allHostIP == nil {
-				return fmt.Errorf("role is not found [%s]", on)
-			}
-		} else {
-			allHostIP = utils.DisassembleIPList(on)
+		allHostIP, err = GetIpsByOnField(on, context, phase)
+		if err != nil {
+			return err
 		}
 	}
 	for _, ip := range allHostIP {
@@ -83,8 +62,4 @@ func (s Sheller) Run(context Context, phase Phase) error {
 		}
 	}
 	return nil
-}
-
-func init() {
-	Register(ShellPlugin, &Sheller{})
 }
