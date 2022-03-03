@@ -202,6 +202,52 @@ spec:
     WantedBy=multi-user.target
 ```
 
+## Config Pre process
+
+```
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: mysql-config
+spec:
+  path: etc/mysql.yaml
+  process: value|tojson|tobase64 # pre process pipeline
+  data:
+      config:
+         username: root
+         passwd: xxx
+```
+
+Will convert value：
+
+```
+username:root
+passwd:xxx
+```
+
+tojson:
+
+```
+{
+username:root,
+passwd:xxx
+}
+```
+
+to base64: ewp1c2VybmFtZTpyb290LApwYXNzd2Q6eHh4Cn0K
+
+then write to etc/mysql.yaml, the file content will be:
+
+```
+config: ewp1c2VybmFtZTpyb290LApwYXNzd2Q6eHh4Cn0K
+```
+
+If strategy is `tojson|tobase64` the hole data will convert to json then convert to base64.
+
+You can freely combine these processors.
+
+This feature is useful for kubernetes secret.
+
 ## deep merge configuration (YAML format)
 
 ### merge *calico* custom configuration using Config feature
@@ -240,5 +286,5 @@ spec:
           interface: "enp*" #change the automatic IP detection rule to a matching rule
 ```
 
->Merge config supports only yaml configuration.
->`spec.calicoNetwork.nodeAddressAutodetectionV4.interface="enp*"` modify success。
+Merge config supports only yaml configuration.
+`spec.calicoNetwork.nodeAddressAutodetectionV4.interface="enp*"` modify success。

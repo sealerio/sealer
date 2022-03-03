@@ -67,6 +67,7 @@ import (
 // ConfigSpec defines the desired state of Config
 type ConfigSpec struct {
 	Strategy string `json:"strategy,omitempty"`
+	Process  string `json:"process,omitempty"`
 	Data     string `json:"data,omitempty"`
 	Path     string `json:"path,omitempty"`
 }
