@@ -248,7 +248,6 @@ You can freely combine these processors.
 
 This feature is useful for kubernetes secret.
 
-
 ## deep merge configuration (YAML format)
 
 ### merge *calico* custom configuration using Config feature

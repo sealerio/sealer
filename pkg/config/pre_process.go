@@ -26,20 +26,24 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
+const (
+	valueProcessorName    = "value"
+	toJSONProcessorName   = "toJson"
+	toBase64ProcessorName = "toBase64"
+	trueLabelValue        = "true"
+	trueLabelKey          = "preprocess.value"
+)
+
 type PreProcessor interface {
 	Process(config *v1.Config) error
-	Name() string
 }
 
 func NewProcessorsAndRun(config *v1.Config) error {
 	pmap := make(map[string]PreProcessor)
-	valueProcessor := &valueProcessor{}
-	toJsonProcessor := &toJsonProcessor{}
-	toBase64Processor := &toBase64Processor{}
 
-	pmap[valueProcessor.Name()] = valueProcessor
-	pmap[toJsonProcessor.Name()] = toJsonProcessor
-	pmap[toBase64Processor.Name()] = toBase64Processor
+	pmap[valueProcessorName] = &valueProcessor{}
+	pmap[toJSONProcessorName] = &toJSONProcessor{}
+	pmap[toBase64ProcessorName] = &toBase64Processor{}
 
 	processors := strings.Split(config.Spec.Process, "|")
 	for _, pname := range processors {
@@ -59,18 +63,14 @@ type valueProcessor struct{}
 
 func (v valueProcessor) Process(config *v1.Config) error {
 	config.Labels = make(map[string]string)
-	config.Labels["preprocess.value"] = "true"
+	config.Labels[trueLabelKey] = trueLabelValue
 	return nil
 }
 
-func (v valueProcessor) Name() string {
-	return "value"
-}
+type toJSONProcessor struct{}
 
-type toJsonProcessor struct{}
-
-func (t toJsonProcessor) Process(config *v1.Config) error {
-	if v, ok := config.Labels["preprocess.value"]; !ok || v != "true" {
+func (t toJSONProcessor) Process(config *v1.Config) error {
+	if v, ok := config.Labels[trueLabelKey]; !ok || v != trueLabelValue {
 		json, err := yaml.YAMLToJSON([]byte(config.Spec.Data))
 		if err != nil {
 			return fmt.Errorf("failed to resolve config data to json, %v", err)
@@ -107,14 +107,10 @@ func (t toJsonProcessor) Process(config *v1.Config) error {
 	return nil
 }
 
-func (t toJsonProcessor) Name() string {
-	return "toJson"
-}
-
 type toBase64Processor struct{}
 
 func (t toBase64Processor) Process(config *v1.Config) error {
-	if v, ok := config.Labels["preprocess.value"]; !ok || v != "true" {
+	if v, ok := config.Labels[trueLabelKey]; !ok || v != trueLabelValue {
 		config.Spec.Data = base64.StdEncoding.EncodeToString([]byte(config.Spec.Data))
 		return nil
 	}
@@ -130,14 +126,10 @@ func (t toBase64Processor) Process(config *v1.Config) error {
 	}
 	bs, err := yaml.Marshal(dataMap)
 	if err != nil {
-		fmt.Errorf("failed to convert base64 to yaml, %v", err)
+		return fmt.Errorf("failed to convert base64 to yaml, %v", err)
 	}
 
 	config.Spec.Data = string(bs)
 
 	return nil
-}
-
-func (t toBase64Processor) Name() string {
-	return "toBase64"
 }
