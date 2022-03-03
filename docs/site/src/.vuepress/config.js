@@ -17,14 +17,15 @@ enSideBar = {
         title: 'Getting Started',
         collapsable: true,
         children: [
-          'getting-started/introduction',
-          'getting-started/quick-start',
-          'getting-started/using-clusterfile',
-          'getting-started/run-cluster',
+          'getting-started/applications',
+          'getting-started/build-appimage',
           'getting-started/build-cloudimage',
           'getting-started/config',
+          'getting-started/introduction',
           'getting-started/plugin',
-          'getting-started/applications',
+          'getting-started/quick-start',
+          'getting-started/use-cloudimage',
+          'getting-started/using-clusterfile',
         ]
       },
       {
@@ -39,6 +40,7 @@ enSideBar = {
           'advanced/gpu-cloudimage',
           'advanced/raw-docker-baseimage',
           'advanced/registry-configuration',
+          'advanced/save-charts-package',
           'advanced/use-kyverno-baseimage',
         ]
       },
@@ -90,14 +92,15 @@ zhSideBar = {
         title: '快速开始',
         collapsable: true,
         children: [
-          'getting-started/introduction',
-          'getting-started/quick-start',
-          'getting-started/using-clusterfile',
-          'getting-started/run-cluster',
+          'getting-started/applications',
+          'getting-started/build-appimage',
           'getting-started/build-cloudimage',
           'getting-started/config',
+          'getting-started/introduction',
           'getting-started/plugin',
-          'getting-started/applications',
+          'getting-started/quick-start',
+          'getting-started/use-cloudimage',
+          'getting-started/using-clusterfile',
         ]
       },
       {
@@ -112,6 +115,7 @@ zhSideBar = {
           'advanced/gpu-cloudimage',
           'advanced/raw-docker-baseimage',
           'advanced/registry-configuration',
+          'advanced/save-charts-package',
           'advanced/use-kyverno-baseimage',
         ]
       },
