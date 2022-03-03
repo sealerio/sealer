@@ -15,7 +15,6 @@
 FROM ubuntu:21.04
 
 RUN echo "Installing Packages ..." \
-    && sed -i "s/archive.ubuntu.com/mirrors.aliyun.com/g" /etc/apt/sources.list \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
        kmod ca-certificates \
