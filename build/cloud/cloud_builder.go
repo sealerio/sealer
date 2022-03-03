@@ -20,6 +20,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/alibaba/sealer/pkg/runtime"
+	"github.com/alibaba/sealer/utils/mount"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
@@ -36,6 +39,11 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
+)
+
+const (
+	RegistryMountUpper = "/var/lib/sealer/tmp/upper"
+	RegistryMountWork  = "/var/lib/sealer/tmp/work"
 )
 
 // Builder using cloud provider to build a cluster image
@@ -196,7 +204,36 @@ func (c *Builder) RemoteLocalBuild() (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to run remote apply:%v", err)
 	}
+	// prepare registry
+	if err = c.prepareRegistry(); err != nil {
+		return err
+	}
+	// run sealer build cmd
 	return c.runBuildCommands()
+}
+
+// prepareRegistry: collect operator images via remount registry.
+// because runtime apply registry not mount the rootfs/registry as lower layer. if we want to collect
+// operator images,we must remount the dir rootfs/registry for collecting differ of the overlay upper layer.
+func (c *Builder) prepareRegistry() (err error) {
+	rootfs := common.DefaultTheClusterRootfsDir(c.Cluster.Name)
+	mkdir := fmt.Sprintf("rm -rf %s %s && mkdir -p %s %s", RegistryMountUpper, RegistryMountWork,
+		RegistryMountUpper, RegistryMountWork)
+
+	mountCmd := fmt.Sprintf("%s && mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s", mkdir,
+		rootfs,
+		RegistryMountUpper, RegistryMountWork, rootfs)
+	isMount, _ := mount.GetRemoteMountDetails(c.SSH, c.RemoteHostIP, rootfs)
+	if isMount {
+		mountCmd = fmt.Sprintf("umount %s && %s", rootfs, mountCmd)
+	}
+	// we need to restart registry container in order to cache the container images.
+	mountCmd = fmt.Sprintf("%s && docker restart %s", mountCmd, runtime.RegistryName)
+
+	if err := c.SSH.CmdAsync(c.RemoteHostIP, mountCmd); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Builder) runBuildCommands() (err error) {
