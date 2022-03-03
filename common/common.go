@@ -49,7 +49,7 @@ const (
 	YamlSuffix                    = ".yaml"
 	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
 	RawClusterfile                = "/var/lib/sealer/Clusterfile"
-	TmpClusterfile                = "/var/lib/sealer/tmp/Clusterfile"
+	TmpClusterfile                = "/tmp/Clusterfile"
 	DefaultRegistryHostName       = "registry.cn-qingdao.aliyuncs.com"
 	DefaultRegistryAuthDir        = "/root/.docker/config.json"
 	KubeAdminConf                 = "/etc/kubernetes/admin.conf"
