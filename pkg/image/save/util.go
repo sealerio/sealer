@@ -50,13 +50,18 @@ func (n Named) Tag() string {
 	return n.tag
 }
 
-func splitDockerDomain(name string) (domain, remainder string) {
+func splitDockerDomain(name string, registry string) (domain, remainder string) {
 	i := strings.IndexRune(name, '/')
 	if i == -1 || (!strings.ContainsAny(name[:i], ".:") && name[:i] != "localhost" && strings.ToLower(name[:i]) == name[:i]) {
-		domain, remainder = defaultDomain, name
+		if registry != "" {
+			domain, remainder = registry, name
+		} else {
+			domain, remainder = defaultDomain, name
+		}
 	} else {
 		domain, remainder = name[:i], name[i+1:]
 	}
+
 	if domain == legacyDefaultDomain {
 		domain = defaultDomain
 	}
@@ -66,8 +71,8 @@ func splitDockerDomain(name string) (domain, remainder string) {
 	return
 }
 
-func parseNormalizedNamed(s string) (Named, error) {
-	domain, remainder := splitDockerDomain(s)
+func parseNormalizedNamed(s string, registry string) (Named, error) {
+	domain, remainder := splitDockerDomain(s, registry)
 	var remoteName, tag string
 	if tagSep := strings.IndexRune(remainder, ':'); tagSep > -1 {
 		tag = remainder[tagSep+1:]

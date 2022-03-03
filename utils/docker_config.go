@@ -15,13 +15,13 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/docker/docker/api/types"
 
@@ -69,22 +69,26 @@ func (d DockerInfo) DecodeDockerAuth(hostname string) (string, string, error) {
 		return "", "", fmt.Errorf("auth for %s doesn't exist", hostname)
 	}
 
+	return DecodeAuth(auth)
+}
+
+func DecodeAuth(auth string) (string, string, error) {
 	decode, err := base64.StdEncoding.DecodeString(auth)
 	if err != nil {
 		return "", "", err
 	}
+	i := bytes.IndexRune(decode, ':')
 
-	spts := strings.Split(string(decode), ":")
-	if len(spts) != 2 {
-		return "", "", fmt.Errorf("%s auth base64 has problem of format", hostname)
+	if i == -1 {
+		return "", "", fmt.Errorf("auth base64 has problem of format")
 	}
 
-	return spts[0], spts[1], nil
+	return string(decode[:i]), string(decode[i+1:]), nil
 }
 
 func SetDockerConfig(hostname, username, password string) error {
 	authFile := common.DefaultRegistryAuthConfigDir()
-	authEncode := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
+	authEncode := EncodeAuth(username, password)
 	var info *DockerInfo
 	var err error
 	if !IsFileExist(authFile) {
@@ -107,6 +111,10 @@ func SetDockerConfig(hostname, username, password string) error {
 		return fmt.Errorf("write %s failed,%s", authFile, err)
 	}
 	return nil
+}
+
+func EncodeAuth(username, password string) string {
+	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
 }
 
 func GetDockerAuthInfoFromDocker(domain string) (types.AuthConfig, error) {

@@ -16,16 +16,28 @@ package save
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/docker/docker/pkg/progress"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-//SaveImage can save a list of images of the specified platform
+// ImageSave can save a list of images of the specified platform
 type ImageSave interface {
 	// SaveImages is not concurrently safe
 	SaveImages(images []string, dir string, platform v1.Platform) error
 }
+
+type ImageSection struct {
+	Registry string   `json:"registry,omitempty"`
+	Username string   `json:"username,omitempty"`
+	Password string   `json:"password,omitempty"`
+	Images   []string `json:"images,omitempty"`
+}
+
+type ImageListWithAuth map[string]map[string][]Named
 
 type DefaultImageSaver struct {
 	ctx            context.Context
@@ -41,4 +53,18 @@ func NewImageSaver(ctx context.Context) ImageSave {
 		ctx:            ctx,
 		domainToImages: make(map[string][]Named),
 	}
+}
+
+func NewImageListWithAuth(section ImageSection) (string, []Named, error) {
+	var nameds []Named
+	auth := utils.EncodeAuth(section.Username, section.Password)
+	for _, image := range section.Images {
+		named, err := parseNormalizedNamed(image, section.Registry)
+		if err != nil {
+			return "", nil, fmt.Errorf("parse image name error: %v", err)
+		}
+		nameds = append(nameds, named)
+	}
+
+	return auth, nameds, nil
 }

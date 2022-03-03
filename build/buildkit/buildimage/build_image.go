@@ -56,6 +56,12 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		buildArgs  = map[string]string{}
 	)
 
+	// process shadow file
+	err := b.checkShadow(execCtx.BuildContext)
+	if err != nil {
+		return err
+	}
+
 	if b.RawImage.Spec.ImageConfig.Args != nil {
 		for k, v := range b.RawImage.Spec.ImageConfig.Args {
 			buildArgs[k] = v
@@ -119,6 +125,26 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 	return nil
 }
 
+func (b BuildImage) checkShadow(buildContext string) error {
+	var (
+		rootfs  = b.RootfsMountInfo.GetMountTarget()
+		shadows = []Shadow{NewShadowPuller()}
+	)
+	logger.Info("start to check the shadow file")
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, shadow := range shadows {
+		s := shadow
+		eg.Go(func() error {
+			err := s.Process(buildContext, rootfs)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+	return eg.Wait()
+}
+
 func (b BuildImage) genNewLayer(layerType, layerValue, filepath string) (v1.Layer, error) {
 	imageLayer := v1.Layer{
 		Type:  layerType,
@@ -159,6 +185,7 @@ func (b BuildImage) checkDiff() error {
 
 func (b BuildImage) SaveBuildImage(name string, opts SaveOpts) error {
 	b.RawImage.Name = name
+	// process differ of manifests and metadata.
 	err := b.checkDiff()
 	if err != nil {
 		return err
