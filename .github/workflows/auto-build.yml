@@ -19,7 +19,7 @@ jobs:
           echo $version
           arch=`echo "$commentbody"|cut -d" " -f3`
           echo $arch
-          wget http://sealer.oss-cn-beijing.aliyuncs.com/auto-build/rootfs.tar.gz
+          wget https://sealer.oss-cn-beijing.aliyuncs.com/auto-build/rootfs.tar.gz
           tar -xvf rootfs.tar.gz
           wget https://dl.k8s.io/$version/kubernetes-server-linux-$arch.tar.gz
           tar -xvf kubernetes-server-linux-$arch.tar.gz
@@ -28,14 +28,22 @@ jobs:
           sudo cp ./kubernetes/server/bin/kubelet ./rootfs/bin/
           wget https://dl.k8s.io/$version/kubernetes-server-linux-amd64.tar.gz
           tar -xvf kubernetes-server-linux-amd64.tar.gz
-          wget http://sealer.oss-cn-beijing.aliyuncs.com/auto-build/sealer.tar.gz
-          sudo tar -xvf sealer.tar.gz -C /usr/bin
+          wget https://sealer.oss-cn-beijing.aliyuncs.com/sealer-latest.tar.gz
+          sudo tar -xvf sealer-latest.tar.gz -C /usr/bin
           sudo sealer login ${{secrets.PRIVATEWAREHOUSE}}
-          sudo sed -i "s/v1.20.14/$version/g" ./rootfs/etc/kubeadm.yml
-          sudo sed -i "s/v1.20.14/$version/g" ./rootfs/Metadata
+          sudo sed -i "s/v1.19.8/$version/g" ./rootfs/etc/kubeadm.yml
+          sudo sed -i "s/v1.19.8/$version/g" ./rootfs/Metadata
           sudo sed -i "s/amd64/$arch/g" ./rootfs/Metadata
           sudo ./kubernetes/server/bin/kubeadm config images list --config ./rootfs/etc/kubeadm.yml 2>/dev/null>>./rootfs/imageList
           cd ./rootfs
+          sudo sealer build -f Kubefile -m lite -t kubernetes:$version-alpine .
+          sudo sealer push kubernetes:$version-alpine
+          wget https://sealer.oss-cn-beijing.aliyuncs.com/auto-build/calico.tar.gz
+          tar -xvf calico.tar.gz
+          cp ./calico/tigera-operator.yaml ./etc/
+          cp ./calico/custom-resources.yaml ./etc/
+          sudo sed -i "s/v1.19.8/$version/g" ./calico/Kubefile
+          cd ./calico
           sudo sealer build -f Kubefile -m lite -t kubernetes:$version .
           sudo sealer push kubernetes:$version
       - name: Auto build image
@@ -43,4 +51,4 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
-            Image built successfully : kubernetes:version-auto
+            Image build successfully!
