@@ -132,7 +132,20 @@ func GetClusterFileByImageName(imageName string) (*v2.Cluster, error) {
 	if err != nil {
 		return nil, err
 	}
-	return GetClusterFromDataCompatV1(clusterFile)
+
+	c, err := GetClusterFromDataCompatV1(clusterFile)
+	if err != nil {
+		return nil, err
+	}
+
+	// if run an application image on the existed cluster,use the existed cluster name as the desired one,
+	// make sure we do any changes on the same cluster.
+	name, err := utils.GetDefaultClusterName()
+	if err == nil {
+		c.Name = name
+	}
+
+	return c, nil
 }
 
 func GetClusterFromDataCompatV1(data string) (*v2.Cluster, error) {
