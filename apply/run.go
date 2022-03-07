@@ -79,7 +79,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	c.cluster.Spec.SSH.User = c.runArgs.User
 	c.cluster.Spec.SSH.Pk = c.runArgs.Pk
 	c.cluster.Spec.SSH.PkPasswd = c.runArgs.PkPassword
-	c.cluster.Spec.SSH.Port = c.runArgs.Port
+	c.cluster.Spec.SSH.Port = strconv.Itoa(int(c.runArgs.Port))
 	c.cluster.Spec.Env = append(c.cluster.Spec.Env, c.runArgs.CustomEnv...)
 	c.cluster.Spec.CMDArgs = append(c.cluster.Spec.CMDArgs, c.runArgs.CMDArgs...)
 	if c.runArgs.Password != "" {
@@ -109,14 +109,14 @@ func (c *ClusterArgs) setHostWithIpsPort(ips []string, role string) {
 	//map[ssh port]*host
 	hostMap := map[string]*v2.Host{}
 	for i := range ips {
-		ip, port := utils.GetHostIPAndPortOrDefault(ips[i], c.runArgs.Port)
+		ip, port := utils.GetHostIPAndPortOrDefault(ips[i], strconv.Itoa(int(c.runArgs.Port)))
 		if _, ok := hostMap[port]; !ok {
 			hostMap[port] = &v2.Host{IPS: []string{ip}, Roles: []string{role}, SSH: v1.SSH{Port: port}}
 			continue
 		}
 		hostMap[port].IPS = append(hostMap[port].IPS, ip)
 	}
-	_, master0Port := utils.GetHostIPAndPortOrDefault(ips[0], c.runArgs.Port)
+	_, master0Port := utils.GetHostIPAndPortOrDefault(ips[0], strconv.Itoa(int(c.runArgs.Port)))
 	for port, host := range hostMap {
 		host.IPS = removeIPListDuplicatesAndEmpty(host.IPS)
 		if port == master0Port && role == common.MASTER {
