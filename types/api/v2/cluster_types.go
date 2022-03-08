@@ -36,6 +36,7 @@ type ClusterSpec struct {
 	// but user want to config a list, using array we can convert it to {CertSANS:[127.0.0.1, localhost]}
 	Env     []string `json:"env,omitempty"`
 	CMDArgs []string `json:"cmd_args,omitempty"`
+	CMD     []string `json:"cmd,omitempty"`
 	Hosts   []Host   `json:"hosts,omitempty"`
 	SSH     v1.SSH   `json:"ssh,omitempty"`
 }

@@ -16,6 +16,9 @@ package guest
 
 import (
 	"fmt"
+	"strings"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"github.com/alibaba/sealer/utils"
 
@@ -48,31 +51,25 @@ func NewGuestManager() (Interface, error) {
 }
 
 func (d *Default) Apply(cluster *v2.Cluster) error {
+	var (
+		clusterRootfs = common.DefaultTheClusterRootfsDir(cluster.Name)
+		ex            = shell.NewLex('\\')
+	)
+
 	image, err := d.imageStore.GetByName(cluster.Spec.Image)
 	if err != nil {
 		return fmt.Errorf("get cluster image failed, %s", err)
 	}
+	cmdArgs := d.getGuestCmdArg(cluster, image)
+	cmd := d.getGuestCmd(cluster, image)
+
 	sshClient, err := ssh.NewStdoutSSHClient(runtime.GetMaster0Ip(cluster), cluster)
 	if err != nil {
 		return err
 	}
-	clusterRootfs := common.DefaultTheClusterRootfsDir(cluster.Name)
 
-	ex := shell.NewLex('\\')
-	var args []string
-	if image.Spec.ImageConfig.Args != nil {
-		args = append(args, utils.ConvertMapToEnvList(image.Spec.ImageConfig.Args)...)
-	}
-	if len(cluster.Spec.CMDArgs) != 0 {
-		args = append(args, cluster.Spec.CMDArgs...)
-	}
-	arg := utils.ConvertEnvListToMap(args)
-	for i := range image.Spec.Layers {
-		if image.Spec.Layers[i].Type != common.CMDCOMMAND {
-			continue
-		}
-
-		cmdline, err := ex.ProcessWordWithMap(image.Spec.Layers[i].Value, arg)
+	for _, value := range cmd {
+		cmdline, err := ex.ProcessWordWithMap(value, cmdArgs)
 		if err != nil {
 			return fmt.Errorf("failed to render build args: %v", err)
 		}
@@ -81,7 +78,35 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 			return err
 		}
 	}
+
 	return nil
+}
+
+func (d *Default) getGuestCmd(cluster *v2.Cluster, image *v1.Image) []string {
+	if len(cluster.Spec.CMD) != 0 {
+		return cluster.Spec.CMD
+	}
+
+	var cmd []string
+	for i := range image.Spec.Layers {
+		if image.Spec.Layers[i].Type != common.CMDCOMMAND {
+			continue
+		}
+		cmdValue := image.Spec.Layers[i].Value
+		cmd = append(cmd, strings.Split(cmdValue, ",")...)
+	}
+	return cmd
+}
+
+func (d *Default) getGuestCmdArg(cluster *v2.Cluster, image *v1.Image) map[string]string {
+	var args []string
+	if image.Spec.ImageConfig.Args != nil {
+		args = append(args, utils.ConvertMapToEnvList(image.Spec.ImageConfig.Args)...)
+	}
+	if len(cluster.Spec.CMDArgs) != 0 {
+		args = append(args, cluster.Spec.CMDArgs...)
+	}
+	return utils.ConvertEnvListToMap(args)
 }
 
 func (d Default) Delete(cluster *v2.Cluster) error {
