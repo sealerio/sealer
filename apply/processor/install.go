@@ -15,29 +15,61 @@
 package processor
 
 import (
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/config"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/alibaba/sealer/pkg/guest"
+	"github.com/alibaba/sealer/pkg/plugin"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
 type InstallProcessor struct {
 	fileSystem cloudfilesystem.Interface
 	Guest      guest.Interface
+	Config     config.Interface
+	Plugins    plugin.Plugins
 }
 
 // Execute :according to the different of desired cluster to install app on cluster.
 func (i InstallProcessor) Execute(cluster *v2.Cluster) error {
-	err := i.MountRootfs(cluster)
-	if err != nil {
+	i.Config = config.NewConfiguration(cluster.Name)
+	i.Plugins = plugin.NewPlugins(cluster.Name)
+	if err := i.initPlugin(cluster); err != nil {
 		return err
 	}
-	err = i.Install(cluster)
+	pipLine, err := i.GetPipeLine()
 	if err != nil {
 		return err
 	}
 
+	for _, f := range pipLine {
+		if err = f(cluster); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func (i InstallProcessor) initPlugin(cluster *v2.Cluster) error {
+	return i.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
+}
+
+func (i InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+	var todoList []func(cluster *v2.Cluster) error
+	todoList = append(todoList,
+		i.RunConfig,
+		i.MountRootfs,
+		i.GetPhasePluginFunc(plugin.PhasePreGuest),
+		i.Install,
+		i.GetPhasePluginFunc(plugin.PhasePostInstall),
+	)
+	return todoList, nil
+}
+
+func (i InstallProcessor) RunConfig(cluster *v2.Cluster) error {
+	return i.Config.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
 }
 
 func (i InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
@@ -48,6 +80,17 @@ func (i InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
 
 func (i InstallProcessor) Install(cluster *v2.Cluster) error {
 	return i.Guest.Apply(cluster)
+}
+
+func (i InstallProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {
+	return func(cluster *v2.Cluster) error {
+		if phase == plugin.PhasePreGuest {
+			if err := i.Plugins.Load(); err != nil {
+				return err
+			}
+		}
+		return i.Plugins.Run(cluster, phase)
+	}
 }
 
 func NewInstallProcessor(rootfs string) (Interface, error) {
