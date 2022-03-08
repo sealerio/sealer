@@ -17,9 +17,7 @@ package buildimage
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
-	"github.com/alibaba/sealer/pkg/runtime"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
@@ -321,51 +319,4 @@ func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 		NewLayers:       newLayers,
 		RootfsMountInfo: mountInfo,
 	}, nil
-}
-
-type annotation struct {
-	source string
-}
-
-func (a annotation) Set(ima *v1.Image) error {
-	return a.setClusterFile(ima)
-}
-
-func (a annotation) setClusterFile(ima *v1.Image) error {
-	cluster, err := LoadClusterFile(filepath.Join(a.source, "etc", common.DefaultClusterFileName))
-	if err != nil {
-		return fmt.Errorf("failed to load clusterfile, err: %v", err)
-	}
-	cluster.Spec.Image = ima.Name
-	err = setClusterFileToImage(cluster, ima)
-	if err != nil {
-		return fmt.Errorf("failed to set image metadata, err: %v", err)
-	}
-	return nil
-}
-
-func NewAnnotationSetter(rootfs string) ImageSetter {
-	return annotation{
-		source: rootfs,
-	}
-}
-
-type platform struct {
-	source string
-}
-
-func (p platform) Set(ima *v1.Image) error {
-	plat := runtime.GetCloudImagePlatform(p.source)
-	ima.Spec.Platform = v1.Platform{
-		Architecture: plat.Architecture,
-		OS:           plat.OS,
-		OSVersion:    plat.OSVersion,
-		Variant:      plat.Variant,
-	}
-	return nil
-}
-func NewPlatformSetter(rootfs string) ImageSetter {
-	return platform{
-		source: rootfs,
-	}
 }

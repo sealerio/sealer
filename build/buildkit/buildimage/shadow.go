@@ -28,11 +28,6 @@ var (
 	imageListWithAuth = "imageListWithAuth.yaml"
 )
 
-type Shadow interface {
-	// Process set data to cloud image ,but not to show in the image layer.
-	Process(context, rootfs string) error
-}
-
 type ShadowPuller struct {
 	puller save.DefaultImageSaver
 }

@@ -63,7 +63,7 @@ const (
 	CacheID                       = "cacheID"
 	RenderChartsDir               = "charts"
 	RenderManifestsDir            = "manifests"
-	APIVersion                    = "saler.cool/v2"
+	APIVersion                    = "sealer.cloud/v2"
 	Kind                          = "Cluster"
 )
 
