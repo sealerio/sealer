@@ -17,8 +17,6 @@ package cmd
 import (
 	"os"
 
-	"github.com/alibaba/sealer/utils/ssh"
-
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/apply"
@@ -74,7 +72,7 @@ func init() {
 	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
 	runCmd.Flags().StringVarP(&runArgs.User, "user", "u", "root", "set baremetal server username")
 	runCmd.Flags().StringVarP(&runArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
-	runCmd.Flags().StringVar(&runArgs.Port, "port", ssh.DefaultSSHPort, "set the sshd service port number for the server (default port: 22)")
+	runCmd.Flags().Uint16Var(&runArgs.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	runCmd.Flags().StringVar(&runArgs.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
 	runCmd.Flags().StringVar(&runArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	runCmd.Flags().StringSliceVar(&runArgs.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")

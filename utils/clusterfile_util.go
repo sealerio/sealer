@@ -23,7 +23,6 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/cert"
 )
 
@@ -32,7 +31,6 @@ var ErrClusterNotExist = fmt.Errorf("no cluster exist")
 func GetDefaultClusterName() (string, error) {
 	files, err := ioutil.ReadDir(fmt.Sprintf("%s/.sealer", cert.GetUserHomeDir()))
 	if err != nil {
-		logger.Error(err)
 		return "", err
 	}
 	var clusters []string

@@ -19,7 +19,7 @@ type RunArgs struct {
 	Nodes      string
 	User       string
 	Password   string
-	Port       string
+	Port       uint16
 	Pk         string
 	PkPassword string
 	PodCidr    string
