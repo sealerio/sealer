@@ -13,10 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package gen
 
 import (
 	"fmt"
+	"strconv"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -30,15 +32,27 @@ const (
 	masterLabel = "node-role.kubernetes.io/master"
 )
 
-func GenerateClusterfile(name, passwd, image string) error {
+type ParserArg struct {
+	Name       string
+	Passwd     string
+	Image      string
+	Port       uint16
+	Pk         string
+	PkPassword string
+}
+
+func GenerateClusterfile(arg *ParserArg) error {
 	var nodeip, masterip []string
 	cluster := &v2.Cluster{}
 
 	cluster.Kind = common.Kind
 	cluster.APIVersion = common.APIVersion
-	cluster.Name = name
-	cluster.Spec.SSH.Passwd = passwd
-	cluster.Spec.Image = image
+	cluster.Name = arg.Name
+	cluster.Spec.Image = arg.Image
+	cluster.Spec.SSH.Passwd = arg.Passwd
+	cluster.Spec.SSH.Port = strconv.Itoa(int(arg.Port))
+	cluster.Spec.SSH.Pk = arg.Pk
+	cluster.Spec.SSH.PkPasswd = arg.PkPassword
 
 	c, err := k8s.Newk8sClient()
 	if err != nil {
@@ -73,6 +87,6 @@ func GenerateClusterfile(name, passwd, image string) error {
 
 	cluster.Spec.Hosts = append(cluster.Spec.Hosts, masterHosts, nodeHosts)
 
-	fileName := fmt.Sprintf("%s/.sealer/%s/Clusterfile", common.GetHomeDir(), name)
+	fileName := fmt.Sprintf("%s/.sealer/%s/Clusterfile", common.GetHomeDir(), arg.Name)
 	return utils.MarshalYamlToFile(fileName, cluster)
 }

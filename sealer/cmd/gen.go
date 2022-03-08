@@ -13,21 +13,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	"fmt"
 
+	"github.com/alibaba/sealer/pkg/cert"
 	"github.com/alibaba/sealer/pkg/gen"
+	"github.com/spf13/cobra"
 )
 
-type genFlag struct {
-	name   string
-	passwd string
-	image  string
-}
-
-var flag *genFlag
+var flag *gen.ParserArg
 
 // genCmd represents the gen command
 var genCmd = &cobra.Command{
@@ -37,7 +34,7 @@ var genCmd = &cobra.Command{
 
 The takeover actually is to generate a Clusterfile by kubeconfig.
 Sealer will call kubernetes API to get masters and nodes IP info, then generate a Clusterfile.
-Also sealer will pull a CloudImage which matchs the kubernetes version.
+Also sealer will pull a CloudImage which matches the kubernetes version.
 
 Check generated Clusterfile: 'cat .sealer/<cluster name>/Clusterfile'
 
@@ -54,15 +51,20 @@ Then you can use any sealer command to manage the cluster like:
 > Deploy a CloudImage into the cluster
 	sealer run mysql-cluster:5.8`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return gen.GenerateClusterfile(flag.name, flag.passwd, flag.image)
+		if flag.Passwd == "" || flag.Image == "" {
+			return fmt.Errorf("empty password or image name")
+		}
+		return gen.GenerateClusterfile(flag)
 	},
 }
 
 func init() {
-	flag = &genFlag{}
+	flag = &gen.ParserArg{}
 	rootCmd.AddCommand(genCmd)
-
-	genCmd.Flags().StringVar(&flag.image, "image", "", "Set tackover cloudimage")
-	genCmd.Flags().StringVar(&flag.name, "name", "default", "Set tackover cluster name")
-	genCmd.Flags().StringVar(&flag.passwd, "passwd", "", "Set tackover ssh passwd")
+	genCmd.Flags().Uint16Var(&flag.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
+	genCmd.Flags().StringVar(&flag.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set server private key")
+	genCmd.Flags().StringVar(&flag.PkPassword, "pk-passwd", "", "set server private key password")
+	genCmd.Flags().StringVar(&flag.Image, "image", "", "Set taken over cloud image")
+	genCmd.Flags().StringVar(&flag.Name, "name", "default", "Set taken over cluster name")
+	genCmd.Flags().StringVar(&flag.Passwd, "passwd", "", "Set taken over ssh passwd")
 }
