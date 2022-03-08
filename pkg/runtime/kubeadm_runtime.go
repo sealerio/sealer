@@ -230,6 +230,11 @@ func (k *KubeadmRuntime) setCgroupDriver(cGroup string) {
 	k.KubeletConfiguration.CgroupDriver = cGroup
 }
 
+func (k *KubeadmRuntime) setAPIVersion(apiVersion string) {
+	k.InitConfiguration.APIVersion = apiVersion
+	k.ClusterConfiguration.APIVersion = apiVersion
+	k.JoinConfiguration.APIVersion = apiVersion
+}
 func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
 	var tmpSlice []string
 	for _, ip := range masters {

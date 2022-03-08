@@ -35,20 +35,13 @@ echo ${driver}`
 // k.getKubeVersion can't be empty
 func (k *KubeadmRuntime) setKubeadmAPIVersion() {
 	switch {
-	case VersionCompare(k.getKubeVersion(), V1150) && !VersionCompare(k.getKubeVersion(), V1200):
-		k.InitConfiguration.APIVersion = KubeadmV1beta2
-		k.ClusterConfiguration.APIVersion = KubeadmV1beta2
-		k.JoinConfiguration.APIVersion = KubeadmV1beta2
-	// kubernetes gt 1.20, use Containerd instead of docker
-	case VersionCompare(k.getKubeVersion(), V1200):
-		k.InitConfiguration.APIVersion = KubeadmV1beta2
-		k.ClusterConfiguration.APIVersion = KubeadmV1beta2
-		k.JoinConfiguration.APIVersion = KubeadmV1beta2
+	case VersionCompare(k.getKubeVersion(), V1150) && !VersionCompare(k.getKubeVersion(), V1230):
+		k.setAPIVersion(KubeadmV1beta2)
+	case VersionCompare(k.getKubeVersion(), V1230):
+		k.setAPIVersion(KubeadmV1beta3)
 	default:
 		// Compatible with versions 1.14 and 1.13. but do not recommended.
-		k.InitConfiguration.APIVersion = KubeadmV1beta1
-		k.ClusterConfiguration.APIVersion = KubeadmV1beta1
-		k.JoinConfiguration.APIVersion = KubeadmV1beta1
+		k.setAPIVersion(KubeadmV1beta1)
 	}
 }
 
