@@ -56,7 +56,7 @@ func NewPlugins(clusterName string) Plugins {
 	}
 }
 
-// Load plugin configs and shared object(.so) file from $rootfs/plugin dir.
+// Load plugin configs and shared object(.so) file from $rootfs/plugins dir.
 func (c *PluginsProcessor) Load() error {
 	c.Plugins = nil
 	path := common.DefaultTheClusterRootfsPluginDir(c.ClusterName)
@@ -141,7 +141,7 @@ func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, string, erro
 	return p, *pt, nil
 }
 
-// Dump each plugin config to $rootfs/plugin dir by reading the clusterfile.
+// Dump each plugin config to $rootfs/plugins dir by reading the clusterfile.
 func (c *PluginsProcessor) Dump(clusterfile string) error {
 	if clusterfile == "" {
 		logger.Debug("clusterfile is empty!")
