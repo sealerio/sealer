@@ -36,7 +36,7 @@ type ImageSetter interface {
 	Set(*v1.Image) error
 }
 
-type Shadow interface {
+type Middleware interface {
 	// Process set data to cloud image ,but not to show in the image layer.
 	Process(context, rootfs string) error
 }

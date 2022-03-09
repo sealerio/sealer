@@ -28,11 +28,11 @@ var (
 	imageListWithAuth = "imageListWithAuth.yaml"
 )
 
-type ShadowPuller struct {
+type MiddlewarePuller struct {
 	puller save.DefaultImageSaver
 }
 
-func (s ShadowPuller) Process(context, rootfs string) error {
+func (s MiddlewarePuller) Process(context, rootfs string) error {
 	//read the filePath named "imageListWithAuth.yaml" if not exists just return;
 	//pares the images and save to rootfs
 	filePath := filepath.Join(context, imageListWithAuth)
@@ -40,7 +40,7 @@ func (s ShadowPuller) Process(context, rootfs string) error {
 		return nil
 	}
 
-	// pares shadow file: imageListWithAuth.yaml
+	// pares middleware file: imageListWithAuth.yaml
 	var imageSection []save.ImageSection
 	ia := make(save.ImageListWithAuth)
 
@@ -76,8 +76,8 @@ func (s ShadowPuller) Process(context, rootfs string) error {
 	return s.puller.SaveImagesWithAuth(ia, filepath.Join(rootfs, common.RegistryDirName), plat)
 }
 
-func NewShadowPuller() Shadow {
-	return ShadowPuller{
+func NewMiddlewarePuller() Middleware {
+	return MiddlewarePuller{
 		puller: save.DefaultImageSaver{},
 	}
 }

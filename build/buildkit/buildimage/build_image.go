@@ -54,8 +54,8 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		buildArgs  = map[string]string{}
 	)
 
-	// process shadow file
-	err := b.checkShadow(execCtx.BuildContext)
+	// process middleware file
+	err := b.checkMiddleware(execCtx.BuildContext)
 	if err != nil {
 		return err
 	}
@@ -123,15 +123,15 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 	return nil
 }
 
-func (b BuildImage) checkShadow(buildContext string) error {
+func (b BuildImage) checkMiddleware(buildContext string) error {
 	var (
-		rootfs  = b.RootfsMountInfo.GetMountTarget()
-		shadows = []Shadow{NewShadowPuller()}
+		rootfs      = b.RootfsMountInfo.GetMountTarget()
+		middlewares = []Middleware{NewMiddlewarePuller()}
 	)
-	logger.Info("start to check the shadow file")
+	logger.Info("start to check the middleware file")
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, shadow := range shadows {
-		s := shadow
+	for _, middleware := range middlewares {
+		s := middleware
 		eg.Go(func() error {
 			err := s.Process(buildContext, rootfs)
 			if err != nil {
