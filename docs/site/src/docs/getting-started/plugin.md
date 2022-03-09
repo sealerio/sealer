@@ -11,7 +11,7 @@ HOSTNAME plugin will help you to change all the hostnames
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: MyHostname # Specify this plugin name,will dump in $rootfs/plugin dir.
+  name: MyHostname # Specify this plugin name,will dump in $rootfs/plugins dir.
 spec:
   type: HOSTNAME # fixed string,should not change this name.
   action: PreInit # Specify which phase to run.
@@ -32,7 +32,7 @@ You can exec any shell command on specify node in any phase.
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: MyShell # Specify this plugin name,will dump in $rootfs/plugin dir.
+  name: MyShell # Specify this plugin name,will dump in $rootfs/plugins dir.
 spec:
   type: SHELL
   action: PostInstall # PreInit PreInstall PostInstall
