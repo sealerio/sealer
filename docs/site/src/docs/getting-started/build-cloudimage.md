@@ -34,13 +34,13 @@ provides an official base image for use.
 
 Examples:
 
-use `kubernetes:v1.19.8` which provided by sealer community as base image。
+use `kubernetes:v1.19.8` which provided by sealer community as base image.
 
 `FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`
 
 ### COPY instruction
 
-COPY: Copy files or directories in the build context to rootfs。
+COPY: Copy files or directories in the build context to rootfs.
 
 The cluster image file structure is based on the rootfs structure. The default target path is rootfs, and it will be
 automatically created when the specified target directory does not exist.
@@ -67,7 +67,7 @@ Support wildcard copy, copy all yaml files in the test directory to rootfs manif
 
 ### ARG instruction
 
-ARG: Supports setting command line parameters in the build phase for use with CMD and RUN instruction。
+ARG: Supports setting command line parameters in the build phase for use with CMD and RUN instruction.
 
 > instruction format: ARG <parameter name>[=<default value>]
 
@@ -96,7 +96,7 @@ execution result during build. If the system command does not exist, this instru
 
 Examples:
 
-Use the wget command to download a kubernetes dashboard。
+Use the wget command to download a kubernetes dashboard.
 
 `RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
 
@@ -104,15 +104,19 @@ Use the wget command to download a kubernetes dashboard。
 
 CMD: Similar to the RUN instruction format, use the system shell to execute build commands. However, the CMD command
 will be executed when sealer run, generally used to start and configure the cluster. In addition, unlike the CMD
-instructions in the Dockerfile, there can be multiple CMD instructions in a kubefile.
+instructions in the Dockerfile, there can be multiple CMD instructions in a kubefile, and support CMD command list.
 
 > instruction format: CMD {command args ...}
 
 Examples:
 
-Install a kubernetes dashboard using the kubectl command。
+Install a kubernetes dashboard using the kubectl command.
 
 `CMD kubectl apply -f recommended.yaml`
+
+Install mysql,redis and another saas application use one CMD command.
+
+`CMD kubectl apply -f mysql, kubectl apply -f redis, kubectl apply -f saas`
 
 ## Build type
 
