@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/clusterfile"
+
 	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
 
@@ -33,11 +35,12 @@ import (
 
 type DeleteProcessor struct {
 	cloudImageMounter cloudimage.Interface
+	ClusterFile       clusterfile.Interface
 }
 
 // Execute :according to the different of desired cluster to delete cluster.
 func (d DeleteProcessor) Execute(cluster *v2.Cluster) (err error) {
-	runTime, err := runtime.NewDefaultRuntime(cluster, cluster.GetAnnotationsByKey(common.ClusterfileName))
+	runTime, err := runtime.NewDefaultRuntime(cluster, d.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
 	}
@@ -91,7 +94,7 @@ func (d DeleteProcessor) UnMountImage(cluster *v2.Cluster) error {
 
 func (d DeleteProcessor) ApplyCleanPlugin(cluster *v2.Cluster) error {
 	plugins := plugin.NewPlugins(cluster.Name)
-	if err := plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName)); err != nil {
+	if err := plugins.Dump(d.ClusterFile.GetPlugins()); err != nil {
 		return err
 	}
 	if err := plugins.Load(); err != nil {
@@ -104,13 +107,14 @@ func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
 	return cloudfilesystem.CleanFilesystem(cluster.Name)
 }
 
-func NewDeleteProcessor() (Interface, error) {
+func NewDeleteProcessor(clusterFile clusterfile.Interface) (Interface, error) {
 	mounter, err := filesystem.NewCloudImageMounter()
 	if err != nil {
 		return nil, err
 	}
 
 	return DeleteProcessor{
+		ClusterFile:       clusterFile,
 		cloudImageMounter: mounter,
 	}, nil
 }

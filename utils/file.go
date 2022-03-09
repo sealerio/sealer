@@ -476,7 +476,7 @@ func GetFilesSize(paths []string) (int64, error) {
 }
 
 func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {
-	decodeClusters, err := decodeCRD(filepath, common.Cluster)
+	decodeClusters, err := DecodeV1CRD(filepath, common.Cluster)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode cluster from %s, %v", filepath, err)
 	}
@@ -485,7 +485,7 @@ func DecodeCluster(filepath string) (clusters []v1.Cluster, err error) {
 }
 
 func DecodeConfigs(filepath string) (configs []v1.Config, err error) {
-	decodeConfigs, err := decodeCRD(filepath, common.Config)
+	decodeConfigs, err := DecodeV1CRD(filepath, common.Config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode config from %s, %v", filepath, err)
 	}
@@ -494,7 +494,7 @@ func DecodeConfigs(filepath string) (configs []v1.Config, err error) {
 }
 
 func DecodePlugins(filepath string) (plugins []v1.Plugin, err error) {
-	decodePlugins, err := decodeCRD(filepath, common.Plugin)
+	decodePlugins, err := DecodeV1CRD(filepath, common.Plugin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode plugin from %s, %v", filepath, err)
 	}
@@ -502,7 +502,7 @@ func DecodePlugins(filepath string) (plugins []v1.Plugin, err error) {
 	return
 }
 
-func decodeCRD(filepath string, kind string) (out interface{}, err error) {
+func DecodeV1CRD(filepath string, kind string) (out interface{}, err error) {
 	file, err := os.Open(path.Clean(filepath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to dump config %v", err)
@@ -512,6 +512,10 @@ func decodeCRD(filepath string, kind string) (out interface{}, err error) {
 			logger.Warn("failed to dump config close clusterfile failed %v", err)
 		}
 	}()
+	return DecodeV1CRDFromReader(file, kind)
+}
+
+func DecodeV1CRDFromReader(reader io.Reader, kind string) (out interface{}, err error) {
 	var (
 		i        interface{}
 		clusters []v1.Cluster
@@ -519,7 +523,7 @@ func decodeCRD(filepath string, kind string) (out interface{}, err error) {
 		plugins  []v1.Plugin
 	)
 
-	d := yaml.NewYAMLOrJSONDecoder(file, 4096)
+	d := yaml.NewYAMLOrJSONDecoder(reader, 4096)
 
 	for {
 		ext := runtime.RawExtension{}

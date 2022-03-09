@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+
 	"path/filepath"
 	"strings"
 	"time"
@@ -38,16 +39,16 @@ type Config struct {
 	VIP          string
 	RegistryPort string
 	// Clusterfile: the absolute path, we need to read kubeadm config from Clusterfile
-	Clusterfile     string
-	APIServerDomain string
+	ClusterFileKubeConfig *KubeadmConfig
+	APIServerDomain       string
 }
 
-func newKubeadmRuntime(cluster *v2.Cluster, clusterfile string) (Interface, error) {
+func newKubeadmRuntime(cluster *v2.Cluster, clusterFileKubeConfig *KubeadmConfig) (Interface, error) {
 	k := &KubeadmRuntime{
 		Cluster: cluster,
 		Config: &Config{
-			Clusterfile:     clusterfile,
-			APIServerDomain: DefaultAPIserverDomain,
+			ClusterFileKubeConfig: clusterFileKubeConfig,
+			APIServerDomain:       DefaultAPIserverDomain,
 		},
 		KubeadmConfig: &KubeadmConfig{},
 	}

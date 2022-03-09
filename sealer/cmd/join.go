@@ -15,11 +15,11 @@
 package cmd
 
 import (
+	"github.com/alibaba/sealer/pkg/clusterfile"
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
 )
 
 var clusterName string
@@ -40,7 +40,7 @@ specify the cluster name(If there is only one cluster in the $HOME/.sealer direc
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if clusterName == "" {
-			cn, err := utils.GetDefaultClusterName()
+			cn, err := clusterfile.GetDefaultClusterName()
 			if err != nil {
 				return err
 			}

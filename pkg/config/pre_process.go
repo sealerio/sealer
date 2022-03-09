@@ -47,9 +47,13 @@ func NewProcessorsAndRun(config *v1.Config) error {
 
 	processors := strings.Split(config.Spec.Process, "|")
 	for _, pname := range processors {
+		if pname == "" {
+			continue
+		}
 		prossor, ok := pmap[pname]
 		if !ok {
 			logger.Warn("not found config processor: %s", pname)
+			continue
 		}
 		if err := prossor.Process(config); err != nil {
 			return err

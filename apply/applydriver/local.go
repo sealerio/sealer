@@ -17,15 +17,14 @@ package applydriver
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
-
-	v2 "github.com/alibaba/sealer/types/api/v2"
-
 	"github.com/alibaba/sealer/apply/processor"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/clusterfile"
+	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
 	"github.com/alibaba/sealer/pkg/image/store"
 	"github.com/alibaba/sealer/pkg/runtime"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +39,7 @@ import (
 type Applier struct {
 	ClusterDesired     *v2.Cluster
 	ClusterCurrent     *v2.Cluster
+	ClusterFile        clusterfile.Interface
 	ImageManager       image.Service
 	CloudImageMounter  cloudimage.Interface
 	Client             *k8s.Client
@@ -56,6 +56,14 @@ func (c *Applier) Delete() (err error) {
 // Apply different actions between ClusterDesired and ClusterCurrent.
 func (c *Applier) Apply() (err error) {
 	// first time to init cluster
+	if c.ClusterFile == nil {
+		c.ClusterFile = clusterfile.NewClusterFile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+		if path := c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName); path != "" {
+			if err = c.ClusterFile.Process(); err != nil {
+				return err
+			}
+		}
+	}
 	if !utils.IsFileExist(common.DefaultKubeConfigFile()) {
 		if err = c.initCluster(); err != nil {
 			return err
@@ -153,7 +161,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	logger.Info("Start to scale this cluster")
 	logger.Debug("current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
 
-	scaleProcessor, err := processor.NewScaleProcessor(common.DefaultTheClusterRootfsDir(c.ClusterDesired.Name), mj, md, nj, nd)
+	scaleProcessor, err := processor.NewScaleProcessor(c.ClusterFile.GetKubeadmConfig(), common.DefaultTheClusterRootfsDir(c.ClusterDesired.Name), mj, md, nj, nd)
 	if err != nil {
 		return err
 	}
@@ -182,7 +190,7 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 	// use k8sClient to fetch current cluster version.
 	info := c.CurrentClusterInfo
 	// fetch form exec machine
-	runtimeInterface, err := runtime.NewDefaultRuntime(c.ClusterDesired, c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+	runtimeInterface, err := runtime.NewDefaultRuntime(c.ClusterDesired, c.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
 	}
@@ -225,7 +233,7 @@ func (c *Applier) installApp() error {
 		}
 	}
 
-	installProcessor, err := processor.NewInstallProcessor(rootfs)
+	installProcessor, err := processor.NewInstallProcessor(rootfs, c.ClusterFile)
 	if err != nil {
 		return err
 	}
@@ -239,7 +247,7 @@ func (c *Applier) installApp() error {
 
 func (c *Applier) initCluster() error {
 	logger.Info("Start to create a new cluster: master %s, worker %s", c.ClusterDesired.GetMasterIPList(), c.ClusterDesired.GetNodeIPList())
-	createProcessor, err := processor.NewCreateProcessor()
+	createProcessor, err := processor.NewCreateProcessor(c.ClusterFile)
 	if err != nil {
 		return err
 	}
@@ -254,7 +262,7 @@ func (c *Applier) initCluster() error {
 }
 
 func (c *Applier) deleteCluster() error {
-	deleteProcessor, err := processor.NewDeleteProcessor()
+	deleteProcessor, err := processor.NewDeleteProcessor(c.ClusterFile)
 	if err != nil {
 		return err
 	}

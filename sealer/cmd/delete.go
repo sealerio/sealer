@@ -17,13 +17,14 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/clusterfile"
+
 	"github.com/alibaba/sealer/pkg/runtime"
 
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/apply"
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
 )
 
 var (
@@ -60,8 +61,8 @@ delete all:
 			if !all && deleteArgs.Masters == "" && deleteArgs.Nodes == "" {
 				return fmt.Errorf("the delete parameter needs to be set")
 			}
-			deleteClusterName, err = utils.GetDefaultClusterName()
-			if err == utils.ErrClusterNotExist {
+			deleteClusterName, err = clusterfile.GetDefaultClusterName()
+			if err == clusterfile.ErrClusterNotExist {
 				fmt.Println("Find no exist cluster, skip delete")
 				return nil
 			}

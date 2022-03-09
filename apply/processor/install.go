@@ -15,7 +15,7 @@
 package processor
 
 import (
-	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/pkg/clusterfile"
 	"github.com/alibaba/sealer/pkg/config"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
@@ -25,17 +25,18 @@ import (
 )
 
 type InstallProcessor struct {
-	fileSystem cloudfilesystem.Interface
-	Guest      guest.Interface
-	Config     config.Interface
-	Plugins    plugin.Plugins
+	fileSystem  cloudfilesystem.Interface
+	clusterFile clusterfile.Interface
+	Guest       guest.Interface
+	Config      config.Interface
+	Plugins     plugin.Plugins
 }
 
 // Execute :according to the different of desired cluster to install app on cluster.
 func (i InstallProcessor) Execute(cluster *v2.Cluster) error {
 	i.Config = config.NewConfiguration(cluster.Name)
 	i.Plugins = plugin.NewPlugins(cluster.Name)
-	if err := i.initPlugin(cluster); err != nil {
+	if err := i.initPlugin(); err != nil {
 		return err
 	}
 	pipLine, err := i.GetPipeLine()
@@ -52,8 +53,8 @@ func (i InstallProcessor) Execute(cluster *v2.Cluster) error {
 	return nil
 }
 
-func (i InstallProcessor) initPlugin(cluster *v2.Cluster) error {
-	return i.Plugins.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
+func (i InstallProcessor) initPlugin() error {
+	return i.Plugins.Dump(i.clusterFile.GetPlugins())
 }
 
 func (i InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
@@ -69,7 +70,7 @@ func (i InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, erro
 }
 
 func (i InstallProcessor) RunConfig(cluster *v2.Cluster) error {
-	return i.Config.Dump(cluster.GetAnnotationsByKey(common.ClusterfileName))
+	return i.Config.Dump(i.clusterFile.GetConfigs())
 }
 
 func (i InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
@@ -93,7 +94,7 @@ func (i InstallProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 	}
 }
 
-func NewInstallProcessor(rootfs string) (Interface, error) {
+func NewInstallProcessor(rootfs string, clusterFile clusterfile.Interface) (Interface, error) {
 	gs, err := guest.NewGuestManager()
 	if err != nil {
 		return nil, err
@@ -105,7 +106,8 @@ func NewInstallProcessor(rootfs string) (Interface, error) {
 	}
 
 	return InstallProcessor{
-		fileSystem: fs,
-		Guest:      gs,
+		clusterFile: clusterFile,
+		fileSystem:  fs,
+		Guest:       gs,
 	}, nil
 }
