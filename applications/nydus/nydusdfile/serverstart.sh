@@ -18,8 +18,6 @@ set -x
 # create nydusimages
 ./nydus-image create --blob-dir ./nydusdimages/blobs  --bootstrap ./rootfs.meta $1
 #nydusdir need be scp
-rm -rf $2
-mkdir $2
 nydusdconfig='
 {\n
   "device": {\n
@@ -27,7 +25,7 @@ nydusdconfig='
       "type": "registry",\n
       "config": {\n
         "scheme": "http",\n
-        "host": "'${3}':8000",\n
+        "host": "'${2}':8000",\n
         "repo": "sealer"\n
       }\n
     },\n
@@ -50,8 +48,7 @@ nydusdconfig='
 }\n
 '
 echo -e ${nydusdconfig} > ./nydusd_scp_file/httpserver.json
-cp ./nydusd_scp_file/* $2
-cp ./rootfs.meta $2
+cp ./rootfs.meta ./nydusd_scp_file
 # nydusd_http_server.service
 service="[Unit]\n
 Description=sealer nydusd rootfs\n

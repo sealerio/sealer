@@ -90,7 +90,8 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 		src               = common.DefaultMountCloudImageDir(cluster.Name)
 		nydusdDir         = common.DefaultTheClusterNydusdDir(cluster.Name)
 		nydusdFileDir     = common.DefaultTheClusterNydusdFileDir(cluster.Name)
-		startNydusdServer = fmt.Sprintf("cd %s && chmod +x serverstart.sh && ./serverstart.sh %s %s %s", nydusdFileDir, src, nydusdDir, localIP)
+		nydusdSrcDir      = filepath.Join(nydusdFileDir, "nydusd_scp_file")
+		startNydusdServer = fmt.Sprintf("cd %s && chmod +x serverstart.sh && ./serverstart.sh %s %s", nydusdFileDir, src, localIP)
 		nydusdInitCmd     = fmt.Sprintf(RemoteNydusdInit, nydusdDir, target)
 		nydusdCleanCmd    = fmt.Sprintf(RemoteNydusdStop, filepath.Join(nydusdDir, "clean.sh"), nydusdDir)
 		cleanCmd          = fmt.Sprintf("echo '%s' >> "+common.DefaultClusterClearBashFile, nydusdCleanCmd, cluster.Name)
@@ -120,7 +121,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
 			}
-			err = copyFiles(sshClient, ip == config.IP, ip, nydusdDir, nydusdDir)
+			err = copyFiles(sshClient, ip == config.IP, ip, nydusdSrcDir, nydusdDir)
 			if err != nil {
 				return fmt.Errorf("scp nydusd failed %v", err)
 			}
