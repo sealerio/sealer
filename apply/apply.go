@@ -86,6 +86,9 @@ func NewApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 }*/
 
 func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
+	if cluster.Name == "" {
+		return nil, fmt.Errorf("cluster name cannot be empty")
+	}
 	imgSvc, err := image.NewImageService()
 	if err != nil {
 		return nil, err

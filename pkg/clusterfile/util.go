@@ -15,7 +15,6 @@
 package clusterfile
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -83,45 +82,43 @@ func GetDefaultCluster() (cluster *v2.Cluster, err error) {
 }
 
 func GetClusterFromDataCompatV1(data []byte) (*v2.Cluster, error) {
-	for _, clusterData := range bytes.Split(data, []byte("---")) {
-		cluster := &v2.Cluster{}
-		metaType := k8sV1.TypeMeta{}
-		err := yaml.Unmarshal(clusterData, &metaType)
-		if err != nil {
+	var cluster *v2.Cluster
+	metaType := k8sV1.TypeMeta{}
+	err := yaml.Unmarshal(data, &metaType)
+	if err != nil {
+		return nil, err
+	}
+	if metaType.Kind != common.Cluster {
+		return nil, fmt.Errorf("not found type cluster from: \n%s", data)
+	}
+	if metaType.APIVersion == typeV1 {
+		cluster = &v2.Cluster{}
+		clusterV1 := &v1.Cluster{}
+		if err := yaml.Unmarshal(data, &clusterV1); err != nil {
 			return nil, err
 		}
-		if metaType.Kind != common.Cluster {
-			continue
+		var hosts []v2.Host
+		if len(clusterV1.Spec.Masters.IPList) != 0 {
+			hosts = append(hosts, v2.Host{IPS: clusterV1.Spec.Masters.IPList, Roles: []string{common.MASTER}})
 		}
-		if metaType.APIVersion == typeV1 {
-			clusterV1 := &v1.Cluster{}
-			if err := yaml.Unmarshal(clusterData, &clusterV1); err != nil {
-				return nil, err
-			}
-			var hosts []v2.Host
-			if len(clusterV1.Spec.Masters.IPList) != 0 {
-				hosts = append(hosts, v2.Host{IPS: clusterV1.Spec.Masters.IPList, Roles: []string{common.MASTER}})
-			}
-			if len(clusterV1.Spec.Nodes.IPList) != 0 {
-				hosts = append(hosts, v2.Host{IPS: clusterV1.Spec.Nodes.IPList, Roles: []string{common.NODE}})
-			}
-			cluster.APIVersion = typeV2
-			cluster.Spec.SSH = clusterV1.Spec.SSH
-			cluster.Spec.Env = clusterV1.Spec.Env
-			cluster.Spec.Hosts = hosts
-			cluster.Spec.Image = clusterV1.Spec.Image
-			cluster.Name = clusterV1.Name
-			cluster.Kind = clusterV1.Kind
-		} else {
-			c, err := runtime.DecodeCRDFromString(string(clusterData), common.Cluster)
-			if err != nil {
-				return nil, err
-			} else if c == nil {
-				break
-			}
-			cluster = c.(*v2.Cluster)
+		if len(clusterV1.Spec.Nodes.IPList) != 0 {
+			hosts = append(hosts, v2.Host{IPS: clusterV1.Spec.Nodes.IPList, Roles: []string{common.NODE}})
 		}
-		return cluster, nil
+		cluster.APIVersion = typeV2
+		cluster.Spec.SSH = clusterV1.Spec.SSH
+		cluster.Spec.Env = clusterV1.Spec.Env
+		cluster.Spec.Hosts = hosts
+		cluster.Spec.Image = clusterV1.Spec.Image
+		cluster.Name = clusterV1.Name
+		cluster.Kind = clusterV1.Kind
+	} else {
+		c, err := runtime.DecodeCRDFromString(string(data), common.Cluster)
+		if err != nil {
+			return nil, err
+		} else if c == nil {
+			return nil, fmt.Errorf("not found type cluster from: \n%s", data)
+		}
+		cluster = c.(*v2.Cluster)
 	}
-	return nil, fmt.Errorf("not found type cluster from: \n%s", data)
+	return cluster, nil
 }
