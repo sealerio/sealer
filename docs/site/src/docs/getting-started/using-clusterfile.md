@@ -88,6 +88,7 @@ The better way is to add kubeadm config directly into Clusterfile, of course eve
 You can only define part of those configs, sealer will merge then into default config.
 
 ```yaml
+### default kubeadm config:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
@@ -254,6 +255,37 @@ controlPlane:
     bindPort: 6443
 ```
 
+Custom kubeadm configuration (use default configuration for other parts)
+
+```yaml
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: kubernetes:v1.19.8
+...
+---
+## Custom configurations must specify kind
+kind: ClusterConfiguration
+kubernetesVersion: v1.19.8
+networking:
+  # dnsDomain: cluster.local
+  podSubnet: 101.64.0.0/10
+  serviceSubnet: 10.96.0.0/22
+---
+## Custom configurations must specify kind
+kind: KubeletConfiguration
+authentication:
+  webhook:
+    cacheTTL: 2m1s
+```
+
+```shell
+# Initialize the cluster using custom kubeadm
+sealer apply -f Clusterfile
+```
+
 ### Using ENV in configs and script
 
 Using ENV in configs or yaml files
@@ -266,12 +298,12 @@ metadata:
 spec:
   image: kubernetes:v1.19.8
   env:
-    docker-dir: /var/lib/docker
+    - docker_dir=/var/lib/docker
   hosts:
     - ips: [ 192.168.0.2 ]
       roles: [ master ] # add role field to specify the node role
       env: # overwrite some nodes has different env config
-        docker-dir: /data/docker
+        - docker_dir=/data/docker
     - ips: [ 192.168.0.3 ]
       roles: [ node ]
 ```
@@ -280,10 +312,10 @@ Using ENV in init.sh script:
 
 ```shell script
 #!/bin/bash
-echo $docker-dir
+echo $docker_dir
 ```
 
-When sealer run the script will set ENV like this: `docker-dir=/data/docker && sh init.sh`
+When sealer run the script will set ENV like this: `docker_dir=/data/docker && sh init.sh`
 In this case, master ENV is `/data/docker`, node ENV is by default `/var/lib/docker`
 
 ### Env render support
@@ -337,10 +369,56 @@ metadata:
 spec:
   image: mydashobard:latest
   env:
-    DashBoardPort: 8443
+    - DashBoardPort=8443
   hosts:
     - ips: [ 192.168.0.2 ]
       roles: [ master ] # add role field to specify the node role
     - ips: [ 192.168.0.3 ]
       roles: [ node ]
 ```
+
+### Render env in Clusterfile
+
+```shell
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: kubernetes:v1.19.8
+  env:
+    - podcidr=100.64.0.0/10
+ ...
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+kubernetesVersion: v1.19.8
+controlPlaneEndpoint: "apiserver.cluster.local:6443"
+imageRepository: sea.hub:5000/library
+networking:
+  # dnsDomain: cluster.local
+  podSubnet: {{ .podcidr }}
+  serviceSubnet: 10.96.0.0/22
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: calico
+spec:
+  path: etc/custom-resources.yaml
+  data: |
+    apiVersion: operator.tigera.io/v1
+    kind: Installation
+    metadata:
+      name: default
+    spec:
+      # Configures Calico networking.
+      calicoNetwork:
+        # Note: The ipPools section cannot be modified post-install.
+        ipPools:
+        - blockSize: 26
+          # Note: Must be the same as podCIDR
+          cidr: {{ .podcidr }}
+```
+
+Replace `podcidr` in kubeadm and Calico configurations with `podcidr` in Env in Clusterfile.

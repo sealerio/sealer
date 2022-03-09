@@ -1,6 +1,6 @@
-# Using Clusterfile to init a cluster
+# 使用Clusterfile初始化集群
 
-Clusterfile support more configs like user defined kubeadm config, helm values config overwrite, plugins ...
+Clusterfile支持：用户自定义kubeadm，helm values 等配置的覆盖或合并，plugins 。。。
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -21,10 +21,10 @@ spec:
     port: 2222
   hosts:
     - ips: [ 192.168.0.2 ]
-      roles: [ master ] # add role field to specify the node role
-      env: # rewrite some nodes has different env config
+      roles: [ master ]
+      env:
         - etcd-dir=/data/etcd
-      ssh: # rewrite ssh config if some node has different passwd...
+      ssh:
         user: xxx
         passwd: xxx
         port: 2222
@@ -32,11 +32,11 @@ spec:
       roles: [ node,db ]
 ```
 
-## Use cases
+## 使用案例
 
-### Apply a simple cluster by default
+### 启动一个简单集群
 
-3 masters and a node, It's so clearly and simple, cool
+3 masters and 1 node, It's so clearly and simple, cool
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -58,7 +58,7 @@ spec:
 sealer apply -f Clusterfile
 ```
 
-### Overwrite ssh config (for example password,and port)
+### 重写ssh配置 (例如密码和port等)
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -71,7 +71,7 @@ spec:
     passwd: xxx
     port: 2222
   hosts:
-    - ips: [ 192.168.0.2 ] # this master ssh port is different with others.
+    - ips: [ 192.168.0.2 ] # 该master节点端口号与其他节点不同
       roles: [ master ]
       ssh:
         passwd: yyy
@@ -82,12 +82,12 @@ spec:
       roles: [ node ]
 ```
 
-### How to define your own kubeadm config
+### 怎样设置自定义kubeadm配置
 
-The better way is to add kubeadm config directly into Clusterfile, of course every CloudImage has it default config:
-You can only define part of those configs, sealer will merge then into default config.
+更好的方法是直接将 kubeadm 配置添加到 Clusterfile 中，当然每个集群镜像都有它的默认配置，您可以只定义这些配置的一部分，然后sealer将其合并到默认配置中。
 
 ```yaml
+### 默认配置：
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
@@ -254,9 +254,38 @@ controlPlane:
     bindPort: 6443
 ```
 
-### Using ENV in configs and script
+自定义kubeadm 配置（未指定参数使用默认值）
 
-Using ENV in configs or yaml files
+```yaml
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: kubernetes:v1.19.8
+...
+---
+## 自定义配置必须指定kind类型
+kind: ClusterConfiguration
+kubernetesVersion: v1.19.8
+networking:
+  podSubnet: 101.64.0.0/10
+  serviceSubnet: 10.96.0.0/22
+---
+kind: KubeletConfiguration
+authentication:
+  webhook:
+    cacheTTL: 2m1s
+```
+
+```shell
+# 使用自定义kubeadm配置初始化集群
+sealer apply -f Clusterfile
+```
+
+### 在config和脚本中使用env
+
+在configs或yaml文件中使用env
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -266,29 +295,29 @@ metadata:
 spec:
   image: kubernetes:v1.19.8
   env:
-    docker-dir: /var/lib/docker
+    - docker_dir=/var/lib/docker
   hosts:
     - ips: [ 192.168.0.2 ]
       roles: [ master ] # add role field to specify the node role
       env: # overwrite some nodes has different env config
-        docker-dir: /data/docker
+        - docker_dir=/data/docker
     - ips: [ 192.168.0.3 ]
       roles: [ node ]
 ```
 
-Using ENV in init.sh script:
+在init.sh脚本中使用env:
 
 ```shell script
 #!/bin/bash
-echo $docker-dir
+echo $docker_dir
 ```
 
-When sealer run the script will set ENV like this: `docker-dir=/data/docker && sh init.sh`
+当sealer执行脚本时env的设置类似于：`docker_dir=/data/docker && sh init.sh`
 In this case, master ENV is `/data/docker`, node ENV is by default `/var/lib/docker`
 
-### Env render support
+### 支持Env渲染
 
-This case show you how to use env to set dashboard service target port
+本案例展示如何使用 env 设置dashboard服务目标端口
 
 dashboard.yaml.tmpl:
 
@@ -310,24 +339,23 @@ spec:
 ...
 ```
 
-To write kubefile, you need to copy yaml to the "manifests" directory at this time,
-sealer only renders the files in this directory:
+编写kubefile，此时需要将yaml复制到`manifests etc charts`目录下，sealer只渲染该目录下的文件：
 
-sealer will render the .tmpl file and create a new file named `dashboard.yaml`
+sealer 将渲染 filename.yaml.tmpl 文件并创建一个名为 `filename.yaml` 的新文件
 
 ```yaml
 FROM kubernetes:1.16.9
-COPY dashobard.yaml.tmpl manifests/ # only support render template files in `manifests etc charts` dirs
+COPY dashobard.yaml.tmpl manifests/ # 仅支持`manifests etc charts` 目录下渲染文件
 CMD kubectl apply -f manifests/dashobard.yaml
 ```
 
-For users, they only need to specify the cluster environment variables:
+对于用户来说，只需要指定集群环境变量即可：
 
 ```shell script
 sealer run -e DashBoardPort=8443 mydashboard:latest -m xxx -n xxx -p xxx
 ```
 
-Or set env in Clusterfile
+或者在Clusterfile中指定env
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -337,10 +365,56 @@ metadata:
 spec:
   image: mydashobard:latest
   env:
-    DashBoardPort: 8443
+    - DashBoardPort=8443
   hosts:
     - ips: [ 192.168.0.2 ]
       roles: [ master ] # add role field to specify the node role
     - ips: [ 192.168.0.3 ]
       roles: [ node ]
 ```
+
+### 使用env渲染Clusterfile
+
+```shell
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: kubernetes:v1.19.8
+  env:
+    - podcidr=100.64.0.0/10
+ ...
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+kubernetesVersion: v1.19.8
+controlPlaneEndpoint: "apiserver.cluster.local:6443"
+imageRepository: sea.hub:5000/library
+networking:
+  # dnsDomain: cluster.local
+  podSubnet: {{ .podcidr }}
+  serviceSubnet: 10.96.0.0/22
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: calico
+spec:
+  path: etc/custom-resources.yaml
+  data: |
+    apiVersion: operator.tigera.io/v1
+    kind: Installation
+    metadata:
+      name: default
+    spec:
+      # Configures Calico networking.
+      calicoNetwork:
+        # Note: The ipPools section cannot be modified post-install.
+        ipPools:
+        - blockSize: 26
+          # Note: Must be the same as podCIDR
+          cidr: {{ .podcidr }}
+```
+
+kubeadm和calico配置中的`{{ .podcidr }}`将被替换为Clusterfile.Env中的`podcidr`。
