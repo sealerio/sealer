@@ -72,8 +72,16 @@ type ImageList struct {
 }
 
 type ImageConfig struct {
-	Args   map[string]string `json:"args"`
-	Labels map[string]string `json:"labels"`
+	Cmd    Cmd               `json:"cmd,omitempty"`
+	Args   map[string]string `json:"args,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
+}
+
+type Cmd struct {
+	//cmd list of base image
+	Parent []string `json:"parent,omitempty"`
+	//cmd list of current image
+	Current []string `json:"current,omitempty"`
 }
 
 type Platform struct {

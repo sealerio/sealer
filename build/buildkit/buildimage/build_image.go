@@ -51,7 +51,6 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		execCtx    buildinstruction.ExecContext
 		newLayers  = b.NewLayers
 		baseLayers = b.BaseLayers
-		buildArgs  = map[string]string{}
 	)
 
 	// process middleware file
@@ -60,27 +59,19 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		return err
 	}
 
-	if b.RawImage.Spec.ImageConfig.Args != nil {
-		for k, v := range b.RawImage.Spec.ImageConfig.Args {
-			buildArgs[k] = v
-		}
+	// merge args with build context
+	for k, v := range ctx.BuildArgs {
+		b.RawImage.Spec.ImageConfig.Args[k] = v
 	}
-
-	if len(ctx.BuildArgs) != 0 {
-		for k, v := range ctx.BuildArgs {
-			buildArgs[k] = v
-		}
-	}
-	b.RawImage.Spec.ImageConfig.Args = buildArgs
 
 	if ctx.UseCache {
 		execCtx = buildinstruction.NewExecContext(b.BuildType, ctx.BuildContext,
-			buildArgs,
+			b.RawImage.Spec.ImageConfig.Args,
 			b.ImageService, b.LayerStore)
 	} else {
 		execCtx = buildinstruction.NewExecContextWithoutCache(b.BuildType,
 			ctx.BuildContext,
-			buildArgs,
+			b.RawImage.Spec.ImageConfig.Args,
 			b.LayerStore)
 	}
 	for i := 0; i < len(newLayers); i++ {
@@ -302,6 +293,14 @@ func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 	newLayers := append([]v1.Layer{}, rawImage.Spec.Layers[1:]...)
 	if len(baseLayers)+len(newLayers) > maxLayerDeep {
 		return nil, errors.New("current number of layers exceeds 128 layers")
+	}
+
+	// merge base image cmd and set to raw image as parent.
+	rawImage.Spec.ImageConfig.Cmd.Parent = append(baseImage.Spec.ImageConfig.Cmd.Parent,
+		baseImage.Spec.ImageConfig.Cmd.Current...)
+	// inherit base image args.
+	if len(baseImage.Spec.ImageConfig.Args) != 0 {
+		rawImage.Spec.ImageConfig.Args = baseImage.Spec.ImageConfig.Args
 	}
 
 	mountInfo, err := GetLayerMountInfo(baseLayers, buildType)

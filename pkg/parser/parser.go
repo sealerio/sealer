@@ -119,6 +119,8 @@ func (p *Parser) Parse(kubeFile []byte) *v1.Image {
 		switch layerType {
 		case Arg:
 			dispatchArg(layerValue, image)
+		case Cmd:
+			dispatchCmd(layerValue, image)
 		default:
 			dispatchDefault(layerType, layerValue, image)
 		}
@@ -155,6 +157,21 @@ func dispatchArg(layerValue string, ima *v1.Image) {
 		}
 		ima.Spec.ImageConfig.Args[k] = strings.TrimSpace(valueLine[1])
 	}
+}
+
+func dispatchCmd(layerValue string, ima *v1.Image) {
+	if ima.Spec.ImageConfig.Cmd.Current == nil {
+		ima.Spec.ImageConfig.Cmd.Current = make([]string, 0)
+	}
+
+	var cmdList []string
+	for _, value := range strings.Split(layerValue, ",") {
+		if value == "" {
+			continue
+		}
+		cmdList = append(cmdList, strings.TrimSpace(value))
+	}
+	ima.Spec.ImageConfig.Cmd.Current = append(ima.Spec.ImageConfig.Cmd.Current, cmdList...)
 }
 
 func dispatchDefault(layerType, layerValue string, ima *v1.Image) {
