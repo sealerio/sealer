@@ -28,16 +28,11 @@ var (
 	imageListWithAuth = "imageListWithAuth.yaml"
 )
 
-type Shadow interface {
-	// Process set data to cloud image ,but not to show in the image layer.
-	Process(context, rootfs string) error
-}
-
-type ShadowPuller struct {
+type MiddlewarePuller struct {
 	puller save.DefaultImageSaver
 }
 
-func (s ShadowPuller) Process(context, rootfs string) error {
+func (m MiddlewarePuller) Process(context, rootfs string) error {
 	//read the filePath named "imageListWithAuth.yaml" if not exists just return;
 	//pares the images and save to rootfs
 	filePath := filepath.Join(context, imageListWithAuth)
@@ -45,7 +40,7 @@ func (s ShadowPuller) Process(context, rootfs string) error {
 		return nil
 	}
 
-	// pares shadow file: imageListWithAuth.yaml
+	// pares middleware file: imageListWithAuth.yaml
 	var imageSection []save.ImageSection
 	ia := make(save.ImageListWithAuth)
 
@@ -78,11 +73,11 @@ func (s ShadowPuller) Process(context, rootfs string) error {
 	}
 
 	plat := runtime.GetCloudImagePlatform(rootfs)
-	return s.puller.SaveImagesWithAuth(ia, filepath.Join(rootfs, common.RegistryDirName), plat)
+	return m.puller.SaveImagesWithAuth(ia, filepath.Join(rootfs, common.RegistryDirName), plat)
 }
 
-func NewShadowPuller() Shadow {
-	return ShadowPuller{
+func NewMiddlewarePuller() Middleware {
+	return MiddlewarePuller{
 		puller: save.DefaultImageSaver{},
 	}
 }

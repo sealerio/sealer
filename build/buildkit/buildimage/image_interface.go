@@ -35,3 +35,8 @@ type ImageSetter interface {
 	// Set :fill up v1.image struct, like image annotations, platform and so on.
 	Set(*v1.Image) error
 }
+
+type Middleware interface {
+	// Process set data to cloud image ,but not to show in the image layer.
+	Process(context, rootfs string) error
+}
