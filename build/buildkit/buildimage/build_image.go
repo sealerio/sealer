@@ -299,8 +299,10 @@ func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 	rawImage.Spec.ImageConfig.Cmd.Parent = append(baseImage.Spec.ImageConfig.Cmd.Parent,
 		baseImage.Spec.ImageConfig.Cmd.Current...)
 	// inherit base image args.
-	if len(baseImage.Spec.ImageConfig.Args) != 0 {
-		rawImage.Spec.ImageConfig.Args = baseImage.Spec.ImageConfig.Args
+	for k, v := range baseImage.Spec.ImageConfig.Args {
+		if _, ok := rawImage.Spec.ImageConfig.Args[k]; !ok {
+			rawImage.Spec.ImageConfig.Args[k] = v
+		}
 	}
 
 	mountInfo, err := GetLayerMountInfo(baseLayers, buildType)
