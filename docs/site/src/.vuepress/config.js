@@ -24,8 +24,7 @@ enSideBar = {
           'getting-started/introduction',
           'getting-started/plugin',
           'getting-started/quick-start',
-          'getting-started/use-cloudimage',
-          'getting-started/using-clusterfile',
+          'getting-started/run-cloudimage',
         ]
       },
       {
@@ -41,7 +40,10 @@ enSideBar = {
           'advanced/raw-docker-baseimage',
           'advanced/registry-configuration',
           'advanced/save-charts-package',
+          'advanced/takeover-existed-cluster',
+          'advanced/use-clusterfile',
           'advanced/use-kyverno-baseimage',
+          'advanced/use-sealer-in-container',
         ]
       },
       {
