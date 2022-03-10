@@ -17,6 +17,7 @@ package buildimage
 import (
 	"context"
 	"fmt"
+
 	"github.com/alibaba/sealer/utils"
 
 	"golang.org/x/sync/errgroup"

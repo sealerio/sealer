@@ -16,6 +16,7 @@ package guest
 
 import (
 	"fmt"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"github.com/alibaba/sealer/utils"
@@ -106,9 +107,9 @@ func (d *Default) getGuestCmd(cluster *v2.Cluster, image *v1.Image) []string {
 
 func (d *Default) getGuestCmdArg(cluster *v2.Cluster, image *v1.Image) map[string]string {
 	var (
+		base        map[string]string
 		clusterArgs = cluster.Spec.CMDArgs
 		imageType   = image.Spec.ImageConfig.ImageType
-		base        = map[string]string{}
 	)
 
 	if imageType == common.AppImage {

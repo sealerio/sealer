@@ -17,6 +17,7 @@ package image
 import (
 	"context"
 	"fmt"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
