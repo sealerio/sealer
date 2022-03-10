@@ -89,6 +89,7 @@ func (d *Default) getGuestCmd(cluster *v2.Cluster, image *v1.Image) []string {
 		imageType  = image.Spec.ImageConfig.ImageType
 	)
 
+	// application image: if cluster cmd not nil, use cluster cmd directly
 	if imageType == common.AppImage {
 		if len(clusterCmd) != 0 {
 			return clusterCmd
@@ -96,11 +97,11 @@ func (d *Default) getGuestCmd(cluster *v2.Cluster, image *v1.Image) []string {
 		return image.Spec.ImageConfig.Cmd.Current
 	}
 
-	// if cluster cmd not nil, use cluster cmd as current cmd
+	// normal image: if cluster cmd not nil, use cluster cmd as current cmd
 	if len(clusterCmd) != 0 {
-		return append(cmd, clusterCmd...)
+		return utils.MergeSlice(cmd, clusterCmd)
 	}
-	return append(cmd, image.Spec.ImageConfig.Cmd.Current...)
+	return utils.MergeSlice(cmd, image.Spec.ImageConfig.Cmd.Current)
 }
 
 func (d *Default) getGuestCmdArg(cluster *v2.Cluster, image *v1.Image) map[string]string {

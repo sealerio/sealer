@@ -57,6 +57,28 @@ func MergeMap(ms ...map[string]string) map[string]string {
 	return res
 }
 
+// MergeSlice :merge slice type as overwrite model
+func MergeSlice(ms ...[]string) []string {
+	var base []string
+	diffMap := make(map[string]bool)
+	for i, s := range ms {
+		if i == 0 {
+			base = s
+			for _, v := range base {
+				diffMap[v] = true
+			}
+		}
+
+		for _, v := range s {
+			if !diffMap[v] {
+				base = append(base, v)
+				diffMap[v] = true
+			}
+		}
+	}
+	return base
+}
+
 // ConvertEnvListToMap :if env list containers Unicode punctuation character,will ignore this element.
 func ConvertEnvListToMap(env []string) map[string]string {
 	envs := map[string]string{}

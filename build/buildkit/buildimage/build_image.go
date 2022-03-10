@@ -302,8 +302,8 @@ func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 	}
 
 	// merge base image cmd and set to raw image as parent.
-	rawImage.Spec.ImageConfig.Cmd.Parent = append(baseImage.Spec.ImageConfig.Cmd.Parent,
-		baseImage.Spec.ImageConfig.Cmd.Current...)
+	rawImage.Spec.ImageConfig.Cmd.Parent = utils.MergeSlice(baseImage.Spec.ImageConfig.Cmd.Parent,
+		baseImage.Spec.ImageConfig.Cmd.Current)
 	// merge base image args and set to raw image as parent.
 	rawImage.Spec.ImageConfig.Args.Parent = utils.MergeMap(baseImage.Spec.ImageConfig.Args.Parent,
 		baseImage.Spec.ImageConfig.Args.Current)

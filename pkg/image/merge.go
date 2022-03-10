@@ -17,6 +17,7 @@ package image
 import (
 	"context"
 	"fmt"
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
 	v2 "github.com/alibaba/sealer/types/api/v2"
@@ -131,24 +132,59 @@ func merge(base, ima *v1.Image) (*v1.Image, error) {
 		base.Spec.Platform.Variant != ima.Spec.Platform.Variant {
 		return nil, fmt.Errorf("can not merge different platform")
 	}
-	// merge image config arg and remove duplicate value
-	for k, v := range ima.Spec.ImageConfig.Args.Parent {
-		base.Spec.ImageConfig.Args.Parent[k] = v
-	}
-	for k, v := range ima.Spec.ImageConfig.Args.Current {
-		base.Spec.ImageConfig.Args.Current[k] = v
+
+	var (
+		isApp = base.Spec.ImageConfig.ImageType == common.AppImage &&
+			ima.Spec.ImageConfig.ImageType == common.AppImage
+	)
+	// merge image type;only if two image is application image we can determine this new image is application image.
+	if isApp {
+		base.Spec.ImageConfig.ImageType = common.AppImage
 	}
 
+	// merge image config arg and remove duplicate value
+	base.Spec.ImageConfig.Args = mergeImageArg(base.Spec.ImageConfig.Args, ima.Spec.ImageConfig.Args, isApp)
 	// merge image config cmd and remove duplicate value
-	base.Spec.ImageConfig.Cmd.Parent = append(base.Spec.ImageConfig.Cmd.Parent,
-		ima.Spec.ImageConfig.Cmd.Parent...)
-	base.Spec.ImageConfig.Cmd.Current = append(base.Spec.ImageConfig.Cmd.Current,
-		ima.Spec.ImageConfig.Cmd.Current...)
+	base.Spec.ImageConfig.Cmd = mergeImageCmd(base.Spec.ImageConfig.Cmd, ima.Spec.ImageConfig.Cmd, isApp)
 
 	// merge image layer
 	res := append(base.Spec.Layers, ima.Spec.Layers...)
 	base.Spec.Layers = removeDuplicateLayers(res)
 	return base, nil
+}
+
+func mergeImageCmd(base, ima v1.ImageCmd, isApp bool) v1.ImageCmd {
+	current := utils.MergeSlice(base.Current, ima.Current)
+	if isApp {
+		return v1.ImageCmd{
+			Current: current,
+		}
+	}
+	return v1.ImageCmd{
+		Current: current,
+		Parent:  utils.MergeSlice(base.Parent, ima.Parent),
+	}
+}
+
+func mergeImageArg(base, ima v1.ImageArg, isApp bool) v1.ImageArg {
+	for k, v := range ima.Current {
+		base.Current[k] = v
+	}
+
+	if isApp {
+		return v1.ImageArg{
+			Current: base.Current,
+		}
+	}
+
+	for k, v := range ima.Parent {
+		base.Parent[k] = v
+	}
+
+	return v1.ImageArg{
+		Parent:  base.Parent,
+		Current: base.Current,
+	}
 }
 
 func removeDuplicateLayers(list []v1.Layer) []v1.Layer {
