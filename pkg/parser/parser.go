@@ -139,8 +139,8 @@ func decodeLine(line string) (string, string, error) {
 }
 
 func dispatchArg(layerValue string, ima *v1.Image) {
-	if ima.Spec.ImageConfig.Args == nil {
-		ima.Spec.ImageConfig.Args = map[string]string{}
+	if ima.Spec.ImageConfig.Args.Current == nil {
+		ima.Spec.ImageConfig.Args.Current = map[string]string{}
 	}
 
 	kv := strings.Split(layerValue, ",")
@@ -155,7 +155,7 @@ func dispatchArg(layerValue string, ima *v1.Image) {
 			logger.Error("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
 			return
 		}
-		ima.Spec.ImageConfig.Args[k] = strings.TrimSpace(valueLine[1])
+		ima.Spec.ImageConfig.Args.Current[k] = strings.TrimSpace(valueLine[1])
 	}
 }
 

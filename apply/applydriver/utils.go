@@ -22,7 +22,6 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/client/k8s"
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/logger"
@@ -101,12 +100,4 @@ func VersionCompatible(version, constraint string) bool {
 	}
 
 	return c.Check(v)
-}
-
-func withRootfs(image *v1.Image) bool {
-	layer0 := image.Spec.Layers[0]
-	if layer0.Value == ". ." && layer0.Type == common.COPYCOMMAND {
-		return true
-	}
-	return false
 }

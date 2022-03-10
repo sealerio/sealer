@@ -17,6 +17,7 @@ package buildimage
 import (
 	"context"
 	"fmt"
+	"github.com/alibaba/sealer/utils"
 
 	"golang.org/x/sync/errgroup"
 
@@ -61,17 +62,17 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 
 	// merge args with build context
 	for k, v := range ctx.BuildArgs {
-		b.RawImage.Spec.ImageConfig.Args[k] = v
+		b.RawImage.Spec.ImageConfig.Args.Current[k] = v
 	}
 
 	if ctx.UseCache {
 		execCtx = buildinstruction.NewExecContext(b.BuildType, ctx.BuildContext,
-			b.RawImage.Spec.ImageConfig.Args,
+			b.RawImage.Spec.ImageConfig.Args.Current,
 			b.ImageService, b.LayerStore)
 	} else {
 		execCtx = buildinstruction.NewExecContextWithoutCache(b.BuildType,
 			ctx.BuildContext,
-			b.RawImage.Spec.ImageConfig.Args,
+			b.RawImage.Spec.ImageConfig.Args.Current,
 			b.LayerStore)
 	}
 	for i := 0; i < len(newLayers); i++ {
@@ -233,9 +234,14 @@ func (b BuildImage) setImageAttribute() error {
 }
 
 func (b BuildImage) save(name string, opts SaveOpts) error {
+	// build output as application image.
 	if opts.WithoutBase {
+		b.RawImage.Spec.ImageConfig.ImageType = common.AppImage
+		b.RawImage.Spec.ImageConfig.Cmd.Parent = nil
+		b.RawImage.Spec.ImageConfig.Args.Parent = nil
 		b.RawImage.Spec.Layers = b.RawImage.Spec.Layers[len(b.BaseLayers):]
 	}
+
 	imageID, err := generateImageID(*b.RawImage)
 	if err != nil {
 		return err
@@ -298,12 +304,9 @@ func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 	// merge base image cmd and set to raw image as parent.
 	rawImage.Spec.ImageConfig.Cmd.Parent = append(baseImage.Spec.ImageConfig.Cmd.Parent,
 		baseImage.Spec.ImageConfig.Cmd.Current...)
-	// inherit base image args.
-	for k, v := range baseImage.Spec.ImageConfig.Args {
-		if _, ok := rawImage.Spec.ImageConfig.Args[k]; !ok {
-			rawImage.Spec.ImageConfig.Args[k] = v
-		}
-	}
+	// merge base image args and set to raw image as parent.
+	rawImage.Spec.ImageConfig.Args.Parent = utils.MergeMap(baseImage.Spec.ImageConfig.Args.Parent,
+		baseImage.Spec.ImageConfig.Args.Current)
 
 	mountInfo, err := GetLayerMountInfo(baseLayers, buildType)
 	if err != nil {

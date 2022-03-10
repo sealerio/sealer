@@ -131,13 +131,19 @@ func merge(base, ima *v1.Image) (*v1.Image, error) {
 		base.Spec.Platform.Variant != ima.Spec.Platform.Variant {
 		return nil, fmt.Errorf("can not merge different platform")
 	}
-	// merge image config arg
-	if base.Spec.ImageConfig.Args == nil {
-		base.Spec.ImageConfig.Args = map[string]string{}
+	// merge image config arg and remove duplicate value
+	for k, v := range ima.Spec.ImageConfig.Args.Parent {
+		base.Spec.ImageConfig.Args.Parent[k] = v
 	}
-	for k, v := range ima.Spec.ImageConfig.Args {
-		base.Spec.ImageConfig.Args[k] = v
+	for k, v := range ima.Spec.ImageConfig.Args.Current {
+		base.Spec.ImageConfig.Args.Current[k] = v
 	}
+
+	// merge image config cmd and remove duplicate value
+	base.Spec.ImageConfig.Cmd.Parent = append(base.Spec.ImageConfig.Cmd.Parent,
+		ima.Spec.ImageConfig.Cmd.Parent...)
+	base.Spec.ImageConfig.Cmd.Current = append(base.Spec.ImageConfig.Cmd.Current,
+		ima.Spec.ImageConfig.Cmd.Current...)
 
 	// merge image layer
 	res := append(base.Spec.Layers, ima.Spec.Layers...)
@@ -148,16 +154,7 @@ func merge(base, ima *v1.Image) (*v1.Image, error) {
 func removeDuplicateLayers(list []v1.Layer) []v1.Layer {
 	var result []v1.Layer
 	flagMap := map[string]struct{}{}
-	valueMap := map[string]struct{}{}
 	for _, v := range list {
-		// if type is cmd,remove duplicate value,this covers cmd instruction.
-		if v.Type == "CMD" {
-			if _, ok := valueMap[v.Value]; !ok {
-				valueMap[v.Value] = struct{}{}
-				result = append(result, v)
-			}
-			continue
-		}
 		// if id is not nil,remove duplicate id,this covers run and copy instruction.
 		if v.ID.String() != "" {
 			if _, ok := flagMap[v.ID.String()]; !ok {

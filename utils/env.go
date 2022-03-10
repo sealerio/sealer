@@ -46,6 +46,17 @@ func IsLetterOrNumber(k string) bool {
 	return true
 }
 
+// MergeMap :merge map type as overwrite model
+func MergeMap(ms ...map[string]string) map[string]string {
+	res := map[string]string{}
+	for _, m := range ms {
+		for k, v := range m {
+			res[k] = v
+		}
+	}
+	return res
+}
+
 // ConvertEnvListToMap :if env list containers Unicode punctuation character,will ignore this element.
 func ConvertEnvListToMap(env []string) map[string]string {
 	envs := map[string]string{}
