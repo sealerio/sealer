@@ -342,8 +342,8 @@ spec:
 ...
 ```
 
-To write kubefile, you need to copy yaml to the "manifests" directory at this time,
-sealer only renders the files in this directory:
+To write kubefile, you need to copy yaml to the "manifests" directory at this time, sealer only renders the files in
+this directory:
 
 sealer will render the .tmpl file and create a new file named `dashboard.yaml`
 
@@ -422,3 +422,34 @@ spec:
 ```
 
 Replace `podcidr` in kubeadm and Calico configurations with `podcidr` in Env in Clusterfile.
+
+### Overwrite CMD support
+
+This case show you how to use `cmd` fields of Clusterfile to overwrite cloud image startup.
+
+Kubefile:
+
+```shell
+FROM kubernetes:v1.19.8
+CMD [kubectl apply -f mysql, kubectl apply -f redis, kubectl apply -f saas]
+```
+
+If user wants to overwrite the default startup ,they only need to specify the `cmd` fields of Clusterfile.In this
+case,will only start `kubectl apply -f redis` and `kubectl apply -f saas`.
+
+```yaml
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: myapp:latest
+  cmd:
+    - kubectl apply -f redis
+    - kubectl apply -f saas
+  hosts:
+    - ips: [ 192.168.0.2 ]
+      roles: [ master ] # add role field to specify the node role
+    - ips: [ 192.168.0.3 ]
+      roles: [ node ]
+```
