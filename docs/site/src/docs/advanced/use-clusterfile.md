@@ -336,7 +336,7 @@ metadata:
 spec:
   ports:
     - port: 443
-      targetPort: { { .DashBoardPort } }
+      targetPort: {{ .DashBoardPort }}
   selector:
     k8s-app: kubernetes-dashboard
 ...
@@ -377,33 +377,14 @@ spec:
       roles: [ node ]
 ```
 
-<<<<<<< HEAD:docs/site/src/docs/getting-started/using-clusterfile.md
 ### Render env in Clusterfile
 
 ```shell
-=======
-### Overwrite CMD support
-
-This case show you how to use `cmd` fields of Clusterfile to overwrite cloud image startup.
-
-Kubefile:
-
-```shell
-FROM kubernetes:v1.19.8
-CMD [kubectl apply -f mysql, kubectl apply -f redis, kubectl apply -f saas]
-```
-
-If user wants to overwrite the default startup ,they only need to specify the `cmd` fields of Clusterfile.In this
-case,will only start `kubectl apply -f redis` and `kubectl apply -f saas`.
-
-```yaml
->>>>>>> c0c2d1d7 (add doc of overwrite cmd list):docs/site/src/docs/advanced/use-clusterfile.md
 apiVersion: sealer.cloud/v2
 kind: Cluster
 metadata:
   name: my-cluster
 spec:
-<<<<<<< HEAD:docs/site/src/docs/getting-started/using-clusterfile.md
   image: kubernetes:v1.19.8
   env:
     - podcidr=100.64.0.0/10
@@ -441,7 +422,27 @@ spec:
 ```
 
 Replace `podcidr` in kubeadm and Calico configurations with `podcidr` in Env in Clusterfile.
-=======
+
+### Overwrite CMD support
+
+This case show you how to use `cmd` fields of Clusterfile to overwrite cloud image startup.
+
+Kubefile:
+
+```shell
+FROM kubernetes:v1.19.8
+CMD [kubectl apply -f mysql, kubectl apply -f redis, kubectl apply -f saas]
+```
+
+If user wants to overwrite the default startup ,they only need to specify the `cmd` fields of Clusterfile.In this
+case,will only start `kubectl apply -f redis` and `kubectl apply -f saas`.
+
+```yaml
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
   image: myapp:latest
   cmd:
     - kubectl apply -f redis
@@ -452,4 +453,3 @@ Replace `podcidr` in kubeadm and Calico configurations with `podcidr` in Env in 
     - ips: [ 192.168.0.3 ]
       roles: [ node ]
 ```
->>>>>>> c0c2d1d7 (add doc of overwrite cmd list):docs/site/src/docs/advanced/use-clusterfile.md
