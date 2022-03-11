@@ -1,19 +1,16 @@
-# Applications CloudImage
+# 集群镜像列表
 
-Before using the sealer official applications, you need to install the [sealer](https://github.com/alibaba/sealer).
+我们已经构建出一些可复用的集群镜像供用户使用，比如数据库，监控，消息队列等
 
 ## Overview
 
-We choose OpenEBS Jiva or OpenEBS LocalPV as default persistence storage to enable Stateful applications to easily access Dynamic Local PVs
-or Replicated PVs. More details about the application can be found in its manifest directory.
+我们使用OpenEBS 作为默认存储，提供各种有状态应用动态创建PV.
 
-### Cloud image list
-
-#### Toolkit images
+#### 基础工具
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0
 
-#### Storage images
+#### 存储
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-cstor:2.11.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
@@ -23,11 +20,11 @@ or Replicated PVs. More details about the application can be found in its manife
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/ceph-object:v16.2.5
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/minio:2021.6.17
 
-#### Network images
+#### 网络
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/ingress-nginx-controller:v1.0.0
 
-#### Database images
+#### 数据库
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/mysql:8.0.26
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/redis:6.2.5
@@ -37,25 +34,24 @@ or Replicated PVs. More details about the application can be found in its manife
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/tidb:v1.2.1
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/cockroach:v21.1.7
 
-#### Message queue images
+#### 消息队列
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/kafka:2.8.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/zookeeper:3.7.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/rocketmq:4.5.0
 
-#### Other images
+#### 其它镜像
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/dashboard:v2.2.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/prometheus-stack:v2.28.1
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-promtail:v2.2.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/loki-stack-fluentbit:v2.2.0
 
-## How to run it
+## 如何使用
 
-### Apply a cluster
+### 创建集群
 
-you can modify the image name and save it as "Clusterfile", then run sealer apply
-cmd  `sealer apply -f Clusterfile`, for example install prometheus stack:
+可以直接修改以下Clusterfile中的image字段，然后使用 `sealer apply -f Clusterfile` 去启动集群，以prometheus为例：
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -73,15 +69,8 @@ spec:
       roles: [ node ]
 ```
 
-if you want to apply a cloud image which need persistence storage. we provide openebs as cloud storage backend. OpenEBS
-provides block volume support through the iSCSI protocol. Therefore, the iSCSI client (initiator) presence on all
-Kubernetes nodes is required. Choose the platform below to find the steps to verify if the iSCSI client is installed and
-running or to find the steps to install the iSCSI client.For openebs, different storage engine need to config different
-prerequisite. more to see [openebs website](https://openebs.io/).
-
-We provide plugin mechanism, you only need to append below example to "clusterfile.yaml" and apply them together.
-
-For example, if we use jiva engine as storage backend :
+如果你需要持久化存储，我们提供openebs块存储，但是所有节点需要安装 iSCSI client,好在sealer提供的插件能力可以支持在每个节点执行一些指定操作，以下以在centos上
+安装iSCSI client为例，只需要在Clusterfile中添加如下插件配置：
 
 ```yaml
 apiVersion: sealer.aliyun.com/v1alpha1
@@ -105,6 +94,4 @@ spec:
 ---
 ```
 
-## How to use it
-
-See README.md of each application for more details.
+具体每个CloudImage本身的访问方式与使用方式请参考对应的[readme文件](https://github.com/alibaba/sealer/tree/main/applications)
