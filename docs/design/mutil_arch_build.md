@@ -1,13 +1,13 @@
 # Multi-arch build
 
-# Build cloud image
+## Build cloud image
 
 Kubefile:
 
 ```shell
 FROM kubernetes:v1.19.8
 COPY dashborad.yaml manifests
-COPY helm bin # arm64 binary file
+COPY ${ARCH}/helm bin # copy binary file,make sure the build context have the same number platform binary files.
 COPY my-mysql charts
 CMD helm install my-mysql bitnami/mysql --version 8.8.26
 CMD kubectl apply -f manifests/dashborad.yaml
@@ -150,10 +150,12 @@ spec:
 status: { }
 ```
 
-# Run cloud image
+## Run cloud image
 
-`192.168.1.1: linux/amd64 `
-`192.168.1.2: linux/arm64/v8`
+| IP      | Platform | OS    |
+| :---        |    :----:   |          ---: |
+| 192.168.1.1      | amd64       | linux  |
+| 192.168.1.2   | arm64        | linux      |
 
 sealer run cmd line:
 
@@ -161,7 +163,7 @@ sealer run cmd line:
 sealer run -m 192.168.1.1 -n 192.168.1.2 kubernetes-multi-arch:v1.19.8
 ```
 
-## Mount image
+### Mount image
 
 we have three mounter point:
 
@@ -169,23 +171,24 @@ we have three mounter point:
 2. armMounter : lower layers include base arm rootfs and all image data.
 3. registryMounter : ${amdMounter}/registry + ${armMounter}/registry.
 
-## Mount rootfs
+### Mount rootfs
 
-For master:only have amdMounter data For node :only have armMounter data
+1. For master:only have amdMounter data
+2. For node :only have armMounter data
 
-# Save cloud image
+## Save cloud image
 
 if not specify the platform will save them all. save two image_metadata.yaml and all manifests file.
 
-if want save amd64 images of kubernetes:v1.19.8 using platform arg
+If you want save amd64 images of kubernetes-multi-arch:v1.19.8 using platform arg
 
-`sealer save -o kubernetes.tar kubernetes:v1.19.8 --platform linux/amd64`
+`sealer save -o kubernetes.tar kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
 
 manifests file and one image_metadata.yaml :
 
 ```json
 {
-  "kubernetes:v1.19.8": {
+  "kubernetes-multi-arch:v1.19.8": {
     "manifests": [
       {
         "id": "52c3b10849c852649e66c2f7ed531f05bd97586ab61fa2cc82b4e79d80484b82",
@@ -201,16 +204,25 @@ manifests file and one image_metadata.yaml :
 }
 ```
 
-# Load cloud image
+## Load cloud image
 
 `sealer load -i kubernetes.tar`
 
-# Inspect cloud image
+## Inspect cloud image
 
-`sealer inspect kubernetes:v1.19.8 --platform linux/amd64`
+`sealer inspect kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
 
-# Delete cloud image
+## Delete cloud image
 
-if not specify the platform will delete them all. only delete amd64 images of kubernetes:v1.19.8
+if not specify the platform will delete them all. If you only want to delete amd64 images of `kubernetes-multi-arch:
+v1.19.8`.
 
-`sealer inspect kubernetes:v1.19.8 --platform linux/amd64`
+`sealer delete kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
+
+## Pull cloud image
+
+`sealer pull kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
+
+## Push cloud image
+
+`sealer push kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
