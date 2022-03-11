@@ -119,6 +119,8 @@ func (p *Parser) Parse(kubeFile []byte) *v1.Image {
 		switch layerType {
 		case Arg:
 			dispatchArg(layerValue, image)
+		case Cmd:
+			dispatchCmd(layerValue, image)
 		default:
 			dispatchDefault(layerType, layerValue, image)
 		}
@@ -137,8 +139,8 @@ func decodeLine(line string) (string, string, error) {
 }
 
 func dispatchArg(layerValue string, ima *v1.Image) {
-	if ima.Spec.ImageConfig.Args == nil {
-		ima.Spec.ImageConfig.Args = map[string]string{}
+	if ima.Spec.ImageConfig.Args.Current == nil {
+		ima.Spec.ImageConfig.Args.Current = map[string]string{}
 	}
 
 	kv := strings.Split(layerValue, ",")
@@ -153,8 +155,23 @@ func dispatchArg(layerValue string, ima *v1.Image) {
 			logger.Error("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
 			return
 		}
-		ima.Spec.ImageConfig.Args[k] = strings.TrimSpace(valueLine[1])
+		ima.Spec.ImageConfig.Args.Current[k] = strings.TrimSpace(valueLine[1])
 	}
+}
+
+func dispatchCmd(layerValue string, ima *v1.Image) {
+	if ima.Spec.ImageConfig.Cmd.Current == nil {
+		ima.Spec.ImageConfig.Cmd.Current = make([]string, 0)
+	}
+
+	var cmdList []string
+	for _, value := range strings.Split(layerValue, ",") {
+		if value == "" {
+			continue
+		}
+		cmdList = append(cmdList, strings.TrimSpace(value))
+	}
+	ima.Spec.ImageConfig.Cmd.Current = append(ima.Spec.ImageConfig.Cmd.Current, cmdList...)
 }
 
 func dispatchDefault(layerType, layerValue string, ima *v1.Image) {
