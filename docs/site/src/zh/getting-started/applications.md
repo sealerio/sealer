@@ -6,11 +6,11 @@
 
 我们使用OpenEBS 作为默认存储，提供各种有状态应用动态创建PV.
 
-#### 基础工具
+### 基础工具
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/helm:v3.6.0
 
-#### 存储
+### 存储
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-cstor:2.11.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-jiva:2.11.0
@@ -20,11 +20,11 @@
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/ceph-object:v16.2.5
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/minio:2021.6.17
 
-#### 网络
+### 网络
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/ingress-nginx-controller:v1.0.0
 
-#### 数据库
+### 数据库
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/mysql:8.0.26
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/redis:6.2.5
@@ -34,13 +34,13 @@
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/tidb:v1.2.1
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/cockroach:v21.1.7
 
-#### 消息队列
+### 消息队列
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/kafka:2.8.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/zookeeper:3.7.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/rocketmq:4.5.0
 
-#### 其它镜像
+### 其它镜像
 
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/dashboard:v2.2.0
 * registry.cn-qingdao.aliyuncs.com/sealer-apps/prometheus-stack:v2.28.1
