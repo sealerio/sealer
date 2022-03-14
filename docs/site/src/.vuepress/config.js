@@ -17,14 +17,14 @@ enSideBar = {
         title: 'Getting Started',
         collapsable: true,
         children: [
-          'getting-started/applications',
-          'getting-started/build-appimage',
-          'getting-started/build-cloudimage',
-          'getting-started/config',
           'getting-started/introduction',
-          'getting-started/plugin',
           'getting-started/quick-start',
           'getting-started/run-cloudimage',
+          'getting-started/build-cloudimage',
+          'getting-started/build-appimage',
+          'getting-started/config',
+          'getting-started/plugin',
+          'getting-started/applications',
         ]
       },
       {
@@ -94,15 +94,15 @@ zhSideBar = {
         title: '快速开始',
         collapsable: true,
         children: [
-          'getting-started/applications',
-          'getting-started/build-appimage',
-          'getting-started/build-cloudimage',
-          'getting-started/config',
           'getting-started/introduction',
-          'getting-started/plugin',
           'getting-started/quick-start',
-          'getting-started/use-cloudimage',
           'getting-started/using-clusterfile',
+          'getting-started/use-cloudimage',
+          'getting-started/build-cloudimage',
+          'getting-started/build-appimage',
+          'getting-started/config',
+          'getting-started/plugin',
+          'getting-started/applications',
         ]
       },
       {
