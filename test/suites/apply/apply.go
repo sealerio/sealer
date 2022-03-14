@@ -293,6 +293,6 @@ func MarshalClusterToFile(ClusterFile string, cluster *v1.Cluster) {
 func CheckDockerAndSwapOff() {
 	_, err := utils.RunSimpleCmd("docker -v")
 	testhelper.CheckErr(err)
-	_, err = utils.RunSimpleCmd("sudo swapoff -a")
+	_, err = utils.RunSimpleCmd("swapoff -a")
 	testhelper.CheckErr(err)
 }
