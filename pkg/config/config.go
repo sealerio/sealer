@@ -20,6 +20,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	v2 "github.com/alibaba/sealer/types/api/v2"
+
 	"gopkg.in/yaml.v3"
 	yaml2 "sigs.k8s.io/yaml"
 
@@ -56,13 +58,13 @@ type Interface interface {
 }
 
 type Dumper struct {
-	Configs     []v1.Config
-	ClusterName string
+	Configs []v1.Config
+	Cluster *v2.Cluster
 }
 
-func NewConfiguration(clusterName string) Interface {
+func NewConfiguration(cluster *v2.Cluster) Interface {
 	return &Dumper{
-		ClusterName: clusterName,
+		Cluster: cluster,
 	}
 }
 
@@ -89,7 +91,7 @@ func (c *Dumper) WriteFiles() (err error) {
 	}
 	for _, config := range c.Configs {
 		configData := []byte(config.Spec.Data)
-		configPath := filepath.Join(common.DefaultMountCloudImageDir(c.ClusterName), config.Spec.Path)
+		configPath := filepath.Join(common.DefaultMountCloudImageDir(c.Cluster.Name), config.Spec.Path)
 		//only the YAML format is supported
 		if config.Spec.Strategy == Merge {
 			configData, err = getMergeConfigData(configPath, configData)

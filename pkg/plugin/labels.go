@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alibaba/sealer/utils"
+
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/alibaba/sealer/logger"
@@ -52,7 +54,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 		return err
 	}
 	l.client = c
-	l.data = l.formatData(context.Plugin.Spec.Data)
+	l.data = l.formatData(context.Plugin.Spec.Data, context.Host)
 
 	nodeList, err := l.client.ListNodes()
 	if err != nil {
@@ -77,7 +79,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 	return nil
 }
 
-func (l LabelsNodes) formatData(data string) map[string][]label {
+func (l LabelsNodes) formatData(data string, hosts []string) map[string][]label {
 	m := make(map[string][]label)
 	items := strings.Split(data, "\n")
 	if len(items) == 0 {
@@ -91,6 +93,9 @@ func (l LabelsNodes) formatData(data string) map[string][]label {
 			continue
 		}
 		ip := tmps[0]
+		if utils.NotIn(ip, hosts) {
+			continue
+		}
 		labelStr := strings.Split(tmps[1], ",")
 		var labels []label
 		for _, l := range labelStr {

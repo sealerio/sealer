@@ -161,12 +161,12 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	logger.Info("Start to scale this cluster")
 	logger.Debug("current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
 
-	scaleProcessor, err := processor.NewScaleProcessor(c.ClusterFile.GetKubeadmConfig(), common.DefaultTheClusterRootfsDir(c.ClusterDesired.Name), mj, md, nj, nd)
+	scaleProcessor, err := processor.NewScaleProcessor(c.ClusterFile.GetKubeadmConfig(), c.ClusterFile, mj, md, nj, nd)
 	if err != nil {
 		return err
 	}
 	var cluster *v2.Cluster
-	if !scaleProcessor.(processor.ScaleProcessor).IsScaleUp {
+	if !scaleProcessor.(*processor.ScaleProcessor).IsScaleUp {
 		c, err := runtime.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
 		if err != nil {
 			return err

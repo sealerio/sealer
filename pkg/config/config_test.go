@@ -18,6 +18,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	v2 "github.com/alibaba/sealer/types/api/v2"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
@@ -52,9 +54,10 @@ func TestDumper_Dump(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Dumper{
-				Configs:     tt.fields.configs,
-				ClusterName: tt.fields.clusterName,
+				Configs: tt.fields.configs,
+				Cluster: &v2.Cluster{},
 			}
+			c.Cluster.Name = tt.fields.clusterName
 			configs, err := utils.DecodeV1CRD(tt.args.clusterfile, common.Config)
 			if err != nil {
 				t.Error(err)

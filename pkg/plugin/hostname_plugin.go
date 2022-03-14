@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils/ssh"
 )
@@ -41,6 +43,9 @@ func (h HostnamePlugin) Run(context Context, phase Phase) error {
 	}
 	h.data = h.formatData(context.Plugin.Spec.Data)
 	for ip, hostname := range h.data {
+		if utils.NotIn(ip, context.Host) {
+			continue
+		}
 		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster)
 		if err != nil {
 			return err

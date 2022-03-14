@@ -54,4 +54,5 @@ const (
 type Context struct {
 	Plugin  *v1.Plugin
 	Cluster *v2.Cluster
+	Host    []string
 }

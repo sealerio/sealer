@@ -17,6 +17,8 @@ package plugin
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/pkg/env"
 
 	"github.com/alibaba/sealer/common"
@@ -51,6 +53,9 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 		}
 	}
 	for _, ip := range allHostIP {
+		if utils.NotIn(ip, context.Host) {
+			continue
+		}
 		envProcessor := env.NewEnvProcessor(context.Cluster)
 		sshClient, err := ssh.NewStdoutSSHClient(ip, context.Cluster)
 		if err != nil {

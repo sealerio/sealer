@@ -46,7 +46,7 @@ func (c *CreateProcessor) Execute(cluster *v2.Cluster) error {
 		return fmt.Errorf("failed to init runtime, %v", err)
 	}
 	c.Runtime = runTime
-	c.Config = config.NewConfiguration(cluster.Name)
+	c.Config = config.NewConfiguration(cluster)
 	if err := c.initPlugin(cluster); err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (c *CreateProcessor) UnMountImage(cluster *v2.Cluster) error {
 }
 
 func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) error {
-	c.Plugins = plugin.NewPlugins(cluster.Name)
+	c.Plugins = plugin.NewPlugins(cluster)
 	return c.Plugins.Dump(c.ClusterFile.GetPlugins())
 }
 
@@ -148,7 +148,7 @@ func (c *CreateProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 				return err
 			}
 		}
-		return c.Plugins.Run(cluster, phase)
+		return c.Plugins.Run(cluster.GetAllIPList(), phase)
 	}
 }
 

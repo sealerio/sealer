@@ -34,8 +34,8 @@ type InstallProcessor struct {
 
 // Execute :according to the different of desired cluster to install app on cluster.
 func (i InstallProcessor) Execute(cluster *v2.Cluster) error {
-	i.Config = config.NewConfiguration(cluster.Name)
-	i.Plugins = plugin.NewPlugins(cluster.Name)
+	i.Config = config.NewConfiguration(cluster)
+	i.Plugins = plugin.NewPlugins(cluster)
 	if err := i.initPlugin(); err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (i InstallProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 				return err
 			}
 		}
-		return i.Plugins.Run(cluster, phase)
+		return i.Plugins.Run(cluster.GetAllIPList(), phase)
 	}
 }
 

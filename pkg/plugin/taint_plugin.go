@@ -88,6 +88,9 @@ func (l *Taint) Run(context Context, phase Phase) (err error) {
 			if !utils.InList(v.Address, l.IPList) {
 				continue
 			}
+			if utils.NotIn(v.Address, context.Host) {
+				continue
+			}
 			updateTaints := l.UpdateTaints(node.Spec.Taints, v.Address)
 			if updateTaints != nil {
 				node.Spec.Taints = updateTaints
