@@ -13,6 +13,18 @@ CMD helm install my-mysql bitnami/mysql --version 8.8.26
 CMD kubectl apply -f manifests/dashborad.yaml
 ```
 
+build context tree:
+
+```yaml
+├── amd64
+│   └── helm
+├── arm64
+│   └── helm
+├── dashboard.yaml
+├── Kubefile
+└── my-mysql
+```
+
 sealer build cmd line:
 
 ```shell
