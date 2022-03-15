@@ -40,7 +40,7 @@ type layerExecutor struct {
 	rootfsMountInfo *buildinstruction.MountTarget
 }
 
-func (l layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, error) {
+func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, error) {
 	var (
 		execCtx    buildinstruction.ExecContext
 		baseLayers = l.baseLayers
@@ -106,7 +106,7 @@ func (l layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, e
 	return baseLayers, nil
 }
 
-func (l layerExecutor) checkMiddleware(buildContext string) error {
+func (l *layerExecutor) checkMiddleware(buildContext string) error {
 	var (
 		rootfs      = l.rootfsMountInfo.GetMountTarget()
 		middlewares = []Middleware{NewMiddlewarePuller()}
@@ -126,7 +126,7 @@ func (l layerExecutor) checkMiddleware(buildContext string) error {
 	return eg.Wait()
 }
 
-func (l layerExecutor) checkDiff(rawLayers []v1.Layer) error {
+func (l *layerExecutor) checkDiff(rawLayers []v1.Layer) error {
 	mi, err := GetLayerMountInfo(rawLayers, l.buildType)
 	if err != nil {
 		return err
@@ -149,7 +149,7 @@ func (l layerExecutor) checkDiff(rawLayers []v1.Layer) error {
 	return eg.Wait()
 }
 
-func (l layerExecutor) collectLayers() error {
+func (l *layerExecutor) collectLayers() error {
 	upper := l.rootfsMountInfo.GetMountUpper()
 	layer, err := l.genNewLayer(common.BaseImageLayerType, common.RootfsLayerValue, upper)
 	if err != nil {
@@ -164,7 +164,7 @@ func (l layerExecutor) collectLayers() error {
 	return nil
 }
 
-func (l layerExecutor) genNewLayer(layerType, layerValue, filepath string) (v1.Layer, error) {
+func (l *layerExecutor) genNewLayer(layerType, layerValue, filepath string) (v1.Layer, error) {
 	imageLayer := v1.Layer{
 		Type:  layerType,
 		Value: layerValue,
@@ -179,7 +179,7 @@ func (l layerExecutor) genNewLayer(layerType, layerValue, filepath string) (v1.L
 	return imageLayer, nil
 }
 
-func (l layerExecutor) Cleanup() error {
+func (l *layerExecutor) Cleanup() error {
 	l.rootfsMountInfo.CleanUp()
 	return nil
 }
@@ -194,7 +194,7 @@ func NewLayerExecutor(baseLayers []v1.Layer, buildType string) (Executor, error)
 		return nil, err
 	}
 
-	return layerExecutor{
+	return &layerExecutor{
 		buildType:       buildType,
 		baseLayers:      baseLayers,
 		layerStore:      layerStore,

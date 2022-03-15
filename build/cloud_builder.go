@@ -72,7 +72,7 @@ type cloudBuilder struct {
 	image              *v1.Image
 }
 
-func (c cloudBuilder) Build(name string, context string, kubefileName string) error {
+func (c *cloudBuilder) Build(name string, context string, kubefileName string) error {
 	named, err := reference.ParseToNamed(name)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func (c cloudBuilder) Build(name string, context string, kubefileName string) er
 	return nil
 }
 
-func (c cloudBuilder) GetBuildPipeLine() ([]func() error, error) {
+func (c *cloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 	var buildPipeline []func() error
 
 	buildPipeline = append(buildPipeline,
@@ -124,7 +124,7 @@ func (c cloudBuilder) GetBuildPipeLine() ([]func() error, error) {
 }
 
 // PreCheck : check env before run cloud build
-func (c cloudBuilder) PreCheck() (err error) {
+func (c *cloudBuilder) PreCheck() (err error) {
 	if c.provider != common.AliCloud {
 		return nil
 	}
@@ -133,7 +133,7 @@ func (c cloudBuilder) PreCheck() (err error) {
 }
 
 // InitClusterFile load cluster file from disk
-func (c cloudBuilder) InitClusterFile() error {
+func (c *cloudBuilder) InitClusterFile() error {
 	var cluster v1.Cluster
 	if utils.IsFileExist(c.tmpClusterFilePath) {
 		err := utils.UnmarshalYamlFile(c.tmpClusterFilePath, &cluster)
@@ -160,7 +160,7 @@ func (c cloudBuilder) InitClusterFile() error {
 }
 
 // ApplyInfra apply infra create vms
-func (c cloudBuilder) ApplyInfra() (err error) {
+func (c *cloudBuilder) ApplyInfra() (err error) {
 	//bare_metal: no need to apply infra
 	//ali_cloud,container: apply infra as cluster content
 	if c.cluster.Spec.Provider == common.BAREMETAL {
@@ -182,7 +182,7 @@ func (c cloudBuilder) ApplyInfra() (err error) {
 	return c.initBuildSSH()
 }
 
-func (c cloudBuilder) initBuildSSH() error {
+func (c *cloudBuilder) initBuildSSH() error {
 	// init ssh client
 	c.cluster.Spec.Provider = c.provider
 	client, err := ssh.NewSSHClientWithCluster(c.cluster)
@@ -195,7 +195,7 @@ func (c cloudBuilder) initBuildSSH() error {
 }
 
 // SendBuildContext send build context dir to remote host
-func (c cloudBuilder) SendBuildContext() error {
+func (c *cloudBuilder) SendBuildContext() error {
 	if err := c.sendBuildContext(); err != nil {
 		return fmt.Errorf("failed to send context: %v", err)
 	}
@@ -206,7 +206,7 @@ func (c cloudBuilder) SendBuildContext() error {
 }
 
 // RemoteLocalBuild run sealer build remotely
-func (c cloudBuilder) RemoteLocalBuild() (err error) {
+func (c *cloudBuilder) RemoteLocalBuild() (err error) {
 	// apply k8s cluster first
 	apply := fmt.Sprintf("%s apply -f %s", common.RemoteSealerPath, c.tmpClusterFilePath)
 	err = c.SSHClient.CmdAsync(c.remoteHostIP, apply)
@@ -224,7 +224,7 @@ func (c cloudBuilder) RemoteLocalBuild() (err error) {
 // prepareRegistry: collect operator images via remount registry.
 // because runtime apply registry not mount the rootfs/registry as lower layer. if we want to collect
 // operator images,we must remount the dir rootfs/registry for collecting differ of the overlay upper layer.
-func (c cloudBuilder) prepareRegistry() (err error) {
+func (c *cloudBuilder) prepareRegistry() (err error) {
 	rootfs := common.DefaultTheClusterRootfsDir(c.cluster.Name)
 	mkdir := fmt.Sprintf("rm -rf %s %s && mkdir -p %s %s", RegistryMountUpper, RegistryMountWork,
 		RegistryMountUpper, RegistryMountWork)
@@ -245,7 +245,7 @@ func (c cloudBuilder) prepareRegistry() (err error) {
 	return nil
 }
 
-func (c cloudBuilder) runBuildCommands() (err error) {
+func (c *cloudBuilder) runBuildCommands() (err error) {
 	// run local build command
 	workdir := fmt.Sprintf(common.DefaultWorkDir, c.cluster.Name)
 	build := fmt.Sprintf(common.BuildClusterCmd, common.RemoteSealerPath,
@@ -272,7 +272,7 @@ func (c cloudBuilder) runBuildCommands() (err error) {
 }
 
 // Cleanup cleanup infra and tmp file
-func (c cloudBuilder) Cleanup() (err error) {
+func (c *cloudBuilder) Cleanup() (err error) {
 	t := metav1.Now()
 	c.cluster.DeletionTimestamp = &t
 	c.cluster.Spec.Provider = c.provider
@@ -293,7 +293,7 @@ func (c cloudBuilder) Cleanup() (err error) {
 }
 
 //sendBuildContext:send local build context to remote server
-func (c cloudBuilder) sendBuildContext() (err error) {
+func (c *cloudBuilder) sendBuildContext() (err error) {
 	// if remote cluster already exist,no need to pre init master0
 	if !c.SSHClient.IsFileExist(c.remoteHostIP, common.RemoteSealerPath) {
 		err = runtime.PreInitMaster0(c.SSHClient, c.remoteHostIP)
@@ -325,7 +325,7 @@ func (c cloudBuilder) sendBuildContext() (err error) {
 	return nil
 }
 
-func (c cloudBuilder) changeBuilderContext() {
+func (c *cloudBuilder) changeBuilderContext() {
 	c.context = "."
 }
 
@@ -337,7 +337,7 @@ func tarBuildContext(kubeFilePath string, context string, tarFileName string) er
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logger.Error("failed to close file")
 		}
 	}()
 
