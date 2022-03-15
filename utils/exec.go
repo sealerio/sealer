@@ -18,12 +18,23 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 
 	"github.com/alibaba/sealer/common"
 )
 
+const SUDO = "sudo"
+
 func Cmd(name string, args ...string) error {
+	username, err := GetCurrentUserName()
+	if err != nil {
+		return err
+	}
+	if username != common.ROOT {
+		args = append([]string{name}, args...)
+		name = SUDO
+	}
 	cmd := exec.Command(name, args[:]...) // #nosec
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = common.StdErr
@@ -32,12 +43,29 @@ func Cmd(name string, args ...string) error {
 }
 
 func CmdOutput(name string, args ...string) ([]byte, error) {
+	username, err := GetCurrentUserName()
+	if err != nil {
+		return nil, err
+	}
+	if username != common.ROOT {
+		args = append([]string{name}, args...)
+		name = SUDO
+	}
 	cmd := exec.Command(name, args[:]...) // #nosec
 	return cmd.CombinedOutput()
 }
 
 func RunSimpleCmd(cmd string) (string, error) {
-	result, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput() // #nosec
+	username, err := GetCurrentUserName()
+	if err != nil {
+		return "", err
+	}
+	var result []byte
+	if username != common.ROOT {
+		result, err = exec.Command(SUDO, "/bin/sh", "-c", cmd).CombinedOutput() // #nosec
+	} else {
+		result, err = exec.Command("/bin/sh", "-c", cmd).CombinedOutput() // #nosec
+	}
 	return string(result), err
 }
 
@@ -55,4 +83,9 @@ func CheckCmdIsExist(cmd string) (string, bool) {
 		return strings.TrimSpace(last), true
 	}
 	return "", false
+}
+
+func GetCurrentUserName() (string, error) {
+	user, err := user.Current()
+	return user.Username, err
 }

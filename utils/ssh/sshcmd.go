@@ -21,8 +21,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/alibaba/sealer/common"
+
 	"github.com/alibaba/sealer/utils"
 )
+
+const SUDO = "sudo "
 
 func (s *SSH) Ping(host string) error {
 	client, _, err := s.Connect(host)
@@ -41,7 +45,9 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 		if cmd == "" {
 			continue
 		}
-
+		if s.User != common.ROOT {
+			cmd = SUDO + cmd
+		}
 		if err := func(cmd string) error {
 			client, session, err := s.Connect(host)
 			if err != nil {
@@ -90,6 +96,9 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 }
 
 func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
+	if s.User != common.ROOT {
+		cmd = SUDO + cmd
+	}
 	client, session, err := s.Connect(host)
 	if err != nil {
 		return nil, fmt.Errorf("[ssh][%s] create ssh session failed, %s", host, err)
