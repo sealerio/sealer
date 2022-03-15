@@ -108,11 +108,11 @@ func NewCmdInstruction(ctx InstructionContext) (*CmdInstruction, error) {
 	if err != nil {
 		return nil, err
 	}
-	ex := shell.NewLex('\\')
+
 	return &CmdInstruction{
 		mounter:  *target,
 		cmdValue: ctx.CurrentLayer.Value,
 		rawLayer: *ctx.CurrentLayer,
-		ex:       ex,
+		ex:       shell.NewLex('\\'),
 	}, nil
 }

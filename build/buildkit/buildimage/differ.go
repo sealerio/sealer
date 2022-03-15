@@ -172,3 +172,58 @@ func parseRawImageList(srcPath string) ([]string, error) {
 	}
 	return FormatImages(images), nil
 }
+
+type metadata struct {
+}
+
+func (m metadata) Process(src, dst buildinstruction.MountTarget) error {
+	// check "KubeVersion" of Chart.yaml under charts dir,to overwrite the metadata.
+	srcPath := src.GetMountTarget()
+	rootfs := dst.GetMountTarget()
+	kv := getKubeVersion(srcPath)
+	if kv == "" {
+		return nil
+	}
+
+	md, err := m.loadMetadata(srcPath, rootfs)
+	if err != nil {
+		return err
+	}
+
+	if md.KubeVersion == kv {
+		return nil
+	}
+	md.KubeVersion = kv
+	mf := filepath.Join(rootfs, common.DefaultMetadataName)
+	if err = utils.MarshalJSONToFile(mf, md); err != nil {
+		return fmt.Errorf("failed to set image Metadata file, err: %v", err)
+	}
+
+	return nil
+}
+
+func (m metadata) loadMetadata(srcPath, rootfs string) (*runtime.Metadata, error) {
+	// if Metadata file existed in srcPath, load and marshal to check the legality of it's content.
+	// if not, use rootfs Metadata.
+	smd, err := runtime.LoadMetadata(srcPath)
+	if err != nil {
+		return nil, err
+	}
+	if smd != nil {
+		return smd, nil
+	}
+
+	md, err := runtime.LoadMetadata(rootfs)
+	if err != nil {
+		return nil, err
+	}
+
+	if md != nil {
+		return md, nil
+	}
+	return nil, fmt.Errorf("failed to load rootfs Metadata")
+}
+
+func NewMetadataDiffer() Differ {
+	return metadata{}
+}

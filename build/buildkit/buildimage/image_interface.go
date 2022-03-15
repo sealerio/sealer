@@ -19,9 +19,9 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
-type Interface interface {
-	ExecBuild(ctx Context) error
-	SaveBuildImage(name string, opts SaveOpts) error
+type Executor interface {
+	// Execute all raw layers,and merge with base layers.
+	Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, error)
 	Cleanup() error
 }
 
@@ -39,4 +39,9 @@ type ImageSetter interface {
 type Middleware interface {
 	// Process set data to cloud image ,but not to show in the image layer.
 	Process(context, rootfs string) error
+}
+
+type ImageSaver interface {
+	// Save with image attribute,and register to image metadata.
+	Save(image *v1.Image) error
 }

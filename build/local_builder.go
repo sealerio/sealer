@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package build
 
 import (
 	"fmt"
+	"github.com/alibaba/sealer/common"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"time"
 
 	"github.com/alibaba/sealer/build/buildkit"
@@ -26,19 +28,22 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-// Builder : local builder using local provider to build a cluster image
-type Builder struct {
-	BuildType    string
-	NoCache      bool
-	NoBase       bool
-	ImageNamed   reference.Named
-	Context      string
-	KubeFileName string
-	BuildArgs    map[string]string
-	BuildImage   buildimage.Interface
+// localBuilder: local builder using local provider to build a cluster image
+type localBuilder struct {
+	buildType    string
+	noCache      bool
+	noBase       bool
+	imageNamed   reference.Named
+	context      string
+	kubeFileName string
+	buildArgs    map[string]string
+	baseLayers   []v1.Layer
+	rawImage     *v1.Image
+	executor     buildimage.Executor
+	saver        buildimage.ImageSaver
 }
 
-func (l *Builder) Build(name string, context string, kubefileName string) error {
+func (l localBuilder) Build(name string, context string, kubefileName string) error {
 	err := l.InitBuilder(name, context, kubefileName)
 	if err != nil {
 		return err
@@ -58,7 +63,7 @@ func (l *Builder) Build(name string, context string, kubefileName string) error 
 }
 
 // InitBuilder pares cmd line parameters and pares Kubefile
-func (l *Builder) InitBuilder(name string, context string, kubefileName string) error {
+func (l localBuilder) InitBuilder(name string, context string, kubefileName string) error {
 	named, err := reference.ParseToNamed(name)
 	if err != nil {
 		return err
@@ -74,19 +79,31 @@ func (l *Builder) InitBuilder(name string, context string, kubefileName string) 
 		return err
 	}
 
-	bi, err := buildimage.NewBuildImage(absKubeFile, l.BuildType)
+	l.imageNamed = named
+	l.context = absContext
+	l.kubeFileName = absKubeFile
+	rawImage, baseLayers, err := buildimage.NewBuildImageByKubefile(absKubeFile)
 	if err != nil {
 		return err
 	}
+	l.rawImage, l.baseLayers = rawImage, baseLayers
 
-	l.ImageNamed = named
-	l.Context = absContext
-	l.KubeFileName = absKubeFile
-	l.BuildImage = bi
+	executor, err := buildimage.NewLayerExecutor(baseLayers, l.buildType)
+	if err != nil {
+		return err
+	}
+	l.executor = executor
+
+	saver, err := buildimage.NewImageSaver(l.buildType)
+	if err != nil {
+		return err
+	}
+	l.saver = saver
+
 	return nil
 }
 
-func (l *Builder) GetBuildPipeLine() ([]func() error, error) {
+func (l localBuilder) GetBuildPipeLine() ([]func() error, error) {
 	var buildPipeline []func() error
 	buildPipeline = append(buildPipeline,
 		l.ExecBuild,
@@ -96,34 +113,41 @@ func (l *Builder) GetBuildPipeLine() ([]func() error, error) {
 	return buildPipeline, nil
 }
 
-func (l *Builder) ExecBuild() error {
-	ctx := buildimage.Context{
-		BuildContext: l.Context,
-		UseCache:     !l.NoCache,
-		BuildArgs:    l.BuildArgs,
+func (l localBuilder) ExecBuild() error {
+	// merge args with build context
+	for k, v := range l.buildArgs {
+		l.rawImage.Spec.ImageConfig.Args.Current[k] = v
 	}
 
-	err := l.BuildImage.ExecBuild(ctx)
+	ctx := buildimage.Context{
+		BuildContext: l.context,
+		UseCache:     !l.noCache,
+		BuildArgs:    l.rawImage.Spec.ImageConfig.Args.Current,
+	}
+
+	layers, err := l.executor.Execute(ctx, l.rawImage.Spec.Layers)
 	if err != nil {
 		return err
 	}
 
+	l.rawImage.Spec.Layers = layers
 	return l.checkPodStatus()
 }
 
-func (l *Builder) checkPodStatus() error {
+func (l localBuilder) checkPodStatus() error {
 	client, _ := k8s.Newk8sClient()
 	if client == nil {
 		return nil
 	}
 
-	if !l.IsAllPodsRunning(client) {
+	if !l.isAllPodsRunning(client) {
 		return fmt.Errorf("cache docker image failed,cluster pod not running")
 	}
 
 	return nil
 }
-func (l *Builder) IsAllPodsRunning(k8sClient *k8s.Client) bool {
+
+func (l localBuilder) isAllPodsRunning(k8sClient *k8s.Client) bool {
 	logger.Info("waiting resource to sync")
 	//wait resource to sync.do sleep here,because we can't fetch the pod status immediately.
 	//if we use retry to check pod status, will pass the cache part, due to some resources has not been created yet.
@@ -153,19 +177,33 @@ func (l *Builder) IsAllPodsRunning(k8sClient *k8s.Client) bool {
 	return err == nil
 }
 
-func (l *Builder) SaveBuildImage() error {
-	imageName := l.ImageNamed.Raw()
+func (l localBuilder) SaveBuildImage() error {
+	l.rawImage.Name = l.imageNamed.Raw()
 
-	err := l.BuildImage.SaveBuildImage(imageName, buildimage.SaveOpts{
-		WithoutBase: l.NoBase,
-	})
+	if l.noBase {
+		l.rawImage.Spec.ImageConfig.ImageType = common.AppImage
+		l.rawImage.Spec.ImageConfig.Cmd.Parent = nil
+		l.rawImage.Spec.ImageConfig.Args.Parent = nil
+		l.rawImage.Spec.Layers = l.rawImage.Spec.Layers[len(l.baseLayers):]
+	}
+
+	err := l.saver.Save(l.rawImage)
 	if err != nil {
 		return err
 	}
-	logger.Info("save image %s success", imageName)
+	logger.Info("save image %s to image system success", l.rawImage.Name)
 	return nil
 }
 
-func (l *Builder) Cleanup() (err error) {
-	return l.BuildImage.Cleanup()
+func (l localBuilder) Cleanup() (err error) {
+	return l.executor.Cleanup()
+}
+
+func NewLocalBuilder(config *Config) (Interface, error) {
+	return &localBuilder{
+		buildType: config.BuildType,
+		noCache:   config.NoCache,
+		noBase:    config.NoBase,
+		buildArgs: config.BuildArgs,
+	}, nil
 }

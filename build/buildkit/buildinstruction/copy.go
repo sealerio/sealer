@@ -16,6 +16,7 @@ package buildinstruction
 
 import (
 	"fmt"
+	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
@@ -35,6 +36,7 @@ type CopyInstruction struct {
 	src          string
 	dest         string
 	rawLayer     v1.Layer
+	ex           *shell.Lex
 	layerHandler buildlayer.LayerHandler
 	fs           store.Backend
 	collector    collector.Collector
@@ -60,8 +62,15 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		out.ParentID = chainID
 	}()
 
-	if !isRemoteSource(c.src) {
-		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, c.src)
+	// if no variable at copy src value,nothing will change.
+	// if no build args is matched at copy src value,then the variable will be null.
+	src, err := c.ex.ProcessWordWithMap(c.src, execContext.BuildArgs)
+	if err != nil {
+		return out, fmt.Errorf("failed to render build args: %v", err)
+	}
+
+	if !isRemoteSource(src) {
+		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, src)
 		if err != nil {
 			logger.Warn("failed to generate src digest,discard cache,%s", err)
 		}
@@ -82,11 +91,11 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		return out, fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
 	}
 
-	err = c.collector.Collect(execContext.BuildContext, c.src, filepath.Join(tmp, c.dest))
+	err = c.collector.Collect(execContext.BuildContext, src, filepath.Join(tmp, c.dest))
 	if err != nil {
 		return out, fmt.Errorf("failed to collect files to temp dir %s, err: %v", tmp, err)
 	}
-	// if we come here, its new layer need set cacheid .
+	// if we come here, its new layer need set cache id .
 	layerID, err = execContext.LayerStore.RegisterLayerForBuilder(tmp)
 	if err != nil {
 		return out, fmt.Errorf("failed to register copy layer, err: %v", err)
@@ -115,11 +124,13 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to init copy Collector, err: %s", err)
 	}
+
 	return &CopyInstruction{
 		fs:        fs,
 		rawLayer:  *ctx.CurrentLayer,
 		src:       src,
 		dest:      dest,
 		collector: c,
+		ex:        shell.NewLex('\\'),
 	}, nil
 }
