@@ -16,9 +16,10 @@ package build
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"time"
 
 	"github.com/alibaba/sealer/build/buildkit"
 	"github.com/alibaba/sealer/build/buildkit/buildimage"
@@ -44,26 +45,6 @@ type localBuilder struct {
 }
 
 func (l localBuilder) Build(name string, context string, kubefileName string) error {
-	err := l.InitBuilder(name, context, kubefileName)
-	if err != nil {
-		return err
-	}
-
-	pipLine, err := l.GetBuildPipeLine()
-	if err != nil {
-		return err
-	}
-
-	for _, f := range pipLine {
-		if err = f(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// InitBuilder pares cmd line parameters and pares Kubefile
-func (l localBuilder) InitBuilder(name string, context string, kubefileName string) error {
 	named, err := reference.ParseToNamed(name)
 	if err != nil {
 		return err
@@ -100,6 +81,16 @@ func (l localBuilder) InitBuilder(name string, context string, kubefileName stri
 	}
 	l.saver = saver
 
+	pipLine, err := l.GetBuildPipeLine()
+	if err != nil {
+		return err
+	}
+
+	for _, f := range pipLine {
+		if err = f(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

@@ -16,6 +16,11 @@ package buildimage
 
 import (
 	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -25,10 +30,6 @@ import (
 	"github.com/alibaba/sealer/utils/mount"
 	"github.com/opencontainers/go-digest"
 	"helm.sh/helm/v3/pkg/chartutil"
-	"io/fs"
-	"io/ioutil"
-	"path/filepath"
-	"strings"
 
 	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/parser"

@@ -16,11 +16,12 @@ package build
 
 import (
 	"fmt"
-	"github.com/alibaba/sealer/utils/archive"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/alibaba/sealer/utils/archive"
 
 	"github.com/alibaba/sealer/pkg/runtime"
 	"github.com/alibaba/sealer/utils/mount"
@@ -43,16 +44,16 @@ import (
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
+const (
+	RegistryMountUpper = "/var/lib/sealer/tmp/upper"
+	RegistryMountWork  = "/var/lib/sealer/tmp/work"
+)
+
 var providerMap = map[string]string{
 	common.LocalBuild:     common.BAREMETAL,
 	common.AliCloudBuild:  common.AliCloud,
 	common.ContainerBuild: common.CONTAINER,
 }
-
-const (
-	RegistryMountUpper = "/var/lib/sealer/tmp/upper"
-	RegistryMountWork  = "/var/lib/sealer/tmp/work"
-)
 
 // Builder using cloud provider to build a cluster image
 type cloudBuilder struct {

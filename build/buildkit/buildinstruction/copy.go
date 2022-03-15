@@ -16,8 +16,9 @@ package buildinstruction
 
 import (
 	"fmt"
-	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"path/filepath"
+
+	"github.com/moby/buildkit/frontend/dockerfile/shell"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/image/store"
