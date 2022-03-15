@@ -108,8 +108,6 @@ func (s *ScaleProcessor) ScaleUpPipeLine() ([]func(cluster *v2.Cluster) error, e
 		s.MountRootfs,
 		s.GetPhasePluginFunc(plugin.PhasePreInit),
 		s.Join,
-		s.GetPhasePluginFunc(plugin.PhasePreGuest),
-		//s.RunGuest,
 		s.GetPhasePluginFunc(plugin.PhasePostInstall),
 	)
 	return todoList, nil
