@@ -106,7 +106,7 @@ func (s *ScaleProcessor) ScaleUpPipeLine() ([]func(cluster *v2.Cluster) error, e
 		s.GetPhasePluginFunc(plugin.PhaseOriginally),
 		s.RunConfig,
 		s.MountRootfs,
-		s.GetPhasePluginFunc(plugin.PhasePreInit),
+		s.GetPhasePluginFunc(plugin.PhasePreJoin),
 		s.Join,
 		s.GetPhasePluginFunc(plugin.PhasePostInstall),
 	)

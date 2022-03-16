@@ -16,6 +16,7 @@ package plugin
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alibaba/sealer/utils"
 
@@ -36,7 +37,8 @@ func init() {
 }
 
 func (s Sheller) Run(context Context, phase Phase) (err error) {
-	if string(phase) != context.Plugin.Spec.Action || context.Plugin.Spec.Type != ShellPlugin {
+	pluginPhases := strings.Split(context.Plugin.Spec.Action, "|")
+	if utils.NotIn(string(phase), pluginPhases) || context.Plugin.Spec.Type != ShellPlugin {
 		return nil
 	}
 	//get cmdline content

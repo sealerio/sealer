@@ -43,9 +43,11 @@ spec:
 ```shell
 action : [PreInit| PreInstall| PostInstall] # Specify phases to execute the shell
   Pre-initialization phase            |   action: PreInit
+  Pre-join phase                      |   action: PreJoin
   before installing the cluster phase |   action: PreInstall
   after  installing the cluster phase |   action: PostInstall
   after clean cluster phase           |   action: PostClean
+  combined use phase                  |   action: PreInit|PreJoin
 on     : #Specifies the machine to execute the command
   If null, it is executed on all nodes by default
   on all master nodes                 |  on: master
