@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils"
 )
 
 const templateSuffix = ".tmpl"
@@ -89,31 +88,31 @@ func (p *processor) RenderAll(host, dir string) error {
 	})
 }
 
-func mergeList(dst, src []string) []string {
-	for _, s := range src {
-		if utils.InList(s, dst) {
+func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {
+	if len(hostEnv) == 0 {
+		return globalEnv
+	}
+	for globalEnvKey, globalEnvValue := range globalEnv {
+		if _, ok := hostEnv[globalEnvKey]; ok {
 			continue
 		}
-		dst = append(dst, s)
+		hostEnv[globalEnvKey] = globalEnvValue
 	}
-	return dst
+	return hostEnv
 }
 
 // Merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
 func (p *processor) getHostEnv(hostIP string) (env map[string]interface{}) {
-	var hostEnv []string
+	hostEnv, globalEnv := map[string]interface{}{}, ConvertEnv(p.Spec.Env)
 
 	for _, host := range p.Spec.Hosts {
 		for _, ip := range host.IPS {
 			if ip == hostIP {
-				hostEnv = host.Env
+				hostEnv = ConvertEnv(host.Env)
 			}
 		}
 	}
-
-	hostEnv = mergeList(hostEnv, p.Spec.Env)
-
-	return ConvertEnv(hostEnv)
+	return mergeList(hostEnv, globalEnv)
 }
 
 // ConvertEnv []string to map[string]interface{}, example [IP=127.0.0.1,IP=192.160.0.2,Key=value] will convert to {IP:[127.0.0.1,192.168.0.2],key:value}
@@ -126,8 +125,11 @@ func ConvertEnv(envList []string) (env map[string]interface{}) {
 		if kv = strings.SplitN(e, "=", 2); len(kv) != 2 {
 			continue
 		}
-
-		temp[kv[0]] = append(temp[kv[0]], kv[1])
+		if strings.Contains(kv[1], ";") {
+			temp[kv[0]] = append(temp[kv[0]], strings.Split(kv[1], ";")...)
+		} else {
+			temp[kv[0]] = append(temp[kv[0]], kv[1])
+		}
 	}
 
 	for k, v := range temp {

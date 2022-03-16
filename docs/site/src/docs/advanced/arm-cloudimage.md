@@ -3,7 +3,7 @@
 Download sealer for example download v0.5.0:
 
 ```shell script
-wget https://github.com/alibaba/sealer/releases/download/v0.7.0.1/sealer-v0.7.0-linux-arm64.tar.gz
+wget https://github.com/alibaba/sealer/releases/download/v0.7.1/sealer-v0.7.1-linux-arm64.tar.gz
 ```
 
 ## Run a cluster on ARM platform
