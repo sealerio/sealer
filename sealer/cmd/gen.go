@@ -54,7 +54,15 @@ Then you can use any sealer command to manage the cluster like:
 		if flag.Passwd == "" || flag.Image == "" {
 			return fmt.Errorf("empty password or image name")
 		}
-		return gen.GenerateClusterfile(flag)
+		cluster, err := gen.GenerateCluster(flag)
+		if err != nil {
+			return err
+		}
+		genProcessor, err := gen.NewGenerateProcessor()
+		if err != nil {
+			return err
+		}
+		return genProcessor.Execute(cluster)
 	},
 }
 

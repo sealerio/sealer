@@ -132,11 +132,15 @@ func (k *KubeadmRuntime) GenerateCert() error {
 	if err != nil {
 		return fmt.Errorf("generate certs failed %v", err)
 	}
-	err = cert.GenerateRegistryCert(k.getCertsDir(), GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP()).Domain)
+	err = k.sendNewCertAndKey(k.GetMasterIPList()[:1])
 	if err != nil {
 		return err
 	}
-	err = k.sendNewCertAndKey(k.GetMasterIPList()[:1])
+	return k.GenerateRegistryCert()
+}
+
+func (k *KubeadmRuntime) GenerateRegistryCert() error {
+	err := cert.GenerateRegistryCert(k.getCertsDir(), GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP()).Domain)
 	if err != nil {
 		return err
 	}
