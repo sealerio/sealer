@@ -33,8 +33,8 @@ func Test_convertEnv(t *testing.T) {
 	}{
 		{
 			"test convert env",
-			args{envList: []string{"IP=127.0.0.1", "IP=192.168.0.2", "key=value"}},
-			map[string]interface{}{"IP": []string{"127.0.0.1", "192.168.0.2"}, "key": "value"},
+			args{envList: []string{"IP=127.0.0.1;127.0.0.2;127.0.0.3", "IP=192.168.0.2", "key=value"}},
+			map[string]interface{}{"IP": []string{"127.0.0.1", "127.0.0.2", "127.0.0.3", "192.168.0.2"}, "key": "value"},
 		},
 	}
 	for _, tt := range tests {
@@ -84,7 +84,7 @@ func Test_processor_WrapperShell(t *testing.T) {
 				host:  "192.168.0.2",
 				shell: "echo $foo ${IP[@]}",
 			},
-			"key=(bar foo value) foo=bar IP=(127.0.0.2 127.0.0.1) && echo $foo ${IP[@]}",
+			"key=(bar foo) foo=bar IP=127.0.0.2 && echo $foo ${IP[@]}",
 		},
 	}
 	for _, tt := range tests {
