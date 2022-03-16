@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	MASTER = "master"
-	NODE   = "node"
+	MASTER  = "master"
+	NODE    = "node"
+	MASTER0 = "master0"
 )
 
 const (

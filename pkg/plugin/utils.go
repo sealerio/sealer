@@ -45,6 +45,12 @@ func GetIpsByOnField(on string, context Context, phase Phase) (ipList []string, 
 		}
 	} else if on == common.MASTER || on == common.NODE {
 		ipList = context.Cluster.GetIPSByRole(on)
+	} else if on == common.MASTER0 {
+		ipList = context.Cluster.GetIPSByRole(common.MASTER)
+		if len(ipList) < 1 {
+			return nil, fmt.Errorf("invalid on filed: [%s]", on)
+		}
+		ipList = ipList[:1]
 	} else {
 		ipList = utils.DisassembleIPList(on)
 	}
