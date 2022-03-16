@@ -296,11 +296,13 @@ spec:
   image: kubernetes:v1.19.8
   env:
     - docker_dir=/var/lib/docker
+    - ips=192.168.0.1;192.168.0.2;192.168.0.3 #ips=[192.168.0.1 192.168.0.2 192.168.0.3]
   hosts:
     - ips: [ 192.168.0.2 ]
-      roles: [ master ] # add role field to specify the node role
-      env: # overwrite some nodes has different env config
+      roles: [ master ]
+      env: # 不同节点支持覆盖env，数组使用分号隔开
         - docker_dir=/data/docker
+        - ips=192.168.0.2;192.168.0.3
     - ips: [ 192.168.0.3 ]
       roles: [ node ]
 ```
@@ -309,11 +311,11 @@ spec:
 
 ```shell script
 #!/bin/bash
-echo $docker_dir
+echo $docker_dir ${ips[@]}
 ```
 
-当sealer执行脚本时env的设置类似于：`docker_dir=/data/docker && sh init.sh`
-In this case, master ENV is `/data/docker`, node ENV is by default `/var/lib/docker`
+当sealer执行脚本时env的设置类似于：`docker_dir=/data/docker ips=(192.168.0.2;192.168.0.3) && sh init.sh`
+该例子中, master ENV 是 `/data/docker`, node ENV 为 `/var/lib/docker`
 
 ### 支持Env渲染
 

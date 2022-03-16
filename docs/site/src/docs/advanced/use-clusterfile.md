@@ -11,8 +11,7 @@ spec:
   image: kubernetes:v1.19.8
   env:
     - key1=value1
-    - key2=value2
-    - key2=value3 #key2=[value2, value3]
+    - key2=value2;value3 #key2=[value2, value3]
   ssh:
     passwd:
     pk: xxx
@@ -299,11 +298,13 @@ spec:
   image: kubernetes:v1.19.8
   env:
     - docker_dir=/var/lib/docker
+    - ips=192.168.0.1;192.168.0.2;192.168.0.3 #ips=[192.168.0.1 192.168.0.2 192.168.0.3]
   hosts:
     - ips: [ 192.168.0.2 ]
       roles: [ master ] # add role field to specify the node role
-      env: # overwrite some nodes has different env config
+      env: # overwrite some nodes has different env config, arrays are separated by semicolons
         - docker_dir=/data/docker
+        - ips=192.168.0.2;192.168.0.3
     - ips: [ 192.168.0.3 ]
       roles: [ node ]
 ```
