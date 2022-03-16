@@ -66,7 +66,6 @@ const (
 	RenderManifestsDir            = "manifests"
 	APIVersion                    = "sealer.cloud/v2"
 	Kind                          = "Cluster"
-	AppImage                      = "application"
 )
 
 // image module

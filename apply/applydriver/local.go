@@ -136,7 +136,7 @@ func (c *Applier) reconcileCluster() error {
 		return fmt.Errorf("failed to get base image err: %s", err)
 	}
 	// if no rootfs ,try to install applications.
-	if baseImage.Spec.ImageConfig.ImageType == common.AppImage {
+	if !withRootfs(baseImage) {
 		return c.installApp()
 	}
 

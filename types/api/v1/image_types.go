@@ -35,6 +35,7 @@ type ImageSpec struct {
 
 	// Foo is an example field of Image. Edit Image_types.go to remove/update
 	ID            string      `json:"id,omitempty"`
+	MergedLayer   string      `json:"mergedLayer,omitempty"`
 	Layers        []Layer     `json:"layers,omitempty"`
 	SealerVersion string      `json:"sealer_version,omitempty"`
 	Platform      Platform    `json:"platform"`
@@ -71,25 +72,8 @@ type ImageList struct {
 }
 
 type ImageConfig struct {
-	// define this image is application image or normal image.
-	ImageType string            `json:"image_type,omitempty"`
-	Cmd       ImageCmd          `json:"cmd,omitempty"`
-	Args      ImageArg          `json:"args,omitempty"`
-	Labels    map[string]string `json:"labels,omitempty"`
-}
-
-type ImageCmd struct {
-	//cmd list of base image
-	Parent []string `json:"parent,omitempty"`
-	//cmd list of current image
-	Current []string `json:"current,omitempty"`
-}
-
-type ImageArg struct {
-	//arg set of base image
-	Parent map[string]string `json:"parent,omitempty"`
-	//arg set of current image
-	Current map[string]string `json:"current,omitempty"`
+	Args   map[string]string `json:"args"`
+	Labels map[string]string `json:"labels"`
 }
 
 type Platform struct {

@@ -18,8 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alibaba/sealer/utils"
-
 	"golang.org/x/sync/errgroup"
 
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
@@ -53,6 +51,7 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		execCtx    buildinstruction.ExecContext
 		newLayers  = b.NewLayers
 		baseLayers = b.BaseLayers
+		buildArgs  = map[string]string{}
 	)
 
 	// process middleware file
@@ -61,19 +60,27 @@ func (b BuildImage) ExecBuild(ctx Context) error {
 		return err
 	}
 
-	// merge args with build context
-	for k, v := range ctx.BuildArgs {
-		b.RawImage.Spec.ImageConfig.Args.Current[k] = v
+	if b.RawImage.Spec.ImageConfig.Args != nil {
+		for k, v := range b.RawImage.Spec.ImageConfig.Args {
+			buildArgs[k] = v
+		}
 	}
+
+	if len(ctx.BuildArgs) != 0 {
+		for k, v := range ctx.BuildArgs {
+			buildArgs[k] = v
+		}
+	}
+	b.RawImage.Spec.ImageConfig.Args = buildArgs
 
 	if ctx.UseCache {
 		execCtx = buildinstruction.NewExecContext(b.BuildType, ctx.BuildContext,
-			b.RawImage.Spec.ImageConfig.Args.Current,
+			buildArgs,
 			b.ImageService, b.LayerStore)
 	} else {
 		execCtx = buildinstruction.NewExecContextWithoutCache(b.BuildType,
 			ctx.BuildContext,
-			b.RawImage.Spec.ImageConfig.Args.Current,
+			buildArgs,
 			b.LayerStore)
 	}
 	for i := 0; i < len(newLayers); i++ {
@@ -235,14 +242,9 @@ func (b BuildImage) setImageAttribute() error {
 }
 
 func (b BuildImage) save(name string, opts SaveOpts) error {
-	// build output as application image.
 	if opts.WithoutBase {
-		b.RawImage.Spec.ImageConfig.ImageType = common.AppImage
-		b.RawImage.Spec.ImageConfig.Cmd.Parent = nil
-		b.RawImage.Spec.ImageConfig.Args.Parent = nil
 		b.RawImage.Spec.Layers = b.RawImage.Spec.Layers[len(b.BaseLayers):]
 	}
-
 	imageID, err := generateImageID(*b.RawImage)
 	if err != nil {
 		return err
@@ -301,13 +303,6 @@ func NewBuildImage(kubefileName string, buildType string) (Interface, error) {
 	if len(baseLayers)+len(newLayers) > maxLayerDeep {
 		return nil, errors.New("current number of layers exceeds 128 layers")
 	}
-
-	// merge base image cmd and set to raw image as parent.
-	rawImage.Spec.ImageConfig.Cmd.Parent = utils.MergeSlice(baseImage.Spec.ImageConfig.Cmd.Parent,
-		baseImage.Spec.ImageConfig.Cmd.Current)
-	// merge base image args and set to raw image as parent.
-	rawImage.Spec.ImageConfig.Args.Parent = utils.MergeMap(baseImage.Spec.ImageConfig.Args.Parent,
-		baseImage.Spec.ImageConfig.Args.Current)
 
 	mountInfo, err := GetLayerMountInfo(baseLayers, buildType)
 	if err != nil {

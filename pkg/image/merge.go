@@ -18,8 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/alibaba/sealer/common"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/opencontainers/go-digest"
@@ -133,20 +131,13 @@ func merge(base, ima *v1.Image) (*v1.Image, error) {
 		base.Spec.Platform.Variant != ima.Spec.Platform.Variant {
 		return nil, fmt.Errorf("can not merge different platform")
 	}
-
-	var (
-		isApp = base.Spec.ImageConfig.ImageType == common.AppImage &&
-			ima.Spec.ImageConfig.ImageType == common.AppImage
-	)
-	// merge image type;only if two image is application image we can determine this new image is application image.
-	if isApp {
-		base.Spec.ImageConfig.ImageType = common.AppImage
+	// merge image config arg
+	if base.Spec.ImageConfig.Args == nil {
+		base.Spec.ImageConfig.Args = map[string]string{}
 	}
-
-	// merge image config arg and remove duplicate value
-	base.Spec.ImageConfig.Args = mergeImageArg(base.Spec.ImageConfig.Args, ima.Spec.ImageConfig.Args, isApp)
-	// merge image config cmd and remove duplicate value
-	base.Spec.ImageConfig.Cmd = mergeImageCmd(base.Spec.ImageConfig.Cmd, ima.Spec.ImageConfig.Cmd, isApp)
+	for k, v := range ima.Spec.ImageConfig.Args {
+		base.Spec.ImageConfig.Args[k] = v
+	}
 
 	// merge image layer
 	res := append(base.Spec.Layers, ima.Spec.Layers...)
@@ -154,44 +145,19 @@ func merge(base, ima *v1.Image) (*v1.Image, error) {
 	return base, nil
 }
 
-func mergeImageCmd(base, ima v1.ImageCmd, isApp bool) v1.ImageCmd {
-	current := utils.MergeSlice(base.Current, ima.Current)
-	if isApp {
-		return v1.ImageCmd{
-			Current: current,
-		}
-	}
-	return v1.ImageCmd{
-		Current: current,
-		Parent:  utils.MergeSlice(base.Parent, ima.Parent),
-	}
-}
-
-func mergeImageArg(base, ima v1.ImageArg, isApp bool) v1.ImageArg {
-	for k, v := range ima.Current {
-		base.Current[k] = v
-	}
-
-	if isApp {
-		return v1.ImageArg{
-			Current: base.Current,
-		}
-	}
-
-	for k, v := range ima.Parent {
-		base.Parent[k] = v
-	}
-
-	return v1.ImageArg{
-		Parent:  base.Parent,
-		Current: base.Current,
-	}
-}
-
 func removeDuplicateLayers(list []v1.Layer) []v1.Layer {
 	var result []v1.Layer
 	flagMap := map[string]struct{}{}
+	valueMap := map[string]struct{}{}
 	for _, v := range list {
+		// if type is cmd,remove duplicate value,this covers cmd instruction.
+		if v.Type == "CMD" {
+			if _, ok := valueMap[v.Value]; !ok {
+				valueMap[v.Value] = struct{}{}
+				result = append(result, v)
+			}
+			continue
+		}
 		// if id is not nil,remove duplicate id,this covers run and copy instruction.
 		if v.ID.String() != "" {
 			if _, ok := flagMap[v.ID.String()]; !ok {
