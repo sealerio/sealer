@@ -18,40 +18,25 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/moby/buildkit/frontend/dockerfile/shell"
-
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/utils/collector"
-
-	"github.com/opencontainers/go-digest"
-
-	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/image/cache"
+	"github.com/alibaba/sealer/pkg/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/collector"
+	"github.com/opencontainers/go-digest"
 )
 
 type CopyInstruction struct {
-	src          string
-	dest         string
-	rawLayer     v1.Layer
-	ex           *shell.Lex
-	layerHandler buildlayer.LayerHandler
-	fs           store.Backend
-	collector    collector.Collector
+	src       string
+	dest      string
+	rawLayer  v1.Layer
+	fs        store.Backend
+	collector collector.Collector
 }
 
 func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
-	// pre handle layer content
-	if c.layerHandler != nil {
-		err = c.layerHandler.LayerValueHandler(execContext.BuildContext, c.rawLayer)
-		if err != nil {
-			return out, err
-		}
-	}
-
 	var (
 		hitCache bool
 		chainID  cache.ChainID
@@ -63,15 +48,8 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		out.ParentID = chainID
 	}()
 
-	// if no variable at copy src value,nothing will change.
-	// if no build args is matched at copy src value,then the variable will be null.
-	src, err := c.ex.ProcessWordWithMap(c.src, execContext.BuildArgs)
-	if err != nil {
-		return out, fmt.Errorf("failed to render build args: %v", err)
-	}
-
-	if !isRemoteSource(src) {
-		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, src)
+	if !isRemoteSource(c.src) {
+		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, c.src)
 		if err != nil {
 			logger.Warn("failed to generate src digest,discard cache,%s", err)
 		}
@@ -92,7 +70,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		return out, fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
 	}
 
-	err = c.collector.Collect(execContext.BuildContext, src, filepath.Join(tmp, c.dest))
+	err = c.collector.Collect(execContext.BuildContext, c.src, filepath.Join(tmp, c.dest))
 	if err != nil {
 		return out, fmt.Errorf("failed to collect files to temp dir %s, err: %v", tmp, err)
 	}
@@ -132,6 +110,5 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 		src:       src,
 		dest:      dest,
 		collector: c,
-		ex:        shell.NewLex('\\'),
 	}, nil
 }

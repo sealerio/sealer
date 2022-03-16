@@ -23,32 +23,21 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	"github.com/alibaba/sealer/pkg/image/cache"
-
-	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/command"
+	"github.com/alibaba/sealer/pkg/image/cache"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type CmdInstruction struct {
-	cmdValue     string
-	rawLayer     v1.Layer
-	layerHandler buildlayer.LayerHandler
-	mounter      MountTarget
-	ex           *shell.Lex
+	cmdValue string
+	rawLayer v1.Layer
+	mounter  MountTarget
+	ex       *shell.Lex
 }
 
 func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
-	// pre handle layer content
-	if c.layerHandler != nil {
-		err = c.layerHandler.LayerValueHandler(execContext.BuildContext, c.rawLayer)
-		if err != nil {
-			return out, err
-		}
-	}
-
 	var (
 		hitCache bool
 		chainID  cache.ChainID
