@@ -63,22 +63,26 @@ func NewInstruction(ic InstructionContext) (Interface, error) {
 	return nil, nil
 }
 
-func NewExecContextWithoutCache(buildType, buildContext string, buildArgs map[string]string, layerStore store.LayerStore) ExecContext {
-	return ExecContext{
-		LayerStore:   layerStore,
-		BuildContext: buildContext,
-		BuildType:    buildType,
-		BuildArgs:    buildArgs,
+func NewExecContext(buildType, buildContext string, buildArgs map[string]string, useCache bool, layerStore store.LayerStore) ExecContext {
+	if !useCache {
+		return ExecContext{
+			LayerStore:   layerStore,
+			BuildContext: buildContext,
+			BuildType:    buildType,
+			BuildArgs:    buildArgs,
+		}
 	}
-}
-
-func NewExecContext(buildType, buildContext string, buildArgs map[string]string, imageService image.Service, layerStore store.LayerStore) ExecContext {
 	chainSvc, err := cache.NewService()
 	if err != nil {
 		return ExecContext{}
 	}
 
-	prober := image.NewImageProber(imageService, true)
+	service, err := image.NewImageService()
+	if err != nil {
+		return ExecContext{}
+	}
+
+	prober := image.NewImageProber(service, true)
 	return ExecContext{
 		LayerStore:    layerStore,
 		BuildContext:  buildContext,

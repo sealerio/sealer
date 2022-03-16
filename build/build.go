@@ -15,48 +15,22 @@
 package build
 
 import (
-	"github.com/alibaba/sealer/build/cloud"
-	"github.com/alibaba/sealer/build/lite"
-	"github.com/alibaba/sealer/build/local"
 	"github.com/alibaba/sealer/common"
 )
 
-var ProviderMap = map[string]string{
-	common.LocalBuild:     common.BAREMETAL,
-	common.AliCloudBuild:  common.AliCloud,
-	common.ContainerBuild: common.CONTAINER,
+type Interface interface {
+	Build(name string, context string, kubefileName string) error
 }
 
-func NewLocalBuilder(config *Config) (Interface, error) {
-	return &local.Builder{
-		BuildType: config.BuildType,
-		NoCache:   config.NoCache,
-		NoBase:    config.NoBase,
-		BuildArgs: config.BuildArgs,
-	}, nil
-}
-
-func NewCloudBuilder(config *Config) (Interface, error) {
-	provider := common.AliCloud
-	if config.BuildType != "" {
-		provider = ProviderMap[config.BuildType]
+func NewBuilder(config *Config) (Interface, error) {
+	switch config.BuildType {
+	case common.AliCloudBuild:
+		return NewCloudBuilder(config)
+	case common.ContainerBuild:
+		return NewCloudBuilder(config)
+	case common.LocalBuild:
+		return NewLocalBuilder(config)
+	default:
+		return NewLiteBuilder(config)
 	}
-
-	return &cloud.Builder{
-		BuildType:          config.BuildType,
-		NoCache:            config.NoCache,
-		NoBase:             config.NoBase,
-		BuildArgs:          config.BuildArgs,
-		Provider:           provider,
-		TmpClusterFilePath: common.TmpClusterfile,
-	}, nil
-}
-
-func NewLiteBuilder(config *Config) (Interface, error) {
-	return &lite.Builder{
-		BuildType: config.BuildType,
-		NoCache:   config.NoCache,
-		NoBase:    config.NoBase,
-		BuildArgs: config.BuildArgs,
-	}, nil
 }

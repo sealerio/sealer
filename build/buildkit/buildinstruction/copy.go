@@ -19,36 +19,24 @@ import (
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/utils/collector"
-
-	"github.com/opencontainers/go-digest"
-
-	"github.com/alibaba/sealer/build/buildkit/buildlayer"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/image/cache"
+	"github.com/alibaba/sealer/pkg/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
+	"github.com/alibaba/sealer/utils/collector"
+	"github.com/opencontainers/go-digest"
 )
 
 type CopyInstruction struct {
-	src          string
-	dest         string
-	rawLayer     v1.Layer
-	layerHandler buildlayer.LayerHandler
-	fs           store.Backend
-	collector    collector.Collector
+	src       string
+	dest      string
+	rawLayer  v1.Layer
+	fs        store.Backend
+	collector collector.Collector
 }
 
 func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
-	// pre handle layer content
-	if c.layerHandler != nil {
-		err = c.layerHandler.LayerValueHandler(execContext.BuildContext, c.rawLayer)
-		if err != nil {
-			return out, err
-		}
-	}
-
 	var (
 		hitCache bool
 		chainID  cache.ChainID
@@ -86,7 +74,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	if err != nil {
 		return out, fmt.Errorf("failed to collect files to temp dir %s, err: %v", tmp, err)
 	}
-	// if we come here, its new layer need set cacheid .
+	// if we come here, its new layer need set cache id .
 	layerID, err = execContext.LayerStore.RegisterLayerForBuilder(tmp)
 	if err != nil {
 		return out, fmt.Errorf("failed to register copy layer, err: %v", err)
@@ -115,6 +103,7 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to init copy Collector, err: %s", err)
 	}
+
 	return &CopyInstruction{
 		fs:        fs,
 		rawLayer:  *ctx.CurrentLayer,
