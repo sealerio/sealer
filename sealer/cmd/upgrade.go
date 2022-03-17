@@ -55,15 +55,11 @@ var upgradeCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if desiredCluster.Spec.Image == args[0] {
-			return fmt.Errorf("the cluster current image is already %s,choose another one to upgrade", args[0])
-		}
-		desiredCluster.Spec.Image = args[0]
 		applier, err := apply.NewApplier(desiredCluster)
 		if err != nil {
 			return err
 		}
-		return applier.Apply()
+		return applier.Upgrade(args[0])
 	},
 }
 

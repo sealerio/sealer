@@ -47,9 +47,7 @@ func (u UpgradeProcessor) Execute(cluster *v2.Cluster) error {
 
 func (u UpgradeProcessor) MountRootfs(cluster *v2.Cluster) error {
 	//some hosts already mounted when scaled cluster.
-	currentHost := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	addedHost := append(u.MastersToJoin, u.NodesToJoin...)
-	_, hosts := utils.GetDiffHosts(currentHost, addedHost)
+	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
@@ -61,7 +59,7 @@ func (u UpgradeProcessor) Upgrade() error {
 	return u.Runtime.Upgrade()
 }
 
-func NewUpgradeProcessor(rootfs string, rt runtime.Interface, masterToJoin, nodeToJoin []string) (Interface, error) {
+func NewUpgradeProcessor(rootfs string, rt runtime.Interface) (Interface, error) {
 	// only do upgrade here. cancel scale action.
 	fs, err := filesystem.NewFilesystem(rootfs)
 	if err != nil {
@@ -69,9 +67,7 @@ func NewUpgradeProcessor(rootfs string, rt runtime.Interface, masterToJoin, node
 	}
 
 	return UpgradeProcessor{
-		fileSystem:    fs,
-		Runtime:       rt,
-		MastersToJoin: masterToJoin,
-		NodesToJoin:   nodeToJoin,
+		fileSystem: fs,
+		Runtime:    rt,
 	}, nil
 }

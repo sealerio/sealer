@@ -149,22 +149,13 @@ func (c *Applier) reconcileCluster() error {
 
 	mj, md := utils.GetDiffHosts(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
 	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
-
-	if err := c.scaleCluster(mj, md, nj, nd); err != nil {
-		return err
+	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+		return c.upgrade()
 	}
-
-	if err := c.upgradeCluster(mj, nj); err != nil {
-		return err
-	}
-	return nil
+	return c.scaleCluster(mj, md, nj, nd)
 }
 
 func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
-	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
-		return nil
-	}
-
 	logger.Info("Start to scale this cluster")
 	logger.Debug("current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
 
@@ -193,25 +184,43 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	return nil
 }
 
-func (c *Applier) upgradeCluster(mj, nj []string) error {
-	// use k8sClient to fetch current cluster version.
-	info := c.CurrentClusterInfo
-	// fetch form exec machine
+func (c *Applier) Upgrade(upgradeImgName string) error {
+	if err := c.initClusterfile(); err != nil {
+		return err
+	}
+	if err := c.initK8sClient(); err != nil {
+		return err
+	}
+
+	c.ClusterDesired.Spec.Image = upgradeImgName
+	if err := c.mountClusterImage(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := c.unMountClusterImage(); err != nil {
+			logger.Warn("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
+		}
+	}()
+	return c.upgrade()
+}
+
+func (c *Applier) upgrade() error {
 	runtimeInterface, err := runtime.NewDefaultRuntime(c.ClusterDesired, c.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
 	}
-	clusterMetadata, err := runtimeInterface.GetClusterMetadata()
+	upgradeImgMeta, err := runtimeInterface.GetClusterMetadata()
 	if err != nil {
 		return fmt.Errorf("failed to get cluster metadata: %v", err)
 	}
 
-	if info.GitVersion == clusterMetadata.Version {
+	if c.CurrentClusterInfo.GitVersion == upgradeImgMeta.Version {
+		logger.Info("No upgrade required， image version and cluster version are both %s.", c.CurrentClusterInfo.GitVersion)
 		return nil
 	}
+	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
 
-	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, clusterMetadata.Version)
-	upgradeProcessor, err := processor.NewUpgradeProcessor(platform.DefaultMountCloudImageDir(c.ClusterDesired.Name), runtimeInterface, mj, nj)
+	upgradeProcessor, err := processor.NewUpgradeProcessor(platform.DefaultMountCloudImageDir(c.ClusterDesired.Name), runtimeInterface)
 	if err != nil {
 		return err
 	}
@@ -219,10 +228,30 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 	if err != nil {
 		return err
 	}
+	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
+	return utils.SaveClusterInfoToFile(c.ClusterDesired, c.ClusterDesired.Name)
+}
 
-	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", info.GitVersion, clusterMetadata.Version)
+func (c *Applier) initClusterfile() (err error) {
+	if c.ClusterFile != nil {
+		return nil
+	}
+	c.ClusterFile = clusterfile.NewClusterFile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+	if path := c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName); path == "" {
+		return nil
+	}
+	return c.ClusterFile.Process()
+}
 
-	return nil
+func (c *Applier) initK8sClient() error {
+	client, err := k8s.Newk8sClient()
+	c.Client = client
+	if err != nil {
+		return err
+	}
+	info, err := client.GetClusterVersion()
+	c.CurrentClusterInfo = info
+	return err
 }
 
 func (c *Applier) installApp() error {
