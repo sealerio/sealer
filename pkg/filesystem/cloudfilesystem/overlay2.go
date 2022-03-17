@@ -93,7 +93,7 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 	var (
 		clusterRootfsDir = common.DefaultTheClusterRootfsDir(cluster.Name)
 		cleanFile        = fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)
-		execClean        = fmt.Sprintf("chmod +x %s && /bin/bash -c %s", cleanFile, cleanFile)
+		execClean        = fmt.Sprintf("chmod +x %[1]s && /bin/bash -c %[1]s", cleanFile)
 		rmRootfs         = fmt.Sprintf("rm -rf %s", clusterRootfsDir)
 		rmDockerCert     = fmt.Sprintf("rm -rf %s/%s*", runtime.DockerCertDir, runtime.SeaHub)
 		envProcessor     = env.NewEnvProcessor(cluster)
