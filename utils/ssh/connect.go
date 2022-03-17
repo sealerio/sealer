@@ -19,15 +19,10 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"path"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh"
-
-	"github.com/alibaba/sealer/logger"
 )
 
 /**
@@ -132,32 +127,18 @@ func (s *SSH) sshPasswordMethod(password string) ssh.AuthMethod {
 }
 
 //RemoteFileExist is
-func (s *SSH) IsFileExist(host, remoteFilePath string) bool {
-	// if remote file is
-	// ls -l | grep aa | wc -l
-	remoteFileName := path.Base(remoteFilePath) // aa
-	remoteFileDirName := path.Dir(remoteFilePath)
-	//it's bug: if file is aa.bak, `ls -l | grep aa | wc -l` is 1 ,should use `ll aa 2>/dev/null |wc -l`
-	//remoteFileCommand := fmt.Sprintf("ls -l %s| grep %s | grep -v grep |wc -l", remoteFileDirName, remoteFileName)
-	remoteFileCommand := fmt.Sprintf("ls -l %s/%s 2>/dev/null |wc -l", remoteFileDirName, remoteFileName)
-
-	data, err := s.CmdToString(host, remoteFileCommand, " ")
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("[ssh][%s]remoteFileCommand err:%s", host, err)
-		}
-	}()
+func (s *SSH) IsFileExist(host, remoteFilePath string) (bool, error) {
+	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
-		panic(1)
+		return false, fmt.Errorf("new sftp client failed %s", err)
 	}
-	count, err := strconv.Atoi(strings.TrimSpace(data))
 	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("[ssh][%s]RemoteFileExist:%s", host, err)
-		}
+		_ = sftpClient.Close()
+		_ = sshClient.Close()
 	}()
-	if err != nil {
-		panic(1)
+	_, err = sftpClient.Stat(remoteFilePath)
+	if err == os.ErrNotExist {
+		return false, nil
 	}
-	return count != 0
+	return err == nil, err
 }

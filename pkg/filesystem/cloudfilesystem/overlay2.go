@@ -92,7 +92,8 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 	var (
 		clusterRootfsDir = common.DefaultTheClusterRootfsDir(cluster.Name)
-		execClean        = fmt.Sprintf("/bin/bash -c "+common.DefaultClusterClearBashFile, cluster.Name)
+		cleanFile        = fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)
+		execClean        = fmt.Sprintf("chmod +x %s && /bin/bash -c %s", cleanFile, cleanFile)
 		rmRootfs         = fmt.Sprintf("rm -rf %s", clusterRootfsDir)
 		rmDockerCert     = fmt.Sprintf("rm -rf %s/%s*", runtime.DockerCertDir, runtime.SeaHub)
 		envProcessor     = env.NewEnvProcessor(cluster)
@@ -110,7 +111,9 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 			if mounted, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mounted {
 				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
 			}
-			if exists := SSH.IsFileExist(ip, fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)); exists {
+			if exists, err := SSH.IsFileExist(ip, fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)); err != nil {
+				return err
+			} else if exists {
 				cmd = fmt.Sprintf("%s && %s", execClean, cmd)
 			}
 			if err := SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd)); err != nil {

@@ -151,7 +151,10 @@ func TestSSHFetchRemoteToLocal(t *testing.T) {
 				Timeout:    tt.fields.Timeout,
 			}
 
-			if !ss.IsFileExist(host, tt.args.remotePath) {
+			if exist, err := ss.IsFileExist(host, tt.args.remotePath); err != nil {
+				logger.Error("err: ", err)
+				return
+			} else if !exist {
 				logger.Error("remote filepath is not exit")
 				return
 			}
