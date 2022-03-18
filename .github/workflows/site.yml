@@ -1,0 +1,25 @@
+name: Site
+
+on:
+  push:
+    branches: "*"
+    paths:
+      - "docs/site/**"
+  pull_request:
+    branches: "*"
+    paths:
+      - "docs/site/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - run: npm install
+        working-directory: docs/site
+      - name: Static website hosting
+        run: npm run build
+        working-directory: docs/site

@@ -419,4 +419,6 @@ spec:
           cidr: {{ .podcidr }}
 ```
 
+::: v-pre
 kubeadm和calico配置中的`{{ .podcidr }}`将被替换为Clusterfile.Env中的`podcidr`。
+:::
