@@ -295,7 +295,9 @@ func (c *cloudBuilder) Cleanup() (err error) {
 //sendBuildContext:send local build context to remote server
 func (c *cloudBuilder) sendBuildContext() (err error) {
 	// if remote cluster already exist,no need to pre init master0
-	if !c.SSHClient.IsFileExist(c.remoteHostIP, common.RemoteSealerPath) {
+	if fileExist, err := c.SSHClient.IsFileExist(c.remoteHostIP, common.RemoteSealerPath); err != nil {
+		return err
+	} else if !fileExist {
 		err = runtime.PreInitMaster0(c.SSHClient, c.remoteHostIP)
 		if err != nil {
 			return fmt.Errorf("failed to prepare cluster env %v", err)

@@ -287,7 +287,9 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 		srcMd5, dstMd5 string
 	)
 	srcMd5 = LocalMd5Sum(localPath)
-	if s.IsFileExist(host, remotePath) {
+	if exist, err := s.IsFileExist(host, remotePath); err != nil {
+		return err
+	} else if exist {
 		dstMd5 = s.RemoteMd5Sum(host, remotePath)
 		if srcMd5 == dstMd5 {
 			logger.Debug("remote dst %s already exists and is the latest version , skip copying process", remotePath)

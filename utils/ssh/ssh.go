@@ -43,7 +43,7 @@ type Interface interface {
 	// exec command on remote host, and return combined standard output and standard error
 	Cmd(host, cmd string) ([]byte, error)
 	// check remote file exist or not
-	IsFileExist(host, remoteFilePath string) bool
+	IsFileExist(host, remoteFilePath string) (bool, error)
 	//Remote file existence returns true, nil
 	RemoteDirExist(host, remoteDirpath string) (bool, error)
 	// exec command on remote host, and return spilt standard output and standard error

@@ -17,7 +17,7 @@
 set -e
 set -x
 # prepare registry storage as directory
-cd $(dirname $0)
+cd $(dirname "$0")
 
 REGISTRY_PORT=${1-5000}
 VOLUME=${2-/var/lib/registry}
@@ -30,11 +30,11 @@ htpasswd="$rootfs/etc/registry_htpasswd"
 certs_dir="$rootfs/certs"
 image_dir="$rootfs/images"
 
-mkdir -p $VOLUME || true
+mkdir -p "$VOLUME" || true
 
 startRegistry() {
     n=1
-    while (( $n <= 3 ))
+    while (( n <= 3 ))
     do
         echo "attempt to start registry"
         (docker start $container && break) || (( n < 3))
@@ -43,7 +43,7 @@ startRegistry() {
     done
 }
 
-
+load_images() {
 for image in "$image_dir"/*
 do
  if [ -f "${image}" ]
@@ -51,6 +51,26 @@ do
   docker load -q -i "${image}"
  fi
 done
+}
+
+check_registry() {
+    n=1
+    while (( n <= 3 ))
+    do
+        registry_status=$(docker inspect --format '{{json .State.Status}}' sealer-registry)
+        if [[ "$registry_status" == \"running\" ]]; then
+            break
+        fi
+        if [[ $n -eq 3 ]]; then
+           echo "sealer-registry is not running, status: $registry_status"
+           exit 1
+        fi
+        (( n++ ))
+        sleep 3
+    done
+}
+
+load_images
 
 ## rm container if exist.
 if [ "$(docker ps -aq -f name=$container)" ]; then
@@ -80,3 +100,5 @@ if [ -f $htpasswd ]; then
 else
     docker run $regArgs registry:2.7.1 || startRegistry
 fi
+
+check_registry

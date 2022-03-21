@@ -125,11 +125,7 @@ func ConvertEnv(envList []string) (env map[string]interface{}) {
 		if kv = strings.SplitN(e, "=", 2); len(kv) != 2 {
 			continue
 		}
-		if strings.Contains(kv[1], ";") {
-			temp[kv[0]] = append(temp[kv[0]], strings.Split(kv[1], ";")...)
-		} else {
-			temp[kv[0]] = append(temp[kv[0]], kv[1])
-		}
+		temp[kv[0]] = append(temp[kv[0]], strings.Split(kv[1], ";")...)
 	}
 
 	for k, v := range temp {
