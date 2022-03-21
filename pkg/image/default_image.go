@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
@@ -32,20 +33,18 @@ import (
 	"github.com/alibaba/sealer/pkg/image/distributionutil"
 	"github.com/alibaba/sealer/pkg/image/reference"
 	"github.com/alibaba/sealer/pkg/image/store"
-	imageUtils "github.com/alibaba/sealer/pkg/image/utils"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
 
 // DefaultImageService is the default service, which is used for image pull/push
 type DefaultImageService struct {
-	ForceDeleteImage bool // sealer rmi -f
-	imageStore       store.ImageStore
+	imageStore store.ImageStore
 }
 
 // PullIfNotExist is used to pull image if not exists locally
-func (d DefaultImageService) PullIfNotExist(imageName string) error {
-	img, err := d.GetImageByName(imageName)
+func (d DefaultImageService) PullIfNotExist(imageName string, platform *v1.Platform) error {
+	img, err := d.GetImageByName(imageName, platform)
 	if err != nil {
 		return err
 	}
@@ -57,13 +56,13 @@ func (d DefaultImageService) PullIfNotExist(imageName string) error {
 	return d.Pull(imageName)
 }
 
-func (d DefaultImageService) GetImageByName(imageName string) (*v1.Image, error) {
+func (d DefaultImageService) GetImageByName(imageName string, platform *v1.Platform) (*v1.Image, error) {
 	var img *v1.Image
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
 		return nil, err
 	}
-	img, err = d.imageStore.GetByName(named.Raw())
+	img, err = d.imageStore.GetByName(named.Raw(), platform)
 	if err == nil {
 		logger.Debug("image %s already exists", named)
 		return img, nil
@@ -115,14 +114,14 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 	// TODO use image store to do the job next
-	err = d.imageStore.Save(*image, named.Raw())
+	err = d.imageStore.Save(*image)
 	if err == nil {
 		dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Pull Image %s", named.Raw()))
 	}
 	return err
 }
 
-// Push push local image to remote registry
+// Push local image to remote registry
 func (d DefaultImageService) Push(imageName string) error {
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
@@ -170,7 +169,7 @@ func (d DefaultImageService) Push(imageName string) error {
 	return err
 }
 
-// Login login into a registry, for saving auth info in ~/.docker/config.json
+// Login into a registry, for saving auth info in ~/.docker/config.json
 func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd string) error {
 	err := distributionutil.Login(context.Background(), &types.AuthConfig{ServerAddress: RegistryURL, Username: RegistryUsername, Password: RegistryPasswd})
 	if err != nil {
@@ -183,97 +182,75 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 	return nil
 }
 
-func (d DefaultImageService) Delete(imageArg string) error {
+// Delete image layer, image meta, and local registry.
+// if --force=true, will delete all image data.
+// if platforms not nil will delete all the related platform images.
+func (d DefaultImageService) Delete(imageName string, force bool, platforms []*v1.Platform) error {
 	var (
-		images        []*v1.Image
-		image         *v1.Image
-		imageTagCount int
-		imageID       string
-		imageStore    = d.imageStore
-		named         reference.Named
-		err           error
+		err               error
+		named             reference.Named
+		imageStore        = d.imageStore
+		deleteImageIDList []string
+		latestImageIDList []string
 	)
 
+	named, err = reference.ParseToNamed(imageName)
+	if err != nil {
+		return err
+	}
+
+	if force {
+		imageMetadataMap, err := imageStore.GetImageMetadataMap()
+		if err != nil {
+			return err
+		}
+		manifestList, ok := imageMetadataMap[named.Raw()]
+		if !ok {
+			return fmt.Errorf("image %s not found", imageName)
+		}
+		for _, m := range manifestList.Manifests {
+			deleteImageIDList = append(deleteImageIDList, m.ID)
+		}
+		if err = imageStore.DeleteByName(named.Raw(), nil); err != nil {
+			return fmt.Errorf("failed to delete image %s, err: %v", imageName, err)
+		}
+	}
+
+	for _, plat := range platforms {
+		img, err := imageStore.GetByName(named.Raw(), plat)
+		if err != nil {
+			return fmt.Errorf("image %s not found %v", named.Raw(), err)
+		}
+		deleteImageIDList = append(deleteImageIDList, img.Spec.ID)
+		if err = imageStore.DeleteByName(named.Raw(), plat); err != nil {
+			return fmt.Errorf("failed to delete image %s, err: %v", imageName, err)
+		}
+	}
+
+	deleteImageIDList = utils.RemoveDuplicate(deleteImageIDList)
 	imageMetadataMap, err := imageStore.GetImageMetadataMap()
 	if err != nil {
 		return err
 	}
-	// example ImageName : 7e2e51b85680d827fae08853dea32ad6:latest
-	// example ImageID :   7e2e51b85680d827fae08853dea32ad6
-	// https://github.com/alibaba/sealer/blob/f9d609c7fede47a7ac229bcd03d92dd0429b5038/image/reference/util.go#L59
-	named, err = reference.ParseToNamed(imageArg)
-	if err != nil {
-		return err
-	}
-	img, err := imageStore.GetByName(named.Raw())
-	//untag it if it is a name, then try to untag it as ID
-	if err == nil {
-		//1.untag image
-		if err = imageStore.DeleteByName(named.Raw()); err != nil {
-			return fmt.Errorf("failed to untag image %s, err: %v", imageArg, err)
-		}
-		imageID = img.Spec.ID
-	} else {
-		imageList, err := imageUtils.SimilarImageListByID(imageArg)
-		if err != nil {
-			return err
-		}
-		if len(imageList) == 0 || !d.ForceDeleteImage && len(imageList) > 1 {
-			return fmt.Errorf("not to find image: %s", imageArg)
-		}
-		if err = imageStore.DeleteByID(imageList[0], d.ForceDeleteImage); err != nil {
-			return err
-		}
-		imageID = imageList[0]
-	}
-	image, err = imageStore.GetByID(imageID)
-	if err != nil {
-		return fmt.Errorf("failed to get image metadata for image %s, err: %w", image.Spec.ID, err)
-	}
-	logger.Info("untag image %s succeeded", image.Spec.ID)
 
-	for _, value := range imageMetadataMap {
-		tmpImage, err := imageStore.GetByID(value.ID)
-		if err != nil {
+	for _, imageMetadata := range imageMetadataMap {
+		for _, m := range imageMetadata.Manifests {
+			latestImageIDList = append(latestImageIDList, m.ID)
+		}
+	}
+	// delete image.yaml file which id not in current imageMetadataMap.
+	for _, id := range deleteImageIDList {
+		if utils.InList(id, latestImageIDList) {
 			continue
 		}
-		if value.ID == imageID {
-			imageTagCount++
-			if imageTagCount > 1 {
-				continue
-			}
-		}
-		images = append(images, tmpImage)
-	}
-	if imageTagCount != 1 && !d.ForceDeleteImage {
-		return nil
-	}
-
-	err = store.DeleteImageLocal(image.Spec.ID)
-	if err != nil {
-		return err
-	}
-
-	layer2ImageNames := layer2ImageMap(images)
-	// TODO: find a atomic way to delete layers and image
-	layerStore, err := store.NewDefaultLayerStore()
-	if err != nil {
-		return err
-	}
-
-	for _, layer := range image.Spec.Layers {
-		layerID := store.LayerID(layer.ID)
-		if isLayerDeletable(layer2ImageNames, layerID) {
-			err = layerStore.Delete(layerID)
-			if err != nil {
-				// print log and continue to delete other layers of the image
-				logger.Error("Fail to delete image %s's layer %s", image.Spec.ID, layerID)
-			}
+		err = store.DeleteImageLocal(id)
+		if err != nil {
+			return err
 		}
 	}
 
-	logger.Info("image %s delete success", image.Spec.ID)
-	return nil
+	logger.Info("image %s delete success", imageName)
+	return d.Prune()
 }
 
 // Prune delete the unused Layer in the `DefaultLayerDir` directory
@@ -285,16 +262,19 @@ func (d DefaultImageService) Prune() error {
 	}
 
 	for _, imageMetadata := range imageMetadataMap {
-		image, err := d.imageStore.GetByID(imageMetadata.ID)
-		if err != nil {
-			return err
+		for _, m := range imageMetadata.Manifests {
+			image, err := d.imageStore.GetByID(m.ID)
+			if err != nil {
+				return err
+			}
+			res, err := GetImageLayerDirs(image)
+			if err != nil {
+				return err
+			}
+			allImageLayerDirs = append(allImageLayerDirs, res...)
 		}
-		res, err := GetImageLayerDirs(image)
-		if err != nil {
-			return err
-		}
-		allImageLayerDirs = append(allImageLayerDirs, res...)
 	}
+
 	allImageLayerDirs = utils.RemoveDuplicate(allImageLayerDirs)
 	dirs, err := store.GetDirListInDir(common.DefaultLayerDir)
 	if err != nil {
@@ -305,27 +285,10 @@ func (d DefaultImageService) Prune() error {
 		if err := os.RemoveAll(dir); err != nil {
 			return err
 		}
-		_, err = common.StdOut.WriteString(fmt.Sprintf("%s layer deleted\n", dir))
+		_, err = common.StdOut.WriteString(fmt.Sprintf("%s layer deleted\n", filepath.Base(dir)))
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func isLayerDeletable(layer2ImageNames map[store.LayerID][]string, layerID store.LayerID) bool {
-	return len(layer2ImageNames[layerID]) <= 1
-}
-
-// layer2ImageMap accepts a directory parameter which contains image metadata.
-// It reads these metadata and saves the layer and image relationship in a map.
-func layer2ImageMap(images []*v1.Image) map[store.LayerID][]string {
-	var layer2ImageNames = make(map[store.LayerID][]string)
-	for _, image := range images {
-		for _, layer := range image.Spec.Layers {
-			layerID := store.LayerID(layer.ID)
-			layer2ImageNames[layerID] = append(layer2ImageNames[layerID], image.Spec.ID)
-		}
-	}
-	return layer2ImageNames
 }

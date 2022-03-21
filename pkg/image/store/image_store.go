@@ -25,32 +25,32 @@ type imageStore struct {
 	backend Backend
 }
 
-func (is *imageStore) GetByName(name string) (*v1.Image, error) {
-	return is.backend.getImageByName(name)
+func (is *imageStore) GetByName(name string, platform *v1.Platform) (*v1.Image, error) {
+	return is.backend.getImageByName(name, platform)
 }
 
 func (is *imageStore) GetByID(id string) (*v1.Image, error) {
 	return is.backend.getImageByID(id)
 }
 
-func (is *imageStore) DeleteByName(name string) error {
-	return is.backend.deleteImage(name)
+func (is *imageStore) DeleteByName(name string, platform *v1.Platform) error {
+	return is.backend.deleteImage(name, platform)
 }
 
-func (is *imageStore) DeleteByID(id string, force bool) error {
-	return is.backend.deleteImageByID(id, force)
+func (is *imageStore) DeleteByID(id string) error {
+	return is.backend.deleteImageByID(id)
 }
 
-func (is *imageStore) Save(image v1.Image, name string) error {
-	return is.backend.saveImage(image, name)
+func (is *imageStore) Save(image v1.Image) error {
+	return is.backend.saveImage(image)
 }
 
-func (is *imageStore) SetImageMetadataItem(imageMetadata types.ImageMetadata) error {
-	return is.backend.setImageMetadata(imageMetadata)
+func (is *imageStore) SetImageMetadataItem(name string, imageMetadata *types.ManifestDescriptor) error {
+	return is.backend.setImageMetadata(name, imageMetadata)
 }
 
-func (is *imageStore) GetImageMetadataItem(name string) (types.ImageMetadata, error) {
-	return is.backend.getImageMetadataItem(name)
+func (is *imageStore) GetImageMetadataItem(name string, platform *v1.Platform) (*types.ManifestDescriptor, error) {
+	return is.backend.getImageMetadataItem(name, platform)
 }
 
 func (is *imageStore) GetImageMetadataMap() (ImageMetadataMap, error) {

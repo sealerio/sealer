@@ -18,10 +18,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
-	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/opencontainers/go-digest"
 	"golang.org/x/sync/errgroup"
 	"sigs.k8s.io/yaml"
@@ -52,26 +53,7 @@ func save(imageName string, image *v1.Image) error {
 	if err != nil {
 		return err
 	}
-	return imageStore.Save(*image, imageName)
-}
-
-func setClusterFile(imageName string, image *v1.Image) error {
-	var cluster v2.Cluster
-	if image.Annotations == nil {
-		return nil
-	}
-	raw := image.Annotations[common.ImageAnnotationForClusterfile]
-	if err := yaml.Unmarshal([]byte(raw), &cluster); err != nil {
-		return err
-	}
-	cluster.Spec.Image = imageName
-	clusterData, err := yaml.Marshal(cluster)
-	if err != nil {
-		return err
-	}
-
-	image.Annotations[common.ImageAnnotationForClusterfile] = string(clusterData)
-	return nil
+	return imageStore.Save(*image)
 }
 
 func Merge(imageName string, images []string) error {
@@ -94,7 +76,7 @@ func Merge(imageName string, images []string) error {
 	for _, ima := range images {
 		im := ima
 		eg.Go(func() error {
-			err = d.PullIfNotExist(im)
+			err = d.PullIfNotExist(im, platform.GetDefaultPlatform())
 			if err != nil {
 				return err
 			}
@@ -106,7 +88,7 @@ func Merge(imageName string, images []string) error {
 	}
 
 	for i, v := range images {
-		img, err := d.GetImageByName(v)
+		img, err := d.GetImageByName(v, platform.GetDefaultPlatform())
 		if err != nil {
 			return err
 		}

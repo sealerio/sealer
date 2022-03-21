@@ -58,13 +58,13 @@ type Backend interface {
 	storeROLayer(layer Layer) error
 	loadAllROLayers() ([]*ROLayer, error)
 	addDistributionMetadata(layerID LayerID, newMetadatas map[string]digest.Digest) error
-	getImageByName(name string) (*v1.Image, error)
+	getImageByName(name string, platform *v1.Platform) (*v1.Image, error)
 	getImageByID(id string) (*v1.Image, error)
-	deleteImage(name string) error
-	deleteImageByID(id string, force bool) error
-	saveImage(image v1.Image, name string) error
-	setImageMetadata(metadata types.ImageMetadata) error
-	getImageMetadataItem(nameOrID string) (types.ImageMetadata, error)
+	deleteImage(name string, platform *v1.Platform) error
+	deleteImageByID(id string) error
+	saveImage(image v1.Image) error
+	setImageMetadata(name string, metadata *types.ManifestDescriptor) error
+	getImageMetadataItem(name string, platform *v1.Platform) (*types.ManifestDescriptor, error)
 	getImageMetadataMap() (ImageMetadataMap, error)
 }
 
@@ -76,7 +76,7 @@ type filesystem struct {
 	imageMetadataFilePath string
 }
 
-type ImageMetadataMap map[string]types.ImageMetadata
+type ImageMetadataMap map[string]*types.ManifestList
 
 func NewFSStoreBackend() (Backend, error) {
 	return &filesystem{
@@ -356,15 +356,13 @@ func (fs *filesystem) loadAllROLayers() ([]*ROLayer, error) {
 }
 
 func (fs *filesystem) getImageMetadataMap() (ImageMetadataMap, error) {
-	var (
-		imagesMap ImageMetadataMap
-	)
+	imagesMap := make(ImageMetadataMap)
 	// create file if not exists
 	if !pkgutils.IsFileExist(fs.imageMetadataFilePath) {
 		if err := pkgutils.WriteFile(fs.imageMetadataFilePath, []byte("{}")); err != nil {
 			return nil, err
 		}
-		return ImageMetadataMap{}, nil
+		return imagesMap, nil
 	}
 
 	data, err := ioutil.ReadFile(fs.imageMetadataFilePath)
@@ -379,7 +377,7 @@ func (fs *filesystem) getImageMetadataMap() (ImageMetadataMap, error) {
 	return imagesMap, err
 }
 
-func (fs *filesystem) getImageByName(name string) (*v1.Image, error) {
+func (fs *filesystem) getImageByName(name string, platform *v1.Platform) (*v1.Image, error) {
 	imagesMap, err := fs.getImageMetadataMap()
 	if err != nil {
 		return nil, err
@@ -390,11 +388,22 @@ func (fs *filesystem) getImageByName(name string) (*v1.Image, error) {
 		return nil, fmt.Errorf("failed to find image by name: %s", name)
 	}
 
-	if image.ID == "" {
-		return nil, fmt.Errorf("failed to find corresponding image id, id is empty")
+	for _, m := range image.Manifests {
+		if m.Platform.OS == platform.OS &&
+			m.Platform.Architecture == platform.Architecture &&
+			m.Platform.Variant == platform.Variant {
+			if m.ID == "" {
+				return nil, fmt.Errorf("failed to find corresponding image id, id is empty")
+			}
+			ima, err := fs.getImageByID(m.ID)
+			if err != nil {
+				return nil, err
+			}
+			return ima, nil
+		}
 	}
 
-	return fs.getImageByID(image.ID)
+	return nil, nil
 }
 
 func (fs *filesystem) getImageByID(id string) (*v1.Image, error) {
@@ -405,17 +414,31 @@ func (fs *filesystem) getImageByID(id string) (*v1.Image, error) {
 	return &image, pkgutils.UnmarshalYamlFile(filename, &image)
 }
 
-func (fs *filesystem) deleteImage(name string) error {
+func (fs *filesystem) deleteImage(name string, platform *v1.Platform) error {
 	imagesMap, err := fs.getImageMetadataMap()
 	if err != nil {
 		return err
 	}
 
-	_, ok := imagesMap[name]
+	manifestList, ok := imagesMap[name]
 	if !ok {
 		return nil
 	}
-	delete(imagesMap, name)
+
+	if platform == nil {
+		delete(imagesMap, name)
+	} else {
+		var ms []*types.ManifestDescriptor
+		for _, m := range manifestList.Manifests {
+			if m.Platform.OS == platform.OS &&
+				m.Platform.Architecture == platform.Architecture &&
+				m.Platform.Variant == platform.Variant {
+				continue
+			}
+			ms = append(ms, m)
+		}
+		manifestList.Manifests = ms
+	}
 
 	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
 	if err != nil {
@@ -428,27 +451,21 @@ func (fs *filesystem) deleteImage(name string) error {
 	return nil
 }
 
-func (fs *filesystem) deleteImageByID(id string, force bool) error {
+func (fs *filesystem) deleteImageByID(id string) error {
 	imagesMap, err := fs.getImageMetadataMap()
 	if err != nil {
 		return err
 	}
-	var imageIDCount = 0
-	var imageNames []string
-	for _, value := range imagesMap {
-		if value.ID == id {
-			imageIDCount++
-			imageNames = append(imageNames, value.Name)
+	var ms []*types.ManifestDescriptor
+
+	for _, manifestList := range imagesMap {
+		for _, m := range manifestList.Manifests {
+			if m.ID == id {
+				continue
+			}
+			ms = append(ms, m)
 		}
-		if imageIDCount > 1 && !force {
-			return fmt.Errorf("there are more than one image %s", id)
-		}
-	}
-	if imageIDCount == 0 {
-		return fmt.Errorf("failed to find image with id %s", id)
-	}
-	for _, imageName := range imageNames {
-		delete(imagesMap, imageName)
+		manifestList.Manifests = ms
 	}
 
 	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
@@ -462,28 +479,56 @@ func (fs *filesystem) deleteImageByID(id string, force bool) error {
 	return nil
 }
 
-func (fs *filesystem) getImageMetadataItem(nameOrID string) (types.ImageMetadata, error) {
+func (fs *filesystem) getImageMetadataItem(name string, platform *v1.Platform) (*types.ManifestDescriptor, error) {
 	imageMetadataMap, err := fs.getImageMetadataMap()
-	imageMetadata := types.ImageMetadata{}
 	if err != nil {
-		return imageMetadata, err
+		return nil, err
 	}
-	for k, v := range imageMetadataMap {
-		if nameOrID == k || nameOrID == v.ID {
-			return v, nil
+
+	manifestList, ok := imageMetadataMap[name]
+	if !ok {
+		return nil, fmt.Errorf("image %s not found", name)
+	}
+
+	for _, m := range manifestList.Manifests {
+		if m.Platform.OS == platform.OS &&
+			m.Platform.Architecture == platform.Architecture &&
+			m.Platform.Variant == platform.Variant {
+			return m, nil
 		}
 	}
-	return imageMetadata, &types.ImageNameOrIDNotFoundError{Name: nameOrID}
+
+	return nil, &types.ImageNameOrIDNotFoundError{Name: name}
 }
 
-func (fs *filesystem) setImageMetadata(metadata types.ImageMetadata) error {
+func (fs *filesystem) setImageMetadata(name string, metadata *types.ManifestDescriptor) error {
 	metadata.CREATED = time.Now()
 	imagesMap, err := fs.getImageMetadataMap()
 	if err != nil {
 		return err
 	}
-
-	imagesMap[metadata.Name] = metadata
+	var changed bool
+	manifestList, ok := imagesMap[name]
+	if !ok {
+		var ml []*types.ManifestDescriptor
+		ml = append(ml, metadata)
+		manifestList = &types.ManifestList{Manifests: ml}
+	} else {
+		for _, m := range manifestList.Manifests {
+			if m.Platform.OS == metadata.Platform.OS &&
+				m.Platform.Architecture == metadata.Platform.Architecture &&
+				m.Platform.Variant == metadata.Platform.Variant {
+				m.ID = metadata.ID
+				m.CREATED = metadata.CREATED
+				m.SIZE = metadata.SIZE
+				changed = true
+			}
+		}
+		if !changed {
+			manifestList.Manifests = append(manifestList.Manifests, metadata)
+		}
+	}
+	imagesMap[name] = manifestList
 	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
 	if err != nil {
 		return err
@@ -495,7 +540,7 @@ func (fs *filesystem) setImageMetadata(metadata types.ImageMetadata) error {
 	return nil
 }
 
-func (fs *filesystem) saveImage(image v1.Image, name string) error {
+func (fs *filesystem) saveImage(image v1.Image) error {
 	err := saveImageYaml(image, fs.imageDBRoot)
 	if err != nil {
 		return err
@@ -508,9 +553,9 @@ func (fs *filesystem) saveImage(image v1.Image, name string) error {
 	}
 	size, err := pkgutils.GetFilesSize(res)
 	if err != nil {
-		return fmt.Errorf("failed to get image %s size, %v", name, err)
+		return fmt.Errorf("failed to get image %s size, %v", image.Name, err)
 	}
-	return fs.setImageMetadata(types.ImageMetadata{Name: name, ID: image.Spec.ID, SIZE: size})
+	return fs.setImageMetadata(image.Name, &types.ManifestDescriptor{ID: image.Spec.ID, SIZE: size, Platform: image.Spec.Platform})
 }
 
 func saveImageYaml(image v1.Image, dir string) error {

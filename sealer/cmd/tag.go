@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"github.com/alibaba/sealer/pkg/image/reference"
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/pkg/image"
@@ -31,7 +32,12 @@ var tagCmd = &cobra.Command{
 			return err
 		}
 
-		return ims.Tag(args[0], args[1])
+		named, err := reference.ParseToNamed(args[1])
+		if err != nil {
+			return err
+		}
+
+		return ims.Tag(args[0], named.Raw())
 	},
 }
 

@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	v1 "github.com/alibaba/sealer/types/api/v1"
+
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/build/buildkit/layerutils/charts"
 	manifest "github.com/alibaba/sealer/build/buildkit/layerutils/manifests"
@@ -47,7 +49,8 @@ func init() {
 }
 
 type registry struct {
-	puller save.ImageSave
+	platform v1.Platform
+	puller   save.ImageSave
 }
 
 func (r registry) Process(src, dst buildinstruction.MountTarget) error {
@@ -72,14 +75,15 @@ func (r registry) Process(src, dst buildinstruction.MountTarget) error {
 	if err := eg.Wait(); err != nil {
 		return err
 	}
-	plat := runtime.GetCloudImagePlatform(rootfs)
-	return r.puller.SaveImages(images, filepath.Join(rootfs, common.RegistryDirName), plat)
+
+	return r.puller.SaveImages(images, filepath.Join(rootfs, common.RegistryDirName), convertPlatform(r.platform))
 }
 
-func NewRegistryDiffer() Differ {
+func NewRegistryDiffer(platform v1.Platform) Differ {
 	ctx := context.Background()
 	return registry{
-		puller: save.NewImageSaver(ctx),
+		platform: platform,
+		puller:   save.NewImageSaver(ctx),
 	}
 }
 

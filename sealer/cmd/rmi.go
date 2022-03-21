@@ -16,7 +16,11 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"strings"
+
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils/platform"
 
 	"github.com/spf13/cobra"
 
@@ -25,7 +29,8 @@ import (
 )
 
 type removeImageFlag struct {
-	force bool
+	force    bool
+	Platform string
 }
 
 var opts removeImageFlag
@@ -33,7 +38,7 @@ var opts removeImageFlag
 // rmiCmd represents the rmi command
 var rmiCmd = &cobra.Command{
 	Use:     "rmi",
-	Short:   "remove local images by name or ID",
+	Short:   "remove local images by name",
 	Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
 	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -43,14 +48,28 @@ var rmiCmd = &cobra.Command{
 }
 
 func runRemove(images []string) error {
-	imageService, err := image.NewDeleteImageService(opts.force)
+	imageService, err := image.NewImageService()
 	if err != nil {
 		return err
 	}
 
+	var targetPlatforms []*v1.Platform
+	if opts.Platform == "" && !opts.force {
+		return fmt.Errorf("need set target platforms if not force delete")
+	}
+
+	if opts.Platform != "" {
+		opts.force = false
+		tp, err := platform.ParsePlatforms(opts.Platform)
+		if err != nil {
+			return err
+		}
+		targetPlatforms = tp
+	}
+
 	var errs []string
 	for _, img := range images {
-		if err := imageService.Delete(img); err != nil {
+		if err := imageService.Delete(img, opts.force, targetPlatforms); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
@@ -65,5 +84,6 @@ func runRemove(images []string) error {
 func init() {
 	opts = removeImageFlag{}
 	rootCmd.AddCommand(rmiCmd)
-	rmiCmd.Flags().BoolVarP(&opts.force, "force", "f", false, "force removal of the image")
+	rmiCmd.Flags().StringVar(&opts.Platform, "platform", "", "set cloud image platform")
+	rmiCmd.Flags().BoolVarP(&opts.force, "force", "f", true, "force removal all of the image")
 }

@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sort"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
@@ -26,7 +25,6 @@ import (
 	"github.com/alibaba/sealer/pkg/image/distributionutil"
 	"github.com/alibaba/sealer/pkg/image/reference"
 	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/pkg/image/types"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
@@ -35,46 +33,58 @@ type DefaultImageMetadataService struct {
 	imageStore store.ImageStore
 }
 
-// Tag is used to give an another name for imageName
+// Tag is used to give a name for imageName
 func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
-	imageMetadata, err := d.imageStore.GetImageMetadataItem(imageName)
+	imageMetadata, err := d.imageStore.GetImageMetadataMap()
 	if err != nil {
 		return err
 	}
-	named, err := reference.ParseToNamed(tarImageName)
-	if err != nil {
-		return err
+
+	manifestList, ok := imageMetadata[imageName]
+	if !ok {
+		return fmt.Errorf("image: %s not found", imageName)
 	}
-	imageMetadata.Name = named.Raw()
-	if err := d.imageStore.SetImageMetadataItem(imageMetadata); err != nil {
-		return fmt.Errorf("failed to add tag %s, %s", tarImageName, err)
+	for _, m := range manifestList.Manifests {
+		image, err := d.imageStore.GetByID(m.ID)
+		if err != nil {
+			return err
+		}
+
+		image.Name = tarImageName
+		err = setClusterFile(tarImageName, image)
+		if err != nil {
+			return err
+		}
+
+		imageID, err := GenerateImageID(*image)
+		if err != nil {
+			return err
+		}
+		image.Spec.ID = imageID
+		err = d.imageStore.Save(*image)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-//List will list all kube-image locally
-func (d DefaultImageMetadataService) List() ([]types.ImageMetadata, error) {
-	imageMetadataMap, err := d.imageStore.GetImageMetadataMap()
-	if err != nil {
-		return nil, err
-	}
-	var imageMetadataList []types.ImageMetadata
-	for _, imageMetadata := range imageMetadataMap {
-		imageMetadataList = append(imageMetadataList, imageMetadata)
-	}
-	sort.Slice(imageMetadataList, func(i, j int) bool {
-		return imageMetadataList[i].Name < imageMetadataList[j].Name
-	})
-	return imageMetadataList, nil
+//List will list all cloud image locally
+func (d DefaultImageMetadataService) List() (store.ImageMetadataMap, error) {
+	return d.imageStore.GetImageMetadataMap()
 }
 
 // GetImage will return the v1.Image locally
-func (d DefaultImageMetadataService) GetImage(imageName string) (*v1.Image, error) {
-	return d.imageStore.GetByName(imageName)
+func (d DefaultImageMetadataService) GetImage(imageName string, platform *v1.Platform) (*v1.Image, error) {
+	image, err := d.imageStore.GetByName(imageName, platform)
+	if err != nil {
+		return nil, err
+	}
+	return image, nil
 }
 
 // GetRemoteImage will return the v1.Image from remote registry
-func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image, error) {
+func (d DefaultImageMetadataService) GetRemoteImage(imageName string, platform *v1.Platform) (v1.Image, error) {
 	var (
 		image v1.Image
 		err   error
@@ -120,6 +130,6 @@ func (d DefaultImageMetadataService) GetRemoteImage(imageName string) (v1.Image,
 	return image, decoder.Decode(&image)
 }
 
-func (d DefaultImageMetadataService) DeleteImage(imageName string) error {
-	return d.imageStore.DeleteByName(imageName)
+func (d DefaultImageMetadataService) DeleteImage(imageName string, platform *v1.Platform) error {
+	return d.imageStore.DeleteByName(imageName, platform)
 }

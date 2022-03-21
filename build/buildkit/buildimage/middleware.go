@@ -18,9 +18,10 @@ import (
 	"fmt"
 	"path/filepath"
 
+	v1 "github.com/alibaba/sealer/types/api/v1"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/image/save"
-	"github.com/alibaba/sealer/pkg/runtime"
 	"github.com/alibaba/sealer/utils"
 )
 
@@ -29,7 +30,8 @@ var (
 )
 
 type MiddlewarePuller struct {
-	puller save.DefaultImageSaver
+	puller   save.DefaultImageSaver
+	platform v1.Platform
 }
 
 func (m MiddlewarePuller) Process(context, rootfs string) error {
@@ -72,12 +74,12 @@ func (m MiddlewarePuller) Process(context, rootfs string) error {
 		return nil
 	}
 
-	plat := runtime.GetCloudImagePlatform(rootfs)
-	return m.puller.SaveImagesWithAuth(ia, filepath.Join(rootfs, common.RegistryDirName), plat)
+	return m.puller.SaveImagesWithAuth(ia, filepath.Join(rootfs, common.RegistryDirName), convertPlatform(m.platform))
 }
 
-func NewMiddlewarePuller() Middleware {
+func NewMiddlewarePuller(platform v1.Platform) Middleware {
 	return MiddlewarePuller{
-		puller: save.DefaultImageSaver{},
+		platform: platform,
+		puller:   save.DefaultImageSaver{},
 	}
 }

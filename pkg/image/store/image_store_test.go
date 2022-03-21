@@ -66,6 +66,22 @@ var dirs = []string{
 	common.DefaultTmpDir,
 }
 
+var platformMap = map[string]*v1.Platform{
+	"amd64": {
+		OS:           "linux",
+		Architecture: "amd64",
+	},
+	"arm64": {
+		OS:           "linux",
+		Architecture: "arm64",
+	},
+	"arm": {
+		OS:           "linux",
+		Architecture: "arm",
+		Variant:      "v6",
+	},
+}
+
 func init() {
 	for _, dir := range dirs {
 		err := os.MkdirAll(dir, 0755)
@@ -84,7 +100,7 @@ func TestImageStore_GetImage(t *testing.T) {
 	}
 
 	for _, image := range images {
-		err = is.Save(image, image.Name)
+		err = is.Save(image)
 		if err != nil {
 			t.Errorf("failed to save image %s, err: %s", image.Name, err)
 		}
@@ -96,14 +112,15 @@ func TestImageStore_GetImage(t *testing.T) {
 			t.Errorf("failed to get image by id %s, err: %s", image.Spec.ID, err)
 		}
 
-		_, err = is.GetByName(image.Name)
-		if err != nil {
-			t.Errorf("failed to get image by name %s, err: %s", image.Name, err)
-		}
-
-		_, err = is.GetImageMetadataItem(image.Name)
-		if err != nil {
-			t.Errorf("failed to get image metadata item for %s, err: %s", image.Name, err)
+		for _, plat := range platformMap {
+			_, err = is.GetByName(image.Name, plat)
+			if err != nil {
+				t.Errorf("failed to get image by name %s, err: %s", image.Name, err)
+			}
+			_, err = is.GetImageMetadataItem(image.Name, plat)
+			if err != nil {
+				t.Errorf("failed to get image metadata item for %s, err: %s", image.Name, err)
+			}
 		}
 	}
 }
@@ -117,16 +134,20 @@ func TestImageStore_ImageMetadataItem(t *testing.T) {
 	}
 
 	for _, image := range images {
-		err = is.SetImageMetadataItem(types.ImageMetadata{Name: image.Name, ID: image.Spec.ID})
-		if err != nil {
-			t.Errorf("failed to set image metadata for %s, err: %s", image.Name, err)
+		for _, plat := range platformMap {
+			err = is.SetImageMetadataItem(image.Name, &types.ManifestDescriptor{ID: image.Spec.ID, Platform: *plat})
+			if err != nil {
+				t.Errorf("failed to set image metadata for %s, err: %s", image.Name, err)
+			}
 		}
 	}
 
 	for _, image := range images {
-		_, err = is.GetImageMetadataItem(image.Name)
-		if err != nil {
-			t.Errorf("failed to set image metadata for %s, err: %s", image.Name, err)
+		for _, plat := range platformMap {
+			_, err = is.GetImageMetadataItem(image.Name, plat)
+			if err != nil {
+				t.Errorf("failed to set image metadata for %s, err: %s", image.Name, err)
+			}
 		}
 	}
 }

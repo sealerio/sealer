@@ -19,6 +19,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/opencontainers/go-digest"
+
+	"github.com/alibaba/sealer/utils/platform"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
@@ -43,9 +48,10 @@ func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 
 // GetClusterFileFromImage retrieves ClusterFile From image.
 func GetClusterFileFromImage(imageName string) (string, error) {
-	clusterFile, err := GetClusterFileFromImageManifest(imageName)
+	plat := platform.GetDefaultPlatform()
+	clusterFile, err := GetClusterFileFromImageManifest(imageName, plat)
 	if err != nil {
-		return GetFileFromBaseImage(imageName, "etc", common.DefaultClusterFileName)
+		return GetFileFromBaseImage(imageName, plat, "etc", common.DefaultClusterFileName)
 	}
 
 	return clusterFile, nil
@@ -55,7 +61,7 @@ func GetClusterFileFromImage(imageName string) (string, error) {
 // When it runs into an error, returns a detailed error.
 // When content getted is empty, returns an empty error directly to avoid upper caller to
 // decide whether it is an empty.
-func GetClusterFileFromImageManifest(imageName string) (string, error) {
+func GetClusterFileFromImageManifest(imageName string, platform *v1.Platform) (string, error) {
 	//  find cluster file from image manifest
 	var (
 		image *v1.Image
@@ -65,14 +71,14 @@ func GetClusterFileFromImageManifest(imageName string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to init image store: %v", err)
 	}
-	image, err = is.GetByName(imageName)
+	image, err = is.GetByName(imageName, platform)
 	if err != nil {
 		ims, err := NewImageMetadataService()
 		if err != nil {
 			return "", fmt.Errorf("failed to create image metadata svcs: %v", err)
 		}
 
-		imageMetadata, err := ims.GetRemoteImage(imageName)
+		imageMetadata, err := ims.GetRemoteImage(imageName, platform)
 		if err != nil {
 			return "", fmt.Errorf("failed to find image %s: %v", imageName, err)
 		}
@@ -90,7 +96,7 @@ func GetClusterFileFromImageManifest(imageName string) (string, error) {
 }
 
 // GetFileFromBaseImage retrieve file from base image
-func GetFileFromBaseImage(imageName string, paths ...string) (string, error) {
+func GetFileFromBaseImage(imageName string, platform *v1.Platform, paths ...string) (string, error) {
 	mountTarget, _ := utils.MkTmpdir()
 	mountUpper, _ := utils.MkTmpdir()
 	defer func() {
@@ -101,7 +107,7 @@ func GetFileFromBaseImage(imageName string, paths ...string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := imgSvc.PullIfNotExist(imageName); err != nil {
+	if err := imgSvc.PullIfNotExist(imageName, platform); err != nil {
 		return "", err
 	}
 
@@ -110,7 +116,7 @@ func GetFileFromBaseImage(imageName string, paths ...string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to init image store: %s", err)
 	}
-	image, err := is.GetByName(imageName)
+	image, err := is.GetByName(imageName, platform)
 	if err != nil {
 		return "", err
 	}
@@ -146,28 +152,91 @@ func GetFileFromBaseImage(imageName string, paths ...string) (string, error) {
 	return string(data), nil
 }
 
-func GetYamlByImage(imageName string) (string, error) {
-	img, err := GetImageByName(imageName)
-	if err != nil {
-		return "", fmt.Errorf("failed to get image %s, err: %s", imageName, err)
+func GetYamlByImageID(id string) (string, error) {
+	if id == "" {
+		return "", fmt.Errorf("image id is nil")
 	}
-
-	ImageInformation, err := yaml.Marshal(img)
+	img, err := GetImageByID(id)
 	if err != nil {
 		return "", err
 	}
 
-	return string(ImageInformation), nil
+	info, err := yaml.Marshal(img)
+	if err != nil {
+		return "", err
+	}
+
+	return string(info), nil
 }
 
-func GetImageByName(imageName string) (*v1.Image, error) {
+func GetImageByID(id string) (*v1.Image, error) {
 	is, err := store.NewDefaultImageStore()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init image store, err: %s", err)
 	}
-	img, err := is.GetByName(imageName)
+	return is.GetByID(id)
+}
+
+func GetImageByName(imageName string, platforms []*v1.Platform) ([]*v1.Image, error) {
+	var imgs []*v1.Image
+	is, err := store.NewDefaultImageStore()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get image %s, err: %s", imageName, err)
+		return nil, fmt.Errorf("failed to init image store, err: %s", err)
 	}
-	return img, nil
+	imagesMap, err := is.GetImageMetadataMap()
+	if err != nil {
+		return nil, err
+	}
+	image, ok := imagesMap[imageName]
+	if !ok {
+		return nil, fmt.Errorf("failed to find image by name: %s", imageName)
+	}
+
+	if len(platforms) == 0 {
+		for _, m := range image.Manifests {
+			ima, err := is.GetByID(m.ID)
+			if err != nil {
+				return nil, err
+			}
+			imgs = append(imgs, ima)
+		}
+		return imgs, nil
+	}
+
+	for _, p := range platforms {
+		ima, err := is.GetByName(imageName, p)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get image %s, err: %s", imageName, err)
+		}
+		imgs = append(imgs, ima)
+	}
+	return imgs, nil
+}
+
+func setClusterFile(imageName string, image *v1.Image) error {
+	var cluster v2.Cluster
+	if image.Annotations == nil {
+		return nil
+	}
+	raw := image.Annotations[common.ImageAnnotationForClusterfile]
+	if err := yaml.Unmarshal([]byte(raw), &cluster); err != nil {
+		return err
+	}
+	cluster.Spec.Image = imageName
+	clusterData, err := yaml.Marshal(cluster)
+	if err != nil {
+		return err
+	}
+
+	image.Annotations[common.ImageAnnotationForClusterfile] = string(clusterData)
+	return nil
+}
+
+func GenerateImageID(image v1.Image) (string, error) {
+	imageBytes, err := yaml.Marshal(image)
+	if err != nil {
+		return "", err
+	}
+	imageID := digest.FromBytes(imageBytes).Hex()
+	return imageID, nil
 }

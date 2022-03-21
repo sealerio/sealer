@@ -22,34 +22,23 @@ import (
 	"github.com/alibaba/sealer/pkg/image"
 )
 
-var clusterFilePrint bool
-
 // inspectCmd represents the inspect command
 var inspectCmd = &cobra.Command{
 	Use:   "inspect",
 	Short: "print the image information or clusterFile",
-	Long: `sealer inspect kubernetes:v1.18.3 to print image information
-sealer inspect -c kubernetes:v1.18.3 to print image Clusterfile`,
+	Long: `sealer inspect ${image id} to print image information
+sealer inspect -c ${image id} to print image Clusterfile`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if clusterFilePrint {
-			cluster, err := image.GetClusterFileFromImageManifest(args[0])
-			if err != nil {
-				return fmt.Errorf("failed to find Clusterfile by image %s: %v", args[0], err)
-			}
-			fmt.Println(cluster)
-		} else {
-			file, err := image.GetYamlByImage(args[0])
-			if err != nil {
-				return fmt.Errorf("failed to find information by image %s: %v", args[0], err)
-			}
-			fmt.Println(file)
+		file, err := image.GetYamlByImageID(args[0])
+		if err != nil {
+			return fmt.Errorf("failed to find information by image %s: %v", args[0], err)
 		}
+		fmt.Println(file)
 		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(inspectCmd)
-	inspectCmd.Flags().BoolVarP(&clusterFilePrint, "Clusterfile", "c", false, "print the clusterFile")
 }

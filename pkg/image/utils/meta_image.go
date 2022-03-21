@@ -23,14 +23,10 @@ import (
 )
 
 func SimilarImageListByName(imgName string) ([]string, error) {
-	return SimilarImageList(imgName, true)
+	return similarImageList(imgName, true)
 }
 
-func SimilarImageListByID(imgID string) ([]string, error) {
-	return SimilarImageList(imgID, false)
-}
-
-func SimilarImageList(imageArg string, byName bool) (similarImageList []string, err error) {
+func similarImageList(imageArg string, byName bool) (similarImageList []string, err error) {
 	is, err := store.NewDefaultImageStore()
 	if err != nil {
 		return nil, err
@@ -39,13 +35,10 @@ func SimilarImageList(imageArg string, byName bool) (similarImageList []string, 
 	if err != nil {
 		return nil, err
 	}
-	for _, imageMetadata := range metadataMap {
-		imageMeta := imageMetadata
-		if byName && (strings.Contains(imageMeta.Name, imageArg) || imageArg == "") {
-			similarImageList = append(similarImageList, imageMeta.Name)
-		}
-		if !byName && (strings.Contains(imageMeta.ID, imageArg) || imageArg == "") {
-			similarImageList = append(similarImageList, imageMeta.ID)
+
+	for name := range metadataMap {
+		if byName && (strings.Contains(name, imageArg) || imageArg == "") {
+			similarImageList = append(similarImageList, name)
 		}
 	}
 	return

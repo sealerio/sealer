@@ -16,32 +16,31 @@ package image
 
 import (
 	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/pkg/image/types"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 // MetadataService is the interface for providing image metadata service
 type MetadataService interface {
 	Tag(imageName, tarImageName string) error
-	List() ([]types.ImageMetadata, error)
-	GetImage(imageName string) (*v1.Image, error)
-	GetRemoteImage(imageName string) (v1.Image, error)
-	DeleteImage(imageName string) error
+	List() (store.ImageMetadataMap, error)
+	GetImage(imageName string, platform *v1.Platform) (*v1.Image, error)
+	GetRemoteImage(imageName string, platform *v1.Platform) (v1.Image, error)
+	DeleteImage(imageName string, platform *v1.Platform) error
 }
 
 // FileService is the interface for file operations
 type FileService interface {
 	Load(imageSrc string) error
-	Save(image *v1.Image, imageTar string) error
+	Save(imageName, imageTar string, platforms []*v1.Platform) error
 	Merge(image *v1.Image) error
 }
 
 // Service is image service
 type Service interface {
 	Pull(imageName string) error
-	PullIfNotExist(imageName string) error
+	PullIfNotExist(imageName string, platform *v1.Platform) error
 	Push(imageName string) error
-	Delete(imageName string) error
+	Delete(imageName string, force bool, platforms []*v1.Platform) error
 	Login(RegistryURL, RegistryUsername, RegistryPasswd string) error
 	Prune() error
 	CacheBuilder

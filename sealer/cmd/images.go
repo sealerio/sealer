@@ -29,6 +29,8 @@ const (
 	imageName         = "IMAGE NAME"
 	imageCreate       = "CREATE"
 	imageSize         = "SIZE"
+	imageArch         = "ARCH"
+	imageVariant      = "VARIANT"
 	timeDefaultFormat = "2006-01-02 15:04:05"
 )
 
@@ -43,16 +45,19 @@ var listCmd = &cobra.Command{
 			return err
 		}
 
-		imageMetadataList, err := ims.List()
+		imageMetadataMap, err := ims.List()
 		if err != nil {
 			return err
 		}
 		table := tablewriter.NewWriter(common.StdOut)
-		table.SetHeader([]string{imageID, imageName, imageCreate, imageSize})
-		for _, image := range imageMetadataList {
-			create := image.CREATED.Format(timeDefaultFormat)
-			size := formatSize(image.SIZE)
-			table.Append([]string{image.ID, image.Name, create, size})
+		table.SetHeader([]string{imageName, imageID, imageArch, imageVariant, imageCreate, imageSize})
+
+		for name, manifestList := range imageMetadataMap {
+			for _, m := range manifestList.Manifests {
+				create := m.CREATED.Format(timeDefaultFormat)
+				size := formatSize(m.SIZE)
+				table.Append([]string{name, m.ID, m.Platform.Architecture, m.Platform.Variant, create, size})
+			}
 		}
 		table.Render()
 		return nil

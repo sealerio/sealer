@@ -43,6 +43,7 @@ type InstructionContext struct {
 	// dynamic method to init different instruction
 	CurrentLayer *v1.Layer
 	BaseLayers   []v1.Layer
+	Platform     v1.Platform
 }
 
 type Out struct {

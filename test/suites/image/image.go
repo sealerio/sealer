@@ -19,6 +19,8 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -68,7 +70,7 @@ func GetEnvDirMd5() string {
 func GetImageID(imageName string) string {
 	is, err := store.NewDefaultImageStore()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	image, err := is.GetByName(imageName)
+	image, err := is.GetByName(imageName, platform.GetDefaultPlatform())
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return image.Spec.ID
 }

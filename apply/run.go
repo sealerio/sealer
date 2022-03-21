@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/alibaba/sealer/pkg/clusterfile"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -122,7 +124,8 @@ func (c *ClusterArgs) setHostWithIpsPort(ips []string, role string) {
 }
 
 func GetClusterFileByImageName(imageName string) (*v2.Cluster, error) {
-	clusterFile, err := image.GetClusterFileFromImageManifest(imageName)
+	//todo need to filter image by platform
+	clusterFile, err := image.GetClusterFileFromImageManifest(imageName, platform.GetDefaultPlatform())
 	if err != nil {
 		return nil, err
 	}

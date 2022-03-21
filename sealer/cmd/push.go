@@ -25,7 +25,7 @@ import (
 var pushCmd = &cobra.Command{
 	Use:     "push",
 	Short:   "push cloud image to registry",
-	Example: `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kuberentes-cluster-with-dashboard:latest`,
+	Example: `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		imgsvc, err := image.NewImageService()

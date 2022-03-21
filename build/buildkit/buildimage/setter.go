@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
@@ -70,22 +69,16 @@ func NewAnnotationSetter(rootfs string) ImageSetter {
 }
 
 type platform struct {
-	source string
+	plat v1.Platform
 }
 
 func (p platform) Set(ima *v1.Image) error {
-	plat := runtime.GetCloudImagePlatform(p.source)
-	ima.Spec.Platform = v1.Platform{
-		Architecture: plat.Architecture,
-		OS:           plat.OS,
-		OSVersion:    plat.OSVersion,
-		Variant:      plat.Variant,
-	}
+	ima.Spec.Platform = p.plat
 	return nil
 }
 
-func NewPlatformSetter(rootfs string) ImageSetter {
+func NewPlatformSetter(plat v1.Platform) ImageSetter {
 	return platform{
-		source: rootfs,
+		plat: plat,
 	}
 }
