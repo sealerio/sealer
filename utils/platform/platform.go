@@ -18,6 +18,7 @@ import (
 	"debug/elf"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -153,7 +154,7 @@ func Format(platform v1.Platform) string {
 }
 
 func CheckFileArch(file string) (string, error) {
-	f, err := os.Open(file)
+	f, err := os.Open(filepath.Clean(file))
 	if err != nil {
 		return "", err
 	}

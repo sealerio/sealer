@@ -75,7 +75,11 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 	if err := json.Unmarshal(repoBytes, &imageMetadataMap); err != nil {
 		return err
 	}
-	defer os.Remove(repoFile)
+	defer func() {
+		if err := os.Remove(repoFile); err != nil {
+			logger.Error("failed to close file")
+		}
+	}()
 
 	for name, repo := range imageMetadataMap {
 		for _, m := range repo.Manifests {
@@ -102,7 +106,9 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 			if err != nil {
 				return err
 			}
-			os.Remove(imageTempFile)
+			if err = os.Remove(imageTempFile); err != nil {
+				logger.Error("failed to cleanup local temp file %s:%v", imageTempFile, err)
+			}
 		}
 		logger.Info("load image %s successfully", name)
 	}
@@ -200,7 +206,11 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 	if err != nil {
 		return fmt.Errorf("failed to get tar reader for %s, err: %s", imageName, err)
 	}
-	defer tarReader.Close()
+	defer func() {
+		if err := tarReader.Close(); err != nil {
+			logger.Error("failed to close file")
+		}
+	}()
 
 	_, err = io.Copy(file, tarReader)
 	return err

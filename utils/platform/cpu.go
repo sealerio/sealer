@@ -21,6 +21,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/pkg/errors"
 )
 
@@ -58,7 +60,11 @@ func getCPUInfo(pattern string) (info string, err error) {
 	if err != nil {
 		return "", err
 	}
-	defer cpuinfo.Close()
+	defer func() {
+		if err := cpuinfo.Close(); err != nil {
+			logger.Error("failed to close file")
+		}
+	}()
 
 	scanner := bufio.NewScanner(cpuinfo)
 	for scanner.Scan() {
