@@ -21,6 +21,7 @@ import (
 	"os"
 
 	dockerstreams "github.com/docker/cli/cli/streams"
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/docker/api/types"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
@@ -36,6 +37,8 @@ import (
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 )
+
+const ManifestUnknown = "manifest unknown"
 
 // DefaultImageService is the default service, which is used for image pull/push
 type DefaultImageService struct {
@@ -112,6 +115,9 @@ func (d DefaultImageService) Pull(imageName string) error {
 	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Start to Pull Image %s", named.Raw()))
 	image, err := puller.Pull(context.Background(), named)
 	if err != nil {
+		if err.(errcode.Errors)[0].(errcode.Error).Message == ManifestUnknown {
+			err = fmt.Errorf("image %s does not exist, %v", imageName, err)
+		}
 		return err
 	}
 	// TODO use image store to do the job next
