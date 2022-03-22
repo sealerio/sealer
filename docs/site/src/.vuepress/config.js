@@ -20,6 +20,7 @@ enSideBar = {
           'getting-started/introduction',
           'getting-started/quick-start',
           'getting-started/run-cloudimage',
+          'getting-started/using-clusterfile',
           'getting-started/build-cloudimage',
           'getting-started/build-appimage',
           'getting-started/config',
@@ -41,7 +42,6 @@ enSideBar = {
           'advanced/registry-configuration',
           'advanced/save-charts-package',
           'advanced/takeover-existed-cluster',
-          'advanced/use-clusterfile',
           'advanced/use-kyverno-baseimage',
           'advanced/use-sealer-in-container',
         ]
@@ -96,7 +96,7 @@ zhSideBar = {
         children: [
           'getting-started/introduction',
           'getting-started/quick-start',
-          'getting-started/use-clusterfile',
+          'getting-started/using-clusterfile',
           'getting-started/use-cloudimage',
           'getting-started/build-cloudimage',
           'getting-started/build-appimage',
