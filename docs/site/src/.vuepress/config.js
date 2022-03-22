@@ -96,7 +96,7 @@ zhSideBar = {
         children: [
           'getting-started/introduction',
           'getting-started/quick-start',
-          'getting-started/using-clusterfile',
+          'getting-started/use-clusterfile',
           'getting-started/use-cloudimage',
           'getting-started/build-cloudimage',
           'getting-started/build-appimage',

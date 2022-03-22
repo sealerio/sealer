@@ -42,6 +42,7 @@ spec:
 
 ```shell
 action : [PreInit| PreInstall| PostInstall] # Specify phases to execute the shell
+  Pre mount CloudImage phase          |   action: Originally
   Pre-initialization phase            |   action: PreInit
   before installing the cluster phase |   action: PreInstall
   after  installing the cluster phase |   action: PostInstall
