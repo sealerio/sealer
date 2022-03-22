@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	v2 "github.com/alibaba/sealer/types/api/v2"
 )
 
 func UnmarshalYamlFile(file string, obj interface{}) error {
@@ -43,6 +45,29 @@ func UnmarshalYamlFile(file string, obj interface{}) error {
 }
 
 func MarshalYamlToFile(file string, obj interface{}) error {
+	switch cluster := obj.(type) {
+	case *v1.Cluster:
+		if cluster.Spec.SSH.Encrypted {
+			break
+		}
+		passwd, err := AesEncrypt([]byte(cluster.Spec.SSH.Passwd))
+		if err != nil {
+			return err
+		}
+		cluster.Spec.SSH.Passwd = passwd
+		cluster.Spec.SSH.Encrypted = true
+	case *v2.Cluster:
+		if cluster.Spec.SSH.Encrypted {
+			break
+		}
+		passwd, err := AesEncrypt([]byte(cluster.Spec.SSH.Passwd))
+		if err != nil {
+			return err
+		}
+		cluster.Spec.SSH.Passwd = passwd
+		cluster.Spec.SSH.Encrypted = true
+	default:
+	}
 	data, err := yaml.Marshal(obj)
 	if err != nil {
 		return err
@@ -60,6 +85,7 @@ func SaveClusterInfoToFile(cluster runtime.Object, clusterName string) error {
 	if err != nil {
 		return fmt.Errorf("mkdir failed %s %v", fileName, err)
 	}
+	cluster = cluster.DeepCopyObject()
 	err = MarshalYamlToFile(fileName, cluster)
 	if err != nil {
 		return fmt.Errorf("marshal cluster file failed %v", err)

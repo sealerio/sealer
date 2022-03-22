@@ -34,6 +34,7 @@ func TestSSH_Cmd(t *testing.T) {
 			name: "touch test.txt",
 			args: args{
 				ssh: SSH{false,
+					false,
 					"root",
 					"huaijiahui.com",
 					"",
@@ -52,6 +53,7 @@ func TestSSH_Cmd(t *testing.T) {
 			name: "ls /opt/test",
 			args: args{
 				ssh: SSH{false,
+					false,
 					"root",
 					"huaijiahui.com",
 					"",
@@ -70,6 +72,7 @@ func TestSSH_Cmd(t *testing.T) {
 			name: "remove test.txt",
 			args: args{
 				ssh: SSH{false,
+					false,
 					"root",
 					"huaijiahui.com",
 					"",
@@ -88,6 +91,7 @@ func TestSSH_Cmd(t *testing.T) {
 			name: "exist 1",
 			args: args{
 				ssh: SSH{false,
+					false,
 					"root",
 					"huaijiahui.com",
 					"",
@@ -133,6 +137,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 			name: "touch test.txt",
 			args: args{
 				ssh: SSH{false,
+					false,
 					"root",
 					"huaijiahui.com",
 					"",
@@ -150,6 +155,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 			name: "ls /opt/test",
 			args: args{
 				ssh: SSH{false,
+					false,
 					"root",
 					"huaijiahui.com",
 					"",
@@ -167,6 +173,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 			name: "remove test.txt",
 			args: args{
 				ssh: SSH{false,
+					false,
 					"root",
 					"huaijiahui.com",
 					"",
@@ -184,6 +191,7 @@ func TestSSH_CmdAsync(t *testing.T) {
 			name: "exist 1",
 			args: args{
 				ssh: SSH{false,
+					false,
 					"root",
 					"huaijiahui.com",
 					"",

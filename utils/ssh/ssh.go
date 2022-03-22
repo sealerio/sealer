@@ -53,6 +53,7 @@ type Interface interface {
 
 type SSH struct {
 	isStdout     bool
+	Encrypted    bool
 	User         string
 	Password     string
 	Port         string
@@ -71,6 +72,7 @@ func NewSSHByCluster(cluster *v1.Cluster) Interface {
 		logger.Warn("failed to get local address, %v", err)
 	}
 	return &SSH{
+		Encrypted:    cluster.Spec.SSH.Encrypted,
 		User:         cluster.Spec.SSH.User,
 		Password:     cluster.Spec.SSH.Passwd,
 		Port:         cluster.Spec.SSH.Port,
@@ -90,6 +92,7 @@ func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 	}
 	return &SSH{
 		isStdout:     isStdout,
+		Encrypted:    ssh.Encrypted,
 		User:         ssh.User,
 		Password:     ssh.Passwd,
 		Port:         ssh.Port,
