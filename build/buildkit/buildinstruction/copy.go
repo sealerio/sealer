@@ -19,8 +19,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alibaba/sealer/utils/platform"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/image/cache"
@@ -56,15 +54,8 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		out.ContinueCache = hitCache
 		out.ParentID = chainID
 	}()
-
-	if filepath.Base(c.dest) == "bin" {
-		src = strings.Replace(src, ArchReg, c.platform.Architecture, -1)
-		arch, err := platform.CheckFileArch(filepath.Join(execContext.BuildContext, src))
-		if err != nil || arch != c.platform.Architecture {
-			return out, fmt.Errorf("mismatched architecture or file not ELF format %v", err)
-		}
-	}
-
+	
+	src = strings.Replace(src, ArchReg, c.platform.Architecture, -1)
 	if !isRemoteSource(src) {
 		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, src)
 		if err != nil {
