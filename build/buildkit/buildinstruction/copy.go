@@ -54,7 +54,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		out.ContinueCache = hitCache
 		out.ParentID = chainID
 	}()
-	
+
 	src = strings.Replace(src, ArchReg, c.platform.Architecture, -1)
 	if !isRemoteSource(src) {
 		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, src)
