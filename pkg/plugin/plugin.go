@@ -28,6 +28,7 @@ type Phase string
 const (
 	PhasePreInit     = Phase("PreInit")
 	PhasePreJoin     = Phase("PreJoin")
+	PhasePostJoin    = Phase("PostJoin")
 	PhasePreInstall  = Phase("PreInstall")
 	PhasePostInstall = Phase("PostInstall")
 	PhaseOriginally  = Phase("Originally")

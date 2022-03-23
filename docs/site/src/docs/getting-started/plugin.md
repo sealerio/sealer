@@ -44,6 +44,7 @@ spec:
 action : [PreInit| PreInstall| PostInstall] # Specify phases to execute the shell
   Pre-initialization phase            |   action: PreInit
   Pre-join phase                      |   action: PreJoin
+  Post-join phase                     |   action: PostJoin
   before installing the cluster phase |   action: PreInstall
   after  installing the cluster phase |   action: PostInstall
   after clean cluster phase           |   action: PostClean

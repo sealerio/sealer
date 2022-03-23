@@ -103,12 +103,11 @@ func (s *ScaleProcessor) ScaleDown(cluster *v2.Cluster) error {
 func (s *ScaleProcessor) ScaleUpPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
-		s.GetPhasePluginFunc(plugin.PhaseOriginally),
 		s.RunConfig,
 		s.MountRootfs,
 		s.GetPhasePluginFunc(plugin.PhasePreJoin),
 		s.Join,
-		s.GetPhasePluginFunc(plugin.PhasePostInstall),
+		s.GetPhasePluginFunc(plugin.PhasePostJoin),
 	)
 	return todoList, nil
 }
