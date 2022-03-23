@@ -43,6 +43,7 @@ spec:
 
 ```shell
 action : [PreInit| PreInstall| PostInstall] # 指定执行shell的时机
+  镜像挂载前阶段          |   action: Originally
   在初始化之前之前执行命令  |  action: PreInit
   在安装集群之前执行命令    |  action: PreInstall
   在安装集群之后执行命令    |  action: PostInstall
