@@ -17,6 +17,7 @@ package buildinstruction
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -28,9 +29,14 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
+var (
+	ArchReg = "${ARCH}"
+)
+
 type CopyInstruction struct {
 	src       string
 	dest      string
+	platform  v1.Platform
 	rawLayer  v1.Layer
 	fs        store.Backend
 	collector collector.Collector
@@ -42,14 +48,16 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		chainID  cache.ChainID
 		cacheID  digest.Digest
 		layerID  digest.Digest
+		src      = c.src
 	)
 	defer func() {
 		out.ContinueCache = hitCache
 		out.ParentID = chainID
 	}()
 
-	if !isRemoteSource(c.src) {
-		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, c.src)
+	src = strings.Replace(src, ArchReg, c.platform.Architecture, -1)
+	if !isRemoteSource(src) {
+		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, src)
 		if err != nil {
 			logger.Warn("failed to generate src digest,discard cache,%s", err)
 		}
@@ -70,7 +78,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		return out, fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
 	}
 
-	err = c.collector.Collect(execContext.BuildContext, c.src, filepath.Join(tmp, c.dest))
+	err = c.collector.Collect(execContext.BuildContext, src, filepath.Join(tmp, c.dest))
 	if err != nil {
 		return out, fmt.Errorf("failed to collect files to temp dir %s, err: %v", tmp, err)
 	}
@@ -80,8 +88,8 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		return out, fmt.Errorf("failed to register copy layer, err: %v", err)
 	}
 
-	if setErr := c.SetCacheID(layerID, cacheID.String()); setErr != nil {
-		logger.Warn("set cache failed layer: %v, err: %v", c.rawLayer, err)
+	if setErr := c.setCacheID(layerID, cacheID.String()); setErr != nil {
+		logger.Warn("failed to set cache for copy layer err: %v", err)
 	}
 
 	out.LayerID = layerID
@@ -89,7 +97,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 }
 
 // SetCacheID This function only has meaning for copy layers
-func (c CopyInstruction) SetCacheID(layerID digest.Digest, cID string) error {
+func (c CopyInstruction) setCacheID(layerID digest.Digest, cID string) error {
 	return c.fs.SetMetadata(layerID, common.CacheID, []byte(cID))
 }
 
@@ -105,6 +113,7 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 	}
 
 	return &CopyInstruction{
+		platform:  ctx.Platform,
 		fs:        fs,
 		rawLayer:  *ctx.CurrentLayer,
 		src:       src,

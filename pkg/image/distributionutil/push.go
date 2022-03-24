@@ -21,6 +21,8 @@ import (
 	"io"
 	"sync"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
@@ -52,7 +54,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		eg           *errgroup.Group
 	)
 
-	image, err := pusher.imageStore.GetByName(named.Raw())
+	image, err := pusher.imageStore.GetByName(named.Raw(), platform.GetDefaultPlatform())
 	if err != nil {
 		return err
 	}
@@ -191,6 +193,7 @@ func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, n
 		bs   = &blobService{descriptors: map[digest.Digest]distribution.Descriptor{}}
 		repo = pusher.repository
 	)
+
 	manifestBuilder := schema2.NewManifestBuilder(
 		bs,
 		// use schema2.MediaTypeImageConfig by default

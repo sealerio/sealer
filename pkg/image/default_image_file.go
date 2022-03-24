@@ -22,13 +22,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/pkg/image/types"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/image/reference"
 	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/pkg/image/types"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/archive"
@@ -40,162 +40,182 @@ type DefaultImageFileService struct {
 }
 
 func (d DefaultImageFileService) Load(imageSrc string) error {
-	imageMetadata, err := d.load(imageSrc)
-	if err == nil {
-		logger.Info("load image %s [id: %s] successfully", imageMetadata.Name, imageMetadata.ID)
+	var (
+		srcFile          *os.File
+		size             int64
+		err              error
+		repoFile         = filepath.Join(common.DefaultLayerDir, common.DefaultMetadataName)
+		imageMetadataMap store.ImageMetadataMap
+	)
+
+	srcFile, err = os.Open(filepath.Clean(imageSrc))
+	if err != nil {
+		return fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
 	}
-	return err
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			logger.Error("failed to close file")
+		}
+	}()
+
+	srcFi, err := srcFile.Stat()
+	if err != nil {
+		return err
+	}
+	size = srcFi.Size()
+
+	if _, err = archive.Decompress(srcFile, common.DefaultLayerDir, archive.Options{Compress: false}); err != nil {
+		return err
+	}
+
+	repoBytes, err := ioutil.ReadFile(filepath.Clean(repoFile))
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(repoBytes, &imageMetadataMap); err != nil {
+		return err
+	}
+	defer func() {
+		if err := os.Remove(repoFile); err != nil {
+			logger.Error("failed to close file")
+		}
+	}()
+
+	for name, repo := range imageMetadataMap {
+		for _, m := range repo.Manifests {
+			var image v1.Image
+			imageTempFile := filepath.Join(common.DefaultLayerDir, m.ID+".yaml")
+			if err = utils.UnmarshalYamlFile(imageTempFile, &image); err != nil {
+				return fmt.Errorf("failed to parsing %s, err: %v", imageTempFile, err)
+			}
+			for _, layer := range image.Spec.Layers {
+				if layer.ID == "" {
+					continue
+				}
+				roLayer, err := store.NewROLayer(layer.ID, size, nil)
+				if err != nil {
+					return err
+				}
+
+				err = d.layerStore.RegisterLayerIfNotPresent(roLayer)
+				if err != nil {
+					return fmt.Errorf("failed to register layer, err: %v", err)
+				}
+			}
+			err = d.imageStore.Save(image)
+			if err != nil {
+				return err
+			}
+			if err = os.Remove(imageTempFile); err != nil {
+				logger.Error("failed to cleanup local temp file %s:%v", imageTempFile, err)
+			}
+		}
+		logger.Info("load image %s successfully", name)
+	}
+
+	return nil
 }
 
-func (d DefaultImageFileService) Save(image *v1.Image, imageTar string) error {
-	if imageTar == "" {
-		return fmt.Errorf("imagetar cannot be empty")
+func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v1.Platform) error {
+	var (
+		pathsToCompress []string
+		ml              []*types.ManifestDescriptor
+		repoData        = make(store.ImageMetadataMap)
+	)
+
+	meta, err := d.imageStore.GetImageMetadataMap()
+	if err != nil {
+		return err
+	}
+	manifestList, ok := meta[imageName]
+	if !ok {
+		return fmt.Errorf("image: %s not found", imageName)
 	}
 
-	dir, file := filepath.Split(imageTar)
-	if dir == "" {
-		dir = "."
-	}
-	if file == "" {
-		file = fmt.Sprintf("%s.tar", image.Name)
-	}
-	imageTar = filepath.Join(dir, file)
-	// only file path like "/tmp" will lose add image tar name,make sure imageTar with full file name.
-	if filepath.Ext(imageTar) != ".tar" {
-		imageTar = filepath.Join(imageTar, fmt.Sprintf("%s.tar", image.Name))
+	if len(platforms) == 0 {
+		for _, m := range manifestList.Manifests {
+			platforms = append(platforms, &m.Platform)
+		}
 	}
 
 	if err := utils.MkFileFullPathDir(imageTar); err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}
-
-	return d.save(image, imageTar)
-}
-
-func (d DefaultImageFileService) Merge(image *v1.Image) error {
-	panic("implement me")
-}
-
-func (d DefaultImageFileService) save(image *v1.Image, imageTar string) error {
 	file, err := os.Create(filepath.Clean(imageTar))
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logger.Error("failed to close file")
 		}
 	}()
-	var pathsToCompress []string
-	layerDirs, err := GetImageLayerDirs(image)
-	if err != nil {
-		return err
-	}
 
-	pathsToCompress = append(pathsToCompress, layerDirs...)
 	tempDir, err := utils.MkTmpdir()
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
 	}
 	defer utils.CleanDir(tempDir)
 
-	imageMetadataTempFile := filepath.Join(tempDir, common.DefaultImageMetadataFileName)
 	repofile := filepath.Join(tempDir, common.DefaultMetadataName)
-	imgBytes, err := yaml.Marshal(image)
-	if err != nil {
-		return fmt.Errorf("failed to marchal image, err: %s", err)
-	}
-	if err = utils.AtomicWriteFile(imageMetadataTempFile, imgBytes, common.FileMode0644); err != nil {
-		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
-	}
-	metadata, err := d.imageStore.GetImageMetadataItem(image.Name)
+	imageStore, err := store.NewDefaultImageStore()
 	if err != nil {
 		return err
-	}
-	repo, err := json.Marshal(metadata)
-	if err != nil {
-		return err
-	}
-	if err = utils.AtomicWriteFile(repofile, repo, common.FileMode0644); err != nil {
-		return fmt.Errorf("failed to write temp file %s, err: %v ", imageMetadataTempFile, err)
 	}
 
-	pathsToCompress = append(pathsToCompress, imageMetadataTempFile, repofile)
+	// write image layer file and image yaml file.
+	for _, p := range platforms {
+		metadata, err := imageStore.GetImageMetadataItem(imageName, p)
+		if err != nil {
+			return err
+		}
+		ml = append(ml, metadata)
+		// add image layer
+		ima, err := imageStore.GetByName(imageName, p)
+		if err != nil {
+			return err
+		}
+		layerDirs, err := GetImageLayerDirs(ima)
+		if err != nil {
+			return err
+		}
+		pathsToCompress = append(pathsToCompress, layerDirs...)
+		// add image yaml
+		imgBytes, err := yaml.Marshal(ima)
+		if err != nil {
+			return fmt.Errorf("failed to marchal image, err: %s", err)
+		}
+		imagePath := filepath.Join(tempDir, ima.Spec.ID+".yaml")
+		if err = utils.AtomicWriteFile(imagePath, imgBytes, common.FileMode0644); err != nil {
+			return fmt.Errorf("failed to write temp file %s, err: %v ", imagePath, err)
+		}
+		pathsToCompress = append(pathsToCompress, imagePath)
+	}
+
+	repoData[imageName] = &types.ManifestList{Manifests: ml}
+	repoBytes, err := json.Marshal(repoData)
+	if err != nil {
+		return err
+	}
+	if err = utils.AtomicWriteFile(repofile, repoBytes, common.FileMode0644); err != nil {
+		return fmt.Errorf("failed to write temp file %s, err: %v ", repofile, err)
+	}
+	// add image repo data
+	pathsToCompress = append(pathsToCompress, repofile)
 	tarReader, err := archive.TarWithRootDir(pathsToCompress...)
 	if err != nil {
-		return fmt.Errorf("failed to get tar reader for %s, err: %s", image.Name, err)
+		return fmt.Errorf("failed to get tar reader for %s, err: %s", imageName, err)
 	}
-	defer tarReader.Close()
+	defer func() {
+		if err := tarReader.Close(); err != nil {
+			logger.Error("failed to close file")
+		}
+	}()
 
 	_, err = io.Copy(file, tarReader)
 	return err
 }
 
-func (d DefaultImageFileService) load(imageSrc string) (*types.ImageMetadata, error) {
-	var (
-		srcFile *os.File
-		size    int64
-		err     error
-		image   v1.Image
-	)
-	srcFile, err = os.Open(filepath.Clean(imageSrc))
-	if err != nil {
-		return nil, fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
-	}
-	defer func() {
-		if err := srcFile.Close(); err != nil {
-			logger.Fatal("failed to close file")
-		}
-	}()
-	srcFi, err := srcFile.Stat()
-	if err != nil {
-		return nil, err
-	}
-	size = srcFi.Size()
-
-	if _, err = archive.Decompress(srcFile, common.DefaultLayerDir, archive.Options{Compress: false}); err != nil {
-		return nil, err
-	}
-	repofile := filepath.Join(common.DefaultLayerDir, common.DefaultMetadataName)
-	defer os.Remove(repofile)
-
-	repo, err := ioutil.ReadFile(filepath.Clean(repofile))
-	if err != nil {
-		return nil, err
-	}
-	var imageMetadata types.ImageMetadata
-
-	if err := json.Unmarshal(repo, &imageMetadata); err != nil {
-		return nil, err
-	}
-
-	imageTempFile := filepath.Join(common.DefaultLayerDir, common.DefaultImageMetadataFileName)
-	defer os.Remove(imageTempFile)
-
-	if err = utils.UnmarshalYamlFile(imageTempFile, &image); err != nil {
-		return nil, fmt.Errorf("failed to parsing %s, err: %v", imageTempFile, err)
-	}
-
-	for _, layer := range image.Spec.Layers {
-		if layer.ID == "" {
-			continue
-		}
-		// TODO distributionMetadata
-		roLayer, err := store.NewROLayer(layer.ID, size, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		err = d.layerStore.RegisterLayerIfNotPresent(roLayer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to register layer, err: %v", err)
-		}
-	}
-
-	named, err := reference.ParseToNamed(imageMetadata.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	return &imageMetadata, d.imageStore.Save(image, named.Raw())
+func (d DefaultImageFileService) Merge(image *v1.Image) error {
+	panic("implement me")
 }

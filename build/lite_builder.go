@@ -33,6 +33,7 @@ type liteBuilder struct {
 	buildArgs    map[string]string
 	baseLayers   []v1.Layer
 	rawImage     *v1.Image
+	platform     v1.Platform
 	executor     buildimage.Executor
 	saver        buildimage.ImageSaver
 }
@@ -56,19 +57,19 @@ func (l liteBuilder) Build(name string, context string, kubefileName string) err
 	}
 	l.context = absContext
 
-	rawImage, baseLayers, err := buildimage.NewBuildImageByKubefile(absKubeFile)
+	rawImage, baseLayers, err := buildimage.NewBuildImageByKubefile(absKubeFile, l.platform)
 	if err != nil {
 		return err
 	}
 	l.rawImage, l.baseLayers = rawImage, baseLayers
 
-	executor, err := buildimage.NewLayerExecutor(baseLayers, l.buildType)
+	executor, err := buildimage.NewLayerExecutor(baseLayers, l.buildType, l.platform)
 	if err != nil {
 		return err
 	}
 	l.executor = executor
 
-	saver, err := buildimage.NewImageSaver(l.buildType)
+	saver, err := buildimage.NewImageSaver(l.buildType, l.platform)
 	if err != nil {
 		return err
 	}
@@ -145,5 +146,6 @@ func NewLiteBuilder(config *Config) (Interface, error) {
 		noCache:   config.NoCache,
 		noBase:    config.NoBase,
 		buildArgs: config.BuildArgs,
+		platform:  config.Platform,
 	}, nil
 }

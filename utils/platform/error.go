@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,21 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package types
+package platform
 
-import (
-	"time"
+import "errors"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+var (
+	ErrUnknown         = errors.New("unknown") // used internally to represent a missed mapping.
+	ErrInvalidArgument = errors.New("invalid argument")
+	ErrNotFound        = errors.New("not found")
+	ErrNotSupport      = errors.New("not support")
+	ErrNotImplemented  = errors.New("not implemented") // represents not supported and unimplemented
 )
-
-type ManifestList struct {
-	Manifests []*ManifestDescriptor `json:"manifests,omitempty"`
-}
-
-type ManifestDescriptor struct {
-	ID       string      `json:"id,omitempty"`
-	CREATED  time.Time   `json:"created,omitempty"`
-	SIZE     int64       `json:"size,omitempty"`
-	Platform v1.Platform `json:"platform,omitempty"`
-}

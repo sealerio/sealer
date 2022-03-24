@@ -52,14 +52,3 @@ func NewImageFileService() (FileService, error) {
 		imageStore: imageStore,
 	}, nil
 }
-
-func NewDeleteImageService(force bool) (Service, error) {
-	imageStore, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, err
-	}
-	return DefaultImageService{
-		imageStore:       imageStore,
-		ForceDeleteImage: force,
-	}, nil
-}

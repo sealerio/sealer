@@ -37,6 +37,7 @@ type localBuilder struct {
 	imageNamed   reference.Named
 	context      string
 	kubeFileName string
+	platform     v1.Platform
 	buildArgs    map[string]string
 	baseLayers   []v1.Layer
 	rawImage     *v1.Image
@@ -63,19 +64,19 @@ func (l localBuilder) Build(name string, context string, kubefileName string) er
 	l.imageNamed = named
 	l.context = absContext
 	l.kubeFileName = absKubeFile
-	rawImage, baseLayers, err := buildimage.NewBuildImageByKubefile(absKubeFile)
+	rawImage, baseLayers, err := buildimage.NewBuildImageByKubefile(absKubeFile, l.platform)
 	if err != nil {
 		return err
 	}
 	l.rawImage, l.baseLayers = rawImage, baseLayers
 
-	executor, err := buildimage.NewLayerExecutor(baseLayers, l.buildType)
+	executor, err := buildimage.NewLayerExecutor(baseLayers, l.buildType, l.platform)
 	if err != nil {
 		return err
 	}
 	l.executor = executor
 
-	saver, err := buildimage.NewImageSaver(l.buildType)
+	saver, err := buildimage.NewImageSaver(l.buildType, l.platform)
 	if err != nil {
 		return err
 	}
@@ -196,5 +197,6 @@ func NewLocalBuilder(config *Config) (Interface, error) {
 		noCache:   config.NoCache,
 		noBase:    config.NoBase,
 		buildArgs: config.BuildArgs,
+		platform:  config.Platform,
 	}, nil
 }

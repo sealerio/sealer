@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
+
 	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -28,7 +30,6 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
-	"github.com/opencontainers/go-digest"
 	"helm.sh/helm/v3/pkg/chartutil"
 
 	"github.com/alibaba/sealer/pkg/image"
@@ -123,15 +124,6 @@ func getClusterFileFromContext(layers []v1.Layer) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("failed to get ClusterFile from Context")
-}
-
-func generateImageID(image v1.Image) (string, error) {
-	imageBytes, err := yaml.Marshal(image)
-	if err != nil {
-		return "", err
-	}
-	imageID := digest.FromBytes(imageBytes).Hex()
-	return imageID, nil
 }
 
 func getKubeVersion(rootfs string) string {
@@ -232,4 +224,14 @@ func mountRootfs(res []string) (*buildinstruction.MountTarget, error) {
 		return nil, err
 	}
 	return mounter, nil
+}
+
+func convertPlatform(plat v1.Platform) (cp ocispecs.Platform) {
+	// current we only support build on linux
+	return ocispecs.Platform{
+		Architecture: plat.Architecture,
+		OS:           plat.OS,
+		Variant:      plat.Variant,
+		OSVersion:    plat.OSVersion,
+	}
 }

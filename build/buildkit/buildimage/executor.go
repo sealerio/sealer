@@ -35,6 +35,7 @@ const (
 
 type layerExecutor struct {
 	buildType       string
+	platform        v1.Platform
 	baseLayers      []v1.Layer
 	layerStore      store.LayerStore
 	rootfsMountInfo *buildinstruction.MountTarget
@@ -52,8 +53,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 		return []v1.Layer{}, err
 	}
 
-	execCtx = buildinstruction.NewExecContext(l.buildType, ctx.BuildContext,
-		ctx.BuildArgs,
+	execCtx = buildinstruction.NewExecContext(l.buildType, ctx.BuildContext, ctx.BuildArgs,
 		ctx.UseCache, l.layerStore)
 
 	for i := 0; i < len(rawLayers); i++ {
@@ -69,6 +69,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 		ic := buildinstruction.InstructionContext{
 			BaseLayers:   baseLayers,
 			CurrentLayer: layer,
+			Platform:     l.platform,
 		}
 		inst, err := buildinstruction.NewInstruction(ic)
 		if err != nil {
@@ -98,9 +99,16 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 		return []v1.Layer{}, err
 	}
 
-	err = l.collectLayers()
+	upper := l.rootfsMountInfo.GetMountUpper()
+	layer, err := l.genNewLayer(common.BaseImageLayerType, common.RootfsLayerValue, upper)
 	if err != nil {
 		return []v1.Layer{}, err
+	}
+
+	if layer.ID != "" {
+		baseLayers = append(baseLayers, layer)
+	} else {
+		logger.Warn("no rootfs diff content found")
 	}
 
 	return baseLayers, nil
@@ -109,7 +117,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 func (l *layerExecutor) checkMiddleware(buildContext string) error {
 	var (
 		rootfs      = l.rootfsMountInfo.GetMountTarget()
-		middlewares = []Middleware{NewMiddlewarePuller()}
+		middlewares = []Middleware{NewMiddlewarePuller(l.platform)}
 	)
 	logger.Info("start to check the middleware file")
 	eg, _ := errgroup.WithContext(context.Background())
@@ -133,7 +141,7 @@ func (l *layerExecutor) checkDiff(rawLayers []v1.Layer) error {
 	}
 	defer mi.CleanUp()
 
-	differs := []Differ{NewRegistryDiffer(), NewMetadataDiffer()}
+	differs := []Differ{NewRegistryDiffer(l.platform), NewMetadataDiffer()}
 	eg, _ := errgroup.WithContext(context.Background())
 
 	for _, diff := range differs {
@@ -147,21 +155,6 @@ func (l *layerExecutor) checkDiff(rawLayers []v1.Layer) error {
 		})
 	}
 	return eg.Wait()
-}
-
-func (l *layerExecutor) collectLayers() error {
-	upper := l.rootfsMountInfo.GetMountUpper()
-	layer, err := l.genNewLayer(common.BaseImageLayerType, common.RootfsLayerValue, upper)
-	if err != nil {
-		return fmt.Errorf("failed to register layer, err: %v", err)
-	}
-
-	if layer.ID != "" {
-		l.baseLayers = append(l.baseLayers, layer)
-	} else {
-		logger.Warn("no rootfs diff content found")
-	}
-	return nil
 }
 
 func (l *layerExecutor) genNewLayer(layerType, layerValue, filepath string) (v1.Layer, error) {
@@ -184,7 +177,7 @@ func (l *layerExecutor) Cleanup() error {
 	return nil
 }
 
-func NewLayerExecutor(baseLayers []v1.Layer, buildType string) (Executor, error) {
+func NewLayerExecutor(baseLayers []v1.Layer, buildType string, platform v1.Platform) (Executor, error) {
 	mountInfo, err := GetLayerMountInfo(baseLayers, buildType)
 	if err != nil {
 		return nil, err
@@ -199,11 +192,12 @@ func NewLayerExecutor(baseLayers []v1.Layer, buildType string) (Executor, error)
 		baseLayers:      baseLayers,
 		layerStore:      layerStore,
 		rootfsMountInfo: mountInfo,
+		platform:        platform,
 	}, nil
 }
 
 // NewBuildImageByKubefile init image spec by kubefile and check if base image exists ,if not will pull it.
-func NewBuildImageByKubefile(kubefileName string) (*v1.Image, []v1.Layer, error) {
+func NewBuildImageByKubefile(kubefileName string, platform v1.Platform) (*v1.Image, []v1.Layer, error) {
 	rawImage, err := InitImageSpec(kubefileName)
 	if err != nil {
 		return nil, nil, err
@@ -229,10 +223,10 @@ func NewBuildImageByKubefile(kubefileName string) (*v1.Image, []v1.Layer, error)
 		// give an empty image
 		baseImage = &v1.Image{}
 	} else {
-		if err = service.PullIfNotExist(layer0.Value); err != nil {
+		if err = service.PullIfNotExist(layer0.Value, &platform); err != nil {
 			return nil, nil, fmt.Errorf("failed to pull baseImage: %v", err)
 		}
-		baseImage, err = imageStore.GetByName(layer0.Value)
+		baseImage, err = imageStore.GetByName(layer0.Value, &platform)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to get base image err: %s", err)
 		}

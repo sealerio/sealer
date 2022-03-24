@@ -17,6 +17,8 @@ package applydriver
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/alibaba/sealer/apply/processor"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -91,7 +93,8 @@ func (c *Applier) fillClusterCurrent() error {
 
 func (c *Applier) mountClusterImage() error {
 	imageName := c.ClusterDesired.Spec.Image
-	err := c.ImageManager.PullIfNotExist(imageName)
+	////todo need to filter image by platform
+	err := c.ImageManager.PullIfNotExist(imageName, platform.GetDefaultPlatform())
 	if err != nil {
 		return err
 	}
@@ -131,7 +134,8 @@ func (c *Applier) reconcileCluster() error {
 		}
 	}()
 
-	baseImage, err := c.ImageStore.GetByName(c.ClusterDesired.Spec.Image)
+	//todo need to filter image by platform
+	baseImage, err := c.ImageStore.GetByName(c.ClusterDesired.Spec.Image, platform.GetDefaultPlatform())
 	if err != nil {
 		return fmt.Errorf("failed to get base image err: %s", err)
 	}

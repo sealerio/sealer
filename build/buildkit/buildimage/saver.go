@@ -18,12 +18,14 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/logger"
+	imageUtils "github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
 type imageSaver struct {
 	buildType  string
+	platform   v1.Platform
 	imageStore store.ImageStore
 }
 
@@ -49,7 +51,7 @@ func (i imageSaver) setImageAttribute(image *v1.Image) error {
 	defer mi.CleanUp()
 
 	rootfsPath := mi.GetMountTarget()
-	is := []ImageSetter{NewAnnotationSetter(rootfsPath), NewPlatformSetter(rootfsPath)}
+	is := []ImageSetter{NewAnnotationSetter(rootfsPath), NewPlatformSetter(i.platform)}
 	for _, s := range is {
 		if err = s.Set(image); err != nil {
 			return err
@@ -59,15 +61,15 @@ func (i imageSaver) setImageAttribute(image *v1.Image) error {
 }
 
 func (i imageSaver) save(image *v1.Image) error {
-	imageID, err := generateImageID(*image)
+	imageID, err := imageUtils.GenerateImageID(*image)
 	if err != nil {
 		return err
 	}
 	image.Spec.ID = imageID
-	return i.imageStore.Save(*image, image.Name)
+	return i.imageStore.Save(*image)
 }
 
-func NewImageSaver(buildType string) (ImageSaver, error) {
+func NewImageSaver(buildType string, platform v1.Platform) (ImageSaver, error) {
 	imageStore, err := store.NewDefaultImageStore()
 	if err != nil {
 		return nil, err
@@ -75,5 +77,6 @@ func NewImageSaver(buildType string) (ImageSaver, error) {
 	return imageSaver{
 		buildType:  buildType,
 		imageStore: imageStore,
+		platform:   platform,
 	}, nil
 }

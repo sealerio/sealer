@@ -17,6 +17,8 @@ package guest
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"github.com/alibaba/sealer/utils"
@@ -55,7 +57,8 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 		ex            = shell.NewLex('\\')
 	)
 
-	image, err := d.imageStore.GetByName(cluster.Spec.Image)
+	//todo need to filter image by platform
+	image, err := d.imageStore.GetByName(cluster.Spec.Image, platform.GetDefaultPlatform())
 	if err != nil {
 		return fmt.Errorf("get cluster image failed, %s", err)
 	}

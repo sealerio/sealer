@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/image/store"
@@ -81,7 +83,8 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 		}
 	}
 	//get layers
-	Image, err := m.imageStore.GetByName(cluster.Spec.Image)
+	////todo need to filter image by platform
+	Image, err := m.imageStore.GetByName(cluster.Spec.Image, platform.GetDefaultPlatform())
 	if err != nil {
 		return err
 	}

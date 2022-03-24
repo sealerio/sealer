@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/alibaba/sealer/apply/processor"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
@@ -174,7 +176,8 @@ func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
 }
 
 func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
-	err := g.ImageManager.PullIfNotExist(cluster.Spec.Image)
+	////todo need to filter image by platform
+	err := g.ImageManager.PullIfNotExist(cluster.Spec.Image, platform.GetDefaultPlatform())
 	if err != nil {
 		return err
 	}

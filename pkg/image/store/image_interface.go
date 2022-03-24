@@ -20,19 +20,19 @@ import (
 )
 
 type ImageStore interface {
-	GetByName(name string) (*v1.Image, error)
+	GetByName(name string, platform *v1.Platform) (*v1.Image, error)
 
 	GetByID(id string) (*v1.Image, error)
 
-	DeleteByName(name string) error
+	DeleteByName(name string, platform *v1.Platform) error
 
-	DeleteByID(id string, force bool) error
+	DeleteByID(id string) error
 
-	Save(image v1.Image, name string) error
+	Save(image v1.Image) error
 
-	SetImageMetadataItem(imageMetadata types.ImageMetadata) error
+	SetImageMetadataItem(name string, imageMetadata *types.ManifestDescriptor) error
 
-	GetImageMetadataItem(name string) (types.ImageMetadata, error)
+	GetImageMetadataItem(name string, platform *v1.Platform) (*types.ManifestDescriptor, error)
 
 	GetImageMetadataMap() (ImageMetadataMap, error)
 }

@@ -17,6 +17,8 @@ package cmd
 import (
 	"os"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/spf13/cobra"
@@ -30,6 +32,7 @@ type BuildFlag struct {
 	KubefileName string
 	BuildType    string
 	BuildArgs    []string
+	Platform     string
 	NoCache      bool
 	Base         bool
 }
@@ -63,25 +66,37 @@ build with args:
 
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conf := &build.Config{
-			BuildType: buildConfig.BuildType,
-			NoCache:   buildConfig.NoCache,
-			ImageName: buildConfig.ImageName,
-			NoBase:    !buildConfig.Base,
-			BuildArgs: utils.ConvertEnvListToMap(buildConfig.BuildArgs),
+		var (
+			buildContext = "."
+		)
+		if len(args) != 0 {
+			buildContext = args[0]
 		}
 
-		builder, err := build.NewBuilder(conf)
+		targetPlatforms, err := platform.GetPlatform(buildConfig.Platform)
 		if err != nil {
 			return err
 		}
-
-		var context = "."
-		if len(args) != 0 {
-			context = args[0]
+		for _, tp := range targetPlatforms {
+			p := tp
+			conf := &build.Config{
+				BuildType: buildConfig.BuildType,
+				NoCache:   buildConfig.NoCache,
+				ImageName: buildConfig.ImageName,
+				NoBase:    !buildConfig.Base,
+				BuildArgs: utils.ConvertEnvListToMap(buildConfig.BuildArgs),
+				Platform:  *p,
+			}
+			builder, err := build.NewBuilder(conf)
+			if err != nil {
+				return err
+			}
+			err = builder.Build(buildConfig.ImageName, buildContext, buildConfig.KubefileName)
+			if err != nil {
+				return err
+			}
 		}
-
-		return builder.Build(buildConfig.ImageName, context, buildConfig.KubefileName)
+		return nil
 	},
 }
 
@@ -94,6 +109,7 @@ func init() {
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
 	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image,default value is true.")
 	buildCmd.Flags().StringSliceVar(&buildConfig.BuildArgs, "build-arg", []string{}, "set custom build args")
+	buildCmd.Flags().StringVar(&buildConfig.Platform, "platform", "", "set cloud image platform,if not set,keep same platform with runtime")
 
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logger.Error("failed to init flag: %v", err)
