@@ -29,12 +29,12 @@ import (
 	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/runtime"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/client/k8s"
+	apiv1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -177,7 +177,8 @@ func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
 
 func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	////todo need to filter image by platform
-	err := g.ImageManager.PullIfNotExist(cluster.Spec.Image, platform.GetDefaultPlatform())
+	plats := []*apiv1.Platform{platform.GetDefaultPlatform()}
+	err := g.ImageManager.PullIfNotExist(cluster.Spec.Image, plats)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 
-	"github.com/docker/distribution"
+	distribution "github.com/distribution/distribution/v3"
 
 	"github.com/alibaba/sealer/pkg/image/reference"
 	"github.com/alibaba/sealer/utils"

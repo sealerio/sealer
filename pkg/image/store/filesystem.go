@@ -39,6 +39,7 @@ import (
 	"github.com/alibaba/sealer/pkg/image/types"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	pkgutils "github.com/alibaba/sealer/utils"
+	platUtils "github.com/alibaba/sealer/utils/platform"
 )
 
 // Backend is a service for image/layer read and write.
@@ -389,9 +390,7 @@ func (fs *filesystem) getImageByName(name string, platform *v1.Platform) (*v1.Im
 	}
 
 	for _, m := range image.Manifests {
-		if m.Platform.OS == platform.OS &&
-			m.Platform.Architecture == platform.Architecture &&
-			m.Platform.Variant == platform.Variant {
+		if platUtils.Matched(m.Platform, *platform) {
 			if m.ID == "" {
 				return nil, fmt.Errorf("failed to find corresponding image id, id is empty")
 			}
@@ -403,7 +402,7 @@ func (fs *filesystem) getImageByName(name string, platform *v1.Platform) (*v1.Im
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("platform not matched: %s %s", platform.Architecture, platform.Variant)
 }
 
 func (fs *filesystem) getImageByID(id string) (*v1.Image, error) {
@@ -430,9 +429,7 @@ func (fs *filesystem) deleteImage(name string, platform *v1.Platform) error {
 	} else {
 		var ms []*types.ManifestDescriptor
 		for _, m := range manifestList.Manifests {
-			if m.Platform.OS == platform.OS &&
-				m.Platform.Architecture == platform.Architecture &&
-				m.Platform.Variant == platform.Variant {
+			if platUtils.Matched(m.Platform, *platform) {
 				continue
 			}
 			ms = append(ms, m)
@@ -491,9 +488,7 @@ func (fs *filesystem) getImageMetadataItem(name string, platform *v1.Platform) (
 	}
 
 	for _, m := range manifestList.Manifests {
-		if m.Platform.OS == platform.OS &&
-			m.Platform.Architecture == platform.Architecture &&
-			m.Platform.Variant == platform.Variant {
+		if platUtils.Matched(m.Platform, *platform) {
 			return m, nil
 		}
 	}

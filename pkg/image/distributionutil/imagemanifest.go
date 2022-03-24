@@ -12,70 +12,57 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package save
+package distributionutil
 
 import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/alibaba/sealer/logger"
+	platUtil "github.com/alibaba/sealer/utils/platform"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-//this package unmarshal manifests from json into a ManifestList struct
+// ManifestList this package unmarshal manifests from json into a ManifestList struct
 //then choose corresponding manifest by platform
 type ManifestList struct {
-	List      []ImageMainfest `json:"manifests"`
+	List      []ImageManifest `json:"manifests"`
 	MediaType string          `json:"mediaType"`
 	Schema    int             `json:"schemaVersion"`
 }
 
-type ImageMainfest struct {
+type ImageManifest struct {
 	Digest    string `json:"digest"`
 	MediaType string `json:"mediaType"`
 	Platform  v1.Platform
 	Size      int
 }
 
-func getImageManifestDigest(payload []byte, platform v1.Platform) (digest.Digest, error) {
-	var manifestList ManifestList
+func GetImageManifestDigest(payload []byte, platform v1.Platform) (digest.Digest, error) {
+	var (
+		plat         = platUtil.ConvertPlatform(platform)
+		manifestList ManifestList
+	)
+
 	err := json.Unmarshal(payload, &manifestList)
 	if err != nil {
 		return "", fmt.Errorf("json unmarshal error: %v", err)
 	}
 
-	// look up manifest of the corresponding architecture
-	var maxWeight uint64
-	var resDigest digest.Digest
+	var resDigest []digest.Digest
 	for _, item := range manifestList.List {
-		tmpWeight := getWeightByPlatform(item.Platform, platform)
-		if tmpWeight > maxWeight {
-			resDigest = digest.Digest(item.Digest)
-			maxWeight = tmpWeight
+		if platUtil.Matched(platUtil.ConvertPlatform(item.Platform), plat) {
+			resDigest = append(resDigest, digest.Digest(item.Digest))
 		}
 	}
-	if maxWeight != 0 {
-		return resDigest, nil
-	}
-	return "", fmt.Errorf("no manifest of the corresponding platform")
-}
 
-func getWeightByPlatform(src, target v1.Platform) uint64 {
-	var weight uint64
-	if target.OS != "" && src.OS == target.OS {
-		weight++
+	if len(resDigest) == 0 {
+		return "", fmt.Errorf("no manifest of the corresponding platform")
 	}
 
-	if target.Architecture != "" && src.Architecture == target.Architecture {
-		weight++
+	if len(resDigest) > 1 {
+		logger.Warn("multiple matches in manifest list")
 	}
-
-	if target.Variant != "" && src.Variant == target.Variant {
-		weight++
-	}
-
-	if target.OSVersion != "" && src.OSVersion == target.OSVersion {
-		weight++
-	}
-	return weight
+	return resDigest[0], nil
 }

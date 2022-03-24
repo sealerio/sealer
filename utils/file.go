@@ -430,6 +430,25 @@ func IsDir(path string) bool {
 	return s.IsDir()
 }
 
+func GetDirNameListInDir(dir string, withFullPath bool) ([]string, error) {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var dirs []string
+	for _, file := range files {
+		// avoid adding some other dirs created by users
+		if file.IsDir() {
+			if withFullPath {
+				dirs = append(dirs, filepath.Join(dir, file.Name()))
+			} else {
+				dirs = append(dirs, file.Name())
+			}
+		}
+	}
+	return dirs, nil
+}
+
 func CountDirFiles(dirName string) int {
 	if !IsDir(dirName) {
 		return 0

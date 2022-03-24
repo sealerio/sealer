@@ -21,8 +21,11 @@ import (
 	"os"
 	"path/filepath"
 
+	platUtils "github.com/alibaba/sealer/utils/platform"
+
+	"github.com/distribution/distribution/v3"
+	"github.com/distribution/distribution/v3/manifest/schema2"
 	dockerstreams "github.com/docker/cli/cli/streams"
-	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/docker/api/types"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
@@ -38,25 +41,31 @@ import (
 	"github.com/alibaba/sealer/utils"
 )
 
-const ManifestUnknown = "manifest unknown"
-
 // DefaultImageService is the default service, which is used for image pull/push
 type DefaultImageService struct {
 	imageStore store.ImageStore
 }
 
 // PullIfNotExist is used to pull image if not exists locally
-func (d DefaultImageService) PullIfNotExist(imageName string, platform *v1.Platform) error {
-	img, err := d.GetImageByName(imageName, platform)
-	if err != nil {
-		return err
-	}
-	if img != nil {
-		logger.Debug("image %s already exists", imageName)
-		return nil
+func (d DefaultImageService) PullIfNotExist(imageName string, platforms []*v1.Platform) error {
+	var plats []*v1.Platform
+	for _, plat := range platforms {
+		img, err := d.GetImageByName(imageName, plat)
+
+		if err != nil {
+			return err
+		}
+		// image not found
+		if img == nil {
+			plats = append(plats, plat)
+		}
 	}
 
-	return d.Pull(imageName)
+	if len(plats) != 0 {
+		return d.Pull(imageName, plats)
+	}
+
+	return nil
 }
 
 func (d DefaultImageService) GetImageByName(imageName string, platform *v1.Platform) (*v1.Image, error) {
@@ -65,6 +74,7 @@ func (d DefaultImageService) GetImageByName(imageName string, platform *v1.Platf
 	if err != nil {
 		return nil, err
 	}
+
 	img, err = d.imageStore.GetByName(named.Raw(), platform)
 	if err == nil {
 		logger.Debug("image %s already exists", named)
@@ -74,7 +84,7 @@ func (d DefaultImageService) GetImageByName(imageName string, platform *v1.Platf
 }
 
 // Pull always do pull action
-func (d DefaultImageService) Pull(imageName string) error {
+func (d DefaultImageService) Pull(imageName string, platforms []*v1.Platform) error {
 	named, err := reference.ParseToNamed(imageName)
 	if err != nil {
 		return err
@@ -84,6 +94,7 @@ func (d DefaultImageService) Pull(imageName string) error {
 		writeFlusher    = dockerioutils.NewWriteFlusher(writer)
 		progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
 		streamOut       = dockerstreams.NewOut(common.StdOut)
+		ctx             = context.Background()
 	)
 	defer func() {
 		_ = reader.Close()
@@ -96,7 +107,21 @@ func (d DefaultImageService) Pull(imageName string) error {
 		return err
 	}
 
-	puller, err := distributionutil.NewPuller(named, distributionutil.Config{
+	repo, err := distributionutil.NewV2Repository(named, "pull")
+	if err != nil {
+		return err
+	}
+
+	manifest, err := repo.Manifests(ctx, make([]distribution.ManifestServiceOption, 0)...)
+	if err != nil {
+		return fmt.Errorf("get manifest service error: %v", err)
+	}
+	desc, err := repo.Tags(ctx).Get(ctx, named.Tag())
+	if err != nil {
+		return fmt.Errorf("get %s tag descriptor error: %v, try \"docker login\" if you are using a private registry", named.Repo(), err)
+	}
+
+	puller, err := distributionutil.NewPuller(repo, distributionutil.Config{
 		LayerStore:     layerStore,
 		ProgressOutput: progressChanOut,
 	})
@@ -112,19 +137,50 @@ func (d DefaultImageService) Pull(imageName string) error {
 	}()
 
 	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Start to Pull Image %s", named.Raw()))
-	image, err := puller.Pull(context.Background(), named)
+	maniList, err := manifest.Get(ctx, desc.Digest, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
-		if err.(errcode.Errors)[0].(errcode.Error).Message == ManifestUnknown {
-			err = fmt.Errorf("image %s does not exist, %v", imageName, err)
+		return fmt.Errorf("get image manifest error: %v", err)
+	}
+	_, p, err := maniList.Payload()
+	if err != nil {
+		return fmt.Errorf("failed to get image manifest list payload: %v", err)
+	}
+	for _, plat := range platforms {
+		m, err := d.handleManifest(ctx, manifest, p, *plat)
+		if err != nil {
+			return fmt.Errorf("get digest error: %v", err)
 		}
-		return err
+
+		image, err := puller.Pull(ctx, named, m)
+		if err != nil {
+			return err
+		}
+
+		err = d.imageStore.Save(*image)
+		if err != nil {
+			return err
+		}
 	}
-	// TODO use image store to do the job next
-	err = d.imageStore.Save(*image)
-	if err == nil {
-		dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Pull Image %s", named.Raw()))
+	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Success to Pull Image %s", named.Raw()))
+	return nil
+}
+
+func (d DefaultImageService) handleManifest(ctx context.Context, manifest distribution.ManifestService, payload []byte, platform v1.Platform) (schema2.Manifest, error) {
+	dgest, err := distributionutil.GetImageManifestDigest(payload, platUtils.ConvertToOci(platform))
+	if err != nil {
+		return schema2.Manifest{}, fmt.Errorf("get digest from manifest list error: %v", err)
 	}
-	return err
+
+	m, err := manifest.Get(ctx, dgest, make([]distribution.ManifestServiceOption, 0)...)
+	if err != nil {
+		return schema2.Manifest{}, fmt.Errorf("get image manifest error: %v", err)
+	}
+
+	_, ok := m.(*schema2.DeserializedManifest)
+	if !ok {
+		return schema2.Manifest{}, fmt.Errorf("failed to parse manifest to DeserializedManifest")
+	}
+	return m.(*schema2.DeserializedManifest).Manifest, nil
 }
 
 // Push local image to remote registry
@@ -227,6 +283,7 @@ func (d DefaultImageService) Delete(imageName string, force bool, platforms []*v
 		if err != nil {
 			return fmt.Errorf("image %s not found %v", named.Raw(), err)
 		}
+
 		deleteImageIDList = append(deleteImageIDList, img.Spec.ID)
 		if err = imageStore.DeleteByName(named.Raw(), plat); err != nil {
 			return fmt.Errorf("failed to delete image %s, err: %v", imageName, err)
@@ -261,37 +318,71 @@ func (d DefaultImageService) Delete(imageName string, force bool, platforms []*v
 
 // Prune delete the unused Layer in the `DefaultLayerDir` directory
 func (d DefaultImageService) Prune() error {
-	imageMetadataMap, err := d.imageStore.GetImageMetadataMap()
-	var allImageLayerDirs []string
+	var (
+		layerData = common.DefaultLayerDir
+		layerDB   = filepath.Join(common.DefaultLayerDBRoot, "sha256")
+	)
+
+	allImageLayerIDList, err := d.getAllLayers()
 	if err != nil {
 		return err
+	}
+
+	layerDataDirs, err := utils.GetDirNameListInDir(layerData, false)
+	if err != nil {
+		return err
+	}
+
+	err = d.deleteLayers(layerData, layerDataDirs, allImageLayerIDList)
+	if err != nil {
+		return err
+	}
+
+	layerDBDirs, err := utils.GetDirNameListInDir(layerDB, false)
+	if err != nil {
+		return err
+	}
+
+	err = d.deleteLayers(layerDB, layerDBDirs, allImageLayerIDList)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d DefaultImageService) getAllLayers() ([]string, error) {
+	imageMetadataMap, err := d.imageStore.GetImageMetadataMap()
+	var allImageLayerDirs []string
+
+	if err != nil {
+		return nil, err
 	}
 
 	for _, imageMetadata := range imageMetadataMap {
 		for _, m := range imageMetadata.Manifests {
 			image, err := d.imageStore.GetByID(m.ID)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			res, err := GetImageLayerDirs(image)
-			if err != nil {
-				return err
+			for _, layer := range image.Spec.Layers {
+				if layer.ID != "" {
+					allImageLayerDirs = append(allImageLayerDirs, layer.ID.Hex())
+				}
 			}
-			allImageLayerDirs = append(allImageLayerDirs, res...)
 		}
 	}
 
-	allImageLayerDirs = utils.RemoveDuplicate(allImageLayerDirs)
-	dirs, err := store.GetDirListInDir(common.DefaultLayerDir)
-	if err != nil {
-		return err
-	}
-	dirs = utils.RemoveStrSlice(dirs, allImageLayerDirs)
-	for _, dir := range dirs {
-		if err := os.RemoveAll(dir); err != nil {
+	return utils.RemoveDuplicate(allImageLayerDirs), err
+}
+
+func (d DefaultImageService) deleteLayers(rootPath string, deleteLayers, allImageLayerDirs []string) error {
+	deleteLayers = utils.RemoveStrSlice(deleteLayers, allImageLayerDirs)
+	for _, dir := range deleteLayers {
+		if err := os.RemoveAll(filepath.Join(rootPath, dir)); err != nil {
 			return err
 		}
-		_, err = common.StdOut.WriteString(fmt.Sprintf("%s layer deleted\n", filepath.Base(dir)))
+		_, err := common.StdOut.WriteString(fmt.Sprintf("%s layer deleted\n", filepath.Base(dir)))
 		if err != nil {
 			return err
 		}

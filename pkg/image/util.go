@@ -107,7 +107,8 @@ func GetFileFromBaseImage(imageName string, platform *v1.Platform, paths ...stri
 	if err != nil {
 		return "", err
 	}
-	if err := imgSvc.PullIfNotExist(imageName, platform); err != nil {
+	plats := []*v1.Platform{platform}
+	if err := imgSvc.PullIfNotExist(imageName, plats); err != nil {
 		return "", err
 	}
 

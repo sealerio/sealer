@@ -97,7 +97,7 @@ func (ls *layerStore) RegisterLayerForBuilder(path string) (digest.Digest, error
 	}
 
 	// layerContentDigest is the layer id at the build stage.
-	// and the layer id won't change any more
+	// and the layer id won't change anymore
 	roLayer, err := NewROLayer(dist, size, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create a new rolayer, err: %s", err)

@@ -15,13 +15,12 @@
 package platform
 
 import (
-	"debug/elf"
-	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/pkg/errors"
@@ -153,44 +152,34 @@ func Format(platform v1.Platform) string {
 	return path.Join(platform.OS, platform.Architecture, platform.Variant)
 }
 
-func CheckFileArch(file string) (string, error) {
-	f, err := os.Open(filepath.Clean(file))
-	if err != nil {
-		return "", err
+func ConvertToOci(plat v1.Platform) (cp ocispecs.Platform) {
+	return ocispecs.Platform{
+		Architecture: plat.Architecture,
+		OS:           plat.OS,
+		Variant:      plat.Variant,
+		OSVersion:    plat.OSVersion,
 	}
-	identifier, err := elf.NewFile(f)
-	if err != nil {
-		return "", err
+}
+
+func ConvertPlatform(cp ocispecs.Platform) (plat v1.Platform) {
+	return v1.Platform{
+		Architecture: cp.Architecture,
+		OS:           cp.OS,
+		Variant:      cp.Variant,
+		OSVersion:    cp.OSVersion,
+	}
+}
+
+// Matched check if src == dest
+func Matched(src, dest v1.Platform) bool {
+	if src.OS == dest.OS &&
+		src.Architecture == ARM64 && dest.Architecture == ARM64 {
+		return true
 	}
 
-	// Read and decode ELF identifier
-	var ident [16]uint8
-	_, err = f.ReadAt(ident[0:], 0)
-	if err != nil {
-		return "", err
-	}
-
-	if ident[0] != '\x7f' || ident[1] != 'E' || ident[2] != 'L' || ident[3] != 'F' {
-		return "", errors.Wrapf(ErrNotSupport, "%d: Bad magic number", ident[0:4])
-	}
-
-	if identifier.Type != elf.ET_EXEC {
-		return "", errors.Wrapf(ErrNotSupport, "%q: cannot parse platform specifier", identifier.Type.String())
-	}
-
-	var mach string
-	switch identifier.Machine {
-	case elf.EM_AARCH64:
-		mach = "ARM64"
-	case elf.EM_ARM:
-		mach = "ARM"
-	case elf.EM_X86_64:
-		mach = "x86_64"
-	case elf.EM_386:
-		mach = "i386"
-	}
-	mach, _ = normalizeArch(mach, "")
-	return mach, nil
+	return src.OS == dest.OS &&
+		src.Architecture == dest.Architecture &&
+		src.Variant == dest.Variant
 }
 
 func isLinuxOS(os string) bool {
@@ -210,10 +199,7 @@ func normalizeArch(arch, variant string) (string, string) {
 	//nolint
 	case "aarch64", "arm64":
 		arch = "arm64"
-		switch variant {
-		case "8", "v8":
-			variant = ""
-		}
+		variant = "v8"
 	case "armhf":
 		//nolint
 		arch = "arm"
