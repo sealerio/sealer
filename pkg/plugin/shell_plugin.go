@@ -16,6 +16,9 @@ package plugin
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/pkg/env"
 
@@ -34,7 +37,8 @@ func init() {
 }
 
 func (s Sheller) Run(context Context, phase Phase) (err error) {
-	if string(phase) != context.Plugin.Spec.Action || context.Plugin.Spec.Type != ShellPlugin {
+	pluginPhases := strings.Split(context.Plugin.Spec.Action, "|")
+	if utils.NotIn(string(phase), pluginPhases) || context.Plugin.Spec.Type != ShellPlugin {
 		return nil
 	}
 	//get cmdline content
@@ -51,6 +55,9 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 		}
 	}
 	for _, ip := range allHostIP {
+		if utils.NotIn(ip, context.Host) {
+			continue
+		}
 		envProcessor := env.NewEnvProcessor(context.Cluster)
 		sshClient, err := ssh.NewStdoutSSHClient(ip, context.Cluster)
 		if err != nil {

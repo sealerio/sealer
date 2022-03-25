@@ -60,9 +60,10 @@ func TestDumperPlugin_Dump(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &PluginsProcessor{
-				Plugins:     tt.fields.configs,
-				ClusterName: tt.fields.clusterName,
+				Plugins: tt.fields.configs,
+				Cluster: &v2.Cluster{},
 			}
+			c.Cluster.Name = tt.fields.clusterName
 			clusterFile := clusterfile.NewClusterFile(tt.args.clusterfile)
 			if err := clusterFile.Process(); err != nil {
 				t.Error(err)
@@ -116,10 +117,11 @@ func TestDumperPlugin_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &PluginsProcessor{
-				Plugins:     tt.fields.configs,
-				ClusterName: tt.fields.clusterName,
+				Plugins: tt.fields.configs,
+				Cluster: &v2.Cluster{},
 			}
-			if err := c.Run(tt.args.cluster, tt.args.phase); (err != nil) != tt.wantErr {
+			c.Cluster.Name = tt.fields.clusterName
+			if err := c.Run(tt.args.cluster.GetAllIPList(), tt.args.phase); (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

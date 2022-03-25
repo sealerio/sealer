@@ -27,6 +27,8 @@ type Phase string
 
 const (
 	PhasePreInit     = Phase("PreInit")
+	PhasePreJoin     = Phase("PreJoin")
+	PhasePostJoin    = Phase("PostJoin")
 	PhasePreInstall  = Phase("PreInstall")
 	PhasePostInstall = Phase("PostInstall")
 	PhaseOriginally  = Phase("Originally")
@@ -54,4 +56,5 @@ const (
 type Context struct {
 	Plugin  *v1.Plugin
 	Cluster *v2.Cluster
+	Host    []string
 }

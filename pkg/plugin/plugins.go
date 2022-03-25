@@ -39,27 +39,27 @@ func (err InvalidPluginTypeError) Error() string {
 type Plugins interface {
 	Dump(plugins []v1.Plugin) error
 	Load() error
-	Run(cluster *v2.Cluster, phase Phase) error
+	Run(host []string, phase Phase) error
 }
 
 // PluginsProcessor : process two list: plugin config list and embed pluginFactories that contains plugin interface.
 type PluginsProcessor struct {
 	// plugin config list
-	Plugins     []v1.Plugin
-	ClusterName string
+	Plugins []v1.Plugin
+	Cluster *v2.Cluster
 }
 
-func NewPlugins(clusterName string) Plugins {
+func NewPlugins(cluster *v2.Cluster) Plugins {
 	return &PluginsProcessor{
-		ClusterName: clusterName,
-		Plugins:     []v1.Plugin{},
+		Cluster: cluster,
+		Plugins: []v1.Plugin{},
 	}
 }
 
 // Load plugin configs and shared object(.so) file from $rootfs/plugins dir.
 func (c *PluginsProcessor) Load() error {
 	c.Plugins = nil
-	path := common.DefaultTheClusterRootfsPluginDir(c.ClusterName)
+	path := common.DefaultTheClusterRootfsPluginDir(c.Cluster.Name)
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return nil
@@ -72,7 +72,7 @@ func (c *PluginsProcessor) Load() error {
 	for _, f := range files {
 		// load shared object(.so) file
 		if filepath.Ext(f.Name()) == ".so" {
-			soFile := filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), f.Name())
+			soFile := filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.Cluster.Name), f.Name())
 			p, pt, err := c.loadOutOfTree(soFile)
 			if err != nil {
 				return err
@@ -91,7 +91,7 @@ func (c *PluginsProcessor) Load() error {
 }
 
 // Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
-func (c *PluginsProcessor) Run(cluster *v2.Cluster, phase Phase) error {
+func (c *PluginsProcessor) Run(host []string, phase Phase) error {
 	for _, config := range c.Plugins {
 		if config.Spec.Action != string(phase) {
 			continue
@@ -104,7 +104,7 @@ func (c *PluginsProcessor) Run(cluster *v2.Cluster, phase Phase) error {
 			return InvalidPluginTypeError{config.Spec.Type}
 		}
 		// #nosec
-		err := p.Run(Context{Cluster: cluster, Plugin: &config}, phase)
+		err := p.Run(Context{Cluster: c.Cluster, Host: host, Plugin: &config}, phase)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func (c *PluginsProcessor) writeFiles() error {
 			name = fmt.Sprintf("%s.yaml", name)
 		}
 
-		err := utils.MarshalYamlToFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.ClusterName), name), config)
+		err := utils.MarshalYamlToFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.Cluster.Name), name), config)
 		if err != nil {
 			return fmt.Errorf("write plugin metadata fileed %v", err)
 		}
