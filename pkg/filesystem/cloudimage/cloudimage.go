@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/alibaba/sealer/pkg/env"
+
 	"github.com/alibaba/sealer/utils/platform"
 
 	"github.com/alibaba/sealer/common"
@@ -84,6 +86,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
+	clusterPlatform["local"] = *platform.GetDefaultPlatform()
 	for _, v := range clusterPlatform {
 		pfm := v
 		mountDir := platform.GetMountCloudImagePlatformDir(cluster.Name, pfm)
@@ -118,6 +121,31 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 		}
 		if err = driver.Mount(mountDir, upperDir, layers...); err != nil {
 			return fmt.Errorf("mount files failed %v", err)
+		}
+		// use env list to render image mount dir: etc,charts,manifests.
+		err = renderENV(mountDir, cluster.GetAllIPList(), env.NewEnvProcessor(cluster))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func renderENV(imageMountDir string, ipList []string, p env.Interface) error {
+	var (
+		renderEtc       = filepath.Join(imageMountDir, common.EtcDir)
+		renderChart     = filepath.Join(imageMountDir, common.RenderChartsDir)
+		renderManifests = filepath.Join(imageMountDir, common.RenderManifestsDir)
+	)
+
+	for _, ip := range ipList {
+		for _, dir := range []string{renderEtc, renderChart, renderManifests} {
+			if utils.IsExist(dir) {
+				err := p.RenderAll(ip, dir)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil

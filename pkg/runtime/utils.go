@@ -111,7 +111,7 @@ func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
 	return nil
 }
 
-func GetKubectlAndKubeconfig(ssh ssh.Interface, host string) error {
+func GetKubectlAndKubeconfig(ssh ssh.Interface, host, rootfs string) error {
 	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
 	err := ssh.Fetch(host, path.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
 	if err != nil {
@@ -122,15 +122,16 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to add master IP to etc hosts")
 	}
-	err = ssh.Fetch(host, common.KubectlPath, common.KubectlPath)
-	if err != nil {
-		return errors.Wrap(err, "fetch kubectl failed")
+	if !utils.IsFileExist(common.KubectlPath) {
+		_, err = utils.CopySingleFile(filepath.Join(rootfs, "bin/kubectl"), common.KubectlPath)
+		if err != nil {
+			return err
+		}
+		err = utils.Cmd("chmod", "+x", common.KubectlPath)
+		if err != nil {
+			return errors.Wrap(err, "chmod a+x kubectl failed")
+		}
 	}
-	err = utils.Cmd("chmod", "+x", common.KubectlPath)
-	if err != nil {
-		return errors.Wrap(err, "chmod a+x kubectl failed")
-	}
-
 	return nil
 }
 

@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/utils/platform"
 
 	"github.com/alibaba/sealer/common"
@@ -56,40 +58,26 @@ func (o *overlayFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) e
 }
 
 func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
-	var (
-		mountDirs            = make(map[string]bool)
-		rwmt                 = &sync.RWMutex{}
-		envProcessor         = env.NewEnvProcessor(cluster)
-		clusterPlatform, err = ssh.GetClusterPlatform(cluster)
-	)
+	clusterPlatform, err := ssh.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
 	}
+	mountEntry := struct {
+		*sync.RWMutex
+		mountDirs map[string]bool
+	}{&sync.RWMutex{}, make(map[string]bool)}
+	config := runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), runtime.GetMaster0Ip(cluster))
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
 			src := platform.GetMountCloudImagePlatformDir(cluster.Name, clusterPlatform[ip])
-			config := runtime.GetRegistryConfig(src, runtime.GetMaster0Ip(cluster))
 			initCmd := fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
-			rwmt.Lock()
-			if !mountDirs[src] {
-				// use env list to render image mount dir: etc,charts,manifests.
-				mountDirs[src] = true
-				rwmt.Unlock()
-				err = renderENV(src, ipList, envProcessor)
-				if err != nil {
-					return err
-				}
-				sshClient, err := ssh.GetHostSSHClient(config.IP, cluster)
-				if err != nil {
-					return err
-				}
-				err = sshClient.Copy(config.IP, filepath.Join(src, "registry"), filepath.Join(target, "registry"))
-				if err != nil {
-					return err
-				}
+			mountEntry.Lock()
+			if !mountEntry.mountDirs[src] {
+				mountEntry.mountDirs[src] = true
 			}
+			mountEntry.Unlock()
 			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
@@ -99,7 +87,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 				return fmt.Errorf("copy rootfs failed %v", err)
 			}
 			if initFlag {
-				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, initCmd))
+				err = sshClient.CmdAsync(ip, env.NewEnvProcessor(cluster).WrapperShell(ip, initCmd))
 				if err != nil {
 					return fmt.Errorf("exec init.sh failed %v", err)
 				}
@@ -107,7 +95,27 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 			return err
 		})
 	}
-	return eg.Wait()
+	if err = eg.Wait(); err != nil {
+		return err
+	}
+	if !utils.InList(config.IP, ipList) {
+		return nil
+	}
+	return mountRegistry(config, cluster, mountEntry.mountDirs, target)
+}
+
+func mountRegistry(regConfig *runtime.RegistryConfig, cluster *v2.Cluster, mountDir map[string]bool, target string) error {
+	sshClient, err := ssh.GetHostSSHClient(regConfig.IP, cluster)
+	if err != nil {
+		return err
+	}
+	for dir := range mountDir {
+		err = sshClient.Copy(regConfig.IP, filepath.Join(dir, common.RegistryDirName), filepath.Join(target, common.RegistryDirName))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func unmountRootfs(ipList []string, cluster *v2.Cluster) error {

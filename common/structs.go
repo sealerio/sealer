@@ -15,16 +15,17 @@
 package common
 
 type RunArgs struct {
-	Masters    string
-	Nodes      string
-	User       string
-	Password   string
-	Port       uint16
-	Pk         string
-	PkPassword string
-	PodCidr    string
-	SvcCidr    string
-	Provider   string
-	CustomEnv  []string
-	CMDArgs    []string
+	ClusterName string
+	Masters     string
+	Nodes       string
+	User        string
+	Password    string
+	Port        uint16
+	Pk          string
+	PkPassword  string
+	PodCidr     string
+	SvcCidr     string
+	Provider    string
+	CustomEnv   []string
+	CMDArgs     []string
 }

@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/env"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 )
@@ -41,26 +40,6 @@ func copyFiles(sshEntry ssh.Interface, isRegistry bool, ip, src, target string) 
 		err = sshEntry.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
 		if err != nil {
 			return fmt.Errorf("failed to copy sub files %v", err)
-		}
-	}
-	return nil
-}
-
-func renderENV(imageMountDir string, ipList []string, p env.Interface) error {
-	var (
-		renderEtc       = filepath.Join(imageMountDir, common.EtcDir)
-		renderChart     = filepath.Join(imageMountDir, common.RenderChartsDir)
-		renderManifests = filepath.Join(imageMountDir, common.RenderManifestsDir)
-	)
-
-	for _, ip := range ipList {
-		for _, dir := range []string{renderEtc, renderChart, renderManifests} {
-			if utils.IsExist(dir) {
-				err := p.RenderAll(ip, dir)
-				if err != nil {
-					return err
-				}
-			}
 		}
 	}
 	return nil

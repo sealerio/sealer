@@ -17,6 +17,8 @@ package applydriver
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils/ssh"
+
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"github.com/alibaba/sealer/utils/platform"
@@ -96,8 +98,16 @@ func (c *Applier) fillClusterCurrent() error {
 func (c *Applier) mountClusterImage() error {
 	imageName := c.ClusterDesired.Spec.Image
 	//todo need to filter image by platform
+	platsMap, err := ssh.GetClusterPlatform(c.ClusterDesired)
+	if err != nil {
+		return err
+	}
 	plats := []*v1.Platform{platform.GetDefaultPlatform()}
-	err := c.ImageManager.PullIfNotExist(imageName, plats)
+	for _, v := range platsMap {
+		plat := v
+		plats = append(plats, &plat)
+	}
+	err = c.ImageManager.PullIfNotExist(imageName, plats)
 	if err != nil {
 		return err
 	}
@@ -240,7 +250,7 @@ func (c *Applier) installApp() error {
 		}
 	}
 
-	installProcessor, err := processor.NewInstallProcessor(rootfs, c.ClusterFile)
+	installProcessor, err := processor.NewInstallProcessor(c.ClusterFile)
 	if err != nil {
 		return err
 	}

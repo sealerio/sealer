@@ -71,6 +71,9 @@ func PreProcessIPList(joinArgs *common.RunArgs) error {
 }
 
 func (c *ClusterArgs) SetClusterArgs() error {
+	c.cluster.APIVersion = common.APIVersion
+	c.cluster.Kind = common.Cluster
+	c.cluster.Name = c.runArgs.ClusterName
 	c.cluster.Spec.Image = c.imageName
 	c.cluster.Spec.SSH.User = c.runArgs.User
 	c.cluster.Spec.SSH.Pk = c.runArgs.Pk
@@ -145,15 +148,8 @@ func GetClusterFileByImageName(imageName string) (*v2.Cluster, error) {
 }
 
 func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (applydriver.Interface, error) {
-	cluster, err := GetClusterFileByImageName(imageName)
-	if err != nil {
-		return nil, err
-	}
-	if runArgs.Nodes == "" && runArgs.Masters == "" {
-		return NewApplier(cluster)
-	}
 	c := &ClusterArgs{
-		cluster:   cluster,
+		cluster:   &v2.Cluster{},
 		imageName: imageName,
 		runArgs:   runArgs,
 	}

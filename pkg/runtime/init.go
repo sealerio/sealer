@@ -277,7 +277,7 @@ func (k *KubeadmRuntime) GetKubectlAndKubeconfig() error {
 		return fmt.Errorf("failed to get master0 ssh client when get kubbectl and kubeconfig %v", err)
 	}
 
-	return GetKubectlAndKubeconfig(ssh, k.GetMaster0IP())
+	return GetKubectlAndKubeconfig(ssh, k.GetMaster0IP(), k.getImageMountDir())
 }
 
 func (k *KubeadmRuntime) CopyStaticFilesTomasters() error {
