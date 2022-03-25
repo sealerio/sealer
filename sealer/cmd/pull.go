@@ -15,11 +15,14 @@
 package cmd
 
 import (
+	"github.com/alibaba/sealer/utils/platform"
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/image"
 )
+
+var platformFlag string
 
 // pullCmd represents the pull command
 var pullCmd = &cobra.Command{
@@ -33,7 +36,11 @@ var pullCmd = &cobra.Command{
 			return err
 		}
 
-		if err := imgSvc.Pull(args[0]); err != nil {
+		plat, err := platform.GetPlatform(platformFlag)
+		if err != nil {
+			return err
+		}
+		if err := imgSvc.Pull(args[0], plat); err != nil {
 			return err
 		}
 		logger.Info("Pull %s success", args[0])
@@ -43,4 +50,5 @@ var pullCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(pullCmd)
+	pullCmd.Flags().StringVar(&platformFlag, "platform", "", "set cloud image platform")
 }

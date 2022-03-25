@@ -223,7 +223,8 @@ func NewBuildImageByKubefile(kubefileName string, platform v1.Platform) (*v1.Ima
 		// give an empty image
 		baseImage = &v1.Image{}
 	} else {
-		if err = service.PullIfNotExist(layer0.Value, &platform); err != nil {
+		plats := []*v1.Platform{&platform}
+		if err = service.PullIfNotExist(layer0.Value, plats); err != nil {
 			return nil, nil, fmt.Errorf("failed to pull baseImage: %v", err)
 		}
 		baseImage, err = imageStore.GetByName(layer0.Value, &platform)

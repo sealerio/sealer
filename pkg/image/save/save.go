@@ -21,7 +21,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	distribution "github.com/distribution/distribution/v3"
+	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/storage"
@@ -37,6 +37,7 @@ import (
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
+	"github.com/alibaba/sealer/pkg/image/distributionutil"
 	"github.com/alibaba/sealer/pkg/image/save/distributionpkg/proxy"
 	"github.com/alibaba/sealer/utils"
 )
@@ -242,21 +243,19 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 	if err != nil {
 		return digest.Digest(""), fmt.Errorf("failed to get image manifest payload: %v", err)
 	}
-
 	switch ct {
 	case manifestV2, manifestOCI:
 		return imagedigest, nil
 	case manifestList, manifestOCIIndex:
-		imageDigest, err := getImageManifestDigest(p, platform)
+		imageDigest, err := distributionutil.GetImageManifestDigest(p, platform)
 		if err != nil {
 			return digest.Digest(""), fmt.Errorf("get digest from manifest list error: %v", err)
 		}
 		return imageDigest, nil
 	case "":
 		//OCI image or image index - no media type in the content
-
 		//First see if it is a list
-		imageDigest, _ := getImageManifestDigest(p, platform)
+		imageDigest, _ := distributionutil.GetImageManifestDigest(p, platform)
 		if imageDigest != "" {
 			return imageDigest, nil
 		}
@@ -291,7 +290,7 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 				return err
 			}
 
-			blobList, err := getBlobList(blobListJSON)
+			blobList, err := distributionutil.GetBlobList(blobListJSON)
 			if err != nil {
 				return fmt.Errorf("get blob list error: %v", err)
 			}

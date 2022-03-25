@@ -30,6 +30,7 @@ import (
 	"github.com/alibaba/sealer/pkg/image/save"
 	"github.com/alibaba/sealer/pkg/runtime"
 	"github.com/alibaba/sealer/utils"
+	plat "github.com/alibaba/sealer/utils/platform"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -76,7 +77,7 @@ func (r registry) Process(src, dst buildinstruction.MountTarget) error {
 		return err
 	}
 
-	return r.puller.SaveImages(images, filepath.Join(rootfs, common.RegistryDirName), convertPlatform(r.platform))
+	return r.puller.SaveImages(images, filepath.Join(rootfs, common.RegistryDirName), plat.ConvertToOci(r.platform))
 }
 
 func NewRegistryDiffer(platform v1.Platform) Differ {

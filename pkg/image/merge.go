@@ -75,8 +75,9 @@ func Merge(imageName string, images []string) error {
 
 	for _, ima := range images {
 		im := ima
+		plats := []*v1.Platform{platform.GetDefaultPlatform()}
 		eg.Go(func() error {
-			err = d.PullIfNotExist(im, platform.GetDefaultPlatform())
+			err = d.PullIfNotExist(im, plats)
 			if err != nil {
 				return err
 			}

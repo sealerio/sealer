@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	v1 "github.com/alibaba/sealer/types/api/v1"
+
 	"github.com/alibaba/sealer/utils/platform"
 
 	"github.com/alibaba/sealer/common"
@@ -88,8 +90,9 @@ func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, erro
 }
 
 func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
-	////todo need to filter image by platform
-	err := c.ImageManager.PullIfNotExist(cluster.Spec.Image, platform.GetDefaultPlatform())
+	//todo need to filter image by platform
+	plats := []*v1.Platform{platform.GetDefaultPlatform()}
+	err := c.ImageManager.PullIfNotExist(cluster.Spec.Image, plats)
 	if err != nil {
 		return err
 	}

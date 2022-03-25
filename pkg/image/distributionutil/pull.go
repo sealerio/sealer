@@ -21,8 +21,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/docker/distribution"
-	"github.com/docker/distribution/manifest/schema2"
+	distribution "github.com/distribution/distribution/v3"
+	"github.com/distribution/distribution/v3/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/opencontainers/go-digest"
 	"golang.org/x/sync/errgroup"
@@ -34,7 +34,7 @@ import (
 )
 
 type Puller interface {
-	Pull(context context.Context, named reference.Named) (*v1.Image, error)
+	Pull(ctx context.Context, named reference.Named, manifest schema2.Manifest) (*v1.Image, error)
 }
 
 type ImagePuller struct {
@@ -42,24 +42,19 @@ type ImagePuller struct {
 	repository distribution.Repository
 }
 
-func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1.Image, error) {
+func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named, manifest schema2.Manifest) (*v1.Image, error) {
 	var (
 		layerStore = puller.config.LayerStore
 		layers     = []v1.Layer{}
 		eg         *errgroup.Group
 	)
 
-	manifest, err := puller.getRemoteManifest(ctx, named)
-	if err != nil {
-		return nil, err
-	}
-
 	v1Image, err := puller.getRemoteImageMetadata(ctx, manifest.Config.Digest)
 	if err != nil {
 		return nil, err
 	}
 
-	eg, _ = errgroup.WithContext(context.Background())
+	eg, _ = errgroup.WithContext(ctx)
 	for _, l := range v1Image.Spec.Layers {
 		if l.ID == "" {
 			continue
@@ -78,7 +73,7 @@ func (puller *ImagePuller) Pull(ctx context.Context, named reference.Named) (*v1
 			layer      = layers[i]
 		)
 		// we take hash of layer as real layer id,  hash of descriptor is just
-		// a identifier for remote data
+		// an identifier for remote data
 		eg.Go(func() error {
 			// roLayer now does not exist, new one
 			// descriptor.Size is temp size for this layer
@@ -148,26 +143,6 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, layer store.Layer,
 	return nil
 }
 
-// TODO make a manifest store do this job
-func (puller *ImagePuller) getRemoteManifest(context context.Context, named reference.Named) (schema2.Manifest, error) {
-	repo := puller.repository
-	ms, err := repo.Manifests(context)
-	if err != nil {
-		return schema2.Manifest{}, err
-	}
-
-	manifest, err := ms.Get(context, "", distribution.WithTagOption{Tag: named.Tag()})
-	if err != nil {
-		return schema2.Manifest{}, err
-	}
-
-	_, ok := manifest.(*schema2.DeserializedManifest)
-	if !ok {
-		return schema2.Manifest{}, fmt.Errorf("failed to parse manifest %s to DeserializedManifest", named.RepoTag())
-	}
-	return manifest.(*schema2.DeserializedManifest).Manifest, nil
-}
-
 // not docker image, get sealer image metadata
 func (puller *ImagePuller) getRemoteImageMetadata(context context.Context, digest digest.Digest) (v1.Image, error) {
 	repo := puller.repository
@@ -181,12 +156,7 @@ func (puller *ImagePuller) getRemoteImageMetadata(context context.Context, diges
 	return img, json.Unmarshal(manifestImageBytes, &img)
 }
 
-func NewPuller(named reference.Named, config Config) (Puller, error) {
-	repo, err := NewV2Repository(named, "pull")
-	if err != nil {
-		return nil, err
-	}
-
+func NewPuller(repo distribution.Repository, config Config) (Puller, error) {
 	return &ImagePuller{
 		repository: repo,
 		config:     config,

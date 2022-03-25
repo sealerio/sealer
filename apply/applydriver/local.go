@@ -17,6 +17,8 @@ package applydriver
 import (
 	"fmt"
 
+	v1 "github.com/alibaba/sealer/types/api/v1"
+
 	"github.com/alibaba/sealer/utils/platform"
 
 	"github.com/alibaba/sealer/apply/processor"
@@ -93,8 +95,9 @@ func (c *Applier) fillClusterCurrent() error {
 
 func (c *Applier) mountClusterImage() error {
 	imageName := c.ClusterDesired.Spec.Image
-	////todo need to filter image by platform
-	err := c.ImageManager.PullIfNotExist(imageName, platform.GetDefaultPlatform())
+	//todo need to filter image by platform
+	plats := []*v1.Platform{platform.GetDefaultPlatform()}
+	err := c.ImageManager.PullIfNotExist(imageName, plats)
 	if err != nil {
 		return err
 	}
