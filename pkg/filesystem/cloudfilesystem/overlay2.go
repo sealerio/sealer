@@ -17,6 +17,10 @@ package cloudfilesystem
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"sync"
+
+	"github.com/alibaba/sealer/utils/platform"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/env"
@@ -53,27 +57,44 @@ func (o *overlayFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) e
 
 func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
 	var (
-		src          = common.DefaultMountCloudImageDir(cluster.Name)
-		envProcessor = env.NewEnvProcessor(cluster)
-		config       = runtime.GetRegistryConfig(src, runtime.GetMaster0Ip(cluster))
-		initCmd      = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
+		mountDirs            = make(map[string]bool)
+		rwmt                 = &sync.RWMutex{}
+		envProcessor         = env.NewEnvProcessor(cluster)
+		clusterPlatform, err = ssh.GetClusterPlatform(cluster)
 	)
-
-	// use env list to render image mount dir: etc,charts,manifests.
-	err := renderENV(src, ipList, envProcessor)
 	if err != nil {
 		return err
 	}
-
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
+			src := platform.GetMountCloudImagePlatformDir(cluster.Name, clusterPlatform[ip])
+			config := runtime.GetRegistryConfig(src, runtime.GetMaster0Ip(cluster))
+			initCmd := fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
+			rwmt.Lock()
+			if !mountDirs[src] {
+				// use env list to render image mount dir: etc,charts,manifests.
+				mountDirs[src] = true
+				rwmt.Unlock()
+				err = renderENV(src, ipList, envProcessor)
+				if err != nil {
+					return err
+				}
+				sshClient, err := ssh.GetHostSSHClient(config.IP, cluster)
+				if err != nil {
+					return err
+				}
+				err = sshClient.Copy(config.IP, filepath.Join(src, "registry"), filepath.Join(target, "registry"))
+				if err != nil {
+					return err
+				}
+			}
 			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
 			}
-			err = copyFiles(sshClient, ip == config.IP, ip, src, target)
+			err = copyFiles(sshClient, false, ip, src, target)
 			if err != nil {
 				return fmt.Errorf("copy rootfs failed %v", err)
 			}

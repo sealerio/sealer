@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"golang.org/x/sync/errgroup"
 
 	"github.com/alibaba/sealer/logger"
@@ -43,7 +45,7 @@ type nydusFileSystem struct {
 func (n *nydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error {
 	var (
 		clusterRootfsDir = common.DefaultTheClusterRootfsDir(cluster.Name)
-		src              = filepath.Join(common.DefaultMountCloudImageDir(cluster.Name), "nydusdfile")
+		src              = filepath.Join(platform.DefaultMountCloudImageDir(cluster.Name), "nydusdfile")
 		dest             = common.DefaultTheClusterNydusdFileDir(cluster.Name)
 		nydusdCpCmd      = fmt.Sprintf("rm -rf %s && cp -r %s %s", dest, src, dest)
 	)
@@ -87,7 +89,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 		return fmt.Errorf("failed to get local address, %v", err)
 	}
 	var (
-		src               = common.DefaultMountCloudImageDir(cluster.Name)
+		src               = platform.DefaultMountCloudImageDir(cluster.Name)
 		nydusdDir         = common.DefaultTheClusterNydusdDir(cluster.Name)
 		nydusdFileDir     = common.DefaultTheClusterNydusdFileDir(cluster.Name)
 		nydusdSrcDir      = filepath.Join(nydusdFileDir, "nydusd_scp_file")

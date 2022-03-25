@@ -16,6 +16,7 @@ package cloudimage
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -28,6 +29,7 @@ import (
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/mount"
+	"github.com/alibaba/sealer/utils/ssh"
 )
 
 type Interface interface {
@@ -48,56 +50,75 @@ func (m *mounter) UnMountImage(cluster *v2.Cluster) error {
 }
 
 func (m *mounter) umountImage(cluster *v2.Cluster) error {
-	mountDir := common.DefaultMountCloudImageDir(cluster.Name)
-	if !utils.IsFileExist(mountDir) {
+	mountRootDir := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name, "mount")
+	if !utils.IsFileExist(mountRootDir) {
 		return nil
 	}
-	if isMount, _ := mount.GetMountDetails(mountDir); isMount {
-		err := utils.Retry(10, time.Second, func() error {
-			return mount.NewMountDriver().Unmount(mountDir)
-		})
-		if err != nil {
-			return fmt.Errorf("failed to unmount dir %s,err: %v", mountDir, err)
+	dir, err := ioutil.ReadDir(mountRootDir)
+	if err != nil {
+		return err
+	}
+	for _, f := range dir {
+		if !f.IsDir() {
+			continue
+		}
+		if isMount, _ := mount.GetMountDetails(filepath.Join(mountRootDir, f.Name())); isMount {
+			err := utils.Retry(10, time.Second, func() error {
+				return mount.NewMountDriver().Unmount(filepath.Join(mountRootDir, f.Name()))
+			})
+			if err != nil {
+				return fmt.Errorf("failed to unmount dir %s,err: %v", filepath.Join(mountRootDir, f.Name()), err)
+			}
 		}
 	}
-	return os.RemoveAll(mountDir)
+	return os.RemoveAll(mountRootDir)
 }
 
 func (m *mounter) mountImage(cluster *v2.Cluster) error {
 	var (
-		mountdir = common.DefaultMountCloudImageDir(cluster.Name)
-		upperDir = filepath.Join(mountdir, "upper")
-		driver   = mount.NewMountDriver()
-		err      error
+		mountDirs = make(map[string]bool)
+		driver    = mount.NewMountDriver()
+		err       error
 	)
-	if isMount, _ := mount.GetMountDetails(mountdir); isMount {
-		err = driver.Unmount(mountdir)
-		if err != nil {
-			return fmt.Errorf("%s already mount, and failed to umount %v", mountdir, err)
-		}
-	}
-	if utils.IsFileExist(mountdir) {
-		err = os.RemoveAll(mountdir)
-		if err != nil {
-			return fmt.Errorf("failed to clean %s, %v", mountdir, err)
-		}
-	}
-	//get layers
-	////todo need to filter image by platform
-	Image, err := m.imageStore.GetByName(cluster.Spec.Image, platform.GetDefaultPlatform())
+	clusterPlatform, err := ssh.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
 	}
-	layers, err := image.GetImageLayerDirs(Image)
-	if err != nil {
-		return fmt.Errorf("get layers failed: %v", err)
-	}
+	for _, v := range clusterPlatform {
+		pfm := v
+		mountDir := platform.GetMountCloudImagePlatformDir(cluster.Name, pfm)
+		upperDir := filepath.Join(mountDir, "upper")
+		if mountDirs[mountDir] {
+			continue
+		}
+		mountDirs[mountDir] = true
+		if isMount, _ := mount.GetMountDetails(mountDir); isMount {
+			err = driver.Unmount(mountDir)
+			if err != nil {
+				return fmt.Errorf("%s already mount, and failed to umount %v", mountDir, err)
+			}
+		}
+		if utils.IsFileExist(mountDir) {
+			if err = os.RemoveAll(mountDir); err != nil {
+				return fmt.Errorf("failed to clean %s, %v", mountDir, err)
+			}
+		}
+		////todo need to filter image by platform
+		Image, err := m.imageStore.GetByName(cluster.Spec.Image, &pfm)
+		if err != nil {
+			return err
+		}
+		layers, err := image.GetImageLayerDirs(Image)
+		if err != nil {
+			return fmt.Errorf("get layers failed: %v", err)
+		}
 
-	if err = os.MkdirAll(upperDir, 0744); err != nil {
-		return fmt.Errorf("create upperdir failed, %s", err)
-	}
-	if err = driver.Mount(mountdir, upperDir, layers...); err != nil {
-		return fmt.Errorf("mount files failed %v", err)
+		if err = os.MkdirAll(upperDir, common.FileMode0755); err != nil {
+			return fmt.Errorf("create upperdir failed, %s", err)
+		}
+		if err = driver.Mount(mountDir, upperDir, layers...); err != nil {
+			return fmt.Errorf("mount files failed %v", err)
+		}
 	}
 	return nil
 }

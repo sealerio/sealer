@@ -44,7 +44,15 @@ var (
 func cpuVariant() string {
 	cpuVariantOnce.Do(func() {
 		if isArmArch(runtime.GOARCH) {
-			cpuVariantValue = getCPUVariant()
+			variant, err := getCPUInfo("Cpu architecture")
+			if err != nil {
+				logger.Error(err)
+			}
+			model, err := getCPUInfo("model name")
+			if err != nil {
+				logger.Error(err)
+			}
+			cpuVariantValue = GetCPUVariantByInfo(runtime.GOOS, runtime.GOARCH, variant, model)
 		}
 	})
 	return cpuVariantValue
@@ -85,12 +93,13 @@ func getCPUInfo(pattern string) (info string, err error) {
 	return "", errors.Wrapf(ErrNotFound, "getCPUInfo for pattern: %s", pattern)
 }
 
-func getCPUVariant() string {
-	if runtime.GOOS == WINDOWS || runtime.GOOS == DARWIN {
+//get 'Cpu architecture', 'model name' from /proc/cpuinfo
+func GetCPUVariantByInfo(os, arch, variant, model string) string {
+	if os == WINDOWS || os == DARWIN {
 		// Windows/Darwin only supports v7 for ARM32 and v8 for ARM64, and so we can use
 		// runtime.GOARCH to determine the variants
 		var variant string
-		switch runtime.GOARCH {
+		switch arch {
 		case ARM64:
 			variant = "v8"
 		case ARM:
@@ -102,14 +111,8 @@ func getCPUVariant() string {
 		return variant
 	}
 
-	variant, err := getCPUInfo("Cpu architecture")
-	if err != nil {
-		return ""
-	}
-
-	if runtime.GOARCH == ARM && variant == "7" {
-		model, err := getCPUInfo("model name")
-		if err == nil && strings.HasPrefix(strings.ToLower(model), "armv6-compatible") {
+	if arch == ARM && variant == "7" {
+		if strings.HasPrefix(strings.ToLower(model), "armv6-compatible") {
 			variant = "6"
 		}
 	}

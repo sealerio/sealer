@@ -111,7 +111,7 @@ func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 		hosts = append(hosts, regConfig.IP)
 	}
 
-	fs, err := filesystem.NewFilesystem(common.DefaultMountCloudImageDir(cluster.Name))
+	fs, err := filesystem.NewFilesystem(platform.DefaultMountCloudImageDir(cluster.Name))
 	if err != nil {
 		return err
 	}
