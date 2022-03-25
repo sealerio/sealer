@@ -97,7 +97,7 @@ func (g *GenerateProcessor) init(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	fs, err := filesystem.NewFilesystem(common.DefaultMountCloudImageDir(cluster.Name))
+	fs, err := filesystem.NewFilesystem(platform.DefaultMountCloudImageDir(cluster.Name))
 	if err != nil {
 		return err
 	}

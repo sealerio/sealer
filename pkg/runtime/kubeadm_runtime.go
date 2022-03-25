@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"path/filepath"
 	"strings"
 	"time"
@@ -105,7 +107,7 @@ func (k *KubeadmRuntime) getRootfs() string {
 
 // /var/lib/sealer/data/my-cluster/mount
 func (k *KubeadmRuntime) getImageMountDir() string {
-	return common.DefaultMountCloudImageDir(k.getClusterName())
+	return platform.DefaultMountCloudImageDir(k.getClusterName())
 }
 
 // /var/lib/sealer/data/my-cluster/certs

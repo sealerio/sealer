@@ -39,11 +39,7 @@ func NewFilesystem(rootfs string) (cloudfilesystem.Interface, error) {
 		return nil, fmt.Errorf("failed to load Metadata file to determine the filesystem type %v", err)
 	}
 
-	if md == nil {
-		return cloudfilesystem.NewOverlayFileSystem()
-	}
-
-	if !md.NydusFlag {
+	if md == nil || !md.NydusFlag {
 		return cloudfilesystem.NewOverlayFileSystem()
 	}
 

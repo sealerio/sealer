@@ -20,12 +20,13 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"gopkg.in/yaml.v3"
 	yaml2 "sigs.k8s.io/yaml"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/alibaba/sealer/utils"
@@ -91,7 +92,7 @@ func (c *Dumper) WriteFiles() (err error) {
 	}
 	for _, config := range c.Configs {
 		configData := []byte(config.Spec.Data)
-		configPath := filepath.Join(common.DefaultMountCloudImageDir(c.Cluster.Name), config.Spec.Path)
+		configPath := filepath.Join(platform.DefaultMountCloudImageDir(c.Cluster.Name), config.Spec.Path)
 		//only the YAML format is supported
 		if config.Spec.Strategy == Merge {
 			configData, err = getMergeConfigData(configPath, configData)

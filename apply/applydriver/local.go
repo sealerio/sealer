@@ -211,7 +211,7 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 	}
 
 	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", info.GitVersion, clusterMetadata.Version)
-	upgradeProcessor, err := processor.NewUpgradeProcessor(common.DefaultMountCloudImageDir(c.ClusterDesired.Name), runtimeInterface, mj, nj)
+	upgradeProcessor, err := processor.NewUpgradeProcessor(platform.DefaultMountCloudImageDir(c.ClusterDesired.Name), runtimeInterface, mj, nj)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (c *Applier) upgradeCluster(mj, nj []string) error {
 }
 
 func (c *Applier) installApp() error {
-	rootfs := common.DefaultMountCloudImageDir(c.ClusterDesired.Name)
+	rootfs := platform.DefaultMountCloudImageDir(c.ClusterDesired.Name)
 	// use k8sClient to fetch current cluster version.
 	info := c.CurrentClusterInfo
 

@@ -165,10 +165,6 @@ func DefaultKubeConfigFile() string {
 	return filepath.Join(DefaultKubeConfigDir(), "config")
 }
 
-func DefaultMountCloudImageDir(clusterName string) string {
-	return filepath.Join(DefaultClusterRootfsDir, clusterName, "mount")
-}
-
 func DefaultTheClusterRootfsDir(clusterName string) string {
 	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
 }

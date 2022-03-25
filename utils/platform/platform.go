@@ -15,12 +15,16 @@
 package platform
 
 import (
+	"fmt"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
+
+	"github.com/alibaba/sealer/common"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/pkg/errors"
@@ -46,7 +50,7 @@ func ParsePlatforms(v string) ([]*v1.Platform, error) {
 
 func Normalize(platform v1.Platform) v1.Platform {
 	platform.OS = normalizeOS(platform.OS)
-	platform.Architecture, platform.Variant = normalizeArch(platform.Architecture, platform.Variant)
+	platform.Architecture, platform.Variant = NormalizeArch(platform.Architecture, platform.Variant)
 	platform.OSVersion = ""
 
 	return platform
@@ -84,7 +88,7 @@ func Parse(specifier string) (v1.Platform, error) {
 			return p, nil
 		}
 
-		p.Architecture, p.Variant = normalizeArch(parts[0], "")
+		p.Architecture, p.Variant = NormalizeArch(parts[0], "")
 		if p.Architecture == ARM && p.Variant == "v7" {
 			p.Variant = ""
 		}
@@ -98,7 +102,7 @@ func Parse(specifier string) (v1.Platform, error) {
 		// In this case, we treat as a regular os/arch pair. We don't care
 		// about whether we know of the platform.
 		p.OS = normalizeOS(parts[0])
-		p.Architecture, p.Variant = normalizeArch(parts[1], "")
+		p.Architecture, p.Variant = NormalizeArch(parts[1], "")
 		if p.Architecture == ARM && p.Variant == "v7" {
 			p.Variant = ""
 		}
@@ -107,7 +111,7 @@ func Parse(specifier string) (v1.Platform, error) {
 	case 3:
 		// we have a fully specified variant, this is rare
 		p.OS = normalizeOS(parts[0])
-		p.Architecture, p.Variant = normalizeArch(parts[1], parts[2])
+		p.Architecture, p.Variant = NormalizeArch(parts[1], parts[2])
 		if p.Architecture == ARM64 && p.Variant == "" {
 			p.Variant = "v8"
 		}
@@ -186,8 +190,8 @@ func isLinuxOS(os string) bool {
 	return os == "linux"
 }
 
-// normalizeArch normalizes the architecture.
-func normalizeArch(arch, variant string) (string, string) {
+// NormalizeArch normalizes the architecture.
+func NormalizeArch(arch, variant string) (string, string) {
 	arch, variant = strings.ToLower(arch), strings.ToLower(variant)
 	switch arch {
 	case "i386":
@@ -257,4 +261,12 @@ func normalizeOS(os string) string {
 		os = "darwin"
 	}
 	return os
+}
+
+func DefaultMountCloudImageDir(clusterName string) string {
+	return GetMountCloudImagePlatformDir(clusterName, *GetDefaultPlatform())
+}
+
+func GetMountCloudImagePlatformDir(clusterName string, platform v1.Platform) string {
+	return filepath.Join(common.DefaultClusterRootfsDir, clusterName, "mount", fmt.Sprintf("%s_%s_%s", platform.OS, platform.Architecture, platform.Variant))
 }
