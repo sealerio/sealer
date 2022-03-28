@@ -317,52 +317,55 @@ func (d DefaultImageService) Delete(imageName string, force bool, platforms []*v
 // Prune delete the unused Layer in the `DefaultLayerDir` directory
 func (d DefaultImageService) Prune() error {
 	var (
-		layerData = common.DefaultLayerDir
-		layerDB   = filepath.Join(common.DefaultLayerDBRoot, "sha256")
+		//save a path with desired name as value.
+		pruneMap = make(map[string][]string)
 	)
 
-	allImageLayerIDList, err := d.getAllLayers()
+	allImageLayerIDList, _, err := d.getAllLayersAndImageID()
 	if err != nil {
 		return err
 	}
 
-	layerDataDirs, err := utils.GetDirNameListInDir(layerData, false)
-	if err != nil {
-		return err
-	}
+	pruneMap[common.DefaultLayerDir] = allImageLayerIDList
+	pruneMap[filepath.Join(common.DefaultLayerDBRoot, "sha256")] = allImageLayerIDList
 
-	err = d.deleteLayers(layerData, layerDataDirs, allImageLayerIDList)
-	if err != nil {
-		return err
-	}
+	for root, desired := range pruneMap {
+		subset, err := utils.GetDirNameListInDir(root, false)
+		if err != nil {
+			return err
+		}
 
-	layerDBDirs, err := utils.GetDirNameListInDir(layerDB, false)
-	if err != nil {
-		return err
-	}
-
-	err = d.deleteLayers(layerDB, layerDBDirs, allImageLayerIDList)
-	if err != nil {
-		return err
+		trash := utils.RemoveStrSlice(subset, desired)
+		for _, name := range trash {
+			if err := os.RemoveAll(filepath.Join(root, name)); err != nil {
+				return err
+			}
+			_, err := common.StdOut.WriteString(fmt.Sprintf("%s deleted\n", name))
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
 }
 
-func (d DefaultImageService) getAllLayers() ([]string, error) {
+// getAllLayers return current image id and layers
+func (d DefaultImageService) getAllLayersAndImageID() ([]string, []string, error) {
 	imageMetadataMap, err := d.imageStore.GetImageMetadataMap()
 	var allImageLayerDirs []string
-
+	var imageIDList []string
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, imageMetadata := range imageMetadataMap {
 		for _, m := range imageMetadata.Manifests {
 			image, err := d.imageStore.GetByID(m.ID)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
+			imageIDList = append(imageIDList, m.ID)
 			for _, layer := range image.Spec.Layers {
 				if layer.ID != "" {
 					allImageLayerDirs = append(allImageLayerDirs, layer.ID.Hex())
@@ -371,19 +374,5 @@ func (d DefaultImageService) getAllLayers() ([]string, error) {
 		}
 	}
 
-	return utils.RemoveDuplicate(allImageLayerDirs), err
-}
-
-func (d DefaultImageService) deleteLayers(rootPath string, deleteLayers, allImageLayerDirs []string) error {
-	deleteLayers = utils.RemoveStrSlice(deleteLayers, allImageLayerDirs)
-	for _, dir := range deleteLayers {
-		if err := os.RemoveAll(filepath.Join(rootPath, dir)); err != nil {
-			return err
-		}
-		_, err := common.StdOut.WriteString(fmt.Sprintf("%s layer deleted\n", filepath.Base(dir)))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return utils.RemoveDuplicate(allImageLayerDirs), imageIDList, err
 }
