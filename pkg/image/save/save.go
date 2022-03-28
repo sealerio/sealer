@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/reference"
@@ -32,7 +33,6 @@ import (
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/opencontainers/go-digest"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/alibaba/sealer/common"

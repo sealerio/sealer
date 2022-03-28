@@ -22,8 +22,6 @@ import (
 	"runtime"
 	"strings"
 
-	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
-
 	"github.com/alibaba/sealer/common"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -154,24 +152,6 @@ func Format(platform v1.Platform) string {
 	}
 
 	return path.Join(platform.OS, platform.Architecture, platform.Variant)
-}
-
-func ConvertToOci(plat v1.Platform) (cp ocispecs.Platform) {
-	return ocispecs.Platform{
-		Architecture: plat.Architecture,
-		OS:           plat.OS,
-		Variant:      plat.Variant,
-		OSVersion:    plat.OSVersion,
-	}
-}
-
-func ConvertPlatform(cp ocispecs.Platform) (plat v1.Platform) {
-	return v1.Platform{
-		Architecture: cp.Architecture,
-		OS:           cp.OS,
-		Variant:      cp.Variant,
-		OSVersion:    cp.OSVersion,
-	}
 }
 
 // Matched check if src == dest

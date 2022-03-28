@@ -23,7 +23,6 @@ import (
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/image/save"
 	"github.com/alibaba/sealer/utils"
-	plat "github.com/alibaba/sealer/utils/platform"
 )
 
 var (
@@ -75,7 +74,7 @@ func (m MiddlewarePuller) Process(context, rootfs string) error {
 		return nil
 	}
 
-	return m.puller.SaveImagesWithAuth(ia, filepath.Join(rootfs, common.RegistryDirName), plat.ConvertToOci(m.platform))
+	return m.puller.SaveImagesWithAuth(ia, filepath.Join(rootfs, common.RegistryDirName), m.platform)
 }
 
 func NewMiddlewarePuller(platform v1.Platform) Middleware {
