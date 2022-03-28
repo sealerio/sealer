@@ -20,8 +20,8 @@ import (
 
 	"github.com/alibaba/sealer/utils"
 
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/docker/docker/pkg/progress"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // ImageSave can save a list of images of the specified platform

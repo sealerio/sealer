@@ -15,41 +15,19 @@
 package store
 
 import (
-	"io/ioutil"
-	"path/filepath"
+	"github.com/alibaba/sealer/utils"
 )
-
-//var supportedDigestAlgo = map[string]bool{
-//	digest.SHA256.String(): true,
-//	digest.SHA384.String(): true,
-//	digest.SHA512.String(): true,
-//}
-
-func GetDirListInDir(dir string) ([]string, error) {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-	var dirs []string
-	for _, file := range files {
-		// avoid adding some other dirs created by users
-		if file.IsDir() {
-			dirs = append(dirs, filepath.Join(dir, file.Name()))
-		}
-	}
-	return dirs, nil
-}
 
 func traverseLayerDB(layerDBRoot string) ([]string, error) {
 	// TODO maybe there no need to traverse layerdb, just clarify how many sha supported in a list
-	shaDirs, err := GetDirListInDir(layerDBRoot)
+	shaDirs, err := utils.GetDirNameListInDir(layerDBRoot, true)
 	if err != nil {
 		return nil, err
 	}
 
 	var layerDirs []string
 	for _, shaDir := range shaDirs {
-		layerDirList, err := GetDirListInDir(shaDir)
+		layerDirList, err := utils.GetDirNameListInDir(shaDir, true)
 		if err != nil {
 			return nil, err
 		}

@@ -93,7 +93,7 @@ func getCPUInfo(pattern string) (info string, err error) {
 	return "", errors.Wrapf(ErrNotFound, "getCPUInfo for pattern: %s", pattern)
 }
 
-//get 'Cpu architecture', 'model name' from /proc/cpuinfo
+// GetCPUVariantByInfo get 'Cpu architecture', 'model name' from /proc/cpuinfo
 func GetCPUVariantByInfo(os, arch, variant, model string) string {
 	if os == WINDOWS || os == DARWIN {
 		// Windows/Darwin only supports v7 for ARM32 and v8 for ARM64, and so we can use

@@ -21,8 +21,6 @@ import (
 	"os"
 	"path/filepath"
 
-	platUtils "github.com/alibaba/sealer/utils/platform"
-
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest/schema2"
 	dockerstreams "github.com/docker/cli/cli/streams"
@@ -166,7 +164,7 @@ func (d DefaultImageService) Pull(imageName string, platforms []*v1.Platform) er
 }
 
 func (d DefaultImageService) handleManifest(ctx context.Context, manifest distribution.ManifestService, payload []byte, platform v1.Platform) (schema2.Manifest, error) {
-	dgest, err := distributionutil.GetImageManifestDigest(payload, platUtils.ConvertToOci(platform))
+	dgest, err := distributionutil.GetImageManifestDigest(payload, platform)
 	if err != nil {
 		return schema2.Manifest{}, fmt.Errorf("get digest from manifest list error: %v", err)
 	}

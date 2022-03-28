@@ -59,7 +59,7 @@ func GetClusterFileFromImage(imageName string) (string, error) {
 
 // GetClusterFileFromImageManifest retrieve ClusterFiles from image manifest(image yaml).
 // When it runs into an error, returns a detailed error.
-// When content getted is empty, returns an empty error directly to avoid upper caller to
+// When content got is empty, returns an empty error directly to avoid upper caller to
 // decide whether it is an empty.
 func GetClusterFileFromImageManifest(imageName string, platform *v1.Platform) (string, error) {
 	//  find cluster file from image manifest

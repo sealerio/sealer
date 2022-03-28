@@ -19,9 +19,9 @@ import (
 	"fmt"
 
 	"github.com/alibaba/sealer/logger"
+	v1 "github.com/alibaba/sealer/types/api/v1"
 	platUtil "github.com/alibaba/sealer/utils/platform"
 	"github.com/opencontainers/go-digest"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // ManifestList this package unmarshal manifests from json into a ManifestList struct
@@ -39,9 +39,8 @@ type ImageManifest struct {
 	Size      int
 }
 
-func GetImageManifestDigest(payload []byte, platform v1.Platform) (digest.Digest, error) {
+func GetImageManifestDigest(payload []byte, plat v1.Platform) (digest.Digest, error) {
 	var (
-		plat         = platUtil.ConvertPlatform(platform)
 		manifestList ManifestList
 	)
 
@@ -52,7 +51,7 @@ func GetImageManifestDigest(payload []byte, platform v1.Platform) (digest.Digest
 
 	var resDigest []digest.Digest
 	for _, item := range manifestList.List {
-		if platUtil.Matched(platUtil.ConvertPlatform(item.Platform), plat) {
+		if platUtil.Matched(item.Platform, plat) {
 			resDigest = append(resDigest, digest.Digest(item.Digest))
 		}
 	}
