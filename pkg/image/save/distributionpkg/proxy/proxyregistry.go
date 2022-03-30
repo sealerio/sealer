@@ -16,11 +16,16 @@ package proxy
 
 import (
 	"context"
-	"crypto/tls"
+	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/docker/docker/registry"
+	"github.com/docker/go-connections/tlsconfig"
 
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
@@ -136,9 +141,25 @@ func (pr *proxyingRegistry) Repositories(ctx context.Context, repos []string, la
 // #nosec
 func (pr *proxyingRegistry) Repository(ctx context.Context, name reference.Named) (distribution.Repository, error) {
 	c := pr.authChallenger
-
+	tlsConfig := tlsconfig.ServerDefault()
+	if err := registry.ReadCertsDirectory(tlsConfig, filepath.Join(registry.CertsDir(), pr.remoteURL.Host)); err != nil {
+		return nil, err
+	}
+	transSport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       tlsConfig,
+	}
 	tkopts := auth.TokenHandlerOptions{
-		Transport:   http.DefaultTransport,
+		Transport:   transSport,
 		Credentials: c.credentialStore(),
 		Scopes: []auth.Scope{
 			auth.RepositoryScope{
@@ -155,7 +176,8 @@ func (pr *proxyingRegistry) Repository(ctx context.Context, name reference.Named
 	tryClient := &http.Client{Transport: tr}
 	_, err := tryClient.Get(pr.remoteURL.String())
 	if err != nil && strings.Contains(err.Error(), certUnknown) {
-		tr = transport.NewTransport(&http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+		tlsConfig.InsecureSkipVerify = true
+		tr = transport.NewTransport(transSport,
 			auth.NewAuthorizer(c.challengeManager(),
 				auth.NewTokenHandlerWithOptions(tkopts)))
 	}
