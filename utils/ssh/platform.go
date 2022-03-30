@@ -17,7 +17,6 @@ package ssh
 import (
 	"bufio"
 	"fmt"
-	"runtime"
 	"strings"
 
 	"github.com/alibaba/sealer/logger"
@@ -51,7 +50,7 @@ func (s *SSH) Platform(host string) (v1.Platform, error) {
 		return p, fmt.Errorf("unrecognized architecture：%s", archResult)
 	}
 	if p.Architecture != platform.AMD {
-		p.Variant, err = s.getCPUVariant(host)
+		p.Variant, err = s.getCPUVariant(p.OS, p.Architecture, host)
 		if err != nil {
 			return p, err
 		}
@@ -99,7 +98,7 @@ func (s *SSH) getCPUInfo(host, pattern string) (info string, err error) {
 	return "", errors.Wrapf(platform.ErrNotFound, "getCPUInfo for pattern: %s", pattern)
 }
 
-func (s *SSH) getCPUVariant(host string) (string, error) {
+func (s *SSH) getCPUVariant(os, arch, host string) (string, error) {
 	variant, err := s.getCPUInfo(host, "Cpu architecture")
 	if err != nil {
 		return "", err
@@ -111,7 +110,7 @@ func (s *SSH) getCPUVariant(host string) (string, error) {
 		}
 	}
 	variant, model = platform.NormalizeArch(variant, model)
-	return platform.GetCPUVariantByInfo(runtime.GOOS, runtime.GOARCH, variant, model), nil
+	return platform.GetCPUVariantByInfo(os, arch, variant, model), nil
 }
 
 func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {

@@ -102,12 +102,6 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 		initCmd           = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 	)
 
-	// use env list to render image mount dir: etc,charts,manifests.
-	err = renderENV(src, ipList, envProcessor)
-	if err != nil {
-		return err
-	}
-
 	//convert image and start nydusd http server
 	_, err = utils.RunSimpleCmd(startNydusdServer)
 	if err != nil {

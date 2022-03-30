@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils/ssh"
 
 	"github.com/alibaba/sealer/utils/platform"
 
@@ -91,8 +92,16 @@ func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, erro
 
 func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 	//todo need to filter image by platform
+	platsMap, err := ssh.GetClusterPlatform(cluster)
+	if err != nil {
+		return err
+	}
 	plats := []*v1.Platform{platform.GetDefaultPlatform()}
-	err := c.ImageManager.PullIfNotExist(cluster.Spec.Image, plats)
+	for _, v := range platsMap {
+		plat := v
+		plats = append(plats, &plat)
+	}
+	err = c.ImageManager.PullIfNotExist(cluster.Spec.Image, plats)
 	if err != nil {
 		return err
 	}

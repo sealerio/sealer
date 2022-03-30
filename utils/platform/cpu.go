@@ -49,7 +49,7 @@ func cpuVariant() string {
 				logger.Error(err)
 			}
 			model, err := getCPUInfo("model name")
-			if err != nil {
+			if !strings.Contains(err.Error(), ErrNotFound.Error()) {
 				logger.Error(err)
 			}
 			cpuVariantValue = GetCPUVariantByInfo(runtime.GOOS, runtime.GOARCH, variant, model)

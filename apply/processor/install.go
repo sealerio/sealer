@@ -18,14 +18,13 @@ import (
 	"github.com/alibaba/sealer/pkg/clusterfile"
 	"github.com/alibaba/sealer/pkg/config"
 	"github.com/alibaba/sealer/pkg/filesystem"
-	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/alibaba/sealer/pkg/guest"
 	"github.com/alibaba/sealer/pkg/plugin"
 	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/alibaba/sealer/utils/platform"
 )
 
 type InstallProcessor struct {
-	fileSystem  cloudfilesystem.Interface
 	clusterFile clusterfile.Interface
 	Guest       guest.Interface
 	Config      config.Interface
@@ -76,7 +75,11 @@ func (i InstallProcessor) RunConfig(cluster *v2.Cluster) error {
 func (i InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	//initFlag : no need to do init cmd like installing docker service and so on.
-	return i.fileSystem.MountRootfs(cluster, hosts, false)
+	fs, err := filesystem.NewFilesystem(platform.DefaultMountCloudImageDir(cluster.Name))
+	if err != nil {
+		return err
+	}
+	return fs.MountRootfs(cluster, hosts, false)
 }
 
 func (i InstallProcessor) Install(cluster *v2.Cluster) error {
@@ -94,20 +97,14 @@ func (i InstallProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 	}
 }
 
-func NewInstallProcessor(rootfs string, clusterFile clusterfile.Interface) (Interface, error) {
+func NewInstallProcessor(clusterFile clusterfile.Interface) (Interface, error) {
 	gs, err := guest.NewGuestManager()
-	if err != nil {
-		return nil, err
-	}
-
-	fs, err := filesystem.NewFilesystem(rootfs)
 	if err != nil {
 		return nil, err
 	}
 
 	return InstallProcessor{
 		clusterFile: clusterFile,
-		fileSystem:  fs,
 		Guest:       gs,
 	}, nil
 }

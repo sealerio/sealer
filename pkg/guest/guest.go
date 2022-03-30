@@ -17,6 +17,7 @@ package guest
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/runtime"
 	"github.com/alibaba/sealer/utils/platform"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -25,7 +26,6 @@ import (
 
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 
-	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
@@ -78,7 +78,7 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 			return fmt.Errorf("failed to render build args: %v", err)
 		}
 
-		if err := sshClient.CmdAsync(runtime.GetMaster0Ip(cluster), fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, cmdline)); err != nil {
+		if err := sshClient.CmdAsync(cluster.GetMaster0IP(), fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, cmdline)); err != nil {
 			return err
 		}
 	}

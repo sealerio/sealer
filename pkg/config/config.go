@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/utils/platform"
+	"github.com/alibaba/sealer/common"
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
@@ -92,17 +92,27 @@ func (c *Dumper) WriteFiles() (err error) {
 	}
 	for _, config := range c.Configs {
 		configData := []byte(config.Spec.Data)
-		configPath := filepath.Join(platform.DefaultMountCloudImageDir(c.Cluster.Name), config.Spec.Path)
-		//only the YAML format is supported
-		if config.Spec.Strategy == Merge {
-			configData, err = getMergeConfigData(configPath, configData)
-			if err != nil {
-				return err
-			}
-		}
-		err = utils.WriteFile(configPath, configData)
+		mountRoot := filepath.Join(common.DefaultClusterRootfsDir, c.Cluster.Name, "mount")
+		mountDirs, err := ioutil.ReadDir(mountRoot)
 		if err != nil {
-			return fmt.Errorf("write config file failed %v", err)
+			return err
+		}
+		for _, f := range mountDirs {
+			if !f.IsDir() {
+				continue
+			}
+			configPath := filepath.Join(mountRoot, f.Name(), config.Spec.Path)
+			//only the YAML format is supported
+			if config.Spec.Strategy == Merge {
+				configData, err = getMergeConfigData(configPath, configData)
+				if err != nil {
+					return err
+				}
+			}
+			err = utils.WriteFile(configPath, configData)
+			if err != nil {
+				return fmt.Errorf("write config file failed %v", err)
+			}
 		}
 	}
 

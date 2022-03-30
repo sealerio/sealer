@@ -22,9 +22,10 @@ import (
 
 	"github.com/alibaba/sealer/utils/platform"
 
+	"github.com/alibaba/sealer/utils/ssh"
+
 	"github.com/alibaba/sealer/apply/processor"
 	"github.com/alibaba/sealer/pkg/filesystem"
-	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
 	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/runtime"
@@ -54,7 +55,6 @@ type GenerateProcessor struct {
 	Runtime      *runtime.KubeadmRuntime
 	ImageManager image.Service
 	ImageMounter cloudimage.Interface
-	Filesystem   cloudfilesystem.Interface
 }
 
 func NewGenerateProcessor() (processor.Interface, error) {
@@ -97,12 +97,7 @@ func (g *GenerateProcessor) init(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	fs, err := filesystem.NewFilesystem(platform.DefaultMountCloudImageDir(cluster.Name))
-	if err != nil {
-		return err
-	}
 	g.Runtime = runt.(*runtime.KubeadmRuntime)
-	g.Filesystem = fs
 	return nil
 }
 
@@ -167,18 +162,30 @@ func GenerateCluster(arg *ParserArg) (*v2.Cluster, error) {
 }
 
 func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
+	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(cluster.Name))
+	if err != nil {
+		return err
+	}
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
-	return g.Filesystem.MountRootfs(cluster, hosts, false)
+	return fs.MountRootfs(cluster, hosts, false)
 }
 
 func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	////todo need to filter image by platform
+	platsMap, err := ssh.GetClusterPlatform(cluster)
+	if err != nil {
+		return err
+	}
 	plats := []*apiv1.Platform{platform.GetDefaultPlatform()}
-	err := g.ImageManager.PullIfNotExist(cluster.Spec.Image, plats)
+	for _, v := range platsMap {
+		plat := v
+		plats = append(plats, &plat)
+	}
+	err = g.ImageManager.PullIfNotExist(cluster.Spec.Image, plats)
 	if err != nil {
 		return err
 	}
