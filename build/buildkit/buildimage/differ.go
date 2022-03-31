@@ -23,7 +23,6 @@ import (
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
-	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	"github.com/alibaba/sealer/build/buildkit/layerutils/charts"
 	manifest "github.com/alibaba/sealer/build/buildkit/layerutils/manifests"
 	"github.com/alibaba/sealer/common"
@@ -53,9 +52,7 @@ type registry struct {
 	puller   save.ImageSave
 }
 
-func (r registry) Process(src, dst buildinstruction.MountTarget) error {
-	srcPath := src.GetMountTarget()
-	rootfs := dst.GetMountTarget()
+func (r registry) Process(srcPath, rootfs string) error {
 	eg, _ := errgroup.WithContext(context.Background())
 
 	var images []string
@@ -180,10 +177,8 @@ func parseRawImageList(srcPath string) ([]string, error) {
 type metadata struct {
 }
 
-func (m metadata) Process(src, dst buildinstruction.MountTarget) error {
+func (m metadata) Process(srcPath, rootfs string) error {
 	// check "KubeVersion" of Chart.yaml under charts dir,to overwrite the metadata.
-	srcPath := src.GetMountTarget()
-	rootfs := dst.GetMountTarget()
 	kv := getKubeVersion(srcPath)
 	if kv == "" {
 		return nil

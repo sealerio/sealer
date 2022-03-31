@@ -504,15 +504,15 @@ func (fs *filesystem) setImageMetadata(name string, metadata *types.ManifestDesc
 	}
 	var changed bool
 	manifestList, ok := imagesMap[name]
+	// first save
 	if !ok {
 		var ml []*types.ManifestDescriptor
 		ml = append(ml, metadata)
 		manifestList = &types.ManifestList{Manifests: ml}
 	} else {
+		// modify the existed image
 		for _, m := range manifestList.Manifests {
-			if m.Platform.OS == metadata.Platform.OS &&
-				m.Platform.Architecture == metadata.Platform.Architecture &&
-				m.Platform.Variant == metadata.Platform.Variant {
+			if platUtils.Matched(m.Platform, metadata.Platform) {
 				m.ID = metadata.ID
 				m.CREATED = metadata.CREATED
 				m.SIZE = metadata.SIZE
