@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -44,6 +45,9 @@ func Login(ctx context.Context, authConfig *types.AuthConfig) error {
 	modifiers := dockerRegistry.Headers(dockerversion.DockerUserAgent(ctx), nil)
 	base := dockerRegistry.NewTransport(nil)
 	base.TLSClientConfig.InsecureSkipVerify = os.Getenv("SKIP_TLS_VERIFY") == "true"
+	if err := dockerRegistry.ReadCertsDirectory(base.TLSClientConfig, filepath.Join(dockerRegistry.CertsDir(), endpointURL.Host)); err != nil {
+		return err
+	}
 	authTransport := transport.NewTransport(base, modifiers...)
 
 	credentialAuthConfig := *authConfig
