@@ -18,8 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alibaba/sealer/utils/platform"
-
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
@@ -56,7 +54,7 @@ func save(imageName string, image *v1.Image) error {
 	return imageStore.Save(*image)
 }
 
-func Merge(imageName string, images []string) error {
+func Merge(imageName string, images []string, platform *v1.Platform) error {
 	if imageName == "" {
 		return fmt.Errorf("target image name should not be nil")
 	}
@@ -75,7 +73,7 @@ func Merge(imageName string, images []string) error {
 
 	for _, ima := range images {
 		im := ima
-		plats := []*v1.Platform{platform.GetDefaultPlatform()}
+		plats := []*v1.Platform{platform}
 		eg.Go(func() error {
 			err = d.PullIfNotExist(im, plats)
 			if err != nil {
@@ -89,7 +87,7 @@ func Merge(imageName string, images []string) error {
 	}
 
 	for i, v := range images {
-		img, err := d.GetImageByName(v, platform.GetDefaultPlatform())
+		img, err := d.GetImageByName(v, platform)
 		if err != nil {
 			return err
 		}
