@@ -77,7 +77,7 @@ func (m MiddlewarePuller) Process(context, rootfs string) error {
 	return m.puller.SaveImagesWithAuth(ia, filepath.Join(rootfs, common.RegistryDirName), m.platform)
 }
 
-func NewMiddlewarePuller(platform v1.Platform) Middleware {
+func NewMiddlewarePuller(platform v1.Platform) Differ {
 	return MiddlewarePuller{
 		platform: platform,
 		puller:   save.DefaultImageSaver{},

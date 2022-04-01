@@ -117,7 +117,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 func (l *layerExecutor) checkMiddleware(buildContext string) error {
 	var (
 		rootfs      = l.rootfsMountInfo.GetMountTarget()
-		middlewares = []Middleware{NewMiddlewarePuller(l.platform)}
+		middlewares = []Differ{NewMiddlewarePuller(l.platform)}
 	)
 	logger.Info("start to check the middleware file")
 	eg, _ := errgroup.WithContext(context.Background())
@@ -135,19 +135,22 @@ func (l *layerExecutor) checkMiddleware(buildContext string) error {
 }
 
 func (l *layerExecutor) checkDiff(rawLayers []v1.Layer) error {
+	var (
+		rootfs  = l.rootfsMountInfo.GetMountTarget()
+		eg, _   = errgroup.WithContext(context.Background())
+		differs = []Differ{NewRegistryDiffer(l.platform), NewMetadataDiffer()}
+	)
 	mi, err := GetLayerMountInfo(rawLayers, l.buildType)
 	if err != nil {
 		return err
 	}
 	defer mi.CleanUp()
 
-	differs := []Differ{NewRegistryDiffer(l.platform), NewMetadataDiffer()}
-	eg, _ := errgroup.WithContext(context.Background())
-
+	srcPath := mi.GetMountTarget()
 	for _, diff := range differs {
 		d := diff
 		eg.Go(func() error {
-			err = d.Process(*mi, *l.rootfsMountInfo)
+			err = d.Process(srcPath, rootfs)
 			if err != nil {
 				return err
 			}

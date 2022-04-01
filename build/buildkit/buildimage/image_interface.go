@@ -15,7 +15,6 @@
 package buildimage
 
 import (
-	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
 
@@ -28,17 +27,12 @@ type Executor interface {
 type Differ interface {
 	// Process :diff changes by build-in handler and save to dst,like pull docker image from manifests or helm charts
 	//diff Metadata file changes save to the base layer.generally dst is the rootfs.
-	Process(src, dst buildinstruction.MountTarget) error
+	Process(srcPath, rootfs string) error
 }
 
 type ImageSetter interface {
 	// Set :fill up v1.image struct, like image annotations, platform and so on.
 	Set(*v1.Image) error
-}
-
-type Middleware interface {
-	// Process set data to cloud image ,but not to show in the image layer.
-	Process(context, rootfs string) error
 }
 
 type ImageSaver interface {

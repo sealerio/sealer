@@ -29,9 +29,7 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-var (
-	ArchReg = "${ARCH}"
-)
+const ArchReg = "${ARCH}"
 
 type CopyInstruction struct {
 	src       string

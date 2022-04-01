@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
@@ -40,6 +41,7 @@ var listCmd = &cobra.Command{
 	Args:    cobra.NoArgs,
 	Example: `sealer images`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+
 		ims, err := image.NewImageMetadataService()
 		if err != nil {
 			return err
@@ -49,20 +51,46 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		table := tablewriter.NewWriter(common.StdOut)
-		table.SetHeader([]string{imageName, imageID, imageArch, imageVariant, imageCreate, imageSize})
+
+		var summaries = make(ManifestList, 0, len(imageMetadataMap))
 
 		for name, manifestList := range imageMetadataMap {
 			for _, m := range manifestList.Manifests {
 				create := m.CREATED.Format(timeDefaultFormat)
 				size := formatSize(m.SIZE)
-				table.Append([]string{name, m.ID, m.Platform.Architecture, m.Platform.Variant, create, size})
+				summaries = append(summaries, ManifestDescriptor{
+					imageName:    name,
+					imageID:      m.ID,
+					imageArch:    m.Platform.Architecture,
+					imageVariant: m.Platform.Variant,
+					imageCreate:  create,
+					imageSize:    size})
 			}
 		}
+
+		sort.Sort(sort.Reverse(summaries))
+
+		table := tablewriter.NewWriter(common.StdOut)
+		table.SetHeader([]string{imageName, imageID, imageArch, imageVariant, imageCreate, imageSize})
+
+		for _, md := range summaries {
+			table.Append([]string{md.imageName, md.imageID, md.imageArch, md.imageVariant, md.imageCreate, md.imageSize})
+		}
+
 		table.Render()
 		return nil
 	},
 }
+
+type ManifestDescriptor struct {
+	imageName, imageID, imageArch, imageVariant, imageCreate, imageSize string
+}
+
+type ManifestList []ManifestDescriptor
+
+func (r ManifestList) Len() int           { return len(r) }
+func (r ManifestList) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r ManifestList) Less(i, j int) bool { return r[i].imageCreate < r[j].imageCreate }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
