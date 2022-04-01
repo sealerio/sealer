@@ -15,7 +15,10 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/alibaba/sealer/utils/platform"
 
 	"github.com/alibaba/sealer/pkg/image"
 
@@ -24,7 +27,12 @@ import (
 	"github.com/alibaba/sealer/logger"
 )
 
-var ImageName string
+type mergeFlag struct {
+	ImageName string
+	Platform  string
+}
+
+var mf *mergeFlag
 
 func getMergeCmd() *cobra.Command {
 	var mergeCmd = &cobra.Command{
@@ -38,7 +46,10 @@ merge images:
 		Args: cobra.MinimumNArgs(1),
 		RunE: getMergeFunc,
 	}
-	mergeCmd.Flags().StringVarP(&ImageName, "target-image", "t", "", "target image name")
+	mf = &mergeFlag{}
+	mergeCmd.Flags().StringVarP(&mf.ImageName, "target-image", "t", "", "target image name")
+	mergeCmd.Flags().StringVar(&mf.Platform, "platform", "", "set cloud image platform,if not set,keep same platform with runtime")
+
 	if err := mergeCmd.MarkFlagRequired("target-image"); err != nil {
 		logger.Error("failed to init flag target image: %v", err)
 	}
@@ -54,9 +65,17 @@ func getMergeFunc(cmd *cobra.Command, args []string) error {
 		}
 		images = append(images, imageName)
 	}
+	targetPlatform, err := platform.GetPlatform(mf.Platform)
+	if err != nil {
+		return err
+	}
 
-	ima := buildRaw(ImageName)
-	if err := image.Merge(ima, images); err != nil {
+	if len(targetPlatform) != 1 {
+		return fmt.Errorf("merge action only do the same plaform at a time")
+	}
+
+	ima := buildRaw(mf.ImageName)
+	if err := image.Merge(ima, images, targetPlatform[0]); err != nil {
 		return err
 	}
 	logger.Info("images %s is merged to %s", strings.Join(images, ","), ima)

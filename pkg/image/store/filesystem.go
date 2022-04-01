@@ -410,7 +410,13 @@ func (fs *filesystem) getImageByID(id string) (*v1.Image, error) {
 		image    v1.Image
 		filename = filepath.Join(fs.imageDBRoot, id+".yaml")
 	)
-	return &image, pkgutils.UnmarshalYamlFile(filename, &image)
+
+	err := pkgutils.UnmarshalYamlFile(filename, &image)
+	if err != nil {
+		return nil, fmt.Errorf("no such image id:%s", id)
+	}
+
+	return &image, nil
 }
 
 func (fs *filesystem) deleteImage(name string, platform *v1.Platform) error {
