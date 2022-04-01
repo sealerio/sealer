@@ -1,0 +1,8 @@
+metadata:
+  creationTimestamp: null
+spec:
+  masters: {}
+  network: {}
+  nodes: {}
+  ssh: {}
+status: {}

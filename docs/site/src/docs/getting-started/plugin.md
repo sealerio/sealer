@@ -120,7 +120,7 @@ kind: Plugin
 metadata:
   name: taint
 spec:
-  type: Taint
+  type: TAINT
   action: PreGuest
   data: |
     192.168.56.3 key1=value1:NoSchedule

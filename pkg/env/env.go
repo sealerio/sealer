@@ -59,7 +59,7 @@ func (p *processor) WrapperShell(host, shell string) string {
 	if env == "" {
 		return shell
 	}
-	return fmt.Sprintf("%s&& %s", env, shell)
+	return fmt.Sprintf("%s&& %s %s", env, env, shell)
 }
 
 func (p *processor) RenderAll(host, dir string) error {
