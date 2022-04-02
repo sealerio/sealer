@@ -9,6 +9,7 @@ github.com/Masterminds/goutils
 ## explicit
 github.com/Masterminds/semver/v3
 # github.com/Masterminds/sprig/v3 v3.2.2
+## explicit
 github.com/Masterminds/sprig/v3
 # github.com/Microsoft/go-winio v0.4.17
 github.com/Microsoft/go-winio

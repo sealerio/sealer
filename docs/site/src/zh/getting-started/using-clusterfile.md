@@ -319,6 +319,7 @@ echo $docker_dir ${ips[@]}
 
 ### 支持Env渲染
 
+支持[sprig](http://masterminds.github.io/sprig/) 模版函数。
 本案例展示如何使用 env 设置dashboard服务目标端口
 
 dashboard.yaml.tmpl:
