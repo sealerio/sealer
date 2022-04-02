@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
+	"github.com/alibaba/sealer/build/buildinstruction"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -30,13 +30,12 @@ import (
 	"github.com/alibaba/sealer/utils/mount"
 	"helm.sh/helm/v3/pkg/chartutil"
 
-	"github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/parser"
 	"sigs.k8s.io/yaml"
 )
 
-// InitImageSpec init default Image metadata
-func InitImageSpec(kubefile string) (*v1.Image, error) {
+// initImageSpec init default Image metadata
+func initImageSpec(kubefile string) (*v1.Image, error) {
 	kubeFile, err := utils.ReadAll(kubefile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load kubefile: %v", err)
@@ -55,7 +54,7 @@ func InitImageSpec(kubefile string) (*v1.Image, error) {
 	return rawImage, nil
 }
 
-func LoadClusterFile(path string) (*v2.Cluster, error) {
+func loadClusterFile(path string) (*v2.Cluster, error) {
 	var cluster v2.Cluster
 	rawClusterFile, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
@@ -83,45 +82,6 @@ func setClusterFileToImage(cluster *v2.Cluster, image *v1.Image) error {
 	}
 	image.Annotations[common.ImageAnnotationForClusterfile] = string(clusterData)
 	return nil
-}
-
-// GetRawClusterFile GetClusterFile from user build context or from base image
-func GetRawClusterFile(baseImage string, layers []v1.Layer) (string, error) {
-	if baseImage == common.ImageScratch {
-		data, err := ioutil.ReadFile(filepath.Join("etc", common.DefaultClusterFileName))
-		if err != nil {
-			return "", err
-		}
-		if string(data) == "" {
-			return "", fmt.Errorf("ClusterFile content is empty")
-		}
-		return string(data), nil
-	}
-
-	// find cluster file from context
-	if clusterFile, err := getClusterFileFromContext(layers); err == nil {
-		return clusterFile, nil
-	}
-
-	// find cluster file from base image
-	return image.GetClusterFileFromImage(baseImage)
-}
-
-func getClusterFileFromContext(layers []v1.Layer) (string, error) {
-	for i := range layers {
-		layer := layers[i]
-		if layer.Type == common.COPYCOMMAND && strings.Fields(layer.Value)[0] == common.DefaultClusterFileName {
-			clusterFile, err := utils.ReadAll(strings.Fields(layer.Value)[0])
-			if err != nil {
-				return "", err
-			}
-			if string(clusterFile) == "" {
-				return "", fmt.Errorf("ClusterFile is empty")
-			}
-			return string(clusterFile), nil
-		}
-	}
-	return "", fmt.Errorf("failed to get ClusterFile from Context")
 }
 
 func getKubeVersion(rootfs string) string {
@@ -183,21 +143,9 @@ func trimQuotes(s string) string {
 //1, already mount: runtime docker registry mount info,just get related mount info.
 //2, already mount: if exec build cmd failed and return ,need to collect related old mount info
 //3, new mount: just mount and return related info.
-func GetLayerMountInfo(baseLayers []v1.Layer, buildType string) (*buildinstruction.MountTarget, error) {
-	filter := map[string]string{
-		common.LocalBuild: "rootfs",
-		common.LiteBuild:  "tmp",
-	}
-	mountInfos := mount.GetBuildMountInfo(filter[buildType])
-
-	if buildType == common.LocalBuild {
-		if len(mountInfos) != 1 {
-			return nil, fmt.Errorf("multi rootfs mounted")
-		}
-		info := mountInfos[0]
-		return buildinstruction.NewMountTarget(info.Target, info.Upper, info.Lowers)
-	}
-
+func GetLayerMountInfo(baseLayers []v1.Layer) (*buildinstruction.MountTarget, error) {
+	var filterArgs = "tmp"
+	mountInfos := mount.GetBuildMountInfo(filterArgs)
 	lowerLayers := buildinstruction.GetBaseLayersPath(baseLayers)
 	for _, info := range mountInfos {
 		// if info.Lowers equal lowerLayers,means image already mounted.

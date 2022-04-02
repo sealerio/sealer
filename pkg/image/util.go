@@ -16,22 +16,16 @@ package image
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/opencontainers/go-digest"
 
-	"github.com/alibaba/sealer/utils/platform"
-
 	"sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/mount"
 )
 
 // GetImageLayerDirs return image hash list
@@ -44,17 +38,6 @@ func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 		}
 	}
 	return
-}
-
-// GetClusterFileFromImage retrieves ClusterFile From image.
-func GetClusterFileFromImage(imageName string) (string, error) {
-	plat := platform.GetDefaultPlatform()
-	clusterFile, err := GetClusterFileFromImageManifest(imageName, plat)
-	if err != nil {
-		return GetFileFromBaseImage(imageName, plat, "etc", common.DefaultClusterFileName)
-	}
-
-	return clusterFile, nil
 }
 
 // GetClusterFileFromImageManifest retrieve ClusterFiles from image manifest(image yaml).
@@ -93,64 +76,6 @@ func GetClusterFileFromImageManifest(imageName string, platform *v1.Platform) (s
 		return "", fmt.Errorf("ClusterFile is empty")
 	}
 	return clusterFile, nil
-}
-
-// GetFileFromBaseImage retrieve file from base image
-func GetFileFromBaseImage(imageName string, platform *v1.Platform, paths ...string) (string, error) {
-	mountTarget, _ := utils.MkTmpdir()
-	mountUpper, _ := utils.MkTmpdir()
-	defer func() {
-		utils.CleanDirs(mountTarget, mountUpper)
-	}()
-
-	imgSvc, err := NewImageService()
-	if err != nil {
-		return "", err
-	}
-	plats := []*v1.Platform{platform}
-	if err := imgSvc.PullIfNotExist(imageName, plats); err != nil {
-		return "", err
-	}
-
-	driver := mount.NewMountDriver()
-	is, err := store.NewDefaultImageStore()
-	if err != nil {
-		return "", fmt.Errorf("failed to init image store: %s", err)
-	}
-	image, err := is.GetByName(imageName, platform)
-	if err != nil {
-		return "", err
-	}
-
-	layers, err := GetImageLayerDirs(image)
-	if err != nil {
-		return "", err
-	}
-
-	if err := driver.Mount(mountTarget, mountUpper, layers...); err != nil {
-		return "", err
-	}
-
-	defer func() {
-		if err := driver.Unmount(mountTarget); err != nil {
-			logger.Warn(err)
-		}
-	}()
-	var subPath []string
-	subPath = append(subPath, mountTarget)
-	subPath = append(subPath, paths...)
-	clusterFile := filepath.Join(subPath...)
-
-	data, err := ioutil.ReadFile(filepath.Clean(clusterFile))
-	if err != nil {
-		return "", err
-	}
-
-	if string(data) == "" {
-		return "", fmt.Errorf("ClusterFile is empty")
-	}
-
-	return string(data), nil
 }
 
 func GetYamlByImageID(id string) (string, error) {

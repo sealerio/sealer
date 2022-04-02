@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alibaba/sealer/build/buildkit/buildinstruction"
+	"github.com/alibaba/sealer/build/buildinstruction"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/image"
@@ -34,7 +34,6 @@ const (
 )
 
 type layerExecutor struct {
-	buildType       string
 	platform        v1.Platform
 	baseLayers      []v1.Layer
 	layerStore      store.LayerStore
@@ -53,7 +52,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 		return []v1.Layer{}, err
 	}
 
-	execCtx = buildinstruction.NewExecContext(l.buildType, ctx.BuildContext, ctx.BuildArgs,
+	execCtx = buildinstruction.NewExecContext(ctx.BuildContext, ctx.BuildArgs,
 		ctx.UseCache, l.layerStore)
 
 	for i := 0; i < len(rawLayers); i++ {
@@ -61,7 +60,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 		layer := &rawLayers[i]
 		logger.Info("run build layer: %s %s", layer.Type, layer.Value)
 
-		if l.buildType == common.LiteBuild && layer.Type == common.CMDCOMMAND {
+		if layer.Type == common.CMDCOMMAND {
 			continue
 		}
 
@@ -140,7 +139,7 @@ func (l *layerExecutor) checkDiff(rawLayers []v1.Layer) error {
 		eg, _   = errgroup.WithContext(context.Background())
 		differs = []Differ{NewRegistryDiffer(l.platform), NewMetadataDiffer()}
 	)
-	mi, err := GetLayerMountInfo(rawLayers, l.buildType)
+	mi, err := GetLayerMountInfo(rawLayers)
 	if err != nil {
 		return err
 	}
@@ -180,8 +179,8 @@ func (l *layerExecutor) Cleanup() error {
 	return nil
 }
 
-func NewLayerExecutor(baseLayers []v1.Layer, buildType string, platform v1.Platform) (Executor, error) {
-	mountInfo, err := GetLayerMountInfo(baseLayers, buildType)
+func NewLayerExecutor(baseLayers []v1.Layer, platform v1.Platform) (Executor, error) {
+	mountInfo, err := GetLayerMountInfo(baseLayers)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +190,6 @@ func NewLayerExecutor(baseLayers []v1.Layer, buildType string, platform v1.Platf
 	}
 
 	return &layerExecutor{
-		buildType:       buildType,
 		baseLayers:      baseLayers,
 		layerStore:      layerStore,
 		rootfsMountInfo: mountInfo,
@@ -201,7 +199,7 @@ func NewLayerExecutor(baseLayers []v1.Layer, buildType string, platform v1.Platf
 
 // NewBuildImageByKubefile init image spec by kubefile and check if base image exists ,if not will pull it.
 func NewBuildImageByKubefile(kubefileName string, platform v1.Platform) (*v1.Image, []v1.Layer, error) {
-	rawImage, err := InitImageSpec(kubefileName)
+	rawImage, err := initImageSpec(kubefileName)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -24,7 +24,6 @@ import (
 )
 
 type imageSaver struct {
-	buildType  string
 	platform   v1.Platform
 	imageStore store.ImageStore
 }
@@ -39,12 +38,12 @@ func (i imageSaver) Save(image *v1.Image) error {
 		return fmt.Errorf("failed to save image, err: %v", err)
 	}
 
-	logger.Info("save image %s success", image.Name)
+	logger.Info("save image %s %s success", i.platform.Architecture, image.Name)
 	return nil
 }
 
 func (i imageSaver) setImageAttribute(image *v1.Image) error {
-	mi, err := GetLayerMountInfo(image.Spec.Layers, i.buildType)
+	mi, err := GetLayerMountInfo(image.Spec.Layers)
 	if err != nil {
 		return err
 	}
@@ -69,13 +68,12 @@ func (i imageSaver) save(image *v1.Image) error {
 	return i.imageStore.Save(*image)
 }
 
-func NewImageSaver(buildType string, platform v1.Platform) (ImageSaver, error) {
+func NewImageSaver(platform v1.Platform) (ImageSaver, error) {
 	imageStore, err := store.NewDefaultImageStore()
 	if err != nil {
 		return nil, err
 	}
 	return imageSaver{
-		buildType:  buildType,
 		imageStore: imageStore,
 		platform:   platform,
 	}, nil

@@ -12,29 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package charts
+package manifest
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 
-	"github.com/alibaba/sealer/build/buildkit/layerutils"
+	"github.com/alibaba/sealer/build/layerutils"
 )
 
-type Charts struct{}
+type Manifests struct{}
 
-// ListImages List all the containers images in helm charts
-func (charts *Charts) ListImages(chartPath string) ([]string, error) {
+// ListImages List all the containers images in manifest files
+func (manifests *Manifests) ListImages(yamlFile string) ([]string, error) {
 	var list []string
-	images, err := GetImageList(chartPath)
+
+	yamlBytes, err := ioutil.ReadFile(filepath.Clean(yamlFile))
 	if err != nil {
-		return list, fmt.Errorf("get images failed,chart path:%s, err: %s", chartPath, err)
+		return nil, fmt.Errorf("read file failed %s", err)
 	}
+
+	images := layerutils.DecodeImages(string(yamlBytes))
 	if len(images) != 0 {
 		list = append(list, images...)
 	}
+
+	if err != nil {
+		return list, fmt.Errorf("filepath walk failed %s", err)
+	}
+
 	return list, nil
 }
 
-func NewCharts() (layerutils.Interface, error) {
-	return &Charts{}, nil
+func NewManifests() (layerutils.Interface, error) {
+	return &Manifests{}, nil
 }
