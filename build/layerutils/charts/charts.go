@@ -12,23 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package testing
+package charts
 
 import (
-	"testing"
+	"fmt"
 
-	"github.com/alibaba/sealer/build"
+	"github.com/alibaba/sealer/build/layerutils"
 )
 
-func TestCloudBuilder_Build(t *testing.T) {
-	conf := &build.Config{}
-	builder, err := build.NewBuilder(conf)
-	if err != nil {
-		t.Error(err)
-	}
+type Charts struct{}
 
-	err = builder.Build("dashboard-test:latest", ".", "kubefile")
+// ListImages List all the containers images in helm charts
+func (charts *Charts) ListImages(chartPath string) ([]string, error) {
+	var list []string
+	images, err := GetImageList(chartPath)
 	if err != nil {
-		t.Errorf("exec build error %v\n", err)
+		return list, fmt.Errorf("get images failed,chart path:%s, err: %s", chartPath, err)
 	}
+	if len(images) != 0 {
+		list = append(list, images...)
+	}
+	return list, nil
+}
+
+func NewCharts() (layerutils.Interface, error) {
+	return &Charts{}, nil
 }

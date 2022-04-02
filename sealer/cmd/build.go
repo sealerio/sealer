@@ -43,17 +43,11 @@ var buildConfig *BuildFlag
 var buildCmd = &cobra.Command{
 	Use:   "build [flags] PATH",
 	Short: "Build an cloud image from a Kubefile",
-	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.8 [--mode cloud|container|lite] [--no-cache]",
+	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.8 [--base=false] [--no-cache]",
 	Example: `the current path is the context path, default build type is lite and use build cache
 
-lite build:
+build:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 .
-
-container build:
-	sealer build -f Kubefile -t my-kubernetes:1.19.8 -m container .
-
-cloud build:
-	sealer build -f Kubefile -t my-kubernetes:1.19.8 --mode cloud .
 
 build without cache:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .

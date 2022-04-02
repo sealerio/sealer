@@ -26,7 +26,6 @@ import (
 
 type ExecContext struct {
 	BuildContext string
-	BuildType    string
 	BuildArgs    map[string]string
 	//cache flag,will change for each layer ctx
 	ContinueCache bool
@@ -64,12 +63,11 @@ func NewInstruction(ic InstructionContext) (Interface, error) {
 	return nil, nil
 }
 
-func NewExecContext(buildType, buildContext string, buildArgs map[string]string, useCache bool, layerStore store.LayerStore) ExecContext {
+func NewExecContext(buildContext string, buildArgs map[string]string, useCache bool, layerStore store.LayerStore) ExecContext {
 	if !useCache {
 		return ExecContext{
 			LayerStore:   layerStore,
 			BuildContext: buildContext,
-			BuildType:    buildType,
 			BuildArgs:    buildArgs,
 		}
 	}
@@ -87,7 +85,6 @@ func NewExecContext(buildType, buildContext string, buildArgs map[string]string,
 	return ExecContext{
 		LayerStore:    layerStore,
 		BuildContext:  buildContext,
-		BuildType:     buildType,
 		BuildArgs:     buildArgs,
 		CacheSvc:      chainSvc,
 		ParentID:      cache.ChainID(""),

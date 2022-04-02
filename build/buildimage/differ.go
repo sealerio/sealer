@@ -23,8 +23,8 @@ import (
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
-	"github.com/alibaba/sealer/build/buildkit/layerutils/charts"
-	manifest "github.com/alibaba/sealer/build/buildkit/layerutils/manifests"
+	"github.com/alibaba/sealer/build/layerutils/charts"
+	manifest "github.com/alibaba/sealer/build/layerutils/manifests"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/image/save"
 	"github.com/alibaba/sealer/pkg/runtime"

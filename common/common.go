@@ -103,13 +103,6 @@ const (
 )
 
 const (
-	LocalBuild     = "local"
-	LiteBuild      = "lite"
-	ContainerBuild = "container"
-	AliCloudBuild  = "cloud"
-)
-
-const (
 	JoinSubCmd   = "join"
 	DeleteSubCmd = "delete"
 )

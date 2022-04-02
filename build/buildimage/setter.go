@@ -48,7 +48,7 @@ func (a annotation) setClusterFile(ima *v1.Image) error {
 	}
 	// if rootfs has Clusterfile, load it.
 	if utils.IsExist(filePath) {
-		cluster, err = LoadClusterFile(filePath)
+		cluster, err = loadClusterFile(filePath)
 		if err != nil {
 			return fmt.Errorf("failed to load clusterfile, err: %v", err)
 		}
