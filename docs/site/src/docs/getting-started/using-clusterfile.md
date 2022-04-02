@@ -321,6 +321,7 @@ In this case, master ENV is `/data/docker`, node ENV is by default `/var/lib/doc
 
 ### Env render support
 
+support [sprig](http://masterminds.github.io/sprig/) template functions.
 This case show you how to use env to set dashboard service target port
 
 dashboard.yaml.tmpl:
