@@ -23,7 +23,7 @@ import (
 
 var pruneCmd = &cobra.Command{
 	Use:     "prune",
-	Short:   "prune",
+	Short:   "prune sealer data dir",
 	Args:    cobra.NoArgs,
 	Example: `sealer prune`,
 	RunE: func(cmd *cobra.Command, args []string) error {

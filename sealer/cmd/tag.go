@@ -23,7 +23,7 @@ import (
 
 var tagCmd = &cobra.Command{
 	Use:     "tag",
-	Short:   "tag IMAGE[:TAG] TARGET_IMAGE[:TAG]",
+	Short:   "tag a image as a new one",
 	Example: `sealer tag kubernetes:v1.19.8 registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
 	Args:    cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {

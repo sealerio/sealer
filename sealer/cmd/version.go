@@ -27,7 +27,7 @@ var shortPrint bool
 
 var versionCmd = &cobra.Command{
 	Use:     "version",
-	Short:   "version",
+	Short:   "show sealer version",
 	Args:    cobra.NoArgs,
 	Example: `sealer version`,
 	RunE: func(cmd *cobra.Command, args []string) error {

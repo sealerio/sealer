@@ -39,11 +39,11 @@ var save saveFlag
 // saveCmd represents the save command
 var saveCmd = &cobra.Command{
 	Use:   "save",
-	Short: "save image",
-	Long:  `save image to a file `,
+	Short: "save image to a tar file",
+	Long:  `sealer save -o [output file name] [image name]`,
 	Example: `
-sealer save -o [output file name] [image name]
 save kubernetes:v1.19.8 image to kubernetes.tar file:
+
 sealer save -o kubernetes.tar kubernetes:v1.19.8`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

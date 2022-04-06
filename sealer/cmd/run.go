@@ -34,22 +34,19 @@ var runCmd = &cobra.Command{
 	Short: "run a cluster with images and arguments",
 	Long:  `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`,
 	Example: `
-create cluster by cloud provider, just set the number of masters or nodes,and default provider is ALI_CLOUD:
-	sealer run kubernetes:v1.19.8 --masters 3 --nodes 3 --provider ALI_CLOUD
-
-create cluster by docker container, set the number of masters or nodes, and set provider "CONTAINER":
-	sealer run kubernetes:v1.19.8 --masters 3 --nodes 3 --provider CONTAINER
-
-create cluster to your baremetal server, appoint the iplist:
+create cluster to your bare metal server, appoint the iplist:
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 		--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
-  Specify server SSH port :
+
+specify server SSH port :
   All servers use the same SSH port (default port: 22)：
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --port 24 --passwd xxx
+
   Different SSH port numbers exist：
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3:23,192.168.0.4:24 \
 	--nodes 192.168.0.5:25,192.168.0.6:25,192.168.0.7:27 --passwd xxx
+
 create a cluster with custom environment variables:
 	sealer run -e DashBoardPort=8443 mydashboard:latest  --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx

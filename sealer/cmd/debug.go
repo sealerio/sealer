@@ -24,7 +24,7 @@ var debugOptions = debug.NewDebugOptions()
 
 var debugCommand = &cobra.Command{
 	Use:   "debug",
-	Short: "Creating debugging sessions for pods and nodes",
+	Short: "Create debugging sessions for pods and nodes",
 }
 
 func init() {

@@ -20,32 +20,6 @@
 4. 收集缓存的容器镜像。
 5. 清理环境，本地缓存registry的回收。
 
-#### cloud build
-
-基于云服务，自动化创建ecs并部署kubernetes集群并构建镜像，如果您要交付的环境涉及例如分布式存储这样的底层资源，建议使用此方式来进行构建。
-
-核心功能介绍
-
-1. 使用AKSK,启动云服务的基础资源,ECS,VPC等等。
-2. 使用ssh发送构建上下文以及sealer二进制，用于构建环境的准备。
-3. 远程执行ssh 命令，完成集群镜像的构建。
-4. 清理环境，云服务资源的回收。
-
-#### container build
-
-与cloud build 原理类似，通过启动多个docker容器作为kubernetes节点（模拟cloud模式的ECS）,从而启动一个kubernetes集群的方式来进行构建。
-
-#### local build
-
-实现对cloud build模式的本地化构建，以及对无需收集docker 镜像的构建方式的支持，例如from scratch的构建。
-
-核心功能介绍
-
-1. 基础集群镜像的拉取和挂载。
-2. 镜像层接口初始化，完成构建指令的执行。
-3. 收集缓存的容器镜像，包括layer层预处理的镜像以及对应的集群中pod的镜像。
-4. 完成集群镜像的存储。
-
 ### 接口定义
 
 `Build(name string, context string, kubefileName string) error`
