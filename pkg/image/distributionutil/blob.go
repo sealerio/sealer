@@ -17,7 +17,7 @@ package distributionutil
 import (
 	"context"
 
-	distribution "github.com/distribution/distribution/v3"
+	"github.com/distribution/distribution/v3"
 	"github.com/opencontainers/go-digest"
 )
 
