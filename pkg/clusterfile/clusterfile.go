@@ -16,6 +16,7 @@ package clusterfile
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/alibaba/sealer/pkg/runtime"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -31,6 +32,11 @@ type ClusterFile struct {
 	KubeConfig *runtime.KubeadmConfig
 	Plugins    []v1.Plugin
 }
+
+var (
+	clusterFile = &ClusterFile{}
+	once        sync.Once
+)
 
 type Interface interface {
 	PreProcessor
@@ -56,6 +62,13 @@ func (c *ClusterFile) GetKubeadmConfig() *runtime.KubeadmConfig {
 	return c.KubeConfig
 }
 
-func NewClusterFile(path string) Interface {
-	return &ClusterFile{path: path}
+func NewClusterFile(path string) (i Interface, err error) {
+	if path == "" {
+		return clusterFile, nil
+	}
+	once.Do(func() {
+		clusterFile.path = path
+		err = clusterFile.Process()
+	})
+	return clusterFile, err
 }

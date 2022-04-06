@@ -45,31 +45,26 @@ type ScaleProcessor struct {
 	IsScaleUp       bool
 }
 
-// Execute :according to the different of desired cluster to scale cluster.
-func (s *ScaleProcessor) Execute(cluster *v2.Cluster) error {
-	/*
-		1. master scale up + master scale up :support
-		2. master scale down + master scale down :support
-		3. master scale up + node scale down: not support
-		4. master scale up + master scale down: not support
-	*/
+func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, s.KubeadmConfig)
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
 	}
 	s.Runtime = runTime
 	s.Config = config.NewConfiguration(cluster)
-	if err := s.initPlugin(cluster); err != nil {
-		return err
-	}
 	if s.IsScaleUp {
-		err = utils.SaveClusterInfoToFile(cluster, cluster.Name)
-		if err != nil {
+		if err = utils.SaveClusterInfoToFile(cluster, cluster.Name); err != nil {
 			return err
 		}
-		return s.ScaleUp(cluster)
 	}
-	return s.ScaleDown(cluster)
+	return s.initPlugin(cluster)
+}
+
+func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+	if s.IsScaleUp {
+		return s.ScaleUpPipeLine()
+	}
+	return s.ScaleDownPipeLine()
 }
 
 func (s *ScaleProcessor) ScaleUp(cluster *v2.Cluster) error {
@@ -103,6 +98,7 @@ func (s *ScaleProcessor) ScaleDown(cluster *v2.Cluster) error {
 func (s *ScaleProcessor) ScaleUpPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
+		s.PreProcess,
 		s.RunConfig,
 		s.MountRootfs,
 		s.GetPhasePluginFunc(plugin.PhasePreJoin),
@@ -115,6 +111,7 @@ func (s *ScaleProcessor) ScaleUpPipeLine() ([]func(cluster *v2.Cluster) error, e
 func (s *ScaleProcessor) ScaleDownPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
+		s.PreProcess,
 		s.Delete,
 		s.ApplyCleanPlugin,
 		s.UnMountRootfs,
@@ -177,7 +174,7 @@ func (s *ScaleProcessor) ApplyCleanPlugin(cluster *v2.Cluster) error {
 	return plugins.Run(cluster.GetAllIPList(), plugin.PhasePostClean)
 }
 
-func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Interface, error) {
+func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Processor, error) {
 	var up bool
 	// only scale up or scale down at a time
 	if len(masterToJoin) > 0 || len(nodeToJoin) > 0 {

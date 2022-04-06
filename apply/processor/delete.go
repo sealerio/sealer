@@ -38,34 +38,19 @@ type DeleteProcessor struct {
 	ClusterFile       clusterfile.Interface
 }
 
-// Execute :according to the different of desired cluster to delete cluster.
-func (d DeleteProcessor) Execute(cluster *v2.Cluster) (err error) {
+func (d DeleteProcessor) Reset(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, d.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
 	}
 
-	err = runTime.Reset()
-	if err != nil {
-		return err
-	}
-
-	pipLine, err := d.GetPipeLine()
-	if err != nil {
-		return err
-	}
-
-	for _, f := range pipLine {
-		if err = f(cluster); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return runTime.Reset()
 }
+
 func (d DeleteProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
+		d.Reset,
 		d.ApplyCleanPlugin,
 		d.UnMountRootfs,
 		d.UnMountImage,
@@ -107,7 +92,7 @@ func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
 	return cloudfilesystem.CleanFilesystem(cluster.Name)
 }
 
-func NewDeleteProcessor(clusterFile clusterfile.Interface) (Interface, error) {
+func NewDeleteProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 	mounter, err := filesystem.NewCloudImageMounter()
 	if err != nil {
 		return nil, err

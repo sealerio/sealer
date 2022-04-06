@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gen
+package processor
 
 import (
 	"fmt"
@@ -24,7 +24,6 @@ import (
 
 	"github.com/alibaba/sealer/utils/ssh"
 
-	"github.com/alibaba/sealer/apply/processor"
 	"github.com/alibaba/sealer/pkg/filesystem"
 	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
 	"github.com/alibaba/sealer/pkg/image"
@@ -57,7 +56,7 @@ type GenerateProcessor struct {
 	ImageMounter cloudimage.Interface
 }
 
-func NewGenerateProcessor() (processor.Interface, error) {
+func NewGenerateProcessor() (Processor, error) {
 	imageMounter, err := filesystem.NewCloudImageMounter()
 	if err != nil {
 		return nil, err
@@ -72,27 +71,11 @@ func NewGenerateProcessor() (processor.Interface, error) {
 	}, nil
 }
 
-func (g *GenerateProcessor) Execute(cluster *v2.Cluster) error {
-	fileName := fmt.Sprintf("%s/.sealer/%s/Clusterfile", common.GetHomeDir(), cluster.Name)
-	err := utils.MarshalYamlToFile(fileName, cluster)
-	if err != nil {
-		return err
-	}
-
-	pipLine, err := g.GetPipeLine()
-	if err != nil {
-		return err
-	}
-
-	for _, f := range pipLine {
-		if err = f(cluster); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (g *GenerateProcessor) init(cluster *v2.Cluster) error {
+	fileName := fmt.Sprintf("%s/.sealer/%s/Clusterfile", common.GetHomeDir(), cluster.Name)
+	if err := utils.MarshalYamlToFile(fileName, cluster); err != nil {
+		return err
+	}
 	runt, err := runtime.NewDefaultRuntime(cluster, nil)
 	if err != nil {
 		return err

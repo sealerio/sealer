@@ -31,25 +31,10 @@ type InstallProcessor struct {
 	Plugins     plugin.Plugins
 }
 
-// Execute :according to the different of desired cluster to install app on cluster.
-func (i InstallProcessor) Execute(cluster *v2.Cluster) error {
+func (i InstallProcessor) Process(cluster *v2.Cluster) error {
 	i.Config = config.NewConfiguration(cluster)
 	i.Plugins = plugin.NewPlugins(cluster)
-	if err := i.initPlugin(); err != nil {
-		return err
-	}
-	pipLine, err := i.GetPipeLine()
-	if err != nil {
-		return err
-	}
-
-	for _, f := range pipLine {
-		if err = f(cluster); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return i.initPlugin()
 }
 
 func (i InstallProcessor) initPlugin() error {
@@ -59,6 +44,7 @@ func (i InstallProcessor) initPlugin() error {
 func (i InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
+		i.Process,
 		i.RunConfig,
 		i.MountRootfs,
 		i.GetPhasePluginFunc(plugin.PhasePreGuest),
@@ -97,7 +83,7 @@ func (i InstallProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 	}
 }
 
-func NewInstallProcessor(clusterFile clusterfile.Interface) (Interface, error) {
+func NewInstallProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 	gs, err := guest.NewGuestManager()
 	if err != nil {
 		return nil, err

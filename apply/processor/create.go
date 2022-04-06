@@ -45,7 +45,7 @@ type CreateProcessor struct {
 	Plugins           plugin.Plugins
 }
 
-func (c *CreateProcessor) Execute(cluster *v2.Cluster) error {
+func (c *CreateProcessor) PreProcess(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, c.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
@@ -59,22 +59,13 @@ func (c *CreateProcessor) Execute(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	pipLine, err := c.GetPipeLine()
-	if err != nil {
-		return err
-	}
-
-	for _, f := range pipLine {
-		if err = f(cluster); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
+
 func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
+		c.PreProcess,
 		c.GetPhasePluginFunc(plugin.PhaseOriginally),
 		c.MountImage,
 		c.RunConfig,
@@ -167,7 +158,7 @@ func (c *CreateProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 	}
 }
 
-func NewCreateProcessor(clusterFile clusterfile.Interface) (Interface, error) {
+func NewCreateProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 	imgSvc, err := image.NewImageService()
 	if err != nil {
 		return nil, err
