@@ -1,5 +1,15 @@
 # Build CloudImage
 
+## Build prerequisite
+
+We use linux overlay to cache the build differ content between each layer. If your machine do not support such
+feature,will build failed. you can run below cmd to check it. If not empty, just go ahead.
+
+```shell
+[root@build ~]# lsmod | grep overlay
+overlay                91659  1 
+```
+
 ## Build command line
 
 You can run the build command line after sealer installed. The current path is the context path ,default build type is
