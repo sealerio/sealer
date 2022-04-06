@@ -216,7 +216,7 @@ func (pbs *proxyBlobStore) Put(ctx context.Context, mediaType string, p []byte) 
 
 // Unsupported functions
 func (pbs *proxyBlobStore) Create(ctx context.Context, options ...distribution.BlobCreateOption) (distribution.BlobWriter, error) {
-	return nil, distribution.ErrUnsupported
+	return pbs.localStore.Create(ctx, options...)
 }
 
 func (pbs *proxyBlobStore) Resume(ctx context.Context, id string) (distribution.BlobWriter, error) {

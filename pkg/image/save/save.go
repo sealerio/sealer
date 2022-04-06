@@ -15,10 +15,10 @@
 package save
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -341,11 +341,23 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 			}()
 
 			//store to local filesystem
-			content, err := ioutil.ReadAll(preader)
+			//content, err := ioutil.ReadAll(preader)
+			bf := bufio.NewReader(preader)
 			if err != nil {
 				return fmt.Errorf("blob %s content error: %v", tmpBlob, err)
 			}
-			_, err = blobStore.Put(is.ctx, "", content)
+			bw, err := blobStore.Create(is.ctx)
+			if err != nil {
+				return fmt.Errorf("failed to create blob store writer: %v", err)
+			}
+			if _, err = bf.WriteTo(bw); err != nil {
+				return fmt.Errorf("failed to write blob to service: %v", err)
+			}
+			_, err = bw.Commit(is.ctx, distribution.Descriptor{
+				MediaType: "",
+				Size:      bw.Size(),
+				Digest:    tmpBlob,
+			})
 			if err != nil {
 				return fmt.Errorf("store blob %s to local error: %v", tmpBlob, err)
 			}
