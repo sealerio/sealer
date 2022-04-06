@@ -7,7 +7,7 @@ feature,will build failed. you can run below cmd to check it. If not empty, just
 
 ```shell
 [root@build ~]# lsmod | grep overlay
-overlay                91659  1 
+overlay                91659  1
 ```
 
 ## Build command line

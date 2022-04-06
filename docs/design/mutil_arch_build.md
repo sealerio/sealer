@@ -28,7 +28,7 @@ build context tree:
 sealer build cmd line:
 
 ```shell
-sealer build --platform linux/arm64/v8,linux/amd64 -t kubernetes-multi-arch:v1.19.8
+sealer build --platform linux/arm64,linux/amd64 -t kubernetes-multi-arch:v1.19.8
 ```
 
 ### Cloud image manifests list
@@ -222,14 +222,14 @@ manifests file and one image_metadata.yaml :
 
 ## Inspect cloud image
 
-`sealer inspect kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
+`sealer inspect b934b329d0e6f7abc4c37425a99a4683852e1308225ada4c1941f5df0d9a19f0`
 
 ## Delete cloud image
 
 if not specify the platform will delete them all. If you only want to delete amd64 images of `kubernetes-multi-arch:
 v1.19.8`.
 
-`sealer delete kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
+`sealer rmi kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
 
 ## Pull cloud image
 
@@ -238,3 +238,9 @@ v1.19.8`.
 ## Push cloud image
 
 `sealer push kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
+
+## Merge cloud image
+
+if not specify platform will use default arch with runtime. if specify platform, will merge them all.
+
+`sealer merge app1:v1 app2:v2 -t new:v1 --platform linux/amd64`
