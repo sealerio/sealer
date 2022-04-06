@@ -29,7 +29,7 @@ var imageSrc string
 // loadCmd represents the load command
 var loadCmd = &cobra.Command{
 	Use:     "load",
-	Short:   "load image",
+	Short:   "load image from a tar file",
 	Long:    `Load an image from a tar archive`,
 	Example: `sealer load -i kubernetes.tar`,
 	Args:    cobra.NoArgs,

@@ -1,5 +1,15 @@
 # Build CloudImage
 
+## Build prerequisite
+
+We use linux overlay to cache the build differ content between each layer. If your machine do not support such
+feature,will build failed. you can run below cmd to check it. If not empty, just go ahead.
+
+```shell
+[root@build ~]# lsmod | grep overlay
+overlay                91659  1
+```
+
 ## Build command line
 
 You can run the build command line after sealer installed. The current path is the context path ,default build type is
@@ -20,6 +30,7 @@ Flags:
   -f, --kubefile string     kubefile filepath (default "Kubefile")
   -m, --mode string         cluster image build type, default is lite (default "lite")
       --no-cache            build without cache
+      --platform string     set cloud image platform,if not set,keep same platform with runtime
 ```
 
 ## Build instruction
@@ -120,47 +131,9 @@ Install mysql,redis and another saas application use one CMD command.
 
 ## Build type
 
-Currently, sealer build supports three build approaches for different requirement scenarios.
+Currently, sealer build only supports lite build for different requirement scenarios.
 
-### 1.cloud build mode
-
-The default build type. Based on cloud (currently only supported by Ali Cloud, welcome to contribute other cloud
-providers), sealer can automatically create infra resources, deploy Kubernetes cluster and build images. And cloud Build
-is the most compatible construction method and can basically meet the construction requirements of 100%. This build
-approach is recommended if you are delivering a cloud image that involves infra resources such as persistence storage.
-But the downside is that there is a cost associated with creating the cloud resources.
-
-For example ,log in to the image registry, and create the build context directory,then put the files required for
-building the image . In Cloud build, sealer will pull up the cluster and send the context to the cloud to build an image
-,also will push the image automatically.
-
-```shell
-[root@sea ~]# sealer login registry.cn-qingdao.aliyuncs.com -u username -p password
-[root@sea ~]# mkdir build && cd build && mv /root/recommended.yaml .
-[root@sea build]# vi Kubefile
-[root@sea build]# cat Kubefile
-FROM kubernetes:v1.19.8
-COPY recommended.yaml .
-CMD kubectl apply -f recommended.yaml
-[root@sea build]# ls
-Kubefile  recommended.yaml
-#start to build
-[root@sea build]# sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/my-cluster:v1.19.9 .
-```
-
-### 2.container build mode
-
-Similar to the cloud build mode, we can apply a Kubernetes cluster by starting multiple Docker containers as Kubernetes
-nodes ( simulating cloud ECS), which consume very few resources to complete the build instruction. The disadvantage of
-the container build is that some scenarios which rely on the infra resources is not supported very well.
-
-You can specify the build type with the '-m container' argument to use container build.
-
-```shell
-sealer build -m container -t my-cluster:v1.19.9 .
-```
-
-### 3.lite build mode
+### lite build mode
 
 The lightest build mode. By parsing the helm Chart, submitting the image list, parsing the kubernetes resource file
 under the manifest to build the cloud image. and this can be done without starting the cluster
@@ -200,10 +173,8 @@ locations:
 * `charts` directory: this directory contains the helm chart, and lite build will resolve the image address from the
   helm chart through the helm engine.
 
-You can specify the build type with the '-m lite' argument to use lite build.
-
 ```shell
-sealer build -m lite -t my-cluster:v1.19.9 .
+sealer build -t my-cluster:v1.19.9 .
 ```
 
 ## Build arg
@@ -290,27 +261,52 @@ sealer apply -f Clusterfile
 
 ### lite build:
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 .`
-
-### container build:
-
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 -m container .`
-
-### cloud build:
-
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 --mode cloud .`
+`sealer build -f Kubefile -t my-kubernetes:1.19.8`
 
 ### build without cache:
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .`
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache`
 
 ### build without base:
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 --base=false .`
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --base=false`
 
 ### build with args:
 
-`sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .`
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123`
+
+### build with different platform:
+
+`sealer build -f Kubefile -t my-kubernetes:1.19.8 --platform linux/arm64,linux/amd64`
+
+note that: if you want to copy different platform binary,refer to the examples
+
+Kubefile:
+
+```shell
+FROM kubernetes:v1.19.8
+COPY dashborad.yaml manifests
+COPY ${ARCH}/helm bin # copy binary file,make sure the build context have the same number platform binary files.
+COPY my-mysql charts
+CMD helm install my-mysql bitnami/mysql --version 8.8.26
+CMD kubectl apply -f manifests/dashborad.yaml
+```
+
+build context tree:
+
+```yaml
+├── amd64
+│   └── helm
+├── arm64
+│   └── helm
+├── dashboard.yaml
+├── Kubefile
+└── my-mysql
+```
+
+sealer build cmd line:
+
+`sealer build --platform linux/arm64,linux/amd64 -t kubernetes-multi-arch:v1.19.8`
 
 ### build with private image registry
 

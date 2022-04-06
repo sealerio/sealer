@@ -4,11 +4,9 @@
 
 ## 构建模式
 
-目前sealer支持三种构建模式：
+目前sealer支持以下构建模式：
 
 * 默认模式，lite build, 这种方式构建过程中不需要启动一个k8s集群，通过解析用户提供的yaml文件或者helm chart或者用户自定义的imageList来拉取集群中依赖的容易镜像
-* Cloud build，这种模式会在云上启动一个kubernetes集群，并在集群中执行Kubefile中的指令，依赖公有云，需要配置AK SK，好处是能发现CRD里面依赖的容器镜像。
-* container build, 这种模式也会起一个kubernetes集群，不过是通过docker模拟了虚拟机节点，可以在本地直接构建。
 
 ### lite build 模式
 
@@ -41,20 +39,6 @@ Build集群镜像：
 
 ```shell
 sealer build -t my-cluster:v1.19.9 .
-```
-
-### Cloud build 模式
-
-Cloud build的模式不会要求yaml文件或者helm chart等放的具体位置，因为会真的创建一个集群就可以在集群内获取到集群中依赖的容器镜像信息，所以可以直接Build:
-
-```shell script
-sealer build -m cloud -t my-cluster:v1.19.9 .
-```
-
-container build，无须指定AK SK也可build:
-
-```shell script
-sealer build -m container -t my-cluster:v1.19.8 .
 ```
 
 ## 私有镜像仓库

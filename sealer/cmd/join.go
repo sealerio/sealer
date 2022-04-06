@@ -30,13 +30,9 @@ var joinCmd = &cobra.Command{
 	Short: "join node to cluster",
 	Args:  cobra.NoArgs,
 	Example: `
-join to default cluster: merge
+join to default cluster:
 	sealer join --masters x.x.x.x --nodes x.x.x.x
     sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
-join to cluster by cloud provider, just set the number of masters or nodes:
-	sealer join --masters 2 --nodes 3
-specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
-    sealer join --masters 2 --nodes 3 -c my-cluster
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if clusterName == "" {
