@@ -36,9 +36,8 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 		}
 		path = filepath.Join(pa, path)
 	}
-	Clusterfile := clusterfile.NewClusterFile(path)
-
-	if err := Clusterfile.Process(); err != nil {
+	Clusterfile, err := clusterfile.NewClusterFile(path)
+	if err != nil {
 		return nil, err
 	}
 	imgSvc, err := image.NewImageService()
@@ -70,20 +69,8 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 }
 
 func NewApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
-	/*	switch cluster.Spec.Provider {
-		case common.AliCloud:
-			return NewAliCloudProvider(cluster)
-		case common.CONTAINER:
-			return NewAliCloudProvider(cluster)
-		}*/
 	return NewDefaultApplier(cluster)
 }
-
-/*func NewAliCloudProvider(cluster *v2.Cluster) (applydriver.Interface, error) {
-	return &applydriver.CloudApplier{
-		ClusterDesired: cluster,
-	}, nil
-}*/
 
 func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 	if cluster.Name == "" {

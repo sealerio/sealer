@@ -63,11 +63,9 @@ func (c *Applier) Delete() (err error) {
 func (c *Applier) Apply() (err error) {
 	// first time to init cluster
 	if c.ClusterFile == nil {
-		c.ClusterFile = clusterfile.NewClusterFile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
-		if path := c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName); path != "" {
-			if err = c.ClusterFile.Process(); err != nil {
-				return err
-			}
+		c.ClusterFile, err = clusterfile.NewClusterFile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+		if err != nil {
+			return err
 		}
 	}
 	if !utils.IsFileExist(common.DefaultKubeConfigFile()) {
@@ -184,7 +182,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	} else {
 		cluster = c.ClusterDesired
 	}
-	err = scaleProcessor.Execute(cluster)
+	err = processor.NewExecutor(scaleProcessor).Execute(cluster)
 	if err != nil {
 		return err
 	}
@@ -246,11 +244,8 @@ func (c *Applier) initClusterfile() (err error) {
 	if c.ClusterFile != nil {
 		return nil
 	}
-	c.ClusterFile = clusterfile.NewClusterFile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
-	if path := c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName); path == "" {
-		return nil
-	}
-	return c.ClusterFile.Process()
+	c.ClusterFile, err = clusterfile.NewClusterFile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+	return err
 }
 
 func (c *Applier) initK8sClient() error {
@@ -283,7 +278,7 @@ func (c *Applier) installApp() error {
 	if err != nil {
 		return err
 	}
-	err = installProcessor.Execute(c.ClusterDesired)
+	err = processor.NewExecutor(installProcessor).Execute(c.ClusterDesired)
 	if err != nil {
 		return err
 	}
@@ -298,7 +293,7 @@ func (c *Applier) initCluster() error {
 		return err
 	}
 
-	if err := createProcessor.Execute(c.ClusterDesired); err != nil {
+	if err := processor.NewExecutor(createProcessor).Execute(c.ClusterDesired); err != nil {
 		return err
 	}
 
@@ -313,7 +308,7 @@ func (c *Applier) deleteCluster() error {
 		return err
 	}
 
-	if err := deleteProcessor.Execute(c.ClusterDesired); err != nil {
+	if err := processor.NewExecutor(deleteProcessor).Execute(c.ClusterDesired); err != nil {
 		return err
 	}
 

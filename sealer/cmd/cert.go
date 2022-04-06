@@ -50,12 +50,9 @@ var certCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("get default cluster failed, %v", err)
 		}
-		clusterFile := clusterfile.NewClusterFile(cluster.GetAnnotationsByKey(common.ClusterfileName))
-		if cluster.GetAnnotationsByKey(common.ClusterfileName) != "" {
-			err = clusterFile.Process()
-			if err != nil {
-				return err
-			}
+		clusterFile, err := clusterfile.NewClusterFile(cluster.GetAnnotationsByKey(common.ClusterfileName))
+		if err != nil {
+			return err
 		}
 		r, err := runtime.NewDefaultRuntime(cluster, clusterFile.GetKubeadmConfig())
 		if err != nil {

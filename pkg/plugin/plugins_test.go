@@ -64,8 +64,8 @@ func TestDumperPlugin_Dump(t *testing.T) {
 				Cluster: &v2.Cluster{},
 			}
 			c.Cluster.Name = tt.fields.clusterName
-			clusterFile := clusterfile.NewClusterFile(tt.args.clusterfile)
-			if err := clusterFile.Process(); err != nil {
+			clusterFile, err := clusterfile.NewClusterFile(tt.args.clusterfile)
+			if err != nil {
 				t.Error(err)
 				return
 			}

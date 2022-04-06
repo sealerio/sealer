@@ -19,12 +19,12 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/apply/processor"
 	"github.com/alibaba/sealer/pkg/cert"
-	"github.com/alibaba/sealer/pkg/gen"
 	"github.com/spf13/cobra"
 )
 
-var flag *gen.ParserArg
+var flag *processor.ParserArg
 
 // genCmd represents the gen command
 var genCmd = &cobra.Command{
@@ -54,20 +54,20 @@ Then you can use any sealer command to manage the cluster like:
 		if flag.Passwd == "" || flag.Image == "" {
 			return fmt.Errorf("empty password or image name")
 		}
-		cluster, err := gen.GenerateCluster(flag)
+		cluster, err := processor.GenerateCluster(flag)
 		if err != nil {
 			return err
 		}
-		genProcessor, err := gen.NewGenerateProcessor()
+		genProcessor, err := processor.NewGenerateProcessor()
 		if err != nil {
 			return err
 		}
-		return genProcessor.Execute(cluster)
+		return processor.NewExecutor(genProcessor).Execute(cluster)
 	},
 }
 
 func init() {
-	flag = &gen.ParserArg{}
+	flag = &processor.ParserArg{}
 	rootCmd.AddCommand(genCmd)
 	genCmd.Flags().Uint16Var(&flag.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	genCmd.Flags().StringVar(&flag.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set server private key")

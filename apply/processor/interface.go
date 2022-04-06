@@ -14,9 +14,37 @@
 
 package processor
 
-import v2 "github.com/alibaba/sealer/types/api/v2"
+import (
+	v2 "github.com/alibaba/sealer/types/api/v2"
+)
 
 type Interface interface {
 	// Execute :according to the different of desired cluster to do cluster apply.
 	Execute(cluster *v2.Cluster) error
+}
+
+type Processor interface {
+	GetPipeLine() ([]func(cluster *v2.Cluster) error, error)
+}
+
+type Executor struct {
+	Processor
+}
+
+func NewExecutor(proc Processor) Interface {
+	return &Executor{proc}
+}
+
+func (e *Executor) Execute(cluster *v2.Cluster) error {
+	pipLine, err := e.GetPipeLine()
+	if err != nil {
+		return err
+	}
+
+	for _, f := range pipLine {
+		if err = f(cluster); err != nil {
+			return err
+		}
+	}
+	return nil
 }
