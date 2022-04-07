@@ -1,76 +1,76 @@
-# Clusterfile definition
-
-Install to existing servers, the provider is `BAREMETAL`:
+# Clusterfile
 
 ```yaml
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.cloud/v2
 kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
-  provider: BAREMETAL
-  ssh: # host ssh config
-    # ssh login password. If you use the key, you don't need to set the password
+  image: kubernetes:v1.19.8
+  env:
+    - key1=value1
+    - key2=value2;value3 #key2=[value2, value3]
+  ssh:
     passwd:
-    # The absolute path of the ssh private key file, for example, /root/.ssh/id_rsa
     pk: xxx
-    # ssh private key file password
     pkPasswd: xxx
-    # ssh login user
     user: root
-  network:
-    podCIDR: 100.64.0.0/10
-    svcCIDR: 10.96.0.0/22
-  certSANS:
-    - aliyun-inc.com
-    - 10.0.0.2
-  masters:
-    ipList:
-     - 172.20.125.1
-     - 172.20.126.2
-     - 172.20.126.3
-  nodes:
-    ipList:
-     - 172.20.126.7
-     - 172.20.126.8
-     - 172.20.126.9
+    port: "2222"
+  hosts:
+    - ips: [ 192.168.0.2 ]
+      roles: [ master ] # add role field to specify the node role
+      env: # rewrite some nodes has different env config
+        - etcd-dir=/data/etcd
+      ssh: # rewrite ssh config if some node has different passwd...
+        user: xxx
+        passwd: xxx
+        port: "2222"
+    - ips: [ 192.168.0.3 ]
+      roles: [ node,db ]
 ```
 
-Automatically apply ali cloud server for installation, the provider is `ALI_CLOUD`. Or using container for installation，the provider is `CONTAINER`:
+## Use cases
+
+### Apply a simple cluster by default
+
+3 masters and a node, It's so clearly and simple, cool
 
 ```yaml
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.cloud/v2
 kind: Cluster
 metadata:
-  name: my-cluster
+  name: default-kubernetes-cluster
 spec:
-  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 # name of CloudImage
-  provider: ALI_CLOUD # OR CONTAINER
-  ssh: # custom host ssh config
+  image: kubernetes:v1.19.8
+  ssh:
     passwd: xxx
-    pk: xxx
-    pkPasswd: xxx
-    user: root
-  network:
-    podCIDR: 100.64.0.0/10
-    svcCIDR: 10.96.0.0/22
-  certSANS:
-    - aliyun-inc.com
-    - 10.0.0.2
-  masters: # You can specify the number of servers, system disk, data disk, cpu and memory size
-    cpu: 4
-    memory: 8
-    count: 3
-    systemDisk: 100
-    dataDisks:
-    - 100
-  nodes:
-    cpu: 5
-    memory: 8
-    count: 3
-    systemDisk: 100
-    dataDisks:
-    - 100
-  status: {}
+  hosts:
+    - ips: [ 192.168.0.2,192.168.0.3,192.168.0.4 ]
+      roles: [ master ]
+    - ips: [ 192.168.0.5 ]
+      roles: [ node ]
+```
+
+### Overwrite ssh config (for example password,and port)
+
+```yaml
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: default-kubernetes-cluster
+spec:
+  image: kubernetes:v1.19.8
+  ssh:
+    passwd: xxx
+    port: "2222"
+  hosts:
+    - ips: [ 192.168.0.2 ]
+      roles: [ master ]
+      ssh:
+        passwd: yyy
+        port: "22"
+    - ips: [ 192.168.0.3,192.168.0.4 ]
+      roles: [ master ]
+    - ips: [ 192.168.0.5 ]
+      roles: [ node ]
 ```
