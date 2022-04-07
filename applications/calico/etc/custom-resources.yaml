@@ -13,21 +13,29 @@
 # limitations under the License.
 
 # This section includes base Calico installation configuration.
-# For more information, see: https://docs.projectcalico.org/reference/installation/api#operator.tigera.io/v1.Installation
+# For more information, see: https://projectcalico.docs.tigera.io/v3.22/reference/installation/api#operator.tigera.io/v1.Installation
 apiVersion: operator.tigera.io/v1
 kind: Installation
 metadata:
   name: default
 spec:
   # Configures Calico networking.
+  registry: sea.hub:5000
   calicoNetwork:
     # Note: The ipPools section cannot be modified post-install.
     ipPools:
-    - blockSize: 26
-      cidr: 100.64.0.0/10
-      encapsulation: IPIP
-      natOutgoing: Enabled
-      nodeSelector: all()
-    nodeAddressAutodetectionV4:
-      #  Interface enables IP auto-detection based on interfaces that match the given regex.
-      interface: "eth.*|en.*"
+      - blockSize: 26
+        cidr: 100.64.0.0/10
+        encapsulation: VXLANCrossSubnet
+        natOutgoing: Enabled
+        nodeSelector: all()
+
+---
+
+# This section configures the Calico API server.
+# For more information, see: https://projectcalico.docs.tigera.io/v3.22/reference/installation/api#operator.tigera.io/v1.APIServer
+apiVersion: operator.tigera.io/v1
+kind: APIServer
+metadata:
+  name: default
+spec: {}
