@@ -42,7 +42,6 @@ type Service interface {
 	Push(imageName string) error
 	Delete(imageName string, force bool, platforms []*v1.Platform) error
 	Login(RegistryURL, RegistryUsername, RegistryPasswd string) error
-	Prune() error
 	CacheBuilder
 }
 

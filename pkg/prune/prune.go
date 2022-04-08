@@ -14,6 +14,18 @@
 
 package prune
 
+const (
+	LayerPruner = "start to prune layer"
+	ImagePruner = "start to prune image db"
+	BuildPruner = "start to prune build tmp"
+)
+
 type Interface interface {
 	Prune() error
+}
+
+type Selector interface {
+	// Pickup do select action and return filepath which need to be deleted
+	Pickup() ([]string, error)
+	GetSelectorMessage() string
 }

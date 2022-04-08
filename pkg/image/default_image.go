@@ -310,18 +310,22 @@ func (d DefaultImageService) Delete(imageName string, force bool, platforms []*v
 		}
 	}
 
+	err = d.deleteLayers()
+	if err != nil {
+		return err
+	}
 	logger.Info("image %s delete success", imageName)
-	return d.Prune()
+	return nil
 }
 
 // Prune delete the unused Layer in the `DefaultLayerDir` directory
-func (d DefaultImageService) Prune() error {
+func (d DefaultImageService) deleteLayers() error {
 	var (
 		//save a path with desired name as value.
 		pruneMap = make(map[string][]string)
 	)
 
-	allImageLayerIDList, _, err := d.getAllLayersAndImageID()
+	allImageLayerIDList, err := d.getAllLayers()
 	if err != nil {
 		return err
 	}
@@ -330,7 +334,10 @@ func (d DefaultImageService) Prune() error {
 	pruneMap[filepath.Join(common.DefaultLayerDBRoot, "sha256")] = allImageLayerIDList
 
 	for root, desired := range pruneMap {
-		subset, err := utils.GetDirNameListInDir(root, false)
+		subset, err := utils.GetDirNameListInDir(root, utils.FilterOptions{
+			All:          true,
+			WithFullPath: false,
+		})
 		if err != nil {
 			return err
 		}
@@ -351,21 +358,20 @@ func (d DefaultImageService) Prune() error {
 }
 
 // getAllLayers return current image id and layers
-func (d DefaultImageService) getAllLayersAndImageID() ([]string, []string, error) {
+func (d DefaultImageService) getAllLayers() ([]string, error) {
 	imageMetadataMap, err := d.imageStore.GetImageMetadataMap()
 	var allImageLayerDirs []string
-	var imageIDList []string
+
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	for _, imageMetadata := range imageMetadataMap {
 		for _, m := range imageMetadata.Manifests {
 			image, err := d.imageStore.GetByID(m.ID)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
-			imageIDList = append(imageIDList, m.ID)
 			for _, layer := range image.Spec.Layers {
 				if layer.ID != "" {
 					allImageLayerDirs = append(allImageLayerDirs, layer.ID.Hex())
@@ -373,6 +379,5 @@ func (d DefaultImageService) getAllLayersAndImageID() ([]string, []string, error
 			}
 		}
 	}
-
-	return utils.RemoveDuplicate(allImageLayerDirs), imageIDList, err
+	return utils.RemoveDuplicate(allImageLayerDirs), err
 }
