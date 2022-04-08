@@ -7,22 +7,18 @@ sealer push kubernetes-withcalico:v1.19.9
 
 ## Using kubernetes-withcalico CloudImage
 
-This image contains the default Calico configuration [custom-resources.yaml](latest/etc/custom-resources.yaml).
+This image contains the default Calico configuration [custom-resources.yaml](etc/custom-resources.yaml).
 
 Clusterfile:
 
 ```yaml
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.cloud/v2
 kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: kubernetes-withcalico:v1.19.9
-  network:
-    # default Calico configuration use this cidr
-    podCIDR: 100.64.0.0/10
+  image: kubernetes:v1.19.8
 ...
-
 ```
 
 ```shell script
@@ -39,11 +35,17 @@ kind: Cluster
 metadata:
   name: my-cluster
 spec:
-  image: kubernetes-withcalico:v1.19.9
-  network:
-    podCIDR: 100.64.0.0/10
+  image: kubernetes:v1.19.8
 ...
 
+---
+## Custom configurations must specify kind
+kind: ClusterConfiguration
+kubernetesVersion: v1.19.8
+networking:
+  # dnsDomain: cluster.local
+  podSubnet: 100.1.0.0/10 #custom cidr
+  serviceSubnet: 10.96.0.0/22
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Config
@@ -58,17 +60,15 @@ spec:
       name: default
     spec:
       # Configures Calico networking.
+      registry: sea.hub:5000
       calicoNetwork:
         # Note: The ipPools section cannot be modified post-install.
         ipPools:
-        - blockSize: 26
-          # Note: Must be the same as podCIDR
-          cidr: 100.64.0.0/10
-          encapsulation: IPIP
-          natOutgoing: Enabled
-          nodeSelector: all()
-        nodeAddressAutodetectionV4:
-          interface: "eth.*|en.*"
+          - blockSize: 26
+            cidr: 100.1.0.0/10 #custom cidr
+            encapsulation: VXLANCrossSubnet
+            natOutgoing: Enabled
+            nodeSelector: all()
 ```
 
 ```shell script
@@ -80,7 +80,7 @@ For more information about calico installation configuration, see [the installat
 ## Using kubernetes-withcalico CloudImage as Base Image
 
 ```shell script
-FROM kubernetes-withcalico:v1.19.9
+FROM kubernetes:v1.19.8
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 CMD kubectl apply -f recommended.yaml
 ```

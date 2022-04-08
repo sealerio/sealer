@@ -1,0 +1,7 @@
+quay.io/tigera/operator:v1.25.3
+calico/node:v3.22.1
+calico/pod2daemon-flexvol:v3.22.1
+calico/cni:v3.22.1
+calico/kube-controllers:v3.22.1
+calico/typha:v3.22.1
+calico/apiserver:v3.22.1
