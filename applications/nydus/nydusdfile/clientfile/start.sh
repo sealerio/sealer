@@ -20,11 +20,21 @@ rm -rf $1
 mkdir -p $1
 rm -rf nydusdfs
 mkdir -p nydusdfs
+rm -rf /usr/bin/nydusd
 cp nydusd /usr/bin/nydusd
-nydusdcmd="#!/bin/bash\n/usr/bin/nydusd --thread-num 10 --log-level debug --mountpoint $(pwd)/nydusdfs --apisock $(pwd)/nydusd.sock --id sealer --bootstrap $(pwd)/rootfs.meta --config $(pwd)/httpserver.json --supervisor $(pwd)/supervisor.sock"
-echo -e ${nydusdcmd} > /var/lib/sealer/nydusd.sh
-chmod +x /var/lib/sealer/nydusd.sh
-cp nydusd.service /etc/systemd/system/
+chmod +x /usr/bin/nydusd
+
+nydusdserver="
+[Unit]\n
+Description=nydusd service\n
+[Service]\n
+TimeoutStartSec=3\n
+ExecStart=/usr/bin/nydusd --thread-num 10 --log-level debug --mountpoint $(pwd)/nydusdfs --apisock $(pwd)/nydusd.sock --id sealer --bootstrap $(pwd)/rootfs.meta --config $(pwd)/httpserver.json --supervisor $(pwd)/supervisor.sock\n
+Restart=always\n
+[Install]\n
+WantedBy=multi-user.target\n
+"
+echo -e ${nydusdserver} > /etc/systemd/system/nydusd.service
 systemctl enable nydusd.service
 systemctl restart nydusd.service
 rm -rf upper

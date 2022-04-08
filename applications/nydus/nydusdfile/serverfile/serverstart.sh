@@ -15,9 +15,27 @@
 
 set -e
 set -x
-# create nydusimages
-./nydus-image create --blob-dir ./nydusdimages/blobs  --bootstrap ./rootfs.meta $1
-#nydusdir need be scp
+
+helpfunc() {
+    echo "Usage:"
+    echo "    serverstart.sh [-i HOST] [-d DIR_LIST]"
+    echo "Description:"
+    echo "    HOST: the IP of nydusdserver."
+    echo "    DIR_LIST: the list of dir need to be converted to nydus blobs."
+    echo "examples:"
+    echo "    serverstart.sh -i 192.168.0.2 -d /converdir/1,/converdir/2,/converdir/2"
+    exit -1
+}
+
+while getopts 'i:d:h' OPT; do
+    case $OPT in
+        i) HOST="$OPTARG";;
+        d) DIR_LIST="$OPTARG";;
+        h) helpfunc;;
+        ?) helpfunc;;
+    esac
+done
+
 nydusdconfig='
 {\n
   "device": {\n
@@ -25,7 +43,7 @@ nydusdconfig='
       "type": "registry",\n
       "config": {\n
         "scheme": "http",\n
-        "host": "'${2}':8000",\n
+        "host": "'${HOST}':8000",\n
         "repo": "sealer"\n
       }\n
     },\n
@@ -47,18 +65,30 @@ nydusdconfig='
   }\n
 }\n
 '
-echo -e ${nydusdconfig} > ./nydusd_scp_file/httpserver.json
-cp ./rootfs.meta ./nydusd_scp_file
+echo -e ${nydusdconfig} > ./httpserver.json
+
+for DIR in $(echo "${DIR_LIST}"|sed 's/,/ /g')
+do
+    # create nydusimages
+    F_NAME=$(basename "${DIR}")
+    echo $F_NAME
+    mkdir -p ../${F_NAME}
+    ./nydus-image create --blob-dir ./nydusblobs  --bootstrap ../${F_NAME}/rootfs.meta $DIR
+    cp ./httpserver.json ../${F_NAME}
+done
+
+rm -rf /usr/bin/nydus-backend-proxy
+cp -u nydus-backend-proxy /usr/bin/nydus-backend-proxy
 # nydusd_http_server.service
 service="[Unit]\n
-Description=sealer nydusd rootfs\n
+Description=A simple HTTP server to serve a local directory as blob backend for nydusd\n
 [Service]\n
 TimeoutStartSec=3\n
 Environment=\"ROCKET_CONFIG=$(pwd)/Rocket.toml\"\n
-ExecStart=$(pwd)/nydusdserver $(pwd)/nydusdimages\n
+ExecStart=/usr/bin/nydus-backend-proxy --blobsdir $(pwd)/nydusblobs\n
 Restart=always\n
 [Install]\n
-WantedBy=multi-user.target"
+WantedBy=multi-user.target\n"
 echo -e ${service} > /etc/systemd/system/nydusd_http_server.service
 # start nydusd_http_server.service
 systemctl enable nydusd_http_server.service

@@ -16,5 +16,6 @@
 set -e
 set -x
 
-systemctl stop nydusd_http_server.service
-rm -rf /etc/systemd/system/nydusd_http_server.service
+systemctl stop nydusd.service
+rm /etc/systemd/system/nydusd.service
+rm -rf /usr/bin/nydusd
