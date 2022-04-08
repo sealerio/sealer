@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +14,14 @@
 
 package prune
 
-type Interface interface {
-	Prune() error
+const (
+	LayerPruner = "start to prune layer"
+	ImagePruner = "start to prune image db"
+	BuildPruner = "start to prune build tmp"
+)
+
+type Pruner interface {
+	// Select do select action and return filepath which need to be deleted
+	Select() ([]string, error)
+	GetSelectorMessage() string
 }

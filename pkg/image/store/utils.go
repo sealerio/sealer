@@ -20,14 +20,20 @@ import (
 
 func traverseLayerDB(layerDBRoot string) ([]string, error) {
 	// TODO maybe there no need to traverse layerdb, just clarify how many sha supported in a list
-	shaDirs, err := utils.GetDirNameListInDir(layerDBRoot, true)
+	shaDirs, err := utils.GetDirNameListInDir(layerDBRoot, utils.FilterOptions{
+		OnlyDir:      true,
+		WithFullPath: true,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	var layerDirs []string
 	for _, shaDir := range shaDirs {
-		layerDirList, err := utils.GetDirNameListInDir(shaDir, true)
+		layerDirList, err := utils.GetDirNameListInDir(shaDir, utils.FilterOptions{
+			OnlyDir:      true,
+			WithFullPath: true,
+		})
 		if err != nil {
 			return nil, err
 		}

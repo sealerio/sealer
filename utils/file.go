@@ -430,22 +430,57 @@ func IsDir(path string) bool {
 	return s.IsDir()
 }
 
-func GetDirNameListInDir(dir string, withFullPath bool) ([]string, error) {
+type FilterOptions struct {
+	All, OnlyDir, OnlyFile, WithFullPath bool
+}
+
+// GetDirNameListInDir :Get all Dir Name or file name List In Dir
+func GetDirNameListInDir(dir string, opts FilterOptions) ([]string, error) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 	var dirs []string
-	for _, file := range files {
-		// avoid adding some other dirs created by users
-		if file.IsDir() {
-			if withFullPath {
+
+	if opts.All {
+		for _, file := range files {
+			if opts.WithFullPath {
 				dirs = append(dirs, filepath.Join(dir, file.Name()))
 			} else {
 				dirs = append(dirs, file.Name())
 			}
 		}
+		return dirs, nil
 	}
+
+	if opts.OnlyDir {
+		for _, file := range files {
+			if !file.IsDir() {
+				continue
+			}
+			if opts.WithFullPath {
+				dirs = append(dirs, filepath.Join(dir, file.Name()))
+			} else {
+				dirs = append(dirs, file.Name())
+			}
+		}
+		return dirs, nil
+	}
+
+	if opts.OnlyFile {
+		for _, file := range files {
+			if file.IsDir() {
+				continue
+			}
+			if opts.WithFullPath {
+				dirs = append(dirs, filepath.Join(dir, file.Name()))
+			} else {
+				dirs = append(dirs, file.Name())
+			}
+		}
+		return dirs, nil
+	}
+
 	return dirs, nil
 }
 

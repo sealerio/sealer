@@ -15,9 +15,11 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/prune"
+	"fmt"
+	"os"
+	"path/filepath"
 
+	"github.com/alibaba/sealer/pkg/prune"
 	"github.com/spf13/cobra"
 )
 
@@ -27,17 +29,30 @@ var pruneCmd = &cobra.Command{
 	Args:    cobra.NoArgs,
 	Example: `sealer prune`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		imService, err := image.NewImageService()
+		buildTmp := prune.NewBuildPrune()
+		ima, err := prune.NewImagePrune()
 		if err != nil {
 			return err
 		}
-		//TODO add more interfaces that need pruning
-		for _, pruneService := range []prune.Interface{imService} {
-			err := pruneService.Prune()
+		layer, err := prune.NewLayerPrune()
+		if err != nil {
+			return err
+		}
+		for _, pruneService := range []prune.Pruner{ima, layer, buildTmp} {
+			trashList, err := pruneService.Select()
 			if err != nil {
 				return err
 			}
+
+			fmt.Printf("%s ... \n", pruneService.GetSelectorMessage())
+			for _, trash := range trashList {
+				if err := os.RemoveAll(trash); err != nil {
+					return err
+				}
+				fmt.Printf("%s deleted\n", filepath.Base(trash))
+			}
 		}
+
 		return nil
 	},
 }
