@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alibaba/sealer/utils/mount"
+
 	"github.com/alibaba/sealer/build/buildinstruction"
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -37,7 +39,7 @@ type layerExecutor struct {
 	platform        v1.Platform
 	baseLayers      []v1.Layer
 	layerStore      store.LayerStore
-	rootfsMountInfo *buildinstruction.MountTarget
+	rootfsMountInfo mount.Service
 }
 
 func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, error) {

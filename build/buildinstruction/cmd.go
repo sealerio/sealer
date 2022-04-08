@@ -17,6 +17,8 @@ package buildinstruction
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/utils/mount"
+
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 
 	"github.com/alibaba/sealer/utils"
@@ -33,7 +35,7 @@ import (
 type CmdInstruction struct {
 	cmdValue string
 	rawLayer v1.Layer
-	mounter  MountTarget
+	mounter  mount.Service
 	ex       *shell.Lex
 }
 
@@ -93,13 +95,13 @@ func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
 
 func NewCmdInstruction(ctx InstructionContext) (*CmdInstruction, error) {
 	lowerLayers := GetBaseLayersPath(ctx.BaseLayers)
-	target, err := NewMountTarget("", "", lowerLayers)
+	mountService, err := mount.NewMountService("", "", lowerLayers)
 	if err != nil {
 		return nil, err
 	}
 
 	return &CmdInstruction{
-		mounter:  *target,
+		mounter:  mountService,
 		cmdValue: ctx.CurrentLayer.Value,
 		rawLayer: *ctx.CurrentLayer,
 		ex:       shell.NewLex('\\'),

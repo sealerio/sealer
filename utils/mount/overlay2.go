@@ -28,8 +28,6 @@ import (
 
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/ssh"
-	"github.com/shirou/gopsutil/disk"
 )
 
 type Interface interface {
@@ -128,65 +126,4 @@ func mount(device, target, mType string, flag uintptr, data string) error {
 
 func unmount(target string, flag int) error {
 	return syscall.Unmount(target, flag)
-}
-
-type Info struct {
-	Target string
-	Upper  string
-	Lowers []string
-}
-
-func GetMountDetails(target string) (bool, *Info) {
-	cmd := fmt.Sprintf("mount | grep %s", target)
-	result, err := utils.RunSimpleCmd(cmd)
-	if err != nil {
-		return false, nil
-	}
-	return mountCmdResultSplit(result, target)
-}
-
-func GetRemoteMountDetails(s ssh.Interface, ip string, target string) (bool, *Info) {
-	result, err := s.Cmd(ip, fmt.Sprintf("mount | grep %s", target))
-	if err != nil {
-		return false, nil
-	}
-	return mountCmdResultSplit(string(result), target)
-}
-
-func mountCmdResultSplit(result string, target string) (bool, *Info) {
-	if !strings.Contains(result, target) {
-		return false, nil
-	}
-
-	data := strings.Split(result, ",upperdir=")
-	if len(data) < 2 {
-		return false, nil
-	}
-
-	lowers := strings.Split(strings.Split(data[0], ",lowerdir=")[1], ":")
-	upper := strings.TrimSpace(strings.Split(data[1], ",workdir=")[0])
-	return true, &Info{
-		Target: target,
-		Upper:  upper,
-		Lowers: utils.Reverse(lowers),
-	}
-}
-
-func GetBuildMountInfo(filter string) []Info {
-	var infos []Info
-	var mp []string
-	ps, _ := disk.Partitions(true)
-	for _, p := range ps {
-		if p.Fstype == "overlay" && strings.Contains(p.Mountpoint, "sealer") &&
-			strings.Contains(p.Mountpoint, filter) {
-			mp = append(mp, p.Mountpoint)
-		}
-	}
-	for _, p := range mp {
-		_, info := GetMountDetails(p)
-		if info != nil {
-			infos = append(infos, *info)
-		}
-	}
-	return infos
 }
