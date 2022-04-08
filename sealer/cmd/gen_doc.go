@@ -34,7 +34,7 @@ func init() {
 	genDocCommand := &GenDocCommand{}
 	genDocCommand.cmd = &cobra.Command{
 		Use:           "gen-doc",
-		Short:         "Generate document for sealer CLI with MarkDown format",
+		Short:         "generate document for sealer CLI with MarkDown format",
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,

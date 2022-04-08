@@ -139,11 +139,11 @@ func trimQuotes(s string) string {
 	return s
 }
 
-// GetLayerMountInfo to get rootfs mount info.
+// GetLayerMountInfo to get rootfs mount info.if not mounted will mount it via base layers.
 //1, already mount: runtime docker registry mount info,just get related mount info.
 //2, already mount: if exec build cmd failed and return ,need to collect related old mount info
 //3, new mount: just mount and return related info.
-func GetLayerMountInfo(baseLayers []v1.Layer) (*buildinstruction.MountTarget, error) {
+func GetLayerMountInfo(baseLayers []v1.Layer) (mount.Service, error) {
 	var filterArgs = "tmp"
 	mountInfos := mount.GetBuildMountInfo(filterArgs)
 	lowerLayers := buildinstruction.GetBaseLayersPath(baseLayers)
@@ -152,15 +152,15 @@ func GetLayerMountInfo(baseLayers []v1.Layer) (*buildinstruction.MountTarget, er
 		if strings.Join(lowerLayers, ":") == strings.Join(info.Lowers, ":") {
 			logger.Info("get mount dir :%s success ", info.Target)
 			//nolint
-			return buildinstruction.NewMountTarget(info.Target, info.Upper, info.Lowers)
+			return mount.NewMountService(info.Target, info.Upper, info.Lowers)
 		}
 	}
 
 	return mountRootfs(lowerLayers)
 }
 
-func mountRootfs(res []string) (*buildinstruction.MountTarget, error) {
-	mounter, err := buildinstruction.NewMountTarget("", "", res)
+func mountRootfs(res []string) (mount.Service, error) {
+	mounter, err := mount.NewMountService("", "", res)
 	if err != nil {
 		return nil, err
 	}

@@ -37,7 +37,7 @@ var mf *mergeFlag
 func getMergeCmd() *cobra.Command {
 	var mergeCmd = &cobra.Command{
 		Use:   "merge",
-		Short: "Merge multiple images into one",
+		Short: "merge multiple images into one",
 		Long:  `sealer merge image1:latest image2:latest image3:latest ......`,
 		Example: `
 merge images:
