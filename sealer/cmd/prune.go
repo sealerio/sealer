@@ -38,8 +38,8 @@ var pruneCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		for _, pruneService := range []prune.Selector{ima, layer, buildTmp} {
-			trashList, err := pruneService.Pickup()
+		for _, pruneService := range []prune.Pruner{ima, layer, buildTmp} {
+			trashList, err := pruneService.Select()
 			if err != nil {
 				return err
 			}

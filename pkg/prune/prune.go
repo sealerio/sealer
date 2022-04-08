@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,12 +20,8 @@ const (
 	BuildPruner = "start to prune build tmp"
 )
 
-type Interface interface {
-	Prune() error
-}
-
-type Selector interface {
-	// Pickup do select action and return filepath which need to be deleted
-	Pickup() ([]string, error)
+type Pruner interface {
+	// Select do select action and return filepath which need to be deleted
+	Select() ([]string, error)
 	GetSelectorMessage() string
 }

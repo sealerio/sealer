@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@ type buildPrune struct {
 	pruneRootDir string
 }
 
-func NewBuildPrune() Selector {
+func NewBuildPrune() Pruner {
 	return buildPrune{
 		pruneRootDir: common.DefaultTmpDir,
 	}
 }
 
-func (b buildPrune) Pickup() ([]string, error) {
+func (b buildPrune) Select() ([]string, error) {
 	var pruneList []string
 	// umount all tmp dir, and delete it
 	pruneUnits, err := utils.GetDirNameListInDir(b.pruneRootDir, utils.FilterOptions{
