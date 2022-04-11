@@ -103,7 +103,8 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			cmdWriteJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
 			cmd := k.Command(k.getKubeVersion(), JoinNode)
-			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.GetMasterIPList(), "")
+			lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
+			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.GetMasterIPList(), lvsImage)
 			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {

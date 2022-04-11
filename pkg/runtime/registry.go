@@ -96,6 +96,10 @@ func (r *RegistryConfig) GenerateHtPasswd() (string, error) {
 	return r.Username + ":" + string(pwdHash), nil
 }
 
+func (r *RegistryConfig) Repo() string {
+	return fmt.Sprintf("%s:%s", r.Domain, r.Port)
+}
+
 func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	var config RegistryConfig
 	var DefaultConfig = &RegistryConfig{
@@ -115,9 +119,6 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	}
 	if config.IP == "" {
 		config.IP = DefaultConfig.IP
-	} else {
-		ip, port := utils.GetSSHHostIPAndPort(config.IP)
-		config.IP = fmt.Sprintf("%s:%s", ip, port)
 	}
 	if config.Port == "" {
 		config.Port = DefaultConfig.Port

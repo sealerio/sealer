@@ -144,7 +144,7 @@ func (s *ScaleProcessor) MountRootfs(cluster *v2.Cluster) error {
 }
 
 func (s *ScaleProcessor) UnMountRootfs(cluster *v2.Cluster) error {
-	return s.fileSystem.UnMountRootfs(cluster, append(s.MastersToJoin, s.NodesToJoin...))
+	return s.fileSystem.UnMountRootfs(cluster, append(s.MastersToDelete, s.NodesToDelete...))
 }
 
 func (s *ScaleProcessor) Join(cluster *v2.Cluster) error {

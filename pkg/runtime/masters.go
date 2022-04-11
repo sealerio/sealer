@@ -460,7 +460,8 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 			return fmt.Errorf("delete node %s failed %v", hostname, err)
 		}
 	}
-	yaml := ipvs.LvsStaticPodYaml(k.getVIP(), masterIPs, "")
+	lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
+	yaml := ipvs.LvsStaticPodYaml(k.getVIP(), masterIPs, lvsImage)
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range k.GetNodeIPList() {
 		node := node
