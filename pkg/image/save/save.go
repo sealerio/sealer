@@ -73,7 +73,7 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 
 	//handle image name
 	for _, image := range images {
-		named, err := parseNormalizedNamed(image, "")
+		named, err := ParseNormalizedNamed(image, "")
 		if err != nil {
 			return fmt.Errorf("parse image name error: %v", err)
 		}
@@ -132,12 +132,8 @@ func (is *DefaultImageSaver) SaveImagesWithAuth(imageList ImageListWithAuth, dir
 	numCh := make(chan struct{}, maxPullGoroutineNum)
 
 	//handle imageList
-	for auth, section := range imageList {
-		username, password, err := utils.DecodeAuth(auth)
-		if err != nil {
-			return err
-		}
-		for _, nameds := range section {
+	for _, section := range imageList {
+		for _, nameds := range section.Images {
 			tmpnameds := nameds
 			progress.Message(is.progressOut, "", fmt.Sprintf("Pulling image: %s", tmpnameds[0].FullName()))
 			numCh <- struct{}{}
@@ -146,7 +142,7 @@ func (is *DefaultImageSaver) SaveImagesWithAuth(imageList ImageListWithAuth, dir
 					<-numCh
 				}()
 
-				registry, err := NewProxyRegistryWithAuth(is.ctx, username, password, dir, tmpnameds[0].domain)
+				registry, err := NewProxyRegistryWithAuth(is.ctx, section.Username, section.Password, dir, tmpnameds[0].domain)
 				if err != nil {
 					return fmt.Errorf("init registry error: %v", err)
 				}

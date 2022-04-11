@@ -29,6 +29,13 @@ var (
 	imageListWithAuth = "imageListWithAuth.yaml"
 )
 
+type ImageSection struct {
+	Registry string   `json:"registry,omitempty"`
+	Username string   `json:"username,omitempty"`
+	Password string   `json:"password,omitempty"`
+	Images   []string `json:"images,omitempty"`
+}
+
 type MiddlewarePuller struct {
 	puller   save.DefaultImageSaver
 	platform v1.Platform
@@ -43,14 +50,13 @@ func (m MiddlewarePuller) Process(context, rootfs string) error {
 	}
 
 	// pares middleware file: imageListWithAuth.yaml
-	var imageSection []save.ImageSection
-	ia := make(save.ImageListWithAuth)
-
+	var imageSection []ImageSection
 	err := utils.UnmarshalYamlFile(filePath, &imageSection)
 	if err != nil {
 		return err
 	}
 
+	ia := make(save.ImageListWithAuth, 0)
 	for _, section := range imageSection {
 		if len(section.Images) == 0 {
 			continue
@@ -58,16 +64,18 @@ func (m MiddlewarePuller) Process(context, rootfs string) error {
 		if section.Username == "" || section.Password == "" {
 			return fmt.Errorf("must set username and password at imageListWithAuth.yaml")
 		}
-		auth, nameds, err := save.NewImageListWithAuth(section)
+
+		domainToImages, err := normalizedImageListWithAuth(section)
 		if err != nil {
 			return err
 		}
-		domainToImages := make(map[string][]save.Named)
-		for _, named := range nameds {
-			domainToImages[named.Domain()+named.Repo()] = append(domainToImages[named.Domain()+named.Repo()], named)
-		}
 
-		ia[auth] = domainToImages
+		ia = append(ia, save.Section{
+			Registry: section.Registry,
+			Username: section.Username,
+			Password: section.Password,
+			Images:   domainToImages,
+		})
 	}
 
 	if len(ia) == 0 {
@@ -75,6 +83,18 @@ func (m MiddlewarePuller) Process(context, rootfs string) error {
 	}
 
 	return m.puller.SaveImagesWithAuth(ia, filepath.Join(rootfs, common.RegistryDirName), m.platform)
+}
+
+func normalizedImageListWithAuth(sec ImageSection) (map[string][]save.Named, error) {
+	domainToImages := make(map[string][]save.Named)
+	for _, image := range sec.Images {
+		named, err := save.ParseNormalizedNamed(image, sec.Registry)
+		if err != nil {
+			return nil, fmt.Errorf("parse image name error: %v", err)
+		}
+		domainToImages[named.Domain()+named.Repo()] = append(domainToImages[named.Domain()+named.Repo()], named)
+	}
+	return domainToImages, nil
 }
 
 func NewMiddlewarePuller(platform v1.Platform) Differ {
