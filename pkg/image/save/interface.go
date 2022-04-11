@@ -16,9 +16,6 @@ package save
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/alibaba/sealer/utils"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/docker/docker/pkg/progress"
@@ -30,14 +27,14 @@ type ImageSave interface {
 	SaveImages(images []string, dir string, platform v1.Platform) error
 }
 
-type ImageSection struct {
-	Registry string   `json:"registry,omitempty"`
-	Username string   `json:"username,omitempty"`
-	Password string   `json:"password,omitempty"`
-	Images   []string `json:"images,omitempty"`
+type Section struct {
+	Registry string             `json:"registry,omitempty"`
+	Username string             `json:"username,omitempty"`
+	Password string             `json:"password,omitempty"`
+	Images   map[string][]Named `json:"images,omitempty"`
 }
 
-type ImageListWithAuth map[string]map[string][]Named
+type ImageListWithAuth []Section
 
 type DefaultImageSaver struct {
 	ctx            context.Context
@@ -53,18 +50,4 @@ func NewImageSaver(ctx context.Context) ImageSave {
 		ctx:            ctx,
 		domainToImages: make(map[string][]Named),
 	}
-}
-
-func NewImageListWithAuth(section ImageSection) (string, []Named, error) {
-	var nameds []Named
-	auth := utils.EncodeAuth(section.Username, section.Password)
-	for _, image := range section.Images {
-		named, err := parseNormalizedNamed(image, section.Registry)
-		if err != nil {
-			return "", nil, fmt.Errorf("parse image name error: %v", err)
-		}
-		nameds = append(nameds, named)
-	}
-
-	return auth, nameds, nil
 }
