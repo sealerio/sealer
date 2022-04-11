@@ -125,6 +125,7 @@ func (k *KubeadmRuntime) UpdateCert(certs []string) error {
 }
 
 // NewDefaultRuntime arg "clusterfileKubeConfig" is the Clusterfile path/name, runtime need read kubeadm config from it
+// Mount image is required before new Runtime.
 func NewDefaultRuntime(cluster *v2.Cluster, clusterfileKubeConfig *KubeadmConfig) (Interface, error) {
 	return newKubeadmRuntime(cluster, clusterfileKubeConfig)
 }

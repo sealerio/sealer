@@ -140,7 +140,7 @@ func (k *KubeadmRuntime) GenerateCert() error {
 }
 
 func (k *KubeadmRuntime) GenerateRegistryCert() error {
-	err := cert.GenerateRegistryCert(k.getCertsDir(), GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP()).Domain)
+	err := cert.GenerateRegistryCert(k.getCertsDir(), k.RegConfig.Domain)
 	if err != nil {
 		return err
 	}

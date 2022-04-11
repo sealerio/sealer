@@ -76,11 +76,6 @@ func (g *GenerateProcessor) init(cluster *v2.Cluster) error {
 	if err := utils.MarshalYamlToFile(fileName, cluster); err != nil {
 		return err
 	}
-	runt, err := runtime.NewDefaultRuntime(cluster, nil)
-	if err != nil {
-		return err
-	}
-	g.Runtime = runt.(*runtime.KubeadmRuntime)
 	return nil
 }
 
@@ -172,7 +167,15 @@ func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	return g.ImageMounter.MountImage(cluster)
+	if err = g.ImageMounter.MountImage(cluster); err != nil {
+		return err
+	}
+	runt, err := runtime.NewDefaultRuntime(cluster, nil)
+	if err != nil {
+		return err
+	}
+	g.Runtime = runt.(*runtime.KubeadmRuntime)
+	return nil
 }
 
 func (g *GenerateProcessor) UnmountImage(cluster *v2.Cluster) error {

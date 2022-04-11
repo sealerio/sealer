@@ -43,43 +43,45 @@ type RegistryConfig struct {
 	Password string `json:"password,omitempty"`
 }
 
-func getRegistryHost(rootfs, defaultRegistry string) (host string) {
-	cf := GetRegistryConfig(rootfs, defaultRegistry)
-	ip, _ := utils.GetSSHHostIPAndPort(cf.IP)
-	return fmt.Sprintf("%s %s", ip, cf.Domain)
+func (k *KubeadmRuntime) getRegistryHost() (host string) {
+	ip, _ := utils.GetSSHHostIPAndPort(k.RegConfig.IP)
+	return fmt.Sprintf("%s %s", ip, k.RegConfig.Domain)
 }
 
 // ApplyRegistry Only use this for join and init, due to the initiation operations.
 func (k *KubeadmRuntime) ApplyRegistry() error {
-	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
-	ssh, err := k.getHostSSHClient(cf.IP)
+	ssh, err := k.getHostSSHClient(k.RegConfig.IP)
 	if err != nil {
 		return fmt.Errorf("failed to get registry ssh client: %v", err)
 	}
 
-	if cf.Username != "" && cf.Password != "" {
-		htpasswd, err := cf.GenerateHtPasswd()
+	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
+		htpasswd, err := k.RegConfig.GenerateHtPasswd()
 		if err != nil {
 			return err
 		}
-		err = ssh.CmdAsync(cf.IP, fmt.Sprintf("echo '%s' > %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
+		err = ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf("echo '%s' > %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
 		if err != nil {
 			return err
 		}
 	}
-	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s %s", k.getRootfs(), cf.Port, fmt.Sprintf("%s/registry", k.getRootfs()), cf.Domain)
-	registryHost := getRegistryHost(k.getImageMountDir(), k.GetMaster0IP())
+	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s %s", k.getRootfs(), k.RegConfig.Port, fmt.Sprintf("%s/registry", k.getRootfs()), k.RegConfig.Domain)
+	registryHost := k.getRegistryHost()
 	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
-	if err = ssh.CmdAsync(cf.IP, initRegistry); err != nil {
+	if k.RegConfig.Domain != SeaHub {
+		addSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP+" "+SeaHub, k.RegConfig.IP+" "+SeaHub)
+		addRegistryHosts = fmt.Sprintf("%s && %s", addRegistryHosts, addSeaHubHosts)
+	}
+	if err = ssh.CmdAsync(k.RegConfig.IP, initRegistry); err != nil {
 		return err
 	}
 	if err = ssh.CmdAsync(k.GetMaster0IP(), addRegistryHosts); err != nil {
 		return err
 	}
-	if cf.Username == "" || cf.Password == "" {
+	if k.RegConfig.Username == "" || k.RegConfig.Password == "" {
 		return nil
 	}
-	return ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
+	return ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password))
 }
 
 func (r *RegistryConfig) GenerateHtPasswd() (string, error) {
@@ -127,12 +129,11 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 }
 
 func (k *KubeadmRuntime) DeleteRegistry() error {
-	cf := GetRegistryConfig(k.getRootfs(), k.GetMaster0IP())
-	ssh, err := k.getHostSSHClient(cf.IP)
+	ssh, err := k.getHostSSHClient(k.RegConfig.IP)
 	if err != nil {
 		return fmt.Errorf("failed to delete registry: %v", err)
 	}
 
 	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %s;fi", RegistryName, RegistryName)
-	return ssh.CmdAsync(cf.IP, cmd)
+	return ssh.CmdAsync(k.RegConfig.IP, cmd)
 }

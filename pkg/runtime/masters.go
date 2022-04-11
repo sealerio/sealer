@@ -124,15 +124,18 @@ func getAPIServerHost(ipAddr, APIServer string) (host string) {
 }
 
 func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []string {
-	registryHost := getRegistryHost(k.getImageMountDir(), k.GetMaster0IP())
 	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
-	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
+	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, k.getRegistryHost(), k.getRegistryHost())
 	certCMD := command.RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
 	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
+	if k.RegConfig.Domain != SeaHub {
+		cmdAddSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP+" "+SeaHub, k.RegConfig.IP+" "+SeaHub)
+		cmdAddRegistryHosts = fmt.Sprintf("%s && %s", cmdAddRegistryHosts, cmdAddSeaHubHosts)
+	}
 	joinCommands := []string{cmdAddRegistryHosts, certCMD, cmdAddHosts}
-	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
-	if cf.Username != "" && cf.Password != "" {
-		joinCommands = append(joinCommands, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
+	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
+		joinCommands = append(joinCommands, fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port,
+			k.RegConfig.Username, k.RegConfig.Password))
 	}
 	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, apiServerHost,
 		getAPIServerHost(master, k.getAPIServerDomain()))
@@ -155,7 +158,7 @@ func (k *KubeadmRuntime) sendRegistryCertAndKey() error {
 }
 
 func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
-	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
+	cf := k.RegConfig
 	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, cf.Domain, cf.Port, cf.Domain))
 }
 
@@ -424,7 +427,8 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 		return fmt.Errorf("failed to delete master: %v", err)
 	}
 	remoteCleanCmd := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.GetMaster0IP())),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, fmt.Sprintf("%s %s", k.RegConfig.IP, k.RegConfig.Domain)),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, fmt.Sprintf("%s %s", k.RegConfig, SeaHub)),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 
 	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.
