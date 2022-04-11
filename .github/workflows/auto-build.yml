@@ -18,7 +18,7 @@ jobs:
           commentbody="${{github.event.comment.body}}"
           version=`echo "$commentbody"|cut -d" " -f2`
           echo "start to build kubernetes:$version"
-          sudo wget https://sealer.oss-cn-beijing.aliyuncs.com/auto-build/context.tar.gz && sudo tar -xvf context.tar.gz && cd context
+          sudo wget https://sealer.oss-cn-beijing.aliyuncs.com/auto-build/context.tar.gz && sudo tar -zxf context.tar.gz && cd context
           #amd64
           sudo curl -L https://dl.k8s.io/release/$version/bin/linux/amd64/kubectl -o ./amd64/bin/kubectl
           sudo curl -L https://dl.k8s.io/release/$version/bin/linux/amd64/kubelet -o ./amd64/bin/kubelet
@@ -32,6 +32,7 @@ jobs:
           sudo sed -i "s/v1.19.8/$version/g" ./rootfs/etc/kubeadm.yml && sudo sed -i "s/v1.19.8/$version/g" ./calico/Kubefile
           sudo chmod +x ./amd64/bin/kubeadm && sudo ./amd64/bin/kubeadm config images list --config ./rootfs/etc/kubeadm.yml
           sudo ./amd64/bin/kubeadm config images list --config ./rootfs/etc/kubeadm.yml 2>/dev/null>> imageList
+          if [ $(sudo ./amd64/bin/kubeadm config images list --config ./rootfs/etc/kubeadm.yml 2>/dev/null |grep -c "coredns/coredns") -gt 0 ]; then sudo sed -i "s/#imageRepository/imageRepository/g" ./rootfs/etc/kubeadm.yml; fi
           sudo sed -i "s/k8s.gcr.io/sea.hub:5000/g" ./rootfs/etc/kubeadm.yml
           sudo sealer build -t kubernetes:$version-alpine --platform linux/arm64,linux/amd64
           sudo sealer push kubernetes:$version-alpine
