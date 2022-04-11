@@ -37,9 +37,9 @@ import (
 )
 
 type Config struct {
-	Vlog         int
-	VIP          string
-	RegistryPort string
+	Vlog      int
+	VIP       string
+	RegConfig *RegistryConfig
 	// Clusterfile: the absolute path, we need to read kubeadm config from Clusterfile
 	ClusterFileKubeConfig *KubeadmConfig
 	APIServerDomain       string
@@ -54,6 +54,7 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterFileKubeConfig *KubeadmConfig
 		},
 		KubeadmConfig: &KubeadmConfig{},
 	}
+	k.Config.RegConfig = GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.GetMasterIPList()...))
 	// TODO args pre checks
 	if err := k.checkList(); err != nil {

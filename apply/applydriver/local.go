@@ -307,7 +307,10 @@ func (c *Applier) deleteCluster() error {
 	if err != nil {
 		return err
 	}
-
+	if err := c.mountClusterImage(); err != nil {
+		return err
+	}
+	//deleteProcessor to unmount image
 	if err := processor.NewExecutor(deleteProcessor).Execute(c.ClusterDesired); err != nil {
 		return err
 	}

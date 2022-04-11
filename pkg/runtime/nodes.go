@@ -77,11 +77,15 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	k.cleanJoinLocalAPIEndPoint()
 
-	registryHost := getRegistryHost(k.getImageMountDir(), k.GetMaster0IP())
+	registryHost := k.getRegistryHost()
 	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
-	cf := GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
-	if cf.Username != "" && cf.Password != "" {
-		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, fmt.Sprintf(DockerLoginCommand, cf.Domain+":"+cf.Port, cf.Username, cf.Password))
+	if k.RegConfig.Domain != SeaHub {
+		addSeaHubHost := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP+" "+SeaHub, k.RegConfig.IP+" "+SeaHub)
+		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
+	}
+	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
+		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin,
+			fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password))
 	}
 	for _, node := range nodes {
 		node := node
@@ -99,7 +103,8 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			cmdWriteJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
 			cmd := k.Command(k.getKubeVersion(), JoinNode)
-			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.GetMasterIPList(), "")
+			lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
+			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.GetMasterIPList(), lvsImage)
 			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
@@ -143,9 +148,9 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete node: %v", err)
 	}
-
 	remoteCleanCmds := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, getRegistryHost(k.getRootfs(), k.GetMaster0IP())),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getRegistryHost()),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, fmt.Sprintf("%s %s", k.RegConfig.IP, SeaHub)),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 	address, err := utils.GetLocalHostAddresses()
 	//if the node to be removed is the execution machine, kubelet, ~./kube and ApiServer host will be added

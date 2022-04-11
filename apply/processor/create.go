@@ -22,7 +22,6 @@ import (
 
 	"github.com/alibaba/sealer/utils/platform"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/clusterfile"
 	"github.com/alibaba/sealer/pkg/config"
 	"github.com/alibaba/sealer/pkg/filesystem"
@@ -46,20 +45,11 @@ type CreateProcessor struct {
 }
 
 func (c *CreateProcessor) PreProcess(cluster *v2.Cluster) error {
-	runTime, err := runtime.NewDefaultRuntime(cluster, c.ClusterFile.GetKubeadmConfig())
-	if err != nil {
-		return fmt.Errorf("failed to init runtime, %v", err)
-	}
-	c.Runtime = runTime
 	c.Config = config.NewConfiguration(cluster)
 	if err := c.initPlugin(cluster); err != nil {
 		return err
 	}
-	err = utils.SaveClusterInfoToFile(cluster, cluster.Name)
-	if err != nil {
-		return err
-	}
-	return nil
+	return utils.SaveClusterInfoToFile(cluster, cluster.Name)
 }
 
 func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
@@ -92,12 +82,18 @@ func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 		plat := v
 		plats = append(plats, &plat)
 	}
-	err = c.ImageManager.PullIfNotExist(cluster.Spec.Image, plats)
-	if err != nil {
+	if err = c.ImageManager.PullIfNotExist(cluster.Spec.Image, plats); err != nil {
 		return err
 	}
-
-	return c.cloudImageMounter.MountImage(cluster)
+	if err = c.cloudImageMounter.MountImage(cluster); err != nil {
+		return err
+	}
+	runTime, err := runtime.NewDefaultRuntime(cluster, c.ClusterFile.GetKubeadmConfig())
+	if err != nil {
+		return fmt.Errorf("failed to init runtime, %v", err)
+	}
+	c.Runtime = runTime
+	return nil
 }
 
 func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
@@ -106,7 +102,7 @@ func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 
 func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
+	regConfig := runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), cluster.GetMaster0IP())
 	if utils.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
