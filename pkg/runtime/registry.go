@@ -32,7 +32,8 @@ const (
 	RegistryCustomConfig        = "registry.yml"
 	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
-	DockerLoginCommand          = "docker login %s -u %s -p %s"
+	DockerLoginCommand          = "docker login %s -u %s -p %s && " + KubeletAuthCommand
+	KubeletAuthCommand          = "cp /root/.docker/config.json /var/lib/kubelet && systemctl restart kubelet"
 )
 
 type RegistryConfig struct {
