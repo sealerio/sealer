@@ -1,0 +1,8 @@
+[Unit]
+Description=nydusd service
+[Service]
+TimeoutStartSec=3
+ExecStart=/usr/bin/nydusd --thread-num 10 --log-level debug --mountpoint $(pwd)/nydusdfs --apisock $(pwd)/nydusd.sock --id sealer --bootstrap $(pwd)/rootfs.meta --config $(pwd)/httpserver.json --supervisor $(pwd)/supervisor.sock
+Restart=always
+[Install]
+WantedBy=multi-user.target

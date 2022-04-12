@@ -16,7 +16,6 @@
 set -e
 set -x
 
-systemctl stop nydusd.service
-rm /etc/systemd/system/nydusd.service
-rm -rf /usr/bin/nydusd
-rm -rf /var/lib/sealer/nydusd.sh
+systemctl stop nydusd_http_server.service
+rm -rf /etc/systemd/system/nydusd_http_server.service
+rm -rf /usr/bin/nydus-backend-proxy

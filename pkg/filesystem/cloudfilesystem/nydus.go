@@ -43,17 +43,7 @@ type nydusFileSystem struct {
 }
 
 func (n *nydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error {
-	var (
-		clusterRootfsDir = common.DefaultTheClusterRootfsDir(cluster.Name)
-		src              = filepath.Join(platform.DefaultMountCloudImageDir(cluster.Name), "nydusdfile")
-		dest             = common.DefaultTheClusterNydusdFileDir(cluster.Name)
-		nydusdCpCmd      = fmt.Sprintf("rm -rf %s && cp -r %s %s", dest, src, dest)
-	)
-	//cp "nydusdfile" dir from mounted dir to rootfs.
-	_, err := utils.RunSimpleCmd(nydusdCpCmd)
-	if err != nil {
-		return fmt.Errorf("cp nydusdfile failed %v", err)
-	}
+	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	//scp roofs to all Masters and Nodes,then do init.sh
 	if err := mountNydusRootfs(hosts, clusterRootfsDir, cluster, initFlag); err != nil {
 		return fmt.Errorf("mount rootfs failed %v", err)
@@ -64,44 +54,71 @@ func (n *nydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initF
 
 func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) error {
 	var (
-		nydusdDir            = common.DefaultTheClusterNydusdDir(cluster.Name)
-		nydusdFileDir        = common.DefaultTheClusterNydusdFileDir(cluster.Name)
-		nydusdServerCleanCmd = filepath.Join(nydusdFileDir, "serverclean.sh")
+		nydusdFileDir     = common.DefaultTheClusterNydusdFileDir(cluster.Name)
+		nydusdServerClean = filepath.Join(nydusdFileDir, "serverfile", "serverclean.sh")
 	)
 	//do clean.sh,then remove all Masters and Nodes roofs
 	if err := unmountRootfs(hosts, cluster); err != nil {
 		return err
 	}
 
-	if utils.IsExist(nydusdServerCleanCmd) {
-		cleanCmd := fmt.Sprintf("sh %s && rm -rf %s", nydusdServerCleanCmd, nydusdDir)
+	if utils.IsExist(nydusdServerClean) {
+		cleanCmd := fmt.Sprintf("sh %s", nydusdServerClean)
 		_, err := utils.RunSimpleCmd(cleanCmd)
 		if err != nil {
 			return fmt.Errorf("failed to stop nydusdserver %v", err)
 		}
+	} else {
+		logger.Info("%s not found", nydusdServerClean)
 	}
 	return nil
 }
 
 func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
+	clusterPlatform, err := ssh.GetClusterPlatform(cluster)
+	if err != nil {
+		return err
+	}
 	localIP, err := utils.GetLocalIP(cluster.GetMaster0IP() + ":22")
 	if err != nil {
 		return fmt.Errorf("failed to get local address, %v", err)
 	}
 	var (
-		src               = platform.DefaultMountCloudImageDir(cluster.Name)
-		nydusdDir         = common.DefaultTheClusterNydusdDir(cluster.Name)
-		nydusdFileDir     = common.DefaultTheClusterNydusdFileDir(cluster.Name)
-		nydusdSrcDir      = filepath.Join(nydusdFileDir, "nydusd_scp_file")
-		startNydusdServer = fmt.Sprintf("cd %s && chmod +x serverstart.sh && ./serverstart.sh %s %s", nydusdFileDir, src, localIP)
-		nydusdInitCmd     = fmt.Sprintf(RemoteNydusdInit, nydusdDir, target)
-		nydusdCleanCmd    = fmt.Sprintf(RemoteNydusdStop, filepath.Join(nydusdDir, "clean.sh"), nydusdDir)
-		cleanCmd          = fmt.Sprintf("echo '%s' >> "+common.DefaultClusterClearBashFile, nydusdCleanCmd, cluster.Name)
-		envProcessor      = env.NewEnvProcessor(cluster)
-		config            = runtime.GetRegistryConfig(src, runtime.GetMaster0Ip(cluster))
-		initCmd           = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
+		nydusdfileSrc   = filepath.Join(platform.DefaultMountCloudImageDir(cluster.Name), "nydusdfile")
+		nydusdFileDir   = common.DefaultTheClusterNydusdFileDir(cluster.Name)
+		nydusdserverDir = filepath.Join(nydusdFileDir, "serverfile")
+		nydusdfileCpCmd = fmt.Sprintf("rm -rf %s && cp -r %s %s", nydusdFileDir, nydusdfileSrc, nydusdFileDir)
+		nydusdDir       = common.DefaultTheClusterNydusdDir(cluster.Name)
+		nydusdInitCmd   = fmt.Sprintf(RemoteNydusdInit, nydusdDir, target)
+		nydusdCleanCmd  = fmt.Sprintf(RemoteNydusdStop, filepath.Join(nydusdDir, "clean.sh"), nydusdDir)
+		cleanCmd        = fmt.Sprintf("echo '%s' >> "+common.DefaultClusterClearBashFile, nydusdCleanCmd, cluster.Name)
+		envProcessor    = env.NewEnvProcessor(cluster)
+		config          = runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), runtime.GetMaster0Ip(cluster))
+		initCmd         = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 	)
-
+	_, err = utils.RunSimpleCmd(nydusdfileCpCmd)
+	if err != nil {
+		return fmt.Errorf("cp nydusdfile failed %v", err)
+	}
+	//dirs need be converted
+	mountDirs := make(map[string]bool)
+	dirlist := ""
+	for _, IP := range ipList {
+		ip := IP
+		src := platform.GetMountCloudImagePlatformDir(cluster.Name, clusterPlatform[ip])
+		if !mountDirs[src] {
+			mountDirs[src] = true
+			dirlist = dirlist + fmt.Sprintf(",%s", src)
+			clientfileSrc := filepath.Join(src, "nydusdfile", "clientfile")
+			clientfileDest := filepath.Join(nydusdFileDir, filepath.Base(src))
+			nydusdCpCmd := fmt.Sprintf("cp -r %s %s", clientfileSrc, clientfileDest)
+			_, err = utils.RunSimpleCmd(nydusdCpCmd)
+			if err != nil {
+				return fmt.Errorf("cp nydusdclinetfile failed %v", err)
+			}
+		}
+	}
+	startNydusdServer := fmt.Sprintf("cd %s && chmod +x serverstart.sh && ./serverstart.sh -d %s -i %s", nydusdserverDir, dirlist, localIP)
 	//convert image and start nydusd http server
 	_, err = utils.RunSimpleCmd(startNydusdServer)
 	if err != nil {
@@ -113,11 +130,13 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
+			src := platform.GetMountCloudImagePlatformDir(cluster.Name, clusterPlatform[ip])
+			src = filepath.Join(nydusdFileDir, filepath.Base(src))
 			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
 			}
-			err = copyFiles(sshClient, ip == config.IP, ip, nydusdSrcDir, nydusdDir)
+			err = copyFiles(sshClient, false, ip, src, nydusdDir)
 			if err != nil {
 				return fmt.Errorf("scp nydusd failed %v", err)
 			}
@@ -138,7 +157,13 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 			return err
 		})
 	}
-	return eg.Wait()
+	if err = eg.Wait(); err != nil {
+		return err
+	}
+	if !utils.InList(config.IP, ipList) {
+		return nil
+	}
+	return nil
 }
 
 func NewNydusFileSystem() (Interface, error) {
