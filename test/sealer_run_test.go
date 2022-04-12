@@ -15,7 +15,6 @@
 package test
 
 import (
-	"strconv"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -26,19 +25,6 @@ import (
 )
 
 var _ = Describe("sealer run", func() {
-	Context("run on ali cloud", func() {
-		AfterEach(func() {
-			apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(settings.ClusterNameForRun))
-		})
-
-		It("exec sealer run", func() {
-			master := strconv.Itoa(1)
-			node := strconv.Itoa(1)
-			apply.SealerRun(master, node, "", settings.AliCloud)
-			apply.CheckNodeNumLocally(2)
-		})
-
-	})
 
 	Context("run on bareMetal", func() {
 		var tempFile string

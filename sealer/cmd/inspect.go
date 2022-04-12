@@ -26,9 +26,8 @@ import (
 var inspectCmd = &cobra.Command{
 	Use:   "inspect",
 	Short: "print the image information or clusterFile",
-	Long: `sealer inspect ${image id} to print image information
-sealer inspect -c ${image id} to print image Clusterfile`,
-	Args: cobra.ExactArgs(1),
+	Long:  `sealer inspect ${image id} to print image information`,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		file, err := image.GetYamlByImageID(args[0])
 		if err != nil {

@@ -107,19 +107,6 @@ func CheckIsImageExist(imageName string) bool {
 	return num == 1
 }
 
-func CheckClusterFile(imageName string) bool {
-	cmd := fmt.Sprintf("%s images | grep %s | awk '{print $4}'", settings.DefaultSealerBin, imageName)
-	result, err := utils.RunSimpleCmd(cmd)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	cmd = fmt.Sprintf("%s inspect -c %s | grep Cluster | wc -l", settings.DefaultSealerBin,
-		strings.Replace(result, "\n", "", -1))
-	result, err = utils.RunSimpleCmd(cmd)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	num, err := strconv.Atoi(strings.Replace(result, "\n", "", -1))
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return num == 1
-}
-
 func UpdateKubeFromImage(imageName string, KubefilePath string) {
 	Kube, err := ioutil.ReadFile(filepath.Clean(KubefilePath))
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())

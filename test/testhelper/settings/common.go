@@ -41,7 +41,6 @@ const (
 	SubCmdListOfSealer                = "images"
 	SubCmdPushOfSealer                = "push"
 	SubCmdRmiOfSealer                 = "rmi"
-	SubCmdForceRmiOfSealer            = "frmi"
 	DefaultSSHPassword                = "Sealer123"
 	ImageAnnotationForClusterfile     = "sea.aliyun.com/ClusterFile"
 )
@@ -58,6 +57,7 @@ const (
 	AliCloud          = "ALI_CLOUD"
 	CONTAINER         = "CONTAINER"
 	DefaultImage      = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8"
+	DefaultNydusImage = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nydus:v1.19.8"
 	ClusterNameForRun = "my-cluster"
 	TMPClusterFile    = "/tmp/Clusterfile"
 	ClusterWorkDir    = "/root/.sealer/%s"
@@ -73,11 +73,13 @@ var (
 	RegistryUsername       = os.Getenv("REGISTRY_USERNAME")
 	RegistryPasswd         = os.Getenv("REGISTRY_PASSWORD")
 	CustomImageName        = os.Getenv("IMAGE_NAME")
+	CustomNydusImageName   = os.Getenv("NYDUS_IMAGE_NAME")
 
-	AccessKey     = os.Getenv("ACCESSKEYID")
-	AccessSecret  = os.Getenv("ACCESSKEYSECRET")
-	Region        = os.Getenv("RegionID")
-	TestImageName = "" //default: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+	AccessKey          = os.Getenv("ACCESSKEYID")
+	AccessSecret       = os.Getenv("ACCESSKEYSECRET")
+	Region             = os.Getenv("RegionID")
+	TestImageName      = "" //default: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+	TestNydusImageName = "" //default: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nydus:v1.19.8
 )
 
 func GetClusterWorkDir(clusterName string) string {
