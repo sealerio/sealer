@@ -433,14 +433,15 @@ func (fs *filesystem) deleteImage(name string, platform *v1.Platform) error {
 	if platform == nil {
 		delete(imagesMap, name)
 	} else {
-		var ms []*types.ManifestDescriptor
-		for _, m := range manifestList.Manifests {
-			if platUtils.Matched(m.Platform, *platform) {
+		for index, m := range manifestList.Manifests {
+			if !platUtils.Matched(m.Platform, *platform) {
 				continue
 			}
-			ms = append(ms, m)
+			manifestList.Manifests = remove(manifestList.Manifests, index)
+			if len(manifestList.Manifests) == 0 {
+				delete(imagesMap, name)
+			}
 		}
-		manifestList.Manifests = ms
 	}
 
 	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
@@ -459,16 +460,18 @@ func (fs *filesystem) deleteImageByID(id string) error {
 	if err != nil {
 		return err
 	}
-	var ms []*types.ManifestDescriptor
 
-	for _, manifestList := range imagesMap {
-		for _, m := range manifestList.Manifests {
+	for name, manifestList := range imagesMap {
+		mm := manifestList.Manifests
+		for index, m := range manifestList.Manifests {
 			if m.ID == id {
-				continue
+				manifestList.Manifests = remove(mm, index)
+				if len(manifestList.Manifests) == 0 {
+					delete(imagesMap, name)
+				}
+				break
 			}
-			ms = append(ms, m)
 		}
-		manifestList.Manifests = ms
 	}
 
 	data, err := json.MarshalIndent(imagesMap, "", DefaultJSONIndent)
@@ -571,4 +574,8 @@ func saveImageYaml(image v1.Image, dir string) error {
 	}
 
 	return pkgutils.AtomicWriteFile(filepath.Join(dir, image.Spec.ID+common.YamlSuffix), imageYaml, common.FileMode0644)
+}
+
+func remove(slice []*types.ManifestDescriptor, s int) []*types.ManifestDescriptor {
+	return append(slice[:s], slice[s+1:]...)
 }

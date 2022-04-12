@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -29,8 +28,7 @@ import (
 )
 
 type removeImageFlag struct {
-	force    bool
-	Platform string
+	platform string
 }
 
 var opts removeImageFlag
@@ -52,24 +50,19 @@ func runRemove(images []string) error {
 	if err != nil {
 		return err
 	}
-
+	var errs []string
 	var targetPlatforms []*v1.Platform
-	if opts.Platform == "" && !opts.force {
-		return fmt.Errorf("need set target platforms if not force delete")
-	}
 
-	if opts.Platform != "" {
-		opts.force = false
-		tp, err := platform.ParsePlatforms(opts.Platform)
+	if opts.platform != "" {
+		tp, err := platform.ParsePlatforms(opts.platform)
 		if err != nil {
 			return err
 		}
 		targetPlatforms = tp
 	}
 
-	var errs []string
 	for _, img := range images {
-		if err := imageService.Delete(img, opts.force, targetPlatforms); err != nil {
+		if err := imageService.Delete(img, targetPlatforms); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
@@ -84,6 +77,5 @@ func runRemove(images []string) error {
 func init() {
 	opts = removeImageFlag{}
 	rootCmd.AddCommand(rmiCmd)
-	rmiCmd.Flags().StringVar(&opts.Platform, "platform", "", "set cloud image platform")
-	rmiCmd.Flags().BoolVarP(&opts.force, "force", "f", true, "force removal all of the image")
+	rmiCmd.Flags().StringVar(&opts.platform, "platform", "", "set cloud image platform")
 }
