@@ -63,13 +63,7 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 		if err != nil {
 			return err
 		}
-		if err = mergo.Merge(k, defaultKubeadmConfig); err != nil {
-			return err
-		}
-		if !utils.InList(SeaHub, k.APIServer.CertSANs) {
-			k.APIServer.CertSANs = append(k.APIServer.CertSANs, SeaHub)
-		}
-		return nil
+		return mergo.Merge(k, defaultKubeadmConfig)
 	}
 	defaultKubeadmConfig, err = LoadKubeadmConfigs(kubeadmYamlPath, DecodeCRDFromFile)
 	if err != nil {
