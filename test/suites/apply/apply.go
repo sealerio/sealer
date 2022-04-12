@@ -186,14 +186,10 @@ func ChangeMasterOrderAndSave(cluster *v1.Cluster, clusterFile string) *v1.Clust
 
 func CreateAliCloudInfra(cluster *v1.Cluster) {
 	cluster.DeletionTimestamp = nil
-	gomega.Eventually(func() bool {
-		infraManager, err := infra.NewDefaultProvider(cluster)
-		if err != nil {
-			return false
-		}
-		err = infraManager.Apply()
-		return err == nil
-	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
+	infraManager, err := infra.NewDefaultProvider(cluster)
+	testhelper.CheckErr(err)
+	err = infraManager.Apply()
+	testhelper.CheckErr(err)
 }
 
 func SendAndApplyCluster(sshClient *testhelper.SSHClient, clusterFile string) {
@@ -225,17 +221,12 @@ func CleanUpAliCloudInfra(cluster *v1.Cluster) {
 	if cluster.Spec.Provider != settings.AliCloud {
 		cluster.Spec.Provider = settings.AliCloud
 	}
-
-	gomega.Eventually(func() bool {
-		t := metav1.Now()
-		cluster.DeletionTimestamp = &t
-		infraManager, err := infra.NewDefaultProvider(cluster)
-		if err != nil {
-			return false
-		}
-		err = infraManager.Apply()
-		return err == nil
-	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
+	t := metav1.Now()
+	cluster.DeletionTimestamp = &t
+	infraManager, err := infra.NewDefaultProvider(cluster)
+	testhelper.CheckErr(err)
+	err = infraManager.Apply()
+	testhelper.CheckErr(err)
 }
 
 // CheckNodeNumWithSSH check node mum of remote cluster;for bare metal apply

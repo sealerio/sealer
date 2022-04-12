@@ -153,7 +153,7 @@ func (d DefaultImageService) Pull(imageName string, platforms []*v1.Platform) er
 		if err != nil {
 			return err
 		}
-
+		image.Name = named.Raw()
 		err = d.imageStore.Save(*image)
 		if err != nil {
 			return err

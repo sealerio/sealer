@@ -18,15 +18,11 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	"github.com/alibaba/sealer/test/suites/apply"
 	"github.com/alibaba/sealer/test/suites/build"
-	"github.com/alibaba/sealer/test/suites/image"
 	"github.com/alibaba/sealer/test/suites/registry"
 	"github.com/alibaba/sealer/test/testhelper"
 	"github.com/alibaba/sealer/test/testhelper/settings"
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("sealer build", func() {
@@ -60,87 +56,8 @@ var _ = Describe("sealer build", func() {
 				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
 				// check: sealer images whether image exist
 				testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
-				testhelper.CheckBeTrue(build.CheckClusterFile(imageName))
-				image.DoImageOps(settings.SubCmdForceRmiOfSealer, imageName)
 			})
 		})
-
-		Context("testing cloud build scenario", func() {
-			BeforeEach(func() {
-				registry.Login()
-				cloudBuildPath := filepath.Join(build.GetFixtures(), build.GetCloudBuildDir())
-				err := os.Chdir(cloudBuildPath)
-				testhelper.CheckErr(err)
-				//add From custom image name
-				build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(cloudBuildPath, "Kubefile"))
-			})
-			AfterEach(func() {
-				registry.Logout()
-				err := os.Chdir(settings.DefaultTestEnvDir)
-				testhelper.CheckErr(err)
-			})
-
-			It("with all build instruct", func() {
-				imageName := build.GetTestImageName()
-				cmd := build.NewArgsOfBuild().
-					SetKubeFile("Kubefile").
-					SetImageName(imageName).
-					SetContext(".").
-					SetBuildType("cloud").
-					Build()
-				sess, err := testhelper.Start(cmd)
-				defer func() {
-					if testhelper.IsFileExist(settings.TMPClusterFile) {
-						cluster := apply.LoadClusterFileFromDisk(settings.TMPClusterFile)
-						apply.CleanUpAliCloudInfra(cluster)
-						testhelper.DeleteFileLocally(settings.TMPClusterFile)
-					}
-				}()
-				testhelper.CheckErr(err)
-				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-				// check: need to pull build image and check whether image exist
-				image.DoImageOps(settings.SubCmdPullOfSealer, imageName)
-				Expect(build.CheckIsImageExist(imageName)).Should(BeTrue())
-				Expect(build.CheckClusterFile(imageName)).Should(BeTrue())
-				image.DoImageOps(settings.SubCmdForceRmiOfSealer, imageName)
-			})
-
-		})
-
-		/*		Context("testing container build scenario", func() {
-				BeforeEach(func() {
-					registry.Login()
-					cloudBuildPath := filepath.Join(build.GetFixtures(), build.GetContainerBuildDir())
-					err := os.Chdir(cloudBuildPath)
-					Expect(err).NotTo(HaveOccurred())
-					//add From custom image name
-					build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(cloudBuildPath, "Kubefile"))
-					apply.CheckDockerAndSwapOff()
-				})
-				AfterEach(func() {
-					registry.Logout()
-					err := os.Chdir(settings.DefaultTestEnvDir)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("with all build instruct", func() {
-					imageName := build.GetImageNameTemplate("container")
-					cmd := build.NewArgsOfBuild().
-						SetKubeFile("Kubefile").
-						SetImageName(imageName).
-						SetContext(".").
-						SetBuildType("container").
-						Build()
-					sess, err := testhelper.Start(cmd)
-					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess, settings.MaxWaiteTime).Should(Exit(0))
-					Expect(build.CheckIsImageExist(imageName)).Should(BeTrue())
-					Expect(build.CheckClusterFile(imageName)).Should(BeTrue())
-					image.DoImageOps(settings.SubCmdForceRmiOfSealer, imageName)
-					image.DoImageOps(settings.SubCmdForceRmiOfSealer, settings.TestImageName)
-				})
-
-			})*/
 	})
 
 })

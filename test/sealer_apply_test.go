@@ -39,110 +39,6 @@ var _ = Describe("sealer apply", func() {
 				apply.MarshalClusterToFile(rawClusterFilePath, rawCluster)
 			}
 		})
-		/*		Context("check regular scenario that provider is ali cloud", func() {
-					var tempFile string
-					BeforeEach(func() {
-						tempFile = testhelper.CreateTempFile()
-					})
-
-					AfterEach(func() {
-						apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
-						testhelper.RemoveTempFile(tempFile)
-						testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-					})
-
-					It("init, scale up, scale down, clean up", func() {
-						// 1,init cluster to 2 nodes and write to disk
-						By("start to init cluster")
-						sess, err := testhelper.Start(apply.SealerApplyCmd(rawClusterFilePath))
-						testhelper.CheckErr(err)
-						testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-						apply.CheckNodeNumLocally(2)
-
-						result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-						err = testhelper.WriteFile(tempFile, []byte(result))
-						testhelper.CheckErr(err)
-						By("Wait for the cluster to be ready", func() {
-							apply.WaitAllNodeRunning()
-						})
-						//2,scale up cluster to 6 nodes and write to disk
-						By("Use join command to add 3master and 3node for scale up cluster in cloud mode", func() {
-							apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(2))
-							apply.CheckNodeNumLocally(6)
-						})
-
-						result = testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-						err = testhelper.WriteFile(tempFile, []byte(result))
-						testhelper.CheckErr(err)
-						usedCluster := apply.LoadClusterFileFromDisk(tempFile)
-
-						//3,scale down cluster to 4 nodes and write to disk
-						By("start to scale down cluster")
-						usedCluster.Spec.Nodes.Count = "1"
-						usedCluster.Spec.Masters.Count = "3"
-						apply.WriteClusterFileToDisk(usedCluster, tempFile)
-						sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
-						testhelper.CheckErr(err)
-						testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-						apply.CheckNodeNumLocally(4)
-
-					})
-
-				})
-
-				Context("check regular scenario that provider is container", func() {
-					tempFile := testhelper.CreateTempFile()
-					BeforeEach(func() {
-						rawCluster.Spec.Provider = settings.CONTAINER
-						apply.MarshalClusterToFile(tempFile, rawCluster)
-						apply.CheckDockerAndSwapOff()
-					})
-
-					AfterEach(func() {
-						apply.DeleteClusterByFile(settings.GetClusterWorkClusterfile(rawCluster.Name))
-						testhelper.RemoveTempFile(tempFile)
-						testhelper.DeleteFileLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-					})
-
-					It("init, scale up, scale down, clean up", func() {
-						// 1,init cluster to 2 nodes and write to disk
-						By("start to init cluster")
-						sess, err := testhelper.Start(apply.SealerApplyCmd(tempFile))
-						testhelper.CheckErr(err)
-						testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-						apply.CheckNodeNumLocally(2)
-
-						result := testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-						err = testhelper.WriteFile(tempFile, []byte(result))
-						testhelper.CheckErr(err)
-
-						By("Wait for the cluster to be ready", func() {
-							apply.WaitAllNodeRunning()
-						})
-						//2,scale up cluster to 6 nodes and write to disk
-						By("Use join command to add 2master and 1node for scale up cluster in cloud mode", func() {
-							apply.SealerJoin(strconv.Itoa(2), strconv.Itoa(1))
-							apply.CheckNodeNumLocally(5)
-						})
-
-						result = testhelper.GetFileDataLocally(settings.GetClusterWorkClusterfile(rawCluster.Name))
-						err = testhelper.WriteFile(tempFile, []byte(result))
-						testhelper.CheckErr(err)
-						usedCluster := apply.LoadClusterFileFromDisk(tempFile)
-
-						//3,scale down cluster to 4 nodes and write to disk
-						By("start to scale down cluster")
-						usedCluster.Spec.Nodes.Count = "1"
-						usedCluster.Spec.Masters.Count = "3"
-						apply.WriteClusterFileToDisk(usedCluster, tempFile)
-						sess, err = testhelper.Start(apply.SealerApplyCmd(tempFile))
-						testhelper.CheckErr(err)
-						testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-						apply.CheckNodeNumLocally(4)
-						image.DoImageOps(settings.SubCmdRmiOfSealer, settings.TestImageName)
-					})
-
-				})*/
 
 		Context("check regular scenario that provider is bare metal, executes machine is master0", func() {
 			var tempFile string
@@ -256,6 +152,70 @@ var _ = Describe("sealer apply", func() {
 				apply.SendAndApplyCluster(sshClient, tempFile)
 				apply.CheckNodeNumWithSSH(sshClient, 4)
 
+				By("start to delete cluster")
+				err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
+				testhelper.CheckErr(err)
+			})
+
+		})
+	})
+
+	Context("start nydus image apply", func() {
+		rawCluster := apply.LoadClusterFileFromDisk(apply.GetRawClusterFilePath())
+		rawCluster.Spec.Image = settings.TestNydusImageName
+
+		Context("check regular scenario that provider is bare metal, executes machine is master0", func() {
+			var tempFile string
+			BeforeEach(func() {
+				tempFile = testhelper.CreateTempFile()
+			})
+
+			AfterEach(func() {
+				testhelper.RemoveTempFile(tempFile)
+			})
+			It("init, scale up, scale down, clean up", func() {
+				By("start to prepare infra")
+				cluster := rawCluster.DeepCopy()
+				cluster.Spec.Provider = settings.AliCloud
+				cluster.Spec.Image = settings.TestNydusImageName
+				cluster = apply.CreateAliCloudInfraAndSave(cluster, tempFile)
+				defer apply.CleanUpAliCloudInfra(cluster)
+				sshClient := testhelper.NewSSHClientByCluster(cluster)
+				testhelper.CheckFuncBeTrue(func() bool {
+					err := sshClient.SSH.Copy(sshClient.RemoteHostIP, settings.DefaultSealerBin, settings.DefaultSealerBin)
+					return err == nil
+				}, settings.MaxWaiteTime)
+
+				By("start to init cluster")
+				apply.GenerateClusterfile(tempFile)
+				apply.SendAndApplyCluster(sshClient, tempFile)
+				apply.CheckNodeNumWithSSH(sshClient, 2)
+
+				By("Wait for the cluster to be ready", func() {
+					apply.WaitAllNodeRunningBySSH(sshClient.SSH, sshClient.RemoteHostIP)
+				})
+
+				By("Use join command to add 3master and 3node for scale up cluster in baremetal mode", func() {
+					cluster.Spec.Nodes.Count = "3"
+					cluster.Spec.Masters.Count = "3"
+					cluster = apply.CreateAliCloudInfraAndSave(cluster, tempFile)
+					//waiting for service to start
+					time.Sleep(10 * time.Second)
+					joinMasters := strings.Join(cluster.Spec.Masters.IPList[1:], ",")
+					joinNodes := strings.Join(cluster.Spec.Nodes.IPList[1:], ",")
+					//sealer join master and node
+					apply.SendAndJoinCluster(sshClient, tempFile, joinMasters, joinNodes)
+					//add 3 masters and 3 nodes
+					apply.CheckNodeNumWithSSH(sshClient, 6)
+				})
+
+				By("start to scale down cluster")
+				cluster.Spec.Nodes.Count = "1"
+				cluster.Spec.Nodes.IPList = cluster.Spec.Nodes.IPList[:1]
+				cluster.Spec.Masters.Count = "3"
+				apply.WriteClusterFileToDisk(cluster, tempFile)
+				apply.SendAndApplyCluster(sshClient, tempFile)
+				apply.CheckNodeNumWithSSH(sshClient, 4)
 				By("start to delete cluster")
 				err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
 				testhelper.CheckErr(err)

@@ -43,8 +43,6 @@ func DoImageOps(action, imageName string) {
 		cmd = fmt.Sprintf("%s push %s -d", settings.DefaultSealerBin, imageName)
 	case settings.SubCmdRmiOfSealer:
 		cmd = fmt.Sprintf("%s rmi %s -d", settings.DefaultSealerBin, imageName)
-	case settings.SubCmdForceRmiOfSealer:
-		cmd = fmt.Sprintf("%s rmi -f %s -d", settings.DefaultSealerBin, GetImageID(imageName))
 	case settings.SubCmdRunOfSealer:
 		cmd = fmt.Sprintf("%s run %s -d", settings.DefaultSealerBin, imageName)
 	case settings.SubCmdListOfSealer:
