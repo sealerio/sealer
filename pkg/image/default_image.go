@@ -242,68 +242,80 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 	return nil
 }
 
-// Delete image layer, image meta, and local registry.
-// if --force=true, will delete all image data.
-// if platforms not nil will delete all the related platform images.
-func (d DefaultImageService) Delete(imageName string, force bool, platforms []*v1.Platform) error {
+// Delete image layer, image meta, and local registry by id or name.
+// if only image id,will delete related image data.
+// if image name,and not specify platform,will delete all image data.
+// if image name and  platforms is not nil will delete all the related platform images.
+func (d DefaultImageService) Delete(imageNameOrID string, platforms []*v1.Platform) error {
 	var (
 		err               error
 		named             reference.Named
 		imageStore        = d.imageStore
+		isImageID         bool
 		deleteImageIDList []string
-		latestImageIDList []string
 	)
 
-	named, err = reference.ParseToNamed(imageName)
-	if err != nil {
-		return err
-	}
-
-	if force {
-		imageMetadataMap, err := imageStore.GetImageMetadataMap()
-		if err != nil {
-			return err
-		}
-		manifestList, ok := imageMetadataMap[named.Raw()]
-		if !ok {
-			return fmt.Errorf("image %s not found", imageName)
-		}
-		for _, m := range manifestList.Manifests {
-			deleteImageIDList = append(deleteImageIDList, m.ID)
-		}
-		if err = imageStore.DeleteByName(named.Raw(), nil); err != nil {
-			return fmt.Errorf("failed to delete image %s, err: %v", imageName, err)
-		}
-	}
-
-	for _, plat := range platforms {
-		img, err := imageStore.GetByName(named.Raw(), plat)
-		if err != nil {
-			return fmt.Errorf("image %s not found %v", named.Raw(), err)
-		}
-
-		deleteImageIDList = append(deleteImageIDList, img.Spec.ID)
-		if err = imageStore.DeleteByName(named.Raw(), plat); err != nil {
-			return fmt.Errorf("failed to delete image %s, err: %v", imageName, err)
-		}
-	}
-
-	deleteImageIDList = utils.RemoveDuplicate(deleteImageIDList)
 	imageMetadataMap, err := imageStore.GetImageMetadataMap()
 	if err != nil {
 		return err
 	}
 
-	for _, imageMetadata := range imageMetadataMap {
-		for _, m := range imageMetadata.Manifests {
-			latestImageIDList = append(latestImageIDList, m.ID)
+	// detect if the input is image id.
+	for _, manifestList := range imageMetadataMap {
+		for _, m := range manifestList.Manifests {
+			if m.ID == imageNameOrID {
+				isImageID = true
+				break
+			}
 		}
 	}
-	// delete image.yaml file which id not in current imageMetadataMap.
-	for _, id := range deleteImageIDList {
-		if utils.InList(id, latestImageIDList) {
-			continue
+
+	if isImageID {
+		// delete image by id
+		err = imageStore.DeleteByID(imageNameOrID)
+		if err != nil {
+			return err
 		}
+		deleteImageIDList = append(deleteImageIDList, imageNameOrID)
+	} else {
+		// delete image by name
+		named, err = reference.ParseToNamed(imageNameOrID)
+		if err != nil {
+			return err
+		}
+
+		if len(platforms) == 0 {
+			// delete all platforms
+			manifestList, ok := imageMetadataMap[named.Raw()]
+			if !ok {
+				return fmt.Errorf("image %s not found", imageNameOrID)
+			}
+
+			if err = imageStore.DeleteByName(named.Raw(), nil); err != nil {
+				return fmt.Errorf("failed to delete image %s, err: %v", imageNameOrID, err)
+			}
+
+			for _, m := range manifestList.Manifests {
+				deleteImageIDList = append(deleteImageIDList, m.ID)
+			}
+		} else {
+			// delete user specify platform
+			for _, plat := range platforms {
+				img, err := imageStore.GetByName(named.Raw(), plat)
+				if err != nil {
+					return fmt.Errorf("image %s not found %v", named.Raw(), err)
+				}
+
+				if err = imageStore.DeleteByName(named.Raw(), plat); err != nil {
+					return fmt.Errorf("failed to delete image %s, err: %v", imageNameOrID, err)
+				}
+				deleteImageIDList = append(deleteImageIDList, img.Spec.ID)
+			}
+		}
+	}
+
+	// delete image.yaml file which id not in current imageMetadataMap.
+	for _, id := range utils.RemoveDuplicate(deleteImageIDList) {
 		err = store.DeleteImageLocal(id)
 		if err != nil {
 			return err
@@ -314,11 +326,11 @@ func (d DefaultImageService) Delete(imageName string, force bool, platforms []*v
 	if err != nil {
 		return err
 	}
-	logger.Info("image %s delete success", imageName)
+	logger.Info("image %s delete success", imageNameOrID)
 	return nil
 }
 
-// Prune delete the unused Layer in the `DefaultLayerDir` directory
+//delete the unused Layer in the `DefaultLayerDir` directory
 func (d DefaultImageService) deleteLayers() error {
 	var (
 		//save a path with desired name as value.

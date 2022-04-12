@@ -40,7 +40,7 @@ type Service interface {
 	Pull(imageName string, platform []*v1.Platform) error
 	PullIfNotExist(imageName string, platform []*v1.Platform) error
 	Push(imageName string) error
-	Delete(imageName string, force bool, platforms []*v1.Platform) error
+	Delete(imageName string, platforms []*v1.Platform) error
 	Login(RegistryURL, RegistryUsername, RegistryPasswd string) error
 	CacheBuilder
 }
