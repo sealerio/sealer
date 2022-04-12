@@ -71,8 +71,10 @@ func (k *KubeadmRuntime) resetNode(node string) error {
 	if err := ssh.CmdAsync(node, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
 		RemoveKubeConfig,
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, fmt.Sprintf("%s %s", k.RegConfig.IP, SeaHub)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getRegistryHost())); err != nil {
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, SeaHub),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.RegConfig.Domain),
+		fmt.Sprintf(RemoteRemoveRegistryCerts, k.RegConfig.Domain),
+		fmt.Sprintf(RemoteRemoveRegistryCerts, SeaHub)); err != nil {
 		return err
 	}
 	return nil

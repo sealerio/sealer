@@ -84,8 +84,9 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
 	}
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin,
-			fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password))
+		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s && %s", addRegistryHostsAndLogin,
+			fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password),
+			fmt.Sprintf(DockerLoginCommand, SeaHub+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password))
 	}
 	for _, node := range nodes {
 		node := node
@@ -149,8 +150,10 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 		return fmt.Errorf("failed to delete node: %v", err)
 	}
 	remoteCleanCmds := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getRegistryHost()),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, fmt.Sprintf("%s %s", k.RegConfig.IP, SeaHub)),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.RegConfig.Domain),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, SeaHub),
+		fmt.Sprintf(RemoteRemoveRegistryCerts, k.RegConfig.Domain),
+		fmt.Sprintf(RemoteRemoveRegistryCerts, SeaHub),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 	address, err := utils.GetLocalHostAddresses()
 	//if the node to be removed is the execution machine, kubelet, ~./kube and ApiServer host will be added

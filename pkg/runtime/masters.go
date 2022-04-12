@@ -64,6 +64,7 @@ rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd && rm -rf /var/etcd 
 `
 	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
+	RemoteRemoveRegistryCerts    = "rm -rf " + DockerCertDir + "/%s*"
 	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
 	CreateLvscareStaticPod       = "mkdir -p /etc/kubernetes/manifests && echo '%s' > /etc/kubernetes/manifests/kube-sealyun-lvscare.yaml"
 	KubeDeleteNode               = "kubectl delete node %s"
@@ -134,8 +135,10 @@ func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []
 	}
 	joinCommands := []string{cmdAddRegistryHosts, certCMD, cmdAddHosts}
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		joinCommands = append(joinCommands, fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port,
-			k.RegConfig.Username, k.RegConfig.Password))
+		login := fmt.Sprintf("%s && %s",
+			fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password),
+			fmt.Sprintf(DockerLoginCommand, SeaHub+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password))
+		joinCommands = append(joinCommands, login)
 	}
 	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, apiServerHost,
 		getAPIServerHost(master, k.getAPIServerDomain()))
@@ -159,7 +162,11 @@ func (k *KubeadmRuntime) sendRegistryCertAndKey() error {
 
 func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
 	cf := k.RegConfig
-	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, cf.Domain, cf.Port, cf.Domain))
+	err := k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, cf.Domain, cf.Port, cf.Domain))
+	if err != nil {
+		return err
+	}
+	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, SeaHub, cf.Port, cf.Domain))
 }
 
 func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error {
@@ -427,8 +434,10 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 		return fmt.Errorf("failed to delete master: %v", err)
 	}
 	remoteCleanCmd := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, fmt.Sprintf("%s %s", k.RegConfig.IP, k.RegConfig.Domain)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, fmt.Sprintf("%s %s", k.RegConfig, SeaHub)),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.RegConfig.Domain),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, SeaHub),
+		fmt.Sprintf(RemoteRemoveRegistryCerts, k.RegConfig.Domain),
+		fmt.Sprintf(RemoteRemoveRegistryCerts, SeaHub),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 
 	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.

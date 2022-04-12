@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/pkg/cert"
+
 	"github.com/alibaba/sealer/common"
 
 	"github.com/alibaba/sealer/logger"
@@ -33,7 +35,7 @@ const (
 	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerLoginCommand          = "docker login %s -u %s -p %s && " + KubeletAuthCommand
-	KubeletAuthCommand          = "cp /root/.docker/config.json /var/lib/kubelet && systemctl restart kubelet"
+	KubeletAuthCommand          = "cp /root/.docker/config.json /var/lib/kubelet"
 )
 
 type RegistryConfig struct {
@@ -82,7 +84,9 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 	if k.RegConfig.Username == "" || k.RegConfig.Password == "" {
 		return nil
 	}
-	return ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password))
+	login := fmt.Sprintf("%s && %s", fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password),
+		fmt.Sprintf(DockerLoginCommand, SeaHub+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password))
+	return ssh.CmdAsync(k.GetMaster0IP(), login)
 }
 
 func (r *RegistryConfig) GenerateHtPasswd() (string, error) {
@@ -138,4 +142,23 @@ func (k *KubeadmRuntime) DeleteRegistry() error {
 
 	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %s;fi", RegistryName, RegistryName)
 	return ssh.CmdAsync(k.RegConfig.IP, cmd)
+}
+
+func GenerateRegistryCert(registryCertPath string, BaseName string) error {
+	regCertConfig := cert.Config{
+		Path:         registryCertPath,
+		BaseName:     BaseName,
+		CommonName:   BaseName,
+		DNSNames:     []string{BaseName},
+		Organization: []string{common.ExecBinaryFileName},
+		Year:         100,
+	}
+	if BaseName != SeaHub {
+		regCertConfig.DNSNames = append(regCertConfig.DNSNames, SeaHub)
+	}
+	crt, key, err := cert.NewCaCertAndKey(regCertConfig)
+	if err != nil {
+		return err
+	}
+	return cert.WriteCertAndKey(regCertConfig.Path, regCertConfig.BaseName, crt, key)
 }

@@ -98,6 +98,9 @@ type ClusterConfiguration struct {
 	// Scheduler contains extra settings for the scheduler control plane component
 	Scheduler ControlPlaneComponent `json:"scheduler,omitempty"`
 
+	// DNS defines the options for the DNS add-on installed in the cluster.
+	DNS DNS `json:"dns,omitempty"`
+
 	// CertificatesDir specifies where to store or look for all required certificates.
 	CertificatesDir string `json:"certificatesDir,omitempty"`
 

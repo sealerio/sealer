@@ -56,6 +56,7 @@ type Config struct {
 	BaseName     string // Writeto file name
 	CAName       string // root ca map key
 	CommonName   string
+	DNSNames     []string
 	Organization []string
 	Year         time.Duration
 	AltNames     AltNames
@@ -80,17 +81,17 @@ func NewPrivateKey(keyType x509.PublicKeyAlgorithm) (crypto.Signer, error) {
 }
 
 // NewSelfSignedCACert creates a CA certificate
-func NewSelfSignedCACert(key crypto.Signer, commonName string, organization []string, year time.Duration) (*x509.Certificate, error) {
+func NewSelfSignedCACert(key crypto.Signer, config Config) (*x509.Certificate, error) {
 	now := time.Now()
 	tmpl := x509.Certificate{
 		SerialNumber: new(big.Int).SetInt64(0),
 		Subject: pkix.Name{
-			CommonName:   commonName,
-			Organization: organization,
+			CommonName:   config.CommonName,
+			Organization: config.Organization,
 		},
-		DNSNames:              []string{commonName},
+		DNSNames:              config.DNSNames,
 		NotBefore:             now.UTC(),
-		NotAfter:              now.Add(duration365d * year).UTC(),
+		NotAfter:              now.Add(duration365d * config.Year).UTC(),
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 		IsCA:                  true,
@@ -114,7 +115,7 @@ func NewCaCertAndKey(cfg Config) (*x509.Certificate, crypto.Signer, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to create private key while generating CA certificate %s", err)
 	}
-	cert, err := NewSelfSignedCACert(key, cfg.CommonName, cfg.Organization, cfg.Year)
+	cert, err := NewSelfSignedCACert(key, cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to create ca cert %s", err)
 	}
