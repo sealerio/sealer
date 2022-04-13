@@ -31,20 +31,9 @@ type InstallProcessor struct {
 	Plugins     plugin.Plugins
 }
 
-func (i InstallProcessor) Process(cluster *v2.Cluster) error {
-	i.Config = config.NewConfiguration(cluster)
-	i.Plugins = plugin.NewPlugins(cluster)
-	return i.initPlugin()
-}
-
-func (i InstallProcessor) initPlugin() error {
-	return i.Plugins.Dump(i.clusterFile.GetPlugins())
-}
-
-func (i InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+func (i *InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
-		i.Process,
 		i.RunConfig,
 		i.MountRootfs,
 		i.GetPhasePluginFunc(plugin.PhasePreGuest),
@@ -54,11 +43,11 @@ func (i InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, erro
 	return todoList, nil
 }
 
-func (i InstallProcessor) RunConfig(cluster *v2.Cluster) error {
+func (i *InstallProcessor) RunConfig(cluster *v2.Cluster) error {
 	return i.Config.Dump(i.clusterFile.GetConfigs())
 }
 
-func (i InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
+func (i *InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	//initFlag : no need to do init cmd like installing docker service and so on.
 	fs, err := filesystem.NewFilesystem(platform.DefaultMountCloudImageDir(cluster.Name))
@@ -68,11 +57,11 @@ func (i InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
 	return fs.MountRootfs(cluster, hosts, false)
 }
 
-func (i InstallProcessor) Install(cluster *v2.Cluster) error {
+func (i *InstallProcessor) Install(cluster *v2.Cluster) error {
 	return i.Guest.Apply(cluster)
 }
 
-func (i InstallProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {
+func (i *InstallProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {
 	return func(cluster *v2.Cluster) error {
 		if phase == plugin.PhasePreGuest {
 			if err := i.Plugins.Load(); err != nil {
@@ -89,8 +78,17 @@ func NewInstallProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 		return nil, err
 	}
 
-	return InstallProcessor{
+	cluster := clusterFile.GetCluster()
+	plug := plugin.NewPlugins(&cluster)
+	err = plug.Dump(clusterFile.GetPlugins())
+	if err != nil {
+		return nil, err
+	}
+
+	return &InstallProcessor{
 		clusterFile: clusterFile,
 		Guest:       gs,
+		Config:      config.NewConfiguration(&cluster),
+		Plugins:     plug,
 	}, nil
 }

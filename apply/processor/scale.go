@@ -45,83 +45,25 @@ type ScaleProcessor struct {
 	IsScaleUp       bool
 }
 
-func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
-	runTime, err := runtime.NewDefaultRuntime(cluster, s.KubeadmConfig)
-	if err != nil {
-		return fmt.Errorf("failed to init runtime, %v", err)
-	}
-	s.Runtime = runTime
-	s.Config = config.NewConfiguration(cluster)
-	if s.IsScaleUp {
-		if err = utils.SaveClusterInfoToFile(cluster, cluster.Name); err != nil {
-			return err
-		}
-	}
-	return s.initPlugin(cluster)
-}
-
 func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+	var todoList []func(cluster *v2.Cluster) error
 	if s.IsScaleUp {
-		return s.ScaleUpPipeLine()
-	}
-	return s.ScaleDownPipeLine()
-}
-
-func (s *ScaleProcessor) ScaleUp(cluster *v2.Cluster) error {
-	pipLine, err := s.ScaleUpPipeLine()
-	if err != nil {
-		return err
-	}
-
-	for _, f := range pipLine {
-		if err = f(cluster); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *ScaleProcessor) ScaleDown(cluster *v2.Cluster) error {
-	pipLine, err := s.ScaleDownPipeLine()
-	if err != nil {
-		return err
+		todoList = append(todoList,
+			s.RunConfig,
+			s.MountRootfs,
+			s.GetPhasePluginFunc(plugin.PhasePreJoin),
+			s.Join,
+			s.GetPhasePluginFunc(plugin.PhasePostJoin),
+		)
+		return todoList, nil
 	}
 
-	for _, f := range pipLine {
-		if err = f(cluster); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *ScaleProcessor) ScaleUpPipeLine() ([]func(cluster *v2.Cluster) error, error) {
-	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
-		s.PreProcess,
-		s.RunConfig,
-		s.MountRootfs,
-		s.GetPhasePluginFunc(plugin.PhasePreJoin),
-		s.Join,
-		s.GetPhasePluginFunc(plugin.PhasePostJoin),
-	)
-	return todoList, nil
-}
-
-func (s *ScaleProcessor) ScaleDownPipeLine() ([]func(cluster *v2.Cluster) error, error) {
-	var todoList []func(cluster *v2.Cluster) error
-	todoList = append(todoList,
-		s.PreProcess,
 		s.Delete,
 		s.ApplyCleanPlugin,
 		s.UnMountRootfs,
 	)
 	return todoList, nil
-}
-
-func (s *ScaleProcessor) initPlugin(cluster *v2.Cluster) error {
-	s.Plugins = plugin.NewPlugins(cluster)
-	return s.Plugins.Dump(s.ClusterFile.GetPlugins())
 }
 
 func (s *ScaleProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {
@@ -175,15 +117,32 @@ func (s *ScaleProcessor) ApplyCleanPlugin(cluster *v2.Cluster) error {
 }
 
 func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Processor, error) {
-	var up bool
-	// only scale up or scale down at a time
-	if len(masterToJoin) > 0 || len(nodeToJoin) > 0 {
-		up = true
-	}
 	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(clusterFile.GetCluster().Name))
 	if err != nil {
 		return nil, err
 	}
+
+	cluster := clusterFile.GetCluster()
+	plug := plugin.NewPlugins(&cluster)
+	err = plug.Dump(clusterFile.GetPlugins())
+	if err != nil {
+		return nil, err
+	}
+
+	rt, err := runtime.NewDefaultRuntime(&cluster, kubeadmConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init runtime, %v", err)
+	}
+
+	var up bool
+	// only scale up or scale down at a time
+	if len(masterToJoin) > 0 || len(nodeToJoin) > 0 {
+		if err := utils.SaveClusterInfoToFile(&cluster, cluster.Name); err != nil {
+			return nil, err
+		}
+		up = true
+	}
+
 	return &ScaleProcessor{
 		MastersToDelete: masterToDelete,
 		MastersToJoin:   masterToJoin,
@@ -191,7 +150,10 @@ func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile cluster
 		NodesToJoin:     nodeToJoin,
 		KubeadmConfig:   kubeadmConfig,
 		ClusterFile:     clusterFile,
+		Runtime:         rt,
 		IsScaleUp:       up,
 		fileSystem:      fs,
+		Config:          config.NewConfiguration(&cluster),
+		Plugins:         plug,
 	}, nil
 }

@@ -57,7 +57,6 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 		ex            = shell.NewLex('\\')
 	)
 
-	//todo need to filter image by platform
 	image, err := d.imageStore.GetByName(cluster.Spec.Image, platform.GetDefaultPlatform())
 	if err != nil {
 		return fmt.Errorf("get cluster image failed, %s", err)
