@@ -45,6 +45,29 @@ type ScaleProcessor struct {
 	IsScaleUp       bool
 }
 
+func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+	var todoList []func(cluster *v2.Cluster) error
+	if s.IsScaleUp {
+		todoList = append(todoList,
+			s.PreProcess,
+			s.RunConfig,
+			s.MountRootfs,
+			s.GetPhasePluginFunc(plugin.PhasePreJoin),
+			s.Join,
+			s.GetPhasePluginFunc(plugin.PhasePostJoin),
+		)
+		return todoList, nil
+	}
+
+	todoList = append(todoList,
+		s.PreProcess,
+		s.Delete,
+		s.ApplyCleanPlugin,
+		s.UnMountRootfs,
+	)
+	return todoList, nil
+}
+
 func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, s.KubeadmConfig)
 	if err != nil {
@@ -58,65 +81,6 @@ func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
 		}
 	}
 	return s.initPlugin(cluster)
-}
-
-func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
-	if s.IsScaleUp {
-		return s.ScaleUpPipeLine()
-	}
-	return s.ScaleDownPipeLine()
-}
-
-func (s *ScaleProcessor) ScaleUp(cluster *v2.Cluster) error {
-	pipLine, err := s.ScaleUpPipeLine()
-	if err != nil {
-		return err
-	}
-
-	for _, f := range pipLine {
-		if err = f(cluster); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *ScaleProcessor) ScaleDown(cluster *v2.Cluster) error {
-	pipLine, err := s.ScaleDownPipeLine()
-	if err != nil {
-		return err
-	}
-
-	for _, f := range pipLine {
-		if err = f(cluster); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *ScaleProcessor) ScaleUpPipeLine() ([]func(cluster *v2.Cluster) error, error) {
-	var todoList []func(cluster *v2.Cluster) error
-	todoList = append(todoList,
-		s.PreProcess,
-		s.RunConfig,
-		s.MountRootfs,
-		s.GetPhasePluginFunc(plugin.PhasePreJoin),
-		s.Join,
-		s.GetPhasePluginFunc(plugin.PhasePostJoin),
-	)
-	return todoList, nil
-}
-
-func (s *ScaleProcessor) ScaleDownPipeLine() ([]func(cluster *v2.Cluster) error, error) {
-	var todoList []func(cluster *v2.Cluster) error
-	todoList = append(todoList,
-		s.PreProcess,
-		s.Delete,
-		s.ApplyCleanPlugin,
-		s.UnMountRootfs,
-	)
-	return todoList, nil
 }
 
 func (s *ScaleProcessor) initPlugin(cluster *v2.Cluster) error {
@@ -175,15 +139,17 @@ func (s *ScaleProcessor) ApplyCleanPlugin(cluster *v2.Cluster) error {
 }
 
 func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Processor, error) {
+	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(clusterFile.GetCluster().Name))
+	if err != nil {
+		return nil, err
+	}
+
 	var up bool
 	// only scale up or scale down at a time
 	if len(masterToJoin) > 0 || len(nodeToJoin) > 0 {
 		up = true
 	}
-	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(clusterFile.GetCluster().Name))
-	if err != nil {
-		return nil, err
-	}
+
 	return &ScaleProcessor{
 		MastersToDelete: masterToDelete,
 		MastersToJoin:   masterToJoin,

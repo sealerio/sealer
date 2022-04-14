@@ -44,14 +44,6 @@ type CreateProcessor struct {
 	Plugins           plugin.Plugins
 }
 
-func (c *CreateProcessor) PreProcess(cluster *v2.Cluster) error {
-	c.Config = config.NewConfiguration(cluster)
-	if err := c.initPlugin(cluster); err != nil {
-		return err
-	}
-	return utils.SaveClusterInfoToFile(cluster, cluster.Name)
-}
-
 func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
@@ -71,8 +63,20 @@ func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, erro
 	return todoList, nil
 }
 
+func (c *CreateProcessor) PreProcess(cluster *v2.Cluster) error {
+	c.Config = config.NewConfiguration(cluster)
+	if err := c.initPlugin(cluster); err != nil {
+		return err
+	}
+	return utils.SaveClusterInfoToFile(cluster, cluster.Name)
+}
+
+func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) error {
+	c.Plugins = plugin.NewPlugins(cluster)
+	return c.Plugins.Dump(c.ClusterFile.GetPlugins())
+}
+
 func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
-	//todo need to filter image by platform
 	platsMap, err := ssh.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
@@ -136,11 +140,6 @@ func (c *CreateProcessor) RunGuest(cluster *v2.Cluster) error {
 }
 func (c *CreateProcessor) UnMountImage(cluster *v2.Cluster) error {
 	return c.cloudImageMounter.UnMountImage(cluster)
-}
-
-func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) error {
-	c.Plugins = plugin.NewPlugins(cluster)
-	return c.Plugins.Dump(c.ClusterFile.GetPlugins())
 }
 
 func (c *CreateProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {

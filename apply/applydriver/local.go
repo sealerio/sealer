@@ -95,7 +95,6 @@ func (c *Applier) fillClusterCurrent() error {
 
 func (c *Applier) mountClusterImage() error {
 	imageName := c.ClusterDesired.Spec.Image
-	//todo need to filter image by platform
 	platsMap, err := ssh.GetClusterPlatform(c.ClusterDesired)
 	if err != nil {
 		return err
@@ -145,7 +144,6 @@ func (c *Applier) reconcileCluster() error {
 		}
 	}()
 
-	//todo need to filter image by platform
 	baseImage, err := c.ImageStore.GetByName(c.ClusterDesired.Spec.Image, platform.GetDefaultPlatform())
 	if err != nil {
 		return fmt.Errorf("failed to get base image err: %s", err)

@@ -106,7 +106,6 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 				return fmt.Errorf("failed to clean %s, %v", mountDir, err)
 			}
 		}
-		////todo need to filter image by platform
 		Image, err := m.imageStore.GetByName(cluster.Spec.Image, &pfm)
 		if err != nil {
 			return err

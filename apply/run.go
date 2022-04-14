@@ -20,16 +20,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/utils/platform"
-
-	"github.com/alibaba/sealer/pkg/clusterfile"
-
 	v1 "github.com/alibaba/sealer/types/api/v1"
 
 	"github.com/alibaba/sealer/apply/applydriver"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
 )
@@ -39,11 +34,6 @@ type ClusterArgs struct {
 	imageName string
 	runArgs   *common.RunArgs
 	hosts     []v2.Host
-}
-
-func IsNumber(args string) bool {
-	_, err := strconv.Atoi(args)
-	return err == nil
 }
 
 func IsIPList(args string) bool {
@@ -124,27 +114,6 @@ func (c *ClusterArgs) setHostWithIpsPort(ips []string, role string) {
 		}
 		c.hosts = append(c.hosts, *host)
 	}
-}
-
-func GetClusterFileByImageName(imageName string) (*v2.Cluster, error) {
-	//todo need to filter image by platform
-	clusterFile, err := image.GetClusterFileFromImageManifest(imageName, platform.GetDefaultPlatform())
-	if err != nil {
-		return nil, err
-	}
-	c, err := clusterfile.GetClusterFromDataCompatV1([]byte(clusterFile))
-	if err != nil {
-		return nil, err
-	}
-
-	// if run an application image on the existed cluster,use the existed cluster name as the desired one,
-	// make sure we do any changes on the same cluster.
-	name, err := clusterfile.GetDefaultClusterName()
-	if err == nil {
-		c.Name = name
-	}
-
-	return c, nil
 }
 
 func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (applydriver.Interface, error) {

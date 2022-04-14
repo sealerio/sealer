@@ -25,10 +25,8 @@ import (
 )
 
 type UpgradeProcessor struct {
-	fileSystem    cloudfilesystem.Interface
-	Runtime       runtime.Interface
-	MastersToJoin []string
-	NodesToJoin   []string
+	fileSystem cloudfilesystem.Interface
+	Runtime    runtime.Interface
 }
 
 // Execute :according to the different of desired cluster to upgrade cluster.

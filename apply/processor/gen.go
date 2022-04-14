@@ -153,7 +153,6 @@ func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
 }
 
 func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
-	////todo need to filter image by platform
 	platsMap, err := ssh.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
