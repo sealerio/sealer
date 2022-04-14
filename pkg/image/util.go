@@ -78,16 +78,47 @@ func GetClusterFileFromImageManifest(imageName string, platform *v1.Platform) (s
 	return clusterFile, nil
 }
 
-func GetYamlByImageID(id string) (string, error) {
-	if id == "" {
+func GetImageDetails(idOrName string, platforms []*v1.Platform) (string, error) {
+	var isImageID bool
+	var imgs []*v1.Image
+
+	if idOrName == "" {
 		return "", fmt.Errorf("image id is nil")
 	}
-	img, err := GetImageByID(id)
+	imageStore, err := store.NewDefaultImageStore()
+	if err != nil {
+		return "", fmt.Errorf("failed to init image store, err: %s", err)
+	}
+	imageMetadataMap, err := imageStore.GetImageMetadataMap()
 	if err != nil {
 		return "", err
 	}
 
-	info, err := yaml.Marshal(img)
+	// detect if the input is image id.
+	for _, manifestList := range imageMetadataMap {
+		for _, m := range manifestList.Manifests {
+			if m.ID == idOrName {
+				isImageID = true
+				break
+			}
+		}
+	}
+
+	if isImageID {
+		ima, err := imageStore.GetByID(idOrName)
+		if err != nil {
+			return "", err
+		}
+		imgs = append(imgs, ima)
+	} else {
+		ima, err := getImageByName(idOrName, platforms, imageStore, imageMetadataMap)
+		if err != nil {
+			return "", err
+		}
+		imgs = append(imgs, ima...)
+	}
+
+	info, err := yaml.Marshal(imgs)
 	if err != nil {
 		return "", err
 	}
@@ -95,24 +126,9 @@ func GetYamlByImageID(id string) (string, error) {
 	return string(info), nil
 }
 
-func GetImageByID(id string) (*v1.Image, error) {
-	is, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, fmt.Errorf("failed to init image store, err: %s", err)
-	}
-	return is.GetByID(id)
-}
-
-func GetImageByName(imageName string, platforms []*v1.Platform) ([]*v1.Image, error) {
+func getImageByName(imageName string, platforms []*v1.Platform, is store.ImageStore, imagesMap store.ImageMetadataMap) ([]*v1.Image, error) {
 	var imgs []*v1.Image
-	is, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, fmt.Errorf("failed to init image store, err: %s", err)
-	}
-	imagesMap, err := is.GetImageMetadataMap()
-	if err != nil {
-		return nil, err
-	}
+
 	image, ok := imagesMap[imageName]
 	if !ok {
 		return nil, fmt.Errorf("failed to find image by name: %s", imageName)
