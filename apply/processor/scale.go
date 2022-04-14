@@ -49,6 +49,7 @@ func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 	var todoList []func(cluster *v2.Cluster) error
 	if s.IsScaleUp {
 		todoList = append(todoList,
+			s.PreProcess,
 			s.RunConfig,
 			s.MountRootfs,
 			s.GetPhasePluginFunc(plugin.PhasePreJoin),
@@ -59,11 +60,32 @@ func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 	}
 
 	todoList = append(todoList,
+		s.PreProcess,
 		s.Delete,
 		s.ApplyCleanPlugin,
 		s.UnMountRootfs,
 	)
 	return todoList, nil
+}
+
+func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
+	runTime, err := runtime.NewDefaultRuntime(cluster, s.KubeadmConfig)
+	if err != nil {
+		return fmt.Errorf("failed to init runtime, %v", err)
+	}
+	s.Runtime = runTime
+	s.Config = config.NewConfiguration(cluster)
+	if s.IsScaleUp {
+		if err = utils.SaveClusterInfoToFile(cluster, cluster.Name); err != nil {
+			return err
+		}
+	}
+	return s.initPlugin(cluster)
+}
+
+func (s *ScaleProcessor) initPlugin(cluster *v2.Cluster) error {
+	s.Plugins = plugin.NewPlugins(cluster)
+	return s.Plugins.Dump(s.ClusterFile.GetPlugins())
 }
 
 func (s *ScaleProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {
@@ -122,24 +144,9 @@ func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile cluster
 		return nil, err
 	}
 
-	cluster := clusterFile.GetCluster()
-	plug := plugin.NewPlugins(&cluster)
-	err = plug.Dump(clusterFile.GetPlugins())
-	if err != nil {
-		return nil, err
-	}
-
-	rt, err := runtime.NewDefaultRuntime(&cluster, kubeadmConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init runtime, %v", err)
-	}
-
 	var up bool
 	// only scale up or scale down at a time
 	if len(masterToJoin) > 0 || len(nodeToJoin) > 0 {
-		if err := utils.SaveClusterInfoToFile(&cluster, cluster.Name); err != nil {
-			return nil, err
-		}
 		up = true
 	}
 
@@ -150,10 +157,7 @@ func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile cluster
 		NodesToJoin:     nodeToJoin,
 		KubeadmConfig:   kubeadmConfig,
 		ClusterFile:     clusterFile,
-		Runtime:         rt,
 		IsScaleUp:       up,
 		fileSystem:      fs,
-		Config:          config.NewConfiguration(&cluster),
-		Plugins:         plug,
 	}, nil
 }

@@ -34,6 +34,7 @@ type InstallProcessor struct {
 func (i *InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
+		i.Process,
 		i.RunConfig,
 		i.MountRootfs,
 		i.GetPhasePluginFunc(plugin.PhasePreGuest),
@@ -41,6 +42,16 @@ func (i *InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, err
 		i.GetPhasePluginFunc(plugin.PhasePostInstall),
 	)
 	return todoList, nil
+}
+
+func (i *InstallProcessor) Process(cluster *v2.Cluster) error {
+	i.Config = config.NewConfiguration(cluster)
+	i.Plugins = plugin.NewPlugins(cluster)
+	return i.initPlugin()
+}
+
+func (i *InstallProcessor) initPlugin() error {
+	return i.Plugins.Dump(i.clusterFile.GetPlugins())
 }
 
 func (i *InstallProcessor) RunConfig(cluster *v2.Cluster) error {
@@ -78,17 +89,8 @@ func NewInstallProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 		return nil, err
 	}
 
-	cluster := clusterFile.GetCluster()
-	plug := plugin.NewPlugins(&cluster)
-	err = plug.Dump(clusterFile.GetPlugins())
-	if err != nil {
-		return nil, err
-	}
-
 	return &InstallProcessor{
 		clusterFile: clusterFile,
 		Guest:       gs,
-		Config:      config.NewConfiguration(&cluster),
-		Plugins:     plug,
 	}, nil
 }

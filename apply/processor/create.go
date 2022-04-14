@@ -47,7 +47,7 @@ type CreateProcessor struct {
 func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
-		c.WriteClusterfile,
+		c.PreProcess,
 		c.GetPhasePluginFunc(plugin.PhaseOriginally),
 		c.MountImage,
 		c.RunConfig,
@@ -63,9 +63,17 @@ func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, erro
 	return todoList, nil
 }
 
-// WriteClusterfile set clusterfile to local disk in order to clean host environment.
-func (c *CreateProcessor) WriteClusterfile(cluster *v2.Cluster) error {
+func (c *CreateProcessor) PreProcess(cluster *v2.Cluster) error {
+	c.Config = config.NewConfiguration(cluster)
+	if err := c.initPlugin(cluster); err != nil {
+		return err
+	}
 	return utils.SaveClusterInfoToFile(cluster, cluster.Name)
+}
+
+func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) error {
+	c.Plugins = plugin.NewPlugins(cluster)
+	return c.Plugins.Dump(c.ClusterFile.GetPlugins())
 }
 
 func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
@@ -161,19 +169,10 @@ func NewCreateProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 		return nil, err
 	}
 
-	cluster := clusterFile.GetCluster()
-	plug := plugin.NewPlugins(&cluster)
-	err = plug.Dump(clusterFile.GetPlugins())
-	if err != nil {
-		return nil, err
-	}
-
 	return &CreateProcessor{
 		ClusterFile:       clusterFile,
 		ImageManager:      imgSvc,
 		cloudImageMounter: mounter,
 		Guest:             gs,
-		Config:            config.NewConfiguration(&cluster),
-		Plugins:           plug,
 	}, nil
 }
