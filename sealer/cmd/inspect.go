@@ -17,10 +17,15 @@ package cmd
 import (
 	"fmt"
 
+	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/pkg/image"
 )
+
+var inspectPlatformFlag string
 
 // inspectCmd represents the inspect command
 var inspectCmd = &cobra.Command{
@@ -29,7 +34,15 @@ var inspectCmd = &cobra.Command{
 	Long:  `sealer inspect ${image id} to print image information`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		file, err := image.GetYamlByImageID(args[0])
+		var targetPlatforms []*v1.Platform
+		if inspectPlatformFlag != "" {
+			tp, err := platform.ParsePlatforms(inspectPlatformFlag)
+			if err != nil {
+				return err
+			}
+			targetPlatforms = tp
+		}
+		file, err := image.GetImageDetails(args[0], targetPlatforms)
 		if err != nil {
 			return fmt.Errorf("failed to find information by image %s: %v", args[0], err)
 		}
@@ -40,4 +53,5 @@ var inspectCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(inspectCmd)
+	inspectCmd.Flags().StringVar(&inspectPlatformFlag, "platform", "", "set cloud image platform")
 }
