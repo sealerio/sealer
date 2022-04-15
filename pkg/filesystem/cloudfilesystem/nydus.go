@@ -36,7 +36,7 @@ import (
 
 const (
 	RemoteNydusdInit = "cd %s && chmod +x *.sh && bash start.sh %s"
-	RemoteNydusdStop = "sh %s && rm -rf %s"
+	RemoteNydusdStop = "if [ -f \"%[1]s\" ];then sh %[1]s;fi && rm -rf %s"
 )
 
 type nydusFileSystem struct {
@@ -136,7 +136,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
 			}
-			err = copyFiles(sshClient, false, ip, src, nydusdDir)
+			err = copyFiles(sshClient, ip, src, nydusdDir)
 			if err != nil {
 				return fmt.Errorf("scp nydusd failed %v", err)
 			}

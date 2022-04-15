@@ -19,20 +19,20 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/pkg/runtime"
+	v2 "github.com/alibaba/sealer/types/api/v2"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/utils"
 	"github.com/alibaba/sealer/utils/ssh"
 )
 
-func copyFiles(sshEntry ssh.Interface, isRegistry bool, ip, src, target string) error {
+func copyFiles(sshEntry ssh.Interface, ip, src, target string) error {
 	files, err := ioutil.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("failed to copy files %s", err)
 	}
 
-	if isRegistry {
-		return sshEntry.Copy(ip, src, target)
-	}
 	for _, f := range files {
 		if f.Name() == common.RegistryDirName {
 			continue
@@ -40,6 +40,20 @@ func copyFiles(sshEntry ssh.Interface, isRegistry bool, ip, src, target string) 
 		err = sshEntry.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
 		if err != nil {
 			return fmt.Errorf("failed to copy sub files %v", err)
+		}
+	}
+	return nil
+}
+
+func copyRegistry(regConfig *runtime.RegistryConfig, cluster *v2.Cluster, mountDir map[string]bool, target string) error {
+	sshClient, err := ssh.GetHostSSHClient(regConfig.IP, cluster)
+	if err != nil {
+		return err
+	}
+	for dir := range mountDir {
+		err = sshClient.Copy(regConfig.IP, filepath.Join(dir, common.RegistryDirName), filepath.Join(target, common.RegistryDirName))
+		if err != nil {
+			return err
 		}
 	}
 	return nil

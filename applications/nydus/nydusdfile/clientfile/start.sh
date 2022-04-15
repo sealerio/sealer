@@ -16,7 +16,8 @@
 set -e
 set -x
 
-if [ "$(mountpoint -q "$1" && echo $?)" == "0" ]; then umount "$1" ; fi
+! mountpoint -q "$1" || umount -lf "$1"
+! mountpoint -q nydusdfs || umount -lf nydusdfs
 rm -rf $1
 mkdir -p $1
 rm -rf nydusdfs

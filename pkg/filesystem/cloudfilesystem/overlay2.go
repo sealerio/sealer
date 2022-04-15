@@ -17,7 +17,7 @@ package cloudfilesystem
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/alibaba/sealer/utils"
@@ -28,7 +28,6 @@ import (
 	"github.com/alibaba/sealer/pkg/env"
 	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils/mount"
 	"github.com/alibaba/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
 )
@@ -82,7 +81,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
 			}
-			err = copyFiles(sshClient, false, ip, src, target)
+			err = copyFiles(sshClient, ip, src, target)
 			if err != nil {
 				return fmt.Errorf("copy rootfs failed %v", err)
 			}
@@ -98,34 +97,22 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	if err = eg.Wait(); err != nil {
 		return err
 	}
+	// if config.ip is not in mountRootfs ipList, mean copy registry dir is not required, like scale up node
 	if !utils.InList(config.IP, ipList) {
 		return nil
 	}
-	return mountRegistry(config, cluster, mountEntry.mountDirs, target)
-}
-
-func mountRegistry(regConfig *runtime.RegistryConfig, cluster *v2.Cluster, mountDir map[string]bool, target string) error {
-	sshClient, err := ssh.GetHostSSHClient(regConfig.IP, cluster)
-	if err != nil {
-		return err
-	}
-	for dir := range mountDir {
-		err = sshClient.Copy(regConfig.IP, filepath.Join(dir, common.RegistryDirName), filepath.Join(target, common.RegistryDirName))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return copyRegistry(config, cluster, mountEntry.mountDirs, target)
 }
 
 func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 	var (
 		clusterRootfsDir = common.DefaultTheClusterRootfsDir(cluster.Name)
 		cleanFile        = fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)
-		execClean        = fmt.Sprintf("chmod +x %[1]s && /bin/bash -c %[1]s", cleanFile)
+		unmount          = fmt.Sprintf("(! mountpoint -q %[1]s || umount -lf %[1]s)", clusterRootfsDir)
+		execClean        = fmt.Sprintf("if [ -f \"%[1]s\" ];then chmod +x %[1]s && /bin/bash -c %[1]s;fi", cleanFile)
 		rmRootfs         = fmt.Sprintf("rm -rf %s", clusterRootfsDir)
-		rmDockerCert     = fmt.Sprintf("rm -rf %s/%s*", runtime.DockerCertDir, runtime.SeaHub)
 		envProcessor     = env.NewEnvProcessor(cluster)
+		cmd              = strings.Join([]string{execClean, unmount, rmRootfs}, " && ")
 	)
 
 	eg, _ := errgroup.WithContext(context.Background())
@@ -136,19 +123,8 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 			if err != nil {
 				return err
 			}
-			cmd := fmt.Sprintf("%s && %s", rmRootfs, rmDockerCert)
-			if mounted, _ := mount.GetRemoteMountDetails(SSH, ip, clusterRootfsDir); mounted {
-				cmd = fmt.Sprintf("umount %s && %s", clusterRootfsDir, cmd)
-			}
-			if exists, err := SSH.IsFileExist(ip, fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)); err != nil {
-				return err
-			} else if exists {
-				cmd = fmt.Sprintf("%s && %s", execClean, cmd)
-			}
-			if err := SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd)); err != nil {
-				return err
-			}
-			return nil
+
+			return SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd))
 		})
 	}
 	return eg.Wait()
