@@ -314,7 +314,7 @@ spec:
 echo $docker_dir ${ips[@]}
 ```
 
-当sealer执行脚本时env的设置类似于：`docker_dir=/data/docker ips=(192.168.0.2;192.168.0.3) && sh init.sh`
+当sealer执行脚本时env的设置类似于：`docker_dir=/data/docker ips=(192.168.0.2;192.168.0.3) && source init.sh`
 该例子中, master ENV 是 `/data/docker`, node ENV 为 `/var/lib/docker`
 
 ### 支持Env渲染

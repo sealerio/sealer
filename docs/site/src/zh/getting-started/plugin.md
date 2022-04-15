@@ -59,6 +59,15 @@ on     : #指定执行命令的机器
   在有连续IP的机器上执行   on: 192.168.56.113-192.168.56.116
   在指定label节点上执行(action需设置为PostInstall)    on: node-role.kubernetes.io/master=
 data   : #指定执行的shell命令
+  例:
+    `data: echo "test shell plugin"`
+
+  调用cluster env 执行脚本:
+      执行shell 脚本命令: `data: echo $docker_dir $ips[@]`
+      执行shell 脚本文件: `data: . scripts/install.sh` 或者 `data: source scripts/install.sh`
+  ## 当sealer执行脚本时env的设置类似于：`docker_dir=/data/docker ips=(192.168.0.2;192.168.0.3) && source scripts/install.sh`
+  ## data中使用bash scripts/install.sh的方式将开启新的进程执行脚本导致无法获取当前环境env
+  ## 因此install.sh中如需使用env需要使用source scripts/install.sh
 ```
 
 ### 标签插件
