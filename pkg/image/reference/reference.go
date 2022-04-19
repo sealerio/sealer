@@ -27,6 +27,17 @@ type Named struct {
 	tag     string // v1.6
 }
 
+func (n Named) String() string {
+	return n.Name()
+}
+
+func (n Named) Name() string {
+	if n.domain == "" {
+		return n.Repo()
+	}
+	return n.domain + "/" + n.Repo()
+}
+
 // build a ImageNamed
 func ParseToNamed(name string) (Named, error) {
 	name = strings.TrimSpace(name)
