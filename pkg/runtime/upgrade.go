@@ -38,7 +38,7 @@ func (k *KubeadmRuntime) upgrade() error {
 	if err != nil {
 		return err
 	}
-	err = k.upgradeOtherMasters(k.GetMasterIPList()[1:], binpath)
+	err = k.upgradeOtherMasters(k.GetMasterIPList()[1:], binpath, k.getKubeVersion())
 	if err != nil {
 		return err
 	}
@@ -50,10 +50,18 @@ func (k *KubeadmRuntime) upgrade() error {
 }
 
 func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binpath, version string) error {
+	var drain string
+	//if version >= 1.20.x,add flag `--delete-emptydir-data`
+	if VersionCompare(version, V1200) {
+		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-emptydir-data")
+	} else {
+		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-local-data")
+	}
+
 	var firstMasterCmds = []string{
 		fmt.Sprintf(chmodCmd, binpath),
 		fmt.Sprintf(mvCmd, binpath),
-		drainCmd,
+		drain,
 		fmt.Sprintf(upgradeCmd, strings.Join([]string{`apply`, version, `-y`}, " ")),
 		restartCmd,
 		uncordonCmd,
@@ -65,11 +73,19 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binpath, version string) 
 	return ssh.CmdAsync(IP, firstMasterCmds...)
 }
 
-func (k *KubeadmRuntime) upgradeOtherMasters(IPs []string, binpath string) error {
+func (k *KubeadmRuntime) upgradeOtherMasters(IPs []string, binpath, version string) error {
+	var drain string
+	//if version >= 1.20.x,add flag `--delete-emptydir-data`
+	if VersionCompare(version, V1200) {
+		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-emptydir-data")
+	} else {
+		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-local-data")
+	}
+
 	var otherMasterCmds = []string{
 		fmt.Sprintf(chmodCmd, binpath),
 		fmt.Sprintf(mvCmd, binpath),
-		drainCmd,
+		drain,
 		fmt.Sprintf(upgradeCmd, `node`),
 		restartCmd,
 		uncordonCmd,
