@@ -50,7 +50,7 @@ func (k *KubeadmRuntime) upgrade() error {
 }
 
 func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binpath, version string) error {
-	drain := drainCmd
+	var drain string
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
 	if VersionCompare(version, V1200) {
 		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-emptydir-data")
@@ -74,7 +74,7 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binpath, version string) 
 }
 
 func (k *KubeadmRuntime) upgradeOtherMasters(IPs []string, binpath, version string) error {
-	drain := drainCmd
+	var drain string
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
 	if VersionCompare(version, V1200) {
 		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-emptydir-data")
