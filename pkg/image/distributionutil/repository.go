@@ -20,6 +20,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -67,7 +68,9 @@ func NewRepository(ctx context.Context, authConfig types.AuthConfig, repoName st
 		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
 		DisableKeepAlives: true,
 	}
-
+	if err := dockerRegistry.ReadCertsDirectory(base.TLSClientConfig, filepath.Join(dockerRegistry.CertsDir(), rurl.Host)); err != nil {
+		return nil, err
+	}
 	modifiers := dockerRegistry.Headers(dockerversion.DockerUserAgent(ctx), nil)
 	authTransport := dockerTransport.NewTransport(base, modifiers...)
 
