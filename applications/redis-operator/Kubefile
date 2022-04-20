@@ -1,0 +1,3 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
+COPY . manifests
+CMD ["kubectl apply -f manifests/databases.spotahome.com_redisfailovers.yaml", "kubectl apply -f manifests/all-redis-operator-resources.yaml", "kubectl apply -f manifests/basic.yaml"]
