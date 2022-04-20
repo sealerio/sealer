@@ -43,7 +43,7 @@ func initImageSpec(kubefile string) (*v1.Image, error) {
 
 	rawImage := parser.NewParse().Parse(kubeFile)
 	if rawImage == nil {
-		return nil, fmt.Errorf("failed to parse kubefile, image is nil")
+		return nil, fmt.Errorf("failed to parse kubefile, bad Kubefile content")
 	}
 
 	layer0 := rawImage.Spec.Layers[0]

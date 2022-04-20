@@ -130,6 +130,9 @@ func (p *Parser) Parse(kubeFile []byte) *v1.Image {
 
 func decodeLine(line string) (string, string, error) {
 	cmdline := trimCommand(line)
+	if len(cmdline) != 2 {
+		return "", "", fmt.Errorf("invalid command line %s", line)
+	}
 	cmd := strings.ToUpper(cmdline[0])
 	if !validCommands[cmd] {
 		return "", "", fmt.Errorf("invalid command %s %s", cmdline[0], line)
