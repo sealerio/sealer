@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/pkg/image/reference"
 	"github.com/spf13/cobra"
 
 	"github.com/alibaba/sealer/pkg/image"
@@ -24,7 +23,7 @@ import (
 var tagCmd = &cobra.Command{
 	Use:     "tag",
 	Short:   "tag a image as a new one",
-	Example: `sealer tag kubernetes:v1.19.8 registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
+	Example: `sealer tag kubernetes:v1.19.8 registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.8`,
 	Args:    cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ims, err := image.NewImageMetadataService()
@@ -32,12 +31,7 @@ var tagCmd = &cobra.Command{
 			return err
 		}
 
-		named, err := reference.ParseToNamed(args[1])
-		if err != nil {
-			return err
-		}
-
-		return ims.Tag(args[0], named.Raw())
+		return ims.Tag(args[0], args[1])
 	},
 }
 

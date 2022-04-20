@@ -27,18 +27,7 @@ type Named struct {
 	tag     string // v1.6
 }
 
-func (n Named) String() string {
-	return n.Name()
-}
-
-func (n Named) Name() string {
-	if n.domain == "" {
-		return n.Repo()
-	}
-	return n.domain + "/" + n.Repo()
-}
-
-// build a ImageNamed
+// ParseToNamed build a ImageNamed
 func ParseToNamed(name string) (Named, error) {
 	name = strings.TrimSpace(name)
 	if err := validate(name); err != nil {
@@ -53,6 +42,29 @@ func ParseToNamed(name string) (Named, error) {
 		return named, errors.New("uppercase is not allowed in image name")
 	}
 	return named, nil
+}
+
+func IsDefaultTag(tag string) bool {
+	return tag == defaultTag
+}
+
+func IsDefaultDomain(domain string) bool {
+	return domain == defaultDomain
+}
+
+func IsDefaultRepo(repo string) bool {
+	return repo == defaultRepo
+}
+
+func (n Named) String() string {
+	return n.Name()
+}
+
+func (n Named) Name() string {
+	if n.domain == "" {
+		return n.Repo()
+	}
+	return n.domain + "/" + n.Repo()
 }
 
 func (n Named) Domain() string {

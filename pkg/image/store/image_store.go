@@ -17,6 +17,8 @@ package store
 import (
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/image/reference"
+
 	"github.com/alibaba/sealer/pkg/image/types"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
@@ -26,7 +28,11 @@ type imageStore struct {
 }
 
 func (is *imageStore) GetByName(name string, platform *v1.Platform) (*v1.Image, error) {
-	return is.backend.getImageByName(name, platform)
+	named, err := reference.ParseToNamed(name)
+	if err != nil {
+		return nil, err
+	}
+	return is.backend.getImageByName(named.CompleteName(), platform)
 }
 
 func (is *imageStore) GetByID(id string) (*v1.Image, error) {
@@ -34,7 +40,11 @@ func (is *imageStore) GetByID(id string) (*v1.Image, error) {
 }
 
 func (is *imageStore) DeleteByName(name string, platform *v1.Platform) error {
-	return is.backend.deleteImage(name, platform)
+	named, err := reference.ParseToNamed(name)
+	if err != nil {
+		return err
+	}
+	return is.backend.deleteImage(named.CompleteName(), platform)
 }
 
 func (is *imageStore) DeleteByID(id string) error {
@@ -46,15 +56,41 @@ func (is *imageStore) Save(image v1.Image) error {
 }
 
 func (is *imageStore) SetImageMetadataItem(name string, imageMetadata *types.ManifestDescriptor) error {
-	return is.backend.setImageMetadata(name, imageMetadata)
+	named, err := reference.ParseToNamed(name)
+	if err != nil {
+		return err
+	}
+	return is.backend.setImageMetadata(named.CompleteName(), imageMetadata)
 }
 
 func (is *imageStore) GetImageMetadataItem(name string, platform *v1.Platform) (*types.ManifestDescriptor, error) {
-	return is.backend.getImageMetadataItem(name, platform)
+	named, err := reference.ParseToNamed(name)
+	if err != nil {
+		return nil, err
+	}
+	return is.backend.getImageMetadataItem(named.CompleteName(), platform)
 }
 
 func (is *imageStore) GetImageMetadataMap() (ImageMetadataMap, error) {
 	return is.backend.getImageMetadataMap()
+}
+
+func (is *imageStore) GetImageManifestList(name string) ([]*types.ManifestDescriptor, error) {
+	named, err := reference.ParseToNamed(name)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata, err := is.backend.getImageMetadataMap()
+	if err != nil {
+		return nil, err
+	}
+
+	if ml, ok := metadata[named.CompleteName()]; ok {
+		return ml.Manifests, nil
+	}
+
+	return nil, fmt.Errorf("%s not found", name)
 }
 
 func NewDefaultImageStore() (ImageStore, error) {

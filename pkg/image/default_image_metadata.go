@@ -35,23 +35,24 @@ type DefaultImageMetadataService struct {
 
 // Tag is used to give a name for imageName
 func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
-	imageMetadata, err := d.imageStore.GetImageMetadataMap()
+	tarNamed, err := reference.ParseToNamed(tarImageName)
 	if err != nil {
 		return err
 	}
 
-	manifestList, ok := imageMetadata[imageName]
-	if !ok {
-		return fmt.Errorf("image: %s not found", imageName)
+	manifestList, err := d.imageStore.GetImageManifestList(imageName)
+	if err != nil {
+		return err
 	}
-	for _, m := range manifestList.Manifests {
+
+	for _, m := range manifestList {
 		image, err := d.imageStore.GetByID(m.ID)
 		if err != nil {
 			return err
 		}
 
-		image.Name = tarImageName
-		err = setClusterFile(tarImageName, image)
+		image.Name = tarNamed.CompleteName()
+		err = setClusterFile(tarNamed.CompleteName(), image)
 		if err != nil {
 			return err
 		}

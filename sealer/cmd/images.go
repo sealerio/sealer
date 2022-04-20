@@ -17,6 +17,9 @@ package cmd
 import (
 	"fmt"
 	"sort"
+	"strings"
+
+	"github.com/alibaba/sealer/pkg/image/reference"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
@@ -56,10 +59,24 @@ var listCmd = &cobra.Command{
 
 		for name, manifestList := range imageMetadataMap {
 			for _, m := range manifestList.Manifests {
+				displayName := name
 				create := m.CREATED.Format(timeDefaultFormat)
 				size := formatSize(m.SIZE)
+				named, err := reference.ParseToNamed(name)
+				if err != nil {
+					return err
+				}
+
+				if reference.IsDefaultDomain(named.Domain()) {
+					displayName = named.RepoTag()
+					splits := strings.Split(displayName, "/")
+					if reference.IsDefaultRepo(splits[0]) {
+						displayName = splits[1]
+					}
+				}
+
 				summaries = append(summaries, ManifestDescriptor{
-					imageName:    name,
+					imageName:    displayName,
 					imageID:      m.ID,
 					imageArch:    m.Platform.Architecture,
 					imageVariant: m.Platform.Variant,

@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alibaba/sealer/pkg/image/reference"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/common"
@@ -35,7 +37,11 @@ func save(imageName string, image *v1.Image) error {
 		imageStore store.ImageStore
 		err        error
 	)
-	image.Name = imageName
+	named, err := reference.ParseToNamed(imageName)
+	if err != nil {
+		return err
+	}
+	image.Name = named.CompleteName()
 	imageStore, err = store.NewDefaultImageStore()
 	if err != nil {
 		return err
@@ -47,7 +53,7 @@ func save(imageName string, image *v1.Image) error {
 	}
 	imageID := digest.FromBytes(imageBytes).Hex()
 	image.Spec.ID = imageID
-	err = setClusterFile(imageName, image)
+	err = setClusterFile(named.CompleteName(), image)
 	if err != nil {
 		return err
 	}

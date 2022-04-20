@@ -35,4 +35,6 @@ type ImageStore interface {
 	GetImageMetadataItem(name string, platform *v1.Platform) (*types.ManifestDescriptor, error)
 
 	GetImageMetadataMap() (ImageMetadataMap, error)
+
+	GetImageManifestList(name string) ([]*types.ManifestDescriptor, error)
 }
