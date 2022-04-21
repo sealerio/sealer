@@ -17,7 +17,6 @@ package buildimage
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/logger"
 	imageUtils "github.com/alibaba/sealer/pkg/image"
 	"github.com/alibaba/sealer/pkg/image/store"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -37,8 +36,6 @@ func (i imageSaver) Save(image *v1.Image) error {
 	if err != nil {
 		return fmt.Errorf("failed to save image, err: %v", err)
 	}
-
-	logger.Info("save image %s %s success", i.platform.Architecture, image.Name)
 	return nil
 }
 

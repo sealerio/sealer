@@ -17,6 +17,7 @@ package build
 import (
 	"github.com/alibaba/sealer/build/buildimage"
 	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/pkg/image/reference"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 )
@@ -95,6 +96,8 @@ func (l liteBuilder) Build(name string, context string, kubefileName string) err
 			return err
 		}
 	}
+
+	logger.Info("build image %s %s success", l.platform.Architecture, name)
 	return nil
 }
 
@@ -130,7 +133,7 @@ func (l liteBuilder) ExecBuild() error {
 }
 
 func (l liteBuilder) SaveBuildImage() error {
-	l.rawImage.Name = l.imageNamed.Raw()
+	l.rawImage.Name = l.imageNamed.CompleteName()
 	if l.noBase {
 		l.rawImage.Spec.ImageConfig.ImageType = common.AppImage
 		l.rawImage.Spec.ImageConfig.Cmd.Parent = nil

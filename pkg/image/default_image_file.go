@@ -123,17 +123,13 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 		repoData        = make(store.ImageMetadataMap)
 	)
 
-	meta, err := d.imageStore.GetImageMetadataMap()
+	manifestList, err := d.imageStore.GetImageManifestList(imageName)
 	if err != nil {
 		return err
 	}
-	manifestList, ok := meta[imageName]
-	if !ok {
-		return fmt.Errorf("image: %s not found", imageName)
-	}
 
 	if len(platforms) == 0 {
-		for _, m := range manifestList.Manifests {
+		for _, m := range manifestList {
 			platforms = append(platforms, &m.Platform)
 		}
 	}

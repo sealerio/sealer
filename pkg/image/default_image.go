@@ -68,14 +68,9 @@ func (d DefaultImageService) PullIfNotExist(imageName string, platforms []*v1.Pl
 
 func (d DefaultImageService) GetImageByName(imageName string, platform *v1.Platform) (*v1.Image, error) {
 	var img *v1.Image
-	named, err := reference.ParseToNamed(imageName)
-	if err != nil {
-		return nil, err
-	}
-
-	img, err = d.imageStore.GetByName(named.Raw(), platform)
+	img, err := d.imageStore.GetByName(imageName, platform)
 	if err == nil {
-		logger.Debug("image %s already exists", named)
+		logger.Debug("image %s already exists", imageName)
 		return img, nil
 	}
 	return nil, nil
@@ -153,7 +148,7 @@ func (d DefaultImageService) Pull(imageName string, platforms []*v1.Platform) er
 		if err != nil {
 			return err
 		}
-		image.Name = named.Raw()
+
 		err = d.imageStore.Save(*image)
 		if err != nil {
 			return err
@@ -249,7 +244,6 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 func (d DefaultImageService) Delete(imageNameOrID string, platforms []*v1.Platform) error {
 	var (
 		err               error
-		named             reference.Named
 		imageStore        = d.imageStore
 		isImageID         bool
 		deleteImageIDList []string
@@ -279,34 +273,27 @@ func (d DefaultImageService) Delete(imageNameOrID string, platforms []*v1.Platfo
 		deleteImageIDList = append(deleteImageIDList, imageNameOrID)
 	} else {
 		// delete image by name
-		named, err = reference.ParseToNamed(imageNameOrID)
-		if err != nil {
-			return err
-		}
-
 		if len(platforms) == 0 {
 			// delete all platforms
-			manifestList, ok := imageMetadataMap[named.Raw()]
-			if !ok {
-				return fmt.Errorf("image %s not found", imageNameOrID)
+			manifestList, err := imageStore.GetImageManifestList(imageNameOrID)
+			if err != nil {
+				return err
 			}
-
-			if err = imageStore.DeleteByName(named.Raw(), nil); err != nil {
-				return fmt.Errorf("failed to delete image %s, err: %v", imageNameOrID, err)
-			}
-
-			for _, m := range manifestList.Manifests {
+			for _, m := range manifestList {
 				deleteImageIDList = append(deleteImageIDList, m.ID)
+			}
+			if err = imageStore.DeleteByName(imageNameOrID, nil); err != nil {
+				return fmt.Errorf("failed to delete image %s, err: %v", imageNameOrID, err)
 			}
 		} else {
 			// delete user specify platform
 			for _, plat := range platforms {
-				img, err := imageStore.GetByName(named.Raw(), plat)
+				img, err := imageStore.GetByName(imageNameOrID, plat)
 				if err != nil {
-					return fmt.Errorf("image %s not found %v", named.Raw(), err)
+					return fmt.Errorf("image %s not found %v", imageNameOrID, err)
 				}
 
-				if err = imageStore.DeleteByName(named.Raw(), plat); err != nil {
+				if err = imageStore.DeleteByName(imageNameOrID, plat); err != nil {
 					return fmt.Errorf("failed to delete image %s, err: %v", imageNameOrID, err)
 				}
 				deleteImageIDList = append(deleteImageIDList, img.Spec.ID)

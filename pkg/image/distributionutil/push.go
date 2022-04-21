@@ -56,7 +56,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 		return err
 	}
 
-	manifestList, ok := imageMetadata[named.Raw()]
+	manifestList, ok := imageMetadata[named.CompleteName()]
 	if !ok {
 		return fmt.Errorf("image: %s not found", named.Raw())
 	}

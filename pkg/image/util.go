@@ -40,44 +40,6 @@ func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 	return
 }
 
-// GetClusterFileFromImageManifest retrieve ClusterFiles from image manifest(image yaml).
-// When it runs into an error, returns a detailed error.
-// When content got is empty, returns an empty error directly to avoid upper caller to
-// decide whether it is an empty.
-func GetClusterFileFromImageManifest(imageName string, platform *v1.Platform) (string, error) {
-	//  find cluster file from image manifest
-	var (
-		image *v1.Image
-		err   error
-	)
-	is, err := store.NewDefaultImageStore()
-	if err != nil {
-		return "", fmt.Errorf("failed to init image store: %v", err)
-	}
-	image, err = is.GetByName(imageName, platform)
-	if err != nil {
-		ims, err := NewImageMetadataService()
-		if err != nil {
-			return "", fmt.Errorf("failed to create image metadata svcs: %v", err)
-		}
-
-		imageMetadata, err := ims.GetRemoteImage(imageName, platform)
-		if err != nil {
-			return "", fmt.Errorf("failed to find image %s: %v", imageName, err)
-		}
-		image = &imageMetadata
-	}
-	clusterFile, ok := image.Annotations[common.ImageAnnotationForClusterfile]
-	if !ok {
-		return "", fmt.Errorf("failed to find Clusterfile in local")
-	}
-
-	if clusterFile == "" {
-		return "", fmt.Errorf("ClusterFile is empty")
-	}
-	return clusterFile, nil
-}
-
 func GetImageDetails(idOrName string, platforms []*v1.Platform) (string, error) {
 	var isImageID bool
 	var imgs []*v1.Image
@@ -111,7 +73,7 @@ func GetImageDetails(idOrName string, platforms []*v1.Platform) (string, error) 
 		}
 		imgs = append(imgs, ima)
 	} else {
-		ima, err := getImageByName(idOrName, platforms, imageStore, imageMetadataMap)
+		ima, err := getImageByName(idOrName, platforms, imageStore)
 		if err != nil {
 			return "", err
 		}
@@ -126,16 +88,16 @@ func GetImageDetails(idOrName string, platforms []*v1.Platform) (string, error) 
 	return string(info), nil
 }
 
-func getImageByName(imageName string, platforms []*v1.Platform, is store.ImageStore, imagesMap store.ImageMetadataMap) ([]*v1.Image, error) {
+func getImageByName(imageName string, platforms []*v1.Platform, is store.ImageStore) ([]*v1.Image, error) {
 	var imgs []*v1.Image
 
-	image, ok := imagesMap[imageName]
-	if !ok {
-		return nil, fmt.Errorf("failed to find image by name: %s", imageName)
+	imageManifests, err := is.GetImageManifestList(imageName)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(platforms) == 0 {
-		for _, m := range image.Manifests {
+		for _, m := range imageManifests {
 			ima, err := is.GetByID(m.ID)
 			if err != nil {
 				return nil, err
