@@ -43,7 +43,12 @@ func (l localCollector) Collect(buildContext, src, savePath string) error {
 	if len(m) == 0 {
 		return fmt.Errorf("%s not found", src)
 	}
+
+	dir, file := filepath.Split(savePath)
 	for _, s := range m {
+		if filepath.Base(s) == file {
+			savePath = dir
+		}
 		if err := fsutil.Copy(context.TODO(), buildContext, s, savePath, filepath.Base(s), opt...); err != nil {
 			return err
 		}
