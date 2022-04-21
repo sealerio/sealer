@@ -53,7 +53,7 @@ var (
 )
 
 type Interface interface {
-	Parse(kubeFile []byte) *v1.Image
+	Parse(kubeFile []byte) (*v1.Image, error)
 }
 
 type Parser struct{}
@@ -62,7 +62,7 @@ func NewParse() Interface {
 	return &Parser{}
 }
 
-func (p *Parser) Parse(kubeFile []byte) *v1.Image {
+func (p *Parser) Parse(kubeFile []byte) (*v1.Image, error) {
 	image := &v1.Image{
 		TypeMeta: metaV1.TypeMeta{APIVersion: "", Kind: "Image"},
 		Spec:     v1.ImageSpec{SealerVersion: version.Get().GitVersion},
@@ -72,7 +72,6 @@ func (p *Parser) Parse(kubeFile []byte) *v1.Image {
 	currentLine := 0
 	scanner := bufio.NewScanner(bytes.NewReader(kubeFile))
 	scanner.Split(scanLines)
-	var err error
 	for scanner.Scan() {
 		bytesRead := scanner.Bytes()
 		if currentLine == 0 {
@@ -92,10 +91,6 @@ func (p *Parser) Parse(kubeFile []byte) *v1.Image {
 
 		for !isEndOfLine && scanner.Scan() {
 			bytesRead = processLine(scanner.Bytes(), false)
-			if err != nil {
-				return nil
-			}
-
 			if bytes.HasPrefix(bytesRead, []byte("#")) {
 				continue
 			}
@@ -112,8 +107,7 @@ func (p *Parser) Parse(kubeFile []byte) *v1.Image {
 
 		layerType, layerValue, err := decodeLine(line)
 		if err != nil {
-			logger.Error("decode kubeFile line failed, err: %v", err)
-			return nil
+			return nil, fmt.Errorf("decode kubeFile line failed, line: %d ,err: %v", currentLine, err)
 		}
 
 		switch layerType {
@@ -125,7 +119,7 @@ func (p *Parser) Parse(kubeFile []byte) *v1.Image {
 			dispatchDefault(layerType, layerValue, image)
 		}
 	}
-	return image
+	return image, nil
 }
 
 func decodeLine(line string) (string, string, error) {
