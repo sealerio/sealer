@@ -1,0 +1,3 @@
+FROM scratch
+COPY . manifests
+CMD ["kubectl apply -f manifests/bundle.yaml", "kubectl apply -f manifests/cr.yaml"]

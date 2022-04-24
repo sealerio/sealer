@@ -1,0 +1,824 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: perconaxtradbclusters.pxc.percona.com
+spec:
+  group: pxc.percona.com
+  names:
+    kind: PerconaXtraDBCluster
+    listKind: PerconaXtraDBClusterList
+    plural: perconaxtradbclusters
+    singular: perconaxtradbcluster
+    shortNames:
+    - pxc
+    - pxcs
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+    - name: v1
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: haproxy
+        type: string
+        description: Ready haproxy nodes
+        jsonPath: .status.haproxy.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+        scale:
+          specReplicasPath: .spec.pxc.size
+          statusReplicasPath: .status.pxc.ready
+          labelSelectorPath: .status.pxc.labelSelectorPath
+    - name: v1-1-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+    - name: v1-2-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+    - name: v1-3-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+    - name: v1-4-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+    - name: v1-5-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+    - name: v1-6-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: haproxy
+        type: string
+        description: Ready haproxy nodes
+        jsonPath: .status.haproxy.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+    - name: v1-7-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: haproxy
+        type: string
+        description: Ready haproxy nodes
+        jsonPath: .status.haproxy.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+    - name: v1-8-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: haproxy
+        type: string
+        description: Ready haproxy nodes
+        jsonPath: .status.haproxy.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+        scale:
+          specReplicasPath: .spec.pxc.size
+          statusReplicasPath: .status.pxc.ready
+          labelSelectorPath: .status.pxc.labelSelectorPath
+    - name: v1-9-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: haproxy
+        type: string
+        description: Ready haproxy nodes
+        jsonPath: .status.haproxy.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+        scale:
+          specReplicasPath: .spec.pxc.size
+          statusReplicasPath: .status.pxc.ready
+          labelSelectorPath: .status.pxc.labelSelectorPath
+    - name: v1-10-0
+      storage: false
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: haproxy
+        type: string
+        description: Ready haproxy nodes
+        jsonPath: .status.haproxy.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+        scale:
+          specReplicasPath: .spec.pxc.size
+          statusReplicasPath: .status.pxc.ready
+          labelSelectorPath: .status.pxc.labelSelectorPath
+    - name: v1-11-0
+      storage: true
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Endpoint
+        type: string
+        jsonPath: .status.host
+      - name: Status
+        type: string
+        jsonPath: .status.state
+      - name: PXC
+        type: string
+        description: Ready pxc nodes
+        jsonPath: .status.pxc.ready
+      - name: proxysql
+        type: string
+        description: Ready proxysql nodes
+        jsonPath: .status.proxysql.ready
+      - name: haproxy
+        type: string
+        description: Ready haproxy nodes
+        jsonPath: .status.haproxy.ready
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+        scale:
+          specReplicasPath: .spec.pxc.size
+          statusReplicasPath: .status.pxc.ready
+          labelSelectorPath: .status.pxc.labelSelectorPath
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: perconaxtradbclusterbackups.pxc.percona.com
+spec:
+  group: pxc.percona.com
+  names:
+    kind: PerconaXtraDBClusterBackup
+    listKind: PerconaXtraDBClusterBackupList
+    plural: perconaxtradbclusterbackups
+    singular: perconaxtradbclusterbackup
+    shortNames:
+    - pxc-backup
+    - pxc-backups
+  scope: Namespaced
+  versions:
+    - name: v1
+      storage: true
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Cluster
+        type: string
+        description: Cluster name
+        jsonPath: .spec.pxcCluster
+      - name: Storage
+        type: string
+        description: Storage name from pxc spec
+        jsonPath: .status.storageName
+      - name: Destination
+        type: string
+        description: Backup destination
+        jsonPath: .status.destination
+      - name: Status
+        type: string
+        description: Job status
+        jsonPath: .status.state
+      - name: Completed
+        description: Completed time
+        type: date
+        jsonPath: .status.completed
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: perconaxtradbclusterrestores.pxc.percona.com
+spec:
+  group: pxc.percona.com
+  names:
+    kind: PerconaXtraDBClusterRestore
+    listKind: PerconaXtraDBClusterRestoreList
+    plural: perconaxtradbclusterrestores
+    singular: perconaxtradbclusterrestore
+    shortNames:
+    - pxc-restore
+    - pxc-restores
+  scope: Namespaced
+  versions:
+    - name: v1
+      storage: true
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Cluster
+        type: string
+        description: Cluster name
+        jsonPath: .spec.pxcCluster
+      - name: Status
+        type: string
+        description: Job status
+        jsonPath: .status.state
+      - name: Completed
+        description: Completed time
+        type: date
+        jsonPath: .status.completed
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: perconaxtradbbackups.pxc.percona.com
+spec:
+  group: pxc.percona.com
+  names:
+    kind: PerconaXtraDBBackup
+    listKind: PerconaXtraDBBackupList
+    plural: perconaxtradbbackups
+    singular: perconaxtradbbackup
+    shortNames: []
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      storage: true
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+      - name: Cluster
+        type: string
+        description: Cluster name
+        jsonPath: .spec.pxcCluster
+      - name: Storage
+        type: string
+        description: Storage name from pxc spec
+        jsonPath: .status.storageName
+      - name: Destination
+        type: string
+        description: Backup destination
+        jsonPath: .status.destination
+      - name: Status
+        type: string
+        description: Job status
+        jsonPath: .status.state
+      - name: Completed
+        description: Completed time
+        type: date
+        jsonPath: .status.completed
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: percona-xtradb-cluster-operator
+rules:
+- apiGroups:
+  - pxc.percona.com
+  resources:
+  - perconaxtradbclusters
+  - perconaxtradbclusters/status
+  - perconaxtradbclusterbackups
+  - perconaxtradbclusterbackups/status
+  - perconaxtradbclusterrestores
+  - perconaxtradbclusterrestores/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/exec
+  - pods/log
+  - configmaps
+  - services
+  - persistentvolumeclaims
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  - cronjobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - certmanager.k8s.io
+  - cert-manager.io
+  resources:
+  - issuers
+  - certificates
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+  - deletecollection
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: percona-xtradb-cluster-operator
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: service-account-percona-xtradb-cluster-operator
+subjects:
+- kind: ServiceAccount
+  name: percona-xtradb-cluster-operator
+roleRef:
+  kind: Role
+  name: percona-xtradb-cluster-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: percona-xtradb-cluster-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: operator
+      app.kubernetes.io/instance: percona-xtradb-cluster-operator
+      app.kubernetes.io/name: percona-xtradb-cluster-operator
+      app.kubernetes.io/part-of: percona-xtradb-cluster-operator
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: percona-xtradb-cluster-operator
+        app.kubernetes.io/name: percona-xtradb-cluster-operator
+        app.kubernetes.io/part-of: percona-xtradb-cluster-operator
+    spec:
+      terminationGracePeriodSeconds: 600
+      containers:
+      - command:
+        - percona-xtradb-cluster-operator
+        env:
+        - name: WATCH_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: percona-xtradb-cluster-operator
+        image: perconalab/percona-xtradb-cluster-operator:main
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /metrics
+            port: metrics
+            scheme: HTTP
+        resources:
+          limits:
+            cpu: 200m
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        name: percona-xtradb-cluster-operator
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+      serviceAccountName: percona-xtradb-cluster-operator
