@@ -1,0 +1,5 @@
+FROM registry.cn-qingdao.aliyuncs.com/sealer-apps/openebs-localpv:2.11.0
+COPY . manifests/
+CMD ["kubectl apply -f manifests/kafka-crd.yaml", "kubectl apply -f manifests/storage-class.yaml"]
+CMD kubectl patch storageclass hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+CMD kubectl apply -f manifests/kafka-instance.yaml
