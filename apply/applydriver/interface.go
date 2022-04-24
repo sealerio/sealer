@@ -18,4 +18,5 @@ type Interface interface {
 	Apply() error
 	Delete() error
 	Upgrade(imageName string) error
+	Uninstall(imageName string) error
 }

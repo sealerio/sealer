@@ -317,3 +317,21 @@ func (c *Applier) deleteCluster() error {
 
 	return nil
 }
+
+func (c *Applier) Uninstall(imgName string) error {
+	c.ClusterDesired.Spec.Image = imgName
+	if err := c.mountClusterImage(); err != nil {
+		return err
+	}
+
+	uninstallProcessor, err := processor.NewUninstallProcessor(c.CloudImageMounter)
+	if err != nil {
+		return err
+	}
+	if err := processor.NewExecutor(uninstallProcessor).Execute(c.ClusterDesired); err != nil {
+		return err
+	}
+
+	logger.Info("Succeeded in uninstalling %s in current cluster", imgName)
+	return nil
+}
