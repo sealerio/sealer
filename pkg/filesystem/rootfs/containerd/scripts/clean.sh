@@ -13,23 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-systemctl stop docker
-rm -rf /lib/systemd/system/docker.service
-rm -rf /usr/lib/systemd/system/docker.service
-rm -rf /etc/docker/daemon.json
-systemctl daemon-reload
+systemctl stop containerd
 
 rm -f /usr/bin/conntrack
 rm -f /usr/bin/kubelet-pre-start.sh
 rm -f /usr/bin/containerd
+rm -rf /etc/containerd
 rm -f /usr/bin/containerd-shim
 rm -f /usr/bin/containerd-shim-runc-v2
 rm -f /usr/bin/crictl
 rm -f /usr/bin/ctr
-rm -f /usr/bin/docker
-rm -f /usr/bin/docker-init
-rm -f /usr/bin/docker-proxy
-rm -f /usr/bin/dockerd
 
 rm -f /usr/bin/kubeadm
 rm -f /usr/bin/kubetcl

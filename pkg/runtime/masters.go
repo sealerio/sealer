@@ -135,10 +135,7 @@ func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []
 	}
 	joinCommands := []string{cmdAddRegistryHosts, certCMD, cmdAddHosts}
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		login := fmt.Sprintf("%s && %s",
-			fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password),
-			fmt.Sprintf(DockerLoginCommand, SeaHub+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password))
-		joinCommands = append(joinCommands, login)
+		joinCommands = append(joinCommands, k.GerLoginCommand())
 	}
 	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, apiServerHost,
 		getAPIServerHost(master, k.getAPIServerDomain()))

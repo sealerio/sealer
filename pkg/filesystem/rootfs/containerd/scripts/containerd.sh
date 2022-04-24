@@ -13,19 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-set -e
 set -x
+set -e
+if ! [ -x /usr/local/bin/ctr ]; then
+  tar  -xvzf ../cri/containerd.tar.gz -C /
+  [ -f /usr/lib64/libseccomp.so.2 ] || cp -rf ../lib64/lib* /usr/lib64/
+  systemctl enable  containerd.service
+  systemctl restart containerd.service
+fi
 
-STORAGE=${1:-/var/lib/docker}
-REGISTRY_DOMAIN=${2-sea.hub}
-REGISTRY_PORT=${3-5000}
+mkdir -p /etc/containerd
 
-# Install docker
-chmod a+x docker.sh
-#./docker.sh  /var/docker/lib  sealer.hub 5001
-bash docker.sh "$STORAGE" "$REGISTRY_DOMAIN" "$REGISTRY_PORT"
+sed -i "s/sea.hub/${1:-sea.hub}/g" ../etc/dump-config.toml
+sed -i "s/5000/${2:-5000}/g" ../etc/dump-config.toml
 
-chmod a+x init-kube.sh
+#add cri sandbox image and sea.hub registry cert path
+##sandbox_image = "sea.hub:5000/pause:3.6" custom setup
+containerd --config ../etc/dump-config.toml config dump > /etc/containerd/config.toml
 
-bash init-kube.sh
+systemctl restart containerd.service
