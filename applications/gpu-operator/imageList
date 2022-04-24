@@ -1,0 +1,8 @@
+k8s.gcr.io/nfd/node-feature-discovery:v0.10.1
+nvcr.io/nvidia/cloud-native/gpu-operator-validator:v1.10.1
+nvcr.io/nvidia/gpu-feature-discovery:v0.5.0
+nvcr.io/nvidia/gpu-operator:v1.10.1
+nvcr.io/nvidia/k8s-device-plugin:v0.11.0-ubi8
+nvcr.io/nvidia/k8s/container-toolkit:1.7.1-centos7
+nvcr.io/nvidia/k8s/dcgm-exporter:2.3.4-2.6.4-ubuntu20.04
+nvidia/samples:vectoradd-cuda11.2.1
