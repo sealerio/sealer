@@ -32,24 +32,25 @@ import (
 )
 
 type Interface interface {
-	// copy local files to remote host
+	// Copy local files to remote host
 	// scp -r /tmp root@192.168.0.2:/root/tmp => Copy("192.168.0.2","tmp","/root/tmp")
 	// need check md5sum
 	Copy(host, srcFilePath, dstFilePath string) error
-	// copy remote host files to localhost
+	// Fetch copy remote host files to localhost
 	Fetch(host, srcFilePath, dstFilePath string) error
-	// exec command on remote host, and asynchronous return logs
+	// CmdAsync exec command on remote host, and asynchronous return logs
 	CmdAsync(host string, cmd ...string) error
-	// exec command on remote host, and return combined standard output and standard error
+	// Cmd exec command on remote host, and return combined standard output and standard error
 	Cmd(host, cmd string) ([]byte, error)
-	// check remote file exist or not
+	// IsFileExist check remote file exist or not
 	IsFileExist(host, remoteFilePath string) (bool, error)
-	//Remote file existence returns true, nil
+	// RemoteDirExist Remote file existence returns true, nil
 	RemoteDirExist(host, remoteDirpath string) (bool, error)
-	// exec command on remote host, and return spilt standard output and standard error
+	// CmdToString exec command on remote host, and return spilt standard output and standard error
 	CmdToString(host, cmd, spilt string) (string, error)
-	// Get remote platform
+	// Platform Get remote platform
 	Platform(host string) (v1.Platform, error)
+
 	Ping(host string) error
 }
 

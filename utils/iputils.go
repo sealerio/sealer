@@ -21,7 +21,6 @@ import (
 	"strings"
 )
 
-//use only one
 func GetHostIP(host string) string {
 	if !strings.ContainsRune(host, ':') {
 		return host

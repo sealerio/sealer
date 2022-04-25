@@ -101,7 +101,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	if !utils.InList(config.IP, ipList) {
 		return nil
 	}
-	return copyRegistry(config, cluster, mountEntry.mountDirs, target)
+	return copyRegistry(config.IP, cluster, mountEntry.mountDirs, target)
 }
 
 func unmountRootfs(ipList []string, cluster *v2.Cluster) error {

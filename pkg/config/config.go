@@ -102,13 +102,16 @@ func (c *Dumper) WriteFiles() (err error) {
 				continue
 			}
 			configPath := filepath.Join(mountRoot, f.Name(), config.Spec.Path)
-			//only the YAML format is supported
-			if config.Spec.Strategy == Merge {
-				configData, err = getMergeConfigData(configPath, configData)
-				if err != nil {
-					return err
+			if utils.IsExist(configPath) {
+				//only the YAML format is supported
+				if config.Spec.Strategy == Merge {
+					configData, err = getMergeConfigData(configPath, configData)
+					if err != nil {
+						return err
+					}
 				}
 			}
+
 			err = utils.WriteFile(configPath, configData)
 			if err != nil {
 				return fmt.Errorf("write config file failed %v", err)
