@@ -40,3 +40,4 @@ rm -f /etc/systemd/system/kubelet.service
 rm -rf /etc/systemd/system/kubelet.service.d
 rm -rf /var/lib/kubelet/
 rm -f /var/lib/kubelet/config.yaml
+rm -f /etc/crictl.yaml
