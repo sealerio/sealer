@@ -34,7 +34,7 @@ const (
 	RegistryCustomConfig        = "registry.yml"
 	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
-	DockerLoginCommand          = "docker login %s -u %s -p %s && " + KubeletAuthCommand
+	DockerLoginCommand          = "nerdctl login -u %s -p %s %s && " + KubeletAuthCommand
 	KubeletAuthCommand          = "cp /root/.docker/config.json /var/lib/kubelet"
 )
 
@@ -84,9 +84,13 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 	if k.RegConfig.Username == "" || k.RegConfig.Password == "" {
 		return nil
 	}
-	login := fmt.Sprintf("%s && %s", fmt.Sprintf(DockerLoginCommand, k.RegConfig.Domain+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password),
-		fmt.Sprintf(DockerLoginCommand, SeaHub+":"+k.RegConfig.Port, k.RegConfig.Username, k.RegConfig.Password))
-	return ssh.CmdAsync(k.GetMaster0IP(), login)
+	return ssh.CmdAsync(k.GetMaster0IP(), k.GerLoginCommand())
+}
+
+func (k *KubeadmRuntime) GerLoginCommand() string {
+	return fmt.Sprintf("%s && %s",
+		fmt.Sprintf(DockerLoginCommand, k.RegConfig.Username, k.RegConfig.Password, k.RegConfig.Domain+":"+k.RegConfig.Port),
+		fmt.Sprintf(DockerLoginCommand, k.RegConfig.Username, k.RegConfig.Password, SeaHub+":"+k.RegConfig.Port))
 }
 
 func (r *RegistryConfig) GenerateHtPasswd() (string, error) {

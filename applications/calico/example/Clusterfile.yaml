@@ -12,30 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.cloud/v2
 kind: Cluster
 metadata:
-  name: my-cluster
+  name: default-kubernetes-cluster
 spec:
-  image: kubernetes-withcalico:v1.19.9
-  provider: ALI_CLOUD
-  masters:
-    count: "1"
-    cpu: "4"
-    dataDisks:
-    - "100"
-    memory: "4"
-    systemDisk: "100"
-  network:
-    podCIDR: 100.64.0.0/10
-    svcCIDR: 10.96.0.0/22
-  nodes:
-    count: "1"
-    cpu: "4"
-    dataDisks:
-    - "100"
-    memory: "4"
-    systemDisk: "100"    
+  image: kubernetes:v1.19.8
+  ssh:
+    passwd: xxx
+    port: "2222"
+  hosts:
+    - ips: [ 192.168.0.2 ]
+      roles: [ master ]
+      ssh:
+        passwd: yyy
+        port: "22"
+    - ips: [ 192.168.0.3,192.168.0.4 ]
+      roles: [ master ]
+    - ips: [ 192.168.0.5 ]
+      roles: [ node ]
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Config
@@ -49,14 +44,11 @@ spec:
     metadata:
       name: default
     spec:
-      # Configures Calico networking.
+      registry: sea.hub:5000
       calicoNetwork:
-        # Note: The ipPools section cannot be modified post-install.
         ipPools:
-        - blockSize: 26
-          cidr: 100.64.0.0/10
-          encapsulation: IPIP
-          natOutgoing: Enabled
-          nodeSelector: all()
-        nodeAddressAutodetectionV4:
-          interface: "eth.*|en.*"
+          - blockSize: 26
+            cidr: 100.64.0.0/10
+            encapsulation: VXLANCrossSubnet
+            natOutgoing: Enabled
+            nodeSelector: all()
