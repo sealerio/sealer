@@ -26,10 +26,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-/**
-  SSH connection operation
-*/
-
 const DefaultSSHPort = "22"
 
 func (s *SSH) connect(host string) (*ssh.Client, error) {
@@ -135,7 +131,6 @@ func (s *SSH) sshPasswordMethod(password string) ssh.AuthMethod {
 	return ssh.Password(password)
 }
 
-//RemoteFileExist is
 func (s *SSH) IsFileExist(host, remoteFilePath string) (bool, error) {
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {

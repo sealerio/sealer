@@ -141,7 +141,7 @@ func (s *SSH) sftpConnect(host string) (*ssh.Client, *sftp.Client, error) {
 	return sshClient, sftpClient, err
 }
 
-// CopyRemoteFileToLocal is scp remote file to local
+// Fetch scp remote file to local
 func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	if utils.IsLocalIP(host, s.LocalAddress) {
 		if remoteFilePath != localFilePath {
@@ -187,7 +187,7 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	return err
 }
 
-// CopyLocalToRemote is copy file or dir to remotePath, add md5 validate
+// Copy file or dir to remotePath, add md5 validate
 func (s *SSH) Copy(host, localPath, remotePath string) error {
 	go displayInitOnce.Do(displayInit)
 	if utils.IsLocalIP(host, s.LocalAddress) {
@@ -281,7 +281,7 @@ func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPa
 }
 
 // check the remote file existence before copying
-// solve the sesion
+// solve the session
 func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localPath, remotePath string) error {
 	var (
 		srcMd5, dstMd5 string
@@ -343,7 +343,7 @@ func LocalMd5Sum(localPath string) string {
 	return md5
 }
 
-//if remote file not exist return false and nil
+// RemoteDirExist if remote file not exist return false and nil
 func (s *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {

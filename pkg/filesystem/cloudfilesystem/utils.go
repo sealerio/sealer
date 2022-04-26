@@ -19,7 +19,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/pkg/runtime"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"github.com/alibaba/sealer/common"
@@ -45,13 +44,17 @@ func copyFiles(sshEntry ssh.Interface, ip, src, target string) error {
 	return nil
 }
 
-func copyRegistry(regConfig *runtime.RegistryConfig, cluster *v2.Cluster, mountDir map[string]bool, target string) error {
-	sshClient, err := ssh.GetHostSSHClient(regConfig.IP, cluster)
+func copyRegistry(regIP string, cluster *v2.Cluster, mountDir map[string]bool, target string) error {
+	sshClient, err := ssh.GetHostSSHClient(regIP, cluster)
 	if err != nil {
 		return err
 	}
 	for dir := range mountDir {
-		err = sshClient.Copy(regConfig.IP, filepath.Join(dir, common.RegistryDirName), filepath.Join(target, common.RegistryDirName))
+		dir = filepath.Join(dir, common.RegistryDirName)
+		if !utils.IsExist(dir) {
+			return nil
+		}
+		err = sshClient.Copy(regIP, dir, filepath.Join(target, common.RegistryDirName))
 		if err != nil {
 			return err
 		}
