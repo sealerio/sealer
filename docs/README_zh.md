@@ -17,8 +17,8 @@ sealer可以通过一条命令安装一个kubernetes集群，仅需要提供IP�
 
 ```shell script
 # 安装sealer
-wget https://github.com/alibaba/sealer/releases/download/v0.8.3/sealer-v0.8.3-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.8.3-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/alibaba/sealer/releases/download/v0.8.4/sealer-v0.8.4-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.8.4-linux-amd64.tar.gz && mv sealer /usr/bin
 # 安装kubernetes集群
 sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 --nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
 ```
