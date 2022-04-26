@@ -23,8 +23,8 @@ echo "
 echo "
 \`\`\`sh
 # Download and install sealer. Sealer is a binary tool of golang. You can download and unzip it directly to the bin directory, and the release page can also be downloaded
-$ wget -c https://sealer.oss-cn-beijing.aliyuncs.com/sealer-latest.tar.gz && \\
-      tar -xvf sealer-latest.tar.gz -C /usr/bin
+$ wget -c https://sealer.oss-cn-beijing.aliyuncs.com/sealers/sealer-v${VERSION}-linux-amd64.tar.gz && \\
+      tar -xvf sealer-v${VERSION}-linux-amd64.tar.gz -C /usr/bin
 \`\`\`
 " >> release_note.md
 echo "### [amd64 Download address]" >> release_note.md

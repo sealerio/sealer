@@ -1,9 +1,9 @@
 # release note
 
-## v0.8.3
+## v0.8.4
 
 *🚀 bugfix*:
 
-- [x] [fix umount rootfs failed](https://github.com/alibaba/sealer/pull/1321)
-- [x] [support inspect image by name](https://github.com/alibaba/sealer/pull/1320)
-- [x] [fix run config and run plugin nil point panic](https://github.com/alibaba/sealer/pull/1317)
+- [x] dump config if not exist; not to send registry if not exist
+- [x] [bugfix: support copy dest with file name](https://github.com/alibaba/sealer/pull/1328)
+- [x] [set normalized image name as manifestslist key](https://github.com/alibaba/sealer/pull/1327)
