@@ -63,7 +63,7 @@ type SSH struct {
 	PkFile       string
 	PkPassword   string
 	Timeout      *time.Duration
-	LocalAddress *[]net.Addr
+	LocalAddress []net.Addr
 }
 
 func NewSSHByCluster(cluster *v1.Cluster) Interface {

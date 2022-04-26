@@ -1,6 +1,6 @@
 # 使用nydus加速文件分发
 
-[Nydus](https://github.com/dragonflyoss)的按需加载和预取能够极大地提高sealer分发rootfs的性能。
+[Nydus](https://github.com/dragonflyoss/image-service)的按需加载和预取能够极大地提高sealer分发rootfs的性能。
 
 ## 分发流程
 

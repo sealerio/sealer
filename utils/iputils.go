@@ -60,14 +60,14 @@ func GetHostNetInterface(host string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to get Addrs, %v", err)
 		}
-		if IsLocalIP(host, &addrs) {
+		if IsLocalIP(host, addrs) {
 			return netInterfaces[i].Name, nil
 		}
 	}
 	return "", nil
 }
 
-func GetLocalHostAddresses() (*[]net.Addr, error) {
+func GetLocalHostAddresses() ([]net.Addr, error) {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
 		fmt.Println("net.Interfaces failed, err:", err.Error())
@@ -86,11 +86,11 @@ func GetLocalHostAddresses() (*[]net.Addr, error) {
 			allAddrs = append(allAddrs, addrs[j])
 		}
 	}
-	return &allAddrs, nil
+	return allAddrs, nil
 }
 
-func IsLocalIP(ip string, addrs *[]net.Addr) bool {
-	for _, address := range *addrs {
+func IsLocalIP(ip string, addrs []net.Addr) bool {
+	for _, address := range addrs {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil && ipnet.IP.String() == ip {
 			return true
 		}
