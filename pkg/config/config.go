@@ -19,13 +19,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
+
+	k8sv1 "k8s.io/api/core/v1"
 
 	"github.com/alibaba/sealer/common"
 
 	v2 "github.com/alibaba/sealer/types/api/v2"
 
 	"gopkg.in/yaml.v3"
-	yaml2 "sigs.k8s.io/yaml"
+	k8sYaml "sigs.k8s.io/yaml"
 
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -97,18 +100,21 @@ func (c *Dumper) WriteFiles() (err error) {
 		if err != nil {
 			return err
 		}
+		convertSecret := strings.Contains(config.Spec.Process, toSecretProcessorName)
 		for _, f := range mountDirs {
 			if !f.IsDir() {
 				continue
 			}
 			configPath := filepath.Join(mountRoot, f.Name(), config.Spec.Path)
-			if utils.IsExist(configPath) {
-				//only the YAML format is supported
-				if config.Spec.Strategy == Merge {
-					configData, err = getMergeConfigData(configPath, configData)
-					if err != nil {
-						return err
-					}
+			if convertSecret {
+				if configData, err = convertSecretYaml(config, configPath); err != nil {
+					return fmt.Errorf("faild to convert to secret file: %v", err)
+				}
+			}
+			//only the YAML format is supported
+			if utils.IsExist(configPath) && !convertSecret && config.Spec.Strategy == Merge {
+				if configData, err = getMergeConfigData(configPath, configData); err != nil {
+					return err
 				}
 			}
 
@@ -144,7 +150,7 @@ func getMergeConfigData(path string, data []byte) ([]byte, error) {
 			continue
 		}
 		deepMerge(&configMap, &mergeConfigMap)
-		cfg, err := yaml2.Marshal(&configMap)
+		cfg, err := k8sYaml.Marshal(&configMap)
 		if err != nil {
 			return nil, err
 		}
@@ -172,4 +178,30 @@ func deepMerge(dst, src *map[string]interface{}) {
 		deepMerge(&dV, &sV)
 		(*dst)[srcK] = dV
 	}
+}
+
+func convertSecretYaml(config v1.Config, configPath string) ([]byte, error) {
+	secret := k8sv1.Secret{}
+	dataMap := make(map[string]string)
+	if err := k8sYaml.Unmarshal([]byte(config.Spec.Data), &dataMap); err != nil {
+		return nil, err
+	}
+	if utils.IsExist(configPath) {
+		rawData, err := ioutil.ReadFile(filepath.Clean(configPath))
+		if err != nil {
+			return nil, err
+		}
+		if err = k8sYaml.Unmarshal(rawData, &secret); err != nil {
+			return nil, err
+		}
+	}
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
+	//set secret data
+	for k, v := range dataMap {
+		v := []byte(v)
+		secret.Data[k] = v
+	}
+	return k8sYaml.Marshal(secret)
 }
