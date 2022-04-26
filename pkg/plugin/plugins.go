@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"plugin"
 
+	"github.com/alibaba/sealer/utils/platform"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
@@ -56,10 +58,10 @@ func NewPlugins(cluster *v2.Cluster) Plugins {
 	}
 }
 
-// Load plugin configs and shared object(.so) file from $rootfs/plugins dir.
+// Load plugin configs and shared object(.so) file from $mountRootfs/plugins dir.
 func (c *PluginsProcessor) Load() error {
 	c.Plugins = nil
-	path := common.DefaultTheClusterRootfsPluginDir(c.Cluster.Name)
+	path := filepath.Join(platform.DefaultMountCloudImageDir(c.Cluster.Name), "plugins")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return nil
@@ -164,8 +166,8 @@ func (c *PluginsProcessor) writeFiles() error {
 		if !utils.YamlMatcher(name) {
 			name = fmt.Sprintf("%s.yaml", name)
 		}
-
-		err := utils.MarshalYamlToFile(filepath.Join(common.DefaultTheClusterRootfsPluginDir(c.Cluster.Name), name), config)
+		//write to mountRootfs/plugins dir
+		err := utils.MarshalYamlToFile(filepath.Join(platform.DefaultMountCloudImageDir(c.Cluster.Name), "plugins", name), config)
 		if err != nil {
 			return fmt.Errorf("write plugin metadata fileed %v", err)
 		}

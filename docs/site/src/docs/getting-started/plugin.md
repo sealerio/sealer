@@ -1,4 +1,4 @@
-# Plugin Usage
+# Using Plugin
 
 ## Plugin type list
 
@@ -36,6 +36,7 @@ metadata:
 spec:
   type: SHELL
   action: PostInstall # PreInit PreInstall PostInstall
+  'on': master #on field type needs to be enclosed in quotes
   data: |
     kubectl get nodes
 ```
@@ -50,13 +51,13 @@ action : [PreInit| PreInstall| PostInstall] # Specify phases to execute the shel
   after  installing the cluster phase |   action: PostInstall
   after clean cluster phase           |   action: PostClean
   combined use phase                  |   action: PreInit|PreJoin
-on     : #Specifies the machine to execute the command
+'on'     : #Specifies the machine to execute the command
   If null, it is executed on all nodes by default
-  on all master nodes                 |  on: master
-  on all work nodes                   |  on: node
-  on the specified IP address         |  on: 192.168.56.113,192.168.56.114,192.168.56.115,192.168.56.116
-  on a machine with continuous IP     |  on: 192.168.56.113-192.168.56.116
-  on the specified label node (action must be set to PostInstall)  |  on: node-role.kubernetes.io/master=
+  on all master nodes                 |  'on': master
+  on all work nodes                   |  'on': node
+  on the specified IP address         |  'on': 192.168.56.113,192.168.56.114,192.168.56.115,192.168.56.116
+  on a machine with continuous IP     |  'on': 192.168.56.113-192.168.56.116
+  on the specified label node (action must be set to PostInstall)  |  'on': node-role.kubernetes.io/master=
 data   : #Specifies the shell command to execute
 ```
 
