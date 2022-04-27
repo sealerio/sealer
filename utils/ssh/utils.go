@@ -16,10 +16,14 @@ package ssh
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"sync"
+	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
@@ -107,4 +111,23 @@ func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {
 		}
 	}
 	return clusterStatus, nil
+}
+
+func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
+	var err error
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, h := range hosts {
+		host := h
+		eg.Go(func() error {
+			for i := 0; i < tryTimes; i++ {
+				err = ssh.Ping(host)
+				if err == nil {
+					return nil
+				}
+				time.Sleep(time.Duration(i) * time.Second)
+			}
+			return fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
+		})
+	}
+	return eg.Wait()
 }

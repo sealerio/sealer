@@ -15,12 +15,9 @@
 package ssh
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"time"
-
-	"golang.org/x/sync/errgroup"
 
 	"github.com/imdario/mergo"
 
@@ -66,25 +63,6 @@ type SSH struct {
 	LocalAddress []net.Addr
 }
 
-func NewSSHByCluster(cluster *v1.Cluster) Interface {
-	if cluster.Spec.SSH.User == "" {
-		cluster.Spec.SSH.User = common.ROOT
-	}
-	address, err := utils.GetLocalHostAddresses()
-	if err != nil {
-		logger.Warn("failed to get local address, %v", err)
-	}
-	return &SSH{
-		Encrypted:    cluster.Spec.SSH.Encrypted,
-		User:         cluster.Spec.SSH.User,
-		Password:     cluster.Spec.SSH.Passwd,
-		Port:         cluster.Spec.SSH.Port,
-		PkFile:       cluster.Spec.SSH.Pk,
-		PkPassword:   cluster.Spec.SSH.PkPasswd,
-		LocalAddress: address,
-	}
-}
-
 func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 	if ssh.User == "" {
 		ssh.User = common.ROOT
@@ -118,59 +96,6 @@ func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
 		}
 	}
 	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
-}
-
-type Client struct {
-	SSH  Interface
-	Host string
-}
-
-func NewSSHClientWithCluster(cluster *v1.Cluster) (*Client, error) {
-	var (
-		ipList []string
-		host   string
-	)
-	sshClient := NewSSHByCluster(cluster)
-	if cluster.Spec.Provider == common.AliCloud {
-		host = cluster.GetAnnotationsByKey(common.Eip)
-		if host == "" {
-			return nil, fmt.Errorf("get cluster EIP failed")
-		}
-		ipList = append(ipList, host)
-	} else {
-		host = cluster.Spec.Masters.IPList[0]
-		ipList = append(ipList, append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)...)
-	}
-	err := WaitSSHReady(sshClient, 6, ipList...)
-	if err != nil {
-		return nil, err
-	}
-	if sshClient == nil {
-		return nil, fmt.Errorf("cloud build init ssh client failed")
-	}
-	return &Client{
-		SSH:  sshClient,
-		Host: host,
-	}, nil
-}
-
-func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
-	var err error
-	eg, _ := errgroup.WithContext(context.Background())
-	for _, h := range hosts {
-		host := h
-		eg.Go(func() error {
-			for i := 0; i < tryTimes; i++ {
-				err = ssh.Ping(host)
-				if err == nil {
-					return nil
-				}
-				time.Sleep(time.Duration(i) * time.Second)
-			}
-			return fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
-		})
-	}
-	return eg.Wait()
 }
 
 // NewStdoutSSHClient is used to show std out when execute bash command.

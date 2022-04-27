@@ -21,6 +21,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/alibaba/sealer/common"
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"sigs.k8s.io/yaml"
@@ -68,13 +71,46 @@ type SSHClient struct {
 	SSH          ssh.Interface
 }
 
-func NewSSHClientByCluster(usedCluster *v1.Cluster) *SSHClient {
-	sshClient, err := ssh.NewSSHClientWithCluster(usedCluster)
+func NewSSHByCluster(cluster *v1.Cluster) ssh.Interface {
+	if cluster.Spec.SSH.User == "" {
+		cluster.Spec.SSH.User = common.ROOT
+	}
+	address, err := utils.GetLocalHostAddresses()
+	if err != nil {
+		logger.Warn("failed to get local address, %v", err)
+	}
+	return &ssh.SSH{
+		Encrypted:    cluster.Spec.SSH.Encrypted,
+		User:         cluster.Spec.SSH.User,
+		Password:     cluster.Spec.SSH.Passwd,
+		Port:         cluster.Spec.SSH.Port,
+		PkFile:       cluster.Spec.SSH.Pk,
+		PkPassword:   cluster.Spec.SSH.PkPasswd,
+		LocalAddress: address,
+	}
+}
+
+func NewSSHClientByCluster(cluster *v1.Cluster) *SSHClient {
+	var (
+		ipList []string
+		host   string
+	)
+	sshClient := NewSSHByCluster(cluster)
+	if cluster.Spec.Provider == common.AliCloud {
+		host = cluster.GetAnnotationsByKey(common.Eip)
+		CheckNotEqual(host, "")
+		ipList = append(ipList, host)
+	} else {
+		host = cluster.Spec.Masters.IPList[0]
+		ipList = append(ipList, append(cluster.Spec.Masters.IPList, cluster.Spec.Nodes.IPList...)...)
+	}
+	err := ssh.WaitSSHReady(sshClient, 6, ipList...)
 	CheckErr(err)
 	CheckNotNil(sshClient)
+
 	return &SSHClient{
-		RemoteHostIP: sshClient.Host,
-		SSH:          sshClient.SSH,
+		SSH:          sshClient,
+		RemoteHostIP: host,
 	}
 }
 
