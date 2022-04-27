@@ -35,27 +35,28 @@ metadata:
   name: MyShell # Specify this plugin name,will dump in $rootfs/plugins dir.
 spec:
   type: SHELL
-  action: PostInstall # PreInit PreInstall PostInstall
+  action: PostInstall # PreInit PostInstall
   data: |
     kubectl get nodes
 ```
 
 ```shell
-action : [PreInit| PreInstall| PostInstall] # Specify phases to execute the shell
+action : [PreInit| PostInstall] # Specify phases to execute the shell
   Pre-initialization phase            |   action: PreInit
   Pre-join phase                      |   action: PreJoin
   Post-join phase                     |   action: PostJoin
-  before installing the cluster phase |   action: PreInstall
+  before exec Kubefile CMD phase      |   action: PreGuest
   after  installing the cluster phase |   action: PostInstall
+  before clean cluster phase          |   action: PreClean
   after clean cluster phase           |   action: PostClean
   combined use phase                  |   action: PreInit|PreJoin
 on     : #Specifies the machine to execute the command
   If null, it is executed on all nodes by default
-  on all master nodes                 |  on: master
-  on all work nodes                   |  on: node
-  on the specified IP address         |  on: 192.168.56.113,192.168.56.114,192.168.56.115,192.168.56.116
-  on a machine with continuous IP     |  on: 192.168.56.113-192.168.56.116
-  on the specified label node (action must be set to PostInstall)  |  on: node-role.kubernetes.io/master=
+  on all master nodes                 |  'on': master
+  on all work nodes                   |  'on': node
+  on the specified IP address         |  'on': 192.168.56.113,192.168.56.114,192.168.56.115,192.168.56.116
+  on a machine with continuous IP     |  'on': 192.168.56.113-192.168.56.116
+  on the specified label node (action must be PostInstall or PreClean)  |  'on': node-role.kubernetes.io/master=
 data   : #Specifies the shell command to execute
 ```
 
@@ -70,7 +71,7 @@ metadata:
   name: MyLabel
 spec:
   type: LABEL
-  action: PostInstall
+  action: PreGuest
   data: |
     192.168.0.2 ssd=true
     192.168.0.3 ssd=true

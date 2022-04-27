@@ -50,10 +50,12 @@ func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 	if s.IsScaleUp {
 		todoList = append(todoList,
 			s.PreProcess,
+			s.GetPhasePluginFunc(plugin.PhaseOriginally),
 			s.RunConfig,
 			s.MountRootfs,
 			s.GetPhasePluginFunc(plugin.PhasePreJoin),
 			s.Join,
+			s.GetPhasePluginFunc(plugin.PhasePreGuest), //taint plugin，label plugin, or clusterCheck plugin
 			s.GetPhasePluginFunc(plugin.PhasePostJoin),
 		)
 		return todoList, nil
@@ -61,8 +63,9 @@ func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 
 	todoList = append(todoList,
 		s.PreProcess,
+		s.GetPhasePluginFunc(plugin.PhasePreClean),
 		s.Delete,
-		s.ApplyCleanPlugin,
+		s.GetPhasePluginFunc(plugin.PhasePostClean),
 		s.UnMountRootfs,
 	)
 	return todoList, nil
@@ -84,18 +87,16 @@ func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
 }
 
 func (s *ScaleProcessor) initPlugin(cluster *v2.Cluster) error {
-	s.Plugins = plugin.NewPlugins(cluster)
-	return s.Plugins.Dump(s.ClusterFile.GetPlugins())
+	s.Plugins = plugin.NewPlugins(cluster, s.ClusterFile.GetPlugins())
+	return s.Plugins.Load()
 }
 
 func (s *ScaleProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {
 	return func(cluster *v2.Cluster) error {
-		if phase == plugin.PhasePreInit {
-			if err := s.Plugins.Load(); err != nil {
-				return err
-			}
+		if s.IsScaleUp {
+			return s.Plugins.Run(append(s.MastersToJoin, s.NodesToJoin...), phase)
 		}
-		return s.Plugins.Run(append(s.MastersToJoin, s.NodesToJoin...), phase)
+		return s.Plugins.Run(append(s.MastersToDelete, s.NodesToDelete...), phase)
 	}
 }
 
@@ -125,17 +126,6 @@ func (s *ScaleProcessor) Delete(cluster *v2.Cluster) error {
 		return err
 	}
 	return s.Runtime.DeleteNodes(s.NodesToDelete)
-}
-
-func (s *ScaleProcessor) ApplyCleanPlugin(cluster *v2.Cluster) error {
-	plugins := plugin.NewPlugins(cluster)
-	if err := plugins.Dump(s.ClusterFile.GetPlugins()); err != nil {
-		return err
-	}
-	if err := plugins.Load(); err != nil {
-		return err
-	}
-	return plugins.Run(cluster.GetAllIPList(), plugin.PhasePostClean)
 }
 
 func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Processor, error) {

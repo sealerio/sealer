@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/pkg/client/k8s"
 	"github.com/alibaba/sealer/utils"
@@ -27,17 +29,19 @@ const (
 	DelSymbol   = "-"
 	EqualSymbol = "="
 	ColonSymbol = ":"
+	SplitSymbol = "|"
 )
 
 func GetIpsByOnField(on string, context Context, phase Phase) (ipList []string, err error) {
 	on = strings.TrimSpace(on)
 	if strings.Contains(on, EqualSymbol) {
-		if phase != PhasePostInstall {
-			return nil, fmt.Errorf("the action must be PostInstall, When nodes is specified with a label")
+		if (phase != PhasePostInstall && phase != PhasePostJoin) && phase != PhasePreClean {
+			logger.Warn("Current phase is %s. When nodes is specified with a label, the plugin action must be PostInstall or PostJoin, ", phase)
+			return nil, nil
 		}
 		client, err := k8s.Newk8sClient()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get k8s client: %v", err)
 		}
 		ipList, err = client.ListNodeIPByLabel(strings.TrimSpace(on))
 		if err != nil {
@@ -55,7 +59,7 @@ func GetIpsByOnField(on string, context Context, phase Phase) (ipList []string, 
 		ipList = utils.DisassembleIPList(on)
 	}
 	if len(ipList) == 0 {
-		return nil, fmt.Errorf("invalid on filed: [%s]", on)
+		logger.Debug("node not found by on field [%s]", on)
 	}
 	return ipList, nil
 }

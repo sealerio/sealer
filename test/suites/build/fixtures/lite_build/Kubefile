@@ -6,3 +6,4 @@ COPY test3 .
 RUN wget -O redis.tar.gz http://download.redis.io/releases/redis-5.0.3.tar.gz && tar zxvf redis.tar.gz && rm -f redis.tar.gz
 CMD ls -l
 COPY imageList manifests
+COPY test-plugins.yaml plugins

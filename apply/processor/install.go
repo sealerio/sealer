@@ -46,12 +46,8 @@ func (i *InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, err
 
 func (i *InstallProcessor) Process(cluster *v2.Cluster) error {
 	i.Config = config.NewConfiguration(cluster)
-	i.Plugins = plugin.NewPlugins(cluster)
-	return i.initPlugin()
-}
-
-func (i *InstallProcessor) initPlugin() error {
-	return i.Plugins.Dump(i.clusterFile.GetPlugins())
+	i.Plugins = plugin.NewPlugins(cluster, i.clusterFile.GetPlugins())
+	return nil
 }
 
 func (i *InstallProcessor) RunConfig(cluster *v2.Cluster) error {

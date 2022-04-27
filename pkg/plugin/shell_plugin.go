@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alibaba/sealer/logger"
+
 	"github.com/alibaba/sealer/utils"
 
 	"github.com/alibaba/sealer/pkg/env"
@@ -37,7 +39,7 @@ func init() {
 }
 
 func (s Sheller) Run(context Context, phase Phase) (err error) {
-	pluginPhases := strings.Split(context.Plugin.Spec.Action, "|")
+	pluginPhases := strings.Split(context.Plugin.Spec.Action, SplitSymbol)
 	if utils.NotIn(string(phase), pluginPhases) || context.Plugin.Spec.Type != ShellPlugin {
 		return nil
 	}
@@ -51,10 +53,16 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 	if on := context.Plugin.Spec.On; on != "" {
 		allHostIP, err = GetIpsByOnField(on, context, phase)
 		if err != nil {
+			if phase == PhasePreClean {
+				logger.Error("failed to get ips when %s phase: %v", phase, err)
+				return nil
+			}
 			return err
 		}
 	}
+	var runPluginIPList []string
 	for _, ip := range allHostIP {
+		//skip non-cluster nodes
 		if utils.NotIn(ip, context.Host) {
 			continue
 		}
@@ -67,6 +75,8 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 		if err != nil {
 			return fmt.Errorf("failed to run shell cmd,  %v", err)
 		}
+		runPluginIPList = append(runPluginIPList, ip)
 	}
+	logger.Info("%s phase shell plugin '%s' executing nodes: %s ", phase, context.Plugin.Name, runPluginIPList)
 	return nil
 }

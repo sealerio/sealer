@@ -65,15 +65,12 @@ func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, erro
 
 func (c *CreateProcessor) PreProcess(cluster *v2.Cluster) error {
 	c.Config = config.NewConfiguration(cluster)
-	if err := c.initPlugin(cluster); err != nil {
-		return err
-	}
+	c.initPlugin(cluster)
 	return utils.SaveClusterInfoToFile(cluster, cluster.Name)
 }
 
-func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) error {
-	c.Plugins = plugin.NewPlugins(cluster)
-	return c.Plugins.Dump(c.ClusterFile.GetPlugins())
+func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) {
+	c.Plugins = plugin.NewPlugins(cluster, c.ClusterFile.GetPlugins())
 }
 
 func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
