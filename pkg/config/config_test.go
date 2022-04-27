@@ -15,6 +15,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -47,7 +48,7 @@ func TestDumper_Dump(t *testing.T) {
 				configs:     nil,
 				clusterName: "my-cluster",
 			},
-			args{clusterfile: "test_clusterfile.yaml"},
+			args{clusterfile: "test/test_clusterfile.yaml"},
 			false,
 		},
 	}
@@ -86,13 +87,13 @@ func Test_getMergeConfig(t *testing.T) {
 			name: "test",
 			args: args{
 				data: []byte("spec:\n  image: kubernetes:v1.19.8"),
-				path: "test_clusterfile.yaml",
+				path: "test/test_clusterfile.yaml",
 			},
 		}, {
 			name: "test",
 			args: args{
 				data: []byte("spec:\n  template:\n    metadata:\n      labels:\n        name: tigera-operatorssssss"),
-				path: "tigera-operator.yaml",
+				path: "test/tigera-operator.yaml",
 			},
 		},
 	}
@@ -107,6 +108,41 @@ func Test_getMergeConfig(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
+		})
+	}
+}
+
+func Test_convertSecretYaml(t *testing.T) {
+	testConfig := v1.Config{}
+	testConfig.Spec.Data = `
+global: e2FiYzogeHh4fQo=
+components: e215c3FsOntjcHU6e3JlcXVlc3Q6IDEwMDBtfX19Cg==`
+	testConfig.Spec.Process = "value|toJson|toBase64|toSecret"
+	type args struct {
+		config     v1.Config
+		configPath string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			"test secret convert to file (file exist)",
+			args{testConfig, "test/secret.yaml"},
+		},
+		{
+			"test secret convert to file (file not exist)",
+			args{testConfig, "test/secret1.yaml"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := convertSecretYaml(tt.args.config, tt.args.configPath)
+			if err != nil {
+				t.Errorf("convertSecretYaml() error = %v", err)
+				return
+			}
+			fmt.Println(string(got))
 		})
 	}
 }

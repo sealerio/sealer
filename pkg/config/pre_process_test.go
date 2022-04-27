@@ -23,7 +23,7 @@ import (
 func TestNewProcessorsAndRun(t *testing.T) {
 	config := &v1.Config{
 		Spec: v1.ConfigSpec{
-			Process: "value|toJson|toBase64",
+			Process: "value|toJson|toBase64|toSecret",
 			Data: `
 config:
   usrname: root
@@ -41,7 +41,7 @@ config:
 		wantErr bool
 	}{
 		{
-			name:    "test value|toJson|toBase64",
+			name:    "test value|toJson|toBase64|toSecret",
 			args:    args{config},
 			wantErr: false,
 		},

@@ -211,7 +211,7 @@ metadata:
   name: mysql-config
 spec:
   path: etc/mysql.yaml
-  process: value|tojson|tobase64 # pre process pipeline
+  process: value|toJson|toBase64|toSecret # pre process pipeline
   data:
       config:
          username: root
@@ -245,6 +245,8 @@ config: ewp1c2VybmFtZTpyb290LApwYXNzd2Q6eHh4Cn0K
 If strategy is `tojson|tobase64` the hole data will convert to json then convert to base64.
 
 You can freely combine these processors.
+
+If process is `tosecret`, convert data will be inserted into the secret file specified by path.
 
 This feature is useful for kubernetes secret.
 
