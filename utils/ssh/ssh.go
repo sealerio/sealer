@@ -52,7 +52,7 @@ type Interface interface {
 }
 
 type SSH struct {
-	isStdout     bool
+	IsStdout     bool
 	Encrypted    bool
 	User         string
 	Password     string
@@ -72,7 +72,7 @@ func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 		logger.Warn("failed to get local address, %v", err)
 	}
 	return &SSH{
-		isStdout:     isStdout,
+		IsStdout:     isStdout,
 		Encrypted:    ssh.Encrypted,
 		User:         ssh.User,
 		Password:     ssh.Passwd,
