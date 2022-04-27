@@ -99,6 +99,7 @@ func (k *KubeadmRuntime) CmdToString(host, cmd, split string) (string, error) {
 	if data != nil {
 		str := string(data)
 		str = strings.ReplaceAll(str, "\r\n", split)
+		str = strings.ReplaceAll(str, "\n", split)
 		return str, nil
 	}
 	return "", nil

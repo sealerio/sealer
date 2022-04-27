@@ -19,14 +19,19 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alibaba/sealer/utils"
+
 	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
-	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils/platform"
 	"github.com/pkg/errors"
 )
 
 func (s *SSH) Platform(host string) (v1.Platform, error) {
+	if utils.IsLocalIP(host, s.LocalAddress) {
+		return *platform.GetDefaultPlatform(), nil
+	}
+
 	p := v1.Platform{}
 	archResult, err := s.CmdToString(host, "uname -m", "")
 	if err != nil {
@@ -111,20 +116,4 @@ func (s *SSH) getCPUVariant(os, arch, host string) (string, error) {
 	}
 	variant, model = platform.NormalizeArch(variant, model)
 	return platform.GetCPUVariantByInfo(os, arch, variant, model), nil
-}
-
-func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {
-	clusterStatus := make(map[string]v1.Platform)
-	for _, ip := range append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...) {
-		IP := ip
-		ssh, err := GetHostSSHClient(IP, cluster)
-		if err != nil {
-			return nil, err
-		}
-		clusterStatus[IP], err = ssh.Platform(IP)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return clusterStatus, nil
 }
