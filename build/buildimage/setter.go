@@ -16,16 +16,13 @@ package buildimage
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/alibaba/sealer/common"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils"
 )
 
 type annotation struct {
-	source string
 }
 
 func (a annotation) Set(ima *v1.Image) error {
@@ -34,8 +31,7 @@ func (a annotation) Set(ima *v1.Image) error {
 
 func (a annotation) setClusterFile(ima *v1.Image) error {
 	var (
-		err      error
-		filePath = filepath.Join(a.source, "etc", common.DefaultClusterFileName)
+		err error
 	)
 
 	cluster := &v2.Cluster{}
@@ -46,13 +42,6 @@ func (a annotation) setClusterFile(ima *v1.Image) error {
 		Port: "22",
 		User: "root",
 	}
-	// if rootfs has Clusterfile, load it.
-	if utils.IsExist(filePath) {
-		cluster, err = loadClusterFile(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to load clusterfile, err: %v", err)
-		}
-	}
 
 	cluster.Spec.Image = ima.Name
 	err = setClusterFileToImage(cluster, ima)
@@ -62,23 +51,6 @@ func (a annotation) setClusterFile(ima *v1.Image) error {
 	return nil
 }
 
-func NewAnnotationSetter(rootfs string) ImageSetter {
-	return annotation{
-		source: rootfs,
-	}
-}
-
-type platform struct {
-	plat v1.Platform
-}
-
-func (p platform) Set(ima *v1.Image) error {
-	ima.Spec.Platform = p.plat
-	return nil
-}
-
-func NewPlatformSetter(plat v1.Platform) ImageSetter {
-	return platform{
-		plat: plat,
-	}
+func NewAnnotationSetter() ImageSetter {
+	return annotation{}
 }
