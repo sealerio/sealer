@@ -18,9 +18,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/pkg/sftp"
 
 	"github.com/alibaba/sealer/utils"
 	"golang.org/x/crypto/ssh"
@@ -123,26 +124,17 @@ func (s *SSH) sshPrivateKeyMethod(pkFile, pkPassword string) (am ssh.AuthMethod,
 	return ssh.PublicKeys(pk), nil
 }
 
-func fileExist(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil || os.IsExist(err)
-}
 func (s *SSH) sshPasswordMethod(password string) ssh.AuthMethod {
 	return ssh.Password(password)
 }
 
-func (s *SSH) IsFileExist(host, remoteFilePath string) (bool, error) {
-	sshClient, sftpClient, err := s.sftpConnect(host)
+func (s *SSH) sftpConnect(host string) (*ssh.Client, *sftp.Client, error) {
+	sshClient, err := s.connect(host)
 	if err != nil {
-		return false, fmt.Errorf("new sftp client failed %s", err)
+		return nil, nil, err
 	}
-	defer func() {
-		_ = sftpClient.Close()
-		_ = sshClient.Close()
-	}()
-	_, err = sftpClient.Stat(remoteFilePath)
-	if err == os.ErrNotExist {
-		return false, nil
-	}
-	return err == nil, err
+
+	// create sftp client
+	sftpClient, err := sftp.NewClient(sshClient)
+	return sshClient, sftpClient, err
 }

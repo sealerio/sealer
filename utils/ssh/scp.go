@@ -21,23 +21,14 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"sync"
 
-	"github.com/alibaba/sealer/common"
 	"github.com/alibaba/sealer/logger"
 	"github.com/alibaba/sealer/utils"
-	dockerstreams "github.com/docker/cli/cli/streams"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
-	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/progress"
-	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 )
-
-const KByte = 1024
-const MByte = 1024 * 1024
 
 const (
 	Md5sumCmd = "md5sum %s | cut -d\" \" -f1"
@@ -88,57 +79,6 @@ func (epu *easyProgressUtil) fail(err error) {
 
 func (epu *easyProgressUtil) startMessage() {
 	progress.Update(epu.output, epu.copyID, fmt.Sprintf("%d/%d", epu.completeNumber, epu.total))
-}
-
-func displayInit() {
-	reader, writer = io.Pipe()
-	writeFlusher = dockerioutils.NewWriteFlusher(writer)
-	defer func() {
-		_ = reader.Close()
-		_ = writer.Close()
-		_ = writeFlusher.Close()
-	}()
-	progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
-	err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
-	if err != nil && err != io.ErrClosedPipe {
-		logger.Warn("error occurs in display progressing, err: %s", err)
-	}
-}
-
-func (s *SSH) RemoteMd5Sum(host, remoteFilePath string) string {
-	cmd := fmt.Sprintf(Md5sumCmd, remoteFilePath)
-	remoteMD5, err := s.CmdToString(host, cmd, "")
-	if err != nil {
-		logger.Error("count remote md5 failed %s %s %v", host, remoteFilePath, err)
-	}
-	return remoteMD5
-}
-
-//CmdToString is in host exec cmd and replace to spilt str
-func (s *SSH) CmdToString(host, cmd, spilt string) (string, error) {
-	data, err := s.Cmd(host, cmd)
-	str := string(data)
-	if err != nil {
-		return str, fmt.Errorf("exec remote command failed %s %s %v", host, cmd, err)
-	}
-	if data != nil {
-		str = strings.ReplaceAll(str, "\r\n", spilt)
-		str = strings.ReplaceAll(str, "\n", spilt)
-		return str, nil
-	}
-	return str, fmt.Errorf("command %s %s return nil", host, cmd)
-}
-
-//SftpConnect  is
-func (s *SSH) sftpConnect(host string) (*ssh.Client, *sftp.Client, error) {
-	sshClient, err := s.connect(host)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// create sftp client
-	sftpClient, err := sftp.NewClient(sshClient)
-	return sshClient, sftpClient, err
 }
 
 // Fetch scp remote file to local
@@ -248,6 +188,15 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	return nil
 }
 
+func (s *SSH) remoteMd5Sum(host, remoteFilePath string) string {
+	cmd := fmt.Sprintf(Md5sumCmd, remoteFilePath)
+	remoteMD5, err := s.CmdToString(host, cmd, "")
+	if err != nil {
+		logger.Error("count remote md5 failed %s %s %v", host, remoteFilePath, err)
+	}
+	return remoteMD5
+}
+
 func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
@@ -281,16 +230,15 @@ func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPa
 }
 
 // check the remote file existence before copying
-// solve the session
 func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localPath, remotePath string) error {
 	var (
 		srcMd5, dstMd5 string
 	)
-	srcMd5 = LocalMd5Sum(localPath)
+	srcMd5 = localMd5Sum(localPath)
 	if exist, err := s.IsFileExist(host, remotePath); err != nil {
 		return err
 	} else if exist {
-		dstMd5 = s.RemoteMd5Sum(host, remotePath)
+		dstMd5 = s.remoteMd5Sum(host, remotePath)
 		if srcMd5 == dstMd5 {
 			logger.Debug("remote dst %s already exists and is the latest version , skip copying process", remotePath)
 			return nil
@@ -327,20 +275,11 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 	if err != nil {
 		return err
 	}
-	dstMd5 = s.RemoteMd5Sum(host, remotePath)
+	dstMd5 = s.remoteMd5Sum(host, remotePath)
 	if srcMd5 != dstMd5 {
 		return fmt.Errorf("[ssh][%s] validate md5sum failed %s != %s", host, srcMd5, dstMd5)
 	}
 	return nil
-}
-
-func LocalMd5Sum(localPath string) string {
-	md5, err := utils.FileMD5(localPath)
-	if err != nil {
-		logger.Error("get file md5 failed %v", err)
-		return ""
-	}
-	return md5
 }
 
 // RemoteDirExist if remote file not exist return false and nil
@@ -357,4 +296,20 @@ func (s *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (s *SSH) IsFileExist(host, remoteFilePath string) (bool, error) {
+	sshClient, sftpClient, err := s.sftpConnect(host)
+	if err != nil {
+		return false, fmt.Errorf("new sftp client failed %s", err)
+	}
+	defer func() {
+		_ = sftpClient.Close()
+		_ = sshClient.Close()
+	}()
+	_, err = sftpClient.Stat(remoteFilePath)
+	if err == os.ErrNotExist {
+		return false, nil
+	}
+	return err == nil, err
 }

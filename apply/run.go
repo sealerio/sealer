@@ -15,7 +15,6 @@
 package apply
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -88,9 +87,17 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		}
 		c.cluster.Spec.Hosts = c.hosts
 	} else {
-		err = fmt.Errorf("enter true iplist or count")
+		ip, err := utils.GetLocalDefaultIP()
+		if err != nil {
+			return err
+		}
+		c.cluster.Spec.Hosts = []v2.Host{
+			{
+				IPS:   []string{ip},
+				Roles: []string{common.MASTER},
+			},
+		}
 	}
-
 	return err
 }
 

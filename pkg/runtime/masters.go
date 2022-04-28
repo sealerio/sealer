@@ -216,7 +216,7 @@ func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []string, files ...st
 	return nil
 }
 
-// JoinTemplate is generate JoinCP nodes configuration by master ip.
+// joinMasterConfig is generated JoinCP nodes configuration by master ip.
 func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
 	k.Lock()
 	defer k.Unlock()
@@ -236,19 +236,19 @@ func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
 	k.Mutex = &sync.Mutex{}
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range joinMaster {
-		master := master
+		ip := master
 		eg.Go(func() error {
-			joinConfig, err := k.joinMasterConfig(master)
+			joinConfig, err := k.joinMasterConfig(ip)
 			if err != nil {
-				return fmt.Errorf("get join %s config failed: %v", master, err)
+				return fmt.Errorf("get join %s config failed: %v", ip, err)
 			}
 			cmd := fmt.Sprintf(RemoteJoinMasterConfig, joinConfig, k.getRootfs())
-			ssh, err := k.getHostSSHClient(master)
+			ssh, err := k.getHostSSHClient(ip)
 			if err != nil {
-				return fmt.Errorf("set join kubeadm config failed %s %s %v", master, cmd, err)
+				return fmt.Errorf("set join kubeadm config failed %s %s %v", ip, cmd, err)
 			}
-			if err := ssh.CmdAsync(master, cmd); err != nil {
-				return fmt.Errorf("set join kubeadm config failed %s %s %v", master, cmd, err)
+			if err := ssh.CmdAsync(ip, cmd); err != nil {
+				return fmt.Errorf("set join kubeadm config failed %s %s %v", ip, cmd, err)
 			}
 			return err
 		})
@@ -259,14 +259,14 @@ func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
 func (k *KubeadmRuntime) CmdAsyncHosts(hosts []string, cmd string) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, host := range hosts {
-		host := host
+		ip := host
 		eg.Go(func() error {
-			ssh, err := k.getHostSSHClient(host)
+			ssh, err := k.getHostSSHClient(ip)
 			if err != nil {
-				logger.Error("exec command failed %s %s %v", host, cmd, err)
+				logger.Error("exec command failed %s %s %v", ip, cmd, err)
 			}
-			if err := ssh.CmdAsync(host, cmd); err != nil {
-				logger.Error("exec command failed %s %s %v", host, cmd, err)
+			if err := ssh.CmdAsync(ip, cmd); err != nil {
+				logger.Error("exec command failed %s %s %v", ip, cmd, err)
 			}
 			return err
 		})

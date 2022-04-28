@@ -15,20 +15,20 @@
 package ssh
 
 import (
-	"bufio"
 	"fmt"
-	"io"
+	"os/exec"
 	"strings"
-	"sync"
 
 	"github.com/alibaba/sealer/common"
-
 	"github.com/alibaba/sealer/utils"
 )
 
 const SUDO = "sudo "
 
 func (s *SSH) Ping(host string) error {
+	if utils.IsLocalIP(host, s.LocalAddress) {
+		return nil
+	}
 	client, _, err := s.Connect(host)
 	if err != nil {
 		return fmt.Errorf("[ssh %s]create ssh session failed, %v", host, err)
@@ -41,14 +41,35 @@ func (s *SSH) Ping(host string) error {
 }
 
 func (s *SSH) CmdAsync(host string, cmds ...string) error {
-	for _, cmd := range cmds {
-		if cmd == "" {
-			continue
+	var execFunc func(cmd string) error
+
+	if utils.IsLocalIP(host, s.LocalAddress) {
+		execFunc = func(cmd string) error {
+			c := exec.Command("/bin/sh", "-c", cmd)
+			stdout, err := c.StdoutPipe()
+			if err != nil {
+				return err
+			}
+
+			stderr, err := c.StderrPipe()
+			if err != nil {
+				return err
+			}
+
+			if err := c.Start(); err != nil {
+				return fmt.Errorf("failed to start command %s: %v", cmd, err)
+			}
+
+			ReadPipe(stdout, stderr, s.IsStdout)
+
+			err = c.Wait()
+			if err != nil {
+				return fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
+			}
+			return nil
 		}
-		if s.User != common.ROOT {
-			cmd = SUDO + cmd
-		}
-		if err := func(cmd string) error {
+	} else {
+		execFunc = func(cmd string) error {
 			client, session, err := s.Connect(host)
 			if err != nil {
 				return fmt.Errorf("failed to create ssh session for %s: %v", host, err)
@@ -68,26 +89,25 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 				return fmt.Errorf("failed to start command %s on %s: %v", cmd, host, err)
 			}
 
-			var combineSlice []string
-			var combineLock sync.Mutex
-			doneout := make(chan error, 1)
-			doneerr := make(chan error, 1)
-			go func() {
-				doneerr <- readPipe(stderr, &combineSlice, &combineLock, s.isStdout)
-			}()
-			go func() {
-				doneout <- readPipe(stdout, &combineSlice, &combineLock, s.isStdout)
-			}()
-			<-doneerr
-			<-doneout
+			ReadPipe(stdout, stderr, s.IsStdout)
 
 			err = session.Wait()
 			if err != nil {
-				return utils.WrapExecResult(host, cmd, []byte(strings.Join(combineSlice, "\n")), err)
+				return fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
 			}
 
 			return nil
-		}(cmd); err != nil {
+		}
+	}
+
+	for _, cmd := range cmds {
+		if cmd == "" {
+			continue
+		}
+		if s.User != common.ROOT {
+			cmd = SUDO + cmd
+		}
+		if err := execFunc(cmd); err != nil {
 			return err
 		}
 	}
@@ -99,6 +119,10 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	if s.User != common.ROOT {
 		cmd = SUDO + cmd
 	}
+	if utils.IsLocalIP(host, s.LocalAddress) {
+		return exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
+	}
+
 	client, session, err := s.Connect(host)
 	if err != nil {
 		return nil, fmt.Errorf("[ssh][%s] create ssh session failed, %s", host, err)
@@ -113,19 +137,17 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	return b, nil
 }
 
-func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, isStdout bool) error {
-	r := bufio.NewReader(pipe)
-	for {
-		line, _, err := r.ReadLine()
-		if err != nil {
-			return err
-		}
-
-		combineLock.Lock()
-		*combineSlice = append(*combineSlice, string(line))
-		if isStdout {
-			fmt.Println(string(line))
-		}
-		combineLock.Unlock()
+//CmdToString is in host exec cmd and replace to spilt str
+func (s *SSH) CmdToString(host, cmd, split string) (string, error) {
+	data, err := s.Cmd(host, cmd)
+	str := string(data)
+	if err != nil {
+		return str, fmt.Errorf("exec command failed %s %s %v", host, cmd, err)
 	}
+	if data != nil {
+		str = strings.ReplaceAll(str, "\r\n", split)
+		str = strings.ReplaceAll(str, "\n", split)
+		return str, nil
+	}
+	return str, fmt.Errorf("command %s %s return nil", host, cmd)
 }

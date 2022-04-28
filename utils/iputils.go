@@ -19,6 +19,8 @@ import (
 	"math/big"
 	"net"
 	"strings"
+
+	k8snet "k8s.io/apimachinery/pkg/util/net"
 )
 
 func GetHostIP(host string) string {
@@ -96,6 +98,14 @@ func IsLocalIP(ip string, addrs []net.Addr) bool {
 		}
 	}
 	return false
+}
+
+func GetLocalDefaultIP() (string, error) {
+	netIP, err := k8snet.ChooseHostInterface()
+	if err != nil {
+		return "", fmt.Errorf("failed to get default route ip, err: %v", err)
+	}
+	return netIP.String(), nil
 }
 
 func GetLocalIP(master0IP string) (string, error) {
