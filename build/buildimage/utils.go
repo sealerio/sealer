@@ -17,7 +17,6 @@ package buildimage
 import (
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"path/filepath"
 	"strings"
 
@@ -52,23 +51,6 @@ func initImageSpec(kubefile string) (*v1.Image, error) {
 	}
 
 	return rawImage, nil
-}
-
-func loadClusterFile(path string) (*v2.Cluster, error) {
-	var cluster v2.Cluster
-	rawClusterFile, err := ioutil.ReadFile(filepath.Clean(path))
-	if err != nil {
-		return nil, err
-	}
-	if len(rawClusterFile) == 0 {
-		return nil, fmt.Errorf("ClusterFile content is empty")
-	}
-
-	if err = yaml.Unmarshal(rawClusterFile, &cluster); err != nil {
-		return nil, err
-	}
-
-	return &cluster, nil
 }
 
 func setClusterFileToImage(cluster *v2.Cluster, image *v1.Image) error {

@@ -40,20 +40,8 @@ func (i imageSaver) Save(image *v1.Image) error {
 }
 
 func (i imageSaver) setImageAttribute(image *v1.Image) error {
-	mi, err := GetLayerMountInfo(image.Spec.Layers)
-	if err != nil {
-		return err
-	}
-	defer mi.CleanUp()
-
-	rootfsPath := mi.GetMountTarget()
-	is := []ImageSetter{NewAnnotationSetter(rootfsPath), NewPlatformSetter(i.platform)}
-	for _, s := range is {
-		if err = s.Set(image); err != nil {
-			return err
-		}
-	}
-	return nil
+	image.Spec.Platform = i.platform
+	return NewAnnotationSetter().Set(image)
 }
 
 func (i imageSaver) save(image *v1.Image) error {
