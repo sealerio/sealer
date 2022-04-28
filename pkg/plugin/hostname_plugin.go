@@ -37,7 +37,7 @@ func init() {
 }
 
 func (h HostnamePlugin) Run(context Context, phase Phase) error {
-	if phase != PhaseOriginally || context.Plugin.Spec.Type != HostNamePlugin {
+	if (phase != PhasePreInit && phase != PhasePreJoin) || context.Plugin.Spec.Type != HostNamePlugin {
 		logger.Debug("hostnamePlugin nodes is not PhasePreInit!")
 		return nil
 	}

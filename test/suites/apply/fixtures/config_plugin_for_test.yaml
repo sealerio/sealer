@@ -67,17 +67,68 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: originally
+  name: clusterfile_originally
 spec:
   type: SHELL
   action: Originally
   data: |
-    echo "$env: OriginallyShell was successfully run from Clusterfile"
+    hostname && echo "$env: OriginallyShell was successfully run from Clusterfile"
 ---
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: postinstall
+  name: clusterfile_prejoin
+spec:
+  type: SHELL
+  action: PreJoin
+  data: |
+    hostname && echo "$env: PreJoin from Clusterfile was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v2alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_PostInstall_PostJoin
+spec:
+  action: PostInstall|PostJoin
+  type: SHELL
+  'on': "sealer-test=true"
+  data: |
+    hostname && echo "PostInstall|PostJoin from Clusterfile on sealer-test=true" `date`
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_postjoin
+spec:
+  type: SHELL
+  action: PostJoin
+  data: |
+    hostname && echo "$env: PostJoin was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_preclean
+spec:
+  type: SHELL
+  action: PreClean
+  data: |
+    hostname && echo "$env: PreClean was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_postclean
+spec:
+  type: SHELL
+  action: PostClean
+  data: |
+    hostname && echo "$env: PostJoin was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_postinstall
 spec:
   type: SHELL
   action: PostInstall
@@ -90,6 +141,7 @@ metadata:
   name: LABEL
 spec:
   type: LABEL
+  action: PreGuest
   data: |
     172.17.102.186 ssd=true
 ---
@@ -99,5 +151,6 @@ metadata:
   name: HOSTNAME
 spec:
   type: HOSTNAME
+  action: PreInit
   data: |
     172.17.102.186 master-0

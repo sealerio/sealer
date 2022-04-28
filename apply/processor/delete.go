@@ -36,9 +36,10 @@ import (
 type DeleteProcessor struct {
 	cloudImageMounter cloudimage.Interface
 	ClusterFile       clusterfile.Interface
+	Plugins           plugin.Plugins
 }
 
-func (d DeleteProcessor) Reset(cluster *v2.Cluster) error {
+func (d *DeleteProcessor) Reset(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, d.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime, %v", err)
@@ -47,11 +48,13 @@ func (d DeleteProcessor) Reset(cluster *v2.Cluster) error {
 	return runTime.Reset()
 }
 
-func (d DeleteProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
+func (d *DeleteProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
+		d.InitPlugin,
+		d.GetPhasePluginFunc(plugin.PhasePreClean),
 		d.Reset,
-		d.ApplyCleanPlugin,
+		d.GetPhasePluginFunc(plugin.PhasePostClean),
 		d.UnMountRootfs,
 		d.UnMountImage,
 		d.CleanFS,
@@ -59,7 +62,13 @@ func (d DeleteProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 	return todoList, nil
 }
 
-func (d DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
+func (d *DeleteProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v2.Cluster) error {
+	return func(cluster *v2.Cluster) error {
+		return d.Plugins.Run(cluster.GetAllIPList(), phase)
+	}
+}
+
+func (d *DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), runtime.GetMaster0Ip(cluster))
 	if utils.NotIn(config.IP, hosts) {
@@ -73,22 +82,16 @@ func (d DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
 	return fs.UnMountRootfs(cluster, hosts)
 }
 
-func (d DeleteProcessor) UnMountImage(cluster *v2.Cluster) error {
+func (d *DeleteProcessor) UnMountImage(cluster *v2.Cluster) error {
 	return d.cloudImageMounter.UnMountImage(cluster)
 }
 
-func (d DeleteProcessor) ApplyCleanPlugin(cluster *v2.Cluster) error {
-	plugins := plugin.NewPlugins(cluster)
-	if err := plugins.Dump(d.ClusterFile.GetPlugins()); err != nil {
-		return err
-	}
-	if err := plugins.Load(); err != nil {
-		return err
-	}
-	return plugins.Run(cluster.GetAllIPList(), plugin.PhasePostClean)
+func (d *DeleteProcessor) InitPlugin(cluster *v2.Cluster) error {
+	d.Plugins = plugin.NewPlugins(cluster, d.ClusterFile.GetPlugins())
+	return d.Plugins.Load()
 }
 
-func (d DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
+func (d *DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
 	return cloudfilesystem.CleanFilesystem(cluster.Name)
 }
 
@@ -98,7 +101,7 @@ func NewDeleteProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 		return nil, err
 	}
 
-	return DeleteProcessor{
+	return &DeleteProcessor{
 		ClusterFile:       clusterFile,
 		cloudImageMounter: mounter,
 	}, nil

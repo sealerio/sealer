@@ -18,6 +18,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/alibaba/sealer/test/suites/image"
+
 	"github.com/alibaba/sealer/test/suites/build"
 	"github.com/alibaba/sealer/test/suites/registry"
 	"github.com/alibaba/sealer/test/testhelper"
@@ -44,7 +46,7 @@ var _ = Describe("sealer build", func() {
 			})
 
 			It("with all build instruct", func() {
-				imageName := build.GetImageNameTemplate("all_instruct")
+				imageName := build.GetTestImageName()
 				cmd := build.NewArgsOfBuild().
 					SetKubeFile("Kubefile").
 					SetImageName(imageName).
@@ -56,6 +58,7 @@ var _ = Describe("sealer build", func() {
 				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
 				// check: sealer images whether image exist
 				testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+				image.DoImageOps(settings.SubCmdPushOfSealer, imageName)
 			})
 		})
 	})

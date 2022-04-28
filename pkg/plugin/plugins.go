@@ -20,11 +20,11 @@ import (
 	"os"
 	"path/filepath"
 	"plugin"
+	"strings"
 
 	"github.com/alibaba/sealer/utils/platform"
 
 	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
 	v1 "github.com/alibaba/sealer/types/api/v1"
 	v2 "github.com/alibaba/sealer/types/api/v2"
 	"github.com/alibaba/sealer/utils"
@@ -39,7 +39,6 @@ func (err InvalidPluginTypeError) Error() string {
 }
 
 type Plugins interface {
-	Dump(plugins []v1.Plugin) error
 	Load() error
 	Run(host []string, phase Phase) error
 }
@@ -51,16 +50,16 @@ type PluginsProcessor struct {
 	Cluster *v2.Cluster
 }
 
-func NewPlugins(cluster *v2.Cluster) Plugins {
+//plugins form Clusterfile
+func NewPlugins(cluster *v2.Cluster, plugins []v1.Plugin) Plugins {
 	return &PluginsProcessor{
 		Cluster: cluster,
-		Plugins: []v1.Plugin{},
+		Plugins: plugins,
 	}
 }
 
 // Load plugin configs and shared object(.so) file from $mountRootfs/plugins dir.
 func (c *PluginsProcessor) Load() error {
-	c.Plugins = nil
 	path := filepath.Join(platform.DefaultMountCloudImageDir(c.Cluster.Name), "plugins")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -94,21 +93,21 @@ func (c *PluginsProcessor) Load() error {
 
 // Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
 func (c *PluginsProcessor) Run(host []string, phase Phase) error {
-	for _, config := range c.Plugins {
-		if config.Spec.Action != string(phase) {
+	for _, plugin := range c.Plugins {
+		if utils.NotIn(string(phase), strings.Split(plugin.Spec.Action, "|")) {
 			continue
 		}
-		p, ok := pluginFactories[config.Spec.Type]
+		p, ok := pluginFactories[plugin.Spec.Type]
 		// if we use cluster file dump plugin config,some plugin load after mount rootfs,
 		// we still need to return those not find error.
 		// apply module to judged whether to show errors.
 		if !ok {
-			return InvalidPluginTypeError{config.Spec.Type}
+			return InvalidPluginTypeError{plugin.Spec.Type}
 		}
 		// #nosec
-		err := p.Run(Context{Cluster: c.Cluster, Host: host, Plugin: &config}, phase)
+		err := p.Run(Context{Cluster: c.Cluster, Host: host, Plugin: &plugin}, phase)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to run plugin %s: %v", plugin.Name, err)
 		}
 	}
 	return nil
@@ -141,37 +140,4 @@ func (c *PluginsProcessor) loadOutOfTree(soFile string) (Interface, string, erro
 		return nil, "", fmt.Errorf("failed to find PluginType symbol")
 	}
 	return p, *pt, nil
-}
-
-// Dump each plugin config to $rootfs/plugins dir by reading the clusterfile.
-func (c *PluginsProcessor) Dump(plugins []v1.Plugin) error {
-	if plugins == nil {
-		logger.Debug("clusterfile plugins is empty!")
-		return nil
-	}
-	c.Plugins = plugins
-	if err := c.writeFiles(); err != nil {
-		return fmt.Errorf("failed to write config files %v", err)
-	}
-	return nil
-}
-
-func (c *PluginsProcessor) writeFiles() error {
-	if len(c.Plugins) == 0 {
-		logger.Debug("empty plugin config found")
-		return nil
-	}
-	for _, config := range c.Plugins {
-		var name = config.Name
-		if !utils.YamlMatcher(name) {
-			name = fmt.Sprintf("%s.yaml", name)
-		}
-		//write to mountRootfs/plugins dir
-		err := utils.MarshalYamlToFile(filepath.Join(platform.DefaultMountCloudImageDir(c.Cluster.Name), "plugins", name), config)
-		if err != nil {
-			return fmt.Errorf("write plugin metadata fileed %v", err)
-		}
-	}
-
-	return nil
 }

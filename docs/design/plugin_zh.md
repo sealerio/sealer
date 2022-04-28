@@ -38,27 +38,28 @@ metadata:
 spec:
   type: SHELL
   action: PostInstall
-  on: node-role.kubernetes.io/master=
+  'on': node-role.kubernetes.io/master=
   data: |
     kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
 ```
 
 ```shell
-action : [PreInit| PreInstall| PostInstall] # 指定执行shell的时机
+action : [PreInit| PostInstall] # 指定执行shell的时机
   在初始化之前执行命令      |  action: PreInit
   在添加节点之前执行命令    |  action: PreJoin
   在添加节点之后执行命令    |  action: PostJoin
-  在安装集群之前执行命令    ｜  action: PreInstall
+  在执行Kubefile CMD之前  |  action: PreGuest
   在安装集群之后执行命令    ｜  action: PostInstall
+  在清理集群前执行命令      |  action: PreClean
   在清理集群后执行命令      |  action: PostClean
-  组合使用                | action: PreInit|PreJoin
+  组合使用                |  action: PreInit|PreJoin
 on     : #指定执行命令的机器
   为空时默认在所有节点执行
-  在所有master节点上执行   | on: master
-  在所有node节点上执行     | on: node
-  在指定IP上执行          ｜ on: 192.168.56.113,192.168.56.114,192.168.56.115,192.168.56.116
-  在有连续IP的机器上执行    | on: 192.168.56.113-192.168.56.116
-  在指定label节点上执行(action需设置为PostInstall)  | on: node-role.kubernetes.io/master=
+  在所有master节点上执行   | 'on': master
+  在所有node节点上执行     | 'on': node
+  在指定IP上执行          ｜ 'on': 192.168.56.113,192.168.56.114,192.168.56.115,192.168.56.116
+  在有连续IP的机器上执行    | 'on': 192.168.56.113-192.168.56.116
+  在指定label节点上执行(action需为PostInstall或PreClean)  | 'on': node-role.kubernetes.io/master=
 data   : #指定执行的shell命令
 ```
 
@@ -73,6 +74,7 @@ metadata:
   name: label
 spec:
   type: LABEL
+  action: PreGuest
   data: |
     192.168.0.2 ssd=true
     192.168.0.3 ssd=true

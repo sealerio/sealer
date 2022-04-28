@@ -46,7 +46,7 @@ func init() {
 
 func (l LabelsNodes) Run(context Context, phase Phase) error {
 	if phase != PhasePreGuest || context.Plugin.Spec.Type != LabelPlugin {
-		logger.Debug("label nodes is PostInstall!")
+		logger.Warn("current phase is %s, label need set action to `PreGuest` !")
 		return nil
 	}
 	c, err := k8s.Newk8sClient()
