@@ -98,6 +98,7 @@ func (l *Taint) Run(context Context, phase Phase) (err error) {
 				if err != nil {
 					return err
 				}
+				logger.Info("successfully updated node %s taints to %v.", v.Address, updateTaints)
 			}
 			break
 		}

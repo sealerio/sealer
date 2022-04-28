@@ -74,6 +74,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 			if _, err := l.client.UpdateNode(v); err != nil {
 				return fmt.Errorf("current cluster nodes label failed, %v", err)
 			}
+			logger.Info("successfully added node %s labels %v.", internalIP, labels)
 		}
 	}
 	return nil

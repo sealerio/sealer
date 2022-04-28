@@ -73,7 +73,7 @@ var levelPrefix = [LevelTrace + 1]string{
 }
 
 const (
-	logTimeDefaultFormat = "2006-01-02 15:04:05" // 日志输出默认格式
+	LogTimeDefaultFormat = "2006-01-02 15:04:05" // 日志输出默认格式
 	AdapterConsole       = "console"             // 控制台输出配置项
 	AdapterFile          = "file"                // 文件输出配置项
 	AdapterConn          = "conn"                // 网络输出配置项
@@ -136,7 +136,7 @@ func NewLogger(depth ...int) *LocalLogger {
 	l.callDepth = dep
 	l.usePath = true
 	//l.SetLogger(AdapterConsole)
-	l.timeFormat = logTimeDefaultFormat
+	//l.timeFormat = logTimeDefaultFormat
 	return l
 }
 
@@ -168,14 +168,12 @@ func Cfg(debugMod bool) {
 			cfg, err := json.Marshal(&logCfg)
 			if err == nil {
 				SetLogger(string(cfg))
-				SetLogPath(true)
 				return
 			}
 		}
 	}
 
 	SetLogger(fmt.Sprintf(`{
-					"TimeFormat": "2006-01-02 15:04:05",
 					"Console": {
 						"level": "",
 						"color": true,
@@ -194,8 +192,6 @@ func Cfg(debugMod bool) {
 				}}`,
 		logLev, common.DefaultLogDir, time.Now().Format("2006-01-02"),
 	))
-
-	SetLogPath(true)
 }
 
 func (localLog *LocalLogger) SetLogger(adapterName string, configs ...string) {
@@ -258,6 +254,10 @@ func (localLog *LocalLogger) DelLogger(adapterName string) error {
 // 设置日志起始路径
 func (localLog *LocalLogger) SetLogPath(bPath bool) {
 	localLog.usePath = bPath
+}
+
+func (localLog *LocalLogger) SetTimeFormat(format string) {
+	localLog.timeFormat = format
 }
 
 func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level logLevel) {
@@ -401,6 +401,10 @@ func IsDebugModel() bool {
 
 func SetLogPath(show bool) {
 	defaultLogger.SetLogPath(show)
+}
+
+func SetTimeFormat(format string) {
+	defaultLogger.SetTimeFormat(format)
 }
 
 // param 可以是log配置文件名，也可以是log配置内容,默认DEBUG输出到控制台

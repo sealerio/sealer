@@ -20,8 +20,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 
 	"github.com/onsi/gomega"
 
@@ -47,7 +45,7 @@ func GetContainerBuildDir() string {
 
 // GetTestImageName return specific image name that will be push to registry
 func GetTestImageName() string {
-	return fmt.Sprintf("sealer-io/%s%d:%s", settings.ImageName, 719, "v1")
+	return fmt.Sprintf("registry.cn-qingdao.aliyuncs.com/sealer-io/%s%d:%s", settings.ImageName, 719, "v1")
 }
 
 type ArgsOfBuild struct {
@@ -94,12 +92,9 @@ func NewArgsOfBuild() *ArgsOfBuild {
 }
 
 func CheckIsImageExist(imageName string) bool {
-	cmd := fmt.Sprintf("%s images | grep %s | wc -l", settings.DefaultSealerBin, imageName)
-	result, err := utils.RunSimpleCmd(cmd)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	num, err := strconv.Atoi(strings.Replace(result, "\n", "", -1))
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return num == 1
+	cmd := fmt.Sprintf("%s inspect %s", settings.DefaultSealerBin, imageName)
+	_, err := utils.RunSimpleCmd(cmd)
+	return err == nil
 }
 
 func UpdateKubeFromImage(imageName string, KubefilePath string) {

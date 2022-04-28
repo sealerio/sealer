@@ -47,9 +47,9 @@ type CreateProcessor struct {
 func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
 	todoList = append(todoList,
+		c.MountImage,
 		c.PreProcess,
 		c.GetPhasePluginFunc(plugin.PhaseOriginally),
-		c.MountImage,
 		c.RunConfig,
 		c.MountRootfs,
 		c.GetPhasePluginFunc(plugin.PhasePreInit),

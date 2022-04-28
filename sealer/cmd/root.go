@@ -29,6 +29,8 @@ import (
 type rootOpts struct {
 	cfgFile     string
 	debugModeOn bool
+	hideLogTime bool
+	hideLogPath bool
 }
 
 var rootOpt rootOpts
@@ -53,6 +55,8 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file (default is $HOME/.sealer.json)")
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")
+	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogTime, "hide-time", false, "hide the log time")
+	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogPath, "hide-path", false, "hide the log path")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.DisableAutoGenTag = true
 }
@@ -70,9 +74,12 @@ func initConfig() {
 
 	viper.AutomaticEnv() // read in environment variables that match
 
-	logger.InitLogger(logger.Config{
-		DebugMode: rootOpt.debugModeOn,
-	})
+	logger.InitLogger(logger.Config{DebugMode: rootOpt.debugModeOn})
 
+	logger.SetLogPath(!rootOpt.hideLogPath)
+
+	if !rootOpt.hideLogTime {
+		logger.SetTimeFormat(logger.LogTimeDefaultFormat)
+	}
 	logger.Cfg(rootOpt.debugModeOn)
 }
