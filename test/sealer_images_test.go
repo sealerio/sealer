@@ -49,13 +49,12 @@ var _ = Describe("sealer image", func() {
 				image.RemoveImageList(tagImageNames)
 			})
 
-			/*			//not support
-						By("tag by image id", func() {
-							imageID := image.GetImageID(settings.TestImageName)
-							image.TagImageList(imageID, tagImageNames)
-							image.DoImageOps(settings.SubCmdListOfSealer, "")
-							image.RemoveImageList(tagImageNames)
-						})*/
+			By("tag by image id", func() {
+				imageID := image.GetImageID(settings.TestImageName)
+				image.TagImageList(imageID, tagImageNames)
+				image.DoImageOps(settings.SubCmdListOfSealer, "")
+				image.RemoveImageList(tagImageNames)
+			})
 
 			By("remove tag image", func() {
 				tagImageName := "e2e_images_test:v0.3"
@@ -118,18 +117,10 @@ var _ = Describe("sealer image", func() {
 		AfterEach(func() {
 			registry.Logout()
 		})
-		pushImageNames := []string{
-			"registry.cn-qingdao.aliyuncs.com/sealer-io/e2e_image_test:v0.01",
-			"sealer-io/e2e_image_test:v0.01",
-			"e2e_image_test:v0.01",
-		}
-
-		for _, pushImage := range pushImageNames {
-			pushImage := pushImage
-			It(fmt.Sprintf("push image %s", pushImage), func() {
-				image.TagImages(settings.TestImageName, pushImage)
-				image.DoImageOps(settings.SubCmdPushOfSealer, pushImage)
-			})
-		}
+		It(fmt.Sprintf("push image"), func() {
+			pushImageName := "registry.cn-qingdao.aliyuncs.com/sealer-io/e2e_image_test:v0.01"
+			image.TagImages(settings.TestImageName, pushImageName)
+			image.DoImageOps(settings.SubCmdPushOfSealer, pushImageName)
+		})
 	})
 })
