@@ -86,5 +86,6 @@ func (h HostnamePlugin) changeNodeName(hostname, ip string, SSH ssh.Interface) e
 	if err := SSH.CmdAsync(ip, tmpCMD, perCMD); err != nil {
 		return fmt.Errorf("failed to change the node %v hostname,%v", ip, err)
 	}
+	logger.Info("successfully changed node %s hostname to %s.", ip, hostname)
 	return nil
 }

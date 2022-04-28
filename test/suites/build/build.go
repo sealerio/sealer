@@ -17,10 +17,11 @@ package build
 import (
 	"bytes"
 	"fmt"
-	"github.com/onsi/gomega"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/onsi/gomega"
 
 	"github.com/alibaba/sealer/test/testhelper/settings"
 	"github.com/alibaba/sealer/utils"

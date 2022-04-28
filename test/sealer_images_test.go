@@ -117,7 +117,7 @@ var _ = Describe("sealer image", func() {
 		AfterEach(func() {
 			registry.Logout()
 		})
-		It(fmt.Sprintf("push image"), func() {
+		It("push image", func() {
 			pushImageName := "registry.cn-qingdao.aliyuncs.com/sealer-io/e2e_image_test:v0.01"
 			image.TagImages(settings.TestImageName, pushImageName)
 			image.DoImageOps(settings.SubCmdPushOfSealer, pushImageName)
