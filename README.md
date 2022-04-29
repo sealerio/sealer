@@ -16,6 +16,7 @@
 * [FAQ](./FAQ.md)
 * [Adopters](./Adopters.md)
 * [LICENSE](LICENSE)
+* [Code of conduct](./code-of-conduct.md)
 
 ## Introduction
 
