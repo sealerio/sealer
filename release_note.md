@@ -1,9 +1,8 @@
 # release note
 
-## v0.8.4
+## v0.8.5
 
 *🚀 bugfix*:
 
-- [x] dump config if not exist; not to send registry if not exist
-- [x] [bugfix: support copy dest with file name](https://github.com/alibaba/sealer/pull/1328)
-- [x] [set normalized image name as manifestslist key](https://github.com/alibaba/sealer/pull/1327)
+- [x] [optimize log and support hide log time and path](https://github.com/alibaba/sealer/pull/1346)
+- [x] [bugfix: no need to get clusterfile content form all layers](https://github.com/alibaba/sealer/pull/1345)
