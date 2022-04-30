@@ -17,21 +17,19 @@ package processor
 import (
 	"fmt"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils/ssh"
-
-	"github.com/alibaba/sealer/utils/platform"
-
-	"github.com/alibaba/sealer/pkg/clusterfile"
-	"github.com/alibaba/sealer/pkg/config"
-	"github.com/alibaba/sealer/pkg/filesystem"
-	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
-	"github.com/alibaba/sealer/pkg/guest"
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/plugin"
-	"github.com/alibaba/sealer/pkg/runtime"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/config"
+	"github.com/sealerio/sealer/pkg/filesystem"
+	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
+	"github.com/sealerio/sealer/pkg/guest"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/plugin"
+	"github.com/sealerio/sealer/pkg/runtime"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type CreateProcessor struct {

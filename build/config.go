@@ -14,7 +14,7 @@
 
 package build
 
-import v1 "github.com/alibaba/sealer/types/api/v1"
+import v1 "github.com/sealerio/sealer/types/api/v1"
 
 type Config struct {
 	BuildType string

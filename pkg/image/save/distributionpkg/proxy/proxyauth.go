@@ -20,7 +20,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
+
 	"github.com/distribution/distribution/v3/registry/client/auth"
 	"github.com/distribution/distribution/v3/registry/client/auth/challenge"
 )

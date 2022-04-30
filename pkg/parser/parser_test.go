@@ -18,10 +18,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alibaba/sealer/version"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/version"
 )
 
 func Test_decodeLine(t *testing.T) {

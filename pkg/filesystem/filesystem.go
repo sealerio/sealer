@@ -17,10 +17,10 @@ package filesystem
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
-	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
-	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
+	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
+	"github.com/sealerio/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/pkg/runtime"
 )
 
 // NewCloudImageMounter :mount and unmount cloud image.

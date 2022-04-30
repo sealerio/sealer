@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alibaba/sealer/common"
+	"github.com/sealerio/sealer/common"
 )
 
 type brush func(string) string

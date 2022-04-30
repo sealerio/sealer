@@ -22,9 +22,9 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
-
-	"github.com/alibaba/sealer/utils"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/sealerio/sealer/utils"
 )
 
 const DefaultSSHPort = "22"

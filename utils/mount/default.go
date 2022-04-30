@@ -22,9 +22,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/logger"
-
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils"
 )
 
 type Default struct {

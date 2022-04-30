@@ -27,10 +27,10 @@ import (
 	"github.com/opencontainers/go-digest"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/alibaba/sealer/pkg/image/reference"
-	"github.com/alibaba/sealer/pkg/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils/archive"
+	"github.com/sealerio/sealer/pkg/image/reference"
+	"github.com/sealerio/sealer/pkg/image/store"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/archive"
 )
 
 type Puller interface {

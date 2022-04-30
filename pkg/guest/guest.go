@@ -17,20 +17,16 @@ package guest
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/pkg/runtime"
-	"github.com/alibaba/sealer/utils/platform"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
-
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 
-	v2 "github.com/alibaba/sealer/types/api/v2"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/pkg/runtime"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type Interface interface {

@@ -18,12 +18,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/pkg/cert"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/utils"
 
-	"github.com/alibaba/sealer/common"
-
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 

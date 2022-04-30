@@ -9,7 +9,7 @@ name: Static page
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: ${{ github.repository == 'alibaba/sealer' }}
+    if: ${{ github.repository == 'sealerio/sealer' }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2

@@ -19,11 +19,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alibaba/sealer/apply/applydriver"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/apply/applydriver"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
 )
 
 // NewScaleApplierFromArgs will filter ip list from command parameters.

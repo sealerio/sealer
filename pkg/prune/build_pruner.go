@@ -15,9 +15,9 @@
 package prune
 
 import (
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/mount"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/mount"
 )
 
 type buildPrune struct {

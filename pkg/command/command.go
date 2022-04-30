@@ -15,7 +15,7 @@
 package command
 
 import (
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/utils"
 )
 
 type Interface interface {

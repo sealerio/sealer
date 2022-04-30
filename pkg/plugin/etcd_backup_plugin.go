@@ -27,8 +27,8 @@ import (
 	"go.etcd.io/etcd/client/v3/snapshot"
 	"go.uber.org/zap"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type EtcdBackupPlugin struct {

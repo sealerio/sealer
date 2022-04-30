@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
-	"github.com/alibaba/sealer/common"
+	"github.com/sealerio/sealer/common"
 )
 
 type Client struct {

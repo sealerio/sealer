@@ -28,9 +28,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils"
 )
 
 const compressionBufSize = 32768

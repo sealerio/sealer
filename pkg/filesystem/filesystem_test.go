@@ -17,13 +17,11 @@ package filesystem
 import (
 	"testing"
 
-	"github.com/alibaba/sealer/pkg/runtime"
-
-	v2 "github.com/alibaba/sealer/types/api/v2"
-
 	k8sV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/pkg/runtime"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 var testCluster = &v2.Cluster{

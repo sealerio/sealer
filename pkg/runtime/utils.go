@@ -26,22 +26,19 @@ import (
 	"strings"
 
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
-
-	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
 
-	v2 "github.com/alibaba/sealer/types/api/v2"
-
-	"github.com/pkg/errors"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 // VersionCompare :if v1 >= v2 return true, else return false

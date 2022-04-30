@@ -19,7 +19,7 @@ import (
 
 	dc "github.com/docker/docker/client"
 
-	"github.com/alibaba/sealer/pkg/infra/container/client"
+	"github.com/sealerio/sealer/pkg/infra/container/client"
 )
 
 type Provider struct {

@@ -19,7 +19,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
+
 	fsutil "github.com/tonistiigi/fsutil/copy"
 )
 

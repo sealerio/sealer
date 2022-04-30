@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/ssh"
 
-	"github.com/alibaba/sealer/common"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
 )
 

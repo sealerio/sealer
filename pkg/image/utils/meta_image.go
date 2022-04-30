@@ -19,7 +19,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/pkg/image/store"
 )
 
 func SimilarImageListByName(imgName string) ([]string, error) {

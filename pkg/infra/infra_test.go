@@ -23,9 +23,9 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"sigs.k8s.io/yaml"
 
-	"github.com/alibaba/sealer/pkg/infra/aliyun"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/pkg/infra/aliyun"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
 )
 
 func TestApply(t *testing.T) {

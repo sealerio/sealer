@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/alibaba/sealer/build/layerutils"
+	"github.com/sealerio/sealer/build/layerutils"
 
 	"github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/chart"

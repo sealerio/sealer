@@ -4,4 +4,4 @@
 * DingTalk Group: 34619594
 * Wechat: fangnux
 
-If you're using sealer, [let us know](https://github.com/alibaba/sealer/issues/119)
+If you're using sealer, [let us know](https://github.com/sealerio/sealer/issues/119)

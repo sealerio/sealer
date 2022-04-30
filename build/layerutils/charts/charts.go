@@ -17,7 +17,7 @@ package charts
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/build/layerutils"
+	"github.com/sealerio/sealer/build/layerutils"
 )
 
 type Charts struct{}

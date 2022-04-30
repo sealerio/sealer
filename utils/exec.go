@@ -21,7 +21,7 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/alibaba/sealer/common"
+	"github.com/sealerio/sealer/common"
 )
 
 const SUDO = "sudo"

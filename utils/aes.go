@@ -21,7 +21,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
 )
 
 const aesKey = "ZU9WbzRMVXRQZ2pzTGowR2hNWUpIZjRkWld4aWVRWko="

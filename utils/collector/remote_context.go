@@ -19,7 +19,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
+
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"

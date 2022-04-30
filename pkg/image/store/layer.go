@@ -23,8 +23,8 @@ import (
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/opencontainers/go-digest"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils/archive"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils/archive"
 )
 
 type LayerID digest.Digest

@@ -7,7 +7,7 @@
     "name": "fanux",
     "email": "zhongyi.fht@alibaba-inc.com"
   },
-  "repository": "https://github.com/alibaba/sealer/site",
+  "repository": "https://github.com/sealerio/sealer/site",
   "scripts": {
     "dev": "vuepress dev src",
     "build": "vuepress build src"

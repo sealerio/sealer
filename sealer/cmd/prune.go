@@ -19,7 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/pkg/prune"
+	"github.com/sealerio/sealer/pkg/prune"
+
 	"github.com/spf13/cobra"
 )
 

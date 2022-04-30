@@ -91,7 +91,7 @@ DEEPCOPY_BIN=$(shell which deepcopy-gen)
 endif
 
 HEAD_FILE := hack/boilerplate.go.txt
-INPUT_DIR := github.com/alibaba/sealer/types/api
+INPUT_DIR := github.com/sealerio/sealer/types/api
 deepcopy:install-deepcopy-gen
 	$(DEEPCOPY_BIN) \
       --input-dirs="$(INPUT_DIR)/v1" \

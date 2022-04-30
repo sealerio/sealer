@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/alibaba/sealer/common"
+	"github.com/sealerio/sealer/common"
 )
 
 func TestGetPodsIP(t *testing.T) {

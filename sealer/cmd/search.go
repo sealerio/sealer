@@ -18,9 +18,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image/reference"
-	save2 "github.com/alibaba/sealer/pkg/image/save"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/image/reference"
+	save2 "github.com/sealerio/sealer/pkg/image/save"
+
 	reference2 "github.com/distribution/distribution/v3/reference"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"

@@ -22,18 +22,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibaba/sealer/pkg/checker"
-	"github.com/alibaba/sealer/utils/ssh"
-
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
-	"github.com/alibaba/sealer/pkg/infra"
-	"github.com/alibaba/sealer/test/testhelper"
-	"github.com/alibaba/sealer/test/testhelper/settings"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/pkg/checker"
+	"github.com/sealerio/sealer/pkg/infra"
+	"github.com/sealerio/sealer/test/testhelper"
+	"github.com/sealerio/sealer/test/testhelper/settings"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 func getFixtures() string {

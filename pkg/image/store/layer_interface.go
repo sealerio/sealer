@@ -19,7 +19,7 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	"github.com/alibaba/sealer/pkg/image/reference"
+	"github.com/sealerio/sealer/pkg/image/reference"
 )
 
 type LayerStore interface {

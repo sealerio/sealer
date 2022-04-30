@@ -15,13 +15,13 @@
 package processor
 
 import (
-	"github.com/alibaba/sealer/pkg/clusterfile"
-	"github.com/alibaba/sealer/pkg/config"
-	"github.com/alibaba/sealer/pkg/filesystem"
-	"github.com/alibaba/sealer/pkg/guest"
-	"github.com/alibaba/sealer/pkg/plugin"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils/platform"
+	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/config"
+	"github.com/sealerio/sealer/pkg/filesystem"
+	"github.com/sealerio/sealer/pkg/guest"
+	"github.com/sealerio/sealer/pkg/plugin"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/platform"
 )
 
 type InstallProcessor struct {

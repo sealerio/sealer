@@ -17,4 +17,4 @@ jobs:
           body: |
             If you want to develop this feature, please reply to this issue first and we will assign the task to you.
 
-            [contributing guide](https://github.com/alibaba/sealer/blob/main/CONTRIBUTING.md)
+            [contributing guide](https://github.com/sealerio/sealer/blob/main/CONTRIBUTING.md)

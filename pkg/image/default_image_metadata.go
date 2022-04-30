@@ -22,10 +22,10 @@ import (
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest/schema2"
 
-	"github.com/alibaba/sealer/pkg/image/distributionutil"
-	"github.com/alibaba/sealer/pkg/image/reference"
-	"github.com/alibaba/sealer/pkg/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/pkg/image/distributionutil"
+	"github.com/sealerio/sealer/pkg/image/reference"
+	"github.com/sealerio/sealer/pkg/image/store"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 //DefaultImageMetadataService provide service for image metadata operations

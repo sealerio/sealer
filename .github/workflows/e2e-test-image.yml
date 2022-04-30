@@ -33,7 +33,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{fromJson(steps.request.outputs.data).head.repo.full_name}}
           ref: ${{fromJson(steps.request.outputs.data).head.ref}}
-          path: src/github.com/alibaba/sealer
+          path: src/github.com/sealerio/sealer
 
       - name: Set up Go 1.16
         uses: actions/setup-go@v1
@@ -51,11 +51,11 @@ jobs:
           go get github.com/onsi/gomega/...@v1.12.0
           GOPATH=`go env GOPATH`
           echo "$GOPATH/bin" >> $GITHUB_PATH
-        working-directory: src/github.com/alibaba/sealer
+        working-directory: src/github.com/sealerio/sealer
 
       - name: Run sealer login test
         shell: bash
-        working-directory: src/github.com/alibaba/sealer
+        working-directory: src/github.com/sealerio/sealer
         env:
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
@@ -66,7 +66,7 @@ jobs:
 
       - name: Run sealer image test
         shell: bash
-        working-directory: src/github.com/alibaba/sealer
+        working-directory: src/github.com/sealerio/sealer
         env:
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}

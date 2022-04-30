@@ -15,8 +15,8 @@
 package store
 
 import (
-	"github.com/alibaba/sealer/pkg/image/types"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/pkg/image/types"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 type ImageStore interface {

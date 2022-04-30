@@ -18,17 +18,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alibaba/sealer/pkg/image/reference"
-
-	"github.com/alibaba/sealer/utils"
-
-	"github.com/alibaba/sealer/common"
 	"github.com/opencontainers/go-digest"
 	"golang.org/x/sync/errgroup"
 	"sigs.k8s.io/yaml"
 
-	"github.com/alibaba/sealer/pkg/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/image/reference"
+	"github.com/sealerio/sealer/pkg/image/store"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
 )
 
 func save(imageName string, image *v1.Image) error {

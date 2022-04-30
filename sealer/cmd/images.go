@@ -19,13 +19,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/alibaba/sealer/pkg/image/reference"
-
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/image/reference"
 )
 
 const (

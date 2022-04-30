@@ -15,8 +15,8 @@
 package plugin
 
 import (
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 type Interface interface {

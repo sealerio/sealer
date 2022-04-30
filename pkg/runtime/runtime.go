@@ -18,10 +18,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
-
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/sealerio/sealer/logger"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
 )
 
 type Interface interface {

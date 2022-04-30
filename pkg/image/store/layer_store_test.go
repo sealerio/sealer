@@ -21,9 +21,9 @@ import (
 
 	"gotest.tools/skip"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils"
 )
 
 const fileContent = "fake file content"

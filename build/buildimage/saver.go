@@ -17,9 +17,9 @@ package buildimage
 import (
 	"fmt"
 
-	imageUtils "github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	imageUtils "github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/image/store"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 type imageSaver struct {

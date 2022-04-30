@@ -5,7 +5,7 @@
 ### init:
 
 ```shell
-1.wget https://github.com/alibaba/sealer/releases/download/v0.1.5-rc/sealer-0.0.0-linux-amd64.tar.gz && tar zxvf sealer-0.0.0-linux-amd64.tar.gz && mv sealer /usr/local/bin/
+1.wget https://github.com/sealerio/sealer/releases/download/v0.1.5-rc/sealer-0.0.0-linux-amd64.tar.gz && tar zxvf sealer-0.0.0-linux-amd64.tar.gz && mv sealer /usr/local/bin/
 2.export 'ACCESSKEYID'='***'&&export 'ACCESSKEYSECRET'='***'&&export 'RegionID'='***'
 3.sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 //（Cluster started successfully）
 ```
@@ -302,7 +302,7 @@ status: {}
 ### 1. init：
 
 ```shell
-1.wget https://github.com/alibaba/sealer/releases/download/v0.1.5-rc/sealer-0.0.0-linux-amd64.tar.g && tar zxvf sealer-0.0.0-linux-amd64.tar.gz && mv sealer /usr/local/bin/
+1.wget https://github.com/sealerio/sealer/releases/download/v0.1.5-rc/sealer-0.0.0-linux-amd64.tar.g && tar zxvf sealer-0.0.0-linux-amd64.tar.gz && mv sealer /usr/local/bin/
 
 2.sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 --masters 172.16.0.165,172.16.0.166,172.16.0.167 --nodes 172.16.0.168,172.16.0.169 --passwd Sealer123
  集群成功启动

@@ -20,9 +20,8 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 
-	"github.com/alibaba/sealer/pkg/infra/container/client"
-
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/infra/container/client"
 )
 
 func (p *Provider) getUserNsMode() (container.UsernsMode, error) {

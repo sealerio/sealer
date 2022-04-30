@@ -8,7 +8,7 @@ enSideBar = {
     },
     {
       text: 'github',
-      link: 'https://github.com/alibaba/sealer'
+      link: 'https://github.com/sealerio/sealer'
     }
   ],
   sidebar: {
@@ -85,7 +85,7 @@ zhSideBar = {
     },
     {
       text: 'github',
-      link: 'https://github.com/alibaba/sealer'
+      link: 'https://github.com/sealerio/sealer'
     }
   ],
   sidebar: {

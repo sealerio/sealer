@@ -18,12 +18,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/utils"
-
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/utils"
 )
 
 var TaintEffectValues = []v1.TaintEffect{v1.TaintEffectNoSchedule, v1.TaintEffectNoExecute, v1.TaintEffectPreferNoSchedule}

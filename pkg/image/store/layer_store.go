@@ -27,10 +27,10 @@ import (
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/image/reference"
-	"github.com/alibaba/sealer/utils/archive"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/image/reference"
+	"github.com/sealerio/sealer/utils/archive"
 )
 
 type layerStore struct {

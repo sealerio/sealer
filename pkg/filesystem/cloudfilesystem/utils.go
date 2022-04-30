@@ -19,11 +19,10 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	v2 "github.com/alibaba/sealer/types/api/v2"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/sealerio/sealer/common"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 func copyFiles(sshEntry ssh.Interface, ip, src, target string) error {

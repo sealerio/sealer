@@ -22,9 +22,9 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/alibaba/sealer/pkg/infra/container"
-	dc "github.com/alibaba/sealer/pkg/infra/container/client"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/pkg/infra/container"
+	dc "github.com/sealerio/sealer/pkg/infra/container/client"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 func SetUpClient() (*container.ApplyProvider, error) {

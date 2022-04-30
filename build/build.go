@@ -15,11 +15,11 @@
 package build
 
 import (
-	"github.com/alibaba/sealer/build/buildimage"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/image/reference"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/build/buildimage"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/image/reference"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 type Interface interface {

@@ -1,6 +1,6 @@
 # Applications CloudImage
 
-Before using the sealer official applications, you need to install the [sealer](https://github.com/alibaba/sealer).
+Before using the sealer official applications, you need to install the [sealer](https://github.com/sealerio/sealer).
 
 ## Overview
 

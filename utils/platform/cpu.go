@@ -21,7 +21,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
 
 	"github.com/pkg/errors"
 )

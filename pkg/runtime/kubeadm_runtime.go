@@ -17,23 +17,19 @@ package runtime
 import (
 	"context"
 	"fmt"
-
-	"github.com/alibaba/sealer/utils/platform"
-
 	"path/filepath"
 	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
-
-	"github.com/alibaba/sealer/utils"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type Config struct {

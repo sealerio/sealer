@@ -17,7 +17,7 @@ package plugin
 import (
 	"testing"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 func TestLabelsNodes_Run(t *testing.T) {

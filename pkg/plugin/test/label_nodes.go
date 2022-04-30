@@ -20,9 +20,9 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/client/k8s"
-	"github.com/alibaba/sealer/pkg/plugin"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/pkg/plugin"
 )
 
 type LabelsNodes struct {

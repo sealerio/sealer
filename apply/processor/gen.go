@@ -20,20 +20,18 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/alibaba/sealer/utils/platform"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/pkg/filesystem"
+	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/runtime"
+	apiv1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sealerio/sealer/utils/ssh"
 
-	"github.com/alibaba/sealer/utils/ssh"
-
-	"github.com/alibaba/sealer/pkg/filesystem"
-	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/runtime"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/client/k8s"
-	apiv1 "github.com/alibaba/sealer/types/api/v1"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils"
 	v1 "k8s.io/api/core/v1"
 )
 

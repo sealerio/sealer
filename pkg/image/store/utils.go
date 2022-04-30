@@ -15,7 +15,7 @@
 package store
 
 import (
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/utils"
 )
 
 func traverseLayerDB(layerDBRoot string) ([]string, error) {

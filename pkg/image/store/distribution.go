@@ -19,11 +19,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/logger"
-
 	"github.com/opencontainers/go-digest"
 
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils"
 )
 
 type DistributionMetadataItem struct {
@@ -43,7 +42,7 @@ func (fs *filesystem) LoadDistributionMetadata(layerID LayerID) (map[string]dige
 	)
 	distributionMetadataFile, err := os.Open(filepath.Clean(filepath.Join(layerDBPath, "distribution_layer_digest")))
 	if err != nil {
-		//lint:ignore nilerr https://github.com/alibaba/sealer/issues/610
+		//lint:ignore nilerr https://github.com/sealerio/sealer/issues/610
 		return res, nil // ignore
 	}
 	defer func() {

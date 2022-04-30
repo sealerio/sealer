@@ -19,7 +19,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/pkg/checker"
+	"github.com/sealerio/sealer/pkg/checker"
 )
 
 type CheckArgs struct {
