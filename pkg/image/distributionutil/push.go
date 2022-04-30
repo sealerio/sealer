@@ -23,16 +23,16 @@ import (
 
 	distribution "github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest/manifestlist"
-
-	"github.com/alibaba/sealer/pkg/image/reference"
-	"github.com/alibaba/sealer/pkg/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils/archive"
 	"github.com/distribution/distribution/v3/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/sealerio/sealer/pkg/image/reference"
+	"github.com/sealerio/sealer/pkg/image/store"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/archive"
 )
 
 const (

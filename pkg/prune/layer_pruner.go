@@ -17,9 +17,9 @@ package prune
 import (
 	"path/filepath"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/utils"
 )
 
 type layerPrune struct {

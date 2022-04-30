@@ -22,15 +22,14 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/pkg/errors"
-
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/cert"
-	"github.com/alibaba/sealer/pkg/command"
-	"github.com/alibaba/sealer/pkg/ipvs"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/pkg/command"
+	"github.com/sealerio/sealer/pkg/ipvs"
+	"github.com/sealerio/sealer/utils"
 )
 
 const (

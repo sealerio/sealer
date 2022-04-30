@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alibaba/sealer/common"
+	"github.com/sealerio/sealer/common"
 )
 
 var rootDirs = []string{

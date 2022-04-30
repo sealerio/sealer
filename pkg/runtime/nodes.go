@@ -19,13 +19,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/utils"
+	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/pkg/errors"
-
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/ipvs"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/ipvs"
+	"github.com/sealerio/sealer/utils"
 )
 
 const (

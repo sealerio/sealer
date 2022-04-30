@@ -19,14 +19,13 @@ import (
 	"os"
 	"path/filepath"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils/platform"
-
-	"github.com/alibaba/sealer/pkg/image/reference"
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/image"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/image/reference"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/platform"
 )
 
 type saveFlag struct {

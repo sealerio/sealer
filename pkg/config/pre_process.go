@@ -23,7 +23,7 @@ import (
 	yaml2 "gopkg.in/yaml.v2"
 	"sigs.k8s.io/yaml"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 const (

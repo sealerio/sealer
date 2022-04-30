@@ -17,7 +17,7 @@ package plugin
 import (
 	"testing"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
 )
 
 func TestTaint_formatData(t *testing.T) {

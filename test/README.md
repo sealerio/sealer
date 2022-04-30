@@ -6,7 +6,7 @@ and [Gomega](http://onsi.github.io/gomega) based integration tests that execute 
 ## Prerequisites
 
 Before you run the tests, you'll need a sealer binary in your machine executable path . Follow the
-instructions [here](https://github.com/alibaba/sealer#readme) to get one.
+instructions [here](https://github.com/sealerio/sealer#readme) to get one.
 
 ## Run the Tests
 
@@ -21,7 +21,7 @@ To install Sealer and prepare the test environment:
 
 ```console
 #install Sealer binaries
-wget https://github.com/alibaba/sealer/releases/download/v0.8.5/sealer-v0.8.5-linux-amd64.tar.gz && \
+wget https://github.com/sealerio/sealer/releases/download/v0.8.5/sealer-v0.8.5-linux-amd64.tar.gz && \
 tar zxvf sealer-v0.8.5-linux-amd64.tar.gz && mv sealer /usr/bin
 
 #prepare test environment

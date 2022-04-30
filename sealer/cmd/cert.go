@@ -18,12 +18,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/pkg/clusterfile"
-
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/runtime"
 )
 
 var altNames string

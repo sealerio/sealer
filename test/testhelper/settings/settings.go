@@ -18,7 +18,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
 )
 
 // init test params and settings

@@ -14,7 +14,7 @@ The machine needs to install docker in advance, and ensure that it can connect t
 ### Use container as IAAS infra
 
 We have built a container image based on
-this [Dockerfile](https://github.com/alibaba/sealer/tree/main/pkg/infra/container/imagecontext/base/Dockerfile)
+this [Dockerfile](https://github.com/sealerio/sealer/tree/main/pkg/infra/container/imagecontext/base/Dockerfile)
 
 named `registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-base-image:latest` to simulate the ECS virtual machine.
 
@@ -39,7 +39,7 @@ sealer run kubernetes:v1.19.8 --masters 3 --nodes 3 --provider CONTAINER
 
 ### Use container as build machine
 
-Use this [Dockerfile](https://github.com/alibaba/sealer/tree/main/pkg/infra/container/imagecontext/build/Dockerfile)
+Use this [Dockerfile](https://github.com/sealerio/sealer/tree/main/pkg/infra/container/imagecontext/build/Dockerfile)
 to build your own docker image.
 
 Example:

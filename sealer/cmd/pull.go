@@ -15,11 +15,11 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/utils/platform"
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/image"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/utils/platform"
 )
 
 var platformFlag string

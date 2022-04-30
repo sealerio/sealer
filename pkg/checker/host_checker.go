@@ -19,9 +19,9 @@ import (
 	"strconv"
 	"time"
 
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type HostChecker struct {

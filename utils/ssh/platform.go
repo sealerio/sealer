@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/logger"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/platform"
 
-	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils/platform"
 	"github.com/pkg/errors"
 )
 

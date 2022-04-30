@@ -22,8 +22,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
 )
 
 type rootOpts struct {

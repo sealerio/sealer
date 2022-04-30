@@ -22,8 +22,8 @@ import (
 	"github.com/docker/docker/api/types"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
 )
 
 func (p *Provider) DeleteImageResource(imageID string) error {

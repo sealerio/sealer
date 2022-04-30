@@ -18,8 +18,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils"
+
 	"golang.org/x/sync/errgroup"
 )
 

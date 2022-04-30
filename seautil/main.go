@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/alibaba/sealer/seautil/cmd"
+import "github.com/sealerio/sealer/seautil/cmd"
 
 func main() {
 	cmd.Execute()

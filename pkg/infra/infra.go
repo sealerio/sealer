@@ -17,9 +17,9 @@ package infra
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/pkg/infra/aliyun"
-	"github.com/alibaba/sealer/pkg/infra/container"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/pkg/infra/aliyun"
+	"github.com/sealerio/sealer/pkg/infra/container"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 type Interface interface {

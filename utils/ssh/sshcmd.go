@@ -19,8 +19,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/utils"
 )
 
 const SUDO = "sudo "

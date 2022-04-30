@@ -15,7 +15,8 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/pkg/exec"
+	"github.com/sealerio/sealer/pkg/exec"
+
 	"github.com/spf13/cobra"
 )
 

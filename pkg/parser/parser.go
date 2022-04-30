@@ -22,13 +22,12 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/alibaba/sealer/utils"
-
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/version"
+	"github.com/sealerio/sealer/logger"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/version"
 )
 
 const (

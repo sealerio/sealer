@@ -1,9 +1,9 @@
 # Sealer -- Build, Share and Run Any Distributed Applications
 
-[![License](https://img.shields.io/badge/license-Apache%202-brightgreen.svg)](https://github.com/alibaba/sealer/blob/master/LICENSE)
-[![Go](https://github.com/alibaba/sealer/actions/workflows/go.yml/badge.svg)](https://github.com/alibaba/sealer/actions/workflows/go.yml)
-[![Release](https://github.com/alibaba/sealer/actions/workflows/release.yml/badge.svg)](https://github.com/alibaba/sealer/actions/workflows/release.yml)
-[![GoDoc](https://godoc.org/github.com/alibaba/sealer?status.svg)](https://godoc.org/github.com/alibaba/sealer)
+[![License](https://img.shields.io/badge/license-Apache%202-brightgreen.svg)](https://github.com/sealerio/sealer/blob/master/LICENSE)
+[![Go](https://github.com/sealerio/sealer/actions/workflows/go.yml/badge.svg)](https://github.com/sealerio/sealer/actions/workflows/go.yml)
+[![Release](https://github.com/sealerio/sealer/actions/workflows/release.yml/badge.svg)](https://github.com/sealerio/sealer/actions/workflows/release.yml)
+[![GoDoc](https://godoc.org/github.com/sealerio/sealer?status.svg)](https://godoc.org/github.com/sealerio/sealer)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5205/badge)](https://bestpractices.coreinfrastructure.org/en/projects/5205)
 [![Twitter](https://img.shields.io/badge/Follow-sealer-1DA1F2?logo=twitter)](https://twitter.com/sealer_oss)
 
@@ -92,7 +92,7 @@ Install a kubernetes cluster
 
 ```shell script
 #install Sealer binaries
-wget https://github.com/alibaba/sealer/releases/download/v0.8.5/sealer-v0.8.5-linux-amd64.tar.gz && \
+wget https://github.com/sealerio/sealer/releases/download/v0.8.5/sealer-v0.8.5-linux-amd64.tar.gz && \
 tar zxvf sealer-v0.8.5-linux-amd64.tar.gz && mv sealer /usr/bin
 #run a kubernetes cluster
 sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx

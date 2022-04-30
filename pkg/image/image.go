@@ -15,7 +15,7 @@
 package image
 
 import (
-	"github.com/alibaba/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/pkg/image/store"
 )
 
 func NewImageService() (Service, error) {

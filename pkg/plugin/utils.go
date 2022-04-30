@@ -18,11 +18,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/logger"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/client/k8s"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/utils"
 )
 
 const (

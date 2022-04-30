@@ -4,7 +4,7 @@
 
 ```shell script
 # install Sealer binaries
-wget https://github.com/alibaba/sealer/releases/download/v0.8.5/sealer-v0.8.5-linux-amd64.tar.gz && \
+wget https://github.com/sealerio/sealer/releases/download/v0.8.5/sealer-v0.8.5-linux-amd64.tar.gz && \
 tar zxvf sealer-v0.8.5-linux-amd64.tar.gz && mv sealer /usr/bin
 # run a kubernetes cluster
 sealer run kubernetes:v1.19.8 \

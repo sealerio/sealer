@@ -15,8 +15,8 @@
 package main
 
 import (
-	"github.com/alibaba/sealer/sealer/boot"
-	"github.com/alibaba/sealer/sealer/cmd"
+	"github.com/sealerio/sealer/sealer/boot"
+	"github.com/sealerio/sealer/sealer/cmd"
 )
 
 func main() {

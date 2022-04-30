@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
 )
 
 var (

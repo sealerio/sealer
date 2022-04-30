@@ -20,16 +20,16 @@ import (
 	"io"
 	"os"
 
-	"github.com/alibaba/sealer/logger"
 	runtime2 "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/config"
-	"github.com/alibaba/sealer/pkg/env"
-	"github.com/alibaba/sealer/pkg/runtime"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/config"
+	"github.com/sealerio/sealer/pkg/env"
+	"github.com/sealerio/sealer/pkg/runtime"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
 )
 
 type PreProcessor interface {

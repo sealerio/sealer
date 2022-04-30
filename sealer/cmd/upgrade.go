@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alibaba/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 
-	"github.com/alibaba/sealer/apply"
 	"github.com/spf13/cobra"
 )
 

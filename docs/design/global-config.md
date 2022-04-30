@@ -68,7 +68,7 @@ spec:
 
 ## Using Env in shell plugin or other scripts
 
-[Using env in scripts](https://github.com/alibaba/sealer/blob/main/docs/design/clusterfile-v2.md#using-env-in-configs-and-script)
+[Using env in scripts](https://github.com/sealerio/sealer/blob/main/docs/design/clusterfile-v2.md#using-env-in-configs-and-script)
 
 ## Application config
 
@@ -123,5 +123,5 @@ CMD helm install mysql -f etc/redis-config.yaml
 
 Before mounting Rootfs, templates need to be rendered for the files in etc, charts, and manifest directories,
 and render environment variables and annotations to the [configuration file](
-https://github.com/alibaba/sealer/blob/main/pkg/filesystem/filesystem.go#L145).
+https://github.com/sealerio/sealer/blob/main/pkg/filesystem/filesystem.go#L145).
 Generate the global.yaml file to the etc directory

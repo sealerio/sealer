@@ -25,8 +25,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+
 	"github.com/vishvananda/netlink"
 	k8snet "k8s.io/apimachinery/pkg/util/net"
 )

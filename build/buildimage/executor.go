@@ -19,15 +19,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alibaba/sealer/utils/mount"
+	"github.com/sealerio/sealer/build/buildinstruction"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/image/store"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/mount"
 
-	"github.com/alibaba/sealer/build/buildinstruction"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/image/store"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
 	"golang.org/x/sync/errgroup"
 )
 

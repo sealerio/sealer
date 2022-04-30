@@ -17,14 +17,12 @@ package cmd
 import (
 	"os"
 
-	"github.com/alibaba/sealer/utils/platform"
-
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/build"
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/build"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/platform"
 )
 
 type BuildFlag struct {

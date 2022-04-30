@@ -1,4 +1,4 @@
-module github.com/alibaba/sealer
+module github.com/sealerio/sealer
 
 go 1.14
 

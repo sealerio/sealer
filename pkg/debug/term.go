@@ -20,7 +20,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
 
 	"github.com/moby/term"
 )

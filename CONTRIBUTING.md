@@ -15,7 +15,7 @@ Security issues are always treated seriously. As our usual principle, we discour
 
 ## Reporting general issues
 
-To be honest, we regard every user of Sealer as a very kind contributor. After experiencing Sealer, you may have some feedback for the project. Then feel free to open an issue via [NEW ISSUE](https://github.com/alibaba/sealer/issues/new/choose).
+To be honest, we regard every user of Sealer as a very kind contributor. After experiencing Sealer, you may have some feedback for the project. Then feel free to open an issue via [NEW ISSUE](https://github.com/sealerio/sealer/issues/new/choose).
 
 Since we collaborate project Sealer in a distributed way, we appreciate **WELL-WRITTEN**, **DETAILED**, **EXPLICIT** issue reports. To make the communication more efficient, we wish everyone could search if your issue is an existing one in the searching list. If you find it existing, please add your details in comments under the existing issue instead of opening a brand new one.
 
@@ -68,14 +68,14 @@ Since you are ready to improve Sealer with a PR, we suggest you could take a loo
 
 To put forward a PR, we assume you have registered a GitHub ID. Then you could finish the preparation in the following steps:
 
-1. **FORK** Sealer to your repository. To make this work, you just need to click the button Fork in right-left of [alibaba/sealer](https://github.com/alibaba/sealer) main page. Then you will end up with your repository in `https://github.com/<your-username>/sealer`, in which `your-username` is your GitHub username.
+1. **FORK** Sealer to your repository. To make this work, you just need to click the button Fork in right-left of [sealerio/sealer](https://github.com/sealerio/sealer) main page. Then you will end up with your repository in `https://github.com/<your-username>/sealer`, in which `your-username` is your GitHub username.
 
 1. **CLONE** your own repository to develop locally. Use `git clone https://github.com/<your-username>/sealer.git` to clone repository to your local machine. Then you can create new branches to finish the change you wish to make.
 
-1. **Set Remote** upstream to be `https://github.com/alibaba/sealer.git` using the following two commands:
+1. **Set Remote** upstream to be `https://github.com/sealerio/sealer.git` using the following two commands:
 
 	```
-	git remote add upstream https://github.com/alibaba/sealer.git
+	git remote add upstream https://github.com/sealerio/sealer.git
 	git remote set-url --push upstream no-pushing
 	```
 
@@ -85,7 +85,7 @@ To put forward a PR, we assume you have registered a GitHub ID. Then you could f
 	$ git remote -v
 	origin     https://github.com/<your-username>/sealer.git (fetch)
 	origin     https://github.com/<your-username>/sealer.git (push)
-	upstream   https://github.com/alibaba/sealer.git (fetch)
+	upstream   https://github.com/sealerio/sealer.git (fetch)
 	upstream   no-pushing (push)
 	```
 
@@ -120,11 +120,11 @@ To put forward a PR, we assume you have registered a GitHub ID. Then you could f
    git push	// push to your forked repository after rebase done
    ```
 
-1. **File a pull request** to alibaba/sealer:main
+1. **File a pull request** to sealerio/sealer:main
 
 ### Branch Definition
 
-Right now we assume every contribution via pull request is for [branch master](https://github.com/alibaba/sealer/tree/main) in Sealer. Before contributing, be aware of branch definition would help a lot.
+Right now we assume every contribution via pull request is for [branch master](https://github.com/sealerio/sealer/tree/main) in Sealer. Before contributing, be aware of branch definition would help a lot.
 
 As a contributor, keep in mind again that every contribution via pull request is for branch master. While in project sealer, there are several other branches, we generally call them rc branches, release branches and backport branches.
 

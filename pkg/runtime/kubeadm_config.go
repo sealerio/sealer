@@ -17,14 +17,15 @@ package runtime
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/pkg/runtime/kubeadm_types/v1beta2"
-	"github.com/alibaba/sealer/utils"
 	"github.com/imdario/mergo"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
+
+	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
+	"github.com/sealerio/sealer/utils"
 )
 
-// Read config from https://github.com/alibaba/sealer/blob/main/docs/design/clusterfile-v2.md and overwrite default kubeadm.yaml
+// Read config from https://github.com/sealerio/sealer/blob/main/docs/design/clusterfile-v2.md and overwrite default kubeadm.yaml
 // Use github.com/imdario/mergo to merge kubeadm config in Clusterfile and the default kubeadm config
 // Using a config filter to handle some edge cases
 

@@ -21,17 +21,16 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"sigs.k8s.io/yaml"
 
-	"github.com/alibaba/sealer/test/testhelper/settings"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/test/testhelper/settings"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 func GetPwd() string {

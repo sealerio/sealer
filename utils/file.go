@@ -32,9 +32,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 func IsExist(fileName string) bool {

@@ -17,28 +17,24 @@ package applydriver
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/utils/ssh"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
-
-	"github.com/alibaba/sealer/utils/platform"
-
-	"github.com/alibaba/sealer/apply/processor"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/clusterfile"
-	"github.com/alibaba/sealer/pkg/filesystem/cloudimage"
-	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/pkg/runtime"
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/sealerio/sealer/apply/processor"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/pkg/runtime"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sealerio/sealer/utils/ssh"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
-
-	"github.com/alibaba/sealer/pkg/client/k8s"
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/utils"
 )
 
 // Applier cloud builder using cloud provider to build a cluster image

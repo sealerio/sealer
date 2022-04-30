@@ -17,7 +17,7 @@ package command
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/common"
+	"github.com/sealerio/sealer/common"
 )
 
 /*

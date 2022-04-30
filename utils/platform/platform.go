@@ -22,10 +22,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/alibaba/sealer/common"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/pkg/errors"
+
+	"github.com/sealerio/sealer/common"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 var (

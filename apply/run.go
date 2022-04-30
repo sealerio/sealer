@@ -19,13 +19,13 @@ import (
 	"strconv"
 	"strings"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 
-	"github.com/alibaba/sealer/apply/applydriver"
+	"github.com/sealerio/sealer/apply/applydriver"
 
-	"github.com/alibaba/sealer/common"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/common"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
 )
 
 type ClusterArgs struct {

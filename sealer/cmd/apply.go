@@ -15,10 +15,10 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/apply"
+	"github.com/sealerio/sealer/apply"
 )
 
 var clusterFile string

@@ -1,3 +1,3 @@
 # Code of conduct
 
-[code of conduct](https://github.com/alibaba/sealer/blob/main/code-of-conduct.md)
+[code of conduct](https://github.com/sealerio/sealer/blob/main/code-of-conduct.md)

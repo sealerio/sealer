@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/utils"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type HostnamePlugin struct {

@@ -21,14 +21,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/build/layerutils/charts"
+	manifest "github.com/sealerio/sealer/build/layerutils/manifests"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/image/save"
+	"github.com/sealerio/sealer/pkg/runtime"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
 
-	"github.com/alibaba/sealer/build/layerutils/charts"
-	manifest "github.com/alibaba/sealer/build/layerutils/manifests"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image/save"
-	"github.com/alibaba/sealer/pkg/runtime"
-	"github.com/alibaba/sealer/utils"
 	"golang.org/x/sync/errgroup"
 )
 

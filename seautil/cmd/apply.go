@@ -19,8 +19,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/apply"
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/logger"
 )
 
 var clusterFile string

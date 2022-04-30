@@ -19,8 +19,8 @@ import (
 
 	"github.com/docker/docker/pkg/progress"
 
-	"github.com/alibaba/sealer/pkg/image/reference"
-	"github.com/alibaba/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/pkg/image/reference"
+	"github.com/sealerio/sealer/pkg/image/store"
 )
 
 type Config struct {

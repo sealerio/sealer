@@ -293,7 +293,7 @@ spec:
 
 ### Using ENV in configs and script
 
-Using ENV in configs or yaml files [check this](https://github.com/alibaba/sealer/blob/main/docs/design/global-config.md#global-configuration)
+Using ENV in configs or yaml files [check this](https://github.com/sealerio/sealer/blob/main/docs/design/global-config.md#global-configuration)
 
 ```yaml
 apiVersion: sealer.cloud/v2
@@ -380,4 +380,4 @@ spec:
 
 ### Env render support
 
-[Env render](https://github.com/alibaba/sealer/blob/main/docs/design/global-config.md#global-configuration)
+[Env render](https://github.com/sealerio/sealer/blob/main/docs/design/global-config.md#global-configuration)

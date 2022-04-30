@@ -22,9 +22,9 @@ import (
 	"github.com/docker/docker/api/types"
 	dockerregistry "github.com/docker/docker/registry"
 
-	"github.com/alibaba/sealer/logger"
-	normalreference "github.com/alibaba/sealer/pkg/image/reference"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/logger"
+	normalreference "github.com/sealerio/sealer/pkg/image/reference"
+	"github.com/sealerio/sealer/utils"
 )
 
 func GetCanonicalImageName(rawImageName string) (reference.Named, error) {

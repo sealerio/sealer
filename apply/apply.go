@@ -19,13 +19,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/apply/applydriver"
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/clusterfile"
-	"github.com/alibaba/sealer/pkg/filesystem"
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/image/store"
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/sealerio/sealer/apply/applydriver"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/filesystem"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/image/store"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 func NewApplierFromFile(path string) (applydriver.Interface, error) {

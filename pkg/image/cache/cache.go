@@ -20,8 +20,8 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 
-	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/logger"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 //LocalImageCache saves all the layer

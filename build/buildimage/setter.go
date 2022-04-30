@@ -17,9 +17,9 @@ package buildimage
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/common"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/sealerio/sealer/common"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 type annotation struct {

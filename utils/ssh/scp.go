@@ -23,11 +23,11 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/utils"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/pkg/sftp"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils"
 )
 
 const (

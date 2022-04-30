@@ -20,17 +20,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alibaba/sealer/pkg/runtime"
 	k8sV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
-	"github.com/alibaba/sealer/utils"
-
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/cert"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/pkg/runtime"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
 )
 
 const typeV1 = "zlink.aliyun.com/v1alpha1"

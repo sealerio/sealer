@@ -21,17 +21,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/alibaba/sealer/pkg/env"
-
-	"github.com/alibaba/sealer/utils/platform"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/image/store"
-	v2 "github.com/alibaba/sealer/types/api/v2"
-	"github.com/alibaba/sealer/utils"
-	"github.com/alibaba/sealer/utils/mount"
-	"github.com/alibaba/sealer/utils/ssh"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/env"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/image/store"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/mount"
+	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type Interface interface {

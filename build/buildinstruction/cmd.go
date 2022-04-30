@@ -17,19 +17,16 @@ package buildinstruction
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/utils/mount"
-
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
-
-	"github.com/alibaba/sealer/utils"
-
 	"github.com/opencontainers/go-digest"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/command"
-	"github.com/alibaba/sealer/pkg/image/cache"
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/command"
+	"github.com/sealerio/sealer/pkg/image/cache"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/mount"
 )
 
 type CmdInstruction struct {

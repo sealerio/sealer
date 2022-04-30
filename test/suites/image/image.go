@@ -19,19 +19,18 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/alibaba/sealer/utils/platform"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/image/store"
-	"github.com/alibaba/sealer/test/suites/build"
-	"github.com/alibaba/sealer/test/testhelper"
-	"github.com/alibaba/sealer/test/testhelper/settings"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/test/suites/build"
+	"github.com/sealerio/sealer/test/testhelper"
+	"github.com/sealerio/sealer/test/testhelper/settings"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/platform"
 )
 
 func DoImageOps(action, imageName string) {

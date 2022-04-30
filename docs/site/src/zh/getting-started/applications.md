@@ -94,4 +94,4 @@ spec:
 ---
 ```
 
-具体每个CloudImage本身的访问方式与使用方式请参考对应的[readme文件](https://github.com/alibaba/sealer/tree/main/applications)
+具体每个CloudImage本身的访问方式与使用方式请参考对应的[readme文件](https://github.com/sealerio/sealer/tree/main/applications)

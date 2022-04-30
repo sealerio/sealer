@@ -17,14 +17,12 @@ package distributionutil
 import (
 	"context"
 
-	"github.com/alibaba/sealer/logger"
-
+	distribution "github.com/distribution/distribution/v3"
 	"github.com/docker/docker/api/types"
 
-	distribution "github.com/distribution/distribution/v3"
-
-	"github.com/alibaba/sealer/pkg/image/reference"
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/image/reference"
+	"github.com/sealerio/sealer/utils"
 )
 
 func NewV2Repository(named reference.Named, actions ...string) (distribution.Repository, error) {

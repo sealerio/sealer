@@ -17,10 +17,10 @@ limitations under the License.
 package v2
 
 import (
-	"github.com/alibaba/sealer/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
+	"github.com/sealerio/sealer/common"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.

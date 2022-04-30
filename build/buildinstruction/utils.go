@@ -21,20 +21,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alibaba/sealer/utils/collector"
-
+	"github.com/opencontainers/go-digest"
 	fsutil "github.com/tonistiigi/fsutil/copy"
 
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/image/cache"
-	"github.com/alibaba/sealer/utils"
-
-	"github.com/opencontainers/go-digest"
-
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/logger"
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils/archive"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/image/cache"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/archive"
+	"github.com/sealerio/sealer/utils/collector"
 )
 
 func tryCache(parentID cache.ChainID,

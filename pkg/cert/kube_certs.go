@@ -22,7 +22,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
 )
 
 var (

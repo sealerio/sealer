@@ -18,13 +18,12 @@ import (
 	"errors"
 	"strings"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
-	"github.com/alibaba/sealer/utils/platform"
-
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/pkg/image"
-	"github.com/alibaba/sealer/pkg/image/utils"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/image/utils"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/platform"
 )
 
 type removeImageFlag struct {

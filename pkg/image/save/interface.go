@@ -17,8 +17,9 @@ package save
 import (
 	"context"
 
-	v1 "github.com/alibaba/sealer/types/api/v1"
 	"github.com/docker/docker/pkg/progress"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 // ImageSave can save a list of images of the specified platform

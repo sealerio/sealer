@@ -25,7 +25,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 
-	"github.com/alibaba/sealer/common"
+	"github.com/sealerio/sealer/common"
 )
 
 type AuthItem struct {

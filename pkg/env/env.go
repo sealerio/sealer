@@ -23,7 +23,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 const templateSuffix = ".tmpl"

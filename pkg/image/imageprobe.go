@@ -19,8 +19,8 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	"github.com/alibaba/sealer/logger"
-	"github.com/alibaba/sealer/pkg/image/cache"
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/image/cache"
 )
 
 type Prober interface {

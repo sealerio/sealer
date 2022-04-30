@@ -15,7 +15,7 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/utils"
 
 	"github.com/spf13/cobra"
 )

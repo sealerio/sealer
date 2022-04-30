@@ -15,11 +15,11 @@
 package cmd
 
 import (
-	"github.com/alibaba/sealer/pkg/clusterfile"
 	"github.com/spf13/cobra"
 
-	"github.com/alibaba/sealer/apply"
-	"github.com/alibaba/sealer/common"
+	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 )
 
 var clusterName string

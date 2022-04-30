@@ -17,18 +17,18 @@ package processor
 import (
 	"fmt"
 
-	"github.com/alibaba/sealer/common"
-	"github.com/alibaba/sealer/pkg/clusterfile"
-	"github.com/alibaba/sealer/pkg/config"
-	"github.com/alibaba/sealer/pkg/plugin"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/config"
+	"github.com/sealerio/sealer/pkg/plugin"
 
-	"github.com/alibaba/sealer/pkg/filesystem/cloudfilesystem"
+	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
 
-	"github.com/alibaba/sealer/utils"
+	"github.com/sealerio/sealer/utils"
 
-	"github.com/alibaba/sealer/pkg/filesystem"
-	"github.com/alibaba/sealer/pkg/runtime"
-	v2 "github.com/alibaba/sealer/types/api/v2"
+	"github.com/sealerio/sealer/pkg/filesystem"
+	"github.com/sealerio/sealer/pkg/runtime"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 type ScaleProcessor struct {

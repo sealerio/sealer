@@ -17,7 +17,7 @@ package ssh
 import (
 	"testing"
 
-	"github.com/alibaba/sealer/logger"
+	"github.com/sealerio/sealer/logger"
 )
 
 func TestSSHCopyLocalToRemote(t *testing.T) {
