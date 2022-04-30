@@ -6,6 +6,7 @@
 [![GoDoc](https://godoc.org/github.com/sealerio/sealer?status.svg)](https://godoc.org/github.com/sealerio/sealer)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5205/badge)](https://bestpractices.coreinfrastructure.org/en/projects/5205)
 [![Twitter](https://img.shields.io/badge/Follow-sealer-1DA1F2?logo=twitter)](https://twitter.com/sealer_oss)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsealerio%2Fsealer.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsealerio%2Fsealer?ref=badge_shield)
 
 [简体中文](./docs/README_zh.md)
 
@@ -115,3 +116,6 @@ sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx
 ## License
 
 Sealer is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsealerio%2Fsealer.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsealerio%2Fsealer?ref=badge_large)
