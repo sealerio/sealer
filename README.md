@@ -5,6 +5,7 @@
 [![Release](https://github.com/alibaba/sealer/actions/workflows/release.yml/badge.svg)](https://github.com/alibaba/sealer/actions/workflows/release.yml)
 [![GoDoc](https://godoc.org/github.com/alibaba/sealer?status.svg)](https://godoc.org/github.com/alibaba/sealer)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5205/badge)](https://bestpractices.coreinfrastructure.org/en/projects/5205)
+[![Twitter](https://img.shields.io/badge/Follow-sealer-1DA1F2?logo=twitter)](https://twitter.com/sealer_oss)
 
 [简体中文](./docs/README_zh.md)
 
