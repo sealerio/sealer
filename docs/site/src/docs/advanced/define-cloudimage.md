@@ -115,7 +115,7 @@ Examples: copy offline tar file to this directory.
 
 #### plugin directory
 
-Directory to save plugin files，the plugin file in this directory will be load into the runtime interface when sealer
+Directory to save plugin files, the plugin file in this directory will be load into the runtime interface when sealer
 run.
 
 Examples: copy plugin config file to this directory.
@@ -177,7 +177,7 @@ through the following command before executing the build operation:
 sealer login registry.com -u username -p password
 ```
 
-Another dependent scenario， the kubernetes node is proxies to the private registry through the built-in registry of
+Another dependent scenario, the kubernetes node is proxies to the private registry through the built-in registry of
 sealer and the private registry needs to be authenticated, it can be configured through the custom registry config.Refer
 to [registry config](../../../../design/docker-image-cache.md)
 

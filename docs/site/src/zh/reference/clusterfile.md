@@ -37,7 +37,7 @@ spec:
      - 172.20.126.9
 ```
 
-Automatically apply ali cloud server for installation, the provider is `ALI_CLOUD`. Or using container for installation，the provider is `CONTAINER`:
+Automatically apply ali cloud server for installation, the provider is `ALI_CLOUD`. Or using container for installation, the provider is `CONTAINER`:
 
 ```yaml
 apiVersion: sealer.aliyun.com/v1alpha1

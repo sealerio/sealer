@@ -217,7 +217,7 @@ func (c *Applier) upgrade() error {
 	}
 
 	if c.CurrentClusterInfo.GitVersion == upgradeImgMeta.Version {
-		logger.Info("No upgrade required， image version and cluster version are both %s.", c.CurrentClusterInfo.GitVersion)
+		logger.Info("No upgrade required, image version and cluster version are both %s.", c.CurrentClusterInfo.GitVersion)
 		return nil
 	}
 	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)

@@ -516,7 +516,7 @@ test-baremetal007   Ready    <none>   14s    v1.19.9
 
 ### 2. Scale up
 
-**masters add 172.16.0.170，172.16.0.171**
+**masters add 172.16.0.170, 172.16.0.171**
 
 **nodes add 172.16.0.172**
 

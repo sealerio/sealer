@@ -117,5 +117,4 @@ sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx
 
 Sealer is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
 
-
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsealerio%2Fsealer.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsealerio%2Fsealer?ref=badge_large)
