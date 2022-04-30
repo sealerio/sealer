@@ -55,7 +55,7 @@ func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 			s.MountRootfs,
 			s.GetPhasePluginFunc(plugin.PhasePreJoin),
 			s.Join,
-			s.GetPhasePluginFunc(plugin.PhasePreGuest), //taint plugin，label plugin, or clusterCheck plugin
+			s.GetPhasePluginFunc(plugin.PhasePreGuest), //taint plugin, label plugin, or clusterCheck plugin
 			s.GetPhasePluginFunc(plugin.PhasePostJoin),
 		)
 		return todoList, nil

@@ -33,7 +33,7 @@ func Retry(tryTimes int, trySleepTime time.Duration, action func() error) error 
 	return fmt.Errorf("retry action timeout: %v", err)
 }
 
-// ConfirmOperation confirm whether to continue with the operation，typing yes will return true.
+// ConfirmOperation confirm whether to continue with the operation, typing yes will return true.
 func ConfirmOperation(promptInfo string) (bool, error) {
 	var yesRx = regexp.MustCompile("^(?:y(?:es)?)$")
 	var noRx = regexp.MustCompile("^(?:n(?:o)?)$")

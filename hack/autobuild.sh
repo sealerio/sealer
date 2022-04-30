@@ -15,7 +15,7 @@
 
 # -----------------------------------------------------------------------------
 #The script format is similar to that of auto build：
-#If we need to make kubernetes:1.20.14 image，We just need to enter: kubernetes v1.20.14 amd64
+#If we need to make kubernetes:1.20.14 image, We just need to enter: kubernetes v1.20.14 amd64
 echo "Start the way ,eg: sh autobuild.sh v1.20.14 amd64"
 version=$1
 echo "version: $version"
