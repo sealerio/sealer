@@ -64,7 +64,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 			hitCache, layerID, chainID = tryCache(execContext.ParentID, c.rawLayer, execContext.CacheSvc, execContext.Prober, cacheID)
 			// we hit the cache, so we will reuse the layerID layer.
 			if hitCache {
-				// update chan id as parent id via defer
+				// update chanid as parentid via defer
 				out.LayerID = layerID
 				return out, nil
 			}
