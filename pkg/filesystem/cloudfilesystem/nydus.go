@@ -90,7 +90,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 		nydusdCleanCmd  = fmt.Sprintf(RemoteNydusdStop, filepath.Join(nydusdDir, "clean.sh"), nydusdDir)
 		cleanCmd        = fmt.Sprintf("echo '%s' >> "+common.DefaultClusterClearBashFile, nydusdCleanCmd, cluster.Name)
 		envProcessor    = env.NewEnvProcessor(cluster)
-		config          = runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), runtime.GetMaster0Ip(cluster))
+		config          = runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), cluster.GetMaster0IP())
 		initCmd         = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 	)
 	_, err = utils.RunSimpleCmd(nydusdfileCpCmd)

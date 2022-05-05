@@ -21,7 +21,6 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/store"
-	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
@@ -59,7 +58,7 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 	}
 	cmdArgs := d.getGuestCmdArg(cluster, image)
 	cmd := d.getGuestCmd(cluster, image)
-	sshClient, err := ssh.NewStdoutSSHClient(runtime.GetMaster0Ip(cluster), cluster)
+	sshClient, err := ssh.NewStdoutSSHClient(cluster.GetMaster0IP(), cluster)
 	if err != nil {
 		return err
 	}
