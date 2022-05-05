@@ -24,6 +24,7 @@ import (
   exec some commands on remote host like create ipvs rules or add routers.
   create certs on master1 master2.
 */
+
 func RemoteCerts(altNames []string, hostIP, hostName, serviceCIRD, DNSDomain string) string {
 	cmd := "seautil certs "
 	if hostIP != "" {

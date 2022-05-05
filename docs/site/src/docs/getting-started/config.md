@@ -225,7 +225,7 @@ username:root
 passwd:xxx
 ```
 
-tojson:
+to json:
 
 ```
 {

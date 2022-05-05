@@ -36,10 +36,10 @@ func init() {
 	rootCmd.AddCommand(ipvsCmd)
 	ipvsCmd.Flags().BoolVar(&Ipvs.RunOnce, "run-once", false, "run once mode")
 	ipvsCmd.Flags().BoolVarP(&Ipvs.Clean, "clean", "c", true, " clean Vip ipvs rule before join node, if Vip has no ipvs rule do nothing.")
-	ipvsCmd.Flags().StringVar(&Ipvs.VirtualServer, "vs", "", "virturl server like 10.54.0.2:6443")
-	ipvsCmd.Flags().StringSliceVar(&Ipvs.RealServer, "rs", []string{}, "virturl server like 192.168.0.2:6443")
+	ipvsCmd.Flags().StringVar(&Ipvs.VirtualServer, "vs", "", "virtual server like 10.54.0.2:6443")
+	ipvsCmd.Flags().StringSliceVar(&Ipvs.RealServer, "rs", []string{}, "virtual server like 192.168.0.2:6443")
 
 	ipvsCmd.Flags().StringVar(&Ipvs.HealthPath, "health-path", "/healthz", "health check path")
-	ipvsCmd.Flags().StringVar(&Ipvs.HealthSchem, "health-schem", "https", "health check schem")
+	ipvsCmd.Flags().StringVar(&Ipvs.HealthSchem, "health-schem", "https", "health check scheme")
 	ipvsCmd.Flags().Int32Var(&Ipvs.Interval, "interval", 5, "health check interval, unit is sec.")
 }

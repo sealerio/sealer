@@ -30,7 +30,7 @@ import (
 var imageChain *chainStore
 var once sync.Once
 
-//ChainID is caculated from a series of serialized cache layers. The layers cacheID
+//ChainID is calculated from a series of serialized cache layers. The layers cacheID
 // is "", but the COPY layer.
 // same ChainID indicates that same entire file system.
 type ChainID digest.Digest
@@ -181,7 +181,7 @@ func (cs *chainStore) newCacheLayer(layer v1.Layer) (*Layer, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO maybe we should validate the cacheid over digest
+	// TODO maybe we should validate the cache id over digest
 	cacheLayer.CacheID = string(cacheIDBytes)
 	return &cacheLayer, nil
 }

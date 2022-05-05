@@ -21,7 +21,7 @@ import (
 	"io"
 	"sync"
 
-	distribution "github.com/distribution/distribution/v3"
+	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest/manifestlist"
 	"github.com/distribution/distribution/v3/manifest/schema2"
 	"github.com/docker/docker/pkg/progress"
@@ -134,9 +134,9 @@ func (pusher *ImagePusher) push(ctx context.Context, image *v1.Image, named refe
 		return "", fmt.Errorf("failed to push layers of %s, err: %s", named.Raw(), err)
 	}
 
-	// for making descriptors have same order with image layers
-	// descriptor and image yaml are both saved in registry
-	// but they are different, layer digest in layer yaml is layerid.
+	// for making descriptors have same ordered with image layers
+	// descriptor and image yaml are both saved in registry,
+	// but they are different, layer digest in layer yaml is layer id.
 	// And digest in descriptor indicate the hash of layer content.
 	var layerDescriptors []distribution.Descriptor
 	for _, l := range image.Spec.Layers {

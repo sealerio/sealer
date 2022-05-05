@@ -105,7 +105,7 @@ func (n *NodeChecker) Output(nodeCLusterStatus NodeClusterStatus) error {
 	t = template.Must(t, err)
 	err = t.Execute(common.StdOut, nodeCLusterStatus)
 	if err != nil {
-		logger.Error("node checkers template can not excute %s", err)
+		logger.Error("node checkers template can not execute %s", err)
 		return err
 	}
 	return nil

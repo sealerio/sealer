@@ -2,9 +2,9 @@
 
 ## Introduction of components
 
-Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation system inspired by [Prometheus](https://prometheus.io/). It is designed to be very cost effective and easy to operate. It does not index the contents of the logs, but rather a set of labels for each log stream.
+Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation system inspired by [Prometheus](https://prometheus.io/). It is designed to be very cost-effective and easy to operate. It does not index the contents of the logs, but rather a set of labels for each log stream.
 
-Fluent Bit is a fast Log Processor and Forwarder for Linux, Windows, Embedded Linux, MacOS and BSD family operating systems. It's part of the Graduated Fluentd Ecosystem and a CNCF sub-project.
+Fluent Bit is a fast Log Processor and Forwarder for Linux, Windows, Embedded Linux, macOS and BSD family operating systems. It's part of the Graduated Fluentd Ecosystem and a CNCF sub-project.
 
 This image base on  longhorn:latest, flunent-bit can collect logs and longhorn provide storage to save logs in persistent volume.
 
@@ -23,7 +23,7 @@ The fluentbit-loki-stack component include:
 
 ### Browser the dashboard
 
-* You can browser it in cluster.
+* You can browser it in the cluster.
 
   1. Run ``kubectl get svc -n fluentbit-loki-stack-system | grep grafana`` To get pod IP address.
 

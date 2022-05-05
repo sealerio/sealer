@@ -145,8 +145,8 @@ func (c *ClusterFile) DecodeConfigs(data []byte) error {
 	if configs == nil {
 		return ErrTypeNotFound
 	}
-	cfgs := configs.([]v1.Config)
-	c.Configs = cfgs
+	cfg := configs.([]v1.Config)
+	c.Configs = cfg
 	return nil
 }
 

@@ -51,9 +51,9 @@ const (
 
 // Config contains the basic fields required for creating a certificate
 type Config struct {
-	Path         string // Writeto Dir
+	Path         string // Write to Dir
 	DefaultPath  string // Kubernetes default Dir
-	BaseName     string // Writeto file name
+	BaseName     string // Write to file name
 	CAName       string // root ca map key
 	CommonName   string
 	DNSNames     []string
@@ -159,7 +159,7 @@ func TryLoadKeyFromDisk(pkiPath string) (crypto.Signer, error) {
 	return key, nil
 }
 
-//  NewCaCertAndKeyFromRoot cmd/kubeadm/app/util/pkiutil/pki_helpers.go NewCertAndKey
+// NewCaCertAndKeyFromRoot cmd/kubeadm/app/util/pkiutil/pki_helpers.go NewCertAndKey
 func NewCaCertAndKeyFromRoot(cfg Config, caCert *x509.Certificate, caKey crypto.Signer) (*x509.Certificate, crypto.Signer, error) {
 	key, err := NewPrivateKey(x509.UnknownPublicKeyAlgorithm)
 	if err != nil {
@@ -215,7 +215,6 @@ func NewSignedCert(cfg Config, key crypto.Signer, caCert *x509.Certificate, caKe
 	return x509.ParseCertificate(certDERBytes)
 }
 
-// WriteTofile
 // WriteCertAndKey stores certificate and key at the specified location
 func WriteCertAndKey(pkiPath string, name string, cert *x509.Certificate, key crypto.Signer) error {
 	if err := WriteKey(pkiPath, name, key); err != nil {
@@ -239,7 +238,7 @@ func WriteCert(pkiPath, name string, cert *x509.Certificate) error {
 	return nil
 }
 
-// EncodeCertPEM returns PEM-endcoded certificate data
+// EncodeCertPEM returns PEM-encoded certificate data
 func EncodeCertPEM(cert *x509.Certificate) []byte {
 	block := pem.Block{
 		Type:  CertificateBlockType,

@@ -167,7 +167,7 @@ Sealer对docker registry进行了优化和扩展，使其可以同时支持多�
 sealer login registry.com -u username -p password
 ```
 
-另一种依赖场景，kubernetes节点通过sealer内置registry代理私有registry，私有registry需要认证，可以通过自定义registryconfig配置。参考 [registry config](../../../../design/docker-image-cache.md)
+另一种依赖场景，kubernetes节点通过sealer内置registry代理私有registry，私有registry需要认证，可以通过自定义registry config配置。参考 [registry config](../../../../design/docker-image-cache.md)
 
 您可以通过定义 Kubefile 来自定义注册表配置：
 

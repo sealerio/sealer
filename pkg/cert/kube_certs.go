@@ -186,7 +186,7 @@ const (
 	EtcdHealthcheckClientCert
 )
 
-// apiServerIPAndDomains = MasterIP + VIP + CertSANS 暂时只有apiserver, 记得把cluster.local后缀加到apiServerIPAndDOmas里先
+// NewMetaData apiServerIPAndDomains = MasterIP + VIP + CertSANS 暂时只有apiserver, 记得把cluster.local后缀加到apiServerIPAndDOmas里先
 func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, SvcCIDR, nodeName, nodeIP, DNSDomain string) (*MetaData, error) {
 	data := &MetaData{}
 	data.CertPath = certPATH

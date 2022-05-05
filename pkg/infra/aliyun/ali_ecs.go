@@ -94,10 +94,10 @@ func (a *AliProvider) TryGetInstance(request *ecs.DescribeInstancesRequest, resp
 		}
 		for _, instance := range instances {
 			if instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress == "" {
-				return errors.New("PrimaryIpAddress cannt nob be nil")
+				return errors.New("PrimaryIpAddress cannot nob be nil")
 			}
 			if len(ipList) != 0 && !utils.NotIn(instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress, ipList) {
-				return errors.New("PrimaryIpAddress cannt nob be same")
+				return errors.New("PrimaryIpAddress cannot nob be same")
 			}
 
 			ipList = append(ipList, instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress)

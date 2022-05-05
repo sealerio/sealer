@@ -26,7 +26,7 @@ import (
 type GenDocCommand struct {
 	cmd *cobra.Command
 
-	// path is the destination path of generated markdown documents.
+	// path is the destination path of generated Markdown documents.
 	path string
 }
 

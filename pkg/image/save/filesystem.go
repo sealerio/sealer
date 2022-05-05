@@ -37,7 +37,7 @@ const (
 	defaultRootDirectory = "/var/lib/registry"
 	defaultMaxThreads    = uint64(100)
 
-	// minThreads is the minimum value for the maxthreads configuration
+	// minThreads is the minimum value for the maxThreads configuration
 	// parameter. If the driver's parameters are less than this we set
 	// the parameters to minThreads
 	minThreads = uint64(25)
@@ -69,8 +69,8 @@ type baseEmbed struct {
 	base.Base
 }
 
-// Driver is a storagedriver.StorageDriver implementation backed by a local
-// filesystem. All provided paths will be subpaths of the RootDirectory.
+// Driver is a storage driver.StorageDriver implementation backed by a local
+// filesystem. All provided paths will be sub paths of the RootDirectory.
 type Driver struct {
 	baseEmbed
 }

@@ -23,7 +23,7 @@ import (
 )
 
 type Interface interface {
-	// Apply apply iaas resources and save metadata info like vpc instance id to cluster status
+	// Apply IAAS resources and save metadata info like vpc instance id to cluster status
 	// https://github.com/fanux/sealgate/tree/master/cloud
 	Apply() error
 }

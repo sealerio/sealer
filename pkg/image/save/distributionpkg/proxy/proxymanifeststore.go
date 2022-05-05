@@ -24,7 +24,6 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-// todo(richardscothern): from cache control header or config
 const repositoryTTL = 24 * 7 * time.Hour
 
 type proxyManifestStore struct {

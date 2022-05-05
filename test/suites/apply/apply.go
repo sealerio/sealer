@@ -82,14 +82,14 @@ func LoadPluginFromDisk(clusterFilePath string) []v1.Plugin {
 }
 
 func GenerateClusterfile(clusterfile string) {
-	filepath := GetRawConfigPluginFilePath()
+	fp := GetRawConfigPluginFilePath()
 	cluster := LoadClusterFileFromDisk(clusterfile)
 	cluster.Spec.Env = []string{"env=TestEnv"}
 	data, err := yaml.Marshal(cluster)
 	testhelper.CheckErr(err)
 	appendData := [][]byte{data}
-	plugins := LoadPluginFromDisk(filepath)
-	configs := LoadConfigFromDisk(filepath)
+	plugins := LoadPluginFromDisk(fp)
+	configs := LoadConfigFromDisk(fp)
 	for _, plugin := range plugins {
 		if plugin.Spec.Type == "LABEL" {
 			pluginData := "\n"

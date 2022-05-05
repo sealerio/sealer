@@ -67,7 +67,7 @@ func (rl *ROLayer) TarStream() (io.ReadCloser, error) {
 	)
 	_, err = os.Stat(tarDataPath)
 	// tar-data.json.gz does not exist
-	// at the pull stage, the file won't exist
+	// at the pull stage, the file won't exist,
 	// so we tar the layer dir.
 	if err != nil {
 		logger.Debug("failed to find %s for layer %s, use tar, err: %s", tarDataGZ, rl.ID(), err)

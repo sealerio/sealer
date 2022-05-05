@@ -32,24 +32,24 @@ const (
 
 func (k *KubeadmRuntime) upgrade() error {
 	var err error
-	binpath := filepath.Join(k.getRootfs(), `bin`)
+	binPath := filepath.Join(k.getRootfs(), `bin`)
 
-	err = k.upgradeFirstMaster(k.GetMaster0IP(), binpath, k.getKubeVersion())
+	err = k.upgradeFirstMaster(k.GetMaster0IP(), binPath, k.getKubeVersion())
 	if err != nil {
 		return err
 	}
-	err = k.upgradeOtherMasters(k.GetMasterIPList()[1:], binpath, k.getKubeVersion())
+	err = k.upgradeOtherMasters(k.GetMasterIPList()[1:], binPath, k.getKubeVersion())
 	if err != nil {
 		return err
 	}
-	err = k.upgradeNodes(k.GetNodeIPList(), binpath)
+	err = k.upgradeNodes(k.GetNodeIPList(), binPath)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binpath, version string) error {
+func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binPath, version string) error {
 	var drain string
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
 	if VersionCompare(version, V1200) {
@@ -59,8 +59,8 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binpath, version string) 
 	}
 
 	var firstMasterCmds = []string{
-		fmt.Sprintf(chmodCmd, binpath),
-		fmt.Sprintf(mvCmd, binpath),
+		fmt.Sprintf(chmodCmd, binPath),
+		fmt.Sprintf(mvCmd, binPath),
 		drain,
 		fmt.Sprintf(upgradeCmd, strings.Join([]string{`apply`, version, `-y`}, " ")),
 		restartCmd,

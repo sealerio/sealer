@@ -18,7 +18,7 @@ import (
 	"github.com/sealerio/sealer/pkg/image/types"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 
-	distribution "github.com/distribution/distribution/v3"
+	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest/manifestlist"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"

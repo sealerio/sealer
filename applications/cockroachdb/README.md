@@ -15,7 +15,7 @@ my-cockroachdb-public.cockroachdb-system.svc.cluster.local
 Because CockroachDB supports the PostgreSQL wire protocol, you can connect to the cluster using any available PostgreSQL
 client.
 
-For example, you can open up a SQL shell to the cluster by running:
+For example, you can open up an SQL shell to the cluster by running:
 
 ```
 kubectl run -it --rm cockroach-client \

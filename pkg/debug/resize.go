@@ -36,13 +36,13 @@ func (t TTY) GetSize() *remotecommand.TerminalSize {
 
 // GetSize returns the current size of the terminal associated with fd.
 func GetSize(fd uintptr) *remotecommand.TerminalSize {
-	winsize, err := term.GetWinsize(fd)
+	size, err := term.GetWinsize(fd)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("unable to get terminal size: %v", err))
 		return nil
 	}
 
-	return &remotecommand.TerminalSize{Width: winsize.Width, Height: winsize.Height}
+	return &remotecommand.TerminalSize{Width: size.Width, Height: size.Height}
 }
 
 // MonitorSize monitors the terminal's size. It returns a TerminalSizeQueue primed with
@@ -55,7 +55,7 @@ func (t *TTY) MonitorSize(initialSizes ...*remotecommand.TerminalSize) remotecom
 
 	t.sizeQueue = &sizeQueue{
 		t: *t,
-		// make it buffered so we can send the initial terminal sizes without blocking, prior to starting
+		// make it buffered, so we can send the initial terminal sizes without blocking, prior to starting
 		// the streaming below
 		resizeChan:   make(chan remotecommand.TerminalSize, len(initialSizes)),
 		stopResizing: make(chan struct{}),
@@ -126,7 +126,7 @@ func (s *sizeQueue) Next() *remotecommand.TerminalSize {
 	return &size
 }
 
-// stop stops the background goroutine that is monitoring for terminal resizes.
+// stop the background goroutine that is monitoring for terminal resizes.
 func (s *sizeQueue) stop() {
 	close(s.stopResizing)
 }

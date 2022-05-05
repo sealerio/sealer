@@ -26,7 +26,7 @@ func TestNewProcessorsAndRun(t *testing.T) {
 			Process: "value|toJson|toBase64|toSecret",
 			Data: `
 config:
-  usrname: root
+  username: root
   passwd: xxx
 `,
 		},

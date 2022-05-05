@@ -38,7 +38,7 @@ func (r *RegistryChecker) Check(cluster *v2.Cluster, phase string) error {
 	if !utils.IsFileExist(authFile) {
 		return fmt.Errorf("registry auth info not found,please run 'sealer login' first")
 	}
-	// try to login with auth info
+	// try to log in with auth info
 	authConfig, err := utils.GetDockerAuthInfoFromDocker(r.RegistryDomain)
 	if err != nil {
 		return fmt.Errorf("failed to get auth info, err: %s", err)

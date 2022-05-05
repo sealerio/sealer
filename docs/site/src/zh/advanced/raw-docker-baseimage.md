@@ -36,7 +36,7 @@ Pull the official "registry" image and replace existing customized "registry" im
 
 Edit the file 'daemon.json' at `/var/lib/sealer/data/overlay2/{layer-id-1}/etc/`, delete the `mirror-registries` attribute.
 
-#### Step 7: build rawdocker alpine image
+#### Step 7: build raw docker alpine image
 
 Switch to directory `/var/lib/sealer/data/overlay2/{layer-id-1}/`, edit the `Kubefile` and make sure it's content is:
 
@@ -52,7 +52,7 @@ Then build image by execute `sealer build --mode lite -t kubernetes-rawdocker:v1
 #### Step 8: add network components to alpine image
 
 Now the base image still need network components to make k8s clusters work well, here we provide a guide for adding calico as network components.
-First of all, create a `rawdockerBuild` directory as your build environment. Then you should move the file "tigera-operator.yaml" and the file "custom-resources.yaml" from `/var/lib/sealer/data/overlay2/{layer-id-2}/etc/` to `rawdockerBuild/etc`. After that you still need modify some contents in those two files to make sure the pods they create will pull docker images from your private registry, which will make your k8s clusters still work well in offline situations. In this case, firstly add a map-key value in "custom-resources.yaml", the key is `spec.registry` and the value is `sea.hub:5000`, secondly modify all docker image names in "tigera-operator.yaml" from `<registry>/<repository>/<imageName>:<imageTag>` to `sea.hub:5000/<repository>/<imageName>:<imageTag>`.
+First, create a `rawdockerBuild` directory as your build environment. Then you should move the file "tigera-operator.yaml" and the file "custom-resources.yaml" from `/var/lib/sealer/data/overlay2/{layer-id-2}/etc/` to `rawdockerBuild/etc`. After that you still need modify some contents in those two files to make sure the pods they create will pull docker images from your private registry, which will make your k8s clusters still work well in offline situations. In this case, firstly add a map-key value in "custom-resources.yaml", the key is `spec.registry` and the value is `sea.hub:5000`, secondly modify all docker image names in "tigera-operator.yaml" from `<registry>/<repository>/<imageName>:<imageTag>` to `sea.hub:5000/<repository>/<imageName>:<imageTag>`.
 Next create a `imageList` file at `rawdockerBuild` directory, with the following content:
 
 - calico/cni:v3.19.1
@@ -64,7 +64,7 @@ Next create a `imageList` file at `rawdockerBuild` directory, with the following
 
 They are all the images needed to create network components, make sure that the tag is consistent with declared in the yaml file "tigera-operator.yaml" and "custom-resources.yaml".
 
-#### Step 9: build rawdocker image
+#### Step 9: build raw docker image
 
 Switch to directory `rawdockerBuild`, create a `Kubefile` and make sure it's content is:
 

@@ -38,7 +38,7 @@ var config *Flag
 // certsCmd represents the certs command
 var certsCmd = &cobra.Command{
 	Use:   "certs",
-	Short: "generate kubernetes certes",
+	Short: "generate kubernetes certs",
 	Long:  `seautil cert --node-ip 192.168.0.2 --node-name master1 --dns-domain aliyun.com --alt-names aliyun.local`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cert.GenerateCert(config.CertPath, config.CertEtcdPath, config.AltNames, config.NodeIP, config.NodeName, config.ServiceCIDR, config.DNSDomain)

@@ -29,7 +29,7 @@ import (
 
 // GetImageLayerDirs return image hash list
 // current image is different with the image in build stage
-// current image has no from layer
+// current image hasn't from layer
 func GetImageLayerDirs(image *v1.Image) (res []string, err error) {
 	for _, layer := range image.Spec.Layers {
 		if layer.ID != "" {

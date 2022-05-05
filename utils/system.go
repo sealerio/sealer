@@ -20,7 +20,7 @@ import "golang.org/x/sys/unix"
 
 // Lgetxattr retrieves the value of the extended attribute identified by attr
 // and associated with the given path in the file system.
-// It will returns a nil slice and nil error if the xattr is not set.
+// It will return a nil slice and nil error if the xattr is not set.
 func Lgetxattr(path string, attr string) ([]byte, error) {
 	// Start with a 128 length byte array
 	dest := make([]byte, 128)

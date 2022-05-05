@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	distribution "github.com/distribution/distribution/v3"
+	"github.com/distribution/distribution/v3"
 	dockerRegistryClient "github.com/distribution/distribution/v3/registry/client"
 	"github.com/docker/distribution/reference"
 	dockerAuth "github.com/docker/distribution/registry/client/auth"

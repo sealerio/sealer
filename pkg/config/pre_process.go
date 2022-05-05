@@ -40,7 +40,7 @@ type PreProcessor interface {
 }
 
 func NewProcessorsAndRun(config *v1.Config) error {
-	pmap := map[string]PreProcessor{
+	pMap := map[string]PreProcessor{
 		valueProcessorName:    &valueProcessor{},
 		toJSONProcessorName:   &toJSONProcessor{},
 		toBase64ProcessorName: &toBase64Processor{},
@@ -48,19 +48,19 @@ func NewProcessorsAndRun(config *v1.Config) error {
 	}
 
 	processors := strings.Split(config.Spec.Process, "|")
-	for _, pname := range processors {
-		if pname == "" {
+	for _, pName := range processors {
+		if pName == "" {
 			continue
 		}
-		prossor, ok := pmap[pname]
+		processor, ok := pMap[pName]
 		if !ok {
-			logger.Warn("not found config processor: %s", pname)
+			logger.Warn("not found config processor: %s", pName)
 			continue
 		}
-		if prossor == nil {
+		if processor == nil {
 			continue
 		}
-		if err := prossor.Process(config); err != nil {
+		if err := processor.Process(config); err != nil {
 			return err
 		}
 	}

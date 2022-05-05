@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	distribution "github.com/distribution/distribution/v3"
+	"github.com/distribution/distribution/v3"
 	"github.com/opencontainers/go-digest"
 )
 
