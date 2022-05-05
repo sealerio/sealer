@@ -35,3 +35,8 @@ func Get() Info {
 		Platform:   fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
 }
+
+// GetSingleVersion returns single version of sealer
+func GetSingleVersion() string {
+	return gitVersion
+}
