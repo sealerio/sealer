@@ -24,6 +24,7 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/version"
 )
 
 type rootOpts struct {
@@ -38,22 +39,24 @@ var rootOpt rootOpts
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "sealer",
-	Short: "",
-	Long:  ``,
+	Short: "A tool to build, share and run any distributed applications.",
+	Long: `sealer is a tool to seal application's all dependencies and Kubernetes into CloudImage,
+distribute this application anywhere via CloudImage, and run it within any cluster in one command.
+`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "sealer-%s: %v\n", version.GetSingleVersion(), err)
 		os.Exit(1)
 	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file (default is $HOME/.sealer.json)")
+	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file of sealer tool (default is $HOME/.sealer.json)")
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogTime, "hide-time", false, "hide the log time")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogPath, "hide-path", false, "hide the log path")
