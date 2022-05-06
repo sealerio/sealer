@@ -22,11 +22,11 @@ lint: ## Run go lint against code.
 style: fmt vet lint ## code style: fmt,vet,lint
 
 build: clean ## build binaries by default
-	@echo "build sealer and sealutil bin"
+	@echo "build sealer and seautil bin"
 	hack/build.sh
 
 linux: clean ## build binaries for linux
-	@echo "build sealer and sealutil bin for linux"
+	@echo "build sealer and seautil bin for linux"
 	GOOS=linux GOARCH=amd64 hack/build.sh $(GitTag)
 
 test-sealer:
