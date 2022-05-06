@@ -1,15 +1,17 @@
+#on:
+#  schedule:
+#    - cron: '0 0 * * *'
+#  push:
+#    tags:
+#      - 'v*'
 on:
-  schedule:
-    - cron: '0 0 * * *'
   push:
-    tags:
-      - 'v*'
+    branches: "modify_on"
 
 name: Static page
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: ${{ github.repository == 'sealerio/sealer' }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
