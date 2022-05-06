@@ -31,8 +31,10 @@ var checkArgs *CheckArgs
 
 // pushCmd represents the push command
 var checkCmd = &cobra.Command{
-	Use:     "check",
-	Short:   "check the state of cluster ",
+	Use:   "check",
+	Short: "check the state of cluster",
+	Long: `check command is used to check status of the cluster, including node status
+, service status and pod status.`,
 	Example: `sealer check --pre or sealer check --post`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {

@@ -25,8 +25,11 @@ var clusterFile string
 
 // applyCmd represents the apply command
 var applyCmd = &cobra.Command{
-	Use:     "apply",
-	Short:   "apply a kubernetes cluster",
+	Use:   "apply",
+	Short: "apply a Kubernetes cluster via specified Clusterfile",
+	Long: `apply command is used to apply a Kubernetes cluster via specified Clusterfile.
+If the Clusterfile is applied first time, Kubernetes cluster will be created. Otherwise, sealer
+will apply the diff change of current Clusterfile and the original one.`,
 	Example: `sealer apply -f Clusterfile`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -40,6 +43,6 @@ var applyCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(applyCmd)
-	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "apply a kubernetes cluster")
-	applyCmd.Flags().BoolVar(&runtime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
+	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "Clusterfile path to apply a Kubernetes cluster")
+	applyCmd.Flags().BoolVar(&runtime.ForceDelete, "force", false, "force to delete the specified cluster if set true")
 }

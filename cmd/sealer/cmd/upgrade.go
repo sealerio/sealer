@@ -33,8 +33,8 @@ const (
 // upgradeCmd represents the upgrade command
 var upgradeCmd = &cobra.Command{
 	Use:     "upgrade",
-	Short:   "upgrade your kubernetes cluster",
-	Long:    `sealer upgrade image name --cluster cluster name`,
+	Short:   "upgrade specified Kubernetes cluster",
+	Long:    `sealer upgrade imagename --cluster clustername`,
 	Example: `sealer upgrade kubernetes:v1.19.9 --cluster my-cluster`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -63,5 +63,5 @@ var upgradeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(upgradeCmd)
-	upgradeCmd.Flags().StringVarP(&upgradeClusterName, "cluster", "c", "", "The name of your cluster to upgrade")
+	upgradeCmd.Flags().StringVarP(&upgradeClusterName, "cluster", "c", "", "the name of cluster")
 }

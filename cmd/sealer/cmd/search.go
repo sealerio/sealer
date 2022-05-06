@@ -30,12 +30,14 @@ import (
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
 	Use:   "search",
-	Short: "sealer search kubernetes",
-	Example: `
-sealer search <imageDomain>/<imageRepo>/<imageName> ...
+	Short: "search CloudImage in default registry",
+	// TODO: add long description.
+	Long: "",
+	Example: `sealer search <imageDomain>/<imageRepo>/<imageName> ...
 ## default imageDomain: 'registry.cn-qingdao.aliyuncs.com', default imageRepo: 'sealer-io'
 ex.:
-  sealer search kubernetes seadent/rootfs docker.io/library/hello-world`,
+  sealer search kubernetes seadent/rootfs docker.io/library/hello-world
+`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 

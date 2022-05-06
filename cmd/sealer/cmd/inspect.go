@@ -29,7 +29,7 @@ var inspectPlatformFlag string
 // inspectCmd represents the inspect command
 var inspectCmd = &cobra.Command{
 	Use:   "inspect",
-	Short: "print the image information or clusterFile",
+	Short: "print the image information or Clusterfile",
 	Long:  `sealer inspect ${image id} to print image information`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,5 +52,5 @@ var inspectCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(inspectCmd)
-	inspectCmd.Flags().StringVar(&inspectPlatformFlag, "platform", "", "set cloud image platform")
+	inspectCmd.Flags().StringVar(&inspectPlatformFlag, "platform", "", "set CloudImage platform")
 }

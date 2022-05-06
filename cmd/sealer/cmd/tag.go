@@ -21,8 +21,10 @@ import (
 )
 
 var tagCmd = &cobra.Command{
-	Use:     "tag",
-	Short:   "tag a image as a new one",
+	Use:   "tag",
+	Short: "create a new tag that refers to a local CloudImage",
+	// TODO: add long description.
+	Long:    "",
 	Example: `sealer tag kubernetes:v1.19.8 registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.8`,
 	Args:    cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {

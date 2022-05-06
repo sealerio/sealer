@@ -27,10 +27,12 @@ var joinArgs *apply.Args
 
 var joinCmd = &cobra.Command{
 	Use:   "join",
-	Short: "join node to cluster",
-	Args:  cobra.NoArgs,
+	Short: "join new master or worker node to specified cluster",
+	// TODO: add long description.
+	Long: "",
+	Args: cobra.NoArgs,
 	Example: `
-join to default cluster:
+join default cluster:
 	sealer join --masters x.x.x.x --nodes x.x.x.x
     sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
 `,
@@ -56,5 +58,5 @@ func init() {
 	rootCmd.AddCommand(joinCmd)
 	joinCmd.Flags().StringVarP(&joinArgs.Masters, "masters", "m", "", "set Count or IPList to masters")
 	joinCmd.Flags().StringVarP(&joinArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
-	joinCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "submit one cluster name")
+	joinCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "specify the name of cluster")
 }

@@ -25,7 +25,9 @@ var roles string
 // execCmd represents the exec command
 var execCmd = &cobra.Command{
 	Use:   "exec",
-	Short: "exec a shell command or script on all node.",
+	Short: "exec a shell command or script on specified nodes.",
+	// TODO: add long description.
+	Long: "",
 	Example: `
 exec to default cluster: my-cluster
 	sealer exec "cat /etc/hosts"
@@ -46,6 +48,6 @@ set role label to exec cmd:
 
 func init() {
 	rootCmd.AddCommand(execCmd)
-	execCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "submit one cluster name")
+	execCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "specify the name of cluster")
 	execCmd.Flags().StringVarP(&roles, "roles", "r", "", "set role label to roles")
 }

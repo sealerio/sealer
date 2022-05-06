@@ -30,7 +30,7 @@ var flag *processor.ParserArg
 // genCmd represents the gen command
 var genCmd = &cobra.Command{
 	Use:   "gen",
-	Short: "Generate a Clusterfile to take over a normal cluster which not deployed by sealer",
+	Short: "generate a Clusterfile to take over a normal cluster which is not deployed by sealer",
 	Long: `sealer gen --passwd xxxx --image kubernetes:v1.19.8
 
 The takeover actually is to generate a Clusterfile by kubeconfig.
@@ -73,7 +73,7 @@ func init() {
 	genCmd.Flags().Uint16Var(&flag.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	genCmd.Flags().StringVar(&flag.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set server private key")
 	genCmd.Flags().StringVar(&flag.PkPassword, "pk-passwd", "", "set server private key password")
-	genCmd.Flags().StringVar(&flag.Image, "image", "", "Set taken over cloud image")
+	genCmd.Flags().StringVar(&flag.Image, "image", "", "Set taken over CloudImage")
 	genCmd.Flags().StringVar(&flag.Name, "name", "default", "Set taken over cluster name")
 	genCmd.Flags().StringVar(&flag.Passwd, "passwd", "", "Set taken over ssh passwd")
 }

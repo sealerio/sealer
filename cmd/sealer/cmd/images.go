@@ -38,8 +38,10 @@ const (
 )
 
 var listCmd = &cobra.Command{
-	Use:     "images",
-	Short:   "list all cluster images",
+	Use:   "images",
+	Short: "list all CloudImages on the local node",
+	// TODO: add long description.
+	Long:    "",
 	Args:    cobra.NoArgs,
 	Example: `sealer images`,
 	RunE: func(cmd *cobra.Command, args []string) error {

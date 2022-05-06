@@ -32,8 +32,10 @@ type LoginFlag struct {
 var loginConfig *LoginFlag
 
 var loginCmd = &cobra.Command{
-	Use:     "login",
-	Short:   "login image repository",
+	Use:   "login",
+	Short: "login image registry",
+	// TODO: add long description.
+	Long:    "",
 	Example: `sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

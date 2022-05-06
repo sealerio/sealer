@@ -25,10 +25,16 @@ import (
 )
 
 var pruneCmd = &cobra.Command{
-	Use:     "prune",
-	Short:   "prune sealer data dir",
-	Args:    cobra.NoArgs,
-	Example: `sealer prune`,
+	Use:   "prune",
+	Short: "prune sealer data dir",
+	// TODO: add long description.
+	Long: "",
+	Args: cobra.NoArgs,
+	Example: `$ sealer prune
+start to prune image db ...
+start to prune layer ...
+start to prune build tmp ...
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		buildTmp := prune.NewBuildPrune()
 		ima, err := prune.NewImagePrune()
