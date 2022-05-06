@@ -15,7 +15,7 @@ features:
 footer: "钉钉讨论组: 34619594 微信: fangnux"
 ---
 
-# 构建&运行一个自定义kuberentes集群
+# 构建&运行一个自定义kubernetes集群
 
 本例中介绍如何构建一个包含dashboard的集群镜像，然后一键启动。
 

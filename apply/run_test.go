@@ -17,7 +17,6 @@ package apply
 import (
 	"testing"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils"
 )
@@ -25,12 +24,12 @@ import (
 func TestAssemblyIPList(t *testing.T) {
 	tests := []struct {
 		name    string
-		args    *common.RunArgs
+		args    *Args
 		wantErr bool
 	}{
 		{
 			"baseData",
-			&common.RunArgs{
+			&Args{
 				Masters:    "10.110.101.1-10.110.101.5",
 				Nodes:      "10.110.101.1-10.110.101.5",
 				User:       "",
@@ -44,7 +43,7 @@ func TestAssemblyIPList(t *testing.T) {
 		},
 		{
 			"errorData",
-			&common.RunArgs{
+			&Args{
 				Masters:    "10.110.101.10-10.110.101.5",
 				Nodes:      "10.110.101.1-10.110.101.5",
 				User:       "",
@@ -58,7 +57,7 @@ func TestAssemblyIPList(t *testing.T) {
 		},
 		{
 			"errorData2",
-			&common.RunArgs{
+			&Args{
 				Masters:    "10.110.101.10-10.110.101.5-10.110.101.55",
 				Nodes:      "10.110.101.1-10.110.101.5",
 				User:       "",
@@ -72,7 +71,7 @@ func TestAssemblyIPList(t *testing.T) {
 		},
 		{
 			"errorData3",
-			&common.RunArgs{
+			&Args{
 				Masters:    "-10.110.101.",
 				Nodes:      "10.110.101.1-",
 				User:       "",
@@ -86,7 +85,7 @@ func TestAssemblyIPList(t *testing.T) {
 		},
 		{
 			"errorData4",
-			&common.RunArgs{
+			&Args{
 				Masters:    "a-b",
 				Nodes:      "a-",
 				User:       "",

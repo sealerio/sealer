@@ -22,7 +22,6 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/pkg/command"
 	"github.com/sealerio/sealer/pkg/image/cache"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils"
@@ -74,7 +73,7 @@ func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	}
 
 	cmd := fmt.Sprintf(common.CdAndExecCmd, c.mounter.GetMountTarget(), cmdline)
-	output, err := command.NewSimpleCommand(cmd).Exec()
+	output, err := utils.RunSimpleCmd(cmd)
 	logger.Info(output)
 
 	if err != nil {

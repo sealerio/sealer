@@ -31,7 +31,7 @@ import (
 type ClusterArgs struct {
 	cluster   *v2.Cluster
 	imageName string
-	runArgs   *common.RunArgs
+	runArgs   *Args
 	hosts     []v2.Host
 }
 
@@ -49,7 +49,7 @@ func IsIPList(args string) bool {
 	return true
 }
 
-func PreProcessIPList(joinArgs *common.RunArgs) error {
+func PreProcessIPList(joinArgs *Args) error {
 	if err := utils.AssemblyIPList(&joinArgs.Masters); err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (c *ClusterArgs) setHostWithIpsPort(ips []string, role string) {
 	}
 }
 
-func NewApplierFromArgs(imageName string, runArgs *common.RunArgs) (applydriver.Interface, error) {
+func NewApplierFromArgs(imageName string, runArgs *Args) (applydriver.Interface, error) {
 	c := &ClusterArgs{
 		cluster:   &v2.Cluster{},
 		imageName: imageName,

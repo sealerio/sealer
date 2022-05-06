@@ -28,6 +28,22 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
+type Args struct {
+	ClusterName string
+	Masters     string
+	Nodes       string
+	User        string
+	Password    string
+	Port        uint16
+	Pk          string
+	PkPassword  string
+	PodCidr     string
+	SvcCidr     string
+	Provider    string
+	CustomEnv   []string
+	CMDArgs     []string
+}
+
 func NewApplierFromFile(path string) (applydriver.Interface, error) {
 	if !filepath.IsAbs(path) {
 		pa, err := os.Getwd()
