@@ -1,6 +1,6 @@
 ---
 home: true
-heroImage: "https://user-images.githubusercontent.com/8912557/139633211-96844d27-55d7-44a9-9cdc-5aea96441613.png"
+heroImage: "https://sealer.oss-cn-beijing.aliyuncs.com/logo.png"
 tagline: 把整个集群看成一台服务器，把kubernetes看成云操作系统，吸取docker设计精髓实现分布式软件镜像化构建、交付、运行
 actionText: 快速开始→
 actionLink: "/zh/getting-started/introduction"
