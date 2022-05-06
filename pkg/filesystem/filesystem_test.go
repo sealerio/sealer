@@ -19,7 +19,6 @@ import (
 
 	k8sV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
@@ -73,7 +72,7 @@ func TestMount(t *testing.T) {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 
-			if err = fileSystem.MountRootfs(tt.arg.cluster, append(runtime.GetMasterIPList(testCluster), runtime.GetNodeIPList(testCluster)...), true); err != nil {
+			if err = fileSystem.MountRootfs(tt.arg.cluster, append(testCluster.GetMasterIPList(), testCluster.GetNodeIPList()...), true); err != nil {
 				t.Errorf("%s failed: %v", tt.name, err)
 			}
 		})

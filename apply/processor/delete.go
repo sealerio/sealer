@@ -65,7 +65,7 @@ func (d *DeleteProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 
 func (d *DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), runtime.GetMaster0Ip(cluster))
+	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utils.NotIn(config.IP, hosts) {
 		hosts = append(hosts, config.IP)
 	}

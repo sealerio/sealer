@@ -177,45 +177,6 @@ func GetCloudImagePlatform(rootfs string) (cp ocispecs.Platform) {
 	return
 }
 
-func ReadChanError(errors chan error) (err error) {
-	for {
-		if len(errors) == 0 {
-			break
-		}
-		err = fmt.Errorf("%v,%v", err, <-errors)
-	}
-
-	return
-}
-
-func GetMasterIPList(cluster *v2.Cluster) (masters []string) {
-	if cluster == nil {
-		return
-	}
-	return getHostsIPByRole(cluster, common.MASTER)
-}
-
-func GetMaster0Ip(cluster *v2.Cluster) string {
-	//cluster master ips > 0
-	return cluster.Spec.Hosts[0].IPS[0]
-}
-
-func GetNodeIPList(cluster *v2.Cluster) (masters []string) {
-	if cluster == nil {
-		return
-	}
-	return getHostsIPByRole(cluster, common.NODE)
-}
-
-func getHostsIPByRole(cluster *v2.Cluster, role string) (nodes []string) {
-	for _, host := range cluster.Spec.Hosts {
-		if utils.InList(role, host.Roles) {
-			nodes = append(nodes, host.IPS...)
-		}
-	}
-	return
-}
-
 func DecodeCRDFromFile(filePath string, kind string) (interface{}, error) {
 	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {

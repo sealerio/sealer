@@ -82,13 +82,11 @@ func (in *Cluster) GetAllIPList() []string {
 }
 
 func (in *Cluster) GetMaster0IP() string {
-	if len(in.Spec.Hosts) == 0 {
+	masterIPList := in.GetIPSByRole(common.MASTER)
+	if len(masterIPList) == 0 {
 		return ""
 	}
-	if len(in.Spec.Hosts[0].IPS) == 0 {
-		return ""
-	}
-	return in.Spec.Hosts[0].IPS[0]
+	return masterIPList[0]
 }
 
 func (in *Cluster) GetIPSByRole(role string) []string {
