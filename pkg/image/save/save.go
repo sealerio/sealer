@@ -233,11 +233,11 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestService, imagedigest digest.Digest, platform v1.Platform) (digest.Digest, error) {
 	mani, err := manifest.Get(is.ctx, imagedigest, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
-		return digest.Digest(""), fmt.Errorf("get image manifest error: %v", err)
+		return "", fmt.Errorf("get image manifest error: %v", err)
 	}
 	ct, p, err := mani.Payload()
 	if err != nil {
-		return digest.Digest(""), fmt.Errorf("failed to get image manifest payload: %v", err)
+		return "", fmt.Errorf("failed to get image manifest payload: %v", err)
 	}
 	switch ct {
 	case manifestV2, manifestOCI:
@@ -245,7 +245,7 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 	case manifestList, manifestOCIIndex:
 		imageDigest, err := distributionutil.GetImageManifestDigest(p, platform)
 		if err != nil {
-			return digest.Digest(""), fmt.Errorf("get digest from manifest list error: %v", err)
+			return "", fmt.Errorf("get digest from manifest list error: %v", err)
 		}
 		return imageDigest, nil
 	case "":
@@ -258,7 +258,7 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 		//If not list, then assume it must be an image manifest
 		return imagedigest, nil
 	default:
-		return digest.Digest(""), fmt.Errorf("unrecognized manifest content type")
+		return "", fmt.Errorf("unrecognized manifest content type")
 	}
 }
 

@@ -108,7 +108,7 @@ func createKubeConfigFiles(outDir string, cfg Config, nodeName, controlPlaneEndp
 }
 
 // getKubeConfigSpecs returns all KubeConfigSpecs actualized to the context of the current InitConfiguration
-// NB. this methods holds the information about how kubeadm creates kubeconfig files.
+// NB. these methods holds the information about how kubeadm creates kubeconfig files.
 func getKubeConfigSpecs(cfg Config, nodeName, controlPlaneEndpoint string) (map[string]*kubeConfigSpec, error) {
 	caCert, caKey, err := LoadCaCertAndKeyFromDisk(cfg)
 	if err != nil {
@@ -356,7 +356,7 @@ func ValidateKubeconfigsForExternalCA(outDir string, cfg Config, controlPlaneEnd
 	}
 
 	// Creates a kubeconfig file with the target CA and server URL
-	// to be used as a input for validating user provided kubeconfig files
+	// to be used as an input for validating user provided kubeconfig files
 	caCert, _, err := LoadCaCertAndKeyFromDisk(cfg)
 	if err != nil {
 		return err

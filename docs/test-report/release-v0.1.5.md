@@ -383,7 +383,7 @@ spec:
     - 172.16.0.172//nodes adds one node
 ```
 
-1. **Execute sealer apply -f /root/.sealer/my-cluster/Clusterfile （executed successfully)：**
+1. **Execute sealer apply -f /root/.sealer/my-cluster/Clusterfile**
 
 ```shell
 [root@test-baremetal004 ~]# kubectl get nodes -A

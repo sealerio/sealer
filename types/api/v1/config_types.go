@@ -51,9 +51,9 @@ spec:
 
 When apply this Clusterfile, sealer will generate some values file for application config. Named etc/mysql-config.yaml etc/redis-config.yaml.
 
-So if you want to use those config, Kubefile is like this:
+So if you want to use this config, Kubefile is like this:
 
-FROM kuberentes:v1.19.9
+FROM kubernetes:v1.19.9
 CMD helm install mysql -f etc/mysql-config.yaml
 CMD helm install mysql -f etc/redis-config.yaml
 */

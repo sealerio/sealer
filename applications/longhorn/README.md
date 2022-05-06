@@ -13,11 +13,11 @@ Components included in this image:
 
 ## How to use it
 
-At the first maker sure all the pods status up in longhorn-system namespace.
+At the first maker sure all the pods' status up in longhorn-system namespace.
 
-### storageclass
+### Storage class
 
-This images provide  ```longhorn``` as default stotageclass, you can use it easily in PVC.
+These images provide  ```longhorn``` as default storage class, you can use it easily in PVC.
 
 ### UI dashboard
 

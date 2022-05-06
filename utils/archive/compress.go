@@ -84,7 +84,7 @@ func GzipCompress(in io.Reader) (io.ReadCloser, chan struct{}) {
 			err = bufWriter.Flush()
 		}
 		if err != nil {
-			// leave the err
+			// leave this err
 			_ = pipeWriter.CloseWithError(err)
 		} else {
 			err := pipeWriter.Close()
@@ -250,7 +250,7 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 		if walkErr != nil {
 			return fmt.Errorf("failed to write original header, path: %s, err: %v", file, walkErr)
 		}
-		// this is a opaque, write the opaque header, in order to set header.PAXRecords with trusted.overlay.opaque:y
+		// this is an opaque, write the opaque header, in order to set header.PAXRecords with trusted.overlay.opaque:y
 		// when decompress the tar stream.
 		if woh != nil {
 			walkErr = tarWriter.WriteHeader(woh)
@@ -356,7 +356,7 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		// it is a opaque / whiteout, don't write its file content.
+		// it is an opaque / whiteout, don't write its file content.
 		if !goon {
 			continue
 		}

@@ -283,7 +283,7 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 }
 
 // RemoteDirExist if remote file not exist return false and nil
-func (s *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
+func (s *SSH) RemoteDirExist(host, remoteDirPath string) (bool, error) {
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return false, err
@@ -292,7 +292,7 @@ func (s *SSH) RemoteDirExist(host, remoteDirpath string) (bool, error) {
 		_ = sftpClient.Close()
 		_ = sshClient.Close()
 	}()
-	if _, err := sftpClient.ReadDir(remoteDirpath); err != nil {
+	if _, err := sftpClient.ReadDir(remoteDirPath); err != nil {
 		return false, err
 	}
 	return true, nil

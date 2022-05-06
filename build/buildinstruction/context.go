@@ -87,7 +87,7 @@ func NewExecContext(buildContext string, buildArgs map[string]string, useCache b
 		BuildContext:  buildContext,
 		BuildArgs:     buildArgs,
 		CacheSvc:      chainSvc,
-		ParentID:      cache.ChainID(""),
+		ParentID:      "",
 		Prober:        prober,
 		ContinueCache: true,
 	}

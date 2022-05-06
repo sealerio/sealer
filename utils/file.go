@@ -342,7 +342,7 @@ func CleanFile(file *os.File) {
 	if file == nil {
 		return
 	}
-	// the following operation won't failed regularly, if failed, log it
+	// the following operation won't fail regularly, if failed, log it
 	err := file.Close()
 	if err != nil && err != os.ErrClosed {
 		logger.Warn(err)

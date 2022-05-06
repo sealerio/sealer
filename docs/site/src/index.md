@@ -11,8 +11,8 @@ features:
 - title: Share
   details: You can push CloudImage to registry and share it to anyone
 - title: Run
-  details: Run kubernetes cluster with you dependencies and you applications in few minute on anywhere
-footer: "dingtalk group: 34619594 wechat: fangnux"
+  details: Run kubernetes cluster with your dependencies and applications in few minute on anywhere
+footer: "dingtalk group: 34619594 WeChat: fangnux"
 ---
 
 # Build&Share&Run a User-defined kubernetes

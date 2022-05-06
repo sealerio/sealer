@@ -45,7 +45,7 @@ NAME                         TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)     
 basic-tidb-cluster-grafana   NodePort   10.96.0.225   <none>        3000:31180/TCP   18m
 ```
 
-Access the prometheus monitoring data, run the kubectl port-forward command to access it.open [http://localhost:9090](http://localhost:9000) in
+Access the prometheus monitoring data, run the kubectl port-forward command to access it. Open [http://localhost:9090](http://localhost:9000) in
 your browser or access this address via a client tool.
 
 `kubectl port-forward -n tidb-system svc/basic-tidb-cluster-prometheus 9090:9090 &>/tmp/portforward-prometheus.log &`

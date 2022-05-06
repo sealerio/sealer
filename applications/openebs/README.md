@@ -92,7 +92,7 @@ CMD helm install my-kafka --create-namespace --namespace kafka-system --set glob
 
 ## About Jiva
 
-Jiva is a light weight storage engine that is recommended to use for low capacity workloads. The snapshot and storage
+Jiva is a lightweight storage engine that is recommended to use for low capacity workloads. The snapshot and storage
 management features of the other cStor engine are more advanced and is recommended when snapshots are a need.
 
 Components included in this image:

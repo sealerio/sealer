@@ -40,7 +40,7 @@ func (k *KubeadmRuntime) setKubeadmAPIVersion() {
 	case VersionCompare(k.getKubeVersion(), V1230):
 		k.setAPIVersion(KubeadmV1beta3)
 	default:
-		// Compatible with versions 1.14 and 1.13. but do not recommended.
+		// Compatible with versions 1.14 and 1.13. but do not recommend.
 		k.setAPIVersion(KubeadmV1beta1)
 	}
 }

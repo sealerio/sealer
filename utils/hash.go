@@ -23,28 +23,6 @@ import (
 	"path/filepath"
 )
 
-//DirMD5 count files md5
-/*func DirMD5(dirName string) string {
-	var md5Value []byte
-	filepath.Walk(dirName, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return fmt.Errorf("access path error %v", err)
-		}
-
-		if !info.IsDir() {
-			data, err := ioutil.ReadFile(path)
-			if err != nil {
-				return fmt.Errorf("walk file error %v", err)
-			}
-			bytes := md5.Sum(data)
-			md5Value = append(md5Value, bytes[:]...)
-		}
-		return nil
-	})
-	md5Values := md5.Sum(md5Value)
-	return hex.EncodeToString(md5Values[:])
-}*/
-
 func MD5(body []byte) string {
 	bytes := md5.Sum(body) // #nosec
 	return hex.EncodeToString(bytes[:])

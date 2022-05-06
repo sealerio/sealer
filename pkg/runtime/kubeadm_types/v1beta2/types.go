@@ -50,8 +50,8 @@ type InitConfiguration struct {
 
 	// LocalAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
 	// In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
-	// is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
-	// configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
+	// is the global endpoint for the cluster, which then load balances the requests to each individual API server. This
+	// configuration object lets you customize what IP/DNS name and port the local API server advertises Its accessible
 	// on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
 	// fails you may set the desired value here.
 	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"`
@@ -77,7 +77,7 @@ type ClusterConfiguration struct {
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 
 	// ControlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-	// can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+	// can be a valid IP address or an RFC-1123 DNS subdomain, both with optional TCP port.
 	// In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
 	// are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
 	// the BindPort is used.
@@ -202,7 +202,7 @@ type APIEndpoint struct {
 // NodeRegistrationOptions holds fields that relate to registering a new control-plane or node to the cluster, either via "kubeadm init" or "kubeadm join"
 type NodeRegistrationOptions struct {
 
-	// Name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
+	// Name is the `.Metadata.Name` field of the Node API objects that will be created in this `kubeadm init` or `kubeadm join` operation.
 	// This field is also used in the CommonName field of the kubelet's client certificate to the API server.
 	// Defaults to the hostname of the node if not provided.
 	Name string `json:"name,omitempty"`
@@ -292,7 +292,7 @@ type LocalEtcd struct {
 }
 
 // ExternalEtcd describes an external etcd cluster.
-// Kubeadm has no knowledge of where certificate files live and they must be supplied.
+// Kubeadm has no knowledge of where certificate files live, and they must be supplied.
 type ExternalEtcd struct {
 	// Endpoints of etcd members. Required for ExternalEtcd.
 	Endpoints []string `json:"endpoints"`
@@ -320,7 +320,7 @@ type JoinConfiguration struct {
 	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
 
 	// CACertPath is the path to the SSL certificate authority used to
-	// secure comunications between node and control-plane.
+	// secure communications between node and control-plane.
 	// Defaults to "/etc/kubernetes/pki/ca.crt".
 	CACertPath string `json:"caCertPath,omitempty"`
 

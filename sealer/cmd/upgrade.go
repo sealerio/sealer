@@ -34,12 +34,12 @@ const (
 var upgradeCmd = &cobra.Command{
 	Use:     "upgrade",
 	Short:   "upgrade your kubernetes cluster",
-	Long:    `sealer upgrade imagename --cluster clustername`,
+	Long:    `sealer upgrade image name --cluster cluster name`,
 	Example: `sealer upgrade kubernetes:v1.19.9 --cluster my-cluster`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		//get clustername
+		//get cluster name
 		if upgradeClusterName == "" {
 			upgradeClusterName, err = clusterfile.GetDefaultClusterName()
 			if err != nil {

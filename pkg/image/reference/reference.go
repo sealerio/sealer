@@ -21,7 +21,7 @@ import (
 
 type Named struct {
 	domain  string // like ***.com, won't be empty
-	raw     string // this name is going to be local tagname
+	raw     string // this name is going to be local tag name
 	repo    string // k8s, sealer/k8s
 	repoTag string // sealer/k8s:v1.6
 	tag     string // v1.6

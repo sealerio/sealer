@@ -51,7 +51,7 @@ sealer delete --all
 Kubefile:
 
 ```shell script
-# 基础镜像中包含安装kuberntes的所有依赖，sealer已经制作好，用户直接使用它即可
+# 基础镜像中包含安装kubernetes的所有依赖，sealer已经制作好，用户直接使用它即可
 FROM kubernetes:v1.19.8
 # 下载dashboard的yaml文件
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml

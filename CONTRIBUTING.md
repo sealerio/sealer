@@ -11,7 +11,7 @@ It is warmly welcomed if you have interest to hack on Sealer. First, we encourag
 
 ## Reporting security issues
 
-Security issues are always treated seriously. As our usual principle, we discourage anyone to spread security issues. If you find a security issue of Sealer, please do not discuss it in public and even do not open a public issue. Instead we encourage you to send us a private email to [sealer@list.alibaba-inc.com](mailto:sealer@list.alibaba-inc.com) to report this.
+Security issues are always treated seriously. As our usual principle, we discourage anyone to spread security issues. If you find a security issue of Sealer, please do not discuss it in public and even do not open a public issue. Instead, we encourage you to send us a private email to [sealer@list.alibaba-inc.com](mailto:sealer@list.alibaba-inc.com) to report this.
 
 ## Reporting general issues
 
@@ -19,9 +19,9 @@ To be honest, we regard every user of Sealer as a very kind contributor. After e
 
 Since we collaborate project Sealer in a distributed way, we appreciate **WELL-WRITTEN**, **DETAILED**, **EXPLICIT** issue reports. To make the communication more efficient, we wish everyone could search if your issue is an existing one in the searching list. If you find it existing, please add your details in comments under the existing issue instead of opening a brand new one.
 
-To make the issue details as standard as possible, we setup an [ISSUE TEMPLATE](./.github/ISSUE_TEMPLATE) for issue reporters. You can find three kinds of issue templates there: question, bug report and feature request. Please **BE SURE** to follow the instructions to fill fields in template.
+To make the issue details as standard as possible, we set up an [ISSUE TEMPLATE](./.github/ISSUE_TEMPLATE) for issue reporters. You can find three kinds of issue templates there: question, bug report and feature request. Please **BE SURE** to follow the instructions to fill fields in template.
 
-There are lot of cases when you could open an issue:
+There are a lot of cases when you could open an issue:
 
 * bug report
 * feature request
@@ -34,7 +34,7 @@ There are lot of cases when you could open an issue:
 * any questions on project
 * and so on
 
-Also we must remind that when filing a new issue, please remember to remove the sensitive data from your post. Sensitive data could be password, secret key, network locations, private business data and so on.
+Also, we must remind that when filing a new issue, please remember to remove the sensitive data from your post. Sensitive data could be password, secret key, network locations, private business data and so on.
 
 ## Code and doc contribution
 
@@ -128,11 +128,11 @@ Right now we assume every contribution via pull request is for [branch master](h
 
 As a contributor, keep in mind again that every contribution via pull request is for branch master. While in project sealer, there are several other branches, we generally call them rc branches, release branches and backport branches.
 
-Before officially releasing a version, we will checkout a rc(release candidate) branch. In this branch, we will test more than branch main.
+Before officially releasing a version, we will check out a rc(release candidate) branch. In this branch, we will test more than branch main.
 
 When officially releasing a version, there will be a release branch before tagging. After tagging, we will delete the release branch.
 
-When backporting some fixes to existing released version, we will checkout backport branches. After backporting, the backporting effects will be in PATCH number in MAJOR.MINOR.PATCH of [SemVer](http://semver.org/).
+When backport some fixes to existing released version, we will check out backport branches. After backporting, the backporting effects will be in PATCH number in MAJOR.MINOR.PATCH of [SemVer](http://semver.org/).
 
 ### Commit Rules
 
@@ -191,7 +191,7 @@ We choose GitHub as the primary place for Sealer to collaborate. So the latest u
 * help solve other user's problems;
 * help review other's PR design;
 * help review other's codes in PR;
-* discuss about Sealer to make things clearer;
+* discuss Sealer to make things clearer;
 * advocate Sealer technology beyond GitHub;
 * write blogs on Sealer and so on.
 

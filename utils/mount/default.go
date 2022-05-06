@@ -114,7 +114,7 @@ func copyDir(srcPath string, dstPath string) error {
 }
 
 func copyFile(src, dst string) error {
-	// open srcfile
+	// open src file
 	srcFile, err := os.Open(filepath.Clean(src))
 	if err != nil {
 		return fmt.Errorf("open file [%s] failed: %s", src, err)
@@ -124,7 +124,7 @@ func copyFile(src, dst string) error {
 			logger.Fatal("failed to close file")
 		}
 	}()
-	// create dstfile
+	// create dst file
 	dstFile, err := os.Create(filepath.Clean(dst))
 	if err != nil {
 		return fmt.Errorf("create file err: %s", err)

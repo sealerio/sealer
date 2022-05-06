@@ -30,7 +30,7 @@ type CIDR struct {
 	ipnet *net.IPNet
 }
 
-// Parse CIDR net range
+// ParseCIDR Parse CIDR net range
 func ParseCIDR(s string) (*CIDR, error) {
 	i, n, err := net.ParseCIDR(s)
 	if err != nil {
@@ -39,7 +39,7 @@ func ParseCIDR(s string) (*CIDR, error) {
 	return &CIDR{ip: i, ipnet: n}, nil
 }
 
-// Parse CIDR  Fix to Standard CIDR
+// ParseCIDRString Parse CIDR  Fix to Standard CIDR
 func ParseCIDRString(s string) (string, error) {
 	c, err := ParseCIDR(s)
 	if err != nil {
@@ -48,41 +48,41 @@ func ParseCIDRString(s string) (string, error) {
 	return c.CIDR(), nil
 }
 
-// Is IPv4
+// IsIPv4 check it is IPv4
 func (c CIDR) IsIPv4() bool {
 	_, bits := c.ipnet.Mask.Size()
 	return bits/8 == net.IPv4len
 }
 
-// Is IPv6
+// IsIPv6 check it is IPv6
 func (c CIDR) IsIPv6() bool {
 	_, bits := c.ipnet.Mask.Size()
 	return bits/8 == net.IPv6len
 }
 
-// Get IP
+// IP Get ip address
 func (c CIDR) IP() string {
 	return c.ip.String()
 }
 
-// Get Network Addr
+// Network Get Network Addr
 func (c CIDR) Network() string {
 	return c.ipnet.IP.String()
 }
 
-// Get Mask Size
+// MaskSize Get mask Size
 func (c CIDR) MaskSize() (ones, bits int) {
 	ones, bits = c.ipnet.Mask.Size()
 	return
 }
 
-// SubnetMask
+// Mask get subset mask
 func (c CIDR) Mask() string {
 	mask, _ := hex.DecodeString(c.ipnet.Mask.String())
 	return net.IP(mask).String()
 }
 
-// Fixed CIDR String
+// CIDR get fixed CIDR String
 func (c CIDR) CIDR() string {
 	return c.ipnet.String()
 }

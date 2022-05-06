@@ -39,7 +39,7 @@ var certCmd = &cobra.Command{
 
     For example: add a EIP to cert.
     1. sealer cert --alt-names 39.105.169.253
-    2. update the kubeconfig, cp /etc/kubenretes/admin.conf .kube/config
+    2. update the kubeconfig, cp /etc/kubernetes/admin.conf .kube/config
     3. edit .kube/config, set the apiserver address as 39.105.169.253, (don't forget to open the security group port for 6443, if you using public cloud)
     4. kubectl get pod, to check it works or not
 `,

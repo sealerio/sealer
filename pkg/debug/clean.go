@@ -34,7 +34,7 @@ import (
 	"github.com/sealerio/sealer/common"
 )
 
-// CleanOptions holds the the options for an invocation of debug clean.
+// CleanOptions holds the options for an invocation of debug clean.
 type CleanOptions struct {
 	PodName       string
 	Namespace     string
