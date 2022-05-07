@@ -1,5 +1,0 @@
-FROM longhorn:v1.2.3
-
-COPY skywalking.yaml .
-
-CMD kubectl create ns skywalking && kubectl apply -f skywalking.yaml -n skywalking
