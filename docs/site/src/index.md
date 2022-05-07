@@ -19,7 +19,7 @@ features:
 [![asciicast](https://asciinema.org/a/446106.svg)](https://asciinema.org/a/446106?speed=3)
 
 
-<img src="https://sealer.oss-cn-beijing.aliyuncs.com/sealerio.png" width="1100" height="550"/>
+<img src="https://sealer.oss-cn-beijing.aliyuncs.com/website/sealerCNCF.png" width="1100" height="550"/>
 
 
 <hr style="border-top: 1px solid #eaecef; margin-top: 3.5rem;" />
