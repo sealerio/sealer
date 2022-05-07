@@ -1,4 +1,0 @@
-FROM kubernetes:v1.19.8
-
-COPY longhorn.yaml .
-CMD kubectl create ns longhorn-system && kubectl apply -f longhorn.yaml
