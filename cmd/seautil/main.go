@@ -14,14 +14,8 @@
 
 package main
 
-import (
-	"github.com/sealerio/sealer/sealer/boot"
-	"github.com/sealerio/sealer/sealer/cmd"
-)
+import "github.com/sealerio/sealer/cmd/seautil/cmd"
 
 func main() {
-	if err := boot.OnBoot(); err != nil {
-		panic(err)
-	}
 	cmd.Execute()
 }
