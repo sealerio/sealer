@@ -32,7 +32,7 @@ const (
 	DefaultLvsCareImage  = "sea.hub:5000/fanux/lvscare:latest"
 )
 
-// return lvs care static pod yaml
+// LvsStaticPodYaml return lvs care static pod yaml
 func LvsStaticPodYaml(vip string, masters []string, image string) string {
 	if vip == "" || len(masters) == 0 {
 		return ""

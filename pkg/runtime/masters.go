@@ -27,7 +27,6 @@ import (
 
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/cert"
-	"github.com/sealerio/sealer/pkg/command"
 	"github.com/sealerio/sealer/pkg/ipvs"
 	"github.com/sealerio/sealer/utils"
 )
@@ -114,7 +113,6 @@ const (
 
 type CommandType string
 
-//command type
 const InitMaster CommandType = "initMaster"
 const JoinMaster CommandType = "joinMaster"
 const JoinNode CommandType = "joinNode"
@@ -126,7 +124,7 @@ func getAPIServerHost(ipAddr, APIServer string) (host string) {
 func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []string {
 	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, k.getRegistryHost(), k.getRegistryHost())
-	certCMD := command.RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
+	certCMD := RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
 	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
 	if k.RegConfig.Domain != SeaHub {
 		cmdAddSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP+" "+SeaHub, k.RegConfig.IP+" "+SeaHub)

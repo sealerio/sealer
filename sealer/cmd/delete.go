@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	deleteArgs        *common.RunArgs
+	deleteArgs        *apply.Args
 	deleteClusterFile string
 	deleteClusterName string
 )
@@ -89,7 +89,7 @@ delete all:
 }
 
 func init() {
-	deleteArgs = &common.RunArgs{}
+	deleteArgs = &apply.Args{}
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.Flags().StringVarP(&deleteArgs.Masters, "masters", "m", "", "reduce Count or IPList to masters")
 	deleteCmd.Flags().StringVarP(&deleteArgs.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")

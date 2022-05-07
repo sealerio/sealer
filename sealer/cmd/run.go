@@ -26,7 +26,7 @@ import (
 	"github.com/sealerio/sealer/utils"
 )
 
-var runArgs *common.RunArgs
+var runArgs *apply.Args
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -61,7 +61,7 @@ create a cluster with custom environment variables:
 }
 
 func init() {
-	runArgs = &common.RunArgs{}
+	runArgs = &apply.Args{}
 	rootCmd.AddCommand(runCmd)
 	runCmd.Flags().StringVarP(&runArgs.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runArgs.Masters, "masters", "m", "", "set Count or IPList to masters")

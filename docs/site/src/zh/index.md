@@ -16,7 +16,7 @@ footer: "The Linux Foundation® (TLF)
   has registered trademarks and uses trademarks. For a list of TLF trademarks, see [Trademark Usage](https://www.linuxfoundation.org/trademark-usage/)"
 ---
 
-# 构建&运行一个自定义kuberentes集群
+# 构建&运行一个自定义kubernetes集群
 
 本例中介绍如何构建一个包含dashboard的集群镜像，然后一键启动。
 

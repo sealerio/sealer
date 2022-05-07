@@ -23,7 +23,7 @@ import (
 )
 
 var clusterName string
-var joinArgs *common.RunArgs
+var joinArgs *apply.Args
 
 var joinCmd = &cobra.Command{
 	Use:   "join",
@@ -52,7 +52,7 @@ join to default cluster:
 }
 
 func init() {
-	joinArgs = &common.RunArgs{}
+	joinArgs = &apply.Args{}
 	rootCmd.AddCommand(joinCmd)
 	joinCmd.Flags().StringVarP(&joinArgs.Masters, "masters", "m", "", "set Count or IPList to masters")
 	joinCmd.Flags().StringVarP(&joinArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")

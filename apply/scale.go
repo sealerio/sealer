@@ -27,7 +27,7 @@ import (
 )
 
 // NewScaleApplierFromArgs will filter ip list from command parameters.
-func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag string) (applydriver.Interface, error) {
+func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (applydriver.Interface, error) {
 	cluster := &v2.Cluster{}
 	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func NewScaleApplierFromArgs(clusterfile string, scaleArgs *common.RunArgs, flag
 	return applier, nil
 }
 
-func Join(cluster *v2.Cluster, scalingArgs *common.RunArgs) error {
+func Join(cluster *v2.Cluster, scalingArgs *Args) error {
 	/*	switch cluster.Spec.Provider {
 		case common.BAREMETAL:
 			return joinBaremetalNodes(cluster, scalingArgs)
@@ -71,7 +71,7 @@ func Join(cluster *v2.Cluster, scalingArgs *common.RunArgs) error {
 	return joinBaremetalNodes(cluster, scalingArgs)
 }
 
-func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
+func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	if err := PreProcessIPList(scaleArgs); err != nil {
 		return err
 	}
@@ -121,11 +121,11 @@ func removeIPListDuplicatesAndEmpty(ipList []string) []string {
 	return utils.DedupeStrSlice(utils.RemoveStrSlice(ipList, []string{""}))
 }
 
-func Delete(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
+func Delete(cluster *v2.Cluster, scaleArgs *Args) error {
 	return deleteBaremetalNodes(cluster, scaleArgs)
 }
 
-func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *common.RunArgs) error {
+func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	if err := PreProcessIPList(scaleArgs); err != nil {
 		return err
 	}

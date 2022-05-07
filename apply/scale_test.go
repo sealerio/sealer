@@ -25,14 +25,14 @@ import (
 func TestNewCleanApplierFromArgs(t *testing.T) {
 	tests := []struct {
 		cFile   string
-		cArgs   *common.RunArgs
+		cArgs   *Args
 		name    string
 		flag    string
 		wantErr bool
 	}{
 		{
 			"Clusterfile",
-			&common.RunArgs{
+			&Args{
 				Masters: "10.110.101.1-10.110.101.5",
 				Nodes:   "10.110.101.1-10.110.101.5",
 			},
@@ -42,7 +42,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 		},
 		{
 			"Clusterfile",
-			&common.RunArgs{
+			&Args{
 				Masters: "10.110.101.1,10.110.101.2",
 				Nodes:   "10.110.101.1,10.110.101.5",
 			},
@@ -52,7 +52,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 		},
 		{
 			"Clusterfile",
-			&common.RunArgs{
+			&Args{
 				Masters: "2",
 				Nodes:   "1",
 			},
@@ -62,7 +62,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 		},
 		{
 			"Clusterfile",
-			&common.RunArgs{
+			&Args{
 				Masters: "-10.110.101.2",
 				Nodes:   "10.110.101.2-",
 			},
@@ -72,7 +72,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 		},
 		{
 			"Clusterfile",
-			&common.RunArgs{
+			&Args{
 				Masters: "-10.110.101.2",
 				Nodes:   "10.110.101.2-",
 			},
@@ -82,7 +82,7 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 		},
 		{
 			"Clusterfile",
-			&common.RunArgs{
+			&Args{
 				Masters: "b-a",
 				Nodes:   "a-b",
 			},
