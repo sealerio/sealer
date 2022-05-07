@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/sftp"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/net"
 )
 
 const (
@@ -83,7 +84,7 @@ func (epu *easyProgressUtil) startMessage() {
 
 // Fetch scp remote file to local
 func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
-	if utils.IsLocalIP(host, s.LocalAddress) {
+	if net.IsLocalIP(host, s.LocalAddress) {
 		if remoteFilePath != localFilePath {
 			logger.Debug("local copy files src %s to dst %s", remoteFilePath, localFilePath)
 			return utils.RecursionCopy(remoteFilePath, localFilePath)
@@ -130,7 +131,7 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 // Copy file or dir to remotePath, add md5 validate
 func (s *SSH) Copy(host, localPath, remotePath string) error {
 	go displayInitOnce.Do(displayInit)
-	if utils.IsLocalIP(host, s.LocalAddress) {
+	if net.IsLocalIP(host, s.LocalAddress) {
 		if localPath == remotePath {
 			return nil
 		}

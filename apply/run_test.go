@@ -17,8 +17,9 @@ package apply
 import (
 	"testing"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 )
 
 func TestAssemblyIPList(t *testing.T) {
@@ -100,7 +101,7 @@ func TestAssemblyIPList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := utils.AssemblyIPList(&tt.args.Masters); (err != nil) != tt.wantErr {
+			if err := net.AssemblyIPList(&tt.args.Masters); (err != nil) != tt.wantErr {
 				logger.Error("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
 			}
 			logger.Info("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)

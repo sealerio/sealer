@@ -20,13 +20,13 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/net"
 )
 
 const SUDO = "sudo "
 
 func (s *SSH) Ping(host string) error {
-	if utils.IsLocalIP(host, s.LocalAddress) {
+	if net.IsLocalIP(host, s.LocalAddress) {
 		return nil
 	}
 	client, _, err := s.Connect(host)
@@ -43,7 +43,7 @@ func (s *SSH) Ping(host string) error {
 func (s *SSH) CmdAsync(host string, cmds ...string) error {
 	var execFunc func(cmd string) error
 
-	if utils.IsLocalIP(host, s.LocalAddress) {
+	if net.IsLocalIP(host, s.LocalAddress) {
 		execFunc = func(cmd string) error {
 			c := exec.Command("/bin/sh", "-c", cmd)
 			stdout, err := c.StdoutPipe()
@@ -119,7 +119,7 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	if s.User != common.ROOT {
 		cmd = SUDO + cmd
 	}
-	if utils.IsLocalIP(host, s.LocalAddress) {
+	if net.IsLocalIP(host, s.LocalAddress) {
 		return exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
 	}
 

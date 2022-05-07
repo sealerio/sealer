@@ -25,7 +25,7 @@ import (
 	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
+	netUtils "github.com/sealerio/sealer/utils/net"
 )
 
 type Interface interface {
@@ -67,7 +67,7 @@ func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 	if ssh.User == "" {
 		ssh.User = common.ROOT
 	}
-	address, err := utils.GetLocalHostAddresses()
+	address, err := netUtils.GetLocalHostAddresses()
 	if err != nil {
 		logger.Warn("failed to get local address, %v", err)
 	}

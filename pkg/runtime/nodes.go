@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
@@ -152,9 +154,9 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 		fmt.Sprintf(RemoteRemoveRegistryCerts, k.RegConfig.Domain),
 		fmt.Sprintf(RemoteRemoveRegistryCerts, SeaHub),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
-	address, err := utils.GetLocalHostAddresses()
+	address, err := net.GetLocalHostAddresses()
 	//if the node to be removed is the execution machine, kubelet, ~./kube and ApiServer host will be added
-	if err != nil || !utils.IsLocalIP(node, address) {
+	if err != nil || !net.IsLocalIP(node, address) {
 		remoteCleanCmds = append(remoteCleanCmds, RemoveKubeConfig)
 	} else {
 		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
@@ -190,7 +192,7 @@ func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
 	if err != nil {
 		return err
 	}
-	if result == utils.RouteOK {
+	if result == net.RouteOK {
 		return nil
 	}
 	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getVIP(), node))

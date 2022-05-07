@@ -15,7 +15,7 @@
 package cmd
 
 import (
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/spf13/cobra"
 )
@@ -45,7 +45,7 @@ func RouteCheckCmd() *cobra.Command {
 		Short: "A brief description of your command",
 		Long:  `seautil route check --host 192.168.56.3`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return utils.CheckIsDefaultRoute(routeFlag.host)
+			return net.CheckIsDefaultRoute(routeFlag.host)
 		},
 	}
 	checkCmd.Flags().StringVar(&routeFlag.host, "host", "", "check host ip address is default iFace")
@@ -58,7 +58,7 @@ func RouteAddCmd() *cobra.Command {
 		Short: "A brief description of your command",
 		Long:  `seautil route add --host 192.168.0.2 --gateway 10.0.0.2`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			r := utils.NewRouter(routeFlag.host, routeFlag.gatewayIP)
+			r := net.NewRouter(routeFlag.host, routeFlag.gatewayIP)
 			return r.SetRoute()
 		},
 	}
@@ -73,7 +73,7 @@ func RouteDelCmd() *cobra.Command {
 		Short: "delete router",
 		Long:  `seautil route del --host 192.168.0.2 --gateway 10.0.0.2`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			r := utils.NewRouter(routeFlag.host, routeFlag.gatewayIP)
+			r := net.NewRouter(routeFlag.host, routeFlag.gatewayIP)
 			return r.DelRoute()
 		},
 	}

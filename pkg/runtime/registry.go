@@ -18,11 +18,12 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/cert"
 	"github.com/sealerio/sealer/utils"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -46,7 +47,7 @@ type RegistryConfig struct {
 }
 
 func (k *KubeadmRuntime) getRegistryHost() (host string) {
-	ip, _ := utils.GetSSHHostIPAndPort(k.RegConfig.IP)
+	ip, _ := net.GetSSHHostIPAndPort(k.RegConfig.IP)
 	return fmt.Sprintf("%s %s", ip, k.RegConfig.Domain)
 }
 

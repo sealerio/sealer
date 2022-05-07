@@ -28,6 +28,7 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 )
@@ -237,7 +238,7 @@ func (k *KubeadmRuntime) setAPIVersion(apiVersion string) {
 func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
 	var tmpSlice []string
 	for _, ip := range masters {
-		tmpSlice = append(tmpSlice, fmt.Sprintf("https://%s:2379", utils.GetHostIP(ip)))
+		tmpSlice = append(tmpSlice, fmt.Sprintf("https://%s:2379", net.GetHostIP(ip)))
 	}
 	return strings.Join(tmpSlice, ",")
 }
