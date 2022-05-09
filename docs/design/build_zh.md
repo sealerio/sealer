@@ -6,7 +6,7 @@
 
 ### 类型介绍
 
-目前sealer 支持4种构建方式，用户可以通过命令行`-m` 参数指定，详细使用文档见[build 使用文档](../site/src/docs/getting-started/build-cloudimage.md) 。
+目前sealer默认使用lite build方式，详细使用文档见[build 使用文档](http://sealer.cool/docs/getting-started/build-cloudimage.html) 。
 
 #### lite build
 
