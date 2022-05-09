@@ -102,7 +102,7 @@ sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx
 
 ## User guide
 
-[get started](docs/site/src/docs/getting-started/quick-start.md)
+[get started](http://sealer.cool/docs/getting-started/introduction.html)
 
 ## Official website
 
