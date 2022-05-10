@@ -121,15 +121,7 @@ const (
 const APIServerDomain = "apiserver.cluster.local"
 
 const (
-	DeleteCmd       = "rm -rf %s"
-	ChmodCmd        = "chmod +x %s"
-	TmpTarFile      = "/tmp/%s.tar"
-	ZipCmd          = "tar zcvf %s %s"
-	UnzipCmd        = "mkdir -p %s && tar xvf %s -C %s"
-	CdAndExecCmd    = "cd %s && %s"
-	TagImageCmd     = "%s tag %s %s"
-	PushImageCmd    = "%s push %s"
-	BuildClusterCmd = "%s build -f %s -t %s -m %s %s"
+	CdAndExecCmd = "cd %s && %s"
 )
 
 const (

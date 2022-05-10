@@ -15,10 +15,14 @@
 package net
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"net"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	k8snet "k8s.io/apimachinery/pkg/util/net"
 )
@@ -203,4 +207,42 @@ func CompareIP(v1, v2 string) (int, error) {
 func NextIP(ip string) net.IP {
 	i := IPToInt(ip)
 	return i.Add(i, big.NewInt(1)).Bytes()
+}
+
+func IsHostPortExist(protocol string, hostname string, port int) bool {
+	p := strconv.Itoa(port)
+	addr := net.JoinHostPort(hostname, p)
+	conn, err := net.DialTimeout(protocol, addr, 3*time.Second)
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+	return true
+}
+
+func SortIPList(iplist []string) {
+	realIPs := make([]net.IP, 0, len(iplist))
+	for _, ip := range iplist {
+		realIPs = append(realIPs, net.ParseIP(ip))
+	}
+
+	sort.Slice(realIPs, func(i, j int) bool {
+		return bytes.Compare(realIPs[i], realIPs[j]) < 0
+	})
+
+	for i := range realIPs {
+		iplist[i] = realIPs[i].String()
+	}
+}
+
+func NotInIPList(key string, slice []string) bool {
+	for _, s := range slice {
+		if s == "" {
+			continue
+		}
+		if key == strings.Split(s, ":")[0] {
+			return false
+		}
+	}
+	return true
 }

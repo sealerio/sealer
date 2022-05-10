@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/filesystem"
@@ -102,7 +104,7 @@ func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	regConfig := runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), cluster.GetMaster0IP())
-	if utils.NotInIPList(regConfig.IP, hosts) {
+	if net.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
 

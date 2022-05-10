@@ -15,6 +15,8 @@
 package container
 
 import (
+	"crypto/rand"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -48,4 +50,12 @@ func getDiff(host v1.Hosts) (int, []string, error) {
 	}
 
 	return num, iplist, nil
+}
+
+func GenUniqueID(n int) string {
+	randBytes := make([]byte, n/2)
+	if _, err := rand.Read(randBytes); err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", randBytes)
 }

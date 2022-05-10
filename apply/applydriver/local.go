@@ -149,8 +149,8 @@ func (c *Applier) reconcileCluster() error {
 		return c.installApp()
 	}
 
-	mj, md := utils.GetDiffHosts(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
-	nj, nd := utils.GetDiffHosts(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
+	mj, md := utils.DiffSlice(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
+	nj, nd := utils.DiffSlice(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
 		return c.upgrade()
 	}

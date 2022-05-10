@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/filesystem"
@@ -144,7 +146,7 @@ func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	}
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
-	if utils.NotInIPList(regConfig.IP, hosts) {
+	if net.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
 	return fs.MountRootfs(cluster, hosts, false)
