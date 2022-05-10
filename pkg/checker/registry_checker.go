@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sealerio/sealer/pkg/client/docker/auth"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/distributionutil"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -39,7 +41,12 @@ func (r *RegistryChecker) Check(cluster *v2.Cluster, phase string) error {
 		return fmt.Errorf("registry auth info not found,please run 'sealer login' first")
 	}
 	// try to log in with auth info
-	authConfig, err := utils.GetDockerAuthInfoFromDocker(r.RegistryDomain)
+	svc, err := auth.NewDockerAuthService()
+	if err != nil {
+		return fmt.Errorf("failed to read default auth file %s: %v", authFile, err)
+	}
+
+	authConfig, err := svc.GetAuthByDomain(r.RegistryDomain)
 	if err != nil {
 		return fmt.Errorf("failed to get auth info, err: %s", err)
 	}

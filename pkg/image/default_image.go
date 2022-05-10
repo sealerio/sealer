@@ -21,6 +21,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/pkg/client/docker/auth"
+
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest/schema2"
 	dockerstreams "github.com/docker/cli/cli/streams"
@@ -230,7 +232,13 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 	if err != nil {
 		return fmt.Errorf("failed to authenticate %s: %v", RegistryURL, err)
 	}
-	if err := utils.SetDockerConfig(RegistryURL, RegistryUsername, RegistryPasswd); err != nil {
+
+	svc, err := auth.NewDockerAuthService()
+	if err != nil {
+		return fmt.Errorf("failed to read default auth file: %v", err)
+	}
+
+	if err := svc.SetAuthInfo(RegistryURL, RegistryUsername, RegistryPasswd); err != nil {
 		return err
 	}
 	logger.Info("%s login %s success", RegistryUsername, RegistryURL)

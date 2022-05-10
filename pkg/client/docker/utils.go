@@ -18,13 +18,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"github.com/sealerio/sealer/pkg/client/docker/auth"
+
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	dockerregistry "github.com/docker/docker/registry"
 
 	"github.com/sealerio/sealer/logger"
 	normalreference "github.com/sealerio/sealer/pkg/image/reference"
-	"github.com/sealerio/sealer/utils"
 )
 
 func GetCanonicalImageName(rawImageName string) (reference.Named, error) {
@@ -46,7 +47,6 @@ func GetCanonicalImagePullOptions(canonicalImageName string) types.ImagePullOpti
 	)
 
 	named, err := normalreference.ParseToNamed(canonicalImageName)
-
 	if err != nil {
 		logger.Warn("parse canonical ImageName failed: %v", err)
 		return opts
@@ -57,8 +57,12 @@ func GetCanonicalImagePullOptions(canonicalImageName string) types.ImagePullOpti
 	if registryAddr == dockerregistry.IndexName {
 		registryAddr = dockerregistry.IndexServer
 	}
+	svc, err := auth.NewDockerAuthService()
+	if err != nil {
+		return opts
+	}
 
-	authConfig, err = utils.GetDockerAuthInfoFromDocker(registryAddr)
+	authConfig, err = svc.GetAuthByDomain(registryAddr)
 	if err == nil {
 		encodedJSON, err = json.Marshal(authConfig)
 		if err != nil {
