@@ -234,3 +234,15 @@ func SortIPList(iplist []string) {
 		iplist[i] = realIPs[i].String()
 	}
 }
+
+func NotInIPList(key string, slice []string) bool {
+	for _, s := range slice {
+		if s == "" {
+			continue
+		}
+		if key == strings.Split(s, ":")[0] {
+			return false
+		}
+	}
+	return true
+}
