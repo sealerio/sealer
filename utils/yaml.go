@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/hash"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
@@ -49,7 +51,7 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 		if cluster.Spec.SSH.Encrypted {
 			break
 		}
-		passwd, err := AesEncrypt([]byte(cluster.Spec.SSH.Passwd))
+		passwd, err := hash.AesEncrypt([]byte(cluster.Spec.SSH.Passwd))
 		if err != nil {
 			return err
 		}
@@ -59,7 +61,7 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 		if cluster.Spec.SSH.Encrypted {
 			break
 		}
-		passwd, err := AesEncrypt([]byte(cluster.Spec.SSH.Passwd))
+		passwd, err := hash.AesEncrypt([]byte(cluster.Spec.SSH.Passwd))
 		if err != nil {
 			return err
 		}

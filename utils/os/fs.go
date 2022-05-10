@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package os
 
 import (
-	"crypto/rand"
-	"fmt"
+	"os"
+	"path/filepath"
 )
 
-// GenUniqueId: gen uuid
-func GenUniqueID(n int) string {
-	randBytes := make([]byte, n/2)
-	if _, err := rand.Read(randBytes); err != nil {
-		return ""
-	}
-	return fmt.Sprintf("%x", randBytes)
+func ExecutableFilePath(name string) string {
+	ex, _ := os.Executable()
+	exPath := filepath.Dir(ex)
+	return filepath.Join(exPath, name)
 }

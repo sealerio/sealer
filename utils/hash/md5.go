@@ -12,30 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package hash
 
-import "testing"
+import (
+	"crypto/md5" // #nosec
+	"encoding/hex"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+)
 
-func TestMD5(t *testing.T) {
-	type args struct {
-		body []byte
+func MD5(body []byte) string {
+	bytes := md5.Sum(body) // #nosec
+	return hex.EncodeToString(bytes[:])
+}
+
+//FileMD5 count file md5
+func FileMD5(path string) (string, error) {
+	file, err := os.Open(filepath.Clean(path))
+	if err != nil {
+		return "", err
 	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			"test md5",
-			args{body: []byte("test data")},
-			"eb733a00c0c9d336e65691a37ab54293",
-		},
+
+	m := md5.New() // #nosec
+	if _, err := io.Copy(m, file); err != nil {
+		return "", err
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := MD5(tt.args.body); got != tt.want {
-				t.Errorf("MD5() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+
+	fileMd5 := fmt.Sprintf("%x", m.Sum(nil))
+	return fileMd5, nil
 }

@@ -21,17 +21,17 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sealerio/sealer/utils/hash"
+
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
-
-	"github.com/sealerio/sealer/utils"
 )
 
 const DefaultSSHPort = "22"
 
 func (s *SSH) connect(host string) (*ssh.Client, error) {
 	if s.Encrypted {
-		passwd, err := utils.AesDecrypt([]byte(s.Password))
+		passwd, err := hash.AesDecrypt([]byte(s.Password))
 		if err != nil {
 			return nil, err
 		}

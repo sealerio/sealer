@@ -15,10 +15,8 @@
 package utils
 
 import (
-	"bytes"
-	"net"
-	"sort"
 	"strings"
+	"unicode"
 )
 
 func NotIn(key string, slice []string) bool {
@@ -78,21 +76,6 @@ func AppendDiffSlice(src, dst []string) []string {
 	return src
 }
 
-func SortIPList(iplist []string) {
-	realIPs := make([]net.IP, 0, len(iplist))
-	for _, ip := range iplist {
-		realIPs = append(realIPs, net.ParseIP(ip))
-	}
-
-	sort.Slice(realIPs, func(i, j int) bool {
-		return bytes.Compare(realIPs[i], realIPs[j]) < 0
-	})
-
-	for i := range realIPs {
-		iplist[i] = realIPs[i].String()
-	}
-}
-
 func Reverse(s []string) []string {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
@@ -119,4 +102,102 @@ func DedupeStrSlice(in []string) []string {
 		}
 	}
 	return res
+}
+
+func ConvertMapToEnvList(m map[string]string) []string {
+	result := []string{}
+	for k, v := range m {
+		result = append(result, k+"="+v)
+	}
+	return result
+}
+
+func IsLetterOrNumber(k string) bool {
+	for _, r := range k {
+		if r == '_' {
+			continue
+		}
+		if !unicode.IsLetter(r) && !unicode.IsNumber(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// MergeMap :merge map type as overwrite model
+func MergeMap(ms ...map[string]string) map[string]string {
+	res := map[string]string{}
+	for _, m := range ms {
+		for k, v := range m {
+			res[k] = v
+		}
+	}
+	return res
+}
+
+// MergeSlice :merge slice type as overwrite model
+func MergeSlice(ms ...[]string) []string {
+	var base []string
+	diffMap := make(map[string]bool)
+	for i, s := range ms {
+		if i == 0 {
+			base = s
+			for _, v := range base {
+				diffMap[v] = true
+			}
+		}
+
+		for _, v := range s {
+			if !diffMap[v] {
+				base = append(base, v)
+				diffMap[v] = true
+			}
+		}
+	}
+	return base
+}
+
+// ConvertEnvListToMap :if env list containers Unicode punctuation character,will ignore this element.
+func ConvertEnvListToMap(env []string) map[string]string {
+	envs := map[string]string{}
+	var k, v string
+	for _, e := range env {
+		if e == "" {
+			continue
+		}
+		i := strings.Index(e, "=")
+		if i < 0 {
+			k = e
+		} else {
+			k = e[:i]
+			v = e[i+1:]
+		}
+		// ensure map key not containers special character.
+		if !IsLetterOrNumber(k) {
+			continue
+		}
+		envs[k] = v
+	}
+	return envs
+}
+
+func DiffSlice(hostsOld, hostsNew []string) (add, sub []string) {
+	diffMap := make(map[string]bool)
+	for _, v := range hostsOld {
+		diffMap[v] = true
+	}
+	for _, v := range hostsNew {
+		if !diffMap[v] {
+			add = append(add, v)
+		} else {
+			diffMap[v] = false
+		}
+	}
+	for _, v := range hostsOld {
+		if diffMap[v] {
+			sub = append(sub, v)
+		}
+	}
+
+	return
 }

@@ -17,6 +17,8 @@ package buildinstruction
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/utils/os"
+
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/opencontainers/go-digest"
 
@@ -60,7 +62,7 @@ func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	}
 	defer c.mounter.CleanUp()
 
-	err = utils.SetRootfsBinToSystemEnv(c.mounter.GetMountTarget())
+	err = os.SetRootfsBinToSystemEnv(c.mounter.GetMountTarget())
 	if err != nil {
 		return out, fmt.Errorf("failed to set temp rootfs %s to system $PATH : %v", c.mounter.GetMountTarget(), err)
 	}

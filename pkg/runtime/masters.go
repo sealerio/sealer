@@ -300,7 +300,7 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 		return ""
 	}
 
-	if utils.IsInContainer() {
+	if IsInContainer() {
 		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Vlog), " --ignore-preflight-errors=all")
 	}
 	if name == InitMaster || name == JoinMaster {

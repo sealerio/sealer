@@ -23,18 +23,18 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/sealerio/sealer/utils/hash"
 
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
+	"golang.org/x/sync/errgroup"
 
 	dockerstreams "github.com/docker/cli/cli/streams"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/streamformatter"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/logger"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 func displayInit() {
@@ -53,7 +53,7 @@ func displayInit() {
 }
 
 func localMd5Sum(localPath string) string {
-	md5, err := utils.FileMD5(localPath)
+	md5, err := hash.FileMD5(localPath)
 	if err != nil {
 		logger.Error("get file md5 failed %v", err)
 		return ""

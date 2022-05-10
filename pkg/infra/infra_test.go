@@ -19,6 +19,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"sigs.k8s.io/yaml"
@@ -247,6 +249,6 @@ func TestReleaseEIP(t *testing.T) {
 
 func TestSort(t *testing.T) {
 	iplist := []string{"192.168.0.3", "192.168.0.16", "192.168.0.4", "192.168.0.1"}
-	utils.SortIPList(iplist)
+	net.SortIPList(iplist)
 	fmt.Printf("%v", iplist)
 }

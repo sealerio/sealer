@@ -70,44 +70,6 @@ func VersionCompare(v1, v2 string) bool {
 	return true
 }
 
-func PreInitMaster0(sshClient ssh.Interface, remoteHostIP string) error {
-	err := ssh.WaitSSHReady(sshClient, 6, remoteHostIP)
-	if err != nil {
-		return fmt.Errorf("apply cloud cluster failed: %s", err)
-	}
-	// send sealer and cluster file to remote host
-	sealerPath := utils.ExecutableFilePath()
-	err = sshClient.Copy(remoteHostIP, sealerPath, common.RemoteSealerPath)
-	if err != nil {
-		return fmt.Errorf("send sealer to remote host %s failed:%v", remoteHostIP, err)
-	}
-	err = sshClient.CmdAsync(remoteHostIP, fmt.Sprintf(common.ChmodCmd, common.RemoteSealerPath))
-	if err != nil {
-		return fmt.Errorf("chmod +x sealer on remote host %s failed:%v", remoteHostIP, err)
-	}
-	logger.Info("send sealer cmd to %s success !", remoteHostIP)
-
-	// send tmp cluster file
-	err = sshClient.Copy(remoteHostIP, common.TmpClusterfile, common.TmpClusterfile)
-	if err != nil {
-		return fmt.Errorf("send cluster file to remote host %s failed:%v", remoteHostIP, err)
-	}
-	logger.Info("send cluster file to %s success !", remoteHostIP)
-
-	// send register login info
-	authFile := common.DefaultRegistryAuthConfigDir()
-	if utils.IsFileExist(authFile) {
-		err = sshClient.Copy(remoteHostIP, authFile, common.DefaultRegistryAuthDir)
-		if err != nil {
-			return fmt.Errorf("failed to send register config %s to remote host %s err: %v", authFile, remoteHostIP, err)
-		}
-		logger.Info("send register info to %s success !", remoteHostIP)
-	} else {
-		logger.Warn("failed to find %s, if image registry is private, please login first", authFile)
-	}
-	return nil
-}
-
 func GetKubectlAndKubeconfig(ssh ssh.Interface, host, rootfs string) error {
 	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
 	err := ssh.Fetch(host, path.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
@@ -274,4 +236,12 @@ func RemoteCerts(altNames []string, hostIP, hostName, serviceCIRD, DNSDomain str
 	}
 
 	return cmd
+}
+
+func IsInContainer() bool {
+	data, err := utils.ReadAll("/proc/1/environ")
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(data), "container=docker")
 }

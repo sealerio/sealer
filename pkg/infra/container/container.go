@@ -189,7 +189,7 @@ func (a *ApplyProvider) applyToJoin(toJoinNumber int, role string) ([]string, er
 	// run container and return append ip list
 	var toJoinIPList []string
 	for i := 0; i < toJoinNumber; i++ {
-		name := fmt.Sprintf("sealer-%s-%s", role, utils.GenUniqueID(10))
+		name := fmt.Sprintf("sealer-%s-%s", role, GenUniqueID(10))
 		opts := &client.CreateOptsForContainer{
 			ImageName:         ImageName,
 			NetworkName:       NetworkName,
