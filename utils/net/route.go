@@ -15,7 +15,7 @@
 //go:build linux
 // +build linux
 
-package utils
+package net
 
 import (
 	"errors"
@@ -24,6 +24,8 @@ import (
 	"os"
 	"strings"
 	"syscall"
+
+	"github.com/sealerio/sealer/utils"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
@@ -87,7 +89,7 @@ func (r *Route) SetRoute() error {
 	}
 	if netInterface != "" {
 		route := fmt.Sprintf(RouteArg, r.Host, r.Gateway, netInterface)
-		_, err = RunSimpleCmd(fmt.Sprintf(AddStaticRouteFile, netInterface, route, route, netInterface))
+		_, err = utils.RunSimpleCmd(fmt.Sprintf(AddStaticRouteFile, netInterface, route, route, netInterface))
 		if err != nil {
 			return err
 		}
@@ -111,7 +113,7 @@ func (r *Route) DelRoute() error {
 	}
 	if netInterface != "" {
 		route := fmt.Sprintf(RouteArg, r.Host, r.Gateway, netInterface)
-		out, err := RunSimpleCmd(fmt.Sprintf(BackupAndDelStaticRouteFile, netInterface, netInterface, netInterface, route, netInterface))
+		out, err := utils.RunSimpleCmd(fmt.Sprintf(BackupAndDelStaticRouteFile, netInterface, netInterface, netInterface, route, netInterface))
 		if err != nil {
 			logger.Info(out)
 			return err

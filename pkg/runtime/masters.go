@@ -22,6 +22,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
@@ -435,8 +437,8 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 
 	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.
-	address, err := utils.GetLocalHostAddresses()
-	if err != nil || !utils.IsLocalIP(master, address) {
+	address, err := net.GetLocalHostAddresses()
+	if err != nil || !net.IsLocalIP(master, address) {
 		remoteCleanCmd = append(remoteCleanCmd, RemoveKubeConfig)
 	} else {
 		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())

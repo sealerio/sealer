@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"golang.org/x/sync/errgroup"
 
 	"github.com/sealerio/sealer/common"
@@ -76,7 +78,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	if err != nil {
 		return err
 	}
-	localIP, err := utils.GetLocalIP(cluster.GetMaster0IP() + ":22")
+	localIP, err := net.GetLocalIP(cluster.GetMaster0IP() + ":22")
 	if err != nil {
 		return fmt.Errorf("failed to get local address, %v", err)
 	}

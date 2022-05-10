@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package net
 
 import (
 	"fmt"
@@ -47,6 +47,20 @@ func GetHostIPSlice(hosts []string) (res []string) {
 		res = append(res, GetHostIP(ip))
 	}
 	return
+}
+
+func IsIPList(args string) bool {
+	ipList := strings.Split(args, ",")
+
+	for _, i := range ipList {
+		if !strings.Contains(i, ":") {
+			return net.ParseIP(i) != nil
+		}
+		if _, err := net.ResolveTCPAddr("tcp", i); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func GetHostNetInterface(host string) (string, error) {

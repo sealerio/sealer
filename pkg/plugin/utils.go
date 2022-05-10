@@ -18,10 +18,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
-	"github.com/sealerio/sealer/utils"
 )
 
 const (
@@ -55,7 +56,7 @@ func GetIpsByOnField(on string, context Context, phase Phase) (ipList []string, 
 		}
 		ipList = ipList[:1]
 	} else {
-		ipList = utils.DisassembleIPList(on)
+		ipList = net.DisassembleIPList(on)
 	}
 	if len(ipList) == 0 {
 		logger.Debug("node not found by on field [%s]", on)

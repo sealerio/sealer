@@ -23,6 +23,7 @@ import (
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/net"
 )
 
 var TaintEffectValues = []v1.TaintEffect{v1.TaintEffectNoSchedule, v1.TaintEffectNoExecute, v1.TaintEffectPreferNoSchedule}
@@ -119,7 +120,7 @@ func (l *Taint) formatData(data string) error {
 			return fmt.Errorf("faild to split taint argument: %s", v)
 		}
 		ips := temps[0]
-		err := utils.AssemblyIPList(&ips)
+		err := net.AssemblyIPList(&ips)
 		if err != nil {
 			return err
 		}

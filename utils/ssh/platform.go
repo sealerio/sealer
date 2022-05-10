@@ -21,14 +21,14 @@ import (
 
 	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 
 	"github.com/pkg/errors"
 )
 
 func (s *SSH) Platform(host string) (v1.Platform, error) {
-	if utils.IsLocalIP(host, s.LocalAddress) {
+	if net.IsLocalIP(host, s.LocalAddress) {
 		return *platform.GetDefaultPlatform(), nil
 	}
 

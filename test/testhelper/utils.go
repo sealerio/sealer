@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"sigs.k8s.io/yaml"
@@ -74,7 +76,7 @@ func NewSSHByCluster(cluster *v1.Cluster) ssh.Interface {
 	if cluster.Spec.SSH.User == "" {
 		cluster.Spec.SSH.User = common.ROOT
 	}
-	address, err := utils.GetLocalHostAddresses()
+	address, err := net.GetLocalHostAddresses()
 	if err != nil {
 		logger.Warn("failed to get local address, %v", err)
 	}

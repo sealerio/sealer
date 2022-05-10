@@ -15,7 +15,6 @@
 package apply
 
 import (
-	"net"
 	"strconv"
 	"strings"
 
@@ -25,7 +24,7 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/net"
 )
 
 type ClusterArgs struct {
@@ -35,25 +34,11 @@ type ClusterArgs struct {
 	hosts     []v2.Host
 }
 
-func IsIPList(args string) bool {
-	ipList := strings.Split(args, ",")
-
-	for _, i := range ipList {
-		if !strings.Contains(i, ":") {
-			return net.ParseIP(i) != nil
-		}
-		if _, err := net.ResolveTCPAddr("tcp", i); err != nil {
-			return false
-		}
-	}
-	return true
-}
-
 func PreProcessIPList(joinArgs *Args) error {
-	if err := utils.AssemblyIPList(&joinArgs.Masters); err != nil {
+	if err := net.AssemblyIPList(&joinArgs.Masters); err != nil {
 		return err
 	}
-	if err := utils.AssemblyIPList(&joinArgs.Nodes); err != nil {
+	if err := net.AssemblyIPList(&joinArgs.Nodes); err != nil {
 		return err
 	}
 	return nil
@@ -77,7 +62,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	if err != nil {
 		return err
 	}
-	if IsIPList(c.runArgs.Masters) && (IsIPList(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
+	if net.IsIPList(c.runArgs.Masters) && (net.IsIPList(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
 		masters := strings.Split(c.runArgs.Masters, ",")
 		nodes := strings.Split(c.runArgs.Nodes, ",")
 		c.hosts = []v2.Host{}
@@ -87,7 +72,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		}
 		c.cluster.Spec.Hosts = c.hosts
 	} else {
-		ip, err := utils.GetLocalDefaultIP()
+		ip, err := net.GetLocalDefaultIP()
 		if err != nil {
 			return err
 		}
@@ -105,14 +90,14 @@ func (c *ClusterArgs) setHostWithIpsPort(ips []string, role string) {
 	//map[ssh port]*host
 	hostMap := map[string]*v2.Host{}
 	for i := range ips {
-		ip, port := utils.GetHostIPAndPortOrDefault(ips[i], strconv.Itoa(int(c.runArgs.Port)))
+		ip, port := net.GetHostIPAndPortOrDefault(ips[i], strconv.Itoa(int(c.runArgs.Port)))
 		if _, ok := hostMap[port]; !ok {
 			hostMap[port] = &v2.Host{IPS: []string{ip}, Roles: []string{role}, SSH: v1.SSH{Port: port}}
 			continue
 		}
 		hostMap[port].IPS = append(hostMap[port].IPS, ip)
 	}
-	_, master0Port := utils.GetHostIPAndPortOrDefault(ips[0], strconv.Itoa(int(c.runArgs.Port)))
+	_, master0Port := net.GetHostIPAndPortOrDefault(ips[0], strconv.Itoa(int(c.runArgs.Port)))
 	for port, host := range hostMap {
 		host.IPS = removeIPListDuplicatesAndEmpty(host.IPS)
 		if port == master0Port && role == common.MASTER {

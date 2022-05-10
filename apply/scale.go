@@ -19,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/net"
+
 	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
@@ -75,11 +77,11 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	if err := PreProcessIPList(scaleArgs); err != nil {
 		return err
 	}
-	if (!IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
+	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
 
-	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
+	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
 			if utils.InList(common.MASTER, role) {
@@ -92,7 +94,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		}
 	}
 	//add join node
-	if scaleArgs.Nodes != "" && IsIPList(scaleArgs.Nodes) {
+	if scaleArgs.Nodes != "" && net.IsIPList(scaleArgs.Nodes) {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
 			if utils.InList(common.NODE, role) {
@@ -129,21 +131,21 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	if err := PreProcessIPList(scaleArgs); err != nil {
 		return err
 	}
-	if (!IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
+	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
 	//master0 machine cannot be deleted
 	if utils.InList(cluster.GetMaster0IP(), strings.Split(scaleArgs.Masters, ",")) {
 		return fmt.Errorf("master0 machine cannot be deleted")
 	}
-	if scaleArgs.Masters != "" && IsIPList(scaleArgs.Masters) {
+	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
 		for i := range cluster.Spec.Hosts {
 			if utils.InList(common.MASTER, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ","))
 			}
 		}
 	}
-	if scaleArgs.Nodes != "" && IsIPList(scaleArgs.Nodes) {
+	if scaleArgs.Nodes != "" && net.IsIPList(scaleArgs.Nodes) {
 		for i := range cluster.Spec.Hosts {
 			if utils.InList(common.NODE, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ","))
