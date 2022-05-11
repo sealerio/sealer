@@ -236,13 +236,13 @@ func (f *fileLogger) createFreshFile(logTime time.Time) error {
 		// 初始日志文件不存在，无需创建新文件
 		return RestartLogger(f)
 	}
-	// 日期变了， 说明跨天，重命名时需要保存为昨天的日期
+	// The date has changed, indicating that it spans the day, and it needs to be saved as yesterday's date when renaming
 	if f.dailyOpenDate != logTime.Day() {
 		for ; err == nil && num <= 999; num++ {
 			fName = f.fileNameOnly + fmt.Sprintf(".%s.%03d%s", f.dailyOpenTime.Format("2006-01-02"), num, f.suffix)
 			_, err = os.Lstat(fName)
 		}
-	} else { //如果仅仅是文件大小或行数达到了限制，仅仅变更后缀序号即可
+	} else { //If only the file size or the number of lines reaches the limit, just change the suffix number.
 		for ; err == nil && num <= 999; num++ {
 			fName = f.fileNameOnly + fmt.Sprintf(".%s.%03d%s", logTime.Format("2006-01-02"), num, f.suffix)
 			_, err = os.Lstat(fName)
@@ -257,11 +257,11 @@ func (f *fileLogger) createFreshFile(logTime time.Time) error {
 		return err
 	}
 
-	// 当创建新文件标记为true时
-	// 当日志文件超过最大限制行
-	// 当日志文件超过最大限制字节
-	// 当日志文件隔天更新标记为true时
-	// 将旧文件重命名，然后创建新文件
+	// when create new file flag is true
+	// When the log file exceeds the maximum limit of lines
+	// When the log file exceeds the maximum limit bytes
+	// When the log file update every other day flag is true
+	// Rename old file, then create new file
 	err = os.Rename(f.Filename, fName)
 	if err != nil {
 		_, _ = fmt.Fprintf(common.StdErr, "os.Rename %s to %s err:%s\n", f.Filename, fName, err.Error())

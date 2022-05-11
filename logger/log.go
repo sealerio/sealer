@@ -30,22 +30,22 @@ import (
 	"github.com/sealerio/sealer/common"
 )
 
-// 默认日志输出
+// Default log output
 var defaultLogger *LocalLogger
 
-// 日志等级，从0-7，日优先级由高到低
+// Log level, from 0-7, daily priority from high to low
 const (
-	LevelEmergency     logLevel = iota // 系统级紧急，比如磁盘出错，内存异常，网络不可用等
-	LevelAlert                         // 系统级警告，比如数据库访问异常，配置文件出错等
-	LevelCritical                      // 系统级危险，比如权限出错，访问异常等
-	LevelError                         // 用户级错误
-	LevelWarning                       // 用户级警告
-	LevelInformational                 // 用户级信息
-	LevelDebug                         // 用户级调试
-	LevelTrace                         // 用户级基本输出
+	LevelEmergency     logLevel = iota // System level emergency, such as disk error, memory exception, network unavailable, etc.
+	LevelAlert                         // System-level warnings, such as database access exceptions, configuration file errors, etc.
+	LevelCritical                      // System-level dangers, such as permission errors, access exceptions, etc.
+	LevelError                         // User level error
+	LevelWarning                       // User level warning
+	LevelInformational                 // User level information
+	LevelDebug                         // User level debugging
+	LevelTrace                         // User level basic output
 )
 
-// LevelMap 日志等级和描述映射关系
+// LevelMap Log level and description mapping relationship
 var LevelMap = map[string]logLevel{
 	"EMER": LevelEmergency,
 	"ALRT": LevelAlert,
@@ -57,10 +57,10 @@ var LevelMap = map[string]logLevel{
 	"TRAC": LevelTrace,
 }
 
-// 注册实现的适配器， 当前支持控制台，文件和网络输出
+// Registers the implemented adapter, currently supports console, file and network output
 var adapters = make(map[string]Logger)
 
-// 日志记录等级字段
+// Logging level field
 var levelPrefix = [LevelTrace + 1]string{
 	"EMER",
 	"ALRT",
@@ -73,10 +73,10 @@ var levelPrefix = [LevelTrace + 1]string{
 }
 
 const (
-	LogTimeDefaultFormat = "2006-01-02 15:04:05" // 日志输出默认格式
-	AdapterConsole       = "console"             // 控制台输出配置项
-	AdapterFile          = "file"                // 文件输出配置项
-	AdapterConn          = "conn"                // 网络输出配置项
+	LogTimeDefaultFormat = "2006-01-02 15:04:05"
+	AdapterConsole       = "console"
+	AdapterFile          = "file"
+	AdapterConn          = "conn"
 )
 
 type logLevel int
@@ -88,7 +88,7 @@ type Logger interface {
 	Destroy()
 }
 
-// 日志输出适配器注册，log需要实现Init，LogWrite，Destroy方法
+//Log output adapter registration. Log needs to implement init, logwrite and destroy methods
 func Register(name string, log Logger) {
 	if log == nil {
 		panic("logs: Register provide is nil")
@@ -126,8 +126,8 @@ type LocalLogger struct {
 func NewLogger(depth ...int) *LocalLogger {
 	dep := append(depth, 2)[0]
 	l := new(LocalLogger)
-	// appName用于记录网络传输时标记的程序发送方，
-	// 通过环境变量APPSN进行设置,默认为NONE,此时无法通过网络日志检索区分不同服务发送方
+	//AppName is used to record the program sender marked during network transmission,
+	//Set through the environment variable appsn. The default is none. At this time, different service senders cannot be distinguished through network log retrieval
 	appSn := os.Getenv("APPSN")
 	if appSn == "" {
 		appSn = "NONE"
@@ -140,7 +140,7 @@ func NewLogger(depth ...int) *LocalLogger {
 	return l
 }
 
-//配置文件
+//config file
 type logConfig struct {
 	TimeFormat string         `json:"TimeFormat"`
 	Console    *consoleLogger `json:"Console,omitempty"`
@@ -210,7 +210,7 @@ func (localLog *LocalLogger) SetLogger(adapterName string, configs ...string) {
 	for i, l = range localLog.outputs {
 		if l.name == adapterName {
 			if l.config == config {
-				//配置没有变动，不重新设置
+				//The configuration has not changed, no reset
 				fmt.Printf("you have set same config for locallog adaptername %s", adapterName)
 			}
 			l.Logger.Destroy()
@@ -251,7 +251,7 @@ func (localLog *LocalLogger) DelLogger(adapterName string) error {
 	return nil
 }
 
-// 设置日志起始路径
+// Set the log start path
 func (localLog *LocalLogger) SetLogPath(bPath bool) {
 	localLog.usePath = bPath
 }
@@ -263,7 +263,7 @@ func (localLog *LocalLogger) SetTimeFormat(format string) {
 func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level logLevel) {
 	for _, l := range localLog.outputs {
 		if l.name == AdapterConn {
-			//网络日志，使用json格式发送,此处使用结构体，用于类似ElasticSearch功能检索
+			//The network log is sent in JSON format. The structure is used here for retrieval similar to elasticsearch
 			err := l.LogWrite(when, msg, level)
 			if err != nil {
 				fmt.Fprintf(common.StdErr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
@@ -407,7 +407,7 @@ func SetTimeFormat(format string) {
 	defaultLogger.SetTimeFormat(format)
 }
 
-// param 可以是log配置文件名，也可以是log配置内容,默认DEBUG输出到控制台
+// param, It can be the name of log configuration file or the content of log configuration. Debug is output to the console by default
 func SetLogger(param ...string) {
 	if len(param) == 0 {
 		//默认只输出到控制台
@@ -417,7 +417,7 @@ func SetLogger(param ...string) {
 	c := param[0]
 	conf := new(logConfig)
 	err := json.Unmarshal([]byte(c), conf)
-	if err != nil { //不是json，就认为是配置文件，如果都不是，打印日志，然后退出
+	if err != nil { //If it is not JSON, it is considered as a configuration file. If it is not, print the log and exit
 		// Open the configuration file
 		fd, err := os.Open(filepath.Clean(c))
 		if err != nil {

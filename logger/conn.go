@@ -35,7 +35,7 @@ type connLogger struct {
 	Addr           string `json:"addr"`
 	Level          string `json:"level"`
 	LogLevel       logLevel
-	illNetFlag     bool //网络异常标记
+	illNetFlag     bool //network exception flag
 }
 
 func (c *connLogger) Init(jsonConfig string) error {
@@ -79,15 +79,15 @@ func (c *connLogger) LogWrite(when time.Time, msgText interface{}, level logLeve
 		c.illNetFlag = false
 	}
 
-	//每条消息都重连一次日志中心，适用于写日志频率极低的情况下的服务调用,避免长时间连接，占用资源
-	if c.ReconnectOnMsg { // 频繁日志发送切勿开启
+	//Each message is reconnected to the log center, which is suitable for service calls when the log writing frequency is extremely low, avoiding long-term connections and occupying resources
+	if c.ReconnectOnMsg { // Do not enable frequent log sending
 		defer c.innerWriter.Close()
 	}
 
-	//网络异常时，消息发出
+	//When the network is abnormal, the message is issued
 	if !c.illNetFlag {
 		err = c.println(msg)
-		//网络异常，通知处理网络的go程自动重连
+		//Network exception, notify the go process that handles the network to automatically reconnect
 		if err != nil {
 			c.illNetFlag = true
 		}
@@ -160,7 +160,7 @@ func (c *connLogger) println(msg *loginfo) error {
 	}
 	_, err = c.innerWriter.Write(append(ss, '\n'))
 
-	//返回err，解决日志系统网络异常后的自动重连
+	//Return err to resolve automatic reconnection after log system network exception
 	return err
 }
 
