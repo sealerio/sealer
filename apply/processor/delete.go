@@ -17,8 +17,6 @@ package processor
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/utils/slice"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/filesystem"
@@ -27,6 +25,7 @@ import (
 	"github.com/sealerio/sealer/pkg/plugin"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 type DeleteProcessor struct {
@@ -67,7 +66,7 @@ func (d *DeleteProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 func (d *DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
-	if slice.NotIn(config.IP, hosts) {
+	if strings.NotIn(config.IP, hosts) {
 		hosts = append(hosts, config.IP)
 	}
 	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(cluster.Name))

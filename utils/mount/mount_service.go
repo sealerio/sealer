@@ -19,8 +19,7 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/utils/exec"
-	"github.com/sealerio/sealer/utils/slice"
-
+	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/shirou/gopsutil/disk"
 
 	"github.com/sealerio/sealer/logger"
@@ -164,7 +163,7 @@ func mountCmdResultSplit(result string, target string) (bool, *Info) {
 	return true, &Info{
 		Target: target,
 		Upper:  upper,
-		Lowers: slice.Reverse(lowers),
+		Lowers: strUtils.Reverse(lowers),
 	}
 }
 

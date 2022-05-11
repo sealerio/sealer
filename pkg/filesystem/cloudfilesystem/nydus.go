@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/sealerio/sealer/utils/exec"
-	"github.com/sealerio/sealer/utils/slice"
+	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/sealerio/sealer/utils/net"
 
@@ -162,7 +162,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	if err = eg.Wait(); err != nil {
 		return err
 	}
-	if slice.NotIn(config.IP, ipList) {
+	if strings.NotIn(config.IP, ipList) {
 		return nil
 	}
 	return nil

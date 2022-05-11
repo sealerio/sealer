@@ -21,10 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sealerio/sealer/utils/slice"
-
-	"golang.org/x/sync/errgroup"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
@@ -32,6 +28,8 @@ import (
 	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
+	strUtils "github.com/sealerio/sealer/utils/strings"
+	"golang.org/x/sync/errgroup"
 )
 
 type Config struct {
@@ -139,7 +137,7 @@ func (k *KubeadmRuntime) getSvcCIDR() string {
 }
 
 func (k *KubeadmRuntime) setCertSANS(certSANS []string) {
-	k.ClusterConfiguration.APIServer.CertSANs = slice.RemoveDuplicate(append(k.getCertSANS(), certSANS...))
+	k.ClusterConfiguration.APIServer.CertSANs = strUtils.RemoveDuplicate(append(k.getCertSANS(), certSANS...))
 }
 
 func (k *KubeadmRuntime) getCertSANS() []string {

@@ -17,8 +17,6 @@ package applydriver
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/utils/slice"
-
 	"github.com/sealerio/sealer/apply/processor"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
@@ -33,6 +31,7 @@ import (
 	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
+	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -151,8 +150,8 @@ func (c *Applier) reconcileCluster() error {
 		return c.installApp()
 	}
 
-	mj, md := slice.Diff(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
-	nj, nd := slice.Diff(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
+	mj, md := strings.Diff(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
+	nj, nd := strings.Diff(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
 		return c.upgrade()
 	}

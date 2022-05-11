@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/utils/slice"
+	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/sealerio/sealer/pkg/client/docker/auth"
 
@@ -312,7 +312,7 @@ func (d DefaultImageService) Delete(imageNameOrID string, platforms []*v1.Platfo
 	}
 
 	// delete image.yaml file which id not in current imageMetadataMap.
-	for _, id := range slice.RemoveDuplicate(deleteImageIDList) {
+	for _, id := range strings.RemoveDuplicate(deleteImageIDList) {
 		err = store.DeleteImageLocal(id)
 		if err != nil {
 			return err
@@ -351,7 +351,7 @@ func (d DefaultImageService) deleteLayers() error {
 			return err
 		}
 
-		trash := slice.NewComparator(subset, desired).GetSrcSubtraction()
+		trash := strings.NewComparator(subset, desired).GetSrcSubtraction()
 		for _, name := range trash {
 			if err := os.RemoveAll(filepath.Join(root, name)); err != nil {
 				return err
@@ -388,5 +388,5 @@ func (d DefaultImageService) getAllLayers() ([]string, error) {
 			}
 		}
 	}
-	return slice.RemoveDuplicate(allImageLayerDirs), err
+	return strings.RemoveDuplicate(allImageLayerDirs), err
 }

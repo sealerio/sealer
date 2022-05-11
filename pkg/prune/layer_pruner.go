@@ -17,11 +17,10 @@ package prune
 import (
 	"path/filepath"
 
-	"github.com/sealerio/sealer/utils/slice"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/store"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 type layerPrune struct {
@@ -66,7 +65,7 @@ func (l layerPrune) Select() ([]string, error) {
 			return pruneList, err
 		}
 		for _, subset := range subsets {
-			if slice.NotIn(filepath.Base(subset), desired) {
+			if strings.NotIn(filepath.Base(subset), desired) {
 				pruneList = append(pruneList, subset)
 			}
 		}
@@ -97,7 +96,7 @@ func (l layerPrune) getAllLayers() ([]string, error) {
 			}
 		}
 	}
-	return slice.RemoveDuplicate(allImageLayerDirs), err
+	return strings.RemoveDuplicate(allImageLayerDirs), err
 }
 func (l layerPrune) GetSelectorMessage() string {
 	return LayerPruner

@@ -20,8 +20,7 @@ import (
 	"fmt"
 
 	"github.com/sealerio/sealer/utils/maps"
-
-	"github.com/sealerio/sealer/utils/slice"
+	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/sealerio/sealer/build/buildinstruction"
 	"github.com/sealerio/sealer/common"
@@ -246,7 +245,7 @@ func NewBuildImageByKubefile(kubefileName string, platform v1.Platform) (*v1.Ima
 	}
 
 	// merge base image cmd and set to raw image as parent.
-	rawImage.Spec.ImageConfig.Cmd.Parent = slice.Merge(baseImage.Spec.ImageConfig.Cmd.Parent,
+	rawImage.Spec.ImageConfig.Cmd.Parent = strings.Merge(baseImage.Spec.ImageConfig.Cmd.Parent,
 		baseImage.Spec.ImageConfig.Cmd.Current)
 	// merge base image args and set to raw image as parent.
 	rawImage.Spec.ImageConfig.Args.Parent = maps.Merge(baseImage.Spec.ImageConfig.Args.Parent,

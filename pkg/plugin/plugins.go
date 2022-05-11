@@ -22,13 +22,12 @@ import (
 	"plugin"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/slice"
-
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 type InvalidPluginTypeError struct {
@@ -94,21 +93,21 @@ func (c *PluginsProcessor) Load() error {
 
 // Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
 func (c *PluginsProcessor) Run(host []string, phase Phase) error {
-	for _, plugin := range c.Plugins {
-		if slice.NotIn(string(phase), strings.Split(plugin.Spec.Action, "|")) {
+	for _, plug := range c.Plugins {
+		if strUtils.NotIn(string(phase), strings.Split(plug.Spec.Action, "|")) {
 			continue
 		}
-		p, ok := pluginFactories[plugin.Spec.Type]
+		p, ok := pluginFactories[plug.Spec.Type]
 		// if we use cluster file dump plugin config,some plugin load after mount rootfs,
 		// we still need to return those not find error.
 		// apply module to judged whether to show errors.
 		if !ok {
-			return InvalidPluginTypeError{plugin.Spec.Type}
+			return InvalidPluginTypeError{plug.Spec.Type}
 		}
 		// #nosec
-		err := p.Run(Context{Cluster: c.Cluster, Host: host, Plugin: &plugin}, phase)
+		err := p.Run(Context{Cluster: c.Cluster, Host: host, Plugin: &plug}, phase)
 		if err != nil {
-			return fmt.Errorf("failed to run plugin %s: %v", plugin.Name, err)
+			return fmt.Errorf("failed to run plugin %s: %v", plug.Name, err)
 		}
 	}
 	return nil

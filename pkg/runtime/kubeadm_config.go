@@ -17,14 +17,13 @@ package runtime
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/utils/slice"
-
 	"github.com/imdario/mergo"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 // Read config from https://github.com/sealerio/sealer/blob/main/docs/design/clusterfile-v2.md and overwrite default kubeadm.yaml
@@ -50,7 +49,7 @@ func (k *KubeadmConfig) LoadFromClusterfile(kubeadmConfig *KubeadmConfig) error 
 	if kubeadmConfig == nil {
 		return nil
 	}
-	k.APIServer.CertSANs = slice.RemoveDuplicate(append(k.APIServer.CertSANs, kubeadmConfig.APIServer.CertSANs...))
+	k.APIServer.CertSANs = strings.RemoveDuplicate(append(k.APIServer.CertSANs, kubeadmConfig.APIServer.CertSANs...))
 	return mergo.Merge(k, kubeadmConfig)
 }
 
@@ -72,7 +71,7 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to found kubeadm config from %s: %v", kubeadmYamlPath, err)
 	}
-	k.APIServer.CertSANs = slice.RemoveDuplicate(append(k.APIServer.CertSANs, defaultKubeadmConfig.APIServer.CertSANs...))
+	k.APIServer.CertSANs = strings.RemoveDuplicate(append(k.APIServer.CertSANs, defaultKubeadmConfig.APIServer.CertSANs...))
 	err = mergo.Merge(k, defaultKubeadmConfig)
 	if err != nil {
 		return fmt.Errorf("failed to merge kubeadm config: %v", err)

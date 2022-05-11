@@ -17,7 +17,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/sealerio/sealer/utils/slice"
+	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/spf13/cobra"
 
@@ -74,7 +74,7 @@ build with args:
 				NoCache:   buildConfig.NoCache,
 				ImageName: buildConfig.ImageName,
 				NoBase:    !buildConfig.Base,
-				BuildArgs: slice.ConvertToMap(buildConfig.BuildArgs),
+				BuildArgs: strings.ConvertToMap(buildConfig.BuildArgs),
 				Platform:  *p,
 			}
 			builder, err := build.NewBuilder(conf)

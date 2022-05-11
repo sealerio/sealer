@@ -18,8 +18,7 @@ import (
 	"fmt"
 
 	"github.com/sealerio/sealer/utils/maps"
-
-	"github.com/sealerio/sealer/utils/slice"
+	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 
@@ -100,9 +99,9 @@ func (d *Default) getGuestCmd(cluster *v2.Cluster, image *v1.Image) []string {
 
 	// normal image: if cluster cmd not nil, use cluster cmd as current cmd
 	if len(clusterCmd) != 0 {
-		return slice.Merge(cmd, clusterCmd)
+		return strings.Merge(cmd, clusterCmd)
 	}
-	return slice.Merge(cmd, image.Spec.ImageConfig.Cmd.Current)
+	return strings.Merge(cmd, image.Spec.ImageConfig.Cmd.Current)
 }
 
 func (d *Default) getGuestCmdArg(cluster *v2.Cluster, image *v1.Image) map[string]string {
@@ -118,7 +117,7 @@ func (d *Default) getGuestCmdArg(cluster *v2.Cluster, image *v1.Image) map[strin
 		base = maps.Merge(image.Spec.ImageConfig.Args.Parent, image.Spec.ImageConfig.Args.Current)
 	}
 
-	for k, v := range slice.ConvertToMap(clusterArgs) {
+	for k, v := range strings.ConvertToMap(clusterArgs) {
 		base[k] = v
 	}
 	return base

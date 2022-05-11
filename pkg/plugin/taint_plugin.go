@@ -18,13 +18,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/slice"
-
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/utils/net"
+	strUtils "github.com/sealerio/sealer/utils/strings"
+	v1 "k8s.io/api/core/v1"
 )
 
 var TaintEffectValues = []v1.TaintEffect{v1.TaintEffectNoSchedule, v1.TaintEffectNoExecute, v1.TaintEffectPreferNoSchedule}
@@ -86,7 +84,7 @@ func (l *Taint) Run(context Context, phase Phase) (err error) {
 	for _, n := range nodeList.Items {
 		node := n
 		for _, v := range node.Status.Addresses {
-			if slice.NotIn(v.Address, l.IPList) || slice.NotIn(v.Address, context.Host) {
+			if strUtils.NotIn(v.Address, l.IPList) || strUtils.NotIn(v.Address, context.Host) {
 				continue
 			}
 			updateTaints := l.UpdateTaints(node.Spec.Taints, v.Address)

@@ -18,8 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sealerio/sealer/utils/slice"
-
 	"github.com/opencontainers/go-digest"
 	"golang.org/x/sync/errgroup"
 	"sigs.k8s.io/yaml"
@@ -28,6 +26,7 @@ import (
 	"github.com/sealerio/sealer/pkg/image/reference"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 func save(imageName string, image *v1.Image) error {
@@ -141,7 +140,7 @@ func merge(base, ima *v1.Image) (*v1.Image, error) {
 }
 
 func mergeImageCmd(base, ima v1.ImageCmd, isApp bool) v1.ImageCmd {
-	current := slice.Merge(base.Current, ima.Current)
+	current := strings.Merge(base.Current, ima.Current)
 	if isApp {
 		return v1.ImageCmd{
 			Current: current,
@@ -149,7 +148,7 @@ func mergeImageCmd(base, ima v1.ImageCmd, isApp bool) v1.ImageCmd {
 	}
 	return v1.ImageCmd{
 		Current: current,
-		Parent:  slice.Merge(base.Parent, ima.Parent),
+		Parent:  strings.Merge(base.Parent, ima.Parent),
 	}
 }
 

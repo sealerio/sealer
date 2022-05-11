@@ -17,8 +17,6 @@ package applydriver
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/utils/slice"
-
 	"github.com/Masterminds/semver/v3"
 	corev1 "k8s.io/api/core/v1"
 
@@ -26,6 +24,7 @@ import (
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 const MasterRoleLabel = "node-role.kubernetes.io/master"
@@ -67,7 +66,7 @@ func DeleteNodes(client *k8s.Client, nodeIPs []string) error {
 	}
 	for _, node := range nodes.Items {
 		addr := getNodeAddress(node)
-		if addr == "" || slice.NotIn(addr, nodeIPs) {
+		if addr == "" || strings.NotIn(addr, nodeIPs) {
 			continue
 		}
 		if err := client.DeleteNode(node.Name); err != nil {

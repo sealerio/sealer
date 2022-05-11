@@ -18,12 +18,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/slice"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/utils/ssh"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 type Sheller struct{}
@@ -38,7 +37,7 @@ func init() {
 
 func (s Sheller) Run(context Context, phase Phase) (err error) {
 	pluginPhases := strings.Split(context.Plugin.Spec.Action, SplitSymbol)
-	if slice.NotIn(string(phase), pluginPhases) || context.Plugin.Spec.Type != ShellPlugin {
+	if strUtils.NotIn(string(phase), pluginPhases) || context.Plugin.Spec.Type != ShellPlugin {
 		return nil
 	}
 	//get cmdline content
@@ -61,7 +60,7 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 	var runPluginIPList []string
 	for _, ip := range allHostIP {
 		//skip non-cluster nodes
-		if slice.NotIn(ip, context.Host) {
+		if strUtils.NotIn(ip, context.Host) {
 			continue
 		}
 		envProcessor := env.NewEnvProcessor(context.Cluster)

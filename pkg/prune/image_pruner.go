@@ -17,11 +17,10 @@ package prune
 import (
 	"path/filepath"
 
-	"github.com/sealerio/sealer/utils/slice"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/store"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 type imagePrune struct {
@@ -58,7 +57,7 @@ func (i imagePrune) Select() ([]string, error) {
 	}
 
 	for _, subset := range subsets {
-		if slice.NotIn(filepath.Base(subset), imageIDFiles) {
+		if strings.NotIn(filepath.Base(subset), imageIDFiles) {
 			pruneList = append(pruneList, subset)
 		}
 	}
