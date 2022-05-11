@@ -22,8 +22,9 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 )
 
 type Default struct {
@@ -44,7 +45,7 @@ func (d *Default) Mount(target string, upperDir string, layers ...string) error 
 		return fmt.Errorf("target is empty")
 	}
 
-	utils.Reverse(layers)
+	slice.Reverse(layers)
 
 	for _, layer := range layers {
 		srcInfo, err := os.Stat(layer)

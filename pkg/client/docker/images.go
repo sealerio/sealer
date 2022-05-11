@@ -19,6 +19,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	"github.com/docker/distribution/reference"
 
 	dockerstreams "github.com/docker/cli/cli/streams"
@@ -31,7 +33,7 @@ import (
 )
 
 func (d Docker) ImagesPull(images []string) error {
-	for _, image := range utils.RemoveDuplicate(images) {
+	for _, image := range slice.RemoveDuplicate(images) {
 		if image == "" {
 			continue
 		}

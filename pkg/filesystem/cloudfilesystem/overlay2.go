@@ -20,11 +20,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 
@@ -97,7 +98,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 		return err
 	}
 	// if config.ip is not in mountRootfs ipList, mean copy registry dir is not required, like scale up node
-	if !utils.InList(config.IP, ipList) {
+	if slice.NotIn(config.IP, ipList) {
 		return nil
 	}
 	return copyRegistry(config.IP, cluster, mountEntry.mountDirs, target)

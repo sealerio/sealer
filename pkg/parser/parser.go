@@ -22,11 +22,12 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/version"
 )
 
@@ -147,7 +148,7 @@ func dispatchArg(layerValue string, ima *v1.Image) {
 			return
 		}
 		k := strings.TrimSpace(valueLine[0])
-		if !utils.IsLetterOrNumber(k) {
+		if !slice.IsLetterOrNumber(k) {
 			logger.Error("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
 			return
 		}

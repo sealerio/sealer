@@ -18,6 +18,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/exec"
+	"github.com/sealerio/sealer/utils/slice"
+
 	"github.com/shirou/gopsutil/disk"
 
 	"github.com/sealerio/sealer/logger"
@@ -131,7 +134,7 @@ type Info struct {
 
 func GetMountDetails(target string) (bool, *Info) {
 	cmd := fmt.Sprintf("mount | grep %s", target)
-	result, err := utils.RunSimpleCmd(cmd)
+	result, err := exec.RunSimpleCmd(cmd)
 	if err != nil {
 		return false, nil
 	}
@@ -161,7 +164,7 @@ func mountCmdResultSplit(result string, target string) (bool, *Info) {
 	return true, &Info{
 		Target: target,
 		Upper:  upper,
-		Lowers: utils.Reverse(lowers),
+		Lowers: slice.Reverse(lowers),
 	}
 }
 

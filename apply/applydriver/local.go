@@ -17,6 +17,8 @@ package applydriver
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	"github.com/sealerio/sealer/apply/processor"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
@@ -149,8 +151,8 @@ func (c *Applier) reconcileCluster() error {
 		return c.installApp()
 	}
 
-	mj, md := utils.DiffSlice(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
-	nj, nd := utils.DiffSlice(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
+	mj, md := slice.Diff(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
+	nj, nd := slice.Diff(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
 		return c.upgrade()
 	}

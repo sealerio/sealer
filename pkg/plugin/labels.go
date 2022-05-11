@@ -18,11 +18,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
-	"github.com/sealerio/sealer/utils"
 )
 
 type LabelsNodes struct {
@@ -93,7 +94,7 @@ func (l LabelsNodes) formatData(data string, hosts []string) map[string][]label 
 			continue
 		}
 		ip := tmps[0]
-		if utils.NotIn(ip, hosts) {
+		if slice.NotIn(ip, hosts) {
 			continue
 		}
 		labelStr := strings.Split(tmps[1], ",")

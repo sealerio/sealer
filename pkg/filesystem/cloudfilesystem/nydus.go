@@ -19,6 +19,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils/exec"
+	"github.com/sealerio/sealer/utils/slice"
+
 	"github.com/sealerio/sealer/utils/net"
 
 	"golang.org/x/sync/errgroup"
@@ -63,7 +66,7 @@ func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) err
 
 	if utils.IsExist(nydusdServerClean) {
 		cleanCmd := fmt.Sprintf("sh %s", nydusdServerClean)
-		_, err := utils.RunSimpleCmd(cleanCmd)
+		_, err := exec.RunSimpleCmd(cleanCmd)
 		if err != nil {
 			return fmt.Errorf("failed to stop nydusdserver %v", err)
 		}
@@ -95,7 +98,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 		config          = runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), cluster.GetMaster0IP())
 		initCmd         = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 	)
-	_, err = utils.RunSimpleCmd(nydusdfileCpCmd)
+	_, err = exec.RunSimpleCmd(nydusdfileCpCmd)
 	if err != nil {
 		return fmt.Errorf("cp nydusdfile failed %v", err)
 	}
@@ -111,7 +114,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 			clientfileSrc := filepath.Join(src, "nydusdfile", "clientfile")
 			clientfileDest := filepath.Join(nydusdFileDir, filepath.Base(src))
 			nydusdCpCmd := fmt.Sprintf("cp -r %s %s", clientfileSrc, clientfileDest)
-			_, err = utils.RunSimpleCmd(nydusdCpCmd)
+			_, err = exec.RunSimpleCmd(nydusdCpCmd)
 			if err != nil {
 				return fmt.Errorf("cp nydusdclinetfile failed %v", err)
 			}
@@ -119,7 +122,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	}
 	startNydusdServer := fmt.Sprintf("cd %s && chmod +x serverstart.sh && ./serverstart.sh -d %s -i %s", nydusdserverDir, dirlist, localIP)
 	//convert image and start nydusd http server
-	_, err = utils.RunSimpleCmd(startNydusdServer)
+	_, err = exec.RunSimpleCmd(startNydusdServer)
 	if err != nil {
 		return fmt.Errorf("nydusdserver start fail %v", err)
 	}
@@ -159,7 +162,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	if err = eg.Wait(); err != nil {
 		return err
 	}
-	if !utils.InList(config.IP, ipList) {
+	if slice.NotIn(config.IP, ipList) {
 		return nil
 	}
 	return nil

@@ -22,6 +22,8 @@ import (
 	"plugin"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -93,7 +95,7 @@ func (c *PluginsProcessor) Load() error {
 // Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
 func (c *PluginsProcessor) Run(host []string, phase Phase) error {
 	for _, plugin := range c.Plugins {
-		if utils.NotIn(string(phase), strings.Split(plugin.Spec.Action, "|")) {
+		if slice.NotIn(string(phase), strings.Split(plugin.Spec.Action, "|")) {
 			continue
 		}
 		p, ok := pluginFactories[plugin.Spec.Type]

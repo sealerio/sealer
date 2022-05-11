@@ -18,11 +18,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/net"
 )
 
@@ -85,10 +86,7 @@ func (l *Taint) Run(context Context, phase Phase) (err error) {
 	for _, n := range nodeList.Items {
 		node := n
 		for _, v := range node.Status.Addresses {
-			if !utils.InList(v.Address, l.IPList) {
-				continue
-			}
-			if utils.NotIn(v.Address, context.Host) {
+			if slice.NotIn(v.Address, l.IPList) || slice.NotIn(v.Address, context.Host) {
 				continue
 			}
 			updateTaints := l.UpdateTaints(node.Spec.Taints, v.Address)

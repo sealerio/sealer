@@ -32,6 +32,7 @@ import (
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/exec"
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
@@ -244,7 +245,7 @@ func CheckNodeNumWithSSH(sshClient *testhelper.SSHClient, expectNum int) {
 // CheckNodeNumLocally check node mum of remote cluster;for cloud apply
 func CheckNodeNumLocally(expectNum int) {
 	cmd := "sudo -E kubectl get nodes | wc -l"
-	result, err := utils.RunSimpleCmd(cmd)
+	result, err := exec.RunSimpleCmd(cmd)
 	testhelper.CheckErr(err)
 	num, err := strconv.Atoi(strings.ReplaceAll(result, "\n", ""))
 	testhelper.CheckErr(err)
@@ -281,8 +282,8 @@ func MarshalClusterToFile(ClusterFile string, cluster *v1.Cluster) {
 }
 
 func CheckDockerAndSwapOff() {
-	_, err := utils.RunSimpleCmd("docker -v")
+	_, err := exec.RunSimpleCmd("docker -v")
 	testhelper.CheckErr(err)
-	_, err = utils.RunSimpleCmd("swapoff -a")
+	_, err = exec.RunSimpleCmd("swapoff -a")
 	testhelper.CheckErr(err)
 }

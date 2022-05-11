@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sealerio/sealer/utils/exec"
 	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/onsi/gomega"
@@ -31,7 +32,6 @@ import (
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
@@ -144,7 +144,7 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 // GetFileDataLocally get file data for cloud apply
 func GetFileDataLocally(filePath string) string {
 	cmd := fmt.Sprintf("sudo -E cat %s", filePath)
-	result, err := utils.RunSimpleCmd(cmd)
+	result, err := exec.RunSimpleCmd(cmd)
 	CheckErr(err)
 	return result
 }
@@ -152,7 +152,7 @@ func GetFileDataLocally(filePath string) string {
 // DeleteFileLocally delete file for cloud apply
 func DeleteFileLocally(filePath string) {
 	cmd := fmt.Sprintf("sudo -E rm -rf %s", filePath)
-	_, err := utils.RunSimpleCmd(cmd)
+	_, err := exec.RunSimpleCmd(cmd)
 	CheckErr(err)
 }
 

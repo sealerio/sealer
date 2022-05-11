@@ -21,11 +21,11 @@ import (
 	"strings"
 
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/exec"
 )
 
 func IsDockerAvailable() bool {
-	lines, err := utils.RunSimpleCmd("docker -v")
+	lines, err := exec.RunSimpleCmd("docker -v")
 	if err != nil || len(lines) != 1 {
 		return false
 	}

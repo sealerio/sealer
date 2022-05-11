@@ -29,7 +29,7 @@ import (
 	"github.com/sealerio/sealer/test/suites/build"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/exec"
 	"github.com/sealerio/sealer/utils/platform"
 )
 
@@ -57,7 +57,7 @@ func TagImages(oldName, newName string) {
 
 func GetEnvDirMd5() string {
 	getEnvMd5Cmd := fmt.Sprintf("sudo -E find %s -type f -print0|xargs -0 sudo md5sum|cut -d\" \" -f1|md5sum|cut -d\" \" -f1\n", filepath.Dir(common.DefaultImageRootDir))
-	dirMd5, err := utils.RunSimpleCmd(getEnvMd5Cmd)
+	dirMd5, err := exec.RunSimpleCmd(getEnvMd5Cmd)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	_, err = io.WriteString(ginkgo.GinkgoWriter, getEnvMd5Cmd+dirMd5+"\n")
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())

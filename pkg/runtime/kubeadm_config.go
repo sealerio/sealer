@@ -17,6 +17,8 @@ package runtime
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	"github.com/imdario/mergo"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
@@ -48,7 +50,7 @@ func (k *KubeadmConfig) LoadFromClusterfile(kubeadmConfig *KubeadmConfig) error 
 	if kubeadmConfig == nil {
 		return nil
 	}
-	k.APIServer.CertSANs = utils.RemoveDuplicate(append(k.APIServer.CertSANs, kubeadmConfig.APIServer.CertSANs...))
+	k.APIServer.CertSANs = slice.RemoveDuplicate(append(k.APIServer.CertSANs, kubeadmConfig.APIServer.CertSANs...))
 	return mergo.Merge(k, kubeadmConfig)
 }
 
@@ -70,7 +72,7 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to found kubeadm config from %s: %v", kubeadmYamlPath, err)
 	}
-	k.APIServer.CertSANs = utils.RemoveDuplicate(append(k.APIServer.CertSANs, defaultKubeadmConfig.APIServer.CertSANs...))
+	k.APIServer.CertSANs = slice.RemoveDuplicate(append(k.APIServer.CertSANs, defaultKubeadmConfig.APIServer.CertSANs...))
 	err = mergo.Merge(k, defaultKubeadmConfig)
 	if err != nil {
 		return fmt.Errorf("failed to merge kubeadm config: %v", err)

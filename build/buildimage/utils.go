@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/slice"
+
 	"github.com/sealerio/sealer/build/buildinstruction"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
@@ -100,7 +102,7 @@ func readCharts(chartsPath string) string {
 }
 
 func FormatImages(images []string) (res []string) {
-	for _, ima := range utils.RemoveDuplicate(images) {
+	for _, ima := range slice.RemoveDuplicate(images) {
 		if ima == "" {
 			continue
 		}

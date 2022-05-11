@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package exec
 
 import (
 	"fmt"
@@ -86,6 +86,6 @@ func CheckCmdIsExist(cmd string) (string, bool) {
 }
 
 func GetCurrentUserName() (string, error) {
-	user, err := user.Current()
-	return user.Username, err
+	u, err := user.Current()
+	return u.Username, err
 }

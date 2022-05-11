@@ -44,18 +44,6 @@ func IsExist(fileName string) bool {
 	return true
 }
 
-func RemoveDuplicate(list []string) []string {
-	var result []string
-	flagMap := map[string]struct{}{}
-	for _, v := range list {
-		if _, ok := flagMap[v]; !ok {
-			flagMap[v] = struct{}{}
-			result = append(result, v)
-		}
-	}
-	return result
-}
-
 func ReadLines(fileName string) ([]string, error) {
 	var lines []string
 	if !IsExist(fileName) {
@@ -117,19 +105,6 @@ func MkFileFullPathDir(fileName string) error {
 
 func Mkdir(dirName string) error {
 	return os.MkdirAll(dirName, os.ModePerm)
-}
-
-func MkDirs(dirs ...string) error {
-	if len(dirs) == 0 {
-		return nil
-	}
-	for _, dir := range dirs {
-		err := os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			return fmt.Errorf("failed to create %s, %v", dir, err)
-		}
-	}
-	return nil
 }
 
 func MkTmpdir() (string, error) {
@@ -411,15 +386,6 @@ func RemoveFileContent(fileName string, content string) error {
 		return errors.Wrapf(err, "write file %s failed", fileName)
 	}
 	return nil
-}
-
-func IsFileContent(fileName string, content string) bool {
-	bs, err := ReadAll(fileName)
-	if err != nil {
-		logger.Error(err)
-		return false
-	}
-	return len(strings.Split(string(bs), content)) == 2
 }
 
 func IsDir(path string) bool {
