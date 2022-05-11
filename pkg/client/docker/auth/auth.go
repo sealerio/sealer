@@ -1,0 +1,128 @@
+// Copyright © 2022 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package auth
+
+import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	"github.com/docker/docker/api/types"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/utils"
+)
+
+type Item struct {
+	Auth string `json:"auth"`
+}
+
+type DockerAuth struct {
+	Auths map[string]Item `json:"auths"`
+}
+
+func (d *DockerAuth) Get(domain string) (string, string, error) {
+	auth := d.Auths[domain].Auth
+	if auth == "" {
+		return "", "", fmt.Errorf("auth for %s doesn't exist", domain)
+	}
+
+	decode, err := base64.StdEncoding.DecodeString(auth)
+	if err != nil {
+		return "", "", err
+	}
+	i := bytes.IndexRune(decode, ':')
+
+	if i == -1 {
+		return "", "", fmt.Errorf("auth base64 has problem of format")
+	}
+
+	return string(decode[:i]), string(decode[i+1:]), nil
+}
+
+func (d *DockerAuth) Set(hostname, username, password string) {
+	authEncode := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
+	d.Auths[hostname] = Item{Auth: authEncode}
+}
+
+type DockerAuthService struct {
+	FilePath    string
+	AuthContent DockerAuth `json:"auths"`
+}
+
+func (s *DockerAuthService) SetAuthInfo(hostname, username, password string) error {
+	if !utils.IsFileExist(s.FilePath) {
+		if err := os.MkdirAll(filepath.Dir(s.FilePath), common.FileMode0755); err != nil {
+			return err
+		}
+	}
+
+	s.AuthContent.Set(hostname, username, password)
+	data, err := json.MarshalIndent(s.AuthContent, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(s.FilePath, data, common.FileMode0644); err != nil {
+		return fmt.Errorf("write %s failed,%s", s.FilePath, err)
+	}
+	return nil
+}
+
+func (s *DockerAuthService) GetAuthInfoByDomain(domain string) (string, string, error) {
+	return s.AuthContent.Get(domain)
+}
+
+func (s *DockerAuthService) GetAuthByDomain(domain string) (types.AuthConfig, error) {
+	defaultAuthConfig := types.AuthConfig{ServerAddress: domain}
+
+	user, passwd, err := s.AuthContent.Get(domain)
+	if err != nil {
+		return defaultAuthConfig, err
+	}
+
+	return types.AuthConfig{
+		Username:      user,
+		Password:      passwd,
+		ServerAddress: domain,
+	}, nil
+}
+
+func NewDockerAuthService() (DockerAuthService, error) {
+	var (
+		authFile = common.DefaultRegistryAuthConfigDir()
+		ac       = DockerAuth{Auths: map[string]Item{}}
+		das      = DockerAuthService{FilePath: authFile, AuthContent: ac}
+	)
+
+	if !utils.IsFileExist(authFile) {
+		return das, nil
+	}
+
+	content, err := ioutil.ReadFile(filepath.Clean(authFile))
+	if err != nil {
+		return das, err
+	}
+
+	err = json.Unmarshal(content, &ac)
+	if err != nil {
+		return das, err
+	}
+	das.AuthContent = ac
+	return das, nil
+}

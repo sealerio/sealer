@@ -21,13 +21,16 @@ import (
 	"io"
 	"strings"
 
+	"github.com/docker/docker/api/types"
+
+	"github.com/sealerio/sealer/pkg/client/docker/auth"
+
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/storage"
 	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
 	dockerstreams "github.com/docker/cli/cli/streams"
-	"github.com/docker/docker/api/types"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
@@ -39,7 +42,6 @@ import (
 	"github.com/sealerio/sealer/pkg/image/distributionutil"
 	"github.com/sealerio/sealer/pkg/image/save/distributionpkg/proxy"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 )
 
 const (
@@ -395,20 +397,24 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 		proxyURL = defaultProxyURL
 	}
 
-	var defaultAuth = types.AuthConfig{ServerAddress: domain}
-	auth, err := utils.GetDockerAuthInfoFromDocker(domain)
+	svc, err := auth.NewDockerAuthService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read default auth file: %v", err)
+	}
+	defaultAuth := types.AuthConfig{ServerAddress: domain}
+	authConfig, err := svc.GetAuthByDomain(domain)
 	//ignore err when is there is no username and password.
 	//regard it as a public registry
 	//only report parse error
-	if err != nil && auth != defaultAuth {
+	if err != nil && authConfig != defaultAuth {
 		return nil, fmt.Errorf("get authentication info error: %v", err)
 	}
 
 	config := configuration.Configuration{
 		Proxy: configuration.Proxy{
 			RemoteURL: proxyURL,
-			Username:  auth.Username,
-			Password:  auth.Password,
+			Username:  authConfig.Username,
+			Password:  authConfig.Password,
 		},
 		Storage: configuration.Storage{
 			driverName: configuration.Parameters{configRootDir: rootdir},

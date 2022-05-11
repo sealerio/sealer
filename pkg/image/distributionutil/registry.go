@@ -16,22 +16,33 @@ package distributionutil
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/sealerio/sealer/pkg/client/docker/auth"
 
 	"github.com/distribution/distribution/v3"
 	"github.com/docker/docker/api/types"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/reference"
-	"github.com/sealerio/sealer/utils"
 )
 
 func NewV2Repository(named reference.Named, actions ...string) (distribution.Repository, error) {
-	authConfig, authErr := utils.GetDockerAuthInfoFromDocker(named.Domain())
-	repo, err := getV2Repository(authConfig, named, actions...)
-	if err != nil && authErr != nil {
-		logger.Debug("failed to get auth info, err: %s", authErr)
+	var (
+		domain      = named.Domain()
+		defaultAuth = types.AuthConfig{ServerAddress: domain}
+	)
+
+	svc, err := auth.NewDockerAuthService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read default auth file: %v", err)
 	}
-	return repo, err
+
+	authConfig, err := svc.GetAuthByDomain(domain)
+	if err != nil && authConfig != defaultAuth {
+		return nil, fmt.Errorf("failed to get auth info for domain%s: %v", domain, err)
+	}
+
+	return getV2Repository(authConfig, named, actions...)
 }
 
 func getV2Repository(authConfig types.AuthConfig, named reference.Named, actions ...string) (distribution.Repository, error) {
