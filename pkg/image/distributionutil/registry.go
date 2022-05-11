@@ -28,7 +28,8 @@ import (
 
 func NewV2Repository(named reference.Named, actions ...string) (distribution.Repository, error) {
 	var (
-		domain = named.Domain()
+		domain      = named.Domain()
+		defaultAuth = types.AuthConfig{ServerAddress: domain}
 	)
 
 	svc, err := auth.NewDockerAuthService()
@@ -37,7 +38,7 @@ func NewV2Repository(named reference.Named, actions ...string) (distribution.Rep
 	}
 
 	authConfig, err := svc.GetAuthByDomain(domain)
-	if err != nil {
+	if err != nil && authConfig != defaultAuth {
 		return nil, fmt.Errorf("failed to get auth info for domain%s: %v", domain, err)
 	}
 
