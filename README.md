@@ -113,6 +113,18 @@ sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx
 * [contributing guide](./CONTRIBUTING.md)
 * [贡献文档](./docs/contributing_zh.md)
 
+## Communication Channels
+
+* CNCF Mailing List: to be added.
+* Twitter: [@sealer](https://twitter.com/sealer_oss)
+* DingTalk Group Number: 34619594
+
+<!-- markdownlint-disable -->
+<div align="center">
+  <img src="https://user-images.githubusercontent.com/9465626/167836908-65ca12e0-4600-44d4-b3bd-8b93d27600fb.png" width="300" title="dingtalk">
+</div>
+<!-- markdownlint-restore -->
+
 ## License
 
 Sealer is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
