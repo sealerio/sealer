@@ -33,16 +33,16 @@ func newBrush(color string) brush {
 	}
 }
 
-//鉴于终端的通常使用习惯，一般白色和黑色字体是不可行的,所以30,37不可用，
+//In view of the usual usage habits of the terminal, generally white and black fonts are not feasible, so 30,37 are not available,
 var colors = []brush{
-	newBrush("1;41"), // Emergency          红色底
-	newBrush("1;35"), // Alert              紫色
-	newBrush("1;34"), // Critical           蓝色
-	newBrush("1;31"), // Error              红色
-	newBrush("1;33"), // Warn               黄色
-	newBrush("1;36"), // Informational      天蓝色
-	newBrush("1;32"), // Debug              绿色
-	newBrush("1;32"), // Trace              绿色
+	newBrush("1;41"), // Emergency          red bottom
+	newBrush("1;35"), // Alert              Purple
+	newBrush("1;34"), // Critical           blue
+	newBrush("1;31"), // Error              red
+	newBrush("1;33"), // Warn               yellow
+	newBrush("1;36"), // Informational      sky blue
+	newBrush("1;32"), // Debug              green
+	newBrush("1;32"), // Trace              green
 }
 
 type consoleLogger struct {
