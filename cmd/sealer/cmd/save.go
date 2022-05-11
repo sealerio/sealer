@@ -38,7 +38,7 @@ var save saveFlag
 // saveCmd represents the save command
 var saveCmd = &cobra.Command{
 	Use:   "save",
-	Short: "save image to a tar file",
+	Short: "save CloudImage to a tar file",
 	Long:  `sealer save -o [output file name] [image name]`,
 	Example: `
 save kubernetes:v1.19.8 image to kubernetes.tar file:
@@ -94,7 +94,7 @@ func init() {
 	rootCmd.AddCommand(saveCmd)
 	save = saveFlag{}
 	saveCmd.Flags().StringVarP(&save.ImageTar, "output", "o", "", "write the image to a file")
-	saveCmd.Flags().StringVar(&save.Platform, "platform", "", "set cloud image platform")
+	saveCmd.Flags().StringVar(&save.Platform, "platform", "", "set CloudImage platform")
 
 	if err := saveCmd.MarkFlagRequired("output"); err != nil {
 		logger.Error("failed to init flag: %v", err)

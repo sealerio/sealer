@@ -26,8 +26,10 @@ var platformFlag string
 
 // pullCmd represents the pull command
 var pullCmd = &cobra.Command{
-	Use:     "pull",
-	Short:   "pull cloud image to local",
+	Use:   "pull",
+	Short: "pull CloudImage from a registry to local",
+	// TODO: add long description.
+	Long:    "",
 	Example: `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -50,5 +52,5 @@ var pullCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(pullCmd)
-	pullCmd.Flags().StringVar(&platformFlag, "platform", "", "set cloud image platform")
+	pullCmd.Flags().StringVar(&platformFlag, "platform", "", "set CloudImage platform")
 }

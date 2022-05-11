@@ -25,6 +25,8 @@ var debugOptions = debug.NewDebugOptions()
 var debugCommand = &cobra.Command{
 	Use:   "debug",
 	Short: "Create debugging sessions for pods and nodes",
+	// TODO: add long description.
+	Long: "",
 }
 
 func init() {
@@ -38,7 +40,7 @@ func init() {
 	debugCommand.PersistentFlags().StringVar(&debugOptions.Image, "image", debugOptions.Image, "Container image to use for debug container.")
 	debugCommand.PersistentFlags().StringVar(&debugOptions.DebugContainerName, "name", debugOptions.DebugContainerName, "Container name to use for debug container.")
 	debugCommand.PersistentFlags().StringVar(&debugOptions.PullPolicy, "image-pull-policy", "IfNotPresent", "Container image pull policy, default policy is IfNotPresent.")
-	debugCommand.PersistentFlags().StringSliceVar(&debugOptions.CheckList, "check-list", debugOptions.CheckList, "Check items, such as network、volume.")
+	debugCommand.PersistentFlags().StringSliceVar(&debugOptions.CheckList, "check-list", debugOptions.CheckList, "Check items, such as network, volume.")
 	debugCommand.PersistentFlags().StringVarP(&debugOptions.Namespace, "namespace", "n", "default", "Namespace of Pod.")
 	debugCommand.PersistentFlags().BoolVarP(&debugOptions.Interactive, "stdin", "i", debugOptions.Interactive, "Keep stdin open on the container, even if nothing is attached.")
 	debugCommand.PersistentFlags().BoolVarP(&debugOptions.TTY, "tty", "t", debugOptions.TTY, "Allocate a TTY for the debugging container.")

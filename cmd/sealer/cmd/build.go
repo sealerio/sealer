@@ -40,8 +40,11 @@ var buildConfig *BuildFlag
 // buildCmd represents the build command
 var buildCmd = &cobra.Command{
 	Use:   "build [flags] PATH",
-	Short: "build an cloud image from a Kubefile",
-	Long:  "sealer build -f Kubefile -t my-kubernetes:1.19.8 [--base=false] [--no-cache]",
+	Short: "build a CloudImage from a Kubefile",
+	Long: `build command is used to build a CloudImage from specified Kubefile.
+It organizes the specified Kubefile and input building context, and builds
+a brand new CloudImage.`,
+	Args: cobra.ExactArgs(1),
 	Example: `the current path is the context path, default build type is lite and use build cache
 
 build:
@@ -55,15 +58,9 @@ build without base:
 
 build with args:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
-
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var (
-			buildContext = "."
-		)
-		if len(args) != 0 {
-			buildContext = args[0]
-		}
+		buildContext := args[0]
 
 		targetPlatforms, err := platform.GetPlatform(buildConfig.Platform)
 		if err != nil {
@@ -95,13 +92,13 @@ build with args:
 func init() {
 	buildConfig = &BuildFlag{}
 	rootCmd.AddCommand(buildCmd)
-	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "mode", "m", "lite", "cluster image build type, default is lite")
-	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "kubefile filepath")
-	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "cluster image name")
+	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "mode", "m", "lite", "CloudImage build type, default is lite")
+	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "Kubefile filepath")
+	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "the name of CloudImage")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
-	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image,default value is true.")
+	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image, default value is true.")
 	buildCmd.Flags().StringSliceVar(&buildConfig.BuildArgs, "build-arg", []string{}, "set custom build args")
-	buildCmd.Flags().StringVar(&buildConfig.Platform, "platform", "", "set cloud image platform,if not set,keep same platform with runtime")
+	buildCmd.Flags().StringVar(&buildConfig.Platform, "platform", "", "set CloudImage platform. If not set, keep same platform with runtime")
 
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logger.Error("failed to init flag: %v", err)

@@ -34,8 +34,10 @@ var opts removeImageFlag
 
 // rmiCmd represents the rmi command
 var rmiCmd = &cobra.Command{
-	Use:     "rmi",
-	Short:   "remove local images by name",
+	Use:   "rmi",
+	Short: "remove local images by name",
+	// TODO: add long description.
+	Long:    "",
 	Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
 	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -76,5 +78,5 @@ func runRemove(images []string) error {
 func init() {
 	opts = removeImageFlag{}
 	rootCmd.AddCommand(rmiCmd)
-	rmiCmd.Flags().StringVar(&opts.platform, "platform", "", "set cloud image platform")
+	rmiCmd.Flags().StringVar(&opts.platform, "platform", "", "set CloudImage platform")
 }

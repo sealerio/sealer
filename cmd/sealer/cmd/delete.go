@@ -34,11 +34,12 @@ var (
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "delete a cluster",
-	Long:  `if provider is Bare Metal Server will delete kubernetes nodes`,
-	Args:  cobra.NoArgs,
+	Short: "delete an existing cluster",
+	Long: `delete command is used to delete part or all of existing cluster.
+User can delete cluster by explicitly specifying node IP, Clusterfile, or cluster name.`,
+	Args: cobra.NoArgs,
 	Example: `
-delete to default cluster: 
+delete default cluster: 
 	sealer delete --masters x.x.x.x --nodes x.x.x.x
 	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
 delete all:
