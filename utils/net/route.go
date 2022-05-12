@@ -25,10 +25,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/sealerio/sealer/utils"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils/exec"
 
 	"github.com/vishvananda/netlink"
 	k8snet "k8s.io/apimachinery/pkg/util/net"
@@ -89,7 +88,7 @@ func (r *Route) SetRoute() error {
 	}
 	if netInterface != "" {
 		route := fmt.Sprintf(RouteArg, r.Host, r.Gateway, netInterface)
-		_, err = utils.RunSimpleCmd(fmt.Sprintf(AddStaticRouteFile, netInterface, route, route, netInterface))
+		_, err = exec.RunSimpleCmd(fmt.Sprintf(AddStaticRouteFile, netInterface, route, route, netInterface))
 		if err != nil {
 			return err
 		}
@@ -113,7 +112,7 @@ func (r *Route) DelRoute() error {
 	}
 	if netInterface != "" {
 		route := fmt.Sprintf(RouteArg, r.Host, r.Gateway, netInterface)
-		out, err := utils.RunSimpleCmd(fmt.Sprintf(BackupAndDelStaticRouteFile, netInterface, netInterface, netInterface, route, netInterface))
+		out, err := exec.RunSimpleCmd(fmt.Sprintf(BackupAndDelStaticRouteFile, netInterface, netInterface, netInterface, route, netInterface))
 		if err != nil {
 			logger.Info(out)
 			return err

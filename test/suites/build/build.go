@@ -24,7 +24,7 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/sealerio/sealer/test/testhelper/settings"
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/exec"
 )
 
 func GetFixtures() string {
@@ -93,7 +93,7 @@ func NewArgsOfBuild() *ArgsOfBuild {
 
 func CheckIsImageExist(imageName string) bool {
 	cmd := fmt.Sprintf("%s inspect %s", settings.DefaultSealerBin, imageName)
-	_, err := utils.RunSimpleCmd(cmd)
+	_, err := exec.RunSimpleCmd(cmd)
 	return err == nil
 }
 

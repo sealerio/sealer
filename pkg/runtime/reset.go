@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/exec"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -28,7 +28,7 @@ func (k *KubeadmRuntime) reset() error {
 	k.resetNodes(k.GetNodeIPList())
 	k.resetMasters(k.GetMasterIPList())
 	//if the executing machine is not in the cluster
-	if _, err := utils.RunSimpleCmd(fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())); err != nil {
+	if _, err := exec.RunSimpleCmd(fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())); err != nil {
 		return err
 	}
 	for _, node := range k.GetNodeIPList() {

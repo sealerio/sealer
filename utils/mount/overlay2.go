@@ -28,6 +28,7 @@ import (
 
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 type Interface interface {
@@ -99,7 +100,7 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 		logger.Warn("Unable to detect whether overlay kernel module supports index parameter: %s", err)
 	}
 
-	mountData := fmt.Sprintf("%slowerdir=%s,upperdir=%s,workdir=%s", indexOff, strings.Join(utils.Reverse(layers), ":"), upperLayer, workdir)
+	mountData := fmt.Sprintf("%slowerdir=%s,upperdir=%s,workdir=%s", indexOff, strings.Join(strUtils.Reverse(layers), ":"), upperLayer, workdir)
 	logger.Debug("mount data : %s", mountData)
 	if err = mount("overlay", target, "overlay", 0, mountData); err != nil {
 		return fmt.Errorf("error creating overlay mount to %s: %v", target, err)

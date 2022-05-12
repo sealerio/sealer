@@ -17,11 +17,12 @@ package cmd
 import (
 	"os"
 
+	"github.com/sealerio/sealer/utils/strings"
+
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/build"
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 )
 
@@ -73,7 +74,7 @@ build with args:
 				NoCache:   buildConfig.NoCache,
 				ImageName: buildConfig.ImageName,
 				NoBase:    !buildConfig.Base,
-				BuildArgs: utils.ConvertEnvListToMap(buildConfig.BuildArgs),
+				BuildArgs: strings.ConvertToMap(buildConfig.BuildArgs),
 				Platform:  *p,
 			}
 			builder, err := build.NewBuilder(conf)

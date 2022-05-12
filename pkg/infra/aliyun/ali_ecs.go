@@ -26,10 +26,10 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
-
 	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 type Instance struct {
@@ -96,7 +96,7 @@ func (a *AliProvider) TryGetInstance(request *ecs.DescribeInstancesRequest, resp
 			if instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress == "" {
 				return errors.New("PrimaryIpAddress cannot nob be nil")
 			}
-			if len(ipList) != 0 && !utils.NotIn(instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress, ipList) {
+			if len(ipList) != 0 && !strUtils.NotIn(instance.NetworkInterfaces.NetworkInterface[0].PrimaryIpAddress, ipList) {
 				return errors.New("PrimaryIpAddress cannot nob be same")
 			}
 
@@ -299,7 +299,7 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 		if err != nil {
 			return err
 		}
-		hosts.IPList = utils.AppendDiffSlice(hosts.IPList, ipList)
+		hosts.IPList = strUtils.NewComparator(hosts.IPList, ipList).GetUnion()
 		logger.Info("get scale up IP list %v, append iplist %v, host count %s", ipList, hosts.IPList, hosts.Count)
 	} else if len(instances) > i {
 		var deleteInstancesIDs []string
@@ -326,7 +326,7 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 		if err != nil {
 			return err
 		}
-		hosts.IPList = utils.ReduceStrSlice(hosts.IPList, ipList)
+		hosts.IPList = strUtils.NewComparator(hosts.IPList, ipList).GetIntersection()
 	}
 
 	cpu, err := strconv.Atoi(hosts.CPU)

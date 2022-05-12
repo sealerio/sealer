@@ -17,13 +17,14 @@ package cmd
 import (
 	"os"
 
+	"github.com/sealerio/sealer/utils/strings"
+
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/cert"
-	"github.com/sealerio/sealer/utils"
 )
 
 var runArgs *apply.Args
@@ -75,7 +76,7 @@ func init() {
 	runCmd.Flags().StringSliceVar(&runArgs.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return utils.ContainList([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
+		return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
 		logger.Error("provide completion for provider flag, err: %v", err)

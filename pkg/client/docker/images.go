@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/reference"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
@@ -31,7 +32,7 @@ import (
 )
 
 func (d Docker) ImagesPull(images []string) error {
-	for _, image := range utils.RemoveDuplicate(images) {
+	for _, image := range strUtils.RemoveDuplicate(images) {
 		if image == "" {
 			continue
 		}

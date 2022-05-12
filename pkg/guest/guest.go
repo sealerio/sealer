@@ -17,13 +17,15 @@ package guest
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/utils/maps"
+	"github.com/sealerio/sealer/utils/strings"
+
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 )
@@ -97,9 +99,9 @@ func (d *Default) getGuestCmd(cluster *v2.Cluster, image *v1.Image) []string {
 
 	// normal image: if cluster cmd not nil, use cluster cmd as current cmd
 	if len(clusterCmd) != 0 {
-		return utils.MergeSlice(cmd, clusterCmd)
+		return strings.Merge(cmd, clusterCmd)
 	}
-	return utils.MergeSlice(cmd, image.Spec.ImageConfig.Cmd.Current)
+	return strings.Merge(cmd, image.Spec.ImageConfig.Cmd.Current)
 }
 
 func (d *Default) getGuestCmdArg(cluster *v2.Cluster, image *v1.Image) map[string]string {
@@ -112,10 +114,10 @@ func (d *Default) getGuestCmdArg(cluster *v2.Cluster, image *v1.Image) map[strin
 	if imageType == common.AppImage {
 		base = image.Spec.ImageConfig.Args.Current
 	} else {
-		base = utils.MergeMap(image.Spec.ImageConfig.Args.Parent, image.Spec.ImageConfig.Args.Current)
+		base = maps.Merge(image.Spec.ImageConfig.Args.Parent, image.Spec.ImageConfig.Args.Current)
 	}
 
-	for k, v := range utils.ConvertEnvListToMap(clusterArgs) {
+	for k, v := range strings.ConvertToMap(clusterArgs) {
 		base[k] = v
 	}
 	return base

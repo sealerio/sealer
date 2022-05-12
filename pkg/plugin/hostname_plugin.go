@@ -18,10 +18,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/utils"
-
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils/ssh"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 type HostnamePlugin struct {
@@ -43,7 +42,7 @@ func (h HostnamePlugin) Run(context Context, phase Phase) error {
 	}
 	h.data = h.formatData(context.Plugin.Spec.Data)
 	for ip, hostname := range h.data {
-		if utils.NotIn(ip, context.Host) {
+		if strUtils.NotIn(ip, context.Host) {
 			continue
 		}
 		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster)

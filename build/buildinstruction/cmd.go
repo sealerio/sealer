@@ -17,6 +17,8 @@ package buildinstruction
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/utils/exec"
+
 	"github.com/sealerio/sealer/utils/os"
 
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
@@ -26,7 +28,6 @@ import (
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/cache"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/mount"
 )
 
@@ -75,7 +76,7 @@ func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	}
 
 	cmd := fmt.Sprintf(common.CdAndExecCmd, c.mounter.GetMountTarget(), cmdline)
-	output, err := utils.RunSimpleCmd(cmd)
+	output, err := exec.RunSimpleCmd(cmd)
 	logger.Info(output)
 
 	if err != nil {

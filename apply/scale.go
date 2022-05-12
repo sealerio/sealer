@@ -16,16 +16,15 @@ package apply
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 // NewScaleApplierFromArgs will filter ip list from command parameters.
@@ -84,7 +83,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
-			if utils.InList(common.MASTER, role) {
+			if !strUtils.NotIn(common.MASTER, role) {
 				cluster.Spec.Hosts[i].IPS = removeIPListDuplicatesAndEmpty(append(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ",")...))
 				break
 			}
@@ -97,7 +96,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	if scaleArgs.Nodes != "" && net.IsIPList(scaleArgs.Nodes) {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
-			if utils.InList(common.NODE, role) {
+			if !strUtils.NotIn(common.NODE, role) {
 				cluster.Spec.Hosts[i].IPS = removeIPListDuplicatesAndEmpty(append(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ",")...))
 				break
 			}
@@ -110,17 +109,8 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	return nil
 }
 
-func StrToInt(str string) int {
-	num, err := strconv.Atoi(str)
-	if err != nil {
-		logger.Error("String to digit conversion failed:", err)
-		return 0
-	}
-	return num
-}
-
 func removeIPListDuplicatesAndEmpty(ipList []string) []string {
-	return utils.DedupeStrSlice(utils.RemoveStrSlice(ipList, []string{""}))
+	return strUtils.RemoveDuplicate(strUtils.NewComparator(ipList, []string{""}).GetSrcSubtraction())
 }
 
 func Delete(cluster *v2.Cluster, scaleArgs *Args) error {
@@ -135,19 +125,19 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
 	//master0 machine cannot be deleted
-	if utils.InList(cluster.GetMaster0IP(), strings.Split(scaleArgs.Masters, ",")) {
+	if !strUtils.NotIn(cluster.GetMaster0IP(), strings.Split(scaleArgs.Masters, ",")) {
 		return fmt.Errorf("master0 machine cannot be deleted")
 	}
 	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
 		for i := range cluster.Spec.Hosts {
-			if utils.InList(common.MASTER, cluster.Spec.Hosts[i].Roles) {
+			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ","))
 			}
 		}
 	}
 	if scaleArgs.Nodes != "" && net.IsIPList(scaleArgs.Nodes) {
 		for i := range cluster.Spec.Hosts {
-			if utils.InList(common.NODE, cluster.Spec.Hosts[i].Roles) {
+			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ","))
 			}
 		}
@@ -157,7 +147,7 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 
 func returnFilteredIPList(clusterIPList []string, toBeDeletedIPList []string) (res []string) {
 	for _, ip := range clusterIPList {
-		if utils.NotIn(ip, toBeDeletedIPList) {
+		if strUtils.NotIn(ip, toBeDeletedIPList) {
 			res = append(res, ip)
 		}
 	}

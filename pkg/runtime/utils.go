@@ -25,6 +25,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/exec"
+
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,7 +78,7 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host, rootfs string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to copy kubeconfig")
 	}
-	_, err = utils.RunSimpleCmd(fmt.Sprintf("cat /etc/hosts |grep '%s %s' || echo '%s %s' >> /etc/hosts",
+	_, err = exec.RunSimpleCmd(fmt.Sprintf("cat /etc/hosts |grep '%s %s' || echo '%s %s' >> /etc/hosts",
 		host, common.APIServerDomain, host, common.APIServerDomain))
 	if err != nil {
 		return errors.Wrap(err, "failed to add master IP to etc hosts")
@@ -86,7 +88,7 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host, rootfs string) error {
 		if err != nil {
 			return err
 		}
-		err = utils.Cmd("chmod", "+x", common.KubectlPath)
+		err = exec.Cmd("chmod", "+x", common.KubectlPath)
 		if err != nil {
 			return errors.Wrap(err, "chmod a+x kubectl failed")
 		}

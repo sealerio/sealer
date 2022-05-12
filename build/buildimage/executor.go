@@ -19,13 +19,15 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sealerio/sealer/utils/maps"
+	"github.com/sealerio/sealer/utils/strings"
+
 	"github.com/sealerio/sealer/build/buildinstruction"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/mount"
 
 	"golang.org/x/sync/errgroup"
@@ -243,10 +245,10 @@ func NewBuildImageByKubefile(kubefileName string, platform v1.Platform) (*v1.Ima
 	}
 
 	// merge base image cmd and set to raw image as parent.
-	rawImage.Spec.ImageConfig.Cmd.Parent = utils.MergeSlice(baseImage.Spec.ImageConfig.Cmd.Parent,
+	rawImage.Spec.ImageConfig.Cmd.Parent = strings.Merge(baseImage.Spec.ImageConfig.Cmd.Parent,
 		baseImage.Spec.ImageConfig.Cmd.Current)
 	// merge base image args and set to raw image as parent.
-	rawImage.Spec.ImageConfig.Args.Parent = utils.MergeMap(baseImage.Spec.ImageConfig.Args.Parent,
+	rawImage.Spec.ImageConfig.Args.Parent = maps.Merge(baseImage.Spec.ImageConfig.Args.Parent,
 		baseImage.Spec.ImageConfig.Args.Current)
 
 	return rawImage, baseLayers, nil

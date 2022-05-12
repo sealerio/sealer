@@ -26,7 +26,7 @@ import (
 	"github.com/sealerio/sealer/pkg/image/reference"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 func save(imageName string, image *v1.Image) error {
@@ -140,7 +140,7 @@ func merge(base, ima *v1.Image) (*v1.Image, error) {
 }
 
 func mergeImageCmd(base, ima v1.ImageCmd, isApp bool) v1.ImageCmd {
-	current := utils.MergeSlice(base.Current, ima.Current)
+	current := strings.Merge(base.Current, ima.Current)
 	if isApp {
 		return v1.ImageCmd{
 			Current: current,
@@ -148,7 +148,7 @@ func mergeImageCmd(base, ima v1.ImageCmd, isApp bool) v1.ImageCmd {
 	}
 	return v1.ImageCmd{
 		Current: current,
-		Parent:  utils.MergeSlice(base.Parent, ima.Parent),
+		Parent:  strings.Merge(base.Parent, ima.Parent),
 	}
 }
 

@@ -28,6 +28,7 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/mount"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 
 	"helm.sh/helm/v3/pkg/chartutil"
 	"sigs.k8s.io/yaml"
@@ -100,7 +101,7 @@ func readCharts(chartsPath string) string {
 }
 
 func FormatImages(images []string) (res []string) {
-	for _, ima := range utils.RemoveDuplicate(images) {
+	for _, ima := range strUtils.RemoveDuplicate(images) {
 		if ima == "" {
 			continue
 		}
