@@ -39,7 +39,7 @@ import (
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
+	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
@@ -83,8 +83,10 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host, rootfs string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to add master IP to etc hosts")
 	}
-	if !utils.IsFileExist(common.KubectlPath) {
-		_, err = utils.CopySingleFile(filepath.Join(rootfs, "bin/kubectl"), common.KubectlPath)
+
+	fs := osi.NewFilesystem()
+	if !fs.IsFileExist(common.KubectlPath) {
+		_, err = fs.CopyFile(filepath.Join(rootfs, "bin/kubectl"), common.KubectlPath)
 		if err != nil {
 			return err
 		}
@@ -102,7 +104,7 @@ func LoadMetadata(rootfs string) (*Metadata, error) {
 	var metadataFile []byte
 	var err error
 	var md Metadata
-	if !utils.IsFileExist(metadataPath) {
+	if !osi.NewFilesystem().IsFileExist(metadataPath) {
 		return nil, nil
 	}
 
@@ -241,7 +243,7 @@ func RemoteCerts(altNames []string, hostIP, hostName, serviceCIRD, DNSDomain str
 }
 
 func IsInContainer() bool {
-	data, err := utils.ReadAll("/proc/1/environ")
+	data, err := osi.NewFileReader("/proc/1/environ").ReadAll()
 	if err != nil {
 		return false
 	}

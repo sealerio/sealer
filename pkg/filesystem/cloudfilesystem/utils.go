@@ -19,9 +19,10 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/common"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
@@ -50,7 +51,7 @@ func copyRegistry(regIP string, cluster *v2.Cluster, mountDir map[string]bool, t
 	}
 	for dir := range mountDir {
 		dir = filepath.Join(dir, common.RegistryDirName)
-		if !utils.IsExist(dir) {
+		if !osi.NewFilesystem().IsFileExist(dir) {
 			return nil
 		}
 		err = sshClient.Copy(regIP, dir, filepath.Join(target, common.RegistryDirName))
@@ -62,6 +63,6 @@ func copyRegistry(regIP string, cluster *v2.Cluster, mountDir map[string]bool, t
 }
 
 func CleanFilesystem(clusterName string) error {
-	return utils.CleanFiles(common.GetClusterWorkDir(clusterName), common.DefaultClusterBaseDir(clusterName),
+	return osi.NewFilesystem().RemoveAll(common.GetClusterWorkDir(clusterName), common.DefaultClusterBaseDir(clusterName),
 		common.DefaultKubeConfigDir(), common.KubectlPath)
 }

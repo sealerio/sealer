@@ -14,7 +14,7 @@
 
 // This file is extracted from "github.com/docker/docker/pkg/system"
 
-package utils
+package archive
 
 import "golang.org/x/sys/unix"
 

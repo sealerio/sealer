@@ -18,12 +18,15 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/cert"
-	"github.com/sealerio/sealer/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -116,11 +119,11 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		Port:   "5000",
 	}
 	registryConfigPath := filepath.Join(rootfs, common.EtcDir, RegistryCustomConfig)
-	if !utils.IsFileExist(registryConfigPath) {
+	if !osi.NewFilesystem().IsFileExist(registryConfigPath) {
 		logger.Debug("use default registry config")
 		return DefaultConfig
 	}
-	err := utils.UnmarshalYamlFile(registryConfigPath, &config)
+	err := yaml.UnmarshalFile(registryConfigPath, &config)
 	if err != nil {
 		logger.Error("Failed to read registry config! ")
 		return DefaultConfig

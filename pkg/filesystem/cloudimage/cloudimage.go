@@ -17,9 +17,10 @@ package cloudimage
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"time"
+
+	osi "github.com/sealerio/sealer/utils/os"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/env"
@@ -39,6 +40,7 @@ type Interface interface {
 
 type mounter struct {
 	imageStore store.ImageStore
+	fs         osi.Interface
 }
 
 func (m *mounter) MountImage(cluster *v2.Cluster) error {
@@ -51,7 +53,8 @@ func (m *mounter) UnMountImage(cluster *v2.Cluster) error {
 
 func (m *mounter) umountImage(cluster *v2.Cluster) error {
 	mountRootDir := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name, "mount")
-	if !utils.IsFileExist(mountRootDir) {
+
+	if !m.fs.IsFileExist(mountRootDir) {
 		return nil
 	}
 	dir, err := ioutil.ReadDir(mountRootDir)
@@ -71,7 +74,8 @@ func (m *mounter) umountImage(cluster *v2.Cluster) error {
 			}
 		}
 	}
-	return os.RemoveAll(mountRootDir)
+
+	return m.fs.RemoveAll(mountRootDir)
 }
 
 func (m *mounter) mountImage(cluster *v2.Cluster) error {
@@ -99,8 +103,8 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 				return fmt.Errorf("%s already mount, and failed to umount %v", mountDir, err)
 			}
 		}
-		if utils.IsFileExist(mountDir) {
-			if err = os.RemoveAll(mountDir); err != nil {
+		if m.fs.IsFileExist(mountDir) {
+			if err = m.fs.RemoveAll(mountDir); err != nil {
 				return fmt.Errorf("failed to clean %s, %v", mountDir, err)
 			}
 		}
@@ -113,14 +117,14 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 			return fmt.Errorf("get layers failed: %v", err)
 		}
 
-		if err = os.MkdirAll(upperDir, common.FileMode0755); err != nil {
+		if err = m.fs.MkdirAll(upperDir); err != nil {
 			return fmt.Errorf("create upperdir failed, %s", err)
 		}
 		if err = driver.Mount(mountDir, upperDir, layers...); err != nil {
 			return fmt.Errorf("mount files failed %v", err)
 		}
 		// use env list to render image mount dir: etc,charts,manifests.
-		err = renderENV(mountDir, cluster.GetAllIPList(), env.NewEnvProcessor(cluster))
+		err = renderENV(mountDir, cluster.GetAllIPList(), env.NewEnvProcessor(cluster), m.fs)
 		if err != nil {
 			return err
 		}
@@ -128,7 +132,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 	return nil
 }
 
-func renderENV(imageMountDir string, ipList []string, p env.Interface) error {
+func renderENV(imageMountDir string, ipList []string, p env.Interface, f osi.Interface) error {
 	var (
 		renderEtc       = filepath.Join(imageMountDir, common.EtcDir)
 		renderChart     = filepath.Join(imageMountDir, common.RenderChartsDir)
@@ -137,7 +141,7 @@ func renderENV(imageMountDir string, ipList []string, p env.Interface) error {
 
 	for _, ip := range ipList {
 		for _, dir := range []string{renderEtc, renderChart, renderManifests} {
-			if utils.IsExist(dir) {
+			if f.IsFileExist(dir) {
 				err := p.RenderAll(ip, dir)
 				if err != nil {
 					return err
@@ -151,5 +155,6 @@ func renderENV(imageMountDir string, ipList []string, p env.Interface) error {
 func NewCloudImageMounter(is store.ImageStore) (Interface, error) {
 	return &mounter{
 		imageStore: is,
+		fs:         osi.NewFilesystem(),
 	}, nil
 }

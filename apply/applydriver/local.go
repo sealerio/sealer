@@ -17,6 +17,8 @@ package applydriver
 import (
 	"fmt"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/apply/processor"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
@@ -28,7 +30,6 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sealerio/sealer/utils/strings"
@@ -65,7 +66,7 @@ func (c *Applier) Apply() (err error) {
 			return err
 		}
 	}
-	if !utils.IsFileExist(common.DefaultKubeConfigFile()) {
+	if !osi.NewFilesystem().IsFileExist(common.DefaultKubeConfigFile()) {
 		if err = c.initCluster(); err != nil {
 			return err
 		}
@@ -75,7 +76,7 @@ func (c *Applier) Apply() (err error) {
 		}
 	}
 
-	return utils.SaveClusterInfoToFile(c.ClusterDesired, c.ClusterDesired.Name)
+	return clusterfile.SaveToDisk(c.ClusterDesired, c.ClusterDesired.Name)
 }
 
 func (c *Applier) fillClusterCurrent() error {
@@ -232,7 +233,7 @@ func (c *Applier) upgrade() error {
 		return err
 	}
 	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
-	return utils.SaveClusterInfoToFile(c.ClusterDesired, c.ClusterDesired.Name)
+	return clusterfile.SaveToDisk(c.ClusterDesired, c.ClusterDesired.Name)
 }
 
 func (c *Applier) initClusterfile() (err error) {

@@ -19,13 +19,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/opencontainers/go-digest"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/cache"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/collector"
 )
 
@@ -71,7 +72,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		}
 	}
 
-	tmp, err := utils.MkTmpdir()
+	tmp, err := osi.NewFilesystem().MkTmpdir()
 	if err != nil {
 		return out, fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
 	}

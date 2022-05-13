@@ -17,12 +17,13 @@ package runtime
 import (
 	"fmt"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/imdario/mergo"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/strings"
 )
 
@@ -60,7 +61,7 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 		defaultKubeadmConfig *KubeadmConfig
 		err                  error
 	)
-	if kubeadmYamlPath == "" || !utils.IsFileExist(kubeadmYamlPath) {
+	if kubeadmYamlPath == "" || !osi.NewFilesystem().IsFileExist(kubeadmYamlPath) {
 		defaultKubeadmConfig, err = LoadKubeadmConfigs(DefaultKubeadmConfig, DecodeCRDFromString)
 		if err != nil {
 			return err

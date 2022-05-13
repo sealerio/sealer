@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/utils/exec"
 	"github.com/sealerio/sealer/utils/strings"
 
@@ -31,7 +33,6 @@ import (
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 )
@@ -64,7 +65,7 @@ func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) err
 		return err
 	}
 
-	if utils.IsExist(nydusdServerClean) {
+	if osi.NewFilesystem().IsFileExist(nydusdServerClean) {
 		cleanCmd := fmt.Sprintf("sh %s", nydusdServerClean)
 		_, err := exec.RunSimpleCmd(cleanCmd)
 		if err != nil {

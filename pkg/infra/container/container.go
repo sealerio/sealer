@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"time"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/docker/docker/api/types/mount"
 
 	"github.com/sealerio/sealer/common"
@@ -27,7 +29,6 @@ import (
 	"github.com/sealerio/sealer/pkg/infra/container/client"
 	"github.com/sealerio/sealer/pkg/infra/container/client/docker"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
@@ -103,7 +104,7 @@ func (a *ApplyProvider) CheckServerInfo() error {
 		}
 	}
 
-	if !utils.IsFileExist(DockerHost) && os.Getenv("DOCKER_HOST") == "" {
+	if !osi.NewFilesystem().IsFileExist(DockerHost) && os.Getenv("DOCKER_HOST") == "" {
 		return fmt.Errorf("sealer user default docker host /var/run/docker.sock, please set env DOCKER_HOST='' to override it")
 	}
 
@@ -294,8 +295,8 @@ func (a *ApplyProvider) CleanUp() error {
 		}
 		continue
 	}
-	utils.CleanDir(common.DefaultClusterBaseDir(a.Cluster.Name))
-	return nil
+
+	return osi.NewFilesystem().RemoveAll(common.DefaultClusterBaseDir(a.Cluster.Name))
 }
 
 func NewClientWithCluster(cluster *v1.Cluster) (*ApplyProvider, error) {

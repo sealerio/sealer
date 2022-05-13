@@ -16,8 +16,8 @@ package prune
 
 import (
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/mount"
+	osi "github.com/sealerio/sealer/utils/os"
 )
 
 type buildPrune struct {
@@ -33,7 +33,7 @@ func NewBuildPrune() Pruner {
 func (b buildPrune) Select() ([]string, error) {
 	var pruneList []string
 	// umount all tmp dir, and delete it
-	pruneUnits, err := utils.GetDirNameListInDir(b.pruneRootDir, utils.FilterOptions{
+	pruneUnits, err := osi.GetDirNameListInDir(b.pruneRootDir, osi.FilterOptions{
 		All:          true,
 		WithFullPath: true,
 	})

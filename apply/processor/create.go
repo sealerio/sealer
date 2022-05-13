@@ -29,7 +29,6 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 )
@@ -66,7 +65,7 @@ func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, erro
 func (c *CreateProcessor) PreProcess(cluster *v2.Cluster) error {
 	c.Config = config.NewConfiguration(cluster)
 	c.initPlugin(cluster)
-	return utils.SaveClusterInfoToFile(cluster, cluster.Name)
+	return clusterfile.SaveToDisk(cluster, cluster.Name)
 }
 
 func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) {
@@ -129,7 +128,7 @@ func (c *CreateProcessor) Join(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	return utils.SaveClusterInfoToFile(cluster, cluster.Name)
+	return clusterfile.SaveToDisk(cluster, cluster.Name)
 }
 
 func (c *CreateProcessor) RunGuest(cluster *v2.Cluster) error {

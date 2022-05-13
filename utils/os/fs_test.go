@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package os
 
 import (
 	"os"
@@ -45,7 +45,7 @@ func TestReadAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := ReadAll(tt.args.fileName); !reflect.DeepEqual(got, tt.want) {
+			if got, _ := NewFileReader(tt.args.fileName).ReadAll(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReadAll() = %v, want %v", got, tt.want)
 			}
 		})
@@ -69,7 +69,7 @@ func TestMkdir(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Mkdir(tt.args.dirName); (err != nil) != tt.wantErr {
+			if err := NewFilesystem().MkdirAll(tt.args.dirName); (err != nil) != tt.wantErr {
 				t.Errorf("Mkdir() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -132,7 +132,7 @@ func TestCopyDir(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CopyDir(tt.args.src, tt.args.dst); (err != nil) != tt.wantErr {
+			if err := NewFilesystem().CopyDir(tt.args.src, tt.args.dst); (err != nil) != tt.wantErr {
 				t.Errorf("CopyDir() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -181,7 +181,7 @@ func TestCopySingleFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := CopySingleFile(tt.args.src, tt.args.dst); (err != nil) != tt.wantErr {
+			if _, err := NewFilesystem().CopyFile(tt.args.src, tt.args.dst); (err != nil) != tt.wantErr {
 				t.Errorf("CopySingleFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -294,61 +294,5 @@ func TestRecursionHardLink(t *testing.T) {
 	}()
 	if err != nil {
 		t.Fatalf("failed to make fake dir, err: %v", err)
-	}
-}
-
-func TestAppendFile(t *testing.T) {
-	type args struct {
-		content  string
-		fileName string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			"add hosts",
-			args{
-				content:  "127.0.0.1 localhost",
-				fileName: "./test/file/abc.txt",
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := AppendFile(tt.args.fileName, tt.args.content); (err != nil) != tt.wantErr {
-				t.Errorf("AppendFile() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestRemoveFileContent(t *testing.T) {
-	type args struct {
-		fileName string
-		content  string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			"delete hosts",
-			args{
-				content:  "127.0.0.1 localhost",
-				fileName: "./test/file/abc.txt",
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := RemoveFileContent(tt.args.fileName, tt.args.content); (err != nil) != tt.wantErr {
-				t.Errorf("RemoveFileContent() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
 	}
 }

@@ -18,12 +18,13 @@ import (
 	"context"
 	"fmt"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/pkg/client/docker/auth"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/distributionutil"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 )
 
 type RegistryChecker struct {
@@ -37,7 +38,7 @@ func (r *RegistryChecker) Check(cluster *v2.Cluster, phase string) error {
 
 	// checker the existence of the docker.json ;
 	authFile := common.DefaultRegistryAuthConfigDir()
-	if !utils.IsFileExist(authFile) {
+	if !osi.NewFilesystem().IsFileExist(authFile) {
 		return fmt.Errorf("registry auth info not found,please run 'sealer login' first")
 	}
 	// try to log in with auth info

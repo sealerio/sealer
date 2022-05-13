@@ -13,3 +13,23 @@
 // limitations under the License.
 
 package os
+
+// Interface collects system level operations
+type Interface interface {
+	MkdirAll(path string) error
+	MkTmpdir() (string, error)
+	CopyFile(src, dst string) (int64, error)
+	CopyDir(srcPath, dstPath string) error
+	RemoveAll(path ...string) error
+	IsFileExist(fileName string) bool
+	GetFilesSize(paths []string) (int64, error)
+}
+
+type FileReader interface {
+	ReadLines() ([]string, error)
+	ReadAll() ([]byte, error)
+}
+
+type FileWriter interface {
+	WriteFile(content []byte) error
+}

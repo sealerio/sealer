@@ -15,12 +15,12 @@
 package store
 
 import (
-	"github.com/sealerio/sealer/utils"
+	osi "github.com/sealerio/sealer/utils/os"
 )
 
 func traverseLayerDB(layerDBRoot string) ([]string, error) {
 	// TODO maybe there no need to traverse layerdb, just clarify how many sha supported in a list
-	shaDirs, err := utils.GetDirNameListInDir(layerDBRoot, utils.FilterOptions{
+	shaDirs, err := osi.GetDirNameListInDir(layerDBRoot, osi.FilterOptions{
 		OnlyDir:      true,
 		WithFullPath: true,
 	})
@@ -30,7 +30,7 @@ func traverseLayerDB(layerDBRoot string) ([]string, error) {
 
 	var layerDirs []string
 	for _, shaDir := range shaDirs {
-		layerDirList, err := utils.GetDirNameListInDir(shaDir, utils.FilterOptions{
+		layerDirList, err := osi.GetDirNameListInDir(shaDir, osi.FilterOptions{
 			OnlyDir:      true,
 			WithFullPath: true,
 		})

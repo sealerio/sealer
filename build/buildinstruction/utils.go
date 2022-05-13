@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/opencontainers/go-digest"
 	fsutil "github.com/tonistiigi/fsutil/copy"
 
@@ -29,7 +31,6 @@ import (
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/cache"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/archive"
 	"github.com/sealerio/sealer/utils/collector"
 )
@@ -71,7 +72,7 @@ func GenerateSourceFilesDigest(root, src string) (digest.Digest, error) {
 		return generateDigest(filepath.Join(root, src))
 	}
 
-	tmp, err := utils.MkTmpdir()
+	tmp, err := osi.NewFilesystem().MkTmpdir()
 	if err != nil {
 		return "", fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
 	}

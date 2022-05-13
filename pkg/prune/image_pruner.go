@@ -17,9 +17,10 @@ package prune
 import (
 	"path/filepath"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/store"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/strings"
 )
 
@@ -47,7 +48,7 @@ func (i imagePrune) Select() ([]string, error) {
 		return pruneList, err
 	}
 
-	subsets, err := utils.GetDirNameListInDir(i.imageRootDir, utils.FilterOptions{
+	subsets, err := osi.GetDirNameListInDir(i.imageRootDir, osi.FilterOptions{
 		All:          true,
 		WithFullPath: true,
 	})

@@ -24,8 +24,6 @@ import (
 
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
 
-	"github.com/sealerio/sealer/utils"
-
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -79,7 +77,7 @@ func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
 	s.Runtime = runTime
 	s.Config = config.NewConfiguration(cluster)
 	if s.IsScaleUp {
-		if err = utils.SaveClusterInfoToFile(cluster, cluster.Name); err != nil {
+		if err = clusterfile.SaveToDisk(cluster, cluster.Name); err != nil {
 			return err
 		}
 	}
