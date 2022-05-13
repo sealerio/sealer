@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package yaml
 
 import (
 	"bytes"
@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	"github.com/sealerio/sealer/utils"
 
 	"github.com/sealerio/sealer/utils/hash"
 
@@ -74,7 +76,7 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 		return err
 	}
 
-	if err = WriteFile(file, data); err != nil {
+	if err = utils.WriteFile(file, data); err != nil {
 		return err
 	}
 	return nil
@@ -82,7 +84,7 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 
 func SaveClusterInfoToFile(cluster runtime.Object, clusterName string) error {
 	fileName := common.GetClusterWorkClusterfile(clusterName)
-	err := MkFileFullPathDir(fileName)
+	err := utils.MkFileFullPathDir(fileName)
 	if err != nil {
 		return fmt.Errorf("mkdir failed %s %v", fileName, err)
 	}
@@ -106,7 +108,7 @@ func MarshalYamlConfigs(configs ...interface{}) ([]byte, error) {
 	return bytes.Join(cfgs, []byte("\n---\n")), nil
 }
 
-func YamlMatcher(path string) bool {
+func Matcher(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	return ext == ".yaml" || ext == ".yml"
 }

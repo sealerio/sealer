@@ -17,14 +17,14 @@ package processor
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/plugin"
 
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
-
-	"github.com/sealerio/sealer/utils"
 
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/runtime"
@@ -79,7 +79,7 @@ func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
 	s.Runtime = runTime
 	s.Config = config.NewConfiguration(cluster)
 	if s.IsScaleUp {
-		if err = utils.SaveClusterInfoToFile(cluster, cluster.Name); err != nil {
+		if err = yaml.SaveClusterInfoToFile(cluster, cluster.Name); err != nil {
 			return err
 		}
 	}

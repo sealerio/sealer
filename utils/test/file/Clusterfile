@@ -1,0 +1,292 @@
+#Clusterfile for test
+apiVersion: sealer.cloud/v2
+kind: KubeadmConfig
+metadata:
+  name: default-kubernetes-config
+spec:
+  localAPIEndpoint:
+    advertiseAddress: 192.168.2.110
+    bindPort: 6443
+  nodeRegistration:
+    criSocket: /var/run/dockershim.sock
+  kubernetesVersion: v1.19.8
+  controlPlaneEndpoint: "apiserver.cluster.local:6443"
+  imageRepository: sea.hub:5000/library
+  networking:
+    podSubnet: 100.64.0.0/10
+    serviceSubnet: 10.96.0.0/22
+  apiServer:
+    certSANs:
+      - sealer.cloud
+      - 127.0.0.1
+      - Partial.custom.config
+  clusterDomain: cluster.local
+  nodeLeaseDurationSeconds: 99
+  nodeStatusReportFrequency: 99s
+  nodeStatusUpdateFrequency: 99s
+---
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: alicloud
+spec:
+  provider: ALI_CLOUD
+  ssh:
+    passwd: xxx
+    port: 2222
+  hosts:
+    - count: 3
+      role: [ master ]
+      cpu: 4
+      memory: 4
+      systemDisk: 100
+      dataDisk: [ 100,200 ]
+    - count: 3
+      role: [ node ]
+      cpu: 4
+      memory: 4
+      systemDisk: 100
+      dataDisk: [ 100, 200 ]
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 2m0s
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+cgroupsPerQOS: true
+clusterDomain: cluster.local
+configMapAndSecretChangeDetectionStrategy: Watch
+containerLogMaxFiles: 5
+containerLogMaxSize: 10Mi
+contentType: application/vnd.kubernetes.protobuf
+cpuCFSQuota: true
+cpuCFSQuotaPeriod: 100ms
+cpuManagerPolicy: none
+cpuManagerReconcilePeriod: 10s
+enableControllerAttachDetach: true
+enableDebuggingHandlers: true
+enforceNodeAllocatable:
+  - pods
+eventBurst: 10
+eventRecordQPS: 5
+evictionHard:
+  imagefs.available: 15%
+  memory.available: 100Mi
+  nodefs.available: 10%
+  nodefs.inodesFree: 5%
+evictionPressureTransitionPeriod: 5m0s
+failSwapOn: true
+fileCheckFrequency: 20s
+hairpinMode: promiscuous-bridge
+healthzBindAddress: 127.0.0.1
+healthzPort: 10248
+httpCheckFrequency: 20s
+imageGCHighThresholdPercent: 85
+imageGCLowThresholdPercent: 80
+imageMinimumGCAge: 2m0s
+iptablesDropBit: 15
+iptablesMasqueradeBit: 14
+kubeAPIBurst: 10
+kubeAPIQPS: 5
+makeIPTablesUtilChains: true
+maxOpenFiles: 1000000
+maxPods: 110
+nodeLeaseDurationSeconds: 40
+nodeStatusReportFrequency: 10s
+nodeStatusUpdateFrequency: 10s
+oomScoreAdj: -999
+podPidsLimit: -1
+port: 10250
+registryBurst: 10
+registryPullQPS: 5
+rotateCertificates: true
+runtimeRequestTimeout: 2m0s
+serializeImagePulls: true
+staticPodPath: /etc/kubernetes/manifests
+streamingConnectionIdleTimeout: 4h0m0s
+syncFrequency: 1m0s
+volumeStatsAggPeriod: 1m0s
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+networking:
+  podSubnet: 100.64.0.0/10
+  serviceSubnet: 10.96.0.0/22
+apiServer:
+  certSANs:
+    - default.raw.config
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: 127.0.0.1 
+  bindPort: 6443
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+---
+# Copyright © 2021 Alibaba Group Holding Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: zlink.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  name: my-test-cluster
+spec:
+  image: sealer-io/kubernetes:v1.19.8
+  provider: ALI_CLOUD
+  ssh:
+    passwd: Sealer123
+    pk: xxx
+    pkPasswd: xxx
+    user: root
+  network:
+    podCIDR: 100.64.0.0/10
+    svcCIDR: 10.96.0.0/22
+  certSANS:
+    - aliyun-inc.com
+    - 10.0.0.2
+
+  masters:
+    cpu: 4
+    memory: 4
+    count: 1
+    systemDisk: 100
+    dataDisks:
+      - 100
+  nodes:
+    cpu: 4
+    memory: 4
+    count: 1
+    systemDisk: 100
+    dataDisks:
+      - 100
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: mysql-config
+spec:
+  path: etc/mysql.yaml
+  data: |
+    test
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Config
+metadata:
+  name: redis-config
+spec:
+  path: etc/redis.yaml
+  data: |
+    test
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_originally
+spec:
+  type: SHELL
+  action: Originally
+  data: |
+    hostname && echo "$env: OriginallyShell was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_prejoin
+spec:
+  type: SHELL
+  action: PreJoin
+  data: |
+    hostname && echo "$env: PreJoin from Clusterfile was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v2alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_PostInstall_PostJoin
+spec:
+  action: PostInstall|PostJoin
+  type: SHELL
+  'on': "sealer-test=true"
+  data: |
+    hostname && echo "PostInstall|PostJoin from Clusterfile on sealer-test=true" `date`
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_postjoin
+spec:
+  type: SHELL
+  action: PostJoin
+  data: |
+    hostname && echo "$env: PostJoin was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_preclean
+spec:
+  type: SHELL
+  action: PreClean
+  data: |
+    hostname && echo "$env: PreClean was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_postclean
+spec:
+  type: SHELL
+  action: PostClean
+  data: |
+    hostname && echo "$env: PostJoin was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: clusterfile_postinstall
+spec:
+  type: SHELL
+  action: PostInstall
+  data: |
+    echo "$env: PostInstallShell was successfully run from Clusterfile"
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: LABEL
+spec:
+  type: LABEL
+  action: PreGuest
+  data: |
+    172.17.102.186 ssd=true
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: HOSTNAME
+spec:
+  type: HOSTNAME
+  action: PreInit
+  data: |
+    172.17.102.186 master-0

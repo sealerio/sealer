@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/cert"
@@ -70,7 +72,7 @@ func (k *KubeadmRuntime) generateConfigs() ([]byte, error) {
 	}
 	k.setCgroupDriver(cGroupDriver)
 	k.setKubeadmAPIVersion()
-	return utils.MarshalYamlConfigs(&k.InitConfiguration,
+	return yaml.MarshalYamlConfigs(&k.InitConfiguration,
 		&k.ClusterConfiguration,
 		&k.KubeletConfiguration,
 		&k.KubeProxyConfiguration)

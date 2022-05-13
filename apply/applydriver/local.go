@@ -17,6 +17,8 @@ package applydriver
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/sealerio/sealer/apply/processor"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
@@ -75,7 +77,7 @@ func (c *Applier) Apply() (err error) {
 		}
 	}
 
-	return utils.SaveClusterInfoToFile(c.ClusterDesired, c.ClusterDesired.Name)
+	return yaml.SaveClusterInfoToFile(c.ClusterDesired, c.ClusterDesired.Name)
 }
 
 func (c *Applier) fillClusterCurrent() error {
@@ -168,7 +170,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	}
 	var cluster *v2.Cluster
 	if !scaleProcessor.(*processor.ScaleProcessor).IsScaleUp {
-		c, err := runtime.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
+		c, err := yaml.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
 		if err != nil {
 			return err
 		} else if c != nil {
@@ -232,7 +234,7 @@ func (c *Applier) upgrade() error {
 		return err
 	}
 	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
-	return utils.SaveClusterInfoToFile(c.ClusterDesired, c.ClusterDesired.Name)
+	return yaml.SaveClusterInfoToFile(c.ClusterDesired, c.ClusterDesired.Name)
 }
 
 func (c *Applier) initClusterfile() (err error) {

@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/save"
 	v1 "github.com/sealerio/sealer/types/api/v1"
@@ -50,7 +52,7 @@ func (m MiddlewarePuller) Process(context, rootfs string) error {
 
 	// pares middleware file: imageListWithAuth.yaml
 	var imageSection []ImageSection
-	err := utils.UnmarshalYamlFile(filePath, &imageSection)
+	err := yaml.UnmarshalYamlFile(filePath, &imageSection)
 	if err != nil {
 		return err
 	}

@@ -20,9 +20,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils/yaml"
 
-	"github.com/sealerio/sealer/utils"
+	"github.com/sealerio/sealer/logger"
 )
 
 const (
@@ -359,7 +359,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 					t.Errorf("Remove %s error = %v, wantErr %v", testfile, err, tt.wantErr)
 				}
 			}()
-			KubeadmConfig, err := LoadKubeadmConfigs(testfile, DecodeCRDFromFile)
+			KubeadmConfig, err := LoadKubeadmConfigs(testfile, yaml.DecodeCRDFromFile)
 			if err != nil {
 				t.Errorf("err: %v", err)
 				return
@@ -368,7 +368,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 				t.Errorf("LoadFromClusterfile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			logger.Info("k.InitConfiguration.Kind", k.InitConfiguration.Kind)
-			out, err := utils.MarshalYamlConfigs(k.InitConfiguration, k.ClusterConfiguration,
+			out, err := yaml.MarshalYamlConfigs(k.InitConfiguration, k.ClusterConfiguration,
 				k.JoinConfiguration, k.KubeletConfiguration, k.KubeProxyConfiguration)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MarshalConfigsToYaml() error = %v, wantErr %v", err, tt.wantErr)

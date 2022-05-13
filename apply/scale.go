@@ -18,19 +18,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 // NewScaleApplierFromArgs will filter ip list from command parameters.
 func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (applydriver.Interface, error) {
 	cluster := &v2.Cluster{}
-	if err := utils.UnmarshalYamlFile(clusterfile, cluster); err != nil {
+	if err := yaml.UnmarshalYamlFile(clusterfile, cluster); err != nil {
 		return nil, err
 	}
 	if scaleArgs.Nodes == "" && scaleArgs.Masters == "" {

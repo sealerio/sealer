@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/pkg/errors"
@@ -26,7 +28,6 @@ import (
 
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/ipvs"
-	"github.com/sealerio/sealer/utils"
 )
 
 const (
@@ -49,7 +50,7 @@ func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
 		return nil, err
 	}
 	k.setCgroupDriver(cGroupDriver)
-	return utils.MarshalYamlConfigs(k.JoinConfiguration, k.KubeletConfiguration)
+	return yaml.MarshalYamlConfigs(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
 func (k *KubeadmRuntime) joinNodes(nodes []string) error {
@@ -192,7 +193,7 @@ func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
 	if err != nil {
 		return err
 	}
-	if result == net.RouteOK {
+	if result == "Ok" {
 		return nil
 	}
 	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getVIP(), node))

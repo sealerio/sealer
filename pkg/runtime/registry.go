@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/sealerio/sealer/common"
@@ -120,7 +122,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		logger.Debug("use default registry config")
 		return DefaultConfig
 	}
-	err := utils.UnmarshalYamlFile(registryConfigPath, &config)
+	err := yaml.UnmarshalYamlFile(registryConfigPath, &config)
 	if err != nil {
 		logger.Error("Failed to read registry config! ")
 		return DefaultConfig

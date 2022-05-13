@@ -22,6 +22,8 @@ import (
 	"os"
 	"path/filepath"
 
+	yaml2 "github.com/sealerio/sealer/utils/yaml"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/common"
@@ -84,7 +86,7 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 		for _, m := range repo.Manifests {
 			var image v1.Image
 			imageTempFile := filepath.Join(common.DefaultLayerDir, m.ID+".yaml")
-			if err = utils.UnmarshalYamlFile(imageTempFile, &image); err != nil {
+			if err = yaml2.UnmarshalYamlFile(imageTempFile, &image); err != nil {
 				return fmt.Errorf("failed to parsing %s, err: %v", imageTempFile, err)
 			}
 			for _, layer := range image.Spec.Layers {

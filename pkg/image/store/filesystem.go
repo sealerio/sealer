@@ -27,6 +27,8 @@ import (
 	"sync"
 	"time"
 
+	yaml2 "github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -411,7 +413,7 @@ func (fs *filesystem) getImageByID(id string) (*v1.Image, error) {
 		filename = filepath.Join(fs.imageDBRoot, id+".yaml")
 	)
 
-	err := pkgutils.UnmarshalYamlFile(filename, &image)
+	err := yaml2.UnmarshalYamlFile(filename, &image)
 	if err != nil {
 		return nil, fmt.Errorf("no such image id:%s", id)
 	}

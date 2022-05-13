@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/sealerio/sealer/common"
@@ -30,7 +32,6 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	apiv1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 
@@ -73,7 +74,7 @@ func NewGenerateProcessor() (Processor, error) {
 
 func (g *GenerateProcessor) init(cluster *v2.Cluster) error {
 	fileName := fmt.Sprintf("%s/.sealer/%s/Clusterfile", common.GetHomeDir(), cluster.Name)
-	if err := utils.MarshalYamlToFile(fileName, cluster); err != nil {
+	if err := yaml.MarshalYamlToFile(fileName, cluster); err != nil {
 		return err
 	}
 	return nil
