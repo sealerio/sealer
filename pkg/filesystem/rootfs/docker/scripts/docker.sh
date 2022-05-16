@@ -12,7 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -e
+set -x
 
+rootfs=$(dirname "$(pwd)")
+image_dir="$rootfs/images"
 command_exists() {
     command -v "$@" > /dev/null 2>&1
 }
@@ -32,8 +36,17 @@ disable_selinux(){
         setenforce 0
     fi
 }
-set -e
-set -x
+load_images() {
+for image in "$image_dir"/*
+do
+ if [ -f "${image}" ]
+ then
+  docker load -q -i "${image}"
+ fi
+done
+}
+
+
 storage=${1:-/var/lib/docker}
 mkdir -p $storage
 if ! command_exists docker; then
@@ -75,3 +88,4 @@ fi
 disable_selinux
 systemctl daemon-reload
 systemctl restart docker.service
+load_images
