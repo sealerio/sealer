@@ -207,6 +207,7 @@ func NewDefaultLayerStore() (LayerStore, error) {
 	ls := &layerStore{
 		layers:  map[LayerID]*ROLayer{},
 		Backend: sb,
+		fs:      fs.NewFilesystem(),
 	}
 	err = ls.loadAllROLayers()
 	if err != nil {
