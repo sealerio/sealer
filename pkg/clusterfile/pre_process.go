@@ -20,6 +20,9 @@ import (
 	"io"
 	"os"
 
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	yaml2 "github.com/sealerio/sealer/utils/yaml"
+
 	runtime2 "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
@@ -29,7 +32,6 @@ import (
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 )
 
 type PreProcessor interface {
@@ -68,19 +70,16 @@ func (c *ClusterFile) PrePareEnv() error {
 	if err != nil {
 		return err
 	}
-	err = c.DecodePlugins(clusterFileData)
-	if err != nil && err != ErrTypeNotFound {
+
+	if err = c.DecodePlugins(clusterFileData); err != nil {
 		return err
 	}
-	err = c.DecodeConfigs(clusterFileData)
-	if err != nil && err != ErrTypeNotFound {
+
+	if err = c.DecodeConfigs(clusterFileData); err != nil {
 		return err
 	}
-	err = c.DecodeKubeadmConfig(clusterFileData)
-	if err != nil && err != ErrTypeNotFound {
-		return err
-	}
-	return nil
+
+	return c.DecodeKubeadmConfig(clusterFileData)
 }
 
 func (c *ClusterFile) PrePareConfigs() error {
@@ -129,21 +128,24 @@ func (c *ClusterFile) PrePareCluster() error {
 }
 
 func (c *ClusterFile) DecodeCluster(data []byte) error {
-	cluster, err := GetClusterFromDataCompatV1(data)
+	cluster, err := yaml2.DecodeCRDFromByte(data, common.Cluster)
 	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
 		return err
 	}
-	c.Cluster = *cluster
+	c.Cluster = *cluster.(*v2.Cluster)
 	return nil
 }
 
 func (c *ClusterFile) DecodeConfigs(data []byte) error {
-	configs, err := utils.DecodeV1CRDFromReader(bytes.NewReader(data), common.Config)
+	configs, err := yaml2.DecodeCRDFromByte(data, common.Config)
 	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
 		return err
-	}
-	if configs == nil {
-		return ErrTypeNotFound
 	}
 	cfg := configs.([]v1.Config)
 	c.Configs = cfg
@@ -151,12 +153,12 @@ func (c *ClusterFile) DecodeConfigs(data []byte) error {
 }
 
 func (c *ClusterFile) DecodePlugins(data []byte) error {
-	plugs, err := utils.DecodeV1CRDFromReader(bytes.NewReader(data), common.Plugin)
+	plugs, err := yaml2.DecodeCRDFromByte(data, common.Plugin)
 	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
 		return err
-	}
-	if plugs == nil {
-		return ErrTypeNotFound
 	}
 	plugins := plugs.([]v1.Plugin)
 	c.Plugins = plugins
@@ -164,12 +166,9 @@ func (c *ClusterFile) DecodePlugins(data []byte) error {
 }
 
 func (c *ClusterFile) DecodeKubeadmConfig(data []byte) error {
-	kubeadmConfig, err := runtime.LoadKubeadmConfigs(string(data), runtime.DecodeCRDFromString)
+	kubeadmConfig, err := runtime.LoadKubeadmConfigs(string(data), yaml2.DecodeCRDFromString)
 	if err != nil {
 		return err
-	}
-	if kubeadmConfig == nil {
-		return ErrTypeNotFound
 	}
 	c.KubeConfig = kubeadmConfig
 	return nil

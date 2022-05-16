@@ -359,7 +359,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 					t.Errorf("Remove %s error = %v, wantErr %v", testfile, err, tt.wantErr)
 				}
 			}()
-			KubeadmConfig, err := LoadKubeadmConfigs(testfile, DecodeCRDFromFile)
+			KubeadmConfig, err := LoadKubeadmConfigs(testfile, yaml.DecodeCRDFromFile)
 			if err != nil {
 				t.Errorf("err: %v", err)
 				return
