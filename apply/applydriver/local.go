@@ -66,7 +66,7 @@ func (c *Applier) Apply() (err error) {
 			return err
 		}
 	}
-	if !osi.NewFilesystem().IsFileExist(common.DefaultKubeConfigFile()) {
+	if !osi.IsFileExist(common.DefaultKubeConfigFile()) {
 		if err = c.initCluster(); err != nil {
 			return err
 		}

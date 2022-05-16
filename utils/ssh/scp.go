@@ -110,12 +110,13 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 			logger.Fatal("failed to close file")
 		}
 	}()
-	err = osi.NewFilesystem().MkdirAll(filepath.Dir(localFilePath))
+
+	err = s.Fs.MkdirAll(filepath.Dir(localFilePath))
 	if err != nil {
 		return err
 	}
 	// open local Destination file
-	dstFile, err := os.Create(filepath.Clean(localFilePath))
+	dstFile, err := s.Fs.Create(filepath.Clean(localFilePath))
 	if err != nil {
 		return fmt.Errorf("create local file failed %v", err)
 	}
@@ -149,7 +150,7 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 		_ = sshClient.Close()
 	}()
 
-	f, err := os.Stat(localPath)
+	f, err := s.Fs.Stat(localPath)
 	if err != nil {
 		return fmt.Errorf("get file stat failed %s", err)
 	}
@@ -246,7 +247,8 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 			return nil
 		}
 	}
-	srcFile, err := os.Open(filepath.Clean(localPath))
+
+	srcFile, err := s.Fs.Open(filepath.Clean(localPath))
 	if err != nil {
 		return err
 	}

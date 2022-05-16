@@ -119,7 +119,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		Port:   "5000",
 	}
 	registryConfigPath := filepath.Join(rootfs, common.EtcDir, RegistryCustomConfig)
-	if !osi.NewFilesystem().IsFileExist(registryConfigPath) {
+	if !osi.IsFileExist(registryConfigPath) {
 		logger.Debug("use default registry config")
 		return DefaultConfig
 	}

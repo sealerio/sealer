@@ -14,27 +14,36 @@
 
 package os
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
-func TestCountDirFiles(t *testing.T) {
+func TestReadAll(t *testing.T) {
 	type args struct {
-		dirName string
+		fileName string
 	}
 	tests := []struct {
 		name string
 		args args
-		want int
+		want []byte
 	}{
+		// TODO: Add test cases.
 		{
-			"count dir files",
-			args{"."},
-			0,
+			"test from ./test/file/123.txt",
+			args{fileName: "./test/file/123.txt"},
+			[]byte("123456"),
+		},
+		{
+			"test from ./test/file/abc.txt",
+			args{fileName: "./test/file/abc.txt"},
+			[]byte("a\r\nb\r\nc\r\nd"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CountDirFiles(tt.args.dirName); got < tt.want {
-				t.Errorf("CountDirFiles() = %v, want %v", got, tt.want)
+			if got, _ := NewFileReader(tt.args.fileName).ReadAll(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReadAll() = %v, want %v", got, tt.want)
 			}
 		})
 	}

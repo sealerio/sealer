@@ -27,7 +27,9 @@ import (
 	"sync"
 	"time"
 
-	osinterface "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/os/fs"
+
+	osi "github.com/sealerio/sealer/utils/os"
 
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/opencontainers/go-digest"
@@ -77,8 +79,8 @@ type filesystem struct {
 	layerDBRoot           string
 	imageDBRoot           string
 	imageMetadataFilePath string
-	fw                    osinterface.FileWriter
-	osi                   osinterface.Interface
+	fw                    osi.FileWriter
+	fi                    fs.Interface
 }
 
 type ImageMetadataMap map[string]*types.ManifestList
@@ -89,8 +91,8 @@ func NewFSStoreBackend() (Backend, error) {
 		layerDBRoot:           layerDBRoot,
 		imageDBRoot:           imageDBRoot,
 		imageMetadataFilePath: imageMetadataFilePath,
-		fw:                    osinterface.NewAtomicWriter(imageMetadataFilePath),
-		osi:                   osinterface.NewFilesystem(),
+		fw:                    osi.NewAtomicWriter(imageMetadataFilePath),
+		fi:                    fs.NewFilesystem(),
 	}, nil
 }
 
@@ -157,7 +159,7 @@ func (fs *filesystem) Delete(dgst digest.Digest) error {
 	fs.Lock()
 	defer fs.Unlock()
 
-	if err = fs.osi.RemoveAll(metadataDir(dgst)); err != nil {
+	if err = fs.fi.RemoveAll(metadataDir(dgst)); err != nil {
 		return errors.Errorf("failed to delete image metadata, err: %v", err)
 	}
 
@@ -233,7 +235,7 @@ func (fs *filesystem) SetMetadata(id digest.Digest, key string, data []byte) err
 
 	baseDir := fs.LayerDBDir(id)
 
-	if err := fs.osi.MkdirAll(baseDir); err != nil {
+	if err := fs.fi.MkdirAll(baseDir); err != nil {
 		return err
 	}
 
@@ -256,7 +258,7 @@ func (fs *filesystem) DeleteMetadata(id digest.Digest, key string) error {
 	fs.Lock()
 	defer fs.Unlock()
 
-	return fs.osi.RemoveAll(filepath.Join(fs.LayerDBDir(id), key))
+	return fs.fi.RemoveAll(filepath.Join(fs.LayerDBDir(id), key))
 }
 
 func (fs *filesystem) LayerDBDir(digest digest.Digest) string {
@@ -270,7 +272,7 @@ func (fs *filesystem) LayerDataDir(digest digest.Digest) string {
 func (fs *filesystem) storeROLayer(layer Layer) error {
 	dig := layer.ID().ToDigest()
 	dbDir := fs.LayerDBDir(dig)
-	err := osinterface.NewAtomicWriter(filepath.Join(dbDir, "size")).WriteFile([]byte(fmt.Sprintf("%d", layer.Size())))
+	err := osi.NewAtomicWriter(filepath.Join(dbDir, "size")).WriteFile([]byte(fmt.Sprintf("%d", layer.Size())))
 
 	if err != nil {
 		return fmt.Errorf("failed to write size for %s, err: %s", layer.ID(), err)
@@ -281,7 +283,7 @@ func (fs *filesystem) storeROLayer(layer Layer) error {
 		return fmt.Errorf("failed to write distribution metadata for %s, err: %s", layer.ID(), err)
 	}
 
-	err = osinterface.NewAtomicWriter(filepath.Join(dbDir, "id")).WriteFile([]byte(layer.ID()))
+	err = osi.NewAtomicWriter(filepath.Join(dbDir, "id")).WriteFile([]byte(layer.ID()))
 
 	logger.Debug("writing id %s to %s", layer.ID(), filepath.Join(dbDir, "id"))
 	if err != nil {
@@ -368,7 +370,7 @@ func (fs *filesystem) loadAllROLayers() ([]*ROLayer, error) {
 func (fs *filesystem) getImageMetadataMap() (ImageMetadataMap, error) {
 	imagesMap := make(ImageMetadataMap)
 	// create file if not exists
-	if !fs.osi.IsFileExist(fs.imageMetadataFilePath) {
+	if !osi.IsFileExist(fs.imageMetadataFilePath) {
 		if err := fs.fw.WriteFile([]byte("{}")); err != nil {
 			return nil, err
 		}
@@ -565,7 +567,7 @@ func (fs *filesystem) saveImage(image v1.Image) error {
 		}
 	}
 
-	size, err := fs.osi.GetFilesSize(res)
+	size, err := fs.fi.GetFilesSize(res)
 	if err != nil {
 		return fmt.Errorf("failed to get image %s size, %v", image.Name, err)
 	}
@@ -578,7 +580,7 @@ func saveImageYaml(image v1.Image, dir string) error {
 	if err != nil {
 		return err
 	}
-	return osinterface.NewAtomicWriter(fileName).WriteFile(imageYaml)
+	return osi.NewAtomicWriter(fileName).WriteFile(imageYaml)
 }
 
 func remove(slice []*types.ManifestDescriptor, s int) []*types.ManifestDescriptor {

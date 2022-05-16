@@ -47,7 +47,7 @@ func (m MiddlewarePuller) Process(context, rootfs string) error {
 	//read the filePath named "imageListWithAuth.yaml" if not exists just return;
 	//pares the images and save to rootfs
 	filePath := filepath.Join(context, imageListWithAuth)
-	if !osi.NewFilesystem().IsFileExist(filePath) {
+	if !osi.IsFileExist(filePath) {
 		return nil
 	}
 

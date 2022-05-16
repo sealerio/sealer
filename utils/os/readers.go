@@ -25,6 +25,11 @@ import (
 	"github.com/sealerio/sealer/logger"
 )
 
+type FileReader interface {
+	ReadLines() ([]string, error)
+	ReadAll() ([]byte, error)
+}
+
 type fileReader struct {
 	fileName string
 }

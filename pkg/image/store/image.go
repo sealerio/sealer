@@ -15,6 +15,7 @@
 package store
 
 import (
+	"os"
 	"path/filepath"
 
 	osi "github.com/sealerio/sealer/utils/os"
@@ -28,9 +29,8 @@ func DeleteImageLocal(imageID string) (err error) {
 
 func deleteImage(imageID string) error {
 	file := filepath.Join(common.DefaultImageDBRootDir, imageID+common.YamlSuffix)
-	fs := osi.NewFilesystem()
-	if fs.IsFileExist(file) {
-		err := fs.RemoveAll(file)
+	if osi.IsFileExist(file) {
+		err := os.RemoveAll(file)
 		if err != nil {
 			return err
 		}

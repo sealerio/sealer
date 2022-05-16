@@ -23,6 +23,10 @@ import (
 	"github.com/sealerio/sealer/logger"
 )
 
+type FileWriter interface {
+	WriteFile(content []byte) error
+}
+
 type atomicFileWriter struct {
 	f    *os.File
 	path string

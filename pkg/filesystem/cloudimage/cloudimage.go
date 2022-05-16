@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sealerio/sealer/utils/os/fs"
+
 	osi "github.com/sealerio/sealer/utils/os"
 
 	"github.com/sealerio/sealer/common"
@@ -40,7 +42,7 @@ type Interface interface {
 
 type mounter struct {
 	imageStore store.ImageStore
-	fs         osi.Interface
+	fs         fs.Interface
 }
 
 func (m *mounter) MountImage(cluster *v2.Cluster) error {
@@ -53,8 +55,7 @@ func (m *mounter) UnMountImage(cluster *v2.Cluster) error {
 
 func (m *mounter) umountImage(cluster *v2.Cluster) error {
 	mountRootDir := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name, "mount")
-
-	if !m.fs.IsFileExist(mountRootDir) {
+	if !osi.IsFileExist(mountRootDir) {
 		return nil
 	}
 	dir, err := ioutil.ReadDir(mountRootDir)
@@ -103,7 +104,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 				return fmt.Errorf("%s already mount, and failed to umount %v", mountDir, err)
 			}
 		}
-		if m.fs.IsFileExist(mountDir) {
+		if osi.IsFileExist(mountDir) {
 			if err = m.fs.RemoveAll(mountDir); err != nil {
 				return fmt.Errorf("failed to clean %s, %v", mountDir, err)
 			}
@@ -124,7 +125,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 			return fmt.Errorf("mount files failed %v", err)
 		}
 		// use env list to render image mount dir: etc,charts,manifests.
-		err = renderENV(mountDir, cluster.GetAllIPList(), env.NewEnvProcessor(cluster), m.fs)
+		err = renderENV(mountDir, cluster.GetAllIPList(), env.NewEnvProcessor(cluster))
 		if err != nil {
 			return err
 		}
@@ -132,7 +133,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 	return nil
 }
 
-func renderENV(imageMountDir string, ipList []string, p env.Interface, f osi.Interface) error {
+func renderENV(imageMountDir string, ipList []string, p env.Interface) error {
 	var (
 		renderEtc       = filepath.Join(imageMountDir, common.EtcDir)
 		renderChart     = filepath.Join(imageMountDir, common.RenderChartsDir)
@@ -141,7 +142,7 @@ func renderENV(imageMountDir string, ipList []string, p env.Interface, f osi.Int
 
 	for _, ip := range ipList {
 		for _, dir := range []string{renderEtc, renderChart, renderManifests} {
-			if f.IsFileExist(dir) {
+			if osi.IsFileExist(dir) {
 				err := p.RenderAll(ip, dir)
 				if err != nil {
 					return err
@@ -155,6 +156,6 @@ func renderENV(imageMountDir string, ipList []string, p env.Interface, f osi.Int
 func NewCloudImageMounter(is store.ImageStore) (Interface, error) {
 	return &mounter{
 		imageStore: is,
-		fs:         osi.NewFilesystem(),
+		fs:         fs.NewFilesystem(),
 	}, nil
 }

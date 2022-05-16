@@ -104,7 +104,7 @@ func (a *ApplyProvider) CheckServerInfo() error {
 		}
 	}
 
-	if !osi.NewFilesystem().IsFileExist(DockerHost) && os.Getenv("DOCKER_HOST") == "" {
+	if !osi.IsFileExist(DockerHost) && os.Getenv("DOCKER_HOST") == "" {
 		return fmt.Errorf("sealer user default docker host /var/run/docker.sock, please set env DOCKER_HOST='' to override it")
 	}
 
@@ -296,7 +296,7 @@ func (a *ApplyProvider) CleanUp() error {
 		continue
 	}
 
-	return osi.NewFilesystem().RemoveAll(common.DefaultClusterBaseDir(a.Cluster.Name))
+	return os.RemoveAll(common.DefaultClusterBaseDir(a.Cluster.Name))
 }
 
 func NewClientWithCluster(cluster *v1.Cluster) (*ApplyProvider, error) {

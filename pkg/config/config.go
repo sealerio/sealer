@@ -106,7 +106,7 @@ func (c *Dumper) WriteFiles() (err error) {
 				}
 			}
 			//only the YAML format is supported
-			if os.NewFilesystem().IsFileExist(configPath) && !convertSecret && config.Spec.Strategy == Merge {
+			if os.IsFileExist(configPath) && !convertSecret && config.Spec.Strategy == Merge {
 				if configData, err = getMergeConfigData(configPath, configData); err != nil {
 					return err
 				}
@@ -179,7 +179,7 @@ func convertSecretYaml(config v1.Config, configPath string) ([]byte, error) {
 	if err := k8sYaml.Unmarshal([]byte(config.Spec.Data), &dataMap); err != nil {
 		return nil, err
 	}
-	if os.NewFilesystem().IsFileExist(configPath) {
+	if os.IsFileExist(configPath) {
 		rawData, err := ioutil.ReadFile(filepath.Clean(configPath))
 		if err != nil {
 			return nil, err

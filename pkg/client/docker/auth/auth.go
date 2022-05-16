@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	osi "github.com/sealerio/sealer/utils/os"
@@ -62,13 +63,12 @@ func (d *DockerAuth) Set(hostname, username, password string) {
 
 type DockerAuthService struct {
 	FilePath    string
-	fs          osi.Interface
 	AuthContent DockerAuth `json:"auths"`
 }
 
 func (s *DockerAuthService) SetAuthInfo(hostname, username, password string) error {
-	if !s.fs.IsFileExist(s.FilePath) {
-		if err := s.fs.MkdirAll(filepath.Dir(s.FilePath)); err != nil {
+	if !osi.IsFileExist(s.FilePath) {
+		if err := os.MkdirAll(filepath.Dir(s.FilePath), common.FileMode0755); err != nil {
 			return err
 		}
 	}
@@ -106,13 +106,12 @@ func (s *DockerAuthService) GetAuthByDomain(domain string) (types.AuthConfig, er
 
 func NewDockerAuthService() (DockerAuthService, error) {
 	var (
-		fs       = osi.NewFilesystem()
 		authFile = common.DefaultRegistryAuthConfigDir()
 		ac       = DockerAuth{Auths: map[string]Item{}}
-		das      = DockerAuthService{FilePath: authFile, AuthContent: ac, fs: fs}
+		das      = DockerAuthService{FilePath: authFile, AuthContent: ac}
 	)
 
-	if !fs.IsFileExist(authFile) {
+	if !osi.IsFileExist(authFile) {
 		return das, nil
 	}
 

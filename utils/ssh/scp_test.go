@@ -17,6 +17,8 @@ package ssh
 import (
 	"testing"
 
+	"github.com/sealerio/sealer/utils/os/fs"
+
 	"github.com/sealerio/sealer/logger"
 )
 
@@ -82,6 +84,7 @@ func TestSSHCopyLocalToRemote(t *testing.T) {
 				PkFile:     tt.fields.PkFile,
 				PkPassword: tt.fields.PkPassword,
 				Timeout:    tt.fields.Timeout,
+				Fs:         fs.NewFilesystem(),
 			}
 
 			if !fileExist(tt.args.localPath) {
@@ -149,6 +152,7 @@ func TestSSHFetchRemoteToLocal(t *testing.T) {
 				PkFile:     tt.fields.PkFile,
 				PkPassword: tt.fields.PkPassword,
 				Timeout:    tt.fields.Timeout,
+				Fs:         fs.NewFilesystem(),
 			}
 
 			if exist, err := ss.IsFileExist(host, tt.args.remotePath); err != nil {
@@ -208,6 +212,7 @@ func TestSSH_Copy(t *testing.T) {
 				Password:   tt.fields.Password,
 				PkFile:     tt.fields.PkFile,
 				PkPassword: tt.fields.PkPassword,
+				Fs:         fs.NewFilesystem(),
 			}
 			if err := s.Copy(tt.args.host, tt.args.localPath, tt.args.remotePath); (err != nil) != tt.wantErr {
 				t.Errorf("Copy() error = %v, wantErr %v", err, tt.wantErr)

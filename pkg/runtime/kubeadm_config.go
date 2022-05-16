@@ -61,7 +61,7 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 		defaultKubeadmConfig *KubeadmConfig
 		err                  error
 	)
-	if kubeadmYamlPath == "" || !osi.NewFilesystem().IsFileExist(kubeadmYamlPath) {
+	if kubeadmYamlPath == "" || !osi.IsFileExist(kubeadmYamlPath) {
 		defaultKubeadmConfig, err = LoadKubeadmConfigs(DefaultKubeadmConfig, DecodeCRDFromString)
 		if err != nil {
 			return err

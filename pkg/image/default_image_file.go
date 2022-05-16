@@ -22,6 +22,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils/os/fs"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/store"
@@ -36,7 +38,7 @@ import (
 type DefaultImageFileService struct {
 	layerStore store.LayerStore
 	imageStore store.ImageStore
-	fs         osi.Interface
+	fs         fs.Interface
 }
 
 func (d DefaultImageFileService) Load(imageSrc string) error {
@@ -48,7 +50,7 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 		imageMetadataMap store.ImageMetadataMap
 	)
 
-	srcFile, err = os.Open(filepath.Clean(imageSrc))
+	srcFile, err = d.fs.Open(filepath.Clean(imageSrc))
 	if err != nil {
 		return fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
 	}
@@ -137,7 +139,7 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 	if err := d.fs.MkdirAll(filepath.Dir(imageTar)); err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}
-	file, err := os.Create(filepath.Clean(imageTar))
+	file, err := d.fs.Create(filepath.Clean(imageTar))
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}
@@ -152,7 +154,7 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
 	}
 
-	defer func(fs osi.Interface, path ...string) {
+	defer func(fs fs.Interface, path ...string) {
 		err := fs.RemoveAll(path...)
 		if err != nil {
 			logger.Warn("failed to delete %s", path)

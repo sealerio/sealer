@@ -84,9 +84,8 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host, rootfs string) error {
 		return errors.Wrap(err, "failed to add master IP to etc hosts")
 	}
 
-	fs := osi.NewFilesystem()
-	if !fs.IsFileExist(common.KubectlPath) {
-		_, err = fs.CopyFile(filepath.Join(rootfs, "bin/kubectl"), common.KubectlPath)
+	if !osi.IsFileExist(common.KubectlPath) {
+		err = osi.RecursionCopy(filepath.Join(rootfs, "bin/kubectl"), common.KubectlPath)
 		if err != nil {
 			return err
 		}
@@ -104,7 +103,7 @@ func LoadMetadata(rootfs string) (*Metadata, error) {
 	var metadataFile []byte
 	var err error
 	var md Metadata
-	if !osi.NewFilesystem().IsFileExist(metadataPath) {
+	if !osi.IsFileExist(metadataPath) {
 		return nil, nil
 	}
 

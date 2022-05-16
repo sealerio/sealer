@@ -86,8 +86,7 @@ func NewRegistryDiffer(platform v1.Platform) Differ {
 
 func parseChartImages(srcPath string) ([]string, error) {
 	chartsPath := filepath.Join(srcPath, copyToChart)
-	osf := osi.NewFilesystem()
-	if !osf.IsFileExist(chartsPath) {
+	if !osi.IsFileExist(chartsPath) {
 		return nil, nil
 	}
 
@@ -106,8 +105,8 @@ func parseChartImages(srcPath string) ([]string, error) {
 			return nil
 		}
 
-		if osf.IsFileExist(filepath.Join(path, "Chart.yaml")) && osf.IsFileExist(filepath.Join(path, "values.yaml")) &&
-			osf.IsFileExist(filepath.Join(path, "templates")) {
+		if osi.IsFileExist(filepath.Join(path, "Chart.yaml")) && osi.IsFileExist(filepath.Join(path, "values.yaml")) &&
+			osi.IsFileExist(filepath.Join(path, "templates")) {
 			ima, err := imageSearcher.ListImages(path)
 			if err != nil {
 				return err
@@ -124,8 +123,7 @@ func parseChartImages(srcPath string) ([]string, error) {
 
 func parseYamlImages(srcPath string) ([]string, error) {
 	manifestsPath := filepath.Join(srcPath, copyToManifests)
-	osf := osi.NewFilesystem()
-	if !osf.IsFileExist(manifestsPath) {
+	if !osi.IsFileExist(manifestsPath) {
 		return nil, nil
 	}
 	var images []string
@@ -165,8 +163,7 @@ func parseYamlImages(srcPath string) ([]string, error) {
 
 func parseRawImageList(srcPath string) ([]string, error) {
 	imageListFilePath := filepath.Join(srcPath, copyToManifests, copyToImageList)
-	osf := osi.NewFilesystem()
-	if !osf.IsFileExist(imageListFilePath) {
+	if !osi.IsFileExist(imageListFilePath) {
 		return nil, nil
 	}
 

@@ -65,7 +65,7 @@ func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) err
 		return err
 	}
 
-	if osi.NewFilesystem().IsFileExist(nydusdServerClean) {
+	if osi.IsFileExist(nydusdServerClean) {
 		cleanCmd := fmt.Sprintf("sh %s", nydusdServerClean)
 		_, err := exec.RunSimpleCmd(cleanCmd)
 		if err != nil {

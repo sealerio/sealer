@@ -72,7 +72,7 @@ func setClusterFileToImage(cluster *v2.Cluster, image *v1.Image) error {
 
 func getKubeVersion(rootfs string) string {
 	chartsPath := filepath.Join(rootfs, "charts")
-	if !osi.NewFilesystem().IsFileExist(chartsPath) {
+	if !osi.IsFileExist(chartsPath) {
 		return ""
 	}
 	return readCharts(chartsPath)

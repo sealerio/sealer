@@ -38,7 +38,7 @@ func (r *RegistryChecker) Check(cluster *v2.Cluster, phase string) error {
 
 	// checker the existence of the docker.json ;
 	authFile := common.DefaultRegistryAuthConfigDir()
-	if !osi.NewFilesystem().IsFileExist(authFile) {
+	if !osi.IsFileExist(authFile) {
 		return fmt.Errorf("registry auth info not found,please run 'sealer login' first")
 	}
 	// try to log in with auth info

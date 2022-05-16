@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/os/fs"
 
 	"github.com/opencontainers/go-digest"
 	"github.com/sealerio/sealer/common"
@@ -72,7 +72,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 		}
 	}
 
-	tmp, err := osi.NewFilesystem().MkTmpdir()
+	tmp, err := fs.NewFilesystem().MkTmpdir()
 	if err != nil {
 		return out, fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
 	}
@@ -101,7 +101,7 @@ func (c CopyInstruction) setCacheID(layerID digest.Digest, cID string) error {
 }
 
 func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
-	fs, err := store.NewFSStoreBackend()
+	f, err := store.NewFSStoreBackend()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init store backend, err: %s", err)
 	}
@@ -113,7 +113,7 @@ func NewCopyInstruction(ctx InstructionContext) (*CopyInstruction, error) {
 
 	return &CopyInstruction{
 		platform:  ctx.Platform,
-		fs:        fs,
+		fs:        f,
 		rawLayer:  *ctx.CurrentLayer,
 		src:       src,
 		dest:      dest,

@@ -273,7 +273,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 }
 
 func (k *KubeadmRuntime) GetKubectlAndKubeconfig() error {
-	if osi.NewFilesystem().IsFileExist(common.DefaultKubeConfigFile()) {
+	if osi.IsFileExist(common.DefaultKubeConfigFile()) {
 		return nil
 	}
 	ssh, err := k.getHostSSHClient(k.GetMaster0IP())

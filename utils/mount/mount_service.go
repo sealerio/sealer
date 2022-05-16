@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/os/fs"
 
 	"github.com/sealerio/sealer/utils/exec"
 	strUtils "github.com/sealerio/sealer/utils/strings"
@@ -39,7 +39,7 @@ type Service interface {
 
 type mounter struct {
 	driver     Interface
-	fs         osi.Interface
+	fs         fs.Interface
 	TempTarget string
 	TempUpper  string
 	//driver.Mount will reverse lowers,so here we keep the order same with the image layer.
@@ -90,30 +90,30 @@ func (m mounter) GetMountTarget() string {
 
 //NewMountService will create temp dir if target or upper is nil. it is convenient for use in build stage
 func NewMountService(target, upper string, lowLayers []string) (Service, error) {
-	fs := osi.NewFilesystem()
+	f := fs.NewFilesystem()
 	if len(lowLayers) == 0 {
-		tmp, err := fs.MkTmpdir()
+		tmp, err := f.MkTmpdir()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tmp lower %s:%v", tmp, err)
 		}
 		lowLayers = append(lowLayers, tmp)
 	}
 	if target == "" {
-		tmp, err := fs.MkTmpdir()
+		tmp, err := f.MkTmpdir()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tmp target %s:%v", tmp, err)
 		}
 		target = tmp
 	}
 	if upper == "" {
-		tmp, err := fs.MkTmpdir()
+		tmp, err := f.MkTmpdir()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tmp upper %s:%v", tmp, err)
 		}
 		upper = tmp
 	}
 	return &mounter{
-		fs:         fs,
+		fs:         f,
 		driver:     NewMountDriver(),
 		TempTarget: target,
 		TempUpper:  upper,
