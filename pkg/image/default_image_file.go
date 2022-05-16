@@ -50,7 +50,7 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 		imageMetadataMap store.ImageMetadataMap
 	)
 
-	srcFile, err = d.fs.Open(filepath.Clean(imageSrc))
+	srcFile, err = os.Open(filepath.Clean(imageSrc))
 	if err != nil {
 		return fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
 	}
@@ -139,7 +139,7 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 	if err := d.fs.MkdirAll(filepath.Dir(imageTar)); err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}
-	file, err := d.fs.Create(filepath.Clean(imageTar))
+	file, err := os.Create(filepath.Clean(imageTar))
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}

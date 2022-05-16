@@ -28,9 +28,7 @@ import (
 )
 
 type Interface interface {
-	Create(name string) (*os.File, error)
 	Stat(name string) (os.FileInfo, error)
-	Open(name string) (*os.File, error)
 	Rename(oldPath, newPath string) error
 	MkdirAll(path string) error
 	MkTmpdir() (string, error)
@@ -44,14 +42,6 @@ type filesystem struct{}
 
 func (f filesystem) Stat(name string) (os.FileInfo, error) {
 	return os.Stat(name)
-}
-
-func (f filesystem) Open(name string) (*os.File, error) {
-	return os.Open(name)
-}
-
-func (f filesystem) Create(name string) (*os.File, error) {
-	return os.Create(name)
 }
 
 func (f filesystem) Rename(oldPath, newPath string) error {

@@ -116,7 +116,7 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 		return err
 	}
 	// open local Destination file
-	dstFile, err := s.Fs.Create(filepath.Clean(localFilePath))
+	dstFile, err := os.Create(filepath.Clean(localFilePath))
 	if err != nil {
 		return fmt.Errorf("create local file failed %v", err)
 	}
@@ -248,7 +248,7 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 		}
 	}
 
-	srcFile, err := s.Fs.Open(filepath.Clean(localPath))
+	srcFile, err := os.Open(filepath.Clean(localPath))
 	if err != nil {
 		return err
 	}
