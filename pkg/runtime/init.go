@@ -140,19 +140,23 @@ func (k *KubeadmRuntime) GenerateCert() error {
 	if err != nil {
 		return err
 	}
-	return k.GenerateRegistryCert()
+	err = k.GenerateRegistryCert()
+	if err != nil {
+		return err
+	}
+	return k.SendRegistryCert(k.GetMasterIPList()[:1])
 }
 
 func (k *KubeadmRuntime) GenerateRegistryCert() error {
-	err := GenerateRegistryCert(k.getCertsDir(), k.RegConfig.Domain)
+	return GenerateRegistryCert(k.getCertsDir(), k.RegConfig.Domain)
+}
+
+func (k *KubeadmRuntime) SendRegistryCert(host []string) error {
+	err := k.sendRegistryCertAndKey()
 	if err != nil {
 		return err
 	}
-	err = k.sendRegistryCertAndKey()
-	if err != nil {
-		return err
-	}
-	return k.sendRegistryCert(k.GetMasterIPList()[:1])
+	return k.sendRegistryCert(host)
 }
 
 func (k *KubeadmRuntime) CreateKubeConfig() error {
