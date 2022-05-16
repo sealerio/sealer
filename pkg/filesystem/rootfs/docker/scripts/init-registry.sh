@@ -28,7 +28,6 @@ rootfs=$(dirname "$(pwd)")
 config="$rootfs/etc/registry_config.yml"
 htpasswd="$rootfs/etc/registry_htpasswd"
 certs_dir="$rootfs/certs"
-image_dir="$rootfs/images"
 
 mkdir -p "$VOLUME" || true
 
@@ -41,16 +40,6 @@ startRegistry() {
         (( n++ ))
         sleep 3
     done
-}
-
-load_images() {
-for image in "$image_dir"/*
-do
- if [ -f "${image}" ]
- then
-  docker load -q -i "${image}"
- fi
-done
 }
 
 check_registry() {
@@ -69,8 +58,6 @@ check_registry() {
         sleep 3
     done
 }
-
-load_images
 
 ## rm container if exist.
 if [ "$(docker ps -aq -f name=$container)" ]; then
