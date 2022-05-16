@@ -22,6 +22,8 @@ import (
 	"plugin"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -80,7 +82,7 @@ func (c *PluginsProcessor) Load() error {
 			}
 			Register(pt, p)
 		}
-		if utils.YamlMatcher(f.Name()) {
+		if yaml.Matcher(f.Name()) {
 			plugins, err := utils.DecodePlugins(filepath.Join(path, f.Name()))
 			if err != nil {
 				return fmt.Errorf("failed to load plugin %v", err)

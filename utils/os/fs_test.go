@@ -13,3 +13,29 @@
 // limitations under the License.
 
 package os
+
+import "testing"
+
+func TestCountDirFiles(t *testing.T) {
+	type args struct {
+		dirName string
+	}
+	tests := []struct {
+		name string
+		args args
+		want int
+	}{
+		{
+			"count dir files",
+			args{"."},
+			0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CountDirFiles(tt.args.dirName); got < tt.want {
+				t.Errorf("CountDirFiles() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

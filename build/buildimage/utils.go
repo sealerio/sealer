@@ -15,10 +15,14 @@
 package buildimage
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strings"
+
+	osi "github.com/sealerio/sealer/utils/os"
 
 	"github.com/sealerio/sealer/build/buildinstruction"
 	"github.com/sealerio/sealer/common"
@@ -26,7 +30,6 @@ import (
 	"github.com/sealerio/sealer/pkg/parser"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/mount"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 
@@ -36,7 +39,7 @@ import (
 
 // initImageSpec init default Image metadata
 func initImageSpec(kubefile string) (*v1.Image, error) {
-	kubeFile, err := utils.ReadAll(kubefile)
+	kubeFile, err := osi.NewFileReader(kubefile).ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load kubefile: %v", err)
 	}
@@ -69,7 +72,7 @@ func setClusterFileToImage(cluster *v2.Cluster, image *v1.Image) error {
 
 func getKubeVersion(rootfs string) string {
 	chartsPath := filepath.Join(rootfs, "charts")
-	if !utils.IsExist(chartsPath) {
+	if !osi.IsFileExist(chartsPath) {
 		return ""
 	}
 	return readCharts(chartsPath)
@@ -153,4 +156,16 @@ func mountRootfs(res []string) (mount.Service, error) {
 		return nil, err
 	}
 	return mounter, nil
+}
+
+func marshalJSONToFile(file string, obj interface{}) error {
+	data, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	if err = os.WriteFile(file, data, common.FileMode0644); err != nil {
+		return err
+	}
+	return nil
 }

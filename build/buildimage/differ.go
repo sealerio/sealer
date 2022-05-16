@@ -21,14 +21,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/build/layerutils/charts"
 	manifest "github.com/sealerio/sealer/build/layerutils/manifests"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/save"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
-
 	"golang.org/x/sync/errgroup"
 )
 
@@ -86,7 +86,7 @@ func NewRegistryDiffer(platform v1.Platform) Differ {
 
 func parseChartImages(srcPath string) ([]string, error) {
 	chartsPath := filepath.Join(srcPath, copyToChart)
-	if !utils.IsExist(chartsPath) {
+	if !osi.IsFileExist(chartsPath) {
 		return nil, nil
 	}
 
@@ -105,8 +105,8 @@ func parseChartImages(srcPath string) ([]string, error) {
 			return nil
 		}
 
-		if utils.IsExist(filepath.Join(path, "Chart.yaml")) && utils.IsExist(filepath.Join(path, "values.yaml")) &&
-			utils.IsExist(filepath.Join(path, "templates")) {
+		if osi.IsFileExist(filepath.Join(path, "Chart.yaml")) && osi.IsFileExist(filepath.Join(path, "values.yaml")) &&
+			osi.IsFileExist(filepath.Join(path, "templates")) {
 			ima, err := imageSearcher.ListImages(path)
 			if err != nil {
 				return err
@@ -123,7 +123,7 @@ func parseChartImages(srcPath string) ([]string, error) {
 
 func parseYamlImages(srcPath string) ([]string, error) {
 	manifestsPath := filepath.Join(srcPath, copyToManifests)
-	if !utils.IsExist(manifestsPath) {
+	if !osi.IsFileExist(manifestsPath) {
 		return nil, nil
 	}
 	var images []string
@@ -163,11 +163,11 @@ func parseYamlImages(srcPath string) ([]string, error) {
 
 func parseRawImageList(srcPath string) ([]string, error) {
 	imageListFilePath := filepath.Join(srcPath, copyToManifests, copyToImageList)
-	if !utils.IsExist(imageListFilePath) {
+	if !osi.IsFileExist(imageListFilePath) {
 		return nil, nil
 	}
 
-	images, err := utils.ReadLines(imageListFilePath)
+	images, err := osi.NewFileReader(imageListFilePath).ReadLines()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file content %s:%v", imageListFilePath, err)
 	}
@@ -194,7 +194,7 @@ func (m metadata) Process(srcPath, rootfs string) error {
 	}
 	md.KubeVersion = kv
 	mf := filepath.Join(rootfs, common.DefaultMetadataName)
-	if err = utils.MarshalJSONToFile(mf, md); err != nil {
+	if err = marshalJSONToFile(mf, md); err != nil {
 		return fmt.Errorf("failed to set image Metadata file, err: %v", err)
 	}
 

@@ -30,7 +30,6 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 )
 
 const compressionBufSize = 32768
@@ -151,7 +150,7 @@ func writeWhiteout(header *tar.Header, fi os.FileInfo, path string) *tar.Header 
 
 	var woh *tar.Header
 	if fi.Mode()&os.ModeDir != 0 {
-		opaque, walkErr := utils.Lgetxattr(path, "trusted.overlay.opaque")
+		opaque, walkErr := Lgetxattr(path, "trusted.overlay.opaque")
 		if walkErr != nil {
 			logger.Debug("failed to get trusted.overlay.opaque for %s at opaque, err: %v", path, walkErr)
 		}

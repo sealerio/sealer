@@ -19,11 +19,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	osUtils "github.com/sealerio/sealer/utils/os"
+
 	"gotest.tools/skip"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 )
 
 const fileContent = "fake file content"
@@ -60,8 +61,7 @@ func makeFakeLayer(layer mockROLayer) error {
 	}
 
 	for _, file := range layer.files {
-		err = utils.AtomicWriteFile(filepath.Join(layer.tmpRelPath, file), []byte(fileContent), common.FileMode0644)
-		if err != nil {
+		if err = osUtils.NewAtomicWriter(filepath.Join(layer.tmpRelPath, file)).WriteFile([]byte(fileContent)); err != nil {
 			return err
 		}
 	}

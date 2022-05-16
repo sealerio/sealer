@@ -19,6 +19,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/sealerio/sealer/utils/os/fs"
+
 	"github.com/imdario/mergo"
 
 	"github.com/sealerio/sealer/common"
@@ -61,6 +63,7 @@ type SSH struct {
 	PkPassword   string
 	Timeout      *time.Duration
 	LocalAddress []net.Addr
+	Fs           fs.Interface
 }
 
 func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
@@ -80,6 +83,7 @@ func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 		PkFile:       ssh.Pk,
 		PkPassword:   ssh.PkPasswd,
 		LocalAddress: address,
+		Fs:           fs.NewFilesystem(),
 	}
 }
 

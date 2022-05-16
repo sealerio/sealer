@@ -19,10 +19,11 @@ import (
 	"os"
 	"path/filepath"
 
+	osUtils "github.com/sealerio/sealer/utils/os"
+
 	"github.com/opencontainers/go-digest"
 
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 )
 
 type DistributionMetadataItem struct {
@@ -86,5 +87,5 @@ func (fs *filesystem) addDistributionMetadata(layerID LayerID, newMetadatas map[
 		return err
 	}
 
-	return utils.WriteFile(filepath.Join(fs.LayerDBDir(layerID.ToDigest()), "distribution_layer_digest"), distributionMetadatasJSON)
+	return osUtils.NewAtomicWriter(filepath.Join(fs.LayerDBDir(layerID.ToDigest()), "distribution_layer_digest")).WriteFile(distributionMetadatasJSON)
 }

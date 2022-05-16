@@ -27,7 +27,6 @@ import (
 	"syscall"
 
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
@@ -78,7 +77,7 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 		return fmt.Errorf("layers cannot be empty")
 	}
 	workdir := path.Join(target, "work")
-	if err := utils.Mkdir(workdir); err != nil {
+	if err := os.MkdirAll(workdir, os.ModePerm); err != nil {
 		return fmt.Errorf("create workdir failed")
 	}
 	var err error

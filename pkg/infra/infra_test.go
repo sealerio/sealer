@@ -19,6 +19,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -27,7 +29,6 @@ import (
 
 	"github.com/sealerio/sealer/pkg/infra/aliyun"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 )
 
 func TestApply(t *testing.T) {
@@ -54,7 +55,7 @@ func TestApply(t *testing.T) {
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}
-	err = utils.AtomicWriteFile("./Clusterfile", data, 0777)
+	err = os.NewCommonWriter("./Clusterfile").WriteFile(data)
 	if err != nil {
 		fmt.Printf("%v \n", err)
 	}

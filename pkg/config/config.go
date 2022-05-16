@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/os"
+
 	"gopkg.in/yaml.v3"
 	k8sv1 "k8s.io/api/core/v1"
 	k8sYaml "sigs.k8s.io/yaml"
@@ -29,7 +31,6 @@ import (
 	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 )
 
 /*
@@ -74,10 +75,6 @@ func (c *Dumper) Dump(configs []v1.Config) error {
 		logger.Debug("clusterfile config is empty!")
 		return nil
 	}
-	/*	configs, err := utils.DecodeConfigs(clusterfile)
-		if err != nil {
-			return fmt.Errorf("failed to dump config %v", err)
-		}*/
 	c.Configs = configs
 	if err := c.WriteFiles(); err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
@@ -109,13 +106,12 @@ func (c *Dumper) WriteFiles() (err error) {
 				}
 			}
 			//only the YAML format is supported
-			if utils.IsExist(configPath) && !convertSecret && config.Spec.Strategy == Merge {
+			if os.IsFileExist(configPath) && !convertSecret && config.Spec.Strategy == Merge {
 				if configData, err = getMergeConfigData(configPath, configData); err != nil {
 					return err
 				}
 			}
-
-			err = utils.WriteFile(configPath, configData)
+			err = os.NewCommonWriter(configPath).WriteFile(configData)
 			if err != nil {
 				return fmt.Errorf("write config file failed %v", err)
 			}
@@ -183,7 +179,7 @@ func convertSecretYaml(config v1.Config, configPath string) ([]byte, error) {
 	if err := k8sYaml.Unmarshal([]byte(config.Spec.Data), &dataMap); err != nil {
 		return nil, err
 	}
-	if utils.IsExist(configPath) {
+	if os.IsFileExist(configPath) {
 		rawData, err := ioutil.ReadFile(filepath.Clean(configPath))
 		if err != nil {
 			return nil, err

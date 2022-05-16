@@ -21,6 +21,8 @@ import (
 	"os"
 	"path/filepath"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/sealerio/sealer/pkg/client/docker/auth"
@@ -40,7 +42,6 @@ import (
 	"github.com/sealerio/sealer/pkg/image/reference"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 )
 
 // DefaultImageService is the default service, which is used for image pull/push
@@ -343,7 +344,7 @@ func (d DefaultImageService) deleteLayers() error {
 	pruneMap[filepath.Join(common.DefaultLayerDBRoot, "sha256")] = allImageLayerIDList
 
 	for root, desired := range pruneMap {
-		subset, err := utils.GetDirNameListInDir(root, utils.FilterOptions{
+		subset, err := osi.GetDirNameListInDir(root, osi.FilterOptions{
 			All:          true,
 			WithFullPath: false,
 		})

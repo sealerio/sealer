@@ -16,6 +16,7 @@ package image
 
 import (
 	"github.com/sealerio/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/utils/os/fs"
 )
 
 func NewImageService() (Service, error) {
@@ -50,5 +51,6 @@ func NewImageFileService() (FileService, error) {
 	return DefaultImageFileService{
 		layerStore: layerStore,
 		imageStore: imageStore,
+		fs:         fs.NewFilesystem(),
 	}, nil
 }

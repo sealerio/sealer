@@ -20,12 +20,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/yaml"
+
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/cert"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
-
 	"golang.org/x/sync/errgroup"
 )
 
@@ -70,7 +72,7 @@ func (k *KubeadmRuntime) generateConfigs() ([]byte, error) {
 	}
 	k.setCgroupDriver(cGroupDriver)
 	k.setKubeadmAPIVersion()
-	return utils.MarshalYamlConfigs(&k.InitConfiguration,
+	return yaml.MarshalWithDelimiter(&k.InitConfiguration,
 		&k.ClusterConfiguration,
 		&k.KubeletConfiguration,
 		&k.KubeProxyConfiguration)
@@ -271,7 +273,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 }
 
 func (k *KubeadmRuntime) GetKubectlAndKubeconfig() error {
-	if utils.IsFileExist(common.DefaultKubeConfigFile()) {
+	if osi.IsFileExist(common.DefaultKubeConfigFile()) {
 		return nil
 	}
 	ssh, err := k.getHostSSHClient(k.GetMaster0IP())

@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package yaml
 
 import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 
 	"github.com/sealerio/sealer/utils/hash"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/common"
@@ -32,7 +32,7 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-func UnmarshalYamlFile(file string, obj interface{}) error {
+func UnmarshalFile(file string, obj interface{}) error {
 	data, err := ioutil.ReadFile(filepath.Clean(file))
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func UnmarshalYamlFile(file string, obj interface{}) error {
 	return nil
 }
 
-func MarshalYamlToFile(file string, obj interface{}) error {
+func MarshalToFile(file string, obj interface{}) error {
 	switch cluster := obj.(type) {
 	case *v1.Cluster:
 		if cluster.Spec.SSH.Encrypted {
@@ -74,27 +74,14 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 		return err
 	}
 
-	if err = WriteFile(file, data); err != nil {
+	if err = os.WriteFile(file, data, common.FileMode0644); err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func SaveClusterInfoToFile(cluster runtime.Object, clusterName string) error {
-	fileName := common.GetClusterWorkClusterfile(clusterName)
-	err := MkFileFullPathDir(fileName)
-	if err != nil {
-		return fmt.Errorf("mkdir failed %s %v", fileName, err)
-	}
-	cluster = cluster.DeepCopyObject()
-	err = MarshalYamlToFile(fileName, cluster)
-	if err != nil {
-		return fmt.Errorf("marshal cluster file failed %v", err)
-	}
-	return nil
-}
-
-func MarshalYamlConfigs(configs ...interface{}) ([]byte, error) {
+func MarshalWithDelimiter(configs ...interface{}) ([]byte, error) {
 	var cfgs [][]byte
 	for _, cfg := range configs {
 		data, err := yaml.Marshal(cfg)
@@ -106,7 +93,7 @@ func MarshalYamlConfigs(configs ...interface{}) ([]byte, error) {
 	return bytes.Join(cfgs, []byte("\n---\n")), nil
 }
 
-func YamlMatcher(path string) bool {
+func Matcher(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	return ext == ".yaml" || ext == ".yml"
 }

@@ -23,11 +23,12 @@ import (
 	"path/filepath"
 	"sync"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/pkg/sftp"
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/net"
 )
 
@@ -87,7 +88,7 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	if net.IsLocalIP(host, s.LocalAddress) {
 		if remoteFilePath != localFilePath {
 			logger.Debug("local copy files src %s to dst %s", remoteFilePath, localFilePath)
-			return utils.RecursionCopy(remoteFilePath, localFilePath)
+			return osi.RecursionCopy(remoteFilePath, localFilePath)
 		}
 		return nil
 	}
@@ -109,7 +110,8 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 			logger.Fatal("failed to close file")
 		}
 	}()
-	err = utils.MkFileFullPathDir(localFilePath)
+
+	err = s.Fs.MkdirAll(filepath.Dir(localFilePath))
 	if err != nil {
 		return err
 	}
@@ -136,7 +138,7 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 			return nil
 		}
 		logger.Debug("local copy files src %s to dst %s", localPath, remotePath)
-		return utils.RecursionCopy(localPath, remotePath)
+		return osi.RecursionCopy(localPath, remotePath)
 	}
 	logger.Debug("remote copy files src %s to dst %s", localPath, remotePath)
 	sshClient, sftpClient, err := s.sftpConnect(host)
@@ -148,7 +150,7 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 		_ = sshClient.Close()
 	}()
 
-	f, err := os.Stat(localPath)
+	f, err := s.Fs.Stat(localPath)
 	if err != nil {
 		return fmt.Errorf("get file stat failed %s", err)
 	}
@@ -162,7 +164,7 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	}
 	number := 1
 	if f.IsDir() {
-		number = utils.CountDirFiles(localPath)
+		number = osi.CountDirFiles(localPath)
 	}
 	// no file in dir, do need to send
 	if number == 0 {
@@ -245,6 +247,7 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 			return nil
 		}
 	}
+
 	srcFile, err := os.Open(filepath.Clean(localPath))
 	if err != nil {
 		return err

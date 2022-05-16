@@ -18,7 +18,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
+
+	yamlUtils "github.com/sealerio/sealer/utils/yaml"
 
 	k8sV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
@@ -28,7 +31,7 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
+	robj "k8s.io/apimachinery/pkg/runtime"
 )
 
 const typeV1 = "zlink.aliyun.com/v1alpha1"
@@ -58,7 +61,7 @@ func GetDefaultClusterName() (string, error) {
 
 func GetClusterFromFile(filepath string) (cluster *v2.Cluster, err error) {
 	cluster = &v2.Cluster{}
-	if err = utils.UnmarshalYamlFile(filepath, cluster); err != nil {
+	if err = yamlUtils.UnmarshalFile(filepath, cluster); err != nil {
 		return nil, fmt.Errorf("failed to get cluster from %s, %v", filepath, err)
 	}
 	cluster.SetAnnotations(common.ClusterfileName, filepath)
@@ -119,4 +122,18 @@ func GetClusterFromDataCompatV1(data []byte) (*v2.Cluster, error) {
 		cluster = c.(*v2.Cluster)
 	}
 	return cluster, nil
+}
+
+func SaveToDisk(cluster robj.Object, clusterName string) error {
+	fileName := common.GetClusterWorkClusterfile(clusterName)
+	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("mkdir failed %s %v", fileName, err)
+	}
+	cluster = cluster.DeepCopyObject()
+	err = yamlUtils.MarshalToFile(fileName, cluster)
+	if err != nil {
+		return fmt.Errorf("marshal cluster file failed %v", err)
+	}
+	return nil
 }

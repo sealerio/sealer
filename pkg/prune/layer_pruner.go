@@ -17,9 +17,10 @@ package prune
 import (
 	"path/filepath"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/store"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/strings"
 )
 
@@ -57,7 +58,7 @@ func (l layerPrune) Select() ([]string, error) {
 	pruneMap[l.layerDBDir] = allLayerIDList
 
 	for root, desired := range pruneMap {
-		subsets, err := utils.GetDirNameListInDir(root, utils.FilterOptions{
+		subsets, err := osi.GetDirNameListInDir(root, osi.FilterOptions{
 			All:          true,
 			WithFullPath: true,
 		})

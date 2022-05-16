@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sealerio/sealer/utils/os"
+
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
@@ -118,7 +120,7 @@ func GenerateClusterfile(clusterfile string) {
 		testhelper.CheckErr(err)
 		appendData = append(appendData, []byte("---\n"), data)
 	}
-	err = utils.WriteFile(clusterfile, bytes.Join(appendData, []byte("")))
+	err = os.NewCommonWriter(clusterfile).WriteFile(bytes.Join(appendData, []byte("")))
 	testhelper.CheckErr(err)
 }
 

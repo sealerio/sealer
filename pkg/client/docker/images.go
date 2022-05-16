@@ -19,6 +19,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/os"
+
 	"github.com/docker/distribution/reference"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 
@@ -28,7 +30,6 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 )
 
 func (d Docker) ImagesPull(images []string) error {
@@ -56,7 +57,7 @@ func trimQuotes(s string) string {
 }
 
 func (d Docker) ImagesPullByImageListFile(fileName string) error {
-	data, err := utils.ReadLines(fileName)
+	data, err := os.NewFileReader(fileName).ReadLines()
 	if err != nil {
 		logger.Error(fmt.Sprintf("Read image list failed: %v", err))
 	}

@@ -18,12 +18,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/os/fs"
+
 	"github.com/sealerio/sealer/utils/exec"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/shirou/gopsutil/disk"
 
 	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
@@ -38,6 +39,7 @@ type Service interface {
 
 type mounter struct {
 	driver     Interface
+	fs         fs.Interface
 	TempTarget string
 	TempUpper  string
 	//driver.Mount will reverse lowers,so here we keep the order same with the image layer.
@@ -61,11 +63,17 @@ func (m mounter) TempUMount() error {
 }
 
 func (m mounter) CleanUp() {
-	if err := m.driver.Unmount(m.TempTarget); err != nil {
-		logger.Warn(fmt.Errorf("failed to umount %s:%v", m.TempTarget, err))
+	var err error
+
+	err = m.driver.Unmount(m.TempTarget)
+	if err != nil {
+		logger.Warn("failed to umount %s:%v", m.TempTarget, err)
 	}
 
-	utils.CleanDirs(m.TempUpper, m.TempTarget)
+	err = m.fs.RemoveAll(m.TempUpper, m.TempTarget)
+	if err != nil {
+		logger.Warn("failed to delete %s,%s", m.TempUpper, m.TempTarget)
+	}
 }
 
 func (m mounter) GetMountUpper() string {
@@ -82,28 +90,30 @@ func (m mounter) GetMountTarget() string {
 
 //NewMountService will create temp dir if target or upper is nil. it is convenient for use in build stage
 func NewMountService(target, upper string, lowLayers []string) (Service, error) {
+	f := fs.NewFilesystem()
 	if len(lowLayers) == 0 {
-		tmp, err := utils.MkTmpdir()
+		tmp, err := f.MkTmpdir()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tmp lower %s:%v", tmp, err)
 		}
 		lowLayers = append(lowLayers, tmp)
 	}
 	if target == "" {
-		tmp, err := utils.MkTmpdir()
+		tmp, err := f.MkTmpdir()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tmp target %s:%v", tmp, err)
 		}
 		target = tmp
 	}
 	if upper == "" {
-		tmp, err := utils.MkTmpdir()
+		tmp, err := f.MkTmpdir()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tmp upper %s:%v", tmp, err)
 		}
 		upper = tmp
 	}
 	return &mounter{
+		fs:         f,
 		driver:     NewMountDriver(),
 		TempTarget: target,
 		TempUpper:  upper,

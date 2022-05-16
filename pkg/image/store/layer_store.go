@@ -23,11 +23,12 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/sealerio/sealer/utils/os/fs"
+
 	"github.com/opencontainers/go-digest"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/reference"
 	"github.com/sealerio/sealer/utils/archive"
@@ -36,6 +37,7 @@ import (
 type layerStore struct {
 	mux    sync.RWMutex
 	layers map[LayerID]*ROLayer
+	fs     fs.Interface
 	Backend
 }
 
@@ -56,7 +58,7 @@ func (ls *layerStore) RegisterLayerIfNotPresent(layer Layer) error {
 	}
 
 	curLayerDBDir := ls.LayerDBDir(layer.ID().ToDigest())
-	err := os.MkdirAll(curLayerDBDir, common.FileMode0755)
+	err := ls.fs.MkdirAll(curLayerDBDir)
 	if err != nil {
 		return fmt.Errorf("failed to init layer db for %s, err: %s", curLayerDBDir, err)
 	}
@@ -105,15 +107,15 @@ func (ls *layerStore) RegisterLayerForBuilder(path string) (digest.Digest, error
 	layerDataDir := ls.LayerDataDir(roLayer.ID().ToDigest())
 
 	// remove before mv files to target
-	_, err = os.Stat(layerDataDir)
+	_, err = ls.fs.Stat(layerDataDir)
 	if err == nil {
-		err = os.RemoveAll(layerDataDir)
+		err = ls.fs.RemoveAll(layerDataDir)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = os.Rename(path, layerDataDir)
+	err = ls.fs.Rename(path, layerDataDir)
 	if err != nil {
 		return "", err
 	}
@@ -161,12 +163,12 @@ func (ls *layerStore) Delete(id LayerID) error {
 	}
 
 	layerDataPath := ls.LayerDataDir(digs)
-	if err := os.RemoveAll(layerDataPath); err != nil {
+	if err := ls.fs.RemoveAll(layerDataPath); err != nil {
 		return err
 	}
 
 	layerDBDir := ls.LayerDBDir(digs)
-	if err := os.RemoveAll(layerDBDir); err != nil {
+	if err := ls.fs.RemoveAll(layerDBDir); err != nil {
 		return err
 	}
 
@@ -205,6 +207,7 @@ func NewDefaultLayerStore() (LayerStore, error) {
 	ls := &layerStore{
 		layers:  map[LayerID]*ROLayer{},
 		Backend: sb,
+		fs:      fs.NewFilesystem(),
 	}
 	err = ls.loadAllROLayers()
 	if err != nil {

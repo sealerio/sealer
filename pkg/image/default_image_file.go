@@ -22,20 +22,23 @@ import (
 	"os"
 	"path/filepath"
 
-	"sigs.k8s.io/yaml"
+	"github.com/sealerio/sealer/utils/os/fs"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/store"
 	"github.com/sealerio/sealer/pkg/image/types"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/archive"
+	osi "github.com/sealerio/sealer/utils/os"
+	yamlUtils "github.com/sealerio/sealer/utils/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 type DefaultImageFileService struct {
 	layerStore store.LayerStore
 	imageStore store.ImageStore
+	fs         fs.Interface
 }
 
 func (d DefaultImageFileService) Load(imageSrc string) error {
@@ -84,7 +87,7 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 		for _, m := range repo.Manifests {
 			var image v1.Image
 			imageTempFile := filepath.Join(common.DefaultLayerDir, m.ID+".yaml")
-			if err = utils.UnmarshalYamlFile(imageTempFile, &image); err != nil {
+			if err = yamlUtils.UnmarshalFile(imageTempFile, &image); err != nil {
 				return fmt.Errorf("failed to parsing %s, err: %v", imageTempFile, err)
 			}
 			for _, layer := range image.Spec.Layers {
@@ -133,7 +136,7 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 		}
 	}
 
-	if err := utils.MkFileFullPathDir(imageTar); err != nil {
+	if err := d.fs.MkdirAll(filepath.Dir(imageTar)); err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
 	}
 	file, err := os.Create(filepath.Clean(imageTar))
@@ -146,11 +149,17 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 		}
 	}()
 
-	tempDir, err := utils.MkTmpdir()
+	tempDir, err := d.fs.MkTmpdir()
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
 	}
-	defer utils.CleanDir(tempDir)
+
+	defer func(fs fs.Interface, path ...string) {
+		err := fs.RemoveAll(path...)
+		if err != nil {
+			logger.Warn("failed to delete %s", path)
+		}
+	}(d.fs, tempDir)
 
 	repofile := filepath.Join(tempDir, common.DefaultMetadataName)
 	imageStore, err := store.NewDefaultImageStore()
@@ -181,9 +190,11 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 			return fmt.Errorf("failed to marchal image, err: %s", err)
 		}
 		imagePath := filepath.Join(tempDir, ima.Spec.ID+".yaml")
-		if err = utils.AtomicWriteFile(imagePath, imgBytes, common.FileMode0644); err != nil {
+
+		if err = osi.NewAtomicWriter(imagePath).WriteFile(imgBytes); err != nil {
 			return fmt.Errorf("failed to write temp file %s, err: %v ", imagePath, err)
 		}
+
 		pathsToCompress = append(pathsToCompress, imagePath)
 	}
 
@@ -192,7 +203,8 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 	if err != nil {
 		return err
 	}
-	if err = utils.AtomicWriteFile(repofile, repoBytes, common.FileMode0644); err != nil {
+
+	if err = osi.NewAtomicWriter(repofile).WriteFile(repoBytes); err != nil {
 		return fmt.Errorf("failed to write temp file %s, err: %v ", repofile, err)
 	}
 	// add image repo data

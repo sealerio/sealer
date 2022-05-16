@@ -15,10 +15,12 @@
 package store
 
 import (
+	"os"
 	"path/filepath"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sealerio/sealer/common"
-	pkgutils "github.com/sealerio/sealer/utils"
 )
 
 func DeleteImageLocal(imageID string) (err error) {
@@ -27,8 +29,8 @@ func DeleteImageLocal(imageID string) (err error) {
 
 func deleteImage(imageID string) error {
 	file := filepath.Join(common.DefaultImageDBRootDir, imageID+common.YamlSuffix)
-	if pkgutils.IsFileExist(file) {
-		err := pkgutils.CleanFiles(file)
+	if osi.IsFileExist(file) {
+		err := os.RemoveAll(file)
 		if err != nil {
 			return err
 		}

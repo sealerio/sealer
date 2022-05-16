@@ -15,12 +15,113 @@
 package os
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
+
+	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils/os/fs"
 )
 
-func ExecutableFilePath(name string) string {
-	ex, _ := os.Executable()
-	exPath := filepath.Dir(ex)
-	return filepath.Join(exPath, name)
+func IsFileExist(fileName string) bool {
+	_, err := os.Stat(fileName)
+	return err == nil || os.IsExist(err)
+}
+
+func CountDirFiles(dirName string) int {
+	var count int
+	err := filepath.Walk(dirName, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+		count++
+		return nil
+	})
+	if err != nil {
+		logger.Warn("count dir files failed %v", err)
+		return 0
+	}
+	return count
+}
+
+func RecursionCopy(src, dst string) error {
+	f := fs.NewFilesystem()
+	if IsDir(src) {
+		return f.CopyDir(src, dst)
+	}
+	err := f.MkdirAll(filepath.Dir(dst))
+	if err != nil {
+		return fmt.Errorf("failed to mkdir for recursion copy, err: %v", err)
+	}
+
+	_, err = f.CopyFile(src, dst)
+	return err
+}
+
+func IsDir(path string) bool {
+	s, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return s.IsDir()
+}
+
+type FilterOptions struct {
+	All, OnlyDir, OnlyFile, WithFullPath bool
+}
+
+// GetDirNameListInDir :Get all Dir Name or file name List In Dir
+func GetDirNameListInDir(dir string, opts FilterOptions) ([]string, error) {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var dirs []string
+
+	if opts.All {
+		for _, file := range files {
+			if opts.WithFullPath {
+				dirs = append(dirs, filepath.Join(dir, file.Name()))
+			} else {
+				dirs = append(dirs, file.Name())
+			}
+		}
+		return dirs, nil
+	}
+
+	if opts.OnlyDir {
+		for _, file := range files {
+			if !file.IsDir() {
+				continue
+			}
+			if opts.WithFullPath {
+				dirs = append(dirs, filepath.Join(dir, file.Name()))
+			} else {
+				dirs = append(dirs, file.Name())
+			}
+		}
+		return dirs, nil
+	}
+
+	if opts.OnlyFile {
+		for _, file := range files {
+			if file.IsDir() {
+				continue
+			}
+			if opts.WithFullPath {
+				dirs = append(dirs, filepath.Join(dir, file.Name()))
+			} else {
+				dirs = append(dirs, file.Name())
+			}
+		}
+		return dirs, nil
+	}
+
+	return dirs, nil
+}
+
+func IsAbs(hostPath string) bool {
+	return path.IsAbs(hostPath) || filepath.IsAbs(hostPath)
 }

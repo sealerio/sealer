@@ -23,9 +23,10 @@ import (
 	"os"
 	"path/filepath"
 
+	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/docker/docker/api/types"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils"
 )
 
 type Item struct {
@@ -66,7 +67,7 @@ type DockerAuthService struct {
 }
 
 func (s *DockerAuthService) SetAuthInfo(hostname, username, password string) error {
-	if !utils.IsFileExist(s.FilePath) {
+	if !osi.IsFileExist(s.FilePath) {
 		if err := os.MkdirAll(filepath.Dir(s.FilePath), common.FileMode0755); err != nil {
 			return err
 		}
@@ -110,7 +111,7 @@ func NewDockerAuthService() (DockerAuthService, error) {
 		das      = DockerAuthService{FilePath: authFile, AuthContent: ac}
 	)
 
-	if !utils.IsFileExist(authFile) {
+	if !osi.IsFileExist(authFile) {
 		return das, nil
 	}
 

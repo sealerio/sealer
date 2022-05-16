@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sealerio/sealer/utils/os/fs"
+
 	"github.com/sealerio/sealer/utils/exec"
 	"github.com/sealerio/sealer/utils/net"
 
@@ -89,6 +91,7 @@ func NewSSHByCluster(cluster *v1.Cluster) ssh.Interface {
 		PkPassword:   cluster.Spec.SSH.PkPasswd,
 		LocalAddress: address,
 		IsStdout:     true,
+		Fs:           fs.NewFilesystem(),
 	}
 }
 
