@@ -84,7 +84,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("AAAA FromDescriptors",ml)
 	_, err = pusher.putManifestList(ctx, named, ml)
 	if err != nil {
 		return err
@@ -264,7 +264,6 @@ func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, n
 	if err != nil {
 		return "", err
 	}
-
 	return dgst, nil
 }
 
