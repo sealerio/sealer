@@ -110,7 +110,7 @@ apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 kubernetesVersion: v1.19.8
 controlPlaneEndpoint: "apiserver.cluster.local:6443"
-imageRepository: sea.hub:5000/library
+imageRepository: sea.hub:5000
 networking:
   # dnsDomain: cluster.local
   podSubnet: 100.64.0.0/10
@@ -280,7 +280,7 @@ spec:
     criSocket: /var/run/dockershim.sock
   kubernetesVersion: v1.19.8
   controlPlaneEndpoint: "apiserver.cluster.local:6443"
-  imageRepository: sea.hub:5000/library
+  imageRepository: sea.hub:5000
   networking:
     podSubnet: 100.64.0.0/10
     serviceSubnet: 10.96.0.0/22
