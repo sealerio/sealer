@@ -147,7 +147,7 @@ func (k *KubeadmRuntime) DeleteRegistry() error {
 		return fmt.Errorf("failed to delete registry: %v", err)
 	}
 
-	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %[1]s;fi && (! nerdctl ps -a |grep %[1]s || nerdctl rmi -f %[1]s)", RegistryName)
+	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %[1]s;fi && (! nerdctl ps -a |grep %[1]s || nerdctl stop %[1]s && nerdctl rmi -f %[1]s)", RegistryName)
 	return ssh.CmdAsync(k.RegConfig.IP, cmd)
 }
 

@@ -17,17 +17,19 @@ jobs:
         run: |
           commentbody="${{github.event.comment.body}}"
           version=`echo "$commentbody"|cut -d" " -f2`
-          cri=`echo "$commentbody"|cut -d" " -f3`
-          ##default cri is docker
-          cri=`[[ ! -z "$cri" ]] && echo "$cri" || echo docker`
           ##gt || eq v1.24.0 cri must be containerd
-          version_compare() { printf '%s\n%s\n' "$2" "$1" | sort -V -C; } ## version_vompare $versionA $versionB:  $versionA>=$versionB
-          cri=`version_compare "$version" "v1.24.0" && echo "containerd" || echo $cri` # v1.24.0 and above remove dockershim, so use containerd
+          version_compare() { printf '%s\n%s\n' "$2" "$1" | sort -V -C; } ## version_vompare $a $b:  a>=b
+          cri=`echo "$commentbody"|cut -d" " -f3`
+          ##[v1.20.x-1.24.0): default cri use docker; (*-v1.20.0): cri use docker; [v1.24.0-*): cri use containerd
+          cri=`[[ ! -z "$cri" ]] && echo "$cri" || echo docker`
+          cri=`version_compare "$version" "v1.24.0" && echo "containerd" || echo $cri`
           cridir=${cri}Rootfs
           kubeadmApiVersion=`(version_compare "$version" "v1.23.0" && echo 'kubeadm.k8s.io\/v1beta3') || (version_compare "$version" "v1.15.0" && echo 'kubeadm.k8s.io\/v1beta2') || (version_compare "$version" "v1.13.0" && echo 'kubeadm.k8s.io\/v1beta1')`
           echo "start to build kubernetes:$version cri: $cri"
-          ## nerdctl version: 0.19.0; cri-containerd version: 1.6.4;
+          ## nerdctl: 0.19.0; cri-containerd: 1.6.4;
           sudo wget https://sealer.oss-cn-beijing.aliyuncs.com/auto-build/cri-context.tar.gz && sudo tar -zxf cri-context.tar.gz && cd context
+          sudo wget https://sealer.oss-cn-beijing.aliyuncs.com/auto-build/${cri}-context.tar.gz && sudo tar -zxf ${cri}-context.tar.gz
+
           #amd64
           sudo curl -L https://dl.k8s.io/release/$version/bin/linux/amd64/kubectl -o ./amd64/bin/kubectl
           sudo curl -L https://dl.k8s.io/release/$version/bin/linux/amd64/kubelet -o ./amd64/bin/kubelet
@@ -41,21 +43,22 @@ jobs:
           sudo sealer login ${{secrets.PRIVATEWAREHOUSE}}
           sudo sed -i "s/v1.19.8/$version/g" ${cridir}/rootfs/etc/kubeadm.yml ##change version
           sudo sed -i "s/kubeadm.k8s.io\/v1beta2/$kubeadmApiVersion/g" ${cridir}/rootfs/etc/kubeadm.yml
-          sudo ./amd64/bin/kubeadm config images list --config $cridir/rootfs/etc/kubeadm.yml
-          sudo ./amd64/bin/kubeadm config images list --config $cridir/rootfs/etc/kubeadm.yml 2>/dev/null>> imageList
-          if [ $(sudo ./amd64/bin/kubeadm config images list --config $cridir/rootfs/etc/kubeadm.yml 2>/dev/null |grep -c "coredns/coredns") -gt 0 ]; then sudo sed -i "s/#imageRepository/imageRepository/g" $cridir/rootfs/etc/kubeadm.yml; fi
-          sudo sed -i "s/k8s.gcr.io/sea.hub:5000/g" $cridir/rootfs/etc/kubeadm.yml
-          sudo sed -i "s/sea.hub:5000\/pause:3.6/$(grep pause imageList |sed 's/\//\\\//g')/g" containerdRootfs/rootfs/etc/dump-config.toml
+          sudo ./amd64/bin/kubeadm config images list --config ${cridir}/rootfs/etc/kubeadm.yml
+          sudo ./amd64/bin/kubeadm config images list --config ${cridir}/rootfs/etc/kubeadm.yml 2>/dev/null>> imageList
+          if [ $(sudo ./amd64/bin/kubeadm config images list --config ${cridir}/rootfs/etc/kubeadm.yml 2>/dev/null |grep -c "coredns/coredns") -gt 0 ]; then sudo sed -i "s/#imageRepository/imageRepository/g" ${cridir}/rootfs/etc/kubeadm.yml; fi
+          sudo sed -i "s/k8s.gcr.io/sea.hub:5000/g" ${cridir}/rootfs/etc/kubeadm.yml
+          if [ -f "${cridir}/rootfs/etc/dump-config.toml" ]; then sudo sed -i "s/sea.hub:5000\/pause:3.6/$(grep pause imageList |sed 's/\//\\\//g')/g" ${cridir}/rootfs/etc/dump-config.toml; fi
           sudo cp -r $cridir/* .
           buildName=registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes
-          if [[ "$cri" = "containerd" ]]; then buildName=${buildName}-containerd;fi
+          if [[ "$cri" = "containerd" ]] && ! version_compare "$version" "v1.24.0"; then buildName=${buildName}-containerd;fi
           sudo sealer build -t ${buildName}:${version}-alpine -f Kubefile --platform linux/arm64,linux/amd64 .
-          sudo sealer push $buildName:${version}-alpine
+          sudo sealer push ${buildName}:${version}-alpine
           sudo sed -i "/FROM/d" calico/Kubefile && sudo echo "FROM ${buildName}:${version}-alpine
           `cat calico/Kubefile`" > calico/Kubefile
           cd calico && sudo sealer build -t ${buildName}:${version} -f Kubefile --platform linux/arm64,linux/amd64 .
           sudo sealer push ${buildName}:${version}
           echo "::set-output name=version::${buildName}:${version}"
+          echo "::set-output name=cri::${cri}"
       - name: Success Commit
         uses: peter-evans/create-or-update-comment@v1
         with:
@@ -63,3 +66,4 @@ jobs:
           body: |
             Image ${{ steps.autobuild.outputs.version }} build successfully!
             without calico cni image: ${{ steps.autobuild.outputs.version }}-alpine.
+            CRI use ${{ steps.autobuild.outputs.cri }}.
