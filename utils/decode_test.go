@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package yaml
+package utils
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ func TestDecodeCRDFromFile(t *testing.T) {
 		filepath string
 		kind     string
 	}
-	testFile := "../test/file/Clusterfile"
+	testFile := "test/file/Clusterfile"
 	var tests = []struct {
 		name string
 		args args

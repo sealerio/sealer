@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sealerio/sealer/utils/yaml"
+	"github.com/sealerio/sealer/utils"
 
 	osi "github.com/sealerio/sealer/utils/os"
 
@@ -65,13 +65,13 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 		err                  error
 	)
 	if kubeadmYamlPath == "" || !osi.IsFileExist(kubeadmYamlPath) {
-		defaultKubeadmConfig, err = LoadKubeadmConfigs(DefaultKubeadmConfig, yaml.DecodeCRDFromString)
+		defaultKubeadmConfig, err = LoadKubeadmConfigs(DefaultKubeadmConfig, utils.DecodeCRDFromString)
 		if err != nil {
 			return err
 		}
 		return mergo.Merge(k, defaultKubeadmConfig)
 	}
-	defaultKubeadmConfig, err = LoadKubeadmConfigs(kubeadmYamlPath, yaml.DecodeCRDFromFile)
+	defaultKubeadmConfig, err = LoadKubeadmConfigs(kubeadmYamlPath, utils.DecodeCRDFromFile)
 	if err != nil {
 		return fmt.Errorf("failed to found kubeadm config from %s: %v", kubeadmYamlPath, err)
 	}

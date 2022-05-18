@@ -20,9 +20,9 @@ import (
 	"io"
 	"os"
 
-	v2 "github.com/sealerio/sealer/types/api/v2"
-	yaml2 "github.com/sealerio/sealer/utils/yaml"
+	yaml2 "github.com/sealerio/sealer/utils"
 
+	v2 "github.com/sealerio/sealer/types/api/v2"
 	runtime2 "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 

@@ -20,6 +20,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/sealerio/sealer/utils"
+
 	"github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/sealerio/sealer/logger"
@@ -359,7 +361,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 					t.Errorf("Remove %s error = %v, wantErr %v", testfile, err, tt.wantErr)
 				}
 			}()
-			KubeadmConfig, err := LoadKubeadmConfigs(testfile, yaml.DecodeCRDFromFile)
+			KubeadmConfig, err := LoadKubeadmConfigs(testfile, utils.DecodeCRDFromFile)
 			if err != nil {
 				t.Errorf("err: %v", err)
 				return

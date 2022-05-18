@@ -17,7 +17,7 @@ package applydriver
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/utils/yaml"
+	"github.com/sealerio/sealer/utils"
 
 	osi "github.com/sealerio/sealer/utils/os"
 
@@ -171,7 +171,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 	}
 	var cluster *v2.Cluster
 	if !scaleProcessor.(*processor.ScaleProcessor).IsScaleUp {
-		c, err := yaml.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
+		c, err := utils.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
 		if err != nil {
 			return err
 		} else if c != nil {

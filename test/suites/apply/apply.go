@@ -23,8 +23,6 @@ import (
 	"time"
 
 	"github.com/sealerio/sealer/common"
-	yaml2 "github.com/sealerio/sealer/utils/yaml"
-
 	"github.com/sealerio/sealer/utils/os"
 
 	"github.com/onsi/gomega"
@@ -67,21 +65,21 @@ func WriteClusterFileToDisk(cluster *v1.Cluster, clusterFilePath string) {
 }
 
 func LoadClusterFileFromDisk(clusterFilePath string) *v1.Cluster {
-	cluster, err := yaml2.DecodeV1ClusterFromFile(clusterFilePath)
+	cluster, err := utils.DecodeV1ClusterFromFile(clusterFilePath)
 	testhelper.CheckErr(err)
 	testhelper.CheckNotNil(cluster)
 	return cluster
 }
 
 func LoadConfigFromDisk(clusterFilePath string) []v1.Config {
-	configs, err := yaml2.DecodeCRDFromFile(clusterFilePath, common.Config)
+	configs, err := utils.DecodeCRDFromFile(clusterFilePath, common.Config)
 	testhelper.CheckErr(err)
 	testhelper.CheckNotNil(configs)
 	return configs.([]v1.Config)
 }
 
 func LoadPluginFromDisk(clusterFilePath string) []v1.Plugin {
-	plugins, err := yaml2.DecodeCRDFromFile(clusterFilePath, common.Plugin)
+	plugins, err := utils.DecodeCRDFromFile(clusterFilePath, common.Plugin)
 	testhelper.CheckErr(err)
 	testhelper.CheckNotNil(plugins)
 	return plugins.([]v1.Plugin)

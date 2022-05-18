@@ -22,6 +22,8 @@ import (
 	"plugin"
 	"strings"
 
+	"github.com/sealerio/sealer/utils"
+
 	"github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/sealerio/sealer/common"
@@ -82,7 +84,7 @@ func (c *PluginsProcessor) Load() error {
 			Register(pt, p)
 		}
 		if yaml.Matcher(f.Name()) {
-			plugins, err := yaml.DecodeCRDFromFile(filepath.Join(path, f.Name()), common.Plugin)
+			plugins, err := utils.DecodeCRDFromFile(filepath.Join(path, f.Name()), common.Plugin)
 			if err != nil {
 				return fmt.Errorf("failed to load plugin %v", err)
 			}
