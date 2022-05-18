@@ -1,0 +1,70 @@
+// Copyright © 2021 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+apiVersion: zlink.aliyun.com/v1alpha1
+kind: Cluster
+metadata:
+  annotations:
+    sea.aliyun.com/ClusterEIP: 47.108.132.245
+    sea.aliyun.com/EipID: eip-2vca3x1lxu96ropt66am5
+    sea.aliyun.com/Master0ID: i-2vc2ce4hs85f7ql6dqda
+    sea.aliyun.com/Master0InternalIP: 172.16.0.194
+    sea.aliyun.com/MasterIDs: i-2vc2ce4hs85f7ql6dqdb,i-2vc2ce4hs85f7ql6dqdc,i-2vc2ce4hs85f7ql6dqda
+    sea.aliyun.com/NodeIDs: i-2vc4eamks4zejf9n16tm,i-2vc4eamks4zejf9n16tn,i-2vc4eamks4zejf9n16tl
+    sea.aliyun.com/RegionID: cn-chengdu
+    sea.aliyun.com/SecurityGroupID: sg-2vcdx512qke5iqpx1iwx
+    sea.aliyun.com/VSwitchID: vsw-2vc55ufqm05qb8zdxux0h
+    sea.aliyun.com/VpcID: vpc-2vcj16rdif2upvgeowdu6
+    sea.aliyun.com/ZoneID: cn-chengdu-a
+  creationTimestamp: null
+  name: my-cluster
+spec:
+  certSANS:
+  - aliyun-inc.com
+  - 10.0.0.2
+  image: kubernetes:v1.19.9
+  masters:
+    count: "3"
+    cpu: "4"
+    dataDisks:
+    - "100"
+    ipList:
+    - 172.16.0.194
+    - 172.16.0.196
+    - 172.16.0.195
+    memory: "4"
+    systemDisk: "100"
+  network:
+    cniName: calico
+    interface: eth0
+    podCIDR: 100.64.0.0/10
+    svcCIDR: 10.96.0.0/22
+  nodes:
+    count: "3"
+    cpu: "4"
+    dataDisks:
+    - "100"
+    ipList:
+    - 172.16.0.198
+    - 172.16.0.199
+    - 172.16.0.197
+    memory: "4"
+    systemDisk: "100"
+  provider: ALI_CLOUD
+  ssh:
+    passwd: Seadent123
+    pk: xxx
+    pkPasswd: xxx
+    user: root
+status: {}

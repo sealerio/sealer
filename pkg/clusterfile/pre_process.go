@@ -130,9 +130,6 @@ func (c *ClusterFile) PrePareCluster() error {
 func (c *ClusterFile) DecodeCluster(data []byte) error {
 	cluster, err := yaml2.DecodeCRDFromByte(data, common.Cluster)
 	if err != nil {
-		if err == io.EOF {
-			return nil
-		}
 		return err
 	}
 	c.Cluster = *cluster.(*v2.Cluster)

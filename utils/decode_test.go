@@ -85,3 +85,14 @@ func TestDecodeCRDFromFile(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeV1ClusterFromFile(t *testing.T) {
+	testFile := "test/file/v1Clusterfile"
+	t.Run("test decode v1 cluster"+testFile, func(t *testing.T) {
+		got, err := DecodeV1ClusterFromFile(testFile)
+		if err != nil {
+			t.Errorf("failed to decode v1 cluster form %s: %v", testFile, err)
+		}
+		fmt.Printf("got:\n %#+v", got)
+	})
+}

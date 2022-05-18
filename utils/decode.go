@@ -36,6 +36,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
+const typeV1 = "zlink.aliyun.com/v1alpha1"
+const typeV2 = "sealer.cloud/v2"
+
 var decodeCRDFuncMap = map[string]func(reader io.Reader) (interface{}, error){
 	common.Cluster:                decodeClusterFunc,
 	common.Config:                 decodeConfigListFunc,
@@ -120,9 +123,9 @@ func DecodeV1ClusterFromFile(filepath string) (*v1.Cluster, error) {
 func decodeClusterFunc(reader io.Reader) (out interface{}, err error) {
 	switchVersion := func(version string) interface{} {
 		switch version {
-		case v1.GroupVersion.String():
+		case typeV1:
 			return &v1.Cluster{}
-		case v2.GroupVersion.String():
+		case typeV2:
 			return &v2.Cluster{}
 		default:
 			return &v2.Cluster{}
@@ -151,7 +154,7 @@ func ConvertV1ClusterToV2Cluster(v1Cluster *v1.Cluster) *v2.Cluster {
 		hosts = append(hosts, v2.Host{IPS: v1Cluster.Spec.Nodes.IPList, Roles: []string{common.NODE}})
 	}
 
-	cluster.APIVersion = v2.GroupVersion.String()
+	cluster.APIVersion = typeV2
 	cluster.Spec.SSH = v1Cluster.Spec.SSH
 	cluster.Spec.Env = v1Cluster.Spec.Env
 	cluster.Spec.Hosts = hosts
