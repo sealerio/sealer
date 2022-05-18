@@ -187,7 +187,15 @@ func (g *GenerateProcessor) ApplyRegistry(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	err = runt.(*runtime.KubeadmRuntime).GenerateRegistryCert()
+	rt, ok := runt.(*runtime.KubeadmRuntime)
+	if !ok {
+		return fmt.Errorf("invalid type")
+	}
+	err = rt.GenerateRegistryCert()
+	if err != nil {
+		return err
+	}
+	err = rt.SendRegistryCert(cluster.GetAllIPList())
 	if err != nil {
 		return err
 	}
