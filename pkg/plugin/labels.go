@@ -86,7 +86,7 @@ func (l LabelsNodes) formatData(data string, hosts []string) map[string][]label 
 		return m
 	}
 	for _, v := range items {
-		tmps := strings.Split(v, " ")
+		tmps := strings.Split(strings.TrimSpace(v), " ")
 		if len(tmps) != 2 {
 			//logger.Warn("label data is no-compliance with the rules! label data: %v", v)
 			continue
