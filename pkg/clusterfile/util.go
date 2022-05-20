@@ -26,7 +26,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	robj "k8s.io/apimachinery/pkg/runtime"
+	k8sRuntime "k8s.io/apimachinery/pkg/runtime"
 )
 
 var ErrClusterNotExist = fmt.Errorf("no cluster exist")
@@ -69,12 +69,10 @@ func GetDefaultCluster() (cluster *v2.Cluster, err error) {
 	if err != nil {
 		return nil, err
 	}
-	var filepath = fmt.Sprintf("%s/.sealer/%s/Clusterfile", userHome, name)
-
-	return GetClusterFromFile(filepath)
+	return GetClusterFromFile(fmt.Sprintf("%s/.sealer/%s/Clusterfile", userHome, name))
 }
 
-func SaveToDisk(cluster robj.Object, clusterName string) error {
+func SaveToDisk(cluster k8sRuntime.Object, clusterName string) error {
 	fileName := common.GetClusterWorkClusterfile(clusterName)
 	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
 	if err != nil {

@@ -35,10 +35,6 @@ import (
 	"github.com/sealerio/sealer/utils/archive"
 )
 
-const (
-	manifestV2 = "application/vnd.docker.distribution.manifest.v2+json"
-)
-
 type Pusher interface {
 	Push(ctx context.Context, named reference.Named) error
 }
@@ -67,12 +63,23 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 			return err
 		}
 
-		dgst, err := pusher.push(ctx, image, named)
+		layerDescriptors, err := pusher.push(ctx, *image, named)
 		if err != nil {
 			return err
 		}
 
-		descriptor, err := buildManifestDescriptor(dgst, m)
+		// push sealer image metadata to registry
+		configJSON, err := pusher.putManifestConfig(ctx, *image)
+		if err != nil {
+			return err
+		}
+
+		manifestDescriptor, err := pusher.putManifest(ctx, configJSON, named, layerDescriptors)
+		if err != nil {
+			return err
+		}
+
+		descriptor, err := buildManifestDescriptor(manifestDescriptor, m)
 		if err != nil {
 			return err
 		}
@@ -84,6 +91,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 	if err != nil {
 		return err
 	}
+
 	_, err = pusher.putManifestList(ctx, named, ml)
 	if err != nil {
 		return err
@@ -91,7 +99,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 	return nil
 }
 
-func (pusher *ImagePusher) push(ctx context.Context, image *v1.Image, named reference.Named) (digest.Digest, error) {
+func (pusher *ImagePusher) push(ctx context.Context, image v1.Image, named reference.Named) ([]distribution.Descriptor, error) {
 	var (
 		layerStore   = pusher.config.LayerStore
 		pushedLayers = map[string]distribution.Descriptor{}
@@ -106,13 +114,13 @@ func (pusher *ImagePusher) push(ctx context.Context, image *v1.Image, named refe
 		}
 		err := l.ID.Validate()
 		if err != nil {
-			return "", fmt.Errorf("layer hash %s validate failed, err: %s", l.ID, err)
+			return nil, fmt.Errorf("layer hash %s validate failed, err: %s", l.ID, err)
 		}
 
 		// this scope value, safe to pass into eg.Go
 		roLayer := layerStore.Get(store.LayerID(l.ID))
 		if roLayer == nil {
-			return "", fmt.Errorf("failed to put image %s, layer %s not exists locally", named.Raw(), l.ID.String())
+			return nil, fmt.Errorf("failed to put image %s, layer %s not exists locally", named.Raw(), l.ID.String())
 		}
 
 		eg.Go(func() error {
@@ -130,7 +138,7 @@ func (pusher *ImagePusher) push(ctx context.Context, image *v1.Image, named refe
 	}
 
 	if err := eg.Wait(); err != nil {
-		return "", fmt.Errorf("failed to push layers of %s, err: %s", named.Raw(), err)
+		return nil, fmt.Errorf("failed to push layers of %s, err: %s", named.Raw(), err)
 	}
 
 	// for making descriptors have same ordered with image layers
@@ -150,15 +158,10 @@ func (pusher *ImagePusher) push(ctx context.Context, image *v1.Image, named refe
 		layerDescriptors = append(layerDescriptors, layerDescriptor)
 	}
 	if len(layerDescriptors) != len(pushedLayers) {
-		return "", errors.New("failed to push image, the number of layerDescriptors and pushedLayers mismatch")
-	}
-	// push sealer image metadata to registry
-	configJSON, err := pusher.putManifestConfig(ctx, *image)
-	if err != nil {
-		return "", err
+		return nil, errors.New("failed to push image, the number of layerDescriptors and pushedLayers mismatch")
 	}
 
-	return pusher.putManifest(ctx, configJSON, named, layerDescriptors)
+	return layerDescriptors, nil
 }
 
 func (pusher *ImagePusher) uploadLayer(ctx context.Context, roLayer store.Layer) (distribution.Descriptor, error) {
@@ -228,7 +231,7 @@ func (pusher *ImagePusher) uploadLayer(ctx context.Context, roLayer store.Layer)
 	return buildBlobs(layerContentDigest, realSize, roLayer.MediaType()), nil
 }
 
-func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, named reference.Named, layerDescriptors []distribution.Descriptor) (digest.Digest, error) {
+func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, named reference.Named, layerDescriptors []distribution.Descriptor) (distribution.Descriptor, error) {
 	var (
 		bs   = &blobService{descriptors: map[digest.Digest]distribution.Descriptor{}}
 		repo = pusher.repository
@@ -236,34 +239,40 @@ func (pusher *ImagePusher) putManifest(ctx context.Context, configJSON []byte, n
 
 	manifestBuilder := schema2.NewManifestBuilder(
 		bs,
-		// use schema2.MediaTypeImageConfig by default
-		//TODO plan to support more types to support more registry
 		schema2.MediaTypeImageConfig,
 		configJSON)
 
 	for _, d := range layerDescriptors {
 		err := manifestBuilder.AppendReference(d)
 		if err != nil {
-			return "", err
+			return distribution.Descriptor{}, err
 		}
 	}
 
 	manifest, err := manifestBuilder.Build(ctx)
 	if err != nil {
-		return "", err
+		return distribution.Descriptor{}, err
 	}
 
 	ms, err := repo.Manifests(ctx)
 	if err != nil {
-		return "", err
+		return distribution.Descriptor{}, err
 	}
 
 	putOptions := []distribution.ManifestServiceOption{distribution.WithTag(named.Tag())}
 	dgst, err := ms.Put(ctx, manifest, putOptions...)
 	if err != nil {
-		return "", err
+		return distribution.Descriptor{}, err
 	}
-	return dgst, nil
+	mediaType, p, err := manifest.Payload()
+	if err != nil {
+		return distribution.Descriptor{}, err
+	}
+	return distribution.Descriptor{
+		Digest:    dgst,
+		Size:      int64(len(p)),
+		MediaType: mediaType,
+	}, nil
 }
 
 func (pusher *ImagePusher) putManifestList(ctx context.Context, named reference.Named, manifest distribution.Manifest) (digest.Digest, error) {

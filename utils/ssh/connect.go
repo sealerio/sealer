@@ -15,11 +15,16 @@
 package ssh
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
+
+	"github.com/sealerio/sealer/common"
 
 	"github.com/sealerio/sealer/utils/hash"
 
@@ -129,12 +134,71 @@ func (s *SSH) sshPasswordMethod(password string) ssh.AuthMethod {
 }
 
 func (s *SSH) sftpConnect(host string) (*ssh.Client, *sftp.Client, error) {
-	sshClient, err := s.connect(host)
+	var (
+		sshClient  *ssh.Client
+		sftpClient *sftp.Client
+		err        error
+	)
+
+	sshClient, err = s.connect(host)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// create sftp client
-	sftpClient, err := sftp.NewClient(sshClient)
+	if s.User != common.ROOT {
+		sftpClient, err = s.NewSudoSftpClient(sshClient)
+	} else {
+		sftpClient, err = sftp.NewClient(sshClient)
+	}
+
 	return sshClient, sftpClient, err
+}
+
+func (s *SSH) NewSudoSftpClient(conn *ssh.Client, opts ...sftp.ClientOption) (*sftp.Client, error) {
+	var (
+		cmd            string
+		err            error
+		ses, ses2      *ssh.Session
+		buff           []byte
+		sftpServerPath string
+	)
+
+	ses2, err = conn.NewSession()
+	if err != nil {
+		return nil, err
+	}
+	defer ses2.Close()
+
+	cmd = `grep -oP "Subsystem sftp \K.*" /etc/ssh/sshd_config`
+	buff, err = ses2.Output(cmd)
+	if err != nil {
+		return nil, fmt.Errorf("cmd output errored %v", err)
+	}
+
+	ses, err = conn.NewSession()
+	if err != nil {
+		return nil, err
+	}
+
+	sftpServerPath = strings.ReplaceAll(string(buff), "\r", "")
+	if match, _ := regexp.MatchString(`^sudo `, sftpServerPath); !match {
+		sftpServerPath = SUDO + sftpServerPath
+	}
+
+	ok, err := ses.SendRequest("exec", true, ssh.Marshal(struct{ Command string }{sftpServerPath}))
+	if err == nil && !ok {
+		return nil, errors.New("ssh: exec request failed")
+	}
+
+	pw, err := ses.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	pr, err := ses.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	return sftp.NewClientPipe(pr, pw, opts...)
 }

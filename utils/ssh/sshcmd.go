@@ -105,7 +105,7 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 			continue
 		}
 		if s.User != common.ROOT {
-			cmd = SUDO + cmd
+			cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
 		}
 		if err := execFunc(cmd); err != nil {
 			return err
@@ -117,7 +117,7 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 
 func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	if s.User != common.ROOT {
-		cmd = SUDO + cmd
+		cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
 	}
 	if net.IsLocalIP(host, s.LocalAddress) {
 		return exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
