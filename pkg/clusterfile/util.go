@@ -31,7 +31,7 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	robj "k8s.io/apimachinery/pkg/runtime"
+	k8sRuntime "k8s.io/apimachinery/pkg/runtime"
 )
 
 const typeV1 = "zlink.aliyun.com/v1alpha1"
@@ -77,9 +77,7 @@ func GetDefaultCluster() (cluster *v2.Cluster, err error) {
 	if err != nil {
 		return nil, err
 	}
-	var filepath = fmt.Sprintf("%s/.sealer/%s/Clusterfile", userHome, name)
-
-	return GetClusterFromFile(filepath)
+	return GetClusterFromFile(fmt.Sprintf("%s/.sealer/%s/Clusterfile", userHome, name))
 }
 
 func GetClusterFromDataCompatV1(data []byte) (*v2.Cluster, error) {
@@ -124,7 +122,7 @@ func GetClusterFromDataCompatV1(data []byte) (*v2.Cluster, error) {
 	return cluster, nil
 }
 
-func SaveToDisk(cluster robj.Object, clusterName string) error {
+func SaveToDisk(cluster k8sRuntime.Object, clusterName string) error {
 	fileName := common.GetClusterWorkClusterfile(clusterName)
 	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
 	if err != nil {

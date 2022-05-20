@@ -20,7 +20,6 @@ import (
 
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest/manifestlist"
-	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
 
@@ -37,13 +36,9 @@ func PlatformSpecFromOCI(p *v1.Platform) *manifestlist.PlatformSpec {
 	}
 }
 
-func buildManifestDescriptor(dgst digest.Digest, imageManifest *types.ManifestDescriptor) (manifestlist.ManifestDescriptor, error) {
+func buildManifestDescriptor(descriptor distribution.Descriptor, imageManifest *types.ManifestDescriptor) (manifestlist.ManifestDescriptor, error) {
 	manifest := manifestlist.ManifestDescriptor{
-		Descriptor: distribution.Descriptor{
-			Digest:    dgst,
-			Size:      imageManifest.SIZE,
-			MediaType: manifestV2,
-		},
+		Descriptor: descriptor,
 	}
 
 	platform := PlatformSpecFromOCI(&imageManifest.Platform)
