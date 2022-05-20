@@ -21,6 +21,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	osi "github.com/sealerio/sealer/utils/os"
@@ -197,7 +198,7 @@ func (s *SSH) remoteMd5Sum(host, remoteFilePath string) string {
 	if err != nil {
 		logger.Error("count remote md5 failed %s %s %v", host, remoteFilePath, err)
 	}
-	return remoteMD5
+	return strings.ReplaceAll(remoteMD5, "\r", "")
 }
 
 func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
