@@ -19,10 +19,11 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/sealerio/sealer/utils"
+
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 )
 
 func TestDumper_Dump(t *testing.T) {
@@ -56,7 +57,7 @@ func TestDumper_Dump(t *testing.T) {
 				Cluster: &v2.Cluster{},
 			}
 			c.Cluster.Name = tt.fields.clusterName
-			configs, err := utils.DecodeV1CRD(tt.args.clusterfile, common.Config)
+			configs, err := utils.DecodeCRDFromFile(tt.args.clusterfile, common.Config)
 			if err != nil {
 				t.Error(err)
 				return

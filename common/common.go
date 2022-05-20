@@ -97,9 +97,14 @@ const (
 
 //CRD kind
 const (
-	Config  = "Config"
-	Plugin  = "Plugin"
-	Cluster = "Cluster"
+	Config                 = "Config"
+	Plugin                 = "Plugin"
+	Cluster                = "Cluster"
+	InitConfiguration      = "InitConfiguration"
+	JoinConfiguration      = "JoinConfiguration"
+	ClusterConfiguration   = "ClusterConfiguration"
+	KubeletConfiguration   = "KubeletConfiguration"
+	KubeProxyConfiguration = "KubeProxyConfiguration"
 )
 
 const (

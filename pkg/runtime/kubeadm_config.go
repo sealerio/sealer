@@ -16,6 +16,9 @@ package runtime
 
 import (
 	"fmt"
+	"io"
+
+	"github.com/sealerio/sealer/utils"
 
 	osi "github.com/sealerio/sealer/utils/os"
 
@@ -62,13 +65,13 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 		err                  error
 	)
 	if kubeadmYamlPath == "" || !osi.IsFileExist(kubeadmYamlPath) {
-		defaultKubeadmConfig, err = LoadKubeadmConfigs(DefaultKubeadmConfig, DecodeCRDFromString)
+		defaultKubeadmConfig, err = LoadKubeadmConfigs(DefaultKubeadmConfig, utils.DecodeCRDFromString)
 		if err != nil {
 			return err
 		}
 		return mergo.Merge(k, defaultKubeadmConfig)
 	}
-	defaultKubeadmConfig, err = LoadKubeadmConfigs(kubeadmYamlPath, DecodeCRDFromFile)
+	defaultKubeadmConfig, err = LoadKubeadmConfigs(kubeadmYamlPath, utils.DecodeCRDFromFile)
 	if err != nil {
 		return fmt.Errorf("failed to found kubeadm config from %s: %v", kubeadmYamlPath, err)
 	}
@@ -84,31 +87,31 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 func LoadKubeadmConfigs(arg string, decode func(arg string, kind string) (interface{}, error)) (*KubeadmConfig, error) {
 	kubeadmConfig := &KubeadmConfig{}
 	initConfig, err := decode(arg, InitConfiguration)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	} else if initConfig != nil {
 		kubeadmConfig.InitConfiguration = *initConfig.(*v1beta2.InitConfiguration)
 	}
 	clusterConfig, err := decode(arg, ClusterConfiguration)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	} else if clusterConfig != nil {
 		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta2.ClusterConfiguration)
 	}
 	kubeProxyConfig, err := decode(arg, KubeProxyConfiguration)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	} else if kubeProxyConfig != nil {
 		kubeadmConfig.KubeProxyConfiguration = *kubeProxyConfig.(*v1alpha1.KubeProxyConfiguration)
 	}
 	kubeletConfig, err := decode(arg, KubeletConfiguration)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	} else if kubeletConfig != nil {
 		kubeadmConfig.KubeletConfiguration = *kubeletConfig.(*v1beta1.KubeletConfiguration)
 	}
 	joinConfig, err := decode(arg, JoinConfiguration)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	} else if joinConfig != nil {
 		kubeadmConfig.JoinConfiguration = *joinConfig.(*v1beta2.JoinConfiguration)

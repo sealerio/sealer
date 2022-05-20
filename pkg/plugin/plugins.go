@@ -22,12 +22,13 @@ import (
 	"plugin"
 	"strings"
 
+	"github.com/sealerio/sealer/utils"
+
 	"github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 )
@@ -83,11 +84,11 @@ func (c *PluginsProcessor) Load() error {
 			Register(pt, p)
 		}
 		if yaml.Matcher(f.Name()) {
-			plugins, err := utils.DecodePlugins(filepath.Join(path, f.Name()))
+			plugins, err := utils.DecodeCRDFromFile(filepath.Join(path, f.Name()), common.Plugin)
 			if err != nil {
 				return fmt.Errorf("failed to load plugin %v", err)
 			}
-			c.Plugins = append(c.Plugins, plugins...)
+			c.Plugins = append(c.Plugins, plugins.([]v1.Plugin)...)
 		}
 	}
 	return nil
