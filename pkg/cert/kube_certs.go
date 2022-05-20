@@ -23,6 +23,9 @@ import (
 	"path"
 
 	"github.com/sealerio/sealer/logger"
+
+	"github.com/pkg/errors"
+	utilnet "k8s.io/utils/net"
 )
 
 var (
@@ -194,11 +197,14 @@ func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, 
 	data.DNSDomain = DNSDomain
 	data.APIServer.IPs = make(map[string]net.IP)
 	data.APIServer.DNSNames = make(map[string]string)
-	svcFirstIP, _, err := net.ParseCIDR(SvcCIDR)
+	_, svcSubnet, err := net.ParseCIDR(SvcCIDR)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to parse ServiceSubnet %v", SvcCIDR)
+	}
+	svcFirstIP, err := utilnet.GetIndexedIP(svcSubnet, 1)
 	if err != nil {
 		return nil, err
 	}
-	svcFirstIP[len(svcFirstIP)-1]++ //取svc第一个ip
 	data.APIServer.IPs[svcFirstIP.String()] = svcFirstIP
 
 	for _, altName := range apiServerIPAndDomains {
