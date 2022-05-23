@@ -170,7 +170,7 @@ func (s *SSH) NewSudoSftpClient(conn *ssh.Client, opts ...sftp.ClientOption) (*s
 	}
 	defer ses2.Close()
 
-	cmd = `grep -oP "Subsystem sftp \K.*" /etc/ssh/sshd_config`
+	cmd = `grep -oP "Subsystem\s+sftp\s+\K.*" /etc/ssh/sshd_config`
 	buff, err = ses2.Output(cmd)
 	if err != nil {
 		return nil, fmt.Errorf("cmd output errored %v", err)
