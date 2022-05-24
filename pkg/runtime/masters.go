@@ -22,6 +22,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/utils/ssh"
+
 	"github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/sealerio/sealer/utils/net"
@@ -43,19 +46,20 @@ const (
 )
 
 const (
-	RemoteAddEtcHosts       = "cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts"
-	RemoteUpdateEtcHosts    = `sed "s/%s/%s/g" < /etc/hosts > hosts && cp -f hosts /etc/hosts`
-	RemoteCopyKubeConfig    = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
-	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
-	RemoteJoinMasterConfig  = `echo "%s" > %s/etc/kubeadm.yml`
-	InitMaster115Lower      = `kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs`
-	JoinMaster115Lower      = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s"
-	JoinNode115Lower        = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s"
-	InitMaser115Upper       = `kubeadm init --config=%s/etc/kubeadm.yml --upload-certs`
-	JoinMaster115Upper      = "kubeadm join --config=%s/etc/kubeadm.yml"
-	JoinNode115Upper        = "kubeadm join --config=%s/etc/kubeadm.yml"
-	RemoveKubeConfig        = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
-	RemoteCleanMasterOrNode = `if which kubeadm;then kubeadm reset -f %s;fi && \
+	RemoteAddEtcHosts           = "cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts"
+	RemoteUpdateEtcHosts        = `sed "s/%s/%s/g" < /etc/hosts > hosts && cp -f hosts /etc/hosts`
+	RemoteCopyKubeConfig        = `rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config`
+	RemoteNonRootCopyKubeConfig = `rm -rf ${HOME}/.kube/config && mkdir -p ${HOME}/.kube && cp /etc/kubernetes/admin.conf ${HOME}/.kube/config && chown $(id -u):$(id -g) ${HOME}/.kube/config`
+	RemoteReplaceKubeConfig     = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
+	RemoteJoinMasterConfig      = `echo "%s" > %s/etc/kubeadm.yml`
+	InitMaster115Lower          = `kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs`
+	JoinMaster115Lower          = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s"
+	JoinNode115Lower            = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s"
+	InitMaser115Upper           = `kubeadm init --config=%s/etc/kubeadm.yml --upload-certs`
+	JoinMaster115Upper          = "kubeadm join --config=%s/etc/kubeadm.yml"
+	JoinNode115Upper            = "kubeadm join --config=%s/etc/kubeadm.yml"
+	RemoveKubeConfig            = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
+	RemoteCleanMasterOrNode     = `if which kubeadm;then kubeadm reset -f %s;fi && \
 modprobe -r ipip  && lsmod && \
 rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
@@ -355,12 +359,16 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 			return err
 		}
 		cmds := k.JoinMasterCommands(master, cmd, hostname)
-		ssh, err := k.getHostSSHClient(master)
+		client, err := k.getHostSSHClient(master)
 		if err != nil {
 			return err
 		}
 
-		if err := ssh.CmdAsync(master, cmds...); err != nil {
+		if client.(*ssh.SSH).User != common.ROOT {
+			cmds = append(cmds, RemoteNonRootCopyKubeConfig)
+		}
+
+		if err := client.CmdAsync(master, cmds...); err != nil {
 			return fmt.Errorf("exec command failed %s %v %v", master, cmds, err)
 		}
 

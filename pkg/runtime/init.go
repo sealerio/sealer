@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/ssh"
+
 	"github.com/sealerio/sealer/utils/yaml"
 
 	osi "github.com/sealerio/sealer/utils/os"
@@ -240,7 +242,7 @@ func (k *KubeadmRuntime) decodeJoinCmd(cmd string) {
 
 //InitMaster0 is
 func (k *KubeadmRuntime) InitMaster0() error {
-	ssh, err := k.getHostSSHClient(k.GetMaster0IP())
+	client, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
 		return fmt.Errorf("failed to get master0 ssh client, %v", err)
 	}
@@ -250,7 +252,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	}
 	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
-	err = ssh.CmdAsync(k.GetMaster0IP(), cmdAddEtcHost)
+	err = client.CmdAsync(k.GetMaster0IP(), cmdAddEtcHost)
 	if err != nil {
 		return err
 	}
@@ -259,7 +261,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	cmdInit := k.Command(k.getKubeVersion(), InitMaster)
 
 	// TODO skip docker version error check for test
-	output, err := ssh.Cmd(k.GetMaster0IP(), cmdInit)
+	output, err := client.Cmd(k.GetMaster0IP(), cmdInit)
 	if err != nil {
 		_, wErr := common.StdOut.WriteString(string(output))
 		if wErr != nil {
@@ -268,9 +270,16 @@ func (k *KubeadmRuntime) InitMaster0() error {
 		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
 	}
 	k.decodeMaster0Output(output)
-	err = ssh.CmdAsync(k.GetMaster0IP(), RemoteCopyKubeConfig)
+	err = client.CmdAsync(k.GetMaster0IP(), RemoteCopyKubeConfig)
 	if err != nil {
 		return err
+	}
+
+	if client.(*ssh.SSH).User != common.ROOT {
+		err = client.CmdAsync(k.GetMaster0IP(), RemoteNonRootCopyKubeConfig)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -280,12 +289,12 @@ func (k *KubeadmRuntime) GetKubectlAndKubeconfig() error {
 	if osi.IsFileExist(common.DefaultKubeConfigFile()) {
 		return nil
 	}
-	ssh, err := k.getHostSSHClient(k.GetMaster0IP())
+	client, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
 		return fmt.Errorf("failed to get master0 ssh client when get kubbectl and kubeconfig %v", err)
 	}
 
-	return GetKubectlAndKubeconfig(ssh, k.GetMaster0IP(), k.getImageMountDir())
+	return GetKubectlAndKubeconfig(client, k.GetMaster0IP(), k.getImageMountDir())
 }
 
 func (k *KubeadmRuntime) CopyStaticFilesTomasters() error {
