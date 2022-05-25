@@ -64,10 +64,10 @@ func NewRouter(host, gateway string) *Route {
 func CheckIsDefaultRoute(host string) error {
 	ok, err := isDefaultRouteIP(host)
 	if err == nil && ok {
-		_, err = common.StdOut.WriteString(RouteOK)
+		_, err = common.AuditStdOut.WriteString(RouteOK)
 	}
 	if err == nil && !ok {
-		_, err = common.StdErr.WriteString(RouteFailed)
+		_, err = common.AuditStdErr.WriteString(RouteFailed)
 	}
 	return err
 }

@@ -263,7 +263,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	// TODO skip docker version error check for test
 	output, err := client.Cmd(k.GetMaster0IP(), cmdInit)
 	if err != nil {
-		_, wErr := common.StdOut.WriteString(string(output))
+		_, wErr := common.AuditStdOut.WriteString(string(output))
 		if wErr != nil {
 			return err
 		}

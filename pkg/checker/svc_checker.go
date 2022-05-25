@@ -103,7 +103,7 @@ func (n *SvcChecker) Output(svcNamespaceStatusList []*SvcNamespaceStatus) error 
 		panic(err)
 	}
 	t = template.Must(t, err)
-	err = t.Execute(common.StdOut, svcNamespaceStatusList)
+	err = t.Execute(common.AuditStdOut, svcNamespaceStatusList)
 	if err != nil {
 		logger.Error("service checkers template can not excute %s", err)
 		return err

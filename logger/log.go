@@ -26,24 +26,10 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-
-	"github.com/sealerio/sealer/common"
 )
 
 // Default log output
 var defaultLogger *LocalLogger
-
-// Log level, from 0-7, daily priority from high to low
-const (
-	LevelEmergency     logLevel = iota // System level emergency, such as disk error, memory exception, network unavailable, etc.
-	LevelAlert                         // System-level warnings, such as database access exceptions, configuration file errors, etc.
-	LevelCritical                      // System-level dangers, such as permission errors, access exceptions, etc.
-	LevelError                         // User level error
-	LevelWarning                       // User level warning
-	LevelInformational                 // User level information
-	LevelDebug                         // User level debugging
-	LevelTrace                         // User level basic output
-)
 
 // LevelMap Log level and description mapping relationship
 var LevelMap = map[string]logLevel{
@@ -71,13 +57,6 @@ var levelPrefix = [LevelTrace + 1]string{
 	"DEBG",
 	"TRAC",
 }
-
-const (
-	LogTimeDefaultFormat = "2006-01-02 15:04:05"
-	AdapterConsole       = "console"
-	AdapterFile          = "file"
-	AdapterConn          = "conn"
-)
 
 type logLevel int
 
@@ -194,7 +173,7 @@ func Cfg(debugMod bool) {
 						"permit": "0660",
 						"LogLevel":0
 				}}`,
-		level, logLev, common.DefaultLogDir, time.Now().Format("2006-01-02"),
+		level, logLev, DefaultLogDir, time.Now().Format("2006-01-02"),
 	))
 }
 
@@ -228,7 +207,7 @@ func (localLog *LocalLogger) SetLogger(adapterName string, configs ...string) {
 	}
 
 	if err := logger.Init(config); err != nil {
-		fmt.Fprintf(common.StdErr, "logger Init <%s> err:%v, %s output ignore!\n",
+		fmt.Fprintf(os.Stderr, "logger Init <%s> err:%v, %s output ignore!\n",
 			adapterName, err, adapterName)
 	}
 	if num >= 0 {
@@ -270,7 +249,7 @@ func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level 
 			//The network log is sent in JSON format. The structure is used here for retrieval similar to elasticsearch
 			err := l.LogWrite(when, msg, level)
 			if err != nil {
-				fmt.Fprintf(common.StdErr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
+				fmt.Fprintf(os.Stderr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
 			}
 			continue
 		}
@@ -284,7 +263,7 @@ func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level 
 		msgStr := when.Format(localLog.timeFormat) + strLevel + strPath + msg.Content
 		err := l.LogWrite(when, msgStr, level)
 		if err != nil {
-			fmt.Fprintf(common.StdErr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
+			fmt.Fprintf(os.Stderr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
 		}
 	}
 }
@@ -423,18 +402,18 @@ func SetLogger(param ...string) {
 		// Open the configuration file
 		fd, err := os.Open(filepath.Clean(c))
 		if err != nil {
-			fmt.Fprintf(common.StdErr, "Could not open %s for configure: %s\n", c, err)
+			fmt.Fprintf(os.Stderr, "Could not open %s for configure: %s\n", c, err)
 			os.Exit(1)
 		}
 
 		contents, err := ioutil.ReadAll(fd)
 		if err != nil {
-			fmt.Fprintf(common.StdErr, "Could not read %s: %s\n", c, err)
+			fmt.Fprintf(os.Stderr, "Could not read %s: %s\n", c, err)
 			os.Exit(1)
 		}
 		err = json.Unmarshal(contents, conf)
 		if err != nil {
-			fmt.Fprintf(common.StdErr, "Could not Unmarshal %s: %s\n", contents, err)
+			fmt.Fprintf(os.Stderr, "Could not Unmarshal %s: %s\n", contents, err)
 			os.Exit(1)
 		}
 	}

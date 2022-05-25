@@ -50,7 +50,7 @@ and run it within any cluster with Clusterfile in one command.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "sealer-%s: %v\n", version.GetSingleVersion(), err)
+		fmt.Fprintf(common.AuditStdOut, "sealer-%s: %v\n", version.GetSingleVersion(), err)
 		os.Exit(1)
 	}
 }

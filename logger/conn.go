@@ -19,11 +19,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/sealerio/sealer/common"
 )
 
 type connLogger struct {
@@ -117,7 +116,7 @@ func (c *connLogger) connect() error {
 	for _, addr := range addrs {
 		conn, err := net.Dial(c.Net, addr)
 		if err != nil {
-			fmt.Fprintf(common.StdErr, "net.Dial error:%v\n", err)
+			fmt.Fprintf(os.Stderr, "net.Dial error:%v\n", err)
 			continue
 			//return err
 		}
@@ -125,7 +124,7 @@ func (c *connLogger) connect() error {
 		if tcpConn, ok := conn.(*net.TCPConn); ok {
 			err = tcpConn.SetKeepAlive(true)
 			if err != nil {
-				fmt.Fprintf(common.StdErr, "failed to set tcp keep alive :%v\n", err)
+				fmt.Fprintf(os.Stderr, "failed to set tcp keep alive :%v\n", err)
 				continue
 			}
 		}

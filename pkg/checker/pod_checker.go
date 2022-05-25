@@ -103,7 +103,7 @@ func (n *PodChecker) Output(podNamespaceStatusList []PodNamespaceStatus) error {
 		panic(err)
 	}
 	t = template.Must(t, err)
-	err = t.Execute(common.StdOut, podNamespaceStatusList)
+	err = t.Execute(common.AuditStdOut, podNamespaceStatusList)
 	if err != nil {
 		logger.Error("pod checkers template can not execute %s", err)
 		return err

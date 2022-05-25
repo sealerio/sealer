@@ -37,10 +37,11 @@ func Cmd(name string, args ...string) error {
 		args = append([]string{name}, args...)
 		name = SUDO
 	}
+	logger.Trace("execution command: %s", strings.Join(args, " "))
 	cmd := exec.Command(name, args[:]...) // #nosec
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = common.StdErr
-	cmd.Stdout = common.StdOut
+	cmd.Stderr = common.AuditStdErr
+	cmd.Stdout = common.AuditStdOut
 	return cmd.Run()
 }
 
@@ -68,10 +69,11 @@ func RunSimpleCmd(cmd string) (string, error) {
 	} else {
 		result, err = exec.Command("/bin/sh", "-c", cmd).CombinedOutput() // #nosec
 	}
+	logger.Trace("execution command: %s, result: %s", cmd, string(result))
 	if err != nil {
-		logger.Debug("failed to execute command(%s): error(%v)", cmd, err)
+		return "", fmt.Errorf("failed to execute command(%s): error(%v)", cmd, err)
 	}
-	return string(result), err
+	return string(result), nil
 }
 
 func CheckCmdIsExist(cmd string) (string, bool) {

@@ -26,8 +26,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/sealerio/sealer/common"
 )
 
 type fileLogger struct {
@@ -100,7 +98,7 @@ func (f *fileLogger) LogWrite(when time.Time, msgText interface{}, level logLeve
 			f.Lock()
 			if f.needCreateFresh(len(msg), day) {
 				if err := f.createFreshFile(when); err != nil {
-					fmt.Fprintf(common.StdErr, "createFreshFile(%q): %s\n", f.Filename, err)
+					fmt.Fprintf(os.Stderr, "createFreshFile(%q): %s\n", f.Filename, err)
 				}
 			}
 			f.Unlock()
@@ -252,7 +250,7 @@ func (f *fileLogger) createFreshFile(logTime time.Time) error {
 	// Rename old file, then create new file
 	err = os.Rename(f.Filename, fName)
 	if err != nil {
-		_, _ = fmt.Fprintf(common.StdErr, "os.Rename %s to %s err:%s\n", f.Filename, fName, err.Error())
+		_, _ = fmt.Fprintf(os.Stderr, "os.Rename %s to %s err:%s\n", f.Filename, fName, err.Error())
 		return RestartLogger(f)
 	}
 
@@ -268,7 +266,7 @@ func (f *fileLogger) deleteOldLog() {
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Fprintf(common.StdErr, "Unable to delete old log '%s', error: %v\n", path, r)
+				fmt.Fprintf(os.Stderr, "Unable to delete old log '%s', error: %v\n", path, r)
 			}
 		}()
 
@@ -288,7 +286,7 @@ func (f *fileLogger) deleteOldLog() {
 		return
 	})
 	if err != nil {
-		fmt.Fprintf(common.StdErr, "failed to delete old log error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to delete old log error: %v\n", err)
 	}
 }
 
@@ -296,14 +294,25 @@ func (f *fileLogger) Destroy() {
 	f.fileWriter.Close() // #nosec
 }
 
+func GetLoggerFileName() string {
+	regFileLogger.Lock()
+	defer regFileLogger.Unlock()
+	if regFileLogger.Filename == "" {
+		regFileLogger.Filename = fmt.Sprintf("%s/%s.log", DefaultLogDir, time.Now().Format("2006-01-02"))
+	}
+	return regFileLogger.Filename
+}
+
+var regFileLogger = &fileLogger{
+	Daily:      true,
+	MaxDays:    7,
+	Append:     true,
+	LogLevel:   LevelDebug,
+	PermitMask: "0777",
+	MaxLines:   10,
+	MaxSize:    10 * 1024 * 1024,
+}
+
 func init() {
-	Register(AdapterFile, &fileLogger{
-		Daily:      true,
-		MaxDays:    7,
-		Append:     true,
-		LogLevel:   LevelDebug,
-		PermitMask: "0777",
-		MaxLines:   10,
-		MaxSize:    10 * 1024 * 1024,
-	})
+	Register(AdapterFile, regFileLogger)
 }

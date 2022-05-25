@@ -18,11 +18,13 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sealerio/sealer/logger"
+
 	"github.com/sealerio/sealer/common"
 )
 
 var rootDirs = []string{
-	common.DefaultLogDir,
+	logger.DefaultLogDir,
 	common.DefaultTmpDir,
 	common.DefaultImageRootDir,
 	common.DefaultImageMetaRootDir,

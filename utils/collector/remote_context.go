@@ -19,6 +19,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/common"
+
 	"github.com/sealerio/sealer/logger"
 
 	"github.com/cavaliergopher/grab/v3"
@@ -55,7 +57,7 @@ func (g gitCollector) Collect(buildContext, src, savePath string) error {
 	co := &git.CloneOptions{
 		URL:               src,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-		Progress:          os.Stdout,
+		Progress:          common.StdOut,
 	}
 
 	if strings.HasPrefix(src, "git@") {

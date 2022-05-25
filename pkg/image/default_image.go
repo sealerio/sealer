@@ -357,7 +357,7 @@ func (d DefaultImageService) deleteLayers() error {
 			if err := os.RemoveAll(filepath.Join(root, name)); err != nil {
 				return err
 			}
-			_, err := common.StdOut.WriteString(fmt.Sprintf("%s deleted\n", name))
+			_, err := common.AuditStdOut.WriteString(fmt.Sprintf("%s deleted\n", name))
 			if err != nil {
 				return err
 			}

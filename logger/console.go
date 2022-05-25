@@ -16,11 +16,10 @@ package logger
 
 import (
 	"encoding/json"
+	"os"
 	"runtime"
 	"sync"
 	"time"
-
-	"github.com/sealerio/sealer/common"
 )
 
 type brush func(string) string
@@ -59,7 +58,7 @@ func (c *consoleLogger) Init(jsonConfig string) error {
 	}
 
 	err := json.Unmarshal([]byte(jsonConfig), c)
-	if runtime.GOOS == common.WINDOWS {
+	if runtime.GOOS == WINDOWS {
 		c.Colorful = false
 	}
 
@@ -99,18 +98,18 @@ func (c *consoleLogger) Destroy() {
 func (c *consoleLogger) printlnToStdOut(msg string) {
 	c.stdOutMux.Lock()
 	defer c.stdOutMux.Unlock()
-	_, _ = common.StdOut.Write(append([]byte(msg), '\n'))
+	_, _ = os.Stdout.Write(append([]byte(msg), '\n'))
 }
 
 func (c *consoleLogger) printlnToStdErr(msg string) {
 	c.stdErrMux.Lock()
 	defer c.stdErrMux.Unlock()
-	_, _ = common.StdErr.Write(append([]byte(msg), '\n'))
+	_, _ = os.Stderr.Write(append([]byte(msg), '\n'))
 }
 
 func init() {
 	Register(AdapterConsole, &consoleLogger{
 		LogLevel: LevelDebug,
-		Colorful: runtime.GOOS != common.WINDOWS,
+		Colorful: runtime.GOOS != WINDOWS,
 	})
 }

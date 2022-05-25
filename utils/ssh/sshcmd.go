@@ -61,7 +61,7 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 			if err := c.Start(); err != nil {
 				return fmt.Errorf("failed to start command %s: %v", cmd, err)
 			}
-
+			logger.Trace("execution command is: %s", cmd)
 			ReadPipe(stdout, stderr, s.IsStdout)
 
 			err = c.Wait()
@@ -90,7 +90,7 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 			if err := session.Start(cmd); err != nil {
 				return fmt.Errorf("failed to start command %s on %s: %v", cmd, host, err)
 			}
-
+			logger.Trace("execution command is: %s", cmd)
 			ReadPipe(stdout, stderr, s.IsStdout)
 
 			err = session.Wait()
@@ -110,8 +110,7 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 			cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
 		}
 		if err := execFunc(cmd); err != nil {
-			logger.Debug("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
-			return err
+			return fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
 		}
 	}
 
@@ -125,9 +124,9 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	if net.IsLocalIP(host, s.LocalAddress) {
 		b, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
 		if err != nil {
-			logger.Debug("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
-			return nil, err
+			return nil, fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
 		}
+		logger.Trace("execution command: %s, result: %s", cmd, string(b))
 		return b, err
 	}
 
@@ -142,6 +141,7 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 		logger.Debug("[ssh][%s]run command failed [%s]", host, cmd)
 		return b, fmt.Errorf("[ssh][%s]run command failed [%s]", host, cmd)
 	}
+	logger.Trace("execution command: %s, result: %s", cmd, string(b))
 
 	return b, nil
 }

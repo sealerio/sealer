@@ -41,7 +41,6 @@ const (
 	EtcDir                        = "etc"
 	DefaultTmpDir                 = "/var/lib/sealer/tmp"
 	DefaultLiteBuildUpper         = "/var/lib/sealer/tmp/lite_build_upper"
-	DefaultLogDir                 = "/var/lib/sealer/log"
 	DefaultClusterFileName        = "Clusterfile"
 	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
 	DefaultClusterInitBashFile    = "/var/lib/sealer/data/%s/scripts/init.sh"
@@ -139,7 +138,6 @@ const (
 const (
 	ExecBinaryFileName = "sealer"
 	ROOT               = "root"
-	WINDOWS            = "windows"
 )
 
 func GetClusterWorkDir(clusterName string) string {
