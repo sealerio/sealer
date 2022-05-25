@@ -74,7 +74,9 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty, make sure %s file is correct", path)
 	}
-	cluster.SetAnnotations(common.ClusterfileName, path)
+	if cluster.GetAnnotationsByKey(common.ClusterfileName) == "" {
+		cluster.SetAnnotations(common.ClusterfileName, path)
+	}
 	return &applydriver.Applier{
 		ClusterDesired:    &cluster,
 		ClusterFile:       Clusterfile,
