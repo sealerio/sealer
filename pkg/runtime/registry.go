@@ -39,6 +39,7 @@ const (
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerLoginCommand          = "nerdctl login -u %s -p %s %s && " + KubeletAuthCommand
 	KubeletAuthCommand          = "cp /root/.docker/config.json /var/lib/kubelet"
+	DeleteRegistryCommand       = "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
 )
 
 type RegistryConfig struct {
@@ -147,8 +148,7 @@ func (k *KubeadmRuntime) DeleteRegistry() error {
 		return fmt.Errorf("failed to delete registry: %v", err)
 	}
 
-	cmd := fmt.Sprintf("if docker inspect %s;then docker rm -f %[1]s;fi && ((! nerdctl ps -a |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))", RegistryName)
-	return ssh.CmdAsync(k.RegConfig.IP, cmd)
+	return ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf(DeleteRegistryCommand, RegistryName))
 }
 
 func GenerateRegistryCert(registryCertPath string, BaseName string) error {

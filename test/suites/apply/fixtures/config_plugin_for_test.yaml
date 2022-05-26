@@ -148,9 +148,10 @@ spec:
 apiVersion: sealer.aliyun.com/v1alpha1
 kind: Plugin
 metadata:
-  name: HOSTNAME
+  name: taint
 spec:
-  type: HOSTNAME
-  action: PreInit
+  type: TAINT
+  action: PreGuest
   data: |
-    172.17.102.186 master-0
+    172.16.0.249 node-role.kubernetes.io/master:NoSchedule-
+    172.16.0.249 sealer-test=true:NoSchedule

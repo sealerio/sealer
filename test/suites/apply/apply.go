@@ -95,20 +95,30 @@ func GenerateClusterfile(clusterfile string) {
 	plugins := LoadPluginFromDisk(fp)
 	configs := LoadConfigFromDisk(fp)
 	for _, plugin := range plugins {
-		if plugin.Spec.Type == "LABEL" {
+		if plugin.Spec.Type == common.LABEL {
 			pluginData := "\n"
 			for _, ip := range cluster.Spec.Masters.IPList {
 				pluginData += fmt.Sprintf(" %s sealer-test=true \n", ip)
 			}
 			plugin.Spec.Data = pluginData
 		}
-		if plugin.Spec.Type == "HOSTNAME" {
+		if plugin.Spec.Type == common.HOSTNAME {
 			pluginData := "\n"
 			for i, ip := range cluster.Spec.Masters.IPList {
 				pluginData += fmt.Sprintf("%s master-%s\n", ip, strconv.Itoa(i))
 			}
 			for i, ip := range cluster.Spec.Nodes.IPList {
 				pluginData += fmt.Sprintf("%s node-%s\n", ip, strconv.Itoa(i))
+			}
+			plugin.Spec.Data = pluginData
+		}
+		if plugin.Spec.Type == common.TAINT {
+			pluginData := "\n"
+			for _, ip := range cluster.Spec.Masters.IPList {
+				pluginData += fmt.Sprintf("%s node-role.kubernetes.io/master:NoSchedule-\n", ip)
+			}
+			for _, ip := range cluster.Spec.Nodes.IPList {
+				pluginData += fmt.Sprintf("%s sealer-test=true:NoSchedule\n", ip)
 			}
 			plugin.Spec.Data = pluginData
 		}
