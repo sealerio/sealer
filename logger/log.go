@@ -154,7 +154,10 @@ func init() {
 
 func Cfg(debugMod bool) {
 	logLev := 5
+	level := "INFO"
+
 	if debugMod {
+		level = "DEBG"
 		logLev = 6
 	}
 	// If a config file is found, read it in.
@@ -164,6 +167,7 @@ func Cfg(debugMod bool) {
 		viper.SetConfigType("json")
 		err := viper.Unmarshal(&logCfg)
 		if err == nil {
+			logCfg.Console.Level = level
 			logCfg.Console.LogLevel = logLevel(logLev)
 			cfg, err := json.Marshal(&logCfg)
 			if err == nil {
@@ -175,7 +179,7 @@ func Cfg(debugMod bool) {
 
 	SetLogger(fmt.Sprintf(`{
 					"Console": {
-						"level": "",
+						"level": "%s",
 						"color": true,
 						"LogLevel": %d
 					},
@@ -190,7 +194,7 @@ func Cfg(debugMod bool) {
 						"permit": "0660",
 						"LogLevel":0
 				}}`,
-		logLev, common.DefaultLogDir, time.Now().Format("2006-01-02"),
+		level, logLev, common.DefaultLogDir, time.Now().Format("2006-01-02"),
 	))
 }
 
@@ -357,9 +361,7 @@ func (localLog *LocalLogger) Info(format string, v ...interface{}) {
 
 // Debug Log DEBUG level message.
 func (localLog *LocalLogger) Debug(format string, v ...interface{}) {
-	if loggerConfig.DebugMode {
-		localLog.writeMsg(LevelDebug, format, v...)
-	}
+	localLog.writeMsg(LevelDebug, format, v...)
 }
 
 // Trace Log TRAC level message.

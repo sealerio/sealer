@@ -51,19 +51,7 @@ type fileLogger struct {
 	fileNameOnly, suffix string
 }
 
-// Init file logger with json config.
-// jsonConfig like:
-//	{
-//	"filename":"log/app.log",
-//	"maxlines":10000,
-//	"maxsize":1024,
-//	"daily":true,
-//	"maxdays":15,
-//	"rotate":true,
-//  	"permit":"0600"
-//	}
 func (f *fileLogger) Init(jsonConfig string) error {
-	// fmt.Printf("fileLogger Init:%s\n", jsonConfig)
 	if len(jsonConfig) == 0 {
 		return nil
 	}
@@ -76,7 +64,7 @@ func (f *fileLogger) Init(jsonConfig string) error {
 	}
 	f.suffix = filepath.Ext(f.Filename)
 	f.fileNameOnly = strings.TrimSuffix(f.Filename, f.suffix)
-	f.MaxSize *= 1024 * 1024 // 将单位转换成MB
+	f.MaxSize *= 1024 * 1024 //  transfer file size as MB
 	if f.suffix == "" {
 		f.suffix = ".log"
 	}
@@ -93,7 +81,7 @@ func (f *fileLogger) needCreateFresh(size int, day int) bool {
 		(f.Daily && day != f.dailyOpenDate)
 }
 
-// WriteMsg write logger message into file.
+// LogWrite write logger message into file.
 func (f *fileLogger) LogWrite(when time.Time, msgText interface{}, level logLevel) error {
 	msg, ok := msgText.(string)
 	if !ok {
