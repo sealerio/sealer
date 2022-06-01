@@ -17,6 +17,8 @@ package applydriver
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/pkg/checker"
+
 	"github.com/sealerio/sealer/utils"
 
 	osi "github.com/sealerio/sealer/utils/os"
@@ -284,8 +286,27 @@ func (c *Applier) installApp() error {
 	return nil
 }
 
+func (c *Applier) Check() error {
+	err := checker.RunCheckList([]checker.Interface{
+		//checker.NewOsChecker(),
+		checker.NewHostNameChecker(),
+		checker.NewResourceChecker(),
+		checker.NewTimeSyncChecker()}, c.ClusterDesired, checker.PhasePre)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Applier) initCluster() error {
 	logger.Info("Start to create a new cluster: master %s, worker %s", c.ClusterDesired.GetMasterIPList(), c.ClusterDesired.GetNodeIPList())
+	err := c.Check()
+	if err != nil {
+		logger.Debug(err)
+		return err
+	}
+
 	createProcessor, err := processor.NewCreateProcessor(c.ClusterFile)
 	if err != nil {
 		return err

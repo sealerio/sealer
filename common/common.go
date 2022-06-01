@@ -139,6 +139,14 @@ func GetClusterWorkDir(clusterName string) string {
 	return filepath.Join(GetHomeDir(), ".sealer", clusterName)
 }
 
+func GetClusterCheckScriptDir(clusterName string) string {
+	return filepath.Join(GetClusterWorkDir(clusterName), "scripts")
+}
+
+func GetClusterWorkClusterInfo(clusterName string) string {
+	return filepath.Join(GetClusterWorkDir(clusterName), "cluster-info.yaml")
+}
+
 func GetClusterWorkClusterfile(clusterName string) string {
 	return filepath.Join(GetClusterWorkDir(clusterName), "Clusterfile")
 }
