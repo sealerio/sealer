@@ -40,7 +40,7 @@ type taintList struct {
 }
 
 func NewTaintPlugin() Interface {
-	return &Taint{TaintList: map[string]*taintList{}}
+	return &Taint{TaintList: make(map[string]*taintList)}
 }
 
 func init() {
@@ -106,6 +106,9 @@ func (l *Taint) Run(context Context, phase Phase) (err error) {
 //key1=value1:NoSchedule;key1=value1:NoSchedule-;key1:NoSchedule;key1:NoSchedule-;key1=:NoSchedule-;key1=value1:NoSchedule
 func (l *Taint) formatData(data string) error {
 	items := strings.Split(data, "\n")
+	if l.TaintList == nil {
+		l.TaintList = make(map[string]*taintList)
+	}
 	for _, v := range items {
 		v = strings.TrimSpace(v)
 		if strings.HasPrefix(v, "#") || v == "" {
@@ -122,6 +125,9 @@ func (l *Taint) formatData(data string) error {
 		}
 		l.IPList = append(l.IPList, ips)
 		//kubectl taint nodes xxx key- : remove all key related taints
+		if l.TaintList[ips] == nil {
+			l.TaintList[ips] = &taintList{}
+		}
 		if strings.HasSuffix(temps[1], DelSymbol) && !strings.Contains(temps[1], ColonSymbol) && !strings.Contains(temps[1], EqualSymbol) {
 			l.TaintList[ips].DelTaintList = append(l.TaintList[ips].DelTaintList, newTaintStruct(strings.TrimSuffix(temps[1], DelSymbol), "", ""))
 			continue
@@ -159,17 +165,19 @@ func (l *Taint) formatData(data string) error {
 // UpdateTaints return nil mean's needn't update taint
 func (l *Taint) UpdateTaints(taints []v1.Taint, ip string) []v1.Taint {
 	needDel := false
+	updateTaints := []v1.Taint{}
 	for k, v := range taints {
 		l.removePresenceTaint(v, ip)
 		if l.isDelTaint(v, ip) {
 			needDel = true
-			taints = append(taints[:k], taints[k+1:]...)
+			continue
 		}
+		updateTaints = append(updateTaints, taints[k])
 	}
 	if len(l.TaintList[ip].AddTaintList) == 0 && !needDel {
 		return nil
 	}
-	return append(taints, l.TaintList[ip].AddTaintList...)
+	return append(updateTaints, l.TaintList[ip].AddTaintList...)
 }
 
 //Remove existing taint
@@ -178,12 +186,13 @@ func (l *Taint) removePresenceTaint(taint v1.Taint, ip string) {
 		if v.Key == taint.Key && v.Value == taint.Value && v.Effect == taint.Effect {
 			logger.Info("taint %s already exist", l.TaintList[ip].AddTaintList[k].String())
 			l.TaintList[ip].AddTaintList = append(l.TaintList[ip].AddTaintList[:k], l.TaintList[ip].AddTaintList[k+1:]...)
+			break
 		}
 	}
 }
 
 func (l *Taint) isDelTaint(taint v1.Taint, ip string) bool {
-	for _, v := range l.TaintList[ip].AddTaintList {
+	for _, v := range l.TaintList[ip].DelTaintList {
 		if v.Key == taint.Key && (v.Effect == taint.Effect || v.Effect == "") {
 			return true
 		}

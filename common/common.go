@@ -107,6 +107,13 @@ const (
 	KubeProxyConfiguration = "KubeProxyConfiguration"
 )
 
+//plugin type
+const (
+	TAINT    = "TAINT"
+	LABEL    = "LABEL"
+	HOSTNAME = "HOSTNAME"
+)
+
 const (
 	JoinSubCmd   = "join"
 	DeleteSubCmd = "delete"
