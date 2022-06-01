@@ -288,7 +288,6 @@ func (c *Applier) installApp() error {
 
 func (c *Applier) Check() error {
 	err := checker.RunCheckList([]checker.Interface{
-		//checker.NewOsChecker(),
 		checker.NewHostNameChecker(),
 		checker.NewResourceChecker(),
 		checker.NewTimeSyncChecker()}, c.ClusterDesired, checker.PhasePre)
