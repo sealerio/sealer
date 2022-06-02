@@ -59,7 +59,7 @@ func DumpScripts(scriptDir string) error {
 		}
 		script := string(scriptData)
 		fileName := GetScriptPath(scriptDir, checker.Name())
-		if err := ioutil.WriteFile(fileName, []byte(script), 0755); err != nil {
+		if err := ioutil.WriteFile(fileName, []byte(script), os.ModePerm); err != nil {
 			logger.Error("write to file %s error: %s", fileName, err)
 			return err
 		}

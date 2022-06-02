@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -57,7 +58,7 @@ func GetClusterInfo(cluster *v2.Cluster) (*types.ClusterInfoDetailed, error) {
 	}
 
 	// load info disk cluster info, and compare its host ip,make sure is it contains all node info.
-	b, err := ioutil.ReadFile(infoPath)
+	b, err := ioutil.ReadFile(filepath.Clean(infoPath))
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +101,7 @@ func writeToDisk(detailed *types.ClusterInfoDetailed, cluster *v2.Cluster) error
 		return err
 	}
 	logger.Debug("get cluster info success %s", string(clusterInfoStream))
-	err = ioutil.WriteFile(common.GetClusterWorkClusterInfo(cluster.Name), clusterInfoStream, 0644)
+	err = ioutil.WriteFile(common.GetClusterWorkClusterInfo(cluster.Name), clusterInfoStream, common.FileMode0644)
 	if err != nil {
 		return err
 	}
@@ -134,7 +135,7 @@ func ParseClusterInfo(iplist []string, cluster *v2.Cluster) (*types.ClusterInfoD
 			return nil, errors.Errorf("copy file %s to %s:%s failed", checkerPath, ip, remoteScriptPath)
 		}
 
-		output, err := sshClient.Cmd(ip, fmt.Sprintf("bash %s %s", remoteScriptPath, parse.ParseInstance.Params()))
+		output, err := sshClient.Cmd(ip, fmt.Sprintf("chmod +x %s && bash %s %s", remoteScriptPath, remoteScriptPath, parse.ParseInstance.Params()))
 		if err != nil {
 			return nil, err
 		}
