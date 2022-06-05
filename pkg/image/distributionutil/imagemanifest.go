@@ -18,9 +18,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	platUtil "github.com/sealerio/sealer/utils/platform"
+	"github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/go-digest"
 )
@@ -62,7 +62,7 @@ func GetImageManifestDigest(payload []byte, plat v1.Platform) (digest.Digest, er
 	}
 
 	if len(resDigest) > 1 {
-		logger.Warn("multiple matches in manifest list")
+		logrus.Warn("multiple matches in manifest list")
 	}
 	return resDigest[0], nil
 }

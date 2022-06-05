@@ -17,18 +17,16 @@ package buildinstruction
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/utils/exec"
-
-	"github.com/sealerio/sealer/utils/os"
-
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/cache"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/exec"
 	"github.com/sealerio/sealer/utils/mount"
+	"github.com/sealerio/sealer/utils/os"
 )
 
 type CmdInstruction struct {
@@ -77,7 +75,7 @@ func (c CmdInstruction) Exec(execContext ExecContext) (out Out, err error) {
 
 	cmd := fmt.Sprintf(common.CdAndExecCmd, c.mounter.GetMountTarget(), cmdline)
 	output, err := exec.RunSimpleCmd(cmd)
-	logger.Info(output)
+	logrus.Info(output)
 
 	if err != nil {
 		return out, fmt.Errorf("failed to exec %s, err: %v", cmd, err)

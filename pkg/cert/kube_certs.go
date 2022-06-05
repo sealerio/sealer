@@ -22,9 +22,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/sealerio/sealer/logger"
-
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	utilnet "k8s.io/utils/net"
 )
 
@@ -37,7 +36,7 @@ var (
 func GetUserHomeDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		logger.Error(err)
+		logrus.Error(err)
 		return ""
 	}
 	return home
@@ -237,7 +236,7 @@ func (meta *MetaData) apiServerAltName(certList *[]Config) {
 	for _, ip := range meta.APIServer.IPs {
 		(*certList)[APIserverCert].AltNames.IPs[ip.String()] = ip
 	}
-	logger.Info("APIserver altNames : ", (*certList)[APIserverCert].AltNames)
+	logrus.Info("APIserver altNames : ", (*certList)[APIserverCert].AltNames)
 }
 
 func (meta *MetaData) etcdAltAndCommonName(certList *[]Config) {
@@ -257,7 +256,7 @@ func (meta *MetaData) etcdAltAndCommonName(certList *[]Config) {
 	(*certList)[EtcdPeerCert].CommonName = meta.NodeName
 	(*certList)[EtcdPeerCert].AltNames = altname
 
-	logger.Info("Etcd altnames : %v, commonName : %s", (*certList)[EtcdPeerCert].AltNames, (*certList)[EtcdPeerCert].CommonName)
+	logrus.Infof("Etcd altnames : %v, commonName : %s", (*certList)[EtcdPeerCert].AltNames, (*certList)[EtcdPeerCert].CommonName)
 }
 
 // create sa.key sa.pub for service Account
@@ -265,7 +264,7 @@ func (meta *MetaData) generatorServiceAccountKeyPaire() error {
 	dir := meta.CertPath
 	_, err := os.Stat(path.Join(dir, "sa.key"))
 	if !os.IsNotExist(err) {
-		logger.Info("sa.key sa.pub already exist")
+		logrus.Info("sa.key sa.pub already exist")
 		return nil
 	}
 

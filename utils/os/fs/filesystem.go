@@ -23,7 +23,8 @@ import (
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
+
 	"golang.org/x/sys/unix"
 )
 
@@ -127,7 +128,7 @@ func (f filesystem) CopyFile(src, dst string) (int64, error) {
 	}
 	defer func() {
 		if err := source.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	//will overwrite dst when dst is existed
@@ -137,7 +138,7 @@ func (f filesystem) CopyFile(src, dst string) (int64, error) {
 	}
 	defer func() {
 		if err := destination.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	err = destination.Chmod(sourceFileStat.Mode())

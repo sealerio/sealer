@@ -17,9 +17,9 @@ package build
 import (
 	"github.com/sealerio/sealer/build/buildimage"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/reference"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sirupsen/logrus"
 )
 
 type Interface interface {
@@ -97,7 +97,7 @@ func (l liteBuilder) Build(name string, context string, kubefileName string) err
 		}
 	}
 
-	logger.Info("build image %s %s success", l.platform.Architecture, name)
+	logrus.Infof("build image %s %s success", l.platform.Architecture, name)
 	return nil
 }
 

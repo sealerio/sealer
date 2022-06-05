@@ -17,14 +17,13 @@ package cmd
 import (
 	"os"
 
-	"github.com/sealerio/sealer/utils/strings"
-
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 var runArgs *apply.Args
@@ -79,7 +78,7 @@ func init() {
 		return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
-		logger.Error("provide completion for provider flag, err: %v", err)
+		logrus.Errorf("provide completion for provider flag, err: %v", err)
 		os.Exit(1)
 	}
 }

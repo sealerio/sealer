@@ -22,8 +22,8 @@ import (
 
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils/archive"
 )
 
@@ -70,7 +70,7 @@ func (rl *ROLayer) TarStream() (io.ReadCloser, error) {
 	// at the pull stage, the file won't exist,
 	// so we tar the layer dir.
 	if err != nil {
-		logger.Debug("failed to find %s for layer %s, use tar, err: %s", tarDataGZ, rl.ID(), err)
+		logrus.Debugf("failed to find %s for layer %s, use tar, err: %s", tarDataGZ, rl.ID(), err)
 		tarReader, tarErr := archive.TarWithoutRootDir(layerDataPath)
 		if tarErr != nil {
 			return nil, fmt.Errorf("failed to tar layer %s, err: %s", rl.ID(), tarErr)

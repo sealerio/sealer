@@ -21,7 +21,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/utils/os/fs"
 )
 
@@ -40,7 +41,7 @@ func CountDirFiles(dirName string) int {
 		return nil
 	})
 	if err != nil {
-		logger.Warn("count dir files failed %v", err)
+		logrus.Warnf("count dir files failed %v", err)
 		return 0
 	}
 	return count

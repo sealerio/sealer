@@ -21,19 +21,17 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sealerio/sealer/utils/os/fs"
-
-	"github.com/sealerio/sealer/utils/exec"
-	"github.com/sealerio/sealer/utils/net"
-
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/exec"
+	"github.com/sealerio/sealer/utils/net"
+	"github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
@@ -80,7 +78,7 @@ func NewSSHByCluster(cluster *v1.Cluster) ssh.Interface {
 	}
 	address, err := net.GetLocalHostAddresses()
 	if err != nil {
-		logger.Warn("failed to get local address, %v", err)
+		logrus.Warnf("failed to get local address, %v", err)
 	}
 	return &ssh.SSH{
 		Encrypted:    cluster.Spec.SSH.Encrypted,

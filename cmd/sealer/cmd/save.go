@@ -19,9 +19,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/reference"
 	v1 "github.com/sealerio/sealer/types/api/v1"
@@ -85,7 +85,7 @@ sealer save -o kubernetes.tar kubernetes:v1.19.8`,
 		if err = ifs.Save(named.Raw(), imageTar, targetPlatforms); err != nil {
 			return fmt.Errorf("failed to save image %s: %v", args[0], err)
 		}
-		logger.Info("save image %s to %s successfully", args[0], imageTar)
+		logrus.Infof("save image %s to %s successfully", args[0], imageTar)
 		return nil
 	},
 }
@@ -97,7 +97,7 @@ func init() {
 	saveCmd.Flags().StringVar(&save.Platform, "platform", "", "set CloudImage platform")
 
 	if err := saveCmd.MarkFlagRequired("output"); err != nil {
-		logger.Error("failed to init flag: %v", err)
+		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
 }

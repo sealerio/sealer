@@ -18,10 +18,10 @@ import (
 	"fmt"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/strings"
@@ -59,7 +59,7 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 }
 
 func DeleteNodes(client *k8s.Client, nodeIPs []string) error {
-	logger.Info("delete nodes %s", nodeIPs)
+	logrus.Infof("delete nodes %s", nodeIPs)
 	nodes, err := client.ListNodes()
 	if err != nil {
 		return err

@@ -27,8 +27,8 @@ import (
 	"go.etcd.io/etcd/client/v3/snapshot"
 	"go.uber.org/zap"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils/ssh"
+	"github.com/sirupsen/logrus"
 )
 
 type EtcdBackupPlugin struct {
@@ -120,7 +120,7 @@ func connEtcd(masterIP string) (clientv3.Config, error) {
 		return clientv3.Config{}, fmt.Errorf("connect to etcd failed, err:%v", err)
 	}
 
-	logger.Info("connect to etcd success")
+	logrus.Info("connect to etcd success")
 
 	defer cli.Close()
 
@@ -139,7 +139,7 @@ func snapshotEtcd(snapshotPath string, cfg clientv3.Config) error {
 	if err := snapshot.Save(ctx, lg, cfg, snapshotPath); err != nil {
 		return fmt.Errorf("snapshot save err: %v", err)
 	}
-	logger.Info("Snapshot saved at %s\n", snapshotPath)
+	logrus.Infof("Snapshot saved at %s\n", snapshotPath)
 
 	return nil
 }

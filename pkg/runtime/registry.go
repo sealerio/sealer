@@ -18,15 +18,13 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/utils/net"
+	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/yaml"
 
-	osi "github.com/sealerio/sealer/utils/os"
-
-	"github.com/sealerio/sealer/utils/net"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -121,12 +119,12 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	}
 	registryConfigPath := filepath.Join(rootfs, common.EtcDir, RegistryCustomConfig)
 	if !osi.IsFileExist(registryConfigPath) {
-		logger.Debug("use default registry config")
+		logrus.Debug("use default registry config")
 		return DefaultConfig
 	}
 	err := yaml.UnmarshalFile(registryConfigPath, &config)
 	if err != nil {
-		logger.Error("Failed to read registry config! ")
+		logrus.Error("Failed to read registry config! ")
 		return DefaultConfig
 	}
 	if config.IP == "" {
@@ -138,7 +136,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 	if config.Domain == "" {
 		config.Domain = DefaultConfig.Domain
 	}
-	logger.Debug("show registry info, IP: %s, Domain: %s", config.IP, config.Domain)
+	logrus.Debugf("show registry info, IP: %s, Domain: %s", config.IP, config.Domain)
 	return &config
 }
 

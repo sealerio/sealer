@@ -19,15 +19,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/os/fs"
-
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/cache"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils/collector"
+	"github.com/sealerio/sealer/utils/os/fs"
 )
 
 const ArchReg = "${ARCH}"
@@ -58,7 +58,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	if !isRemoteSource(src) {
 		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, src)
 		if err != nil {
-			logger.Warn("failed to generate src digest,discard cache,%s", err)
+			logrus.Warnf("failed to generate src digest,discard cache: %v", err)
 		}
 
 		if execContext.ContinueCache {
@@ -88,7 +88,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	}
 
 	if setErr := c.setCacheID(layerID, cacheID.String()); setErr != nil {
-		logger.Warn("failed to set cache for copy layer err: %v", err)
+		logrus.Warnf("failed to set cache for copy layer: %v", err)
 	}
 
 	out.LayerID = layerID

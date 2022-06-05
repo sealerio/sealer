@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image"
 )
 
@@ -49,7 +49,7 @@ func init() {
 	rootCmd.AddCommand(loadCmd)
 	loadCmd.Flags().StringVarP(&imageSrc, "input", "i", "", "read image from tar archive file")
 	if err := loadCmd.MarkFlagRequired("input"); err != nil {
-		logger.Error("failed to init flag: %v", err)
+		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
 }

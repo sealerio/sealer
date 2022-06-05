@@ -19,16 +19,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/sealerio/sealer/utils/maps"
-	"github.com/sealerio/sealer/utils/strings"
-
 	"github.com/sealerio/sealer/build/buildinstruction"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/maps"
 	"github.com/sealerio/sealer/utils/mount"
+	"github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -62,7 +61,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 	for i := 0; i < len(rawLayers); i++ {
 		//we are to set layer id for each new layers.
 		layer := &rawLayers[i]
-		logger.Info("run build layer: %s %s", layer.Type, layer.Value)
+		logrus.Infof("run build layer: %s %s", layer.Type, layer.Value)
 
 		if layer.Type == common.CMDCOMMAND {
 			continue
@@ -94,7 +93,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 		}
 		baseLayers = append(baseLayers, *layer)
 	}
-	logger.Info("exec all build instructs success")
+	logrus.Info("exec all build instructs success")
 
 	// process differ of manifests and metadata.
 	err = l.checkDiff(rawLayers)
@@ -111,7 +110,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 	if layer.ID != "" {
 		baseLayers = append(baseLayers, layer)
 	} else {
-		logger.Warn("no rootfs diff content found")
+		logrus.Warn("no rootfs diff content found")
 	}
 
 	return baseLayers, nil
@@ -122,7 +121,7 @@ func (l *layerExecutor) checkMiddleware(buildContext string) error {
 		rootfs      = l.rootfsMountInfo.GetMountTarget()
 		middlewares = []Differ{NewMiddlewarePuller(l.platform)}
 	)
-	logger.Info("start to check the middleware file")
+	logrus.Info("start to check the middleware file")
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, middleware := range middlewares {
 		s := middleware

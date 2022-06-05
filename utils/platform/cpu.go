@@ -21,9 +21,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sealerio/sealer/logger"
-
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -46,11 +45,11 @@ func cpuVariant() string {
 		if isArmArch(runtime.GOARCH) {
 			variant, err := getCPUInfo("Cpu architecture")
 			if err != nil {
-				logger.Error(err)
+				logrus.Error(err)
 			}
 			model, err := getCPUInfo("model name")
 			if !strings.Contains(err.Error(), ErrNotFound.Error()) {
-				logger.Error(err)
+				logrus.Error(err)
 			}
 			cpuVariantValue = GetCPUVariantByInfo(runtime.GOOS, runtime.GOARCH, variant, model)
 		}
@@ -70,7 +69,7 @@ func getCPUInfo(pattern string) (info string, err error) {
 	}
 	defer func() {
 		if err := cpuinfo.Close(); err != nil {
-			logger.Error("failed to close file")
+			logrus.Error("failed to close file")
 		}
 	}()
 

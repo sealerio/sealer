@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
 )
 
 func TestNewCleanApplierFromArgs(t *testing.T) {
@@ -94,9 +94,9 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if applier, err := NewScaleApplierFromArgs(tt.cFile, tt.cArgs, tt.flag); (err != nil) != tt.wantErr {
-				logger.Error("masters : %v , nodes : %v , applier : %v", &tt.cArgs.Masters, &tt.cArgs.Nodes, applier)
+				logrus.Errorf("masters : %v , nodes : %v , applier : %v", &tt.cArgs.Masters, &tt.cArgs.Nodes, applier)
 			}
-			logger.Info("masters : %v , nodes : %v", &tt.cArgs.Masters, &tt.cArgs.Nodes)
+			logrus.Infof("masters : %v , nodes : %v", &tt.cArgs.Masters, &tt.cArgs.Nodes)
 		})
 	}
 }
@@ -138,7 +138,7 @@ func Test_returnFilteredIPList(t *testing.T) {
 			if res := returnFilteredIPList(tt.clusterIPList, tt.toBeDeletedIPList); (res != nil) != tt.wantErr {
 				fmt.Println(res)
 			}
-			logger.Error("is empty")
+			logrus.Error("is empty")
 		})
 	}
 }

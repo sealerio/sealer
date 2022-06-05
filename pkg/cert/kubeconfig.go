@@ -24,11 +24,10 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/keyutil"
-
-	"github.com/sealerio/sealer/logger"
 )
 
 // clientCertAuth struct holds info required to build a client certificate to provide authentication info in a kubeconfig object
@@ -72,7 +71,7 @@ func CreateJoinControlPlaneKubeConfigFiles(outDir string, cfg Config, nodeName, 
 // cmd/kubeadm/app/cmd/phases/init/kubeconfig.go
 // cmd/kubeadm/app/phases/kubeconfig/kubeconfig.go
 func CreateKubeConfigFile(kubeConfigFileName string, outDir string, cfg Config, nodeName, controlPlaneEndpoint, clusterName string) error {
-	logger.Info("creating kubeconfig file for %s", kubeConfigFileName)
+	logrus.Infof("creating kubeconfig file for %s", kubeConfigFileName)
 	return createKubeConfigFiles(outDir, cfg, kubeConfigFileName, nodeName, controlPlaneEndpoint, clusterName)
 }
 
@@ -264,7 +263,7 @@ func createKubeConfigFileIfNotExists(outDir, filename string, config *clientcmda
 		if !os.IsNotExist(err) {
 			return err
 		}
-		logger.Info("[kubeconfig] Writing %q kubeconfig file\n", filename)
+		logrus.Infof("[kubeconfig] Writing %q kubeconfig file\n", filename)
 		err = WriteToDisk(kubeConfigFilePath, config)
 		if err != nil {
 			return errors.Wrapf(err, "failed to save kubeconfig file %q on disk", kubeConfigFilePath)
@@ -274,7 +273,7 @@ func createKubeConfigFileIfNotExists(outDir, filename string, config *clientcmda
 	// kubeadm doesn't validate the existing kubeconfig file more than this (kubeadm trusts the client certs to be valid)
 	// Basically, if we find a kubeconfig file with the same path; the same CA cert and the same server URL;
 	// kubeadm thinks those files are equal and doesn't bother writing a new file
-	logger.Info("[kubeconfig] Using existing kubeconfig file: %q\n", kubeConfigFilePath)
+	logrus.Infof("[kubeconfig] Using existing kubeconfig file: %q\n", kubeConfigFilePath)
 
 	return nil
 }

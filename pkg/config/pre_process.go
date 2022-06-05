@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/wonderivan/logger"
+	"github.com/sirupsen/logrus"
 	yaml2 "gopkg.in/yaml.v2"
 	"sigs.k8s.io/yaml"
 
@@ -54,7 +54,7 @@ func NewProcessorsAndRun(config *v1.Config) error {
 		}
 		processor, ok := pMap[pName]
 		if !ok {
-			logger.Warn("not found config processor: %s", pName)
+			logrus.Warnf("not found config processor: %s", pName)
 			continue
 		}
 		if processor == nil {

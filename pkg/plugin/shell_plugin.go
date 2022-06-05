@@ -19,10 +19,11 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Sheller struct{}
@@ -51,7 +52,7 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 		allHostIP, err = GetIpsByOnField(on, context, phase)
 		if err != nil {
 			if phase == PhasePreClean {
-				logger.Error("failed to get ips when %s phase: %v", phase, err)
+				logrus.Errorf("failed to get ips when %s phase: %v", phase, err)
 				return nil
 			}
 			return err
@@ -74,6 +75,6 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 		}
 		runPluginIPList = append(runPluginIPList, ip)
 	}
-	logger.Info("%s phase shell plugin '%s' executing nodes: %s ", phase, context.Plugin.Name, runPluginIPList)
+	logrus.Infof("%s phase shell plugin '%s' executing nodes: %s ", phase, context.Plugin.Name, runPluginIPList)
 	return nil
 }

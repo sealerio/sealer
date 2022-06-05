@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/sealerio/sealer/logger"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sirupsen/logrus"
 )
 
 type Interface interface {
@@ -63,7 +63,7 @@ func (k *KubeadmRuntime) Upgrade() error {
 }
 
 func (k *KubeadmRuntime) Reset() error {
-	logger.Info("Start to delete cluster: master %s, node %s", k.Cluster.GetMasterIPList(), k.Cluster.GetNodeIPList())
+	logrus.Infof("Start to delete cluster: master %s, node %s", k.Cluster.GetMasterIPList(), k.Cluster.GetNodeIPList())
 	if err := k.confirmDeleteNodes(); err != nil {
 		return err
 	}
@@ -72,21 +72,21 @@ func (k *KubeadmRuntime) Reset() error {
 
 func (k *KubeadmRuntime) JoinMasters(newMastersIPList []string) error {
 	if len(newMastersIPList) != 0 {
-		logger.Info("%s will be added as master", newMastersIPList)
+		logrus.Infof("%s will be added as master", newMastersIPList)
 	}
 	return k.joinMasters(newMastersIPList)
 }
 
 func (k *KubeadmRuntime) JoinNodes(newNodesIPList []string) error {
 	if len(newNodesIPList) != 0 {
-		logger.Info("%s will be added as worker", newNodesIPList)
+		logrus.Infof("%s will be added as worker", newNodesIPList)
 	}
 	return k.joinNodes(newNodesIPList)
 }
 
 func (k *KubeadmRuntime) DeleteMasters(mastersIPList []string) error {
 	if len(mastersIPList) != 0 {
-		logger.Info("master %s will be deleted", mastersIPList)
+		logrus.Infof("master %s will be deleted", mastersIPList)
 		if err := k.confirmDeleteNodes(); err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func (k *KubeadmRuntime) DeleteMasters(mastersIPList []string) error {
 
 func (k *KubeadmRuntime) DeleteNodes(nodesIPList []string) error {
 	if len(nodesIPList) != 0 {
-		logger.Info("worker %s will be deleted", nodesIPList)
+		logrus.Infof("worker %s will be deleted", nodesIPList)
 		if err := k.confirmDeleteNodes(); err != nil {
 			return err
 		}

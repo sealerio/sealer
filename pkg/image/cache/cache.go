@@ -19,8 +19,8 @@ import (
 
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
@@ -47,7 +47,7 @@ func (lic *LocalImageCache) GetCache(parentID string, layer *Layer) (layerID dig
 	if err != nil {
 		return "", fmt.Errorf("failed to get cur chain id, err: %s", err)
 	}
-	logger.Debug("current layer %+v, chain id %s", layer, curChainID)
+	logrus.Debugf("current layer %+v, chain id %s", layer, curChainID)
 
 	tmpLayer, err := getLocalCachedImage(lic.chainStore, curChainID)
 	if err != nil {

@@ -21,16 +21,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/os"
-
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	k8sv1 "k8s.io/api/core/v1"
 	k8sYaml "sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/os"
 )
 
 /*
@@ -72,7 +71,7 @@ func NewConfiguration(cluster *v2.Cluster) Interface {
 
 func (c *Dumper) Dump(configs []v1.Config) error {
 	if configs == nil {
-		logger.Debug("clusterfile config is empty!")
+		logrus.Debug("clusterfile config is empty!")
 		return nil
 	}
 	c.Configs = configs
@@ -84,7 +83,7 @@ func (c *Dumper) Dump(configs []v1.Config) error {
 
 func (c *Dumper) WriteFiles() (err error) {
 	if c.Configs == nil {
-		logger.Debug("empty config found")
+		logrus.Debug("empty config found")
 		return nil
 	}
 	for _, config := range c.Configs {

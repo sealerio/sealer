@@ -22,16 +22,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/utils/os/fs"
-
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/store"
 	"github.com/sealerio/sealer/pkg/image/types"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils/archive"
 	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/os/fs"
 	yamlUtils "github.com/sealerio/sealer/utils/yaml"
+	"github.com/sirupsen/logrus"
+
 	"sigs.k8s.io/yaml"
 )
 
@@ -56,7 +56,7 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logger.Error("failed to close file")
+			logrus.Error("failed to close file")
 		}
 	}()
 
@@ -79,7 +79,7 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 	}
 	defer func() {
 		if err := os.Remove(repoFile); err != nil {
-			logger.Error("failed to close file")
+			logrus.Error("failed to close file")
 		}
 	}()
 
@@ -109,10 +109,10 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 				return err
 			}
 			if err = os.Remove(imageTempFile); err != nil {
-				logger.Error("failed to cleanup local temp file %s:%v", imageTempFile, err)
+				logrus.Errorf("failed to cleanup local temp file %s:%v", imageTempFile, err)
 			}
 		}
-		logger.Info("load image %s successfully", name)
+		logrus.Infof("load image %s successfully", name)
 	}
 
 	return nil
@@ -145,7 +145,7 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			logger.Error("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 
@@ -157,7 +157,7 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 	defer func(fs fs.Interface, path ...string) {
 		err := fs.RemoveAll(path...)
 		if err != nil {
-			logger.Warn("failed to delete %s", path)
+			logrus.Warnf("failed to delete %s: %v", path, err)
 		}
 	}(d.fs, tempDir)
 
@@ -215,7 +215,7 @@ func (d DefaultImageFileService) Save(imageName, imageTar string, platforms []*v
 	}
 	defer func() {
 		if err := tarReader.Close(); err != nil {
-			logger.Error("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 

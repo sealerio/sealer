@@ -19,8 +19,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/logger"
-
+	"github.com/sirupsen/logrus"
 	fsutil "github.com/tonistiigi/fsutil/copy"
 )
 
@@ -29,7 +28,7 @@ type localCollector struct {
 
 func (l localCollector) Collect(buildContext, src, savePath string) error {
 	xattrErrorHandler := func(dst, src, key string, err error) error {
-		logger.Warn(err)
+		logrus.Warn(err)
 		return nil
 	}
 	opt := []fsutil.Opt{

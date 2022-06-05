@@ -19,9 +19,9 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/utils/net"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 )
 
@@ -36,7 +36,7 @@ func GetIpsByOnField(on string, context Context, phase Phase) (ipList []string, 
 	on = strings.TrimSpace(on)
 	if strings.Contains(on, EqualSymbol) {
 		if (phase != PhasePostInstall && phase != PhasePostJoin) && phase != PhasePreClean {
-			logger.Warn("Current phase is %s. When nodes is specified with a label, the plugin action must be PostInstall or PostJoin, ", phase)
+			logrus.Warnf("Current phase is %s. When nodes is specified with a label, the plugin action must be PostInstall or PostJoin, ", phase)
 			return nil, nil
 		}
 		client, err := k8s.Newk8sClient()
@@ -59,7 +59,7 @@ func GetIpsByOnField(on string, context Context, phase Phase) (ipList []string, 
 		ipList = net.DisassembleIPList(on)
 	}
 	if len(ipList) == 0 {
-		logger.Debug("node not found by on field [%s]", on)
+		logrus.Debugf("node not found by on field [%s]", on)
 	}
 	return ipList, nil
 }

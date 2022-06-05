@@ -17,10 +17,10 @@ package cmd
 import (
 	"os"
 
-	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 type LoginFlag struct {
@@ -54,11 +54,11 @@ func init() {
 	loginCmd.Flags().StringVarP(&loginConfig.RegistryUsername, "username", "u", "", "user name for login registry")
 	loginCmd.Flags().StringVarP(&loginConfig.RegistryPasswd, "passwd", "p", "", "password for login registry")
 	if err := loginCmd.MarkFlagRequired("username"); err != nil {
-		logger.Error("failed to init flag: %v", err)
+		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
 	if err := loginCmd.MarkFlagRequired("passwd"); err != nil {
-		logger.Error("failed to init flag: %v", err)
+		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
 }

@@ -26,7 +26,8 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"
@@ -68,7 +69,7 @@ func (a *AliProvider) RetryEcsInstanceType(request requests.AcsRequest, response
 		}
 		err := a.RetryEcsAction(request, response, 4)
 		if err == nil {
-			logger.Debug("use instance type: %s", instances[i])
+			logrus.Debugf("use instance type: %s", instances[i])
 			break
 		} else if i == len(instances)-1 {
 			return fmt.Errorf("failed to get ecs instance type, %v", err)
@@ -300,7 +301,7 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 			return err
 		}
 		hosts.IPList = strUtils.NewComparator(hosts.IPList, ipList).GetUnion()
-		logger.Info("get scale up IP list %v, append iplist %v, host count %s", ipList, hosts.IPList, hosts.Count)
+		logrus.Infof("get scale up IP list %v, append iplist %v, host count %s", ipList, hosts.IPList, hosts.Count)
 	} else if len(instances) > i {
 		var deleteInstancesIDs []string
 		var count int
@@ -347,7 +348,7 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 		}
 	}
 
-	logger.Info("reconcile %s instances success %v ", instanceRole, hosts.IPList)
+	logrus.Infof("reconcile %s instances success %v ", instanceRole, hosts.IPList)
 	return nil
 }
 
@@ -485,7 +486,7 @@ func (a *AliProvider) AuthorizeSecurityGroup(securityGroupID, portRange string) 
 	response := ecs.CreateAuthorizeSecurityGroupResponse()
 	err := a.RetryEcsRequest(request, response)
 	if err != nil {
-		logger.Error("%v", err)
+		logrus.Errorf("%v", err)
 		return false
 	}
 	return response.BaseResponse.IsSuccess()

@@ -29,7 +29,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
 )
 
 const compressionBufSize = 32768
@@ -152,7 +152,7 @@ func writeWhiteout(header *tar.Header, fi os.FileInfo, path string) *tar.Header 
 	if fi.Mode()&os.ModeDir != 0 {
 		opaque, walkErr := Lgetxattr(path, "trusted.overlay.opaque")
 		if walkErr != nil {
-			logger.Debug("failed to get trusted.overlay.opaque for %s at opaque, err: %v", path, walkErr)
+			logrus.Debugf("failed to get trusted.overlay.opaque for %s at opaque, err: %v", path, walkErr)
 		}
 
 		if len(opaque) == 1 && opaque[0] == 'y' {
@@ -267,7 +267,7 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 			}
 			defer func() {
 				if err := fHandler.Close(); err != nil {
-					logger.Fatal("failed to close file")
+					logrus.Fatal("failed to close file")
 				}
 			}()
 			bufWriter.Reset(tarWriter)
@@ -384,7 +384,7 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 
 				defer func() {
 					if err := fileToWrite.Close(); err != nil {
-						logger.Fatal("failed to close file")
+						logrus.Fatal("failed to close file")
 					}
 				}()
 				if _, inErr = io.Copy(fileToWrite, tr); inErr != nil {

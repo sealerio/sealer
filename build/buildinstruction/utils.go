@@ -21,18 +21,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/os/fs"
-
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 	fsutil "github.com/tonistiigi/fsutil/copy"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/cache"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils/archive"
 	"github.com/sealerio/sealer/utils/collector"
+	"github.com/sealerio/sealer/utils/os/fs"
 )
 
 func tryCache(parentID cache.ChainID,
@@ -44,11 +43,11 @@ func tryCache(parentID cache.ChainID,
 	cacheLayer := cacheService.NewCacheLayer(layer, srcFilesDgst)
 	cacheLayerID, err := prober.Probe(parentID.String(), &cacheLayer)
 	if err != nil {
-		logger.Debug("failed to probe cache for %+v, err: %s", layer, err)
+		logrus.Debugf("failed to probe cache for %+v, err: %s", layer, err)
 		return false, "", ""
 	}
 	// cache hit
-	logger.Info("---> Using cache %v", cacheLayerID)
+	logrus.Infof("---> Using cache %v", cacheLayerID)
 	//layer.ID = cacheLayerID
 	cID, err := cacheLayer.ChainID(parentID)
 	if err != nil {
@@ -79,12 +78,12 @@ func GenerateSourceFilesDigest(root, src string) (digest.Digest, error) {
 
 	defer func() {
 		if err = os.RemoveAll(tmp); err != nil {
-			logger.Warn(err)
+			logrus.Warn(err)
 		}
 	}()
 
 	xattrErrorHandler := func(dst, src, key string, err error) error {
-		logger.Warn(err)
+		logrus.Warn(err)
 		return nil
 	}
 	opt := []fsutil.Opt{

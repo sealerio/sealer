@@ -22,16 +22,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	osi "github.com/sealerio/sealer/utils/os"
-
 	"github.com/sealerio/sealer/build/buildinstruction"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/parser"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/mount"
+	osi "github.com/sealerio/sealer/utils/os"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
 
 	"helm.sh/helm/v3/pkg/chartutil"
 	"sigs.k8s.io/yaml"
@@ -136,7 +135,7 @@ func GetLayerMountInfo(baseLayers []v1.Layer) (mount.Service, error) {
 	for _, info := range mountInfos {
 		// if info.Lowers equal lowerLayers,means image already mounted.
 		if strings.Join(lowerLayers, ":") == strings.Join(info.Lowers, ":") {
-			logger.Info("get mount dir :%s success ", info.Target)
+			logrus.Infof("get mount dir :%s success ", info.Target)
 			//nolint
 			return mount.NewMountService(info.Target, info.Upper, info.Lowers)
 		}

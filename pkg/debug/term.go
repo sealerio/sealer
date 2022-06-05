@@ -20,9 +20,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/sealerio/sealer/logger"
-
 	"github.com/moby/term"
+	"github.com/sirupsen/logrus"
 )
 
 // SafeFunc is a function to be invoked by TTY.
@@ -83,7 +82,7 @@ func (t TTY) Safe(fn SafeFunc) error {
 		if f, err := os.Open("/dev/tty"); err == nil {
 			defer func() {
 				if err := f.Close(); err != nil {
-					logger.Fatal("failed to close file")
+					logrus.Fatal("failed to close file")
 				}
 			}()
 			inFd = f.Fd()

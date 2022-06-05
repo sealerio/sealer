@@ -21,9 +21,9 @@ import (
 	dockerstreams "github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 )
 
 func (p *Provider) DeleteImageResource(imageID string) error {
@@ -50,9 +50,9 @@ func (p *Provider) PullImage(imageName string) (string, error) {
 
 	err = dockerjsonmessage.DisplayJSONMessagesToStream(out, dockerstreams.NewOut(common.StdOut), nil)
 	if err != nil && err != io.ErrClosedPipe {
-		logger.Warn("error occurs in display progressing, err: %s", err)
+		logrus.Warnf("error occurs in display progressing, err: %s", err)
 	}
-	logger.Info("success to pull docker image: %s ", imageName)
+	logrus.Infof("success to pull docker image: %s", imageName)
 
 	imageID := p.GetImageIDByName(imageName)
 	if imageID != "" {

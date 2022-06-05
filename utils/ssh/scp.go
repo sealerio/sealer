@@ -24,13 +24,13 @@ import (
 	"strings"
 	"sync"
 
-	osi "github.com/sealerio/sealer/utils/os"
-
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/pkg/sftp"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/utils/net"
+	osi "github.com/sealerio/sealer/utils/os"
 )
 
 const (
@@ -56,7 +56,7 @@ type easyProgressUtil struct {
 //must call DisplayInit first
 func registerEpu(ip string, total int) {
 	if progressChanOut == nil {
-		logger.Warn("call DisplayInit first")
+		logrus.Warn("call DisplayInit first")
 		return
 	}
 	if _, ok := epuMap[ip]; !ok {
@@ -67,7 +67,7 @@ func registerEpu(ip string, total int) {
 			total:          total,
 		}
 	} else {
-		logger.Warn("%s already exist in easyProgressUtil", ip)
+		logrus.Warnf("%s already exist in easyProgressUtil", ip)
 	}
 }
 
@@ -88,7 +88,7 @@ func (epu *easyProgressUtil) startMessage() {
 func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	if net.IsLocalIP(host, s.LocalAddress) {
 		if remoteFilePath != localFilePath {
-			logger.Debug("local copy files src %s to dst %s", remoteFilePath, localFilePath)
+			logrus.Debugf("local copy files src %s to dst %s", remoteFilePath, localFilePath)
 			return osi.RecursionCopy(remoteFilePath, localFilePath)
 		}
 		return nil
@@ -108,7 +108,7 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 
@@ -123,7 +123,7 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 	}
 	defer func() {
 		if err := dstFile.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	// copy to local file
@@ -138,10 +138,10 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 		if localPath == remotePath {
 			return nil
 		}
-		logger.Debug("local copy files src %s to dst %s", localPath, remotePath)
+		logrus.Debugf("local copy files src %s to dst %s", localPath, remotePath)
 		return osi.RecursionCopy(localPath, remotePath)
 	}
-	logger.Debug("remote copy files src %s to dst %s", localPath, remotePath)
+	logrus.Debugf("remote copy files src %s to dst %s", localPath, remotePath)
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return fmt.Errorf("new sftp client failed %s", err)
@@ -196,7 +196,7 @@ func (s *SSH) remoteMd5Sum(host, remoteFilePath string) string {
 	cmd := fmt.Sprintf(Md5sumCmd, remoteFilePath)
 	remoteMD5, err := s.CmdToString(host, cmd, "")
 	if err != nil {
-		logger.Error("count remote md5 failed %s %s %v", host, remoteFilePath, err)
+		logrus.Errorf("count remote md5 failed %s %s %v", host, remoteFilePath, err)
 	}
 	return strings.ReplaceAll(remoteMD5, "\r", "")
 }
@@ -204,11 +204,11 @@ func (s *SSH) remoteMd5Sum(host, remoteFilePath string) string {
 func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
-		logger.Error("read local path dir failed %s %s", host, localPath)
+		logrus.Errorf("read local path dir failed %s %s", host, localPath)
 		return
 	}
 	if err = sftpClient.MkdirAll(remotePath); err != nil {
-		logger.Error("failed to create remote path %s:%v", remotePath, err)
+		logrus.Errorf("failed to create remote path %s:%v", remotePath, err)
 		return
 	}
 	for _, file := range localFiles {
@@ -216,7 +216,7 @@ func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPa
 		rfp := path.Join(remotePath, file.Name())
 		if file.IsDir() {
 			if err = sftpClient.MkdirAll(rfp); err != nil {
-				logger.Error("failed to create remote path %s:%v", rfp, err)
+				logrus.Errorf("failed to create remote path %s:%v", rfp, err)
 				return
 			}
 			s.copyLocalDirToRemote(host, sftpClient, lfp, rfp, epu)
@@ -225,7 +225,7 @@ func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPa
 			if err != nil {
 				errMsg := fmt.Sprintf("copy local file to remote failed %v %s %s %s", err, host, lfp, rfp)
 				epu.fail(err)
-				logger.Error(errMsg)
+				logrus.Error(errMsg)
 				return
 			}
 			epu.increment()
@@ -244,7 +244,7 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 	} else if exist {
 		dstMd5 = s.remoteMd5Sum(host, remotePath)
 		if srcMd5 == dstMd5 {
-			logger.Debug("remote dst %s already exists and is the latest version , skip copying process", remotePath)
+			logrus.Debugf("remote dst %s already exists and is the latest version , skip copying process", remotePath)
 			return nil
 		}
 	}
@@ -255,7 +255,7 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 
@@ -273,7 +273,7 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 	}
 	defer func() {
 		if err := dstFile.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	_, err = io.Copy(dstFile, srcFile)

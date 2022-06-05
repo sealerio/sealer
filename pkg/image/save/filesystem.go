@@ -25,11 +25,10 @@ import (
 	"path"
 	"time"
 
-	"github.com/sealerio/sealer/logger"
-
 	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/distribution/distribution/v3/registry/storage/driver/base"
 	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -155,7 +154,7 @@ func (d *driver) PutContent(ctx context.Context, subPath string, contents []byte
 	}
 	defer func() {
 		if err := writer.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatalf("failed to close file: %v", err)
 		}
 	}()
 	_, err = io.Copy(writer, bytes.NewReader(contents))
@@ -260,7 +259,7 @@ func (d *driver) List(ctx context.Context, subPath string) ([]string, error) {
 
 	defer func() {
 		if err := dir.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatalf("failed to close file: %v", err)
 		}
 	}()
 	fileNames, err := dir.Readdirnames(0)

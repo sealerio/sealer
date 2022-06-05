@@ -19,10 +19,10 @@ import (
 
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
@@ -104,17 +104,17 @@ func (cs *chainStore) restore() {
 
 			cacheLayer, err := cs.newCacheLayer(layer)
 			if err != nil {
-				logger.Warn("failed to new a cache layer for %v, err: %s", layer, err)
+				logrus.Warnf("failed to new a cache layer for %v, err: %s", layer, err)
 				continue
 			}
 
 			// first chainItem's parent chainID is empty
 			chainID, err = cacheLayer.ChainID(lastChainItem.chainID)
 			if err != nil {
-				logger.Error(err)
+				logrus.Error(err)
 				break
 			}
-			logger.Debug("current layer %+v, restore chain id: %s", cacheLayer, chainID)
+			logrus.Debugf("current layer %+v, restore chain id: %s", cacheLayer, chainID)
 
 			_, ok := cs.chains[chainID]
 			if !ok {
@@ -153,14 +153,14 @@ func (cs *chainStore) Images() map[ImageID]*v1.Image {
 	images = make(map[ImageID]*v1.Image)
 	configs, err = cs.fs.ListImages()
 	if err != nil {
-		logger.Error("failed to get images from file system, err: %v", err)
+		logrus.Errorf("failed to get images from file system, err: %v", err)
 		return nil
 	}
 	for _, config := range configs {
 		img := &v1.Image{}
 		err = yaml.Unmarshal(config, img)
 		if err != nil {
-			logger.Error("failed to unmarshal bytes into image")
+			logrus.Error("failed to unmarshal bytes into image")
 			continue
 		}
 		dgst := digest.FromBytes(config)

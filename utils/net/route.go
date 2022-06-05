@@ -26,8 +26,8 @@ import (
 	"syscall"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils/exec"
+	"github.com/sirupsen/logrus"
 
 	"github.com/vishvananda/netlink"
 	k8snet "k8s.io/apimachinery/pkg/util/net"
@@ -93,7 +93,7 @@ func (r *Route) SetRoute() error {
 			return err
 		}
 	}
-	logger.Info(fmt.Sprintf("success to set route.(host:%s, gateway:%s)", r.Host, r.Gateway))
+	logrus.Info(fmt.Sprintf("success to set route.(host:%s, gateway:%s)", r.Host, r.Gateway))
 	return nil
 }
 
@@ -114,11 +114,11 @@ func (r *Route) DelRoute() error {
 		route := fmt.Sprintf(RouteArg, r.Host, r.Gateway, netInterface)
 		out, err := exec.RunSimpleCmd(fmt.Sprintf(BackupAndDelStaticRouteFile, netInterface, netInterface, netInterface, route, netInterface))
 		if err != nil {
-			logger.Info(out)
+			logrus.Info(out)
 			return err
 		}
 	}
-	logger.Info(fmt.Sprintf("success to del route.(host:%s, gateway:%s)", r.Host, r.Gateway))
+	logrus.Info(fmt.Sprintf("success to del route.(host:%s, gateway:%s)", r.Host, r.Gateway))
 	return nil
 }
 

@@ -21,24 +21,22 @@ import (
 	"io"
 	"strings"
 
-	"github.com/docker/docker/api/types"
-
-	"github.com/sealerio/sealer/pkg/client/docker/auth"
-
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/storage"
 	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
 	dockerstreams "github.com/docker/cli/cli/streams"
+	"github.com/docker/docker/api/types"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/client/docker/auth"
 	"github.com/sealerio/sealer/pkg/image/distributionutil"
 	"github.com/sealerio/sealer/pkg/image/save/distributionpkg/proxy"
 	v1 "github.com/sealerio/sealer/types/api/v1"
@@ -69,7 +67,7 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 	go func() {
 		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
 		if err != nil && err != io.ErrClosedPipe {
-			logger.Warn("error occurs in display progressing, err: %s", err)
+			logrus.Warnf("error occurs in display progressing, err: %s", err)
 		}
 	}()
 
@@ -125,7 +123,7 @@ func (is *DefaultImageSaver) SaveImagesWithAuth(imageList ImageListWithAuth, dir
 	go func() {
 		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
 		if err != nil && err != io.ErrClosedPipe {
-			logger.Warn("error occurs in display progressing, err: %s", err)
+			logrus.Warnf("error occurs in display progressing, err: %s", err)
 		}
 	}()
 
@@ -438,7 +436,7 @@ func newProxyRegistry(ctx context.Context, config configuration.Configuration) (
 
 	proxyRegistry, err := proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
 	if err != nil { // try http
-		logger.Warn("https error: %v, sealer try to use http", err)
+		logrus.Warnf("https error: %v, sealer try to use http", err)
 		config.Proxy.RemoteURL = strings.Replace(config.Proxy.RemoteURL, HTTPS, HTTP, 1)
 		proxyRegistry, err = proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
 		if err != nil {

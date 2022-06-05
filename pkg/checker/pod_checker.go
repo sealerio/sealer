@@ -20,9 +20,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sirupsen/logrus"
 )
 
 type PodChecker struct {
@@ -105,7 +105,7 @@ func (n *PodChecker) Output(podNamespaceStatusList []PodNamespaceStatus) error {
 	t = template.Must(t, err)
 	err = t.Execute(common.StdOut, podNamespaceStatusList)
 	if err != nil {
-		logger.Error("pod checkers template can not execute %s", err)
+		logrus.Errorf("pod checkers template can not execute %s", err)
 		return err
 	}
 	return nil

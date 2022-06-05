@@ -26,8 +26,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/sealerio/sealer/logger"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
 )
 
 type Interface interface {
@@ -56,7 +56,7 @@ func supportsOverlay() bool {
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	s := bufio.NewScanner(f)
@@ -96,11 +96,11 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 	case os.IsNotExist(err):
 		// old kernel, no index -- do nothing
 	default:
-		logger.Warn("Unable to detect whether overlay kernel module supports index parameter: %s", err)
+		logrus.Warnf("Unable to detect whether overlay kernel module supports index parameter: %s", err)
 	}
 
 	mountData := fmt.Sprintf("%slowerdir=%s,upperdir=%s,workdir=%s", indexOff, strings.Join(strUtils.Reverse(layers), ":"), upperLayer, workdir)
-	logger.Debug("mount data : %s", mountData)
+	logrus.Debugf("mount data : %s", mountData)
 	if err = mount("overlay", target, "overlay", 0, mountData); err != nil {
 		return fmt.Errorf("error creating overlay mount to %s: %v", target, err)
 	}

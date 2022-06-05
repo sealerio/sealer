@@ -19,15 +19,14 @@ import (
 	"net"
 	"time"
 
-	"github.com/sealerio/sealer/utils/os/fs"
-
 	"github.com/imdario/mergo"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	netUtils "github.com/sealerio/sealer/utils/net"
+	"github.com/sealerio/sealer/utils/os/fs"
 )
 
 type Interface interface {
@@ -72,7 +71,7 @@ func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 	}
 	address, err := netUtils.GetLocalHostAddresses()
 	if err != nil {
-		logger.Warn("failed to get local address, %v", err)
+		logrus.Warnf("failed to get local address: %v", err)
 	}
 	return &SSH{
 		IsStdout:     isStdout,

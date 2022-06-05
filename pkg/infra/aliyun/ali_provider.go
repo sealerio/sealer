@@ -18,12 +18,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sealerio/sealer/pkg/clusterfile"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
+	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
@@ -112,7 +111,7 @@ func (a *AliProvider) ReconcileResource(resourceKey string, action Alifunc) erro
 		if err != nil {
 			return err
 		}
-		logger.Info("create resource success %s: %s", resourceKey, a.Cluster.Annotations[resourceKey])
+		logrus.Infof("create resource success %s: %s", resourceKey, a.Cluster.Annotations[resourceKey])
 		return clusterfile.SaveToDisk(a.Cluster, a.Cluster.Name)
 	}
 	return nil
@@ -122,9 +121,9 @@ func (a *AliProvider) DeleteResource(resourceKey string, action Alifunc) {
 	if a.Cluster.Annotations[resourceKey] != "" {
 		err := action()
 		if err != nil {
-			logger.Error("delete resource %s failed err: %s", resourceKey, err)
+			logrus.Errorf("delete resource %s failed err: %s", resourceKey, err)
 		} else {
-			logger.Info("delete resource Success %s", a.Cluster.Annotations[resourceKey])
+			logrus.Infof("delete resource Success %s", a.Cluster.Annotations[resourceKey])
 		}
 	}
 }
@@ -170,7 +169,7 @@ var DeleteFuncMap = map[ActionName]func(provider *AliProvider){
 		for _, role := range roles {
 			instances, err := aliProvider.GetInstancesInfo(role, JustGetInstanceInfo)
 			if err != nil {
-				logger.Error("get %s instanceinfo failed %v", role, err)
+				logrus.Errorf("get %s instanceinfo failed %v", role, err)
 			}
 			for _, instance := range instances {
 				instanceIDs = append(instanceIDs, instance.InstanceID)
@@ -224,7 +223,7 @@ func (a *AliProvider) Reconcile() error {
 		a.Cluster.Annotations = make(map[string]string)
 	}
 	if a.Cluster.DeletionTimestamp != nil {
-		logger.Info("DeletionTimestamp not nil Clear Cluster")
+		logrus.Info("DeletionTimestamp not nil Clear Cluster")
 		a.ClearCluster()
 		return nil
 	}

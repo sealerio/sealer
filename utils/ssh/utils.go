@@ -23,18 +23,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sealerio/sealer/utils/hash"
-
-	"golang.org/x/sync/errgroup"
-
 	dockerstreams "github.com/docker/cli/cli/streams"
 	dockerioutils "github.com/docker/docker/pkg/ioutils"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/streamformatter"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/hash"
 )
 
 func displayInit() {
@@ -48,14 +47,14 @@ func displayInit() {
 	progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
 	err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
 	if err != nil && err != io.ErrClosedPipe {
-		logger.Warn("error occurs in display progressing, err: %s", err)
+		logrus.Warnf("error occurs in display progressing, err: %s", err)
 	}
 }
 
 func localMd5Sum(localPath string) string {
 	md5, err := hash.FileMD5(localPath)
 	if err != nil {
-		logger.Error("get file md5 failed %v", err)
+		logrus.Errorf("failed to get file md5: %v", err)
 		return ""
 	}
 	return md5
@@ -91,7 +90,7 @@ func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, i
 
 		combineLock.Lock()
 		*combineSlice = append(*combineSlice, string(line))
-		logger.Trace("command execution result is: %s", line)
+		logrus.Tracef("command execution result is: %s", line)
 		if isStdout {
 			fmt.Println(string(line))
 		}

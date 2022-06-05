@@ -24,10 +24,10 @@ import (
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/sealerio/sealer/version"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -143,12 +143,12 @@ func dispatchArg(layerValue string, ima *v1.Image) {
 	for _, element := range kv {
 		valueLine := strings.SplitN(element, "=", 2)
 		if len(valueLine) != 2 {
-			logger.Error("invalid ARG value %s. ARG format must be key=value", layerValue)
+			logrus.Errorf("invalid ARG value %s. ARG format must be key=value", layerValue)
 			return
 		}
 		k := strings.TrimSpace(valueLine[0])
 		if !strUtils.IsLetterOrNumber(k) {
-			logger.Error("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
+			logrus.Errorf("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
 			return
 		}
 		ima.Spec.ImageConfig.Args.Current[k] = strings.TrimSpace(valueLine[1])

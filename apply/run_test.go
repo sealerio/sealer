@@ -18,8 +18,7 @@ import (
 	"testing"
 
 	"github.com/sealerio/sealer/utils/net"
-
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
 )
 
 func TestAssemblyIPList(t *testing.T) {
@@ -102,9 +101,9 @@ func TestAssemblyIPList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := net.AssemblyIPList(&tt.args.Masters); (err != nil) != tt.wantErr {
-				logger.Error("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
+				logrus.Errorf("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
 			}
-			logger.Info("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
+			logrus.Infof("masters : %v , nodes : %v", &tt.args.Masters, &tt.args.Nodes)
 		})
 	}
 }

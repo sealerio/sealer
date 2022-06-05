@@ -23,17 +23,17 @@ import (
 	"path"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
-	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 const typeV1 = "zlink.aliyun.com/v1alpha1"
@@ -58,7 +58,7 @@ func DecodeCRDFromFile(filepath string, kind string) (interface{}, error) {
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
-			logger.Warn("failed to dump config close clusterfile failed %v", err)
+			logrus.Warnf("failed to dump config close clusterfile failed %v", err)
 		}
 	}()
 	return decodeCRDFuncMap[kind](file)
@@ -112,7 +112,7 @@ func DecodeV1ClusterFromFile(filepath string) (*v1.Cluster, error) {
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
-			logger.Warn("failed to dump config close clusterfile failed %v", err)
+			logrus.Warnf("failed to dump config close clusterfile failed %v", err)
 		}
 	}()
 

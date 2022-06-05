@@ -19,11 +19,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/version"
 )
 
@@ -78,12 +78,16 @@ func initConfig() {
 
 	viper.AutomaticEnv() // read in environment variables that match
 
-	logger.InitLogger(logger.Config{DebugMode: rootOpt.debugModeOn})
-
-	logger.SetLogPath(!rootOpt.hideLogPath)
-
-	if !rootOpt.hideLogTime {
-		logger.SetTimeFormat(logger.LogTimeDefaultFormat)
+	if rootOpt.debugModeOn {
+		logrus.SetLevel(logrus.DebugLevel)
 	}
-	logger.Cfg(rootOpt.debugModeOn)
+	/*
+		logrus.InitLogger(logger.Config{DebugMode: rootOpt.debugModeOn})
+		logrus.SetLogPath(!rootOpt.hideLogPath)
+
+		if !rootOpt.hideLogTime {
+			logrus.SetTimeFormat(logger.LogTimeDefaultFormat)
+		}
+		logrus.Cfg(rootOpt.debugModeOn)
+	*/
 }
