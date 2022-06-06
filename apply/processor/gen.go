@@ -18,7 +18,6 @@ package processor
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
 	"github.com/sealerio/sealer/utils/yaml"
@@ -75,12 +74,6 @@ func NewGenerateProcessor() (Processor, error) {
 
 func (g *GenerateProcessor) init(cluster *v2.Cluster) error {
 	fileName := fmt.Sprintf("%s/.sealer/%s/Clusterfile", common.GetHomeDir(), cluster.Name)
-	clusterPath := fmt.Sprintf("%s/.sealer/%s", common.GetHomeDir(), cluster.Name)
-	err := os.MkdirAll(clusterPath, 0750)
-	if err != nil {
-		return err
-	}
-
 	if err := yaml.MarshalToFile(fileName, cluster); err != nil {
 		return err
 	}
