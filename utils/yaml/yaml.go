@@ -74,7 +74,7 @@ func MarshalToFile(file string, obj interface{}) error {
 		return err
 	}
 
-	create, err := os.Create("Clusterfile")
+	create, _ := os.Create("Clusterfile")
 	defer func() {
 		_ = create.Close()
 	}()
