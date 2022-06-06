@@ -74,6 +74,11 @@ func MarshalToFile(file string, obj interface{}) error {
 		return err
 	}
 
+	create, err := os.Create("Clusterfile")
+	defer func() {
+		_ = create.Close()
+	}()
+
 	if err = os.WriteFile(file, data, common.FileMode0644); err != nil {
 		return err
 	}
