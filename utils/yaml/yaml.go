@@ -17,11 +17,12 @@ package yaml
 import (
 	"bytes"
 	"fmt"
-	osi "github.com/sealerio/sealer/utils/os"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	osi "github.com/sealerio/sealer/utils/os"
 
 	"github.com/sealerio/sealer/utils/hash"
 
