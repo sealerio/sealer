@@ -18,16 +18,16 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	osi "github.com/sealerio/sealer/utils/os"
 
 	"github.com/sealerio/sealer/utils/hash"
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
@@ -74,7 +74,7 @@ func MarshalToFile(file string, obj interface{}) error {
 		return err
 	}
 
-	if err = os.WriteFile(file, data, common.FileMode0644); err != nil {
+	if err = osi.NewAtomicWriter(file).WriteFile(data); err != nil {
 		return err
 	}
 
