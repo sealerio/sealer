@@ -91,9 +91,7 @@ func (c *PluginsProcessor) Load() error {
 			var plugs []v1.Plugin
 			for _, p := range plugins.([]v1.Plugin) {
 				for _, cp := range c.Plugins {
-					if isSamePluginSpec(p, cp) {
-						continue
-					} else {
+					if !isSamePluginSpec(p, cp) {
 						plugs = append(plugs, p)
 					}
 				}
