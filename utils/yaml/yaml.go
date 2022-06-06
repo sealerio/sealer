@@ -17,8 +17,8 @@ package yaml
 import (
 	"bytes"
 	"fmt"
+	osi "github.com/sealerio/sealer/utils/os"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -27,7 +27,6 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
@@ -74,12 +73,7 @@ func MarshalToFile(file string, obj interface{}) error {
 		return err
 	}
 
-	create, _ := os.Create("Clusterfile")
-	defer func() {
-		_ = create.Close()
-	}()
-
-	if err = os.WriteFile(file, data, common.FileMode0644); err != nil {
+	if err = osi.NewAtomicWriter(file).WriteFile(data); err != nil {
 		return err
 	}
 
