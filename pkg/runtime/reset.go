@@ -18,9 +18,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils/exec"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -46,7 +46,7 @@ func (k *KubeadmRuntime) resetNodes(nodes []string) {
 		node := node
 		eg.Go(func() error {
 			if err := k.resetNode(node); err != nil {
-				logger.Error("delete node %s failed %v", node, err)
+				logrus.Errorf("failed to delete node %s: %v", node, err)
 			}
 			return nil
 		})
@@ -59,7 +59,7 @@ func (k *KubeadmRuntime) resetNodes(nodes []string) {
 func (k *KubeadmRuntime) resetMasters(nodes []string) {
 	for _, node := range nodes {
 		if err := k.resetNode(node); err != nil {
-			logger.Error("delete master %s failed %v", node, err)
+			logrus.Errorf("delete master %s failed %v", node, err)
 		}
 	}
 }

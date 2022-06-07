@@ -19,17 +19,15 @@ import (
 	"io"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/os"
-
-	"github.com/docker/distribution/reference"
-	strUtils "github.com/sealerio/sealer/utils/strings"
-
 	dockerstreams "github.com/docker/cli/cli/streams"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils/os"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 func (d Docker) ImagesPull(images []string) error {
@@ -59,7 +57,7 @@ func trimQuotes(s string) string {
 func (d Docker) ImagesPullByImageListFile(fileName string) error {
 	data, err := os.NewFileReader(fileName).ReadLines()
 	if err != nil {
-		logger.Error(fmt.Sprintf("Read image list failed: %v", err))
+		logrus.Error(fmt.Sprintf("Read image list failed: %v", err))
 	}
 	return d.ImagesPull(data)
 }
@@ -91,9 +89,9 @@ func (d Docker) ImagePull(image string) error {
 
 	err = dockerjsonmessage.DisplayJSONMessagesToStream(out, dockerstreams.NewOut(common.StdOut), nil)
 	if err != nil && err != io.ErrClosedPipe {
-		logger.Warn("error occurs in display progressing, err: %s", err)
+		logrus.Warnf("error occurs in display progressing, err: %v", err)
 	}
-	logger.Info("success to pull docker image: %s ", image)
+	logrus.Infof("success to pull docker image: %s ", image)
 	return nil
 }
 

@@ -20,15 +20,14 @@ import (
 	"strconv"
 	"time"
 
-	osi "github.com/sealerio/sealer/utils/os"
-
 	"github.com/docker/docker/api/types/mount"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/infra/container/client"
 	"github.com/sealerio/sealer/pkg/infra/container/client/docker"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
@@ -60,7 +59,7 @@ type ApplyResult struct {
 func (a *ApplyProvider) Apply() error {
 	// delete apply
 	if a.Cluster.DeletionTimestamp != nil {
-		logger.Info("deletion timestamp not nil, will clear infra")
+		logrus.Info("deletion timestamp not nil, will clear infra")
 		return a.CleanUp()
 	}
 	// new apply
@@ -131,10 +130,10 @@ func (a *ApplyProvider) ReconcileContainer() error {
 	if currentMasterNum+masterApplyResult.ToJoinNumber-len(masterApplyResult.ToDeleteIPList) <= 0 {
 		return fmt.Errorf("master number can not be 0")
 	}
-	logger.Info("master apply result: ToJoinNumber %d, ToDeleteIpList : %s",
+	logrus.Infof("master apply result: ToJoinNumber %d, ToDeleteIpList : %s",
 		masterApplyResult.ToJoinNumber, masterApplyResult.ToDeleteIPList)
 
-	logger.Info("node apply result: ToJoinNumber %d, ToDeleteIpList : %s",
+	logrus.Infof("node apply result: ToJoinNumber %d, ToDeleteIpList : %s",
 		nodeApplyResult.ToJoinNumber, nodeApplyResult.ToDeleteIPList)
 
 	if err := a.applyResult(masterApplyResult); err != nil {
@@ -263,7 +262,7 @@ func (a *ApplyProvider) applyToDelete(deleteIPList []string) error {
 	for _, ip := range deleteIPList {
 		id, ok := a.Cluster.Annotations[ip]
 		if !ok {
-			logger.Warn("failed to delete container %s", ip)
+			logrus.Warnf("failed to delete container %s", ip)
 			continue
 		}
 		err := a.Provider.RmContainer(id)
@@ -291,7 +290,7 @@ func (a *ApplyProvider) CleanUp() error {
 		err := a.Provider.RmContainer(id)
 		if err != nil {
 			// log it
-			logger.Info("failed to delete container:%s", id)
+			logrus.Infof("failed to delete container:%s", id)
 		}
 		continue
 	}

@@ -20,8 +20,6 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 	"fmt"
-
-	"github.com/sealerio/sealer/logger"
 )
 
 const aesKey = "ZU9WbzRMVXRQZ2pzTGowR2hNWUpIZjRkWld4aWVRWko="
@@ -29,8 +27,7 @@ const aesKey = "ZU9WbzRMVXRQZ2pzTGowR2hNWUpIZjRkWld4aWVRWko="
 func AesEncrypt(origData []byte) (string, error) {
 	key, err := base64.StdEncoding.DecodeString(aesKey)
 	if err != nil {
-		logger.Error("key base64 decode failed")
-		return "", err
+		return "", fmt.Errorf("failed to decode key base64: %v", err)
 	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -47,13 +44,11 @@ func AesEncrypt(origData []byte) (string, error) {
 func AesDecrypt(ciphertext []byte) (string, error) {
 	key, err := base64.StdEncoding.DecodeString(aesKey)
 	if err != nil {
-		logger.Error("key base64 decode failed")
-		return "", err
+		return "", fmt.Errorf("failed to decode key base64: %v", err)
 	}
 	ciphertext, err = base64.StdEncoding.DecodeString(string(ciphertext))
 	if err != nil {
-		logger.Error("ciphertext base64 decode failed")
-		return "", err
+		return "", fmt.Errorf("failed to decode key base64: %v", err)
 	}
 	block, err := aes.NewCipher(key)
 	if err != nil {

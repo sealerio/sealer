@@ -18,8 +18,8 @@ import (
 	"fmt"
 
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/cache"
 )
 
@@ -42,7 +42,7 @@ func NewImageProber(cacheBuilder CacheBuilder, noCache bool) Prober {
 	reset := func() Cache {
 		c, err := cacheBuilder.BuildImageCache()
 		if err != nil {
-			logger.Info("failed to init image cache, err: %s", err)
+			logrus.Infof("failed to init image cache, err: %s", err)
 			return &cache.NopImageCache{}
 		}
 		return c

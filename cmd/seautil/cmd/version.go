@@ -19,9 +19,9 @@ import (
 	"fmt" //nolint:imports
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/version"
 )
 
@@ -34,7 +34,7 @@ var versionCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		marshalled, err := json.Marshal(version.Get())
 		if err != nil {
-			logger.Error(err)
+			logrus.Error(err)
 			os.Exit(1)
 		}
 		if shortPrint {

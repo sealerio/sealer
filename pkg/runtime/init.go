@@ -20,16 +20,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/ssh"
-
-	"github.com/sealerio/sealer/utils/yaml"
-
-	osi "github.com/sealerio/sealer/utils/os"
-
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/cert"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/ssh"
+	"github.com/sealerio/sealer/utils/yaml"
+
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -209,16 +207,16 @@ func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
 //decode output to join token hash and key
 func (k *KubeadmRuntime) decodeMaster0Output(output []byte) {
 	s0 := string(output)
-	logger.Debug("decodeOutput: %s", s0)
+	logrus.Debugf("decodeOutput: %s", s0)
 	slice := strings.Split(s0, "kubeadm join")
 	slice1 := strings.Split(slice[1], "Please note")
-	logger.Info("join command is: kubeadm join %s", slice1[0])
+	logrus.Infof("join command is: kubeadm join %s", slice1[0])
 	k.decodeJoinCmd(slice1[0])
 }
 
 //  192.168.0.200:6443 --token 9vr73a.a8uxyaju799qwdjv --discovery-token-ca-cert-hash sha256:7c2e69131a36ae2a042a339b33381c6d0d43887e2de83720eff5359e26aec866 --experimental-control-plane --certificate-key f8902e114ef118304e561c3ecd4d0b543adc226b7a07f675f56564185ffe0c07
 func (k *KubeadmRuntime) decodeJoinCmd(cmd string) {
-	logger.Debug("[globals]decodeJoinCmd: %s", cmd)
+	logrus.Debugf("[globals]decodeJoinCmd: %s", cmd)
 	stringSlice := strings.Split(cmd, " ")
 
 	for i, r := range stringSlice {
@@ -237,7 +235,7 @@ func (k *KubeadmRuntime) decodeJoinCmd(cmd string) {
 			k.setInitCertificateKey(stringSlice[i+1][:64])
 		}
 	}
-	logger.Debug("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey())
+	logrus.Debugf("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey())
 }
 
 //InitMaster0 is
@@ -257,7 +255,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 		return err
 	}
 
-	logger.Info("start to init master0...")
+	logrus.Info("start to init master0...")
 	cmdInit := k.Command(k.getKubeVersion(), InitMaster)
 
 	// TODO skip docker version error check for test

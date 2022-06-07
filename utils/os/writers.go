@@ -20,7 +20,8 @@ import (
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+
+	"github.com/sirupsen/logrus"
 )
 
 type FileWriter interface {
@@ -67,11 +68,11 @@ func (a atomicWriter) Clean(file *os.File) {
 	// the following operation won't fail regularly, if failed, log it
 	err := file.Close()
 	if err != nil && err != os.ErrClosed {
-		logger.Warn(err)
+		logrus.Warn(err)
 	}
 	err = os.Remove(file.Name())
 	if err != nil {
-		logger.Warn(err)
+		logrus.Warn(err)
 	}
 }
 

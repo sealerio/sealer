@@ -19,12 +19,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/logger"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func (s *SSH) Platform(host string) (v1.Platform, error) {
@@ -83,7 +83,7 @@ func (s *SSH) getCPUInfo(host, pattern string) (info string, err error) {
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logger.Warn("failed to close file: %v", err)
+			logrus.Warnf("failed to close file: %v", err)
 		}
 	}()
 	scanner := bufio.NewScanner(srcFile)

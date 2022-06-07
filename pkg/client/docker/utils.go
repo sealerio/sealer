@@ -18,13 +18,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/sealerio/sealer/pkg/client/docker/auth"
-
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	dockerregistry "github.com/docker/docker/registry"
+	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/client/docker/auth"
 	normalreference "github.com/sealerio/sealer/pkg/image/reference"
 )
 
@@ -48,7 +47,7 @@ func GetCanonicalImagePullOptions(canonicalImageName string) types.ImagePullOpti
 
 	named, err := normalreference.ParseToNamed(canonicalImageName)
 	if err != nil {
-		logger.Warn("parse canonical ImageName failed: %v", err)
+		logrus.Warnf("parse canonical ImageName failed: %v", err)
 		return opts
 	}
 
@@ -66,7 +65,7 @@ func GetCanonicalImagePullOptions(canonicalImageName string) types.ImagePullOpti
 	if err == nil {
 		encodedJSON, err = json.Marshal(authConfig)
 		if err != nil {
-			logger.Warn("authConfig encodedJSON failed: %v", err)
+			logrus.Warnf("authConfig encodedJSON failed: %v", err)
 		} else {
 			authStr = base64.URLEncoding.EncodeToString(encodedJSON)
 		}

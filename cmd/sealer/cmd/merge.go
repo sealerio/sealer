@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/utils/platform"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +49,7 @@ merge images:
 	mergeCmd.Flags().StringVar(&mf.Platform, "platform", "", "set CloudImage platform, if not set,keep same platform with runtime")
 
 	if err := mergeCmd.MarkFlagRequired("target-image"); err != nil {
-		logger.Error("failed to init flag target image: %v", err)
+		logrus.Errorf("failed to init flag target image: %v", err)
 	}
 	return mergeCmd
 }
@@ -76,7 +76,7 @@ func getMergeFunc(cmd *cobra.Command, args []string) error {
 	if err := image.Merge(ima, images, targetPlatform[0]); err != nil {
 		return err
 	}
-	logger.Info("images %s is merged to %s", strings.Join(images, ","), ima)
+	logrus.Infof("images %s is merged to %s", strings.Join(images, ","), ima)
 	return nil
 }
 

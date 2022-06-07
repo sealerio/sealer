@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/sealerio/sealer/utils/os/fs"
+	"github.com/sirupsen/logrus"
 
 	osi "github.com/sealerio/sealer/utils/os"
 
@@ -39,7 +40,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/types"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	platUtils "github.com/sealerio/sealer/utils/platform"
@@ -220,7 +220,7 @@ func (fs *filesystem) ListImages() ([][]byte, error) {
 		if strings.Contains(fileInfo.Name(), common.YamlSuffix) {
 			config, err := ioutil.ReadFile(metadataDir(fileInfo.Name()))
 			if err != nil {
-				logger.Error("failed to read file %v, err: %v", fileInfo.Name(), err)
+				logrus.Errorf("failed to read file %v, err: %v", fileInfo.Name(), err)
 			}
 			configs = append(configs, config)
 		}
@@ -285,7 +285,7 @@ func (fs *filesystem) storeROLayer(layer Layer) error {
 
 	err = osi.NewAtomicWriter(filepath.Join(dbDir, "id")).WriteFile([]byte(layer.ID()))
 
-	logger.Debug("writing id %s to %s", layer.ID(), filepath.Join(dbDir, "id"))
+	logrus.Debugf("writing id %s to %s", layer.ID(), filepath.Join(dbDir, "id"))
 	if err != nil {
 		return fmt.Errorf("failed to write id for %s, err: %s", layer.ID(), err)
 	}
@@ -339,7 +339,7 @@ func (fs *filesystem) loadROLayer(layerDBPath string) (*ROLayer, error) {
 	if err != nil {
 		// we could tolerate the miss of DistributionMetadata.
 		// the consequence is that we push the layer repeatedly
-		logger.Warn("failed to get layer distribution digest, err: %s", filepath.Base(layerDBPath), err)
+		logrus.Warnf("failed to get layer distribution digest from path %s: %s", filepath.Base(layerDBPath), err)
 	}
 
 	return NewROLayer(
@@ -359,7 +359,7 @@ func (fs *filesystem) loadAllROLayers() ([]*ROLayer, error) {
 	for _, layerDBDir := range layerDirs {
 		rolayer, err := fs.loadROLayer(layerDBDir)
 		if err != nil {
-			logger.Warn(err)
+			logrus.Warn(err)
 			continue
 		}
 		layers = append(layers, rolayer)

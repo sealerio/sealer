@@ -17,7 +17,7 @@ package plugin
 import (
 	"testing"
 
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
 )
 
 func TestTaint_formatData(t *testing.T) {
@@ -84,9 +84,9 @@ func TestTaint_formatData(t *testing.T) {
 			if err := l.formatData(tt.args.data); (err != nil) != tt.wantErr {
 				t.Errorf("formatData(%s) error = %v, wantErr %v", tt.args.data, err, tt.wantErr)
 			} else {
-				logger.Info("IPList:", l.IPList)
+				logrus.Info("IPList:", l.IPList)
 				for k, v := range l.TaintList {
-					logger.Info("[%s] taints: %v", k, *v)
+					logrus.Infof("[%s] taints: %v", k, *v)
 				}
 			}
 		})

@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
 )
 
 type HostnamePlugin struct {
@@ -37,7 +37,7 @@ func init() {
 
 func (h HostnamePlugin) Run(context Context, phase Phase) error {
 	if (phase != PhasePreInit && phase != PhasePreJoin) || context.Plugin.Spec.Type != HostNamePlugin {
-		logger.Debug("hostnamePlugin nodes is not PhasePreInit!")
+		logrus.Debug("hostnamePlugin nodes is not PhasePreInit!")
 		return nil
 	}
 	h.data = h.formatData(context.Plugin.Spec.Data)
@@ -61,7 +61,7 @@ func (h HostnamePlugin) formatData(data string) map[string]string {
 	m := make(map[string]string)
 	items := strings.Split(data, "\n")
 	if len(items) == 0 {
-		logger.Debug("hostname data is empty!")
+		logrus.Debug("hostname data is empty!")
 		return m
 	}
 	for _, v := range items {
@@ -85,6 +85,6 @@ func (h HostnamePlugin) changeNodeName(hostname, ip string, SSH ssh.Interface) e
 	if err := SSH.CmdAsync(ip, tmpCMD, perCMD); err != nil {
 		return fmt.Errorf("failed to change the node %v hostname,%v", ip, err)
 	}
-	logger.Info("successfully changed node %s hostname to %s.", ip, hostname)
+	logrus.Infof("successfully changed node %s hostname to %s.", ip, hostname)
 	return nil
 }

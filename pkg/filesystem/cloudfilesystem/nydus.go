@@ -19,22 +19,19 @@ import (
 	"fmt"
 	"path/filepath"
 
-	osi "github.com/sealerio/sealer/utils/os"
-
-	"github.com/sealerio/sealer/utils/exec"
-	"github.com/sealerio/sealer/utils/strings"
-
-	"github.com/sealerio/sealer/utils/net"
-
-	"golang.org/x/sync/errgroup"
-
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/exec"
+	"github.com/sealerio/sealer/utils/net"
+	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
+	"github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
+
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -72,7 +69,7 @@ func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) err
 			return fmt.Errorf("failed to stop nydusdserver %v", err)
 		}
 	} else {
-		logger.Info("%s not found", nydusdServerClean)
+		logrus.Infof("%s not found", nydusdServerClean)
 	}
 	return nil
 }
@@ -127,7 +124,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	if err != nil {
 		return fmt.Errorf("nydusdserver start fail %v", err)
 	}
-	logger.Info("nydus images converted and nydusd http server started")
+	logrus.Info("nydus images converted and nydusd http server started")
 
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {

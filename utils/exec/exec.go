@@ -21,9 +21,9 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/sealerio/sealer/logger"
-
 	"github.com/sealerio/sealer/common"
+
+	"github.com/sirupsen/logrus"
 )
 
 const SUDO = "sudo"
@@ -69,7 +69,7 @@ func RunSimpleCmd(cmd string) (string, error) {
 		result, err = exec.Command("/bin/sh", "-c", cmd).CombinedOutput() // #nosec
 	}
 	if err != nil {
-		logger.Debug("failed to execute command(%s): error(%v)", cmd, err)
+		logrus.Debugf("failed to execute command(%s): error(%v)", cmd, err)
 	}
 	return string(result), err
 }

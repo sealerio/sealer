@@ -19,11 +19,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/logger"
-
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/sirupsen/logrus"
 )
 
 type webFileCollector struct {
@@ -62,13 +61,13 @@ func (g gitCollector) Collect(buildContext, src, savePath string) error {
 		privateKeyFile := os.Getenv("HOME") + "/.ssh/id_rsa"
 		_, err := os.Stat(privateKeyFile)
 		if err != nil {
-			logger.Warn("read file %s failed %s\n", privateKeyFile, err.Error())
+			logrus.Warnf("read file %s failed %s\n", privateKeyFile, err.Error())
 			return err
 		}
 
 		publicKeys, err := ssh.NewPublicKeysFromFile("git", privateKeyFile, "")
 		if err != nil {
-			logger.Warn("generate public keys failed: %s\n", err.Error())
+			logrus.Warnf("generate public keys failed: %s\n", err.Error())
 			return err
 		}
 		co.Auth = publicKeys

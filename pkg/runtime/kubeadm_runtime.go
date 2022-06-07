@@ -21,15 +21,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
-	"golang.org/x/sync/errgroup"
 )
 
 type Config struct {
@@ -57,7 +58,7 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterFileKubeConfig *KubeadmConfig
 		return nil, err
 	}
 
-	if logger.IsDebugModel() {
+	if logrus.GetLevel() == logrus.DebugLevel {
 		k.Vlog = 6
 	}
 	return k, nil

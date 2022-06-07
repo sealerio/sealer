@@ -19,8 +19,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
+	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/infra/container/client"
 )
 
@@ -106,7 +106,7 @@ func (p *Provider) RunContainer(opts *client.CreateOptsForContainer) (string, er
 	if err != nil {
 		return "", err
 	}
-	logger.Info("create container %s successfully", opts.ContainerName)
+	logrus.Infof("create container %s successfully", opts.ContainerName)
 	return resp.ID, nil
 }
 
@@ -150,7 +150,7 @@ func (p *Provider) RmContainer(containerID string) error {
 		return err
 	}
 
-	logger.Info("delete container %s successfully", containerID)
+	logrus.Infof("delete container %s successfully", containerID)
 	return nil
 }
 

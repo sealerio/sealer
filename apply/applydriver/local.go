@@ -17,13 +17,8 @@ package applydriver
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/utils"
-
-	osi "github.com/sealerio/sealer/utils/os"
-
 	"github.com/sealerio/sealer/apply/processor"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
@@ -32,9 +27,12 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
+	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -140,7 +138,7 @@ func (c *Applier) reconcileCluster() error {
 	}
 	defer func() {
 		if err := c.unMountClusterImage(); err != nil {
-			logger.Warn("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
+			logrus.Warnf("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
 		}
 	}()
 
@@ -162,8 +160,8 @@ func (c *Applier) reconcileCluster() error {
 }
 
 func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
-	logger.Info("Start to scale this cluster")
-	logger.Debug("current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
+	logrus.Info("Start to scale this cluster")
+	logrus.Debugf("current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
 
 	scaleProcessor, err := processor.NewScaleProcessor(c.ClusterFile.GetKubeadmConfig(), c.ClusterFile, mj, md, nj, nd)
 	if err != nil {
@@ -185,7 +183,7 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
 		return err
 	}
 
-	logger.Info("Succeeded in scaling this cluster")
+	logrus.Info("Succeeded in scaling this cluster")
 
 	return nil
 }
@@ -204,7 +202,7 @@ func (c *Applier) Upgrade(upgradeImgName string) error {
 	}
 	defer func() {
 		if err := c.unMountClusterImage(); err != nil {
-			logger.Warn("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
+			logrus.Warnf("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
 		}
 	}()
 	return c.upgrade()
@@ -221,10 +219,10 @@ func (c *Applier) upgrade() error {
 	}
 
 	if c.CurrentClusterInfo.GitVersion == upgradeImgMeta.Version {
-		logger.Info("No upgrade required, image version and cluster version are both %s.", c.CurrentClusterInfo.GitVersion)
+		logrus.Infof("No upgrade required, image version and cluster version are both %s.", c.CurrentClusterInfo.GitVersion)
 		return nil
 	}
-	logger.Info("Start to upgrade this cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
+	logrus.Infof("Start to upgrade this cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
 
 	upgradeProcessor, err := processor.NewUpgradeProcessor(platform.DefaultMountCloudImageDir(c.ClusterDesired.Name), runtimeInterface)
 	if err != nil {
@@ -234,7 +232,7 @@ func (c *Applier) upgrade() error {
 	if err != nil {
 		return err
 	}
-	logger.Info("Succeeded in upgrading current cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
+	logrus.Infof("Succeeded in upgrading current cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
 	return clusterfile.SaveToDisk(c.ClusterDesired, c.ClusterDesired.Name)
 }
 
@@ -285,7 +283,7 @@ func (c *Applier) installApp() error {
 }
 
 func (c *Applier) initCluster() error {
-	logger.Info("Start to create a new cluster: master %s, worker %s", c.ClusterDesired.GetMasterIPList(), c.ClusterDesired.GetNodeIPList())
+	logrus.Infof("Start to create a new cluster: master %s, worker %s", c.ClusterDesired.GetMasterIPList(), c.ClusterDesired.GetNodeIPList())
 	createProcessor, err := processor.NewCreateProcessor(c.ClusterFile)
 	if err != nil {
 		return err
@@ -295,7 +293,7 @@ func (c *Applier) initCluster() error {
 		return err
 	}
 
-	logger.Info("Succeeded in creating a new cluster, enjoy it!")
+	logrus.Info("Succeeded in creating a new cluster, enjoy it!")
 
 	return nil
 }
@@ -313,7 +311,7 @@ func (c *Applier) deleteCluster() error {
 		return err
 	}
 
-	logger.Info("Succeeded in deleting current cluster")
+	logrus.Info("Succeeded in deleting current cluster")
 
 	return nil
 }

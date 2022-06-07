@@ -18,14 +18,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/os/fs"
+	"github.com/shirou/gopsutil/disk"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/utils/exec"
-	strUtils "github.com/sealerio/sealer/utils/strings"
-	"github.com/shirou/gopsutil/disk"
-
-	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sealerio/sealer/utils/ssh"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 type Service interface {
@@ -67,12 +66,12 @@ func (m mounter) CleanUp() {
 
 	err = m.driver.Unmount(m.TempTarget)
 	if err != nil {
-		logger.Warn("failed to umount %s:%v", m.TempTarget, err)
+		logrus.Warnf("failed to umount %s: %v", m.TempTarget, err)
 	}
 
 	err = m.fs.RemoveAll(m.TempUpper, m.TempTarget)
 	if err != nil {
-		logger.Warn("failed to delete %s,%s", m.TempUpper, m.TempTarget)
+		logrus.Warnf("failed to delete %s,%s: %v", m.TempUpper, m.TempTarget, err)
 	}
 }
 

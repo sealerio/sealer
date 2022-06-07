@@ -18,8 +18,7 @@ import (
 	"testing"
 
 	"github.com/sealerio/sealer/utils/os/fs"
-
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
 )
 
 func TestSSHCopyLocalToRemote(t *testing.T) {
@@ -88,7 +87,7 @@ func TestSSHCopyLocalToRemote(t *testing.T) {
 			}
 
 			if !fileExist(tt.args.localPath) {
-				logger.Error("local filepath is not exit")
+				logrus.Error("local filepath is not exit")
 				return
 			}
 			//if ss.IsFileExist(host, tt.args.remotePath) {
@@ -98,7 +97,7 @@ func TestSSHCopyLocalToRemote(t *testing.T) {
 			// test copy dir
 			err := ss.Copy(tt.args.host, tt.args.localPath, tt.args.remotePath)
 			if (err != nil) != tt.wantErr {
-				logger.Error(err)
+				logrus.Error(err)
 				t.Errorf("err: %v", err)
 			}
 
@@ -156,15 +155,15 @@ func TestSSHFetchRemoteToLocal(t *testing.T) {
 			}
 
 			if exist, err := ss.IsFileExist(host, tt.args.remotePath); err != nil {
-				logger.Error("err: ", err)
+				logrus.Error("err: ", err)
 				return
 			} else if !exist {
-				logger.Error("remote filepath is not exit")
+				logrus.Error("remote filepath is not exit")
 				return
 			}
 			err := ss.Fetch(tt.args.host, tt.args.localPath, tt.args.remotePath)
 			if (err != nil) != tt.wantErr {
-				logger.Error(err)
+				logrus.Error(err)
 				t.Errorf("err: %v", err)
 			}
 		})

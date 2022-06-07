@@ -20,11 +20,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/utils"
-
 	"github.com/sealerio/sealer/utils/yaml"
-
-	"github.com/sealerio/sealer/logger"
 )
 
 const (
@@ -369,7 +368,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 			if err := k.LoadFromClusterfile(KubeadmConfig); (err != nil) != tt.wantErr {
 				t.Errorf("LoadFromClusterfile() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			logger.Info("k.InitConfiguration.Kind", k.InitConfiguration.Kind)
+			logrus.Infof("k.InitConfiguration.Kind: %v", k.InitConfiguration.Kind)
 			out, err := yaml.MarshalWithDelimiter(k.InitConfiguration, k.ClusterConfiguration,
 				k.JoinConfiguration, k.KubeletConfiguration, k.KubeProxyConfiguration)
 			if (err != nil) != tt.wantErr {

@@ -19,10 +19,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/sealerio/sealer/logger"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/utils/net"
+
+	"github.com/sirupsen/logrus"
 )
 
 const SUDO = "sudo "
@@ -110,7 +110,7 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 			cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
 		}
 		if err := execFunc(cmd); err != nil {
-			logger.Debug("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
+			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
 			return err
 		}
 	}
@@ -125,7 +125,7 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	if net.IsLocalIP(host, s.LocalAddress) {
 		b, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
 		if err != nil {
-			logger.Debug("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
+			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
 			return nil, err
 		}
 		return b, err
@@ -139,7 +139,7 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	defer session.Close()
 	b, err := session.CombinedOutput(cmd)
 	if err != nil {
-		logger.Debug("[ssh][%s]run command failed [%s]", host, cmd)
+		logrus.Debugf("[ssh][%s]run command failed [%s]", host, cmd)
 		return b, fmt.Errorf("[ssh][%s]run command failed [%s]", host, cmd)
 	}
 

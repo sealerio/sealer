@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
 )
 
 // completionCmd represents the completion command
@@ -45,7 +45,7 @@ To load completions for every new session, execute once:
 		switch args[0] {
 		case "bash":
 			if err := cmd.Root().GenBashCompletion(common.StdOut); err != nil {
-				logger.Error("failed to use bash completion, %v", err)
+				logrus.Errorf("failed to use bash completion, %v", err)
 				os.Exit(1)
 			}
 		}

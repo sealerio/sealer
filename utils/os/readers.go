@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
 )
 
 type FileReader interface {
@@ -48,7 +48,7 @@ func (r fileReader) ReadLines() ([]string, error) {
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	br := bufio.NewReader(file)
@@ -74,7 +74,7 @@ func (r fileReader) ReadAll() ([]byte, error) {
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 

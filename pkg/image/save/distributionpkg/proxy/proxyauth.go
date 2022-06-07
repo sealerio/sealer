@@ -20,10 +20,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/sealerio/sealer/logger"
-
 	"github.com/distribution/distribution/v3/registry/client/auth"
 	"github.com/distribution/distribution/v3/registry/client/auth/challenge"
+	"github.com/sirupsen/logrus"
 )
 
 // comment this const because not used
@@ -79,7 +78,7 @@ func getAuthURLs(remoteURL string) ([]string, error) {
 	resp, err := http.Get(remoteURL + "/v2/")
 	if err != nil {
 		if strings.Contains(err.Error(), certUnknown) {
-			logger.Warn("create connect with unauthenticated registry url: %s", remoteURL)
+			logrus.Warnf("create connect with unauthenticated registry url: %s", remoteURL)
 			resp, err = newClientSkipVerify().Get(remoteURL + "/v2/")
 			if err != nil {
 				return nil, err

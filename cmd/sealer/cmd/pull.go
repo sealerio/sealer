@@ -15,9 +15,9 @@
 package cmd
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/utils/platform"
 )
@@ -45,7 +45,7 @@ var pullCmd = &cobra.Command{
 		if err := imgSvc.Pull(args[0], plat); err != nil {
 			return err
 		}
-		logger.Info("Pull %s success", args[0])
+		logrus.Infof("Pull %s success", args[0])
 		return nil
 	},
 }

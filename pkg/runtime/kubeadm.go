@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/logger"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -59,11 +59,11 @@ func (k *KubeadmRuntime) getCgroupDriverFromShell(node string) (string, error) {
 	}
 	if driver == "" {
 		// by default if we get wrong output we set it default systemd?
-		logger.Error("failed to get nodes [%s] cgroup driver", node)
+		logrus.Errorf("failed to get nodes [%s] cgroup driver", node)
 		driver = DefaultSystemdCgroupDriver
 	}
 	driver = strings.TrimSpace(driver)
-	logger.Debug("get nodes [%s] cgroup driver is [%s]", node, driver)
+	logrus.Debugf("get nodes [%s] cgroup driver is [%s]", node, driver)
 	return driver, nil
 }
 

@@ -20,10 +20,9 @@ import (
 	"path/filepath"
 
 	osUtils "github.com/sealerio/sealer/utils/os"
+	"github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/go-digest"
-
-	"github.com/sealerio/sealer/logger"
 )
 
 type DistributionMetadataItem struct {
@@ -48,7 +47,7 @@ func (fs *filesystem) LoadDistributionMetadata(layerID LayerID) (map[string]dige
 	}
 	defer func() {
 		if err := distributionMetadataFile.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	err = json.NewDecoder(distributionMetadataFile).Decode(&metadatas)

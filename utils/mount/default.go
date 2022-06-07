@@ -22,8 +22,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
 )
 
 type Default struct {
@@ -121,17 +121,17 @@ func copyFile(src, dst string) error {
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	// create dst file
 	dstFile, err := os.Create(filepath.Clean(dst))
 	if err != nil {
-		return fmt.Errorf("create file err: %s", err)
+		return fmt.Errorf("failed to create file: %v", err)
 	}
 	defer func() {
 		if err := dstFile.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatalf("failed to close file: %v", err)
 		}
 	}()
 

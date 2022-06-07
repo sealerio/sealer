@@ -24,12 +24,12 @@ import (
 	"sync"
 
 	"github.com/sealerio/sealer/utils/os/fs"
+	"github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/go-digest"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/image/reference"
 	"github.com/sealerio/sealer/utils/archive"
 )
@@ -133,14 +133,14 @@ func (ls *layerStore) DisassembleTar(layerID digest.Digest, streamReader io.Read
 
 	defer func() {
 		if err := mf.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	mfz := gzip.NewWriter(mf)
 
 	defer func() {
 		if err := mfz.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	metaPacker := storage.NewJSONPacker(mfz)
@@ -158,7 +158,7 @@ func (ls *layerStore) DisassembleTar(layerID digest.Digest, streamReader io.Read
 func (ls *layerStore) Delete(id LayerID) error {
 	digs := id.ToDigest()
 	if layer := ls.Get(id); layer == nil {
-		logger.Debug("layer %s is already deleted", id)
+		logrus.Debugf("layer %s is already deleted", id)
 		return nil
 	}
 

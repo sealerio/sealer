@@ -21,12 +21,6 @@ import (
 	"os"
 	"path/filepath"
 
-	osi "github.com/sealerio/sealer/utils/os"
-
-	"github.com/sealerio/sealer/utils/strings"
-
-	"github.com/sealerio/sealer/pkg/client/docker/auth"
-
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest/schema2"
 	dockerstreams "github.com/docker/cli/cli/streams"
@@ -35,13 +29,16 @@ import (
 	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
 	dockerprogress "github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+	"github.com/sealerio/sealer/pkg/client/docker/auth"
 	"github.com/sealerio/sealer/pkg/image/distributionutil"
 	"github.com/sealerio/sealer/pkg/image/reference"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 // DefaultImageService is the default service, which is used for image pull/push
@@ -75,7 +72,7 @@ func (d DefaultImageService) GetImageByName(imageName string, platform *v1.Platf
 	var img *v1.Image
 	img, err := d.imageStore.GetByName(imageName, platform)
 	if err == nil {
-		logger.Debug("image %s already exists", imageName)
+		logrus.Debugf("image %s already exists", imageName)
 		return img, nil
 	}
 	return nil, nil
@@ -130,7 +127,7 @@ func (d DefaultImageService) Pull(imageName string, platforms []*v1.Platform) er
 	go func() {
 		err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, streamOut, nil)
 		if err != nil && err != io.ErrClosedPipe {
-			logger.Warn("error occurs in display progressing, err: %s", err)
+			logrus.Warnf("error occurs in display progressing, err: %s", err)
 		}
 	}()
 
@@ -217,7 +214,7 @@ func (d DefaultImageService) Push(imageName string) error {
 		// reader may be closed in another goroutine
 		// so do not log warn when err == io.ErrClosedPipe
 		if err != nil && err != io.ErrClosedPipe {
-			logger.Warn("error occurs in display progressing, err: %s", err)
+			logrus.Warnf("error occurs in display progressing, err: %s", err)
 		}
 	}()
 
@@ -244,7 +241,7 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 	if err := svc.SetAuthInfo(RegistryURL, RegistryUsername, RegistryPasswd); err != nil {
 		return err
 	}
-	logger.Info("%s login %s success", RegistryUsername, RegistryURL)
+	logrus.Infof("%s login %s success", RegistryUsername, RegistryURL)
 	return nil
 }
 
@@ -324,7 +321,7 @@ func (d DefaultImageService) Delete(imageNameOrID string, platforms []*v1.Platfo
 	if err != nil {
 		return err
 	}
-	logger.Info("image %s delete success", imageNameOrID)
+	logrus.Infof("image %s delete success", imageNameOrID)
 	return nil
 }
 

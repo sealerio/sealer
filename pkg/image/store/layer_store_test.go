@@ -19,12 +19,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	osUtils "github.com/sealerio/sealer/utils/os"
-
+	"github.com/sirupsen/logrus"
 	"gotest.tools/skip"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
+	osUtils "github.com/sealerio/sealer/utils/os"
 )
 
 const fileContent = "fake file content"
@@ -77,12 +76,12 @@ func cleanTmpLayers(layer mockROLayer) error {
 	}
 	err = os.RemoveAll(backend.LayerDataDir(layer.roLayer.id.ToDigest()))
 	if err != nil {
-		logger.Warn(err)
+		logrus.Warn(err)
 	}
 
 	err = os.RemoveAll(backend.LayerDBDir(layer.roLayer.id.ToDigest()))
 	if err != nil {
-		logger.Warn(err)
+		logrus.Warn(err)
 	}
 	return nil
 }
@@ -128,7 +127,7 @@ func TestLayerStore_RegisterLayerForBuilder(t *testing.T) {
 		for _, layer := range newLayers {
 			err := cleanTmpLayers(layer)
 			if err != nil {
-				logger.Error(err)
+				logrus.Error(err)
 			}
 		}
 	}()

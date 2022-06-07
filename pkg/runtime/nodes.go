@@ -19,15 +19,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sealerio/sealer/pkg/ipvs"
+	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
 
-	"github.com/sealerio/sealer/utils/net"
-
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/sealerio/sealer/logger"
-	"github.com/sealerio/sealer/pkg/ipvs"
 )
 
 const (
@@ -91,7 +89,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			logger.Info("Start to join %s as worker", node)
+			logrus.Infof("Start to join %s as worker", node)
 			err := k.checkMultiNetworkAddVIPRoute(node)
 			if err != nil {
 				return fmt.Errorf("failed to check multi network: %v", err)
@@ -99,7 +97,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			// send join node config, get cgroup driver on every join nodes
 			joinConfig, err := k.joinNodeConfig(node)
 			if err != nil {
-				return fmt.Errorf("failed to join node %s %v", node, err)
+				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
 			cmdWriteJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
@@ -109,12 +107,12 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
-				return fmt.Errorf("failed to join node %s %v", node, err)
+				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
 			if err := ssh.CmdAsync(node, addRegistryHostsAndLogin, cmdWriteJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd); err != nil {
-				return fmt.Errorf("failed to join node %s %v", node, err)
+				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
-			logger.Info("Succeeded in joining %s as worker", node)
+			logrus.Infof("Succeeded in joining %s as worker", node)
 			return err
 		})
 	}
@@ -129,15 +127,15 @@ func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			logger.Info("Start to delete worker %s", node)
+			logrus.Infof("Start to delete worker %s", node)
 			if err := k.deleteNode(node); err != nil {
-				return fmt.Errorf("delete node %s failed %v", node, err)
+				return fmt.Errorf("failed to delete node %s: %v", node, err)
 			}
 			err := k.deleteVIPRouteIfExist(node)
 			if err != nil {
 				return fmt.Errorf("failed to delete %s route: %v", node, err)
 			}
-			logger.Info("Succeeded in deleting worker %s", node)
+			logrus.Infof("Succeeded in deleting worker %s", node)
 			return nil
 		})
 	}
@@ -174,10 +172,10 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 		}
 		ssh, err := k.getHostSSHClient(k.GetMaster0IP())
 		if err != nil {
-			return fmt.Errorf("failed to delete node on master0,%v", err)
+			return fmt.Errorf("failed to delete node on master0: %v", err)
 		}
 		if err := ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
-			return fmt.Errorf("delete node %s failed %v", hostname, err)
+			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
 		}
 	}
 

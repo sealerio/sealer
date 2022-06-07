@@ -23,11 +23,11 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/utils/exec"
+	"github.com/sirupsen/logrus"
 
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/ssh"
 )
@@ -42,7 +42,7 @@ func VersionCompare(v1, v2 string) bool {
 	v2List := strings.Split(v2, ".")
 
 	if len(v1List) != 3 || len(v2List) != 3 {
-		logger.Error("error version format %s %s", v1, v2)
+		logrus.Errorf("error version format %s %s", v1, v2)
 		return false
 	}
 	if v1List[0] > v2List[0] {

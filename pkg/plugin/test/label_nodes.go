@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/plugin"
 )
@@ -37,7 +37,7 @@ type label struct {
 
 func (l LabelsNodes) Run(context plugin.Context, phase plugin.Phase) error {
 	if phase != plugin.PhasePostInstall || context.Plugin.Spec.Type != "LABEL_TEST_SO" {
-		logger.Debug("label nodes is PostInstall!")
+		logrus.Debug("label nodes is PostInstall!")
 		return nil
 	}
 	c, err := k8s.Newk8sClient()
@@ -73,13 +73,13 @@ func (l LabelsNodes) formatData(data string) map[string][]label {
 	m := make(map[string][]label)
 	items := strings.Split(data, "\n")
 	if len(items) == 0 {
-		logger.Debug("label data is empty!")
+		logrus.Debug("label data is empty!")
 		return m
 	}
 	for _, v := range items {
 		tmps := strings.Split(v, " ")
 		if len(tmps) != 2 {
-			//logger.Warn("label data is no-compliance with the rules! label data: %v", v)
+			//logrus.Warn("label data is no-compliance with the rules! label data: %v", v)
 			continue
 		}
 		ip := tmps[0]
@@ -88,7 +88,7 @@ func (l LabelsNodes) formatData(data string) map[string][]label {
 		for _, l := range labelStr {
 			tmp := strings.Split(l, "=")
 			if len(tmp) != 2 {
-				logger.Warn("label data is no-compliance with the rules! label data: %v", l)
+				logrus.Warnf("label data is no-compliance with the rules! label data: %v", l)
 				continue
 			}
 			labels = append(labels, label{

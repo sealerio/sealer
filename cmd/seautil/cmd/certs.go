@@ -17,9 +17,9 @@ package cmd
 import (
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/cert"
 )
 
@@ -43,7 +43,7 @@ var certsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cert.GenerateCert(config.CertPath, config.CertEtcdPath, config.AltNames, config.NodeIP, config.NodeName, config.ServiceCIDR, config.DNSDomain)
 		if err != nil {
-			logger.Error(err)
+			logrus.Error(err)
 			os.Exit(-1)
 		}
 	},

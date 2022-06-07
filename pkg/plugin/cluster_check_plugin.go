@@ -21,8 +21,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sirupsen/logrus"
 )
 
 type ClusterChecker struct {
@@ -39,7 +39,7 @@ func init() {
 
 func (c *ClusterChecker) Run(context Context, phase Phase) error {
 	if phase != PhasePreGuest || context.Plugin.Spec.Type != ClusterCheckPlugin {
-		logger.Debug("check cluster is PreGuest!")
+		logrus.Debug("check cluster is PreGuest!")
 		return nil
 	}
 	if err := c.waitClusterReady(goContext.TODO()); err != nil {
@@ -65,9 +65,9 @@ func (c *ClusterChecker) waitClusterReady(ctx goContext.Context) error {
 		select {
 		case status := <-clusterStatusChan:
 			if status == ClusterNotReady {
-				logger.Info("wait for the cluster to ready ")
+				logrus.Info("wait for the cluster to ready ")
 			} else if status == ClusterReady {
-				logger.Info("cluster is ready now")
+				logrus.Info("cluster is ready now")
 				return nil
 			}
 		case <-ctx.Done():

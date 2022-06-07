@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/utils/net"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -94,7 +94,7 @@ func (l *Taint) Run(context Context, phase Phase) (err error) {
 				if err != nil {
 					return err
 				}
-				logger.Info("successfully updated node %s taints to %v.", v.Address, updateTaints)
+				logrus.Infof("successfully updated node %s taints to %v.", v.Address, updateTaints)
 			}
 			break
 		}
@@ -184,7 +184,7 @@ func (l *Taint) UpdateTaints(taints []v1.Taint, ip string) []v1.Taint {
 func (l *Taint) removePresenceTaint(taint v1.Taint, ip string) {
 	for k, v := range l.TaintList[ip].AddTaintList {
 		if v.Key == taint.Key && v.Value == taint.Value && v.Effect == taint.Effect {
-			logger.Info("taint %s already exist", l.TaintList[ip].AddTaintList[k].String())
+			logrus.Infof("taint %s already exist", l.TaintList[ip].AddTaintList[k].String())
 			l.TaintList[ip].AddTaintList = append(l.TaintList[ip].AddTaintList[:k], l.TaintList[ip].AddTaintList[k+1:]...)
 			break
 		}

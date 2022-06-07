@@ -20,18 +20,17 @@ import (
 	"io"
 	"os"
 
-	yaml2 "github.com/sealerio/sealer/utils"
-
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	runtime2 "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/logger"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	yaml2 "github.com/sealerio/sealer/utils"
+	"github.com/sirupsen/logrus"
 )
 
 type PreProcessor interface {
@@ -103,7 +102,7 @@ func (c *ClusterFile) PrePareCluster() error {
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			logger.Fatal("failed to close file")
+			logrus.Fatal("failed to close file")
 		}
 	}()
 	d := yaml.NewYAMLOrJSONDecoder(f, 4096)
