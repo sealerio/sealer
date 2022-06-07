@@ -238,7 +238,7 @@ func (d DefaultImageService) Login(RegistryURL, RegistryUsername, RegistryPasswd
 		return fmt.Errorf("failed to read default auth file: %v", err)
 	}
 
-	if err := svc.SetAuthInfo(RegistryURL, RegistryUsername, RegistryPasswd); err != nil {
+	if err := svc.SetAuthInfo(ConvertToHostname(RegistryURL), RegistryUsername, RegistryPasswd); err != nil {
 		return err
 	}
 	logrus.Infof("%s login %s success", RegistryUsername, RegistryURL)
