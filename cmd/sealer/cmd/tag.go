@@ -22,7 +22,7 @@ import (
 
 var tagCmd = &cobra.Command{
 	Use:   "tag",
-	Short: "create a new tag that refers to a local CloudImage",
+	Short: "create a new tag that refers to a local ClusterImage",
 	// TODO: add long description.
 	Long:    "",
 	Example: `sealer tag kubernetes:v1.19.8 registry.cn-qingdao.aliyuncs.com/sealer-apps/kubernetes:v1.19.8`,

@@ -93,7 +93,7 @@ spec:
 
 ### How to define your own kubeadm config
 
-The better way is to add kubeadm config directly into Clusterfile, of course every CloudImage has it default config:
+The better way is to add kubeadm config directly into Clusterfile, of course every ClusterImage has it default config:
 You can only define part of those configs, sealer will merge then into default config.
 
 ```yaml

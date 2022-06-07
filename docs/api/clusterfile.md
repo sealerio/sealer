@@ -9,7 +9,7 @@ metadata:
     sealer.aliyun.com/etcd: "/data/etcd"
     sealer.aliyun.com/docker: "/var/lib/docker"
 spec:
-  image: my-kubernetes:v1.18.3 # name of CloudImage
+  image: my-kubernetes:v1.18.3 # name of ClusterImage
   env: # the cluster global ENV
   - DOMAIN="sealer.alibaba.com"
   provider: ALI_CLOUD # OR BAREMETAL , CONTAINER.

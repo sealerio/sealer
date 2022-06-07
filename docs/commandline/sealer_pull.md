@@ -1,6 +1,6 @@
 ## sealer pull
 
-pull cloud image to local
+pull ClusterImage to local
 
 ```
 sealer pull [flags]

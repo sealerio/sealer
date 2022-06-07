@@ -1,6 +1,6 @@
 # Auto-build
 
-Automatic cluster image build is to meet the needs of some users, Users need to build a specified version of kubernetes for automatic building.
+Automatic ClusterImage build is to meet the needs of some users, Users need to build a specified version of kubernetes for automatic building.
 
 ## Quick start
 Standard directive:

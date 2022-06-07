@@ -21,7 +21,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
+	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/store"
 	"github.com/sealerio/sealer/pkg/runtime"
@@ -39,16 +39,16 @@ import (
 	"k8s.io/apimachinery/pkg/version"
 )
 
-// Applier cloud builder using cloud provider to build a cluster image
+// Applier cloud builder using cloud provider to build a ClusterImage
 type Applier struct {
-	ClusterDesired     *v2.Cluster
-	ClusterCurrent     *v2.Cluster
-	ClusterFile        clusterfile.Interface
-	ImageManager       image.Service
-	CloudImageMounter  cloudimage.Interface
-	Client             *k8s.Client
-	ImageStore         store.ImageStore
-	CurrentClusterInfo *version.Info
+	ClusterDesired      *v2.Cluster
+	ClusterCurrent      *v2.Cluster
+	ClusterFile         clusterfile.Interface
+	ImageManager        image.Service
+	ClusterImageMounter clusterimage.Interface
+	Client              *k8s.Client
+	ImageStore          store.ImageStore
+	CurrentClusterInfo  *version.Info
 }
 
 func (c *Applier) Delete() (err error) {
@@ -106,7 +106,7 @@ func (c *Applier) mountClusterImage() error {
 	if err != nil {
 		return err
 	}
-	err = c.CloudImageMounter.MountImage(c.ClusterDesired)
+	err = c.ClusterImageMounter.MountImage(c.ClusterDesired)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func (c *Applier) mountClusterImage() error {
 }
 
 func (c *Applier) unMountClusterImage() error {
-	return c.CloudImageMounter.UnMountImage(c.ClusterDesired)
+	return c.ClusterImageMounter.UnMountImage(c.ClusterDesired)
 }
 
 func (c *Applier) reconcileCluster() error {
@@ -224,7 +224,7 @@ func (c *Applier) upgrade() error {
 	}
 	logrus.Infof("Start to upgrade this cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
 
-	upgradeProcessor, err := processor.NewUpgradeProcessor(platform.DefaultMountCloudImageDir(c.ClusterDesired.Name), runtimeInterface)
+	upgradeProcessor, err := processor.NewUpgradeProcessor(platform.DefaultMountClusterImageDir(c.ClusterDesired.Name), runtimeInterface)
 	if err != nil {
 		return err
 	}
@@ -256,7 +256,7 @@ func (c *Applier) initK8sClient() error {
 }
 
 func (c *Applier) installApp() error {
-	rootfs := platform.DefaultMountCloudImageDir(c.ClusterDesired.Name)
+	rootfs := platform.DefaultMountClusterImageDir(c.ClusterDesired.Name)
 	// use k8sClient to fetch current cluster version.
 	info := c.CurrentClusterInfo
 

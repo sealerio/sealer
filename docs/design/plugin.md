@@ -141,7 +141,7 @@ spec:
 at present, we only support the golang so file as out of tree plugin. More description about golang plugin
 see [golang plugin website](https://pkg.go.dev/plugin).
 
-copy the so file and the plugin config to your cloud image at build stage use `Kubefile`,sealer will parse and execute
+copy the so file and the plugin config to your ClusterImage at build stage use `Kubefile`,sealer will parse and execute
 it.
 
 plugin config:
@@ -166,7 +166,7 @@ COPY label_nodes.so plugin
 COPY label_nodes.yaml plugin
 ```
 
-Build a cluster image that contains the golang plugin (or more plugins):
+Build a ClusterImage that contains the golang plugin (or more plugins):
 
 ```shell script
 sealer build -m lite -t kubernetes-post-install:v1.19.8 .
@@ -245,7 +245,7 @@ FROM kubernetes:v1.19.8
 COPY shell.yaml plugin
 ```
 
-Build a cluster image that contains an installation iscsi plugin (or more plugins):
+Build a ClusterImage that contains an installation iscsi plugin (or more plugins):
 
 ```shell script
 sealer build -m lite -t kubernetes-iscsi:v1.19.8 .

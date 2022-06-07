@@ -63,7 +63,7 @@ func NewPlugins(cluster *v2.Cluster, plugins []v1.Plugin) Plugins {
 
 // Load plugin configs and shared object(.so) file from $mountRootfs/plugins dir.
 func (c *PluginsProcessor) Load() error {
-	path := filepath.Join(platform.DefaultMountCloudImageDir(c.Cluster.Name), "plugins")
+	path := filepath.Join(platform.DefaultMountClusterImageDir(c.Cluster.Name), "plugins")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return nil

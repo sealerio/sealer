@@ -35,7 +35,7 @@ var genCmd = &cobra.Command{
 
 The takeover actually is to generate a Clusterfile by kubeconfig.
 Sealer will call kubernetes API to get masters and nodes IP info, then generate a Clusterfile.
-Also sealer will pull a CloudImage which matches the kubernetes version.
+Also sealer will pull a ClusterImage which matches the kubernetes version.
 
 Check generated Clusterfile: 'cat .sealer/<cluster name>/Clusterfile'
 
@@ -49,7 +49,7 @@ Then you can use any sealer command to manage the cluster like:
 > Scale
 	sealer join --node x.x.x.x
 
-> Deploy a CloudImage into the cluster
+> Deploy a ClusterImage into the cluster
 	sealer run mysql-cluster:5.8`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if flag.Passwd == "" || flag.Image == "" {
@@ -73,7 +73,7 @@ func init() {
 	genCmd.Flags().Uint16Var(&flag.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	genCmd.Flags().StringVar(&flag.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set server private key")
 	genCmd.Flags().StringVar(&flag.PkPassword, "pk-passwd", "", "set server private key password")
-	genCmd.Flags().StringVar(&flag.Image, "image", "", "Set taken over CloudImage")
+	genCmd.Flags().StringVar(&flag.Image, "image", "", "Set taken over ClusterImage")
 	genCmd.Flags().StringVar(&flag.Name, "name", "default", "Set taken over cluster name")
 	genCmd.Flags().StringVar(&flag.Passwd, "passwd", "", "Set taken over ssh passwd")
 }

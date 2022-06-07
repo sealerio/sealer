@@ -46,7 +46,7 @@ merge images:
 	}
 	mf = &mergeFlag{}
 	mergeCmd.Flags().StringVarP(&mf.ImageName, "target-image", "t", "", "target image name")
-	mergeCmd.Flags().StringVar(&mf.Platform, "platform", "", "set CloudImage platform, if not set,keep same platform with runtime")
+	mergeCmd.Flags().StringVar(&mf.Platform, "platform", "", "set ClusterImage platform, if not set,keep same platform with runtime")
 
 	if err := mergeCmd.MarkFlagRequired("target-image"); err != nil {
 		logrus.Errorf("failed to init flag target image: %v", err)

@@ -3,11 +3,11 @@
 ## Introduction
 
 Kubefile is a script, composed of various commands(instructions) and arguments
-listed successively to automatically perform an action on a base CloudImage in
-order to create(or form) a new CloudImage. It is used by the sealer tool on
-only Linux platform for building CloudImage. The reason of naming it as Kubefile,
+listed successively to automatically perform an action on a base ClusterImage in
+order to create(or form) a new ClusterImage. It is used by the sealer tool on
+only Linux platform for building ClusterImage. The reason of naming it as Kubefile,
 which contains the same prefix 'Kube' of Kubernetes, is that there is always
-a Kubernetes binary located in each CloudImage. And when CloudImage is ran from
+a Kubernetes binary located in each ClusterImage. And when ClusterImage is ran from
 Kubefile, the built-in Kubernetes cluster will be setup and manage all infrastructure,
 and provide orchestration ability to upper applications.
 
@@ -25,7 +25,7 @@ prepare three nodes which meet the reprequisites of etcd installation, download
 and configure essential dependencies of etcd, and start to install and construct
 an etcd cluster. If etcd cluster is to be installed by Helm on an existing Kubernets,
 it could be shorten steps above without concerning about reprequisites and manually
-startup trigger. If there is no existing Kubernetes, Kubefile and CloudImage are
+startup trigger. If there is no existing Kubernetes, Kubefile and ClusterImage are
 the best to choice to setup etcd cluster with one command just in minutes.
 
 ## Concept Origin
@@ -33,11 +33,11 @@ the best to choice to setup etcd cluster with one command just in minutes.
 Kubefile has quite similar concept with Dockerfile. And Kubefile is indeed inpired
 by Dockerfile. Actullay, Dockerfile encapsulates single-host application(s) into a single-host
 box(Docker image). While Kubefile encapsulates cluster-level distributed
-application(s) into a cluster-level box(CloudImage).
+application(s) into a cluster-level box(ClusterImage).
 
 Docker uses Dockerfile to build Docker image, and run Docker container with Docker image.
 
-sealer uses Kubefile to build CloudImage, and run Kubernetes cluster with CloudImage.
+sealer uses Kubefile to build ClusterImage, and run Kubernetes cluster with ClusterImage.
 
 Docker tackles almost all of delivery issues of single-host application(s). sealer expands
 the concept to cluster level, and mostly focus on the perspetives of distributed application(s).
@@ -49,15 +49,15 @@ Kubefile's concept in built on the basis of Dockerfile, Kubernetes.
 
 Kubefile is always located somewhere on a machine, or in a git repository. It can be placed with binaries, packages,
 YAML files and any others. And it can be placed alone as well. Since Kubefile is used to
-build a CloudImage and CloudImage represents distributed application(s), there must be
-something else which should be included except Kubefile. It is **building context**, the context of CloudImage builing procedure.
+build a ClusterImage and ClusterImage represents distributed application(s), there must be
+something else which should be included except Kubefile. It is **building context**, the context of ClusterImage builing procedure.
 
 Here is a Kubefile folder example:
 
 ![image](https://user-images.githubusercontent.com/9465626/168005080-a9b47180-6284-484c-93bc-717e4e5f490f.png)
 
 There is a Kubefile and a `README.md` and `mysql-manifest.yaml` located in the
-folder. When a CloudImage is being built, the folder context is called
+folder. When a ClusterImage is being built, the folder context is called
 **building context**. In details, Kubefile has the following content:
 
 ```
@@ -69,24 +69,24 @@ CMD kubectl apply -f mysql-manifest.yaml
 Like what we defined Kubefile at the top of this documentation, this Kubefile
 contains three commands. Every command follows Kubefile syntax. Here are
 brief illustration of these commands. `FROM kubernetes:v1.18.3` tells user that
-the building CloudImage is from a `kubernetes:v1.18.3` CloudImage, or based on
+the building ClusterImage is from a `kubernetes:v1.18.3` ClusterImage, or based on
 `kubernetes:v1.18.3`. `COPY mysql-manifest.yaml .` means the building procedure
 should `COPY` a YAML file from the building context into the newly building
-CloudImage. `CMD kubectl apply -f mysql-manifest.yaml` sets an executable
-command of the CloudImage, and when the CloudImage runs up, the command will
+ClusterImage. `CMD kubectl apply -f mysql-manifest.yaml` sets an executable
+command of the ClusterImage, and when the ClusterImage runs up, the command will
 be executed automatically. For more commands type illustration, please refer
 to Kubefile Syntax.
 
 ## How to use Kubefile
 
 It is quite easy for engineers to use Kubefile. Just one command of `sealer build -f KUBEFILE_PATH .`.
-sealer is the tool which applies Kubefile and builds a CloudImage from Kubefile.
+sealer is the tool which applies Kubefile and builds a ClusterImage from Kubefile.
 In details, when engineer executes `sealer build` command, sealer binary will
 start to run as a process, pass on demand building context into process context,
 create a layer of OCI-compatible image for each command, and finally merge all
-layers to be a complete CloudImage. The CloudImage could be stored locally and
+layers to be a complete ClusterImage. The ClusterImage could be stored locally and
 pushed to remote image registries as well. In a word, engineer can use Kubefile
-to build CloudImage. Only CloudImage can be run to organize a cluster directly.
+to build ClusterImage. Only ClusterImage can be run to organize a cluster directly.
 
 ## Kubefile Command Syntax
 

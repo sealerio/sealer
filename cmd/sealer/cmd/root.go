@@ -41,7 +41,7 @@ var rootCmd = &cobra.Command{
 	Use:   "sealer",
 	Short: "A tool to build, share and run any distributed applications.",
 	Long: `sealer is a tool to seal application's all dependencies and Kubernetes
-into CloudImage by Kubefile, distribute this application anywhere via CloudImage, 
+into ClusterImage by Kubefile, distribute this application anywhere via ClusterImage, 
 and run it within any cluster with Clusterfile in one command.
 `,
 }

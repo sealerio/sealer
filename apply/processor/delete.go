@@ -21,7 +21,7 @@ import (
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
-	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
+	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/plugin"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -29,7 +29,7 @@ import (
 )
 
 type DeleteProcessor struct {
-	cloudImageMounter cloudimage.Interface
+	cloudImageMounter clusterimage.Interface
 	ClusterFile       clusterfile.Interface
 	Plugins           plugin.Plugins
 }
@@ -91,7 +91,7 @@ func (d *DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
 }
 
 func NewDeleteProcessor(clusterFile clusterfile.Interface) (Processor, error) {
-	mounter, err := filesystem.NewCloudImageMounter()
+	mounter, err := filesystem.NewClusterImageMounter()
 	if err != nil {
 		return nil, err
 	}

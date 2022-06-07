@@ -1,6 +1,6 @@
 ## sealer build
 
-cloud image local build command line
+ClusterImage local build command line
 
 ### Synopsis
 
@@ -32,9 +32,9 @@ build without cache:
 ### Options
 
 ```
-  -m, --mode string   cluster image build type,default is cloud
+  -m, --mode string   ClusterImage build type,default is cloud
   -h, --help               help for build
-  -t, --imageName string   cluster image name
+  -t, --imageName string   ClusterImage name
   -f, --kubefile string    kubefile filepath (default "Kubefile")
       --no-cache           build without cache
 ```

@@ -22,7 +22,7 @@ import (
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/filesystem"
-	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
+	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/guest"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/plugin"
@@ -36,7 +36,7 @@ import (
 type CreateProcessor struct {
 	ClusterFile       clusterfile.Interface
 	ImageManager      image.Service
-	cloudImageMounter cloudimage.Interface
+	cloudImageMounter clusterimage.Interface
 	Runtime           runtime.Interface
 	Guest             guest.Interface
 	Config            config.Interface
@@ -105,12 +105,12 @@ func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 
 func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	regConfig := runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), cluster.GetMaster0IP())
+	regConfig := runtime.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 	if net.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
 
-	fs, err := filesystem.NewFilesystem(platform.DefaultMountCloudImageDir(cluster.Name))
+	fs, err := filesystem.NewFilesystem(platform.DefaultMountClusterImageDir(cluster.Name))
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func NewCreateProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 		return nil, err
 	}
 
-	mounter, err := filesystem.NewCloudImageMounter()
+	mounter, err := filesystem.NewClusterImageMounter()
 	if err != nil {
 		return nil, err
 	}

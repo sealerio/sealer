@@ -1,6 +1,6 @@
 ## sealer push
 
-push cloud image to registry
+push ClusterImage to registry
 
 ```
 sealer push [flags]

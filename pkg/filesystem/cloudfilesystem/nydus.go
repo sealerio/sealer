@@ -84,7 +84,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 		return fmt.Errorf("failed to get local address, %v", err)
 	}
 	var (
-		nydusdfileSrc   = filepath.Join(platform.DefaultMountCloudImageDir(cluster.Name), "nydusdfile")
+		nydusdfileSrc   = filepath.Join(platform.DefaultMountClusterImageDir(cluster.Name), "nydusdfile")
 		nydusdFileDir   = common.DefaultTheClusterNydusdFileDir(cluster.Name)
 		nydusdserverDir = filepath.Join(nydusdFileDir, "serverfile")
 		nydusdfileCpCmd = fmt.Sprintf("rm -rf %s && cp -r %s %s", nydusdFileDir, nydusdfileSrc, nydusdFileDir)
@@ -93,7 +93,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 		nydusdCleanCmd  = fmt.Sprintf(RemoteNydusdStop, filepath.Join(nydusdDir, "clean.sh"), nydusdDir)
 		cleanCmd        = fmt.Sprintf("echo '%s' >> "+common.DefaultClusterClearBashFile, nydusdCleanCmd, cluster.Name)
 		envProcessor    = env.NewEnvProcessor(cluster)
-		config          = runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), cluster.GetMaster0IP())
+		config          = runtime.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 		initCmd         = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 	)
 	_, err = exec.RunSimpleCmd(nydusdfileCpCmd)
@@ -105,7 +105,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	dirlist := ""
 	for _, IP := range ipList {
 		ip := IP
-		src := platform.GetMountCloudImagePlatformDir(cluster.Name, clusterPlatform[ip])
+		src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip])
 		if !mountDirs[src] {
 			mountDirs[src] = true
 			dirlist = dirlist + fmt.Sprintf(",%s", src)
@@ -130,7 +130,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
-			src := platform.GetMountCloudImagePlatformDir(cluster.Name, clusterPlatform[ip])
+			src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip])
 			src = filepath.Join(nydusdFileDir, filepath.Base(src))
 			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {

@@ -243,10 +243,10 @@ func normalizeOS(os string) string {
 	return os
 }
 
-func DefaultMountCloudImageDir(clusterName string) string {
-	return GetMountCloudImagePlatformDir(clusterName, *GetDefaultPlatform())
+func DefaultMountClusterImageDir(clusterName string) string {
+	return GetMountClusterImagePlatformDir(clusterName, *GetDefaultPlatform())
 }
 
-func GetMountCloudImagePlatformDir(clusterName string, platform v1.Platform) string {
+func GetMountClusterImagePlatformDir(clusterName string, platform v1.Platform) string {
 	return filepath.Join(common.DefaultClusterRootfsDir, clusterName, "mount", fmt.Sprintf("%s_%s_%s", platform.OS, platform.Architecture, platform.Variant))
 }

@@ -1,6 +1,6 @@
 ## sealer images
 
-list all cluster images
+list all ClusterImages
 
 ```
 sealer images [flags]

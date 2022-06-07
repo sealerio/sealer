@@ -61,7 +61,7 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 		return nil, err
 	}
 
-	mounter, err := filesystem.NewCloudImageMounter()
+	mounter, err := filesystem.NewClusterImageMounter()
 	if err != nil {
 		return nil, err
 	}
@@ -78,11 +78,11 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 		cluster.SetAnnotations(common.ClusterfileName, path)
 	}
 	return &applydriver.Applier{
-		ClusterDesired:    &cluster,
-		ClusterFile:       Clusterfile,
-		ImageManager:      imgSvc,
-		CloudImageMounter: mounter,
-		ImageStore:        is,
+		ClusterDesired:      &cluster,
+		ClusterFile:         Clusterfile,
+		ImageManager:        imgSvc,
+		ClusterImageMounter: mounter,
+		ImageStore:          is,
 	}, nil
 }
 
@@ -99,7 +99,7 @@ func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 		return nil, err
 	}
 
-	mounter, err := filesystem.NewCloudImageMounter()
+	mounter, err := filesystem.NewClusterImageMounter()
 	if err != nil {
 		return nil, err
 	}
@@ -110,9 +110,9 @@ func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 	}
 
 	return &applydriver.Applier{
-		ClusterDesired:    cluster,
-		ImageManager:      imgSvc,
-		CloudImageMounter: mounter,
-		ImageStore:        is,
+		ClusterDesired:      cluster,
+		ImageManager:        imgSvc,
+		ClusterImageMounter: mounter,
+		ImageStore:          is,
 	}, nil
 }

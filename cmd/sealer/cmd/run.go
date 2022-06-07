@@ -30,7 +30,7 @@ var runArgs *apply.Args
 
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "start to run a cluster from a CloudImage",
+	Short: "start to run a cluster from a ClusterImage",
 	Long:  `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`,
 	Example: `
 create cluster to your bare metal server, appoint the iplist:

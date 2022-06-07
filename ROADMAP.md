@@ -3,7 +3,7 @@
 ## v0.1.3
 
 * general e2e tests
-* support build, apply and push a CloudImage
+* support build, apply and push a ClusterImage
 
 ## v0.2.0
 
@@ -23,7 +23,7 @@
 * rootfs mount filesystem
 * sealer hub UI
 
-## official registry opensource cloud images
+## official registry opensource ClusterImages
 
 * [ ] [dashboard](https://github.com/kubernetes/dashboard)
 * [ ] [prometheus stack](https://github.com/prometheus-operator/kube-prometheus)

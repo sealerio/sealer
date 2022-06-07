@@ -18,18 +18,18 @@ import (
 	"fmt"
 
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
-	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
+	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/image/store"
 	"github.com/sealerio/sealer/pkg/runtime"
 )
 
-// NewCloudImageMounter :mount and unmount cloud image.
-func NewCloudImageMounter() (cloudimage.Interface, error) {
+// NewCloudClusterMounter :mount and unmount ClusterImage.
+func NewClusterImageMounter() (clusterimage.Interface, error) {
 	is, err := store.NewDefaultImageStore()
 	if err != nil {
 		return nil, err
 	}
-	return cloudimage.NewCloudImageMounter(is)
+	return clusterimage.NewClusterImageMounter(is)
 }
 
 // NewFilesystem :according to the Metadata file content to determine what kind of Filesystem will be load.
