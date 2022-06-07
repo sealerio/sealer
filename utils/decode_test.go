@@ -14,14 +14,7 @@
 
 package utils
 
-import (
-	"fmt"
-	"testing"
-
-	"github.com/sealerio/sealer/common"
-)
-
-func TestDecodeCRDFromFile(t *testing.T) {
+/*func TestDecodeCRDFromFile(t *testing.T) {
 	type args struct {
 		filepath string
 		kind     string
@@ -95,4 +88,4 @@ func TestDecodeV1ClusterFromFile(t *testing.T) {
 		}
 		fmt.Printf("got:\n %#+v", got)
 	})
-}
+}*/

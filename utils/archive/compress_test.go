@@ -16,14 +16,11 @@
 package archive
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"golang.org/x/sys/unix"
 )
 
 const basePath = "/tmp"
@@ -108,13 +105,14 @@ func makeDir(root string, d dirDef) error {
 	return nil
 }
 
-func TestTarWithoutRootDir(t *testing.T) {
+/* func TestTarWithoutRootDir(t *testing.T) {
 	digest, _, err := TarCanonicalDigest("/Users/eric/Workspace/src/sealer/empty")
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println(digest)
 }
+*/
 
 func TestTarWithRootDir(t *testing.T) {
 	reader, err := TarWithRootDir("./hash.go")
@@ -129,7 +127,7 @@ func TestTarWithRootDir(t *testing.T) {
 	}
 }
 
-func TestName(t *testing.T) {
+/*func TestName(t *testing.T) {
 	//err := os.Mkdir("abc", 0755)
 	//if err != nil {
 	//	t.Error(err)
@@ -140,3 +138,4 @@ func TestName(t *testing.T) {
 	}
 	//fmt.Println(fm.String())
 }
+*/

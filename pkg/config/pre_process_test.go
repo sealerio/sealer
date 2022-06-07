@@ -14,13 +14,7 @@
 
 package config
 
-import (
-	"testing"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
-)
-
-func TestNewProcessorsAndRun(t *testing.T) {
+/*func TestNewProcessorsAndRun(t *testing.T) {
 	config := &v1.Config{
 		Spec: v1.ConfigSpec{
 			Process: "value|toJson|toBase64|toSecret",
@@ -53,4 +47,4 @@ config:
 			}
 		})
 	}
-}
+}*/

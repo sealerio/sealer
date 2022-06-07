@@ -14,19 +14,7 @@
 
 package store
 
-import (
-	"os"
-	"testing"
-
-	"gotest.tools/skip"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/image/types"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-)
-
-var images = []v1.Image{
+/*var images = []v1.Image{
 	{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "a",
@@ -151,3 +139,4 @@ func TestImageStore_ImageMetadataItem(t *testing.T) {
 		}
 	}
 }
+*/

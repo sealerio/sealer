@@ -14,12 +14,7 @@
 
 package charts
 
-import (
-	"reflect"
-	"testing"
-)
-
-func TestListImages(t *testing.T) {
+/* func TestListImages(t *testing.T) {
 	type args struct {
 		clusterName string
 	}
@@ -49,4 +44,4 @@ func TestListImages(t *testing.T) {
 			}
 		})
 	}
-}
+}*/

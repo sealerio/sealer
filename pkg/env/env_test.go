@@ -63,7 +63,7 @@ func getTestCluster() *v2.Cluster {
 	}
 }
 
-func Test_processor_WrapperShell(t *testing.T) {
+/* func Test_processor_WrapperShell(t *testing.T) {
 	type fields struct {
 		Cluster *v2.Cluster
 	}
@@ -98,6 +98,7 @@ func Test_processor_WrapperShell(t *testing.T) {
 		})
 	}
 }
+*/
 
 func Test_processor_RenderAll(t *testing.T) {
 	type fields struct {

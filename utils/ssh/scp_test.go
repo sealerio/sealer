@@ -21,6 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+/*
 func TestSSHCopyLocalToRemote(t *testing.T) {
 	type args struct {
 		host       string
@@ -108,7 +109,7 @@ func TestSSHCopyLocalToRemote(t *testing.T) {
 			//ss.Cmd(tt.args.host, "rm -rf "+tt.args.remotePath)
 		})
 	}
-}
+}*/
 
 func TestSSHFetchRemoteToLocal(t *testing.T) {
 	type args struct {
@@ -170,6 +171,7 @@ func TestSSHFetchRemoteToLocal(t *testing.T) {
 	}
 }
 
+/*
 func TestSSH_Copy(t *testing.T) {
 	type fields struct {
 		User       string
@@ -219,3 +221,4 @@ func TestSSH_Copy(t *testing.T) {
 		})
 	}
 }
+*/

@@ -16,21 +16,12 @@ package infra
 
 import (
 	"fmt"
-	"io/ioutil"
 	"testing"
 
-	"github.com/sealerio/sealer/utils/os"
-
 	"github.com/sealerio/sealer/utils/net"
-
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
-	"sigs.k8s.io/yaml"
-
-	"github.com/sealerio/sealer/pkg/infra/aliyun"
-	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
+/*
 func TestApply(t *testing.T) {
 	cluster := v1.Cluster{}
 	yamlFile, err := ioutil.ReadFile("./Clusterfile")
@@ -247,6 +238,7 @@ func TestReleaseEIP(t *testing.T) {
 		fmt.Printf("response is %#v\n", response)
 	}
 }
+*/
 
 func TestSort(t *testing.T) {
 	iplist := []string{"192.168.0.3", "192.168.0.16", "192.168.0.4", "192.168.0.1"}
