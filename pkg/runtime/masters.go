@@ -525,6 +525,5 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 
 	k.decodeMaster0Output(out)
 
-	logger.Info("join token: %s hash: %s certifacate key: %s", k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey())
 	return nil
 }

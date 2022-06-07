@@ -29,13 +29,12 @@ import (
 type connLogger struct {
 	sync.Mutex
 	innerWriter    io.WriteCloser
-	ReconnectOnMsg bool   `json:"reconnectOnMsg"`
-	Reconnect      bool   `json:"reconnect"`
-	Net            string `json:"net"`
-	Addr           string `json:"addr"`
-	Level          string `json:"level"`
-	LogLevel       logLevel
-	illNetFlag     bool //network exception flag
+	ReconnectOnMsg bool     `json:"reconnectOnMsg"`
+	Reconnect      bool     `json:"reconnect"`
+	Net            string   `json:"net"`
+	Addr           string   `json:"addr"`
+	LogLevel       logLevel `json:"logLevel"`
+	illNetFlag     bool     //network exception flag
 }
 
 func (c *connLogger) Init(jsonConfig string) error {
@@ -47,9 +46,7 @@ func (c *connLogger) Init(jsonConfig string) error {
 	if err != nil {
 		return err
 	}
-	if l, ok := LevelMap[c.Level]; ok {
-		c.LogLevel = l
-	}
+
 	if c.innerWriter != nil {
 		err := c.innerWriter.Close()
 		if err != nil {

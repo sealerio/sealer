@@ -28,10 +28,16 @@ import (
 )
 
 type rootOpts struct {
-	cfgFile     string
-	debugModeOn bool
-	hideLogTime bool
-	hideLogPath bool
+	cfgFile          string
+	debugModeOn      bool
+	hideLogTime      bool
+	hideLogPath      bool
+	remoteLoggerOpts remoteLoggerOpts
+}
+
+type remoteLoggerOpts struct {
+	URL      string
+	TaskName string
 }
 
 var rootOpt rootOpts
@@ -61,6 +67,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogTime, "hide-time", false, "hide the log time")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogPath, "hide-path", false, "hide the log path")
+	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerOpts.URL, "remote-logger-url", "", "remote logger url, if not empty, will send log to this url")
+	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerOpts.TaskName, "task-name", "", "task name which will embeded in the remote logger header, only valid when --remote-logger-url is set")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.DisableAutoGenTag = true
 }
@@ -85,5 +93,5 @@ func initConfig() {
 	if !rootOpt.hideLogTime {
 		logger.SetTimeFormat(logger.LogTimeDefaultFormat)
 	}
-	logger.Cfg(rootOpt.debugModeOn)
+	logger.Cfg(rootOpt.debugModeOn, rootOpt.remoteLoggerOpts.URL, rootOpt.remoteLoggerOpts.TaskName)
 }

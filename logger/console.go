@@ -48,9 +48,8 @@ var colors = []brush{
 type consoleLogger struct {
 	stdOutMux sync.Mutex
 	stdErrMux sync.Mutex
-	Level     string `json:"level"`
-	Colorful  bool   `json:"color"`
-	LogLevel  logLevel
+	Colorful  bool     `json:"color"`
+	LogLevel  logLevel `json:"logLevel"`
 }
 
 func (c *consoleLogger) Init(jsonConfig string) error {
@@ -58,17 +57,15 @@ func (c *consoleLogger) Init(jsonConfig string) error {
 		return nil
 	}
 
-	err := json.Unmarshal([]byte(jsonConfig), c)
+	if err := json.Unmarshal([]byte(jsonConfig), c); err != nil {
+		return err
+	}
+
 	if runtime.GOOS == common.WINDOWS {
 		c.Colorful = false
 	}
 
-	if l, ok := LevelMap[c.Level]; ok {
-		c.LogLevel = l
-		return nil
-	}
-
-	return err
+	return nil
 }
 
 func (c *consoleLogger) LogWrite(when time.Time, msgText interface{}, level logLevel) error {

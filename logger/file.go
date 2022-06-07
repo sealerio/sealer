@@ -34,16 +34,15 @@ type fileLogger struct {
 	sync.RWMutex
 	fileWriter *os.File
 
-	Filename   string `json:"filename"`
-	Append     bool   `json:"append"`
-	MaxLines   int    `json:"maxlines"`
-	MaxSize    int    `json:"maxsize"`
-	Daily      bool   `json:"daily"`
-	MaxDays    int64  `json:"maxdays"`
-	Level      string `json:"level"`
-	PermitMask string `json:"permit"`
+	Filename   string   `json:"filename"`
+	Append     bool     `json:"append"`
+	MaxLines   int      `json:"maxlines"`
+	MaxSize    int      `json:"maxsize"`
+	Daily      bool     `json:"daily"`
+	MaxDays    int64    `json:"maxdays"`
+	LogLevel   logLevel `json:"logLevel"`
+	PermitMask string   `json:"permit"`
 
-	LogLevel             logLevel
 	maxSizeCurSize       int
 	maxLinesCurLines     int
 	dailyOpenDate        int
@@ -68,11 +67,8 @@ func (f *fileLogger) Init(jsonConfig string) error {
 	if f.suffix == "" {
 		f.suffix = ".log"
 	}
-	if l, ok := LevelMap[f.Level]; ok {
-		f.LogLevel = l
-	}
-	err = f.newFile()
-	return err
+
+	return f.newFile()
 }
 
 func (f *fileLogger) needCreateFresh(size int, day int) bool {

@@ -77,6 +77,7 @@ const (
 	AdapterConsole       = "console"
 	AdapterFile          = "file"
 	AdapterConn          = "conn"
+	AdapterRemote        = "remote"
 )
 
 type logLevel int
@@ -146,19 +147,18 @@ type logConfig struct {
 	Console    *consoleLogger `json:"Console,omitempty"`
 	File       *fileLogger    `json:"File,omitempty"`
 	Conn       *connLogger    `json:"Conn,omitempty"`
+	Remote     *remoteLogger  `json:"Remote,omitempty"`
 }
 
 func init() {
 	defaultLogger = NewLogger(3)
 }
 
-func Cfg(debugMod bool) {
-	logLev := 5
-	level := "INFO"
+func Cfg(debugMod bool, remoteLoggerURL, taskName string) {
+	logLev := LevelInformational
 
 	if debugMod {
-		level = "DEBG"
-		logLev = 6
+		logLev = LevelDebug
 	}
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
@@ -167,8 +167,7 @@ func Cfg(debugMod bool) {
 		viper.SetConfigType("json")
 		err := viper.Unmarshal(&logCfg)
 		if err == nil {
-			logCfg.Console.Level = level
-			logCfg.Console.LogLevel = logLevel(logLev)
+			logCfg.Console.LogLevel = logLev
 			cfg, err := json.Marshal(&logCfg)
 			if err == nil {
 				SetLogger(string(cfg))
@@ -179,23 +178,33 @@ func Cfg(debugMod bool) {
 
 	SetLogger(fmt.Sprintf(`{
 					"Console": {
-						"level": "%s",
 						"color": true,
-						"LogLevel": %d
+						"logLevel": %d
 					},
 					"File": {
 						"filename": "%s/%s.log",
-						"level": "TRAC",
 						"daily": true,
 						"maxlines": 1000000,
 						"maxsize": 1,
 						"maxdays": -1,
 						"append": true,
 						"permit": "0660",
-						"LogLevel":0
+						"logLevel": %d
 				}}`,
-		level, logLev, common.DefaultLogDir, time.Now().Format("2006-01-02"),
+		logLev, common.DefaultLogDir, time.Now().Format("2006-01-02"), logLev,
 	))
+
+	if remoteLoggerURL != "" {
+		SetLogger(fmt.Sprintf(`{
+					"Remote": {
+						"taskName": "%s",
+						"url": "%s",
+						"logLevel": %d
+					}
+				}`,
+			taskName, remoteLoggerURL, logLev,
+		))
+	}
 }
 
 func (localLog *LocalLogger) SetLogger(adapterName string, configs ...string) {
@@ -266,7 +275,7 @@ func (localLog *LocalLogger) SetTimeFormat(format string) {
 
 func (localLog *LocalLogger) writeToLoggers(when time.Time, msg *loginfo, level logLevel) {
 	for _, l := range localLog.outputs {
-		if l.name == AdapterConn {
+		if l.name == AdapterConn || l.name == AdapterRemote {
 			//The network log is sent in JSON format. The structure is used here for retrieval similar to elasticsearch
 			err := l.LogWrite(when, msg, level)
 			if err != nil {
@@ -452,6 +461,10 @@ func SetLogger(param ...string) {
 	if conf.Conn != nil {
 		conn, _ := json.Marshal(conf.Conn)
 		defaultLogger.SetLogger(AdapterConn, string(conn))
+	}
+	if conf.Remote != nil {
+		remote, _ := json.Marshal(conf.Remote)
+		defaultLogger.SetLogger(AdapterRemote, string(remote))
 	}
 }
 
