@@ -1,0 +1,26 @@
+command:
+- any: ['cmd/**/*', 'docs/commandline/**/*']
+
+area/doc:
+- any: ['docs/**/*']
+
+faq:
+- 'FAQ.md'
+
+test:
+- any: ['**/*_test.go']
+
+e2e-test:
+- any: ['test/**/*']
+
+plugin:
+- any: ['pkg/plugin/**/*']
+
+Clusterfile:
+- any: ['types/**/*']
+
+Adopter-Info:
+- 'Adopters.md'
+
+ImageBuilding:
+- any: ['build/**/*']
