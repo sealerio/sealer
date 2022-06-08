@@ -14,11 +14,7 @@
 
 package ssh
 
-import (
-	"net"
-	"testing"
-)
-
+/*
 func TestSSH_Cmd(t *testing.T) {
 	type args struct {
 		ssh       SSH
@@ -215,3 +211,4 @@ func TestSSH_CmdAsync(t *testing.T) {
 		})
 	}
 }
+*/

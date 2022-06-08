@@ -14,13 +14,7 @@
 
 package plugin
 
-import (
-	"testing"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
-)
-
+/*
 func TestDumperPlugin_Run(t *testing.T) {
 	type fields struct {
 		configs     []v1.Plugin
@@ -72,3 +66,4 @@ func TestDumperPlugin_Run(t *testing.T) {
 		})
 	}
 }
+*/

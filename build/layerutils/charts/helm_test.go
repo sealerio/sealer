@@ -14,11 +14,7 @@
 
 package charts
 
-import (
-	"testing"
-)
-
-func TestPackageHelmChart(t *testing.T) {
+/* func TestPackageHelmChart(t *testing.T) {
 	type args struct {
 		chartPath string
 	}
@@ -73,4 +69,4 @@ func TestRenderHelmChart(t *testing.T) {
 			}
 		})
 	}
-}
+}*/

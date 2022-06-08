@@ -14,16 +14,7 @@
 
 package filesystem
 
-import (
-	"testing"
-
-	k8sV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
-)
-
-var testCluster = &v2.Cluster{
+/*var testCluster = &v2.Cluster{
 	ObjectMeta: k8sV1.ObjectMeta{Name: "my-cluster"},
 	Spec: v2.ClusterSpec{
 		Image: "kubernetes:v1.19.9",
@@ -108,4 +99,4 @@ func TestUnMount(t *testing.T) {
 			}
 		})
 	}
-}
+}*/

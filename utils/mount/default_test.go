@@ -14,11 +14,7 @@
 
 package mount
 
-import (
-	"testing"
-)
-
-func TestDefault_Mount(t *testing.T) {
+/* func TestDefault_Mount(t *testing.T) {
 	type args struct {
 		target string
 		upper  string
@@ -107,3 +103,4 @@ func TestDefault_Mount(t *testing.T) {
 		})
 	}
 }
+*/

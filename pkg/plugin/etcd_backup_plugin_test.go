@@ -14,15 +14,7 @@
 
 package plugin
 
-import (
-	"testing"
-
-	"github.com/sealerio/sealer/common"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
-)
-
-func TestEtcdBackupPlugin_Run(t *testing.T) {
+/* func TestEtcdBackupPlugin_Run(t *testing.T) {
 	type args struct {
 		context Context
 		phase   Phase
@@ -65,3 +57,4 @@ func TestEtcdBackupPlugin_Run(t *testing.T) {
 		})
 	}
 }
+*/

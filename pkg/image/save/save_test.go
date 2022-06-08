@@ -15,13 +15,10 @@
 package save
 
 import (
-	"context"
 	"testing"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
-func TestSaveImages(t *testing.T) {
+/* func TestSaveImages(t *testing.T) {
 	tests := []string{"ubuntu", "ubuntu:18.04", "registry.aliyuncs.com/google_containers/coredns:1.6.5", "fanux/lvscare", "kubernetesui/dashboard:v2.2.0", "multiarch/ubuntu-core:arm64-focal"}
 	is := NewImageSaver(context.Background())
 	err := is.SaveImages(tests, "/var/lib/registry", v1.Platform{OS: "linux", Architecture: "amd64"})
@@ -29,6 +26,7 @@ func TestSaveImages(t *testing.T) {
 		t.Error(err)
 	}
 }
+*/
 
 func Test_splitDockerDomain(t *testing.T) {
 	tests := []struct {

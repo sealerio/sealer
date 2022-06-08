@@ -14,18 +14,7 @@
 
 package clusterinfo
 
-import (
-	"context"
-	"sort"
-	"testing"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/sealerio/sealer/common"
-)
-
-func TestGetPodsIP(t *testing.T) {
+/* func TestGetPodsIP(t *testing.T) {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", common.KubeAdminConf)
 	if err != nil {
 		t.Errorf("failed to get rest config from file %s", common.KubeAdminConf)
@@ -54,9 +43,9 @@ func TestGetPodsIP(t *testing.T) {
 			}
 		})
 	}
-}
+}*/
 
-func TestGetNodesIP(t *testing.T) {
+/* func TestGetNodesIP(t *testing.T) {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", common.KubeAdminConf)
 	if err != nil {
 		t.Errorf("failed to get rest config from file %s", common.KubeAdminConf)
@@ -74,8 +63,9 @@ func TestGetNodesIP(t *testing.T) {
 		}
 	})
 }
+*/
 
-func TestGetDNSServiceAll(t *testing.T) {
+/*func TestGetDNSServiceAll(t *testing.T) {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", common.KubeAdminConf)
 	if err != nil {
 		t.Errorf("failed to get rest config from file %s", common.KubeAdminConf)
@@ -92,9 +82,9 @@ func TestGetDNSServiceAll(t *testing.T) {
 			t.Errorf("failed to get DNS Service")
 		}
 	})
-}
+}*/
 
-func TestRemoveDuplicatesAndEmpty(t *testing.T) {
+/*func TestRemoveDuplicatesAndEmpty(t *testing.T) {
 	tests := []struct {
 		testName string
 		ipList   []string
@@ -124,4 +114,4 @@ func TestRemoveDuplicatesAndEmpty(t *testing.T) {
 			}
 		})
 	}
-}
+}*/

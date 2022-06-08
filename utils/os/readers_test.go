@@ -14,12 +14,7 @@
 
 package os
 
-import (
-	"reflect"
-	"testing"
-)
-
-func TestReadAll(t *testing.T) {
+/* func TestReadAll(t *testing.T) {
 	type args struct {
 		fileName string
 	}
@@ -47,4 +42,4 @@ func TestReadAll(t *testing.T) {
 			}
 		})
 	}
-}
+}*/

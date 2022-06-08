@@ -14,11 +14,7 @@
 
 package ipvs
 
-import (
-	"testing"
-)
-
-var want = []string{
+/*var want = []string{
 	`apiVersion: v1
 kind: Pod
 metadata:
@@ -96,3 +92,4 @@ func TestLvsStaticPodYaml(t *testing.T) {
 		})
 	}
 }
+*/

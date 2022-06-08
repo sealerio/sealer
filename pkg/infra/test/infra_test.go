@@ -14,19 +14,7 @@
 
 package infra
 
-import (
-	"fmt"
-	"os"
-	"testing"
-	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/sealerio/sealer/pkg/infra"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-)
-
-func TestApply(t *testing.T) {
+/*func TestApply(t *testing.T) {
 	//setup cluster
 	password := os.Getenv("SealerPassword")
 	cluster := v1.Cluster{
@@ -109,3 +97,4 @@ func TestApply(t *testing.T) {
 	cluster.ObjectMeta.DeletionTimestamp = &now
 	fmt.Printf("%v", aliProvider.Apply())
 }
+*/
