@@ -1,26 +1,30 @@
-## sealer load
+## sealer merge
 
-load a ClusterImage from a tar file
+merge multiple images into one
 
 ### Synopsis
 
-Load a ClusterImage from a tar archive
+sealer merge image1:latest image2:latest image3:latest ......
 
 ```
-sealer load [flags]
+sealer merge [flags]
 ```
 
 ### Examples
 
 ```
-sealer load -i kubernetes.tar
+
+merge images:
+	sealer merge kubernetes:v1.19.9 mysql:5.7.0 redis:6.0.0 -t new:0.1.0
+
 ```
 
 ### Options
 
 ```
-  -h, --help           help for load
-  -i, --input string   read image from tar archive file
+  -h, --help                  help for merge
+      --platform string       set ClusterImage platform, if not set,keep same platform with runtime
+  -t, --target-image string   target image name
 ```
 
 ### Options inherited from parent commands

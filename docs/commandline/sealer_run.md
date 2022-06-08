@@ -1,10 +1,10 @@
 ## sealer run
 
-run a cluster with images and arguments
+start to run a cluster from a ClusterImage
 
 ### Synopsis
 
-sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 --masters [arg] --nodes [arg]
+sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]
 
 ```
 sealer run [flags]
@@ -14,40 +14,52 @@ sealer run [flags]
 
 ```
 
-create default cluster:
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9
+create cluster to your bare metal server, appoint the iplist:
+	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
+		--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
 
-create cluster by cloud provider, just set the number of masters or nodes:
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 --masters 3 --nodes 3
+specify server SSH port :
+  All servers use the same SSH port (default port: 22)：
+	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
+	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --port 24 --passwd xxx
 
-create cluster to your baremetal server, appoint the iplist:
-	sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.9 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
-		--nodes 192.168.0.5,192.168.0.6,192.168.0.7
+  Different SSH port numbers exist：
+	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3:23,192.168.0.4:24 \
+	--nodes 192.168.0.5:25,192.168.0.6:25,192.168.0.7:27 --passwd xxx
+
+create a cluster with custom environment variables:
+	sealer run -e DashBoardPort=8443 mydashboard:latest  --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
+	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
 
 ```
 
 ### Options
 
 ```
-  -h, --help               help for run
-  -m, --masters string     set Count or IPList to masters
-  -n, --nodes string       set Count or IPList to nodes
-  -p, --passwd string      set cloud provider or baremetal server password
-      --pk string          set baremetal server private key (default "/Users/sunzhiheng/.ssh/id_rsa")
-      --pk-passwd string   set baremetal server  private key password
-      --podcidr string     set default pod CIDR network. example '10.233.0.0/18'
-      --svccidr string     set default service CIDR network. example '10.233.64.0/18'
-  -u, --user string        set baremetal server username (default "root")
+      --cluster-name string   set cluster name (default "my-cluster")
+      --cmd-args strings      set args for image cmd instruction
+  -e, --env strings           set custom environment variables
+  -h, --help                  help for run
+  -m, --masters string        set count or IPList to masters
+  -n, --nodes string          set count or IPList to nodes
+  -p, --passwd string         set cloud provider or baremetal server password
+      --pk string             set baremetal server private key (default "/root/.ssh/id_rsa")
+      --pk-passwd string      set baremetal server private key password
+      --port uint16           set the sshd service port number for the server (default port: 22) (default 22)
+      --provider ALI_CLOUD    set infra provider, example ALI_CLOUD, the local server need ignore this
+  -u, --user string           set baremetal server username (default "root")
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --config string   config file (default is $HOME/.sealer.json)
+      --config string   config file of sealer tool (default is $HOME/.sealer.json)
   -d, --debug           turn on debug mode
+      --hide-path       hide the log path
+      --hide-time       hide the log time
 ```
 
 ### SEE ALSO
 
-* [sealer](sealer.md)	 - 
+* [sealer](sealer.md)	 - A tool to build, share and run any distributed applications.
 

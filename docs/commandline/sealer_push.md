@@ -1,6 +1,6 @@
 ## sealer push
 
-push ClusterImage to registry
+push ClusterImage to remote registry
 
 ```
 sealer push [flags]
@@ -9,7 +9,7 @@ sealer push [flags]
 ### Examples
 
 ```
-sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kuberentes-cluster-with-dashboard:latest
+sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest
 ```
 
 ### Options
@@ -21,11 +21,13 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kuberentes-cluster-wit
 ### Options inherited from parent commands
 
 ```
-      --config string   config file (default is $HOME/.sealer.json)
+      --config string   config file of sealer tool (default is $HOME/.sealer.json)
   -d, --debug           turn on debug mode
+      --hide-path       hide the log path
+      --hide-time       hide the log time
 ```
 
 ### SEE ALSO
 
-* [sealer](sealer.md)	 - 
+* [sealer](sealer.md)	 - A tool to build, share and run any distributed applications.
 

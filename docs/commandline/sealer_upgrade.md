@@ -1,22 +1,26 @@
-## sealer version
+## sealer upgrade
 
-show sealer and related versions
+upgrade specified Kubernetes cluster
+
+### Synopsis
+
+sealer upgrade imagename --cluster clustername
 
 ```
-sealer version [flags]
+sealer upgrade [flags]
 ```
 
 ### Examples
 
 ```
-sealer version
+sealer upgrade kubernetes:v1.19.9 --cluster my-cluster
 ```
 
 ### Options
 
 ```
-  -h, --help    help for version
-      --short   if true, print sealer's own version number.
+  -c, --cluster string   the name of cluster
+  -h, --help             help for upgrade
 ```
 
 ### Options inherited from parent commands

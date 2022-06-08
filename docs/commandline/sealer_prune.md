@@ -1,22 +1,25 @@
-## sealer version
+## sealer prune
 
-show sealer and related versions
+prune sealer data dir
 
 ```
-sealer version [flags]
+sealer prune [flags]
 ```
 
 ### Examples
 
 ```
-sealer version
+$ sealer prune
+start to prune image db ...
+start to prune layer ...
+start to prune build tmp ...
+
 ```
 
 ### Options
 
 ```
-  -h, --help    help for version
-      --short   if true, print sealer's own version number.
+  -h, --help   help for prune
 ```
 
 ### Options inherited from parent commands
