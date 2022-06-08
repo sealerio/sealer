@@ -17,23 +17,22 @@ package runtime
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 )
 
 const (
-	chmodCmd       = `chmod +x %s/*`
-	mvCmd          = `mv %s/* /usr/bin`
-	getNodeNameCmd = `$(uname -n | tr '[A-Z]' '[a-z]')`
-	drainCmd       = `kubectl drain ` + getNodeNameCmd + ` --ignore-daemonsets`
-	upgradeCmd     = `kubeadm upgrade %s`
-	restartCmd     = `systemctl daemon-reload && systemctl restart kubelet`
-	uncordonCmd    = `kubectl uncordon ` + getNodeNameCmd
+	chmodCmd         = `chmod +x %s/*`
+	mvCmd            = `mv %s/* /usr/bin`
+	getNodeNameCmd   = `$(uname -n | tr '[A-Z]' '[a-z]')`
+	drainCmd         = `kubectl drain ` + getNodeNameCmd + ` --ignore-daemonsets`
+	upgradeMater0Cmd = `kubeadm upgrade apply %s --config=%s/etc/kubeadm.yml -y`
+	upgradeCmd       = `kubeadm upgrade node`
+	restartCmd       = `systemctl daemon-reload && systemctl restart kubelet`
+	uncordonCmd      = `kubectl uncordon ` + getNodeNameCmd
 )
 
 func (k *KubeadmRuntime) upgrade() error {
 	var err error
-	binPath := filepath.Join(k.getRootfs(), `bin`)
-
+	binPath := filepath.Join(k.getRootfs(), "bin")
 	err = k.upgradeFirstMaster(k.GetMaster0IP(), binPath, k.getKubeVersion())
 	if err != nil {
 		return err
@@ -62,7 +61,7 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binPath, version string) 
 		fmt.Sprintf(chmodCmd, binPath),
 		fmt.Sprintf(mvCmd, binPath),
 		drain,
-		fmt.Sprintf(upgradeCmd, strings.Join([]string{`apply`, version, `-y`}, " ")),
+		fmt.Sprintf(upgradeMater0Cmd, version, k.getRootfs()),
 		restartCmd,
 		uncordonCmd,
 	}
@@ -70,6 +69,7 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binPath, version string) 
 	if err != nil {
 		return fmt.Errorf("upgrade master0 failed %v", err)
 	}
+
 	return ssh.CmdAsync(IP, firstMasterCmds...)
 }
 
@@ -86,7 +86,7 @@ func (k *KubeadmRuntime) upgradeOtherMasters(IPs []string, binpath, version stri
 		fmt.Sprintf(chmodCmd, binpath),
 		fmt.Sprintf(mvCmd, binpath),
 		drain,
-		fmt.Sprintf(upgradeCmd, `node`),
+		upgradeCmd,
 		restartCmd,
 		uncordonCmd,
 	}
@@ -108,7 +108,7 @@ func (k *KubeadmRuntime) upgradeNodes(IPs []string, binpath string) error {
 	var nodeCmds = []string{
 		fmt.Sprintf(chmodCmd, binpath),
 		fmt.Sprintf(mvCmd, binpath),
-		fmt.Sprintf(upgradeCmd, `node`),
+		upgradeCmd,
 		restartCmd,
 	}
 	var err error
