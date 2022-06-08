@@ -33,7 +33,7 @@ var _ = Describe("sealer apply", func() {
 		rawCluster.Spec.Image = settings.TestImageName
 		BeforeEach(func() {
 			if rawCluster.Spec.Image != settings.TestImageName {
-				//rawCluster imageName updated to customImageName
+				//rawClusterImageName updated to customImageName
 				rawCluster.Spec.Image = settings.TestImageName
 				apply.MarshalClusterToFile(rawClusterFilePath, rawCluster)
 			}

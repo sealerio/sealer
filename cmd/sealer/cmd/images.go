@@ -39,7 +39,7 @@ const (
 
 var listCmd = &cobra.Command{
 	Use:   "images",
-	Short: "list all CloudImages on the local node",
+	Short: "list all ClusterImages on the local node",
 	// TODO: add long description.
 	Long:    "",
 	Args:    cobra.NoArgs,

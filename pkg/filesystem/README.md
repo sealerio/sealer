@@ -1,6 +1,6 @@
 # rootfs dir
 
-> CloudImage Mount Dir
+> ClusterImage Mount Dir
 
 ```shell script
 /var/lib/sealer/data/<my-cluster>/mount

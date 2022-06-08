@@ -30,7 +30,7 @@ import (
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
 	Use:   "search",
-	Short: "search CloudImage in default registry",
+	Short: "search ClusterImage in default registry",
 	// TODO: add long description.
 	Long: "",
 	Example: `sealer search <imageDomain>/<imageRepo>/<imageName> ...

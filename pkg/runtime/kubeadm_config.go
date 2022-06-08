@@ -57,7 +57,7 @@ func (k *KubeadmConfig) LoadFromClusterfile(kubeadmConfig *KubeadmConfig) error 
 	return mergo.Merge(k, kubeadmConfig)
 }
 
-// Merge Using github.com/imdario/mergo to merge KubeadmConfig to the CloudImage default kubeadm config, overwrite some field.
+// Merge Using github.com/imdario/mergo to merge KubeadmConfig to the ClusterImage default kubeadm config, overwrite some field.
 // if defaultKubeadmConfig file not exist, use default raw kubeadm config to merge k.KubeConfigSpec empty value
 func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 	var (

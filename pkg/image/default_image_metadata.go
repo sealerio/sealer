@@ -70,7 +70,7 @@ func (d DefaultImageMetadataService) Tag(imageName, tarImageName string) error {
 	return nil
 }
 
-//List will list all cloud image locally
+//List will list all ClusterImage locally
 func (d DefaultImageMetadataService) List() (store.ImageMetadataMap, error) {
 	return d.imageStore.GetImageMetadataMap()
 }

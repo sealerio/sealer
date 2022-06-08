@@ -40,10 +40,10 @@ var buildConfig *BuildFlag
 // buildCmd represents the build command
 var buildCmd = &cobra.Command{
 	Use:   "build [flags] PATH",
-	Short: "build a CloudImage from a Kubefile",
-	Long: `build command is used to build a CloudImage from specified Kubefile.
+	Short: "build a ClusterImage from a Kubefile",
+	Long: `build command is used to build a ClusterImage from specified Kubefile.
 It organizes the specified Kubefile and input building context, and builds
-a brand new CloudImage.`,
+a brand new ClusterImage.`,
 	Args: cobra.ExactArgs(1),
 	Example: `the current path is the context path, default build type is lite and use build cache
 
@@ -92,13 +92,13 @@ build with args:
 func init() {
 	buildConfig = &BuildFlag{}
 	rootCmd.AddCommand(buildCmd)
-	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "mode", "m", "lite", "CloudImage build type, default is lite")
+	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "mode", "m", "lite", "ClusterImage build type, default is lite")
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "Kubefile filepath")
-	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "the name of CloudImage")
+	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "the name of ClusterImage")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
 	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image, default value is true.")
 	buildCmd.Flags().StringSliceVar(&buildConfig.BuildArgs, "build-arg", []string{}, "set custom build args")
-	buildCmd.Flags().StringVar(&buildConfig.Platform, "platform", "", "set CloudImage platform. If not set, keep same platform with runtime")
+	buildCmd.Flags().StringVar(&buildConfig.Platform, "platform", "", "set ClusterImage platform. If not set, keep same platform with runtime")
 
 	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)

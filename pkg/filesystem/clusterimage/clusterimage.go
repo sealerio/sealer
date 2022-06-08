@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cloudimage
+package clusterimage
 
 import (
 	"fmt"
@@ -92,7 +92,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 	clusterPlatform["local"] = *platform.GetDefaultPlatform()
 	for _, v := range clusterPlatform {
 		pfm := v
-		mountDir := platform.GetMountCloudImagePlatformDir(cluster.Name, pfm)
+		mountDir := platform.GetMountClusterImagePlatformDir(cluster.Name, pfm)
 		upperDir := filepath.Join(mountDir, "upper")
 		if mountDirs[mountDir] {
 			continue
@@ -153,7 +153,7 @@ func renderENV(imageMountDir string, ipList []string, p env.Interface) error {
 	return nil
 }
 
-func NewCloudImageMounter(is store.ImageStore) (Interface, error) {
+func NewClusterImageMounter(is store.ImageStore) (Interface, error) {
 	return &mounter{
 		imageStore: is,
 		fs:         fs.NewFilesystem(),

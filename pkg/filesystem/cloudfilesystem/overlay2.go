@@ -63,12 +63,12 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 		*sync.RWMutex
 		mountDirs map[string]bool
 	}{&sync.RWMutex{}, make(map[string]bool)}
-	config := runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), cluster.GetMaster0IP())
+	config := runtime.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
-			src := platform.GetMountCloudImagePlatformDir(cluster.Name, clusterPlatform[ip])
+			src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip])
 			initCmd := fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 			mountEntry.Lock()
 			if !mountEntry.mountDirs[src] {

@@ -86,7 +86,7 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host, rootfs string) error {
 	return nil
 }
 
-// LoadMetadata :read metadata via cluster image name.
+// LoadMetadata :read metadata via ClusterImage name.
 func LoadMetadata(rootfs string) (*Metadata, error) {
 	metadataPath := filepath.Join(rootfs, common.DefaultMetadataName)
 	var metadataFile []byte
@@ -98,16 +98,16 @@ func LoadMetadata(rootfs string) (*Metadata, error) {
 
 	metadataFile, err = ioutil.ReadFile(filepath.Clean(metadataPath))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read CloudImage metadata %v", err)
+		return nil, fmt.Errorf("failed to read ClusterImage metadata %v", err)
 	}
 	err = json.Unmarshal(metadataFile, &md)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load CloudImage metadata %v", err)
+		return nil, fmt.Errorf("failed to load ClusterImage metadata %v", err)
 	}
 	return &md, nil
 }
 
-func GetCloudImagePlatform(rootfs string) (cp ocispecs.Platform) {
+func GetClusterImagePlatform(rootfs string) (cp ocispecs.Platform) {
 	// current we only support build on linux
 	cp = ocispecs.Platform{
 		Architecture: "amd64",

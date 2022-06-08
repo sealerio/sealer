@@ -52,5 +52,5 @@ var inspectCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(inspectCmd)
-	inspectCmd.Flags().StringVar(&inspectPlatformFlag, "platform", "", "set CloudImage platform")
+	inspectCmd.Flags().StringVar(&inspectPlatformFlag, "platform", "", "set ClusterImage platform")
 }

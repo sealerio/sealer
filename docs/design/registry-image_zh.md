@@ -16,7 +16,7 @@
 ### 构建过程
 
 1. Build的时候对集群镜像里面的Docker镜像不作任何处理，以保障集群镜像"很小"
-2. CloudImage完全兼容OCI
+2. ClusterImage完全兼容OCI
 
 ### Save过程
 
@@ -27,7 +27,7 @@
 ### Run 过程
 
 1. registry module根据registry的配置拉起registry.
-2. 根据CloudImage Name在所有节点拉取集群镜像
+2. 根据ClusterImage Name在所有节点拉取集群镜像
 3. 启动k8s和guest
 4. kubelet自动拉起其它镜像
 5. 可以利用运行时自身能力去判断多架构并拉取对应架构的镜像

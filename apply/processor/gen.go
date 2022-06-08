@@ -27,7 +27,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/filesystem"
-	"github.com/sealerio/sealer/pkg/filesystem/cloudimage"
+	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/runtime"
 	apiv1 "github.com/sealerio/sealer/types/api/v1"
@@ -54,11 +54,11 @@ type ParserArg struct {
 type GenerateProcessor struct {
 	Runtime      *runtime.KubeadmRuntime
 	ImageManager image.Service
-	ImageMounter cloudimage.Interface
+	ImageMounter clusterimage.Interface
 }
 
 func NewGenerateProcessor() (Processor, error) {
-	imageMounter, err := filesystem.NewCloudImageMounter()
+	imageMounter, err := filesystem.NewClusterImageMounter()
 	if err != nil {
 		return nil, err
 	}

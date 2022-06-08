@@ -78,5 +78,5 @@ func runRemove(images []string) error {
 func init() {
 	opts = removeImageFlag{}
 	rootCmd.AddCommand(rmiCmd)
-	rmiCmd.Flags().StringVar(&opts.platform, "platform", "", "set CloudImage platform")
+	rmiCmd.Flags().StringVar(&opts.platform, "platform", "", "set ClusterImage platform")
 }

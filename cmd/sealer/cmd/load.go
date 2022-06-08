@@ -29,8 +29,8 @@ var imageSrc string
 // loadCmd represents the load command
 var loadCmd = &cobra.Command{
 	Use:     "load",
-	Short:   "load a CloudImage from a tar file",
-	Long:    `Load a CloudImage from a tar archive`,
+	Short:   "load a ClusterImage from a tar file",
+	Long:    `Load a ClusterImage from a tar archive`,
 	Example: `sealer load -i kubernetes.tar`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {

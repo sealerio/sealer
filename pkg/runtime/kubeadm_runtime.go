@@ -105,7 +105,7 @@ func (k *KubeadmRuntime) getRootfs() string {
 
 // /var/lib/sealer/data/my-cluster/mount
 func (k *KubeadmRuntime) getImageMountDir() string {
-	return platform.DefaultMountCloudImageDir(k.getClusterName())
+	return platform.DefaultMountClusterImageDir(k.getClusterName())
 }
 
 // /var/lib/sealer/data/my-cluster/certs

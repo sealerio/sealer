@@ -1,6 +1,6 @@
 # Multi-arch build
 
-## Build cloud image
+## Build ClusterImage
 
 Kubefile:
 
@@ -31,7 +31,7 @@ sealer build cmd line:
 sealer build --platform linux/arm64,linux/amd64 -t kubernetes-multi-arch:v1.19.8
 ```
 
-### Cloud image manifests list
+### ClusterImage manifests list
 
 ```json
 {
@@ -61,9 +61,9 @@ sealer build --platform linux/arm64,linux/amd64 -t kubernetes-multi-arch:v1.19.8
 }
 ```
 
-### Cloud image manifests
+### ClusterImage manifests
 
-#### amd64 cloud image
+#### amd64 ClusterImage
 
 `cat 52c3b10849c852649e66c2f7ed531f05bd97586ab61fa2cc82b4e79d80484b82.yaml`
 
@@ -112,7 +112,7 @@ spec:
 status: { }
 ```
 
-#### arm64 v8 cloud image
+#### arm64 v8 ClusterImage
 
 `cat 9e596d0a54177f29093236f65a9c6098590c67ea8b0dde4e09a5a49124cec7d0.yaml`
 
@@ -162,7 +162,7 @@ spec:
 status: { }
 ```
 
-## Run cloud image
+## Run ClusterImage
 
 | IP      | Platform | OS    |
 | :---        |    :----:   |          ---: |
@@ -188,7 +188,7 @@ we have three mounter point:
 1. For master:only have amdMounter data
 2. For node :only have armMounter data
 
-## Save cloud image
+## Save ClusterImage
 
 if not specify the platform will save them all. save two image_metadata.yaml and all manifests file.
 
@@ -216,30 +216,30 @@ manifests file and one image_metadata.yaml :
 }
 ```
 
-## Load cloud image
+## Load ClusterImage
 
 `sealer load -i kubernetes.tar`
 
-## Inspect cloud image
+## Inspect ClusterImage
 
 `sealer inspect b934b329d0e6f7abc4c37425a99a4683852e1308225ada4c1941f5df0d9a19f0`
 
-## Delete cloud image
+## Delete ClusterImage
 
 if not specify the platform will delete them all. If you only want to delete amd64 images of `kubernetes-multi-arch:
 v1.19.8`.
 
 `sealer rmi kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
 
-## Pull cloud image
+## Pull ClusterImage
 
 `sealer pull kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
 
-## Push cloud image
+## Push ClusterImage
 
 `sealer push kubernetes-multi-arch:v1.19.8 --platform linux/amd64`
 
-## Merge cloud image
+## Merge ClusterImage
 
 if not specify platform will use default arch with runtime. if specify platform, will merge them all.
 

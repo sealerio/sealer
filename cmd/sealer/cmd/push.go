@@ -24,7 +24,7 @@ import (
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
 	Use:   "push",
-	Short: "push CloudImage to remote registry",
+	Short: "push ClusterImage to remote registry",
 	// TODO: add long description.
 	Long:    "",
 	Example: `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest`,
