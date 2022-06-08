@@ -1,6 +1,6 @@
 ## sealer login
 
-login image repositories
+login image registry
 
 ```
 sealer login [flags]
@@ -23,11 +23,13 @@ sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]
 ### Options inherited from parent commands
 
 ```
-      --config string   config file (default is $HOME/.sealer.json)
+      --config string   config file of sealer tool (default is $HOME/.sealer.json)
   -d, --debug           turn on debug mode
+      --hide-path       hide the log path
+      --hide-time       hide the log time
 ```
 
 ### SEE ALSO
 
-* [sealer](sealer.md)	 - 
+* [sealer](sealer.md)	 - A tool to build, share and run any distributed applications.
 

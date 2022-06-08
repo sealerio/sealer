@@ -1,11 +1,10 @@
 ## sealer inspect
 
-print the image information or clusterFile
+print the image information or Clusterfile
 
 ### Synopsis
 
-sealer inspect kubernetes:v1.18.3 to print image information
-sealer inspect -c kubernetes:v1.18.3 to print image Clusterfile
+sealer inspect ${image id} to print image information
 
 ```
 sealer inspect [flags]
@@ -14,18 +13,20 @@ sealer inspect [flags]
 ### Options
 
 ```
-  -c, --Clusterfile   print the clusterFile
-  -h, --help          help for inspect
+  -h, --help              help for inspect
+      --platform string   set ClusterImage platform
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --config string   config file (default is $HOME/.sealer.json)
+      --config string   config file of sealer tool (default is $HOME/.sealer.json)
   -d, --debug           turn on debug mode
+      --hide-path       hide the log path
+      --hide-time       hide the log time
 ```
 
 ### SEE ALSO
 
-* [sealer](sealer.md)	 - 
+* [sealer](sealer.md)	 - A tool to build, share and run any distributed applications.
 

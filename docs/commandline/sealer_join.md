@@ -1,6 +1,6 @@
 ## sealer join
 
-join node to cluster
+join new master or worker node to specified cluster
 
 ```
 sealer join [flags]
@@ -10,20 +10,16 @@ sealer join [flags]
 
 ```
 
-join to default cluster: merge
+join default cluster:
 	sealer join --masters x.x.x.x --nodes x.x.x.x
     sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
-join to cluster by cloud provider, just set the number of masters or nodes:
-	sealer join --masters 2 --nodes 3
-specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
-    sealer join --masters 2 --nodes 3 -c my-cluster
 
 ```
 
 ### Options
 
 ```
-  -c, --cluster-name string   submit one cluster name
+  -c, --cluster-name string   specify the name of cluster
   -h, --help                  help for join
   -m, --masters string        set Count or IPList to masters
   -n, --nodes string          set Count or IPList to nodes
@@ -32,11 +28,13 @@ specify the cluster name(If there is only one cluster in the $HOME/.sealer direc
 ### Options inherited from parent commands
 
 ```
-      --config string   config file (default is $HOME/.sealer.json)
+      --config string   config file of sealer tool (default is $HOME/.sealer.json)
   -d, --debug           turn on debug mode
+      --hide-path       hide the log path
+      --hide-time       hide the log time
 ```
 
 ### SEE ALSO
 
-* [sealer](sealer.md)	 - 
+* [sealer](sealer.md)	 - A tool to build, share and run any distributed applications.
 

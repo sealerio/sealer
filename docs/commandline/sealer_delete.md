@@ -1,10 +1,11 @@
 ## sealer delete
 
-delete a cluster
+delete an existing cluster
 
 ### Synopsis
 
-if provider is BARESERVER will delete kubernetes nodes or IPList;  if provider is ALI_CLOUD, will delete all the infra resources or count
+delete command is used to delete part or all of existing cluster.
+User can delete cluster by explicitly specifying node IP, Clusterfile, or cluster name.
 
 ```
 sealer delete [flags]
@@ -14,16 +15,13 @@ sealer delete [flags]
 
 ```
 
-delete to default cluster: 
+delete default cluster: 
 	sealer delete --masters x.x.x.x --nodes x.x.x.x
 	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
-delete to cluster by cloud provider, just set the number of masters or nodes:
-	sealer delete --masters 2 --nodes 3
-specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
-	sealer delete --masters 2 --nodes 3 -f /root/.sealer/specify-cluster/Clusterfile
 delete all:
 	sealer delete --all [--force]
 	sealer delete -f /root/.sealer/mycluster/Clusterfile [--force]
+	sealer delete -c my-cluster [--force]
 
 ```
 
@@ -32,6 +30,7 @@ delete all:
 ```
   -f, --Clusterfile string   delete a kubernetes cluster with Clusterfile Annotations
   -a, --all                  this flags is for delete nodes, if this is true, empty all node ip
+  -c, --cluster string       delete a kubernetes cluster with cluster name
       --force                We also can input an --force flag to delete cluster by force
   -h, --help                 help for delete
   -m, --masters string       reduce Count or IPList to masters
@@ -41,11 +40,13 @@ delete all:
 ### Options inherited from parent commands
 
 ```
-      --config string   config file (default is $HOME/.sealer.json)
+      --config string   config file of sealer tool (default is $HOME/.sealer.json)
   -d, --debug           turn on debug mode
+      --hide-path       hide the log path
+      --hide-time       hide the log time
 ```
 
 ### SEE ALSO
 
-* [sealer](sealer.md)	 - 
+* [sealer](sealer.md)	 - A tool to build, share and run any distributed applications.
 

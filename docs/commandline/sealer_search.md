@@ -1,22 +1,25 @@
-## sealer version
+## sealer search
 
-show sealer and related versions
+search ClusterImage in default registry
 
 ```
-sealer version [flags]
+sealer search [flags]
 ```
 
 ### Examples
 
 ```
-sealer version
+sealer search <imageDomain>/<imageRepo>/<imageName> ...
+## default imageDomain: 'registry.cn-qingdao.aliyuncs.com', default imageRepo: 'sealer-io'
+ex.:
+  sealer search kubernetes seadent/rootfs docker.io/library/hello-world
+
 ```
 
 ### Options
 
 ```
-  -h, --help    help for version
-      --short   if true, print sealer's own version number.
+  -h, --help   help for search
 ```
 
 ### Options inherited from parent commands
