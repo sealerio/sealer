@@ -20,14 +20,14 @@ import (
 )
 
 const (
-	chmodCmd         = `chmod +x %s/*`
-	mvCmd            = `mv %s/* /usr/bin`
-	getNodeNameCmd   = `$(uname -n | tr '[A-Z]' '[a-z]')`
-	drainCmd         = `kubectl drain ` + getNodeNameCmd + ` --ignore-daemonsets`
-	upgradeMater0Cmd = `kubeadm upgrade apply %s --config=%s/etc/kubeadm.yml -y`
-	upgradeCmd       = `kubeadm upgrade node`
-	restartCmd       = `systemctl daemon-reload && systemctl restart kubelet`
-	uncordonCmd      = `kubectl uncordon ` + getNodeNameCmd
+	chmodCmd          = `chmod +x %s/*`
+	mvCmd             = `mv %s/* /usr/bin`
+	getNodeNameCmd    = `$(uname -n | tr '[A-Z]' '[a-z]')`
+	drainCmd          = `kubectl drain ` + getNodeNameCmd + ` --ignore-daemonsets`
+	upgradeMaster0Cmd = `kubeadm upgrade apply %s --config=%s/etc/kubeadm.yml -y`
+	upgradeCmd        = `kubeadm upgrade node`
+	restartCmd        = `systemctl daemon-reload && systemctl restart kubelet`
+	uncordonCmd       = `kubectl uncordon ` + getNodeNameCmd
 )
 
 func (k *KubeadmRuntime) upgrade() error {
@@ -61,7 +61,7 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binPath, version string) 
 		fmt.Sprintf(chmodCmd, binPath),
 		fmt.Sprintf(mvCmd, binPath),
 		drain,
-		fmt.Sprintf(upgradeMater0Cmd, version, k.getRootfs()),
+		fmt.Sprintf(upgradeMaster0Cmd, version, k.getRootfs()),
 		restartCmd,
 		uncordonCmd,
 	}
