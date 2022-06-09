@@ -17,6 +17,7 @@ package image
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/opencontainers/go-digest"
 	"sigs.k8s.io/yaml"
@@ -142,4 +143,17 @@ func GenerateImageID(image v1.Image) (string, error) {
 	}
 	imageID := digest.FromBytes(imageBytes).Hex()
 	return imageID, nil
+}
+
+func ConvertToHostname(url string) string {
+	stripped := url
+	if strings.HasPrefix(url, "http://") {
+		stripped = strings.TrimPrefix(url, "http://")
+	} else if strings.HasPrefix(url, "https://") {
+		stripped = strings.TrimPrefix(url, "https://")
+	}
+
+	nameParts := strings.SplitN(stripped, "/", 2)
+
+	return nameParts[0]
 }
