@@ -49,29 +49,37 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	c.cluster.Kind = common.Cluster
 	c.cluster.Name = c.runArgs.ClusterName
 	c.cluster.Spec.Image = c.imageName
-	c.cluster.Spec.SSH.User = c.runArgs.User
-	c.cluster.Spec.SSH.Pk = c.runArgs.Pk
-	c.cluster.Spec.SSH.PkPasswd = c.runArgs.PkPassword
-	c.cluster.Spec.SSH.Port = strconv.Itoa(int(c.runArgs.Port))
 	c.cluster.Spec.Env = append(c.cluster.Spec.Env, c.runArgs.CustomEnv...)
 	c.cluster.Spec.CMDArgs = append(c.cluster.Spec.CMDArgs, c.runArgs.CMDArgs...)
-	if c.runArgs.Password != "" {
-		c.cluster.Spec.SSH.Passwd = c.runArgs.Password
-	}
+
 	err := PreProcessIPList(c.runArgs)
 	if err != nil {
 		return err
 	}
+
 	if net.IsIPList(c.runArgs.Masters) && (net.IsIPList(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
+		// add common ssh config.
+		c.cluster.Spec.SSH = v1.SSH{
+			User:     c.runArgs.User,
+			Passwd:   c.runArgs.Password,
+			Pk:       c.runArgs.Pk,
+			PkPasswd: c.runArgs.PkPassword,
+			Port:     strconv.Itoa(int(c.runArgs.Port)),
+		}
+
 		masters := strings.Split(c.runArgs.Masters, ",")
 		nodes := strings.Split(c.runArgs.Nodes, ",")
 		c.hosts = []v2.Host{}
+
 		c.setHostWithIpsPort(masters, common.MASTER)
-		if len(nodes) != 0 {
+		// If s does not contain sep and sep is not empty, Split returns a
+		// slice of length 1 whose only element is s.
+		if len(nodes) > 1 {
 			c.setHostWithIpsPort(nodes, common.NODE)
 		}
 		c.cluster.Spec.Hosts = c.hosts
 	} else {
+		// if user execute sealer run without password and infra info,choose local host ip as master0 ip.
 		ip, err := net.GetLocalDefaultIP()
 		if err != nil {
 			return err
@@ -92,14 +100,14 @@ func (c *ClusterArgs) setHostWithIpsPort(ips []string, role string) {
 	for i := range ips {
 		ip, port := net.GetHostIPAndPortOrDefault(ips[i], strconv.Itoa(int(c.runArgs.Port)))
 		if _, ok := hostMap[port]; !ok {
-			hostMap[port] = &v2.Host{IPS: []string{ip}, Roles: []string{role}, SSH: v1.SSH{Port: port}}
+			hostMap[port] = &v2.Host{IPS: []string{ip}, Roles: []string{role}}
 			continue
 		}
 		hostMap[port].IPS = append(hostMap[port].IPS, ip)
 	}
 	_, master0Port := net.GetHostIPAndPortOrDefault(ips[0], strconv.Itoa(int(c.runArgs.Port)))
 	for port, host := range hostMap {
-		host.IPS = removeIPListDuplicatesAndEmpty(host.IPS)
+		host.IPS = removeDuplicate(host.IPS)
 		if port == master0Port && role == common.MASTER {
 			c.hosts = append([]v2.Host{*host}, c.hosts...)
 			continue
@@ -117,5 +125,5 @@ func NewApplierFromArgs(imageName string, runArgs *Args) (applydriver.Interface,
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
 	}
-	return NewApplier(c.cluster)
+	return NewDefaultApplier(c.cluster)
 }

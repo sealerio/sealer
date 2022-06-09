@@ -15,14 +15,20 @@
 package aliyun
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/utils/hash"
+	"github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/pkg/clusterfile"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
@@ -112,9 +118,26 @@ func (a *AliProvider) ReconcileResource(resourceKey string, action Alifunc) erro
 			return err
 		}
 		logrus.Infof("create resource success %s: %s", resourceKey, a.Cluster.Annotations[resourceKey])
-		return clusterfile.SaveToDisk(a.Cluster, a.Cluster.Name)
+		return a.SaveToDisk()
 	}
 	return nil
+}
+
+func (a *AliProvider) SaveToDisk() error {
+	fileName := common.GetClusterWorkClusterfile(a.Cluster.Name)
+	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("mkdir failed %s %v", fileName, err)
+	}
+
+	passwd, err := hash.AesEncrypt([]byte(a.Cluster.Spec.SSH.Passwd))
+	if err != nil {
+		return err
+	}
+	a.Cluster.Spec.SSH.Passwd = passwd
+	a.Cluster.Spec.SSH.Encrypted = true
+
+	return yaml.MarshalToFile(fileName, a.Cluster)
 }
 
 func (a *AliProvider) DeleteResource(resourceKey string, action Alifunc) {

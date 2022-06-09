@@ -21,12 +21,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/utils/hash"
+
 	yamlUtils "github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	k8sRuntime "k8s.io/apimachinery/pkg/runtime"
 )
 
 var ErrClusterNotExist = fmt.Errorf("no cluster exist")
@@ -72,13 +73,42 @@ func GetDefaultCluster() (cluster *v2.Cluster, err error) {
 	return GetClusterFromFile(fmt.Sprintf("%s/.sealer/%s/Clusterfile", userHome, name))
 }
 
-func SaveToDisk(cluster k8sRuntime.Object, clusterName string) error {
+// SaveToDisk save cluster obj to disk file with encrypted ssh credential
+func SaveToDisk(cluster *v2.Cluster, clusterName string) error {
 	fileName := common.GetClusterWorkClusterfile(clusterName)
 	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("mkdir failed %s %v", fileName, err)
 	}
-	cluster = cluster.DeepCopyObject()
+
+	// if user run cluster image without password,skip to encrypt.
+	if !cluster.Spec.SSH.Encrypted && cluster.Spec.SSH.Passwd != "" {
+		passwd, err := hash.AesEncrypt([]byte(cluster.Spec.SSH.Passwd))
+		if err != nil {
+			return err
+		}
+		cluster.Spec.SSH.Passwd = passwd
+		cluster.Spec.SSH.Encrypted = true
+	}
+
+	var hosts []v2.Host
+	for _, host := range cluster.Spec.Hosts {
+		if len(host.IPS) == 0 {
+			continue
+		}
+		if !host.SSH.Encrypted && host.SSH.Passwd != "" {
+			passwd, err := hash.AesEncrypt([]byte(host.SSH.Passwd))
+			if err != nil {
+				return err
+			}
+			host.SSH.Passwd = passwd
+			host.SSH.Encrypted = true
+		}
+		hosts = append(hosts, host)
+	}
+
+	cluster.Spec.Hosts = hosts
+
 	err = yamlUtils.MarshalToFile(fileName, cluster)
 	if err != nil {
 		return fmt.Errorf("marshal cluster file failed %v", err)
