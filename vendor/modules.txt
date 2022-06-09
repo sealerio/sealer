@@ -282,6 +282,7 @@ github.com/google/gofuzz
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 github.com/google/shlex
 # github.com/google/uuid v1.2.0
+## explicit
 github.com/google/uuid
 # github.com/googleapis/gnostic v0.5.1
 github.com/googleapis/gnostic/compiler
@@ -510,7 +511,6 @@ github.com/vishvananda/netlink/nl
 ## explicit
 github.com/vishvananda/netns
 # github.com/wonderivan/logger v1.0.0
-## explicit
 github.com/wonderivan/logger
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
