@@ -19,8 +19,9 @@ package processor
 import (
 	"context"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"strconv"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/sealerio/sealer/utils/yaml"
 
