@@ -19,7 +19,7 @@ create cluster to your bare metal server, appoint the iplist:
 		--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
 
 specify server SSH port :
-  All servers use the same SSH port (default port: 22)：
+  All servers use the same SSH port (default port: 22):
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --port 24 --passwd xxx
 

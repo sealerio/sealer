@@ -52,7 +52,7 @@ func (s *SSH) Platform(host string) (v1.Platform, error) {
 	case "armv6l":
 		p.Architecture = "arm-v6"
 	default:
-		return p, fmt.Errorf("unrecognized architecture：%s", archResult)
+		return p, fmt.Errorf("unrecognized architecture: %s", archResult)
 	}
 	if p.Architecture != platform.AMD {
 		p.Variant, err = s.getCPUVariant(p.OS, p.Architecture, host)
