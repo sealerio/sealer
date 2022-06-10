@@ -19,6 +19,7 @@ package processor
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strconv"
 
 	"golang.org/x/sync/errgroup"
@@ -92,12 +93,42 @@ func (g *GenerateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, er
 		g.ApplyRegistry,
 		g.UnmountImage,
 		g.CmdAddRegistryHosts,
+		g.CopyK8sConfFileToDefultCluster,
 	)
 	return todoList, nil
 }
 
+func (g *GenerateProcessor) CopyK8sConfFileToDefultCluster(cluster *v2.Cluster) error {
+	eg, _ := errgroup.WithContext(context.Background())
+	masters := cluster.GetMasterIPList()
+	for _, master := range masters {
+		master := master
+		eg.Go(func() error {
+			ssh, err := ssh.GetHostSSHClient(master, cluster)
+			if err != nil {
+				return fmt.Errorf("new ssh client failed %v", err)
+			}
+			KubeAdminConf := fmt.Sprintf(common.RemoteCmdCopyStatic, filepath.Join(common.KubeAdminConf), filepath.Join(common.DefaultClusterBaseDir(cluster.Name)))
+			KubeControllerConf := fmt.Sprintf(common.RemoteCmdCopyStatic, filepath.Join(common.KubeControllerConf), filepath.Join(common.DefaultClusterBaseDir(cluster.Name)))
+			KubeSchedulerConf := fmt.Sprintf(common.RemoteCmdCopyStatic, filepath.Join(common.KubeSchedulerConf), filepath.Join(common.DefaultClusterBaseDir(cluster.Name)))
+			KubeKubeletConf := fmt.Sprintf(common.RemoteCmdCopyStatic, filepath.Join(common.KubeKubeletConf), filepath.Join(common.DefaultClusterBaseDir(cluster.Name)))
+			DefaultKubeDir := fmt.Sprintf(common.RemoteCmdCopyStatic, filepath.Join(common.DefaultKubeDir), filepath.Join(common.DefaultClusterBaseDir(cluster.Name)))
+			KubePki := fmt.Sprintf(common.RemoteCmdCopyStatic, filepath.Join(common.KubePki), filepath.Join(common.DefaultClusterBaseDir(cluster.Name)))
+			err = ssh.CmdAsync(master, KubeAdminConf, KubeControllerConf, KubeSchedulerConf, KubeKubeletConf, DefaultKubeDir, KubePki)
+			if err != nil {
+				return fmt.Errorf("faild to copy kubernetes config file")
+			}
+			return err
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (g *GenerateProcessor) CmdAddRegistryHosts(cluster *v2.Cluster) error {
-	regConfig := runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), cluster.GetMaster0IP())
+	regConfig := runtime.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 	cmdAddSeaHubHosts := fmt.Sprintf(runtime.RemoteAddEtcHosts, regConfig.IP+" "+runtime.SeaHub, regConfig.IP+" "+runtime.SeaHub)
 	eg, _ := errgroup.WithContext(context.Background())
 	allList := cluster.GetAllIPList()
