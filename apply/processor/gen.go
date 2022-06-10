@@ -17,8 +17,11 @@ limitations under the License.
 package processor
 
 import (
+	"context"
 	"fmt"
 	"strconv"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/sealerio/sealer/utils/yaml"
 
@@ -88,8 +91,34 @@ func (g *GenerateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, er
 		g.MountRootfs,
 		g.ApplyRegistry,
 		g.UnmountImage,
+		g.CmdAddRegistryHosts,
 	)
 	return todoList, nil
+}
+
+func (g *GenerateProcessor) CmdAddRegistryHosts(cluster *v2.Cluster) error {
+	regConfig := runtime.GetRegistryConfig(platform.DefaultMountCloudImageDir(cluster.Name), cluster.GetMaster0IP())
+	cmdAddSeaHubHosts := fmt.Sprintf(runtime.RemoteAddEtcHosts, regConfig.IP+" "+runtime.SeaHub, regConfig.IP+" "+runtime.SeaHub)
+	eg, _ := errgroup.WithContext(context.Background())
+	allList := cluster.GetAllIPList()
+	for _, ip := range allList {
+		ip := ip
+		eg.Go(func() error {
+			ssh, err := ssh.GetHostSSHClient(ip, cluster)
+			if err != nil {
+				return fmt.Errorf("new ssh client failed %v", err)
+			}
+			err = ssh.CmdAsync(ip, cmdAddSeaHubHosts)
+			if err != nil {
+				return fmt.Errorf("faild write sea.hub to /etc/hosts")
+			}
+			return err
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func GenerateCluster(arg *ParserArg) (*v2.Cluster, error) {
