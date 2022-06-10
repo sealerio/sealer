@@ -16,8 +16,12 @@ package apply
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/utils"
+	"net"
 	"os"
 	"path/filepath"
+
+	k8snet "k8s.io/utils/net"
 
 	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
@@ -109,10 +113,42 @@ func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 		return nil, err
 	}
 
+	hostList := utils.GetIPListFromHosts(cluster.Spec.Hosts)
+
+	if err := checkAllHostsSameFamily(hostList); err != nil {
+		return nil, err
+	}
+
+	if len(hostList) > 0 && k8snet.IsIPv6String(hostList[0]) {
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", v2.EnvHostIPFamily, k8snet.IPv6))
+	}
+
 	return &applydriver.Applier{
 		ClusterDesired:      cluster,
 		ImageManager:        imgSvc,
 		ClusterImageMounter: mounter,
 		ImageStore:          is,
 	}, nil
+}
+
+func checkAllHostsSameFamily(nodeList []string) error {
+	hasIPV4 := false
+	hasIPV6 := false
+	for _, ip := range nodeList {
+		parsed := net.ParseIP(ip)
+		if parsed == nil {
+			return fmt.Errorf("failed to parse %s as a valid ip", ip)
+		}
+		if k8snet.IsIPv4(parsed) {
+			hasIPV4 = true
+		} else if k8snet.IsIPv6(parsed) {
+			hasIPV6 = true
+		}
+	}
+
+	if hasIPV4 && hasIPV6 {
+		return fmt.Errorf("all hosts must be in same ip family, but the node list given are mixed with ipv4 and ipv6: %v", nodeList)
+	}
+
+	return nil
 }

@@ -15,6 +15,7 @@ require (
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/imdario/mergo v0.3.12
+	github.com/labring/lvscare v1.1.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moby/buildkit v0.9.3
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
@@ -25,11 +26,10 @@ require (
 	github.com/opencontainers/image-spec v1.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.0
-	github.com/sealyun/lvscare v1.1.2-alpha.2
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/cobra v1.1.3
-	github.com/spf13/viper v1.7.0
+	github.com/spf13/cobra v1.2.1
+	github.com/spf13/viper v1.8.1
 	github.com/tonistiigi/fsutil v0.0.0-20211208191308-f95797418e48
 	github.com/vbatts/tar-split v0.11.1
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
@@ -57,4 +57,7 @@ require (
 	sigs.k8s.io/yaml v1.2.0
 )
 
-replace github.com/docker/docker => github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible
+replace (
+	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible
+	github.com/labring/lvscare => github.com/fanux/lvscare v1.1.3-beta.2.0.20220525083355-d8f3f86677d1
+)

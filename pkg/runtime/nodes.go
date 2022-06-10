@@ -17,10 +17,11 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/sealerio/sealer/pkg/ipvs"
-	"github.com/sealerio/sealer/utils/net"
+	sealnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/pkg/errors"
@@ -29,7 +30,7 @@ import (
 )
 
 const (
-	RemoteAddIPVS                   = "seautil ipvs --vs %s:6443 %s --health-path /healthz --health-schem https --run-once"
+	RemoteAddIPVS                   = "seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once"
 	RemoteStaticPodMkdir            = "mkdir -p /etc/kubernetes/manifests"
 	RemoteJoinConfig                = `echo "%s" > %s/etc/kubeadm.yml`
 	LvscareDefaultStaticPodFileName = "/etc/kubernetes/manifests/kube-lvscare.yaml"
@@ -42,7 +43,7 @@ const (
 
 func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
 	// TODO get join config from config file
-	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
+	k.setAPIServerEndpoint(net.JoinHostPort(k.getVIP(), "6443"))
 	cGroupDriver, err := k.getCgroupDriverFromShell(nodeIP)
 	if err != nil {
 		return nil, err
@@ -70,11 +71,11 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	var masters string
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range k.GetMasterIPList() {
-		masters += fmt.Sprintf(" --rs %s:6443", master)
+		masters += fmt.Sprintf(" --rs %s", net.JoinHostPort(master, "6443"))
 	}
-	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, k.getVIP(), masters)
+	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, net.JoinHostPort(k.getVIP(), "6443"), masters)
 
-	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
+	k.setAPIServerEndpoint(net.JoinHostPort(k.getVIP(), "6443"))
 	k.cleanJoinLocalAPIEndPoint()
 
 	registryHost := k.getRegistryHost()
@@ -102,7 +103,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			cmdWriteJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
 			cmd := k.Command(k.getKubeVersion(), JoinNode)
-			lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
+			lvsImage := fmt.Sprintf("%s/%s", k.RegConfig.Repo(), k.LvsImage)
 			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.GetMasterIPList(), lvsImage)
 			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)
 			ssh, err := k.getHostSSHClient(node)
@@ -153,9 +154,9 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 		fmt.Sprintf(RemoteRemoveRegistryCerts, k.RegConfig.Domain),
 		fmt.Sprintf(RemoteRemoveRegistryCerts, SeaHub),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
-	address, err := net.GetLocalHostAddresses()
+	address, err := sealnet.GetLocalHostAddresses()
 	//if the node to be removed is the execution machine, kubelet, ~./kube and ApiServer host will be added
-	if err != nil || !net.IsLocalIP(node, address) {
+	if err != nil || !sealnet.IsLocalIP(node, address) {
 		remoteCleanCmds = append(remoteCleanCmds, RemoveKubeConfig)
 	} else {
 		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
@@ -191,7 +192,7 @@ func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
 	if err != nil {
 		return err
 	}
-	if result == net.RouteOK {
+	if result == sealnet.RouteOK {
 		return nil
 	}
 	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getVIP(), node))

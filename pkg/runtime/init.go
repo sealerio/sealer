@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
 	"path/filepath"
 	"strings"
 
@@ -38,7 +39,9 @@ const (
 	RemoteCmdExistNetworkInterface = "ip addr show %s | egrep \"%s\" || true"
 	WriteKubeadmConfigCmd          = `cd %s && echo '%s' > etc/kubeadm.yml`
 	DefaultVIP                     = "10.103.97.2"
+	DefaultVIPForIPv6              = "1248:4003:10bb:6a01:83b9:6360:c66d:0002"
 	DefaultAPIserverDomain         = "apiserver.cluster.local"
+	DefaultLvsImage                = "fanux/lvscare:latest"
 	DefaultRegistryPort            = 5000
 	DockerCertDir                  = "/etc/docker/certs.d"
 )
@@ -81,7 +84,7 @@ func (k *KubeadmRuntime) generateConfigs() ([]byte, error) {
 func (k *KubeadmRuntime) handleKubeadmConfig() {
 	//The configuration set here does not require merge
 	k.setInitAdvertiseAddress(k.GetMaster0IP())
-	k.setControlPlaneEndpoint(fmt.Sprintf("%s:6443", k.getAPIServerDomain()))
+	k.setControlPlaneEndpoint(net.JoinHostPort(k.getAPIServerDomain(), "6443"))
 	if k.APIServer.ExtraArgs == nil {
 		k.APIServer.ExtraArgs = make(map[string]string)
 	}
@@ -169,7 +172,7 @@ func (k *KubeadmRuntime) CreateKubeConfig() error {
 		BaseName: "ca",
 	}
 
-	controlPlaneEndpoint := fmt.Sprintf("https://%s:6443", k.getAPIServerDomain())
+	controlPlaneEndpoint := fmt.Sprintf("https://%s", net.JoinHostPort(k.getAPIServerDomain(), "6443"))
 	err = cert.CreateJoinControlPlaneKubeConfigFiles(k.getBasePath(),
 		certConfig, hostname, controlPlaneEndpoint, "kubernetes")
 	if err != nil {

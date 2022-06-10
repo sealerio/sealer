@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"regexp"
 	"time"
+
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 func Retry(tryTimes int, trySleepTime time.Duration, action func() error) error {
@@ -52,4 +54,20 @@ func ConfirmOperation(promptInfo string) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+// GetIPListFromHosts returns a list of IP for each 'Hosts' object
+// IPs are obtained via:
+// * ipList: []string, each string represents a single IP, such as 192.168.0.1
+// Other formats are not supported.
+func GetIPListFromHosts(hosts []v2.Host) []string {
+	var hostsIPList []string
+	for _, host := range hosts {
+		// handle ipList
+		for _, ip := range host.IPS {
+			hostsIPList = append(hostsIPList, ip)
+		}
+	}
+
+	return hostsIPList
 }

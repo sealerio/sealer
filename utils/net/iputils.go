@@ -111,7 +111,7 @@ func GetLocalHostAddresses() ([]net.Addr, error) {
 
 func IsLocalIP(ip string, addrs []net.Addr) bool {
 	for _, address := range addrs {
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil && ipnet.IP.String() == ip {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.String() == ip {
 			return true
 		}
 	}

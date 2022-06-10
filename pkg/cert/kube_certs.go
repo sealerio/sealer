@@ -246,9 +246,9 @@ func (meta *MetaData) etcdAltAndCommonName(certList *[]Config) {
 			meta.NodeName: meta.NodeName,
 		},
 		IPs: map[string]net.IP{
-			net.IPv4(127, 0, 0, 1).String():         net.IPv4(127, 0, 0, 1),
-			net.ParseIP(meta.NodeIP).To4().String(): net.ParseIP(meta.NodeIP).To4(),
-			net.IPv6loopback.String():               net.IPv6loopback,
+			net.IPv4(127, 0, 0, 1).String():   net.IPv4(127, 0, 0, 1),
+			net.ParseIP(meta.NodeIP).String(): net.ParseIP(meta.NodeIP),
+			net.IPv6loopback.String():         net.IPv6loopback,
 		},
 	}
 	(*certList)[EtcdServerCert].CommonName = meta.NodeName

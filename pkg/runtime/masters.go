@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -25,7 +26,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
 	"github.com/sealerio/sealer/pkg/ipvs"
-	"github.com/sealerio/sealer/utils/net"
+	sealnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sealerio/sealer/utils/yaml"
 
@@ -50,8 +51,8 @@ const (
 	RemoteReplaceKubeConfig     = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
 	RemoteJoinMasterConfig      = `echo "%s" > %s/etc/kubeadm.yml`
 	InitMaster115Lower          = `kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs`
-	JoinMaster115Lower          = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s"
-	JoinNode115Lower            = "kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s"
+	JoinMaster115Lower          = "kubeadm join %s --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s"
+	JoinNode115Lower            = "kubeadm join %s --token %s --discovery-token-ca-cert-hash %s"
 	InitMaser115Upper           = `kubeadm init --config=%s/etc/kubeadm.yml --upload-certs`
 	JoinMaster115Upper          = "kubeadm join --config=%s/etc/kubeadm.yml"
 	JoinNode115Upper            = "kubeadm join --config=%s/etc/kubeadm.yml"
@@ -222,7 +223,7 @@ func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
 	k.Lock()
 	defer k.Unlock()
 	// TODO Using join file instead template
-	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.GetMaster0IP()))
+	k.setAPIServerEndpoint(net.JoinHostPort(k.GetMaster0IP(), "6443"))
 	k.setJoinAdvertiseAddress(masterIP)
 	cGroupDriver, err := k.getCgroupDriverFromShell(masterIP)
 	if err != nil {
@@ -286,8 +287,8 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
 	cmds := map[CommandType]string{
 		InitMaster: fmt.Sprintf(InitMaster115Lower, k.getRootfs()),
-		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.GetMaster0IP(), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
-		JoinNode:   fmt.Sprintf(JoinNode115Lower, k.getVIP(), k.getJoinToken(), k.getTokenCaCertHash()),
+		JoinMaster: fmt.Sprintf(JoinMaster115Lower, net.JoinHostPort(k.GetMaster0IP(), "6443"), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
+		JoinNode:   fmt.Sprintf(JoinNode115Lower, net.JoinHostPort(k.getVIP(), "6443"), k.getJoinToken(), k.getTokenCaCertHash()),
 	}
 	//other version >= 1.15.x
 	if VersionCompare(version, V1150) {
@@ -443,8 +444,8 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 
 	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.
-	address, err := net.GetLocalHostAddresses()
-	if err != nil || !net.IsLocalIP(master, address) {
+	address, err := sealnet.GetLocalHostAddresses()
+	if err != nil || !sealnet.IsLocalIP(master, address) {
 		remoteCleanCmd = append(remoteCleanCmd, RemoveKubeConfig)
 	} else {
 		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
@@ -471,7 +472,8 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 			return fmt.Errorf("delete node %s failed %v", hostname, err)
 		}
 	}
-	lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
+
+	lvsImage := fmt.Sprintf("%s/%s", k.RegConfig.Repo(), k.LvsImage)
 	yaml := ipvs.LvsStaticPodYaml(k.getVIP(), masterIPs, lvsImage)
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range k.GetNodeIPList() {

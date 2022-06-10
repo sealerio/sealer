@@ -63,7 +63,7 @@ func (s *SSH) connect(host string) (*ssh.Client, error) {
 	if s.Port == "" {
 		s.Port = DefaultSSHPort
 	}
-	return ssh.Dial("tcp", fmt.Sprintf("%s:%s", host, s.Port), clientConfig)
+	return ssh.Dial("tcp", net.JoinHostPort(host, s.Port), clientConfig)
 }
 
 func (s *SSH) Connect(host string) (*ssh.Client, *ssh.Session, error) {

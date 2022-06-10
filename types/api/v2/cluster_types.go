@@ -23,6 +23,12 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
+const (
+	EnvLvsImage      = "LvsImage"
+	EnvHostIPFamily  = "HostIPFamily"
+	EnvIPv6DualStack = "IPv6DualStack"
+)
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // ClusterSpec defines the desired state of Cluster

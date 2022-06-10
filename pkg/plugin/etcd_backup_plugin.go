@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -108,7 +109,7 @@ func connEtcd(masterIP string) (clientv3.Config, error) {
 		RootCAs:      pool,
 	}
 
-	endpoints := []string{fmt.Sprintf("https://%s:2379", masterIP)}
+	endpoints := []string{fmt.Sprintf("https://%s", net.JoinHostPort(masterIP, "2379"))}
 	cfg := clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: dialTimeout,

@@ -17,6 +17,8 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"github.com/sealerio/sealer/pkg/env"
+	k8snet "k8s.io/utils/net"
 	"path/filepath"
 	"strings"
 	"time"
@@ -37,6 +39,8 @@ type Config struct {
 	Vlog      int
 	VIP       string
 	RegConfig *RegistryConfig
+	// default is "fanux/lvscare:latest"
+	LvsImage string
 	// Clusterfile: the absolute path, we need to read kubeadm config from Clusterfile
 	ClusterFileKubeConfig *KubeadmConfig
 	APIServerDomain       string
@@ -48,8 +52,12 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterFileKubeConfig *KubeadmConfig
 		Config: &Config{
 			ClusterFileKubeConfig: clusterFileKubeConfig,
 			APIServerDomain:       DefaultAPIserverDomain,
+			LvsImage:              DefaultLvsImage,
 		},
 		KubeadmConfig: &KubeadmConfig{},
+	}
+	if lvsImage, ok := env.ConvertEnv(cluster.Spec.Env)[v2.EnvLvsImage]; ok {
+		k.Config.LvsImage = lvsImage.(string)
 	}
 	k.Config.RegConfig = GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.GetMasterIPList()...))
@@ -161,6 +169,9 @@ func (k *KubeadmRuntime) getKubeVersion() string {
 }
 
 func (k *KubeadmRuntime) getVIP() string {
+	if env.ConvertEnv(k.Spec.Env)[v2.EnvHostIPFamily] == k8snet.IPv6 {
+		return DefaultVIPForIPv6
+	}
 	return DefaultVIP
 }
 
