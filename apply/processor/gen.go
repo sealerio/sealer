@@ -96,6 +96,7 @@ func (g *GenerateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, er
 	return todoList, nil
 }
 
+// CmdAddRegistryHosts When sealer gen nodes, configure sea.hub for each node
 func (g *GenerateProcessor) CmdAddRegistryHosts(cluster *v2.Cluster) error {
 	regConfig := runtime.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 	cmdAddSeaHubHosts := fmt.Sprintf(runtime.RemoteAddEtcHosts, regConfig.IP+" "+runtime.SeaHub, regConfig.IP+" "+runtime.SeaHub)
@@ -110,7 +111,7 @@ func (g *GenerateProcessor) CmdAddRegistryHosts(cluster *v2.Cluster) error {
 			}
 			err = ssh.CmdAsync(ip, cmdAddSeaHubHosts)
 			if err != nil {
-				return fmt.Errorf("faild write sea.hub to /etc/hosts")
+				return fmt.Errorf("faild write sea.hub to /etc/hosts %v", err)
 			}
 			return err
 		})
