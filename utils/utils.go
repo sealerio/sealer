@@ -64,9 +64,7 @@ func GetIPListFromHosts(hosts []v2.Host) []string {
 	var hostsIPList []string
 	for _, host := range hosts {
 		// handle ipList
-		for _, ip := range host.IPS {
-			hostsIPList = append(hostsIPList, ip)
-		}
+		hostsIPList = append(hostsIPList, host.IPS...)
 	}
 
 	return hostsIPList

@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -196,15 +197,20 @@ func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, 
 	data.DNSDomain = DNSDomain
 	data.APIServer.IPs = make(map[string]net.IP)
 	data.APIServer.DNSNames = make(map[string]string)
-	_, svcSubnet, err := net.ParseCIDR(SvcCIDR)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to parse ServiceSubnet %v", SvcCIDR)
+
+	for _, cidr := range strings.Split(SvcCIDR, ",") {
+		_, svcSubnet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to parse ServiceSubnet %v", cidr)
+		}
+
+		svcFirstIP, err := utilnet.GetIndexedIP(svcSubnet, 1)
+		if err != nil {
+			return nil, err
+		}
+
+		data.APIServer.IPs[svcFirstIP.String()] = svcFirstIP
 	}
-	svcFirstIP, err := utilnet.GetIndexedIP(svcSubnet, 1)
-	if err != nil {
-		return nil, err
-	}
-	data.APIServer.IPs[svcFirstIP.String()] = svcFirstIP
 
 	for _, altName := range apiServerIPAndDomains {
 		ip := net.ParseIP(altName)

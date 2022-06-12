@@ -26,6 +26,7 @@ import (
 const (
 	EnvLvsImage      = "LvsImage"
 	EnvHostIPFamily  = "HostIPFamily"
+	EnvHostIP        = "HostIP"
 	EnvIPv6DualStack = "IPv6DualStack"
 )
 

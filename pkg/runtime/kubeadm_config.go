@@ -78,7 +78,7 @@ func (k *KubeadmConfig) Merge(kubeadmYamlPath string) error {
 	k.APIServer.CertSANs = strings.RemoveDuplicate(append(k.APIServer.CertSANs, defaultKubeadmConfig.APIServer.CertSANs...))
 	err = mergo.Merge(k, defaultKubeadmConfig)
 	if err != nil {
-		return fmt.Errorf("failed to merge kubeadm config: %v", err)
+		return err
 	}
 	//using the DefaultKubeadmConfig configuration merge
 	return k.Merge("")

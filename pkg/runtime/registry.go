@@ -20,7 +20,6 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
-	"github.com/sealerio/sealer/utils/net"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/yaml"
 
@@ -49,8 +48,7 @@ type RegistryConfig struct {
 }
 
 func (k *KubeadmRuntime) getRegistryHost() (host string) {
-	ip, _ := net.GetSSHHostIPAndPort(k.RegConfig.IP)
-	return fmt.Sprintf("%s %s", ip, k.RegConfig.Domain)
+	return fmt.Sprintf("%s %s", k.RegConfig.IP, k.RegConfig.Domain)
 }
 
 // ApplyRegistry Only use this for join and init, due to the initiation operations.

@@ -57,7 +57,7 @@ const (
 	JoinMaster115Upper          = "kubeadm join --config=%s/etc/kubeadm.yml"
 	JoinNode115Upper            = "kubeadm join --config=%s/etc/kubeadm.yml"
 	RemoveKubeConfig            = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
-	RemoteCleanMasterOrNode     = `if which kubeadm;then kubeadm reset -f %s;fi && \
+	RemoteCleanMasterOrNode     = `systemctl restart docker kubelet;if which kubeadm;then kubeadm reset -f %s;fi && \
 modprobe -r ipip  && lsmod && \
 rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \

@@ -16,9 +16,6 @@ package apply
 
 import (
 	"strconv"
-	"strings"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
 
 	"github.com/sealerio/sealer/apply/applydriver"
 
@@ -63,13 +60,7 @@ func (c *ClusterArgs) SetClusterArgs() error {
 		return err
 	}
 	if net.IsIPList(c.runArgs.Masters) && (net.IsIPList(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
-		masters := strings.Split(c.runArgs.Masters, ",")
-		nodes := strings.Split(c.runArgs.Nodes, ",")
 		c.hosts = []v2.Host{}
-		c.setHostWithIpsPort(masters, common.MASTER)
-		if len(nodes) != 0 {
-			c.setHostWithIpsPort(nodes, common.NODE)
-		}
 		c.cluster.Spec.Hosts = c.hosts
 	} else {
 		ip, err := net.GetLocalDefaultIP()
@@ -86,28 +77,6 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	return err
 }
 
-func (c *ClusterArgs) setHostWithIpsPort(ips []string, role string) {
-	//map[ssh port]*host
-	hostMap := map[string]*v2.Host{}
-	for i := range ips {
-		ip, port := net.GetHostIPAndPortOrDefault(ips[i], strconv.Itoa(int(c.runArgs.Port)))
-		if _, ok := hostMap[port]; !ok {
-			hostMap[port] = &v2.Host{IPS: []string{ip}, Roles: []string{role}, SSH: v1.SSH{Port: port}}
-			continue
-		}
-		hostMap[port].IPS = append(hostMap[port].IPS, ip)
-	}
-	_, master0Port := net.GetHostIPAndPortOrDefault(ips[0], strconv.Itoa(int(c.runArgs.Port)))
-	for port, host := range hostMap {
-		host.IPS = removeIPListDuplicatesAndEmpty(host.IPS)
-		if port == master0Port && role == common.MASTER {
-			c.hosts = append([]v2.Host{*host}, c.hosts...)
-			continue
-		}
-		c.hosts = append(c.hosts, *host)
-	}
-}
-
 func NewApplierFromArgs(imageName string, runArgs *Args) (applydriver.Interface, error) {
 	c := &ClusterArgs{
 		cluster:   &v2.Cluster{},
@@ -117,5 +86,5 @@ func NewApplierFromArgs(imageName string, runArgs *Args) (applydriver.Interface,
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
 	}
-	return NewApplier(c.cluster)
+	return NewApplier(c.cluster, nil)
 }

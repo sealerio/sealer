@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/sprig/v3"
-
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
@@ -50,7 +49,9 @@ func NewEnvProcessor(cluster *v2.Cluster) Interface {
 
 func (p *processor) WrapperShell(host, shell string) string {
 	var env string
-	for k, v := range p.getHostEnv(host) {
+	hostEnv := p.getHostEnv(host)
+	hostEnv[v2.EnvHostIP] = host
+	for k, v := range hostEnv {
 		switch value := v.(type) {
 		case []string:
 			env = fmt.Sprintf("%s%s=(%s) ", env, k, strings.Join(value, " "))
@@ -83,8 +84,9 @@ func (p *processor) RenderAll(host, dir string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create template: %s %v", path, err)
 		}
-		if err := t.Execute(writer, p.getHostEnv(host)); err != nil {
-			return fmt.Errorf("failed to render env template: %s %v", path, err)
+		env := p.getHostEnv(host)
+		if err := t.Execute(writer, env); err != nil {
+			return fmt.Errorf("failed to render env %v into template: %s %v", env, path, err)
 		}
 		return nil
 	})

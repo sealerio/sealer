@@ -27,42 +27,11 @@ import (
 	k8snet "k8s.io/apimachinery/pkg/util/net"
 )
 
-func GetHostIP(host string) string {
-	if !strings.ContainsRune(host, ':') {
-		return host
-	}
-	return strings.Split(host, ":")[0]
-}
-
-func GetHostIPAndPortOrDefault(host, Default string) (string, string) {
-	if !strings.ContainsRune(host, ':') {
-		return host, Default
-	}
-	split := strings.Split(host, ":")
-	return split[0], split[1]
-}
-
-func GetSSHHostIPAndPort(host string) (string, string) {
-	return GetHostIPAndPortOrDefault(host, "22")
-}
-
-func GetHostIPSlice(hosts []string) (res []string) {
-	for _, ip := range hosts {
-		res = append(res, GetHostIP(ip))
-	}
-	return
-}
-
 func IsIPList(args string) bool {
 	ipList := strings.Split(args, ",")
 
 	for _, i := range ipList {
-		if !strings.Contains(i, ":") {
-			return net.ParseIP(i) != nil
-		}
-		if _, err := net.ResolveTCPAddr("tcp", i); err != nil {
-			return false
-		}
+		return net.ParseIP(i) != nil
 	}
 	return true
 }

@@ -52,7 +52,7 @@ func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (
 	/*	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
 		return nil, err
 	}*/
-	applier, err := NewApplier(cluster)
+	applier, err := NewApplier(cluster, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		return err
 	}
 	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
-		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
+		return fmt.Errorf(" Parameter error: The current mode should submit iplist!")
 	}
 
 	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
@@ -123,7 +123,7 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		return err
 	}
 	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
-		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
+		return fmt.Errorf(" Parameter error: The current mode should submit iplist!")
 	}
 	//master0 machine cannot be deleted
 	if !strUtils.NotIn(cluster.GetMaster0IP(), strings.Split(scaleArgs.Masters, ",")) {

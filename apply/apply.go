@@ -16,7 +16,6 @@ package apply
 
 import (
 	"fmt"
-	"github.com/sealerio/sealer/utils"
 	"net"
 	"os"
 	"path/filepath"
@@ -26,10 +25,12 @@ import (
 	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/store"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
 )
 
 type Args struct {
@@ -60,20 +61,7 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	imgSvc, err := image.NewImageService()
-	if err != nil {
-		return nil, err
-	}
 
-	mounter, err := filesystem.NewClusterImageMounter()
-	if err != nil {
-		return nil, err
-	}
-
-	is, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, err
-	}
 	cluster := Clusterfile.GetCluster()
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty, make sure %s file is correct", path)
@@ -81,20 +69,11 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 	if cluster.GetAnnotationsByKey(common.ClusterfileName) == "" {
 		cluster.SetAnnotations(common.ClusterfileName, path)
 	}
-	return &applydriver.Applier{
-		ClusterDesired:      &cluster,
-		ClusterFile:         Clusterfile,
-		ImageManager:        imgSvc,
-		ClusterImageMounter: mounter,
-		ImageStore:          is,
-	}, nil
+
+	return NewApplier(&cluster, Clusterfile)
 }
 
-func NewApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
-	return NewDefaultApplier(cluster)
-}
-
-func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
+func NewApplier(cluster *v2.Cluster, file clusterfile.Interface) (applydriver.Interface, error) {
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty")
 	}
@@ -119,12 +98,14 @@ func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 		return nil, err
 	}
 
-	if len(hostList) > 0 && k8snet.IsIPv6String(hostList[0]) {
+	if len(hostList) > 0 && k8snet.IsIPv6String(hostList[0]) &&
+		env.ConvertEnv(cluster.Spec.Env)[v2.EnvHostIPFamily] == nil {
 		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", v2.EnvHostIPFamily, k8snet.IPv6))
 	}
 
 	return &applydriver.Applier{
 		ClusterDesired:      cluster,
+		ClusterFile:         file,
 		ImageManager:        imgSvc,
 		ClusterImageMounter: mounter,
 		ImageStore:          is,

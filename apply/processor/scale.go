@@ -103,6 +103,9 @@ func (s *ScaleProcessor) RunConfig(cluster *v2.Cluster) error {
 }
 
 func (s *ScaleProcessor) MountRootfs(cluster *v2.Cluster) error {
+	if cluster.Annotations["skip-mount"] == "true" {
+		return nil
+	}
 	return s.fileSystem.MountRootfs(cluster, append(s.MastersToJoin, s.NodesToJoin...), true)
 }
 

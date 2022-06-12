@@ -91,10 +91,10 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 		node := node
 		eg.Go(func() error {
 			logrus.Infof("Start to join %s as worker", node)
-			err := k.checkMultiNetworkAddVIPRoute(node)
-			if err != nil {
-				return fmt.Errorf("failed to check multi network: %v", err)
-			}
+			//err := k.checkMultiNetworkAddVIPRoute(node)
+			//if err != nil {
+			//	return fmt.Errorf("failed to check multi network: %v", err)
+			//}
 			// send join node config, get cgroup driver on every join nodes
 			joinConfig, err := k.joinNodeConfig(node)
 			if err != nil {
@@ -200,6 +200,8 @@ func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
 }
 
 func (k *KubeadmRuntime) deleteVIPRouteIfExist(node string) error {
+	return nil
+
 	sshClient, err := k.getHostSSHClient(node)
 	if err != nil {
 		return err

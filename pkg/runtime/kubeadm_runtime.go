@@ -17,19 +17,19 @@ package runtime
 import (
 	"context"
 	"fmt"
-	"github.com/sealerio/sealer/pkg/env"
-	k8snet "k8s.io/utils/net"
+	"net"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	k8snet "k8s.io/utils/net"
 
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
@@ -169,7 +169,7 @@ func (k *KubeadmRuntime) getKubeVersion() string {
 }
 
 func (k *KubeadmRuntime) getVIP() string {
-	if env.ConvertEnv(k.Spec.Env)[v2.EnvHostIPFamily] == k8snet.IPv6 {
+	if env.ConvertEnv(k.Spec.Env)[v2.EnvHostIPFamily].(string) == k8snet.IPv6 {
 		return DefaultVIPForIPv6
 	}
 	return DefaultVIP
@@ -249,7 +249,7 @@ func (k *KubeadmRuntime) setAPIVersion(apiVersion string) {
 func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
 	var tmpSlice []string
 	for _, ip := range masters {
-		tmpSlice = append(tmpSlice, fmt.Sprintf("https://%s:2379", net.GetHostIP(ip)))
+		tmpSlice = append(tmpSlice, fmt.Sprintf("https://%s", net.JoinHostPort(ip, "2379")))
 	}
 	return strings.Join(tmpSlice, ",")
 }

@@ -88,15 +88,19 @@ func (c *PluginsProcessor) Load() error {
 			if err != nil {
 				return fmt.Errorf("failed to load plugin %v", err)
 			}
-			var plugs []v1.Plugin
-			for _, p := range plugins.([]v1.Plugin) {
+			hasSamePluginFunc := func(p v1.Plugin) bool {
 				for _, cp := range c.Plugins {
-					if !isSamePluginSpec(p, cp) {
-						plugs = append(plugs, p)
+					if isSamePluginSpec(p, cp) {
+						return true
 					}
 				}
+				return false
 			}
-			c.Plugins = append(c.Plugins, plugs...)
+			for _, p := range plugins.([]v1.Plugin) {
+				if !hasSamePluginFunc(p) {
+					c.Plugins = append(c.Plugins, p)
+				}
+			}
 		}
 	}
 

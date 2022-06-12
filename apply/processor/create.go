@@ -104,6 +104,9 @@ func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 }
 
 func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
+	if cluster.Annotations["skip-mount"] == "true" {
+		return nil
+	}
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	regConfig := runtime.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 	if net.NotInIPList(regConfig.IP, hosts) {
