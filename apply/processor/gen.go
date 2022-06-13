@@ -90,8 +90,8 @@ func (g *GenerateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, er
 		g.MountImage,
 		g.MountRootfs,
 		g.ApplyRegistry,
-		g.UnmountImage,
 		g.CmdAddRegistryHosts,
+		g.UnmountImage,
 	)
 	return todoList, nil
 }
