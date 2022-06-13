@@ -524,6 +524,5 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 
 	k.decodeMaster0Output(out)
 
-	logrus.Infof("join token: %s hash: %s certifacate key: %s", k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey())
 	return nil
 }

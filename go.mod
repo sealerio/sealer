@@ -4,7 +4,6 @@ go 1.14
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.985
 	github.com/cavaliergopher/grab/v3 v3.0.1
 	github.com/distribution/distribution/v3 v3.0.0-20211125133600-cc4627fc6e5f
@@ -14,6 +13,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/go-git/go-git/v5 v5.4.2
+	github.com/google/uuid v1.2.0
 	github.com/imdario/mergo v0.3.12
 	github.com/labring/lvscare v1.1.1
 	github.com/mitchellh/go-homedir v1.1.0

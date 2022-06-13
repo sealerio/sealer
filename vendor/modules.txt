@@ -9,7 +9,6 @@ github.com/Masterminds/goutils
 ## explicit
 github.com/Masterminds/semver/v3
 # github.com/Masterminds/sprig/v3 v3.2.2
-## explicit
 github.com/Masterminds/sprig/v3
 # github.com/Microsoft/go-winio v0.4.17
 github.com/Microsoft/go-winio
@@ -282,6 +281,7 @@ github.com/google/gofuzz
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 github.com/google/shlex
 # github.com/google/uuid v1.2.0
+## explicit
 github.com/google/uuid
 # github.com/googleapis/gnostic v0.5.1
 github.com/googleapis/gnostic/compiler

@@ -24,17 +24,31 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/sealerio/sealer/common"
+	remotelogger "github.com/sealerio/sealer/pkg/remote-logger"
 	"github.com/sealerio/sealer/version"
 )
 
 type rootOpts struct {
-	cfgFile     string
-	debugModeOn bool
-	hideLogTime bool
-	hideLogPath bool
+	cfgFile              string
+	debugModeOn          bool
+	hideLogTime          bool
+	hideLogPath          bool
+	colorMode            string
+	remoteLoggerURL      string
+	remoteLoggerTaskName string
 }
 
 var rootOpt rootOpts
+
+const (
+	colorModeNever  = "never"
+	colorModeAlways = "always"
+)
+
+var supportedColorModes = []string{
+	colorModeNever,
+	colorModeAlways,
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -44,13 +58,14 @@ var rootCmd = &cobra.Command{
 into ClusterImage by Kubefile, distribute this application anywhere via ClusterImage, 
 and run it within any cluster with Clusterfile in one command.
 `,
+	SilenceErrors: true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "sealer-%s: %v\n", version.GetSingleVersion(), err)
+		logrus.Errorf("sealer-%s: %v", version.GetSingleVersion(), err)
 		os.Exit(1)
 	}
 }
@@ -59,8 +74,12 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file of sealer tool (default is $HOME/.sealer.json)")
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")
+	rootCmd.PersistentFlags().BoolVarP(&rootCmd.SilenceUsage, "quiet", "q", false, "silence the usage when fail")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogTime, "hide-time", false, "hide the log time")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogPath, "hide-path", false, "hide the log path")
+	rootCmd.PersistentFlags().StringVar(&rootOpt.colorMode, "color", colorModeAlways, fmt.Sprintf("set the log color mode, the possible values can be %v", supportedColorModes))
+	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerURL, "remote-logger-url", "", "remote logger url, if not empty, will send log to this url")
+	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerTaskName, "task-name", "", "task name which will embedded in the remote logger header, only valid when --remote-logger-url is set")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.DisableAutoGenTag = true
 }
@@ -81,13 +100,16 @@ func initConfig() {
 	if rootOpt.debugModeOn {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
-	/*
-		logrus.InitLogger(logger.Config{DebugMode: rootOpt.debugModeOn})
-		logrus.SetLogPath(!rootOpt.hideLogPath)
 
-		if !rootOpt.hideLogTime {
-			logrus.SetTimeFormat(logger.LogTimeDefaultFormat)
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableColors: rootOpt.colorMode == colorModeNever,
+	})
+
+	if rootOpt.remoteLoggerURL != "" {
+		rl, err := remotelogger.NewRemoteLogHook(rootOpt.remoteLoggerURL, rootOpt.remoteLoggerTaskName)
+		if err != nil {
+			panic(err)
 		}
-		logrus.Cfg(rootOpt.debugModeOn)
-	*/
+		logrus.AddHook(rl)
+	}
 }
