@@ -16,7 +16,12 @@ package apply
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+
+	"github.com/sealerio/sealer/utils/hash"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
 
 	"github.com/sealerio/sealer/utils/yaml"
 
@@ -49,68 +54,109 @@ func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (
 		return nil, err
 	}
 
-	/*	if err := utils.MarshalYamlToFile(clusterfile, cluster); err != nil {
-		return nil, err
-	}*/
-	applier, err := NewApplier(cluster)
+	applier, err := NewDefaultApplier(cluster)
 	if err != nil {
 		return nil, err
 	}
 	return applier, nil
 }
 
-func Join(cluster *v2.Cluster, scalingArgs *Args) error {
-	/*	switch cluster.Spec.Provider {
-		case common.BAREMETAL:
-			return joinBaremetalNodes(cluster, scalingArgs)
-		case common.AliCloud:
-			return joinInfraNodes(cluster, scalingArgs)
-		case common.CONTAINER:
-			return joinInfraNodes(cluster, scalingArgs)
-		default:
-			return fmt.Errorf(" clusterfile provider type is not found ！")
-		}*/
-	return joinBaremetalNodes(cluster, scalingArgs)
+func Join(cluster *v2.Cluster, scaleArgs *Args) error {
+	return joinBaremetalNodes(cluster, scaleArgs)
 }
 
 func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
-	if err := PreProcessIPList(scaleArgs); err != nil {
+	var err error
+	// merge custom Env to the existed cluster
+	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
+
+	if err = PreProcessIPList(scaleArgs); err != nil {
 		return err
 	}
+
 	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
 
-	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
-		for i := 0; i < len(cluster.Spec.Hosts); i++ {
-			role := cluster.Spec.Hosts[i].Roles
-			if !strUtils.NotIn(common.MASTER, role) {
-				cluster.Spec.Hosts[i].IPS = removeIPListDuplicatesAndEmpty(append(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ",")...))
-				break
-			}
-			if i == len(cluster.Spec.Hosts)-1 {
-				return fmt.Errorf("not found `master` role from file")
-			}
+	// if scaleArgs`s ssh auth credential is different from local cluster,will add it to each host.
+	// if not use local cluster ssh auth credential.
+	var changedSSH *v1.SSH
+
+	passwd := cluster.Spec.SSH.Passwd
+	if cluster.Spec.SSH.Encrypted {
+		passwd, err = hash.AesDecrypt([]byte(cluster.Spec.SSH.Passwd))
+		if err != nil {
+			return err
 		}
 	}
-	//add join node
-	if scaleArgs.Nodes != "" && net.IsIPList(scaleArgs.Nodes) {
-		for i := 0; i < len(cluster.Spec.Hosts); i++ {
-			role := cluster.Spec.Hosts[i].Roles
-			if !strUtils.NotIn(common.NODE, role) {
-				cluster.Spec.Hosts[i].IPS = removeIPListDuplicatesAndEmpty(append(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ",")...))
-				break
-			}
-			if i == len(cluster.Spec.Hosts)-1 {
-				hosts := v2.Host{IPS: removeIPListDuplicatesAndEmpty(strings.Split(scaleArgs.Nodes, ",")), Roles: []string{common.NODE}}
-				cluster.Spec.Hosts = append(cluster.Spec.Hosts, hosts)
+
+	if scaleArgs.Password != "" && scaleArgs.Password != passwd {
+		// Encrypt password here to avoid merge failed.
+		passwd, err = hash.AesEncrypt([]byte(scaleArgs.Password))
+		if err != nil {
+			return err
+		}
+		changedSSH = &v1.SSH{
+			Encrypted: true,
+			User:      scaleArgs.User,
+			Passwd:    passwd,
+			Pk:        scaleArgs.Pk,
+			PkPasswd:  scaleArgs.PkPassword,
+			Port:      strconv.Itoa(int(scaleArgs.Port)),
+		}
+	}
+
+	//add joined masters
+	if scaleArgs.Masters != "" {
+		masterIPs := cluster.GetMasterIPList()
+		addedMasterIP := removeDuplicate(strings.Split(scaleArgs.Masters, ","))
+
+		for _, ip := range addedMasterIP {
+			// if ip already taken by master will return join duplicated ip error
+			if !strUtils.NotIn(ip, masterIPs) {
+				return fmt.Errorf("failed to scale master for duplicated ip: %s", ip)
 			}
 		}
+
+		host := v2.Host{
+			IPS:   addedMasterIP,
+			Roles: []string{common.MASTER},
+		}
+
+		if changedSSH != nil {
+			host.SSH = *changedSSH
+		}
+
+		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
+	}
+
+	//add joined nodes
+	if scaleArgs.Nodes != "" {
+		nodeIPs := cluster.GetNodeIPList()
+		addedNodeIP := removeDuplicate(strings.Split(scaleArgs.Nodes, ","))
+
+		for _, ip := range addedNodeIP {
+			// if ip already taken by node will return join duplicated ip error
+			if !strUtils.NotIn(ip, nodeIPs) {
+				return fmt.Errorf("failed to scale node for duplicated ip: %s", ip)
+			}
+		}
+
+		host := v2.Host{
+			IPS:   addedNodeIP,
+			Roles: []string{common.NODE},
+		}
+
+		if changedSSH != nil {
+			host.SSH = *changedSSH
+		}
+
+		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
 	}
 	return nil
 }
 
-func removeIPListDuplicatesAndEmpty(ipList []string) []string {
+func removeDuplicate(ipList []string) []string {
 	return strUtils.RemoveDuplicate(strUtils.NewComparator(ipList, []string{""}).GetSrcSubtraction())
 }
 
@@ -119,16 +165,22 @@ func Delete(cluster *v2.Cluster, scaleArgs *Args) error {
 }
 
 func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
+	// adding custom Env params for delete option here to support executing users clean scripts via env.
+	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
+
 	if err := PreProcessIPList(scaleArgs); err != nil {
 		return err
 	}
+
 	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist！")
 	}
+
 	//master0 machine cannot be deleted
 	if !strUtils.NotIn(cluster.GetMaster0IP(), strings.Split(scaleArgs.Masters, ",")) {
 		return fmt.Errorf("master0 machine cannot be deleted")
 	}
+
 	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
 		for i := range cluster.Spec.Hosts {
 			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {

@@ -53,7 +53,7 @@ var upgradeCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		applier, err := apply.NewApplier(desiredCluster)
+		applier, err := apply.NewDefaultApplier(desiredCluster)
 		if err != nil {
 			return err
 		}

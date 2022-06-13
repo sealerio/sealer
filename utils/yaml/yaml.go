@@ -24,12 +24,7 @@ import (
 
 	osi "github.com/sealerio/sealer/utils/os"
 
-	"github.com/sealerio/sealer/utils/hash"
-
 	"sigs.k8s.io/yaml"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 func UnmarshalFile(file string, obj interface{}) error {
@@ -46,29 +41,6 @@ func UnmarshalFile(file string, obj interface{}) error {
 }
 
 func MarshalToFile(file string, obj interface{}) error {
-	switch cluster := obj.(type) {
-	case *v1.Cluster:
-		if cluster.Spec.SSH.Encrypted {
-			break
-		}
-		passwd, err := hash.AesEncrypt([]byte(cluster.Spec.SSH.Passwd))
-		if err != nil {
-			return err
-		}
-		cluster.Spec.SSH.Passwd = passwd
-		cluster.Spec.SSH.Encrypted = true
-	case *v2.Cluster:
-		if cluster.Spec.SSH.Encrypted {
-			break
-		}
-		passwd, err := hash.AesEncrypt([]byte(cluster.Spec.SSH.Passwd))
-		if err != nil {
-			return err
-		}
-		cluster.Spec.SSH.Passwd = passwd
-		cluster.Spec.SSH.Encrypted = true
-	default:
-	}
 	data, err := yaml.Marshal(obj)
 	if err != nil {
 		return err
