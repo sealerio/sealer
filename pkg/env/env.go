@@ -16,12 +16,10 @@ package env
 
 import (
 	"fmt"
-	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/Masterminds/sprig/v3"
+	"text/template"
 
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
@@ -79,7 +77,7 @@ func (p *processor) RenderAll(host, dir string) error {
 		defer func() {
 			_ = writer.Close()
 		}()
-		t, err := template.New(info.Name()).Funcs(sprig.FuncMap()).ParseFiles(path)
+		t, err := template.New(info.Name()).ParseFiles(path)
 		if err != nil {
 			return fmt.Errorf("failed to create template: %s %v", path, err)
 		}
