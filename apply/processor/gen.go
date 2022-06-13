@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/sealerio/sealer/utils/yaml"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 
 	"github.com/sealerio/sealer/utils/net"
 
@@ -74,7 +74,7 @@ func NewGenerateProcessor() (Processor, error) {
 
 func (g *GenerateProcessor) init(cluster *v2.Cluster) error {
 	fileName := fmt.Sprintf("%s/.sealer/%s/Clusterfile", common.GetHomeDir(), cluster.Name)
-	if err := yaml.MarshalToFile(fileName, cluster); err != nil {
+	if err := clusterfile.SaveToDisk(cluster, fileName); err != nil {
 		return err
 	}
 	return nil

@@ -1,51 +1,30 @@
-# Sealer roadmap
+# sealer Roadmap
 
-## v0.1.3
+## Focus the core of distributed application definition
 
-* general e2e tests
-* support build, apply and push a ClusterImage
+* Keep exploring reducing complexity of k8s-based distributed application definition
+* Support ClusterImage on more heterogeneous infrastucture:
+  * general OS and arch
+  * general existing Kubernetes
 
-## v0.2.0
+## sealer spec Definition Stabilization
 
-* support cluster ENV and global config
-* support ARM base image
-* registry cache docker image when pull images
-* base image support more kubernetes versions and auto make rootfs
-* official dashboard image
-* image merge feature
+* Kubefile stabilization
+* Clusterfile stabilization
+* ClusterImage spec stabilization
+  * define Kubernetes part and application part separately
+  * protocol stabilization among sealer binary, basefs and cluster instance
 
-## future versions
+## Neutral Architecture and Cloud Native Ecosystem Integration
 
-* cluster upgrade, backup, and restore
-* application upgrade
-* multi cloud provider
-* multi runtime
-* rootfs mount filesystem
-* sealer hub UI
+* Modularize architecture, including:
+  * data structure
+  * control workflow
+  * data flow
+* HA built-in image registry
+* others
 
-## official registry opensource ClusterImages
+## Performance Improvement
 
-* [ ] [dashboard](https://github.com/kubernetes/dashboard)
-* [ ] [prometheus stack](https://github.com/prometheus-operator/kube-prometheus)
-* [ ] loki stack
-* [ ] mysql
-* [ ] redis
-* [ ] rocketmq
-* [ ] zookeeper
-* [ ] minio
-* [ ] openEBS
-* [ ] rook ceph
-* [ ] kubeflow
-* [ ] kafka
-* [ ] cassandra
-* [ ] cockroachDB
-* [ ] postgreSQL
-* [ ] tiDB
-* [ ] istio
-* [ ] dapr
-* [ ] ingress
-* [ ] gitea/drone/harbor, devops stack
-
-## LONG*TERM
-
-
+* Improve cluster bootstrap efficiency as possible
+* Improve ClusterImage distribution efficiency as possible

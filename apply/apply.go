@@ -63,17 +63,14 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 	}
 
 	cluster := Clusterfile.GetCluster()
-	if cluster.Name == "" {
-		return nil, fmt.Errorf("cluster name cannot be empty, make sure %s file is correct", path)
-	}
 	if cluster.GetAnnotationsByKey(common.ClusterfileName) == "" {
 		cluster.SetAnnotations(common.ClusterfileName, path)
 	}
 
-	return NewApplier(&cluster, Clusterfile)
+	return NewDefaultApplier(&cluster, Clusterfile)
 }
 
-func NewApplier(cluster *v2.Cluster, file clusterfile.Interface) (applydriver.Interface, error) {
+func NewDefaultApplier(cluster *v2.Cluster, file clusterfile.Interface) (applydriver.Interface, error) {
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty")
 	}

@@ -15,7 +15,6 @@
 package apply
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/sealerio/sealer/apply/applydriver"
@@ -45,15 +44,9 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	c.cluster.Kind = common.Cluster
 	c.cluster.Name = c.runArgs.ClusterName
 	c.cluster.Spec.Image = c.imageName
-	c.cluster.Spec.SSH.User = c.runArgs.User
-	c.cluster.Spec.SSH.Pk = c.runArgs.Pk
-	c.cluster.Spec.SSH.PkPasswd = c.runArgs.PkPassword
-	c.cluster.Spec.SSH.Port = strconv.Itoa(int(c.runArgs.Port))
 	c.cluster.Spec.Env = append(c.cluster.Spec.Env, c.runArgs.CustomEnv...)
 	c.cluster.Spec.CMDArgs = append(c.cluster.Spec.CMDArgs, c.runArgs.CMDArgs...)
-	if c.runArgs.Password != "" {
-		c.cluster.Spec.SSH.Passwd = c.runArgs.Password
-	}
+
 	err := PreProcessIPList(c.runArgs)
 	if err != nil {
 		return err
@@ -97,5 +90,5 @@ func NewApplierFromArgs(imageName string, runArgs *Args) (applydriver.Interface,
 	if err := c.SetClusterArgs(); err != nil {
 		return nil, err
 	}
-	return NewApplier(c.cluster, nil)
+	return NewDefaultApplier(c.cluster, nil)
 }
