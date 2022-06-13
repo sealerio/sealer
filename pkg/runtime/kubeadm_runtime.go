@@ -169,7 +169,7 @@ func (k *KubeadmRuntime) getKubeVersion() string {
 }
 
 func (k *KubeadmRuntime) getVIP() string {
-	if env.ConvertEnv(k.Spec.Env)[v2.EnvHostIPFamily].(string) == k8snet.IPv6 {
+	if env.ConvertEnv(k.Spec.Env)[v2.EnvHostIPFamily] != nil && env.ConvertEnv(k.Spec.Env)[v2.EnvHostIPFamily].(string) == k8snet.IPv6 {
 		return DefaultVIPForIPv6
 	}
 	return DefaultVIP

@@ -16,7 +16,6 @@ package ipvs
 
 import (
 	"net"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -42,9 +41,6 @@ func LvsStaticPodYaml(vip string, masters []string, image string) string {
 	}
 	args := []string{"care", "--vs", net.JoinHostPort(vip, "6443"), "--health-path", "/healthz", "--health-schem", "https"}
 	for _, m := range masters {
-		if strings.Contains(m, ":") {
-			m = strings.Split(m, ":")[0]
-		}
 		args = append(args, "--rs")
 		args = append(args, net.JoinHostPort(m, "6443"))
 	}
