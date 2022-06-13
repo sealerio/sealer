@@ -81,7 +81,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		return fmt.Errorf(" Parameter error: The current mode should submit iplist!")
 	}
 
-	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
+	if net.IsIPList(scaleArgs.Masters) {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
 			if !strUtils.NotIn(common.MASTER, role) {
@@ -94,7 +94,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		}
 	}
 	//add join node
-	if scaleArgs.Nodes != "" && net.IsIPList(scaleArgs.Nodes) {
+	if net.IsIPList(scaleArgs.Nodes) {
 		for i := 0; i < len(cluster.Spec.Hosts); i++ {
 			role := cluster.Spec.Hosts[i].Roles
 			if !strUtils.NotIn(common.NODE, role) {
@@ -129,14 +129,14 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	if !strUtils.NotIn(cluster.GetMaster0IP(), strings.Split(scaleArgs.Masters, ",")) {
 		return fmt.Errorf("master0 machine cannot be deleted")
 	}
-	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
+	if net.IsIPList(scaleArgs.Masters) {
 		for i := range cluster.Spec.Hosts {
 			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ","))
 			}
 		}
 	}
-	if scaleArgs.Nodes != "" && net.IsIPList(scaleArgs.Nodes) {
+	if net.IsIPList(scaleArgs.Nodes) {
 		for i := range cluster.Spec.Hosts {
 			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ","))

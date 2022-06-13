@@ -28,11 +28,18 @@ import (
 )
 
 func IsIPList(args string) bool {
+	if args == "" {
+		return false
+	}
+
 	ipList := strings.Split(args, ",")
 
 	for _, i := range ipList {
-		return net.ParseIP(i) != nil
+		if net.ParseIP(i) == nil {
+			return false
+		}
 	}
+
 	return true
 }
 
@@ -130,13 +137,7 @@ func AssemblyIPList(args *string) error {
 }
 
 func CheckIP(i string) bool {
-	if !strings.Contains(i, ":") {
-		return net.ParseIP(i) != nil
-	}
-	if _, err := net.ResolveTCPAddr("tcp", i); err != nil {
-		return false
-	}
-	return true
+	return net.ParseIP(i) != nil
 }
 
 func DisassembleIPList(arg string) (res []string) {
@@ -209,7 +210,7 @@ func NotInIPList(key string, slice []string) bool {
 		if s == "" {
 			continue
 		}
-		if key == strings.Split(s, ":")[0] {
+		if key == s {
 			return false
 		}
 	}

@@ -16,9 +16,9 @@ package apply
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/sealerio/sealer/apply/applydriver"
-
 	"github.com/sealerio/sealer/common"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/net"
@@ -28,14 +28,13 @@ type ClusterArgs struct {
 	cluster   *v2.Cluster
 	imageName string
 	runArgs   *Args
-	hosts     []v2.Host
 }
 
-func PreProcessIPList(joinArgs *Args) error {
-	if err := net.AssemblyIPList(&joinArgs.Masters); err != nil {
+func PreProcessIPList(args *Args) error {
+	if err := net.AssemblyIPList(&args.Masters); err != nil {
 		return err
 	}
-	if err := net.AssemblyIPList(&joinArgs.Nodes); err != nil {
+	if err := net.AssemblyIPList(&args.Nodes); err != nil {
 		return err
 	}
 	return nil
@@ -59,10 +58,21 @@ func (c *ClusterArgs) SetClusterArgs() error {
 	if err != nil {
 		return err
 	}
-	if net.IsIPList(c.runArgs.Masters) && (net.IsIPList(c.runArgs.Nodes) || c.runArgs.Nodes == "") {
-		c.hosts = []v2.Host{}
-		c.cluster.Spec.Hosts = c.hosts
-	} else {
+	if net.IsIPList(c.runArgs.Masters) {
+		c.cluster.Spec.Hosts = append(c.cluster.Spec.Hosts, v2.Host{
+			IPS:   strings.Split(c.runArgs.Masters, ","),
+			Roles: []string{common.MASTER},
+		})
+	}
+	if net.IsIPList(c.runArgs.Nodes) {
+		c.cluster.Spec.Hosts = append(c.cluster.Spec.Hosts, v2.Host{
+			IPS:   strings.Split(c.runArgs.Nodes, ","),
+			Roles: []string{common.NODE},
+		})
+	}
+
+	// if empty, use local host as single master
+	if len(c.cluster.Spec.Hosts) == 0 {
 		ip, err := net.GetLocalDefaultIP()
 		if err != nil {
 			return err
@@ -74,7 +84,8 @@ func (c *ClusterArgs) SetClusterArgs() error {
 			},
 		}
 	}
-	return err
+
+	return nil
 }
 
 func NewApplierFromArgs(imageName string, runArgs *Args) (applydriver.Interface, error) {
