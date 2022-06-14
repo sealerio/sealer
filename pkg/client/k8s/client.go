@@ -205,3 +205,13 @@ func (c *Client) ListKubeSystemPodsStatus() (bool, error) {
 	}
 	return true, nil
 }
+
+func GetInternalIP(node *v1.Node) string {
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == v1.NodeInternalIP {
+			return addr.Address
+		}
+	}
+
+	return ""
+}

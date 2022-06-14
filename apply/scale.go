@@ -21,6 +21,7 @@ import (
 
 	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/client/k8s"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/hash"
@@ -102,20 +103,48 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		}
 	}
 
+	masterIPs := cluster.GetMasterIPList()
+	workerIPs := cluster.GetNodeIPList()
+
+	client, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+
+	nodeListFromK8s, err := client.ListNodes()
+	if err != nil {
+		return err
+	}
+
+	var mastersFromK8s, workersFromK8s []string
+	for _, n := range nodeListFromK8s.Items {
+		if _, ok := n.Labels[applydriver.MasterRoleLabel]; ok {
+			mastersFromK8s = append(mastersFromK8s, k8s.GetInternalIP(&n))
+		} else {
+			workersFromK8s = append(workersFromK8s, k8s.GetInternalIP(&n))
+		}
+	}
+
+	a, b := strUtils.Diff(masterIPs, mastersFromK8s)
+	if len(a) != 0 || len(b) != 0 {
+		return fmt.Errorf("we find current clusterfile's master ip list is different from actual k8s's, please check")
+	}
+	a, b = strUtils.Diff(workerIPs, workersFromK8s)
+	if len(a) != 0 || len(b) != 0 {
+		return fmt.Errorf("we find current clusterfile's worker ip list is different from actual k8s's, please check")
+	}
+
 	//add joined masters
 	if scaleArgs.Masters != "" {
-		masterIPs := cluster.GetMasterIPList()
-		addedMasterIP := removeDuplicate(strings.Split(scaleArgs.Masters, ","))
+		toAdd := removeDuplicate(strings.Split(scaleArgs.Masters, ","))
 
-		for _, ip := range addedMasterIP {
-			// if ip already taken by master will return join duplicated ip error
-			if !strUtils.NotIn(ip, masterIPs) {
-				return fmt.Errorf("failed to scale master for duplicated ip: %s", ip)
-			}
+		// skip already added masters
+		for _, ip := range masterIPs {
+			toAdd = strUtils.RemoveString(toAdd, ip, nil)
 		}
 
 		host := v2.Host{
-			IPS:   addedMasterIP,
+			IPS:   toAdd,
 			Roles: []string{common.MASTER},
 		}
 
@@ -128,18 +157,15 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 
 	//add joined nodes
 	if scaleArgs.Nodes != "" {
-		nodeIPs := cluster.GetNodeIPList()
-		addedNodeIP := removeDuplicate(strings.Split(scaleArgs.Nodes, ","))
+		toAdd := removeDuplicate(strings.Split(scaleArgs.Nodes, ","))
 
-		for _, ip := range addedNodeIP {
-			// if ip already taken by node will return join duplicated ip error
-			if !strUtils.NotIn(ip, nodeIPs) {
-				return fmt.Errorf("failed to scale node for duplicated ip: %s", ip)
-			}
+		// skip already added workers
+		for _, ip := range workerIPs {
+			toAdd = strUtils.RemoveString(toAdd, ip, nil)
 		}
 
 		host := v2.Host{
-			IPS:   addedNodeIP,
+			IPS:   toAdd,
 			Roles: []string{common.NODE},
 		}
 
@@ -149,6 +175,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 
 		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
 	}
+
 	return nil
 }
 
