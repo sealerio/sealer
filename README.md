@@ -125,6 +125,10 @@ sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx
 </div>
 <!-- markdownlint-restore -->
 
+## Code of Conduct
+
+sealer follows the [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).
+
 ## License
 
 Sealer is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
