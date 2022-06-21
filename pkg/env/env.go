@@ -15,13 +15,12 @@
 package env
 
 import (
+	"encoding/base64"
 	"fmt"
-	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/Masterminds/sprig/v3"
+	"text/template"
 
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
@@ -79,7 +78,10 @@ func (p *processor) RenderAll(host, dir string) error {
 		defer func() {
 			_ = writer.Close()
 		}()
-		t, err := template.New(info.Name()).Funcs(sprig.FuncMap()).ParseFiles(path)
+		t, err := template.New(info.Name()).Funcs(template.FuncMap{
+			"b64enc": base64encode,
+			"b64dec": base64decode,
+		}).ParseFiles(path)
 		if err != nil {
 			return fmt.Errorf("failed to create template: %s %v", path, err)
 		}
@@ -88,6 +90,18 @@ func (p *processor) RenderAll(host, dir string) error {
 		}
 		return nil
 	})
+}
+
+func base64encode(v string) string {
+	return base64.StdEncoding.EncodeToString([]byte(v))
+}
+
+func base64decode(v string) string {
+	data, err := base64.StdEncoding.DecodeString(v)
+	if err != nil {
+		return err.Error()
+	}
+	return string(data)
 }
 
 func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {

@@ -86,10 +86,6 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 	}, nil
 }
 
-func NewApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
-	return NewDefaultApplier(cluster)
-}
-
 func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty")
