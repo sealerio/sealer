@@ -15,7 +15,7 @@ Here are some examples of using cases.
 $ sealer debug node mynode -it
 You don't specify an image, it will use the default image: debug:ubuntu
 You can use `--image` to specify an image, just like `sealer debug node NODE_NAME --image busybox`.
-The debug pod or container id： sealer-pod-debugger-khwbl.mynode.default
+The debug pod or container id: sealer-pod-debugger-khwbl.mynode.default
 root@mynode:~# ls
 motd
 root@mynode:~#

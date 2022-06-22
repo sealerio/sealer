@@ -30,18 +30,23 @@ import (
 
 type Args struct {
 	ClusterName string
-	Masters     string
-	Nodes       string
-	User        string
-	Password    string
-	Port        uint16
-	Pk          string
-	PkPassword  string
-	PodCidr     string
-	SvcCidr     string
-	Provider    string
-	CustomEnv   []string
-	CMDArgs     []string
+
+	// Masters and Nodes only support:
+	// IP list format: ip1,ip2,ip3
+	// IP range format: x.x.x.x-x.x.x.y
+	Masters string
+	Nodes   string
+
+	User       string
+	Password   string
+	Port       uint16
+	Pk         string
+	PkPassword string
+	PodCidr    string
+	SvcCidr    string
+	Provider   string
+	CustomEnv  []string
+	CMDArgs    []string
 }
 
 func NewApplierFromFile(path string) (applydriver.Interface, error) {
@@ -84,6 +89,13 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 		ClusterImageMounter: mounter,
 		ImageStore:          is,
 	}, nil
+}
+
+// NewApplier news an applier.
+// In NewApplier, we guarantee that no raw data could be passed in.
+// And all data has to be validated and processed in the pre-process layer.
+func NewApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
+	return NewDefaultApplier(cluster)
 }
 
 func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
