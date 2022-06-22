@@ -68,7 +68,7 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 			return err
 		}
 	}
-	initRegistry := fmt.Sprintf("cd %s/scripts && sh init-registry.sh %s %s %s", k.getRootfs(), k.RegConfig.Port, fmt.Sprintf("%s/registry", k.getRootfs()), k.RegConfig.Domain)
+	initRegistry := fmt.Sprintf("cd %s/scripts && ./init-registry.sh %s %s %s", k.getRootfs(), k.RegConfig.Port, fmt.Sprintf("%s/registry", k.getRootfs()), k.RegConfig.Domain)
 	registryHost := k.getRegistryHost()
 	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	if k.RegConfig.Domain != SeaHub {

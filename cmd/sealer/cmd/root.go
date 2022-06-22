@@ -58,6 +58,7 @@ var rootCmd = &cobra.Command{
 into ClusterImage by Kubefile, distribute this application anywhere via ClusterImage, 
 and run it within any cluster with Clusterfile in one command.
 `,
+	SilenceUsage:  true,
 	SilenceErrors: true,
 }
 

@@ -28,6 +28,7 @@ build: clean ## build binaries by default
 linux: clean ## build binaries for linux
 	@echo "build sealer and seautil bin for linux"
 	GOOS=linux GOARCH=amd64 hack/build.sh $(GitTag)
+	GOOS=linux GOARCH=arm64 hack/build.sh $(GitTag)
 
 test-sealer:
 	@echo "run e2e test for sealer bin"
