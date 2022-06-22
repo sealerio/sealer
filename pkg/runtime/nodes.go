@@ -183,29 +183,31 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 	return nil
 }
 
-func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
-	sshClient, err := k.getHostSSHClient(node)
-	if err != nil {
-		return err
-	}
-	result, err := sshClient.CmdToString(node, fmt.Sprintf(RemoteCheckRoute, node), "")
-	if err != nil {
-		return err
-	}
-	if result == sealnet.RouteOK {
-		return nil
-	}
-	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getVIP(), node))
-	return err
-}
+// TODO
+// func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
+//	sshClient, err := k.getHostSSHClient(node)
+//	if err != nil {
+//		return err
+//	}
+//	result, err := sshClient.CmdToString(node, fmt.Sprintf(RemoteCheckRoute, node), "")
+//	if err != nil {
+//		return err
+//	}
+//	if result == sealnet.RouteOK {
+//		return nil
+//	}
+//	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getVIP(), node))
+//	return err
+// }
 
+// TODO
 func (k *KubeadmRuntime) deleteVIPRouteIfExist(node string) error {
 	return nil
 
-	sshClient, err := k.getHostSSHClient(node)
-	if err != nil {
-		return err
-	}
-	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteDelRoute, k.getVIP(), node))
-	return err
+	// sshClient, err := k.getHostSSHClient(node)
+	// if err != nil {
+	//	return err
+	// }
+	// _, err = sshClient.Cmd(node, fmt.Sprintf(RemoteDelRoute, k.getVIP(), node))
+	// return err
 }

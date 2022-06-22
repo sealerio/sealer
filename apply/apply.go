@@ -124,7 +124,7 @@ func checkAllHostsSameFamily(nodeList []string) error {
 		}
 	}
 
-	if hasIPV4 && hasIPV6 {
+	if hasBoth := hasIPV4 && hasIPV6; hasBoth {
 		return fmt.Errorf("all hosts must be in same ip family, but the node list given are mixed with ipv4 and ipv6: %v", nodeList)
 	}
 

@@ -72,7 +72,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	}
 
 	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
-		return fmt.Errorf(" Parameter error: The current mode should submit iplist!")
+		return fmt.Errorf("parameter error: The current mode should submit iplist")
 	}
 
 	// if scaleArgs`s ssh auth credential is different from local cluster,will add it to each host.
@@ -117,11 +117,11 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	}
 
 	var mastersFromK8s, workersFromK8s []string
-	for _, n := range nodeListFromK8s.Items {
+	for i, n := range nodeListFromK8s.Items {
 		if _, ok := n.Labels[applydriver.MasterRoleLabel]; ok {
-			mastersFromK8s = append(mastersFromK8s, k8s.GetInternalIP(&n))
+			mastersFromK8s = append(mastersFromK8s, k8s.GetInternalIP(&nodeListFromK8s.Items[i]))
 		} else {
-			workersFromK8s = append(workersFromK8s, k8s.GetInternalIP(&n))
+			workersFromK8s = append(workersFromK8s, k8s.GetInternalIP(&nodeListFromK8s.Items[i]))
 		}
 	}
 
@@ -196,7 +196,7 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	}
 
 	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
-		return fmt.Errorf(" Parameter error: The current mode should submit iplist!")
+		return fmt.Errorf("parameter error: The current mode should submit iplist")
 	}
 
 	//master0 machine cannot be deleted
