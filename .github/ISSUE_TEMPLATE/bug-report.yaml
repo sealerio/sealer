@@ -1,0 +1,72 @@
+name: Bug Report
+description: Report a bug encountered while operating sealer
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Problem
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What happen?
+      description: describe the problem you meet.
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant log output?
+      description: please paste your log output here for investigation.
+      render: Shell
+  - type: textarea
+    id: expect
+    attributes:
+      label: What you expected to happen?
+  - type: textarea
+    id: reproduce_Kubefile
+    attributes:
+      label: How to reproduce it (as minimally and precisely as possible)?
+      description: |
+        1. if you run sealer build, pls paste your Kubefile here for investigation.
+        2. if you run sealer apply, pls paste your Clusterfile here for investigation.
+      render: YAML
+  - type: textarea
+    id: Anything_else_we_need_to_know
+    attributes:
+      label: Anything else we need to know?
+      description: Add any other context about the information here (screenshots, video, etc.).
+  - type: markdown
+    attributes:
+      value: |
+        # Environment
+  - type: input
+    id: version
+    attributes:
+      label: What is the version of Sealer you using?
+      description: use `sealer version`
+      placeholder: ex. {"gitVersion":"v0.8.5","gitCommit":"f9c3d99","buildDate":"2022-04-28 14:16:58","goVersion":"go1.16.15","compiler":"gc","platform":"linux/amd64"}
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: What is your OS environment?
+      description: e.g `cat /etc/os-release`
+      placeholder: ex. Ubuntu 16.04
+    validations:
+      required: true
+  - type: input
+    id: kernel
+    attributes:
+      label: What is the Kernel version?
+      description: e.g `uname -a`
+      placeholder: ex. Linux sealer 5.4.0-113-generic
+    validations:
+      required: false
+  - type: textarea
+    id: other-env
+    attributes:
+      label: Other environment you want to tell us?
+      value: |
+        - Cloud provider or hardware configuration:
+        - Install tools:
+        - Others:
