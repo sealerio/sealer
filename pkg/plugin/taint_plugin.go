@@ -119,14 +119,14 @@ func (l *Taint) formatData(data string) error {
 			return fmt.Errorf("faild to split taint argument: %s", v)
 		}
 		ips := temps[0]
-		err := net.AssemblyIPList(&ips)
+		ipStr, err := net.AssemblyIPList(ips)
 		if err != nil {
 			return err
 		}
-		l.IPList = append(l.IPList, ips)
+		l.IPList = append(l.IPList, ipStr)
 		//kubectl taint nodes xxx key- : remove all key related taints
-		if l.TaintList[ips] == nil {
-			l.TaintList[ips] = &taintList{}
+		if l.TaintList[ipStr] == nil {
+			l.TaintList[ipStr] = &taintList{}
 		}
 		if strings.HasSuffix(temps[1], DelSymbol) && !strings.Contains(temps[1], ColonSymbol) && !strings.Contains(temps[1], EqualSymbol) {
 			l.TaintList[ips].DelTaintList = append(l.TaintList[ips].DelTaintList, newTaintStruct(strings.TrimSuffix(temps[1], DelSymbol), "", ""))

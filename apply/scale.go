@@ -36,8 +36,13 @@ func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (
 	if err := yaml.UnmarshalFile(clusterfile, cluster); err != nil {
 		return nil, err
 	}
+
+	if err := validateArgs(scaleArgs); err != nil {
+		return nil, fmt.Errorf("failed to validate input scale args: %v", err)
+	}
+
 	if scaleArgs.Nodes == "" && scaleArgs.Masters == "" {
-		return nil, fmt.Errorf("the node or master parameter was not committed")
+		return nil, fmt.Errorf("master and node cannot both be empty")
 	}
 
 	var err error
@@ -67,12 +72,18 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	// merge custom Env to the existed cluster
 	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
 
-	if err = PreProcessIPList(scaleArgs); err != nil {
+	scaleArgs.Masters, err = net.AssemblyIPList(scaleArgs.Masters)
+	if err != nil {
+		return err
+	}
+
+	scaleArgs.Nodes, err = net.AssemblyIPList(scaleArgs.Nodes)
+	if err != nil {
 		return err
 	}
 
 	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
-		return fmt.Errorf("parameter error: The current mode should submit iplist")
+		return fmt.Errorf("parameter error: current mode should submit iplist")
 	}
 
 	// if scaleArgs`s ssh auth credential is different from local cluster,will add it to each host.
@@ -188,20 +199,27 @@ func Delete(cluster *v2.Cluster, scaleArgs *Args) error {
 }
 
 func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
+	var err error
 	// adding custom Env params for delete option here to support executing users clean scripts via env.
 	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
 
-	if err := PreProcessIPList(scaleArgs); err != nil {
+	scaleArgs.Masters, err = net.AssemblyIPList(scaleArgs.Masters)
+	if err != nil {
+		return err
+	}
+
+	scaleArgs.Nodes, err = net.AssemblyIPList(scaleArgs.Nodes)
+	if err != nil {
 		return err
 	}
 
 	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
-		return fmt.Errorf("parameter error: The current mode should submit iplist")
+		return fmt.Errorf("parameter error: current mode should submit iplist")
 	}
 
 	//master0 machine cannot be deleted
 	if !strUtils.NotIn(cluster.GetMaster0IP(), strings.Split(scaleArgs.Masters, ",")) {
-		return fmt.Errorf("master0 machine cannot be deleted")
+		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
 	}
 
 	if net.IsIPList(scaleArgs.Masters) {

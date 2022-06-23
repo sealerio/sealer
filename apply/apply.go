@@ -35,18 +35,23 @@ import (
 
 type Args struct {
 	ClusterName string
-	Masters     string
-	Nodes       string
-	User        string
-	Password    string
-	Port        uint16
-	Pk          string
-	PkPassword  string
-	PodCidr     string
-	SvcCidr     string
-	Provider    string
-	CustomEnv   []string
-	CMDArgs     []string
+
+	// Masters and Nodes only support:
+	// IP list format: ip1,ip2,ip3
+	// IP range format: x.x.x.x-x.x.x.y
+	Masters string
+	Nodes   string
+
+	User       string
+	Password   string
+	Port       uint16
+	Pk         string
+	PkPassword string
+	PodCidr    string
+	SvcCidr    string
+	Provider   string
+	CustomEnv  []string
+	CMDArgs    []string
 }
 
 func NewApplierFromFile(path string) (applydriver.Interface, error) {
@@ -70,6 +75,9 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 	return NewDefaultApplier(&cluster, Clusterfile)
 }
 
+// NewDefaultApplier news an applier.
+// In NewDefaultApplier, we guarantee that no raw data could be passed in.
+// And all data has to be validated and processed in the pre-process layer.
 func NewDefaultApplier(cluster *v2.Cluster, file clusterfile.Interface) (applydriver.Interface, error) {
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty")

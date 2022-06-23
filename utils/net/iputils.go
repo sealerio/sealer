@@ -111,29 +111,47 @@ func GetLocalIP(master0IP string) (string, error) {
 	return strings.Split(localAddr, ":")[0], err
 }
 
-func AssemblyIPList(args *string) error {
+func AssemblyIPList(ipStr string) (string, error) {
 	var result []string
-	var ips = strings.Split(*args, "-")
-	if *args == "" || !strings.Contains(*args, "-") {
-		return nil
+	var ips = strings.Split(ipStr, "-")
+	if ipStr == "" || !strings.Contains(ipStr, "-") {
+		return ipStr, nil
 	}
 	if len(ips) != 2 {
-		return fmt.Errorf("ip is invalid, ip range format is xxx.xxx.xxx.1-xxx.xxx.xxx.2")
+		return "", fmt.Errorf("input IP(%s) is invalid, IP range format must be xxx.xxx.xxx.1-xxx.xxx.xxx.2", ipStr)
 	}
-	if !CheckIP(ips[0]) || !CheckIP(ips[1]) {
-		return fmt.Errorf("ip is invalid, check you command agrs")
+	if returnedIP := net.ParseIP(ips[0]); returnedIP == nil {
+		return "", fmt.Errorf("failed tp parse IP(%s)", ips[0])
 	}
+	if returnedIP := net.ParseIP(ips[1]); returnedIP == nil {
+		return "", fmt.Errorf("failed tp parse IP(%s)", ips[1])
+	}
+
 	//ips[0],ips[1] = 192.168.56.3, 192.168.56.7;  result = [192.168.56.3, 192.168.56.4, 192.168.56.5, 192.168.56.6, 192.168.56.7]
-	for res, _ := CompareIP(ips[0], ips[1]); res <= 0; {
+	for res := CompareIP(ips[0], ips[1]); res <= 0; {
 		result = append(result, ips[0])
 		ips[0] = NextIP(ips[0]).String()
-		res, _ = CompareIP(ips[0], ips[1])
+		res = CompareIP(ips[0], ips[1])
 	}
 	if len(result) == 0 {
-		return fmt.Errorf("ip is invalid, check you command agrs")
+		return "", fmt.Errorf("input IP(%s) is invalid", ipStr)
 	}
-	*args = strings.Join(result, ",")
-	return nil
+	return strings.Join(result, ","), nil
+}
+
+// IPRangeToList converts IP range to IP list format.
+func IPRangeToList(inputStr string) (string, error) {
+	var result []string
+	ips := strings.Split(inputStr, "-")
+	for res := CompareIP(ips[0], ips[1]); res <= 0; {
+		result = append(result, ips[0])
+		ips[0] = NextIP(ips[0]).String()
+		res = CompareIP(ips[0], ips[1])
+	}
+	if len(result) == 0 {
+		return "", fmt.Errorf("input IP(%s) is invalid", inputStr)
+	}
+	return strings.Join(result, ","), nil
 }
 
 func CheckIP(i string) bool {
@@ -145,11 +163,12 @@ func DisassembleIPList(arg string) (res []string) {
 	for _, i := range ipList {
 		if strings.Contains(i, "-") {
 			// #nosec
-			if err := AssemblyIPList(&i); err != nil {
-				fmt.Printf("failed to get Addrs, %s", err.Error())
+			ipStr, err := AssemblyIPList(i)
+			if err != nil {
+				fmt.Printf("failed to get Addr: %v", err)
 				continue
 			}
-			res = append(res, strings.Split(i, ",")...)
+			res = append(res, strings.Split(ipStr, ",")...)
 		}
 		res = append(res, i)
 	}
@@ -164,14 +183,18 @@ func IPToInt(v string) *big.Int {
 	return big.NewInt(0).SetBytes(ip.To16())
 }
 
-func CompareIP(v1, v2 string) (int, error) {
+func CompareIP(v1, v2 string) int {
 	i := IPToInt(v1)
 	j := IPToInt(v2)
 
-	if i == nil || j == nil {
-		return 2, fmt.Errorf("ip is invalid, check you command agrs")
+	if i == nil {
+		return 2
 	}
-	return i.Cmp(j), nil
+	if j == nil {
+		return 2
+	}
+
+	return i.Cmp(j)
 }
 
 func NextIP(ip string) net.IP {
