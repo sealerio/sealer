@@ -18,13 +18,12 @@ import (
 	"context"
 	"path/filepath"
 
-	v12 "k8s.io/client-go/kubernetes/typed/core/v1"
-
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
+	v12 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
@@ -41,7 +40,6 @@ type NamespacePod struct {
 }
 
 type NamespaceSvc struct {
-	v1.ConfigMap
 	Namespace   v1.Namespace
 	ServiceList *v1.ServiceList
 }
