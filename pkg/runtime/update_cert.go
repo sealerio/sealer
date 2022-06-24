@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
