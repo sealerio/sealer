@@ -14,10 +14,36 @@
 
 package runtime
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
+	"github.com/sealerio/sealer/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 func (k *KubeadmRuntime) updateCert(certs []string) error {
-	k.setCertSANS(append(k.getCertSANS(), certs...))
+	client, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	cm, err := client.ConfigMap("kube-system").Get(context.Background(), "kubeadm-config", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	obj, err := utils.DecodeCRDFromString(cm.Data["ClusterConfiguration"], common.ClusterConfiguration)
+	//obj, err := utils.DecodeCRDFromFile(cm.Data["ClusterConfiguration"], common.ClusterConfiguration)
+	if err != nil {
+		return err
+	}
+	clusterConfiguration, ok := obj.(*v1beta2.ClusterConfiguration)
+	if !ok {
+		return fmt.Errorf("get ClusterConfiguration failed")
+	}
+
+	k.setCertSANS(append(clusterConfiguration.APIServer.CertSANs, certs...))
 	ssh, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
 		return fmt.Errorf("failed to update cert, %v", err)

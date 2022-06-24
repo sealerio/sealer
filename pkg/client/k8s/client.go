@@ -18,6 +18,8 @@ import (
 	"context"
 	"path/filepath"
 
+	v12 "k8s.io/client-go/kubernetes/typed/core/v1"
+
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +41,7 @@ type NamespacePod struct {
 }
 
 type NamespaceSvc struct {
+	v1.ConfigMap
 	Namespace   v1.Namespace
 	ServiceList *v1.ServiceList
 }
@@ -63,6 +66,10 @@ func Newk8sClient() (*Client, error) {
 	return &Client{
 		client: clientSet,
 	}, nil
+}
+
+func (c *Client) ConfigMap(ns string) v12.ConfigMapInterface {
+	return c.client.CoreV1().ConfigMaps(ns)
 }
 
 func (c *Client) ListNodes() (*v1.NodeList, error) {
