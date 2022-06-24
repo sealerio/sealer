@@ -1,6 +1,6 @@
 name: Bug Report
 description: Report a bug encountered while operating sealer
-labels: ["bug"]
+labels: ["kind/bug"]
 body:
   - type: markdown
     attributes:
@@ -45,7 +45,7 @@ body:
       description: use `sealer version`
       placeholder: ex. {"gitVersion":"v0.8.5","gitCommit":"f9c3d99","buildDate":"2022-04-28 14:16:58","goVersion":"go1.16.15","compiler":"gc","platform":"linux/amd64"}
     validations:
-      required: true
+      required: false
   - type: input
     id: os
     attributes:
@@ -53,7 +53,7 @@ body:
       description: e.g `cat /etc/os-release`
       placeholder: ex. Ubuntu 16.04
     validations:
-      required: true
+      required: false
   - type: input
     id: kernel
     attributes:
