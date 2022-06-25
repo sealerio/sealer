@@ -190,7 +190,7 @@ const (
 )
 
 // NewMetaData apiServerIPAndDomains = MasterIP + VIP + CertSANS 暂时只有apiserver, 记得把cluster.local后缀加到apiServerIPAndDOmas里先
-func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, SvcCIDR, nodeName, nodeIP, DNSDomain string) (*MetaData, error) {
+func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, svcCIDR, nodeName, nodeIP, DNSDomain string) (*MetaData, error) {
 	data := &MetaData{}
 	data.CertPath = certPATH
 	data.CertEtcdPath = certEtcdPATH
@@ -198,7 +198,7 @@ func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, 
 	data.APIServer.IPs = make(map[string]net.IP)
 	data.APIServer.DNSNames = make(map[string]string)
 
-	for _, cidr := range strings.Split(SvcCIDR, ",") {
+	for _, cidr := range strings.Split(svcCIDR, ",") {
 		_, svcSubnet, err := net.ParseCIDR(cidr)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse ServiceSubnet %v", cidr)

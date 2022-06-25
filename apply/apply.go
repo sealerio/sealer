@@ -118,21 +118,21 @@ func NewDefaultApplier(cluster *v2.Cluster, file clusterfile.Interface) (applydr
 }
 
 func checkAllHostsSameFamily(nodeList []string) error {
-	hasIPV4 := false
-	hasIPV6 := false
+	hasIPv4 := false
+	hasIPv6 := false
 	for _, ip := range nodeList {
 		parsed := net.ParseIP(ip)
 		if parsed == nil {
 			return fmt.Errorf("failed to parse %s as a valid ip", ip)
 		}
 		if k8snet.IsIPv4(parsed) {
-			hasIPV4 = true
+			hasIPv4 = true
 		} else if k8snet.IsIPv6(parsed) {
-			hasIPV6 = true
+			hasIPv6 = true
 		}
 	}
 
-	if hasBoth := hasIPV4 && hasIPV6; hasBoth {
+	if hasBoth := hasIPv4 && hasIPv6; hasBoth {
 		return fmt.Errorf("all hosts must be in same ip family, but the node list given are mixed with ipv4 and ipv6: %v", nodeList)
 	}
 

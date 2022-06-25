@@ -307,10 +307,10 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Vlog), " --ignore-preflight-errors=all")
 	}
 	if name == InitMaster || name == JoinMaster {
-		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Vlog), " --ignore-preflight-errors=SystemVerification")
+		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Vlog), " --ignore-preflight-errors=SystemVerification,Port-10250")
 	}
 
-	return fmt.Sprintf("%s%s", v, vlogToStr(k.Vlog))
+	return fmt.Sprintf("%s%s --ignore-preflight-errors=Port-10250", v, vlogToStr(k.Vlog))
 }
 
 func (k *KubeadmRuntime) joinMasters(masters []string) error {

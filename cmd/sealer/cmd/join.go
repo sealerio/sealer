@@ -50,6 +50,7 @@ join default cluster:
 		if err != nil {
 			return err
 		}
+
 		return applier.Apply()
 	},
 }

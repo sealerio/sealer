@@ -64,10 +64,10 @@ func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (
 }
 
 func Join(cluster *v2.Cluster, scaleArgs *Args) error {
-	return joinBaremetalNodes(cluster, scaleArgs)
+	return joinBareMetalNodes(cluster, scaleArgs)
 }
 
-func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
+func joinBareMetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	var err error
 	// merge custom Env to the existed cluster
 	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
@@ -82,7 +82,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		return err
 	}
 
-	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
+	if !net.IsIPList(scaleArgs.Nodes) || !net.IsIPList(scaleArgs.Masters) {
 		return fmt.Errorf("parameter error: current mode should submit iplist")
 	}
 
@@ -213,7 +213,7 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		return err
 	}
 
-	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
+	if !net.IsIPList(scaleArgs.Nodes) || !net.IsIPList(scaleArgs.Masters) {
 		return fmt.Errorf("parameter error: current mode should submit iplist")
 	}
 
