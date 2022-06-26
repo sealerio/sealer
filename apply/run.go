@@ -109,8 +109,12 @@ func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	}
 
 	masters := strings.Split(inMasters, ",")
-	masterHosts := make([]v2.Host, len(masters))
+	var masterHosts []v2.Host
 	for index, master := range masters {
+		if master == "" {
+			continue
+		}
+
 		if index == 0 {
 			// only master0 should add two roles: master and master0
 			masterHosts = append(masterHosts, v2.Host{
@@ -128,16 +132,19 @@ func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	}
 
 	nodes := strings.Split(inNodes, ",")
-	nodeHosts := make([]v2.Host, len(nodes))
+	var nodeHosts []v2.Host
 	for _, node := range nodes {
+		if node == "" {
+			continue
+		}
+
 		nodeHosts = append(nodeHosts, v2.Host{
 			IPS:   []string{node},
 			Roles: []string{common.NODE},
 		})
 	}
 
-	result := make([]v2.Host, len(masters)+len(nodes))
-	result = append(result, masterHosts...)
+	result := masterHosts
 	result = append(result, nodeHosts...)
 
 	return result, nil
