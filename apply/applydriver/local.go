@@ -156,7 +156,12 @@ func (c *Applier) reconcileCluster() error {
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
 		return c.upgrade()
 	}
-	return c.scaleCluster(mj, md, nj, nd)
+
+	if len(md) > 0 || len(nd) > 0 {
+		logrus.Warnf(`we found these master(%v) or node(%v) are in cluster but not in you Kubefile, we will do nothing for them.`, md, nd)
+	}
+
+	return c.scaleCluster(mj, nil, nj, nil)
 }
 
 func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
