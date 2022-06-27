@@ -55,9 +55,13 @@ func ConstructClusterFromArg(imageName string, runArgs *Args) (*v2.Cluster, erro
 }
 
 func NewApplierFromArgs(imageName string, runArgs *Args) (applydriver.Interface, error) {
+	if len(runArgs.Masters) == 0 {
+		return nil, fmt.Errorf("master ip list cannot be empty")
+	}
 	if err := validateArgs(runArgs); err != nil {
 		return nil, fmt.Errorf("failed to validate input run args: %v", err)
 	}
+
 	cluster, err := ConstructClusterFromArg(imageName, runArgs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize cluster instance with command args: %v", err)
@@ -71,8 +75,10 @@ func validateArgs(runArgs *Args) error {
 	var errMsg []string
 
 	// validate input masters IP info
-	if err := validateIPStr(runArgs.Masters); err != nil {
-		errMsg = append(errMsg, err.Error())
+	if len(runArgs.Masters) != 0 {
+		if err := validateIPStr(runArgs.Masters); err != nil {
+			errMsg = append(errMsg, err.Error())
+		}
 	}
 
 	// validate input nodes IP info
@@ -86,6 +92,7 @@ func validateArgs(runArgs *Args) error {
 	if len(errMsg) == 0 {
 		return nil
 	}
+
 	return fmt.Errorf(strings.Join(errMsg, ","))
 }
 

@@ -23,10 +23,6 @@ import (
 )
 
 func validateIPStr(inputStr string) error {
-	if len(inputStr) == 0 {
-		return fmt.Errorf("input IP info cannot be empty")
-	}
-
 	// 1. validate if it is IP range
 	if strings.Contains(inputStr, "-") {
 		ips := strings.Split(inputStr, "-")

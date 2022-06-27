@@ -82,10 +82,6 @@ func joinBareMetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		return err
 	}
 
-	if !net.IsIPList(scaleArgs.Nodes) || !net.IsIPList(scaleArgs.Masters) {
-		return fmt.Errorf("parameter error: current mode should submit iplist")
-	}
-
 	// if scaleArgs`s ssh auth credential is different from local cluster,will add it to each host.
 	// if not use local cluster ssh auth credential.
 	var changedSSH *v1.SSH
@@ -211,10 +207,6 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	scaleArgs.Nodes, err = net.AssemblyIPList(scaleArgs.Nodes)
 	if err != nil {
 		return err
-	}
-
-	if !net.IsIPList(scaleArgs.Nodes) || !net.IsIPList(scaleArgs.Masters) {
-		return fmt.Errorf("parameter error: current mode should submit iplist")
 	}
 
 	//master0 machine cannot be deleted
