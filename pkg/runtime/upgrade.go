@@ -25,7 +25,7 @@ const (
 	mvCmd          = `mv %s/* /usr/bin`
 	getNodeNameCmd = `$(uname -n | tr '[A-Z]' '[a-z]')`
 	drainCmd       = `kubectl drain ` + getNodeNameCmd + ` --ignore-daemonsets`
-	upgradeCmd     = `kubeadm upgrade %s`
+	upgradeCmd     = `kubeadm upgrade %s --config %s/etc/kubeadm.yml`
 	restartCmd     = `systemctl daemon-reload && systemctl restart kubelet`
 	uncordonCmd    = `kubectl uncordon ` + getNodeNameCmd
 )
@@ -62,7 +62,7 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binPath, version string) 
 		fmt.Sprintf(chmodCmd, binPath),
 		fmt.Sprintf(mvCmd, binPath),
 		drain,
-		fmt.Sprintf(upgradeCmd, strings.Join([]string{`apply`, version, `-y`}, " ")),
+		fmt.Sprintf(upgradeCmd, strings.Join([]string{`apply`, version, `-y`}, " "), k.getRootfs()),
 		restartCmd,
 		uncordonCmd,
 	}
@@ -86,7 +86,7 @@ func (k *KubeadmRuntime) upgradeOtherMasters(IPs []string, binpath, version stri
 		fmt.Sprintf(chmodCmd, binpath),
 		fmt.Sprintf(mvCmd, binpath),
 		drain,
-		fmt.Sprintf(upgradeCmd, `node`),
+		fmt.Sprintf(upgradeCmd, `node`, k.getRootfs()),
 		restartCmd,
 		uncordonCmd,
 	}
@@ -108,7 +108,7 @@ func (k *KubeadmRuntime) upgradeNodes(IPs []string, binpath string) error {
 	var nodeCmds = []string{
 		fmt.Sprintf(chmodCmd, binpath),
 		fmt.Sprintf(mvCmd, binpath),
-		fmt.Sprintf(upgradeCmd, `node`),
+		fmt.Sprintf(upgradeCmd, `node`, k.getRootfs()),
 		restartCmd,
 	}
 	var err error
