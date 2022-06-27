@@ -15,7 +15,32 @@
 package applydriver
 
 type Interface interface {
-	Apply() error
+	Apply(args *Args) error
 	Delete() error
 	Upgrade(imageName string) error
+}
+
+type Action string
+
+const (
+	ActionJoin   = "Join"
+	ActionDelete = "Delete"
+	ActionRun    = "Run"
+	ActionApply  = "Apply"
+)
+
+type Args struct {
+	Action       Action
+	JoiningArgs  *JoiningArgs
+	DeletingArgs *DeletingArgs
+}
+
+type DeletingArgs struct {
+	MastersToDelete []string
+	WorkersToDelete []string
+}
+
+type JoiningArgs struct {
+	MastersToJoin []string
+	WorkersToJoin []string
 }

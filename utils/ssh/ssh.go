@@ -19,7 +19,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/imdario/mergo"
 	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
@@ -87,7 +86,7 @@ func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 }
 
 // GetHostSSHClient is used to executed bash command and no std out to be printed.
-func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
+func GetHostSSHClient(hostIP string, cluster *v2.Cluster, isStdout bool) (Interface, error) {
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
 			if hostIP == ip {
@@ -99,20 +98,9 @@ func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
-}
-
-// NewStdoutSSHClient is used to show std out when execute bash command.
-func NewStdoutSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
-	for _, host := range cluster.Spec.Hosts {
-		for _, ip := range host.IPS {
-			if hostIP == ip {
-				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
-					return nil, err
-				}
-				return NewSSHClient(&host.SSH, true), nil
-			}
-		}
+	if cluster.Spec.SSH.Pk != "" || cluster.Spec.SSH.Passwd != "" {
+		return NewSSHClient(&cluster.Spec.SSH, false), nil
 	}
+
 	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
 }

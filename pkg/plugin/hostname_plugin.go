@@ -45,7 +45,7 @@ func (h HostnamePlugin) Run(context Context, phase Phase) error {
 		if strUtils.NotIn(ip, context.Host) {
 			continue
 		}
-		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster)
+		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster, false)
 		if err != nil {
 			return err
 		}

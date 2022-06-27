@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
 	"github.com/sealerio/sealer/utils/strings"
@@ -56,7 +57,9 @@ create a cluster with custom environment variables:
 		if err != nil {
 			return err
 		}
-		return applier.Apply()
+		return applier.Apply(&applydriver.Args{
+			Action: applydriver.ActionRun,
+		})
 	},
 }
 

@@ -102,7 +102,7 @@ func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {
 	clusterStatus := make(map[string]v1.Platform)
 	for _, ip := range append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...) {
 		IP := ip
-		ssh, err := GetHostSSHClient(IP, cluster)
+		ssh, err := GetHostSSHClient(IP, cluster, false)
 		if err != nil {
 			return nil, err
 		}

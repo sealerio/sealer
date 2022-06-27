@@ -98,7 +98,7 @@ func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
 }
 
 func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) {
-	return ssh.NewStdoutSSHClient(hostIP, k.Cluster)
+	return ssh.GetHostSSHClient(hostIP, k.Cluster, true)
 }
 
 // /var/lib/sealer/data/my-cluster

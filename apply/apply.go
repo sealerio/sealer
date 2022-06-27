@@ -42,6 +42,9 @@ type Args struct {
 	Masters string
 	Nodes   string
 
+	MasterSlice []string
+	NodeSlice   []string
+
 	User       string
 	Password   string
 	Port       uint16
@@ -114,7 +117,6 @@ func NewDefaultApplier(cluster *v2.Cluster, action string, file clusterfile.Inte
 		ImageManager:        imgSvc,
 		ClusterImageMounter: mounter,
 		ImageStore:          is,
-		Action:              action,
 	}, nil
 }
 

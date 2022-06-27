@@ -60,7 +60,7 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 	}
 	cmdArgs := d.getGuestCmdArg(cluster, image)
 	cmd := d.getGuestCmd(cluster, image)
-	sshClient, err := ssh.NewStdoutSSHClient(cluster.GetMaster0IP(), cluster)
+	sshClient, err := ssh.GetHostSSHClient(cluster.GetMaster0IP(), cluster, true)
 	if err != nil {
 		return err
 	}

@@ -307,10 +307,10 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Vlog), " --ignore-preflight-errors=all")
 	}
 	if name == InitMaster || name == JoinMaster {
-		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Vlog), " --ignore-preflight-errors=SystemVerification,Port-10250")
+		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Vlog), " --ignore-preflight-errors=SystemVerification,Port-10250,DirAvailable--etc-kubernetes-manifests")
 	}
 
-	return fmt.Sprintf("%s%s --ignore-preflight-errors=Port-10250", v, vlogToStr(k.Vlog))
+	return fmt.Sprintf("%s%s --ignore-preflight-errors=Port-10250,DirAvailable--etc-kubernetes-manifests", v, vlogToStr(k.Vlog))
 }
 
 func (k *KubeadmRuntime) joinMasters(masters []string) error {
@@ -468,8 +468,10 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 			return fmt.Errorf("failed to remove master ip: %v", err)
 		}
 
-		if err := master0SSH.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
-			return fmt.Errorf("delete node %s failed %v", hostname, err)
+		if nodeName := strings.TrimSpace(hostname); len(nodeName) != 0 {
+			if err := master0SSH.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, nodeName)); err != nil {
+				return fmt.Errorf("delete node %s failed %v", hostname, err)
+			}
 		}
 	}
 

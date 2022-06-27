@@ -47,7 +47,7 @@ func copyFiles(sshEntry ssh.Interface, ip, src, target string) error {
 }
 
 func copyRegistry(regIP string, cluster *v2.Cluster, mountDir map[string]bool, target string) error {
-	sshClient, err := ssh.GetHostSSHClient(regIP, cluster)
+	sshClient, err := ssh.GetHostSSHClient(regIP, cluster, false)
 	if err != nil {
 		return err
 	}

@@ -75,7 +75,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 				mountEntry.mountDirs[src] = true
 			}
 			mountEntry.Unlock()
-			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
+			sshClient, err := ssh.GetHostSSHClient(ip, cluster, false)
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
 			}
@@ -117,7 +117,7 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
-			SSH, err := ssh.GetHostSSHClient(ip, cluster)
+			SSH, err := ssh.GetHostSSHClient(ip, cluster, false)
 			if err != nil {
 				return err
 			}

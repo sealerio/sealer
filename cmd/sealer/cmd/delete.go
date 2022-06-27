@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/runtime"
@@ -78,7 +79,13 @@ delete all:
 			if err != nil {
 				return err
 			}
-			return applier.Apply()
+			return applier.Apply(&applydriver.Args{
+				Action: applydriver.ActionDelete,
+				DeletingArgs: &applydriver.DeletingArgs{
+					MastersToDelete: deleteArgs.MasterSlice,
+					WorkersToDelete: deleteArgs.NodeSlice,
+				},
+			})
 		}
 
 		applier, err := apply.NewApplierFromFile(deleteClusterFile, common.DeleteSubCmd)

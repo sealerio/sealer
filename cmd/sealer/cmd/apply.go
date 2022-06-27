@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/runtime"
 )
@@ -38,7 +39,9 @@ will apply the diff change of current Clusterfile and the original one.`,
 		if err != nil {
 			return err
 		}
-		return applier.Apply()
+		return applier.Apply(&applydriver.Args{
+			Action: applydriver.ActionApply,
+		})
 	},
 }
 

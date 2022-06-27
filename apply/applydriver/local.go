@@ -49,7 +49,6 @@ type Applier struct {
 	Client              *k8s.Client
 	ImageStore          store.ImageStore
 	CurrentClusterInfo  *version.Info
-	Action              string
 }
 
 func (c *Applier) Delete() (err error) {
@@ -59,7 +58,10 @@ func (c *Applier) Delete() (err error) {
 }
 
 // Apply different actions between ClusterDesired and ClusterCurrent.
-func (c *Applier) Apply() (err error) {
+func (c *Applier) Apply(args *Args) (err error) {
+	if args == nil {
+		return fmt.Errorf("args can't be empty")
+	}
 	// first time to init cluster
 	if c.ClusterFile == nil {
 		c.ClusterFile, err = clusterfile.NewClusterFile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
@@ -72,7 +74,10 @@ func (c *Applier) Apply() (err error) {
 			return err
 		}
 	} else {
-		if err = c.reconcileCluster(); err != nil {
+		if args.Action == ActionRun {
+			return fmt.Errorf("sealer run can only be use for init a new cluster, but we find a cluster is already existing")
+		}
+		if err = c.reconcileCluster(args); err != nil {
 			return err
 		}
 	}
@@ -118,7 +123,8 @@ func (c *Applier) unMountClusterImage() error {
 	return c.ClusterImageMounter.UnMountImage(c.ClusterDesired)
 }
 
-func (c *Applier) reconcileCluster() error {
+// only ActionJoin/ActionDelete/ActionApply will into this func
+func (c *Applier) reconcileCluster(args *Args) error {
 	client, err := k8s.Newk8sClient()
 	if err != nil {
 		return err
@@ -154,28 +160,22 @@ func (c *Applier) reconcileCluster() error {
 
 	mj, md := strings.Diff(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
 	nj, nd := strings.Diff(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
-	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
-		if c.Action != common.ApplySubCmd {
-			return fmt.Errorf("we find no masters and nodes need reconcile, please check")
-		}
-		return c.upgrade()
-	}
 
-	if c.Action == common.JoinSubCmd {
+	switch args.Action {
+	case ActionJoin:
 		if len(md) > 0 || len(nd) > 0 {
 			logrus.Warnf(`we found these master(%v) or node(%v) are in cluster but not in you Kubefile, we will do nothing for them.`, md, nd)
 		}
-
-		md = nil
-		nd = nil
-	}
-	if c.Action == common.DeleteSubCmd {
+		return c.scaleCluster(args.JoiningArgs.MastersToJoin, nil, args.JoiningArgs.WorkersToJoin, nil)
+	case ActionDelete:
 		if len(mj) > 0 || len(nj) > 0 {
 			logrus.Warnf(`we found these master(%v) or node(%v) are not in cluster but in you Kubefile, we will do nothing for them.`, mj, nj)
 		}
+		return c.scaleCluster(nil, args.DeletingArgs.MastersToDelete, nil, args.DeletingArgs.WorkersToDelete)
+	}
 
-		mj = nil
-		nj = nil
+	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+		return c.upgrade()
 	}
 
 	return c.scaleCluster(mj, md, nj, nd)

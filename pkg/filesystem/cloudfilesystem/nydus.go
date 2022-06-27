@@ -132,7 +132,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 		eg.Go(func() error {
 			src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip])
 			src = filepath.Join(nydusdFileDir, filepath.Base(src))
-			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
+			sshClient, err := ssh.GetHostSSHClient(ip, cluster, false)
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
 			}

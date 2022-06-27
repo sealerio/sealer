@@ -70,7 +70,6 @@ func Join(cluster *v2.Cluster, scaleArgs *Args) error {
 func joinBareMetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	var err error
 	// merge custom Env to the existed cluster
-	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
 
 	scaleArgs.Masters, err = net.AssemblyIPList(scaleArgs.Masters)
 	if err != nil {
@@ -132,14 +131,8 @@ func joinBareMetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		}
 	}
 
-	a, b := strUtils.Diff(masterIPs, mastersFromK8s)
-	if len(a) != 0 || len(b) != 0 {
-		return fmt.Errorf("we find current clusterfile's master ip list is different from actual k8s's, please check")
-	}
-	a, b = strUtils.Diff(workerIPs, workersFromK8s)
-	if len(a) != 0 || len(b) != 0 {
-		return fmt.Errorf("we find current clusterfile's worker ip list is different from actual k8s's, please check")
-	}
+	masterIPs = strUtils.RemoveDuplicate(append(masterIPs, mastersFromK8s...))
+	workerIPs = strUtils.RemoveDuplicate(append(workerIPs, workersFromK8s...))
 
 	//add joined masters
 	if scaleArgs.Masters != "" {
@@ -151,6 +144,7 @@ func joinBareMetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		}
 
 		host := v2.Host{
+			Env:   scaleArgs.CustomEnv,
 			IPS:   toAdd,
 			Roles: []string{common.MASTER},
 		}
@@ -160,6 +154,7 @@ func joinBareMetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		}
 
 		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
+		scaleArgs.MasterSlice = toAdd
 	}
 
 	//add joined nodes
@@ -172,6 +167,7 @@ func joinBareMetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		}
 
 		host := v2.Host{
+			Env:   scaleArgs.CustomEnv,
 			IPS:   toAdd,
 			Roles: []string{common.NODE},
 		}
@@ -181,6 +177,7 @@ func joinBareMetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 		}
 
 		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
+		scaleArgs.NodeSlice = toAdd
 	}
 
 	return nil
@@ -197,7 +194,8 @@ func Delete(cluster *v2.Cluster, scaleArgs *Args) error {
 func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	var err error
 	// adding custom Env params for delete option here to support executing users clean scripts via env.
-	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
+	// TODO
+	// cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
 
 	scaleArgs.Masters, err = net.AssemblyIPList(scaleArgs.Masters)
 	if err != nil {
@@ -220,6 +218,7 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ","))
 			}
 		}
+		scaleArgs.MasterSlice = strings.Split(scaleArgs.Masters, ",")
 	}
 	if net.IsIPList(scaleArgs.Nodes) {
 		for i := range cluster.Spec.Hosts {
@@ -227,6 +226,7 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ","))
 			}
 		}
+		scaleArgs.NodeSlice = strings.Split(scaleArgs.Nodes, ",")
 	}
 	return nil
 }

@@ -65,7 +65,7 @@ func (e *Exec) RunCmd(cmd string) error {
 	for _, ipAddr := range e.ipList {
 		ip := ipAddr
 		eg.Go(func() error {
-			sshClient, sshErr := ssh.NewStdoutSSHClient(ip, e.cluster)
+			sshClient, sshErr := ssh.GetHostSSHClient(ip, e.cluster, true)
 			if sshErr != nil {
 				return sshErr
 			}

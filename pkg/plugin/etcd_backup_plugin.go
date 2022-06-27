@@ -72,7 +72,7 @@ func getMasterIP(context Context) (string, error) {
 func fetchRemoteCert(context Context, masterIP string) error {
 	certs := []string{"healthcheck-client.crt", "healthcheck-client.key", "ca.crt"}
 	for _, cert := range certs {
-		sshClient, err := ssh.GetHostSSHClient(masterIP, context.Cluster)
+		sshClient, err := ssh.GetHostSSHClient(masterIP, context.Cluster, false)
 		if err != nil {
 			return err
 		}

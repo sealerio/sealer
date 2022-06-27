@@ -15,11 +15,12 @@
 package cmd
 
 import (
-	"github.com/sealerio/sealer/pkg/cert"
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/cert"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 )
 
@@ -51,7 +52,13 @@ join default cluster:
 			return err
 		}
 
-		return applier.Apply()
+		return applier.Apply(&applydriver.Args{
+			Action: applydriver.ActionJoin,
+			JoiningArgs: &applydriver.JoiningArgs{
+				MastersToJoin: joinArgs.MasterSlice,
+				WorkersToJoin: joinArgs.NodeSlice,
+			},
+		})
 	},
 }
 
