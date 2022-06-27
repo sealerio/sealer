@@ -66,7 +66,7 @@ func NewApplierFromArgs(imageName string, runArgs *Args) (applydriver.Interface,
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize cluster instance with command args: %v", err)
 	}
-	return NewDefaultApplier(cluster, nil)
+	return NewDefaultApplier(cluster, common.ApplySubCmd, nil)
 }
 
 // validateArgs validates all the input args from sealer run command.

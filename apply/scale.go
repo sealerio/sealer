@@ -56,7 +56,7 @@ func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (
 		return nil, err
 	}
 
-	applier, err := NewDefaultApplier(cluster, nil)
+	applier, err := NewDefaultApplier(cluster, flag, nil)
 	if err != nil {
 		return nil, err
 	}

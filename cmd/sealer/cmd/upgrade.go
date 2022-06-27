@@ -19,6 +19,7 @@ import (
 	"os"
 
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 
 	"github.com/spf13/cobra"
@@ -53,7 +54,7 @@ var upgradeCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		applier, err := apply.NewDefaultApplier(desiredCluster, nil)
+		applier, err := apply.NewDefaultApplier(desiredCluster, common.UpgradeSubCmd, nil)
 		if err != nil {
 			return err
 		}

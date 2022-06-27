@@ -81,7 +81,7 @@ delete all:
 			return applier.Apply()
 		}
 
-		applier, err := apply.NewApplierFromFile(deleteClusterFile)
+		applier, err := apply.NewApplierFromFile(deleteClusterFile, common.DeleteSubCmd)
 		if err != nil {
 			return err
 		}

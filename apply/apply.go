@@ -54,7 +54,7 @@ type Args struct {
 	CMDArgs    []string
 }
 
-func NewApplierFromFile(path string) (applydriver.Interface, error) {
+func NewApplierFromFile(path, action string) (applydriver.Interface, error) {
 	if !filepath.IsAbs(path) {
 		pa, err := os.Getwd()
 		if err != nil {
@@ -72,13 +72,13 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 		cluster.SetAnnotations(common.ClusterfileName, path)
 	}
 
-	return NewDefaultApplier(&cluster, Clusterfile)
+	return NewDefaultApplier(&cluster, action, Clusterfile)
 }
 
 // NewDefaultApplier news an applier.
 // In NewDefaultApplier, we guarantee that no raw data could be passed in.
 // And all data has to be validated and processed in the pre-process layer.
-func NewDefaultApplier(cluster *v2.Cluster, file clusterfile.Interface) (applydriver.Interface, error) {
+func NewDefaultApplier(cluster *v2.Cluster, action string, file clusterfile.Interface) (applydriver.Interface, error) {
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty")
 	}
@@ -114,6 +114,7 @@ func NewDefaultApplier(cluster *v2.Cluster, file clusterfile.Interface) (applydr
 		ImageManager:        imgSvc,
 		ClusterImageMounter: mounter,
 		ImageStore:          is,
+		Action:              action,
 	}, nil
 }
 

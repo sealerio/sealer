@@ -115,8 +115,10 @@ const (
 )
 
 const (
-	JoinSubCmd   = "join"
-	DeleteSubCmd = "delete"
+	JoinSubCmd    = "join"
+	UpgradeSubCmd = "upgrade"
+	ApplySubCmd   = "apply"
+	DeleteSubCmd  = "delete"
 )
 
 const (

@@ -15,10 +15,11 @@
 package cmd
 
 import (
-	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/runtime"
 )
 
 var clusterFile string
@@ -33,7 +34,7 @@ will apply the diff change of current Clusterfile and the original one.`,
 	Example: `sealer apply -f Clusterfile`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		applier, err := apply.NewApplierFromFile(clusterFile)
+		applier, err := apply.NewApplierFromFile(clusterFile, common.ApplySubCmd)
 		if err != nil {
 			return err
 		}

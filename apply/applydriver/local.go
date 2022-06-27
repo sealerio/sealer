@@ -49,6 +49,7 @@ type Applier struct {
 	Client              *k8s.Client
 	ImageStore          store.ImageStore
 	CurrentClusterInfo  *version.Info
+	Action              string
 }
 
 func (c *Applier) Delete() (err error) {
@@ -154,14 +155,30 @@ func (c *Applier) reconcileCluster() error {
 	mj, md := strings.Diff(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
 	nj, nd := strings.Diff(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+		if c.Action != common.ApplySubCmd {
+			return fmt.Errorf("we find no masters and nodes need reconcile, please check")
+		}
 		return c.upgrade()
 	}
 
-	if len(md) > 0 || len(nd) > 0 {
-		logrus.Warnf(`we found these master(%v) or node(%v) are in cluster but not in you Kubefile, we will do nothing for them.`, md, nd)
+	if c.Action == common.JoinSubCmd {
+		if len(md) > 0 || len(nd) > 0 {
+			logrus.Warnf(`we found these master(%v) or node(%v) are in cluster but not in you Kubefile, we will do nothing for them.`, md, nd)
+		}
+
+		md = nil
+		nd = nil
+	}
+	if c.Action == common.DeleteSubCmd {
+		if len(mj) > 0 || len(nj) > 0 {
+			logrus.Warnf(`we found these master(%v) or node(%v) are not in cluster but in you Kubefile, we will do nothing for them.`, mj, nj)
+		}
+
+		mj = nil
+		nj = nil
 	}
 
-	return c.scaleCluster(mj, nil, nj, nil)
+	return c.scaleCluster(mj, md, nj, nd)
 }
 
 func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
