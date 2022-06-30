@@ -172,13 +172,18 @@ func (c *Applier) reconcileCluster(args *Args) error {
 			logrus.Warnf(`we found these master(%v) or node(%v) are not in cluster but in you Kubefile, we will do nothing for them.`, mj, nj)
 		}
 		return c.scaleCluster(nil, args.DeletingArgs.MastersToDelete, nil, args.DeletingArgs.WorkersToDelete)
+	case ActionApply:
+		if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+			return c.upgrade()
+		}
+		if len(md) > 0 || len(nd) > 0 {
+			logrus.Warnf(`we found these master(%v) or node(%v) are in cluster but not in you Kubefile, we will do nothing for them.`, md, nd)
+		}
+
+		return c.scaleCluster(mj, nil, nj, nil)
 	}
 
-	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
-		return c.upgrade()
-	}
-
-	return c.scaleCluster(mj, md, nj, nd)
+	return fmt.Errorf("action %s is not supported", args.Action)
 }
 
 func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
