@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
+	v12 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
@@ -63,6 +64,10 @@ func Newk8sClient() (*Client, error) {
 	return &Client{
 		client: clientSet,
 	}, nil
+}
+
+func (c *Client) ConfigMap(ns string) v12.ConfigMapInterface {
+	return c.client.CoreV1().ConfigMaps(ns)
 }
 
 func (c *Client) ListNodes() (*v1.NodeList, error) {
