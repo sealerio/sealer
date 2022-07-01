@@ -91,15 +91,15 @@ func GetHostSSHClient(hostIP string, cluster *v2.Cluster, isStdout bool) (Interf
 		for _, ip := range host.IPS {
 			if hostIP == ip {
 				if host.SSH.Pk != "" || host.SSH.Passwd != "" {
-					return NewSSHClient(&host.SSH, false), nil
+					return NewSSHClient(&host.SSH, isStdout), nil
 				}
 
-				return NewSSHClient(&cluster.Spec.SSH, false), nil
+				return NewSSHClient(&cluster.Spec.SSH, isStdout), nil
 			}
 		}
 	}
 	if cluster.Spec.SSH.Pk != "" || cluster.Spec.SSH.Passwd != "" {
-		return NewSSHClient(&cluster.Spec.SSH, false), nil
+		return NewSSHClient(&cluster.Spec.SSH, isStdout), nil
 	}
 
 	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
