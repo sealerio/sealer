@@ -26,6 +26,18 @@ jobs:
           echo "::set-output name=stringver::${RELEASEVER#refs/tags/v}"
         working-directory: src/github.com/sealerio/sealer
 
+      - uses: release-drafter/release-drafter@v5
+        name: create release drafter
+        id: drafter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: write release draft to file
+        shell: bash
+        working-directory: src/github.com/sealerio/sealer
+        run: |
+          echo "${{steps.drafter.outputs.body}}" >> release_note.md
+
       - name: Note
         id: Note
         env:
@@ -39,6 +51,7 @@ jobs:
         with:
           name: sealer-release-notes
           path: src/github.com/sealerio/sealer/release_note.md
+
   build:
     name: Build Release Binaries
     runs-on: ${{ matrix.os }}
@@ -105,7 +118,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_unmatched_files: true
           name: sealer ${{ needs.note.outputs.stringver }}
-          draft: false
+          draft: true
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
           body_path: ./builds/sealer-release-notes/release_note.md
           files: |
