@@ -15,8 +15,9 @@
 package cmd
 
 import (
-	"github.com/sealerio/sealer/utils/net"
 	"os"
+
+	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
