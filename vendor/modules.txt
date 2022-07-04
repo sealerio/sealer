@@ -9,7 +9,6 @@ github.com/Masterminds/goutils
 ## explicit
 github.com/Masterminds/semver/v3
 # github.com/Masterminds/sprig/v3 v3.2.2
-## explicit
 github.com/Masterminds/sprig/v3
 # github.com/Microsoft/go-winio v0.4.17
 github.com/Microsoft/go-winio
@@ -325,6 +324,14 @@ github.com/json-iterator/go
 github.com/kevinburke/ssh_config
 # github.com/kr/fs v0.1.0
 github.com/kr/fs
+# github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
+## explicit
+github.com/lestrrat-go/file-rotatelogs
+github.com/lestrrat-go/file-rotatelogs/internal/option
+# github.com/lestrrat-go/strftime v1.0.6
+## explicit
+github.com/lestrrat-go/strftime
+github.com/lestrrat-go/strftime/internal/errors
 # github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
 github.com/liggitt/tabwriter
 # github.com/lithammer/dedent v1.1.0
@@ -448,6 +455,9 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
+# github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
+## explicit
+github.com/rifflock/lfshook
 # github.com/russross/blackfriday/v2 v2.0.1
 github.com/russross/blackfriday/v2
 # github.com/sealyun/lvscare v1.1.2-alpha.2

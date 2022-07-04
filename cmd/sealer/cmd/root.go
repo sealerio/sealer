@@ -19,12 +19,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/pkg/logger"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/sealerio/sealer/common"
-	remotelogger "github.com/sealerio/sealer/pkg/remote-logger"
 	"github.com/sealerio/sealer/version"
 )
 
@@ -98,19 +98,10 @@ func initConfig() {
 
 	viper.AutomaticEnv() // read in environment variables that match
 
-	if rootOpt.debugModeOn {
-		logrus.SetLevel(logrus.DebugLevel)
-	}
-
-	logrus.SetFormatter(&logrus.TextFormatter{
-		DisableColors: rootOpt.colorMode == colorModeNever,
+	logger.New(logger.LogOptions{
+		Verbose:              rootOpt.debugModeOn,
+		RemoteLoggerURL:      rootOpt.remoteLoggerURL,
+		RemoteLoggerTaskName: rootOpt.remoteLoggerTaskName,
+		DisableColor:         rootOpt.colorMode == colorModeNever,
 	})
-
-	if rootOpt.remoteLoggerURL != "" {
-		rl, err := remotelogger.NewRemoteLogHook(rootOpt.remoteLoggerURL, rootOpt.remoteLoggerTaskName)
-		if err != nil {
-			panic(err)
-		}
-		logrus.AddHook(rl)
-	}
 }
