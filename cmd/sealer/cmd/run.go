@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"github.com/sealerio/sealer/utils/net"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -52,6 +53,17 @@ create a cluster with custom environment variables:
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// set local ip address as master0 default ip if user input is empty.
+		// this is convenient to execute `sealer run` without set many arguments.
+		// Example looks like "sealer run kubernetes:v1.19.8"
+		if runArgs.Masters == "" {
+			ip, err := net.GetLocalDefaultIP()
+			if err != nil {
+				return err
+			}
+			runArgs.Masters = ip
+		}
+
 		applier, err := apply.NewApplierFromArgs(args[0], runArgs)
 		if err != nil {
 			return err
