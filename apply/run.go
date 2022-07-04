@@ -77,7 +77,7 @@ func validateArgs(runArgs *Args) error {
 
 	// validate input nodes IP info
 	if len(runArgs.Nodes) != 0 {
-		// empty runArgs.Nodes is valid, since no nodes are input.
+		// empty runArgs.Nodes are valid, since no nodes are input.
 		if err := validateIPStr(runArgs.Nodes); err != nil {
 			errMsg = append(errMsg, err.Error())
 		}
@@ -127,13 +127,17 @@ func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 		})
 	}
 
+	// if inNodes is empty,Split will return a slice of length 1 whose only element is inNodes.
+	// so we need to filter the empty string to make sure the cluster node ip is valid.
 	nodes := strings.Split(inNodes, ",")
 	nodeHosts := make([]v2.Host, len(nodes))
 	for _, node := range nodes {
-		nodeHosts = append(nodeHosts, v2.Host{
-			IPS:   []string{node},
-			Roles: []string{common.NODE},
-		})
+		if node != "" {
+			nodeHosts = append(nodeHosts, v2.Host{
+				IPS:   []string{node},
+				Roles: []string{common.NODE},
+			})
+		}
 	}
 
 	result := make([]v2.Host, len(masters)+len(nodes))
