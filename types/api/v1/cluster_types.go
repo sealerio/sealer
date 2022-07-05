@@ -36,6 +36,7 @@ type Hosts struct {
 	CPU        string   `json:"cpu,omitempty"`
 	Memory     string   `json:"memory,omitempty"`
 	Count      string   `json:"count,omitempty"`
+	ImageID    string   `json:"imageId,omitempty"`
 	SystemDisk string   `json:"systemDisk,omitempty"`
 	DataDisks  []string `json:"dataDisks,omitempty"`
 	IPList     []string `json:"ipList,omitempty"`

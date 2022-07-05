@@ -445,7 +445,12 @@ func (a *AliProvider) RunInstances(instanceRole string, count int) error {
 
 	request := ecs.CreateRunInstancesRequest()
 	request.Scheme = Scheme
-	request.ImageId = ImageID
+	system := a.Cluster.Spec.Masters.ImageID
+	if system == CentOS || system == "" {
+		request.ImageId = CentOSImageID
+	} else if system == Ubuntu {
+		request.ImageId = UbuntuImageID
+	}
 	request.Password = a.Cluster.Spec.SSH.Passwd
 	request.SecurityGroupId = a.Cluster.GetAnnotationsByKey(SecurityGroupID)
 	request.VSwitchId = a.Cluster.GetAnnotationsByKey(VSwitchID)
