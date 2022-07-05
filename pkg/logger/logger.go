@@ -15,6 +15,7 @@
 package logger
 
 import (
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,19 +28,23 @@ type LogOptions struct {
 	DisableColor         bool
 	RemoteLoggerURL      string
 	RemoteLoggerTaskName string
+	// WriteToDisk flag represent whether write log to disk, default is false.
+	WriteToDisk bool
 }
 
-func New(options LogOptions) {
-	fh, err := NewFileHook(options.OutputPath)
-	if err != nil {
-		panic(err)
+func Init(options LogOptions) error {
+	if options.WriteToDisk {
+		fh, err := NewFileHook(options.OutputPath)
+		if err != nil {
+			return errors.Errorf("failed to init log file hook %v", err)
+		}
+		logrus.AddHook(fh)
 	}
-	logrus.AddHook(fh)
 
 	if options.RemoteLoggerURL != "" {
 		rl, err := NewRemoteLogHook(options.RemoteLoggerURL, options.RemoteLoggerTaskName)
 		if err != nil {
-			panic(err)
+			return errors.Errorf("failed to init log remote hook %v", err)
 		}
 		logrus.AddHook(rl)
 	}
@@ -55,4 +60,6 @@ func New(options LogOptions) {
 	logrus.SetFormatter(&Formatter{
 		DisableColor: options.DisableColor,
 	})
+
+	return nil
 }
