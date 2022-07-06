@@ -19,12 +19,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/pkg/logger"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/sealerio/sealer/common"
-	remotelogger "github.com/sealerio/sealer/pkg/remote-logger"
 	"github.com/sealerio/sealer/version"
 )
 
@@ -33,6 +33,7 @@ type rootOpts struct {
 	debugModeOn          bool
 	hideLogTime          bool
 	hideLogPath          bool
+	logToFile            bool
 	colorMode            string
 	remoteLoggerURL      string
 	remoteLoggerTaskName string
@@ -78,6 +79,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&rootCmd.SilenceUsage, "quiet", "q", false, "silence the usage when fail")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogTime, "hide-time", false, "hide the log time")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogPath, "hide-path", false, "hide the log path")
+	rootCmd.PersistentFlags().BoolVar(&rootOpt.logToFile, "log-to-file", false, "write log message to disk")
 	rootCmd.PersistentFlags().StringVar(&rootOpt.colorMode, "color", colorModeAlways, fmt.Sprintf("set the log color mode, the possible values can be %v", supportedColorModes))
 	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerURL, "remote-logger-url", "", "remote logger url, if not empty, will send log to this url")
 	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerTaskName, "task-name", "", "task name which will embedded in the remote logger header, only valid when --remote-logger-url is set")
@@ -98,19 +100,14 @@ func initConfig() {
 
 	viper.AutomaticEnv() // read in environment variables that match
 
-	if rootOpt.debugModeOn {
-		logrus.SetLevel(logrus.DebugLevel)
-	}
-
-	logrus.SetFormatter(&logrus.TextFormatter{
-		DisableColors: rootOpt.colorMode == colorModeNever,
-	})
-
-	if rootOpt.remoteLoggerURL != "" {
-		rl, err := remotelogger.NewRemoteLogHook(rootOpt.remoteLoggerURL, rootOpt.remoteLoggerTaskName)
-		if err != nil {
-			panic(err)
-		}
-		logrus.AddHook(rl)
+	if err := logger.Init(logger.LogOptions{
+		LogToFile:            rootOpt.logToFile,
+		Verbose:              rootOpt.debugModeOn,
+		RemoteLoggerURL:      rootOpt.remoteLoggerURL,
+		RemoteLoggerTaskName: rootOpt.remoteLoggerTaskName,
+		DisableColor:         rootOpt.colorMode == colorModeNever,
+	}); err != nil {
+		//it is a logger init error which does not affect the sealer main process. thus, marked it as tolerable error.
+		fmt.Fprintf(os.Stderr, "failed to init logger: %v\n", err)
 	}
 }
