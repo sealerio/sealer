@@ -4,7 +4,6 @@ go 1.14
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.985
 	github.com/cavaliergopher/grab/v3 v3.0.1
 	github.com/distribution/distribution/v3 v3.0.0-20211125133600-cc4627fc6e5f
@@ -14,8 +13,11 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/go-git/go-git/v5 v5.4.2
+	github.com/go-openapi/jsonreference v0.19.5 // indirect
+	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/google/uuid v1.2.0
 	github.com/imdario/mergo v0.3.12
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moby/buildkit v0.9.3
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
@@ -38,22 +40,26 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.0
 	go.uber.org/zap v1.17.0
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/net v0.0.0-20210510120150-4163338589ed
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	gotest.tools v2.2.0+incompatible
+	gotest.tools/v3 v3.0.3
 	helm.sh/helm/v3 v3.6.2
 	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0
 	k8s.io/cli-runtime v0.21.0
 	k8s.io/client-go v0.21.0
+	k8s.io/klog/v2 v2.60.1 // indirect
+	k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42 // indirect
 	k8s.io/kube-proxy v0.21.0
 	k8s.io/kubelet v0.21.0
-	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
+	k8s.io/utils v0.0.0-20210802155522-efc7438f0176
 	sigs.k8s.io/controller-runtime v0.8.1
+	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.2.0
 )
 

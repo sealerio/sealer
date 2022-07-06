@@ -37,6 +37,7 @@ type ImageSpec struct {
 	ID            string      `json:"id,omitempty"`
 	Layers        []Layer     `json:"layers,omitempty"`
 	SealerVersion string      `json:"sealer_version,omitempty"`
+	ClusterImage  string      `json:"cluster_image,omitempty"`
 	Platform      Platform    `json:"platform"`
 	ImageConfig   ImageConfig `json:"image_config"`
 }
