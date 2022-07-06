@@ -28,27 +28,11 @@ type LogOptions struct {
 	DisableColor         bool
 	RemoteLoggerURL      string
 	RemoteLoggerTaskName string
-	// WriteToDisk flag represent whether write log to disk, default is false.
-	WriteToDisk bool
+	// LogToFile flag represent whether write log to disk, default is false.
+	LogToFile bool
 }
 
 func Init(options LogOptions) error {
-	if options.WriteToDisk {
-		fh, err := NewFileHook(options.OutputPath)
-		if err != nil {
-			return errors.Errorf("failed to init log file hook %v", err)
-		}
-		logrus.AddHook(fh)
-	}
-
-	if options.RemoteLoggerURL != "" {
-		rl, err := NewRemoteLogHook(options.RemoteLoggerURL, options.RemoteLoggerTaskName)
-		if err != nil {
-			return errors.Errorf("failed to init log remote hook %v", err)
-		}
-		logrus.AddHook(rl)
-	}
-
 	if options.Verbose {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else {
@@ -60,6 +44,22 @@ func Init(options LogOptions) error {
 	logrus.SetFormatter(&Formatter{
 		DisableColor: options.DisableColor,
 	})
+
+	if options.LogToFile {
+		fh, err := NewFileHook(options.OutputPath)
+		if err != nil {
+			return errors.Errorf("failed to init log file hook: %v", err)
+		}
+		logrus.AddHook(fh)
+	}
+
+	if options.RemoteLoggerURL != "" {
+		rl, err := NewRemoteLogHook(options.RemoteLoggerURL, options.RemoteLoggerTaskName)
+		if err != nil {
+			return errors.Errorf("failed to init log remote hook: %v", err)
+		}
+		logrus.AddHook(rl)
+	}
 
 	return nil
 }
