@@ -32,12 +32,12 @@ func TestLoadMetadata(t *testing.T) {
 	defer syscall.Umask(oldmask)
 
 	rootfs, err := os.MkdirTemp(rootfsPath, metadataFileName)
-
 	assert.NilError(t, err)
 	defer os.RemoveAll(rootfs)
 
-	err = os.WriteFile(rootfsPath+metadataFileName, []byte(mockMeatadata), 0666)
-	assert.NilError(t, err)
+	if err = os.WriteFile(rootfs, []byte(mockMeatadata), 0666); err != nil {
+		t.Errorf("write temp file in %s error: %s", rootfs, err)
+	}
 
 	metadata, err := LoadMetadata(rootfsPath)
 	assert.Equal(t, "v1.19.8", metadata.KubeVersion)
