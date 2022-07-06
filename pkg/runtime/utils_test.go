@@ -15,15 +15,17 @@
 package runtime
 
 import (
-	"gotest.tools/v3/assert"
 	"os"
+	"path/filepath"
 	"syscall"
 	"testing"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestLoadMetadata(t *testing.T) {
 	const (
-		rootfsPath       = "/var/lib/sealer/my-cluster/rootfs"
+		rootfsPath       = "rootfs"
 		mockMeatadata    = "{\n  \"version\": \"v1.19.8\",\n  \"arch\": \"amd64\"\n}"
 		metadataFileName = "Metadata"
 	)
@@ -31,12 +33,13 @@ func TestLoadMetadata(t *testing.T) {
 	oldmask := syscall.Umask(0)
 	defer syscall.Umask(oldmask)
 
-	rootfs, err := os.MkdirTemp(rootfsPath, metadataFileName)
+	dir, err := os.MkdirTemp("", metadataFileName)
+	file := filepath.Join(dir, rootfsPath)
 	assert.NilError(t, err)
-	defer os.RemoveAll(rootfs)
+	defer os.RemoveAll(dir)
 
-	if err = os.WriteFile(rootfs, []byte(mockMeatadata), 0666); err != nil {
-		t.Errorf("write temp file in %s error: %s", rootfs, err)
+	if err = os.WriteFile(file, []byte(mockMeatadata), 0666); err != nil {
+		t.Errorf("write temp file in %s error: %s", file, err)
 	}
 
 	metadata, err := LoadMetadata(rootfsPath)
