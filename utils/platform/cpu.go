@@ -48,7 +48,7 @@ func cpuVariant() string {
 				logrus.Error(err)
 			}
 			model, err := getCPUInfo("model name")
-			if !strings.Contains(err.Error(), ErrNotFound.Error()) {
+			if err != nil && !strings.Contains(err.Error(), ErrNotFound.Error()) {
 				logrus.Error(err)
 			}
 			cpuVariantValue = GetCPUVariantByInfo(runtime.GOOS, runtime.GOARCH, variant, model)
