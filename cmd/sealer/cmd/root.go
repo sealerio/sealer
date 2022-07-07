@@ -107,7 +107,6 @@ func initConfig() {
 		RemoteLoggerTaskName: rootOpt.remoteLoggerTaskName,
 		DisableColor:         rootOpt.colorMode == colorModeNever,
 	}); err != nil {
-		//it is a logger init error which does not affect the sealer main process. thus, marked it as tolerable error.
-		fmt.Fprintf(os.Stderr, "failed to init logger: %v\n", err)
+		panic(fmt.Sprintf("failed to init logger: %v\n", err))
 	}
 }
