@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils/hash"
 	"github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
@@ -129,13 +128,6 @@ func (a *AliProvider) SaveToDisk() error {
 	if err != nil {
 		return fmt.Errorf("mkdir failed %s %v", fileName, err)
 	}
-
-	passwd, err := hash.AesEncrypt([]byte(a.Cluster.Spec.SSH.Passwd))
-	if err != nil {
-		return err
-	}
-	a.Cluster.Spec.SSH.Passwd = passwd
-	a.Cluster.Spec.SSH.Encrypted = true
 
 	return yaml.MarshalToFile(fileName, a.Cluster)
 }
