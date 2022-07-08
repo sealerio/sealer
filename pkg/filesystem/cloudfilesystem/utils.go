@@ -17,6 +17,7 @@ package cloudfilesystem
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/utils/os/fs"
@@ -28,7 +29,7 @@ import (
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
-func copyFiles(sshEntry ssh.Interface, ip, src, target string) error {
+func copyFiles(sshEntry ssh.Interface, ip net.IP, src, target string) error {
 	files, err := ioutil.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("failed to copy files %s", err)
@@ -46,7 +47,7 @@ func copyFiles(sshEntry ssh.Interface, ip, src, target string) error {
 	return nil
 }
 
-func copyRegistry(regIP string, cluster *v2.Cluster, mountDir map[string]bool, target string) error {
+func copyRegistry(regIP net.IP, cluster *v2.Cluster, mountDir map[string]bool, target string) error {
 	sshClient, err := ssh.GetHostSSHClient(regIP, cluster)
 	if err != nil {
 		return err

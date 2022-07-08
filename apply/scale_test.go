@@ -16,6 +16,7 @@ package apply
 
 import (
 	"fmt"
+	"net"
 	"testing"
 
 	"github.com/sealerio/sealer/common"
@@ -104,32 +105,32 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 func Test_returnFilteredIPList(t *testing.T) {
 	tests := []struct {
 		name              string
-		clusterIPList     []string
-		toBeDeletedIPList []string
+		clusterIPList     []net.IP
+		toBeDeletedIPList []net.IP
 		wantErr           bool
 	}{
 		{
 			"test",
-			[]string{"10.10.10.1", "10.10.10.2", "10.10.10.3", "10.10.10.4"},
-			[]string{"10.10.10.1", "10.10.10.2", "10.10.10.3", "10.10.10.4"},
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
 			false,
 		},
 		{
 			"test1",
-			[]string{"10.10.10.1", "10.10.10.2", "10.10.10.3", "10.10.10.4"},
-			[]string{},
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
+			[]net.IP{},
 			false,
 		},
 		{
 			"test2",
-			[]string{"10.10.10.1", "10.10.10.2", "10.10.10.3", "10.10.10.4"},
-			[]string{"10.10.10.4"},
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
+			[]net.IP{net.ParseIP("10.10.10.4")},
 			false,
 		},
 		{
 			"test3",
-			[]string{},
-			[]string{"10.10.10.1", "10.10.10.2", "10.10.10.3", "10.10.10.4"},
+			[]net.IP{},
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
 			false,
 		},
 	}

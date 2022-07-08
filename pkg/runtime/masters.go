@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -25,7 +26,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
 	"github.com/sealerio/sealer/pkg/ipvs"
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sealerio/sealer/utils/yaml"
 
@@ -121,17 +122,17 @@ const InitMaster CommandType = "initMaster"
 const JoinMaster CommandType = "joinMaster"
 const JoinNode CommandType = "joinNode"
 
-func getAPIServerHost(ipAddr, APIServer string) (host string) {
-	return fmt.Sprintf("%s %s", ipAddr, APIServer)
+func getAPIServerHost(ipAddr net.IP, APIServer string) (host string) {
+	return fmt.Sprintf("%s %s", ipAddr.String(), APIServer)
 }
 
-func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []string {
+func (k *KubeadmRuntime) JoinMasterCommands(master net.IP, joinCmd, hostname string) []string {
 	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, k.getRegistryHost(), k.getRegistryHost())
 	certCMD := RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
 	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
 	if k.RegConfig.Domain != SeaHub {
-		cmdAddSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP+" "+SeaHub, k.RegConfig.IP+" "+SeaHub)
+		cmdAddSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
 		cmdAddRegistryHosts = fmt.Sprintf("%s && %s", cmdAddRegistryHosts, cmdAddSeaHubHosts)
 	}
 	joinCommands := []string{cmdAddRegistryHosts, certCMD, cmdAddHosts}
@@ -144,13 +145,13 @@ func (k *KubeadmRuntime) JoinMasterCommands(master, joinCmd, hostname string) []
 	return append(joinCommands, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig)
 }
 
-func (k *KubeadmRuntime) sendKubeConfigFile(hosts []string, kubeFile string) error {
+func (k *KubeadmRuntime) sendKubeConfigFile(hosts []net.IP, kubeFile string) error {
 	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
 	sealerKubeFile := fmt.Sprintf("%s/%s", k.getBasePath(), kubeFile)
 	return k.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
-func (k *KubeadmRuntime) sendNewCertAndKey(hosts []string) error {
+func (k *KubeadmRuntime) sendNewCertAndKey(hosts []net.IP) error {
 	return k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
 }
 
@@ -158,7 +159,7 @@ func (k *KubeadmRuntime) sendRegistryCertAndKey() error {
 	return k.sendFileToHosts(k.GetMasterIPList()[:1], k.getCertsDir(), filepath.Join(k.getRootfs(), "certs"))
 }
 
-func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
+func (k *KubeadmRuntime) sendRegistryCert(host []net.IP) error {
 	cf := k.RegConfig
 	err := k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, cf.Domain, cf.Port, cf.Domain))
 	if err != nil {
@@ -167,7 +168,7 @@ func (k *KubeadmRuntime) sendRegistryCert(host []string) error {
 	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, SeaHub, cf.Port, cf.Domain))
 }
 
-func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error {
+func (k *KubeadmRuntime) sendFileToHosts(Hosts []net.IP, src, dst string) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range Hosts {
 		node := node
@@ -185,7 +186,7 @@ func (k *KubeadmRuntime) sendFileToHosts(Hosts []string, src, dst string) error 
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []string) bool {
+func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []net.IP) bool {
 	// fix > 1.19.1 kube-controller-manager and kube-scheduler use the LocalAPIEndpoint instead of the ControlPlaneEndpoint.
 	if k.getKubeVersion() == V1991 || k.getKubeVersion() == V1992 {
 		for _, v := range masters {
@@ -205,7 +206,7 @@ func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []string) bool {
 	return false
 }
 
-func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []string, files ...string) error {
+func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []net.IP, files ...string) error {
 	for _, f := range files {
 		if err := k.sendKubeConfigFile(masters, f); err != nil {
 			return err
@@ -218,7 +219,7 @@ func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []string, files ...st
 }
 
 // joinMasterConfig is generated JoinCP nodes configuration by master ip.
-func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
+func (k *KubeadmRuntime) joinMasterConfig(masterIP net.IP) ([]byte, error) {
 	k.Lock()
 	defer k.Unlock()
 	// TODO Using join file instead template
@@ -233,7 +234,7 @@ func (k *KubeadmRuntime) joinMasterConfig(masterIP string) ([]byte, error) {
 }
 
 // sendJoinCPConfig send join CP nodes configuration
-func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
+func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []net.IP) error {
 	k.Mutex = &sync.Mutex{}
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range joinMaster {
@@ -257,7 +258,7 @@ func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []string) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) CmdAsyncHosts(hosts []string, cmd string) error {
+func (k *KubeadmRuntime) CmdAsyncHosts(hosts []net.IP, cmd string) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, host := range hosts {
 		ip := host
@@ -312,7 +313,7 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 	return fmt.Sprintf("%s%s", v, vlogToStr(k.Vlog))
 }
 
-func (k *KubeadmRuntime) joinMasters(masters []string) error {
+func (k *KubeadmRuntime) joinMasters(masters []net.IP) error {
 	if len(masters) == 0 {
 		return nil
 	}
@@ -374,7 +375,7 @@ func (k *KubeadmRuntime) joinMasters(masters []string) error {
 	return nil
 }
 
-func (k *KubeadmRuntime) deleteMasters(masters []string) error {
+func (k *KubeadmRuntime) deleteMasters(masters []net.IP) error {
 	if len(masters) == 0 {
 		return nil
 	}
@@ -395,16 +396,7 @@ func (k *KubeadmRuntime) deleteMasters(masters []string) error {
 	return eg.Wait()
 }
 
-func SliceRemoveStr(ss []string, s string) (result []string) {
-	for _, v := range ss {
-		if v != s {
-			result = append(result, v)
-		}
-	}
-	return
-}
-
-func (k *KubeadmRuntime) isHostName(master, host string) (string, error) {
+func (k *KubeadmRuntime) isHostName(master, host net.IP) (string, error) {
 	hostString, err := k.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
 	if err != nil {
 		return "", err
@@ -430,7 +422,7 @@ func (k *KubeadmRuntime) isHostName(master, host string) (string, error) {
 	return name, nil
 }
 
-func (k *KubeadmRuntime) deleteMaster(master string) error {
+func (k *KubeadmRuntime) deleteMaster(master net.IP) error {
 	ssh, err := k.getHostSSHClient(master)
 	if err != nil {
 		return fmt.Errorf("failed to delete master: %v", err)
@@ -443,8 +435,8 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
 
 	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.
-	address, err := net.GetLocalHostAddresses()
-	if err != nil || !net.IsLocalIP(master, address) {
+	address, err := utilsnet.GetLocalHostAddresses()
+	if err != nil || !utilsnet.IsLocalIP(master, address) {
 		remoteCleanCmd = append(remoteCleanCmd, RemoveKubeConfig)
 	} else {
 		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
@@ -455,8 +447,14 @@ func (k *KubeadmRuntime) deleteMaster(master string) error {
 		return err
 	}
 
-	//remove master
-	masterIPs := SliceRemoveStr(k.GetMasterIPList(), master)
+	// remove master
+	masterIPs := []net.IP{}
+	for _, ip := range k.GetMasterIPList() {
+		if !ip.Equal(master) {
+			masterIPs = append(masterIPs, ip)
+		}
+	}
+
 	if len(masterIPs) > 0 {
 		hostname, err := k.isHostName(k.GetMaster0IP(), master)
 		if err != nil {

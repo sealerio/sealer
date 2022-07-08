@@ -34,18 +34,6 @@ func GetHostIP(host string) string {
 	return strings.Split(host, ":")[0]
 }
 
-func GetHostIPAndPortOrDefault(host, Default string) (string, string) {
-	if !strings.ContainsRune(host, ':') {
-		return host, Default
-	}
-	split := strings.Split(host, ":")
-	return split[0], split[1]
-}
-
-func GetSSHHostIPAndPort(host string) (string, string) {
-	return GetHostIPAndPortOrDefault(host, "22")
-}
-
 func GetHostIPSlice(hosts []string) (res []string) {
 	for _, ip := range hosts {
 		res = append(res, GetHostIP(ip))
@@ -67,7 +55,7 @@ func IsIPList(args string) bool {
 	return true
 }
 
-func GetHostNetInterface(host string) (string, error) {
+func GetHostNetInterface(host net.IP) (string, error) {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
 		return "", err
@@ -109,9 +97,9 @@ func GetLocalHostAddresses() ([]net.Addr, error) {
 	return allAddrs, nil
 }
 
-func IsLocalIP(ip string, addrs []net.Addr) bool {
+func IsLocalIP(ip net.IP, addrs []net.Addr) bool {
 	for _, address := range addrs {
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil && ipnet.IP.String() == ip {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil && ipnet.IP.Equal(ip) {
 			return true
 		}
 	}
@@ -126,13 +114,13 @@ func GetLocalDefaultIP() (string, error) {
 	return netIP.String(), nil
 }
 
-func GetLocalIP(master0IP string) (string, error) {
-	conn, err := net.Dial("udp", master0IP)
+func GetLocalIP(master0IPPort string) (net.IP, error) {
+	conn, err := net.Dial("udp", master0IPPort)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	localAddr := conn.LocalAddr().String()
-	return strings.Split(localAddr, ":")[0], err
+	return net.ParseIP(strings.Split(localAddr, ":")[0]), err
 }
 
 func AssemblyIPList(ipStr string) (string, error) {
@@ -188,7 +176,8 @@ func CheckIP(i string) bool {
 	return true
 }
 
-func DisassembleIPList(arg string) (res []string) {
+func DisassembleIPList(arg string) []net.IP {
+	var res []string
 	ipList := strings.Split(arg, ",")
 	for _, i := range ipList {
 		if strings.Contains(i, "-") {
@@ -202,7 +191,13 @@ func DisassembleIPList(arg string) (res []string) {
 		}
 		res = append(res, i)
 	}
-	return
+
+	resIP := make([]net.IP, len(res))
+	for _, ip := range res {
+		resIP = append(resIP, net.ParseIP(ip))
+	}
+
+	return resIP
 }
 
 func IPToInt(v string) *big.Int {
@@ -258,14 +253,35 @@ func SortIPList(iplist []string) {
 	}
 }
 
-func NotInIPList(key string, slice []string) bool {
+func NotInIPList(key net.IP, slice []net.IP) bool {
 	for _, s := range slice {
-		if s == "" {
-			continue
-		}
-		if key == strings.Split(s, ":")[0] {
+		if s.Equal(key) {
 			return false
 		}
 	}
 	return true
+}
+
+func IPStrsToIPs(ipStrs []string) []net.IP {
+	if ipStrs == nil {
+		return nil
+	}
+
+	var result []net.IP
+	for _, ipStr := range ipStrs {
+		result = append(result, net.ParseIP(ipStr))
+	}
+	return result
+}
+
+func IPsToIPStrs(ips []net.IP) []string {
+	if ips == nil {
+		return nil
+	}
+
+	var result []string
+	for _, ip := range ips {
+		result = append(result, ip.String())
+	}
+	return result
 }

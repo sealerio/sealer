@@ -15,6 +15,8 @@
 package v1
 
 import (
+	"net"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -38,7 +40,7 @@ type Hosts struct {
 	Count      string   `json:"count,omitempty"`
 	SystemDisk string   `json:"systemDisk,omitempty"`
 	DataDisks  []string `json:"dataDisks,omitempty"`
-	IPList     []string `json:"ipList,omitempty"`
+	IPList     []net.IP `json:"ipList,omitempty"`
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!

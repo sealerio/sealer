@@ -16,21 +16,18 @@ package apply
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/hash"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
-
-	"github.com/sealerio/sealer/utils/yaml"
-
-	"github.com/sealerio/sealer/utils/net"
-
 	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/hash"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sealerio/sealer/utils/yaml"
 )
 
 // NewScaleApplierFromArgs will filter ip list from command parameters.
@@ -75,17 +72,17 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	// merge custom Env to the existed cluster
 	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
 
-	scaleArgs.Masters, err = net.AssemblyIPList(scaleArgs.Masters)
+	scaleArgs.Masters, err = utilsnet.AssemblyIPList(scaleArgs.Masters)
 	if err != nil {
 		return err
 	}
 
-	scaleArgs.Nodes, err = net.AssemblyIPList(scaleArgs.Nodes)
+	scaleArgs.Nodes, err = utilsnet.AssemblyIPList(scaleArgs.Nodes)
 	if err != nil {
 		return err
 	}
 
-	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
+	if (!utilsnet.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!utilsnet.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf("parameter error: current mode should submit iplist")
 	}
 
@@ -120,11 +117,12 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	//add joined masters
 	if scaleArgs.Masters != "" {
 		masterIPs := cluster.GetMasterIPList()
-		addedMasterIP := removeDuplicate(strings.Split(scaleArgs.Masters, ","))
+		addedMasterIPStr := removeDuplicate(strings.Split(scaleArgs.Masters, ","))
+		addedMasterIP := utilsnet.IPStrsToIPs(addedMasterIPStr)
 
 		for _, ip := range addedMasterIP {
 			// if ip already taken by master will return join duplicated ip error
-			if !strUtils.NotIn(ip, masterIPs) {
+			if !utilsnet.NotInIPList(ip, masterIPs) {
 				return fmt.Errorf("failed to scale master for duplicated ip: %s", ip)
 			}
 		}
@@ -144,11 +142,12 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	//add joined nodes
 	if scaleArgs.Nodes != "" {
 		nodeIPs := cluster.GetNodeIPList()
-		addedNodeIP := removeDuplicate(strings.Split(scaleArgs.Nodes, ","))
+		addedNodeIPStrs := removeDuplicate(strings.Split(scaleArgs.Nodes, ","))
+		addedNodeIP := utilsnet.IPStrsToIPs(addedNodeIPStrs)
 
 		for _, ip := range addedNodeIP {
 			// if ip already taken by node will return join duplicated ip error
-			if !strUtils.NotIn(ip, nodeIPs) {
+			if !utilsnet.NotInIPList(ip, nodeIPs) {
 				return fmt.Errorf("failed to scale node for duplicated ip: %s", ip)
 			}
 		}
@@ -180,45 +179,48 @@ func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *Args) error {
 	// adding custom Env params for delete option here to support executing users clean scripts via env.
 	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
 
-	scaleArgs.Masters, err = net.AssemblyIPList(scaleArgs.Masters)
+	scaleArgs.Masters, err = utilsnet.AssemblyIPList(scaleArgs.Masters)
 	if err != nil {
 		return err
 	}
 
-	scaleArgs.Nodes, err = net.AssemblyIPList(scaleArgs.Nodes)
+	scaleArgs.Nodes, err = utilsnet.AssemblyIPList(scaleArgs.Nodes)
 	if err != nil {
 		return err
 	}
 
-	if (!net.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!net.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
+	if (!utilsnet.IsIPList(scaleArgs.Nodes) && scaleArgs.Nodes != "") || (!utilsnet.IsIPList(scaleArgs.Masters) && scaleArgs.Masters != "") {
 		return fmt.Errorf("parameter error: current mode should submit iplist")
 	}
 
 	//master0 machine cannot be deleted
-	if !strUtils.NotIn(cluster.GetMaster0IP(), strings.Split(scaleArgs.Masters, ",")) {
+	scaleMasterIPs := utilsnet.IPStrsToIPs(strings.Split(scaleArgs.Masters, ","))
+	if !utilsnet.NotInIPList(cluster.GetMaster0IP(), scaleMasterIPs) {
 		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
 	}
 
-	if scaleArgs.Masters != "" && net.IsIPList(scaleArgs.Masters) {
+	if scaleArgs.Masters != "" && utilsnet.IsIPList(scaleArgs.Masters) {
 		for i := range cluster.Spec.Hosts {
 			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Masters, ","))
+				masterIPs := utilsnet.IPStrsToIPs(strings.Split(scaleArgs.Masters, ","))
+				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, masterIPs)
 			}
 		}
 	}
-	if scaleArgs.Nodes != "" && net.IsIPList(scaleArgs.Nodes) {
+	if scaleArgs.Nodes != "" && utilsnet.IsIPList(scaleArgs.Nodes) {
 		for i := range cluster.Spec.Hosts {
 			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, strings.Split(scaleArgs.Nodes, ","))
+				nodeIPs := utilsnet.IPStrsToIPs(strings.Split(scaleArgs.Nodes, ","))
+				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, nodeIPs)
 			}
 		}
 	}
 	return nil
 }
 
-func returnFilteredIPList(clusterIPList []string, toBeDeletedIPList []string) (res []string) {
+func returnFilteredIPList(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP) {
 	for _, ip := range clusterIPList {
-		if strUtils.NotIn(ip, toBeDeletedIPList) {
+		if utilsnet.NotInIPList(ip, toBeDeletedIPList) {
 			res = append(res, ip)
 		}
 	}

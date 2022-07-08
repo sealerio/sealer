@@ -16,11 +16,12 @@ package plugin
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	v1 "github.com/sealerio/sealer/types/api/v1"
 
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
@@ -34,7 +35,7 @@ const (
 	SplitSymbol = "|"
 )
 
-func GetIpsByOnField(on string, context Context, phase Phase) (ipList []string, err error) {
+func GetIpsByOnField(on string, context Context, phase Phase) (ipList []net.IP, err error) {
 	on = strings.TrimSpace(on)
 	if strings.Contains(on, EqualSymbol) {
 		if (phase != PhasePostInstall && phase != PhasePostJoin) && phase != PhasePreClean {
@@ -58,7 +59,7 @@ func GetIpsByOnField(on string, context Context, phase Phase) (ipList []string, 
 		}
 		ipList = ipList[:1]
 	} else {
-		ipList = net.DisassembleIPList(on)
+		ipList = utilsnet.DisassembleIPList(on)
 	}
 	if len(ipList) == 0 {
 		logrus.Debugf("node not found by on field [%s]", on)

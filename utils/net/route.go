@@ -31,6 +31,7 @@ import (
 
 	"github.com/vishvananda/netlink"
 	k8snet "k8s.io/apimachinery/pkg/util/net"
+	k8sutilsnet "k8s.io/utils/net"
 )
 
 const (
@@ -50,18 +51,18 @@ const (
 var ErrNotIPV4 = errors.New("IP addresses are not IPV4 rules")
 
 type Route struct {
-	Host    string
-	Gateway string
+	Host    net.IP
+	Gateway net.IP
 }
 
-func NewRouter(host, gateway string) *Route {
+func NewRouter(host, gateway net.IP) *Route {
 	return &Route{
 		Host:    host,
 		Gateway: gateway,
 	}
 }
 
-func CheckIsDefaultRoute(host string) error {
+func CheckIsDefaultRoute(host net.IP) error {
 	ok, err := isDefaultRouteIP(host)
 	if err == nil && ok {
 		_, err = common.StdOut.WriteString(RouteOK)
@@ -74,7 +75,7 @@ func CheckIsDefaultRoute(host string) error {
 
 // SetRoute ip route add $route
 func (r *Route) SetRoute() error {
-	if !IsIpv4(r.Gateway) || !IsIpv4(r.Host) {
+	if !k8sutilsnet.IsIPv4(r.Gateway) || !k8sutilsnet.IsIPv4(r.Host) {
 		return ErrNotIPV4
 	}
 	err := addRouteGatewayViaHost(r.Host, r.Gateway, 50)
@@ -99,7 +100,7 @@ func (r *Route) SetRoute() error {
 
 // DelRoute ip route del $route
 func (r *Route) DelRoute() error {
-	if !IsIpv4(r.Gateway) || !IsIpv4(r.Host) {
+	if !k8sutilsnet.IsIPv4(r.Gateway) || !k8sutilsnet.IsIPv4(r.Host) {
 		return ErrNotIPV4
 	}
 	err := delRouteGatewayViaHost(r.Host, r.Gateway)
@@ -123,35 +124,35 @@ func (r *Route) DelRoute() error {
 }
 
 // isDefaultRouteIP return true if host equal default route ip host.
-func isDefaultRouteIP(host string) (bool, error) {
+func isDefaultRouteIP(host net.IP) (bool, error) {
 	netIP, err := k8snet.ChooseHostInterface()
 	if err != nil {
 		return false, fmt.Errorf("failed to get default route ip, err: %v", err)
 	}
-	return netIP.String() == host, nil
+	return netIP.Equal(host), nil
 }
 
-func addRouteGatewayViaHost(host, gateway string, priority int) error {
+func addRouteGatewayViaHost(host, gateway net.IP, priority int) error {
 	Dst := &net.IPNet{
-		IP:   net.ParseIP(host),
+		IP:   host,
 		Mask: net.CIDRMask(32, 32),
 	}
 	r := &netlink.Route{
 		Dst:      Dst,
-		Gw:       net.ParseIP(gateway),
+		Gw:       gateway,
 		Priority: priority,
 	}
 	return netlink.RouteAdd(r)
 }
 
-func delRouteGatewayViaHost(host, gateway string) error {
+func delRouteGatewayViaHost(host, gateway net.IP) error {
 	Dst := &net.IPNet{
-		IP:   net.ParseIP(host),
+		IP:   host,
 		Mask: net.CIDRMask(32, 32),
 	}
 	r := &netlink.Route{
 		Dst: Dst,
-		Gw:  net.ParseIP(gateway),
+		Gw:  gateway,
 	}
 	return netlink.RouteDel(r)
 }

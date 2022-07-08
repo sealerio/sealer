@@ -16,10 +16,11 @@ package plugin
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/sealerio/sealer/pkg/client/k8s"
-	strUtils "github.com/sealerio/sealer/utils/strings"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 )
@@ -78,7 +79,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 	return nil
 }
 
-func (l LabelsNodes) formatData(data string, hosts []string) map[string][]label {
+func (l LabelsNodes) formatData(data string, hosts []net.IP) map[string][]label {
 	m := make(map[string][]label)
 	items := strings.Split(data, "\n")
 	if len(items) == 0 {
@@ -92,7 +93,7 @@ func (l LabelsNodes) formatData(data string, hosts []string) map[string][]label 
 			continue
 		}
 		ip := tmps[0]
-		if strUtils.NotIn(ip, hosts) {
+		if utilsnet.NotInIPList(net.ParseIP(ip), hosts) {
 			continue
 		}
 		labelStr := strings.Split(tmps[1], ",")

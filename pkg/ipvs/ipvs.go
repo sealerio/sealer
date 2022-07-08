@@ -15,7 +15,7 @@
 package ipvs
 
 import (
-	"strings"
+	"net"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -32,20 +32,17 @@ const (
 )
 
 // LvsStaticPodYaml return lvs care static pod yaml
-func LvsStaticPodYaml(vip string, masters []string, image string) string {
-	if vip == "" || len(masters) == 0 {
+func LvsStaticPodYaml(vip net.IP, masters []net.IP, image string) string {
+	if vip == nil || len(masters) == 0 {
 		return ""
 	}
 	if image == "" {
 		image = DefaultLvsCareImage
 	}
-	args := []string{"care", "--vs", vip + ":6443", "--health-path", "/healthz", "--health-schem", "https"}
+	args := []string{"care", "--vs", vip.String() + ":6443", "--health-path", "/healthz", "--health-schem", "https"}
 	for _, m := range masters {
-		if strings.Contains(m, ":") {
-			m = strings.Split(m, ":")[0]
-		}
 		args = append(args, "--rs")
-		args = append(args, m+":6443")
+		args = append(args, m.String()+":6443")
 	}
 	flag := true
 	pod := componentPod(v1.Container{

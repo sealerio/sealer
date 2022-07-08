@@ -16,6 +16,7 @@ package mount
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/shirou/gopsutil/disk"
@@ -149,7 +150,7 @@ func GetMountDetails(target string) (bool, *Info) {
 	return mountCmdResultSplit(result, target)
 }
 
-func GetRemoteMountDetails(s ssh.Interface, ip string, target string) (bool, *Info) {
+func GetRemoteMountDetails(s ssh.Interface, ip net.IP, target string) (bool, *Info) {
 	result, err := s.Cmd(ip, fmt.Sprintf("mount | grep %s", target))
 	if err != nil {
 		return false, nil

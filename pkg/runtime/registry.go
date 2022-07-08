@@ -16,11 +16,11 @@ package runtime
 
 import (
 	"fmt"
+	"net"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
-	"github.com/sealerio/sealer/utils/net"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/yaml"
 
@@ -41,7 +41,7 @@ const (
 )
 
 type RegistryConfig struct {
-	IP       string `yaml:"ip,omitempty"`
+	IP       net.IP `yaml:"ip,omitempty"`
 	Domain   string `yaml:"domain,omitempty"`
 	Port     string `yaml:"port,omitempty"`
 	Username string `json:"username,omitempty"`
@@ -49,8 +49,8 @@ type RegistryConfig struct {
 }
 
 func (k *KubeadmRuntime) getRegistryHost() (host string) {
-	ip, _ := net.GetSSHHostIPAndPort(k.RegConfig.IP)
-	return fmt.Sprintf("%s %s", ip, k.RegConfig.Domain)
+	// FIXME: quite strange to return such a format data
+	return fmt.Sprintf("%s %s", k.RegConfig.IP.String(), k.RegConfig.Domain)
 }
 
 // ApplyRegistry Only use this for join and init, due to the initiation operations.
@@ -74,7 +74,7 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 	registryHost := k.getRegistryHost()
 	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	if k.RegConfig.Domain != SeaHub {
-		addSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP+" "+SeaHub, k.RegConfig.IP+" "+SeaHub)
+		addSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
 		addRegistryHosts = fmt.Sprintf("%s && %s", addRegistryHosts, addSeaHubHosts)
 	}
 	if err = ssh.CmdAsync(k.RegConfig.IP, initRegistry); err != nil {
@@ -110,10 +110,10 @@ func (r *RegistryConfig) Repo() string {
 	return fmt.Sprintf("%s:%s", r.Domain, r.Port)
 }
 
-func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
+func GetRegistryConfig(rootfs string, defaultRegistryIP net.IP) *RegistryConfig {
 	var config RegistryConfig
 	var DefaultConfig = &RegistryConfig{
-		IP:     defaultRegistry,
+		IP:     defaultRegistryIP,
 		Domain: SeaHub,
 		Port:   "5000",
 	}
@@ -127,7 +127,7 @@ func GetRegistryConfig(rootfs, defaultRegistry string) *RegistryConfig {
 		logrus.Error("Failed to read registry config! ")
 		return DefaultConfig
 	}
-	if config.IP == "" {
+	if config.IP == nil {
 		config.IP = DefaultConfig.IP
 	}
 	if config.Port == "" {

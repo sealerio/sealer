@@ -17,6 +17,7 @@ package cloudfilesystem
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 
@@ -24,9 +25,9 @@ import (
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
-	strUtils "github.com/sealerio/sealer/utils/strings"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -37,7 +38,7 @@ const (
 type overlayFileSystem struct {
 }
 
-func (o *overlayFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error {
+func (o *overlayFileSystem) MountRootfs(cluster *v2.Cluster, hosts []net.IP, initFlag bool) error {
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	//scp roofs to all Masters and Nodes,then do init.sh
 	if err := mountRootfs(hosts, clusterRootfsDir, cluster, initFlag); err != nil {
@@ -46,7 +47,7 @@ func (o *overlayFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, ini
 	return nil
 }
 
-func (o *overlayFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) error {
+func (o *overlayFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []net.IP) error {
 	//do clean.sh,then remove all Masters and Nodes roofs
 	if err := unmountRootfs(hosts, cluster); err != nil {
 		return err
@@ -54,7 +55,7 @@ func (o *overlayFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) e
 	return nil
 }
 
-func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
+func mountRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initFlag bool) error {
 	clusterPlatform, err := ssh.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
@@ -68,7 +69,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
-			src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip])
+			src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip.String()])
 			initCmd := fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 			mountEntry.Lock()
 			if !mountEntry.mountDirs[src] {
@@ -96,13 +97,13 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 		return err
 	}
 	// if config.ip is not in mountRootfs ipList, mean copy registry dir is not required, like scale up node
-	if strUtils.NotIn(config.IP, ipList) {
+	if utilsnet.NotInIPList(config.IP, ipList) {
 		return nil
 	}
 	return copyRegistry(config.IP, cluster, mountEntry.mountDirs, target)
 }
 
-func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
+func unmountRootfs(ipList []net.IP, cluster *v2.Cluster) error {
 	var (
 		clusterRootfsDir = common.DefaultTheClusterRootfsDir(cluster.Name)
 		cleanFile        = fmt.Sprintf(common.DefaultClusterClearBashFile, cluster.Name)

@@ -17,6 +17,7 @@ package env
 import (
 	"encoding/base64"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,9 +35,9 @@ type Interface interface {
 	// Input shell: cat /etc/hosts
 	// Output shell: DATADISK=/data cat /etc/hosts
 	// So that you can get env values in you shell script
-	WrapperShell(host, shell string) string
+	WrapperShell(host net.IP, shell string) string
 	// RenderAll :render env to all the files in dir
-	RenderAll(host, dir string) error
+	RenderAll(host net.IP, dir string) error
 }
 
 type processor struct {
@@ -47,7 +48,7 @@ func NewEnvProcessor(cluster *v2.Cluster) Interface {
 	return &processor{cluster}
 }
 
-func (p *processor) WrapperShell(host, shell string) string {
+func (p *processor) WrapperShell(host net.IP, shell string) string {
 	var env string
 	for k, v := range p.getHostEnv(host) {
 		switch value := v.(type) {
@@ -63,7 +64,7 @@ func (p *processor) WrapperShell(host, shell string) string {
 	return fmt.Sprintf("%s && %s", env, shell)
 }
 
-func (p *processor) RenderAll(host, dir string) error {
+func (p *processor) RenderAll(host net.IP, dir string) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, errIn error) error {
 		if errIn != nil {
 			return errIn
@@ -118,12 +119,12 @@ func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{}
 }
 
 // Merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
-func (p *processor) getHostEnv(hostIP string) (env map[string]interface{}) {
+func (p *processor) getHostEnv(hostIP net.IP) (env map[string]interface{}) {
 	hostEnv, globalEnv := map[string]interface{}{}, ConvertEnv(p.Spec.Env)
 
 	for _, host := range p.Spec.Hosts {
 		for _, ip := range host.IPS {
-			if ip == hostIP {
+			if ip.Equal(hostIP) {
 				hostEnv = ConvertEnv(host.Env)
 			}
 		}

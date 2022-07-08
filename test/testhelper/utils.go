@@ -17,6 +17,7 @@ package testhelper
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"time"
@@ -30,7 +31,7 @@ import (
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils/exec"
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sealerio/sealer/utils/ssh"
 )
@@ -68,7 +69,7 @@ func WriteFile(fileName string, content []byte) error {
 }
 
 type SSHClient struct {
-	RemoteHostIP string
+	RemoteHostIP net.IP
 	SSH          ssh.Interface
 }
 
@@ -76,7 +77,7 @@ func NewSSHByCluster(cluster *v1.Cluster) ssh.Interface {
 	if cluster.Spec.SSH.User == "" {
 		cluster.Spec.SSH.User = common.ROOT
 	}
-	address, err := net.GetLocalHostAddresses()
+	address, err := utilsnet.GetLocalHostAddresses()
 	if err != nil {
 		logrus.Warnf("failed to get local address, %v", err)
 	}
@@ -95,12 +96,12 @@ func NewSSHByCluster(cluster *v1.Cluster) ssh.Interface {
 
 func NewSSHClientByCluster(cluster *v1.Cluster) *SSHClient {
 	var (
-		ipList []string
-		host   string
+		ipList []net.IP
+		host   net.IP
 	)
 	sshClient := NewSSHByCluster(cluster)
 	if cluster.Spec.Provider == common.AliCloud {
-		host = cluster.GetAnnotationsByKey(common.Eip)
+		host = net.ParseIP(cluster.GetAnnotationsByKey(common.Eip))
 		CheckNotEqual(host, "")
 		ipList = append(ipList, host)
 	} else {

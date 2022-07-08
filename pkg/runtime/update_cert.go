@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
@@ -64,7 +65,7 @@ func (k *KubeadmRuntime) updateCert(certs []string) error {
 			return fmt.Errorf("failed to init master0 %v", err)
 		}
 	}
-	if err := k.SendJoinMasterKubeConfigs([]string{k.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
+	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
 		return err
 	}
 

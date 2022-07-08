@@ -16,10 +16,12 @@ package plugin
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/env"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 
@@ -58,10 +60,10 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 			return err
 		}
 	}
-	var runPluginIPList []string
+	var runPluginIPList []net.IP
 	for _, ip := range allHostIP {
 		//skip non-cluster nodes
-		if strUtils.NotIn(ip, context.Host) {
+		if utilsnet.NotInIPList(ip, context.Host) {
 			continue
 		}
 		envProcessor := env.NewEnvProcessor(context.Cluster)

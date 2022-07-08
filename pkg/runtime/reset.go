@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/sealerio/sealer/utils/exec"
 
@@ -40,7 +41,7 @@ func (k *KubeadmRuntime) reset() error {
 	return k.DeleteRegistry()
 }
 
-func (k *KubeadmRuntime) resetNodes(nodes []string) {
+func (k *KubeadmRuntime) resetNodes(nodes []net.IP) {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range nodes {
 		node := node
@@ -56,7 +57,7 @@ func (k *KubeadmRuntime) resetNodes(nodes []string) {
 	}
 }
 
-func (k *KubeadmRuntime) resetMasters(nodes []string) {
+func (k *KubeadmRuntime) resetMasters(nodes []net.IP) {
 	for _, node := range nodes {
 		if err := k.resetNode(node); err != nil {
 			logrus.Errorf("delete master %s failed %v", node, err)
@@ -64,7 +65,7 @@ func (k *KubeadmRuntime) resetMasters(nodes []string) {
 	}
 }
 
-func (k *KubeadmRuntime) resetNode(node string) error {
+func (k *KubeadmRuntime) resetNode(node net.IP) error {
 	ssh, err := k.getHostSSHClient(node)
 	if err != nil {
 		return fmt.Errorf("reset node failed %v", err)

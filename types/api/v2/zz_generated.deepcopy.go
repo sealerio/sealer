@@ -20,6 +20,8 @@
 package v2
 
 import (
+	"net"
+
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -134,7 +136,7 @@ func (in *Host) DeepCopyInto(out *Host) {
 	*out = *in
 	if in.IPS != nil {
 		in, out := &in.IPS, &out.IPS
-		*out = make([]string, len(*in))
+		*out = make([]net.IP, len(*in))
 		copy(*out, *in)
 	}
 	if in.Roles != nil {

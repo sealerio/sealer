@@ -17,18 +17,19 @@ package ssh
 import (
 	"bufio"
 	"fmt"
+	"net"
 	"strings"
 
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SSH) Platform(host string) (v1.Platform, error) {
-	if net.IsLocalIP(host, s.LocalAddress) {
+func (s *SSH) Platform(host net.IP) (v1.Platform, error) {
+	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		return *platform.GetDefaultPlatform(), nil
 	}
 
@@ -67,7 +68,7 @@ func (s *SSH) Platform(host string) (v1.Platform, error) {
 	return platform.Normalize(remotePlatform), nil
 }
 
-func (s *SSH) getCPUInfo(host, pattern string) (info string, err error) {
+func (s *SSH) getCPUInfo(host net.IP, pattern string) (info string, err error) {
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return "", fmt.Errorf("new sftp client failed %v", err)
@@ -103,7 +104,7 @@ func (s *SSH) getCPUInfo(host, pattern string) (info string, err error) {
 	return "", errors.Wrapf(platform.ErrNotFound, "getCPUInfo for pattern: %s", pattern)
 }
 
-func (s *SSH) getCPUVariant(os, arch, host string) (string, error) {
+func (s *SSH) getCPUVariant(os, arch string, host net.IP) (string, error) {
 	variant, err := s.getCPUInfo(host, "Cpu architecture")
 	if err != nil {
 		return "", err

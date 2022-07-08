@@ -15,12 +15,14 @@
 package cloudfilesystem
 
 import (
+	"net"
+
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 type Interface interface {
 	// MountRootfs :send cloud rootfs to all hosts.
-	MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error
+	MountRootfs(cluster *v2.Cluster, hosts []net.IP, initFlag bool) error
 	// UnMountRootfs :umount rootfs on all hosts.
-	UnMountRootfs(cluster *v2.Cluster, hosts []string) error
+	UnMountRootfs(cluster *v2.Cluster, hosts []net.IP) error
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/sealerio/sealer/test/suites/apply"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 )
 
 var _ = Describe("sealer run", func() {
@@ -51,8 +52,10 @@ var _ = Describe("sealer run", func() {
 			}, settings.MaxWaiteTime)
 
 			By("start to init cluster", func() {
-				masters := strings.Join(usedCluster.Spec.Masters.IPList, ",")
-				nodes := strings.Join(usedCluster.Spec.Nodes.IPList, ",")
+				masterIPStrs := utilsnet.IPsToIPStrs(usedCluster.Spec.Masters.IPList)
+				masters := strings.Join(masterIPStrs, ",")
+				nodesIPStrs := utilsnet.IPsToIPStrs(usedCluster.Spec.Nodes.IPList)
+				nodes := strings.Join(nodesIPStrs, ",")
 				apply.SendAndRunCluster(sshClient, tempFile, masters, nodes, usedCluster.Spec.SSH.Passwd)
 				apply.CheckNodeNumWithSSH(sshClient, 2)
 			})

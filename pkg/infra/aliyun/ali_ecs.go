@@ -30,6 +30,7 @@ import (
 
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
@@ -300,7 +301,8 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 		if err != nil {
 			return err
 		}
-		hosts.IPList = strUtils.NewComparator(hosts.IPList, ipList).GetUnion()
+		IPStrList := utilsnet.IPsToIPStrs(hosts.IPList)
+		hosts.IPList = utilsnet.IPStrsToIPs(strUtils.NewComparator(IPStrList, ipList).GetUnion())
 		logrus.Infof("get scale up IP list %v, append iplist %v, host count %s", ipList, hosts.IPList, hosts.Count)
 	} else if len(instances) > i {
 		var deleteInstancesIDs []string
@@ -327,7 +329,8 @@ func (a *AliProvider) ReconcileInstances(instanceRole string) error {
 		if err != nil {
 			return err
 		}
-		hosts.IPList = strUtils.NewComparator(hosts.IPList, ipList).GetIntersection()
+		IPStrList := utilsnet.IPsToIPStrs(hosts.IPList)
+		hosts.IPList = utilsnet.IPStrsToIPs(strUtils.NewComparator(IPStrList, ipList).GetIntersection())
 	}
 
 	cpu, err := strconv.Atoi(hosts.CPU)

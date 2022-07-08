@@ -17,10 +17,11 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/sealerio/sealer/pkg/ipvs"
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/pkg/errors"
@@ -40,7 +41,7 @@ const (
 	LvscareStaticPodCmd             = `echo "%s" > %s`
 )
 
-func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
+func (k *KubeadmRuntime) joinNodeConfig(nodeIP net.IP) ([]byte, error) {
 	// TODO get join config from config file
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	cGroupDriver, err := k.getCgroupDriverFromShell(nodeIP)
@@ -51,7 +52,7 @@ func (k *KubeadmRuntime) joinNodeConfig(nodeIP string) ([]byte, error) {
 	return yaml.MarshalWithDelimiter(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
-func (k *KubeadmRuntime) joinNodes(nodes []string) error {
+func (k *KubeadmRuntime) joinNodes(nodes []net.IP) error {
 	if len(nodes) == 0 {
 		return nil
 	}
@@ -80,7 +81,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	registryHost := k.getRegistryHost()
 	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
 	if k.RegConfig.Domain != SeaHub {
-		addSeaHubHost := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP+" "+SeaHub, k.RegConfig.IP+" "+SeaHub)
+		addSeaHubHost := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
 	}
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
@@ -119,7 +120,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
+func (k *KubeadmRuntime) deleteNodes(nodes []net.IP) error {
 	if len(nodes) == 0 {
 		return nil
 	}
@@ -142,7 +143,7 @@ func (k *KubeadmRuntime) deleteNodes(nodes []string) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) deleteNode(node string) error {
+func (k *KubeadmRuntime) deleteNode(node net.IP) error {
 	ssh, err := k.getHostSSHClient(node)
 	if err != nil {
 		return fmt.Errorf("failed to delete node: %v", err)
@@ -153,9 +154,9 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 		fmt.Sprintf(RemoteRemoveRegistryCerts, k.RegConfig.Domain),
 		fmt.Sprintf(RemoteRemoveRegistryCerts, SeaHub),
 		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
-	address, err := net.GetLocalHostAddresses()
+	address, err := utilsnet.GetLocalHostAddresses()
 	//if the node to be removed is the execution machine, kubelet, ~./kube and ApiServer host will be added
-	if err != nil || !net.IsLocalIP(node, address) {
+	if err != nil || !utilsnet.IsLocalIP(node, address) {
 		remoteCleanCmds = append(remoteCleanCmds, RemoveKubeConfig)
 	} else {
 		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
@@ -182,7 +183,7 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 	return nil
 }
 
-func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
+func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 	sshClient, err := k.getHostSSHClient(node)
 	if err != nil {
 		return err
@@ -191,14 +192,14 @@ func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node string) error {
 	if err != nil {
 		return err
 	}
-	if result == net.RouteOK {
+	if result == utilsnet.RouteOK {
 		return nil
 	}
 	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getVIP(), node))
 	return err
 }
 
-func (k *KubeadmRuntime) deleteVIPRouteIfExist(node string) error {
+func (k *KubeadmRuntime) deleteVIPRouteIfExist(node net.IP) error {
 	sshClient, err := k.getHostSSHClient(node)
 	if err != nil {
 		return err

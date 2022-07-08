@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -60,15 +61,15 @@ func (e EtcdBackupPlugin) Run(context Context, phase Phase) error {
 	return snapshotEtcd(context.Plugin.Spec.On, cfg)
 }
 
-func getMasterIP(context Context) (string, error) {
+func getMasterIP(context Context) (net.IP, error) {
 	masterIPList := context.Cluster.GetMasterIPList()
 	if len(masterIPList) == 0 {
-		return "", errors.New("cluster master does not exist")
+		return nil, errors.New("cluster master does not exist")
 	}
 	return masterIPList[0], nil
 }
 
-func fetchRemoteCert(context Context, masterIP string) error {
+func fetchRemoteCert(context Context, masterIP net.IP) error {
 	certs := []string{"healthcheck-client.crt", "healthcheck-client.key", "ca.crt"}
 	for _, cert := range certs {
 		sshClient, err := ssh.GetHostSSHClient(masterIP, context.Cluster)
@@ -82,7 +83,7 @@ func fetchRemoteCert(context Context, masterIP string) error {
 	return nil
 }
 
-func connEtcd(masterIP string) (clientv3.Config, error) {
+func connEtcd(masterIP net.IP) (clientv3.Config, error) {
 	const (
 		dialTimeout = 5 * time.Second
 		etcdCert    = "/tmp/healthcheck-client.crt"

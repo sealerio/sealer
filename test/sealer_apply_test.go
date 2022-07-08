@@ -24,6 +24,7 @@ import (
 	"github.com/sealerio/sealer/test/suites/build"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 )
 
 var _ = Describe("sealer apply", func() {
@@ -76,8 +77,10 @@ var _ = Describe("sealer apply", func() {
 					cluster = apply.CreateAliCloudInfraAndSave(cluster, tempFile)
 					//waiting for service to start
 					time.Sleep(10 * time.Second)
-					joinMasters := strings.Join(cluster.Spec.Masters.IPList[1:], ",")
-					joinNodes := strings.Join(cluster.Spec.Nodes.IPList[1:], ",")
+					joinMastersIPStrs := utilsnet.IPsToIPStrs(cluster.Spec.Masters.IPList[1:])
+					joinMasters := strings.Join(joinMastersIPStrs, ",")
+					joinNodesIPStrs := utilsnet.IPsToIPStrs(cluster.Spec.Nodes.IPList[1:])
+					joinNodes := strings.Join(joinNodesIPStrs, ",")
 					//sealer join master and node
 					apply.SendAndJoinCluster(sshClient, tempFile, joinMasters, joinNodes)
 					//add 3 masters and 3 nodes
@@ -135,7 +138,8 @@ var _ = Describe("sealer apply", func() {
 					usedCluster = apply.CreateAliCloudInfraAndSave(usedCluster, tempFile)
 					//waiting for service to start
 					time.Sleep(10 * time.Second)
-					joinNodes := strings.Join(usedCluster.Spec.Nodes.IPList[1:], ",")
+					joinNodesIPStrs := utilsnet.IPsToIPStrs(usedCluster.Spec.Nodes.IPList[1:])
+					joinNodes := strings.Join(joinNodesIPStrs, ",")
 					//sealer join master and node
 					apply.SendAndJoinCluster(sshClient, tempFile, "", joinNodes)
 					//add 3 masters and 3 nodes
@@ -200,8 +204,10 @@ var _ = Describe("sealer apply", func() {
 					cluster = apply.CreateAliCloudInfraAndSave(cluster, tempFile)
 					//waiting for service to start
 					time.Sleep(10 * time.Second)
-					joinMasters := strings.Join(cluster.Spec.Masters.IPList[1:], ",")
-					joinNodes := strings.Join(cluster.Spec.Nodes.IPList[1:], ",")
+					joinMastersIPStrs := utilsnet.IPsToIPStrs(cluster.Spec.Masters.IPList[1:])
+					joinMasters := strings.Join(joinMastersIPStrs, ",")
+					joinNodesIPStrs := utilsnet.IPsToIPStrs(cluster.Spec.Nodes.IPList[1:])
+					joinNodes := strings.Join(joinNodesIPStrs, ",")
 					//sealer join master and node
 					apply.SendAndJoinCluster(sshClient, tempFile, joinMasters, joinNodes)
 					//add 3 masters and 3 nodes

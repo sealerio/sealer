@@ -34,7 +34,7 @@ import (
 
 const DefaultSSHPort = "22"
 
-func (s *SSH) connect(host string) (*ssh.Client, error) {
+func (s *SSH) connect(host net.IP) (*ssh.Client, error) {
 	if s.Encrypted {
 		passwd, err := hash.AesDecrypt([]byte(s.Password))
 		if err != nil {
@@ -66,7 +66,7 @@ func (s *SSH) connect(host string) (*ssh.Client, error) {
 	return ssh.Dial("tcp", fmt.Sprintf("%s:%s", host, s.Port), clientConfig)
 }
 
-func (s *SSH) Connect(host string) (*ssh.Client, *ssh.Session, error) {
+func (s *SSH) Connect(host net.IP) (*ssh.Client, *ssh.Session, error) {
 	client, err := s.connect(host)
 	if err != nil {
 		return nil, nil, err
@@ -133,7 +133,7 @@ func (s *SSH) sshPasswordMethod(password string) ssh.AuthMethod {
 	return ssh.Password(password)
 }
 
-func (s *SSH) sftpConnect(host string) (*ssh.Client, *sftp.Client, error) {
+func (s *SSH) sftpConnect(host net.IP) (*ssh.Client, *sftp.Client, error) {
 	var (
 		sshClient  *ssh.Client
 		sftpClient *sftp.Client

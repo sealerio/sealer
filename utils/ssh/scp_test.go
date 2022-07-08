@@ -15,6 +15,7 @@
 package ssh
 
 import (
+	"net"
 	"testing"
 
 	"github.com/sealerio/sealer/utils/os/fs"
@@ -113,12 +114,12 @@ func TestSSHCopyLocalToRemote(t *testing.T) {
 
 func TestSSHFetchRemoteToLocal(t *testing.T) {
 	type args struct {
-		host       string
+		host       net.IP
 		localPath  string
 		remotePath string
 	}
 	var (
-		host = ""
+		host = net.IP{}
 		ssh  = SSH{
 			User:       "root",
 			Password:   "",

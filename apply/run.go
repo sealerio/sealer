@@ -16,6 +16,7 @@ package apply
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -23,7 +24,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 )
 
 func ConstructClusterFromArg(imageName string, runArgs *Args) (*v2.Cluster, error) {
@@ -96,14 +97,14 @@ func validateArgs(runArgs *Args) error {
 func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	var err error
 	if isRange(inMasters) {
-		inMasters, err = net.IPRangeToList(inMasters)
+		inMasters, err = utilsnet.IPRangeToList(inMasters)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if isRange(inNodes) {
-		if inNodes, err = net.IPRangeToList(inNodes); err != nil {
+		if inNodes, err = utilsnet.IPRangeToList(inNodes); err != nil {
 			return nil, err
 		}
 	}
@@ -114,7 +115,9 @@ func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 		if index == 0 {
 			// only master0 should add two roles: master and master0
 			masterHosts = append(masterHosts, v2.Host{
-				IPS:   []string{master},
+				IPS: []net.IP{
+					net.ParseIP(master),
+				},
 				Roles: []string{common.MASTER, common.MASTER0},
 			})
 
@@ -122,7 +125,9 @@ func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 		}
 
 		masterHosts = append(masterHosts, v2.Host{
-			IPS:   []string{master},
+			IPS: []net.IP{
+				net.ParseIP(master),
+			},
 			Roles: []string{common.MASTER},
 		})
 	}
@@ -134,7 +139,7 @@ func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	for _, node := range nodes {
 		if node != "" {
 			nodeHosts = append(nodeHosts, v2.Host{
-				IPS:   []string{node},
+				IPS:   []net.IP{net.ParseIP(node)},
 				Roles: []string{common.NODE},
 			})
 		}

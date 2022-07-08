@@ -15,6 +15,7 @@
 package env
 
 import (
+	"net"
 	"reflect"
 	"testing"
 
@@ -53,7 +54,7 @@ func getTestCluster() *v2.Cluster {
 			Env:   []string{"IP=127.0.0.1", "key=value"},
 			Hosts: []v2.Host{
 				{
-					IPS:   []string{"192.168.0.2", "192.168.0.3", "192.168.0.4"},
+					IPS:   []net.IP{net.ParseIP("192.168.0.2"), net.ParseIP("192.168.0.3"), net.ParseIP("192.168.0.4")},
 					Roles: []string{"master"},
 					Env:   []string{"key=bar", "key=foo", "foo=bar", "IP=127.0.0.2"},
 				},
@@ -105,7 +106,7 @@ func Test_processor_RenderAll(t *testing.T) {
 		Cluster *v2.Cluster
 	}
 	type args struct {
-		host string
+		host net.IP
 		dir  string
 	}
 	tests := []struct {
@@ -118,7 +119,7 @@ func Test_processor_RenderAll(t *testing.T) {
 			"test render dir",
 			fields{getTestCluster()},
 			args{
-				host: "192.168.0.2",
+				host: net.ParseIP("192.168.0.2"),
 				dir:  "test/template",
 			},
 			false,

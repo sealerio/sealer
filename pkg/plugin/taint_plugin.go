@@ -16,10 +16,11 @@ package plugin
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/sealerio/sealer/pkg/client/k8s"
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -84,7 +85,7 @@ func (l *Taint) Run(context Context, phase Phase) (err error) {
 	for _, n := range nodeList.Items {
 		node := n
 		for _, v := range node.Status.Addresses {
-			if strUtils.NotIn(v.Address, l.IPList) || strUtils.NotIn(v.Address, context.Host) {
+			if strUtils.NotIn(v.Address, l.IPList) || utilsnet.NotInIPList(net.ParseIP(v.Address), context.Host) {
 				continue
 			}
 			updateTaints := l.UpdateTaints(node.Spec.Taints, v.Address)
@@ -119,7 +120,7 @@ func (l *Taint) formatData(data string) error {
 			return fmt.Errorf("faild to split taint argument: %s", v)
 		}
 		ips := temps[0]
-		ipStr, err := net.AssemblyIPList(ips)
+		ipStr, err := utilsnet.AssemblyIPList(ips)
 		if err != nil {
 			return err
 		}

@@ -16,6 +16,7 @@ package container
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"time"
@@ -52,7 +53,7 @@ type ApplyProvider struct {
 
 type ApplyResult struct {
 	ToJoinNumber   int
-	ToDeleteIPList []string
+	ToDeleteIPList []net.IP
 	Role           string
 }
 
@@ -185,9 +186,9 @@ func (a *ApplyProvider) applyResult(result *ApplyResult) error {
 	return nil
 }
 
-func (a *ApplyProvider) applyToJoin(toJoinNumber int, role string) ([]string, error) {
+func (a *ApplyProvider) applyToJoin(toJoinNumber int, role string) ([]net.IP, error) {
 	// run container and return append ip list
-	var toJoinIPList []string
+	var toJoinIPList []net.IP
 	for i := 0; i < toJoinNumber; i++ {
 		name := fmt.Sprintf("sealer-%s-%s", role, GenUniqueID(10))
 		opts := &client.CreateOptsForContainer{
@@ -223,18 +224,18 @@ func (a *ApplyProvider) applyToJoin(toJoinNumber int, role string) ([]string, er
 			return toJoinIPList, fmt.Errorf("failed to get container info of %s,error is %v", containerID, err)
 		}
 
-		err = a.changeDefaultPasswd(info.ContainerIP)
+		err = a.changeDefaultPasswd(net.ParseIP(info.ContainerIP))
 		if err != nil {
 			return nil, fmt.Errorf("failed to change container password of %s,error is %v", containerID, err)
 		}
 
 		a.Cluster.Annotations[info.ContainerIP] = containerID
-		toJoinIPList = append(toJoinIPList, info.ContainerIP)
+		toJoinIPList = append(toJoinIPList, net.ParseIP(info.ContainerIP))
 	}
 	return toJoinIPList, nil
 }
 
-func (a *ApplyProvider) changeDefaultPasswd(containerIP string) error {
+func (a *ApplyProvider) changeDefaultPasswd(containerIP net.IP) error {
 	if a.Cluster.Spec.SSH.Passwd == "" {
 		return nil
 	}
@@ -257,10 +258,10 @@ func (a *ApplyProvider) changeDefaultPasswd(containerIP string) error {
 	return err
 }
 
-func (a *ApplyProvider) applyToDelete(deleteIPList []string) error {
+func (a *ApplyProvider) applyToDelete(deleteIPList []net.IP) error {
 	// delete container and return deleted ip list
 	for _, ip := range deleteIPList {
-		id, ok := a.Cluster.Annotations[ip]
+		id, ok := a.Cluster.Annotations[ip.String()]
 		if !ok {
 			logrus.Warnf("failed to delete container %s", ip)
 			continue
@@ -269,7 +270,7 @@ func (a *ApplyProvider) applyToDelete(deleteIPList []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to delete container:%s", id)
 		}
-		delete(a.Cluster.Annotations, ip)
+		delete(a.Cluster.Annotations, ip.String())
 	}
 	return nil
 }
@@ -278,12 +279,12 @@ func (a *ApplyProvider) CleanUp() error {
 	/*	a,clean up container,cleanup image,clean up network
 		b,rm -rf /var/lib/sealer/data/my-cluster
 	*/
-	var iplist []string
+	var iplist []net.IP
 	iplist = append(iplist, a.Cluster.Spec.Masters.IPList...)
 	iplist = append(iplist, a.Cluster.Spec.Nodes.IPList...)
 
 	for _, ip := range iplist {
-		id, ok := a.Cluster.Annotations[ip]
+		id, ok := a.Cluster.Annotations[ip.String()]
 		if !ok {
 			continue
 		}
