@@ -90,10 +90,7 @@ func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, i
 
 		combineLock.Lock()
 		*combineSlice = append(*combineSlice, string(line))
-		logrus.Tracef("command execution result is: %s", line)
-		if isStdout {
-			fmt.Println(string(line))
-		}
+		logrus.Debugf("%s", line)
 		combineLock.Unlock()
 	}
 }

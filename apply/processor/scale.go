@@ -76,11 +76,7 @@ func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
 	}
 	s.Runtime = runTime
 	s.Config = config.NewConfiguration(cluster)
-	if s.IsScaleUp {
-		if err = clusterfile.SaveToDisk(cluster, cluster.Name); err != nil {
-			return err
-		}
-	}
+
 	return s.initPlugin(cluster)
 }
 
