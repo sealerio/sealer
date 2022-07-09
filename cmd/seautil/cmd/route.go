@@ -15,7 +15,10 @@
 package cmd
 
 import (
-	"github.com/sealerio/sealer/utils/net"
+	"fmt"
+	"net"
+
+	utilsnet "github.com/sealerio/sealer/utils/net"
 
 	"github.com/spf13/cobra"
 )
@@ -45,7 +48,11 @@ func RouteCheckCmd() *cobra.Command {
 		Short: "A brief description of your command",
 		Long:  `seautil route check --host 192.168.56.3`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return net.CheckIsDefaultRoute(routeFlag.host)
+			host := net.ParseIP(routeFlag.host)
+			if host == nil {
+				return fmt.Errorf("input host(%s) is invalid: it should be an IP format", routeFlag.host)
+			}
+			return utilsnet.CheckIsDefaultRoute(host)
 		},
 	}
 	checkCmd.Flags().StringVar(&routeFlag.host, "host", "", "check host ip address is default iFace")
@@ -58,7 +65,16 @@ func RouteAddCmd() *cobra.Command {
 		Short: "A brief description of your command",
 		Long:  `seautil route add --host 192.168.0.2 --gateway 10.0.0.2`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			r := net.NewRouter(routeFlag.host, routeFlag.gatewayIP)
+			host := net.ParseIP(routeFlag.host)
+			if host == nil {
+				return fmt.Errorf("input host(%s) is invalid: it must be an IP format", routeFlag.host)
+			}
+
+			gateway := net.ParseIP(routeFlag.gatewayIP)
+			if gateway == nil {
+				return fmt.Errorf("input gateway(%s) is invalid: it must be an IP format", routeFlag.gatewayIP)
+			}
+			r := utilsnet.NewRouter(host, gateway)
 			return r.SetRoute()
 		},
 	}
@@ -73,7 +89,17 @@ func RouteDelCmd() *cobra.Command {
 		Short: "delete router",
 		Long:  `seautil route del --host 192.168.0.2 --gateway 10.0.0.2`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			r := net.NewRouter(routeFlag.host, routeFlag.gatewayIP)
+			host := net.ParseIP(routeFlag.host)
+			if host == nil {
+				return fmt.Errorf("input host(%s) is invalid: it must be an IP format", routeFlag.host)
+			}
+
+			gateway := net.ParseIP(routeFlag.gatewayIP)
+			if gateway == nil {
+				return fmt.Errorf("input gateway(%s) is invalid: it must be an IP format", routeFlag.gatewayIP)
+			}
+
+			r := utilsnet.NewRouter(host, gateway)
 			return r.DelRoute()
 		},
 	}

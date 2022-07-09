@@ -17,6 +17,7 @@ package container
 import (
 	"crypto/rand"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -32,9 +33,9 @@ func IsDockerAvailable() bool {
 	return strings.Contains(lines, "docker version")
 }
 
-func getDiff(host v1.Hosts) (int, []string, error) {
+func getDiff(host v1.Hosts) (int, []net.IP, error) {
 	var num int
-	var iplist []string
+	var iplist []net.IP
 	count, err := strconv.Atoi(host.Count)
 	if err != nil {
 		return 0, nil, err

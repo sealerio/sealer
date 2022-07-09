@@ -16,6 +16,7 @@ package applydriver
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/sealerio/sealer/apply/processor"
 	"github.com/sealerio/sealer/common"
@@ -159,7 +160,7 @@ func (c *Applier) reconcileCluster() error {
 	return c.scaleCluster(mj, md, nj, nd)
 }
 
-func (c *Applier) scaleCluster(mj, md, nj, nd []string) error {
+func (c *Applier) scaleCluster(mj, md, nj, nd []net.IP) error {
 	logrus.Info("Start to scale this cluster")
 	logrus.Debugf("current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
 

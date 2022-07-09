@@ -15,9 +15,9 @@
 package cmd
 
 import (
-	"os"
+	"fmt"
+	"net"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/pkg/cert"
@@ -40,12 +40,12 @@ var certsCmd = &cobra.Command{
 	Use:   "certs",
 	Short: "generate kubernetes certs",
 	Long:  `seautil cert --node-ip 192.168.0.2 --node-name master1 --dns-domain aliyun.com --alt-names aliyun.local`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := cert.GenerateCert(config.CertPath, config.CertEtcdPath, config.AltNames, config.NodeIP, config.NodeName, config.ServiceCIDR, config.DNSDomain)
-		if err != nil {
-			logrus.Error(err)
-			os.Exit(-1)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		nodeIP := net.ParseIP(config.NodeIP)
+		if nodeIP == nil {
+			return fmt.Errorf("input --node-ip(%s) is an invalid IP format", config.NodeIP)
 		}
+		return cert.GenerateCert(config.CertPath, config.CertEtcdPath, config.AltNames, nodeIP, config.NodeName, config.ServiceCIDR, config.DNSDomain)
 	},
 }
 

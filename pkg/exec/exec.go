@@ -17,6 +17,7 @@ package exec
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/sealerio/sealer/common"
@@ -29,7 +30,7 @@ import (
 
 type Exec struct {
 	cluster *v2.Cluster
-	ipList  []string
+	ipList  []net.IP
 }
 
 func NewExecCmd(clusterName string, roles string) (Exec, error) {
@@ -45,7 +46,7 @@ func NewExecCmd(clusterName string, roles string) (Exec, error) {
 	if err != nil {
 		return Exec{}, err
 	}
-	var ipList []string
+	var ipList []net.IP
 	if roles == "" {
 		ipList = append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	} else {

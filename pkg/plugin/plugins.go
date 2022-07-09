@@ -17,6 +17,7 @@ package plugin
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"plugin"
@@ -43,7 +44,7 @@ func (err InvalidPluginTypeError) Error() string {
 
 type Plugins interface {
 	Load() error
-	Run(host []string, phase Phase) error
+	Run(host []net.IP, phase Phase) error
 }
 
 // PluginsProcessor : process two list: plugin config list and embed pluginFactories that contains plugin interface.
@@ -104,7 +105,7 @@ func (c *PluginsProcessor) Load() error {
 }
 
 // Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
-func (c *PluginsProcessor) Run(host []string, phase Phase) error {
+func (c *PluginsProcessor) Run(host []net.IP, phase Phase) error {
 	for _, plug := range c.Plugins {
 		if strUtils.NotIn(string(phase), strings.Split(plug.Spec.Action, "|")) {
 			continue

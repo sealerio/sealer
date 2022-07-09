@@ -16,14 +16,17 @@ package plugin
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/ssh"
-	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 )
 
 type HostnamePlugin struct {
+	// key: IP address of a node
+	// value: hostname
 	data map[string]string
 }
 
@@ -36,20 +39,26 @@ func init() {
 }
 
 func (h HostnamePlugin) Run(context Context, phase Phase) error {
+	var err error
 	if (phase != PhasePreInit && phase != PhasePreJoin) || context.Plugin.Spec.Type != HostNamePlugin {
 		logrus.Debug("hostnamePlugin nodes is not PhasePreInit!")
 		return nil
 	}
-	h.data = h.formatData(context.Plugin.Spec.Data)
+
+	h.data, err = h.formatData(context.Plugin.Spec.Data)
+	if err != nil {
+		return fmt.Errorf("failed to format data from Plugin.Spec.Data: %v", err)
+	}
+
 	for ip, hostname := range h.data {
-		if strUtils.NotIn(ip, context.Host) {
+		if utilsnet.NotInIPList(net.ParseIP(ip), context.Host) {
 			continue
 		}
-		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster)
+		sshClient, err := ssh.GetHostSSHClient(net.ParseIP(ip), context.Cluster)
 		if err != nil {
 			return err
 		}
-		err = h.changeNodeName(hostname, ip, sshClient)
+		err = h.changeNodeName(hostname, net.ParseIP(ip), sshClient)
 		if err != nil {
 			return fmt.Errorf("current cluster nodes hostname change failed, %v", err)
 		}
@@ -57,12 +66,11 @@ func (h HostnamePlugin) Run(context Context, phase Phase) error {
 	return nil
 }
 
-func (h HostnamePlugin) formatData(data string) map[string]string {
+func (h HostnamePlugin) formatData(data string) (map[string]string, error) {
 	m := make(map[string]string)
 	items := strings.Split(data, "\n")
 	if len(items) == 0 {
-		logrus.Debug("hostname data is empty!")
-		return m
+		return nil, fmt.Errorf("hostname data(%s) cannot be empty", data)
 	}
 	for _, v := range items {
 		tmps := strings.Split(v, " ")
@@ -71,13 +79,19 @@ func (h HostnamePlugin) formatData(data string) map[string]string {
 			continue
 		}
 		ip := tmps[0]
+
+		// validate the input IP to return fast
+		if net.ParseIP(ip) == nil {
+			return nil, fmt.Errorf("IP(%s) is an invalid IP", ip)
+		}
 		hostname := tmps[1]
+		// TODO: add validation of hostname
 		m[ip] = hostname
 	}
-	return m
+	return m, nil
 }
 
-func (h HostnamePlugin) changeNodeName(hostname, ip string, SSH ssh.Interface) error {
+func (h HostnamePlugin) changeNodeName(hostname string, ip net.IP, SSH ssh.Interface) error {
 	//cmd to change hostname temporarily
 	tmpCMD := fmt.Sprintf("hostname %s", hostname)
 	//cmd to change hostname permanently

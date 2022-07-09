@@ -17,6 +17,7 @@ package apply
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -273,7 +274,7 @@ func WaitAllNodeRunning() {
 	testhelper.CheckErr(err)
 }
 
-func WaitAllNodeRunningBySSH(s ssh.Interface, masterIP string) {
+func WaitAllNodeRunningBySSH(s ssh.Interface, masterIP net.IP) {
 	time.Sleep(30 * time.Second)
 	err := utils.Retry(10, 5*time.Second, func() error {
 		result, err := s.CmdToString(masterIP, "kubectl get nodes", "")

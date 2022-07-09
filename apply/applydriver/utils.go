@@ -16,6 +16,7 @@ package applydriver
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils/strings"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 )
 
 const MasterRoleLabel = "node-role.kubernetes.io/master"
@@ -39,12 +40,12 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 	}
 
 	cluster := &v2.Cluster{}
-	var masterIPList []string
-	var nodeIPList []string
+	var masterIPList []net.IP
+	var nodeIPList []net.IP
 
 	for _, node := range nodes.Items {
 		addr := getNodeAddress(node)
-		if addr == "" {
+		if addr == nil {
 			continue
 		}
 		if _, ok := node.Labels[MasterRoleLabel]; ok {
@@ -58,7 +59,7 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 	return cluster, nil
 }
 
-func DeleteNodes(client *k8s.Client, nodeIPs []string) error {
+func DeleteNodes(client *k8s.Client, nodeIPs []net.IP) error {
 	logrus.Infof("delete nodes %s", nodeIPs)
 	nodes, err := client.ListNodes()
 	if err != nil {
@@ -66,7 +67,7 @@ func DeleteNodes(client *k8s.Client, nodeIPs []string) error {
 	}
 	for _, node := range nodes.Items {
 		addr := getNodeAddress(node)
-		if addr == "" || strings.NotIn(addr, nodeIPs) {
+		if addr == nil || utilsnet.NotInIPList(addr, nodeIPs) {
 			continue
 		}
 		if err := client.DeleteNode(node.Name); err != nil {
@@ -76,11 +77,11 @@ func DeleteNodes(client *k8s.Client, nodeIPs []string) error {
 	return nil
 }
 
-func getNodeAddress(node corev1.Node) string {
+func getNodeAddress(node corev1.Node) net.IP {
 	if len(node.Status.Addresses) < 1 {
-		return ""
+		return nil
 	}
-	return node.Status.Addresses[0].Address
+	return net.ParseIP(node.Status.Addresses[0].Address)
 }
 
 func VersionCompatible(version, constraint string) bool {

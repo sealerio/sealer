@@ -16,6 +16,7 @@ package checker
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"time"
 
@@ -28,7 +29,7 @@ type HostChecker struct {
 }
 
 func (a HostChecker) Check(cluster *v2.Cluster, phase string) error {
-	var ipList []string
+	var ipList []net.IP
 	for _, hosts := range cluster.Spec.Hosts {
 		ipList = append(ipList, hosts.IPS...)
 	}
@@ -43,7 +44,7 @@ func NewHostChecker() Interface {
 	return &HostChecker{}
 }
 
-func checkHostnameUnique(cluster *v2.Cluster, ipList []string) error {
+func checkHostnameUnique(cluster *v2.Cluster, ipList []net.IP) error {
 	hostnameList := map[string]bool{}
 	for _, ip := range ipList {
 		s, err := ssh.GetHostSSHClient(ip, cluster)
@@ -63,7 +64,7 @@ func checkHostnameUnique(cluster *v2.Cluster, ipList []string) error {
 }
 
 //Check whether the node time is synchronized
-func checkTimeSync(cluster *v2.Cluster, ipList []string) error {
+func checkTimeSync(cluster *v2.Cluster, ipList []net.IP) error {
 	for _, ip := range ipList {
 		s, err := ssh.GetHostSSHClient(ip, cluster)
 		if err != nil {

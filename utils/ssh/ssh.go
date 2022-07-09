@@ -33,23 +33,23 @@ type Interface interface {
 	// Copy local files to remote host
 	// scp -r /tmp root@192.168.0.2:/root/tmp => Copy("192.168.0.2","tmp","/root/tmp")
 	// need check md5sum
-	Copy(host, srcFilePath, dstFilePath string) error
+	Copy(host net.IP, srcFilePath, dstFilePath string) error
 	// Fetch copy remote host files to localhost
-	Fetch(host, srcFilePath, dstFilePath string) error
+	Fetch(host net.IP, srcFilePath, dstFilePath string) error
 	// CmdAsync exec command on remote host, and asynchronous return logs
-	CmdAsync(host string, cmd ...string) error
+	CmdAsync(host net.IP, cmd ...string) error
 	// Cmd exec command on remote host, and return combined standard output and standard error
-	Cmd(host, cmd string) ([]byte, error)
+	Cmd(host net.IP, cmd string) ([]byte, error)
 	// IsFileExist check remote file exist or not
-	IsFileExist(host, remoteFilePath string) (bool, error)
+	IsFileExist(host net.IP, remoteFilePath string) (bool, error)
 	// RemoteDirExist Remote file existence returns true, nil
-	RemoteDirExist(host, remoteDirpath string) (bool, error)
+	RemoteDirExist(host net.IP, remoteDirpath string) (bool, error)
 	// CmdToString exec command on remote host, and return spilt standard output and standard error
-	CmdToString(host, cmd, spilt string) (string, error)
+	CmdToString(host net.IP, cmd, spilt string) (string, error)
 	// Platform Get remote platform
-	Platform(host string) (v1.Platform, error)
+	Platform(host net.IP) (v1.Platform, error)
 
-	Ping(host string) error
+	Ping(host net.IP) error
 }
 
 type SSH struct {
@@ -87,10 +87,10 @@ func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 }
 
 // GetHostSSHClient is used to executed bash command and no std out to be printed.
-func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
+func GetHostSSHClient(hostIP net.IP, cluster *v2.Cluster) (Interface, error) {
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
-			if hostIP == ip {
+			if hostIP.Equal(ip) {
 				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
 					return nil, err
 				}
@@ -102,10 +102,10 @@ func GetHostSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
 }
 
 // NewStdoutSSHClient is used to show std out when execute bash command.
-func NewStdoutSSHClient(hostIP string, cluster *v2.Cluster) (Interface, error) {
+func NewStdoutSSHClient(hostIP net.IP, cluster *v2.Cluster) (Interface, error) {
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
-			if hostIP == ip {
+			if hostIP.Equal(ip) {
 				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
 					return nil, err
 				}

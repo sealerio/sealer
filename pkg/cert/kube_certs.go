@@ -172,7 +172,7 @@ func certList(CertPath, CertEtcdPath string) []Config {
 type MetaData struct {
 	APIServer    AltNames
 	NodeName     string
-	NodeIP       string
+	NodeIP       net.IP
 	DNSDomain    string
 	CertPath     string
 	CertEtcdPath string
@@ -189,7 +189,7 @@ const (
 )
 
 // NewMetaData apiServerIPAndDomains = MasterIP + VIP + CertSANS 暂时只有apiserver, 记得把cluster.local后缀加到apiServerIPAndDOmas里先
-func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, SvcCIDR, nodeName, nodeIP, DNSDomain string) (*MetaData, error) {
+func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, SvcCIDR, nodeName string, nodeIP net.IP, DNSDomain string) (*MetaData, error) {
 	data := &MetaData{}
 	data.CertPath = certPATH
 	data.CertEtcdPath = certEtcdPATH
@@ -215,8 +215,8 @@ func NewMetaData(certPATH, certEtcdPATH string, apiServerIPAndDomains []string, 
 		data.APIServer.DNSNames[altName] = altName
 	}
 
-	if ip := net.ParseIP(nodeIP); ip != nil {
-		data.APIServer.IPs[ip.String()] = ip
+	if nodeIP != nil {
+		data.APIServer.IPs[nodeIP.String()] = nodeIP
 	}
 
 	data.NodeIP = nodeIP
@@ -246,9 +246,9 @@ func (meta *MetaData) etcdAltAndCommonName(certList *[]Config) {
 			meta.NodeName: meta.NodeName,
 		},
 		IPs: map[string]net.IP{
-			net.IPv4(127, 0, 0, 1).String():         net.IPv4(127, 0, 0, 1),
-			net.ParseIP(meta.NodeIP).To4().String(): net.ParseIP(meta.NodeIP).To4(),
-			net.IPv6loopback.String():               net.IPv6loopback,
+			net.IPv4(127, 0, 0, 1).String(): net.IPv4(127, 0, 0, 1),
+			meta.NodeIP.To4().String():      meta.NodeIP.To4(),
+			net.IPv6loopback.String():       net.IPv6loopback,
 		},
 	}
 	(*certList)[EtcdServerCert].CommonName = meta.NodeName

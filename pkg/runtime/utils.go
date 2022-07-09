@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"path"
 	"path/filepath"
 	"strings"
@@ -61,7 +62,7 @@ func VersionCompare(v1, v2 string) bool {
 	return true
 }
 
-func GetKubectlAndKubeconfig(ssh ssh.Interface, host, rootfs string) error {
+func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) error {
 	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
 	err := ssh.Fetch(host, path.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
 	if err != nil {
@@ -131,10 +132,10 @@ func GetClusterImagePlatform(rootfs string) (cp ocispecs.Platform) {
 	return
 }
 
-func RemoteCerts(altNames []string, hostIP, hostName, serviceCIRD, DNSDomain string) string {
+func RemoteCerts(altNames []string, hostIP net.IP, hostName, serviceCIRD, DNSDomain string) string {
 	cmd := "seautil certs "
-	if hostIP != "" {
-		cmd += fmt.Sprintf(" --node-ip %s", hostIP)
+	if hostIP != nil {
+		cmd += fmt.Sprintf(" --node-ip %s", hostIP.String())
 	}
 
 	if hostName != "" {

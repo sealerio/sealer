@@ -17,6 +17,8 @@ limitations under the License.
 package v2
 
 import (
+	"net"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/sealerio/sealer/common"
@@ -42,7 +44,7 @@ type ClusterSpec struct {
 }
 
 type Host struct {
-	IPS   []string `json:"ips,omitempty"`
+	IPS   []net.IP `json:"ips,omitempty"`
 	Roles []string `json:"roles,omitempty"`
 	//overwrite SSH config
 	SSH v1.SSH `json:"ssh,omitempty"`
@@ -69,28 +71,38 @@ type Cluster struct {
 	Status ClusterStatus `json:"status,omitempty"`
 }
 
-func (in *Cluster) GetMasterIPList() []string {
+func (in *Cluster) GetMasterIPList() []net.IP {
 	return in.GetIPSByRole(common.MASTER)
 }
 
-func (in *Cluster) GetNodeIPList() []string {
+func (in *Cluster) GetMasterIPStrList() []string {
+	ipList := in.GetIPSByRole(common.MASTER)
+
+	ipStrList := make([]string, len(ipList))
+	for _, ip := range ipList {
+		ipStrList = append(ipStrList, ip.String())
+	}
+	return ipStrList
+}
+
+func (in *Cluster) GetNodeIPList() []net.IP {
 	return in.GetIPSByRole(common.NODE)
 }
 
-func (in *Cluster) GetAllIPList() []string {
+func (in *Cluster) GetAllIPList() []net.IP {
 	return append(in.GetIPSByRole(common.MASTER), in.GetIPSByRole(common.NODE)...)
 }
 
-func (in *Cluster) GetMaster0IP() string {
+func (in *Cluster) GetMaster0IP() net.IP {
 	masterIPList := in.GetIPSByRole(common.MASTER)
 	if len(masterIPList) == 0 {
-		return ""
+		return nil
 	}
 	return masterIPList[0]
 }
 
-func (in *Cluster) GetIPSByRole(role string) []string {
-	var hosts []string
+func (in *Cluster) GetIPSByRole(role string) []net.IP {
+	var hosts []net.IP
 	for _, host := range in.Spec.Hosts {
 		for _, hostRole := range host.Roles {
 			if role == hostRole {

@@ -16,6 +16,7 @@ package cert
 
 import (
 	"fmt"
+	"net"
 )
 
 // CMD return sealer cert command
@@ -47,7 +48,7 @@ func CMD(altNames []string, hostIP, hostName, serviceCIRD, DNSDomain string) str
 }
 
 // GenerateCert generate all cert.
-func GenerateCert(certPATH, certEtcdPATH string, altNames []string, hostIP, hostName, serviceCIRD, DNSDomain string) error {
+func GenerateCert(certPATH, certEtcdPATH string, altNames []string, hostIP net.IP, hostName, serviceCIRD, DNSDomain string) error {
 	certConfig, err := NewMetaData(certPATH, certEtcdPATH, altNames, serviceCIRD, hostName, hostIP, DNSDomain)
 	if err != nil {
 		return fmt.Errorf("generator cert config failed %v", err)

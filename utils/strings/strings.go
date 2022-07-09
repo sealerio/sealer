@@ -15,6 +15,7 @@
 package strings
 
 import (
+	"net"
 	"strings"
 	"unicode"
 )
@@ -181,20 +182,20 @@ func ConvertToMap(env []string) map[string]string {
 	return envs
 }
 
-func Diff(old, new []string) (add, sub []string) {
+func Diff(old, new []net.IP) (add, sub []net.IP) {
 	diffMap := make(map[string]bool)
 	for _, v := range old {
-		diffMap[v] = true
+		diffMap[v.String()] = true
 	}
 	for _, v := range new {
-		if !diffMap[v] {
+		if !diffMap[v.String()] {
 			add = append(add, v)
 		} else {
-			diffMap[v] = false
+			diffMap[v.String()] = false
 		}
 	}
 	for _, v := range old {
-		if diffMap[v] {
+		if diffMap[v.String()] {
 			sub = append(sub, v)
 		}
 	}

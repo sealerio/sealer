@@ -15,6 +15,7 @@
 package plugin
 
 import (
+	"net"
 	"testing"
 
 	"github.com/sealerio/sealer/common"
@@ -47,7 +48,7 @@ func TestSheller_Run(t *testing.T) {
 	cluster.Spec.SSH.Passwd = "7758521"
 	cluster.Spec.Hosts = []typev2.Host{
 		{
-			IPS:   []string{"192.168.59.11"},
+			IPS:   []net.IP{net.ParseIP("192.168.59.11")},
 			Roles: []string{common.MASTER},
 		},
 	}

@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
 	"path/filepath"
 	"strings"
 	"time"
@@ -27,7 +28,6 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
@@ -52,7 +52,10 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterFileKubeConfig *KubeadmConfig
 		KubeadmConfig: &KubeadmConfig{},
 	}
 	k.Config.RegConfig = GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
-	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.GetMasterIPList()...))
+	k.setCertSANS(append(
+		[]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP().String()},
+		k.GetMasterIPStrList()...),
+	)
 	// TODO args pre checks
 	if err := k.checkList(); err != nil {
 		return nil, err
@@ -68,7 +71,7 @@ func (k *KubeadmRuntime) checkList() error {
 	if len(k.Spec.Hosts) == 0 {
 		return fmt.Errorf("master hosts cannot be empty")
 	}
-	if k.GetMaster0IP() == "" {
+	if k.GetMaster0IP() == nil {
 		return fmt.Errorf("master hosts ip cannot be empty")
 	}
 	return nil
@@ -89,7 +92,7 @@ func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
 	return metadata, nil
 }
 
-func (k *KubeadmRuntime) getHostSSHClient(hostIP string) (ssh.Interface, error) {
+func (k *KubeadmRuntime) getHostSSHClient(hostIP net.IP) (ssh.Interface, error) {
 	return ssh.NewStdoutSSHClient(hostIP, k.Cluster)
 }
 
@@ -160,8 +163,8 @@ func (k *KubeadmRuntime) getKubeVersion() string {
 	return k.KubernetesVersion
 }
 
-func (k *KubeadmRuntime) getVIP() string {
-	return DefaultVIP
+func (k *KubeadmRuntime) getVIP() net.IP {
+	return net.ParseIP(DefaultVIP)
 }
 
 func (k *KubeadmRuntime) getJoinToken() string {
@@ -207,11 +210,11 @@ func (k *KubeadmRuntime) setAPIServerEndpoint(endpoint string) {
 	k.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = endpoint
 }
 
-func (k *KubeadmRuntime) setInitAdvertiseAddress(advertiseAddress string) {
+func (k *KubeadmRuntime) setInitAdvertiseAddress(advertiseAddress net.IP) {
 	k.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
 }
 
-func (k *KubeadmRuntime) setJoinAdvertiseAddress(advertiseAddress string) {
+func (k *KubeadmRuntime) setJoinAdvertiseAddress(advertiseAddress net.IP) {
 	if k.JoinConfiguration.ControlPlane == nil {
 		k.JoinConfiguration.ControlPlane = &v1beta2.JoinControlPlane{}
 	}
@@ -235,15 +238,15 @@ func (k *KubeadmRuntime) setAPIVersion(apiVersion string) {
 	k.ClusterConfiguration.APIVersion = apiVersion
 	k.JoinConfiguration.APIVersion = apiVersion
 }
-func getEtcdEndpointsWithHTTPSPrefix(masters []string) string {
+func getEtcdEndpointsWithHTTPSPrefix(masters []net.IP) string {
 	var tmpSlice []string
 	for _, ip := range masters {
-		tmpSlice = append(tmpSlice, fmt.Sprintf("https://%s:2379", net.GetHostIP(ip)))
+		tmpSlice = append(tmpSlice, fmt.Sprintf("https://%s:2379", ip))
 	}
 	return strings.Join(tmpSlice, ",")
 }
 
-func (k *KubeadmRuntime) WaitSSHReady(tryTimes int, hosts ...string) error {
+func (k *KubeadmRuntime) WaitSSHReady(tryTimes int, hosts ...net.IP) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
 		host := h

@@ -16,6 +16,7 @@ package runtime
 
 import (
 	"fmt"
+	"net"
 	"path/filepath"
 	"strings"
 )
@@ -49,7 +50,7 @@ func (k *KubeadmRuntime) upgrade() error {
 	return nil
 }
 
-func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binPath, version string) error {
+func (k *KubeadmRuntime) upgradeFirstMaster(IP net.IP, binPath, version string) error {
 	var drain string
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
 	if VersionCompare(version, V1200) {
@@ -73,7 +74,7 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binPath, version string) 
 	return ssh.CmdAsync(IP, firstMasterCmds...)
 }
 
-func (k *KubeadmRuntime) upgradeOtherMasters(IPs []string, binpath, version string) error {
+func (k *KubeadmRuntime) upgradeOtherMasters(IPs []net.IP, binpath, version string) error {
 	var drain string
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
 	if VersionCompare(version, V1200) {
@@ -104,7 +105,7 @@ func (k *KubeadmRuntime) upgradeOtherMasters(IPs []string, binpath, version stri
 	return err
 }
 
-func (k *KubeadmRuntime) upgradeNodes(IPs []string, binpath string) error {
+func (k *KubeadmRuntime) upgradeNodes(IPs []net.IP, binpath string) error {
 	var nodeCmds = []string{
 		fmt.Sprintf(chmodCmd, binpath),
 		fmt.Sprintf(mvCmd, binpath),

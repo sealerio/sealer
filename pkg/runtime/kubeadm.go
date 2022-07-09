@@ -16,6 +16,7 @@ package runtime
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -46,7 +47,7 @@ func (k *KubeadmRuntime) setKubeadmAPIVersion() {
 }
 
 // getCgroupDriverFromShell is get nodes container runtime CGroup by shell.
-func (k *KubeadmRuntime) getCgroupDriverFromShell(node string) (string, error) {
+func (k *KubeadmRuntime) getCgroupDriverFromShell(node net.IP) (string, error) {
 	var cmd string
 	if k.InitConfiguration.NodeRegistration.CRISocket == DefaultContainerdCRISocket {
 		cmd = ContainerdShell

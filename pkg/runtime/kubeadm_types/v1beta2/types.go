@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
+	"net"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -192,7 +194,7 @@ type ClusterStatus struct {
 // APIEndpoint struct contains elements of API server instance deployed on a node.
 type APIEndpoint struct {
 	// AdvertiseAddress sets the IP address for the API server to advertise.
-	AdvertiseAddress string `json:"advertiseAddress,omitempty"`
+	AdvertiseAddress net.IP `json:"advertiseAddress,omitempty"`
 
 	// BindPort sets the secure port for the API Server to bind to.
 	// Defaults to 6443.

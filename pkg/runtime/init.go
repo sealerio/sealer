@@ -17,6 +17,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
 	"path/filepath"
 	"strings"
 
@@ -90,7 +91,7 @@ func (k *KubeadmRuntime) handleKubeadmConfig() {
 }
 
 //CmdToString is in host exec cmd and replace to spilt str
-func (k *KubeadmRuntime) CmdToString(host, cmd, split string) (string, error) {
+func (k *KubeadmRuntime) CmdToString(host net.IP, cmd, split string) (string, error) {
 	ssh, err := k.getHostSSHClient(host)
 	if err != nil {
 		return "", fmt.Errorf("failed to get host ssh client, %s %v", cmd, err)
@@ -108,7 +109,7 @@ func (k *KubeadmRuntime) CmdToString(host, cmd, split string) (string, error) {
 	return "", nil
 }
 
-func (k *KubeadmRuntime) getRemoteHostName(hostIP string) (string, error) {
+func (k *KubeadmRuntime) getRemoteHostName(hostIP net.IP) (string, error) {
 	hostName, err := k.CmdToString(hostIP, "hostname", "")
 	if err != nil {
 		return "", err
@@ -151,7 +152,7 @@ func (k *KubeadmRuntime) GenerateRegistryCert() error {
 	return GenerateRegistryCert(k.getCertsDir(), k.RegConfig.Domain)
 }
 
-func (k *KubeadmRuntime) SendRegistryCert(host []string) error {
+func (k *KubeadmRuntime) SendRegistryCert(host []net.IP) error {
 	err := k.sendRegistryCertAndKey()
 	if err != nil {
 		return err
@@ -178,7 +179,7 @@ func (k *KubeadmRuntime) CreateKubeConfig() error {
 	return nil
 }
 
-func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
+func (k *KubeadmRuntime) CopyStaticFiles(nodes []net.IP) error {
 	for _, file := range MasterStaticFiles {
 		staticFilePath := filepath.Join(k.getStaticFileDir(), file.Name)
 		cmdLinkStatic := fmt.Sprintf(RemoteCmdCopyStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
@@ -245,7 +246,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 		return fmt.Errorf("failed to get master0 ssh client, %v", err)
 	}
 
-	if err := k.SendJoinMasterKubeConfigs([]string{k.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
+	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
 		return err
 	}
 	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())

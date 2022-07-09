@@ -16,19 +16,20 @@ package ssh
 
 import (
 	"fmt"
+	"net"
 	"os/exec"
 	"strings"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 
 	"github.com/sirupsen/logrus"
 )
 
 const SUDO = "sudo "
 
-func (s *SSH) Ping(host string) error {
-	if net.IsLocalIP(host, s.LocalAddress) {
+func (s *SSH) Ping(host net.IP) error {
+	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		return nil
 	}
 	client, _, err := s.Connect(host)
@@ -42,10 +43,10 @@ func (s *SSH) Ping(host string) error {
 	return nil
 }
 
-func (s *SSH) CmdAsync(host string, cmds ...string) error {
+func (s *SSH) CmdAsync(host net.IP, cmds ...string) error {
 	var execFunc func(cmd string) error
 
-	if net.IsLocalIP(host, s.LocalAddress) {
+	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		execFunc = func(cmd string) error {
 			c := exec.Command("/bin/sh", "-c", cmd)
 			stdout, err := c.StdoutPipe()
@@ -118,11 +119,11 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 	return nil
 }
 
-func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
+func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
 	if s.User != common.ROOT {
 		cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
 	}
-	if net.IsLocalIP(host, s.LocalAddress) {
+	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		b, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
 		if err != nil {
 			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
@@ -147,7 +148,7 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 }
 
 //CmdToString is in host exec cmd and replace to spilt str
-func (s *SSH) CmdToString(host, cmd, split string) (string, error) {
+func (s *SSH) CmdToString(host net.IP, cmd, split string) (string, error) {
 	data, err := s.Cmd(host, cmd)
 	str := string(data)
 	if err != nil {

@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"sync"
 	"time"
@@ -106,7 +107,7 @@ func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {
 		if err != nil {
 			return nil, err
 		}
-		clusterStatus[IP], err = ssh.Platform(IP)
+		clusterStatus[IP.String()], err = ssh.Platform(IP)
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +115,7 @@ func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {
 	return clusterStatus, nil
 }
 
-func WaitSSHReady(ssh Interface, tryTimes int, hosts ...string) error {
+func WaitSSHReady(ssh Interface, tryTimes int, hosts ...net.IP) error {
 	var err error
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {

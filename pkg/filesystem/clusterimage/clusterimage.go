@@ -17,6 +17,7 @@ package clusterimage
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"path/filepath"
 	"time"
 
@@ -133,7 +134,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 	return nil
 }
 
-func renderENV(imageMountDir string, ipList []string, p env.Interface) error {
+func renderENV(imageMountDir string, ipList []net.IP, p env.Interface) error {
 	var (
 		renderEtc       = filepath.Join(imageMountDir, common.EtcDir)
 		renderChart     = filepath.Join(imageMountDir, common.RenderChartsDir)

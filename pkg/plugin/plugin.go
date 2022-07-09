@@ -15,6 +15,8 @@
 package plugin
 
 import (
+	"net"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
@@ -57,5 +59,5 @@ const (
 type Context struct {
 	Plugin  *v1.Plugin
 	Cluster *v2.Cluster
-	Host    []string
+	Host    []net.IP
 }

@@ -18,20 +18,19 @@ package processor
 
 import (
 	"fmt"
+	"net"
 	"strconv"
-
-	"github.com/sealerio/sealer/pkg/clusterfile"
-
-	"github.com/sealerio/sealer/utils/net"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/runtime"
 	apiv1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 
@@ -93,7 +92,8 @@ func (g *GenerateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, er
 }
 
 func GenerateCluster(arg *ParserArg) (*v2.Cluster, error) {
-	var nodeip, masterip []string
+	var nodeip, masterip []net.IP
+
 	cluster := &v2.Cluster{}
 
 	cluster.Kind = common.Kind
@@ -118,10 +118,10 @@ func GenerateCluster(arg *ParserArg) (*v2.Cluster, error) {
 		for _, v := range n.Status.Addresses {
 			if _, ok := n.Labels[masterLabel]; ok {
 				if v.Type == v1.NodeInternalIP {
-					masterip = append(masterip, v.Address)
+					masterip = append(masterip, net.ParseIP(v.Address))
 				}
 			} else if v.Type == v1.NodeInternalIP {
-				nodeip = append(nodeip, v.Address)
+				nodeip = append(nodeip, net.ParseIP(v.Address))
 			}
 		}
 	}
@@ -147,7 +147,7 @@ func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	}
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
-	if net.NotInIPList(regConfig.IP, hosts) {
+	if utilsnet.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
 	return fs.MountRootfs(cluster, hosts, false)

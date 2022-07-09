@@ -16,15 +16,14 @@ package processor
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/config"
-	"github.com/sealerio/sealer/pkg/plugin"
-
-	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
-
 	"github.com/sealerio/sealer/pkg/filesystem"
+	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
+	"github.com/sealerio/sealer/pkg/plugin"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
@@ -36,10 +35,10 @@ type ScaleProcessor struct {
 	KubeadmConfig   *runtime.KubeadmConfig
 	Config          config.Interface
 	Plugins         plugin.Plugins
-	MastersToJoin   []string
-	MastersToDelete []string
-	NodesToJoin     []string
-	NodesToDelete   []string
+	MastersToJoin   []net.IP
+	MastersToDelete []net.IP
+	NodesToJoin     []net.IP
+	NodesToDelete   []net.IP
 	IsScaleUp       bool
 }
 
@@ -126,7 +125,7 @@ func (s *ScaleProcessor) Delete(cluster *v2.Cluster) error {
 	return s.Runtime.DeleteNodes(s.NodesToDelete)
 }
 
-func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []string) (Processor, error) {
+func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []net.IP) (Processor, error) {
 	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(clusterFile.GetCluster().Name))
 	if err != nil {
 		return nil, err

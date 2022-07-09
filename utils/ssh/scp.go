@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -29,7 +30,7 @@ import (
 	"github.com/pkg/sftp"
 	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	osi "github.com/sealerio/sealer/utils/os"
 )
 
@@ -54,15 +55,15 @@ type easyProgressUtil struct {
 }
 
 //must call DisplayInit first
-func registerEpu(ip string, total int) {
+func registerEpu(ip net.IP, total int) {
 	if progressChanOut == nil {
 		logrus.Warn("call DisplayInit first")
 		return
 	}
-	if _, ok := epuMap[ip]; !ok {
-		epuMap[ip] = &easyProgressUtil{
+	if _, ok := epuMap[ip.String()]; !ok {
+		epuMap[ip.String()] = &easyProgressUtil{
 			output:         progressChanOut,
-			copyID:         "copying files to " + ip,
+			copyID:         "copying files to " + ip.String(),
 			completeNumber: 0,
 			total:          total,
 		}
@@ -85,8 +86,8 @@ func (epu *easyProgressUtil) startMessage() {
 }
 
 // Fetch scp remote file to local
-func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
-	if net.IsLocalIP(host, s.LocalAddress) {
+func (s *SSH) Fetch(host net.IP, localFilePath, remoteFilePath string) error {
+	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		if remoteFilePath != localFilePath {
 			logrus.Debugf("local copy files src %s to dst %s", remoteFilePath, localFilePath)
 			return osi.RecursionCopy(remoteFilePath, localFilePath)
@@ -132,9 +133,9 @@ func (s *SSH) Fetch(host, localFilePath, remoteFilePath string) error {
 }
 
 // Copy file or dir to remotePath, add md5 validate
-func (s *SSH) Copy(host, localPath, remotePath string) error {
+func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 	go displayInitOnce.Do(displayInit)
-	if net.IsLocalIP(host, s.LocalAddress) {
+	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		if localPath == remotePath {
 			return nil
 		}
@@ -171,10 +172,10 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	if number == 0 {
 		return nil
 	}
-	epu, ok := epuMap[host]
+	epu, ok := epuMap[host.String()]
 	if !ok {
 		registerEpu(host, number)
-		epu = epuMap[host]
+		epu = epuMap[host.String()]
 	} else {
 		epu.total += number
 	}
@@ -192,7 +193,7 @@ func (s *SSH) Copy(host, localPath, remotePath string) error {
 	return nil
 }
 
-func (s *SSH) remoteMd5Sum(host, remoteFilePath string) string {
+func (s *SSH) remoteMd5Sum(host net.IP, remoteFilePath string) string {
 	cmd := fmt.Sprintf(Md5sumCmd, remoteFilePath)
 	remoteMD5, err := s.CmdToString(host, cmd, "")
 	if err != nil {
@@ -201,7 +202,7 @@ func (s *SSH) remoteMd5Sum(host, remoteFilePath string) string {
 	return strings.ReplaceAll(remoteMD5, "\r", "")
 }
 
-func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
+func (s *SSH) copyLocalDirToRemote(host net.IP, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
 		logrus.Errorf("read local path dir failed %s %s", host, localPath)
@@ -234,7 +235,7 @@ func (s *SSH) copyLocalDirToRemote(host string, sftpClient *sftp.Client, localPa
 }
 
 // check the remote file existence before copying
-func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localPath, remotePath string) error {
+func (s *SSH) copyLocalFileToRemote(host net.IP, sftpClient *sftp.Client, localPath, remotePath string) error {
 	var (
 		srcMd5, dstMd5 string
 	)
@@ -288,7 +289,7 @@ func (s *SSH) copyLocalFileToRemote(host string, sftpClient *sftp.Client, localP
 }
 
 // RemoteDirExist if remote file not exist return false and nil
-func (s *SSH) RemoteDirExist(host, remoteDirPath string) (bool, error) {
+func (s *SSH) RemoteDirExist(host net.IP, remoteDirPath string) (bool, error) {
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return false, err
@@ -303,7 +304,7 @@ func (s *SSH) RemoteDirExist(host, remoteDirPath string) (bool, error) {
 	return true, nil
 }
 
-func (s *SSH) IsFileExist(host, remoteFilePath string) (bool, error) {
+func (s *SSH) IsFileExist(host net.IP, remoteFilePath string) (bool, error) {
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return false, fmt.Errorf("new sftp client failed %s", err)

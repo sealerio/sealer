@@ -16,6 +16,7 @@ package runtime
 
 import (
 	"fmt"
+	"net"
 	"sync"
 
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -28,10 +29,10 @@ type Interface interface {
 	Init(cluster *v2.Cluster) error
 	Upgrade() error
 	Reset() error
-	JoinMasters(newMastersIPList []string) error
-	JoinNodes(newNodesIPList []string) error
-	DeleteMasters(mastersIPList []string) error
-	DeleteNodes(nodesIPList []string) error
+	JoinMasters(newMastersIPList []net.IP) error
+	JoinNodes(newNodesIPList []net.IP) error
+	DeleteMasters(mastersIPList []net.IP) error
+	DeleteNodes(nodesIPList []net.IP) error
 	GetClusterMetadata() (*Metadata, error)
 	UpdateCert(certs []string) error
 }
@@ -80,21 +81,21 @@ func (k *KubeadmRuntime) Reset() error {
 	return k.reset()
 }
 
-func (k *KubeadmRuntime) JoinMasters(newMastersIPList []string) error {
+func (k *KubeadmRuntime) JoinMasters(newMastersIPList []net.IP) error {
 	if len(newMastersIPList) != 0 {
 		logrus.Infof("%s will be added as master", newMastersIPList)
 	}
 	return k.joinMasters(newMastersIPList)
 }
 
-func (k *KubeadmRuntime) JoinNodes(newNodesIPList []string) error {
+func (k *KubeadmRuntime) JoinNodes(newNodesIPList []net.IP) error {
 	if len(newNodesIPList) != 0 {
 		logrus.Infof("%s will be added as worker", newNodesIPList)
 	}
 	return k.joinNodes(newNodesIPList)
 }
 
-func (k *KubeadmRuntime) DeleteMasters(mastersIPList []string) error {
+func (k *KubeadmRuntime) DeleteMasters(mastersIPList []net.IP) error {
 	if len(mastersIPList) != 0 {
 		logrus.Infof("master %s will be deleted", mastersIPList)
 		if err := k.confirmDeleteNodes(); err != nil {
@@ -104,7 +105,7 @@ func (k *KubeadmRuntime) DeleteMasters(mastersIPList []string) error {
 	return k.deleteMasters(mastersIPList)
 }
 
-func (k *KubeadmRuntime) DeleteNodes(nodesIPList []string) error {
+func (k *KubeadmRuntime) DeleteNodes(nodesIPList []net.IP) error {
 	if len(nodesIPList) != 0 {
 		logrus.Infof("worker %s will be deleted", nodesIPList)
 		if err := k.confirmDeleteNodes(); err != nil {

@@ -17,6 +17,7 @@ package cloudfilesystem
 import (
 	"context"
 	"fmt"
+	"net"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
@@ -24,11 +25,10 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/exec"
-	"github.com/sealerio/sealer/utils/net"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
-	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 
 	"golang.org/x/sync/errgroup"
@@ -42,7 +42,7 @@ const (
 type nydusFileSystem struct {
 }
 
-func (n *nydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error {
+func (n *nydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []net.IP, initFlag bool) error {
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	//scp roofs to all Masters and Nodes,then do init.sh
 	if err := mountNydusRootfs(hosts, clusterRootfsDir, cluster, initFlag); err != nil {
@@ -52,7 +52,7 @@ func (n *nydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initF
 	return nil
 }
 
-func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) error {
+func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []net.IP) error {
 	var (
 		nydusdFileDir     = common.DefaultTheClusterNydusdFileDir(cluster.Name)
 		nydusdServerClean = filepath.Join(nydusdFileDir, "serverfile", "serverclean.sh")
@@ -74,12 +74,12 @@ func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) err
 	return nil
 }
 
-func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
+func mountNydusRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initFlag bool) error {
 	clusterPlatform, err := ssh.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
 	}
-	localIP, err := net.GetLocalIP(cluster.GetMaster0IP() + ":22")
+	localIP, err := utilsnet.GetLocalIP(cluster.GetMaster0IP().String() + ":22")
 	if err != nil {
 		return fmt.Errorf("failed to get local address, %v", err)
 	}
@@ -105,7 +105,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	dirlist := ""
 	for _, IP := range ipList {
 		ip := IP
-		src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip])
+		src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip.String()])
 		if !mountDirs[src] {
 			mountDirs[src] = true
 			dirlist = dirlist + fmt.Sprintf(",%s", src)
@@ -130,7 +130,7 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
-			src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip])
+			src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip.String()])
 			src = filepath.Join(nydusdFileDir, filepath.Base(src))
 			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
@@ -160,9 +160,10 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	if err = eg.Wait(); err != nil {
 		return err
 	}
-	if strings.NotIn(config.IP, ipList) {
-		return nil
-	}
+	// FIXME: Whether the condition meets or not, it will always return nil
+	// if strings.NotIn(config.IP, ipList) {
+	//	return nil
+	// }
 	return nil
 }
 

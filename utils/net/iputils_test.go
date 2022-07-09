@@ -15,6 +15,7 @@
 package net
 
 import (
+	"net"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -79,4 +80,114 @@ func TestAssemblyIPList(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIPStrsToIPs(t *testing.T) {
+	tests := []struct {
+		name        string
+		inputIPStrs []string
+		wantedIPs   []net.IP
+	}{
+		{
+			name:        "baseData1",
+			inputIPStrs: []string{"10.110.101.1"},
+			wantedIPs:   []net.IP{net.ParseIP("10.110.101.1")},
+		},
+		{
+			name:        "baseData2",
+			inputIPStrs: []string{"10.110.101.1", "sdfghjkl"},
+			wantedIPs:   []net.IP{net.ParseIP("10.110.101.1"), nil},
+		},
+		{
+			name:        "baseData2",
+			inputIPStrs: []string{"10.110.101.1", "10.110.101.100"},
+			wantedIPs:   []net.IP{net.ParseIP("10.110.101.1"), net.ParseIP("10.110.101.100")},
+		},
+		{
+			name:        "empty input of nil",
+			inputIPStrs: nil,
+			wantedIPs:   nil,
+		},
+		{
+			name:        "non-empty input with empty string",
+			inputIPStrs: []string{""},
+			wantedIPs:   []net.IP{nil},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logrus.Infof("start to test case %s", tt.name)
+			ips := IPStrsToIPs(tt.inputIPStrs)
+			if !equalNetIPs(ips, tt.wantedIPs) {
+				t.Errorf("wanted ips is (%s), but got (%s)", tt.wantedIPs, ips)
+			}
+		})
+	}
+}
+
+func TestIPsToIPStrs(t *testing.T) {
+	tests := []struct {
+		name         string
+		inputIPs     []net.IP
+		wantedIPStrs []string
+	}{
+		{
+			name:         "baseData1",
+			inputIPs:     []net.IP{net.ParseIP("10.110.101.1")},
+			wantedIPStrs: []string{"10.110.101.1"},
+		},
+		{
+			name:         "baseData2",
+			inputIPs:     []net.IP{net.ParseIP("10.110.101.1"), net.ParseIP("10.110.101.2")},
+			wantedIPStrs: []string{"10.110.101.1", "10.110.101.2"},
+		},
+		{
+			name:         "baseData3",
+			inputIPs:     []net.IP{net.ParseIP("10.110.101.1"), net.ParseIP("10.110.101.653")},
+			wantedIPStrs: []string{"10.110.101.1", "<nil>"},
+		},
+		{
+			name:         "empty input of nil",
+			inputIPs:     nil,
+			wantedIPStrs: nil,
+		},
+		{
+			name:         "non-empty input with empty string",
+			inputIPs:     []net.IP{nil},
+			wantedIPStrs: []string{"<nil>"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logrus.Infof("start to test case %s", tt.name)
+			ipStrs := IPsToIPStrs(tt.inputIPs)
+			if !equalIPStrs(ipStrs, tt.wantedIPStrs) {
+				t.Errorf("wanted IP strings is (%s), but got (%s)", tt.wantedIPStrs, ipStrs)
+			}
+		})
+	}
+}
+
+func equalNetIPs(a, b []net.IP) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for index := range a {
+		if !a[index].Equal(b[index]) {
+			return false
+		}
+	}
+	return true
+}
+
+func equalIPStrs(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for index := range a {
+		if a[index] != b[index] {
+			return false
+		}
+	}
+	return true
 }

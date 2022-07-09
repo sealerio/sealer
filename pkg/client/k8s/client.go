@@ -16,6 +16,7 @@ package k8s
 
 import (
 	"context"
+	"net"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -109,8 +110,8 @@ func (c *Client) ListNodesByLabel(label string) (*v1.NodeList, error) {
 	return nodes, nil
 }
 
-func (c *Client) ListNodeIPByLabel(label string) ([]string, error) {
-	var ips []string
+func (c *Client) ListNodeIPByLabel(label string) ([]net.IP, error) {
+	var ips []net.IP
 	nodes, err := c.ListNodesByLabel(label)
 	if err != nil {
 		return nil, err
@@ -118,7 +119,7 @@ func (c *Client) ListNodeIPByLabel(label string) ([]string, error) {
 	for _, node := range nodes.Items {
 		for _, v := range node.Status.Addresses {
 			if v.Type == v1.NodeInternalIP {
-				ips = append(ips, v.Address)
+				ips = append(ips, net.ParseIP(v.Address))
 			}
 		}
 	}
