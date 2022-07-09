@@ -41,7 +41,7 @@ func CountDirFiles(dirName string) int {
 		return nil
 	})
 	if err != nil {
-		logrus.Warnf("count dir files failed %v", err)
+		logrus.Warnf("failed to count dir files: %v", err)
 		return 0
 	}
 	return count

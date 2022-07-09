@@ -60,7 +60,7 @@ func (k *KubeadmRuntime) resetNodes(nodes []net.IP) {
 func (k *KubeadmRuntime) resetMasters(nodes []net.IP) {
 	for _, node := range nodes {
 		if err := k.resetNode(node); err != nil {
-			logrus.Errorf("delete master %s failed %v", node, err)
+			logrus.Errorf("failed to delete master(%s): %v", node, err)
 		}
 	}
 }
@@ -68,7 +68,7 @@ func (k *KubeadmRuntime) resetMasters(nodes []net.IP) {
 func (k *KubeadmRuntime) resetNode(node net.IP) error {
 	ssh, err := k.getHostSSHClient(node)
 	if err != nil {
-		return fmt.Errorf("reset node failed %v", err)
+		return fmt.Errorf("failed to reset node: %v", err)
 	}
 	if err := ssh.CmdAsync(node, fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
 		RemoveKubeConfig,

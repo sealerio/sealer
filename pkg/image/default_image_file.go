@@ -56,7 +56,7 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logrus.Error("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 
@@ -79,7 +79,7 @@ func (d DefaultImageFileService) Load(imageSrc string) error {
 	}
 	defer func() {
 		if err := os.Remove(repoFile); err != nil {
-			logrus.Error("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 

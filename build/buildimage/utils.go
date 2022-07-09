@@ -40,7 +40,7 @@ import (
 func initImageSpec(kubefile string) (*v1.Image, error) {
 	kubeFile, err := osi.NewFileReader(kubefile).ReadAll()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load kubefile: %v", err)
+		return nil, fmt.Errorf("failed to load Kubefile: %v", err)
 	}
 
 	rawImage, err := parser.NewParse().Parse(kubeFile)
@@ -50,7 +50,7 @@ func initImageSpec(kubefile string) (*v1.Image, error) {
 
 	layer0 := rawImage.Spec.Layers[0]
 	if layer0.Type != common.FROMCOMMAND {
-		return nil, fmt.Errorf("first line of kubefile must start with %s", common.FROMCOMMAND)
+		return nil, fmt.Errorf("first line of Kubefile must start with %s", common.FROMCOMMAND)
 	}
 
 	return rawImage, nil
@@ -135,7 +135,7 @@ func GetLayerMountInfo(baseLayers []v1.Layer) (mount.Service, error) {
 	for _, info := range mountInfos {
 		// if info.Lowers equal lowerLayers,means image already mounted.
 		if strings.Join(lowerLayers, ":") == strings.Join(info.Lowers, ":") {
-			logrus.Infof("get mount dir :%s success ", info.Target)
+			logrus.Infof("succeeded in getting mount dir(%s)", info.Target)
 			//nolint
 			return mount.NewMountService(info.Target, info.Upper, info.Lowers)
 		}

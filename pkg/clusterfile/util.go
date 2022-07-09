@@ -46,7 +46,7 @@ func GetDefaultClusterName() (string, error) {
 	if len(clusters) == 1 {
 		return clusters[0], nil
 	} else if len(clusters) > 1 {
-		return "", fmt.Errorf("Select a cluster through the -c parameter: " + strings.Join(clusters, ","))
+		return "", fmt.Errorf("select a cluster through the -c parameter: " + strings.Join(clusters, ","))
 	}
 
 	return "", ErrClusterNotExist
@@ -55,7 +55,7 @@ func GetDefaultClusterName() (string, error) {
 func GetClusterFromFile(filepath string) (cluster *v2.Cluster, err error) {
 	cluster = &v2.Cluster{}
 	if err = yamlUtils.UnmarshalFile(filepath, cluster); err != nil {
-		return nil, fmt.Errorf("failed to get cluster from %s, %v", filepath, err)
+		return nil, fmt.Errorf("failed to get cluster from %s: %v", filepath, err)
 	}
 	cluster.SetAnnotations(common.ClusterfileName, filepath)
 	return cluster, nil
@@ -78,7 +78,7 @@ func SaveToDisk(cluster *v2.Cluster, clusterName string) error {
 	fileName := common.GetClusterWorkClusterfile(clusterName)
 	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("mkdir failed %s %v", fileName, err)
+		return fmt.Errorf("failed to mkdir %s: %v", fileName, err)
 	}
 
 	// if user run cluster image without password,skip to encrypt.

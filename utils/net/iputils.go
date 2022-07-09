@@ -66,7 +66,7 @@ func GetHostNetInterface(host net.IP) (string, error) {
 		}
 		addrs, err := netInterfaces[i].Addrs()
 		if err != nil {
-			return "", fmt.Errorf("failed to get Addrs, %v", err)
+			return "", fmt.Errorf("failed to get Addrs: %v", err)
 		}
 		if IsLocalIP(host, addrs) {
 			return netInterfaces[i].Name, nil
@@ -78,9 +78,9 @@ func GetHostNetInterface(host net.IP) (string, error) {
 func GetLocalHostAddresses() ([]net.Addr, error) {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
-		fmt.Println("net.Interfaces failed, err:", err.Error())
-		return nil, err
+		return nil, fmt.Errorf("failed to get net.Interfaces: %v", err)
 	}
+
 	var allAddrs []net.Addr
 	for i := 0; i < len(netInterfaces); i++ {
 		if (netInterfaces[i].Flags & net.FlagUp) == 0 {
@@ -88,7 +88,7 @@ func GetLocalHostAddresses() ([]net.Addr, error) {
 		}
 		addrs, err := netInterfaces[i].Addrs()
 		if err != nil {
-			fmt.Printf("failed to get Addrs, %s", err.Error())
+			return nil, fmt.Errorf("failed to get Addrs: %v", err)
 		}
 		for j := 0; j < len(addrs); j++ {
 			allAddrs = append(allAddrs, addrs[j])

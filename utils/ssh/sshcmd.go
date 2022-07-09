@@ -34,7 +34,7 @@ func (s *SSH) Ping(host net.IP) error {
 	}
 	client, _, err := s.Connect(host)
 	if err != nil {
-		return fmt.Errorf("[ssh %s]create ssh session failed, %v", host, err)
+		return fmt.Errorf("[ssh %s] failed to create ssh session: %v", host, err)
 	}
 	err = client.Close()
 	if err != nil {
@@ -152,7 +152,7 @@ func (s *SSH) CmdToString(host net.IP, cmd, split string) (string, error) {
 	data, err := s.Cmd(host, cmd)
 	str := string(data)
 	if err != nil {
-		return str, fmt.Errorf("exec command failed %s %s %v", host, cmd, err)
+		return str, fmt.Errorf("failed to exec command(%s) on host(%s): %v", cmd, host, err)
 	}
 	if data != nil {
 		str = strings.ReplaceAll(str, "\r\n", split)

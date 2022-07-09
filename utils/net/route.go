@@ -105,7 +105,7 @@ func (r *Route) DelRoute() error {
 	}
 	err := delRouteGatewayViaHost(r.Host, r.Gateway)
 	if err != nil && !errors.Is(err, syscall.ESRCH) /* return if route does not exist */ {
-		return fmt.Errorf("failed to delete %s route gateway via host err: %v", r.Host, err)
+		return fmt.Errorf("failed to delete %s route gateway via host: %v", r.Host, err)
 	}
 	netInterface, err := GetHostNetInterface(r.Gateway)
 	if err != nil {
@@ -119,7 +119,7 @@ func (r *Route) DelRoute() error {
 			return err
 		}
 	}
-	logrus.Info(fmt.Sprintf("success to del route.(host:%s, gateway:%s)", r.Host, r.Gateway))
+	logrus.Info(fmt.Sprintf("success to del route(host:%s, gateway:%s)", r.Host, r.Gateway))
 	return nil
 }
 

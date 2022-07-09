@@ -42,7 +42,7 @@ func (o *overlayFileSystem) MountRootfs(cluster *v2.Cluster, hosts []net.IP, ini
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	//scp roofs to all Masters and Nodes,then do init.sh
 	if err := mountRootfs(hosts, clusterRootfsDir, cluster, initFlag); err != nil {
-		return fmt.Errorf("mount rootfs failed %v", err)
+		return fmt.Errorf("failed to mount rootfs(%s): %v", clusterRootfsDir, err)
 	}
 	return nil
 }
@@ -78,16 +78,16 @@ func mountRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initFlag b
 			mountEntry.Unlock()
 			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
-				return fmt.Errorf("get host ssh client failed %v", err)
+				return fmt.Errorf("failed to get ssh client of host(%s): %v", ip, err)
 			}
 			err = copyFiles(sshClient, ip, src, target)
 			if err != nil {
-				return fmt.Errorf("copy rootfs failed %v", err)
+				return fmt.Errorf("failed to copy rootfs: %v", err)
 			}
 			if initFlag {
 				err = sshClient.CmdAsync(ip, env.NewEnvProcessor(cluster).WrapperShell(ip, initCmd))
 				if err != nil {
-					return fmt.Errorf("exec init.sh failed %v", err)
+					return fmt.Errorf("failed to exec init.sh: %v", err)
 				}
 			}
 			return err

@@ -47,7 +47,7 @@ func buildManifestDescriptor(descriptor distribution.Descriptor, imageManifest *
 	}
 
 	if err := manifest.Descriptor.Digest.Validate(); err != nil {
-		return manifestlist.ManifestDescriptor{}, errors.Wrap(err, "digest parse of image failed")
+		return manifestlist.ManifestDescriptor{}, errors.Wrap(err, "failed to parse digest of image")
 	}
 	return manifest, nil
 }

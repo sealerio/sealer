@@ -54,11 +54,11 @@ var decodeCRDFuncMap = map[string]func(reader io.Reader) (interface{}, error){
 func DecodeCRDFromFile(filepath string, kind string) (interface{}, error) {
 	file, err := os.Open(path.Clean(filepath))
 	if err != nil {
-		return nil, fmt.Errorf("failed to dump config %v", err)
+		return nil, fmt.Errorf("failed to open configfile(%s): %v", filepath, err)
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
-			logrus.Warnf("failed to dump config close clusterfile failed %v", err)
+			logrus.Warnf("failed to dump config close clusterfile: %v", err)
 		}
 	}()
 	return decodeCRDFuncMap[kind](file)
@@ -92,7 +92,7 @@ func decodeCRDFromReader(decoder *yaml.YAMLToJSONDecoder, kind string,
 		}
 		metaType := metav1.TypeMeta{}
 		if err := yaml.Unmarshal(ext.Raw, &metaType); err != nil {
-			return nil, fmt.Errorf("decode cluster failed %v", err)
+			return nil, fmt.Errorf("failed to decode cluster: %v", err)
 		}
 		if metaType.Kind != kind {
 			continue
@@ -108,11 +108,11 @@ func decodeCRDFromReader(decoder *yaml.YAMLToJSONDecoder, kind string,
 func DecodeV1ClusterFromFile(filepath string) (*v1.Cluster, error) {
 	file, err := os.Open(path.Clean(filepath))
 	if err != nil {
-		return nil, fmt.Errorf("failed to dump config %v", err)
+		return nil, fmt.Errorf("failed to dump config: %v", err)
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
-			logrus.Warnf("failed to dump config close clusterfile failed %v", err)
+			logrus.Warnf("failed to dump config close clusterfile: %v", err)
 		}
 	}()
 

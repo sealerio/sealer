@@ -62,7 +62,7 @@ func (r registry) Process(srcPath, rootfs string) error {
 		eg.Go(func() error {
 			ima, err := parse(srcPath)
 			if err != nil {
-				return fmt.Errorf("failed to parse images from %s error is : %v", dispatchType, err)
+				return fmt.Errorf("failed to parse images from %s: %v", dispatchType, err)
 			}
 			images = append(images, ima...)
 			return nil

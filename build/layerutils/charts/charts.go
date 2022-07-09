@@ -27,7 +27,7 @@ func (charts *Charts) ListImages(chartPath string) ([]string, error) {
 	var list []string
 	images, err := GetImageList(chartPath)
 	if err != nil {
-		return list, fmt.Errorf("get images failed,chart path:%s, err: %s", chartPath, err)
+		return list, fmt.Errorf("failed to get images chart path(%s), err: %s", chartPath, err)
 	}
 	if len(images) != 0 {
 		list = append(list, images...)

@@ -49,7 +49,7 @@ type mounter struct {
 func (m mounter) TempMount() error {
 	err := m.driver.Mount(m.TempTarget, m.TempUpper, m.LowLayers...)
 	if err != nil {
-		return fmt.Errorf("failed to mount target %s:%v", m.TempTarget, err)
+		return fmt.Errorf("failed to mount target %s: %v", m.TempTarget, err)
 	}
 	return nil
 }
@@ -57,7 +57,7 @@ func (m mounter) TempMount() error {
 func (m mounter) TempUMount() error {
 	err := m.driver.Unmount(m.TempTarget)
 	if err != nil {
-		return fmt.Errorf("failed to umount target %s:%v", m.TempTarget, err)
+		return fmt.Errorf("failed to umount target %s: %v", m.TempTarget, err)
 	}
 	return nil
 }
@@ -72,7 +72,7 @@ func (m mounter) CleanUp() {
 
 	err = m.fs.RemoveAll(m.TempUpper, m.TempTarget)
 	if err != nil {
-		logrus.Warnf("failed to delete %s,%s: %v", m.TempUpper, m.TempTarget, err)
+		logrus.Warnf("failed to delete %s and %s: %v", m.TempUpper, m.TempTarget, err)
 	}
 }
 
@@ -94,21 +94,21 @@ func NewMountService(target, upper string, lowLayers []string) (Service, error) 
 	if len(lowLayers) == 0 {
 		tmp, err := f.MkTmpdir()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create tmp lower %s:%v", tmp, err)
+			return nil, fmt.Errorf("failed to create tmp lower %s: %v", tmp, err)
 		}
 		lowLayers = append(lowLayers, tmp)
 	}
 	if target == "" {
 		tmp, err := f.MkTmpdir()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create tmp target %s:%v", tmp, err)
+			return nil, fmt.Errorf("failed to create tmp target %s: %v", tmp, err)
 		}
 		target = tmp
 	}
 	if upper == "" {
 		tmp, err := f.MkTmpdir()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create tmp upper %s:%v", tmp, err)
+			return nil, fmt.Errorf("failed to create tmp upper %s: %v", tmp, err)
 		}
 		upper = tmp
 	}

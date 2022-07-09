@@ -46,7 +46,7 @@ func (n *nydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []net.IP, initF
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	//scp roofs to all Masters and Nodes,then do init.sh
 	if err := mountNydusRootfs(hosts, clusterRootfsDir, cluster, initFlag); err != nil {
-		return fmt.Errorf("mount rootfs failed %v", err)
+		return fmt.Errorf("failed to mount rootfs: %v", err)
 	}
 
 	return nil
@@ -66,7 +66,7 @@ func (n *nydusFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []net.IP) err
 		cleanCmd := fmt.Sprintf("sh %s", nydusdServerClean)
 		_, err := exec.RunSimpleCmd(cleanCmd)
 		if err != nil {
-			return fmt.Errorf("failed to stop nydusdserver %v", err)
+			return fmt.Errorf("failed to stop nydusdserver: %v", err)
 		}
 	} else {
 		logrus.Infof("%s not found", nydusdServerClean)
@@ -81,7 +81,7 @@ func mountNydusRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initF
 	}
 	localIP, err := utilsnet.GetLocalIP(cluster.GetMaster0IP().String() + ":22")
 	if err != nil {
-		return fmt.Errorf("failed to get local address, %v", err)
+		return fmt.Errorf("failed to get local address: %v", err)
 	}
 	var (
 		nydusdfileSrc   = filepath.Join(platform.DefaultMountClusterImageDir(cluster.Name), "nydusdfile")
@@ -98,7 +98,7 @@ func mountNydusRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initF
 	)
 	_, err = exec.RunSimpleCmd(nydusdfileCpCmd)
 	if err != nil {
-		return fmt.Errorf("cp nydusdfile failed %v", err)
+		return fmt.Errorf("failed tp copy nydusdfile: %v", err)
 	}
 	//dirs need be converted
 	mountDirs := make(map[string]bool)
@@ -114,7 +114,7 @@ func mountNydusRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initF
 			nydusdCpCmd := fmt.Sprintf("cp -r %s %s", clientfileSrc, clientfileDest)
 			_, err = exec.RunSimpleCmd(nydusdCpCmd)
 			if err != nil {
-				return fmt.Errorf("cp nydusdclinetfile failed %v", err)
+				return fmt.Errorf("failed to copy nydusdclinetfile: %v", err)
 			}
 		}
 	}
@@ -122,7 +122,7 @@ func mountNydusRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initF
 	//convert image and start nydusd http server
 	_, err = exec.RunSimpleCmd(startNydusdServer)
 	if err != nil {
-		return fmt.Errorf("nydusdserver start fail %v", err)
+		return fmt.Errorf("failed to start nydusdserver: %v", err)
 	}
 	logrus.Info("nydus images converted and nydusd http server started")
 
@@ -134,24 +134,24 @@ func mountNydusRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initF
 			src = filepath.Join(nydusdFileDir, filepath.Base(src))
 			sshClient, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
-				return fmt.Errorf("get host ssh client failed %v", err)
+				return fmt.Errorf("failed to get ssh client of host(%s): %v", ip, err)
 			}
 			err = copyFiles(sshClient, ip, src, nydusdDir)
 			if err != nil {
-				return fmt.Errorf("scp nydusd failed %v", err)
+				return fmt.Errorf("failed to scp nydusd: %v", err)
 			}
 			if initFlag {
 				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, nydusdInitCmd))
 				if err != nil {
-					return fmt.Errorf("init nydusd failed %v", err)
+					return fmt.Errorf("failed to init nydusd: %v", err)
 				}
 				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, initCmd))
 				if err != nil {
-					return fmt.Errorf("exec init.sh failed %v", err)
+					return fmt.Errorf("failed to exec init.sh: %v", err)
 				}
 				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, cleanCmd))
 				if err != nil {
-					return fmt.Errorf("echo nydusdcleancmd to clean.sh failed %v", err)
+					return fmt.Errorf("failed to echo nydusdcleancmd to clean.sh: %v", err)
 				}
 			}
 			return err

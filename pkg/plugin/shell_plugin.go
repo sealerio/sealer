@@ -73,7 +73,7 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 		}
 		err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, pluginCmd))
 		if err != nil {
-			return fmt.Errorf("failed to run shell cmd,  %v", err)
+			return fmt.Errorf("failed to run shell cmd: %v", err)
 		}
 		runPluginIPList = append(runPluginIPList, ip)
 	}

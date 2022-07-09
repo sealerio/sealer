@@ -98,7 +98,7 @@ func GetHostSSHClient(hostIP net.IP, cluster *v2.Cluster) (Interface, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
+	return nil, fmt.Errorf("failed to get host ssh client: host ip %s not in hosts ip list", hostIP)
 }
 
 // NewStdoutSSHClient is used to show std out when execute bash command.
@@ -113,5 +113,5 @@ func NewStdoutSSHClient(hostIP net.IP, cluster *v2.Cluster) (Interface, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("get host ssh client failed, host ip %s not in hosts ip list", hostIP)
+	return nil, fmt.Errorf("failed to get host ssh client: host ip %s not in hosts ip list", hostIP)
 }

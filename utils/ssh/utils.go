@@ -128,7 +128,7 @@ func WaitSSHReady(ssh Interface, tryTimes int, hosts ...net.IP) error {
 				}
 				time.Sleep(time.Duration(i) * time.Second)
 			}
-			return fmt.Errorf("wait for [%s] ssh ready timeout:  %v, ensure that the IP address or password is correct", host, err)
+			return fmt.Errorf("wait for [%s] ssh ready timeout: %v, ensure that the IP address or password is correct", host, err)
 		})
 	}
 	return eg.Wait()

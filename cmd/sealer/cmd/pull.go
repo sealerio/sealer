@@ -45,7 +45,7 @@ var pullCmd = &cobra.Command{
 		if err := imgSvc.Pull(args[0], plat); err != nil {
 			return err
 		}
-		logrus.Infof("Pull %s success", args[0])
+		logrus.Infof("succeed in pulling ClusterImage(%s)", args[0])
 		return nil
 	},
 }

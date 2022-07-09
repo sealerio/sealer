@@ -97,7 +97,7 @@ func (l liteBuilder) Build(name string, context string, kubefileName string) err
 		}
 	}
 
-	logrus.Infof("build image %s %s success", l.platform.Architecture, name)
+	logrus.Infof("succeed in building image(%s) with arch(%s)", name, l.platform.Architecture)
 	return nil
 }
 

@@ -94,11 +94,11 @@ func (k *KubeadmRuntime) handleKubeadmConfig() {
 func (k *KubeadmRuntime) CmdToString(host net.IP, cmd, split string) (string, error) {
 	ssh, err := k.getHostSSHClient(host)
 	if err != nil {
-		return "", fmt.Errorf("failed to get host ssh client, %s %v", cmd, err)
+		return "", fmt.Errorf("failed to get ssh clientof host(%s): %v", host, err)
 	}
 	data, err := ssh.Cmd(host, cmd)
 	if err != nil {
-		return "", fmt.Errorf("exec remote cmd failed, %s %v", cmd, err)
+		return "", fmt.Errorf("failed to exec remote cmd(%s) on host(%s): %v", cmd, host, err)
 	}
 	if data != nil {
 		str := string(data)
@@ -115,7 +115,7 @@ func (k *KubeadmRuntime) getRemoteHostName(hostIP net.IP) (string, error) {
 		return "", err
 	}
 	if hostName == "" {
-		return "", fmt.Errorf("get remote hostname failed %s", hostIP)
+		return "", fmt.Errorf("faild to get remote hostname of host(%s)", hostIP)
 	}
 	return strings.ToLower(hostName), nil
 }
@@ -135,7 +135,7 @@ func (k *KubeadmRuntime) GenerateCert() error {
 		k.getDNSDomain(),
 	)
 	if err != nil {
-		return fmt.Errorf("generate certs failed %v", err)
+		return fmt.Errorf("failed to generate certs: %v", err)
 	}
 	err = k.sendNewCertAndKey(k.GetMasterIPList()[:1])
 	if err != nil {
@@ -174,7 +174,7 @@ func (k *KubeadmRuntime) CreateKubeConfig() error {
 	err = cert.CreateJoinControlPlaneKubeConfigFiles(k.getBasePath(),
 		certConfig, hostname, controlPlaneEndpoint, "kubernetes")
 	if err != nil {
-		return fmt.Errorf("generator kubeconfig failed %s", err)
+		return fmt.Errorf("failed to generate kubeconfig: %s", err)
 	}
 	return nil
 }
@@ -189,11 +189,11 @@ func (k *KubeadmRuntime) CopyStaticFiles(nodes []net.IP) error {
 			eg.Go(func() error {
 				ssh, err := k.getHostSSHClient(host)
 				if err != nil {
-					return fmt.Errorf("new ssh client failed %v", err)
+					return fmt.Errorf("failed to get ssh client of host(%s): %v", host, err)
 				}
 				err = ssh.CmdAsync(host, cmdLinkStatic)
 				if err != nil {
-					return fmt.Errorf("[%s] link static file failed, error:%s", host, err.Error())
+					return fmt.Errorf("[%s] failed to link static file: %s", host, err.Error())
 				}
 				return err
 			})
@@ -243,7 +243,7 @@ func (k *KubeadmRuntime) decodeJoinCmd(cmd string) {
 func (k *KubeadmRuntime) InitMaster0() error {
 	client, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
-		return fmt.Errorf("failed to get master0 ssh client, %v", err)
+		return fmt.Errorf("failed to get ssh client of master0(%s): %v", k.GetMaster0IP(), err)
 	}
 
 	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
@@ -266,7 +266,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 		if wErr != nil {
 			return err
 		}
-		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
+		return fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
 	}
 	k.decodeMaster0Output(output)
 	err = client.CmdAsync(k.GetMaster0IP(), RemoteCopyKubeConfig)
@@ -290,7 +290,7 @@ func (k *KubeadmRuntime) GetKubectlAndKubeconfig() error {
 	}
 	client, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
-		return fmt.Errorf("failed to get master0 ssh client when get kubbectl and kubeconfig %v", err)
+		return fmt.Errorf("failed to get ssh client of master0(%s) when get kubbectl and kubeconfig: %v", k.GetMaster0IP(), err)
 	}
 
 	return GetKubectlAndKubeconfig(client, k.GetMaster0IP(), k.getImageMountDir())
@@ -313,7 +313,7 @@ func (k *KubeadmRuntime) init(cluster *v2.Cluster) error {
 
 	for _, f := range pipeline {
 		if err := f(); err != nil {
-			return fmt.Errorf("failed to init master0 %v", err)
+			return fmt.Errorf("failed to init master0: %v", err)
 		}
 	}
 

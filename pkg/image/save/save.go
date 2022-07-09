@@ -75,7 +75,7 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 	for _, image := range images {
 		named, err := ParseNormalizedNamed(image, "")
 		if err != nil {
-			return fmt.Errorf("parse image name error: %v", err)
+			return fmt.Errorf("failed to parse image name:: %v", err)
 		}
 		is.domainToImages[named.domain+named.repo] = append(is.domainToImages[named.domain+named.repo], named)
 		progress.Message(is.progressOut, "", fmt.Sprintf("Pulling image: %s", named.FullName()))
@@ -93,11 +93,11 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 			}()
 			registry, err := NewProxyRegistry(is.ctx, dir, tmpnameds[0].domain)
 			if err != nil {
-				return fmt.Errorf("init registry error: %v", err)
+				return fmt.Errorf("failed to init registry: %v", err)
 			}
 			err = is.save(tmpnameds, platform, registry)
 			if err != nil {
-				return fmt.Errorf("save domain %s image error: %v", tmpnameds[0].domain, err)
+				return fmt.Errorf("failed to save domain %s image: %v", tmpnameds[0].domain, err)
 			}
 			return nil
 		})
@@ -144,11 +144,11 @@ func (is *DefaultImageSaver) SaveImagesWithAuth(imageList ImageListWithAuth, dir
 
 				registry, err := NewProxyRegistryWithAuth(is.ctx, section.Username, section.Password, dir, tmpnameds[0].domain)
 				if err != nil {
-					return fmt.Errorf("init registry error: %v", err)
+					return fmt.Errorf("failed to init registry: %v", err)
 				}
 				err = is.save(tmpnameds, platform, registry)
 				if err != nil {
-					return fmt.Errorf("save domain %s image error: %v", tmpnameds[0], err)
+					return fmt.Errorf("failed to save domain %s image: %v", tmpnameds[0], err)
 				}
 				return nil
 			})
@@ -186,11 +186,11 @@ func (is *DefaultImageSaver) save(nameds []Named, platform v1.Platform, registry
 func (is *DefaultImageSaver) getRepository(named Named, registry distribution.Namespace) (distribution.Repository, error) {
 	repoName, err := reference.WithName(named.Repo())
 	if err != nil {
-		return nil, fmt.Errorf("get repository name error: %v", err)
+		return nil, fmt.Errorf("failed to get repository name: %v", err)
 	}
 	repo, err := registry.Repository(is.ctx, repoName)
 	if err != nil {
-		return nil, fmt.Errorf("get repository error: %v", err)
+		return nil, fmt.Errorf("failed to get repository: %v", err)
 	}
 	return repo, nil
 }
@@ -198,7 +198,7 @@ func (is *DefaultImageSaver) getRepository(named Named, registry distribution.Na
 func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distribution.Repository, platform v1.Platform) ([]digest.Digest, error) {
 	manifest, err := repo.Manifests(is.ctx, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
-		return nil, fmt.Errorf("get manifest service error: %v", err)
+		return nil, fmt.Errorf("failed to get manifest service: %v", err)
 	}
 	eg, _ := errgroup.WithContext(context.Background())
 	numCh := make(chan struct{}, maxPullGoroutineNum)
@@ -213,11 +213,11 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 
 			desc, err := repo.Tags(is.ctx).Get(is.ctx, tmpnamed.tag)
 			if err != nil {
-				return fmt.Errorf("get %s tag descriptor error: %v, try \"docker login\" if you are using a private registry", tmpnamed.repo, err)
+				return fmt.Errorf("failed to get %s tag descriptor: %v. Try \"docker login\" if you are using a private registry", tmpnamed.repo, err)
 			}
 			imageDigest, err := is.handleManifest(manifest, desc.Digest, platform)
 			if err != nil {
-				return fmt.Errorf("get digest error: %v", err)
+				return fmt.Errorf("failed to get digest: %v", err)
 			}
 			imageDigests = append(imageDigests, imageDigest)
 			return nil
@@ -233,7 +233,7 @@ func (is *DefaultImageSaver) saveManifestAndGetDigest(nameds []Named, repo distr
 func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestService, imagedigest digest.Digest, platform v1.Platform) (digest.Digest, error) {
 	mani, err := manifest.Get(is.ctx, imagedigest, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
-		return "", fmt.Errorf("get image manifest error: %v", err)
+		return "", fmt.Errorf("failed to get image manifest: %v", err)
 	}
 	ct, p, err := mani.Payload()
 	if err != nil {
@@ -245,7 +245,7 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 	case manifestList, manifestOCIIndex:
 		imageDigest, err := distributionutil.GetImageManifestDigest(p, platform)
 		if err != nil {
-			return "", fmt.Errorf("get digest from manifest list error: %v", err)
+			return "", fmt.Errorf("failed to get digest from manifest list: %v", err)
 		}
 		return imageDigest, nil
 	case "":
@@ -265,7 +265,7 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distribution.Repository) error {
 	manifest, err := repo.Manifests(is.ctx, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
-		return fmt.Errorf("get blob service error: %v", err)
+		return fmt.Errorf("failed to get blob service: %v", err)
 	}
 	eg, _ := errgroup.WithContext(context.Background())
 	numCh := make(chan struct{}, maxPullGoroutineNum)
@@ -288,7 +288,7 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 
 			blobList, err := distributionutil.GetBlobList(blobListJSON)
 			if err != nil {
-				return fmt.Errorf("get blob list error: %v", err)
+				return fmt.Errorf("failed to get blob list: %v", err)
 			}
 			blobLists = append(blobLists, blobList...)
 			return nil
@@ -317,7 +317,7 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 			}
 			reader, err := blobStore.Open(is.ctx, tmpBlob)
 			if err != nil {
-				return fmt.Errorf("get blob %s error: %v", tmpBlob, err)
+				return fmt.Errorf("failed to get blob %s: %v", tmpBlob, err)
 			}
 
 			size, err := reader.Seek(0, io.SeekEnd)
@@ -326,7 +326,7 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 			}
 			_, err = reader.Seek(0, io.SeekStart)
 			if err != nil {
-				return fmt.Errorf("seek start error when save blob %s: %v", tmpBlob, err)
+				return fmt.Errorf("failed to seek start when save blob %s: %v", tmpBlob, err)
 			}
 			preader := progress.NewProgressReader(reader, is.progressOut, size, simpleDgst, "Downloading")
 
@@ -355,7 +355,7 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 				Digest:    tmpBlob,
 			})
 			if err != nil {
-				return fmt.Errorf("store blob %s to local error: %v", tmpBlob, err)
+				return fmt.Errorf("failed to store blob %s to local: %v", tmpBlob, err)
 			}
 
 			return nil
@@ -405,7 +405,7 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 	//regard it as a public registry
 	//only report parse error
 	if err != nil && authConfig != defaultAuth {
-		return nil, fmt.Errorf("get authentication info error: %v", err)
+		return nil, fmt.Errorf("failed to get authentication info: %v", err)
 	}
 
 	config := configuration.Configuration{
@@ -425,13 +425,13 @@ func NewProxyRegistry(ctx context.Context, rootdir, domain string) (distribution
 func newProxyRegistry(ctx context.Context, config configuration.Configuration) (distribution.Namespace, error) {
 	driver, err := factory.Create(config.Storage.Type(), config.Storage.Parameters())
 	if err != nil {
-		return nil, fmt.Errorf("create storage driver error: %v", err)
+		return nil, fmt.Errorf("failed to create storage driver: %v", err)
 	}
 
 	//create a local registry service
 	registry, err := storage.NewRegistry(ctx, driver, make([]storage.RegistryOption, 0)...)
 	if err != nil {
-		return nil, fmt.Errorf("create local registry error: %v", err)
+		return nil, fmt.Errorf("failed to create local registry: %v", err)
 	}
 
 	proxyRegistry, err := proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
@@ -440,7 +440,7 @@ func newProxyRegistry(ctx context.Context, config configuration.Configuration) (
 		config.Proxy.RemoteURL = strings.Replace(config.Proxy.RemoteURL, HTTPS, HTTP, 1)
 		proxyRegistry, err = proxy.NewRegistryPullThroughCache(ctx, registry, driver, config.Proxy)
 		if err != nil {
-			return nil, fmt.Errorf("create proxy registry error: %v", err)
+			return nil, fmt.Errorf("failed to create proxy registry: %v", err)
 		}
 	}
 	return proxyRegistry, nil

@@ -93,7 +93,7 @@ func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 	}
 	runTime, err := runtime.NewDefaultRuntime(cluster, c.ClusterFile.GetKubeadmConfig())
 	if err != nil {
-		return fmt.Errorf("failed to init runtime, %v", err)
+		return fmt.Errorf("failed to init runtime: %v", err)
 	}
 	c.Runtime = runTime
 	return nil

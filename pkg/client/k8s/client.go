@@ -89,7 +89,7 @@ func (c *Client) UpdateNode(node v1.Node) (*v1.Node, error) {
 
 func (c *Client) DeleteNode(name string) error {
 	if err := c.client.CoreV1().Nodes().Delete(context.TODO(), name, metav1.DeleteOptions{}); err != nil {
-		return errors.Wrapf(err, "failed to delete cluster node %s", name)
+		return errors.Wrapf(err, "failed to delete cluster node(%s)", name)
 	}
 	return nil
 }

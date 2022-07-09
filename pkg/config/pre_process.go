@@ -82,7 +82,7 @@ func (t toJSONProcessor) Process(config *v1.Config) error {
 	if v, ok := config.Labels[trueLabelKey]; !ok || v != trueLabelValue {
 		json, err := yaml.YAMLToJSON([]byte(config.Spec.Data))
 		if err != nil {
-			return fmt.Errorf("failed to resolve config data to json, %v", err)
+			return fmt.Errorf("failed to resolve config data to json: %v", err)
 		}
 		config.Spec.Data = string(json)
 		return nil
@@ -91,25 +91,25 @@ func (t toJSONProcessor) Process(config *v1.Config) error {
 	dataMap := make(map[string]interface{})
 	err := yaml.Unmarshal([]byte(config.Spec.Data), &dataMap)
 	if err != nil {
-		return fmt.Errorf("convert yaml data to map failed, %v", err)
+		return fmt.Errorf("failed to convert yaml data to map: %v", err)
 	}
 
 	for k, v := range dataMap {
 		data, err := yaml.Marshal(v)
 		if err != nil {
-			return fmt.Errorf("encode yaml failed,%v", err)
+			return fmt.Errorf("failed to encode yaml: %v", err)
 		}
 
 		bytes, err := yaml.YAMLToJSON(data)
 		if err != nil {
-			return fmt.Errorf("toJson: failed to convert yaml to json, key is %s, %v", k, err)
+			return fmt.Errorf("toJson: failed to convert yaml to json, key is %s: %v", k, err)
 		}
 		dataMap[k] = string(bytes)
 	}
 
 	data, err := yaml2.Marshal(dataMap)
 	if err != nil {
-		return fmt.Errorf("failed to convert data map, %v,%v", dataMap, err)
+		return fmt.Errorf("failed to convert data map(%v): %v", dataMap, err)
 	}
 	config.Spec.Data = string(data)
 
@@ -127,7 +127,7 @@ func (t toBase64Processor) Process(config *v1.Config) error {
 	dataMap := make(map[string]string)
 	err := yaml.Unmarshal([]byte(config.Spec.Data), &dataMap)
 	if err != nil {
-		return fmt.Errorf("tobase64: convert yaml data to map failed, %v", err)
+		return fmt.Errorf("tobase64: failed to convert yaml data to map: %v", err)
 	}
 
 	for k, v := range dataMap {
@@ -135,7 +135,7 @@ func (t toBase64Processor) Process(config *v1.Config) error {
 	}
 	bs, err := yaml.Marshal(dataMap)
 	if err != nil {
-		return fmt.Errorf("failed to convert base64 to yaml, %v", err)
+		return fmt.Errorf("failed to convert base64 to yaml: %v", err)
 	}
 
 	config.Spec.Data = string(bs)

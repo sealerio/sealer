@@ -25,7 +25,7 @@ func NewCollector(src string) (Collector, error) {
 	// if src is detected as remote context,will new different Collector via src type.
 	switch {
 	case src == "":
-		return nil, fmt.Errorf("src can not be nil")
+		return nil, fmt.Errorf("src can not be empty")
 	case IsGitURL(src):
 		// remote git context
 		return NewGitCollector(), nil

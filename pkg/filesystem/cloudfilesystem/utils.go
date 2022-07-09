@@ -32,7 +32,7 @@ import (
 func copyFiles(sshEntry ssh.Interface, ip net.IP, src, target string) error {
 	files, err := ioutil.ReadDir(src)
 	if err != nil {
-		return fmt.Errorf("failed to copy files %s", err)
+		return fmt.Errorf("failed to copy files: %s", err)
 	}
 
 	for _, f := range files {
@@ -41,7 +41,7 @@ func copyFiles(sshEntry ssh.Interface, ip net.IP, src, target string) error {
 		}
 		err = sshEntry.Copy(ip, filepath.Join(src, f.Name()), filepath.Join(target, f.Name()))
 		if err != nil {
-			return fmt.Errorf("failed to copy sub files %v", err)
+			return fmt.Errorf("failed to copy sub files: %v", err)
 		}
 	}
 	return nil

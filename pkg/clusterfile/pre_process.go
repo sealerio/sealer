@@ -102,7 +102,7 @@ func (c *ClusterFile) PrePareCluster() error {
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Warnf("failed to close file")
 		}
 	}()
 	d := yaml.NewYAMLOrJSONDecoder(f, 4096)

@@ -93,12 +93,12 @@ func connEtcd(masterIP net.IP) (clientv3.Config, error) {
 
 	cert, err := tls.LoadX509KeyPair(etcdCert, etcdCertKey)
 	if err != nil {
-		return clientv3.Config{}, fmt.Errorf("cacert or key file is not exist, err:%v", err)
+		return clientv3.Config{}, fmt.Errorf("failed to load cacert or key file: %v", err)
 	}
 
 	caData, err := ioutil.ReadFile(etcdCa)
 	if err != nil {
-		return clientv3.Config{}, fmt.Errorf("ca certificate reading failed, err:%v", err)
+		return clientv3.Config{}, fmt.Errorf("failed to read ca certificate: %v", err)
 	}
 
 	pool := x509.NewCertPool()
@@ -118,7 +118,7 @@ func connEtcd(masterIP net.IP) (clientv3.Config, error) {
 
 	cli, err := clientv3.New(cfg)
 	if err != nil {
-		return clientv3.Config{}, fmt.Errorf("connect to etcd failed, err:%v", err)
+		return clientv3.Config{}, fmt.Errorf("failed to connect etcd: %v", err)
 	}
 
 	logrus.Info("connect to etcd success")
@@ -131,16 +131,16 @@ func connEtcd(masterIP net.IP) (clientv3.Config, error) {
 func snapshotEtcd(snapshotPath string, cfg clientv3.Config) error {
 	lg, err := zap.NewProduction()
 	if err != nil {
-		return fmt.Errorf("get zap logger error, err:%v", err)
+		return fmt.Errorf("failed to get zap logger: %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	if err := snapshot.Save(ctx, lg, cfg, snapshotPath); err != nil {
-		return fmt.Errorf("snapshot save err: %v", err)
+		return fmt.Errorf("failed to save snapshot: %v", err)
 	}
-	logrus.Infof("Snapshot saved at %s\n", snapshotPath)
+	logrus.Infof("Snapshot saved at %s", snapshotPath)
 
 	return nil
 }

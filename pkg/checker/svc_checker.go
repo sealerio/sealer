@@ -15,6 +15,7 @@
 package checker
 
 import (
+	"fmt"
 	"text/template"
 
 	corev1 "k8s.io/api/core/v1"
@@ -105,8 +106,8 @@ func (n *SvcChecker) Output(svcNamespaceStatusList []*SvcNamespaceStatus) error 
 	t = template.Must(t, err)
 	err = t.Execute(common.StdOut, svcNamespaceStatusList)
 	if err != nil {
-		logrus.Errorf("service checkers template can not excute %s", err)
-		return err
+		logrus.Errorf("service checkers template can not be executed: %s", err)
+		return fmt.Errorf("service checkers template can not be executed: %s", err)
 	}
 	return nil
 }

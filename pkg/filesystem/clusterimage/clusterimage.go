@@ -72,7 +72,7 @@ func (m *mounter) umountImage(cluster *v2.Cluster) error {
 				return mount.NewMountDriver().Unmount(filepath.Join(mountRootDir, f.Name()))
 			})
 			if err != nil {
-				return fmt.Errorf("failed to unmount dir %s,err: %v", filepath.Join(mountRootDir, f.Name()), err)
+				return fmt.Errorf("failed to unmount dir(%s): %v", filepath.Join(mountRootDir, f.Name()), err)
 			}
 		}
 	}
@@ -107,7 +107,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 		}
 		if osi.IsFileExist(mountDir) {
 			if err = m.fs.RemoveAll(mountDir); err != nil {
-				return fmt.Errorf("failed to clean %s, %v", mountDir, err)
+				return fmt.Errorf("failed to clean %s: %v", mountDir, err)
 			}
 		}
 		Image, err := m.imageStore.GetByName(cluster.Spec.Image, &pfm)
@@ -116,14 +116,14 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 		}
 		layers, err := image.GetImageLayerDirs(Image)
 		if err != nil {
-			return fmt.Errorf("get layers failed: %v", err)
+			return fmt.Errorf("failed to get layers: %v", err)
 		}
 
 		if err = m.fs.MkdirAll(upperDir); err != nil {
-			return fmt.Errorf("create upperdir failed, %s", err)
+			return fmt.Errorf("failed to create upperdir: %s", err)
 		}
 		if err = driver.Mount(mountDir, upperDir, layers...); err != nil {
-			return fmt.Errorf("mount files failed %v", err)
+			return fmt.Errorf("failed to mount files: %v", err)
 		}
 		// use env list to render image mount dir: etc,charts,manifests.
 		err = renderENV(mountDir, cluster.GetAllIPList(), env.NewEnvProcessor(cluster))

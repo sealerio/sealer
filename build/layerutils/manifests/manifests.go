@@ -30,7 +30,7 @@ func (manifests *Manifests) ListImages(yamlFile string) ([]string, error) {
 
 	yamlBytes, err := ioutil.ReadFile(filepath.Clean(yamlFile))
 	if err != nil {
-		return nil, fmt.Errorf("read file failed %s", err)
+		return nil, fmt.Errorf("failed to read file: %s", err)
 	}
 
 	images := layerutils.DecodeImages(string(yamlBytes))
@@ -39,7 +39,7 @@ func (manifests *Manifests) ListImages(yamlFile string) ([]string, error) {
 	}
 
 	if err != nil {
-		return list, fmt.Errorf("filepath walk failed %s", err)
+		return list, fmt.Errorf("failed to walk filepath: %s", err)
 	}
 
 	return list, nil

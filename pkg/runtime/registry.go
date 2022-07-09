@@ -124,7 +124,7 @@ func GetRegistryConfig(rootfs string, defaultRegistryIP net.IP) *RegistryConfig 
 	}
 	err := yaml.UnmarshalFile(registryConfigPath, &config)
 	if err != nil {
-		logrus.Error("Failed to read registry config! ")
+		logrus.Errorf("failed to read registry config: %v", err)
 		return DefaultConfig
 	}
 	if config.IP == nil {

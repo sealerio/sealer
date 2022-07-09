@@ -267,7 +267,7 @@ func writeToTarWriter(path string, tarWriter *tar.Writer, bufWriter *bufio.Write
 			}
 			defer func() {
 				if err := fHandler.Close(); err != nil {
-					logrus.Fatal("failed to close file")
+					logrus.Errorf("failed to close file: %v", err)
 				}
 			}()
 			bufWriter.Reset(tarWriter)
@@ -384,7 +384,7 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 
 				defer func() {
 					if err := fileToWrite.Close(); err != nil {
-						logrus.Fatal("failed to close file")
+						logrus.Errorf("failed to close file: %v", err)
 					}
 				}()
 				if _, inErr = io.Copy(fileToWrite, tr); inErr != nil {

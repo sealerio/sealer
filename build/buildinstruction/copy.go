@@ -58,7 +58,7 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 	if !isRemoteSource(src) {
 		cacheID, err = GenerateSourceFilesDigest(execContext.BuildContext, src)
 		if err != nil {
-			logrus.Warnf("failed to generate src digest,discard cache: %v", err)
+			logrus.Warnf("failed to generate src digest, discard cache: %v", err)
 		}
 
 		if execContext.ContinueCache {
@@ -74,12 +74,12 @@ func (c CopyInstruction) Exec(execContext ExecContext) (out Out, err error) {
 
 	tmp, err := fs.NewFilesystem().MkTmpdir()
 	if err != nil {
-		return out, fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
+		return out, fmt.Errorf("failed to create tmp dir(%s): %v", tmp, err)
 	}
 
 	err = c.collector.Collect(execContext.BuildContext, src, filepath.Join(tmp, c.dest))
 	if err != nil {
-		return out, fmt.Errorf("failed to collect files to temp dir %s, err: %v", tmp, err)
+		return out, fmt.Errorf("failed to collect files to temp dir(%s): %v", tmp, err)
 	}
 	// if we come here, its new layer need set cache id .
 	layerID, err = execContext.LayerStore.RegisterLayerForBuilder(tmp)
