@@ -16,17 +16,20 @@ categories:
       - 'kind/bug'
   - title: 📝 Documentation updates
     labels:
-      - 'documentation'
+      - 'doc'
       - 'kind/documentation'
   - title: 👻 Maintenance
     labels:
       - chore
       - dependencies
-      - 'kind/cleanup'
   - title: 🚦 Tests
     labels: 
       - test
       - tests
+  - title: 💥 Optimization
+    labels:
+      - refactor
+      - optimization
 exclude-labels:
   - reverted
   - no-changelog
