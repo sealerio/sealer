@@ -27,7 +27,6 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/sealerio/sealer/version"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -111,7 +110,9 @@ func (p *Parser) Parse(kubeFile []byte) (*v1.Image, error) {
 
 		switch layerType {
 		case Arg:
-			dispatchArg(layerValue, image)
+			if err := dispatchArg(layerValue, image); err != nil {
+				return nil, err
+			}
 		case Cmd:
 			dispatchCmd(layerValue, image)
 		default:
@@ -134,7 +135,7 @@ func decodeLine(line string) (string, string, error) {
 	return cmd, cmdline[1], nil
 }
 
-func dispatchArg(layerValue string, ima *v1.Image) {
+func dispatchArg(layerValue string, ima *v1.Image) error {
 	if ima.Spec.ImageConfig.Args.Current == nil {
 		ima.Spec.ImageConfig.Args.Current = map[string]string{}
 	}
@@ -143,16 +144,15 @@ func dispatchArg(layerValue string, ima *v1.Image) {
 	for _, element := range kv {
 		valueLine := strings.SplitN(element, "=", 2)
 		if len(valueLine) != 2 {
-			logrus.Errorf("invalid ARG value %s: ARG format must be key=value", layerValue)
-			return
+			return fmt.Errorf("invalid ARG value %s. ARG format must be key=value", layerValue)
 		}
 		k := strings.TrimSpace(valueLine[0])
 		if !strUtils.IsLetterOrNumber(k) {
-			logrus.Errorf("ARG key must be letter or number, invalid ARG format will ignore this key %s", k)
-			return
+			return fmt.Errorf("ARG key must be letter or number, invalid ARG format will ignore this key %s", k)
 		}
 		ima.Spec.ImageConfig.Args.Current[k] = strings.TrimSpace(valueLine[1])
 	}
+	return nil
 }
 
 func dispatchCmd(layerValue string, ima *v1.Image) {
