@@ -32,17 +32,27 @@ import (
 
 // NewScaleApplierFromArgs will filter ip list from command parameters.
 func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (applydriver.Interface, error) {
+	if scaleArgs.Nodes == "" && scaleArgs.Masters == "" {
+		return nil, fmt.Errorf("master and node cannot both be empty")
+	}
+
+	// validate input masters IP info
+	if len(scaleArgs.Masters) != 0 {
+		if err := validateIPStr(scaleArgs.Masters); err != nil {
+			return nil, fmt.Errorf("failed to validate input scale masters ip: %v", err)
+		}
+	}
+
+	// validate input nodes IP info
+	if len(scaleArgs.Nodes) != 0 {
+		if err := validateIPStr(scaleArgs.Nodes); err != nil {
+			return nil, fmt.Errorf("failed to validate input scale nodes ip: %v", err)
+		}
+	}
+
 	cluster := &v2.Cluster{}
 	if err := yaml.UnmarshalFile(clusterfile, cluster); err != nil {
 		return nil, err
-	}
-
-	if err := validateArgs(scaleArgs); err != nil {
-		return nil, fmt.Errorf("failed to validate input scale args: %v", err)
-	}
-
-	if scaleArgs.Nodes == "" && scaleArgs.Masters == "" {
-		return nil, fmt.Errorf("master and node cannot both be empty")
 	}
 
 	var err error
