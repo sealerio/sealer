@@ -71,7 +71,7 @@ func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, s.KubeadmConfig)
 	if err != nil {
-		return fmt.Errorf("failed to init runtime, %v", err)
+		return fmt.Errorf("failed to init default runtime: %v", err)
 	}
 	s.Runtime = runTime
 	s.Config = config.NewConfiguration(cluster)

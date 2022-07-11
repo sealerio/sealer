@@ -39,7 +39,7 @@ func (d Docker) ImagesPull(images []string) error {
 			continue
 		}
 		if err := d.ImagePull(trimQuotes(strings.TrimSpace(image))); err != nil {
-			return fmt.Errorf("image %s pull failed: %v", image, err)
+			return fmt.Errorf("failed to pull image(%s): %v", image, err)
 		}
 	}
 	return nil
@@ -57,7 +57,7 @@ func trimQuotes(s string) string {
 func (d Docker) ImagesPullByImageListFile(fileName string) error {
 	data, err := os.NewFileReader(fileName).ReadLines()
 	if err != nil {
-		logrus.Error(fmt.Sprintf("Read image list failed: %v", err))
+		logrus.Error(fmt.Sprintf("failed to read image list: %v", err))
 	}
 	return d.ImagesPull(data)
 }
@@ -91,7 +91,7 @@ func (d Docker) ImagePull(image string) error {
 	if err != nil && err != io.ErrClosedPipe {
 		logrus.Warnf("error occurs in display progressing, err: %v", err)
 	}
-	logrus.Infof("success to pull docker image: %s ", image)
+	logrus.Infof("succeed in pulling docker image(%s) ", image)
 	return nil
 }
 

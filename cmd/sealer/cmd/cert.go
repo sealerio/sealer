@@ -46,7 +46,7 @@ var certCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cluster, err := clusterfile.GetDefaultCluster()
 		if err != nil {
-			return fmt.Errorf("get default cluster failed, %v", err)
+			return fmt.Errorf("failed to get default cluster: %v", err)
 		}
 		clusterFile, err := clusterfile.NewClusterFile(cluster.GetAnnotationsByKey(common.ClusterfileName))
 		if err != nil {
@@ -54,7 +54,7 @@ var certCmd = &cobra.Command{
 		}
 		r, err := runtime.NewDefaultRuntime(cluster, clusterFile.GetKubeadmConfig())
 		if err != nil {
-			return fmt.Errorf("get default runtime failed, %v", err)
+			return fmt.Errorf("failed to get default runtime: %v", err)
 		}
 		return r.UpdateCert(strings.Split(altNames, ","))
 	},

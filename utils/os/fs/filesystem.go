@@ -53,7 +53,7 @@ func (f filesystem) RemoveAll(path ...string) error {
 	for _, fi := range path {
 		err := os.RemoveAll(fi)
 		if err != nil {
-			return fmt.Errorf("failed to clean file %s, %v", fi, err)
+			return fmt.Errorf("failed to clean file %s: %v", fi, err)
 		}
 	}
 	return nil
@@ -128,7 +128,7 @@ func (f filesystem) CopyFile(src, dst string) (int64, error) {
 	}
 	defer func() {
 		if err := source.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 	//will overwrite dst when dst is existed
@@ -138,7 +138,7 @@ func (f filesystem) CopyFile(src, dst string) (int64, error) {
 	}
 	defer func() {
 		if err := destination.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 	err = destination.Chmod(sourceFileStat.Mode())

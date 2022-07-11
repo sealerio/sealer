@@ -139,13 +139,13 @@ func (c *Applier) reconcileCluster() error {
 	}
 	defer func() {
 		if err := c.unMountClusterImage(); err != nil {
-			logrus.Warnf("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
+			logrus.Warnf("failed to umount image(%s): %v", c.ClusterDesired.ClusterName, err)
 		}
 	}()
 
 	baseImage, err := c.ImageStore.GetByName(c.ClusterDesired.Spec.Image, platform.GetDefaultPlatform())
 	if err != nil {
-		return fmt.Errorf("failed to get base image err: %s", err)
+		return fmt.Errorf("failed to get base image(%s): %v", baseImage.Name, err)
 	}
 	// if no rootfs ,try to install applications.
 	if baseImage.Spec.ImageConfig.ImageType == common.AppImage {
@@ -203,7 +203,7 @@ func (c *Applier) Upgrade(upgradeImgName string) error {
 	}
 	defer func() {
 		if err := c.unMountClusterImage(); err != nil {
-			logrus.Warnf("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
+			logrus.Warnf("failed to umount image(%s): %v", c.ClusterDesired.ClusterName, err)
 		}
 	}()
 	return c.upgrade()
@@ -212,7 +212,7 @@ func (c *Applier) Upgrade(upgradeImgName string) error {
 func (c *Applier) upgrade() error {
 	runtimeInterface, err := runtime.NewDefaultRuntime(c.ClusterDesired, c.ClusterFile.GetKubeadmConfig())
 	if err != nil {
-		return fmt.Errorf("failed to init runtime, %v", err)
+		return fmt.Errorf("failed to init runtime: %v", err)
 	}
 	upgradeImgMeta, err := runtimeInterface.GetClusterMetadata()
 	if err != nil {

@@ -160,7 +160,7 @@ func (cs *chainStore) Images() map[ImageID]*v1.Image {
 		img := &v1.Image{}
 		err = yaml.Unmarshal(config, img)
 		if err != nil {
-			logrus.Error("failed to unmarshal bytes into image")
+			logrus.Errorf("failed to unmarshal bytes into image: %v", err)
 			continue
 		}
 		dgst := digest.FromBytes(config)

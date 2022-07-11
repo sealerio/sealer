@@ -69,7 +69,7 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP net.IP, binPath, version string) 
 	}
 	ssh, err := k.getHostSSHClient(IP)
 	if err != nil {
-		return fmt.Errorf("upgrade master0 failed %v", err)
+		return fmt.Errorf("failed to get master0 ssh client: %v", err)
 	}
 	return ssh.CmdAsync(IP, firstMasterCmds...)
 }
@@ -95,7 +95,7 @@ func (k *KubeadmRuntime) upgradeOtherMasters(IPs []net.IP, binpath, version stri
 	for _, ip := range IPs {
 		ssh, err := k.getHostSSHClient(ip)
 		if err != nil {
-			return fmt.Errorf("upgrade other masters failed: %v", err)
+			return fmt.Errorf("failed to get ssh client of host(%s): %v", ip, err)
 		}
 		err = ssh.CmdAsync(ip, otherMasterCmds...)
 		if err != nil {
@@ -116,7 +116,7 @@ func (k *KubeadmRuntime) upgradeNodes(IPs []net.IP, binpath string) error {
 	for _, ip := range IPs {
 		ssh, err := k.getHostSSHClient(ip)
 		if err != nil {
-			return fmt.Errorf("upgrade node failed: %v", err)
+			return fmt.Errorf("failed to get ssh client of host(%s): %v", ip, err)
 		}
 		err = ssh.CmdAsync(ip, nodeCmds...)
 		if err != nil {

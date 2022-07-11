@@ -106,7 +106,7 @@ func (p *Parser) Parse(kubeFile []byte) (*v1.Image, error) {
 
 		layerType, layerValue, err := decodeLine(line)
 		if err != nil {
-			return nil, fmt.Errorf("decode kubeFile line failed, line: %d ,err: %v", currentLine, err)
+			return nil, fmt.Errorf("failed to decode line %d of Kubefile: %v", currentLine, err)
 		}
 
 		switch layerType {
@@ -128,7 +128,7 @@ func decodeLine(line string) (string, string, error) {
 	}
 	cmd := strings.ToUpper(cmdline[0])
 	if !validCommands[cmd] {
-		return "", "", fmt.Errorf("invalid command %s %s", cmdline[0], line)
+		return "", "", fmt.Errorf("invalid command type(%s) in %s: only RUN, CMD, COPY, FROM, ARGS supported", cmdline[0], line)
 	}
 
 	return cmd, cmdline[1], nil
@@ -143,12 +143,12 @@ func dispatchArg(layerValue string, ima *v1.Image) {
 	for _, element := range kv {
 		valueLine := strings.SplitN(element, "=", 2)
 		if len(valueLine) != 2 {
-			logrus.Errorf("invalid ARG value %s. ARG format must be key=value", layerValue)
+			logrus.Errorf("invalid ARG value %s: ARG format must be key=value", layerValue)
 			return
 		}
 		k := strings.TrimSpace(valueLine[0])
 		if !strUtils.IsLetterOrNumber(k) {
-			logrus.Errorf("ARG key must be letter or number,invalid ARG format will ignore this key %s.", k)
+			logrus.Errorf("ARG key must be letter or number, invalid ARG format will ignore this key %s", k)
 			return
 		}
 		ima.Spec.ImageConfig.Args.Current[k] = strings.TrimSpace(valueLine[1])

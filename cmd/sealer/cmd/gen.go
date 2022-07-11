@@ -53,7 +53,7 @@ Then you can use any sealer command to manage the cluster like:
 	sealer run mysql-cluster:5.8`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if flag.Passwd == "" || flag.Image == "" {
-			return fmt.Errorf("empty password or image name")
+			return fmt.Errorf("password and image name cannot be empty")
 		}
 		cluster, err := processor.GenerateCluster(flag)
 		if err != nil {

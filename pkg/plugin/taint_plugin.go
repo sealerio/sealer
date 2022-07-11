@@ -95,7 +95,7 @@ func (l *Taint) Run(context Context, phase Phase) (err error) {
 				if err != nil {
 					return err
 				}
-				logrus.Infof("successfully updated node %s taints to %v.", v.Address, updateTaints)
+				logrus.Infof("succeed in updating node(%s) taints to %v", v.Address, updateTaints)
 			}
 			break
 		}

@@ -47,7 +47,7 @@ func GetCanonicalImagePullOptions(canonicalImageName string) types.ImagePullOpti
 
 	named, err := normalreference.ParseToNamed(canonicalImageName)
 	if err != nil {
-		logrus.Warnf("parse canonical ImageName failed: %v", err)
+		logrus.Warnf("failed to parse canonical ImageName: %v", err)
 		return opts
 	}
 
@@ -65,7 +65,7 @@ func GetCanonicalImagePullOptions(canonicalImageName string) types.ImagePullOpti
 	if err == nil {
 		encodedJSON, err = json.Marshal(authConfig)
 		if err != nil {
-			logrus.Warnf("authConfig encodedJSON failed: %v", err)
+			logrus.Warnf("failed to authConfig encodedJSON: %v", err)
 		} else {
 			authStr = base64.URLEncoding.EncodeToString(encodedJSON)
 		}

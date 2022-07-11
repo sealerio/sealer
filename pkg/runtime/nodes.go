@@ -173,7 +173,7 @@ func (k *KubeadmRuntime) deleteNode(node net.IP) error {
 		}
 		ssh, err := k.getHostSSHClient(k.GetMaster0IP())
 		if err != nil {
-			return fmt.Errorf("failed to delete node on master0: %v", err)
+			return fmt.Errorf("failed to get master0 ssh client(%s): %v", k.GetMaster0IP(), err)
 		}
 		if err := ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
 			return fmt.Errorf("failed to delete node %s: %v", hostname, err)

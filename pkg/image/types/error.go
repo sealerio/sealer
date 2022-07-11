@@ -21,5 +21,5 @@ type ImageNameOrIDNotFoundError struct {
 }
 
 func (e *ImageNameOrIDNotFoundError) Error() string {
-	return fmt.Sprintf("failed to find imageName or imageId %s", e.Name)
+	return fmt.Sprintf("failed to find imageName or imageId(%s)", e.Name)
 }

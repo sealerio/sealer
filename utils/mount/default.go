@@ -49,12 +49,12 @@ func (d *Default) Mount(target string, upperDir string, layers ...string) error 
 	for _, layer := range layers {
 		srcInfo, err := os.Stat(layer)
 		if err != nil {
-			return fmt.Errorf("get srcInfo err: %s", err)
+			return fmt.Errorf("failed to get srcInfo: %s", err)
 		}
 		if srcInfo.IsDir() {
 			err := copyDir(layer, target)
 			if err != nil {
-				return fmt.Errorf("copyDir [%s] to [%s] failed: %s", layer, target, err)
+				return fmt.Errorf("failed to copyDir [%s] to [%s]: %s", layer, target, err)
 			}
 		} else {
 			IsExist, err := PathExists(target)
@@ -64,7 +64,7 @@ func (d *Default) Mount(target string, upperDir string, layers ...string) error 
 			if !IsExist {
 				err = os.Mkdir(target, 0666)
 				if err != nil {
-					return fmt.Errorf("mkdir [%s] error %v", target, err)
+					return fmt.Errorf("failed to mkdir [%s]: %v", target, err)
 				}
 			}
 			_file := filepath.Base(layer)
@@ -86,7 +86,7 @@ func copyDir(srcPath string, dstPath string) error {
 	if !IsExist {
 		err = os.Mkdir(dstPath, 0666)
 		if err != nil {
-			return fmt.Errorf("mkdir [%s] error %v", dstPath, err)
+			return fmt.Errorf("failed to mkdir [%s]: %v", dstPath, err)
 		}
 	}
 
@@ -117,11 +117,11 @@ func copyFile(src, dst string) error {
 	// open src file
 	srcFile, err := os.Open(filepath.Clean(src))
 	if err != nil {
-		return fmt.Errorf("open file [%s] failed: %s", src, err)
+		return fmt.Errorf("failed to open file [%s]: %s", src, err)
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 	// create dst file
@@ -131,14 +131,14 @@ func copyFile(src, dst string) error {
 	}
 	defer func() {
 		if err := dstFile.Close(); err != nil {
-			logrus.Fatalf("failed to close file: %v", err)
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 
 	// copy  file
 	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {
-		return fmt.Errorf("copy file err: %s", err)
+		return fmt.Errorf("failed to copy file: %s", err)
 	}
 	return nil
 }
@@ -152,5 +152,5 @@ func PathExists(path string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	}
-	return false, fmt.Errorf("os.Stat(%s) err: %s", path, err)
+	return false, fmt.Errorf("failed to os.Stat(%s): %s", path, err)
 }

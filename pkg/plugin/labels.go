@@ -57,7 +57,7 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 
 	nodeList, err := l.client.ListNodes()
 	if err != nil {
-		return fmt.Errorf("current cluster nodes not found, %v", err)
+		return fmt.Errorf("failed to list cluster nodes: %v", err)
 	}
 	for _, v := range nodeList.Items {
 		internalIP := l.getAddress(v.Status.Addresses)
@@ -71,9 +71,9 @@ func (l LabelsNodes) Run(context Context, phase Phase) error {
 			v.SetResourceVersion("")
 
 			if _, err := l.client.UpdateNode(v); err != nil {
-				return fmt.Errorf("current cluster nodes label failed, %v", err)
+				return fmt.Errorf("failed to label current cluster nodes label: %v", err)
 			}
-			logrus.Infof("successfully added node %s labels %v.", internalIP, labels)
+			logrus.Infof("succeed in adding labels(%s) for node(%v)", labels, internalIP)
 		}
 	}
 	return nil

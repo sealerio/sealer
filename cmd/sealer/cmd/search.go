@@ -54,7 +54,7 @@ ex.:
 			}
 			rNamed, err := reference2.WithName(named.Repo())
 			if err != nil {
-				return fmt.Errorf("get repository name error: %v", err)
+				return fmt.Errorf("failed to get repository name: %v", err)
 			}
 			repo, err := ns.Repository(context.Background(), rNamed)
 			if err != nil {

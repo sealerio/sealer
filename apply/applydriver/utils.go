@@ -71,7 +71,7 @@ func DeleteNodes(client *k8s.Client, nodeIPs []net.IP) error {
 			continue
 		}
 		if err := client.DeleteNode(node.Name); err != nil {
-			return fmt.Errorf("failed to delete node %v", err)
+			return fmt.Errorf("failed to delete node(%s): %v", node.Name, err)
 		}
 	}
 	return nil

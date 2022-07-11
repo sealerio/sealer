@@ -45,7 +45,7 @@ func GetImageDetails(idOrName string, platforms []*v1.Platform) (string, error) 
 	var imgs []*v1.Image
 
 	if idOrName == "" {
-		return "", fmt.Errorf("image id is nil")
+		return "", fmt.Errorf("image id or name cannot be empty")
 	}
 	imageStore, err := store.NewDefaultImageStore()
 	if err != nil {

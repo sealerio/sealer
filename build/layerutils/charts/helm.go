@@ -56,14 +56,14 @@ func RenderHelmChart(chartPath string) (map[string]string, error) {
 	}
 	valuesToRender, err := chartutil.ToRenderValues(ch, nil, options, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to render values %v", err)
+		return nil, fmt.Errorf("failed to render values: %v", err)
 	}
 
 	content, err := engine.Render(ch, valuesToRender)
 	if err != nil {
 		b, _ := json.Marshal(valuesToRender)
 		logrus.Debugf("values is %s", b)
-		return nil, fmt.Errorf("render helm chart error %s", err.Error())
+		return nil, fmt.Errorf("failed to render helm chart: %s", err)
 	}
 
 	return content, nil
@@ -73,7 +73,7 @@ func GetImageList(chartPath string) ([]string, error) {
 	var list []string
 	content, err := RenderHelmChart(chartPath)
 	if err != nil {
-		return list, fmt.Errorf("render helm chart failed %s", err)
+		return list, fmt.Errorf("failed to render helm chart: %s", err)
 	}
 
 	for _, v := range content {

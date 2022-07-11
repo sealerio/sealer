@@ -81,7 +81,7 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) erro
 		}
 		err = exec.Cmd("chmod", "+x", common.KubectlPath)
 		if err != nil {
-			return errors.Wrap(err, "chmod a+x kubectl failed")
+			return errors.Wrap(err, "failed to chmod a+x kubectl")
 		}
 	}
 	return nil
@@ -99,11 +99,11 @@ func LoadMetadata(rootfs string) (*Metadata, error) {
 
 	metadataFile, err = ioutil.ReadFile(filepath.Clean(metadataPath))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read ClusterImage metadata %v", err)
+		return nil, fmt.Errorf("failed to read ClusterImage metadata: %v", err)
 	}
 	err = json.Unmarshal(metadataFile, &md)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load ClusterImage metadata %v", err)
+		return nil, fmt.Errorf("failed to load ClusterImage metadata: %v", err)
 	}
 	return &md, nil
 }

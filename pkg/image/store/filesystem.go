@@ -146,7 +146,7 @@ func (fs *filesystem) Set(data []byte) (digest.Digest, error) {
 
 	dgst = digest.FromBytes(data)
 	if err = ioutil.WriteFile(metadataDir(dgst), data, common.FileMode0644); err != nil {
-		return "", errors.Errorf("failed to write image %s's metadata, err: %v", dgst, err)
+		return "", errors.Errorf("failed to write metadata of image(%s): %v", dgst, err)
 	}
 
 	return dgst, nil
@@ -424,7 +424,7 @@ func (fs *filesystem) getImageByID(id string) (*v1.Image, error) {
 
 	err := yamlUtils.UnmarshalFile(filename, &image)
 	if err != nil {
-		return nil, fmt.Errorf("no such image id:%s", id)
+		return nil, fmt.Errorf("no such image id(%s)", id)
 	}
 
 	return &image, nil
@@ -504,7 +504,7 @@ func (fs *filesystem) getImageMetadataItem(name string, platform *v1.Platform) (
 
 	manifestList, ok := imageMetadataMap[name]
 	if !ok {
-		return nil, fmt.Errorf("image %s not found", name)
+		return nil, fmt.Errorf("image(%s) not found", name)
 	}
 
 	for _, m := range manifestList.Manifests {
@@ -569,7 +569,7 @@ func (fs *filesystem) saveImage(image v1.Image) error {
 
 	size, err := fs.fi.GetFilesSize(res)
 	if err != nil {
-		return fmt.Errorf("failed to get image %s size, %v", image.Name, err)
+		return fmt.Errorf("failed to get image size of image(%s): %v", image.Name, err)
 	}
 	return fs.setImageMetadata(image.Name, &types.ManifestDescriptor{ID: image.Spec.ID, SIZE: size, Platform: image.Spec.Platform})
 }

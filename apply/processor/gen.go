@@ -107,12 +107,12 @@ func GenerateCluster(arg *ParserArg) (*v2.Cluster, error) {
 
 	c, err := k8s.Newk8sClient()
 	if err != nil {
-		return nil, fmt.Errorf("generate clusterfile failed, %s", err)
+		return nil, fmt.Errorf("failed to create k8s client: %s", err)
 	}
 
 	all, err := c.ListNodes()
 	if err != nil {
-		return nil, fmt.Errorf("generate clusterfile failed, %s", err)
+		return nil, fmt.Errorf("failed to list nodes: %s", err)
 	}
 	for _, n := range all.Items {
 		for _, v := range n.Status.Addresses {

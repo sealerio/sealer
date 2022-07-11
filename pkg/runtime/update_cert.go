@@ -42,13 +42,13 @@ func (k *KubeadmRuntime) updateCert(certs []string) error {
 	}
 	clusterConfiguration, ok := obj.(*v1beta2.ClusterConfiguration)
 	if !ok {
-		return fmt.Errorf("get ClusterConfiguration failed")
+		return fmt.Errorf("failed to get ClusterConfiguration")
 	}
 
 	k.setCertSANS(append(clusterConfiguration.APIServer.CertSANs, certs...))
 	ssh, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
-		return fmt.Errorf("failed to update cert, %v", err)
+		return fmt.Errorf("failed to update cert: %v", err)
 	}
 	if err := ssh.CmdAsync(k.GetMaster0IP(), "rm -rf /etc/kubernetes/admin.conf"); err != nil {
 		return err
@@ -62,7 +62,7 @@ func (k *KubeadmRuntime) updateCert(certs []string) error {
 
 	for _, f := range pipeline {
 		if err := f(); err != nil {
-			return fmt.Errorf("failed to init master0 %v", err)
+			return fmt.Errorf("failed to init master0: %v", err)
 		}
 	}
 	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {

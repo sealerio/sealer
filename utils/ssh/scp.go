@@ -96,7 +96,7 @@ func (s *SSH) Fetch(host net.IP, localFilePath, remoteFilePath string) error {
 	}
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
-		return fmt.Errorf("new sftp client failed %v", err)
+		return fmt.Errorf("failed to new sftp client: %v", err)
 	}
 	defer func() {
 		_ = sftpClient.Close()
@@ -105,11 +105,11 @@ func (s *SSH) Fetch(host net.IP, localFilePath, remoteFilePath string) error {
 	// open remote source file
 	srcFile, err := sftpClient.Open(remoteFilePath)
 	if err != nil {
-		return fmt.Errorf("open remote file failed %v, remote path: %s", err, remoteFilePath)
+		return fmt.Errorf("failed to open remote file(%s): %v", remoteFilePath, err)
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 
@@ -120,11 +120,11 @@ func (s *SSH) Fetch(host net.IP, localFilePath, remoteFilePath string) error {
 	// open local Destination file
 	dstFile, err := os.Create(filepath.Clean(localFilePath))
 	if err != nil {
-		return fmt.Errorf("create local file failed %v", err)
+		return fmt.Errorf("failed to create local file: %v", err)
 	}
 	defer func() {
 		if err := dstFile.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 	// copy to local file
@@ -145,7 +145,7 @@ func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 	logrus.Debugf("remote copy files src %s to dst %s", localPath, remotePath)
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
-		return fmt.Errorf("new sftp client failed %s", err)
+		return fmt.Errorf("failed to new sftp client of host(%s): %s", host, err)
 	}
 	defer func() {
 		_ = sftpClient.Close()
@@ -154,7 +154,7 @@ func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 
 	f, err := s.Fs.Stat(localPath)
 	if err != nil {
-		return fmt.Errorf("get file stat failed %s", err)
+		return fmt.Errorf("failed to get file stat of path(%s): %s", localPath, err)
 	}
 
 	baseRemoteFilePath := filepath.Dir(remotePath)
@@ -197,7 +197,7 @@ func (s *SSH) remoteMd5Sum(host net.IP, remoteFilePath string) string {
 	cmd := fmt.Sprintf(Md5sumCmd, remoteFilePath)
 	remoteMD5, err := s.CmdToString(host, cmd, "")
 	if err != nil {
-		logrus.Errorf("count remote md5 failed %s %s %v", host, remoteFilePath, err)
+		logrus.Errorf("failed to count md5 of remote file(%s) on host(%s): %v", remoteFilePath, host, err)
 	}
 	return strings.ReplaceAll(remoteMD5, "\r", "")
 }
@@ -205,11 +205,11 @@ func (s *SSH) remoteMd5Sum(host net.IP, remoteFilePath string) string {
 func (s *SSH) copyLocalDirToRemote(host net.IP, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
-		logrus.Errorf("read local path dir failed %s %s", host, localPath)
+		logrus.Errorf("failed to read local path dir(%s) on host(%s): %s", localPath, host, err)
 		return
 	}
 	if err = sftpClient.MkdirAll(remotePath); err != nil {
-		logrus.Errorf("failed to create remote path %s:%v", remotePath, err)
+		logrus.Errorf("failed to create remote path %s: %v", remotePath, err)
 		return
 	}
 	for _, file := range localFiles {
@@ -217,14 +217,14 @@ func (s *SSH) copyLocalDirToRemote(host net.IP, sftpClient *sftp.Client, localPa
 		rfp := path.Join(remotePath, file.Name())
 		if file.IsDir() {
 			if err = sftpClient.MkdirAll(rfp); err != nil {
-				logrus.Errorf("failed to create remote path %s:%v", rfp, err)
+				logrus.Errorf("failed to create remote path %s: %v", rfp, err)
 				return
 			}
 			s.copyLocalDirToRemote(host, sftpClient, lfp, rfp, epu)
 		} else {
 			err := s.copyLocalFileToRemote(host, sftpClient, lfp, rfp)
 			if err != nil {
-				errMsg := fmt.Sprintf("copy local file to remote failed %v %s %s %s", err, host, lfp, rfp)
+				errMsg := fmt.Sprintf("failed to copy local file(%s) to remote(%s) on host(%s): %v", lfp, rfp, host, err)
 				epu.fail(err)
 				logrus.Error(errMsg)
 				return
@@ -256,7 +256,7 @@ func (s *SSH) copyLocalFileToRemote(host net.IP, sftpClient *sftp.Client, localP
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 
@@ -266,15 +266,15 @@ func (s *SSH) copyLocalFileToRemote(host net.IP, sftpClient *sftp.Client, localP
 	}
 	fileStat, err := srcFile.Stat()
 	if err != nil {
-		return fmt.Errorf("get file stat failed %v", err)
+		return fmt.Errorf("failed to get file stat: %v", err)
 	}
 	// TODO seems not work
 	if err := dstFile.Chmod(fileStat.Mode()); err != nil {
-		return fmt.Errorf("chmod remote file failed %v", err)
+		return fmt.Errorf("failed to chmod remote file: %v", err)
 	}
 	defer func() {
 		if err := dstFile.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 	_, err = io.Copy(dstFile, srcFile)
@@ -283,7 +283,7 @@ func (s *SSH) copyLocalFileToRemote(host net.IP, sftpClient *sftp.Client, localP
 	}
 	dstMd5 = s.remoteMd5Sum(host, remotePath)
 	if srcMd5 != dstMd5 {
-		return fmt.Errorf("[ssh][%s] validate md5sum failed %s != %s", host, srcMd5, dstMd5)
+		return fmt.Errorf("[ssh][%s] failed to validate md5sum: (%s != %s)", host, srcMd5, dstMd5)
 	}
 	return nil
 }
@@ -307,7 +307,7 @@ func (s *SSH) RemoteDirExist(host net.IP, remoteDirPath string) (bool, error) {
 func (s *SSH) IsFileExist(host net.IP, remoteFilePath string) (bool, error) {
 	sshClient, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
-		return false, fmt.Errorf("new sftp client failed %s", err)
+		return false, fmt.Errorf("failed to new sftp client of host(%s): %s", host, err)
 	}
 	defer func() {
 		_ = sftpClient.Close()

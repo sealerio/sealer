@@ -60,7 +60,7 @@ func (h HostnamePlugin) Run(context Context, phase Phase) error {
 		}
 		err = h.changeNodeName(hostname, net.ParseIP(ip), sshClient)
 		if err != nil {
-			return fmt.Errorf("current cluster nodes hostname change failed, %v", err)
+			return fmt.Errorf("failed to update hostname of current cluster nodes(%s): %v", ip, err)
 		}
 	}
 	return nil
@@ -97,8 +97,8 @@ func (h HostnamePlugin) changeNodeName(hostname string, ip net.IP, SSH ssh.Inter
 	//cmd to change hostname permanently
 	perCMD := fmt.Sprintf(`rm -f /etc/hostname && echo "%s" >> /etc/hostname`, hostname)
 	if err := SSH.CmdAsync(ip, tmpCMD, perCMD); err != nil {
-		return fmt.Errorf("failed to change the node %v hostname,%v", ip, err)
+		return fmt.Errorf("failed to update hostname of node(%s): %v", ip, err)
 	}
-	logrus.Infof("successfully changed node %s hostname to %s.", ip, hostname)
+	logrus.Infof("succeed in updating hostname of node(%s) to %s", ip, hostname)
 	return nil
 }

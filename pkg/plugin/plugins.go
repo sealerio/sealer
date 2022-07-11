@@ -72,7 +72,7 @@ func (c *PluginsProcessor) Load() error {
 
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		return fmt.Errorf("failed to load plugin dir %v", err)
+		return fmt.Errorf("failed to load plugin dir: %v", err)
 	}
 	for _, f := range files {
 		// load shared object(.so) file
@@ -87,7 +87,7 @@ func (c *PluginsProcessor) Load() error {
 		if yaml.Matcher(f.Name()) {
 			plugins, err := utils.DecodeCRDFromFile(filepath.Join(path, f.Name()), common.Plugin)
 			if err != nil {
-				return fmt.Errorf("failed to load plugin %v", err)
+				return fmt.Errorf("failed to load plugin: %v", err)
 			}
 			var plugs []v1.Plugin
 			for _, p := range plugins.([]v1.Plugin) {

@@ -137,7 +137,7 @@ func (puller *ImagePuller) downloadLayer(ctx context.Context, layer store.Layer,
 	// update rolayer size for storing the info under layerdb
 	layer.SetSize(size)
 	if digester.Digest() != descriptor.Digest {
-		return fmt.Errorf("digest verified failed for %s", layer.ID())
+		return fmt.Errorf("failed to verify digest for %s", layer.ID())
 	}
 	progress.Update(progressOut, layer.SimpleID(), "pull completed")
 	return nil

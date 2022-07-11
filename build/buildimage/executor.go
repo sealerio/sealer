@@ -233,7 +233,7 @@ func NewBuildImageByKubefile(kubefileName string, platform v1.Platform) (*v1.Ima
 		}
 		baseImage, err = imageStore.GetByName(layer0.Value, &platform)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to get base image err: %s", err)
+			return nil, nil, fmt.Errorf("failed to get base image: %s", err)
 		}
 	}
 

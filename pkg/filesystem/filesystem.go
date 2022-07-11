@@ -36,7 +36,7 @@ func NewClusterImageMounter() (clusterimage.Interface, error) {
 func NewFilesystem(rootfs string) (cloudfilesystem.Interface, error) {
 	md, err := runtime.LoadMetadata(rootfs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load Metadata file to determine the filesystem type %v", err)
+		return nil, fmt.Errorf("failed to load Metadata file to determine the filesystem type: %v", err)
 	}
 
 	if md == nil || !md.NydusFlag {

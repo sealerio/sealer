@@ -56,7 +56,7 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 
 	image, err := d.imageStore.GetByName(cluster.Spec.Image, platform.GetDefaultPlatform())
 	if err != nil {
-		return fmt.Errorf("get ClusterImage failed, %s", err)
+		return fmt.Errorf("failed to get ClusterImage: %s", err)
 	}
 	cmdArgs := d.getGuestCmdArg(cluster, image)
 	cmd := d.getGuestCmd(cluster, image)

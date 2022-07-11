@@ -56,7 +56,7 @@ func supportsOverlay() bool {
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 	s := bufio.NewScanner(f)
@@ -78,7 +78,7 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 	}
 	workdir := path.Join(target, "work")
 	if err := os.MkdirAll(workdir, os.ModePerm); err != nil {
-		return fmt.Errorf("create workdir failed")
+		return fmt.Errorf("failed to create workdir: %v", err)
 	}
 	var err error
 	defer func() {
@@ -102,7 +102,7 @@ func (o *Overlay2) Mount(target string, upperLayer string, layers ...string) err
 	mountData := fmt.Sprintf("%slowerdir=%s,upperdir=%s,workdir=%s", indexOff, strings.Join(strUtils.Reverse(layers), ":"), upperLayer, workdir)
 	logrus.Debugf("mount data : %s", mountData)
 	if err = mount("overlay", target, "overlay", 0, mountData); err != nil {
-		return fmt.Errorf("error creating overlay mount to %s: %v", target, err)
+		return fmt.Errorf("failed to create overlay mount to %s: %v", target, err)
 	}
 	return nil
 }

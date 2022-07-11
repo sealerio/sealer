@@ -39,7 +39,7 @@ func NewV2Repository(named reference.Named, actions ...string) (distribution.Rep
 
 	authConfig, err := svc.GetAuthByDomain(domain)
 	if err != nil && authConfig != defaultAuth {
-		return nil, fmt.Errorf("failed to get auth info for domain%s: %v", domain, err)
+		return nil, fmt.Errorf("failed to get auth info for domain(%s): %v", domain, err)
 	}
 
 	return getV2Repository(authConfig, named, actions...)

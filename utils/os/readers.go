@@ -74,7 +74,7 @@ func (r fileReader) ReadAll() ([]byte, error) {
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 

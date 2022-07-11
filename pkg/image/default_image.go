@@ -109,11 +109,11 @@ func (d DefaultImageService) Pull(imageName string, platforms []*v1.Platform) er
 
 	manifest, err := repo.Manifests(ctx, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
-		return fmt.Errorf("get manifest service error: %v", err)
+		return fmt.Errorf("failed to get manifest service: %v", err)
 	}
 	desc, err := repo.Tags(ctx).Get(ctx, named.Tag())
 	if err != nil {
-		return fmt.Errorf("get %s tag descriptor error: %v, try \"docker login\" if you are using a private registry", named.Repo(), err)
+		return fmt.Errorf("failed to get %s tag descriptor: %v. \nTry \"docker login\" if you are using a private registry", named.Repo(), err)
 	}
 
 	puller, err := distributionutil.NewPuller(repo, distributionutil.Config{
@@ -134,7 +134,7 @@ func (d DefaultImageService) Pull(imageName string, platforms []*v1.Platform) er
 	dockerprogress.Message(progressChanOut, "", fmt.Sprintf("Start to Pull Image %s", named.Raw()))
 	maniList, err := manifest.Get(ctx, desc.Digest, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
-		return fmt.Errorf("get image manifest error: %v", err)
+		return fmt.Errorf("failed to get image manifest: %v", err)
 	}
 	_, p, err := maniList.Payload()
 	if err != nil {
@@ -143,7 +143,7 @@ func (d DefaultImageService) Pull(imageName string, platforms []*v1.Platform) er
 	for _, plat := range platforms {
 		m, err := d.handleManifest(ctx, manifest, p, *plat)
 		if err != nil {
-			return fmt.Errorf("get digest error: %v", err)
+			return fmt.Errorf("failed to get digest: %v", err)
 		}
 
 		image, err := puller.Pull(ctx, named, m)
@@ -163,12 +163,12 @@ func (d DefaultImageService) Pull(imageName string, platforms []*v1.Platform) er
 func (d DefaultImageService) handleManifest(ctx context.Context, manifest distribution.ManifestService, payload []byte, platform v1.Platform) (schema2.Manifest, error) {
 	dgest, err := distributionutil.GetImageManifestDigest(payload, platform)
 	if err != nil {
-		return schema2.Manifest{}, fmt.Errorf("get digest from manifest list error: %v", err)
+		return schema2.Manifest{}, fmt.Errorf("failed to get digest from manifest list: %v", err)
 	}
 
 	m, err := manifest.Get(ctx, dgest, make([]distribution.ManifestServiceOption, 0)...)
 	if err != nil {
-		return schema2.Manifest{}, fmt.Errorf("get image manifest error: %v", err)
+		return schema2.Manifest{}, fmt.Errorf("failed to get image manifest: %v", err)
 	}
 
 	_, ok := m.(*schema2.DeserializedManifest)
@@ -298,11 +298,11 @@ func (d DefaultImageService) Delete(imageNameOrID string, platforms []*v1.Platfo
 			for _, plat := range platforms {
 				img, err := imageStore.GetByName(imageNameOrID, plat)
 				if err != nil {
-					return fmt.Errorf("image %s not found %v", imageNameOrID, err)
+					return fmt.Errorf("failed to get image(%s): %v", imageNameOrID, err)
 				}
 
 				if err = imageStore.DeleteByName(imageNameOrID, plat); err != nil {
-					return fmt.Errorf("failed to delete image %s, err: %v", imageNameOrID, err)
+					return fmt.Errorf("failed to delete image(%s): %v", imageNameOrID, err)
 				}
 				deleteImageIDList = append(deleteImageIDList, img.Spec.ID)
 			}

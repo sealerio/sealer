@@ -37,7 +37,7 @@ type DeleteProcessor struct {
 func (d *DeleteProcessor) Reset(cluster *v2.Cluster) error {
 	runTime, err := runtime.NewDefaultRuntime(cluster, d.ClusterFile.GetKubeadmConfig())
 	if err != nil {
-		return fmt.Errorf("failed to init runtime, %v", err)
+		return fmt.Errorf("failed to init runtime: %v", err)
 	}
 
 	return runTime.Reset()

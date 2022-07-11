@@ -175,10 +175,10 @@ func (k *KubeadmRuntime) sendFileToHosts(Hosts []net.IP, src, dst string) error 
 		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
-				return fmt.Errorf("send file failed %v", err)
+				return fmt.Errorf("failed to send file: %v", err)
 			}
 			if err := ssh.Copy(node, src, dst); err != nil {
-				return fmt.Errorf("send file failed %v", err)
+				return fmt.Errorf("failed to send file: %v", err)
 			}
 			return err
 		})
@@ -193,11 +193,11 @@ func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []net.IP) bool {
 			cmd := fmt.Sprintf(RemoteReplaceKubeConfig, KUBESCHEDULERCONFIGFILE, v, KUBECONTROLLERCONFIGFILE, v, KUBESCHEDULERCONFIGFILE)
 			ssh, err := k.getHostSSHClient(v)
 			if err != nil {
-				logrus.Infof("failed to replace kube config on %s:%v ", v, err)
+				logrus.Errorf("failed to replace kube config on %s: %v ", v, err)
 				return false
 			}
 			if err := ssh.CmdAsync(v, cmd); err != nil {
-				logrus.Infof("failed to replace kube config on %s:%v ", v, err)
+				logrus.Errorf("failed to replace kube config on %s: %v ", v, err)
 				return false
 			}
 		}
@@ -242,17 +242,17 @@ func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []net.IP) error {
 		eg.Go(func() error {
 			joinConfig, err := k.joinMasterConfig(ip)
 			if err != nil {
-				return fmt.Errorf("get join %s config failed: %v", ip, err)
+				return fmt.Errorf("failed to get join %s config: %v", ip, err)
 			}
 			cmd := fmt.Sprintf(RemoteJoinMasterConfig, joinConfig, k.getRootfs())
 			ssh, err := k.getHostSSHClient(ip)
 			if err != nil {
-				return fmt.Errorf("set join kubeadm config failed %s %s %v", ip, cmd, err)
+				return fmt.Errorf("failed to get ssh client of host(%s): %v", ip, err)
 			}
 			if err := ssh.CmdAsync(ip, cmd); err != nil {
-				return fmt.Errorf("set join kubeadm config failed %s %s %v", ip, cmd, err)
+				return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", ip, cmd, err)
 			}
-			return err
+			return nil
 		})
 	}
 	return eg.Wait()
@@ -346,7 +346,7 @@ func (k *KubeadmRuntime) joinMasters(masters []net.IP) error {
 	cmd := k.Command(k.getKubeVersion(), JoinMaster)
 	// TODO for test skip dockerd dev version
 	if cmd == "" {
-		return fmt.Errorf("get join master command failed, kubernetes version is %s", k.getKubeVersion())
+		return fmt.Errorf("failed to get join master command, kubernetes version is %s", k.getKubeVersion())
 	}
 
 	for _, master := range masters {
@@ -367,7 +367,7 @@ func (k *KubeadmRuntime) joinMasters(masters []net.IP) error {
 		}
 
 		if err := client.CmdAsync(master, cmds...); err != nil {
-			return fmt.Errorf("exec command failed %s %v %v", master, cmds, err)
+			return fmt.Errorf("failed to exec command(%s) on master(%s): %v", cmds, master, err)
 		}
 
 		logrus.Infof("Succeeded in joining %s as master", master)
@@ -386,7 +386,7 @@ func (k *KubeadmRuntime) deleteMasters(masters []net.IP) error {
 			master := master
 			logrus.Infof("Start to delete master %s", master)
 			if err := k.deleteMaster(master); err != nil {
-				logrus.Errorf("delete master %s failed %v", master, err)
+				logrus.Errorf("failed to delete master %s: %v", master, err)
 			} else {
 				logrus.Infof("Succeeded in deleting master %s", master)
 			}
@@ -462,11 +462,11 @@ func (k *KubeadmRuntime) deleteMaster(master net.IP) error {
 		}
 		master0SSH, err := k.getHostSSHClient(k.GetMaster0IP())
 		if err != nil {
-			return fmt.Errorf("failed to remove master ip: %v", err)
+			return fmt.Errorf("failed to get master0 ssh client: %v", err)
 		}
 
 		if err := master0SSH.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
-			return fmt.Errorf("delete node %s failed %v", hostname, err)
+			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
 		}
 	}
 	lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
@@ -477,10 +477,10 @@ func (k *KubeadmRuntime) deleteMaster(master net.IP) error {
 		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
-				logrus.Errorf("update lvscare static pod failed %s %v", node, err)
+				logrus.Errorf("failed to update lvscare static pod on node(%s): %v", node, err)
 			}
 			if err := ssh.CmdAsync(node, RemoveLvscareStaticPod, fmt.Sprintf(CreateLvscareStaticPod, yaml)); err != nil {
-				logrus.Errorf("update lvscare static pod failed %s %v", node, err)
+				logrus.Errorf("failed to update lvscare static pod on node(%s): %v", node, err)
 			}
 			return err
 		})
@@ -503,7 +503,7 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 	logrus.Debugf("[globals]decodeCertCmd: %s", output)
 	slice := strings.Split(output, "Using certificate key:")
 	if len(slice) != 2 {
-		return fmt.Errorf("get certifacate key failed %s", slice)
+		return fmt.Errorf("failed to get certifacate key: %s", slice)
 	}
 	key := strings.Replace(slice[1], "\r\n", "", -1)
 	k.CertificateKey = strings.Replace(key, "\n", "", -1)
@@ -515,7 +515,7 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 	}
 	out, err := ssh.Cmd(k.GetMaster0IP(), cmd)
 	if err != nil {
-		return fmt.Errorf("create kubeadm join token failed %v", err)
+		return fmt.Errorf("failed to create kubeadm join token: %v", err)
 	}
 
 	k.decodeMaster0Output(out)

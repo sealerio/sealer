@@ -69,7 +69,7 @@ func getCPUInfo(pattern string) (info string, err error) {
 	}
 	defer func() {
 		if err := cpuinfo.Close(); err != nil {
-			logrus.Error("failed to close file")
+			logrus.Errorf("failed to close file: %v", err)
 		}
 	}()
 

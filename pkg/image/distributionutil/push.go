@@ -54,7 +54,7 @@ func (pusher *ImagePusher) Push(ctx context.Context, named reference.Named) erro
 
 	manifestList, ok := imageMetadata[named.CompleteName()]
 	if !ok {
-		return fmt.Errorf("image: %s not found", named.Raw())
+		return fmt.Errorf("image(%s) not found", named.Raw())
 	}
 
 	for _, m := range manifestList.Manifests {
@@ -114,7 +114,7 @@ func (pusher *ImagePusher) push(ctx context.Context, image v1.Image, named refer
 		}
 		err := l.ID.Validate()
 		if err != nil {
-			return nil, fmt.Errorf("layer hash %s validate failed, err: %s", l.ID, err)
+			return nil, fmt.Errorf("failed to validate layer hash %s: %s", l.ID, err)
 		}
 
 		// this scope value, safe to pass into eg.Go
@@ -296,7 +296,7 @@ func (pusher *ImagePusher) putManifestConfig(ctx context.Context, image v1.Image
 
 	dockerImageConfig, err := addDockerManifestConfig(image)
 	if err != nil {
-		return nil, fmt.Errorf("add docker manifest config error: %s", err)
+		return nil, fmt.Errorf("failed to add docker manifest config: %s", err)
 	}
 
 	configJSON, err := json.Marshal(dockerImageConfig)

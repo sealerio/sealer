@@ -173,7 +173,7 @@ func (s *SSH) NewSudoSftpClient(conn *ssh.Client, opts ...sftp.ClientOption) (*s
 	cmd = `grep -oP "Subsystem\s+sftp\s+\K.*" /etc/ssh/sshd_config`
 	buff, err = ses2.Output(cmd)
 	if err != nil {
-		return nil, fmt.Errorf("cmd output errored %v", err)
+		return nil, fmt.Errorf("failed to execute cmd(%s): %v", cmd, err)
 	}
 
 	ses, err = conn.NewSession()
@@ -188,7 +188,7 @@ func (s *SSH) NewSudoSftpClient(conn *ssh.Client, opts ...sftp.ClientOption) (*s
 
 	ok, err := ses.SendRequest("exec", true, ssh.Marshal(struct{ Command string }{sftpServerPath}))
 	if err == nil && !ok {
-		return nil, errors.New("ssh: exec request failed")
+		return nil, errors.New("ssh: failed to exec request")
 	}
 
 	pw, err := ses.StdinPipe()

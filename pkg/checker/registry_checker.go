@@ -54,7 +54,7 @@ func (r *RegistryChecker) Check(cluster *v2.Cluster, phase string) error {
 
 	err = distributionutil.Login(context.Background(), &authConfig)
 	if err != nil {
-		return fmt.Errorf("%v authentication failed", r.RegistryDomain)
+		return fmt.Errorf("failed to login %v: %v", r.RegistryDomain, err)
 	}
 	return nil
 }

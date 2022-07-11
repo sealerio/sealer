@@ -61,13 +61,13 @@ func (g gitCollector) Collect(buildContext, src, savePath string) error {
 		privateKeyFile := os.Getenv("HOME") + "/.ssh/id_rsa"
 		_, err := os.Stat(privateKeyFile)
 		if err != nil {
-			logrus.Warnf("read file %s failed %s\n", privateKeyFile, err.Error())
+			logrus.Warnf("failed to read file(%s): %s", privateKeyFile, err.Error())
 			return err
 		}
 
 		publicKeys, err := ssh.NewPublicKeysFromFile("git", privateKeyFile, "")
 		if err != nil {
-			logrus.Warnf("generate public keys failed: %s\n", err.Error())
+			logrus.Warnf("failed to generate public keys: %s", err.Error())
 			return err
 		}
 		co.Auth = publicKeys
