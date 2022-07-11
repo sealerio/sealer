@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package alpha
 
 import (
 	"fmt"
@@ -26,12 +26,7 @@ import (
 )
 
 var flag *processor.ParserArg
-
-// genCmd represents the gen command
-var genCmd = &cobra.Command{
-	Use:   "gen",
-	Short: "generate a Clusterfile to take over a normal cluster which is not deployed by sealer",
-	Long: `sealer gen --passwd xxxx --image kubernetes:v1.19.8
+var longGenCmdDescription = `sealer gen --passwd xxxx --image kubernetes:v1.19.8
 
 The takeover actually is to generate a Clusterfile by kubeconfig.
 Sealer will call kubernetes API to get masters and nodes IP info, then generate a Clusterfile.
@@ -50,30 +45,37 @@ Then you can use any sealer command to manage the cluster like:
 	sealer join --node x.x.x.x
 
 > Deploy a ClusterImage into the cluster
-	sealer run mysql-cluster:5.8`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if flag.Passwd == "" || flag.Image == "" {
-			return fmt.Errorf("password and image name cannot be empty")
-		}
-		cluster, err := processor.GenerateCluster(flag)
-		if err != nil {
-			return err
-		}
-		genProcessor, err := processor.NewGenerateProcessor()
-		if err != nil {
-			return err
-		}
-		return processor.NewExecutor(genProcessor).Execute(cluster)
-	},
-}
+	sealer run mysql-cluster:5.8`
 
-func init() {
+// NewGenCmd returns the sealer gen Cobra command
+func NewGenCmd() *cobra.Command {
+	genCmd := &cobra.Command{
+		Use:   "gen",
+		Short: "generate a Clusterfile to take over a normal cluster which is not deployed by sealer",
+		Long:  longGenCmdDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if flag.Passwd == "" || flag.Image == "" {
+				return fmt.Errorf("password and image name cannot be empty")
+			}
+			cluster, err := processor.GenerateCluster(flag)
+			if err != nil {
+				return err
+			}
+			genProcessor, err := processor.NewGenerateProcessor()
+			if err != nil {
+				return err
+			}
+			return processor.NewExecutor(genProcessor).Execute(cluster)
+		},
+	}
+
 	flag = &processor.ParserArg{}
-	rootCmd.AddCommand(genCmd)
 	genCmd.Flags().Uint16Var(&flag.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	genCmd.Flags().StringVar(&flag.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set server private key")
 	genCmd.Flags().StringVar(&flag.PkPassword, "pk-passwd", "", "set server private key password")
 	genCmd.Flags().StringVar(&flag.Image, "image", "", "Set taken over ClusterImage")
 	genCmd.Flags().StringVar(&flag.Name, "name", "default", "Set taken over cluster name")
 	genCmd.Flags().StringVar(&flag.Passwd, "passwd", "", "Set taken over ssh passwd")
+
+	return genCmd
 }

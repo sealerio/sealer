@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package alpha
 
 import (
 	"github.com/sealerio/sealer/pkg/exec"
@@ -20,15 +20,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var roles string
+var (
+	clusterName string
+	roles       string
+)
 
-// execCmd represents the exec command
-var execCmd = &cobra.Command{
-	Use:   "exec",
-	Short: "exec a shell command or script on specified nodes.",
-	// TODO: add long description.
-	Long: "",
-	Example: `
+// NewExecCmd implement the sealer exec command
+func NewExecCmd() *cobra.Command {
+	execCmd := &cobra.Command{
+		Use:   "exec",
+		Short: "exec a shell command or script on specified nodes.",
+		// TODO: add long description.
+		Long: "",
+		Example: `
 exec to default cluster: my-cluster
 	sealer exec "cat /etc/hosts"
 specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
@@ -36,18 +40,18 @@ specify the cluster name(If there is only one cluster in the $HOME/.sealer direc
 set role label to exec cmd:
     sealer exec -c my-cluster -r master,slave,node1 "cat /etc/hosts"		
 `,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		execCmd, err := exec.NewExecCmd(clusterName, roles)
-		if err != nil {
-			return err
-		}
-		return execCmd.RunCmd(args[0])
-	},
-}
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			execCmd, err := exec.NewExecCmd(clusterName, roles)
+			if err != nil {
+				return err
+			}
+			return execCmd.RunCmd(args[0])
+		},
+	}
 
-func init() {
-	rootCmd.AddCommand(execCmd)
 	execCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "specify the name of cluster")
 	execCmd.Flags().StringVarP(&roles, "roles", "r", "", "set role label to roles")
+
+	return execCmd
 }

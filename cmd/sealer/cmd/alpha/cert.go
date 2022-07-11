@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package alpha
 
 import (
 	"fmt"
@@ -26,12 +26,7 @@ import (
 )
 
 var altNames string
-
-// certCmd represents the cert command
-var certCmd = &cobra.Command{
-	Use:   "cert",
-	Short: "update Kubernetes API server's cert",
-	Long: `Add domain or ip in certs:
+var longCertCmdDescription = `Add domain or ip in certs:
     you had better backup old certs first.
 	sealer cert --alt-names sealer.cool,10.103.97.2,127.0.0.1,localhost
     using "openssl x509 -noout -text -in apiserver.crt" to check the cert
@@ -42,26 +37,32 @@ var certCmd = &cobra.Command{
     2. update the kubeconfig, cp /etc/kubernetes/admin.conf .kube/config
     3. edit .kube/config, set the apiserver address as 39.105.169.253, (don't forget to open the security group port for 6443, if you using public cloud)
     4. kubectl get pod, to check if it works or not
-`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cluster, err := clusterfile.GetDefaultCluster()
-		if err != nil {
-			return fmt.Errorf("failed to get default cluster: %v", err)
-		}
-		clusterFile, err := clusterfile.NewClusterFile(cluster.GetAnnotationsByKey(common.ClusterfileName))
-		if err != nil {
-			return err
-		}
-		r, err := runtime.NewDefaultRuntime(cluster, clusterFile.GetKubeadmConfig())
-		if err != nil {
-			return fmt.Errorf("failed to get default runtime: %v", err)
-		}
-		return r.UpdateCert(strings.Split(altNames, ","))
-	},
-}
+`
 
-func init() {
-	rootCmd.AddCommand(certCmd)
+// NewCertCmd returns the sealer cert Cobra command
+func NewCertCmd() *cobra.Command {
+	certCmd := &cobra.Command{
+		Use:   "cert",
+		Short: "update Kubernetes API server's cert",
+		Long:  longCertCmdDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cluster, err := clusterfile.GetDefaultCluster()
+			if err != nil {
+				return fmt.Errorf("failed to get default cluster: %v", err)
+			}
+			clusterFile, err := clusterfile.NewClusterFile(cluster.GetAnnotationsByKey(common.ClusterfileName))
+			if err != nil {
+				return err
+			}
+			r, err := runtime.NewDefaultRuntime(cluster, clusterFile.GetKubeadmConfig())
+			if err != nil {
+				return fmt.Errorf("failed to get default runtime: %v", err)
+			}
+			return r.UpdateCert(strings.Split(altNames, ","))
+		},
+	}
 
 	certCmd.Flags().StringVar(&altNames, "alt-names", "", "add domain or ip in certs, sealer.cool or 10.103.97.2")
+
+	return certCmd
 }

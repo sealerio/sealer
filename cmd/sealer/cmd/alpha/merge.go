@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package alpha
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ type mergeFlag struct {
 
 var mf *mergeFlag
 
-func getMergeCmd() *cobra.Command {
+func NewMergeCmd() *cobra.Command {
 	var mergeCmd = &cobra.Command{
 		Use:   "merge",
 		Short: "merge multiple images into one",
@@ -92,6 +92,3 @@ func buildRaw(name string) string {
 	return name + ":" + defaultTag
 }
 
-func init() {
-	rootCmd.AddCommand(getMergeCmd())
-}
