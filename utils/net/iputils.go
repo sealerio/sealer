@@ -192,7 +192,7 @@ func DisassembleIPList(arg string) []net.IP {
 		res = append(res, i)
 	}
 
-	resIP := make([]net.IP, len(res))
+	resIP := make([]net.IP, 0, len(res))
 	for _, ip := range res {
 		resIP = append(resIP, net.ParseIP(ip))
 	}

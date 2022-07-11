@@ -78,12 +78,11 @@ func GetDNSServiceAll(ctx context.Context, client corev1client.CoreV1Interface) 
 	return domain, serviceClusterIP, endpointsIPs, nil
 }
 
-func removeDuplicatesAndEmpty(ss []string) []string {
+func removeDuplicatesAndEmpty(ss []string) (res []string) {
 	if len(ss) == 0 {
 		return ss
 	}
 
-	res := make([]string, len(ss))
 	sMap := map[string]bool{}
 
 	for _, v := range ss {
