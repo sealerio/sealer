@@ -91,6 +91,42 @@ func TestNewCleanApplierFromArgs(t *testing.T) {
 			common.DeleteSubCmd,
 			true,
 		},
+		{
+			"Clusterfile",
+			&Args{
+				Masters: "10.110.101.1,10.110.101.2",
+			},
+			"join only has master",
+			common.JoinSubCmd,
+			false,
+		},
+
+		{
+			"Clusterfile",
+			&Args{
+				Nodes: "10.110.101.1,10.110.101.2",
+			},
+			"join only has node",
+			common.JoinSubCmd,
+			false,
+		},
+		{
+			"Clusterfile",
+			&Args{
+				Masters: "10.110.101.1,10.110.101.2",
+				Nodes:   "10.110.101.1,10.110.101.2",
+			},
+			"join master and node at the same time",
+			common.JoinSubCmd,
+			false,
+		},
+		{
+			"Clusterfile",
+			&Args{},
+			"joined master and node are both empty",
+			common.JoinSubCmd,
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

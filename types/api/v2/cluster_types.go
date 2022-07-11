@@ -75,13 +75,13 @@ func (in *Cluster) GetMasterIPList() []net.IP {
 	return in.GetIPSByRole(common.MASTER)
 }
 
-func (in *Cluster) GetMasterIPStrList() []string {
+func (in *Cluster) GetMasterIPStrList() (ipStrList []string) {
 	ipList := in.GetIPSByRole(common.MASTER)
 
-	ipStrList := make([]string, len(ipList))
 	for _, ip := range ipList {
 		ipStrList = append(ipStrList, ip.String())
 	}
+
 	return ipStrList
 }
 
