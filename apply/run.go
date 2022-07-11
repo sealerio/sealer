@@ -110,7 +110,7 @@ func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	}
 
 	masters := strings.Split(inMasters, ",")
-	masterHosts := make([]v2.Host, len(masters))
+	masterHosts := make([]v2.Host, 0, len(masters))
 	for index, master := range masters {
 		if index == 0 {
 			// only master0 should add two roles: master and master0
@@ -135,7 +135,7 @@ func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	// if inNodes is empty,Split will return a slice of length 1 whose only element is inNodes.
 	// so we need to filter the empty string to make sure the cluster node ip is valid.
 	nodes := strings.Split(inNodes, ",")
-	nodeHosts := make([]v2.Host, len(nodes))
+	nodeHosts := make([]v2.Host, 0, len(nodes))
 	for _, node := range nodes {
 		if node != "" {
 			nodeHosts = append(nodeHosts, v2.Host{
@@ -145,7 +145,7 @@ func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
 		}
 	}
 
-	result := make([]v2.Host, len(masters)+len(nodes))
+	result := make([]v2.Host, 0, len(masters)+len(nodes))
 	result = append(result, masterHosts...)
 	result = append(result, nodeHosts...)
 
