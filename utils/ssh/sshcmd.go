@@ -62,11 +62,13 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 				return fmt.Errorf("failed to start command %s: %v", cmd, err)
 			}
 
-			ReadPipe(stdout, stderr, s.IsStdout)
+			output := make([]string, 0)
+
+			ReadPipe(stdout, stderr, &output)
 
 			err = c.Wait()
 			if err != nil {
-				return fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
+				return fmt.Errorf("failed to execute command(%s) on host(%s): output(%s), error(%v)", cmd, host, strings.Join(output, "\n"), err)
 			}
 			return nil
 		}
@@ -91,11 +93,13 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 				return fmt.Errorf("failed to start command %s on %s: %v", cmd, host, err)
 			}
 
-			ReadPipe(stdout, stderr, s.IsStdout)
+			output := make([]string, 0)
+
+			ReadPipe(stdout, stderr, &output)
 
 			err = session.Wait()
 			if err != nil {
-				return fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
+				return fmt.Errorf("failed to execute command(%s) on host(%s): output(%s), error(%v)", cmd, host, strings.Join(output, "\n"), err)
 			}
 
 			return nil

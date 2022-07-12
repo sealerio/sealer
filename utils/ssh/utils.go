@@ -65,22 +65,21 @@ func fileExist(path string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func ReadPipe(stdout, stderr io.Reader, isStdout bool) {
-	var combineSlice []string
+func ReadPipe(stdout, stderr io.Reader, combineSlice *[]string) {
 	var combineLock sync.Mutex
 	doneout := make(chan error, 1)
 	doneerr := make(chan error, 1)
 	go func() {
-		doneerr <- readPipe(stderr, &combineSlice, &combineLock, isStdout)
+		doneerr <- readPipe(stderr, combineSlice, &combineLock)
 	}()
 	go func() {
-		doneout <- readPipe(stdout, &combineSlice, &combineLock, isStdout)
+		doneout <- readPipe(stdout, combineSlice, &combineLock)
 	}()
 	<-doneerr
 	<-doneout
 }
 
-func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, isStdout bool) error {
+func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex) error {
 	r := bufio.NewReader(pipe)
 	for {
 		line, _, err := r.ReadLine()
