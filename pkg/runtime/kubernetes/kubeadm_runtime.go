@@ -12,25 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package kubernetes
 
 import (
 	"context"
 	"fmt"
+
 	"net"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_types/v1beta2"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 type Config struct {
@@ -42,7 +44,7 @@ type Config struct {
 	APIServerDomain       string
 }
 
-func newKubeadmRuntime(cluster *v2.Cluster, clusterFileKubeConfig *KubeadmConfig) (Interface, error) {
+func newKubeadmRuntime(cluster *v2.Cluster, clusterFileKubeConfig *KubeadmConfig) (runtime.Interface, error) {
 	k := &KubeadmRuntime{
 		Cluster: cluster,
 		Config: &Config{
@@ -81,8 +83,8 @@ func (k *KubeadmRuntime) getClusterName() string {
 	return k.Cluster.Name
 }
 
-func (k *KubeadmRuntime) getClusterMetadata() (*Metadata, error) {
-	metadata := &Metadata{}
+func (k *KubeadmRuntime) getClusterMetadata() (*runtime.Metadata, error) {
+	metadata := &runtime.Metadata{}
 	if k.getKubeVersion() == "" {
 		if err := k.MergeKubeadmConfig(); err != nil {
 			return nil, err

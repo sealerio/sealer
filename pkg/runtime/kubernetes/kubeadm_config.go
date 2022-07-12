@@ -12,22 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package kubernetes
 
 import (
 	"fmt"
 	"io"
 
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_types/v1beta2"
 	"github.com/sealerio/sealer/utils"
-
 	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/imdario/mergo"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
-
-	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
-	"github.com/sealerio/sealer/utils/strings"
 )
 
 // Read config from https://github.com/sealerio/sealer/blob/main/docs/design/clusterfile-v2.md and overwrite default kubeadm.yaml

@@ -23,7 +23,7 @@ import (
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/plugin"
-	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 )
@@ -35,7 +35,7 @@ type DeleteProcessor struct {
 }
 
 func (d *DeleteProcessor) Reset(cluster *v2.Cluster) error {
-	runTime, err := runtime.NewDefaultRuntime(cluster, d.ClusterFile.GetKubeadmConfig())
+	runTime, err := kubernetes.NewDefaultRuntime(cluster, d.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime: %v", err)
 	}
@@ -65,7 +65,7 @@ func (d *DeleteProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 
 func (d *DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	config := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
+	config := kubernetes.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utilsnet.NotInIPList(config.IP, hosts) {
 		hosts = append(hosts, config.IP)
 	}

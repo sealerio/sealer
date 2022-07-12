@@ -12,50 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package kubernetes
 
 import (
 	"fmt"
 	"net"
 	"sync"
 
+	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
+
 	"github.com/sirupsen/logrus"
 )
 
-type Interface interface {
-	// Init exec kubeadm init
-	Init(cluster *v2.Cluster) error
-	Upgrade() error
-	Reset() error
-	JoinMasters(newMastersIPList []net.IP) error
-	JoinNodes(newNodesIPList []net.IP) error
-	DeleteMasters(mastersIPList []net.IP) error
-	DeleteNodes(nodesIPList []net.IP) error
-	GetClusterMetadata() (*Metadata, error)
-	UpdateCert(certs []string) error
-}
-
-type Metadata struct {
-	Version string `json:"version"`
-	Arch    string `json:"arch"`
-	Variant string `json:"variant"`
-	//KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
-	KubeVersion string `json:"kubeVersion"`
-	NydusFlag   bool   `json:"NydusFlag"`
-	//ClusterRuntime is a flag to distinguish the runtime for k0s、k8s、k3s
-	ClusterRuntime ClusterRuntime `json:"ClusterRuntime"`
-}
-
-type ClusterRuntime string
-
-const (
-	K0s ClusterRuntime = "k0s"
-	K3s ClusterRuntime = "k3s"
-	K8s ClusterRuntime = "k8s"
-)
-
+//KubeadmRuntime is the runtime for kubernetes
 type KubeadmRuntime struct {
 	*sync.Mutex
 	*v2.Cluster
@@ -126,7 +97,7 @@ func (k *KubeadmRuntime) confirmDeleteNodes() error {
 	return nil
 }
 
-func (k *KubeadmRuntime) GetClusterMetadata() (*Metadata, error) {
+func (k *KubeadmRuntime) GetClusterMetadata() (*runtime.Metadata, error) {
 	return k.getClusterMetadata()
 }
 
@@ -136,6 +107,6 @@ func (k *KubeadmRuntime) UpdateCert(certs []string) error {
 
 // NewDefaultRuntime arg "clusterfileKubeConfig" is the Clusterfile path/name, runtime need read kubeadm config from it
 // Mount image is required before new Runtime.
-func NewDefaultRuntime(cluster *v2.Cluster, clusterfileKubeConfig *KubeadmConfig) (Interface, error) {
+func NewDefaultRuntime(cluster *v2.Cluster, clusterfileKubeConfig *KubeadmConfig) (runtime.Interface, error) {
 	return newKubeadmRuntime(cluster, clusterfileKubeConfig)
 }

@@ -22,7 +22,7 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 )
 
 var altNames string
@@ -52,7 +52,7 @@ var certCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		r, err := runtime.NewDefaultRuntime(cluster, clusterFile.GetKubeadmConfig())
+		r, err := kubernetes.NewDefaultRuntime(cluster, clusterFile.GetKubeadmConfig())
 		if err != nil {
 			return fmt.Errorf("failed to get default runtime: %v", err)
 		}

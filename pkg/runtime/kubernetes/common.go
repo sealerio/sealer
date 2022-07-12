@@ -12,22 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package kubernetes
 
 const (
-	AuditPolicyYml = "audit-policy.yml"
+	Cluster                = "Cluster"
+	InitConfiguration      = "InitConfiguration"
+	JoinConfiguration      = "JoinConfiguration"
+	ClusterConfiguration   = "ClusterConfiguration"
+	KubeProxyConfiguration = "KubeProxyConfiguration"
+	KubeletConfiguration   = "KubeletConfiguration"
 )
-
-// StaticFile :static file should not be template, will never be changed while initialization.
-type StaticFile struct {
-	DestinationDir string
-	Name           string
-}
-
-//MasterStaticFiles Put static files here, can be moved to all master nodes before kubeadm execution
-var MasterStaticFiles = []*StaticFile{
-	{
-		DestinationDir: "/etc/kubernetes",
-		Name:           AuditPolicyYml,
-	},
-}

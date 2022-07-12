@@ -20,17 +20,17 @@ import (
 	"io"
 	"os"
 
-	runtime2 "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/yaml"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/env"
-	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	yaml2 "github.com/sealerio/sealer/utils"
+
 	"github.com/sirupsen/logrus"
+	runtime2 "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 type PreProcessor interface {
@@ -162,7 +162,7 @@ func (c *ClusterFile) DecodePlugins(data []byte) error {
 }
 
 func (c *ClusterFile) DecodeKubeadmConfig(data []byte) error {
-	kubeadmConfig, err := runtime.LoadKubeadmConfigs(string(data), yaml2.DecodeCRDFromString)
+	kubeadmConfig, err := kubernetes.LoadKubeadmConfigs(string(data), yaml2.DecodeCRDFromString)
 	if err != nil {
 		return err
 	}

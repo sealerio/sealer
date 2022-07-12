@@ -25,6 +25,7 @@ import (
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/sealerio/sealer/pkg/plugin"
 	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
@@ -32,7 +33,7 @@ type ScaleProcessor struct {
 	fileSystem      cloudfilesystem.Interface
 	ClusterFile     clusterfile.Interface
 	Runtime         runtime.Interface
-	KubeadmConfig   *runtime.KubeadmConfig
+	KubeadmConfig   *kubernetes.KubeadmConfig
 	Config          config.Interface
 	Plugins         plugin.Plugins
 	MastersToJoin   []net.IP
@@ -69,7 +70,7 @@ func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 }
 
 func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
-	runTime, err := runtime.NewDefaultRuntime(cluster, s.KubeadmConfig)
+	runTime, err := kubernetes.NewDefaultRuntime(cluster, s.KubeadmConfig)
 	if err != nil {
 		return fmt.Errorf("failed to init default runtime: %v", err)
 	}
@@ -125,7 +126,7 @@ func (s *ScaleProcessor) Delete(cluster *v2.Cluster) error {
 	return s.Runtime.DeleteNodes(s.NodesToDelete)
 }
 
-func NewScaleProcessor(kubeadmConfig *runtime.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []net.IP) (Processor, error) {
+func NewScaleProcessor(kubeadmConfig *kubernetes.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []net.IP) (Processor, error) {
 	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(clusterFile.GetCluster().Name))
 	if err != nil {
 		return nil, err

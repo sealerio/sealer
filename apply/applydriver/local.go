@@ -26,6 +26,7 @@ import (
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/store"
 	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
@@ -33,9 +34,9 @@ import (
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sealerio/sealer/utils/strings"
-	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
 )
@@ -210,7 +211,7 @@ func (c *Applier) Upgrade(upgradeImgName string) error {
 }
 
 func (c *Applier) upgrade() error {
-	runtimeInterface, err := runtime.NewDefaultRuntime(c.ClusterDesired, c.ClusterFile.GetKubeadmConfig())
+	runtimeInterface, err := kubernetes.NewDefaultRuntime(c.ClusterDesired, c.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime: %v", err)
 	}

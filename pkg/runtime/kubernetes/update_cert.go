@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package kubernetes
 
 import (
 	"context"
@@ -21,8 +21,9 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
-	"github.com/sealerio/sealer/pkg/runtime/kubeadm_types/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_types/v1beta2"
 	"github.com/sealerio/sealer/utils"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
