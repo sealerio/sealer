@@ -18,10 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/clusterfile"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/ssh"
 
@@ -33,32 +30,8 @@ type Exec struct {
 	ipList  []net.IP
 }
 
-func NewExecCmd(clusterName string, roles string) (Exec, error) {
-	if clusterName == "" {
-		var err error
-		clusterName, err = clusterfile.GetDefaultClusterName()
-		if err != nil {
-			return Exec{}, err
-		}
-	}
-	clusterFile := common.GetClusterWorkClusterfile(clusterName)
-	cluster, err := clusterfile.GetClusterFromFile(clusterFile)
-	if err != nil {
-		return Exec{}, err
-	}
-	var ipList []net.IP
-	if roles == "" {
-		ipList = append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	} else {
-		roles := strings.Split(roles, ",")
-		for _, role := range roles {
-			ipList = append(ipList, cluster.GetIPSByRole(role)...)
-		}
-		if len(ipList) == 0 {
-			return Exec{}, fmt.Errorf("failed to get ipList, please check your roles label")
-		}
-	}
-	return Exec{cluster: cluster, ipList: ipList}, nil
+func NewExecCmd(cluster *v2.Cluster, ipList []net.IP) Exec {
+	return Exec{cluster: cluster, ipList: ipList}
 }
 
 func (e *Exec) RunCmd(cmd string) error {
@@ -78,7 +51,7 @@ func (e *Exec) RunCmd(cmd string) error {
 		})
 	}
 	if err := eg.Wait(); err != nil {
-		return fmt.Errorf("failed to sealer exec command, err: %v", err)
+		return fmt.Errorf("failed to exec command (%s): %v", cmd, err)
 	}
 	return nil
 }

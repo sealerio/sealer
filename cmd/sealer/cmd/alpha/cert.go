@@ -16,7 +16,6 @@ package alpha
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -25,44 +24,50 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 )
 
-var altNames string
-var longCertCmdDescription = `Add domain or ip in certs:
-    you had better backup old certs first.
-	sealer cert --alt-names sealer.cool,10.103.97.2,127.0.0.1,localhost
-    using "openssl x509 -noout -text -in apiserver.crt" to check the cert
-	will update cluster API server cert, you need to restart your API server manually after using sealer cert.
+var altNames []string
 
-    For example: add an EIP to cert.
-    1. sealer cert --alt-names 39.105.169.253
-    2. update the kubeconfig, cp /etc/kubernetes/admin.conf .kube/config
-    3. edit .kube/config, set the apiserver address as 39.105.169.253, (don't forget to open the security group port for 6443, if you using public cloud)
-    4. kubectl get pod, to check if it works or not
+var longCertCmdDescription = `Add domain or ip in certs: you had better backup old certs first. this command will update cluster API server cert, you need to restart your API server manually after using sealer cert. then, you can using cmd "openssl x509 -noout -text -in apiserver.crt" to check the cert details.
+`
+
+var exampleForCertCmd = `
+The following command will generate keys and CSRs for all control-plane certificates and kubeconfig files:
+
+sealer alpha cert --alt-names 39.105.169.253,sealer.cool
 `
 
 // NewCertCmd returns the sealer cert Cobra command
 func NewCertCmd() *cobra.Command {
 	certCmd := &cobra.Command{
-		Use:   "cert",
-		Short: "update Kubernetes API server's cert",
-		Long:  longCertCmdDescription,
+		Use:     "cert",
+		Short:   "Update Kubernetes API server's cert",
+		Args:    cobra.NoArgs,
+		Long:    longCertCmdDescription,
+		Example: exampleForCertCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(altNames) == 0 {
+				return fmt.Errorf("ip address or DNS domain needed for cert Subject Alternative Names")
+			}
+
 			cluster, err := clusterfile.GetDefaultCluster()
 			if err != nil {
 				return fmt.Errorf("failed to get default cluster: %v", err)
 			}
+
 			clusterFile, err := clusterfile.NewClusterFile(cluster.GetAnnotationsByKey(common.ClusterfileName))
 			if err != nil {
 				return err
 			}
+
 			r, err := runtime.NewDefaultRuntime(cluster, clusterFile.GetKubeadmConfig())
 			if err != nil {
 				return fmt.Errorf("failed to get default runtime: %v", err)
 			}
-			return r.UpdateCert(strings.Split(altNames, ","))
+
+			return r.UpdateCert(altNames)
 		},
 	}
 
-	certCmd.Flags().StringVar(&altNames, "alt-names", "", "add domain or ip in certs, sealer.cool or 10.103.97.2")
+	certCmd.Flags().StringSliceVar(&altNames, "alt-names", []string{}, "add domain or ip in certs, sealer.cool or 10.103.97.2")
 
 	return certCmd
 }

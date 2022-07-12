@@ -15,43 +15,88 @@
 package alpha
 
 import (
+	"fmt"
+	"net"
+
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/exec"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 
 	"github.com/spf13/cobra"
 )
 
 var (
 	clusterName string
-	roles       string
+	roles       []string
 )
+
+var longExecCmdDescription = `Using sealer builtin ssh client to run shell command on the node filtered by cluster and cluster role. it is convenient for cluster administrator to do quick investigate`
+
+var exampleForExecCmd = `
+Exec the default cluster node:
+	sealer alpha exec "cat /etc/hosts"
+
+specify the cluster name:
+    sealer alpha exec -c my-cluster "cat /etc/hosts"
+
+using role label to filter node and run exec cmd:
+    sealer alpha exec -c my-cluster -r master,slave,node1 "cat /etc/hosts"		
+`
 
 // NewExecCmd implement the sealer exec command
 func NewExecCmd() *cobra.Command {
 	execCmd := &cobra.Command{
-		Use:   "exec",
-		Short: "exec a shell command or script on specified nodes.",
-		// TODO: add long description.
-		Long: "",
-		Example: `
-exec to default cluster: my-cluster
-	sealer exec "cat /etc/hosts"
-specify the cluster name(If there is only one cluster in the $HOME/.sealer directory, it should be applied. ):
-    sealer exec -c my-cluster "cat /etc/hosts"
-set role label to exec cmd:
-    sealer exec -c my-cluster -r master,slave,node1 "cat /etc/hosts"		
-`,
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			execCmd, err := exec.NewExecCmd(clusterName, roles)
-			if err != nil {
-				return err
-			}
-			return execCmd.RunCmd(args[0])
-		},
+		Use:     "exec",
+		Short:   "Exec a shell command or script on a specified node",
+		Long:    longExecCmdDescription,
+		Example: exampleForExecCmd,
+		Args:    cobra.ExactArgs(1),
+		RunE:    execActionFunc,
 	}
 
 	execCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "specify the name of cluster")
-	execCmd.Flags().StringVarP(&roles, "roles", "r", "", "set role label to roles")
+	execCmd.Flags().StringSliceVarP(&roles, "roles", "r", []string{}, "set role label to filter node")
 
 	return execCmd
+}
+
+func execActionFunc(cmd *cobra.Command, args []string) error {
+	var ipList []net.IP
+
+	cluster, err := GetCurrentClusterByName(clusterName)
+	if err != nil {
+		return err
+	}
+
+	if len(roles) == 0 {
+		ipList = append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
+	} else {
+		for _, role := range roles {
+			ipList = append(ipList, cluster.GetIPSByRole(role)...)
+		}
+		if len(ipList) == 0 {
+			return fmt.Errorf("failed to get target ipList by roles label %s", roles)
+		}
+	}
+
+	execCmd := exec.NewExecCmd(cluster, ipList)
+	return execCmd.RunCmd(args[0])
+}
+
+func GetCurrentClusterByName(name string) (*v2.Cluster, error) {
+	var err error
+	if name == "" {
+		name, err = clusterfile.GetDefaultClusterName()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get default cluster name from home dir: %v", err)
+		}
+	}
+
+	cluster, err := clusterfile.GetClusterFromFile(common.GetClusterWorkClusterfile(name))
+	if err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
 }

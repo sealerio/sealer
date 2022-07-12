@@ -15,27 +15,26 @@
 package alpha
 
 import (
-	"fmt"
 	"github.com/sealerio/sealer/apply"
-	"github.com/sealerio/sealer/pkg/clusterfile"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
 var upgradeClusterName string
 
-const (
-	clusterfilepath = `%s/.sealer/%s/Clusterfile`
-)
+var exampleForUpgradeCmd = `The following command will upgrade the current cluster to kubernetes:v1.19.9
+sealer alpha upgrade kubernetes:v1.19.9
+`
+
+var longUpgradeCmdDescription = `Sealer upgrade command will upgrade the current cluster to the specified version with the ClusterImage using kubeadm upgrade
+`
 
 // NewUpgradeCmd implement the sealer upgrade command
 func NewUpgradeCmd() *cobra.Command {
 	upgradeCmd := &cobra.Command{
 		Use:     "upgrade",
-		Short:   "upgrade specified Kubernetes cluster",
-		Long:    `sealer upgrade imagename --cluster clustername`,
-		Example: `sealer upgrade kubernetes:v1.19.9 --cluster my-cluster`,
+		Short:   "Upgrade specified Kubernetes cluster",
+		Long:    longUpgradeCmdDescription,
+		Example: exampleForUpgradeCmd,
 		Args:    cobra.ExactArgs(1),
 		RunE:    upgradeAction,
 	}
@@ -46,21 +45,11 @@ func NewUpgradeCmd() *cobra.Command {
 }
 
 func upgradeAction(cmd *cobra.Command, args []string) error {
-	var err error
-	//get cluster name
-	if upgradeClusterName == "" {
-		upgradeClusterName, err = clusterfile.GetDefaultClusterName()
-		if err != nil {
-			return err
-		}
-	}
-	//get Clusterfile
-	userHome, _ := os.UserHomeDir()
-	var filepath = fmt.Sprintf(clusterfilepath, userHome, upgradeClusterName)
-	desiredCluster, err := clusterfile.GetClusterFromFile(filepath)
+	desiredCluster, err := GetCurrentClusterByName(upgradeClusterName)
 	if err != nil {
 		return err
 	}
+
 	applier, err := apply.NewDefaultApplier(desiredCluster)
 	if err != nil {
 		return err

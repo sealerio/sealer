@@ -16,6 +16,7 @@ package alpha
 
 import (
 	"fmt"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/spf13/cobra"
 
@@ -48,7 +49,6 @@ func NewDebugCmd() *cobra.Command {
 	debugCommand.PersistentFlags().StringToStringP("env", "e", nil, "Environment variables to set in the container.")
 
 	return debugCommand
-
 }
 
 func newDebugCleanCMD() *cobra.Command {

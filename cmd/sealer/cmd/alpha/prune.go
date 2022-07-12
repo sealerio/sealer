@@ -24,20 +24,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var exampleForPruneCmd = `The following command will prune sealer data directory such as, image db ,image layer, build tmp.
+
+sealer alpha prune
+`
+
+var longPruneCmdDescription = ``
+
 // NewPruneCmd returns the sealer filesystem prune Cobra command
 func NewPruneCmd() *cobra.Command {
 	pruneCmd := &cobra.Command{
-		Use:   "prune",
-		Short: "prune sealer data dir",
-		// TODO: add long description.
-		Long: "",
-		Args: cobra.NoArgs,
-		Example: `$ sealer prune
-start to prune image db ...
-start to prune layer ...
-start to prune build tmp ...
-`,
-		RunE: pruneAction,
+		Use:     "prune",
+		Short:   "Prune sealer data dir",
+		Long:    longPruneCmdDescription,
+		Args:    cobra.NoArgs,
+		Example: exampleForPruneCmd,
+		RunE:    pruneAction,
 	}
 
 	return pruneCmd

@@ -1,18 +1,16 @@
-/*
-Copyright © 2022 Alibaba Group Holding Ltd.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright © 2022 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package alpha
 
@@ -26,37 +24,31 @@ import (
 )
 
 var flag *processor.ParserArg
-var longGenCmdDescription = `sealer gen --passwd xxxx --image kubernetes:v1.19.8
 
-The takeover actually is to generate a Clusterfile by kubeconfig.
-Sealer will call kubernetes API to get masters and nodes IP info, then generate a Clusterfile.
-Also sealer will pull a ClusterImage which matches the kubernetes version.
+var exampleForGenCmd = `The following command will generate Clusterfile used by sealer under user home dir:
 
-Check generated Clusterfile: 'cat .sealer/<cluster name>/Clusterfile'
+sealer alpha gen --passwd xxxx --image kubernetes:v1.19.8
+`
 
-The master should has 'node-role.kubernetes.io/master' label.
+var longGenCmdDescription = `Sealer will call kubernetes API to get masters and nodes IP info, then generate a Clusterfile. and also pull a ClusterImage which matches the kubernetes version.
 
 Then you can use any sealer command to manage the cluster like:
 
-> Upgrade cluster
-	sealer upgrade --image kubernetes:v1.22.0
-
 > Scale
-	sealer join --node x.x.x.x
-
-> Deploy a ClusterImage into the cluster
-	sealer run mysql-cluster:5.8`
+	sealer join --node x.x.x.x`
 
 // NewGenCmd returns the sealer gen Cobra command
 func NewGenCmd() *cobra.Command {
 	genCmd := &cobra.Command{
-		Use:   "gen",
-		Short: "generate a Clusterfile to take over a normal cluster which is not deployed by sealer",
-		Long:  longGenCmdDescription,
+		Use:     "gen",
+		Short:   "Generate a Clusterfile to take over a normal cluster which was not deployed by sealer",
+		Long:    longGenCmdDescription,
+		Example: exampleForGenCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if flag.Passwd == "" || flag.Image == "" {
 				return fmt.Errorf("password and image name cannot be empty")
 			}
+
 			cluster, err := processor.GenerateCluster(flag)
 			if err != nil {
 				return err

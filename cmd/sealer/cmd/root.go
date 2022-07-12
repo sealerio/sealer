@@ -16,9 +16,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/sealerio/sealer/cmd/sealer/cmd/alpha"
 	"os"
 	"path/filepath"
+
+	"github.com/sealerio/sealer/cmd/sealer/cmd/alpha"
 
 	"github.com/sealerio/sealer/pkg/logger"
 	"github.com/sirupsen/logrus"
