@@ -26,7 +26,11 @@ import (
 
 var altNames []string
 
-var longCertCmdDescription = `Add domain or ip in certs: you had better backup old certs first. this command will update cluster API server cert, you need to restart your API server manually after using sealer cert. then, you can using cmd "openssl x509 -noout -text -in apiserver.crt" to check the cert details.
+var longCertCmdDescription = `This command will add the new domain or IP address in cert to update cluster API server.
+
+sealer has some default domain and IP in the cert process builtin: localhost,outbound IP address and some DNS domain which is strongly related to the apiserver CertSANs configured by kubeadm.yml.
+
+You need to restart your API server manually after using sealer alpha cert. Then, you can using cmd "openssl x509 -noout -text -in apiserver.crt" to check the cert details.
 `
 
 var exampleForCertCmd = `
@@ -45,7 +49,7 @@ func NewCertCmd() *cobra.Command {
 		Example: exampleForCertCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(altNames) == 0 {
-				return fmt.Errorf("ip address or DNS domain needed for cert Subject Alternative Names")
+				return fmt.Errorf("IP address or DNS domain needed for cert Subject Alternative Names")
 			}
 
 			cluster, err := clusterfile.GetDefaultCluster()
@@ -67,7 +71,7 @@ func NewCertCmd() *cobra.Command {
 		},
 	}
 
-	certCmd.Flags().StringSliceVar(&altNames, "alt-names", []string{}, "add domain or ip in certs, sealer.cool or 10.103.97.2")
+	certCmd.Flags().StringSliceVar(&altNames, "alt-names", []string{}, "add DNS domain or IP in certs, if it already in the cert subject alternative names list, nothing will changed")
 
 	return certCmd
 }

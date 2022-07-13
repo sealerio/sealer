@@ -76,7 +76,7 @@ func execActionFunc(cmd *cobra.Command, args []string) error {
 			ipList = append(ipList, cluster.GetIPSByRole(role)...)
 		}
 		if len(ipList) == 0 {
-			return fmt.Errorf("failed to get target ipList by roles label %s", roles)
+			return fmt.Errorf("failed to get target ipList: no IP gotten by role(%s)", roles)
 		}
 	}
 

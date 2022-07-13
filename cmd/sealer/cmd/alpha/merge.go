@@ -35,7 +35,6 @@ var exampleForMergeCmd = `Merge mysql,redis and kubernetes image as one ClusterI
 
 var longMergeCmdDescription = `Sealer merge command will merge all layers of source image into one target image`
 
-
 func NewMergeCmd() *cobra.Command {
 	mergeCmd := &cobra.Command{
 		Use:     "merge",

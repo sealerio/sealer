@@ -22,7 +22,7 @@ import (
 func NewCmdAlpha() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "alpha",
-		Short: "Sealer experimental sub-commands",
+		Short: "sealer experimental sub-commands",
 	}
 
 	cmd.AddCommand(NewPruneCmd())
