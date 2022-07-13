@@ -64,7 +64,7 @@ rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubel
 rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
 rm -rf /usr/bin/kubelet && rm -rf /usr/bin/crictl && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
-rm -rf /var/lib/etcd && rm -rf /var/etcd 
+rm -rf /var/lib/etcd/* && rm -rf /var/etcd/*
 `
 	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
 	RemoteRemoveRegistryCerts    = "rm -rf " + DockerCertDir + "/%s*"

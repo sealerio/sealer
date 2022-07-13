@@ -130,7 +130,7 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 		b, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
 		if err != nil {
 			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
-			return nil, err
+			return b, err
 		}
 		return b, err
 	}
