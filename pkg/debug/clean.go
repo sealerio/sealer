@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -30,8 +29,6 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/sealerio/sealer/common"
 )
 
 // CleanOptions holds the options for an invocation of debug clean.
@@ -61,25 +58,6 @@ func NewDebugCleaner() *Cleaner {
 	return &Cleaner{
 		CleanOptions: NewDebugCleanOptions(),
 	}
-}
-
-var CleanCMD = &cobra.Command{
-	Use:   "clean",
-	Short: "Clean the debug container od pod",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cleaner := NewDebugCleaner()
-		cleaner.AdminKubeConfigPath = common.KubeAdminConf
-
-		if err := cleaner.CompleteAndVerifyOptions(args); err != nil {
-			return err
-		}
-		if err := cleaner.Run(); err != nil {
-			return err
-		}
-
-		return nil
-	},
 }
 
 // CompleteAndVerifyOptions completes and verifies DebugCleanOptions.

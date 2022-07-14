@@ -292,7 +292,7 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 		JoinNode:   fmt.Sprintf(JoinNode115Lower, k.getVIP(), k.getJoinToken(), k.getTokenCaCertHash()),
 	}
 
-	var kv KubeVersion
+	var kv kubeVersion
 	kv = kv.Version(version)
 	cmp, err := kv.Compare(kv.Version(V1150))
 	//other version >= 1.15.x

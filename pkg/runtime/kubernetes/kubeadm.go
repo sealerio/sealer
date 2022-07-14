@@ -35,20 +35,20 @@ echo ${driver}`
 
 // k.getKubeVersion can't be empty
 func (k *KubeadmRuntime) setKubeadmAPIVersion() {
-	var kv KubeVersion
+	var kv kubeVersion
 	kv = kv.Version(k.getKubeVersion())
-	kv1150Flag, err := kv.Compare(kv.Version(V1150))
+	greatThanKV1150, err := kv.Compare(kv.Version(V1150))
 	if err != nil {
 		logrus.Errorf("compare kubernetes version failed: %s", err)
 	}
-	kv1230Flag, err := kv.Compare(kv.Version(V1230))
+	greatThanKV1230, err := kv.Compare(kv.Version(V1230))
 	if err != nil {
 		logrus.Errorf("compare kubernetes version failed: %s", err)
 	}
 	switch {
-	case kv1150Flag && !kv1230Flag:
+	case greatThanKV1150 && !greatThanKV1230:
 		k.setAPIVersion(KubeadmV1beta2)
-	case kv1230Flag:
+	case greatThanKV1230:
 		k.setAPIVersion(KubeadmV1beta3)
 	default:
 		// Compatible with versions 1.14 and 1.13. but do not recommend.

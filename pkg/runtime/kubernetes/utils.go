@@ -30,37 +30,33 @@ import (
 	"github.com/pkg/errors"
 )
 
-//KubeVersion is a Metadata kubernetes version field such as "v1.19.8"
-type KubeVersion struct {
-	FieldList []string
+//kubeVersion is a []string that we use to normalize version string.
+type kubeVersion []string
+
+// Version takes version string, and encapsulates it in comparable []string.
+func (v kubeVersion) Version(version string) kubeVersion {
+	version = strings.Replace(version, "v", "", -1)
+	version = strings.Split(version, "-")[0]
+	return strings.Split(version, ".")
 }
 
-// Version swap string to []string
-func (v *KubeVersion) Version(v1 string) KubeVersion {
-	v1 = strings.Replace(v1, "v", "", -1)
-	v1 = strings.Split(v1, "-")[0]
-	return KubeVersion{
-		FieldList: strings.Split(v1, "."),
+// Compare :if givenVersion >= oldVersion return true, else return false
+func (v kubeVersion) Compare(oldVersion kubeVersion) (bool, error) {
+	if len(v) != 3 || len(oldVersion) != 3 {
+		return false, fmt.Errorf("error version format %s %s", v, oldVersion)
 	}
-}
-
-// Compare :if v >= v1 return true, else return false
-func (v *KubeVersion) Compare(v1 KubeVersion) (bool, error) {
-	if len(v.FieldList) != 3 || len(v1.FieldList) != 3 {
-		return false, fmt.Errorf("error version format %s %s", v, v1)
-	}
-	//TODO: check if necessary need v = v1 logic!
-	if v.FieldList[0] > v1.FieldList[0] {
+	//TODO: check if necessary need v = version logic!
+	if v[0] > oldVersion[0] {
 		return true, nil
-	} else if v.FieldList[0] < v1.FieldList[0] {
+	} else if v[0] < oldVersion[0] {
 		return false, nil
 	}
-	if v.FieldList[1] > v1.FieldList[1] {
+	if v[1] > oldVersion[1] {
 		return true, nil
-	} else if v.FieldList[1] < v1.FieldList[1] {
+	} else if v[1] < oldVersion[1] {
 		return false, nil
 	}
-	if v.FieldList[2] > v1.FieldList[2] {
+	if v[2] > oldVersion[2] {
 		return true, nil
 	}
 	return true, nil

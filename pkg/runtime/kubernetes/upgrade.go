@@ -53,7 +53,7 @@ func (k *KubeadmRuntime) upgrade() error {
 func (k *KubeadmRuntime) upgradeFirstMaster(IP net.IP, binPath, version string) error {
 	var drain string
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
-	var kv KubeVersion
+	var kv kubeVersion
 	kv = kv.Version(version)
 	cmp, err := kv.Compare(kv.Version(V1200))
 	if err != nil {
@@ -83,7 +83,7 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP net.IP, binPath, version string) 
 func (k *KubeadmRuntime) upgradeOtherMasters(IPs []net.IP, binpath, version string) error {
 	var (
 		drain string
-		kv    KubeVersion
+		kv    kubeVersion
 		err   error
 	)
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
