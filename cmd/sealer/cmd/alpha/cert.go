@@ -71,7 +71,7 @@ func NewCertCmd() *cobra.Command {
 		},
 	}
 
-	certCmd.Flags().StringSliceVar(&altNames, "alt-names", []string{}, "add DNS domain or IP in certs, if it already in the cert subject alternative names list, nothing will changed")
+	certCmd.Flags().StringSliceVar(&altNames, "alt-names", []string{}, "add DNS domain or IP in certs, if it is already in the cert subject alternative names list, nothing will be changed")
 
 	return certCmd
 }

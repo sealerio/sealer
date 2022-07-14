@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var exampleForPruneCmd = `The following command will prune sealer data directory such as, image db ,image layer, build tmp.
+var exampleForPruneCmd = `The following command will prune sealer data directory, such as: image db, image layer, build tmp.
 
 sealer alpha prune
 `
