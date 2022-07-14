@@ -25,7 +25,7 @@ func TestVersion_Version(t *testing.T) {
 	tests := []struct {
 		name        string
 		version     string
-		wantVersion []string
+		wantVersion kubeVersion
 	}{
 		{
 			name:        "test Version field correct",
