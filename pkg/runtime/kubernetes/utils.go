@@ -16,11 +16,9 @@ package kubernetes
 
 import (
 	"fmt"
-
 	"net"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/utils/exec"
@@ -29,38 +27,6 @@ import (
 
 	"github.com/pkg/errors"
 )
-
-//kubeVersion is a []string that we use to normalize version string.
-type kubeVersion []string
-
-// Version takes version string, and encapsulates it in comparable []string.
-func (v kubeVersion) Version(version string) kubeVersion {
-	version = strings.Replace(version, "v", "", -1)
-	version = strings.Split(version, "-")[0]
-	return strings.Split(version, ".")
-}
-
-// Compare :if givenVersion >= oldVersion return true, else return false
-func (v kubeVersion) Compare(oldVersion kubeVersion) (bool, error) {
-	if len(v) != 3 || len(oldVersion) != 3 {
-		return false, fmt.Errorf("error version format %s %s", v, oldVersion)
-	}
-	//TODO: check if necessary need v = version logic!
-	if v[0] > oldVersion[0] {
-		return true, nil
-	} else if v[0] < oldVersion[0] {
-		return false, nil
-	}
-	if v[1] > oldVersion[1] {
-		return true, nil
-	} else if v[1] < oldVersion[1] {
-		return false, nil
-	}
-	if v[2] > oldVersion[2] {
-		return true, nil
-	}
-	return true, nil
-}
 
 func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) error {
 	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later

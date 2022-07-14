@@ -23,9 +23,9 @@ import (
 type Interface interface {
 	// Init exec init phase for cluster, v2.Cluster deliver cluster's information.
 	Init(cluster *v2.Cluster) error
-	// Upgrade exec upgrading phase for cluster.
+	// Upgrade exec upgrading phase for cluster.TODO: make the annotation more comprehensive
 	Upgrade() error
-	// Reset exec reset phase for cluster.
+	// Reset exec reset phase for cluster.TODO: make the annotation more comprehensive
 	Reset() error
 	// JoinMasters exec joining phase for cluster, add master role for these nodes. net.IP is the master node IP array.
 	JoinMasters(newMastersIPList []net.IP) error

@@ -292,9 +292,8 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 		JoinNode:   fmt.Sprintf(JoinNode115Lower, k.getVIP(), k.getJoinToken(), k.getTokenCaCertHash()),
 	}
 
-	var kv kubeVersion
-	kv = kv.Version(version)
-	cmp, err := kv.Compare(kv.Version(V1150))
+	kv := kubeVersion(version)
+	cmp, err := kv.Compare(V1150)
 	//other version >= 1.15.x
 	if err != nil {
 		logrus.Errorf("failed to compare Kubernetes version: %s", err)
