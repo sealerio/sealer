@@ -53,7 +53,13 @@ func (k *KubeadmRuntime) upgrade() error {
 func (k *KubeadmRuntime) upgradeFirstMaster(IP net.IP, binPath, version string) error {
 	var drain string
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
-	if VersionCompare(version, V1200) {
+	var kv KubeVersion
+	kv = kv.Version(version)
+	cmp, err := kv.Compare(kv.Version(V1200))
+	if err != nil {
+		return err
+	}
+	if cmp {
 		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-emptydir-data")
 	} else {
 		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-local-data")
@@ -75,9 +81,18 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP net.IP, binPath, version string) 
 }
 
 func (k *KubeadmRuntime) upgradeOtherMasters(IPs []net.IP, binpath, version string) error {
-	var drain string
+	var (
+		drain string
+		kv    KubeVersion
+		err   error
+	)
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
-	if VersionCompare(version, V1200) {
+	kv = kv.Version(version)
+	cmp, err := kv.Compare(kv.Version(V1200))
+	if err != nil {
+		return err
+	}
+	if cmp {
 		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-emptydir-data")
 	} else {
 		drain = fmt.Sprintf("%s %s", drainCmd, "--delete-local-data")
@@ -91,7 +106,6 @@ func (k *KubeadmRuntime) upgradeOtherMasters(IPs []net.IP, binpath, version stri
 		restartCmd,
 		uncordonCmd,
 	}
-	var err error
 	for _, ip := range IPs {
 		ssh, err := k.getHostSSHClient(ip)
 		if err != nil {

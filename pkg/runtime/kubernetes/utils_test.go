@@ -15,59 +15,112 @@
 package kubernetes
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 )
 
-func TestVersionCompare(t *testing.T) {
+func TestVersion_Version(t *testing.T) {
 	tests := []struct {
-		oldVersion string
-		newVersion string
-		name       string
-		expectRes  bool
+		name        string
+		version     string
+		wantVersion []string
 	}{
 		{
-			"v1.24.1",
-			"v1.19.8",
-			"test: version v1<v2",
-			true,
+			name:        "test Version field correct",
+			version:     "v1.19.8",
+			wantVersion: []string{"1", "19", "8"},
 		},
 		{
-			"v1.19.8",
-			"v1.20.4",
-			"test: version v1>v2",
-			false,
+			name:        "test Version field incorrect",
+			version:     "-v1.19.8-",
+			wantVersion: []string{""},
 		},
 		{
-			"v1.24.1",
-			"v1.24.1",
-			"test: version v1=v2",
-			true,
-		},
-		{
-			"",
-			"",
-			"test: version field is blank",
-			false,
-		},
-		{
-			"1.24.x",
-			"1.x.8",
-			"test: version field not legal",
-			false,
-		},
-		{
-			"-v1.24.1",
-			"-v1.19.8",
-			"test: version is wrong",
-			false,
+			name:        "test Version field blank",
+			version:     "",
+			wantVersion: []string{""},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if res := VersionCompare(tt.oldVersion, tt.newVersion); res != tt.expectRes {
-				logrus.Errorf("oldVersion: %s, newVersion: %s. compare should be: %v, but return: %v", tt.oldVersion, tt.newVersion, tt.expectRes, res)
+			var v KubeVersion
+			v1 := v.Version(tt.version)
+			if !reflect.DeepEqual(v1, tt.wantVersion) {
+				t.Errorf("Version parse failed! got: %v, want: %v", v1, tt.wantVersion)
+			}
+		})
+	}
+}
+
+func TestVersion_Compare(t *testing.T) {
+	tests := []struct {
+		name       string
+		oldVersion KubeVersion
+		newVersion KubeVersion
+		wantRes    bool
+	}{
+		{
+			name: "test v > v1",
+			oldVersion: KubeVersion{
+				FieldList: []string{"1", "24", "1"},
+			},
+			newVersion: KubeVersion{
+				FieldList: []string{"1", "19", "8"},
+			},
+			wantRes: true,
+		},
+		{
+			name: "test v = v1",
+			oldVersion: KubeVersion{
+				FieldList: []string{"1", "19", "8"},
+			},
+			newVersion: KubeVersion{
+				FieldList: []string{"1", "19", "8"},
+			},
+			wantRes: true,
+		},
+		{
+			name: "test v < v1",
+			oldVersion: KubeVersion{
+				FieldList: []string{"1", "19", "8"},
+			},
+			newVersion: KubeVersion{
+				FieldList: []string{"1", "24", "8"},
+			},
+			wantRes: false,
+		},
+		{
+			name: "test1 old Version illegal",
+			oldVersion: KubeVersion{
+				FieldList: []string{""},
+			},
+			newVersion: KubeVersion{
+				FieldList: []string{"1", "19", "8"},
+			},
+			wantRes: false,
+		},
+		{
+			name: "test2 give Version illegal",
+			oldVersion: KubeVersion{
+				FieldList: []string{"1", "19", "8"},
+			},
+			newVersion: KubeVersion{
+				FieldList: []string{""},
+			},
+			wantRes: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := tt.oldVersion
+			res, err := v.Compare(tt.newVersion)
+			if err != nil {
+				logrus.Errorf("compare kubernetes version failed: %s", err)
+			}
+			if !reflect.DeepEqual(res, tt.wantRes) {
+				t.Errorf("Version compare failed! result: %v, want: %v", res, tt.wantRes)
 			}
 		})
 	}

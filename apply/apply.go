@@ -19,7 +19,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/apply/applydriver"
+	"github.com/sealerio/sealer/apply/driver"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/filesystem"
@@ -49,7 +49,7 @@ type Args struct {
 	CMDArgs    []string
 }
 
-func NewApplierFromFile(path string) (applydriver.Interface, error) {
+func NewApplierFromFile(path string) (driver.Interface, error) {
 	if !filepath.IsAbs(path) {
 		pa, err := os.Getwd()
 		if err != nil {
@@ -82,7 +82,7 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 	if cluster.GetAnnotationsByKey(common.ClusterfileName) == "" {
 		cluster.SetAnnotations(common.ClusterfileName, path)
 	}
-	return &applydriver.Applier{
+	return &driver.Applier{
 		ClusterDesired:      &cluster,
 		ClusterFile:         Clusterfile,
 		ImageManager:        imgSvc,
@@ -94,11 +94,11 @@ func NewApplierFromFile(path string) (applydriver.Interface, error) {
 // NewApplier news an applier.
 // In NewApplier, we guarantee that no raw data could be passed in.
 // And all data has to be validated and processed in the pre-process layer.
-func NewApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
+func NewApplier(cluster *v2.Cluster) (driver.Interface, error) {
 	return NewDefaultApplier(cluster)
 }
 
-func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
+func NewDefaultApplier(cluster *v2.Cluster) (driver.Interface, error) {
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty")
 	}
@@ -117,7 +117,7 @@ func NewDefaultApplier(cluster *v2.Cluster) (applydriver.Interface, error) {
 		return nil, err
 	}
 
-	return &applydriver.Applier{
+	return &driver.Applier{
 		ClusterDesired:      cluster,
 		ImageManager:        imgSvc,
 		ClusterImageMounter: mounter,

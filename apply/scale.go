@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sealerio/sealer/apply/applydriver"
+	"github.com/sealerio/sealer/apply/driver"
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -31,7 +31,7 @@ import (
 )
 
 // NewScaleApplierFromArgs will filter ip list from command parameters.
-func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (applydriver.Interface, error) {
+func NewScaleApplierFromArgs(clusterfile string, scaleArgs *Args, flag string) (driver.Interface, error) {
 	if scaleArgs.Nodes == "" && scaleArgs.Masters == "" {
 		return nil, fmt.Errorf("master and node cannot both be empty")
 	}

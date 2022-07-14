@@ -28,36 +28,42 @@ import (
 	"github.com/sealerio/sealer/utils/ssh"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
-// VersionCompare :if v1 >= v2 return true, else return false
-func VersionCompare(v1, v2 string) bool {
-	v1 = strings.Replace(v1, "v", "", -1)
-	v2 = strings.Replace(v2, "v", "", -1)
-	v1 = strings.Split(v1, "-")[0]
-	v2 = strings.Split(v2, "-")[0]
-	v1List := strings.Split(v1, ".")
-	v2List := strings.Split(v2, ".")
+//KubeVersion is a Metadata kubernetes version field such as "v1.19.8"
+type KubeVersion struct {
+	FieldList []string
+}
 
-	if len(v1List) != 3 || len(v2List) != 3 {
-		logrus.Errorf("error version format %s %s", v1, v2)
-		return false
+// Version swap string to []string
+func (v *KubeVersion) Version(v1 string) KubeVersion {
+	v1 = strings.Replace(v1, "v", "", -1)
+	v1 = strings.Split(v1, "-")[0]
+	return KubeVersion{
+		FieldList: strings.Split(v1, "."),
 	}
-	if v1List[0] > v2List[0] {
-		return true
-	} else if v1List[0] < v2List[0] {
-		return false
+}
+
+// Compare :if v >= v1 return true, else return false
+func (v *KubeVersion) Compare(v1 KubeVersion) (bool, error) {
+	if len(v.FieldList) != 3 || len(v1.FieldList) != 3 {
+		return false, fmt.Errorf("error version format %s %s", v, v1)
 	}
-	if v1List[1] > v2List[1] {
-		return true
-	} else if v1List[1] < v2List[1] {
-		return false
+	//TODO: check if necessary need v = v1 logic!
+	if v.FieldList[0] > v1.FieldList[0] {
+		return true, nil
+	} else if v.FieldList[0] < v1.FieldList[0] {
+		return false, nil
 	}
-	if v1List[2] > v2List[2] {
-		return true
+	if v.FieldList[1] > v1.FieldList[1] {
+		return true, nil
+	} else if v.FieldList[1] < v1.FieldList[1] {
+		return false, nil
 	}
-	return true
+	if v.FieldList[2] > v1.FieldList[2] {
+		return true, nil
+	}
+	return true, nil
 }
 
 func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) error {

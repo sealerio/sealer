@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sealerio/sealer/apply/applydriver"
+	"github.com/sealerio/sealer/apply/driver"
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -55,7 +55,7 @@ func ConstructClusterFromArg(imageName string, runArgs *Args) (*v2.Cluster, erro
 	return &cluster, nil
 }
 
-func NewApplierFromArgs(imageName string, runArgs *Args) (applydriver.Interface, error) {
+func NewApplierFromArgs(imageName string, runArgs *Args) (driver.Interface, error) {
 	if err := validateArgs(runArgs); err != nil {
 		return nil, fmt.Errorf("failed to validate input run args: %v", err)
 	}
