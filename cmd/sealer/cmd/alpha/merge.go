@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package alpha
 
 import (
 	"fmt"
@@ -25,28 +25,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type mergeFlag struct {
-	ImageName string
-	Platform  string
-}
+var (
+	mergeImageName string
+	mergePlatform  string
+)
 
-var mf *mergeFlag
+var exampleForMergeCmd = `Merge mysql,redis and kubernetes image as one ClusterImage named my-image:v1:
+	sealer alpha merge kubernetes:v1.19.9 mysql:5.7.0 redis:6.0.0 -t my-image:v1`
 
-func getMergeCmd() *cobra.Command {
-	var mergeCmd = &cobra.Command{
-		Use:   "merge",
-		Short: "merge multiple images into one",
-		Long:  `sealer merge image1:latest image2:latest image3:latest ......`,
-		Example: `
-merge images:
-	sealer merge kubernetes:v1.19.9 mysql:5.7.0 redis:6.0.0 -t new:0.1.0
-`,
-		Args: cobra.MinimumNArgs(1),
-		RunE: getMergeFunc,
+var longMergeCmdDescription = `Sealer merge command will merge all layers of source image into one target image`
+
+func NewMergeCmd() *cobra.Command {
+	mergeCmd := &cobra.Command{
+		Use:     "merge",
+		Short:   "Merge multiple images into one",
+		Long:    longMergeCmdDescription,
+		Example: exampleForMergeCmd,
+		Args:    cobra.MinimumNArgs(1),
+		RunE:    getMergeFunc,
 	}
-	mf = &mergeFlag{}
-	mergeCmd.Flags().StringVarP(&mf.ImageName, "target-image", "t", "", "target image name")
-	mergeCmd.Flags().StringVar(&mf.Platform, "platform", "", "set ClusterImage platform, if not set,keep same platform with runtime")
+
+	mergeCmd.Flags().StringVarP(&mergeImageName, "target-image", "t", "", "target image name")
+	mergeCmd.Flags().StringVar(&mergePlatform, "platform", "", "set ClusterImage platform, if not set,keep same platform with runtime")
 
 	if err := mergeCmd.MarkFlagRequired("target-image"); err != nil {
 		logrus.Errorf("failed to init flag target image: %v", err)
@@ -63,7 +63,7 @@ func getMergeFunc(cmd *cobra.Command, args []string) error {
 		}
 		images = append(images, imageName)
 	}
-	targetPlatform, err := platform.GetPlatform(mf.Platform)
+	targetPlatform, err := platform.GetPlatform(mergePlatform)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func getMergeFunc(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("merge action only do the same plaform at a time")
 	}
 
-	ima := buildRaw(mf.ImageName)
+	ima := buildRaw(mergeImageName)
 	if err := image.Merge(ima, images, targetPlatform[0]); err != nil {
 		return err
 	}
@@ -90,8 +90,4 @@ func buildRaw(name string) string {
 		return name
 	}
 	return name + ":" + defaultTag
-}
-
-func init() {
-	rootCmd.AddCommand(getMergeCmd())
 }

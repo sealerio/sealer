@@ -16,8 +16,6 @@ package debug
 
 import (
 	"fmt"
-
-	"github.com/spf13/cobra"
 )
 
 type ImagesManagement interface {
@@ -26,21 +24,6 @@ type ImagesManagement interface {
 }
 
 const DefaultSealerRegistryURL = "registry.cn-qingdao.aliyuncs.com/sealer-apps/"
-
-var ShowImagesCMD = &cobra.Command{
-	Use:   "show-images",
-	Short: "List default images",
-	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		manager := NewDebugImagesManager()
-		manager.RegistryURL = DefaultSealerRegistryURL
-
-		if err := manager.ShowDefaultImages(); err != nil {
-			return err
-		}
-		return nil
-	},
-}
 
 // ImagesManager holds the default images information.
 type ImagesManager struct {

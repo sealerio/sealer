@@ -19,44 +19,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
-
-	"github.com/sealerio/sealer/common"
 )
-
-func NewDebugNodeCommand(options *DebuggerOptions) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "node",
-		Short: "Debug node",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			debugger := NewDebugger(options)
-			debugger.AdminKubeConfigPath = common.KubeAdminConf
-			debugger.Type = TypeDebugNode
-			debugger.Motd = SealerDebugMotd
-
-			imager := NewDebugImagesManager()
-
-			if err := debugger.CompleteAndVerifyOptions(cmd, args, imager); err != nil {
-				return err
-			}
-			str, err := debugger.Run()
-			if err != nil {
-				return err
-			}
-			if len(str) != 0 {
-				fmt.Println("The debug ID:", str)
-			}
-
-			return nil
-		},
-	}
-
-	return cmd
-}
 
 // DebugNode can debug a node.
 func (debugger *Debugger) DebugNode(ctx context.Context) (*corev1.Pod, error) {

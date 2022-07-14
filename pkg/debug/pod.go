@@ -19,47 +19,11 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
-
-	"github.com/sealerio/sealer/common"
 )
-
-func NewDebugPodCommand(options *DebuggerOptions) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "pod",
-		Short: "Debug pod or container",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			debugger := NewDebugger(options)
-			debugger.AdminKubeConfigPath = common.KubeAdminConf
-			debugger.Type = TypeDebugPod
-			debugger.Motd = SealerDebugMotd
-
-			imager := NewDebugImagesManager()
-
-			if err := debugger.CompleteAndVerifyOptions(cmd, args, imager); err != nil {
-				return err
-			}
-			str, err := debugger.Run()
-			if err != nil {
-				return err
-			}
-			if len(str) != 0 {
-				fmt.Println("The debug ID:", str)
-			}
-
-			return nil
-		},
-	}
-
-	cmd.Flags().StringVarP(&options.TargetContainer, "container", "c", "", "The container to be debugged.")
-
-	return cmd
-}
 
 func (debugger *Debugger) DebugPod(ctx context.Context) (*corev1.Pod, error) {
 	// get the target pod object
