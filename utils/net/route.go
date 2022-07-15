@@ -158,28 +158,5 @@ func delRouteGatewayViaHost(host, gateway net.IP) error {
 }
 
 func IsIpv4(ip string) bool {
-	arr := strings.Split(ip, ".")
-	if len(arr) != 4 {
-		return false
-	}
-	for _, v := range arr {
-		if v == "" {
-			return false
-		}
-		if len(v) > 1 && v[0] == '0' {
-			return false
-		}
-		num := 0
-		for _, c := range v {
-			if c >= '0' && c <= '9' {
-				num = num*10 + int(c-'0')
-			} else {
-				return false
-			}
-		}
-		if num > 255 {
-			return false
-		}
-	}
-	return true
+	return net.ParseIP(ip) != nil && strings.Contains(ip, ".")
 }
