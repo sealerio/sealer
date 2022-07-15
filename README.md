@@ -7,6 +7,7 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5205/badge)](https://bestpractices.coreinfrastructure.org/en/projects/5205)
 [![Twitter](https://img.shields.io/badge/Follow-sealer-1DA1F2?logo=twitter)](https://twitter.com/sealer_oss)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsealerio%2Fsealer.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsealerio%2Fsealer?ref=badge_shield)
+[![codecov](https://codecov.io/gh/sealerio/sealer/branch/main/graph/badge.svg?token=LH8XUR5YPL)](https://codecov.io/gh/sealerio/sealer)
 
 [简体中文](./docs/README_zh.md)
 
