@@ -16,9 +16,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/sealerio/sealer/common"
 	"io/ioutil"
 	"testing"
+
+	"github.com/sealerio/sealer/common"
 
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
