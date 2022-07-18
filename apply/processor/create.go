@@ -104,7 +104,7 @@ func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 }
 
 func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
-	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
+	hosts := cluster.GetAllIPList()
 	regConfig := kubernetes.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 	if net.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
@@ -123,12 +123,10 @@ func (c *CreateProcessor) Init(cluster *v2.Cluster) error {
 }
 
 func (c *CreateProcessor) Join(cluster *v2.Cluster) error {
-	err := c.Runtime.JoinMasters(cluster.GetMasterIPList()[1:])
-	if err != nil {
+	if err := c.Runtime.JoinMasters(cluster.GetMasterIPList()[1:]); err != nil {
 		return err
 	}
-	err = c.Runtime.JoinNodes(cluster.GetNodeIPList())
-	if err != nil {
+	if err := c.Runtime.JoinNodes(cluster.GetNodeIPList()); err != nil {
 		return err
 	}
 	return clusterfile.SaveToDisk(cluster, cluster.Name)

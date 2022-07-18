@@ -16,6 +16,8 @@ package config
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/common"
+	"io/ioutil"
 	"testing"
 
 	v1 "github.com/sealerio/sealer/types/api/v1"
@@ -63,8 +65,9 @@ import (
 		})
 	}
 }
+*/
 
-/*func Test_getMergeConfig(t *testing.T) {
+func Test_getMergeConfig(t *testing.T) {
 	type args struct {
 		path string
 		data []byte
@@ -97,20 +100,19 @@ import (
 				t.Error(err)
 				return
 			}
-			err = ioutil.WriteFile("test_"+tt.args.path, got, common.FileMode0644)
+			err = ioutil.WriteFile(""+tt.args.path, got, common.FileMode0644)
 			if err != nil {
 				t.Error(err)
 			}
 		})
 	}
-}*/
+}
 
 func Test_convertSecretYaml(t *testing.T) {
 	testConfig := v1.Config{}
 	testConfig.Spec.Data = `
 global: e2FiYzogeHh4fQo=
 components: e215c3FsOntjcHU6e3JlcXVlc3Q6IDEwMDBtfX19Cg==`
-	testConfig.Spec.Process = "value|toJson|toBase64|toSecret"
 	type args struct {
 		config     v1.Config
 		configPath string

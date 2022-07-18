@@ -145,7 +145,7 @@ func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
+	hosts := cluster.GetAllIPList()
 	regConfig := kubernetes.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utilsnet.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)

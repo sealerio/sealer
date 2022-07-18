@@ -14,6 +14,11 @@
 
 package clusterinfo
 
+import (
+	"sort"
+	"testing"
+)
+
 /* func TestGetPodsIP(t *testing.T) {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", common.KubeAdminConf)
 	if err != nil {
@@ -43,9 +48,9 @@ package clusterinfo
 			}
 		})
 	}
-}*/
+}
 
-/* func TestGetNodesIP(t *testing.T) {
+func TestGetNodesIP(t *testing.T) {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", common.KubeAdminConf)
 	if err != nil {
 		t.Errorf("failed to get rest config from file %s", common.KubeAdminConf)
@@ -63,9 +68,9 @@ package clusterinfo
 		}
 	})
 }
-*/
 
-/*func TestGetDNSServiceAll(t *testing.T) {
+
+func TestGetDNSServiceAll(t *testing.T) {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", common.KubeAdminConf)
 	if err != nil {
 		t.Errorf("failed to get rest config from file %s", common.KubeAdminConf)
@@ -84,7 +89,7 @@ package clusterinfo
 	})
 }*/
 
-/*func TestRemoveDuplicatesAndEmpty(t *testing.T) {
+func TestRemoveDuplicatesAndEmpty(t *testing.T) {
 	tests := []struct {
 		testName string
 		ipList   []string
@@ -114,4 +119,4 @@ package clusterinfo
 			}
 		})
 	}
-}*/
+}

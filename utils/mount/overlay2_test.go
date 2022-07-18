@@ -17,7 +17,9 @@
 
 package mount
 
-/*func TestOverlay2_Mount(t *testing.T) {
+import "testing"
+
+func TestOverlay2_Mount(t *testing.T) {
 	type args struct {
 		target string
 		upper  string
@@ -62,4 +64,4 @@ func TestNewMountDriver(t *testing.T) {
 	if !supportsOverlay() {
 		t.Errorf("mountDriver isn't overlay")
 	}
-}*/
+}

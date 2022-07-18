@@ -55,7 +55,7 @@ func (i *InstallProcessor) RunConfig(cluster *v2.Cluster) error {
 }
 
 func (i *InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
-	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
+	hosts := cluster.GetAllIPList()
 	//initFlag : no need to do init cmd like installing docker service and so on.
 	fs, err := filesystem.NewFilesystem(platform.DefaultMountClusterImageDir(cluster.Name))
 	if err != nil {
