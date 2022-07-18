@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package applydriver
+package kubernetes
 
-type Interface interface {
-	Apply() error
-	Delete() error
-	Upgrade(imageName string) error
-}
+const (
+	Cluster                = "Cluster"
+	InitConfiguration      = "InitConfiguration"
+	JoinConfiguration      = "JoinConfiguration"
+	ClusterConfiguration   = "ClusterConfiguration"
+	KubeProxyConfiguration = "KubeProxyConfiguration"
+	KubeletConfiguration   = "KubeletConfiguration"
+)

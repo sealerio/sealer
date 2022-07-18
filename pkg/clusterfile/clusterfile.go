@@ -18,7 +18,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
@@ -29,7 +29,7 @@ type ClusterFile struct {
 	path       string
 	Cluster    v2.Cluster
 	Configs    []v1.Config
-	KubeConfig *runtime.KubeadmConfig
+	KubeConfig *kubernetes.KubeadmConfig
 	Plugins    []v1.Plugin
 }
 
@@ -43,7 +43,7 @@ type Interface interface {
 	GetCluster() v2.Cluster
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
-	GetKubeadmConfig() *runtime.KubeadmConfig
+	GetKubeadmConfig() *kubernetes.KubeadmConfig
 }
 
 func (c *ClusterFile) GetCluster() v2.Cluster {
@@ -58,7 +58,7 @@ func (c *ClusterFile) GetPlugins() []v1.Plugin {
 	return c.Plugins
 }
 
-func (c *ClusterFile) GetKubeadmConfig() *runtime.KubeadmConfig {
+func (c *ClusterFile) GetKubeadmConfig() *kubernetes.KubeadmConfig {
 	return c.KubeConfig
 }
 

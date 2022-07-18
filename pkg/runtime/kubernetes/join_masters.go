@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package kubernetes
 
 import (
 	"context"
@@ -26,6 +26,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
 	"github.com/sealerio/sealer/pkg/ipvs"
+	"github.com/sealerio/sealer/pkg/runtime"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sealerio/sealer/utils/yaml"
@@ -129,7 +130,7 @@ func getAPIServerHost(ipAddr net.IP, APIServer string) (host string) {
 func (k *KubeadmRuntime) JoinMasterCommands(master net.IP, joinCmd, hostname string) []string {
 	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, k.getRegistryHost(), k.getRegistryHost())
-	certCMD := RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
+	certCMD := runtime.RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
 	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
 	if k.RegConfig.Domain != SeaHub {
 		cmdAddSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
@@ -290,8 +291,14 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.GetMaster0IP(), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
 		JoinNode:   fmt.Sprintf(JoinNode115Lower, k.getVIP(), k.getJoinToken(), k.getTokenCaCertHash()),
 	}
+
+	kv := kubeVersion(version)
+	cmp, err := kv.Compare(V1150)
 	//other version >= 1.15.x
-	if VersionCompare(version, V1150) {
+	if err != nil {
+		logrus.Errorf("failed to compare Kubernetes version: %s", err)
+	}
+	if cmp {
 		cmds[InitMaster] = fmt.Sprintf(InitMaser115Upper, k.getRootfs())
 		cmds[JoinMaster] = fmt.Sprintf(JoinMaster115Upper, k.getRootfs())
 		cmds[JoinNode] = fmt.Sprintf(JoinNode115Upper, k.getRootfs())
@@ -303,7 +310,7 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 		return ""
 	}
 
-	if IsInContainer() {
+	if runtime.IsInContainer() {
 		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Vlog), " --ignore-preflight-errors=all")
 	}
 	if name == InitMaster || name == JoinMaster {

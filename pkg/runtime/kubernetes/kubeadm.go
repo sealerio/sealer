@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package kubernetes
 
 import (
 	"fmt"
@@ -35,10 +35,19 @@ echo ${driver}`
 
 // k.getKubeVersion can't be empty
 func (k *KubeadmRuntime) setKubeadmAPIVersion() {
+	kv := kubeVersion(k.getKubeVersion())
+	greatThanKV1150, err := kv.Compare(V1150)
+	if err != nil {
+		logrus.Errorf("compare kubernetes version failed: %s", err)
+	}
+	greatThanKV1230, err := kv.Compare(V1230)
+	if err != nil {
+		logrus.Errorf("compare kubernetes version failed: %s", err)
+	}
 	switch {
-	case VersionCompare(k.getKubeVersion(), V1150) && !VersionCompare(k.getKubeVersion(), V1230):
+	case greatThanKV1150 && !greatThanKV1230:
 		k.setAPIVersion(KubeadmV1beta2)
-	case VersionCompare(k.getKubeVersion(), V1230):
+	case greatThanKV1230:
 		k.setAPIVersion(KubeadmV1beta3)
 	default:
 		// Compatible with versions 1.14 and 1.13. but do not recommend.

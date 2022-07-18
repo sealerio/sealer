@@ -23,11 +23,12 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/env"
-	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
+
 	"golang.org/x/sync/errgroup"
 )
 
@@ -64,7 +65,7 @@ func mountRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initFlag b
 		*sync.RWMutex
 		mountDirs map[string]bool
 	}{&sync.RWMutex{}, make(map[string]bool)}
-	config := runtime.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
+	config := kubernetes.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {
 		ip := IP

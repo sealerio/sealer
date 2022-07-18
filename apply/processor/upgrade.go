@@ -19,6 +19,7 @@ import (
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/net"
 )
@@ -45,7 +46,7 @@ func (u UpgradeProcessor) Execute(cluster *v2.Cluster) error {
 func (u UpgradeProcessor) MountRootfs(cluster *v2.Cluster) error {
 	//some hosts already mounted when scaled cluster.
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
+	regConfig := kubernetes.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if net.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}

@@ -27,7 +27,7 @@ import (
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/image"
-	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	apiv1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
@@ -51,7 +51,7 @@ type ParserArg struct {
 }
 
 type GenerateProcessor struct {
-	Runtime      *runtime.KubeadmRuntime
+	Runtime      *kubernetes.KubeadmRuntime
 	ImageManager image.Service
 	ImageMounter clusterimage.Interface
 }
@@ -146,7 +146,7 @@ func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
 		return err
 	}
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
-	regConfig := runtime.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
+	regConfig := kubernetes.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utilsnet.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
@@ -170,11 +170,11 @@ func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err = g.ImageMounter.MountImage(cluster); err != nil {
 		return err
 	}
-	runt, err := runtime.NewDefaultRuntime(cluster, nil)
+	runt, err := kubernetes.NewDefaultRuntime(cluster, nil)
 	if err != nil {
 		return err
 	}
-	g.Runtime = runt.(*runtime.KubeadmRuntime)
+	g.Runtime = runt.(*kubernetes.KubeadmRuntime)
 	return nil
 }
 
@@ -183,11 +183,11 @@ func (g *GenerateProcessor) UnmountImage(cluster *v2.Cluster) error {
 }
 
 func (g *GenerateProcessor) ApplyRegistry(cluster *v2.Cluster) error {
-	runt, err := runtime.NewDefaultRuntime(cluster, nil)
+	runt, err := kubernetes.NewDefaultRuntime(cluster, nil)
 	if err != nil {
 		return err
 	}
-	rt, ok := runt.(*runtime.KubeadmRuntime)
+	rt, ok := runt.(*kubernetes.KubeadmRuntime)
 	if !ok {
 		return fmt.Errorf("invalid type")
 	}

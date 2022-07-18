@@ -22,15 +22,15 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/env"
-	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/exec"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
-	"github.com/sirupsen/logrus"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -93,7 +93,7 @@ func mountNydusRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initF
 		nydusdCleanCmd  = fmt.Sprintf(RemoteNydusdStop, filepath.Join(nydusdDir, "clean.sh"), nydusdDir)
 		cleanCmd        = fmt.Sprintf("echo '%s' >> "+common.DefaultClusterClearBashFile, nydusdCleanCmd, cluster.Name)
 		envProcessor    = env.NewEnvProcessor(cluster)
-		config          = runtime.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
+		config          = kubernetes.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 		initCmd         = fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
 	)
 	_, err = exec.RunSimpleCmd(nydusdfileCpCmd)
