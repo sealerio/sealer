@@ -17,6 +17,7 @@
 
 package mount
 
+/*
 import "testing"
 
 func TestOverlay2_Mount(t *testing.T) {
@@ -65,3 +66,4 @@ func TestNewMountDriver(t *testing.T) {
 		t.Errorf("mountDriver isn't overlay")
 	}
 }
+*/
