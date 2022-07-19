@@ -111,8 +111,7 @@ func (s *ScaleProcessor) UnMountRootfs(cluster *v2.Cluster) error {
 }
 
 func (s *ScaleProcessor) Join(cluster *v2.Cluster) error {
-	err := s.Runtime.JoinMasters(s.MastersToJoin)
-	if err != nil {
+	if err := s.Runtime.JoinMasters(s.MastersToJoin); err != nil {
 		return err
 	}
 	return s.Runtime.JoinNodes(s.NodesToJoin)

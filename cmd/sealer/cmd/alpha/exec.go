@@ -70,7 +70,7 @@ func execActionFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(roles) == 0 {
-		ipList = append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
+		ipList = cluster.GetAllIPList()
 	} else {
 		for _, role := range roles {
 			ipList = append(ipList, cluster.GetIPSByRole(role)...)

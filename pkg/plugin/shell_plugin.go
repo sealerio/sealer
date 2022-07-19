@@ -49,7 +49,7 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 		pluginCmd = fmt.Sprintf(common.CdAndExecCmd, common.DefaultTheClusterRootfsDir(context.Cluster.Name), pluginCmd)
 	}
 	//get all host ip
-	allHostIP := append(context.Cluster.GetMasterIPList(), context.Cluster.GetNodeIPList()...)
+	allHostIP := context.Cluster.GetAllIPList()
 	if on := context.Plugin.Spec.On; on != "" {
 		allHostIP, err = GetIpsByOnField(on, context, phase)
 		if err != nil {

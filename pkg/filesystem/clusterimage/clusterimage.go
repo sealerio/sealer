@@ -144,8 +144,7 @@ func renderENV(imageMountDir string, ipList []net.IP, p env.Interface) error {
 	for _, ip := range ipList {
 		for _, dir := range []string{renderEtc, renderChart, renderManifests} {
 			if osi.IsFileExist(dir) {
-				err := p.RenderAll(ip, dir)
-				if err != nil {
+				if err := p.RenderAll(ip, dir); err != nil {
 					return err
 				}
 			}

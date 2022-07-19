@@ -45,7 +45,7 @@ func (u UpgradeProcessor) Execute(cluster *v2.Cluster) error {
 
 func (u UpgradeProcessor) MountRootfs(cluster *v2.Cluster) error {
 	//some hosts already mounted when scaled cluster.
-	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
+	hosts := cluster.GetAllIPList()
 	regConfig := kubernetes.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if net.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)

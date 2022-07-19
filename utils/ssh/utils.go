@@ -101,7 +101,7 @@ func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, i
 
 func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {
 	clusterStatus := make(map[string]v1.Platform)
-	for _, ip := range append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...) {
+	for _, ip := range cluster.GetAllIPList() {
 		IP := ip
 		ssh, err := GetHostSSHClient(IP, cluster)
 		if err != nil {

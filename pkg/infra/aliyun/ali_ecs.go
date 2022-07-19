@@ -52,8 +52,7 @@ func (a *AliProvider) RetryEcsRequest(request requests.AcsRequest, response resp
 
 func (a *AliProvider) RetryEcsAction(request requests.AcsRequest, response responses.AcsResponse, tryTimes int) error {
 	return utils.Retry(tryTimes, TrySleepTime, func() error {
-		err := a.EcsClient.DoAction(request, response)
-		if err != nil {
+		if err := a.EcsClient.DoAction(request, response); err != nil {
 			return err
 		}
 		return nil
@@ -81,11 +80,10 @@ func (a *AliProvider) RetryEcsInstanceType(request requests.AcsRequest, response
 
 func (a *AliProvider) TryGetInstance(request *ecs.DescribeInstancesRequest, response *ecs.DescribeInstancesResponse, expectCount int) error {
 	return utils.Retry(TryTimes, TrySleepTime, func() error {
-		err := a.EcsClient.DoAction(request, response)
-		var ipList []string
-		if err != nil {
+		if err := a.EcsClient.DoAction(request, response); err != nil {
 			return err
 		}
+		var ipList []string
 		instances := response.Instances.Instance
 		if expectCount == -1 {
 			return nil
@@ -366,10 +364,10 @@ func (a *AliProvider) DeleteInstances() error {
 	request.Force = requests.NewBoolean(true)
 	//_, err := d.Client.DeleteInstances(request)
 	response := ecs.CreateDeleteInstancesResponse()
-	err := a.RetryEcsRequest(request, response)
-	if err != nil {
+	if err := a.RetryEcsRequest(request, response); err != nil {
 		return err
 	}
+
 	a.Cluster.Annotations[ShouldBeDeleteInstancesIDs] = ""
 	return nil
 }
@@ -487,8 +485,7 @@ func (a *AliProvider) AuthorizeSecurityGroup(securityGroupID, portRange string) 
 
 	//response, err := d.Client.AuthorizeSecurityGroup(request)
 	response := ecs.CreateAuthorizeSecurityGroupResponse()
-	err := a.RetryEcsRequest(request, response)
-	if err != nil {
+	if err := a.RetryEcsRequest(request, response); err != nil {
 		logrus.Errorf("%v", err)
 		return false
 	}
@@ -502,8 +499,7 @@ func (a *AliProvider) CreateSecurityGroup() error {
 	request.VpcId = a.Cluster.GetAnnotationsByKey(VpcID)
 	//response, err := d.Client.CreateSecurityGroup(request)
 	response := ecs.CreateCreateSecurityGroupResponse()
-	err := a.RetryEcsRequest(request, response)
-	if err != nil {
+	if err := a.RetryEcsRequest(request, response); err != nil {
 		return err
 	}
 

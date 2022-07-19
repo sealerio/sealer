@@ -28,12 +28,11 @@ type imageSaver struct {
 }
 
 func (i imageSaver) Save(image *v1.Image) error {
-	err := i.setImageAttribute(image)
-	if err != nil {
+	if err := i.setImageAttribute(image); err != nil {
 		return err
 	}
-	err = i.save(image)
-	if err != nil {
+
+	if err := i.save(image); err != nil {
 		return fmt.Errorf("failed to save image, err: %v", err)
 	}
 	return nil

@@ -69,7 +69,7 @@ func getTestCluster() *v2.Cluster {
 		Cluster *v2.Cluster
 	}
 	type args struct {
-		host  string
+		host  net.IP
 		shell string
 	}
 	tests := []struct {
@@ -82,7 +82,7 @@ func getTestCluster() *v2.Cluster {
 			"test command ENV",
 			fields{Cluster: getTestCluster()},
 			args{
-				host:  "192.168.0.2",
+				host:  net.ParseIP("192.168.0.2"),
 				shell: "echo $foo ${IP[@]}",
 			},
 			"key=(bar foo) foo=bar IP=127.0.0.2 && echo $foo ${IP[@]}",
