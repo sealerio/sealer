@@ -64,7 +64,7 @@ func (d *DeleteProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 }
 
 func (d *DeleteProcessor) UnMountRootfs(cluster *v2.Cluster) error {
-	hosts := cluster.GetMasterIPList()
+	hosts := cluster.GetAllIPList()
 	config := kubernetes.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utilsnet.NotInIPList(config.IP, hosts) {
 		hosts = append(hosts, config.IP)
