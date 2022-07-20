@@ -25,7 +25,7 @@
 
 Sealer[ˈsiːlər] provides a new way of distributed application delivery which is reducing the difficulty and complexity by packaging Kubernetes cluster and all application's dependencies into one ClusterImage.
 
-We can write a Kubefile to build the ClusterImage, and use it to delivery your applications with embedded kubernetes through Clusterfile.
+We can write a Kubefile to build the ClusterImage, and use it to deliver your applications with embedded Kubernetes through Clusterfile.
 
 ![image](https://user-images.githubusercontent.com/8912557/117263291-b88b8700-ae84-11eb-8b46-838292e85c5c.png)
 
@@ -34,7 +34,6 @@ We can write a Kubefile to build the ClusterImage, and use it to delivery your a
 * Kubefile: a file that describes how to build a ClusterImage.
 * ClusterImage: like docker image, and it contains all the dependencies(container images,yaml files or helm chart...) of your application needed.
 * Clusterfile: a file that describes how to run a ClusterImage.
-
 
 ![image](https://user-images.githubusercontent.com/8912557/117400612-97cf3a00-af35-11eb-90b9-f5dc8e8117b5.png)
 
@@ -56,7 +55,7 @@ wget https://github.com/sealerio/sealer/releases/download/v0.8.6/sealer-v0.8.6-l
 tar zxvf sealer-v0.8.6-linux-amd64.tar.gz && mv sealer /usr/bin
 ```
 
-Build a ClusterImage with kubernetes dashboard:
+Build a ClusterImage with Kubernetes dashboard:
 
 Kubefile:
 
@@ -78,7 +77,7 @@ Build it:
 sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest .
 ```
 
-Make it to run:
+Make it run:
 
 ```shell script
 # sealer will install a kubernetes on host 192.168.0.2 then apply the dashboard manifests
