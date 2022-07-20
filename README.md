@@ -39,11 +39,11 @@ We can write a Kubefile to build the ClusterImage, and use it to deliver your ap
 
 ## Awesome features
 
-* [x] Simplicity: Building the distributed application into ClusterImage with few instructions.
-* [x] Efficiency: Running the distributed application with Kubernetes based in minutes.
-* [x] Capability: Powerful cluster and image life cycle management, such as cluster scale, upgrade, image load, save and so on.
-* [x] Compatibility: Supporting multi-platform such as AMD, ARM with common Linux distributions.
-* [x] Consistency: ClusterImage in sealer ecological can be used and combined directly.
+* [x] Simplicity: Packing the distributed application into ClusterImage with few instructions.
+* [x] Efficiency: Launching the k8s-based application through ClusterImage in minutes.
+* [x] Scalability: Powerful cluster and image life cycle management, such as cluster scale, upgrade, image load, save and so on.
+* [x] Compatibility: Multi-arch delivery Supporting. Such as AMD, ARM with common Linux distributions.
+* [x] Iterative: Incremental operations on ClusterImage is like what container image behaves.
 
 ## Quick start
 
