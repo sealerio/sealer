@@ -31,7 +31,7 @@ import (
 	"k8s.io/kubelet/config/v1beta1"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_types/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm/v1beta2"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )

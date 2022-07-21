@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubernetes
+package version
 
 import (
 	"fmt"
 	"strings"
 )
 
-//kubeVersion is a string that we use to normalize version string.
-type kubeVersion string
+//Version is a string that we used to normalize version string.
+type Version string
 
 // splitVersion takes version string, and encapsulates it in comparable []string.
 func splitVersion(version string) []string {
@@ -30,7 +30,7 @@ func splitVersion(version string) []string {
 }
 
 // Compare if givenVersion >= oldVersion return true, else return false
-func (v kubeVersion) Compare(oldVersion kubeVersion) (bool, error) {
+func (v Version) Compare(oldVersion Version) (bool, error) {
 	givenVersion := splitVersion(string(v))
 	ov := splitVersion(string(oldVersion))
 

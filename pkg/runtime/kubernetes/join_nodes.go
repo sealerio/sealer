@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ import (
 	"github.com/sealerio/sealer/pkg/ipvs"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
-
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -41,7 +41,7 @@ const (
 	LvscareStaticPodCmd             = `echo "%s" > %s`
 )
 
-func (k *KubeadmRuntime) joinNodeConfig(nodeIP net.IP) ([]byte, error) {
+func (k *Runtime) joinNodeConfig(nodeIP net.IP) ([]byte, error) {
 	// TODO get join config from config file
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	cGroupDriver, err := k.getCgroupDriverFromShell(nodeIP)
@@ -52,7 +52,7 @@ func (k *KubeadmRuntime) joinNodeConfig(nodeIP net.IP) ([]byte, error) {
 	return yaml.MarshalWithDelimiter(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
-func (k *KubeadmRuntime) joinNodes(nodes []net.IP) error {
+func (k *Runtime) joinNodes(nodes []net.IP) error {
 	if len(nodes) == 0 {
 		return nil
 	}
@@ -78,8 +78,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []net.IP) error {
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	k.cleanJoinLocalAPIEndPoint()
 
-	registryHost := k.getRegistryHost()
-	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
+	addRegistryHostsAndLogin := k.addRegistryDomainToHosts()
 	if k.RegConfig.Domain != SeaHub {
 		addSeaHubHost := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
@@ -120,7 +119,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []net.IP) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) deleteNodes(nodes []net.IP) error {
+func (k *Runtime) deleteNodes(nodes []net.IP) error {
 	if len(nodes) == 0 {
 		return nil
 	}
@@ -143,7 +142,7 @@ func (k *KubeadmRuntime) deleteNodes(nodes []net.IP) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) deleteNode(node net.IP) error {
+func (k *Runtime) deleteNode(node net.IP) error {
 	ssh, err := k.getHostSSHClient(node)
 	if err != nil {
 		return fmt.Errorf("failed to delete node: %v", err)
@@ -183,7 +182,7 @@ func (k *KubeadmRuntime) deleteNode(node net.IP) error {
 	return nil
 }
 
-func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node net.IP) error {
+func (k *Runtime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 	sshClient, err := k.getHostSSHClient(node)
 	if err != nil {
 		return err
@@ -199,7 +198,7 @@ func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 	return err
 }
 
-func (k *KubeadmRuntime) deleteVIPRouteIfExist(node net.IP) error {
+func (k *Runtime) deleteVIPRouteIfExist(node net.IP) error {
 	sshClient, err := k.getHostSSHClient(node)
 	if err != nil {
 		return err

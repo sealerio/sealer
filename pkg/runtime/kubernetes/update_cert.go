@@ -21,13 +21,13 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_types/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm/v1beta2"
 	"github.com/sealerio/sealer/utils"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (k *KubeadmRuntime) updateCert(certs []string) error {
+func (k *Runtime) updateCert(certs []string) error {
 	client, err := k8s.Newk8sClient()
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func (k *KubeadmRuntime) updateCert(certs []string) error {
 		return err
 	}
 	obj, err := utils.DecodeCRDFromString(cm.Data["ClusterConfiguration"], common.ClusterConfiguration)
-	//obj, err := utils.DecodeCRDFromFile(cm.Data["ClusterConfiguration"], common.ClusterConfiguration)
+
 	if err != nil {
 		return err
 	}

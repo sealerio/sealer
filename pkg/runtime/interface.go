@@ -16,13 +16,11 @@ package runtime
 
 import (
 	"net"
-
-	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 type Interface interface {
-	// Init exec init phase for cluster, v2.Cluster deliver cluster's information.
-	Init(cluster *v2.Cluster) error
+	// Init exec init phase for cluster. TODO: make the annotation more comprehensive
+	Init() error
 	// Upgrade exec upgrading phase for cluster.TODO: make the annotation more comprehensive
 	Upgrade() error
 	// Reset exec reset phase for cluster.TODO: make the annotation more comprehensive

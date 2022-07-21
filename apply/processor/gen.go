@@ -21,6 +21,8 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/sealerio/sealer/pkg/registry"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -51,7 +53,7 @@ type ParserArg struct {
 }
 
 type GenerateProcessor struct {
-	Runtime      *kubernetes.KubeadmRuntime
+	Runtime      *kubernetes.Runtime
 	ImageManager image.Service
 	ImageMounter clusterimage.Interface
 }
@@ -146,7 +148,7 @@ func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
 		return err
 	}
 	hosts := cluster.GetAllIPList()
-	regConfig := kubernetes.GetRegistryConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
+	regConfig := registry.GetConfig(common.DefaultTheClusterRootfsDir(cluster.Name), cluster.GetMaster0IP())
 	if utilsnet.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
@@ -174,7 +176,7 @@ func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	g.Runtime = runt.(*kubernetes.KubeadmRuntime)
+	g.Runtime = runt.(*kubernetes.Runtime)
 	return nil
 }
 
@@ -187,7 +189,7 @@ func (g *GenerateProcessor) ApplyRegistry(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	rt, ok := runt.(*kubernetes.KubeadmRuntime)
+	rt, ok := runt.(*kubernetes.Runtime)
 	if !ok {
 		return fmt.Errorf("invalid type")
 	}

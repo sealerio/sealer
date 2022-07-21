@@ -23,7 +23,6 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sealerio/sealer/utils/yaml"
@@ -44,7 +43,7 @@ const (
 	DockerCertDir                  = "/etc/docker/certs.d"
 )
 
-func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
+func (k *Runtime) ConfigKubeadmOnMaster0() error {
 	if err := k.LoadFromClusterfile(k.Config.ClusterFileKubeConfig); err != nil {
 		return fmt.Errorf("failed to load kubeadm config from clusterfile: %v", err)
 	}
@@ -65,7 +64,7 @@ func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
 	return sshClient.CmdAsync(k.GetMaster0IP(), cmd)
 }
 
-func (k *KubeadmRuntime) generateConfigs() ([]byte, error) {
+func (k *Runtime) generateConfigs() ([]byte, error) {
 	//getCgroupDriverFromShell need get CRISocket, so after merge
 	cGroupDriver, err := k.getCgroupDriverFromShell(k.GetMaster0IP())
 	if err != nil {
@@ -79,7 +78,7 @@ func (k *KubeadmRuntime) generateConfigs() ([]byte, error) {
 		&k.KubeProxyConfiguration)
 }
 
-func (k *KubeadmRuntime) handleKubeadmConfig() {
+func (k *Runtime) handleKubeadmConfig() {
 	//The configuration set here does not require merge
 	k.setInitAdvertiseAddress(k.GetMaster0IP())
 	k.setControlPlaneEndpoint(fmt.Sprintf("%s:6443", k.getAPIServerDomain()))
@@ -91,7 +90,7 @@ func (k *KubeadmRuntime) handleKubeadmConfig() {
 }
 
 //CmdToString is in host exec cmd and replace to spilt str
-func (k *KubeadmRuntime) CmdToString(host net.IP, cmd, split string) (string, error) {
+func (k *Runtime) CmdToString(host net.IP, cmd, split string) (string, error) {
 	ssh, err := k.getHostSSHClient(host)
 	if err != nil {
 		return "", fmt.Errorf("failed to get ssh clientof host(%s): %v", host, err)
@@ -109,7 +108,7 @@ func (k *KubeadmRuntime) CmdToString(host net.IP, cmd, split string) (string, er
 	return "", nil
 }
 
-func (k *KubeadmRuntime) getRemoteHostName(hostIP net.IP) (string, error) {
+func (k *Runtime) getRemoteHostName(hostIP net.IP) (string, error) {
 	hostName, err := k.CmdToString(hostIP, "hostname", "")
 	if err != nil {
 		return "", err
@@ -120,7 +119,7 @@ func (k *KubeadmRuntime) getRemoteHostName(hostIP net.IP) (string, error) {
 	return strings.ToLower(hostName), nil
 }
 
-func (k *KubeadmRuntime) GenerateCert() error {
+func (k *Runtime) GenerateCert() error {
 	hostName, err := k.getRemoteHostName(k.GetMaster0IP())
 	if err != nil {
 		return err
@@ -148,11 +147,11 @@ func (k *KubeadmRuntime) GenerateCert() error {
 	return k.SendRegistryCert(k.GetMasterIPList()[:1])
 }
 
-func (k *KubeadmRuntime) GenerateRegistryCert() error {
+func (k *Runtime) GenerateRegistryCert() error {
 	return GenerateRegistryCert(k.getCertsDir(), k.RegConfig.Domain)
 }
 
-func (k *KubeadmRuntime) SendRegistryCert(host []net.IP) error {
+func (k *Runtime) SendRegistryCert(host []net.IP) error {
 	err := k.sendRegistryCertAndKey()
 	if err != nil {
 		return err
@@ -160,7 +159,7 @@ func (k *KubeadmRuntime) SendRegistryCert(host []net.IP) error {
 	return k.sendRegistryCert(host)
 }
 
-func (k *KubeadmRuntime) CreateKubeConfig() error {
+func (k *Runtime) CreateKubeConfig() error {
 	hostname, err := k.getRemoteHostName(k.GetMaster0IP())
 	if err != nil {
 		return err
@@ -179,7 +178,7 @@ func (k *KubeadmRuntime) CreateKubeConfig() error {
 	return nil
 }
 
-func (k *KubeadmRuntime) CopyStaticFiles(nodes []net.IP) error {
+func (k *Runtime) CopyStaticFiles(nodes []net.IP) error {
 	for _, file := range MasterStaticFiles {
 		staticFilePath := filepath.Join(k.getStaticFileDir(), file.Name)
 		cmdLinkStatic := fmt.Sprintf(RemoteCmdCopyStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
@@ -206,7 +205,7 @@ func (k *KubeadmRuntime) CopyStaticFiles(nodes []net.IP) error {
 }
 
 //decode output to join token hash and key
-func (k *KubeadmRuntime) decodeMaster0Output(output []byte) {
+func (k *Runtime) decodeMaster0Output(output []byte) {
 	s0 := string(output)
 	logrus.Debugf("decodeOutput: %s", s0)
 	slice := strings.Split(s0, "kubeadm join")
@@ -216,7 +215,7 @@ func (k *KubeadmRuntime) decodeMaster0Output(output []byte) {
 }
 
 //  192.168.0.200:6443 --token 9vr73a.a8uxyaju799qwdjv --discovery-token-ca-cert-hash sha256:7c2e69131a36ae2a042a339b33381c6d0d43887e2de83720eff5359e26aec866 --experimental-control-plane --certificate-key f8902e114ef118304e561c3ecd4d0b543adc226b7a07f675f56564185ffe0c07
-func (k *KubeadmRuntime) decodeJoinCmd(cmd string) {
+func (k *Runtime) decodeJoinCmd(cmd string) {
 	logrus.Debugf("[globals]decodeJoinCmd: %s", cmd)
 	stringSlice := strings.Split(cmd, " ")
 
@@ -240,7 +239,7 @@ func (k *KubeadmRuntime) decodeJoinCmd(cmd string) {
 }
 
 //InitMaster0 is
-func (k *KubeadmRuntime) InitMaster0() error {
+func (k *Runtime) InitMaster0() error {
 	client, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
 		return fmt.Errorf("failed to get ssh client of master0(%s): %v", k.GetMaster0IP(), err)
@@ -284,7 +283,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	return nil
 }
 
-func (k *KubeadmRuntime) GetKubectlAndKubeconfig() error {
+func (k *Runtime) GetKubectlAndKubeconfig() error {
 	if osi.IsFileExist(common.DefaultKubeConfigFile()) {
 		return nil
 	}
@@ -296,11 +295,11 @@ func (k *KubeadmRuntime) GetKubectlAndKubeconfig() error {
 	return GetKubectlAndKubeconfig(client, k.GetMaster0IP(), k.getImageMountDir())
 }
 
-func (k *KubeadmRuntime) CopyStaticFilesTomasters() error {
+func (k *Runtime) CopyStaticFilesTomasters() error {
 	return k.CopyStaticFiles(k.GetMasterIPList())
 }
 
-func (k *KubeadmRuntime) init(cluster *v2.Cluster) error {
+func (k *Runtime) init() error {
 	pipeline := []func() error{
 		k.ConfigKubeadmOnMaster0,
 		k.GenerateCert,
