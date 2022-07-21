@@ -23,25 +23,39 @@
 
 ## Introduction
 
-sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes.
+Sealer[ˈsiːlər] provides a new way of distributed application delivery which is reducing the difficulty and complexity by packaging Kubernetes cluster and all application's dependencies into one ClusterImage.
+
+We can write a Kubefile to build the ClusterImage, and use it to deliver your applications with embedded Kubernetes through Clusterfile.
 
 ![image](https://user-images.githubusercontent.com/8912557/117263291-b88b8700-ae84-11eb-8b46-838292e85c5c.png)
 
 > Concept
 
-* ClusterImage : like Dockerimage, but the rootfs is kubernetes, and contains all the dependencies(docker images,yaml files or helm chart...) your application needs.
-* Kubefile : the file describe how to build a ClusterImage.
-* Clusterfile : the config of using ClusterImage to run a cluster.
+* Kubefile: a file that describes how to build a ClusterImage.
+* ClusterImage: like docker image, and it contains all the dependencies(container images,yaml files or helm chart...) of your application needed.
+* Clusterfile: a file that describes how to run a ClusterImage.
 
 ![image](https://user-images.githubusercontent.com/8912557/117400612-97cf3a00-af35-11eb-90b9-f5dc8e8117b5.png)
 
-We can write a Kubefile, and build a ClusterImage, then using a Clusterfile to run a cluster.
+## Awesome features
 
-sealer[ˈsiːlər] provides the way for distributed application package and delivery based on kubernetes.
+* [x] Simplicity: Packing the distributed application into ClusterImage with few instructions.
+* [x] Efficiency: Launching the k8s-based application through ClusterImage in minutes.
+* [x] Scalability: Powerful cluster and image life cycle management, such as cluster scale, upgrade, image load, save and so on.
+* [x] Compatibility: Multi-arch delivery Supporting. Such as AMD, ARM with common Linux distributions.
+* [x] Iterative: Incremental operations on ClusterImage is like what container image behaves.
 
-It solves the delivery problem of complex applications by packaging distributed applications and dependencies(like database,middleware) together.
+## Quick start
 
-For example, build a dashboard ClusterImage:
+Download sealer binary file.
+
+```shell script
+#install Sealer binaries
+wget https://github.com/sealerio/sealer/releases/download/v0.8.6/sealer-v0.8.6-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.8.6-linux-amd64.tar.gz && mv sealer /usr/bin
+```
+
+Build a ClusterImage with Kubernetes dashboard:
 
 Kubefile:
 
@@ -57,13 +71,13 @@ RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deplo
 CMD kubectl apply -f recommended.yaml
 ```
 
-Build dashobard ClusterImage:
+Build it:
 
 ```shell script
 sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest .
 ```
 
-Run a kubernetes cluster with dashboard:
+Make it run:
 
 ```shell script
 # sealer will install a kubernetes on host 192.168.0.2 then apply the dashboard manifests
@@ -77,28 +91,6 @@ Push the ClusterImage to the registry
 ```shell script
 # you can push the ClusterImage to docker hub, Ali ACR, or Harbor
 sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
-```
-
-## Usage scenarios & features
-
-* [x] An extremely simple way to install kubernetes and other software in the kubernetes ecosystem in a production or offline environment.
-* [x] Through Kubefile, you can easily customize the kubernetes ClusterImage to package the cluster and applications, and submit them to the registry.
-* [x] Powerful life cycle management capabilities, to perform operations such as cluster upgrade, cluster backup and recovery, node expansion and contraction in unimaginable simple ways
-* [x] Very fast, complete cluster installation within 3 minutes
-* [x] Support ARM x86, v1.20 and above versions support containerd, almost compatible with all Linux operating systems that support systemd
-* [x] Does not rely on ansible haproxy keepalived, high availability is achieved through ipvs, takes up less resources, is stable and reliable
-* [x] Many ecological software images can be used directly, like prometheus mysql..., and you can combine then together.
-
-## Quick start
-
-Install a kubernetes cluster
-
-```shell script
-#install Sealer binaries
-wget https://github.com/sealerio/sealer/releases/download/v0.8.6/sealer-v0.8.6-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.8.6-linux-amd64.tar.gz && mv sealer /usr/bin
-#run a kubernetes cluster
-sealer run kubernetes:v1.19.8 --masters 192.168.0.2 --passwd xxx
 ```
 
 ## User guide
