@@ -26,13 +26,14 @@ import (
 )
 
 type BuildFlag struct {
-	ImageName    string
-	KubefileName string
-	BuildType    string
-	BuildArgs    []string
-	Platform     string
-	NoCache      bool
-	Base         bool
+	ImageName     string
+	KubefileName  string
+	BuildType     string
+	BuildArgs     []string
+	Platform      string
+	NoCache       bool
+	Base          bool
+	DownloadImage bool
 }
 
 var buildConfig *BuildFlag
@@ -69,12 +70,13 @@ build with args:
 		for _, tp := range targetPlatforms {
 			p := tp
 			conf := &build.Config{
-				BuildType: buildConfig.BuildType,
-				NoCache:   buildConfig.NoCache,
-				ImageName: buildConfig.ImageName,
-				NoBase:    !buildConfig.Base,
-				BuildArgs: strings.ConvertToMap(buildConfig.BuildArgs),
-				Platform:  *p,
+				BuildType:     buildConfig.BuildType,
+				NoCache:       buildConfig.NoCache,
+				ImageName:     buildConfig.ImageName,
+				NoBase:        !buildConfig.Base,
+				BuildArgs:     strings.ConvertToMap(buildConfig.BuildArgs),
+				DownloadImage: buildConfig.DownloadImage,
+				Platform:      *p,
 			}
 			builder, err := build.NewBuilder(conf)
 			if err != nil {
@@ -95,8 +97,9 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "mode", "m", "lite", "ClusterImage build type, default is lite")
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "Kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "the name of ClusterImage")
+	buildCmd.Flags().BoolVar(&buildConfig.DownloadImage, "downloadImage", true, "download manifest image")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
-	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image, default value is true.")
+	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image, default value is true")
 	buildCmd.Flags().StringSliceVar(&buildConfig.BuildArgs, "build-arg", []string{}, "set custom build args")
 	buildCmd.Flags().StringVar(&buildConfig.Platform, "platform", "", "set ClusterImage platform. If not set, keep same platform with runtime")
 

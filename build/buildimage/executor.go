@@ -50,8 +50,7 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 	)
 
 	// process middleware file
-	err := l.checkMiddleware(ctx.BuildContext)
-	if err != nil {
+	if err := l.checkMiddleware(ctx.BuildContext); err != nil {
 		return []v1.Layer{}, err
 	}
 
@@ -96,9 +95,10 @@ func (l *layerExecutor) Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, 
 	logrus.Info("exec all build instructs success")
 
 	// process differ of manifests and metadata.
-	err = l.checkDiff(rawLayers)
-	if err != nil {
-		return []v1.Layer{}, err
+	if ctx.DownloadImage {
+		if err := l.checkDiff(rawLayers); err != nil {
+			return []v1.Layer{}, err
+		}
 	}
 
 	upper := l.rootfsMountInfo.GetMountUpper()
