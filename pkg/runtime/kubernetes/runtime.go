@@ -170,10 +170,6 @@ func (k *Runtime) checkList() error {
 	return nil
 }
 
-func (k *Runtime) getClusterName() string {
-	return k.Cluster.Name
-}
-
 func (k *Runtime) getClusterMetadata() (*runtime.Metadata, error) {
 	metadata := &runtime.Metadata{}
 	if k.getKubeVersion() == "" {
@@ -191,27 +187,27 @@ func (k *Runtime) getHostSSHClient(hostIP net.IP) (ssh.Interface, error) {
 
 // /var/lib/sealer/data/my-cluster
 func (k *Runtime) getBasePath() string {
-	return common.DefaultClusterBaseDir(k.getClusterName())
+	return common.DefaultClusterBaseDir(k.Cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/rootfs
 func (k *Runtime) getRootfs() string {
-	return common.DefaultTheClusterRootfsDir(k.getClusterName())
+	return common.DefaultTheClusterRootfsDir(k.Cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/mount
 func (k *Runtime) getImageMountDir() string {
-	return platform.DefaultMountClusterImageDir(k.getClusterName())
+	return platform.DefaultMountClusterImageDir(k.Cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/certs
 func (k *Runtime) getCertsDir() string {
-	return common.TheDefaultClusterCertDir(k.getClusterName())
+	return common.TheDefaultClusterCertDir(k.Cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/pki
 func (k *Runtime) getPKIPath() string {
-	return common.TheDefaultClusterPKIDir(k.getClusterName())
+	return common.TheDefaultClusterPKIDir(k.Cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/mount/etc/kubeadm.yml
@@ -332,7 +328,6 @@ func (k *Runtime) setAPIVersion(apiVersion string) {
 	k.JoinConfiguration.APIVersion = apiVersion
 }
 
-// k.getKubeVersion can't be empty
 func (k *Runtime) setKubeadmAPIVersion() {
 	kv := versionUtils.Version(k.getKubeVersion())
 	greatThanKV1150, err := kv.Compare(V1150)
@@ -367,7 +362,7 @@ func (k *Runtime) getCgroupDriverFromShell(node net.IP) (string, error) {
 		return "", fmt.Errorf("failed to get nodes [%s] cgroup driver: %v", node, err)
 	}
 	if driver == "" {
-		// by default if we get wrong output we set it default systemd?
+		// by default if we get wrong output we set it default systemd
 		logrus.Errorf("failed to get nodes [%s] cgroup driver", node)
 		driver = DefaultSystemdCgroupDriver
 	}

@@ -95,17 +95,7 @@ func (k *Runtime) CmdToString(host net.IP, cmd, split string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get ssh clientof host(%s): %v", host, err)
 	}
-	data, err := ssh.Cmd(host, cmd)
-	if err != nil {
-		return "", fmt.Errorf("failed to exec remote cmd(%s) on host(%s): %v", cmd, host, err)
-	}
-	if data != nil {
-		str := string(data)
-		str = strings.ReplaceAll(str, "\r\n", split)
-		str = strings.ReplaceAll(str, "\n", split)
-		return str, nil
-	}
-	return "", nil
+	return ssh.CmdToString(host, cmd, split)
 }
 
 func (k *Runtime) getRemoteHostName(hostIP net.IP) (string, error) {
@@ -238,7 +228,7 @@ func (k *Runtime) decodeJoinCmd(cmd string) {
 	logrus.Debugf("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey())
 }
 
-//InitMaster0 is
+//InitMaster0 is using kubeadm init to start up the cluster master0.
 func (k *Runtime) InitMaster0() error {
 	client, err := k.getHostSSHClient(k.GetMaster0IP())
 	if err != nil {
