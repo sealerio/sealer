@@ -47,11 +47,11 @@ func (k *Runtime) updateCert(certs []string) error {
 	}
 
 	k.setCertSANS(append(clusterConfiguration.APIServer.CertSANs, certs...))
-	ssh, err := k.getHostSSHClient(k.GetMaster0IP())
+	ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 	if err != nil {
 		return fmt.Errorf("failed to update cert: %v", err)
 	}
-	if err := ssh.CmdAsync(k.GetMaster0IP(), "rm -rf /etc/kubernetes/admin.conf"); err != nil {
+	if err := ssh.CmdAsync(k.cluster.GetMaster0IP(), "rm -rf /etc/kubernetes/admin.conf"); err != nil {
 		return err
 	}
 
@@ -66,7 +66,7 @@ func (k *Runtime) updateCert(certs []string) error {
 			return fmt.Errorf("failed to init master0: %v", err)
 		}
 	}
-	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
+	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.cluster.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
 		return err
 	}
 

@@ -26,13 +26,13 @@ import (
 )
 
 func (k *Runtime) reset() error {
-	k.resetNodes(k.GetNodeIPList())
-	k.resetMasters(k.GetMasterIPList())
+	k.resetNodes(k.cluster.GetNodeIPList())
+	k.resetMasters(k.cluster.GetMasterIPList())
 	//if the executing machine is not in the cluster
 	if _, err := exec.RunSimpleCmd(fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())); err != nil {
 		return err
 	}
-	for _, node := range k.GetNodeIPList() {
+	for _, node := range k.cluster.GetNodeIPList() {
 		err := k.deleteVIPRouteIfExist(node)
 		if err != nil {
 			return fmt.Errorf("failed to delete %s route: %v", node, err)

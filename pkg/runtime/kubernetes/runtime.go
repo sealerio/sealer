@@ -55,7 +55,7 @@ type Config struct {
 //Runtime struct is the runtime interface for kubernetes
 type Runtime struct {
 	*sync.Mutex
-	*v2.Cluster
+	cluster *v2.Cluster
 	*kubeadm.KubeadmConfig
 	*Config
 }
@@ -68,17 +68,17 @@ func NewDefaultRuntime(cluster *v2.Cluster, clusterfileKubeConfig *kubeadm.Kubea
 
 func newKubernetesRuntime(cluster *v2.Cluster, clusterFileKubeConfig *kubeadm.KubeadmConfig) (runtime.Interface, error) {
 	k := &Runtime{
-		Cluster: cluster,
+		cluster: cluster,
 		Config: &Config{
 			ClusterFileKubeConfig: clusterFileKubeConfig,
 			APIServerDomain:       DefaultAPIserverDomain,
 		},
 		KubeadmConfig: &kubeadm.KubeadmConfig{},
 	}
-	k.Config.RegConfig = registry.GetConfig(k.getImageMountDir(), k.GetMaster0IP())
+	k.Config.RegConfig = registry.GetConfig(k.getImageMountDir(), k.cluster.GetMaster0IP())
 	k.setCertSANS(append(
 		[]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP().String()},
-		k.GetMasterIPStrList()...),
+		k.cluster.GetMasterIPStrList()...),
 	)
 	// TODO args pre checks
 	if err := k.checkList(); err != nil {
@@ -100,7 +100,7 @@ func (k *Runtime) Upgrade() error {
 }
 
 func (k *Runtime) Reset() error {
-	logrus.Infof("Start to delete cluster: master %s, node %s", k.Cluster.GetMasterIPList(), k.Cluster.GetNodeIPList())
+	logrus.Infof("Start to delete cluster: master %s, node %s", k.cluster.GetMasterIPList(), k.cluster.GetNodeIPList())
 	if err := k.confirmDeleteNodes(); err != nil {
 		return err
 	}
@@ -161,10 +161,10 @@ func (k *Runtime) UpdateCert(certs []string) error {
 }
 
 func (k *Runtime) checkList() error {
-	if len(k.Spec.Hosts) == 0 {
+	if len(k.cluster.Spec.Hosts) == 0 {
 		return fmt.Errorf("master hosts cannot be empty")
 	}
-	if k.GetMaster0IP() == nil {
+	if k.cluster.GetMaster0IP() == nil {
 		return fmt.Errorf("master hosts ip cannot be empty")
 	}
 	return nil
@@ -182,32 +182,32 @@ func (k *Runtime) getClusterMetadata() (*runtime.Metadata, error) {
 }
 
 func (k *Runtime) getHostSSHClient(hostIP net.IP) (ssh.Interface, error) {
-	return ssh.NewStdoutSSHClient(hostIP, k.Cluster)
+	return ssh.NewStdoutSSHClient(hostIP, k.cluster)
 }
 
 // /var/lib/sealer/data/my-cluster
 func (k *Runtime) getBasePath() string {
-	return common.DefaultClusterBaseDir(k.Cluster.Name)
+	return common.DefaultClusterBaseDir(k.cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/rootfs
 func (k *Runtime) getRootfs() string {
-	return common.DefaultTheClusterRootfsDir(k.Cluster.Name)
+	return common.DefaultTheClusterRootfsDir(k.cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/mount
 func (k *Runtime) getImageMountDir() string {
-	return platform.DefaultMountClusterImageDir(k.Cluster.Name)
+	return platform.DefaultMountClusterImageDir(k.cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/certs
 func (k *Runtime) getCertsDir() string {
-	return common.TheDefaultClusterCertDir(k.Cluster.Name)
+	return common.TheDefaultClusterCertDir(k.cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/pki
 func (k *Runtime) getPKIPath() string {
-	return common.TheDefaultClusterPKIDir(k.Cluster.Name)
+	return common.TheDefaultClusterPKIDir(k.cluster.Name)
 }
 
 // /var/lib/sealer/data/my-cluster/mount/etc/kubeadm.yml

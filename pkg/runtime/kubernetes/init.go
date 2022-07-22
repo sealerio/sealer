@@ -57,16 +57,16 @@ func (k *Runtime) ConfigKubeadmOnMaster0() error {
 		return err
 	}
 	cmd := fmt.Sprintf(WriteKubeadmConfigCmd, k.getRootfs(), string(bs))
-	sshClient, err := k.getHostSSHClient(k.GetMaster0IP())
+	sshClient, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 	if err != nil {
 		return err
 	}
-	return sshClient.CmdAsync(k.GetMaster0IP(), cmd)
+	return sshClient.CmdAsync(k.cluster.GetMaster0IP(), cmd)
 }
 
 func (k *Runtime) generateConfigs() ([]byte, error) {
 	//getCgroupDriverFromShell need get CRISocket, so after merge
-	cGroupDriver, err := k.getCgroupDriverFromShell(k.GetMaster0IP())
+	cGroupDriver, err := k.getCgroupDriverFromShell(k.cluster.GetMaster0IP())
 	if err != nil {
 		return nil, err
 	}
@@ -80,12 +80,12 @@ func (k *Runtime) generateConfigs() ([]byte, error) {
 
 func (k *Runtime) handleKubeadmConfig() {
 	//The configuration set here does not require merge
-	k.setInitAdvertiseAddress(k.GetMaster0IP())
+	k.setInitAdvertiseAddress(k.cluster.GetMaster0IP())
 	k.setControlPlaneEndpoint(fmt.Sprintf("%s:6443", k.getAPIServerDomain()))
 	if k.APIServer.ExtraArgs == nil {
 		k.APIServer.ExtraArgs = make(map[string]string)
 	}
-	k.APIServer.ExtraArgs[EtcdServers] = getEtcdEndpointsWithHTTPSPrefix(k.GetMasterIPList())
+	k.APIServer.ExtraArgs[EtcdServers] = getEtcdEndpointsWithHTTPSPrefix(k.cluster.GetMasterIPList())
 	k.IPVS.ExcludeCIDRs = append(k.KubeProxyConfiguration.IPVS.ExcludeCIDRs, fmt.Sprintf("%s/32", k.getVIP()))
 }
 
@@ -110,7 +110,7 @@ func (k *Runtime) getRemoteHostName(hostIP net.IP) (string, error) {
 }
 
 func (k *Runtime) GenerateCert() error {
-	hostName, err := k.getRemoteHostName(k.GetMaster0IP())
+	hostName, err := k.getRemoteHostName(k.cluster.GetMaster0IP())
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (k *Runtime) GenerateCert() error {
 		k.getPKIPath(),
 		k.getEtcdCertPath(),
 		k.getCertSANS(),
-		k.GetMaster0IP(),
+		k.cluster.GetMaster0IP(),
 		hostName,
 		k.getSvcCIDR(),
 		k.getDNSDomain(),
@@ -126,7 +126,7 @@ func (k *Runtime) GenerateCert() error {
 	if err != nil {
 		return fmt.Errorf("failed to generate certs: %v", err)
 	}
-	err = k.sendNewCertAndKey(k.GetMasterIPList()[:1])
+	err = k.sendNewCertAndKey(k.cluster.GetMasterIPList()[:1])
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (k *Runtime) GenerateCert() error {
 	if err != nil {
 		return err
 	}
-	return k.SendRegistryCert(k.GetMasterIPList()[:1])
+	return k.SendRegistryCert(k.cluster.GetMasterIPList()[:1])
 }
 
 func (k *Runtime) GenerateRegistryCert() error {
@@ -150,7 +150,7 @@ func (k *Runtime) SendRegistryCert(host []net.IP) error {
 }
 
 func (k *Runtime) CreateKubeConfig() error {
-	hostname, err := k.getRemoteHostName(k.GetMaster0IP())
+	hostname, err := k.getRemoteHostName(k.cluster.GetMaster0IP())
 	if err != nil {
 		return err
 	}
@@ -230,17 +230,17 @@ func (k *Runtime) decodeJoinCmd(cmd string) {
 
 //InitMaster0 is using kubeadm init to start up the cluster master0.
 func (k *Runtime) InitMaster0() error {
-	client, err := k.getHostSSHClient(k.GetMaster0IP())
+	client, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 	if err != nil {
-		return fmt.Errorf("failed to get ssh client of master0(%s): %v", k.GetMaster0IP(), err)
+		return fmt.Errorf("failed to get ssh client of master0(%s): %v", k.cluster.GetMaster0IP(), err)
 	}
 
-	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
+	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.cluster.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
 		return err
 	}
-	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
+	apiServerHost := getAPIServerHost(k.cluster.GetMaster0IP(), k.getAPIServerDomain())
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
-	err = client.CmdAsync(k.GetMaster0IP(), cmdAddEtcHost)
+	err = client.CmdAsync(k.cluster.GetMaster0IP(), cmdAddEtcHost)
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func (k *Runtime) InitMaster0() error {
 	cmdInit := k.Command(k.getKubeVersion(), InitMaster)
 
 	// TODO skip docker version error check for test
-	output, err := client.Cmd(k.GetMaster0IP(), cmdInit)
+	output, err := client.Cmd(k.cluster.GetMaster0IP(), cmdInit)
 	if err != nil {
 		_, wErr := common.StdOut.WriteString(string(output))
 		if wErr != nil {
@@ -258,13 +258,13 @@ func (k *Runtime) InitMaster0() error {
 		return fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
 	}
 	k.decodeMaster0Output(output)
-	err = client.CmdAsync(k.GetMaster0IP(), RemoteCopyKubeConfig)
+	err = client.CmdAsync(k.cluster.GetMaster0IP(), RemoteCopyKubeConfig)
 	if err != nil {
 		return err
 	}
 
 	if client.(*ssh.SSH).User != common.ROOT {
-		err = client.CmdAsync(k.GetMaster0IP(), RemoteNonRootCopyKubeConfig)
+		err = client.CmdAsync(k.cluster.GetMaster0IP(), RemoteNonRootCopyKubeConfig)
 		if err != nil {
 			return err
 		}
@@ -277,16 +277,16 @@ func (k *Runtime) GetKubectlAndKubeconfig() error {
 	if osi.IsFileExist(common.DefaultKubeConfigFile()) {
 		return nil
 	}
-	client, err := k.getHostSSHClient(k.GetMaster0IP())
+	client, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 	if err != nil {
-		return fmt.Errorf("failed to get ssh client of master0(%s) when get kubbectl and kubeconfig: %v", k.GetMaster0IP(), err)
+		return fmt.Errorf("failed to get ssh client of master0(%s) when get kubbectl and kubeconfig: %v", k.cluster.GetMaster0IP(), err)
 	}
 
-	return GetKubectlAndKubeconfig(client, k.GetMaster0IP(), k.getImageMountDir())
+	return GetKubectlAndKubeconfig(client, k.cluster.GetMaster0IP(), k.getImageMountDir())
 }
 
 func (k *Runtime) CopyStaticFilesTomasters() error {
-	return k.CopyStaticFiles(k.GetMasterIPList())
+	return k.CopyStaticFiles(k.cluster.GetMasterIPList())
 }
 
 func (k *Runtime) init() error {

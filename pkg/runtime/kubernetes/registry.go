@@ -59,16 +59,16 @@ func (k *Runtime) ApplyRegistry() error {
 	if err = ssh.CmdAsync(k.RegConfig.IP, initRegistry); err != nil {
 		return err
 	}
-	if err = ssh.CmdAsync(k.GetMaster0IP(), addRegistryHosts); err != nil {
+	if err = ssh.CmdAsync(k.cluster.GetMaster0IP(), addRegistryHosts); err != nil {
 		return err
 	}
 	if k.RegConfig.Username == "" || k.RegConfig.Password == "" {
 		return nil
 	}
-	return ssh.CmdAsync(k.GetMaster0IP(), k.GerLoginCommand())
+	return ssh.CmdAsync(k.cluster.GetMaster0IP(), k.GenLoginCommand())
 }
 
-func (k *Runtime) GerLoginCommand() string {
+func (k *Runtime) GenLoginCommand() string {
 	return fmt.Sprintf("%s && %s",
 		fmt.Sprintf(DockerLoginCommand, k.RegConfig.Username, k.RegConfig.Password, k.RegConfig.Domain+":"+k.RegConfig.Port),
 		fmt.Sprintf(DockerLoginCommand, k.RegConfig.Username, k.RegConfig.Password, SeaHub+":"+k.RegConfig.Port))
