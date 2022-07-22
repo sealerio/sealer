@@ -97,7 +97,7 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "mode", "m", "lite", "ClusterImage build type, default is lite")
 	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "Kubefile filepath")
 	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "the name of ClusterImage")
-	buildCmd.Flags().BoolVar(&buildConfig.DownloadImage, "downloadImage", true, "download manifest image")
+	buildCmd.Flags().BoolVar(&buildConfig.DownloadImage, "save-app-image", true, "build with application container image, default value is true")
 	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
 	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image, default value is true")
 	buildCmd.Flags().StringSliceVar(&buildConfig.BuildArgs, "build-arg", []string{}, "set custom build args")
