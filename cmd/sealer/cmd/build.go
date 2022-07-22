@@ -15,14 +15,11 @@
 package cmd
 
 import (
-	"os"
-
+	"github.com/containers/buildah/pkg/parse"
+	"github.com/sealerio/sealer/pkg/image_adaptor"
+	bc "github.com/sealerio/sealer/pkg/image_adaptor/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/build"
-	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sealerio/sealer/utils/strings"
 )
 
 type BuildFlag struct {
@@ -35,17 +32,17 @@ type BuildFlag struct {
 	Base         bool
 }
 
-var buildConfig *BuildFlag
+var buildFlags bc.BuildFlags = bc.BuildFlags{}
 
 // buildCmd represents the build command
 var buildCmd = &cobra.Command{
 	Use:   "build [flags] PATH",
 	Short: "build a ClusterImage from a Kubefile",
-	Long: `build command is used to build a ClusterImage from specified Kubefile.
+	Long: `build command is used to generate a ClusterImage from specified Kubefile.
 It organizes the specified Kubefile and input building context, and builds
 a brand new ClusterImage.`,
-	Args: cobra.ExactArgs(1),
-	Example: `the current path is the context path, default build type is lite and use build cache
+	Args: cobra.MaximumNArgs(1),
+	Example: `the current path is the context path, default build type is lite and use image_adaptor cache
 
 build:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 .
@@ -60,48 +57,35 @@ build with args:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		buildContext := args[0]
-
-		targetPlatforms, err := platform.GetPlatform(buildConfig.Platform)
+		builder, err := image_adaptor.NewAdaptor()
 		if err != nil {
-			return err
+			logrus.Fatalf("failed to initiate a builder, %v", err)
 		}
-		for _, tp := range targetPlatforms {
-			p := tp
-			conf := &build.Config{
-				BuildType: buildConfig.BuildType,
-				NoCache:   buildConfig.NoCache,
-				ImageName: buildConfig.ImageName,
-				NoBase:    !buildConfig.Base,
-				BuildArgs: strings.ConvertToMap(buildConfig.BuildArgs),
-				Platform:  *p,
-			}
-			builder, err := build.NewBuilder(conf)
-			if err != nil {
-				return err
-			}
-			err = builder.Build(buildConfig.ImageName, buildContext, buildConfig.KubefileName)
-			if err != nil {
-				return err
-			}
+
+		err = builder.Build(&buildFlags, args)
+		if err != nil {
+			logrus.Error(err)
+			return err
 		}
 		return nil
 	},
 }
 
 func init() {
-	buildConfig = &BuildFlag{}
 	rootCmd.AddCommand(buildCmd)
-	buildCmd.Flags().StringVarP(&buildConfig.BuildType, "mode", "m", "lite", "ClusterImage build type, default is lite")
-	buildCmd.Flags().StringVarP(&buildConfig.KubefileName, "kubefile", "f", "Kubefile", "Kubefile filepath")
-	buildCmd.Flags().StringVarP(&buildConfig.ImageName, "imageName", "t", "", "the name of ClusterImage")
-	buildCmd.Flags().BoolVar(&buildConfig.NoCache, "no-cache", false, "build without cache")
-	buildCmd.Flags().BoolVar(&buildConfig.Base, "base", true, "build with base image, default value is true.")
-	buildCmd.Flags().StringSliceVar(&buildConfig.BuildArgs, "build-arg", []string{}, "set custom build args")
-	buildCmd.Flags().StringVar(&buildConfig.Platform, "platform", "", "set ClusterImage platform. If not set, keep same platform with runtime")
 
-	if err := buildCmd.MarkFlagRequired("imageName"); err != nil {
-		logrus.Errorf("failed to init flag: %v", err)
-		os.Exit(1)
+	buildCmd.Flags().StringVarP(&buildFlags.BuildType, "mode", "m", "lite", "ClusterImage build type, default is lite")
+	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
+	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
+	buildCmd.Flags().BoolVar(&buildFlags.Base, "base", true, "build with base image, default value is true.")
+	buildCmd.Flags().StringSliceVarP(&buildFlags.Tags, "tag", "t", []string{}, "specify a name for ClusterImage")
+	buildCmd.Flags().StringSliceVar(&buildFlags.BuildArgs, "build-arg", []string{}, "set custom image_adaptor args")
+	buildCmd.Flags().StringVar(&buildFlags.Platform, "platform", parse.DefaultPlatform(), "set the target platform, like linux/amd64 or linux/amd64/v7")
+
+	requiredFlags := []string{"tag"}
+	for _, flag := range requiredFlags {
+		if err := buildCmd.MarkFlagRequired(flag); err != nil {
+			logrus.Fatal(err)
+		}
 	}
 }

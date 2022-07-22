@@ -18,7 +18,7 @@ func (s *DefaultService) lookupV2Endpoints(hostname string) (endpoints []APIEndp
 			if err != nil {
 				return nil, err
 			}
-			mirrorTLSConfig, err := s.tlsConfig(mirrorURL.Host)
+			mirrorTLSConfig, err := s.tlsConfigForMirror(mirrorURL)
 			if err != nil {
 				return nil, err
 			}

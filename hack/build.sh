@@ -27,6 +27,12 @@ SEALER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 export THIS_PLATFORM_BIN="${SEALER_ROOT}/_output/bin"
 export THIS_PLATFORM_ASSETS="${SEALER_ROOT}/_output/assets"
 
+GO_BUILD_FLAGS=""
+
+if [ "$(uname)" == "Darwin" ]; then
+  GO_BUILD_FLAGS="-tags containers_image_openpgp"
+fi
+
 debug() {
   timestamp=$(date +"[%m%d %H:%M:%S]")
   echo "[debug] ${timestamp} ${1-}" >&2
@@ -99,7 +105,7 @@ build_binaries() {
   tarFile="${GIT_VERSION}-${1-}-${2-}.tar.gz"
 
   debug "!!! build $osarch sealer"
-  GOOS=${1-} GOARCH=${2-} go build -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/cmd/sealer/main.go
+  GOOS=${1-} GOARCH=${2-} go build $GO_BUILD_FLAGS -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/cmd/sealer/main.go
   check $? "build $osarch sealer"
   debug "output bin: $THIS_PLATFORM_BIN/sealer/$osarch/sealer"
   cd ${SEALER_ROOT}/_output/bin/sealer/$osarch/
