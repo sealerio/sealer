@@ -1,6 +1,6 @@
 ## sealer tag
 
-create a new tag that refers to a local ClusterImage
+create one or more tags for local ClusterImage
 
 ```
 sealer tag [flags]

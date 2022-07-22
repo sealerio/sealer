@@ -27,6 +27,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	imageName = "IMAGE NAME"
+)
+
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
 	Use:   "search",

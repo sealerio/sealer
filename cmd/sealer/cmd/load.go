@@ -15,16 +15,16 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/sealerio/sealer/pkg/define/options"
+
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/pkg/image"
 )
 
-var imageSrc string
+var loadOpts *options.LoadOptions
 
 // loadCmd represents the load command
 var loadCmd = &cobra.Command{
@@ -34,22 +34,22 @@ var loadCmd = &cobra.Command{
 	Example: `sealer load -i kubernetes.tar`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ifs, err := image.NewImageFileService()
+		engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 		if err != nil {
 			return err
 		}
-		if err = ifs.Load(imageSrc); err != nil {
-			return fmt.Errorf("failed to load image from %s: %v", imageSrc, err)
-		}
-		return nil
+		return engine.Load(loadOpts)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(loadCmd)
-	loadCmd.Flags().StringVarP(&imageSrc, "input", "i", "", "read image from tar archive file")
+	loadOpts = &options.LoadOptions{}
+	flags := loadCmd.Flags()
+	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Load image from file")
+	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
 	if err := loadCmd.MarkFlagRequired("input"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
+	rootCmd.AddCommand(loadCmd)
 }

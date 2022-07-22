@@ -15,23 +15,16 @@
 package buildinstruction
 
 import (
-	"context"
-	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/opencontainers/go-digest"
-	"github.com/sirupsen/logrus"
-	fsutil "github.com/tonistiigi/fsutil/copy"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/cache"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils/archive"
 	"github.com/sealerio/sealer/utils/collector"
-	"github.com/sealerio/sealer/utils/os/fs"
+	"github.com/sirupsen/logrus"
 )
 
 func tryCache(parentID cache.ChainID,
@@ -57,54 +50,47 @@ func tryCache(parentID cache.ChainID,
 }
 
 func GenerateSourceFilesDigest(root, src string) (digest.Digest, error) {
-	m, err := fsutil.ResolveWildcards(root, src, true)
-	if err != nil {
-		return "", err
-	}
-
-	// wrong wildcards: no such file or directory
-	if len(m) == 0 {
-		return "", fmt.Errorf("%s not found", src)
-	}
-
-	if len(m) == 1 {
-		return generateDigest(filepath.Join(root, src))
-	}
-
-	tmp, err := fs.NewFilesystem().MkTmpdir()
-	if err != nil {
-		return "", fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
-	}
-
-	defer func() {
-		if err = os.RemoveAll(tmp); err != nil {
-			logrus.Warn(err)
-		}
-	}()
-
-	xattrErrorHandler := func(dst, src, key string, err error) error {
-		logrus.Warn(err)
-		return nil
-	}
-	opt := []fsutil.Opt{
-		fsutil.WithXAttrErrorHandler(xattrErrorHandler),
-	}
-
-	for _, s := range m {
-		if err := fsutil.Copy(context.TODO(), root, s, tmp, filepath.Base(s), opt...); err != nil {
-			return "", err
-		}
-	}
-
-	return generateDigest(tmp)
-}
-
-func generateDigest(path string) (digest.Digest, error) {
-	layerDgst, _, err := archive.TarCanonicalDigest(path)
-	if err != nil {
-		return "", err
-	}
-	return layerDgst, nil
+	return "", nil
+	//m, err := fsutil.ResolveWildcards(root, src, true)
+	//if err != nil {
+	//	return "", err
+	//}
+	//
+	//// wrong wildcards: no such file or directory
+	//if len(m) == 0 {
+	//	return "", fmt.Errorf("%s not found", src)
+	//}
+	//
+	//if len(m) == 1 {
+	//	return generateDigest(filepath.Join(root, src))
+	//}
+	//
+	//tmp, err := fs.NewFilesystem().MkTmpdir()
+	//if err != nil {
+	//	return "", fmt.Errorf("failed to create tmp dir %s:%v", tmp, err)
+	//}
+	//
+	//defer func() {
+	//	if err = os.RemoveAll(tmp); err != nil {
+	//		logrus.Warn(err)
+	//	}
+	//}()
+	//
+	//xattrErrorHandler := func(dst, src, key string, err error) error {
+	//	logrus.Warn(err)
+	//	return nil
+	//}
+	//opt := []fsutil.Opt{
+	//	fsutil.WithXAttrErrorHandler(xattrErrorHandler),
+	//}
+	//
+	//for _, s := range m {
+	//	if err := fsutil.Copy(context.TODO(), root, s, tmp, filepath.Base(s), opt...); err != nil {
+	//		return "", err
+	//	}
+	//}
+	//
+	//return generateDigest(tmp)
 }
 
 // GetBaseLayersPath used in build stage, where the image still has from layer

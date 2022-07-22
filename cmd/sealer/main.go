@@ -15,11 +15,16 @@
 package main
 
 import (
+	"github.com/containers/buildah"
 	"github.com/sealerio/sealer/cmd/sealer/boot"
 	"github.com/sealerio/sealer/cmd/sealer/cmd"
 )
 
 func main() {
+	if buildah.InitReexec() {
+		return
+	}
+
 	if err := boot.OnBoot(); err != nil {
 		panic(err)
 	}

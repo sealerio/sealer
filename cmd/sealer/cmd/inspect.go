@@ -15,42 +15,40 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/pkg/image"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils/platform"
 )
 
-var inspectPlatformFlag string
+var inspectOpts *options.InspectOptions
 
 // inspectCmd represents the inspect command
 var inspectCmd = &cobra.Command{
 	Use:   "inspect",
 	Short: "print the image information or Clusterfile",
-	Long:  `sealer inspect ${image id} to print image information`,
-	Args:  cobra.ExactArgs(1),
+	Example: `sealer inspect {imageName or imageID}
+sealer inspect --format '{{.OCIv1.Config.Env}}' {imageName or imageID}
+`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var targetPlatforms []*v1.Platform
-		if inspectPlatformFlag != "" {
-			tp, err := platform.ParsePlatforms(inspectPlatformFlag)
-			if err != nil {
-				return err
-			}
-			targetPlatforms = tp
-		}
-		file, err := image.GetImageDetails(args[0], targetPlatforms)
+		engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 		if err != nil {
-			return fmt.Errorf("failed to find information by image %s: %v", args[0], err)
+			return err
 		}
-		fmt.Println(file)
+
+		inspectOpts.ImageNameOrID = args[0]
+		err = engine.Inspect(inspectOpts)
+		if err != nil {
+			return err
+		}
 		return nil
 	},
 }
 
 func init() {
+	inspectOpts = &options.InspectOptions{}
+	flags := inspectCmd.Flags()
+	flags.StringVarP(&inspectOpts.Format, "format", "f", "", "use `format` as a Go template to format the output")
+	flags.StringVarP(&inspectOpts.InspectType, "type", "t", "image", "look at the item of the specified `type` (container or image) and name")
 	rootCmd.AddCommand(inspectCmd)
-	inspectCmd.Flags().StringVar(&inspectPlatformFlag, "platform", "", "set ClusterImage platform")
 }

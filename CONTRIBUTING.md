@@ -180,6 +180,7 @@ Here are some dependents with specific version:
 
 * golang : v1.14
 * golangci-lint: 1.39.0
+* gpgme(brew install gpgme)
 
 When you develop the Sealer project at the local environment, you should use subcommands of Makefile to help yourself to check and build the latest version of Sealer. For the convenience of developers, we use the docker to build Sealer. It can reduce problems of the developing environment.
 

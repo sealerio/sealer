@@ -17,6 +17,10 @@ package processor
 import (
 	"fmt"
 
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+
+	"github.com/sealerio/sealer/pkg/auth"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/registry"
 
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -24,11 +28,9 @@ import (
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/guest"
-	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/plugin"
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
-	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
@@ -37,12 +39,12 @@ import (
 
 type CreateProcessor struct {
 	ClusterFile       clusterfile.Interface
-	ImageManager      image.Service
 	cloudImageMounter clusterimage.Interface
 	Runtime           runtime.Interface
 	Guest             guest.Interface
 	Config            config.Interface
 	Plugins           plugin.Plugins
+	ImageEngine       imageengine.Interface
 }
 
 func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
@@ -82,14 +84,30 @@ func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	plats := []*v1.Platform{platform.GetDefaultPlatform()}
+
+	platVisit := map[string]struct{}{}
+	platVisit[platform.GetDefaultPlatform().ToString()] = struct{}{}
 	for _, v := range platsMap {
-		plat := v
-		plats = append(plats, &plat)
+		platVisit[v.ToString()] = struct{}{}
 	}
-	if err = c.ImageManager.PullIfNotExist(cluster.Spec.Image, plats); err != nil {
-		return err
+
+	plats := []string{}
+	for k := range platVisit {
+		plats = append(plats, k)
 	}
+	for _, plat := range plats {
+		if err = c.ImageEngine.Pull(&imagecommon.PullOptions{
+			Authfile:   auth.GetDefaultAuthFilePath(),
+			Quiet:      false,
+			TLSVerify:  true,
+			PullPolicy: "missing",
+			Image:      cluster.Spec.Image,
+			Platform:   plat,
+		}); err != nil {
+			return err
+		}
+	}
+
 	if err = c.cloudImageMounter.MountImage(cluster); err != nil {
 		return err
 	}
@@ -153,12 +171,12 @@ func (c *CreateProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 }
 
 func NewCreateProcessor(clusterFile clusterfile.Interface) (Processor, error) {
-	imgSvc, err := image.NewImageService()
+	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
 	if err != nil {
 		return nil, err
 	}
 
-	mounter, err := filesystem.NewClusterImageMounter()
+	mounter, err := filesystem.NewClusterImageMounter(imageEngine)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +188,7 @@ func NewCreateProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 
 	return &CreateProcessor{
 		ClusterFile:       clusterFile,
-		ImageManager:      imgSvc,
+		ImageEngine:       imageEngine,
 		cloudImageMounter: mounter,
 		Guest:             gs,
 	}, nil

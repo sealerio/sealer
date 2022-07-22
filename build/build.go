@@ -18,6 +18,7 @@ import (
 	"github.com/sealerio/sealer/build/buildimage"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/reference"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sirupsen/logrus"
 )
