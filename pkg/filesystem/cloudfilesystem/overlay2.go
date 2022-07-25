@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh /var/lib/docker %s %s"
+	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh /var/lib/docker %s %s %s"
 )
 
 type overlayFileSystem struct {
@@ -64,12 +64,16 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 		mountDirs map[string]bool
 	}{&sync.RWMutex{}, make(map[string]bool)}
 	config := runtime.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
+	containerRuntime := "docker"
+	if v := env.ConvertEnv(cluster.Spec.Env)[v2.EnvContainerRuntime]; v != nil {
+		containerRuntime = v.(string)
+	}
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
 			src := platform.GetMountClusterImagePlatformDir(cluster.Name, clusterPlatform[ip])
-			initCmd := fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port)
+			initCmd := fmt.Sprintf(RemoteChmod, target, config.Domain, config.Port, containerRuntime)
 			mountEntry.Lock()
 			if !mountEntry.mountDirs[src] {
 				mountEntry.mountDirs[src] = true

@@ -36,7 +36,7 @@ const (
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerLoginCommand          = "nerdctl login -u %s -p %s %s && " + KubeletAuthCommand
 	KubeletAuthCommand          = "cp /root/.docker/config.json /var/lib/kubelet"
-	DeleteRegistryCommand       = "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
+	DeleteRegistryCommand       = "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rm -f %[1]s))"
 )
 
 type RegistryConfig struct {

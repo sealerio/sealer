@@ -24,10 +24,11 @@ import (
 )
 
 const (
-	EnvLvsImage      = "LvsImage"
-	EnvHostIPFamily  = "HostIPFamily"
-	EnvHostIP        = "HostIP"
-	EnvIPv6DualStack = "IPv6DualStack"
+	EnvLvsImage         = "LvsImage"
+	EnvHostIPFamily     = "HostIPFamily"
+	EnvHostIP           = "HostIP"
+	EnvContainerRuntime = "ContainerRuntime"
+	EnvIPv6DualStack    = "IPv6DualStack"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
