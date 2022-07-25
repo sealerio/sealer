@@ -14,15 +14,17 @@
 
 package ipvs
 
-/*var want = []string{
+import (
+	"net"
+	"testing"
+)
+
+var want = []string{
 	`apiVersion: v1
 kind: Pod
 metadata:
   creationTimestamp: null
-  labels:
-    component: kube-sealyun-lvscare
-    tier: control-plane
-  name: kube-sealyun-lvscare
+  name: kube-lvscare
   namespace: kube-system
 spec:
   containers:
@@ -44,7 +46,7 @@ spec:
     - /usr/bin/lvscare
     image: fanux/lvscare:latest
     imagePullPolicy: IfNotPresent
-    name: kube-sealyun-lvscare
+    name: kube-lvscare
     resources: {}
     securityContext:
       privileged: true
@@ -53,7 +55,6 @@ spec:
       name: lib-modules
       readOnly: true
   hostNetwork: true
-  priorityClassName: system-cluster-critical
   volumes:
   - hostPath:
       path: /lib/modules
@@ -65,8 +66,8 @@ status: {}
 
 func TestLvsStaticPodYaml(t *testing.T) {
 	type args struct {
-		vip     string
-		masters []string
+		vip     net.IP
+		masters []net.IP
 		image   string
 	}
 	tests := []struct {
@@ -77,8 +78,12 @@ func TestLvsStaticPodYaml(t *testing.T) {
 		{
 			"test generate lvs care static pod",
 			args{
-				"10.10.10.10",
-				[]string{"116.31.96.134:6443", "116.31.96.135:6443", "116.31.96.136:6443"},
+				net.ParseIP("10.10.10.10"),
+				[]net.IP{
+					net.ParseIP("116.31.96.134"),
+					net.ParseIP("116.31.96.135"),
+					net.ParseIP("116.31.96.136"),
+				},
 				"fanux/lvscare:latest",
 			},
 			want[0],
@@ -92,4 +97,3 @@ func TestLvsStaticPodYaml(t *testing.T) {
 		})
 	}
 }
-*/

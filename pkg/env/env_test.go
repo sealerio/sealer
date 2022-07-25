@@ -64,7 +64,7 @@ func getTestCluster() *v2.Cluster {
 	}
 }
 
-/* func Test_processor_WrapperShell(t *testing.T) {
+func Test_processor_WrapperShell(t *testing.T) {
 	type fields struct {
 		Cluster *v2.Cluster
 	}
@@ -85,7 +85,7 @@ func getTestCluster() *v2.Cluster {
 				host:  net.ParseIP("192.168.0.2"),
 				shell: "echo $foo ${IP[@]}",
 			},
-			"key=(bar foo) foo=bar IP=127.0.0.2 && echo $foo ${IP[@]}",
+			"IP=127.0.0.2 key=(bar foo) foo=bar  && echo $foo ${IP[@]}",
 		},
 	}
 	for _, tt := range tests {
@@ -99,7 +99,6 @@ func getTestCluster() *v2.Cluster {
 		})
 	}
 }
-*/
 
 func Test_processor_RenderAll(t *testing.T) {
 	type fields struct {
