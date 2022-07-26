@@ -15,10 +15,11 @@
 package plugin
 
 import (
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"net"
 	"testing"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 func TestDumperPlugin_Run(t *testing.T) {
