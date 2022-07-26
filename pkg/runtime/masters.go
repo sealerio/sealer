@@ -521,7 +521,7 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 	}
 	out, err := ssh.Cmd(k.GetMaster0IP(), cmd)
 	if err != nil {
-		return fmt.Errorf("create kubeadm join token failed %v", err)
+		return fmt.Errorf("failed to create kubeadm join token: %v", err)
 	}
 
 	k.decodeMaster0Output(out)

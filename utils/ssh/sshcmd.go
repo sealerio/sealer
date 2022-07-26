@@ -16,7 +16,6 @@ package ssh
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/sealerio/sealer/common"
@@ -42,68 +41,61 @@ func (s *SSH) Ping(host string) error {
 	return nil
 }
 
+func getKeyError(str string) string {
+	begin := "Panic error: "
+	end := ", please check this panic"
+	n := strings.Index(str, begin)
+	if n == -1 {
+		return ""
+	}
+
+	m := strings.Index(str, end)
+	if m == -1 {
+		return ""
+	}
+
+	return str[n+len(begin) : m]
+}
+
 func (s *SSH) CmdAsync(host string, cmds ...string) error {
 	var execFunc func(cmd string) error
 
-	if net.IsLocalIP(host, s.LocalAddress) {
-		execFunc = func(cmd string) error {
-			c := exec.Command("/bin/sh", "-c", cmd)
-			stdout, err := c.StdoutPipe()
-			if err != nil {
-				return err
-			}
-
-			stderr, err := c.StderrPipe()
-			if err != nil {
-				return err
-			}
-
-			if err := c.Start(); err != nil {
-				return fmt.Errorf("failed to start command %s: %v", cmd, err)
-			}
-
-			output := make([]string, 0)
-
-			ReadPipe(stdout, stderr, &output)
-
-			err = c.Wait()
-			if err != nil {
-				return fmt.Errorf("failed to execute command(%s) on host(%s): output(%s), error(%v)", cmd, host, strings.Join(output, "\n"), err)
-			}
-			return nil
+	execFunc = func(cmd string) error {
+		client, session, err := s.Connect(host)
+		if err != nil {
+			return fmt.Errorf("failed to create ssh session for %s: %v", host, err)
 		}
-	} else {
-		execFunc = func(cmd string) error {
-			client, session, err := s.Connect(host)
-			if err != nil {
-				return fmt.Errorf("failed to create ssh session for %s: %v", host, err)
-			}
-			defer client.Close()
-			defer session.Close()
-			stdout, err := session.StdoutPipe()
-			if err != nil {
-				return fmt.Errorf("failed to create stdout pipe for %s: %v", host, err)
-			}
-			stderr, err := session.StderrPipe()
-			if err != nil {
-				return fmt.Errorf("failed to create stderr pipe for %s: %v", host, err)
-			}
-
-			if err := session.Start(cmd); err != nil {
-				return fmt.Errorf("failed to start command %s on %s: %v", cmd, host, err)
-			}
-
-			output := make([]string, 0)
-
-			ReadPipe(stdout, stderr, &output)
-
-			err = session.Wait()
-			if err != nil {
-				return fmt.Errorf("failed to execute command(%s) on host(%s): output(%s), error(%v)", cmd, host, strings.Join(output, "\n"), err)
-			}
-
-			return nil
+		defer client.Close()
+		defer session.Close()
+		stdout, err := session.StdoutPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create stdout pipe for %s: %v", host, err)
 		}
+		stderr, err := session.StderrPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create stderr pipe for %s: %v", host, err)
+		}
+
+		if err := session.Start(cmd); err != nil {
+			return fmt.Errorf("failed to start command %s on %s: %v", cmd, host, err)
+		}
+
+		output := make([]string, 0)
+
+		ReadPipe(stdout, stderr, &output)
+
+		err = session.Wait()
+		if err != nil {
+			keyError := strings.Join(output, "\n")
+			logrus.Debugf("failed to execute command(%s) on host(%s): output(%s), error(%v)", cmd, host, keyError, err)
+
+			if ke := getKeyError(keyError); ke != "" {
+				keyError = ke
+			}
+			return fmt.Errorf("failed to execute command on host(%s): %v", host, keyError)
+		}
+
+		return nil
 	}
 
 	for _, cmd := range cmds {
@@ -114,7 +106,6 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 			cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
 		}
 		if err := execFunc(cmd); err != nil {
-			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
 			return err
 		}
 	}
@@ -125,14 +116,6 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	if s.User != common.ROOT {
 		cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
-	}
-	if net.IsLocalIP(host, s.LocalAddress) {
-		b, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
-		if err != nil {
-			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
-			return b, err
-		}
-		return b, err
 	}
 
 	client, session, err := s.Connect(host)
@@ -146,6 +129,15 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 		logrus.Debugf("[ssh][%s]run command failed [%s]", host, cmd)
 		return b, fmt.Errorf("[ssh][%s]run command failed [%s]", host, cmd)
 	}
+	if err != nil {
+		keyError := string(b)
+		logrus.Debugf("failed to execute command(%s) on host(%s): output(%s), error(%v)", cmd, host, keyError, err)
+
+		if ke := getKeyError(keyError); ke != "" {
+			keyError = ke
+		}
+		return nil, fmt.Errorf("failed to execute command on host(%s): %v", host, keyError)
+	}
 
 	return b, nil
 }
@@ -155,7 +147,7 @@ func (s *SSH) CmdToString(host, cmd, split string) (string, error) {
 	data, err := s.Cmd(host, cmd)
 	str := string(data)
 	if err != nil {
-		return str, fmt.Errorf("exec command failed %s %s %v", host, cmd, err)
+		return str, err
 	}
 	if data != nil {
 		str = strings.ReplaceAll(str, "\r\n", split)

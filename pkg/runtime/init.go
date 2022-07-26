@@ -264,11 +264,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	// TODO skip docker version error check for test
 	output, err := client.Cmd(k.GetMaster0IP(), cmdInit)
 	if err != nil {
-		_, wErr := common.StdOut.WriteString(string(output))
-		if wErr != nil {
-			return err
-		}
-		return fmt.Errorf("init master0 failed, error: %s. Please clean and reinstall", err.Error())
+		return fmt.Errorf("failed to init master0, error: %v", err)
 	}
 	k.decodeMaster0Output(output)
 	err = client.CmdAsync(k.GetMaster0IP(), RemoteCopyKubeConfig)

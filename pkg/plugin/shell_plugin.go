@@ -17,13 +17,15 @@ package plugin
 import (
 	"fmt"
 	"strings"
+	"sync"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/env"
+	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 type Sheller struct{}
@@ -58,23 +60,44 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 			return err
 		}
 	}
+	logrus.Infof("Start to run %s-shell-plugin '%s', this may take a few minutes, please be patient...", phase, context.Plugin.Name)
+
 	var runPluginIPList []string
+	var wg sync.WaitGroup
+	hostErrRecorder := utils.NewHostErrRecorder()
+
+	envProcessor := env.NewEnvProcessor(context.Cluster)
 	for _, ip := range allHostIP {
 		//skip non-cluster nodes
 		if strUtils.NotIn(ip, context.Host) {
 			continue
 		}
-		envProcessor := env.NewEnvProcessor(context.Cluster)
-		sshClient, err := ssh.GetHostSSHClient(ip, context.Cluster, true)
-		if err != nil {
-			return err
-		}
-		err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, pluginCmd))
-		if err != nil {
-			return fmt.Errorf("failed to run shell cmd,  %v", err)
-		}
 		runPluginIPList = append(runPluginIPList, ip)
+
+		wg.Add(1)
+		go func(node string) {
+			defer wg.Done()
+			sshClient, err := ssh.GetHostSSHClient(node, context.Cluster, true)
+			if err != nil {
+				hostErrRecorder.AppendErr(node, err)
+
+				return
+			}
+			err = sshClient.CmdAsync(node, envProcessor.WrapperShell(node, pluginCmd))
+			if err != nil {
+				hostErrRecorder.AppendErr(node, err)
+
+				return
+			}
+		}(ip)
 	}
-	logrus.Infof("%s phase shell plugin '%s' executing nodes: %s ", phase, context.Plugin.Name, runPluginIPList)
+	wg.Wait()
+
+	if err := hostErrRecorder.Result(); err != nil {
+		return err
+	}
+
+	logrus.Infof("Succeeded in running %s-shell-plugin '%s' on nodes: %v", phase, context.Plugin.Name, runPluginIPList)
+
 	return nil
 }

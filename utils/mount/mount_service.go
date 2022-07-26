@@ -23,7 +23,6 @@ import (
 
 	"github.com/sealerio/sealer/utils/exec"
 	"github.com/sealerio/sealer/utils/os/fs"
-	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
@@ -147,14 +146,6 @@ func GetMountDetails(target string) (bool, *Info) {
 		return false, nil
 	}
 	return mountCmdResultSplit(result, target)
-}
-
-func GetRemoteMountDetails(s ssh.Interface, ip string, target string) (bool, *Info) {
-	result, err := s.Cmd(ip, fmt.Sprintf("mount | grep %s", target))
-	if err != nil {
-		return false, nil
-	}
-	return mountCmdResultSplit(string(result), target)
 }
 
 func mountCmdResultSplit(result string, target string) (bool, *Info) {
