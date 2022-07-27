@@ -40,9 +40,9 @@ type Config struct {
 	Password string `json:"password,omitempty"`
 }
 
-func (c *Config) GenerateHtPasswd() (string, error) {
+func (c *Config) GenerateHTTPBasicAuth() (string, error) {
 	if c.Username == "" || c.Password == "" {
-		return "", fmt.Errorf("failed to generate htpasswd: registry username or passwodr is empty")
+		return "", fmt.Errorf("failed to generate HTTP basic authentication: registry username or password is empty")
 	}
 	pwdHash, err := bcrypt.GenerateFromPassword([]byte(c.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -55,32 +55,32 @@ func (c *Config) Repo() string {
 	return fmt.Sprintf("%s:%s", c.Domain, c.Port)
 }
 
-func GetConfig(rootfs string, defaultRegistryIP net.IP) *Config {
+func GetConfig(rootfs string, registryIP net.IP) *Config {
 	var config Config
-	var DefaultConfig = &Config{
-		IP:     defaultRegistryIP,
+	var defaultConfig = &Config{
+		IP:     registryIP,
 		Domain: SeaHub,
 		Port:   "5000",
 	}
 	registryConfigPath := filepath.Join(rootfs, common.EtcDir, ConfigFile)
 	if !osi.IsFileExist(registryConfigPath) {
-		logrus.Debug("use default registry config")
-		return DefaultConfig
+		logrus.Debugf("default registry configuration is used: \n %+v", defaultConfig)
+		return defaultConfig
 	}
 	err := yaml.UnmarshalFile(registryConfigPath, &config)
 	if err != nil {
 		logrus.Errorf("failed to read registry config: %v", err)
-		return DefaultConfig
+		return defaultConfig
 	}
 	if config.IP == nil {
-		config.IP = DefaultConfig.IP
+		config.IP = defaultConfig.IP
 	}
 	if config.Port == "" {
-		config.Port = DefaultConfig.Port
+		config.Port = defaultConfig.Port
 	}
 	if config.Domain == "" {
-		config.Domain = DefaultConfig.Domain
+		config.Domain = defaultConfig.Domain
 	}
-	logrus.Debugf("show registry info, IP: %s, Domain: %s", config.IP, config.Domain)
+	logrus.Debugf("The ultimate registry configration is: \n %+v", config)
 	return &config
 }

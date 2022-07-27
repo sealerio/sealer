@@ -41,7 +41,7 @@ func (k *Runtime) ApplyRegistry() error {
 	}
 
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		htpasswd, err := k.RegConfig.GenerateHtPasswd()
+		htpasswd, err := k.RegConfig.GenerateHTTPBasicAuth()
 		if err != nil {
 			return err
 		}
