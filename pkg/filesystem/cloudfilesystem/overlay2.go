@@ -36,8 +36,7 @@ const (
 	RemoteChmod = "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh /var/lib/docker %s %s"
 )
 
-type overlayFileSystem struct {
-}
+type overlayFileSystem struct{}
 
 func (o *overlayFileSystem) MountRootfs(cluster *v2.Cluster, hosts []net.IP, initFlag bool) error {
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)

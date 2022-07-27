@@ -47,7 +47,7 @@ func Test_convertEnv(t *testing.T) {
 	}
 }
 
-func getTestCluster() *v2.Cluster {
+func RenderAllTestCluster() *v2.Cluster {
 	return &v2.Cluster{
 		Spec: v2.ClusterSpec{
 			Image: "",
@@ -64,7 +64,7 @@ func getTestCluster() *v2.Cluster {
 	}
 }
 
-func getTestClusterWrapperShell() *v2.Cluster {
+func WrapperShellTestCluster() *v2.Cluster {
 	return &v2.Cluster{
 		Spec: v2.ClusterSpec{
 			Image: "",
@@ -97,7 +97,7 @@ func Test_processor_WrapperShell(t *testing.T) {
 	}{
 		{
 			"test command ENV",
-			fields{Cluster: getTestClusterWrapperShell()},
+			fields{Cluster: WrapperShellTestCluster()},
 			args{
 				host:  net.ParseIP("192.168.0.2"),
 				shell: "echo $foo ${IP[@]}",
@@ -134,7 +134,7 @@ func Test_processor_RenderAll(t *testing.T) {
 	}{
 		{
 			"test render dir",
-			fields{getTestCluster()},
+			fields{RenderAllTestCluster()},
 			args{
 				host: net.ParseIP("192.168.0.2"),
 				dir:  "test/template",

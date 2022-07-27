@@ -24,8 +24,8 @@ import (
 
 func TestDumperPlugin_Run(t *testing.T) {
 	type fields struct {
-		Plugins []v1.Plugin
-		Cluster *v2.Cluster
+		plugins []v1.Plugin
+		cluster *v2.Cluster
 	}
 	type args struct {
 		hosts []net.IP
@@ -42,8 +42,8 @@ func TestDumperPlugin_Run(t *testing.T) {
 		{
 			name: "Test",
 			fields: fields{
-				Plugins: []v1.Plugin{},
-				Cluster: &v2.Cluster{},
+				plugins: []v1.Plugin{},
+				cluster: &v2.Cluster{},
 			},
 			args: args{
 				hosts: []net.IP{
@@ -58,8 +58,8 @@ func TestDumperPlugin_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &PluginsProcessor{
-				Plugins: tt.fields.Plugins,
-				Cluster: tt.fields.Cluster,
+				Plugins: tt.fields.plugins,
+				Cluster: tt.fields.cluster,
 			}
 			if err := c.Run(tt.args.hosts, tt.args.phase); (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)

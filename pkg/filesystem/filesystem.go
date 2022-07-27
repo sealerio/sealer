@@ -23,7 +23,7 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 )
 
-// NewCloudClusterMounter :mount and unmount ClusterImage.
+// NewClusterImageMounter :mount and unmount ClusterImage.
 func NewClusterImageMounter() (clusterimage.Interface, error) {
 	is, err := store.NewDefaultImageStore()
 	if err != nil {
