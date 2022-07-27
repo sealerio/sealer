@@ -17,8 +17,9 @@ package buildimage
 type Context struct {
 	BuildContext string
 	//cache flag,will change for each layer ctx
-	UseCache  bool
-	BuildArgs map[string]string
+	UseCache      bool
+	DownloadImage bool
+	BuildArgs     map[string]string
 }
 
 type SaveOpts struct {

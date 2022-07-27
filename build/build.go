@@ -28,25 +28,27 @@ type Interface interface {
 
 func NewBuilder(config *Config) (Interface, error) {
 	return &liteBuilder{
-		noCache:   config.NoCache,
-		noBase:    config.NoBase,
-		buildArgs: config.BuildArgs,
-		platform:  config.Platform,
+		noCache:       config.NoCache,
+		noBase:        config.NoBase,
+		buildArgs:     config.BuildArgs,
+		platform:      config.Platform,
+		downloadImage: config.DownloadImage,
 	}, nil
 }
 
 type liteBuilder struct {
-	noCache      bool
-	noBase       bool
-	imageNamed   reference.Named
-	context      string
-	kubeFileName string
-	buildArgs    map[string]string
-	baseLayers   []v1.Layer
-	rawImage     *v1.Image
-	platform     v1.Platform
-	executor     buildimage.Executor
-	saver        buildimage.ImageSaver
+	noCache       bool
+	noBase        bool
+	downloadImage bool
+	imageNamed    reference.Named
+	context       string
+	kubeFileName  string
+	buildArgs     map[string]string
+	baseLayers    []v1.Layer
+	rawImage      *v1.Image
+	platform      v1.Platform
+	executor      buildimage.Executor
+	saver         buildimage.ImageSaver
 }
 
 func (l liteBuilder) Build(name string, context string, kubefileName string) error {
@@ -118,9 +120,10 @@ func (l liteBuilder) ExecBuild() error {
 	}
 
 	ctx := buildimage.Context{
-		BuildContext: l.context,
-		UseCache:     !l.noCache,
-		BuildArgs:    l.rawImage.Spec.ImageConfig.Args.Current,
+		BuildContext:  l.context,
+		UseCache:      !l.noCache,
+		BuildArgs:     l.rawImage.Spec.ImageConfig.Args.Current,
+		DownloadImage: l.downloadImage,
 	}
 
 	layers, err := l.executor.Execute(ctx, l.rawImage.Spec.Layers[1:])

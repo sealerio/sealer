@@ -33,8 +33,7 @@ func UnmarshalFile(file string, obj interface{}) error {
 		return err
 	}
 
-	err = yaml.Unmarshal(data, obj)
-	if err != nil {
+	if err = yaml.Unmarshal(data, obj); err != nil {
 		return fmt.Errorf("failed to unmarshal file %s to %s: %v", file, reflect.TypeOf(obj), err)
 	}
 	return nil

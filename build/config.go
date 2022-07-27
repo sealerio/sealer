@@ -17,10 +17,11 @@ package build
 import v1 "github.com/sealerio/sealer/types/api/v1"
 
 type Config struct {
-	BuildType string
-	NoCache   bool
-	NoBase    bool
-	ImageName string
-	BuildArgs map[string]string
-	Platform  v1.Platform
+	BuildType     string
+	NoCache       bool
+	NoBase        bool
+	DownloadImage bool
+	ImageName     string
+	BuildArgs     map[string]string
+	Platform      v1.Platform
 }
