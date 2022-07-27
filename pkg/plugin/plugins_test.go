@@ -14,27 +14,25 @@
 
 package plugin
 
-/*
+import (
+	"net"
+	"testing"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+)
+
 func TestDumperPlugin_Run(t *testing.T) {
 	type fields struct {
-		configs     []v1.Plugin
-		clusterName string
+		plugins []v1.Plugin
+		cluster *v2.Cluster
 	}
 	type args struct {
-		cluster *v2.Cluster
-		phase   Phase
+		hosts []net.IP
+		phase Phase
 	}
-	plugins := []v1.Plugin{
-		{
-			Spec: v1.PluginSpec{
-				On:     "node-role.kubernetes.io/master=",
-				Data:   "kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule",
-				Action: "PostInstall",
-			},
-		},
-	}
+
 	//TODO cluster is where?
-	cluster := &v2.Cluster{}
 	tests := []struct {
 		name    string
 		fields  fields
@@ -44,26 +42,28 @@ func TestDumperPlugin_Run(t *testing.T) {
 		{
 			name: "Test",
 			fields: fields{
-				configs:     plugins,
-				clusterName: "my-cluster",
+				plugins: []v1.Plugin{},
+				cluster: &v2.Cluster{},
 			},
 			args: args{
-				cluster: cluster,
-				phase:   "PostInstall",
+				hosts: []net.IP{
+					net.ParseIP("116.31.96.134"),
+					net.ParseIP("116.31.96.135"),
+					net.ParseIP("116.31.96.136"),
+				},
+				phase: "PostInstall | preInit",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &PluginsProcessor{
-				Plugins: tt.fields.configs,
-				Cluster: &v2.Cluster{},
+				Plugins: tt.fields.plugins,
+				Cluster: tt.fields.cluster,
 			}
-			c.Cluster.Name = tt.fields.clusterName
-			if err := c.Run(tt.args.cluster.GetAllIPList(), tt.args.phase); (err != nil) != tt.wantErr {
+			if err := c.Run(tt.args.hosts, tt.args.phase); (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
-*/

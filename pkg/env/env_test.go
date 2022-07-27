@@ -47,7 +47,7 @@ func Test_convertEnv(t *testing.T) {
 	}
 }
 
-func getTestCluster() *v2.Cluster {
+func RenderAllTestCluster() *v2.Cluster {
 	return &v2.Cluster{
 		Spec: v2.ClusterSpec{
 			Image: "",
@@ -64,7 +64,24 @@ func getTestCluster() *v2.Cluster {
 	}
 }
 
-/* func Test_processor_WrapperShell(t *testing.T) {
+func WrapperShellTestCluster() *v2.Cluster {
+	return &v2.Cluster{
+		Spec: v2.ClusterSpec{
+			Image: "",
+			Env:   []string{"key=value"},
+			Hosts: []v2.Host{
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.2"), net.ParseIP("192.168.0.3"), net.ParseIP("192.168.0.4")},
+					Roles: []string{"master"},
+					Env:   []string{"key=bar"},
+				},
+			},
+			SSH: v1.SSH{},
+		},
+	}
+}
+
+func Test_processor_WrapperShell(t *testing.T) {
 	type fields struct {
 		Cluster *v2.Cluster
 	}
@@ -80,12 +97,13 @@ func getTestCluster() *v2.Cluster {
 	}{
 		{
 			"test command ENV",
-			fields{Cluster: getTestCluster()},
+			fields{Cluster: WrapperShellTestCluster()},
 			args{
 				host:  net.ParseIP("192.168.0.2"),
 				shell: "echo $foo ${IP[@]}",
 			},
-			"key=(bar foo) foo=bar IP=127.0.0.2 && echo $foo ${IP[@]}",
+			"key=bar  && echo $foo ${IP[@]}",
+			//"IP=127.0.0.2 key=(bar foo) foo=bar  && echo $foo ${IP[@]}",
 		},
 	}
 	for _, tt := range tests {
@@ -99,7 +117,6 @@ func getTestCluster() *v2.Cluster {
 		})
 	}
 }
-*/
 
 func Test_processor_RenderAll(t *testing.T) {
 	type fields struct {
@@ -117,7 +134,7 @@ func Test_processor_RenderAll(t *testing.T) {
 	}{
 		{
 			"test render dir",
-			fields{getTestCluster()},
+			fields{RenderAllTestCluster()},
 			args{
 				host: net.ParseIP("192.168.0.2"),
 				dir:  "test/template",
