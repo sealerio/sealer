@@ -21,9 +21,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/sealerio/sealer/pkg/registry"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/env"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
@@ -65,7 +66,7 @@ func mountRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initFlag b
 		*sync.RWMutex
 		mountDirs map[string]bool
 	}{&sync.RWMutex{}, make(map[string]bool)}
-	config := kubernetes.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
+	config := registry.GetConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, IP := range ipList {
 		ip := IP

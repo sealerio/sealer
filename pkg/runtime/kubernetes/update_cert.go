@@ -21,13 +21,13 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_types/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm/v1beta2"
 	"github.com/sealerio/sealer/utils"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (k *KubeadmRuntime) updateCert(certs []string) error {
+func (k *Runtime) updateCert(certs []string) error {
 	client, err := k8s.Newk8sClient()
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func (k *KubeadmRuntime) updateCert(certs []string) error {
 		return err
 	}
 	obj, err := utils.DecodeCRDFromString(cm.Data["ClusterConfiguration"], common.ClusterConfiguration)
-	//obj, err := utils.DecodeCRDFromFile(cm.Data["ClusterConfiguration"], common.ClusterConfiguration)
+
 	if err != nil {
 		return err
 	}
@@ -47,11 +47,11 @@ func (k *KubeadmRuntime) updateCert(certs []string) error {
 	}
 
 	k.setCertSANS(append(clusterConfiguration.APIServer.CertSANs, certs...))
-	ssh, err := k.getHostSSHClient(k.GetMaster0IP())
+	ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 	if err != nil {
 		return fmt.Errorf("failed to update cert: %v", err)
 	}
-	if err := ssh.CmdAsync(k.GetMaster0IP(), "rm -rf /etc/kubernetes/admin.conf"); err != nil {
+	if err := ssh.CmdAsync(k.cluster.GetMaster0IP(), "rm -rf /etc/kubernetes/admin.conf"); err != nil {
 		return err
 	}
 
@@ -66,7 +66,7 @@ func (k *KubeadmRuntime) updateCert(certs []string) error {
 			return fmt.Errorf("failed to init master0: %v", err)
 		}
 	}
-	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
+	if err := k.SendJoinMasterKubeConfigs([]net.IP{k.cluster.GetMaster0IP()}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
 		return err
 	}
 

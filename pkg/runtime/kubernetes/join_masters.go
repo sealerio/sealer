@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/cert"
@@ -29,11 +28,14 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/ssh"
+	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sealerio/sealer/utils/yaml"
-
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+
+	"sync"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -99,22 +101,8 @@ const (
 )
 
 const (
-	Master0              = "Master0"
-	Master               = "Master"
-	Masters              = "Masters"
-	TokenDiscovery       = "TokenDiscovery"
-	VIP                  = "VIP"
-	Version              = "Version"
-	APIServer            = "ApiServer"
-	PodCIDR              = "PodCIDR"
-	SvcCIDR              = "SvcCIDR"
-	Repo                 = "Repo"
-	CertSANS             = "CertSANS"
-	EtcdServers          = "etcd-servers"
-	CriSocket            = "CriSocket"
-	CriCGroupDriver      = "CriCGroupDriver"
-	KubeadmAPI           = "KubeadmAPI"
-	TokenDiscoveryCAHash = "TokenDiscoveryCAHash"
+	Version     = "Version"
+	EtcdServers = "etcd-servers"
 )
 
 type CommandType string
@@ -127,9 +115,9 @@ func getAPIServerHost(ipAddr net.IP, APIServer string) (host string) {
 	return fmt.Sprintf("%s %s", ipAddr.String(), APIServer)
 }
 
-func (k *KubeadmRuntime) JoinMasterCommands(master net.IP, joinCmd, hostname string) []string {
-	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
-	cmdAddRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, k.getRegistryHost(), k.getRegistryHost())
+func (k *Runtime) JoinMasterCommands(master net.IP, joinCmd, hostname string) []string {
+	apiServerHost := getAPIServerHost(k.cluster.GetMaster0IP(), k.getAPIServerDomain())
+	cmdAddRegistryHosts := k.addRegistryDomainToHosts()
 	certCMD := runtime.RemoteCerts(k.getCertSANS(), master, hostname, k.getSvcCIDR(), "")
 	cmdAddHosts := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
 	if k.RegConfig.Domain != SeaHub {
@@ -138,7 +126,7 @@ func (k *KubeadmRuntime) JoinMasterCommands(master net.IP, joinCmd, hostname str
 	}
 	joinCommands := []string{cmdAddRegistryHosts, certCMD, cmdAddHosts}
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		joinCommands = append(joinCommands, k.GerLoginCommand())
+		joinCommands = append(joinCommands, k.GenLoginCommand())
 	}
 	cmdUpdateHosts := fmt.Sprintf(RemoteUpdateEtcHosts, apiServerHost,
 		getAPIServerHost(master, k.getAPIServerDomain()))
@@ -146,21 +134,21 @@ func (k *KubeadmRuntime) JoinMasterCommands(master net.IP, joinCmd, hostname str
 	return append(joinCommands, joinCmd, cmdUpdateHosts, RemoteCopyKubeConfig)
 }
 
-func (k *KubeadmRuntime) sendKubeConfigFile(hosts []net.IP, kubeFile string) error {
+func (k *Runtime) sendKubeConfigFile(hosts []net.IP, kubeFile string) error {
 	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
 	sealerKubeFile := fmt.Sprintf("%s/%s", k.getBasePath(), kubeFile)
 	return k.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
-func (k *KubeadmRuntime) sendNewCertAndKey(hosts []net.IP) error {
+func (k *Runtime) sendNewCertAndKey(hosts []net.IP) error {
 	return k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
 }
 
-func (k *KubeadmRuntime) sendRegistryCertAndKey() error {
-	return k.sendFileToHosts(k.GetMasterIPList()[:1], k.getCertsDir(), filepath.Join(k.getRootfs(), "certs"))
+func (k *Runtime) sendRegistryCertAndKey() error {
+	return k.sendFileToHosts(k.cluster.GetMasterIPList()[:1], k.getCertsDir(), filepath.Join(k.getRootfs(), "certs"))
 }
 
-func (k *KubeadmRuntime) sendRegistryCert(host []net.IP) error {
+func (k *Runtime) sendRegistryCert(host []net.IP) error {
 	cf := k.RegConfig
 	err := k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, cf.Domain, cf.Port, cf.Domain))
 	if err != nil {
@@ -169,7 +157,7 @@ func (k *KubeadmRuntime) sendRegistryCert(host []net.IP) error {
 	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, SeaHub, cf.Port, cf.Domain))
 }
 
-func (k *KubeadmRuntime) sendFileToHosts(Hosts []net.IP, src, dst string) error {
+func (k *Runtime) sendFileToHosts(Hosts []net.IP, src, dst string) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range Hosts {
 		node := node
@@ -187,7 +175,7 @@ func (k *KubeadmRuntime) sendFileToHosts(Hosts []net.IP, src, dst string) error 
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []net.IP) bool {
+func (k *Runtime) ReplaceKubeConfigV1991V1992(masters []net.IP) bool {
 	// fix > 1.19.1 kube-controller-manager and kube-scheduler use the LocalAPIEndpoint instead of the ControlPlaneEndpoint.
 	if k.getKubeVersion() == V1991 || k.getKubeVersion() == V1992 {
 		for _, v := range masters {
@@ -207,7 +195,7 @@ func (k *KubeadmRuntime) ReplaceKubeConfigV1991V1992(masters []net.IP) bool {
 	return false
 }
 
-func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []net.IP, files ...string) error {
+func (k *Runtime) SendJoinMasterKubeConfigs(masters []net.IP, files ...string) error {
 	for _, f := range files {
 		if err := k.sendKubeConfigFile(masters, f); err != nil {
 			return err
@@ -220,11 +208,11 @@ func (k *KubeadmRuntime) SendJoinMasterKubeConfigs(masters []net.IP, files ...st
 }
 
 // joinMasterConfig is generated JoinCP nodes configuration by master ip.
-func (k *KubeadmRuntime) joinMasterConfig(masterIP net.IP) ([]byte, error) {
+func (k *Runtime) joinMasterConfig(masterIP net.IP) ([]byte, error) {
 	k.Lock()
 	defer k.Unlock()
 	// TODO Using join file instead template
-	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.GetMaster0IP()))
+	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.cluster.GetMaster0IP()))
 	k.setJoinAdvertiseAddress(masterIP)
 	cGroupDriver, err := k.getCgroupDriverFromShell(masterIP)
 	if err != nil {
@@ -235,7 +223,7 @@ func (k *KubeadmRuntime) joinMasterConfig(masterIP net.IP) ([]byte, error) {
 }
 
 // sendJoinCPConfig send join CP nodes configuration
-func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []net.IP) error {
+func (k *Runtime) sendJoinCPConfig(joinMaster []net.IP) error {
 	k.Mutex = &sync.Mutex{}
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, master := range joinMaster {
@@ -259,7 +247,7 @@ func (k *KubeadmRuntime) sendJoinCPConfig(joinMaster []net.IP) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) CmdAsyncHosts(hosts []net.IP, cmd string) error {
+func (k *Runtime) CmdAsyncHosts(hosts []net.IP, cmd string) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, host := range hosts {
 		ip := host
@@ -282,17 +270,17 @@ func vlogToStr(vlog int) string {
 	return " -v " + str
 }
 
-func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) {
+func (k *Runtime) Command(version string, name CommandType) (cmd string) {
 	//cmds := make(map[CommandType]string)
 	// Please convert your v1beta1 configuration files to v1beta2 using the
 	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
 	cmds := map[CommandType]string{
 		InitMaster: fmt.Sprintf(InitMaster115Lower, k.getRootfs()),
-		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.GetMaster0IP(), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
+		JoinMaster: fmt.Sprintf(JoinMaster115Lower, k.cluster.GetMaster0IP(), k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey()),
 		JoinNode:   fmt.Sprintf(JoinNode115Lower, k.getVIP(), k.getJoinToken(), k.getTokenCaCertHash()),
 	}
 
-	kv := kubeVersion(version)
+	kv := versionUtils.Version(version)
 	cmp, err := kv.Compare(V1150)
 	//other version >= 1.15.x
 	if err != nil {
@@ -320,7 +308,7 @@ func (k *KubeadmRuntime) Command(version string, name CommandType) (cmd string) 
 	return fmt.Sprintf("%s%s", v, vlogToStr(k.Vlog))
 }
 
-func (k *KubeadmRuntime) joinMasters(masters []net.IP) error {
+func (k *Runtime) joinMasters(masters []net.IP) error {
 	if len(masters) == 0 {
 		return nil
 	}
@@ -382,7 +370,7 @@ func (k *KubeadmRuntime) joinMasters(masters []net.IP) error {
 	return nil
 }
 
-func (k *KubeadmRuntime) deleteMasters(masters []net.IP) error {
+func (k *Runtime) deleteMasters(masters []net.IP) error {
 	if len(masters) == 0 {
 		return nil
 	}
@@ -403,7 +391,7 @@ func (k *KubeadmRuntime) deleteMasters(masters []net.IP) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) isHostName(master, host net.IP) (string, error) {
+func (k *Runtime) isHostName(master, host net.IP) (string, error) {
 	hostString, err := k.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
 	if err != nil {
 		return "", err
@@ -429,7 +417,7 @@ func (k *KubeadmRuntime) isHostName(master, host net.IP) (string, error) {
 	return name, nil
 }
 
-func (k *KubeadmRuntime) deleteMaster(master net.IP) error {
+func (k *Runtime) deleteMaster(master net.IP) error {
 	ssh, err := k.getHostSSHClient(master)
 	if err != nil {
 		return fmt.Errorf("failed to delete master: %v", err)
@@ -446,7 +434,7 @@ func (k *KubeadmRuntime) deleteMaster(master net.IP) error {
 	if err != nil || !utilsnet.IsLocalIP(master, address) {
 		remoteCleanCmd = append(remoteCleanCmd, RemoveKubeConfig)
 	} else {
-		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
+		apiServerHost := getAPIServerHost(k.cluster.GetMaster0IP(), k.getAPIServerDomain())
 		remoteCleanCmd = append(remoteCleanCmd,
 			fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost))
 	}
@@ -456,30 +444,30 @@ func (k *KubeadmRuntime) deleteMaster(master net.IP) error {
 
 	// remove master
 	masterIPs := []net.IP{}
-	for _, ip := range k.GetMasterIPList() {
+	for _, ip := range k.cluster.GetMasterIPList() {
 		if !ip.Equal(master) {
 			masterIPs = append(masterIPs, ip)
 		}
 	}
 
 	if len(masterIPs) > 0 {
-		hostname, err := k.isHostName(k.GetMaster0IP(), master)
+		hostname, err := k.isHostName(k.cluster.GetMaster0IP(), master)
 		if err != nil {
 			return err
 		}
-		master0SSH, err := k.getHostSSHClient(k.GetMaster0IP())
+		master0SSH, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 		if err != nil {
 			return fmt.Errorf("failed to get master0 ssh client: %v", err)
 		}
 
-		if err := master0SSH.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
+		if err := master0SSH.CmdAsync(k.cluster.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
 			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
 		}
 	}
 	lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
 	yaml := ipvs.LvsStaticPodYaml(k.getVIP(), masterIPs, lvsImage)
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, node := range k.GetNodeIPList() {
+	for _, node := range k.cluster.GetNodeIPList() {
 		node := node
 		eg.Go(func() error {
 			ssh, err := k.getHostSSHClient(node)
@@ -495,7 +483,7 @@ func (k *KubeadmRuntime) deleteMaster(master net.IP) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
+func (k *Runtime) GetJoinTokenHashAndKey() error {
 	cmd := fmt.Sprintf(`kubeadm init phase upload-certs --upload-certs -v %d`, k.Vlog)
 	/*
 		I0415 11:45:06.653868   14520 version.go:251] remote version is much newer: v1.21.0; falling back to: stable-1.16
@@ -503,7 +491,7 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 		[upload-certs] Using certificate key:
 		8376c70aaaf285b764b3c1a588740728aff493d7c2239684e84a7367c6a437cf
 	*/
-	output, err := k.CmdToString(k.GetMaster0IP(), cmd, "\r\n")
+	output, err := k.CmdToString(k.cluster.GetMaster0IP(), cmd, "\r\n")
 	if err != nil {
 		return err
 	}
@@ -516,11 +504,11 @@ func (k *KubeadmRuntime) GetJoinTokenHashAndKey() error {
 	k.CertificateKey = strings.Replace(key, "\n", "", -1)
 	cmd = fmt.Sprintf("kubeadm token create --print-join-command -v %d", k.Vlog)
 
-	ssh, err := k.getHostSSHClient(k.GetMaster0IP())
+	ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 	if err != nil {
 		return fmt.Errorf("failed to get join token hash and key: %v", err)
 	}
-	out, err := ssh.Cmd(k.GetMaster0IP(), cmd)
+	out, err := ssh.Cmd(k.cluster.GetMaster0IP(), cmd)
 	if err != nil {
 		return fmt.Errorf("failed to create kubeadm join token: %v", err)
 	}

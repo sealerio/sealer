@@ -16,23 +16,11 @@ package kubernetes
 
 import (
 	"fmt"
-	"net"
 	"path/filepath"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/cert"
-	osi "github.com/sealerio/sealer/utils/os"
-	"github.com/sealerio/sealer/utils/yaml"
-
-	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
 	RegistryName                = "sealer-registry"
-	RegistryBindDest            = "/var/lib/registry"
-	RegistryBindConfig          = "registry_config.yml"
-	RegistryCustomConfig        = "registry.yml"
 	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerLoginCommand          = "nerdctl login -u %s -p %s %s && " + KubeletAuthCommand
@@ -40,28 +28,20 @@ const (
 	DeleteRegistryCommand       = "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
 )
 
-type RegistryConfig struct {
-	IP       net.IP `yaml:"ip,omitempty"`
-	Domain   string `yaml:"domain,omitempty"`
-	Port     string `yaml:"port,omitempty"`
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-}
-
-func (k *KubeadmRuntime) getRegistryHost() (host string) {
-	// FIXME: quite strange to return such a format data
-	return fmt.Sprintf("%s %s", k.RegConfig.IP.String(), k.RegConfig.Domain)
+func (k *Runtime) addRegistryDomainToHosts() (host string) {
+	content := fmt.Sprintf("%s %s", k.RegConfig.IP.String(), k.RegConfig.Domain)
+	return fmt.Sprintf(RemoteAddEtcHosts, content, content)
 }
 
 // ApplyRegistry Only use this for join and init, due to the initiation operations.
-func (k *KubeadmRuntime) ApplyRegistry() error {
+func (k *Runtime) ApplyRegistry() error {
 	ssh, err := k.getHostSSHClient(k.RegConfig.IP)
 	if err != nil {
 		return fmt.Errorf("failed to get registry ssh client: %v", err)
 	}
 
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		htpasswd, err := k.RegConfig.GenerateHtPasswd()
+		htpasswd, err := k.RegConfig.GenerateHTTPBasicAuth()
 		if err != nil {
 			return err
 		}
@@ -71,8 +51,7 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 		}
 	}
 	initRegistry := fmt.Sprintf("cd %s/scripts && ./init-registry.sh %s %s %s", k.getRootfs(), k.RegConfig.Port, fmt.Sprintf("%s/registry", k.getRootfs()), k.RegConfig.Domain)
-	registryHost := k.getRegistryHost()
-	addRegistryHosts := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
+	addRegistryHosts := k.addRegistryDomainToHosts()
 	if k.RegConfig.Domain != SeaHub {
 		addSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
 		addRegistryHosts = fmt.Sprintf("%s && %s", addRegistryHosts, addSeaHubHosts)
@@ -80,90 +59,26 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 	if err = ssh.CmdAsync(k.RegConfig.IP, initRegistry); err != nil {
 		return err
 	}
-	if err = ssh.CmdAsync(k.GetMaster0IP(), addRegistryHosts); err != nil {
+	if err = ssh.CmdAsync(k.cluster.GetMaster0IP(), addRegistryHosts); err != nil {
 		return err
 	}
 	if k.RegConfig.Username == "" || k.RegConfig.Password == "" {
 		return nil
 	}
-	return ssh.CmdAsync(k.GetMaster0IP(), k.GerLoginCommand())
+	return ssh.CmdAsync(k.cluster.GetMaster0IP(), k.GenLoginCommand())
 }
 
-func (k *KubeadmRuntime) GerLoginCommand() string {
+func (k *Runtime) GenLoginCommand() string {
 	return fmt.Sprintf("%s && %s",
 		fmt.Sprintf(DockerLoginCommand, k.RegConfig.Username, k.RegConfig.Password, k.RegConfig.Domain+":"+k.RegConfig.Port),
 		fmt.Sprintf(DockerLoginCommand, k.RegConfig.Username, k.RegConfig.Password, SeaHub+":"+k.RegConfig.Port))
 }
 
-func (r *RegistryConfig) GenerateHtPasswd() (string, error) {
-	if r.Username == "" || r.Password == "" {
-		return "", fmt.Errorf("generate htpasswd failed: registry username or passwodr is empty")
-	}
-	pwdHash, err := bcrypt.GenerateFromPassword([]byte(r.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate registry password: %v", err)
-	}
-	return r.Username + ":" + string(pwdHash), nil
-}
-
-func (r *RegistryConfig) Repo() string {
-	return fmt.Sprintf("%s:%s", r.Domain, r.Port)
-}
-
-func GetRegistryConfig(rootfs string, defaultRegistryIP net.IP) *RegistryConfig {
-	var config RegistryConfig
-	var DefaultConfig = &RegistryConfig{
-		IP:     defaultRegistryIP,
-		Domain: SeaHub,
-		Port:   "5000",
-	}
-	registryConfigPath := filepath.Join(rootfs, common.EtcDir, RegistryCustomConfig)
-	if !osi.IsFileExist(registryConfigPath) {
-		logrus.Debug("use default registry config")
-		return DefaultConfig
-	}
-	err := yaml.UnmarshalFile(registryConfigPath, &config)
-	if err != nil {
-		logrus.Errorf("failed to read registry config: %v", err)
-		return DefaultConfig
-	}
-	if config.IP == nil {
-		config.IP = DefaultConfig.IP
-	}
-	if config.Port == "" {
-		config.Port = DefaultConfig.Port
-	}
-	if config.Domain == "" {
-		config.Domain = DefaultConfig.Domain
-	}
-	logrus.Debugf("show registry info, IP: %s, Domain: %s", config.IP, config.Domain)
-	return &config
-}
-
-func (k *KubeadmRuntime) DeleteRegistry() error {
+func (k *Runtime) DeleteRegistry() error {
 	ssh, err := k.getHostSSHClient(k.RegConfig.IP)
 	if err != nil {
 		return fmt.Errorf("failed to delete registry: %v", err)
 	}
 
 	return ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf(DeleteRegistryCommand, RegistryName))
-}
-
-func GenerateRegistryCert(registryCertPath string, BaseName string) error {
-	regCertConfig := cert.Config{
-		Path:         registryCertPath,
-		BaseName:     BaseName,
-		CommonName:   BaseName,
-		DNSNames:     []string{BaseName},
-		Organization: []string{common.ExecBinaryFileName},
-		Year:         100,
-	}
-	if BaseName != SeaHub {
-		regCertConfig.DNSNames = append(regCertConfig.DNSNames, SeaHub)
-	}
-	crt, key, err := cert.NewCaCertAndKey(regCertConfig)
-	if err != nil {
-		return err
-	}
-	return cert.WriteCertAndKey(regCertConfig.Path, regCertConfig.BaseName, crt, key)
 }

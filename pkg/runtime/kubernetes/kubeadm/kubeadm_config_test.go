@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubernetes
+package kubeadm
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ import (
 	"github.com/sealerio/sealer/utils/yaml"
 )
 
-const (
+var (
 	testKubeadmConfigYaml = `
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration

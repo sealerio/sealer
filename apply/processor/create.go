@@ -17,6 +17,8 @@ package processor
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/pkg/registry"
+
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/filesystem"
@@ -105,7 +107,7 @@ func (c *CreateProcessor) RunConfig(cluster *v2.Cluster) error {
 
 func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := cluster.GetAllIPList()
-	regConfig := kubernetes.GetRegistryConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
+	regConfig := registry.GetConfig(platform.DefaultMountClusterImageDir(cluster.Name), cluster.GetMaster0IP())
 	if net.NotInIPList(regConfig.IP, hosts) {
 		hosts = append(hosts, regConfig.IP)
 	}
@@ -119,7 +121,7 @@ func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 }
 
 func (c *CreateProcessor) Init(cluster *v2.Cluster) error {
-	return c.Runtime.Init(cluster)
+	return c.Runtime.Init()
 }
 
 func (c *CreateProcessor) Join(cluster *v2.Cluster) error {

@@ -19,6 +19,8 @@ import (
 	"net"
 	"path/filepath"
 	"strings"
+
+	versionUtils "github.com/sealerio/sealer/utils/version"
 )
 
 const (
@@ -31,29 +33,29 @@ const (
 	uncordonCmd    = `kubectl uncordon ` + getNodeNameCmd
 )
 
-func (k *KubeadmRuntime) upgrade() error {
+func (k *Runtime) upgrade() error {
 	var err error
 	binPath := filepath.Join(k.getRootfs(), `bin`)
 
-	err = k.upgradeFirstMaster(k.GetMaster0IP(), binPath, k.getKubeVersion())
+	err = k.upgradeFirstMaster(k.cluster.GetMaster0IP(), binPath, k.getKubeVersion())
 	if err != nil {
 		return err
 	}
-	err = k.upgradeOtherMasters(k.GetMasterIPList()[1:], binPath, k.getKubeVersion())
+	err = k.upgradeOtherMasters(k.cluster.GetMasterIPList()[1:], binPath, k.getKubeVersion())
 	if err != nil {
 		return err
 	}
-	err = k.upgradeNodes(k.GetNodeIPList(), binPath)
+	err = k.upgradeNodes(k.cluster.GetNodeIPList(), binPath)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (k *KubeadmRuntime) upgradeFirstMaster(IP net.IP, binPath, version string) error {
+func (k *Runtime) upgradeFirstMaster(IP net.IP, binPath, version string) error {
 	var drain string
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
-	kv := kubeVersion(version)
+	kv := versionUtils.Version(version)
 	cmp, err := kv.Compare(V1200)
 	if err != nil {
 		return err
@@ -79,13 +81,13 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP net.IP, binPath, version string) 
 	return ssh.CmdAsync(IP, firstMasterCmds...)
 }
 
-func (k *KubeadmRuntime) upgradeOtherMasters(IPs []net.IP, binpath, version string) error {
+func (k *Runtime) upgradeOtherMasters(IPs []net.IP, binpath, version string) error {
 	var (
 		drain string
 		err   error
 	)
 	//if version >= 1.20.x,add flag `--delete-emptydir-data`
-	kv := kubeVersion(version)
+	kv := versionUtils.Version(version)
 	cmp, err := kv.Compare(V1200)
 	if err != nil {
 		return err
@@ -117,7 +119,7 @@ func (k *KubeadmRuntime) upgradeOtherMasters(IPs []net.IP, binpath, version stri
 	return err
 }
 
-func (k *KubeadmRuntime) upgradeNodes(IPs []net.IP, binpath string) error {
+func (k *Runtime) upgradeNodes(IPs []net.IP, binpath string) error {
 	var nodeCmds = []string{
 		fmt.Sprintf(chmodCmd, binpath),
 		fmt.Sprintf(mvCmd, binpath),

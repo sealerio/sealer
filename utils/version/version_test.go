@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubernetes
+package version
 
 import (
 	"reflect"
@@ -24,8 +24,8 @@ import (
 func TestVersion_Compare(t *testing.T) {
 	tests := []struct {
 		name         string
-		givenVersion kubeVersion
-		oldVersion   kubeVersion
+		givenVersion Version
+		oldVersion   Version
 		wantRes      bool
 	}{
 		{

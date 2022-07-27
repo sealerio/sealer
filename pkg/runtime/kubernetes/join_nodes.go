@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ import (
 	"github.com/sealerio/sealer/pkg/ipvs"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
-
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -41,7 +41,7 @@ const (
 	LvscareStaticPodCmd             = `echo "%s" > %s`
 )
 
-func (k *KubeadmRuntime) joinNodeConfig(nodeIP net.IP) ([]byte, error) {
+func (k *Runtime) joinNodeConfig(nodeIP net.IP) ([]byte, error) {
 	// TODO get join config from config file
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	cGroupDriver, err := k.getCgroupDriverFromShell(nodeIP)
@@ -52,7 +52,7 @@ func (k *KubeadmRuntime) joinNodeConfig(nodeIP net.IP) ([]byte, error) {
 	return yaml.MarshalWithDelimiter(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
-func (k *KubeadmRuntime) joinNodes(nodes []net.IP) error {
+func (k *Runtime) joinNodes(nodes []net.IP) error {
 	if len(nodes) == 0 {
 		return nil
 	}
@@ -70,7 +70,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []net.IP) error {
 	}
 	var masters string
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, master := range k.GetMasterIPList() {
+	for _, master := range k.cluster.GetMasterIPList() {
 		masters += fmt.Sprintf(" --rs %s:6443", master)
 	}
 	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, k.getVIP(), masters)
@@ -78,14 +78,13 @@ func (k *KubeadmRuntime) joinNodes(nodes []net.IP) error {
 	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
 	k.cleanJoinLocalAPIEndPoint()
 
-	registryHost := k.getRegistryHost()
-	addRegistryHostsAndLogin := fmt.Sprintf(RemoteAddEtcHosts, registryHost, registryHost)
+	addRegistryHostsAndLogin := k.addRegistryDomainToHosts()
 	if k.RegConfig.Domain != SeaHub {
 		addSeaHubHost := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
 	}
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, k.GerLoginCommand())
+		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, k.GenLoginCommand())
 	}
 	for _, node := range nodes {
 		node := node
@@ -104,7 +103,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []net.IP) error {
 			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
 			cmd := k.Command(k.getKubeVersion(), JoinNode)
 			lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
-			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.GetMasterIPList(), lvsImage)
+			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.cluster.GetMasterIPList(), lvsImage)
 			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
@@ -120,7 +119,7 @@ func (k *KubeadmRuntime) joinNodes(nodes []net.IP) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) deleteNodes(nodes []net.IP) error {
+func (k *Runtime) deleteNodes(nodes []net.IP) error {
 	if len(nodes) == 0 {
 		return nil
 	}
@@ -143,7 +142,7 @@ func (k *KubeadmRuntime) deleteNodes(nodes []net.IP) error {
 	return eg.Wait()
 }
 
-func (k *KubeadmRuntime) deleteNode(node net.IP) error {
+func (k *Runtime) deleteNode(node net.IP) error {
 	ssh, err := k.getHostSSHClient(node)
 	if err != nil {
 		return fmt.Errorf("failed to delete node: %v", err)
@@ -159,23 +158,23 @@ func (k *KubeadmRuntime) deleteNode(node net.IP) error {
 	if err != nil || !utilsnet.IsLocalIP(node, address) {
 		remoteCleanCmds = append(remoteCleanCmds, RemoveKubeConfig)
 	} else {
-		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
+		apiServerHost := getAPIServerHost(k.cluster.GetMaster0IP(), k.getAPIServerDomain())
 		remoteCleanCmds = append(remoteCleanCmds, fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost))
 	}
 	if err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {
 		return err
 	}
 	//remove node
-	if len(k.GetMasterIPList()) > 0 {
-		hostname, err := k.isHostName(k.GetMaster0IP(), node)
+	if len(k.cluster.GetMasterIPList()) > 0 {
+		hostname, err := k.isHostName(k.cluster.GetMaster0IP(), node)
 		if err != nil {
 			return err
 		}
-		ssh, err := k.getHostSSHClient(k.GetMaster0IP())
+		ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 		if err != nil {
-			return fmt.Errorf("failed to get master0 ssh client(%s): %v", k.GetMaster0IP(), err)
+			return fmt.Errorf("failed to get master0 ssh client(%s): %v", k.cluster.GetMaster0IP(), err)
 		}
-		if err := ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
+		if err := ssh.CmdAsync(k.cluster.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
 			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
 		}
 	}
@@ -183,7 +182,7 @@ func (k *KubeadmRuntime) deleteNode(node net.IP) error {
 	return nil
 }
 
-func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node net.IP) error {
+func (k *Runtime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 	sshClient, err := k.getHostSSHClient(node)
 	if err != nil {
 		return err
@@ -199,7 +198,7 @@ func (k *KubeadmRuntime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 	return err
 }
 
-func (k *KubeadmRuntime) deleteVIPRouteIfExist(node net.IP) error {
+func (k *Runtime) deleteVIPRouteIfExist(node net.IP) error {
 	sshClient, err := k.getHostSSHClient(node)
 	if err != nil {
 		return err

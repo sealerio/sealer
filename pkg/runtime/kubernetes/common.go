@@ -15,10 +15,30 @@
 package kubernetes
 
 const (
-	Cluster                = "Cluster"
-	InitConfiguration      = "InitConfiguration"
-	JoinConfiguration      = "JoinConfiguration"
-	ClusterConfiguration   = "ClusterConfiguration"
-	KubeProxyConfiguration = "KubeProxyConfiguration"
-	KubeletConfiguration   = "KubeletConfiguration"
+	AuditPolicyYml = "audit-policy.yml"
 )
+
+var (
+	ContainerdShell = `if grep "SystemdCgroup = true"  /etc/containerd/config.toml &> /dev/null; then  
+driver=systemd
+else
+driver=cgroupfs
+fi
+echo ${driver}`
+	DockerShell = `driver=$(docker info -f "{{.CgroupDriver}}")
+	echo "${driver}"`
+)
+
+// StaticFile :static file should not be template, will never be changed while initialization.
+type StaticFile struct {
+	DestinationDir string
+	Name           string
+}
+
+//MasterStaticFiles Put static files here, can be moved to all master nodes before kubeadm execution
+var MasterStaticFiles = []*StaticFile{
+	{
+		DestinationDir: "/etc/kubernetes",
+		Name:           AuditPolicyYml,
+	},
+}

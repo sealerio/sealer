@@ -19,6 +19,9 @@ import (
 	"net"
 	"path"
 	"path/filepath"
+	"strings"
+
+	"github.com/sealerio/sealer/pkg/cert"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/utils/exec"
@@ -51,4 +54,31 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) erro
 		}
 	}
 	return nil
+}
+
+func GenerateRegistryCert(registryCertPath string, BaseName string) error {
+	regCertConfig := cert.Config{
+		Path:         registryCertPath,
+		BaseName:     BaseName,
+		CommonName:   BaseName,
+		DNSNames:     []string{BaseName},
+		Organization: []string{common.ExecBinaryFileName},
+		Year:         100,
+	}
+	if BaseName != SeaHub {
+		regCertConfig.DNSNames = append(regCertConfig.DNSNames, SeaHub)
+	}
+	crt, key, err := cert.NewCaCertAndKey(regCertConfig)
+	if err != nil {
+		return err
+	}
+	return cert.WriteCertAndKey(regCertConfig.Path, regCertConfig.BaseName, crt, key)
+}
+
+func getEtcdEndpointsWithHTTPSPrefix(masters []net.IP) string {
+	var tmpSlice []string
+	for _, ip := range masters {
+		tmpSlice = append(tmpSlice, fmt.Sprintf("https://%s:2379", ip))
+	}
+	return strings.Join(tmpSlice, ",")
 }

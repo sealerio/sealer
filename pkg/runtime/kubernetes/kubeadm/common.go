@@ -12,7 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubernetes
+package kubeadm
+
+const (
+	InitConfiguration      = "InitConfiguration"
+	JoinConfiguration      = "JoinConfiguration"
+	ClusterConfiguration   = "ClusterConfiguration"
+	KubeProxyConfiguration = "KubeProxyConfiguration"
+	KubeletConfiguration   = "KubeletConfiguration"
+)
 
 const (
 	DefaultKubeadmConfig = `
