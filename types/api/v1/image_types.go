@@ -95,8 +95,6 @@ type ImageArg struct {
 type Platform struct {
 	Architecture string `json:"architecture,omitempty"`
 	OS           string `json:"os,omitempty"`
-	// OSVersion is an optional field specifying the operating system version.
-	OSVersion string `json:"os_version,omitempty"`
 	// Variant is an optional field specifying a variant of the CPU, for
 	// example `v7` to specify ARMv7 when architecture is `arm`.
 	Variant string `json:"variant,omitempty"`

@@ -49,7 +49,6 @@ func ParsePlatforms(v string) ([]*v1.Platform, error) {
 func Normalize(platform v1.Platform) v1.Platform {
 	platform.OS = normalizeOS(platform.OS)
 	platform.Architecture, platform.Variant = NormalizeArch(platform.Architecture, platform.Variant)
-	platform.OSVersion = ""
 
 	return platform
 }
