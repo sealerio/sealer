@@ -35,6 +35,4 @@ type Interface interface {
 	DeleteNodes(nodesIPList []net.IP) error
 	// GetClusterMetadata read the rootfs/Metadata file to get some install info for cluster.
 	GetClusterMetadata() (*Metadata, error)
-	// UpdateCert exec Update certs phase for renew k8s cluster's certs such as: etcd/apiServer, It seems unnecessary for k0s、k3s.
-	UpdateCert(certs []string) error
 }

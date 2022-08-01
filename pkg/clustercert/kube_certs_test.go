@@ -40,3 +40,26 @@ func TestGenerateAll(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateAPIServerCert(t *testing.T) {
+	tests := []struct {
+		pkiPath  string
+		certSans []string
+		name     string
+		wantErr  bool
+	}{
+		{"/tmp/kubernetes/pki",
+			[]string{"kaka.com", "apiserver.cluster.local", "192.168.1.100"},
+			"Update APIServer Cert sans",
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := UpdateAPIServerCertSans(tt.pkiPath, tt.certSans); (err != nil) != tt.wantErr {
+				t.Errorf("UpdateAPIServerCert() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

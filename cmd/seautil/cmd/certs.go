@@ -33,25 +33,23 @@ type Flag struct {
 	CertEtcdPath string
 }
 
-var config *Flag
+// NewCertGenCmd gen all kubernetes certs
+func NewCertGenCmd() *cobra.Command {
+	config := new(Flag)
 
-// certsCmd represents the certs command
-var certsCmd = &cobra.Command{
-	Use:   "certs",
-	Short: "generate kubernetes certs",
-	Long:  `seautil cert --node-ip 192.168.0.2 --node-name master1 --dns-domain aliyun.com --alt-names aliyun.local`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		nodeIP := net.ParseIP(config.NodeIP)
-		if nodeIP == nil {
-			return fmt.Errorf("input --node-ip(%s) is an invalid IP format", config.NodeIP)
-		}
-		return clustercert.GenerateAllKubernetesCerts(config.CertPath, config.CertEtcdPath, config.NodeName, config.ServiceCIDR, config.DNSDomain, config.AltNames, nodeIP)
-	},
-}
-
-func init() {
-	config = &Flag{}
-	rootCmd.AddCommand(certsCmd)
+	// certsCmd represents the certs command
+	var certsCmd = &cobra.Command{
+		Use:   "certs",
+		Short: "generate kubernetes certs",
+		Long:  `seautil cert --node-ip 192.168.0.2 --node-name master1 --dns-domain aliyun.com --alt-names aliyun.local`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			nodeIP := net.ParseIP(config.NodeIP)
+			if nodeIP == nil {
+				return fmt.Errorf("input --node-ip(%s) is an invalid IP format", config.NodeIP)
+			}
+			return clustercert.GenerateAllKubernetesCerts(config.CertPath, config.CertEtcdPath, config.NodeName, config.ServiceCIDR, config.DNSDomain, config.AltNames, nodeIP)
+		},
+	}
 
 	certsCmd.Flags().StringSliceVar(&config.AltNames, "alt-names", []string{}, "like sealyun.com or 10.103.97.2")
 	certsCmd.Flags().StringVar(&config.NodeName, "node-name", "", "like master0")
@@ -60,4 +58,47 @@ func init() {
 	certsCmd.Flags().StringVar(&config.DNSDomain, "dns-domain", "cluster.local", "cluster dns domain")
 	certsCmd.Flags().StringVar(&config.CertPath, "cert-path", "/etc/kubernetes/pki", "kubernetes cert file path")
 	certsCmd.Flags().StringVar(&config.CertEtcdPath, "cert-etcd-path", "/etc/kubernetes/pki/etcd", "kubernetes etcd cert file path")
+
+	return certsCmd
+}
+
+func NewCertUpdateCmd() *cobra.Command {
+	var altNames []string
+
+	certCmd := &cobra.Command{
+		Use:   "update",
+		Short: "Update Kubernetes API server's cert",
+		Long:  `seautil cert update --alt-names sealer.cool`,
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(altNames) == 0 {
+				return fmt.Errorf("IP address or DNS domain needed for cert Subject Alternative Names")
+			}
+
+			err := clustercert.UpdateAPIServerCertSans(clustercert.KubeDefaultCertPath, altNames)
+			if err != nil {
+				return fmt.Errorf("failed to update api server's cert: %+v", err)
+			}
+			return nil
+		},
+	}
+
+	certCmd.Flags().StringSliceVar(&altNames, "alt-names", []string{}, "add DNS domain or IP in certs, if it is already in the cert subject alternative names list, nothing will be changed")
+
+	return certCmd
+}
+
+// NewCmdCert return "seautil cert" command.
+func NewCmdCert() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "cert",
+		Short: "seautil cert experimental sub-commands",
+	}
+	cmd.AddCommand(NewCertGenCmd())
+	cmd.AddCommand(NewCertUpdateCmd())
+	return cmd
+}
+
+func init() {
+	rootCmd.AddCommand(NewCmdCert())
 }
