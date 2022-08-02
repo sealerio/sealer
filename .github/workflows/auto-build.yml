@@ -18,7 +18,7 @@ jobs:
           commentbody="${{github.event.comment.body}}"
           version=`echo "$commentbody"|cut -d" " -f2`
           ##gt || eq v1.24.0 cri must be containerd
-          version_compare() { printf '%s\n%s\n' "$2" "$1" | sort -V -C; } ## version_vompare $a $b:  a>=b
+          version_compare() { printf '%s\n%s\n' "$2" "$1" | sort -V -C; } ## version_compare $a $b:  a>=b
           cri=`echo "$commentbody"|cut -d" " -f3`
           ##[v1.20.x-1.24.0): default cri use docker; (*-v1.20.0): cri use docker; [v1.24.0-*): cri use containerd
           cri=`[[ ! -z "$cri" ]] && echo "$cri" || echo docker`
