@@ -46,8 +46,6 @@ type Interface interface {
 	RemoteDirExist(host net.IP, remoteDirpath string) (bool, error)
 	// CmdToString exec command on remote host, and return spilt standard output and standard error
 	CmdToString(host net.IP, cmd, spilt string) (string, error)
-	// Platform Get remote platform
-	Platform(host net.IP) (v1.Platform, error)
 
 	Ping(host net.IP) error
 }

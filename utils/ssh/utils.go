@@ -32,8 +32,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/sealerio/sealer/common"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/hash"
 )
 
@@ -97,22 +95,6 @@ func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, i
 		}
 		combineLock.Unlock()
 	}
-}
-
-func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {
-	clusterStatus := make(map[string]v1.Platform)
-	for _, ip := range cluster.GetAllIPList() {
-		IP := ip
-		ssh, err := GetHostSSHClient(IP, cluster)
-		if err != nil {
-			return nil, err
-		}
-		clusterStatus[IP.String()], err = ssh.Platform(IP)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return clusterStatus, nil
 }
 
 func WaitSSHReady(ssh Interface, tryTimes int, hosts ...net.IP) error {

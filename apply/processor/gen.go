@@ -34,8 +34,6 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sealerio/sealer/utils/ssh"
-
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -156,7 +154,7 @@ func (g *GenerateProcessor) MountRootfs(cluster *v2.Cluster) error {
 }
 
 func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
-	platsMap, err := ssh.GetClusterPlatform(cluster)
+	platsMap, err := platform.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
 	}

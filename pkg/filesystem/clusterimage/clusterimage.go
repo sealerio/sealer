@@ -33,7 +33,6 @@ import (
 	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/mount"
 	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type Interface interface {
@@ -86,7 +85,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 		driver    = mount.NewMountDriver()
 		err       error
 	)
-	clusterPlatform, err := ssh.GetClusterPlatform(cluster)
+	clusterPlatform, err := platform.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
 	}

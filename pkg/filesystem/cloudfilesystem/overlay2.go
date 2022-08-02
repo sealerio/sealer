@@ -58,7 +58,7 @@ func (o *overlayFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []net.IP) e
 }
 
 func mountRootfs(ipList []net.IP, target string, cluster *v2.Cluster, initFlag bool) error {
-	clusterPlatform, err := ssh.GetClusterPlatform(cluster)
+	clusterPlatform, err := platform.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
 	}

@@ -32,7 +32,6 @@ import (
 	"github.com/sealerio/sealer/utils"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/pkg/errors"
@@ -95,7 +94,7 @@ func (c *Applier) fillClusterCurrent() error {
 
 func (c *Applier) mountClusterImage() error {
 	imageName := c.ClusterDesired.Spec.Image
-	platsMap, err := ssh.GetClusterPlatform(c.ClusterDesired)
+	platsMap, err := platform.GetClusterPlatform(c.ClusterDesired)
 	if err != nil {
 		return err
 	}

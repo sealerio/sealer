@@ -133,7 +133,7 @@ func (s *SSH) sshPasswordMethod(password string) ssh.AuthMethod {
 	return ssh.Password(password)
 }
 
-func (s *SSH) sftpConnect(host net.IP) (*ssh.Client, *sftp.Client, error) {
+func (s *SSH) SftpConnect(host net.IP) (*ssh.Client, *sftp.Client, error) {
 	var (
 		sshClient  *ssh.Client
 		sftpClient *sftp.Client

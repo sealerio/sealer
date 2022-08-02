@@ -32,7 +32,6 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type CreateProcessor struct {
@@ -78,7 +77,7 @@ func (c *CreateProcessor) initPlugin(cluster *v2.Cluster) error {
 }
 
 func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
-	platsMap, err := ssh.GetClusterPlatform(cluster)
+	platsMap, err := platform.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
 	}
