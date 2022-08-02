@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ssh
+package platform
 
 import (
 	"bufio"
@@ -20,34 +20,37 @@ import (
 	"net"
 	"strings"
 
+	"github.com/pkg/errors"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	utilsnet "github.com/sealerio/sealer/utils/net"
-	"github.com/sealerio/sealer/utils/platform"
-
-	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SSH) Platform(host net.IP) (v1.Platform, error) {
-	if utilsnet.IsLocalIP(host, s.LocalAddress) {
-		return *platform.GetDefaultPlatform(), nil
+type RemotePlatform struct {
+	sshRemote ssh.SSH
+}
+
+func (t *RemotePlatform) Platform(host net.IP) (v1.Platform, error) {
+	if utilsnet.IsLocalIP(host, t.sshRemote.LocalAddress) {
+		return *GetDefaultPlatform(), nil
 	}
 
 	p := v1.Platform{}
-	archResult, err := s.CmdToString(host, "uname -m", "")
+	archResult, err := t.sshRemote.CmdToString(host, "uname -m", "")
 	if err != nil {
 		return p, err
 	}
-	osResult, err := s.CmdToString(host, "uname", "")
+	osResult, err := t.sshRemote.CmdToString(host, "uname", "")
 	if err != nil {
 		return p, err
 	}
 	p.OS = strings.ToLower(strings.TrimSpace(osResult))
 	switch strings.ToLower(strings.TrimSpace(archResult)) {
 	case "x86_64":
-		p.Architecture = platform.AMD
+		p.Architecture = AMD
 	case "aarch64":
-		p.Architecture = platform.ARM64
+		p.Architecture = ARM64
 	case "armv7l":
 		p.Architecture = "arm-v7"
 	case "armv6l":
@@ -55,21 +58,21 @@ func (s *SSH) Platform(host net.IP) (v1.Platform, error) {
 	default:
 		return p, fmt.Errorf("unrecognized architecture: %s", archResult)
 	}
-	if p.Architecture != platform.AMD {
-		p.Variant, err = s.getCPUVariant(p.OS, p.Architecture, host)
+	if p.Architecture != AMD {
+		p.Variant, err = t.getCPUVariant(p.OS, p.Architecture, host)
 		if err != nil {
 			return p, err
 		}
 	}
-	remotePlatform, err := platform.Parse(platform.Format(p))
+	remotePlatform, err := Parse(Format(p))
 	if err != nil {
 		return p, err
 	}
-	return platform.Normalize(remotePlatform), nil
+	return Normalize(remotePlatform), nil
 }
 
-func (s *SSH) getCPUInfo(host net.IP, pattern string) (info string, err error) {
-	sshClient, sftpClient, err := s.sftpConnect(host)
+func (t *RemotePlatform) getCPUInfo(host net.IP, pattern string) (info string, err error) {
+	sshClient, sftpClient, err := t.sshRemote.SftpConnect(host)
 	if err != nil {
 		return "", fmt.Errorf("failed to new sftp client: %v", err)
 	}
@@ -101,20 +104,20 @@ func (s *SSH) getCPUInfo(host net.IP, pattern string) (info string, err error) {
 	if err != nil {
 		return "", err
 	}
-	return "", errors.Wrapf(platform.ErrNotFound, "getCPUInfo for pattern: %s", pattern)
+	return "", errors.Wrapf(ErrNotFound, "getCPUInfo for pattern: %s", pattern)
 }
 
-func (s *SSH) getCPUVariant(os, arch string, host net.IP) (string, error) {
-	variant, err := s.getCPUInfo(host, "Cpu architecture")
+func (t *RemotePlatform) getCPUVariant(os, arch string, host net.IP) (string, error) {
+	variant, err := t.getCPUInfo(host, "Cpu architecture")
 	if err != nil {
 		return "", err
 	}
-	model, err := s.getCPUInfo(host, "model name")
+	model, err := t.getCPUInfo(host, "model name")
 	if err != nil {
-		if !strings.Contains(err.Error(), platform.ErrNotFound.Error()) {
+		if !strings.Contains(err.Error(), ErrNotFound.Error()) {
 			return "", err
 		}
 	}
-	variant, model = platform.NormalizeArch(variant, model)
-	return platform.GetCPUVariantByInfo(os, arch, variant, model), nil
+	variant, model = NormalizeArch(variant, model)
+	return GetCPUVariantByInfo(os, arch, variant, model), nil
 }
