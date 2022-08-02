@@ -59,8 +59,17 @@ func newKubeadmRuntime(cluster *v2.Cluster, clusterFileKubeConfig *KubeadmConfig
 	if lvsImage, ok := env.ConvertEnv(cluster.Spec.Env)[v2.EnvLvsImage]; ok {
 		k.Config.LvsImage = lvsImage.(string)
 	}
+
+	envs := env.ConvertEnv(cluster.Spec.Env)
+	var extraSANs []string
+	if envs["ExtraSANs"] != nil {
+		extraSANs = strings.Split(envs["ExtraSANs"].(string), ",")
+	}
+
 	k.Config.RegConfig = GetRegistryConfig(k.getImageMountDir(), k.GetMaster0IP())
 	k.setCertSANS(append([]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP()}, k.GetMasterIPList()...))
+	k.setCertSANS(extraSANs)
+
 	// TODO args pre checks
 	if err := k.checkList(); err != nil {
 		return nil, err
