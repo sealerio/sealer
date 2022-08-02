@@ -117,7 +117,7 @@ func GetCPUVariantByInfo(os, arch, variant, model string) string {
 	}
 
 	switch strings.ToLower(variant) {
-	case "8", "aarch64":
+	case "8", "aarch64": //nolint
 		variant = "v8"
 	case "7", "7m", "?(12)", "?(13)", "?(14)", "?(15)", "?(16)", "?(17)":
 		variant = "v7"
