@@ -115,7 +115,7 @@ To put forward a PR, we assume you have registered a GitHub ID. Then you could f
 
    ```
    golangci-lint run -c .golangci.yml	// lint
-   git commit -a -m "message for your changes"	// -a is git add .
+   git commit -a -m "message for your changes" --signoff	// -a is git add .
    git rebase -i	<commit-id>// do this if your pr has multiple commits
    git push	// push to your forked repository after rebase done
    ```
