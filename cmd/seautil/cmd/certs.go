@@ -17,7 +17,9 @@ package cmd
 import (
 	"fmt"
 	"net"
+	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/pkg/clustercert"
@@ -45,7 +47,8 @@ func NewCertGenCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			nodeIP := net.ParseIP(config.NodeIP)
 			if nodeIP == nil {
-				return fmt.Errorf("input --node-ip(%s) is an invalid IP format", config.NodeIP)
+				return fmt.Errorf("input --node-ip(%s) is not a valid IP format", config.NodeIP)
+
 			}
 			return clustercert.GenerateAllKubernetesCerts(config.CertPath, config.CertEtcdPath, config.NodeName, config.ServiceCIDR, config.DNSDomain, config.AltNames, nodeIP)
 		},
@@ -56,8 +59,8 @@ func NewCertGenCmd() *cobra.Command {
 	certsCmd.Flags().StringVar(&config.ServiceCIDR, "service-cidr", "", "like 10.103.97.2/24")
 	certsCmd.Flags().StringVar(&config.NodeIP, "node-ip", "", "like 10.103.97.2")
 	certsCmd.Flags().StringVar(&config.DNSDomain, "dns-domain", "cluster.local", "cluster dns domain")
-	certsCmd.Flags().StringVar(&config.CertPath, "cert-path", "/etc/kubernetes/pki", "kubernetes cert file path")
-	certsCmd.Flags().StringVar(&config.CertEtcdPath, "cert-etcd-path", "/etc/kubernetes/pki/etcd", "kubernetes etcd cert file path")
+	certsCmd.Flags().StringVar(&config.CertPath, "cert-path", clustercert.KubeDefaultCertPath, "kubernetes cert file path")
+	certsCmd.Flags().StringVar(&config.CertEtcdPath, "cert-etcd-path", clustercert.KubeDefaultCertEtcdPath, "kubernetes etcd cert file path")
 
 	return certsCmd
 }
@@ -83,7 +86,12 @@ func NewCertUpdateCmd() *cobra.Command {
 		},
 	}
 
-	certCmd.Flags().StringSliceVar(&altNames, "alt-names", []string{}, "add DNS domain or IP in certs, if it is already in the cert subject alternative names list, nothing will be changed")
+	certCmd.Flags().StringSliceVar(&altNames, "alt-names", []string{}, "add DNS domain or IP in api server's cert, if it is already in the cert subject alternative names list, nothing will be changed")
+
+	if err := certCmd.MarkFlagRequired("alt-names"); err != nil {
+		logrus.Errorf("failed to init flag alt-names: %v", err)
+		os.Exit(1)
+	}
 
 	return certCmd
 }
