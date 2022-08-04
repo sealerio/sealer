@@ -20,7 +20,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/pkg/clustercert"
 )
 
 type Flag struct {
@@ -45,7 +45,7 @@ var certsCmd = &cobra.Command{
 		if nodeIP == nil {
 			return fmt.Errorf("input --node-ip(%s) is an invalid IP format", config.NodeIP)
 		}
-		return cert.GenerateCert(config.CertPath, config.CertEtcdPath, config.AltNames, nodeIP, config.NodeName, config.ServiceCIDR, config.DNSDomain)
+		return clustercert.GenerateAllKubernetesCerts(config.CertPath, config.CertEtcdPath, config.NodeName, config.ServiceCIDR, config.DNSDomain, config.AltNames, nodeIP)
 	},
 }
 

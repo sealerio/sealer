@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cert
+package clustercert
 
 import (
 	"net"
@@ -20,8 +20,8 @@ import (
 )
 
 func TestGenerateAll(t *testing.T) {
-	BasePath := "/tmp/kubernetes/pki"
-	EtcdBasePath := "/tmp/kubernetes/pki/etcd"
+	basePath := "/tmp/kubernetes/pki"
+	etcdBasePath := "/tmp/kubernetes/pki/etcd"
 	tests := []struct {
 		name    string
 		wantErr bool
@@ -31,14 +31,10 @@ func TestGenerateAll(t *testing.T) {
 			false,
 		},
 	}
-	certMeta, err := NewMetaData(BasePath, EtcdBasePath, []string{"test.com", "192.168.1.2", "kubernetes.default.svc.sealyun"}, "10.64.0.0/10", "master1", net.ParseIP("172.27.139.11"), "cluster.local")
-	if err != nil {
-		t.Error(err)
-	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := certMeta.GenerateAll(); (err != nil) != tt.wantErr {
+			if err := GenerateAllKubernetesCerts(basePath, etcdBasePath, "master1", "10.64.0.0/10", "cluster.local", []string{"test.com", "192.168.1.2", "kubernetes.default.svc.sealyun"}, net.ParseIP("172.27.139.11")); (err != nil) != tt.wantErr {
 				t.Errorf("GenerateAll() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
