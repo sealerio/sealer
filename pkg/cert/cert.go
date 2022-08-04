@@ -283,9 +283,7 @@ func WritePublicKey(pkiPath, name string, key crypto.PublicKey) error {
 	return nil
 }
 
-func pathForPublicKey(pkiPath, name string) string {
-	return filepath.Join(pkiPath, fmt.Sprintf("%s.pub", name))
-}
+
 
 // EncodePublicKeyPEM returns PEM-encoded public data
 func EncodePublicKeyPEM(key crypto.PublicKey) ([]byte, error) {
@@ -306,4 +304,8 @@ func pathForCert(pkiPath, name string) string {
 
 func pathForKey(pkiPath, name string) string {
 	return filepath.Join(pkiPath, fmt.Sprintf("%s.key", name))
+}
+
+func pathForPublicKey(pkiPath, name string) string {
+	return filepath.Join(pkiPath, fmt.Sprintf("%s.pub", name))
 }
