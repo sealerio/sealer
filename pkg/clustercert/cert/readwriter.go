@@ -51,7 +51,7 @@ func (c CertificateFileManger) writeKey(key crypto.Signer) error {
 		return errors.New("private key cannot be nil when writing to file")
 	}
 
-	privateKeyPath := pathForKey(c.certPath, c.certName)
+	privateKeyPath := PathForKey(c.certPath, c.certName)
 	encoded, err := keyutil.MarshalPrivateKeyToPEM(key)
 	if err != nil {
 		return fmt.Errorf("unable to marshal private key to PEM %v", err)
@@ -68,7 +68,7 @@ func (c CertificateFileManger) writeCert(cert *x509.Certificate) error {
 		return errors.New("certificate cannot be nil when writing to file")
 	}
 
-	certificatePath := pathForCert(c.certPath, c.certName)
+	certificatePath := PathForCert(c.certPath, c.certName)
 	if err := certutil.WriteCert(certificatePath, EncodeCertPEM(cert)); err != nil {
 		return fmt.Errorf("unable to write certificate to file %s %v", certificatePath, err)
 	}
@@ -92,7 +92,7 @@ func (c CertificateFileManger) Read() (cert *x509.Certificate, key crypto.Signer
 
 func (c CertificateFileManger) readKey() (crypto.Signer, error) {
 	// Parse the private key from a file
-	privateKey, err := keyutil.PrivateKeyFromFile(pathForKey(c.certPath, c.certName))
+	privateKey, err := keyutil.PrivateKeyFromFile(PathForKey(c.certPath, c.certName))
 	if err != nil {
 		return nil, fmt.Errorf("couldn't load the private key file (%s): %v", privateKey, err)
 	}
@@ -112,7 +112,7 @@ func (c CertificateFileManger) readKey() (crypto.Signer, error) {
 }
 
 func (c CertificateFileManger) readCert() (cert *x509.Certificate, err error) {
-	certs, err := certutil.CertsFromFile(pathForCert(c.certPath, c.certName))
+	certs, err := certutil.CertsFromFile(PathForCert(c.certPath, c.certName))
 	if err != nil {
 		return nil, err
 	}

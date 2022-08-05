@@ -15,9 +15,11 @@
 package clustercert
 
 import (
+	"crypto"
 	"crypto/x509"
 	"fmt"
 	"net"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
@@ -52,18 +54,60 @@ type CertificateConfigFamily struct {
 }
 
 func (c CertificateConfigFamily) GenerateAll() error {
+	var (
+		err    error
+		caCert *x509.Certificate
+		caKey  crypto.Signer
+	)
+
+	_, err = os.Stat(cert.PathForCert(c.certPath, c.caConfig.certName))
+	if os.IsNotExist(err) {
+		caCert, caKey, err = c.generateAuthorityCertificate()
+		if err != nil {
+			return err
+		}
+	} else {
+		logrus.Info("authority certificate is already exist")
+		caCert, caKey, err = c.loadAuthorityCertificate(c.certPath, c.caConfig.certName)
+		if err != nil {
+			return fmt.Errorf("failed to load an exist cert(%s):  %v", c.caConfig.certName, err)
+		}
+	}
+
+	err = c.generateCommonCertificate(caCert, caKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c CertificateConfigFamily) generateAuthorityCertificate() (*x509.Certificate, crypto.Signer, error) {
+	// New authority certificate generator to gen ca cert.
 	caGenerator := cert.NewAuthorityCertificateGenerator(*c.caConfig.descriptor)
 	caCert, caKey, err := caGenerator.Generate()
 	if err != nil {
-		return fmt.Errorf("unable to generate %s cert: %v", c.caConfig.certName, err)
+		return nil, nil, fmt.Errorf("unable to generate %s cert: %v", c.caConfig.certName, err)
 	}
 
 	// write cert file to disk
 	err = cert.NewCertificateFileManger(c.certPath, c.caConfig.certName).Write(caCert, caKey)
 	if err != nil {
-		return fmt.Errorf("unable to save %s cert: %v", c.caConfig.certName, err)
+		return nil, nil, fmt.Errorf("unable to save %s cert: %v", c.caConfig.certName, err)
 	}
 
+	return caCert, caKey, nil
+}
+
+func (c CertificateConfigFamily) loadAuthorityCertificate(certPath, certName string) (*x509.Certificate, crypto.Signer, error) {
+	caCert, caKey, err := cert.NewCertificateFileManger(certPath, certName).Read()
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to load cert(%s) from disk: %v", certName, err)
+	}
+	return caCert, caKey, nil
+}
+
+func (c CertificateConfigFamily) generateCommonCertificate(caCert *x509.Certificate, caKey crypto.Signer) error {
 	for _, config := range c.commonConfig {
 		certPath := c.certPath
 		if config.certPath != "" {
@@ -85,7 +129,6 @@ func (c CertificateConfigFamily) GenerateAll() error {
 			return fmt.Errorf("unable to save %s key: %v", config.certName, err)
 		}
 	}
-
 	return nil
 }
 

@@ -88,7 +88,7 @@ func (k KeyPairFileGenerator) writePrivateKey(key crypto.Signer) error {
 		return errors.New("private key cannot be nil when writing to file")
 	}
 
-	privateKeyPath := pathForKey(k.path, k.name)
+	privateKeyPath := PathForKey(k.path, k.name)
 	encoded, err := keyutil.MarshalPrivateKeyToPEM(key)
 	if err != nil {
 		return fmt.Errorf("unable to marshal private key to PEM %v", err)
@@ -115,7 +115,7 @@ func (k KeyPairFileGenerator) writePublicKey(key crypto.PublicKey) error {
 		Bytes: der,
 	}
 
-	publicKeyPath := pathForPublicKey(k.path, k.name)
+	publicKeyPath := PathForPublicKey(k.path, k.name)
 	if err := keyutil.WriteKey(publicKeyPath, pem.EncodeToMemory(&block)); err != nil {
 		return fmt.Errorf("unable to write public key to file %s %v", publicKeyPath, err)
 	}
@@ -265,15 +265,15 @@ func NewCommonCertificateGenerator(config CertificateDescriptor, caCert *x509.Ce
 	}, nil
 }
 
-func pathForCert(pkiPath, name string) string {
+func PathForCert(pkiPath, name string) string {
 	return filepath.Join(pkiPath, fmt.Sprintf("%s.crt", name))
 }
 
-func pathForKey(pkiPath, name string) string {
+func PathForKey(pkiPath, name string) string {
 	return filepath.Join(pkiPath, fmt.Sprintf("%s.key", name))
 }
 
-func pathForPublicKey(pkiPath, name string) string {
+func PathForPublicKey(pkiPath, name string) string {
 	return filepath.Join(pkiPath, fmt.Sprintf("%s.pub", name))
 }
 
