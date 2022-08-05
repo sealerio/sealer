@@ -41,8 +41,6 @@ jobs:
           sudo chmod +x amd64/bin/kube* && sudo chmod +x arm64/bin/kube*
           sudo wget https://sealer.oss-cn-beijing.aliyuncs.com/sealer-latest.tar.gz && sudo tar -xvf sealer-latest.tar.gz -C /usr/bin
           sudo sealer login ${{secrets.PRIVATEWAREHOUSE}}
-          sudo sed -i "s/v1.19.8/$version/g" amd64/Metadata
-          sudo sed -i "s/v1.19.8/$version/g" arm64/Metadata
           sudo sed -i "s/v1.19.8/$version/g" ${cridir}/rootfs/etc/kubeadm.yml ##change version
           sudo sed -i "s/kubeadm.k8s.io\/v1beta2/$kubeadmApiVersion/g" ${cridir}/rootfs/etc/kubeadm.yml
           sudo ./amd64/bin/kubeadm config images list --config ${cridir}/rootfs/etc/kubeadm.yml

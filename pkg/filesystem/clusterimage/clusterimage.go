@@ -89,7 +89,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	clusterPlatform["local"] = *platform.GetDefaultPlatform()
+	clusterPlatform["local"] = *platform.GetLocalPlatform()
 	for _, v := range clusterPlatform {
 		pfm := v
 		mountDir := platform.GetMountClusterImagePlatformDir(cluster.Name, pfm)

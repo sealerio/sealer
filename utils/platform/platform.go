@@ -120,7 +120,7 @@ func Parse(specifier string) (v1.Platform, error) {
 	return v1.Platform{}, errors.Wrapf(ErrInvalidArgument, "%q: cannot parse platform specifier", specifier)
 }
 
-func GetDefaultPlatform() *v1.Platform {
+func GetLocalPlatform() *v1.Platform {
 	return &v1.Platform{
 		OS:           runtime.GOOS,
 		Architecture: runtime.GOARCH,
@@ -134,7 +134,7 @@ func GetPlatform(v string) ([]*v1.Platform, error) {
 	var targetPlatforms []*v1.Platform
 
 	if v == "" {
-		targetPlatforms = []*v1.Platform{GetDefaultPlatform()}
+		targetPlatforms = []*v1.Platform{GetLocalPlatform()}
 	} else {
 		tp, err := ParsePlatforms(v)
 		if err != nil {
@@ -244,7 +244,7 @@ func normalizeOS(os string) string {
 }
 
 func DefaultMountClusterImageDir(clusterName string) string {
-	return GetMountClusterImagePlatformDir(clusterName, *GetDefaultPlatform())
+	return GetMountClusterImagePlatformDir(clusterName, *GetLocalPlatform())
 }
 
 func GetMountClusterImagePlatformDir(clusterName string, platform v1.Platform) string {

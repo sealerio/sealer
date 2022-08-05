@@ -54,7 +54,7 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 		ex            = shell.NewLex('\\')
 	)
 
-	image, err := d.imageStore.GetByName(cluster.Spec.Image, platform.GetDefaultPlatform())
+	image, err := d.imageStore.GetByName(cluster.Spec.Image, platform.GetLocalPlatform())
 	if err != nil {
 		return fmt.Errorf("failed to get ClusterImage: %s", err)
 	}

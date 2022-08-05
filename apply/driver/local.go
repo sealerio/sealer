@@ -98,7 +98,7 @@ func (c *Applier) mountClusterImage() error {
 	if err != nil {
 		return err
 	}
-	plats := []*v1.Platform{platform.GetDefaultPlatform()}
+	plats := []*v1.Platform{platform.GetLocalPlatform()}
 	for _, v := range platsMap {
 		plat := v
 		plats = append(plats, &plat)
@@ -143,7 +143,7 @@ func (c *Applier) reconcileCluster() error {
 		}
 	}()
 
-	baseImage, err := c.ImageStore.GetByName(c.ClusterDesired.Spec.Image, platform.GetDefaultPlatform())
+	baseImage, err := c.ImageStore.GetByName(c.ClusterDesired.Spec.Image, platform.GetLocalPlatform())
 	if err != nil {
 		return fmt.Errorf("failed to get base image(%s): %v", baseImage.Name, err)
 	}

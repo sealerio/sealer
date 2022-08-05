@@ -20,6 +20,8 @@ import (
 	"net"
 	"strings"
 
+	v2 "github.com/sealerio/sealer/types/api/v2"
+
 	"github.com/pkg/errors"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	utilsnet "github.com/sealerio/sealer/utils/net"
@@ -27,21 +29,36 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type RemotePlatform struct {
-	sshRemote ssh.SSH
+func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {
+	clusterStatus := make(map[string]v1.Platform)
+	for _, ip := range cluster.GetAllIPList() {
+		IP := ip
+
+		ssh, err := ssh.GetHostSSHClient(IP, cluster)
+
+		if err != nil {
+			return nil, err
+		}
+		clusterStatus[IP.String()], err = GetRemotePlatform(ssh, IP)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return clusterStatus, nil
 }
 
-func (t *RemotePlatform) Platform(host net.IP) (v1.Platform, error) {
-	if utilsnet.IsLocalIP(host, t.sshRemote.LocalAddress) {
-		return *GetDefaultPlatform(), nil
+func GetRemotePlatform(client ssh.Interface, host net.IP) (v1.Platform, error) {
+	s := ssh.SSH{}
+	if utilsnet.IsLocalIP(host, s.LocalAddress) {
+		return *GetLocalPlatform(), nil
 	}
 
 	p := v1.Platform{}
-	archResult, err := t.sshRemote.CmdToString(host, "uname -m", "")
+	archResult, err := client.CmdToString(host, "uname -m", "")
 	if err != nil {
 		return p, err
 	}
-	osResult, err := t.sshRemote.CmdToString(host, "uname", "")
+	osResult, err := client.CmdToString(host, "uname", "")
 	if err != nil {
 		return p, err
 	}
@@ -59,7 +76,7 @@ func (t *RemotePlatform) Platform(host net.IP) (v1.Platform, error) {
 		return p, fmt.Errorf("unrecognized architecture: %s", archResult)
 	}
 	if p.Architecture != AMD {
-		p.Variant, err = t.getCPUVariant(p.OS, p.Architecture, host)
+		p.Variant, err = getCPUVariant(p.OS, p.Architecture, host)
 		if err != nil {
 			return p, err
 		}
@@ -71,8 +88,9 @@ func (t *RemotePlatform) Platform(host net.IP) (v1.Platform, error) {
 	return Normalize(remotePlatform), nil
 }
 
-func (t *RemotePlatform) getCPUInfo(host net.IP, pattern string) (info string, err error) {
-	sshClient, sftpClient, err := t.sshRemote.SftpConnect(host)
+func getRemoteCPUInfo(host net.IP, pattern string) (info string, err error) {
+	s := &ssh.SSH{}
+	sshClient, sftpClient, err := s.SftpConnect(host)
 	if err != nil {
 		return "", fmt.Errorf("failed to new sftp client: %v", err)
 	}
@@ -107,12 +125,12 @@ func (t *RemotePlatform) getCPUInfo(host net.IP, pattern string) (info string, e
 	return "", errors.Wrapf(ErrNotFound, "getCPUInfo for pattern: %s", pattern)
 }
 
-func (t *RemotePlatform) getCPUVariant(os, arch string, host net.IP) (string, error) {
-	variant, err := t.getCPUInfo(host, "Cpu architecture")
+func getCPUVariant(os, arch string, host net.IP) (string, error) {
+	variant, err := getRemoteCPUInfo(host, "Cpu architecture")
 	if err != nil {
 		return "", err
 	}
-	model, err := t.getCPUInfo(host, "model name")
+	model, err := getRemoteCPUInfo(host, "model name")
 	if err != nil {
 		if !strings.Contains(err.Error(), ErrNotFound.Error()) {
 			return "", err

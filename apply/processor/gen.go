@@ -158,7 +158,7 @@ func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	plats := []*apiv1.Platform{platform.GetDefaultPlatform()}
+	plats := []*apiv1.Platform{platform.GetLocalPlatform()}
 	for _, v := range platsMap {
 		plat := v
 		plats = append(plats, &plat)

@@ -67,7 +67,7 @@ func GetEnvDirMd5() string {
 func GetImageID(imageName string) string {
 	is, err := store.NewDefaultImageStore()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	image, err := is.GetByName(imageName, platform.GetDefaultPlatform())
+	image, err := is.GetByName(imageName, platform.GetLocalPlatform())
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return image.Spec.ID
 }
