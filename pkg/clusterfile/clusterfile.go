@@ -16,6 +16,8 @@ package clusterfile
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
@@ -64,6 +66,14 @@ func (c *ClusterFile) GetKubeadmConfig() *kubeadm.KubeadmConfig {
 }
 
 func NewClusterFile(path string) (i Interface, err error) {
+	if !filepath.IsAbs(path) {
+		pa, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		path = filepath.Join(pa, path)
+	}
+
 	if path == "" {
 		return clusterFile, nil
 	}

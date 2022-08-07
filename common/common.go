@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	MASTER  = "master"
+	MASTER = "master"
+	// TODO，警惕，不能通过此标志来获取worker，因为master也可以role=node
 	NODE    = "node"
 	MASTER0 = "master0"
 )

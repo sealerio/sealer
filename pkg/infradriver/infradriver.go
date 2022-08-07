@@ -17,6 +17,10 @@ import (
 
 // 基础设施驱动器，将整个集群视作一个操作系统内核，此处的接口对标系统调用
 type InfraDriver interface {
+	GetHostIPList() []net.IP
+
+	GetHostIPListByRole(role string) []net.IP
+
 	// Copy local files to remote host
 	// scp -r /tmp root@192.168.0.2:/root/tmp => Copy("192.168.0.2","tmp","/root/tmp")
 	// need check md5sum
@@ -47,13 +51,19 @@ type InfraDriver interface {
 }
 
 type SSHInfraDriver struct {
-	sshConfigs map[string]ssh.Interface
+	sshConfigs   map[string]ssh.Interface
+	hosts        []net.IP
+	roleHostsMap map[string][]net.IP
 }
 
-func NewInfraDriver(cluster *v2.Cluster) InfraDriver {
+func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	ret := SSHInfraDriver{}
 
-	// init ssh configs for all host, using cluster configuration
+	var err error
+	// TODO, using cluster configuration to init
+	// 1. ssh configs for all host
+	// 2. hosts ip
+	// 3. roleHostsMap
 
-	return &ret
+	return &ret, err
 }

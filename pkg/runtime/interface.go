@@ -15,12 +15,16 @@
 package runtime
 
 import (
+	"github.com/sealerio/sealer/pkg/client/k8s"
 	"net"
 )
 
 type Interface interface {
 	// Init exec init phase for cluster. TODO: make the annotation more comprehensive
 	Init() error
+
+	GetCurrentRuntimeDriver() (Driver, error)
+
 	// Upgrade exec upgrading phase for cluster.TODO: make the annotation more comprehensive
 	Upgrade() error
 	// Reset exec reset phase for cluster.TODO: make the annotation more comprehensive
@@ -35,4 +39,10 @@ type Interface interface {
 	DeleteNodes(nodesIPList []net.IP) error
 	// GetClusterMetadata read the rootfs/Metadata file to get some install info for cluster.
 	GetClusterMetadata() (*Metadata, error)
+}
+
+// Kube运行时驱动器接口，供其他服务操作K8s
+type Driver interface {
+	GetClient() (k8s.Client, error)
+	ExecWithAdminKubeconfig(Cmds []string) error
 }

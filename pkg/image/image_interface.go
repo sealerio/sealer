@@ -17,6 +17,7 @@ package image
 import (
 	"github.com/sealerio/sealer/pkg/image/store"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	"net"
 )
 
 // MetadataService is the interface for providing image metadata service
@@ -42,6 +43,9 @@ type Service interface {
 	Push(imageName string) error
 	Delete(imageName string, platforms []*v1.Platform) error
 	Login(RegistryURL, RegistryUsername, RegistryPasswd string) error
+	//TODO
+	Mount(imageName string, hosts []net.IP) error
+	UMount(imageName string, hosts []net.IP) error
 	CacheBuilder
 }
 

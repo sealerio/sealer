@@ -17,6 +17,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"strings"
 	"sync"
 
@@ -62,7 +63,7 @@ type Runtime struct {
 
 // NewDefaultRuntime arg "clusterfileKubeConfig" is the Clusterfile path/name, runtime need read kubeadm config from it
 // Mount image is required before new Runtime.
-func NewDefaultRuntime(cluster *v2.Cluster, clusterfileKubeConfig *kubeadm.KubeadmConfig) (runtime.Interface, error) {
+func NewDefaultRuntime(conf *kubeadm.KubeadmConfig, registryInfo registry.Info, containerRuntimeInfo containerruntime.Info) (runtime.Interface, error) {
 	return newKubernetesRuntime(cluster, clusterfileKubeConfig)
 }
 
@@ -93,6 +94,10 @@ func newKubernetesRuntime(cluster *v2.Cluster, clusterFileKubeConfig *kubeadm.Ku
 
 func (k *Runtime) Init() error {
 	return k.init()
+}
+
+func (k *Runtime) GetCurrentRuntimeDriver() (runtime.Driver, error) {
+
 }
 
 func (k *Runtime) Upgrade() error {

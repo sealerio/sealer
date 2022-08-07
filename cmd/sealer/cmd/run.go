@@ -18,14 +18,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/utils/net"
-
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/image"
+	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var runArgs *apply.Args
@@ -54,15 +54,41 @@ create a cluster with custom environment variables:
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// TODO: remove this now, maybe we can support it later
 		// set local ip address as master0 default ip if user input is empty.
 		// this is convenient to execute `sealer run` without set many arguments.
 		// Example looks like "sealer run kubernetes:v1.19.8"
-		if runArgs.Masters == "" {
-			ip, err := net.GetLocalDefaultIP()
+		//if runArgs.Masters == "" {
+		//	ip, err := net.GetLocalDefaultIP()
+		//	if err != nil {
+		//		return err
+		//	}
+		//	runArgs.Masters = ip
+		//}
+
+		var cf clusterfile.Interface
+		if clusterFile != "" {
+			var err error
+			cf, err = clusterfile.NewClusterFile(clusterFile)
 			if err != nil {
 				return err
 			}
-			runArgs.Masters = ip
+		}
+
+		cluster := cf.GetCluster()
+		infraDriver, err := infradriver.NewInfraDriver(&cluster)
+		if err != nil {
+			return err
+		}
+
+		// TODO imageService and imageStore?
+		imgSvc, err := image.NewImageService(infraDriver)
+		if err != nil {
+			return err
+		}
+
+		if err := imgSvc.Mount(cluster.Spec.Image, infraDriver.GetHostIPList()); err != nil {
+			return err
 		}
 
 		applier, err := apply.NewApplierFromArgs(args[0], runArgs)
@@ -76,6 +102,7 @@ create a cluster with custom environment variables:
 func init() {
 	runArgs = &apply.Args{}
 	rootCmd.AddCommand(runCmd)
+	runCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "Clusterfile path to apply a Kubernetes cluster")
 	runCmd.Flags().StringVarP(&runArgs.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runArgs.Masters, "masters", "m", "", "set count or IPList to masters")
 	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set count or IPList to nodes")

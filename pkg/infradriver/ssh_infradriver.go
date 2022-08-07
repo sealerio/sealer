@@ -13,6 +13,8 @@ import (
 	"net"
 )
 
+// TODO, implement all functions
+
 func (d *SSHInfraDriver) Copy(host net.IP, srcFilePath, dstFilePath string) error {
 
 }
@@ -49,18 +51,6 @@ func (d *SSHInfraDriver) Ping(host net.IP) error {
 
 }
 
-// CopyR copy remote host files to localhost
+func (d *SSHInfraDriver) SetHostName(host net.IP, hostName string) error {
 
-// CmdAsync exec command on remote host, and asynchronous return logs
-
-// Cmd exec command on remote host, and return combined standard output and standard error
-
-// CmdToString exec command on remote host, and return spilt standard output and standard error
-
-// IsFileExist check remote file exist or not
-
-// RemoteDirExist Remote file existence returns true, nil
-
-// GetPlatform Get remote platform
-
-// Ping Ping remote host
+}

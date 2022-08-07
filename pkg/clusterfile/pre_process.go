@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
+// TODO, reconstruct this, Unnesseray abstract. just parse and construct object, no need process...
 type PreProcessor interface {
 	Process() error
 }

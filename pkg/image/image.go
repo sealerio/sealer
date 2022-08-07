@@ -16,16 +16,20 @@ package image
 
 import (
 	"github.com/sealerio/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/os/fs"
 )
 
-func NewImageService() (Service, error) {
+func NewImageService(driver infradriver.InfraDriver) (Service, error) {
 	imageStore, err := store.NewDefaultImageStore()
 	if err != nil {
 		return nil, err
 	}
 
-	return DefaultImageService{imageStore: imageStore}, nil
+	return DefaultImageService{
+		imageStore:  imageStore,
+		infraDriver: driver,
+	}, nil
 }
 
 func NewImageMetadataService() (MetadataService, error) {

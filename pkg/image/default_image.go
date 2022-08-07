@@ -17,7 +17,9 @@ package image
 import (
 	"context"
 	"fmt"
+	"github.com/sealerio/sealer/pkg/infradriver"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -43,8 +45,15 @@ import (
 
 // DefaultImageService is the default service, which is used for image pull/push
 type DefaultImageService struct {
-	imageStore store.ImageStore
+	imageStore  store.ImageStore
+	infraDriver infradriver.InfraDriver
 }
+
+//TODO, implement this
+// TODO, should use pointer
+func (d DefaultImageService) Mount(imageName string, hosts []net.IP) error {} //TODO
+
+func (d DefaultImageService) UMount(imageName string, hosts []net.IP) error {} //TODO
 
 // PullIfNotExist is used to pull image if not exists locally
 func (d DefaultImageService) PullIfNotExist(imageName string, platforms []*v1.Platform) error {
