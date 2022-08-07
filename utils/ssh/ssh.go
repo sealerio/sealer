@@ -34,26 +34,26 @@ type Interface interface {
 	// scp -r /tmp root@192.168.0.2:/root/tmp => Copy("192.168.0.2","tmp","/root/tmp")
 	// need check md5sum
 	Copy(host net.IP, srcFilePath, dstFilePath string) error
-	// Fetch copy remote host files to localhost
-	Fetch(host net.IP, srcFilePath, dstFilePath string) error
+	// CopyR copy remote host files to localhost
+	CopyR(host net.IP, srcFilePath, dstFilePath string) error
 	// CmdAsync exec command on remote host, and asynchronous return logs
 	CmdAsync(host net.IP, cmd ...string) error
 	// Cmd exec command on remote host, and return combined standard output and standard error
 	Cmd(host net.IP, cmd string) ([]byte, error)
+	// CmdToString exec command on remote host, and return spilt standard output and standard error
+	CmdToString(host net.IP, cmd, spilt string) (string, error)
 	// IsFileExist check remote file exist or not
 	IsFileExist(host net.IP, remoteFilePath string) (bool, error)
 	// RemoteDirExist Remote file existence returns true, nil
 	RemoteDirExist(host net.IP, remoteDirpath string) (bool, error)
-	// CmdToString exec command on remote host, and return spilt standard output and standard error
-	CmdToString(host net.IP, cmd, spilt string) (string, error)
-	// Platform Get remote platform
-	Platform(host net.IP) (v1.Platform, error)
-
+	// GetPlatform Get remote platform
+	GetPlatform(host net.IP) (v1.Platform, error)
+	// Ping Ping remote host
 	Ping(host net.IP) error
 }
 
 type SSH struct {
-	IsStdout     bool
+	AlsoToStdout bool
 	Encrypted    bool
 	User         string
 	Password     string
@@ -65,7 +65,7 @@ type SSH struct {
 	Fs           fs.Interface
 }
 
-func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
+func NewSSHClient(ssh *v1.SSH, alsoToStdout bool) Interface {
 	if ssh.User == "" {
 		ssh.User = common.ROOT
 	}
@@ -74,7 +74,7 @@ func NewSSHClient(ssh *v1.SSH, isStdout bool) Interface {
 		logrus.Warnf("failed to get local address: %v", err)
 	}
 	return &SSH{
-		IsStdout:     isStdout,
+		AlsoToStdout: alsoToStdout,
 		Encrypted:    ssh.Encrypted,
 		User:         ssh.User,
 		Password:     ssh.Passwd,

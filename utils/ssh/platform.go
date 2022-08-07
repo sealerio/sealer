@@ -28,7 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SSH) Platform(host net.IP) (v1.Platform, error) {
+func (s *SSH) GetPlatform(host net.IP) (v1.Platform, error) {
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		return *platform.GetDefaultPlatform(), nil
 	}

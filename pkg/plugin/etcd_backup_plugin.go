@@ -76,7 +76,7 @@ func fetchRemoteCert(context Context, masterIP net.IP) error {
 		if err != nil {
 			return err
 		}
-		if err := sshClient.Fetch(masterIP, "/tmp/"+cert, "/etc/kubernetes/pki/etcd/"+cert); err != nil {
+		if err := sshClient.CopyR(masterIP, "/tmp/"+cert, "/etc/kubernetes/pki/etcd/"+cert); err != nil {
 			return fmt.Errorf("host %s %s file does not exist, err: %v", masterIP, cert, err)
 		}
 	}
