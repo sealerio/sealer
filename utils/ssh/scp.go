@@ -85,8 +85,8 @@ func (epu *easyProgressUtil) startMessage() {
 	progress.Update(epu.output, epu.copyID, fmt.Sprintf("%d/%d", epu.completeNumber, epu.total))
 }
 
-// Fetch scp remote file to local
-func (s *SSH) Fetch(host net.IP, localFilePath, remoteFilePath string) error {
+// CopyR scp remote file to local
+func (s *SSH) CopyR(host net.IP, localFilePath, remoteFilePath string) error {
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		if remoteFilePath != localFilePath {
 			logrus.Debugf("local copy files src %s to dst %s", remoteFilePath, localFilePath)

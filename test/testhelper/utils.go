@@ -89,7 +89,7 @@ func NewSSHByCluster(cluster *v1.Cluster) ssh.Interface {
 		PkFile:       cluster.Spec.SSH.Pk,
 		PkPassword:   cluster.Spec.SSH.PkPasswd,
 		LocalAddress: address,
-		IsStdout:     true,
+		AlsoToStdout: true,
 		Fs:           fs.NewFilesystem(),
 	}
 }

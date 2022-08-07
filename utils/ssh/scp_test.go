@@ -163,7 +163,7 @@ func TestSSHFetchRemoteToLocal(t *testing.T) {
 				logrus.Error("remote filepath is not exit")
 				return
 			}
-			err := ss.Fetch(tt.args.host, tt.args.localPath, tt.args.remotePath)
+			err := ss.CopyR(tt.args.host, tt.args.localPath, tt.args.remotePath)
 			if (err != nil) != tt.wantErr {
 				logrus.Error(err)
 				t.Errorf("err: %v", err)
