@@ -1,21 +1,26 @@
-// alibaba-inc.com Inc.
-// Copyright (c) 2004-2022 All Rights Reserved.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
-// @Author : huaiyou.cyz
-// @Time : 2022/8/7 5:15 PM
-// @File : infradriver
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package infradriver
 
 import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils/ssh"
 	"net"
 )
 
-// 基础设施驱动器，将整个集群视作一个操作系统内核，此处的接口对标系统调用
+// InfraDriver treat the entire cluster as an operating system kernel,
+// interface function here is the target system call.
 type InfraDriver interface {
 	GetHostIPList() []net.IP
 
@@ -48,22 +53,4 @@ type InfraDriver interface {
 	SetHostName(host net.IP, hostName string) error
 	// SetLvsRule add or update host name on host
 	//SetLvsRule(host net.IP, hostName string) error
-}
-
-type SSHInfraDriver struct {
-	sshConfigs   map[string]ssh.Interface
-	hosts        []net.IP
-	roleHostsMap map[string][]net.IP
-}
-
-func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
-	ret := SSHInfraDriver{}
-
-	var err error
-	// TODO, using cluster configuration to init
-	// 1. ssh configs for all host
-	// 2. hosts ip
-	// 3. roleHostsMap
-
-	return &ret, err
 }
