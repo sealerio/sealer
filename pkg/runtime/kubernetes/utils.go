@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/pkg/clustercert/cert"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/utils/exec"
@@ -56,23 +56,30 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) erro
 	return nil
 }
 
-func GenerateRegistryCert(registryCertPath string, BaseName string) error {
-	regCertConfig := cert.Config{
-		Path:         registryCertPath,
-		BaseName:     BaseName,
-		CommonName:   BaseName,
-		DNSNames:     []string{BaseName},
+func GenerateRegistryCert(registryCertPath string, baseName string) error {
+	regCertConfig := cert.CertificateDescriptor{
+		CommonName:   baseName,
+		DNSNames:     []string{baseName},
 		Organization: []string{common.ExecBinaryFileName},
 		Year:         100,
 	}
-	if BaseName != SeaHub {
+	if baseName != SeaHub {
 		regCertConfig.DNSNames = append(regCertConfig.DNSNames, SeaHub)
 	}
-	crt, key, err := cert.NewCaCertAndKey(regCertConfig)
+
+	caGenerator := cert.NewAuthorityCertificateGenerator(regCertConfig)
+	caCert, caKey, err := caGenerator.Generate()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to generate %s cert: %v", baseName, err)
 	}
-	return cert.WriteCertAndKey(regCertConfig.Path, regCertConfig.BaseName, crt, key)
+
+	// write cert file to disk
+	err = cert.NewCertificateFileManger(registryCertPath, baseName).Write(caCert, caKey)
+	if err != nil {
+		return fmt.Errorf("unable to save %s cert: %v", baseName, err)
+	}
+
+	return nil
 }
 
 func getEtcdEndpointsWithHTTPSPrefix(masters []net.IP) string {

@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/pkg/clustercert"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/sealerio/sealer/utils/yaml"
@@ -114,14 +114,14 @@ func (k *Runtime) GenerateCert() error {
 	if err != nil {
 		return err
 	}
-	err = cert.GenerateCert(
+	err = clustercert.GenerateAllKubernetesCerts(
 		k.getPKIPath(),
 		k.getEtcdCertPath(),
-		k.getCertSANS(),
-		k.cluster.GetMaster0IP(),
 		hostName,
 		k.getSvcCIDR(),
 		k.getDNSDomain(),
+		k.getCertSANS(),
+		k.cluster.GetMaster0IP(),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to generate certs: %v", err)
@@ -154,14 +154,10 @@ func (k *Runtime) CreateKubeConfig() error {
 	if err != nil {
 		return err
 	}
-	certConfig := cert.Config{
-		Path:     k.getPKIPath(),
-		BaseName: "ca",
-	}
 
 	controlPlaneEndpoint := fmt.Sprintf("https://%s:6443", k.getAPIServerDomain())
-	err = cert.CreateJoinControlPlaneKubeConfigFiles(k.getBasePath(),
-		certConfig, hostname, controlPlaneEndpoint, "kubernetes")
+	err = clustercert.CreateJoinControlPlaneKubeConfigFiles(k.getBasePath(), k.getPKIPath(),
+		"ca", hostname, controlPlaneEndpoint, "kubernetes")
 	if err != nil {
 		return fmt.Errorf("failed to generate kubeconfig: %s", err)
 	}
