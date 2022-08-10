@@ -419,3 +419,72 @@ func getFrontProxyCertificateConfig(certPath string) CertificateConfigFamily {
 		},
 	}
 }
+
+// UpdateAPIServerCertSans :renew apiserver cert sans with given ca under pkiPath.
+func UpdateAPIServerCertSans(pkiPath string, certSans []string) error {
+	baseName := "apiserver"
+
+	APIServerCertSans := cert.AltNames{
+		DNSNames: map[string]string{},
+		IPs:      map[string]net.IP{},
+	}
+
+	for _, altName := range certSans {
+		ip := net.ParseIP(altName)
+		if ip != nil {
+			APIServerCertSans.IPs[ip.String()] = ip
+			continue
+		}
+		APIServerCertSans.DNSNames[altName] = altName
+	}
+
+	apiCert, _, err := cert.NewCertificateFileManger(pkiPath, baseName).Read()
+	if err != nil {
+		return fmt.Errorf("unable to load %s cert: %v", baseName, err)
+	}
+
+	for _, dns := range apiCert.DNSNames {
+		APIServerCertSans.DNSNames[dns] = dns
+	}
+
+	for _, ip := range apiCert.IPAddresses {
+		APIServerCertSans.IPs[ip.String()] = ip
+	}
+
+	apiCertConfig := cert.CertificateDescriptor{
+		Year:         100,
+		CommonName:   apiCert.Subject.CommonName,
+		Organization: apiCert.Subject.Organization,
+		AltNames:     APIServerCertSans,
+		Usages:       apiCert.ExtKeyUsage,
+	}
+
+	// load ca cert form pkiPath
+	caCert, caKey, err := cert.NewCertificateFileManger(pkiPath, "ca").Read()
+	if err != nil {
+		return fmt.Errorf("unable to load %s cert: %v", baseName, err)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// new api server cert
+	generator, err := cert.NewCommonCertificateGenerator(apiCertConfig, caCert, caKey)
+	if err != nil {
+		return fmt.Errorf("unable to generate %s cert: %v", baseName, err)
+	}
+
+	newCert, newKey, err := generator.Generate()
+	if err != nil {
+		return fmt.Errorf("unable to generate %s cert: %v", baseName, err)
+	}
+
+	// write cert file to disk
+	err = cert.NewCertificateFileManger(pkiPath, baseName).Write(newCert, newKey)
+	if err != nil {
+		return fmt.Errorf("unable to save %s cert: %v", baseName, err)
+	}
+
+	return nil
+}
