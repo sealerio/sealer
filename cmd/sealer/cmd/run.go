@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/sealerio/sealer/utils/net"
 
@@ -82,7 +83,7 @@ func init() {
 	runCmd.Flags().StringVarP(&runArgs.User, "user", "u", "root", "set baremetal server username")
 	runCmd.Flags().StringVarP(&runArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	runCmd.Flags().Uint16Var(&runArgs.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
-	runCmd.Flags().StringVar(&runArgs.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
+	runCmd.Flags().StringVar(&runArgs.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
 	runCmd.Flags().StringVar(&runArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	runCmd.Flags().StringSliceVar(&runArgs.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")

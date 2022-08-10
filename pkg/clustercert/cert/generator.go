@@ -91,10 +91,10 @@ func (k KeyPairFileGenerator) writePrivateKey(key crypto.Signer) error {
 	privateKeyPath := PathForKey(k.path, k.name)
 	encoded, err := keyutil.MarshalPrivateKeyToPEM(key)
 	if err != nil {
-		return fmt.Errorf("unable to marshal private key to PEM %v", err)
+		return fmt.Errorf("unable to marshal private key to PEM :%v", err)
 	}
 	if err := keyutil.WriteKey(privateKeyPath, encoded); err != nil {
-		return fmt.Errorf("unable to write private key to file %s %v", privateKeyPath, err)
+		return fmt.Errorf("unable to write private key to file %s :%v", privateKeyPath, err)
 	}
 
 	return nil
