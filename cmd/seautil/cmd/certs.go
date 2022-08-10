@@ -37,30 +37,29 @@ type Flag struct {
 
 // NewCertGenCmd gen all kubernetes certs
 func NewCertGenCmd() *cobra.Command {
-	config := new(Flag)
+	flag := new(Flag)
 
 	// certsCmd represents the certs command
 	var certsCmd = &cobra.Command{
-		Use:   "certs",
+		Use:   "gen",
 		Short: "generate kubernetes certs",
-		Long:  `seautil cert --node-ip 192.168.0.2 --node-name master1 --dns-domain aliyun.com --alt-names aliyun.local`,
+		Long:  `seautil cert gen --node-ip 192.168.0.2 --node-name master1 --dns-domain sealer.com --alt-names sealer.local --service-cidr 10.103.97.2/24`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			nodeIP := net.ParseIP(config.NodeIP)
+			nodeIP := net.ParseIP(flag.NodeIP)
 			if nodeIP == nil {
-				return fmt.Errorf("input --node-ip(%s) is not a valid IP format", config.NodeIP)
-
+				return fmt.Errorf("input --node-ip(%s) is not a valid IP format", flag.NodeIP)
 			}
-			return clustercert.GenerateAllKubernetesCerts(config.CertPath, config.CertEtcdPath, config.NodeName, config.ServiceCIDR, config.DNSDomain, config.AltNames, nodeIP)
+			return clustercert.GenerateAllKubernetesCerts(flag.CertPath, flag.CertEtcdPath, flag.NodeName, flag.ServiceCIDR, flag.DNSDomain, flag.AltNames, nodeIP)
 		},
 	}
 
-	certsCmd.Flags().StringSliceVar(&config.AltNames, "alt-names", []string{}, "like sealyun.com or 10.103.97.2")
-	certsCmd.Flags().StringVar(&config.NodeName, "node-name", "", "like master0")
-	certsCmd.Flags().StringVar(&config.ServiceCIDR, "service-cidr", "", "like 10.103.97.2/24")
-	certsCmd.Flags().StringVar(&config.NodeIP, "node-ip", "", "like 10.103.97.2")
-	certsCmd.Flags().StringVar(&config.DNSDomain, "dns-domain", "cluster.local", "cluster dns domain")
-	certsCmd.Flags().StringVar(&config.CertPath, "cert-path", clustercert.KubeDefaultCertPath, "kubernetes cert file path")
-	certsCmd.Flags().StringVar(&config.CertEtcdPath, "cert-etcd-path", clustercert.KubeDefaultCertEtcdPath, "kubernetes etcd cert file path")
+	certsCmd.Flags().StringSliceVar(&flag.AltNames, "alt-names", []string{}, "like sealyun.com or 10.103.97.2")
+	certsCmd.Flags().StringVar(&flag.NodeName, "node-name", "", "like master0")
+	certsCmd.Flags().StringVar(&flag.ServiceCIDR, "service-cidr", "", "like 10.103.97.2/24")
+	certsCmd.Flags().StringVar(&flag.NodeIP, "node-ip", "", "like 10.103.97.2")
+	certsCmd.Flags().StringVar(&flag.DNSDomain, "dns-domain", "cluster.local", "cluster dns domain")
+	certsCmd.Flags().StringVar(&flag.CertPath, "cert-path", clustercert.KubeDefaultCertPath, "kubernetes cert file path")
+	certsCmd.Flags().StringVar(&flag.CertEtcdPath, "cert-etcd-path", clustercert.KubeDefaultCertEtcdPath, "kubernetes etcd cert file path")
 
 	return certsCmd
 }
@@ -80,7 +79,7 @@ func NewCertUpdateCmd() *cobra.Command {
 
 			err := clustercert.UpdateAPIServerCertSans(clustercert.KubeDefaultCertPath, altNames)
 			if err != nil {
-				return fmt.Errorf("failed to update api server's cert: %+v", err)
+				return fmt.Errorf("failed to update api server's cert: %v", err)
 			}
 			return nil
 		},

@@ -135,11 +135,7 @@ func (k *Runtime) JoinMasterCommands(master net.IP, joinCmd, hostname string) []
 }
 
 func (k *Runtime) sendKubeConfigFile(hosts []net.IP, kubeFile string) error {
-<<<<<<< HEAD
 	absKubeFile := fmt.Sprintf("%s/%s", clustercert.KubernetesConfigDir, kubeFile)
-=======
-	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesConfigDir, kubeFile)
->>>>>>> 40bef7af (bugfix:update apiserver cert sans for all cluster cert)
 	sealerKubeFile := fmt.Sprintf("%s/%s", k.getBasePath(), kubeFile)
 	return k.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
