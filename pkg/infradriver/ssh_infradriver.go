@@ -50,7 +50,12 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	// initialize roleHostsMap field
 	for _, host := range cluster.Spec.Hosts {
 		for _, role := range host.Roles {
-			ret.roleHostsMap[role] = host.IPS
+			ips, ok := ret.roleHostsMap[role]
+			if !ok {
+				ret.roleHostsMap[role] = host.IPS
+			} else {
+				ret.roleHostsMap[role] = append(ips, host.IPS...)
+			}
 		}
 	}
 
