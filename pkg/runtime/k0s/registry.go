@@ -18,9 +18,6 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/cert"
 )
 
 const (
@@ -94,25 +91,6 @@ func (k *Runtime) GenLoginCommand() string {
 
 func (k *Runtime) GenerateRegistryCert() error {
 	return GenerateRegistryCert(k.getCertsDir(), k.RegConfig.Domain)
-}
-
-func GenerateRegistryCert(registryCertPath string, BaseName string) error {
-	regCertConfig := cert.Config{
-		Path:         registryCertPath,
-		BaseName:     BaseName,
-		CommonName:   BaseName,
-		DNSNames:     []string{BaseName},
-		Organization: []string{common.ExecBinaryFileName},
-		Year:         100,
-	}
-	if BaseName != SeaHub {
-		regCertConfig.DNSNames = append(regCertConfig.DNSNames, SeaHub)
-	}
-	crt, key, err := cert.NewCaCertAndKey(regCertConfig)
-	if err != nil {
-		return err
-	}
-	return cert.WriteCertAndKey(regCertConfig.Path, regCertConfig.BaseName, crt, key)
 }
 
 func (k *Runtime) SendRegistryCert(host []net.IP) error {
