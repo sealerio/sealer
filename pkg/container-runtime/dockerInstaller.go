@@ -2,12 +2,13 @@ package container_runtime
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/registry"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
-	"net"
 )
 
 type DockerInstaller struct {
