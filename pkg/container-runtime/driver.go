@@ -19,7 +19,7 @@ import (
 	"net"
 )
 
-type ContainerRuntimeRegistryConfig struct {
+type ConfigForRegistry struct {
 	RegistryDeployHost string
 	Endpoint           string
 	Domain             string
@@ -32,20 +32,20 @@ type ContainerRuntimeRegistryConfig struct {
 }
 
 type ContainerRuntimeDriverConfig struct {
-	RegistryConfig ContainerRuntimeRegistryConfig
+	RegistryConfig ConfigForRegistry
 }
 
 //ContainerRuntimeDriver provide configuration Interface for different container runtime.
 type ContainerRuntimeDriver interface {
 	// ConfigRegistry config registry via each container runtime ip address
-	ConfigRegistry(ContainerRuntimeRegistryConfig, []net.IP) error
+	ConfigRegistry(ConfigForRegistry, []net.IP) error
 }
 
 type DockerRuntimeDriver struct {
 	ssh infradriver.InfraDriver
 }
 
-func (d DockerRuntimeDriver) ConfigRegistry(config ContainerRuntimeRegistryConfig, ips []net.IP) error {
+func (d DockerRuntimeDriver) ConfigRegistry(config ConfigForRegistry, ips []net.IP) error {
 	// add registry ip to "/etc/hosts" :required
 	// docker login with username and password: not required
 	// copy ca cert to "/etc/docker/certs.d/${domain}:${port}/: not required
@@ -58,6 +58,7 @@ func (d DockerRuntimeDriver) configHostsFile(registryIP, domain string, ips []ne
 
 func (d DockerRuntimeDriver) configAuthInfo(username, password string, ips []net.IP) error {
 	// docker login with username and password
+	// cp /root/.docker/config.json to /var/lib/kubelet. make sure kubelet could access registry with credential.
 }
 
 func (d DockerRuntimeDriver) configRegistryCert(domain, port string, caFile string, ips []net.IP) error {
