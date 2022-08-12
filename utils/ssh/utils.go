@@ -65,7 +65,7 @@ func fileExist(path string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func ReadPipe(stdout, stderr io.Reader, combineSlice *[]string) {
+func ReadPipe(stdout, stderr io.Reader, combineSlice *[]byte) {
 	var combineLock sync.Mutex
 	doneout := make(chan error, 1)
 	doneerr := make(chan error, 1)
@@ -79,7 +79,7 @@ func ReadPipe(stdout, stderr io.Reader, combineSlice *[]string) {
 	<-doneout
 }
 
-func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex) error {
+func readPipe(pipe io.Reader, combineSlice *[]byte, combineLock *sync.Mutex) error {
 	r := bufio.NewReader(pipe)
 	for {
 		line, _, err := r.ReadLine()
@@ -88,8 +88,9 @@ func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex) e
 		}
 
 		combineLock.Lock()
-		*combineSlice = append(*combineSlice, string(line))
-		logrus.Debugf("%s", line)
+		logrus.Debugf("%s\n", line)
+		*combineSlice = append(*combineSlice, line...)
+		*combineSlice = append(*combineSlice, '\n')
 		combineLock.Unlock()
 	}
 }

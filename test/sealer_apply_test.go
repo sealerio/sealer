@@ -93,7 +93,7 @@ var _ = Describe("sealer apply", func() {
 				apply.SendAndApplyCluster(sshClient, tempFile)
 				apply.CheckNodeNumWithSSH(sshClient, 4)
 				By("start to delete cluster")
-				err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
+				_, err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
 				testhelper.CheckErr(err)
 			})
 
@@ -152,7 +152,7 @@ var _ = Describe("sealer apply", func() {
 				apply.CheckNodeNumWithSSH(sshClient, 4)
 
 				By("start to delete cluster")
-				err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
+				_, err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
 				testhelper.CheckErr(err)
 			})
 
@@ -216,7 +216,7 @@ var _ = Describe("sealer apply", func() {
 				apply.SendAndApplyCluster(sshClient, tempFile)
 				apply.CheckNodeNumWithSSH(sshClient, 4)
 				By("start to delete cluster")
-				err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
+				_, err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteCmd(tempFile))
 				testhelper.CheckErr(err)
 			})
 

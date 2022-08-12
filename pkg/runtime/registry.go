@@ -63,7 +63,7 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 		if err != nil {
 			return err
 		}
-		err = ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf("echo '%s' > %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
+		_, err = ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf("echo '%s' > %s", htpasswd, filepath.Join(k.getRootfs(), "etc", DefaultRegistryHtPasswdFile)))
 		if err != nil {
 			return err
 		}
@@ -75,16 +75,18 @@ func (k *KubeadmRuntime) ApplyRegistry() error {
 		addSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP+" "+SeaHub, k.RegConfig.IP+" "+SeaHub)
 		addRegistryHosts = fmt.Sprintf("%s && %s", addRegistryHosts, addSeaHubHosts)
 	}
-	if err = ssh.CmdAsync(k.RegConfig.IP, initRegistry); err != nil {
+	if _, err = ssh.CmdAsync(k.RegConfig.IP, initRegistry); err != nil {
 		return err
 	}
-	if err = ssh.CmdAsync(k.GetMaster0IP(), addRegistryHosts); err != nil {
+	if _, err = ssh.CmdAsync(k.GetMaster0IP(), addRegistryHosts); err != nil {
 		return err
 	}
 	if k.RegConfig.Username == "" || k.RegConfig.Password == "" {
 		return nil
 	}
-	return ssh.CmdAsync(k.GetMaster0IP(), k.GerLoginCommand())
+	_, err = ssh.CmdAsync(k.GetMaster0IP(), k.GerLoginCommand())
+
+	return err
 }
 
 func (k *KubeadmRuntime) GerLoginCommand() string {
@@ -144,7 +146,8 @@ func (k *KubeadmRuntime) DeleteRegistry() error {
 		return fmt.Errorf("failed to delete registry: %v", err)
 	}
 
-	return ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf(DeleteRegistryCommand, RegistryName))
+	_, err = ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf(DeleteRegistryCommand, RegistryName))
+	return err
 }
 
 func GenerateRegistryCert(registryCertPath string, BaseName string) error {

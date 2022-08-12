@@ -82,7 +82,7 @@ func (h HostnamePlugin) changeNodeName(hostname, ip string, SSH ssh.Interface) e
 	tmpCMD := fmt.Sprintf("hostname %s", hostname)
 	//cmd to change hostname permanently
 	perCMD := fmt.Sprintf(`rm -f /etc/hostname && echo "%s" >> /etc/hostname`, hostname)
-	if err := SSH.CmdAsync(ip, tmpCMD, perCMD); err != nil {
+	if _, err := SSH.CmdAsync(ip, tmpCMD, perCMD); err != nil {
 		return fmt.Errorf("failed to change the node %v hostname,%v", ip, err)
 	}
 	logrus.Infof("successfully changed node %s hostname to %s.", ip, hostname)

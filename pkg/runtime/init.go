@@ -64,7 +64,8 @@ func (k *KubeadmRuntime) ConfigKubeadmOnMaster0() error {
 	if err != nil {
 		return err
 	}
-	return sshClient.CmdAsync(k.GetMaster0IP(), cmd)
+	_, err = sshClient.CmdAsync(k.GetMaster0IP(), cmd)
+	return err
 }
 
 func (k *KubeadmRuntime) generateConfigs() ([]byte, error) {
@@ -193,7 +194,7 @@ func (k *KubeadmRuntime) CopyStaticFiles(nodes []string) error {
 				if err != nil {
 					return fmt.Errorf("new ssh client failed %v", err)
 				}
-				err = ssh.CmdAsync(host, cmdLinkStatic)
+				_, err = ssh.CmdAsync(host, cmdLinkStatic)
 				if err != nil {
 					return fmt.Errorf("[%s] link static file failed, error:%s", host, err.Error())
 				}
@@ -253,7 +254,7 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	}
 	apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 	cmdAddEtcHost := fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost)
-	err = client.CmdAsync(k.GetMaster0IP(), cmdAddEtcHost)
+	_, err = client.CmdAsync(k.GetMaster0IP(), cmdAddEtcHost)
 	if err != nil {
 		return err
 	}
@@ -262,18 +263,18 @@ func (k *KubeadmRuntime) InitMaster0() error {
 	cmdInit := k.Command(k.getKubeVersion(), InitMaster)
 
 	// TODO skip docker version error check for test
-	output, err := client.Cmd(k.GetMaster0IP(), cmdInit)
+	output, err := client.CmdAsync(k.GetMaster0IP(), cmdInit)
 	if err != nil {
-		return fmt.Errorf("failed to init master0, error: %v", err)
+		return fmt.Errorf("failed to init master0 %s via [%s]: %v", k.GetMaster0IP(), cmdInit, err)
 	}
 	k.decodeMaster0Output(output)
-	err = client.CmdAsync(k.GetMaster0IP(), RemoteCopyKubeConfig)
+	_, err = client.CmdAsync(k.GetMaster0IP(), RemoteCopyKubeConfig)
 	if err != nil {
 		return err
 	}
 
 	if client.(*ssh.SSH).User != common.ROOT {
-		err = client.CmdAsync(k.GetMaster0IP(), RemoteNonRootCopyKubeConfig)
+		_, err = client.CmdAsync(k.GetMaster0IP(), RemoteNonRootCopyKubeConfig)
 		if err != nil {
 			return err
 		}

@@ -83,7 +83,7 @@ func (s Sheller) Run(context Context, phase Phase) (err error) {
 
 				return
 			}
-			err = sshClient.CmdAsync(node, envProcessor.WrapperShell(node, pluginCmd))
+			_, err = sshClient.CmdAsync(node, envProcessor.WrapperShell(node, pluginCmd))
 			if err != nil {
 				hostErrRecorder.AppendErr(node, err)
 

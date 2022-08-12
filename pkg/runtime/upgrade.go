@@ -70,7 +70,9 @@ func (k *KubeadmRuntime) upgradeFirstMaster(IP string, binPath, version string) 
 	if err != nil {
 		return fmt.Errorf("upgrade master0 failed %v", err)
 	}
-	return ssh.CmdAsync(IP, firstMasterCmds...)
+	_, err = ssh.CmdAsync(IP, firstMasterCmds...)
+
+	return err
 }
 
 func (k *KubeadmRuntime) upgradeOtherMasters(IPs []string, binpath, version string) error {
@@ -96,7 +98,7 @@ func (k *KubeadmRuntime) upgradeOtherMasters(IPs []string, binpath, version stri
 		if err != nil {
 			return fmt.Errorf("upgrade other masters failed: %v", err)
 		}
-		err = ssh.CmdAsync(ip, otherMasterCmds...)
+		_, err = ssh.CmdAsync(ip, otherMasterCmds...)
 		if err != nil {
 			return err
 		}
@@ -117,7 +119,7 @@ func (k *KubeadmRuntime) upgradeNodes(IPs []string, binpath string) error {
 		if err != nil {
 			return fmt.Errorf("upgrade node failed: %v", err)
 		}
-		err = ssh.CmdAsync(ip, nodeCmds...)
+		_, err = ssh.CmdAsync(ip, nodeCmds...)
 		if err != nil {
 			return err
 		}

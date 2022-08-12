@@ -57,47 +57,45 @@ func getKeyError(str string) string {
 	return str[n+len(begin) : m]
 }
 
-func (s *SSH) CmdAsync(host string, cmds ...string) error {
-	var execFunc func(cmd string) error
-
-	execFunc = func(cmd string) error {
+func (s *SSH) CmdAsync(host string, cmds ...string) ([]byte, error) {
+	execFunc := func(cmd string) ([]byte, error) {
 		client, session, err := s.Connect(host)
 		if err != nil {
-			return fmt.Errorf("failed to create ssh session for %s: %v", host, err)
+			return nil, fmt.Errorf("failed to create ssh session for %s: %v", host, err)
 		}
 		defer client.Close()
 		defer session.Close()
 		stdout, err := session.StdoutPipe()
 		if err != nil {
-			return fmt.Errorf("failed to create stdout pipe for %s: %v", host, err)
+			return nil, fmt.Errorf("failed to create stdout pipe for %s: %v", host, err)
 		}
 		stderr, err := session.StderrPipe()
 		if err != nil {
-			return fmt.Errorf("failed to create stderr pipe for %s: %v", host, err)
+			return nil, fmt.Errorf("failed to create stderr pipe for %s: %v", host, err)
 		}
 
 		if err := session.Start(cmd); err != nil {
-			return fmt.Errorf("failed to start command %s on %s: %v", cmd, host, err)
+			return nil, fmt.Errorf("failed to start command %s on %s: %v", cmd, host, err)
 		}
 
-		output := make([]string, 0)
+		output := make([]byte, 0)
 
 		ReadPipe(stdout, stderr, &output)
 
 		err = session.Wait()
 		if err != nil {
-			keyError := strings.Join(output, "\n")
-			logrus.Debugf("failed to execute command(%s) on host(%s): output(%s), error(%v)", cmd, host, keyError, err)
+			keyError := string(output)
 
 			if ke := getKeyError(keyError); ke != "" {
 				keyError = ke
 			}
-			return fmt.Errorf("failed to execute command on host(%s): %v", host, keyError)
+			return nil, fmt.Errorf("failed to execute command on host(%s): %v", host, keyError)
 		}
 
-		return nil
+		return output, nil
 	}
 
+	output := make([]byte, 0)
 	for _, cmd := range cmds {
 		if cmd == "" {
 			continue
@@ -105,12 +103,14 @@ func (s *SSH) CmdAsync(host string, cmds ...string) error {
 		if s.User != common.ROOT {
 			cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
 		}
-		if err := execFunc(cmd); err != nil {
-			return err
+		o, err := execFunc(cmd)
+		if err != nil {
+			return nil, err
 		}
+		output = append(output, o...)
 	}
 
-	return nil
+	return output, nil
 }
 
 func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
@@ -125,10 +125,6 @@ func (s *SSH) Cmd(host, cmd string) ([]byte, error) {
 	defer client.Close()
 	defer session.Close()
 	b, err := session.CombinedOutput(cmd)
-	if err != nil {
-		logrus.Debugf("[ssh][%s]run command failed [%s]", host, cmd)
-		return b, fmt.Errorf("[ssh][%s]run command failed [%s]", host, cmd)
-	}
 	if err != nil {
 		keyError := string(b)
 		logrus.Debugf("failed to execute command(%s) on host(%s): output(%s), error(%v)", cmd, host, keyError, err)

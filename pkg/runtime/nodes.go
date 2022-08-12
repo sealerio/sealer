@@ -110,8 +110,9 @@ func (k *KubeadmRuntime) joinNodes(nodes []string) error {
 			if err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
-			if err := ssh.CmdAsync(node, addRegistryHostsAndLogin, cmdWriteJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd); err != nil {
-				return fmt.Errorf("failed to join node %s: %v", node, err)
+			cmds := []string{addRegistryHostsAndLogin, cmdWriteJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd}
+			if _, err := ssh.CmdAsync(node, cmds...); err != nil {
+				return fmt.Errorf("failed to join node %s via [%s]: %v", node, strings.Join(cmds, ";"), err)
 			}
 			logrus.Infof("Succeeded in joining %s as worker", node)
 			return err
@@ -162,7 +163,7 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 		apiServerHost := getAPIServerHost(k.GetMaster0IP(), k.getAPIServerDomain())
 		remoteCleanCmds = append(remoteCleanCmds, fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost))
 	}
-	if err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {
+	if _, err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {
 		return err
 	}
 	//remove node
@@ -176,7 +177,7 @@ func (k *KubeadmRuntime) deleteNode(node string) error {
 			return fmt.Errorf("failed to delete node on master0: %v", err)
 		}
 		if nodeName := strings.TrimSpace(hostname); len(nodeName) != 0 {
-			if err := ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, nodeName)); err != nil {
+			if _, err := ssh.CmdAsync(k.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, nodeName)); err != nil {
 				return fmt.Errorf("failed to delete node %s: %v", hostname, err)
 			}
 		}

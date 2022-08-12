@@ -74,7 +74,7 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 			return fmt.Errorf("failed to render build args: %v", err)
 		}
 
-		if err := sshClient.CmdAsync(cluster.GetMaster0IP(), fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, cmdline)); err != nil {
+		if _, err := sshClient.CmdAsync(cluster.GetMaster0IP(), fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, cmdline)); err != nil {
 			return err
 		}
 	}

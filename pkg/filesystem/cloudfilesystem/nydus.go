@@ -141,15 +141,15 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 				return fmt.Errorf("scp nydusd failed %v", err)
 			}
 			if initFlag {
-				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, nydusdInitCmd))
+				_, err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, nydusdInitCmd))
 				if err != nil {
 					return fmt.Errorf("init nydusd failed %v", err)
 				}
-				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, initCmd))
+				_, err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, initCmd))
 				if err != nil {
 					return fmt.Errorf("exec init.sh failed %v", err)
 				}
-				err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, cleanCmd))
+				_, err = sshClient.CmdAsync(ip, envProcessor.WrapperShell(ip, cleanCmd))
 				if err != nil {
 					return fmt.Errorf("echo nydusdcleancmd to clean.sh failed %v", err)
 				}

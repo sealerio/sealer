@@ -49,7 +49,7 @@ func (k *KubeadmRuntime) updateCert(certs []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to update cert, %v", err)
 	}
-	if err := ssh.CmdAsync(k.GetMaster0IP(), "rm -rf /etc/kubernetes/admin.conf"); err != nil {
+	if _, err := ssh.CmdAsync(k.GetMaster0IP(), "rm -rf /etc/kubernetes/admin.conf"); err != nil {
 		return err
 	}
 

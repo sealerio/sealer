@@ -88,7 +88,7 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 				return fmt.Errorf("copy rootfs failed %v", err)
 			}
 			if initFlag {
-				err = sshClient.CmdAsync(ip, env.NewEnvProcessor(cluster).WrapperShell(ip, initCmd))
+				_, err = sshClient.CmdAsync(ip, env.NewEnvProcessor(cluster).WrapperShell(ip, initCmd))
 				if err != nil {
 					return fmt.Errorf("exec init.sh failed %v", err)
 				}
@@ -126,7 +126,8 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 				return err
 			}
 
-			return SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd))
+			_, err = SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd))
+			return err
 		})
 	}
 	return eg.Wait()
