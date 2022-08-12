@@ -174,6 +174,12 @@ func (c *Applier) reconcileCluster(args *Args) error {
 		return c.scaleCluster(nil, args.DeletingArgs.MastersToDelete, nil, args.DeletingArgs.WorkersToDelete)
 	case ActionApply:
 		if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+			//gs, err := guest.NewGuestManager()
+			//if err != nil {
+			//	return err
+			//}
+			//
+			//return gs.Apply(c.ClusterDesired)
 			return c.upgrade()
 		}
 		if len(md) > 0 || len(nd) > 0 {

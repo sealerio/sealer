@@ -68,14 +68,11 @@ func (s *SSH) Platform(host string) (v1.Platform, error) {
 }
 
 func (s *SSH) getCPUInfo(host, pattern string) (info string, err error) {
-	sshClient, sftpClient, err := s.sftpConnect(host)
+	_, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return "", fmt.Errorf("new sftp client failed %v", err)
 	}
-	defer func() {
-		_ = sftpClient.Close()
-		_ = sshClient.Close()
-	}()
+
 	// open remote source file
 	srcFile, err := sftpClient.Open("/proc/cpuinfo")
 	if err != nil {
