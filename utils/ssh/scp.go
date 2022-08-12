@@ -93,14 +93,11 @@ func (s *SSH) CopyR(host net.IP, localFilePath, remoteFilePath string) error {
 		}
 		return nil
 	}
-	sshClient, sftpClient, err := s.sftpConnect(host)
+
+	_, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return fmt.Errorf("failed to new sftp client: %v", err)
 	}
-	defer func() {
-		_ = sftpClient.Close()
-		_ = sshClient.Close()
-	}()
 	// open remote source file
 	srcFile, err := sftpClient.Open(remoteFilePath)
 	if err != nil {
@@ -142,14 +139,11 @@ func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 		return osi.RecursionCopy(localPath, remotePath)
 	}
 	logrus.Debugf("remote copy files src %s to dst %s", localPath, remotePath)
-	sshClient, sftpClient, err := s.sftpConnect(host)
+
+	_, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return fmt.Errorf("failed to new sftp client of host(%s): %s", host, err)
 	}
-	defer func() {
-		_ = sftpClient.Close()
-		_ = sshClient.Close()
-	}()
 
 	f, err := s.Fs.Stat(localPath)
 	if err != nil {
@@ -289,14 +283,11 @@ func (s *SSH) copyLocalFileToRemote(host net.IP, sftpClient *sftp.Client, localP
 
 // RemoteDirExist if remote file not exist return false and nil
 func (s *SSH) RemoteDirExist(host net.IP, remoteDirPath string) (bool, error) {
-	sshClient, sftpClient, err := s.sftpConnect(host)
+	_, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("new sftp client failed %v", err)
 	}
-	defer func() {
-		_ = sftpClient.Close()
-		_ = sshClient.Close()
-	}()
+
 	if _, err := sftpClient.ReadDir(remoteDirPath); err != nil {
 		return false, err
 	}
@@ -304,14 +295,11 @@ func (s *SSH) RemoteDirExist(host net.IP, remoteDirPath string) (bool, error) {
 }
 
 func (s *SSH) IsFileExist(host net.IP, remoteFilePath string) (bool, error) {
-	sshClient, sftpClient, err := s.sftpConnect(host)
+	_, sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return false, fmt.Errorf("failed to new sftp client of host(%s): %s", host, err)
 	}
-	defer func() {
-		_ = sftpClient.Close()
-		_ = sshClient.Close()
-	}()
+
 	_, err = sftpClient.Stat(remoteFilePath)
 	if err == os.ErrNotExist {
 		return false, nil

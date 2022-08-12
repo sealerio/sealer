@@ -133,7 +133,18 @@ func (s *SSH) sshPasswordMethod(password string) ssh.AuthMethod {
 	return ssh.Password(password)
 }
 
+type Client struct {
+	SSHClient  *ssh.Client
+	SftpClient *sftp.Client
+}
+
+var sshClientMap = map[string]Client{}
+
 func (s *SSH) sftpConnect(host net.IP) (*ssh.Client, *sftp.Client, error) {
+	if ret, ok := sshClientMap[host.String()]; ok {
+		return ret.SSHClient, ret.SftpClient, nil
+	}
+
 	var (
 		sshClient  *ssh.Client
 		sftpClient *sftp.Client
@@ -150,6 +161,11 @@ func (s *SSH) sftpConnect(host net.IP) (*ssh.Client, *sftp.Client, error) {
 		sftpClient, err = s.NewSudoSftpClient(sshClient)
 	} else {
 		sftpClient, err = sftp.NewClient(sshClient)
+	}
+
+	sshClientMap[host.String()] = Client{
+		SSHClient:  sshClient,
+		SftpClient: sftpClient,
 	}
 
 	return sshClient, sftpClient, err
