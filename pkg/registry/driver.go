@@ -8,6 +8,8 @@
 
 package registry
 
+import "fmt"
+
 // Registry驱动器接口，供其他服务操作Registry
 type Driver interface {
 	UploadContainerImages2Registry() error
@@ -15,4 +17,10 @@ type Driver interface {
 }
 
 type Info struct {
+	Domain string
+	Port   string
+}
+
+func (i *Info) String() string {
+	return fmt.Sprintf("%s:%s", i.Domain, i.Port)
 }

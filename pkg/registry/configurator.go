@@ -59,7 +59,7 @@ type SubjectAltName struct {
 }
 
 type Registry struct {
-	URL  string        `json:"url,omitempty" yaml:"url,omitempty"`
+	Domain  string        `json:"domain,omitempty" yaml:"domain,omitempty"`
 	Port int           `json:"port,omitempty" yaml:"port,omitempty"`
 	Auth *RegistryAuth `json:"auth,omitempty" yaml:"auth,omitempty"`
 }
