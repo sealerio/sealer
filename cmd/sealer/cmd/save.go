@@ -15,25 +15,17 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
 
+	"os"
+
+	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/pkg/image"
-	"github.com/sealerio/sealer/pkg/image/reference"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils/platform"
 )
 
-type saveFlag struct {
-	ImageTar string
-	Platform string
-}
-
-var save saveFlag
+var saveOpts *options.SaveOptions
 
 // saveCmd represents the save command
 var saveCmd = &cobra.Command{
@@ -46,58 +38,27 @@ save kubernetes:v1.19.8 image to kubernetes.tar file:
 sealer save -o kubernetes.tar kubernetes:v1.19.8`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		imageTar := save.ImageTar
-		if imageTar == "" {
-			return fmt.Errorf("imagetar cannot be empty")
-		}
-
-		dir, file := filepath.Split(imageTar)
-		if dir == "" {
-			dir = "."
-		}
-		if file == "" {
-			file = fmt.Sprintf("%s.tar", args[0])
-		}
-		imageTar = filepath.Join(dir, file)
-		// only file path like "/tmp" will lose add image tar name,make sure imageTar with full file name.
-		if filepath.Ext(imageTar) != ".tar" {
-			imageTar = filepath.Join(imageTar, fmt.Sprintf("%s.tar", args[0]))
-		}
-
-		ifs, err := image.NewImageFileService()
+		engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 		if err != nil {
 			return err
 		}
-		named, err := reference.ParseToNamed(args[0])
-		if err != nil {
-			return err
-		}
-
-		var targetPlatforms []*v1.Platform
-		if save.Platform != "" {
-			tp, err := platform.ParsePlatforms(save.Platform)
-			if err != nil {
-				return err
-			}
-			targetPlatforms = tp
-		}
-
-		if err = ifs.Save(named.Raw(), imageTar, targetPlatforms); err != nil {
-			return fmt.Errorf("failed to save image %s: %v", args[0], err)
-		}
-		logrus.Infof("save image %s to %s successfully", args[0], imageTar)
-		return nil
+		saveOpts.ImageNameOrID = args[0]
+		return engine.Save(saveOpts)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(saveCmd)
-	save = saveFlag{}
-	saveCmd.Flags().StringVarP(&save.ImageTar, "output", "o", "", "write the image to a file")
-	saveCmd.Flags().StringVar(&save.Platform, "platform", "", "set ClusterImage platform")
+	saveOpts = &options.SaveOptions{}
+	flags := saveCmd.Flags()
+	flags.StringVar(&saveOpts.Format, "format", buildah.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
+	flags.StringVarP(&saveOpts.Output, "output", "o", "", "Write image to a specified file")
+	flags.BoolVarP(&saveOpts.Quiet, "quiet", "q", false, "Suppress the output")
+	flags.BoolVar(&saveOpts.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
 
 	if err := saveCmd.MarkFlagRequired("output"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
+
+	rootCmd.AddCommand(saveCmd)
 }

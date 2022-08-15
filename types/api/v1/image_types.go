@@ -15,6 +15,8 @@
 package v1
 
 import (
+	"strings"
+
 	"github.com/opencontainers/go-digest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -95,11 +97,16 @@ type ImageArg struct {
 type Platform struct {
 	Architecture string `json:"architecture,omitempty"`
 	OS           string `json:"os,omitempty"`
-	// OSVersion is an optional field specifying the operating system version.
-	OSVersion string `json:"os_version,omitempty"`
 	// Variant is an optional field specifying a variant of the CPU, for
 	// example `v7` to specify ARMv7 when architecture is `arm`.
 	Variant string `json:"variant,omitempty"`
+}
+
+func (p Platform) ToString() string {
+	str := p.OS + "/" + p.Architecture + "/" + p.Variant
+	str = strings.TrimSuffix(str, "/")
+	str = strings.TrimPrefix(str, "/")
+	return str
 }
 
 func init() {

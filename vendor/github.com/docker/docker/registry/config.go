@@ -29,6 +29,10 @@ type serviceConfig struct {
 const (
 	// DefaultNamespace is the default namespace
 	DefaultNamespace = "docker.io"
+	// DefaultRegistryVersionHeader is the name of the default HTTP header
+	// that carries Registry version info
+	DefaultRegistryVersionHeader = "Docker-Distribution-Api-Version"
+
 	// IndexHostname is the index hostname
 	IndexHostname = "index.docker.io"
 	// IndexServer is used for user auth and image search

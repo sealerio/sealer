@@ -17,6 +17,9 @@ package processor
 import (
 	"fmt"
 
+	common2 "github.com/sealerio/sealer/pkg/define/options"
+
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/registry"
 
 	"github.com/sealerio/sealer/common"
@@ -93,7 +96,12 @@ func (d *DeleteProcessor) CleanFS(cluster *v2.Cluster) error {
 }
 
 func NewDeleteProcessor(clusterFile clusterfile.Interface) (Processor, error) {
-	mounter, err := filesystem.NewClusterImageMounter()
+	imageEngine, err := imageengine.NewImageEngine(common2.EngineGlobalConfigurations{})
+	if err != nil {
+		return nil, err
+	}
+
+	mounter, err := filesystem.NewClusterImageMounter(imageEngine)
 	if err != nil {
 		return nil, err
 	}

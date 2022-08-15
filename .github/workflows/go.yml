@@ -7,7 +7,6 @@ on:
     branches: "*"
     paths-ignore:
       - 'docs/**'
-      - 'vendor/**'
       - '*.md'
       - '*.yml'
 jobs:

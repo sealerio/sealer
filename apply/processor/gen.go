@@ -19,7 +19,12 @@ package processor
 import (
 	"fmt"
 	"net"
+
+	common2 "github.com/sealerio/sealer/pkg/define/options"
+
 	"strconv"
+
+	"github.com/sealerio/sealer/pkg/imageengine"
 
 	"github.com/sealerio/sealer/pkg/registry"
 
@@ -55,20 +60,23 @@ type ParserArg struct {
 type GenerateProcessor struct {
 	Runtime      *kubernetes.Runtime
 	ImageManager image.Service
+	ImageEngine  imageengine.Interface
 	ImageMounter clusterimage.Interface
 }
 
 func NewGenerateProcessor() (Processor, error) {
-	imageMounter, err := filesystem.NewClusterImageMounter()
+	imageEngine, err := imageengine.NewImageEngine(common2.EngineGlobalConfigurations{})
 	if err != nil {
 		return nil, err
 	}
-	imgSvc, err := image.NewImageService()
+
+	imageMounter, err := filesystem.NewClusterImageMounter(imageEngine)
 	if err != nil {
 		return nil, err
 	}
+
 	return &GenerateProcessor{
-		ImageManager: imgSvc,
+		ImageEngine:  imageEngine,
 		ImageMounter: imageMounter,
 	}, nil
 }

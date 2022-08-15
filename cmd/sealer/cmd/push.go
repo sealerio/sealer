@@ -15,11 +15,15 @@
 package cmd
 
 import (
+	"github.com/sealerio/sealer/pkg/auth"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/utils"
 )
+
+var pushOpts *options.PushOptions
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
@@ -30,17 +34,22 @@ var pushCmd = &cobra.Command{
 	Example: `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		imgsvc, err := image.NewImageService()
+		adaptor, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 		if err != nil {
 			return err
 		}
-
-		return imgsvc.Push(args[0])
-
+		pushOpts.Image = args[0]
+		return adaptor.Push(pushOpts)
 	},
 	ValidArgsFunction: utils.ImageListFuncForCompletion,
 }
 
 func init() {
+	pushOpts = &options.PushOptions{}
+
+	pushCmd.Flags().StringVar(&pushOpts.Authfile, "authfile", auth.GetDefaultAuthFilePath(), "path to store auth file after login. Accessing registry with this auth.")
+	// tls-verify is not working currently
+	pushCmd.Flags().BoolVar(&pushOpts.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry. TLS verification cannot be used when talking to an insecure registry. (not work currently)")
+	pushCmd.Flags().BoolVarP(&pushOpts.Quiet, "quiet", "q", false, "don't output progress information when pushing images")
 	rootCmd.AddCommand(pushCmd)
 }

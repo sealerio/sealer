@@ -37,8 +37,7 @@ type fileReader struct {
 func (r fileReader) ReadLines() ([]string, error) {
 	var lines []string
 
-	_, err := os.Stat(r.fileName)
-	if err != nil || os.IsNotExist(err) {
+	if _, err := os.Stat(r.fileName); err != nil || os.IsNotExist(err) {
 		return nil, errors.New("no such file")
 	}
 
@@ -63,8 +62,7 @@ func (r fileReader) ReadLines() ([]string, error) {
 }
 
 func (r fileReader) ReadAll() ([]byte, error) {
-	_, err := os.Stat(r.fileName)
-	if err != nil || os.IsNotExist(err) {
+	if _, err := os.Stat(r.fileName); err != nil || os.IsNotExist(err) {
 		return nil, errors.New("no such file")
 	}
 
