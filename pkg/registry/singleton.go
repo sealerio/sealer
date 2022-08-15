@@ -55,7 +55,7 @@ func (c *localSingletonConfigurator) Reconcile() (Driver, error) {
 func (c *localSingletonConfigurator) genTLSCerts() error {
 	//gen tls cert by default
 	registryCertPath := filepath.Join(c.rootfs, "certs")
-	baseName := c.Domain
+	baseName := "ca"
 
 	DNSNames := []string{c.Domain}
 	DNSNames = append(DNSNames, c.Cert.SubjectAltName.IPs...)

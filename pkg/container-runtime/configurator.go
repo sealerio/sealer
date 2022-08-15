@@ -22,6 +22,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"net"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -32,8 +33,10 @@ const (
 	DockerLoginCommand    = "docker login -u %s -p %s %s && " + KubeletAuthCommand
 	NerdctlLoginCommand   = "nerdctl login -u %s -p %s %s && " + KubeletAuthCommand
 	KubeletAuthCommand    = "mkdir -p /var/lib/kubelet && cp /root/.docker/config.json /var/lib/kubelet"
-	ConfigDaemonCommand   = "sed -i \"s/%s/%s/g\" /etc/docker/daemon.json"
+	DockerDaemonFile      = "/etc/docker/daemon.json"
 	DefaultEndpoint       = "sea.hub:5000"
+	DumpConfigContainerd  = "containerd --config %s config dump > /etc/containerd/config.toml"
+	ModifyFileCommand     = "sed -i \"s/%s/%s/g\" %s"
 )
 
 //Configurator provide configuration Interface for different container runtime.
@@ -99,7 +102,7 @@ func (d DockerRuntimeConfigurator) configHostsFile(registryIP, domain string, ip
 func (d DockerRuntimeConfigurator) configAuthInfo(username, password string, url string, ips []net.IP) error {
 	// docker login with username and password
 	// cp /root/.docker/config.json to /var/lib/kubelet. make sure kubelet could access registry with credential.
-	if username != "" && password != "" {
+	if username == "" || password == "" {
 		return nil
 	}
 
@@ -142,7 +145,7 @@ func (d DockerRuntimeConfigurator) configDaemon(endpoint string, ips []net.IP) e
 		return nil
 	}
 
-	modifyDaemonFileCmd := fmt.Sprintf(ConfigDaemonCommand, DefaultEndpoint, endpoint)
+	modifyDaemonFileCmd := fmt.Sprintf(ModifyFileCommand, DefaultEndpoint, endpoint, DockerDaemonFile)
 	restartDockerCommand := fmt.Sprintf(RestartServiceCommand, "docker")
 	configDaemonCmd := modifyDaemonFileCmd + " && " + restartDockerCommand
 
@@ -198,7 +201,11 @@ func (c ContainerdRuntimeConfigurator) ConfigRegistry(config RegistryConfig, ips
 		return err
 	}
 
-	if err := c.configAuthInfo(config.Username, config.Password, config.Endpoint, ips); err != nil {
+	if err := c.configKubeletAuthInfo(config.Username, config.Password, config.Endpoint, ips); err != nil {
+		return err
+	}
+
+	if err := c.configContainerd(config.Endpoint, ips); err != nil {
 		return err
 	}
 
@@ -222,7 +229,7 @@ func (c ContainerdRuntimeConfigurator) configHostsFile(registryIP, domain string
 }
 
 func (c ContainerdRuntimeConfigurator) configRegistryCert(domain, port string, caFile string, ips []net.IP) error {
-	// copy ca cert to "/etc/containerd/certs.d/${domain}:${port}/${domain}.crt
+	// copy ca cert to "/etc/containerd/certs.d/${domain}:${port}/ca.crt
 	src := filepath.Join(c.rootfs, "certs", caFile)
 	dest := filepath.Join(ContainerdCertDir, domain+":"+port, caFile)
 
@@ -241,8 +248,8 @@ func (c ContainerdRuntimeConfigurator) configRegistryCert(domain, port string, c
 	return concurrencyExecute(f, ips)
 }
 
-func (c ContainerdRuntimeConfigurator) configAuthInfo(username, password string, url string, ips []net.IP) error {
-	if username != "" && password != "" {
+func (c ContainerdRuntimeConfigurator) configKubeletAuthInfo(username, password string, url string, ips []net.IP) error {
+	if username == "" || password == "" {
 		return nil
 	}
 
@@ -250,6 +257,37 @@ func (c ContainerdRuntimeConfigurator) configAuthInfo(username, password string,
 
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, configAuthCmd)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	return concurrencyExecute(f, ips)
+}
+
+func (c ContainerdRuntimeConfigurator) configContainerd(endpoint string, ips []net.IP) error {
+	configContainerdCmd := []string{}
+	configFile := filepath.Join(c.rootfs, "/etc/dump-config.toml")
+
+	if endpoint != DefaultEndpoint {
+		configContainerdCmd = append(configContainerdCmd,
+			fmt.Sprintf(ModifyFileCommand, DefaultEndpoint, endpoint, configFile))
+	}
+
+	//TODO config registry basic auth to dump-config.toml
+	//if username != "" && password != "" {
+	//
+	//}
+
+	// containerd --config ${dump-config.toml} config dump > /etc/containerd/config.toml
+	// systemctl restart containerd
+	modifyContainerdDaemonFileCmd := fmt.Sprintf(DumpConfigContainerd, configFile)
+	restartDockerCommand := fmt.Sprintf(RestartServiceCommand, "containerd")
+	configContainerdCmd = append(configContainerdCmd, modifyContainerdDaemonFileCmd, restartDockerCommand)
+
+	f := func(host net.IP) error {
+		err := c.infraDriver.CmdAsync(host, strings.Join(configContainerdCmd, " & "))
 		if err != nil {
 			return err
 		}
