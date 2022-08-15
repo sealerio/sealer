@@ -71,15 +71,11 @@ const (
 
 // image module
 const (
-	DefaultImageRootDir          = "/var/lib/sealer/data"
-	DefaultMetadataName          = "Metadata"
-	DefaultImageMetadataFileName = "image_metadata.yaml"
-	ImageScratch                 = "scratch"
-	DefaultImageMetaRootDir      = "/var/lib/sealer/metadata"
-	DefaultImageDBRootDir        = "/var/lib/sealer/metadata/imagedb"
-	DefaultImageMetadataFile     = "/var/lib/sealer/metadata/images_metadata.json"
-	DefaultLayerDir              = "/var/lib/sealer/data/overlay2"
-	DefaultLayerDBRoot           = "/var/lib/sealer/metadata/layerdb"
+	DefaultImageRootDir     = "/var/lib/sealer/data"
+	DefaultMetadataName     = "Metadata"
+	ImageScratch            = "scratch"
+	DefaultImageMetaRootDir = "/var/lib/sealer/metadata"
+	DefaultLayerDir         = "/var/lib/sealer/data/overlay2"
 )
 
 //about infra

@@ -116,8 +116,4 @@ func compareNamed(a, b Named) error {
 		}
 	}
 	return nil
-	//if reflect.DeepEqual(a, b) {
-	//	return nil
-	//}
-	//return errors.New("not equal")
 }

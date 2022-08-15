@@ -15,12 +15,7 @@
 package alpha
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/sealerio/sealer/pkg/image"
-	"github.com/sealerio/sealer/utils/platform"
-
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +37,9 @@ func NewMergeCmd() *cobra.Command {
 		Long:    longMergeCmdDescription,
 		Example: exampleForMergeCmd,
 		Args:    cobra.MinimumNArgs(1),
-		RunE:    getMergeFunc,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return errors.New("merge is not implemented yet.")
+		},
 	}
 
 	mergeCmd.Flags().StringVarP(&mergeImageName, "target-image", "t", "", "target image name")
@@ -52,42 +49,4 @@ func NewMergeCmd() *cobra.Command {
 		logrus.Errorf("failed to init flag target image: %v", err)
 	}
 	return mergeCmd
-}
-
-func getMergeFunc(cmd *cobra.Command, args []string) error {
-	var images []string
-	for _, v := range args {
-		imageName := strings.TrimSpace(v)
-		if imageName == "" {
-			continue
-		}
-		images = append(images, imageName)
-	}
-	targetPlatform, err := platform.GetPlatform(mergePlatform)
-	if err != nil {
-		return err
-	}
-
-	if len(targetPlatform) != 1 {
-		return fmt.Errorf("merge action only do the same plaform at a time")
-	}
-
-	ima := buildRaw(mergeImageName)
-	if err := image.Merge(ima, images, targetPlatform[0]); err != nil {
-		return err
-	}
-	logrus.Infof("images %s is merged to %s", strings.Join(images, ","), ima)
-	return nil
-}
-
-func buildRaw(name string) string {
-	defaultTag := "latest"
-	i := strings.LastIndexByte(name, ':')
-	if i == -1 {
-		return name + ":" + defaultTag
-	}
-	if i > strings.LastIndexByte(name, '/') {
-		return name
-	}
-	return name + ":" + defaultTag
 }
