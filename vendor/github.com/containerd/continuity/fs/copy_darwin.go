@@ -1,3 +1,6 @@
+//go:build darwin
+// +build darwin
+
 /*
    Copyright The containerd Authors.
 
@@ -14,17 +17,20 @@
    limitations under the License.
 */
 
-package sys
+package fs
 
 import (
-	_ "unsafe" // required for go:linkname.
+	"errors"
+	"os"
+	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
-//go:linkname beforeFork syscall.runtime_BeforeFork
-func beforeFork()
-
-//go:linkname afterFork syscall.runtime_AfterFork
-func afterFork()
-
-//go:linkname afterForkInChild syscall.runtime_AfterForkInChild
-func afterForkInChild()
+func copyDevice(dst string, fi os.FileInfo) error {
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return errors.New("unsupported stat type")
+	}
+	return unix.Mknod(dst, uint32(fi.Mode()), int(st.Rdev))
+}

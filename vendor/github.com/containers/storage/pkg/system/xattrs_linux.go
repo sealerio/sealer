@@ -13,9 +13,6 @@ const (
 
 	// Operation not supported
 	EOPNOTSUPP unix.Errno = unix.EOPNOTSUPP
-
-	// Value is too small or too large for maximum size allowed
-	EOVERFLOW unix.Errno = unix.EOVERFLOW
 )
 
 // Lgetxattr retrieves the value of the extended attribute identified by attr

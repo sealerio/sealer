@@ -849,7 +849,7 @@ func (sig *Signature) buildSubpackets(issuer PublicKey) (subpackets []outputSubp
 	}
 	if sig.IssuerFingerprint != nil {
 		contents := append([]uint8{uint8(issuer.Version)}, sig.IssuerFingerprint...)
-		subpackets = append(subpackets, outputSubpacket{true, issuerFingerprintSubpacket, true, contents})
+		subpackets = append(subpackets, outputSubpacket{true, issuerFingerprintSubpacket, sig.Version == 5, contents})
 	}
 	if sig.SigLifetimeSecs != nil && *sig.SigLifetimeSecs != 0 {
 		sigLifetime := make([]byte, 4)

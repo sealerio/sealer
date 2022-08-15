@@ -1,3 +1,6 @@
+//go:build openbsd || solaris || netbsd
+// +build openbsd solaris netbsd
+
 /*
    Copyright The containerd Authors.
 
@@ -13,3 +16,21 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+package fs
+
+import (
+	"errors"
+	"os"
+	"syscall"
+
+	"golang.org/x/sys/unix"
+)
+
+func copyDevice(dst string, fi os.FileInfo) error {
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return errors.New("unsupported stat type")
+	}
+	return unix.Mknod(dst, uint32(fi.Mode()), int(st.Rdev))
+}
