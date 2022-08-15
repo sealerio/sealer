@@ -21,7 +21,7 @@ limitations under the License.
 // to back that API.  Packages in the Go ecosystem can depend on this package,
 // while callers can implement logging with whatever backend is appropriate.
 //
-// # Usage
+// Usage
 //
 // Logging is done using a Logger instance.  Logger is a concrete type with
 // methods, which defers the actual logging to a LogSink interface.  The main
@@ -43,9 +43,11 @@ limitations under the License.
 //
 // Info() and Error() are very similar, but they are separate methods so that
 // LogSink implementations can choose to do things like attach additional
-// information (such as stack traces) on calls to Error().
+// information (such as stack traces) on calls to Error(). Error() messages are
+// always logged, regardless of the current verbosity.  If there is no error
+// instance available, passing nil is valid.
 //
-// # Verbosity
+// Verbosity
 //
 // Often we want to log information only when the application in "verbose
 // mode".  To write log lines that are more verbose, Logger has a V() method.
@@ -53,6 +55,7 @@ limitations under the License.
 // Log-lines with V-levels that are not enabled (as per the LogSink) will not
 // be written.  Level V(0) is the default, and logger.V(0).Info() has the same
 // meaning as logger.Info().  Negative V-levels have the same meaning as V(0).
+// Error messages do not have a verbosity level and are always logged.
 //
 // Where we might have written:
 //   if flVerbose >= 2 {
@@ -62,7 +65,7 @@ limitations under the License.
 // We can write:
 //   logger.V(2).Info("an unusual thing happened")
 //
-// # Logger Names
+// Logger Names
 //
 // Logger instances can have name strings so that all messages logged through
 // that instance have additional context.  For example, you might want to add
@@ -79,7 +82,7 @@ limitations under the License.
 // joining operation (e.g. whitespace, commas, periods, slashes, brackets,
 // quotes, etc).
 //
-// # Saved Values
+// Saved Values
 //
 // Logger instances can store any number of key/value pairs, which will be
 // logged alongside all messages logged through that instance.  For example,
@@ -97,7 +100,7 @@ limitations under the License.
 //   // later on...
 //   obj.logger.Info("setting foo", "value", targetValue)
 //
-// # Best Practices
+// Best Practices
 //
 // Logger has very few hard rules, with the goal that LogSink implementations
 // might have a lot of freedom to differentiate.  There are, however, some
@@ -112,7 +115,7 @@ limitations under the License.
 // may be any Go value, but how the value is formatted is determined by the
 // LogSink implementation.
 //
-// # Key Naming Conventions
+// Key Naming Conventions
 //
 // Keys are not strictly required to conform to any specification or regex, but
 // it is recommended that they:
@@ -129,22 +132,21 @@ limitations under the License.
 // While users are generally free to use key names of their choice, it's
 // generally best to avoid using the following keys, as they're frequently used
 // by implementations:
-//
-//   * "caller": the calling information (file/line) of a particular log line.
-//   * "error": the underlying error value in the `Error` method.
-//   * "level": the log level.
-//   * "logger": the name of the associated logger.
-//   * "msg": the log message.
+//   * "caller": the calling information (file/line) of a particular log line
+//   * "error": the underlying error value in the `Error` method
+//   * "level": the log level
+//   * "logger": the name of the associated logger
+//   * "msg": the log message
 //   * "stacktrace": the stack trace associated with a particular log line or
-//                   error (often from the `Error` message).
-//   * "ts": the timestamp for a log line.
+//                   error (often from the `Error` message)
+//   * "ts": the timestamp for a log line
 //
 // Implementations are encouraged to make use of these keys to represent the
 // above concepts, when necessary (for example, in a pure-JSON output form, it
 // would be necessary to represent at least message and timestamp as ordinary
 // named values).
 //
-// # Break Glass
+// Break Glass
 //
 // Implementations may choose to give callers access to the underlying
 // logging implementation.  The recommended pattern for this is:
@@ -254,11 +256,13 @@ func (l Logger) Info(msg string, keysAndValues ...interface{}) {
 // Error logs an error, with the given message and key/value pairs as context.
 // It functions similarly to Info, but may have unique behavior, and should be
 // preferred for logging errors (see the package documentations for more
-// information).
+// information). The log message will always be emitted, regardless of
+// verbosity level.
 //
 // The msg argument should be used to add context to any underlying error,
 // while the err argument should be used to attach the actual error that
-// triggered this log line, if present.
+// triggered this log line, if present. The err parameter is optional
+// and nil may be passed instead of an error instance.
 func (l Logger) Error(err error, msg string, keysAndValues ...interface{}) {
 	if withHelper, ok := l.sink.(CallStackHelperLogSink); ok {
 		withHelper.GetCallStackHelper()()
@@ -476,4 +480,22 @@ type CallStackHelperLogSink interface {
 	// to mark the direct caller as helper function when logging
 	// call site information.
 	GetCallStackHelper() func()
+}
+
+// Marshaler is an optional interface that logged values may choose to
+// implement. Loggers with structured output, such as JSON, should
+// log the object return by the MarshalLog method instead of the
+// original value.
+type Marshaler interface {
+	// MarshalLog can be used to:
+	//   - ensure that structs are not logged as strings when the original
+	//     value has a String method: return a different type without a
+	//     String method
+	//   - select which fields of a complex type should get logged:
+	//     return a simpler struct with fewer fields
+	//   - log unexported fields: return a different struct
+	//     with exported fields
+	//
+	// It may return any value of any type.
+	MarshalLog() interface{}
 }

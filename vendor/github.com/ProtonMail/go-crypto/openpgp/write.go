@@ -425,7 +425,7 @@ func encrypt(keyWriter io.Writer, dataWriter io.Writer, to []*Entity, signed *En
 	}
 
 	var payload io.WriteCloser
-	if aeadSupported {
+	if config.AEAD() != nil && aeadSupported {
 		payload, err = packet.SerializeAEADEncrypted(dataWriter, symKey, cipher, mode, config)
 		if err != nil {
 			return

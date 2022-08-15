@@ -6,11 +6,11 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.985
 	github.com/cavaliergopher/grab/v3 v3.0.1
-	github.com/containers/buildah v1.24.5
+	github.com/containers/buildah v1.25.0
 	github.com/containers/common v0.47.5
-	github.com/containers/image/v5 v5.19.3
+	github.com/containers/image/v5 v5.20.0
 	github.com/containers/ocicrypt v1.1.4
-	github.com/containers/storage v1.38.5
+	github.com/containers/storage v1.39.0
 	github.com/distribution/distribution/v3 v3.0.0-20211125133600-cc4627fc6e5f
 	github.com/docker/cli v20.10.7+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
@@ -59,10 +59,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	gotest.tools v2.2.0+incompatible
 	helm.sh/helm/v3 v3.6.2
-	k8s.io/api v0.21.0
-	k8s.io/apimachinery v0.22.1
+	k8s.io/api v0.22.5
+	k8s.io/apimachinery v0.22.5
 	k8s.io/cli-runtime v0.21.0
-	k8s.io/client-go v0.22.1
+	k8s.io/client-go v0.22.5
 	k8s.io/kube-proxy v0.21.0
 	k8s.io/kubelet v0.21.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
@@ -71,6 +71,7 @@ require (
 )
 
 replace (
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/net => golang.org/x/net v0.0.0-20210510120150-4163338589ed
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
