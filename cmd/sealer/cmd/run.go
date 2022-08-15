@@ -15,17 +15,14 @@
 package cmd
 
 import (
-	"github.com/sealerio/sealer/pkg/clusterfile"
-	"github.com/sealerio/sealer/pkg/image"
-	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"os"
+	"path/filepath"
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/cert"
 	"github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var runArgs *apply.Args
@@ -110,7 +107,7 @@ func init() {
 	runCmd.Flags().StringVarP(&runArgs.User, "user", "u", "root", "set baremetal server username")
 	runCmd.Flags().StringVarP(&runArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	runCmd.Flags().Uint16Var(&runArgs.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
-	runCmd.Flags().StringVar(&runArgs.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
+	runCmd.Flags().StringVar(&runArgs.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
 	runCmd.Flags().StringVar(&runArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	runCmd.Flags().StringSliceVar(&runArgs.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")

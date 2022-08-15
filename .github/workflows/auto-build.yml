@@ -11,7 +11,9 @@ jobs:
     permissions:
       issues: write
     steps:
-
+      - name: Install deps
+        run: |
+          sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
       - name: Auto build image
         id: autobuild
         run: |

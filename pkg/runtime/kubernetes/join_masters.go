@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/pkg/clustercert"
 	"github.com/sealerio/sealer/pkg/ipvs"
 	"github.com/sealerio/sealer/pkg/runtime"
 	utilsnet "github.com/sealerio/sealer/utils/net"
@@ -135,13 +135,13 @@ func (k *Runtime) JoinMasterCommands(master net.IP, joinCmd, hostname string) []
 }
 
 func (k *Runtime) sendKubeConfigFile(hosts []net.IP, kubeFile string) error {
-	absKubeFile := fmt.Sprintf("%s/%s", cert.KubernetesDir, kubeFile)
+	absKubeFile := fmt.Sprintf("%s/%s", clustercert.KubernetesConfigDir, kubeFile)
 	sealerKubeFile := fmt.Sprintf("%s/%s", k.getBasePath(), kubeFile)
 	return k.sendFileToHosts(hosts, sealerKubeFile, absKubeFile)
 }
 
 func (k *Runtime) sendNewCertAndKey(hosts []net.IP) error {
-	return k.sendFileToHosts(hosts, k.getPKIPath(), cert.KubeDefaultCertPath)
+	return k.sendFileToHosts(hosts, k.getPKIPath(), clustercert.KubeDefaultCertPath)
 }
 
 func (k *Runtime) sendRegistryCertAndKey() error {

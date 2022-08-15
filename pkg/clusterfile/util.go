@@ -26,14 +26,13 @@ import (
 	yamlUtils "github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/cert"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 var ErrClusterNotExist = fmt.Errorf("no cluster exist")
 
 func GetDefaultClusterName() (string, error) {
-	files, err := ioutil.ReadDir(fmt.Sprintf("%s/.sealer", cert.GetUserHomeDir()))
+	files, err := ioutil.ReadDir(fmt.Sprintf("%s/.sealer", common.GetHomeDir()))
 	if err != nil {
 		return "", err
 	}

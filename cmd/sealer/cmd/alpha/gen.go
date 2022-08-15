@@ -17,9 +17,9 @@ package alpha
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/apply/processor"
-	"github.com/sealerio/sealer/pkg/cert"
+	"github.com/sealerio/sealer/common"
 
+	"github.com/sealerio/sealer/apply/processor"
 	"github.com/spf13/cobra"
 )
 
@@ -63,7 +63,7 @@ func NewGenCmd() *cobra.Command {
 
 	flag = &processor.ParserArg{}
 	genCmd.Flags().Uint16Var(&flag.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
-	genCmd.Flags().StringVar(&flag.Pk, "pk", cert.GetUserHomeDir()+"/.ssh/id_rsa", "set server private key")
+	genCmd.Flags().StringVar(&flag.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set server private key")
 	genCmd.Flags().StringVar(&flag.PkPassword, "pk-passwd", "", "set server private key password")
 	genCmd.Flags().StringVar(&flag.Image, "image", "", "Set taken over ClusterImage")
 	genCmd.Flags().StringVar(&flag.Name, "name", "default", "Set taken over cluster name")

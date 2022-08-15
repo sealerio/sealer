@@ -161,10 +161,6 @@ func (k *Runtime) GetClusterMetadata() (*runtime.Metadata, error) {
 	return k.getClusterMetadata()
 }
 
-func (k *Runtime) UpdateCert(certs []string) error {
-	return k.updateCert(certs)
-}
-
 func (k *Runtime) checkList() error {
 	if len(k.cluster.Spec.Hosts) == 0 {
 		return fmt.Errorf("master hosts cannot be empty")

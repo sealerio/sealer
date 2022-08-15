@@ -15,13 +15,16 @@
 package alpha
 
 import (
+	"context"
 	"fmt"
+	"strings"
+
+	"github.com/sealerio/sealer/utils/ssh"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 )
 
 var altNames []string
@@ -34,12 +37,11 @@ You need to restart your API server manually after using sealer alpha cert. Then
 `
 
 var exampleForCertCmd = `
-The following command will generate keys and CSRs for all control-plane certificates and kubeconfig files:
+The following command will generate new api server cert and key for all control-plane certificates:
 
 sealer alpha cert --alt-names 39.105.169.253,sealer.cool
 `
 
-// NewCertCmd returns the sealer cert Cobra command
 func NewCertCmd() *cobra.Command {
 	certCmd := &cobra.Command{
 		Use:     "cert",
@@ -57,17 +59,21 @@ func NewCertCmd() *cobra.Command {
 				return fmt.Errorf("failed to get default cluster: %v", err)
 			}
 
-			clusterFile, err := clusterfile.NewClusterFile(cluster.GetAnnotationsByKey(common.ClusterfileName))
-			if err != nil {
-				return err
+			certUpdateCmd := fmt.Sprintf("seautil cert update --alt-names %s", strings.Join(altNames, ","))
+			// send new cert to all master.
+			ips := cluster.GetMasterIPList()
+			eg, _ := errgroup.WithContext(context.Background())
+			for _, ip := range ips {
+				node := ip
+				eg.Go(func() error {
+					sshClient, err := ssh.NewStdoutSSHClient(node, cluster)
+					if err != nil {
+						return fmt.Errorf("failed to new ssh client: %v", err)
+					}
+					return sshClient.CmdAsync(node, certUpdateCmd)
+				})
 			}
-
-			r, err := kubernetes.NewDefaultRuntime(cluster, clusterFile.GetKubeadmConfig())
-			if err != nil {
-				return fmt.Errorf("failed to get default runtime: %v", err)
-			}
-
-			return r.UpdateCert(altNames)
+			return eg.Wait()
 		},
 	}
 

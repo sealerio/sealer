@@ -34,7 +34,9 @@ jobs:
           repository: ${{fromJson(steps.request.outputs.data).head.repo.full_name}}
           ref: ${{fromJson(steps.request.outputs.data).head.ref}}
           path: src/github.com/sealerio/sealer
-
+      - name: Install deps
+        run: |
+          sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
       - name: Set up Go 1.16
         uses: actions/setup-go@v1
         with:
@@ -47,8 +49,8 @@ jobs:
           source hack/build.sh
           export SEALER_DIR=$THIS_PLATFORM_BIN/sealer/linux_amd64
           echo "$SEALER_DIR" >> $GITHUB_PATH
-          go get github.com/onsi/ginkgo/ginkgo@v1.16.2
-          go get github.com/onsi/gomega/...@v1.12.0
+          go install github.com/onsi/ginkgo/ginkgo@v1.16.2
+          go install github.com/onsi/gomega/...@v1.12.0
           GOPATH=`go env GOPATH`
           echo "$GOPATH/bin" >> $GITHUB_PATH
         working-directory: src/github.com/sealerio/sealer
