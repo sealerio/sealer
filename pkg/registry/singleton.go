@@ -1,25 +1,29 @@
-// alibaba-inc.com Inc.
-// Copyright (c) 2004-2022 All Rights Reserved.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
-// @Author : huaiyou.cyz
-// @Time : 2022/8/7 10:19 PM
-// @File : local
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package registry
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"path/filepath"
 )
 
 const (
-	RegistryName                = "sealer-registry"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
-	DockerLoginCommand          = "nerdctl login -u %s -p %s %s && " + KubeletAuthCommand
-	KubeletAuthCommand          = "cp /root/.docker/config.json /var/lib/kubelet"
 	DeleteRegistryCommand       = "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
 )
 
@@ -32,9 +36,6 @@ type localSingletonConfigurator struct {
 
 // Reconcile local private registry by rootfs scripts.
 func (c *localSingletonConfigurator) Reconcile() (Driver, error) {
-	// 1. gen tls cert: gen by default, if exist will skip.
-	// 2. gen auth info: if not config,skip, if auth file exist,will skip
-	// 3. bash init-registry.sh ${port} ${mountData} ${domain}
 
 	if err := c.genTLSCerts(); err != nil {
 		return nil, err
@@ -48,10 +49,40 @@ func (c *localSingletonConfigurator) Reconcile() (Driver, error) {
 		return nil, err
 	}
 
+	return nil, nil
 }
 
 func (c *localSingletonConfigurator) genTLSCerts() error {
-	// 1. gen tls cert: gen by default
+	//gen tls cert by default
+	registryCertPath := filepath.Join(c.rootfs, "certs")
+	baseName := c.Domain
+
+	DNSNames := []string{c.Domain}
+	DNSNames = append(DNSNames, c.Cert.SubjectAltName.IPs...)
+	DNSNames = append(DNSNames, c.Cert.SubjectAltName.DNSNames...)
+
+	regCertConfig := cert.CertificateDescriptor{
+		CommonName:   "registry-ca",
+		DNSNames:     DNSNames,
+		Organization: nil,
+		Year:         100,
+		AltNames:     cert.AltNames{},
+		Usages:       nil,
+	}
+
+	caGenerator := cert.NewAuthorityCertificateGenerator(regCertConfig)
+	caCert, caKey, err := caGenerator.Generate()
+	if err != nil {
+		return fmt.Errorf("unable to generate registry cert: %v", err)
+	}
+
+	// write cert file to disk
+	err = cert.NewCertificateFileManger(registryCertPath, baseName).Write(caCert, caKey)
+	if err != nil {
+		return fmt.Errorf("unable to save registry cert: %v", err)
+	}
+
+	return nil
 }
 
 func (c *localSingletonConfigurator) genBasicAuth() error {
@@ -78,7 +109,7 @@ func (c *localSingletonConfigurator) genBasicAuth() error {
 }
 
 func (c *localSingletonConfigurator) reconcile() error {
-	// 3. bash init-registry.sh ${port} ${mountData} ${domain}
+	// bash init-registry.sh ${port} ${mountData} ${domain}
 	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", c.rootfs, c.Port, c.DataDir, c.Domain)
 	if err := c.infraDriver.CmdAsync(c.DeployHost, initRegistry); err != nil {
 		return err
