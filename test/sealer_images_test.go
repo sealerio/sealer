@@ -33,9 +33,6 @@ var _ = Describe("sealer image", func() {
 			image.DoImageOps(settings.SubCmdListOfSealer, settings.TestImageName)
 			image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
 			testhelper.CheckBeTrue(build.CheckIsImageExist(settings.TestImageName))
-			By("show image metadata", func() {
-				testhelper.RunCmdAndCheckResult(fmt.Sprintf("%s inspect %s", settings.DefaultSealerBin, image.GetImageID(settings.TestImageName)), 0)
-			})
 
 			tagImageNames := []string{
 				"e2eimage_test:latest",
@@ -49,13 +46,6 @@ var _ = Describe("sealer image", func() {
 				image.RemoveImageList(tagImageNames)
 			})
 
-			By("tag by image id", func() {
-				imageID := image.GetImageID(settings.TestImageName)
-				image.TagImageList(imageID, tagImageNames)
-				image.DoImageOps(settings.SubCmdListOfSealer, "")
-				image.RemoveImageList(tagImageNames)
-			})
-
 			By("remove tag image", func() {
 				tagImageName := "e2e_images_test:v0.3"
 				image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
@@ -65,19 +55,6 @@ var _ = Describe("sealer image", func() {
 				testhelper.CheckNotBeTrue(build.CheckIsImageExist(tagImageName))
 			})
 
-			/*			// not support
-						By("force remove image", func() {
-							testhelper.CheckBeTrue(build.CheckIsImageExist(settings.TestImageName))
-							testImageName := "image_test:v0.0"
-							for i := 1; i <= 5; i++ {
-								image.TagImages(settings.TestImageName, testImageName+strconv.Itoa(i))
-								image.DoImageOps(settings.SubCmdListOfSealer, settings.TestImageName)
-								testhelper.CheckBeTrue(build.CheckIsImageExist(testImageName + strconv.Itoa(i)))
-							}
-							image.DoImageOps(settings.SubCmdForceRmiOfSealer, settings.TestImageName)
-							testhelper.CheckNotBeTrue(build.CheckIsImageExist(settings.TestImageName))
-							testhelper.CheckNotBeTrue(build.CheckIsImageExist(testImageName))
-						})*/
 		})
 
 		faultImageNames := []string{

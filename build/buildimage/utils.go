@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils/mount"
 	osi "github.com/sealerio/sealer/utils/os"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -81,19 +80,6 @@ func trimQuotes(s string) string {
 		}
 	}
 	return s
-}
-
-func mountRootfs(res []string) (mount.Service, error) {
-	mounter, err := mount.NewMountService("", "", res)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mounter.TempMount()
-	if err != nil {
-		return nil, err
-	}
-	return mounter, nil
 }
 
 func marshalJSONToFile(file string, obj interface{}) error {
