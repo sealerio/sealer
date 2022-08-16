@@ -1,47 +1,48 @@
+// Copyright © 2022 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package container_runtime
 
 import (
 	"fmt"
 	"net"
 
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/registry"
-	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sealerio/sealer/utils/ssh"
+	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
 type DockerInstaller struct {
-	info    Info
-	cluster *v2.Cluster
+	Info   Info
+	rootfs string
+	driver infradriver.InfraDriver
 }
 
-func (d DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
-	rootfs := fmt.Sprintf(common.DefaultTheClusterRootfsDir(d.cluster.Name))
+func (d *DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
 	for ip := range hosts {
 		IP := net.ParseIP(string(ip))
-		ssh, err := ssh.NewStdoutSSHClient(IP, d.cluster)
-		if err != nil {
-			return nil, fmt.Errorf("failed to new ssh client: %s", err)
-		}
-		registryConfig := registry.GetConfig(platform.DefaultMountClusterImageDir(d.cluster.Name), IP)
-		initCmd := fmt.Sprintf(RemoteChmod, rootfs, registryConfig.Domain, registryConfig.Port, d.info.conf.CgroupDriver, d.info.conf.LimitNofile)
-		err = ssh.CmdAsync(IP, initCmd)
+		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, DefaultDomain, DefaultPort, d.Info.Config.CgroupDriver, d.Info.Config.LimitNofile)
+		err := d.driver.CmdAsync(IP, initCmd)
 		if err != nil {
 			return nil, fmt.Errorf("failed to remote exec init cmd: %s", err)
 		}
 	}
-	return &d.info, nil
+	return &d.Info, nil
 }
 
-func (d DockerInstaller) UnInstallFrom(hosts []net.IP) error {
+func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
 	for ip := range hosts {
 		IP := net.ParseIP(string(ip))
-		client, err := ssh.NewStdoutSSHClient(IP, d.cluster)
-		if err != nil {
-			return fmt.Errorf("failed to new ssh client: %s", err)
-		}
-		err = client.CmdAsync(IP, CleanCmd)
+		err := d.driver.CmdAsync(IP, CleanCmd)
 		if err != nil {
 			return fmt.Errorf("failed to remote exec clean cmd: %s", err)
 		}

@@ -1,15 +1,23 @@
-// alibaba-inc.com Inc.
-// Copyright (c) 2004-2022 All Rights Reserved.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
-// @Author : huaiyou.cyz
-// @Time : 2022/8/7 10:29 PM
-// @File : installer
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package container_runtime
 
 import (
 	"net"
+
+	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
 const (
@@ -23,6 +31,8 @@ const (
 	ContainerdRemoteChmod      = "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh %s %s"
 	DefaultLimitNoFile         = "infinity"
 	Containerd                 = "containerd"
+	DefaultDomain              = "sea.hub"
+	DefaultPort                = "5000"
 )
 
 // 容器运行时安装器
@@ -42,31 +52,17 @@ type Config struct {
 }
 
 type Info struct {
-	conf      Config
+	Config    Config
 	CRISocket string
 }
 
-func NewInstaller(conf Config) Installer {
-	if conf.Type == "" {
-		conf.Type = Docker
-	}
-	if conf.LimitNofile == "" {
-		conf.LimitNofile = DefaultLimitNoFile
-	}
-	if conf.CgroupDriver == "" {
-		conf.CgroupDriver = DefaultSystemdDriver
-	}
-	info := Info{}
-	if info.CRISocket == "" {
-		info.CRISocket = DefaultDockerCRISocket
-	}
-	return DockerInstaller{
-		info: Info{
-			conf: Config{
-				Type:         conf.Type,
-				LimitNofile:  conf.LimitNofile,
-				CgroupDriver: conf.CgroupDriver,
-			},
+func NewInstaller(conf Config, rootfs string, driver infradriver.InfraDriver) Installer {
+	config := &DockerInstaller{
+		Info: Info{
+			Config: conf,
 		},
+		rootfs: rootfs,
+		driver: driver,
 	}
+	return config
 }
