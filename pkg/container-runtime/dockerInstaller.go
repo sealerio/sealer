@@ -28,6 +28,12 @@ type DockerInstaller struct {
 }
 
 func (d *DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
+	if d.Info.Config.LimitNofile == "" {
+		d.Info.Config.LimitNofile = DefaultLimitNoFile
+	}
+	if d.Info.Config.CgroupDriver == "" {
+		d.Info.Config.CgroupDriver = DefaultSystemdDriver
+	}
 	for ip := range hosts {
 		IP := net.ParseIP(string(ip))
 		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, DefaultDomain, DefaultPort, d.Info.Config.CgroupDriver, d.Info.Config.LimitNofile)
