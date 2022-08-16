@@ -16,9 +16,9 @@ package container_runtime
 
 import (
 	"fmt"
-	"net"
-
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"net"
+	"strings"
 )
 
 type DockerInstaller struct {
@@ -34,6 +34,8 @@ func (d *DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
 	if d.Info.Config.CgroupDriver == "" {
 		d.Info.Config.CgroupDriver = DefaultSystemdDriver
 	}
+	d.Info.Config.LimitNofile = strings.ToLower(d.Info.Config.LimitNofile)
+	d.Info.Config.CgroupDriver = strings.ToLower(d.Info.Config.CgroupDriver)
 	for ip := range hosts {
 		IP := net.ParseIP(string(ip))
 		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, DefaultDomain, DefaultPort, d.Info.Config.CgroupDriver, d.Info.Config.LimitNofile)
