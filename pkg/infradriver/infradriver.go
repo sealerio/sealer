@@ -26,6 +26,18 @@ type InfraDriver interface {
 
 	GetHostIPListByRole(role string) []net.IP
 
+	//GetClusterName ${clusterName}
+	GetClusterName() string
+
+	//GetClusterRootfs /var/lib/sealer/data/${clusterName}/rootfs
+	GetClusterRootfs() string
+
+	// GetImageMountDir /var/lib/sealer/data/${clusterName}/mount
+	GetImageMountDir() string
+
+	// GetClusterBasePath /var/lib/sealer/data/${clusterName}
+	GetClusterBasePath() string
+
 	// Copy local files to remote host
 	// scp -r /tmp root@192.168.0.2:/root/tmp => Copy("192.168.0.2","tmp","/root/tmp")
 	// need check md5sum

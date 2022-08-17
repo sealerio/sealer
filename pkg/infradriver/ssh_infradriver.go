@@ -17,6 +17,7 @@ package infradriver
 import (
 	"fmt"
 	"github.com/imdario/mergo"
+	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/ssh"
@@ -27,11 +28,13 @@ type SSHInfraDriver struct {
 	sshConfigs   map[string]ssh.Interface
 	hosts        []net.IP
 	roleHostsMap map[string][]net.IP
+	clusterName  string
 }
 
 func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	var err error
 	ret := &SSHInfraDriver{
+		clusterName:  cluster.Name,
 		sshConfigs:   map[string]ssh.Interface{},
 		hosts:        cluster.GetAllIPList(),
 		roleHostsMap: map[string][]net.IP{},
@@ -145,4 +148,20 @@ func (d *SSHInfraDriver) Ping(host net.IP) error {
 func (d *SSHInfraDriver) SetHostName(host net.IP, hostName string) error {
 	setHostNameCmd := fmt.Sprintf("hostnamectl set-hostname %s", hostName)
 	return d.CmdAsync(host, setHostNameCmd)
+}
+
+func (d *SSHInfraDriver) GetClusterName() string {
+	return d.clusterName
+}
+
+func (d *SSHInfraDriver) GetImageMountDir() string {
+	return common.TheDefaultClusterCertDir(d.clusterName)
+}
+
+func (d *SSHInfraDriver) GetClusterRootfs() string {
+	return common.DefaultTheClusterRootfsDir(d.clusterName)
+}
+
+func (d *SSHInfraDriver) GetClusterBasePath() string {
+	return common.DefaultClusterBaseDir(d.clusterName)
 }
