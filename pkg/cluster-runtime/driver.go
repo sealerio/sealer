@@ -8,7 +8,10 @@
 
 package cluster_runtime
 
-import "github.com/sealerio/sealer/pkg/client/k8s"
+import (
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"net"
+)
 
 // Kube运行时驱动器接口，供其他服务操作K8s
 type KubeRuntimeDriver interface {
@@ -18,7 +21,7 @@ type KubeRuntimeDriver interface {
 
 // Registry驱动器接口，供其他服务操作Registry
 type RegistryDriver interface {
-	UploadContainerImages2Registry() error
+	UploadContainerImages2Registry(src string, host net.IP) error
 }
 
 // k8s驱动器，类比操作系统接口

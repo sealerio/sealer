@@ -15,8 +15,11 @@
 package registry
 
 import (
+	"context"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/sync/errgroup"
+	"net"
 )
 
 func GenerateHTTPBasicAuth(username, password string) (string, error) {
@@ -28,4 +31,24 @@ func GenerateHTTPBasicAuth(username, password string) (string, error) {
 		return "", fmt.Errorf("failed to generate registry password: %v", err)
 	}
 	return username + ":" + string(pwdHash), nil
+}
+
+func concurrencyExecute(f func(host net.IP) error, ips []net.IP) error {
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, ip := range ips {
+		host := ip
+		eg.Go(func() error {
+			err := f(host)
+			if err != nil {
+				return fmt.Errorf("on host [%s]: %v", ip.String(), err)
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	return nil
 }
