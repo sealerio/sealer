@@ -37,7 +37,8 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 	if len(opts.Image) == 0 {
 		return errors.New("At least a source image ID must be specified")
 	}
-	if err := auth.CheckAuthFile(opts.Authfile); err != nil {
+	systemCxt := engine.SystemContext()
+	if err := auth.CheckAuthFile(systemCxt.AuthFilePath); err != nil {
 		return err
 	}
 
@@ -80,8 +81,6 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 			return errors.Errorf("unknown format %q. Choose one of the supported formats: 'oci', 'v2s1', or 'v2s2'", opts.Format)
 		}
 	}
-
-	systemCxt := engine.SystemContext()
 
 	options := buildah.PushOptions{
 		Compression:   compress,

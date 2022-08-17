@@ -33,12 +33,12 @@ func NewPushCmd() *cobra.Command {
 		Example: `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			adaptor, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
 			pushOpts.Image = args[0]
-			return adaptor.Push(pushOpts)
+			return engine.Push(pushOpts)
 		},
 	}
 	pushOpts = &options.PushOptions{}

@@ -66,23 +66,6 @@ func (engine *Engine) Mount(opts *options.MountOptions) ([]options.JSONMount, er
 			continue
 		}
 	}
-	//else {
-	//	builders, err := openBuilders(store)
-	//	if err != nil {
-	//		return []common.JsonMount{}, errors.Wrapf(err, "error reading build containers")
-	//	}
-	//
-	//	for _, builder := range builders {
-	//		mounted, err := builder.Mounted()
-	//		if err != nil {
-	//			return []common.JsonMount{}, err
-	//		}
-	//		if mounted {
-	//			jsonMounts = append(jsonMounts, common.JsonMount{Container: builder.Container, MountPoint: builder.MountPoint})
-	//			continue
-	//		}
-	//	}
-	//}
 
 	return jsonMounts, nil
 }

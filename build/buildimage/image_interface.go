@@ -14,28 +14,8 @@
 
 package buildimage
 
-import (
-	v1 "github.com/sealerio/sealer/types/api/v1"
-)
-
-type Executor interface {
-	// Execute all raw layers,and merge with base layers.
-	Execute(ctx Context, rawLayers []v1.Layer) ([]v1.Layer, error)
-	Cleanup() error
-}
-
 type Differ interface {
 	// Process :diff changes by build-in handler and save to dst,like pull docker image from manifests or helm charts
 	//diff Metadata file changes save to the base layer.generally dst is the rootfs.
 	Process(srcPath, rootfs string) error
-}
-
-type ImageSetter interface {
-	// Set :fill up v1.image struct, like image annotations, platform and so on.
-	Set(*v1.Image) error
-}
-
-type ImageSaver interface {
-	// Save with image attribute,and register to image metadata.
-	Save(image *v1.Image) error
 }

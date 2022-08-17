@@ -12,17 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package version
 
-const (
-	SealerImageExtension = "sealer.image.extension"
-)
+// TODO maybe move it a global version interface, for version compatibility
+type VersionedApplication interface {
+	Version() string
 
-type ImageExtension struct {
-	// sealer image type, like AppImage
-	ImageType string `json:"image_type"`
-	// cmd list for launching
-	CmdSet []string `json:"cmd_set"`
-	// arg list for CmdSet
-	ArgSet map[string]string `json:"arg_set"`
+	Name() string
+
+	Type() string
 }

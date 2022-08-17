@@ -23,6 +23,8 @@ import (
 type Charts struct{}
 
 // ListImages List all the containers images in helm charts
+// TODO Current logic will lead to leave the unreserved image
+// The image will be ignored if it has been written in the yaml(image: docker.io/xxx)
 func (charts *Charts) ListImages(chartPath string) ([]string, error) {
 	var list []string
 	images, err := GetImageList(chartPath)

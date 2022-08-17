@@ -68,7 +68,7 @@ base image.
 
 base image could be any of cluster image or scratch.
 
-### CNI
+### CNI(Unrealized)
 
 `CNI` allows user to define which CNI to be installed over Kubernetes.
 
@@ -79,7 +79,7 @@ Some behaviors are available:
 `CNI path / https://... / oss://`. `path` is a relative path refers to local build context, this can be a directory
 contains multiple yaml or a single yaml for deploying CNI. `https://...; oss://` are remote addresses for downloading related files to deploy CNI.
 
-### CSI
+### CSI(Unrealized)
 
 `CSI` allows user to define which CSI to be installed over Kubernetes.
 
@@ -98,8 +98,10 @@ contains multiple yaml or a single yaml for deploying CSI. `https://...; oss://`
 
 Some behaviors are available:
 
-`APP [UNIQUE-NAME] [path, https://, oss://]`. `[UNIQUE-NAME]` is a declaration for an application, which is unique for sealer image. `path` is a relative path refers to local build context, this can be a directory
-contains multiple yaml or a single file for deploying app. `https://...; oss://` are remote addresses for downloading related files to deploy applications.
+`APP --file=[path_to_config_file] [path, https://, oss://] AS [kube|helm]:[UNIQUE-NAME]`. `[UNIQUE-NAME]` is a declaration for an application, which is unique for sealer image. `path` is a relative path refers to local build context, this can be a directory
+contains multiple yaml or a single file for deploying app. `https://...; oss://` are remote addresses for downloading related files to deploy applications. `--file="[path_to_config_file]"` is the config file for rendering reserved flags.
+
+`--file="[path_to_config1.yaml, path_to_config2.yaml]"` for `helm` application will be translated to `helm -f config.yaml -f config2.yaml`. The `""` is necessary.
 
 `[]` means user could declare several sources
 
@@ -111,5 +113,24 @@ Users are able to declare which applications to launch within the sealer image.
 #### Example
 
 ```
-LAUNCH --app [mysql, es, ...] --rawcmd [kubectl apply -f *.yaml, ...] --helm [...]
+LAUNCH --app="[mysql, es, ...]" --cmd="[kubectl apply -f *.yaml, ...]"
+```
+
+## Implement
+
+`sealer build` will generate an image of oci format. Sealer achieve this by integrating `buildah`.
+In simplest words to say is that sealer will input a dockerfile-like description to `buildah`, and the whole
+building phase will be same as `building a container image`.
+
+The key of implementation for kubefile is to translate the description to dockerfile-like description.
+
+### Example
+
+kubefile:
+
+```
+FROM scratch
+APP --set=key_a=value --set=key_b=value [path_of_mysql] AS kube:mysql
+APP --set=key=value [path_of_charts] AS helm:kube-prometheus-stack
+LAUNCH --app="[mysql, kube-prometheus-stack]"
 ```

@@ -1,0 +1,81 @@
+# Copyright © 2022 Alibaba Group Holding Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{{ $fullname :=  include "gateway.fullname" . }}
+{{ $serviceAccount := default $fullname .Values.serviceAccount.name }}
+apiVersion: {{ template "deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ $fullname }}
+  labels:
+    app: {{ $fullname }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+    role: gateway
+    type: github-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $fullname }}
+      role: gateway
+      release: "{{ .Release.Name }}"
+      type: github-app
+  template:
+    metadata:
+    {{- if .Values.podAnnotations }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8}}
+    {{- end }}
+      labels:
+        app: {{ $fullname }}
+        role: gateway
+        release: "{{ .Release.Name }}"
+        type: github-app
+    spec:
+      serviceAccountName: {{ $serviceAccount }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.registry }}/{{ .Values.name }}:{{ default .Chart.AppVersion .Values.tag }}"
+        imagePullPolicy: {{ default "IfNotPresent" .Values.pullPolicy }}
+        env:
+          - name: BRIGADE_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: BRIGADE_AUTHORS
+            value: {{ if .Values.gateway.allowedAuthorRoles }}{{ join "," .Values.gateway.allowedAuthorRoles | quote }}{{ end }}
+          - name: BRIGADE_EVENTS
+            value: {{ if .Values.gateway.emittedEvents }}{{ join "," .Values.gateway.emittedEvents | quote }}{{ end }}
+          - name: GATEWAY_CONFIG
+            value: "/etc/brigade-github-app/key.pem"
+          - name: APP_ID
+            value: "{{ .Values.github.appID }}"
+          - name: CHECK_SUITE_ON_PR
+            value: "{{ .Values.github.checkSuiteOnPR }}"
+          {{- if .Values.github.defaultSharedSecret }}
+          - name: DEFAULT_SHARED_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: {{ $fullname }}
+                key: defaultSharedSecret
+          {{- end }}
+        volumeMounts:
+          - name: github-config
+            mountPath: /etc/brigade-github-app
+      volumes:
+        - name: github-config
+          secret:
+            secretName: {{ $fullname }}

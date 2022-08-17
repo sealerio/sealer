@@ -17,9 +17,10 @@ package buildah
 import (
 	"fmt"
 
+	v1 "github.com/sealerio/sealer/pkg/define/image/v1"
+
 	"github.com/sealerio/sealer/pkg/define/options"
 
-	v1 "github.com/sealerio/sealer/types/api/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
