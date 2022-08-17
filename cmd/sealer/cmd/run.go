@@ -15,9 +15,6 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -26,6 +23,8 @@ import (
 	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"os"
+	"path/filepath"
 )
 
 var runArgs *apply.Args
