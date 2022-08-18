@@ -87,10 +87,12 @@ func (f *Formatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 	if !f.DisableColor {
 		levelColor := getColorByLevel(entry.Level)
-		fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m", levelColor, newLog)
+		fmt.Fprintf(b, "\033[%dm%s\033[0m", levelColor, newLog)
 	} else {
 		b.WriteString(newLog)
 	}
+
+	b.WriteByte('\n')
 
 	return b.Bytes(), nil
 }
