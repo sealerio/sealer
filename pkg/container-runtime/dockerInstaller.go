@@ -44,7 +44,7 @@ func (d *DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
 		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, DefaultDomain, DefaultPort, d.Info.CgroupDriver, d.Info.LimitNofile)
 		err := d.driver.CmdAsync(ip, initCmd)
 		if err != nil {
-			return nil, fmt.Errorf("failed to remote exec init cmd: %s", err)
+			return nil, fmt.Errorf("failed to exec the install docker init command remote: %s", err)
 		}
 	}
 	return info, nil
@@ -55,7 +55,7 @@ func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, CleanCmd)
 		if err != nil {
-			return fmt.Errorf("failed to remote exec clean cmd: %s", err)
+			return fmt.Errorf("failed to exec clean docker command remote: %s", err)
 		}
 	}
 	return nil

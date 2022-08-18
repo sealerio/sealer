@@ -52,15 +52,19 @@ type Info struct {
 
 func NewInstaller(conf Config, driver infradriver.InfraDriver) Installer {
 	if conf.Type == Docker {
-		return &DockerInstaller{
+		dockerinstall := &DockerInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
 		}
-	} else if conf.Type == Containerd {
-		return &ContainerdInstaller{
+		return dockerinstall
+	}
+
+	if conf.Type == Containerd {
+		containerdInstaller := &ContainerdInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
 		}
+		return containerdInstaller
 	}
 	return nil
 }
