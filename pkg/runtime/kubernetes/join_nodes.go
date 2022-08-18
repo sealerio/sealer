@@ -49,6 +49,8 @@ func (k *Runtime) joinNodeConfig(nodeIP net.IP) ([]byte, error) {
 		return nil, err
 	}
 	k.setCgroupDriver(cGroupDriver)
+	// bugfix: default
+	k.JoinConfiguration.NodeRegistration.CRISocket = k.InitConfiguration.NodeRegistration.CRISocket
 	return yaml.MarshalWithDelimiter(k.JoinConfiguration, k.KubeletConfiguration)
 }
 
