@@ -36,7 +36,7 @@ type RegistryConfig struct {
 }
 
 func NewConfigurator(conf RegistryConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver) (Configurator, error) {
-	rootfs:=infraDriver.GetHostIPList()
+	rootfs := infraDriver.GetClusterRootfs()
 
 	var containerRuntimeConfigurator containerruntime.Configurator
 
@@ -51,12 +51,13 @@ func NewConfigurator(conf RegistryConfig, containerRuntimeInfo containerruntime.
 	if conf.LocalRegistry != nil {
 		return &localSingletonConfigurator{
 			rootfs:                       rootfs,
-			LocalRegistry:                *conf.LocalRegistry,
+			LocalRegistry:                conf.LocalRegistry,
 			configFileGenerator:          NewLocalFileGenerator(rootfs),
 			containerRuntimeConfigurator: containerRuntimeConfigurator,
 			containerRuntimeInfo:         containerRuntimeInfo,
 		}, nil
 	}
+
 	if conf.ExternalRegistry != nil {
 		return &externalConfigurator{Registry: *conf.ExternalRegistry}, nil
 	}

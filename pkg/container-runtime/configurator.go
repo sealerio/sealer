@@ -17,7 +17,6 @@ package container_runtime
 import (
 	"fmt"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"net"
 	"path/filepath"
 	"strings"
 )
@@ -29,7 +28,7 @@ const (
 //Configurator provide configuration Interface for different container runtime.
 type Configurator interface {
 	// ConfigDaemonService config container runtime daemon service
-	ConfigDaemonService(DaemonConfig, []net.IP) error
+	ConfigDaemonService(DaemonConfig) error
 }
 
 type DaemonConfig struct {
@@ -41,12 +40,12 @@ type DockerRuntimeConfigurator struct {
 	infraDriver infradriver.InfraDriver
 }
 
-func (d DockerRuntimeConfigurator) ConfigDaemonService(config DaemonConfig, ips []net.IP) error {
+func (d DockerRuntimeConfigurator) ConfigDaemonService(config DaemonConfig) error {
 	var configDaemonCmd []string
 
 	cmd := d.configRegistryEndpoint(config.Endpoint)
 
-	// no need to reconfigure docker daemon service
+	// no need to reconfigure docker daemon service if cmd is nil
 	if cmd == "" {
 		return nil
 	}
@@ -54,7 +53,7 @@ func (d DockerRuntimeConfigurator) ConfigDaemonService(config DaemonConfig, ips 
 	configDaemonCmd = append(configDaemonCmd, cmd)
 	configDaemonCmd = append(configDaemonCmd, "systemctl daemon-reload")
 
-	for _, ip := range ips {
+	for _, ip := range d.infraDriver.GetHostIPList() {
 		host := ip
 		err := d.infraDriver.CmdAsync(host, strings.Join(configDaemonCmd, " && "))
 		if err != nil {
@@ -85,12 +84,12 @@ type ContainerdRuntimeConfigurator struct {
 	infraDriver infradriver.InfraDriver
 }
 
-func (c ContainerdRuntimeConfigurator) ConfigDaemonService(config DaemonConfig, ips []net.IP) error {
+func (c ContainerdRuntimeConfigurator) ConfigDaemonService(config DaemonConfig) error {
 	var configDaemonCmd []string
 
 	cmd := c.configRegistryEndpoint(config.Endpoint)
 
-	// no need to reconfigure containerd daemon service
+	// no need to reconfigure containerd daemon service if cmd is nil
 	if cmd == nil {
 		return nil
 	}
@@ -98,7 +97,7 @@ func (c ContainerdRuntimeConfigurator) ConfigDaemonService(config DaemonConfig, 
 	configDaemonCmd = append(configDaemonCmd, cmd...)
 	configDaemonCmd = append(configDaemonCmd, "systemctl daemon-reload")
 
-	for _, ip := range ips {
+	for _, ip := range c.infraDriver.GetHostIPList() {
 		host := ip
 		err := c.infraDriver.CmdAsync(host, strings.Join(configDaemonCmd, " && "))
 		if err != nil {
@@ -130,7 +129,7 @@ func (c ContainerdRuntimeConfigurator) configRegistryEndpoint(endpoint string) [
 
 func NewContainerdRuntimeDriver(infraDriver infradriver.InfraDriver) Configurator {
 	return ContainerdRuntimeConfigurator{
-		rootfs:      rootfs,
+		rootfs:      infraDriver.GetClusterRootfs(),
 		infraDriver: infraDriver,
 	}
 }

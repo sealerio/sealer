@@ -33,7 +33,7 @@ func GenerateHTTPBasicAuth(username, password string) (string, error) {
 	return username + ":" + string(pwdHash), nil
 }
 
-func concurrencyExecute(f func(host net.IP) error, ips []net.IP) error {
+func ConcurrencyExecute(f func(host net.IP) error, ips []net.IP) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, ip := range ips {
 		host := ip

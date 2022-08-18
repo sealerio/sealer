@@ -34,7 +34,7 @@ const (
 
 type localSingletonConfigurator struct {
 	rootfs string
-	LocalRegistry
+	*LocalRegistry
 
 	configFileGenerator          ConfigFileGenerator
 	containerRuntimeConfigurator containerruntime.Configurator
@@ -72,7 +72,7 @@ func (c *localSingletonConfigurator) Reconcile() (Driver, error) {
 		Endpoint: c.Domain + ":" + strconv.Itoa(c.Port),
 	}
 
-	if err := c.containerRuntimeConfigurator.ConfigDaemonService(config, c.infraDriver.GetHostIPList()); err != nil {
+	if err := c.containerRuntimeConfigurator.ConfigDaemonService(config); err != nil {
 		return nil, err
 	}
 
@@ -139,14 +139,14 @@ func (c *localSingletonConfigurator) configHostsFile() error {
 		return nil
 	}
 
-	return concurrencyExecute(f, ips)
+	return ConcurrencyExecute(f, ips)
 }
 
 func (c *localSingletonConfigurator) configKubeletAuthInfo() error {
 	var (
 		username = c.Auth.Username
 		password = c.Auth.Username
-		url      = c.Domain + ":" + strconv.Itoa(c.Port)
+		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
 		ips      = c.infraDriver.GetHostIPList()
 	)
 
@@ -155,7 +155,7 @@ func (c *localSingletonConfigurator) configKubeletAuthInfo() error {
 	}
 
 	configAuthCmd := fmt.Sprintf("nerdctl login -u %s -p %s %s && mkdir -p /var/lib/kubelet && cp /root/.docker/config.json /var/lib/kubelet",
-		username, password, url)
+		username, password, endpoint)
 
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, configAuthCmd)
@@ -165,22 +165,21 @@ func (c *localSingletonConfigurator) configKubeletAuthInfo() error {
 		return nil
 	}
 
-	return concurrencyExecute(f, ips)
+	return ConcurrencyExecute(f, ips)
 }
 
 func (c *localSingletonConfigurator) configRegistryCert() error {
 	var (
-		domain = c.Domain
-		port   = strconv.Itoa(c.Port)
-		caFile = c.Domain + ".crt"
-		ips    = c.infraDriver.GetHostIPList()
-		dest   = filepath.Join(DockerCertDir, domain+":"+port, caFile)
-		src    = filepath.Join(c.rootfs, "certs", caFile)
+		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+		caFile   = c.Domain + ".crt"
+		ips      = c.infraDriver.GetHostIPList()
+		dest     = filepath.Join(DockerCertDir, endpoint, caFile)
+		src      = filepath.Join(c.rootfs, "certs", caFile)
 	)
 
 	// copy ca cert to "/etc/containerd/certs.d/${domain}:${port}/${domain}.crt
 	if c.containerRuntimeInfo.Type == "containerd" {
-		dest = filepath.Join(ContainerdCertDir, domain+":"+port, caFile)
+		dest = filepath.Join(ContainerdCertDir, endpoint, caFile)
 	}
 
 	if !os.IsFileExist(src) {
@@ -195,7 +194,7 @@ func (c *localSingletonConfigurator) configRegistryCert() error {
 		return nil
 	}
 
-	return concurrencyExecute(f, ips)
+	return ConcurrencyExecute(f, ips)
 }
 
 // ConfigFileGenerator gen registry setting files,like basic auth file Or cert files.
