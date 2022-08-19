@@ -15,6 +15,7 @@
 package container_runtime
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -50,13 +51,13 @@ type Info struct {
 	CRISocket string
 }
 
-func NewInstaller(conf Config, driver infradriver.InfraDriver) Installer {
+func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
 	if conf.Type == Docker {
 		dockerinstall := &DockerInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
 		}
-		return dockerinstall
+		return dockerinstall, nil
 	}
 
 	if conf.Type == Containerd {
@@ -64,7 +65,11 @@ func NewInstaller(conf Config, driver infradriver.InfraDriver) Installer {
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
 		}
-		return containerdInstaller
+		return containerdInstaller, nil
 	}
-	return nil
+
+	if conf.Type != Docker && conf.Type != Containerd {
+		return nil, fmt.Errorf("please enter the correct container type")
+	}
+	return nil, nil
 }

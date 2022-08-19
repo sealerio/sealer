@@ -21,11 +21,6 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
-type ContainerdInstaller struct {
-	rootfs string
-	driver infradriver.InfraDriver
-}
-
 type DockerInstaller struct {
 	Info   Info
 	rootfs string
@@ -59,12 +54,4 @@ func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
 		}
 	}
 	return nil
-}
-
-func (c ContainerdInstaller) InstallOn(hosts []net.IP) (*Info, error) {
-	panic("implement me")
-}
-
-func (c ContainerdInstaller) UnInstallFrom(hosts []net.IP) error {
-	panic("implement me")
 }
