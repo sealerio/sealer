@@ -16,9 +16,17 @@ package k0s
 
 import (
 	"fmt"
+	"net"
+	"path"
+	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
+	"github.com/sealerio/sealer/utils/exec"
+	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/ssh"
+
+	"github.com/pkg/errors"
 )
 
 func GenerateRegistryCert(registryCertPath string, baseName string) error {
@@ -44,5 +52,25 @@ func GenerateRegistryCert(registryCertPath string, baseName string) error {
 		return fmt.Errorf("unable to save %s cert: %v", baseName, err)
 	}
 
+	return nil
+}
+
+func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) error {
+	// fetch the cluster kubeconfig
+	err := ssh.Fetch(host, path.Join(common.DefaultKubeConfigDir(), "config"), common.K0sAdminConf)
+	if err != nil {
+		return errors.Wrap(err, "failed to copy kubeconfig")
+	}
+
+	if !osi.IsFileExist(common.KubectlPath) {
+		err = osi.RecursionCopy(filepath.Join(rootfs, "bin/kubectl"), common.KubectlPath)
+		if err != nil {
+			return err
+		}
+		err = exec.Cmd("chmod", "+x", common.KubectlPath)
+		if err != nil {
+			return errors.Wrap(err, "failed to chmod a+x kubectl")
+		}
+	}
 	return nil
 }

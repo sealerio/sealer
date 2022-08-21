@@ -16,15 +16,21 @@ package k0s
 
 import (
 	"fmt"
+
+	"github.com/sealerio/sealer/common"
+	osi "github.com/sealerio/sealer/utils/os"
+
+	yaml2 "gopkg.in/yaml.v2"
 )
 
 func (k *Runtime) init() error {
 	pipeline := []func() error{
-		k.MergeConfigOnMaster0,
-		k.SSHKeyGenAndCopyIDToHosts,
+		k.GenerateConfigOnMaster0,
+		k.BootstrapMaster0,
 		// TODO: move all these registry operation to the specific registry packages.
 		k.GenerateCert,
 		k.ApplyRegistryOnMaster0,
+		k.GetKubectlAndKubeconfig,
 	}
 
 	for _, f := range pipeline {
@@ -36,46 +42,100 @@ func (k *Runtime) init() error {
 	return nil
 }
 
-// MergeConfigOnMaster0 convert the cluster file spec to kubectl.yaml (k0sctl config file) to lead cluster run
-func (k *Runtime) MergeConfigOnMaster0() error {
-	if err := k.K0sConfig.ConvertTok0sConfig(k.cluster); err != nil {
-		return fmt.Errorf("failed to convert to k0s config from clusterfile: %v", err)
+// GenerateConfigOnMaster0 generate the k0s.yaml to /etc/k0s/k0s.yaml and lead the controller node install
+func (k *Runtime) GenerateConfigOnMaster0() error {
+	if err := k.generateK0sConfig(); err != nil {
+		return fmt.Errorf("failed to generate config: %v", err)
 	}
-	ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
-	if err != nil {
-		return fmt.Errorf("failed to get ssh client: %v", err)
-	}
-	output, err := ssh.Cmd(k.cluster.GetMaster0IP(), GetK0sVersionCMD)
-	if err != nil {
-		return err
-	}
-
-	k.K0sConfig.DefineConfigFork0s(string(output), k.RegConfig.Domain, k.RegConfig.Port, k.cluster.Name)
-
-	//write k0sctl.yaml to master0 rootfs
-	if err := k.K0sConfig.WriteConfigToMaster0(k.getRootfs()); err != nil {
-		return err
+	k.modifyConfigRepo()
+	if err := k.marshalToFile(); err != nil {
+		return fmt.Errorf("failed to write k0s config: %v", err)
 	}
 	return nil
 }
 
-// SSHKeyGenAndCopyIDToHosts use ssh-copy-id to prepare a no password ssh-client for k0sctl install environment.
-func (k *Runtime) SSHKeyGenAndCopyIDToHosts() error {
-	return k.sshKeyGenAndCopyIDToHosts()
-}
-
-// GenerateCert generate the containerd CA for registry TLS.
+// GenerateCert generate the containerd CA for registry TLS and k0s join token for 100 years.
 func (k *Runtime) GenerateCert() error {
+	if err := k.generateK0sToken(); err != nil {
+		return err
+	}
+
 	if err := k.GenerateRegistryCert(); err != nil {
 		return err
 	}
 	return k.SendRegistryCert(k.cluster.GetMasterIPList()[:1])
 }
 
-// sshKeyGenAndCopyIDToHosts use ssh-key-gen and ssh-copy-id to prepare an env without password for k0sctl.
-func (k *Runtime) sshKeyGenAndCopyIDToHosts() error {
-	if err := k.sshKeyGen(); err != nil {
+func (k *Runtime) generateK0sConfig() error {
+	master0IP := k.cluster.GetMaster0IP()
+	ssh, err := k.getHostSSHClient(master0IP)
+	if err != nil {
 		return err
 	}
-	return k.sshCopyIDToEveryHost()
+	createCMD := "mkdir -p /etc/k0s && k0s config create"
+	bytes, err := ssh.Cmd(master0IP, createCMD)
+	if err != nil {
+		return err
+	}
+	return yaml2.Unmarshal(bytes, &k.k0sConfig)
+}
+
+func (k *Runtime) modifyConfigRepo() {
+	k.k0sConfig.Spec.Images.Repository = k.RegConfig.Domain + ":" + k.RegConfig.Port
+}
+
+func (k *Runtime) marshalToFile() error {
+	bytes, err := yaml2.Marshal(k.k0sConfig)
+	if err != nil {
+		return err
+	}
+	if err = osi.NewAtomicWriter(DefaultK0sConfigPath).WriteFile(bytes); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *Runtime) BootstrapMaster0() error {
+	master0IP := k.cluster.GetMaster0IP()
+	ssh, err := k.getHostSSHClient(master0IP)
+	if err != nil {
+		return err
+	}
+	bootstrapCMD := fmt.Sprintf("k0s install controller -c %s", DefaultK0sConfigPath)
+	if _, err := ssh.Cmd(master0IP, bootstrapCMD); err != nil {
+		return err
+	}
+	startSvcCMD := "k0s start"
+	if _, err := ssh.Cmd(master0IP, startSvcCMD); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *Runtime) generateK0sToken() error {
+	master0IP := k.cluster.GetMaster0IP()
+	ssh, err := k.getHostSSHClient(master0IP)
+	if err != nil {
+		return err
+	}
+	workerTokenCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", WorkerRole, DefaultK0sWorkerJoin)
+	if _, err := ssh.Cmd(master0IP, workerTokenCMD); err != nil {
+		return err
+	}
+	controllerTokenCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", ControllerRole, DefaultK0sControllerJoin)
+	if _, err := ssh.Cmd(master0IP, controllerTokenCMD); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *Runtime) GetKubectlAndKubeconfig() error {
+	if osi.IsFileExist(common.DefaultKubeConfigFile()) {
+		return nil
+	}
+	client, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
+	if err != nil {
+		return fmt.Errorf("failed to get ssh client of master0(%s) when get kubbectl and kubeconfig: %v", k.cluster.GetMaster0IP(), err)
+	}
+	return GetKubectlAndKubeconfig(client, k.cluster.GetMaster0IP(), k.getImageMountDir())
 }

@@ -22,9 +22,8 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/k0s/k0sctl"
+	"github.com/sealerio/sealer/pkg/runtime/k0s/v1beta1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 
@@ -38,8 +37,7 @@ type Runtime struct {
 	cluster   *v2.Cluster
 	Vlog      int
 	RegConfig *registry.Config
-	// 	clusterFileK0sConfig is k0sctl cluster config file
-	K0sConfig *k0sctl.K0sConfig
+	k0sConfig *v1beta1.ClusterConfig
 }
 
 func (k *Runtime) Init() error {
@@ -137,36 +135,6 @@ func (k *Runtime) getHostSSHClient(hostIP net.IP) (ssh.Interface, error) {
 // getRootfs return the rootfs dir like: /var/lib/sealer/data/my-k0s-cluster/rootfs
 func (k *Runtime) getRootfs() string {
 	return common.DefaultTheClusterRootfsDir(k.cluster.Name)
-}
-
-// sshKeyGen generate pub key and private key on master0
-func (k *Runtime) sshKeyGen() error {
-	master0IP := k.cluster.GetMaster0IP()
-	sshClient, err := k.getHostSSHClient(master0IP)
-	if err != nil {
-		return fmt.Errorf("failed to get ssh client: %v", err)
-	}
-	if _, err := sshClient.Cmd(master0IP, SSHKeyGenCMD); err != nil {
-		return err
-	}
-	return nil
-}
-
-// sshCopyIDToEveryHosts use ssh-copy-id to send pub key to every host which in cluster file
-func (k Runtime) sshCopyIDToEveryHost() error {
-	master0IP := k.cluster.GetMaster0IP()
-	sshClient, err := k.getHostSSHClient(master0IP)
-	if err != nil {
-		return fmt.Errorf("failed to get ssh client: %v", err)
-	}
-	hostIPList := utilsnet.IPsToIPStrs(k.cluster.GetAllIPList())
-	for _, ip := range hostIPList {
-		cmd := SSHCopyIDPrefix + ip
-		if _, err := sshClient.Cmd(master0IP, cmd); err != nil {
-			return fmt.Errorf("failed to exec ssh-copy-id to destination machine: %v", err)
-		}
-	}
-	return nil
 }
 
 // getCertsDir return a Dir value such as: /var/lib/sealer/data/my-k0s-cluster/certs

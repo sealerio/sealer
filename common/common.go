@@ -54,6 +54,7 @@ const (
 	DefaultRegistryHostName       = "registry.cn-qingdao.aliyuncs.com"
 	DefaultRegistryAuthDir        = "/root/.docker/config.json"
 	KubeAdminConf                 = "/etc/kubernetes/admin.conf"
+	K0sAdminConf                  = "/var/lib/k0s/pki/admin.conf"
 	DefaultKubeDir                = "/root/.kube"
 	DefaultKubectlPath            = "/usr/bin/kubectl"
 	EtcHosts                      = "/etc/hosts"
