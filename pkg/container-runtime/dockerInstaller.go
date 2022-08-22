@@ -28,15 +28,17 @@ type DockerInstaller struct {
 }
 
 func (d *DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
-	RemoteChmod := "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh /var/lib/docker %s %s %s %s"
+	RemoteChmod := "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh /var/lib/docker %s %s"
 	info := &Info{
-		Config: Config{
-			LimitNofile:  DefaultLimitNoFile,
-			CgroupDriver: DefaultSystemdDriver,
+		Config{
+			Docker,
+			DefaultLimitNoFile,
+			DefaultSystemdDriver,
 		},
+		DefaultDockerSocket,
 	}
 	for _, ip := range hosts {
-		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, DefaultDomain, DefaultPort, d.Info.CgroupDriver, d.Info.LimitNofile)
+		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, d.Info.CgroupDriver, d.Info.LimitNofile)
 		err := d.driver.CmdAsync(ip, initCmd)
 		if err != nil {
 			return nil, fmt.Errorf("failed to exec the install docker init command remote: %s", err)

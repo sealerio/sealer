@@ -22,12 +22,11 @@ import (
 )
 
 const (
+	DefaultDockerSocket  = "/var/run/dockershim.sock"
 	DefaultSystemdDriver = "systemd"
 	Docker               = "docker"
 	DefaultLimitNoFile   = "infinity"
 	Containerd           = "containerd"
-	DefaultDomain        = "sea.hub"
-	DefaultPort          = "5000"
 )
 
 // 容器运行时安装器
