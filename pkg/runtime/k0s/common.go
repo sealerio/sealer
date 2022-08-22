@@ -15,6 +15,8 @@
 package k0s
 
 const (
+	DefaultAdminConf = "/var/lib/k0s/pki/admin.conf"
+
 	DefaultK0sConfigPath     = "/etc/k0s/k0s.yaml"
 	DefaultK0sWorkerJoin     = "/etc/k0s/worker"
 	DefaultK0sControllerJoin = "/etc/k0s/controller"

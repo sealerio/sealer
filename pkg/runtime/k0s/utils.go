@@ -57,17 +57,17 @@ func GenerateRegistryCert(registryCertPath string, baseName string) error {
 
 func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) error {
 	// fetch the cluster kubeconfig
-	err := ssh.Fetch(host, path.Join(common.DefaultKubeConfigDir(), "config"), common.K0sAdminConf)
+	err := ssh.Fetch(host, path.Join(common.DefaultKubeConfigDir(), "config"), DefaultAdminConf)
 	if err != nil {
 		return errors.Wrap(err, "failed to copy kubeconfig")
 	}
 
-	if !osi.IsFileExist(common.KubectlPath) {
-		err = osi.RecursionCopy(filepath.Join(rootfs, "bin/kubectl"), common.KubectlPath)
+	if !osi.IsFileExist(common.DefaultKubectlPath) {
+		err = osi.RecursionCopy(filepath.Join(rootfs, "bin/kubectl"), common.DefaultKubectlPath)
 		if err != nil {
 			return err
 		}
-		err = exec.Cmd("chmod", "+x", common.KubectlPath)
+		err = exec.Cmd("chmod", "+x", common.DefaultKubectlPath)
 		if err != nil {
 			return errors.Wrap(err, "failed to chmod a+x kubectl")
 		}

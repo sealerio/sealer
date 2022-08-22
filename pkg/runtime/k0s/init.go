@@ -19,8 +19,6 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	osi "github.com/sealerio/sealer/utils/os"
-
-	yaml2 "gopkg.in/yaml.v2"
 )
 
 func (k *Runtime) init() error {
@@ -47,9 +45,8 @@ func (k *Runtime) GenerateConfigOnMaster0() error {
 	if err := k.generateK0sConfig(); err != nil {
 		return fmt.Errorf("failed to generate config: %v", err)
 	}
-	k.modifyConfigRepo()
-	if err := k.marshalToFile(); err != nil {
-		return fmt.Errorf("failed to write k0s config: %v", err)
+	if err := k.modifyConfigRepo(); err != nil {
+		return fmt.Errorf("failed to modify config to private repository: %s", err)
 	}
 	return nil
 }
@@ -72,27 +69,33 @@ func (k *Runtime) generateK0sConfig() error {
 	if err != nil {
 		return err
 	}
-	createCMD := "mkdir -p /etc/k0s && k0s config create"
-	bytes, err := ssh.Cmd(master0IP, createCMD)
-	if err != nil {
+
+	mkdirCMD := "mkdir -p /etc/k0s"
+	if _, err := ssh.Cmd(master0IP, mkdirCMD); err != nil {
 		return err
 	}
-	return yaml2.Unmarshal(bytes, &k.k0sConfig)
-}
 
-func (k *Runtime) modifyConfigRepo() {
-	k.k0sConfig.Spec.Images.Repository = k.RegConfig.Domain + ":" + k.RegConfig.Port
-}
-
-func (k *Runtime) marshalToFile() error {
-	bytes, err := yaml2.Marshal(k.k0sConfig)
-	if err != nil {
+	configCreateCMD := fmt.Sprintf("k0s config create > %s", DefaultK0sConfigPath)
+	if _, err := ssh.Cmd(master0IP, configCreateCMD); err != nil {
 		return err
 	}
-	if err = osi.NewAtomicWriter(DefaultK0sConfigPath).WriteFile(bytes); err != nil {
+	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (k *Runtime) modifyConfigRepo() error {
+	master0IP := k.cluster.GetMaster0IP()
+	ssh, err := k.getHostSSHClient(master0IP)
+	if err != nil {
+		return err
+	}
+
+	addRepoCMD := fmt.Sprintf("sed -i '/  images/ a\\    repository: %s' %s", k.RegConfig.Domain+":"+k.RegConfig.Port, DefaultK0sConfigPath)
+	_, err = ssh.Cmd(master0IP, addRepoCMD)
+
+	return err
 }
 
 func (k *Runtime) BootstrapMaster0() error {
@@ -118,12 +121,9 @@ func (k *Runtime) generateK0sToken() error {
 	if err != nil {
 		return err
 	}
-	workerTokenCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", WorkerRole, DefaultK0sWorkerJoin)
-	if _, err := ssh.Cmd(master0IP, workerTokenCMD); err != nil {
-		return err
-	}
-	controllerTokenCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", ControllerRole, DefaultK0sControllerJoin)
-	if _, err := ssh.Cmd(master0IP, controllerTokenCMD); err != nil {
+	workerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", WorkerRole, DefaultK0sWorkerJoin)
+	controllerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", ControllerRole, DefaultK0sControllerJoin)
+	if err := ssh.CmdAsync(master0IP, workerTokenCreateCMD, controllerTokenCreateCMD); err != nil {
 		return err
 	}
 	return nil

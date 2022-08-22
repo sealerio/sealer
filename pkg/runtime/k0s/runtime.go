@@ -22,7 +22,6 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/k0s/v1beta1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
@@ -37,7 +36,6 @@ type Runtime struct {
 	cluster   *v2.Cluster
 	Vlog      int
 	RegConfig *registry.Config
-	k0sConfig *v1beta1.ClusterConfig
 }
 
 func (k *Runtime) Init() error {
