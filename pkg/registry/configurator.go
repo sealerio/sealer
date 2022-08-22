@@ -36,25 +36,11 @@ type RegistryConfig struct {
 }
 
 func NewConfigurator(conf RegistryConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver) (Configurator, error) {
-	rootfs := infraDriver.GetClusterRootfs()
-
-	var containerRuntimeConfigurator containerruntime.Configurator
-
-	if containerRuntimeInfo.Type == "docker" {
-		containerRuntimeConfigurator = containerruntime.NewDockerRuntimeDriver(infraDriver)
-	}
-
-	if containerRuntimeInfo.Type == "containerd" {
-		containerRuntimeConfigurator = containerruntime.NewContainerdRuntimeDriver(infraDriver)
-	}
-
 	if conf.LocalRegistry != nil {
 		return &localSingletonConfigurator{
-			rootfs:                       rootfs,
-			LocalRegistry:                conf.LocalRegistry,
-			configFileGenerator:          NewLocalFileGenerator(rootfs),
-			containerRuntimeConfigurator: containerRuntimeConfigurator,
-			containerRuntimeInfo:         containerRuntimeInfo,
+			infraDriver:          infraDriver,
+			LocalRegistry:        conf.LocalRegistry,
+			containerRuntimeInfo: containerRuntimeInfo,
 		}, nil
 	}
 

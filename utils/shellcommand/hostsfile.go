@@ -12,20 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package registry
+package shellcommand
 
-import (
-	"fmt"
-	"golang.org/x/crypto/bcrypt"
+import "fmt"
+
+const (
+	DefaultSealerHostAlias = "#hostalias-set-by-sealer"
 )
 
-func GenerateHTTPBasicAuth(username, password string) (string, error) {
-	if username == "" || password == "" {
-		return "", fmt.Errorf("failed to generate HTTP basic authentication: registry username or password is empty")
-	}
-	pwdHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate registry password: %v", err)
-	}
-	return username + ":" + string(pwdHash), nil
+func CommandSetHostAlias(hostName, ip string) string {
+	return fmt.Sprintf(`if grep %s /etc/hosts;then sed -i "/%s/d" /etc/hosts; fi;echo "%s %s #%s" >>/etc/hosts`, hostName, hostName, ip, hostName, DefaultSealerHostAlias)
+}
+
+func CommandUnSetHostAlias() string {
+	return fmt.Sprintf(`sed -i "/%s/d" /etc/hosts`, DefaultSealerHostAlias)
 }

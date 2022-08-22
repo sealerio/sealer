@@ -15,12 +15,14 @@
 package infradriver
 
 import (
+	"context"
 	"fmt"
 	"github.com/imdario/mergo"
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/ssh"
+	"golang.org/x/sync/errgroup"
 	"net"
 )
 
@@ -164,4 +166,24 @@ func (d *SSHInfraDriver) GetClusterRootfs() string {
 
 func (d *SSHInfraDriver) GetClusterBasePath() string {
 	return common.DefaultClusterBaseDir(d.clusterName)
+}
+
+func (d *SSHInfraDriver) ConcurrencyExecute(f func(host net.IP) error) error {
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, ip := range d.hosts {
+		host := ip
+		eg.Go(func() error {
+			err := f(host)
+			if err != nil {
+				return fmt.Errorf("on host [%s]: %v", ip.String(), err)
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -15,31 +15,31 @@
 package registry
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/pelletier/go-toml"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/shellcommand"
 	"net"
 	"path/filepath"
 	"strconv"
 )
 
 const (
-	DockerCertDir               = "/etc/docker/certs.d"
-	ContainerdCertDir           = "/etc/containerd/certs.d"
+	DefaultEndpoint = "sea.hub:5000"
+
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DeleteRegistryCommand       = "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
 )
 
 type localSingletonConfigurator struct {
-	rootfs string
 	*LocalRegistry
 
-	configFileGenerator          ConfigFileGenerator
-	containerRuntimeConfigurator containerruntime.Configurator
-	infraDriver                  infradriver.InfraDriver
-	containerRuntimeInfo         containerruntime.Info
+	containerRuntimeInfo containerruntime.Info
+	infraDriver          infradriver.InfraDriver
 }
 
 // Reconcile local private registry by rootfs scripts.
@@ -68,11 +68,7 @@ func (c *localSingletonConfigurator) Reconcile() (Driver, error) {
 		return nil, err
 	}
 
-	config := containerruntime.DaemonConfig{
-		Endpoint: c.Domain + ":" + strconv.Itoa(c.Port),
-	}
-
-	if err := c.containerRuntimeConfigurator.ConfigDaemonService(config); err != nil {
+	if err := c.configDaemonService(); err != nil {
 		return nil, err
 	}
 
@@ -84,6 +80,11 @@ func (c *localSingletonConfigurator) genTLSCerts() error {
 	if c.InsecureMode {
 		return nil
 	}
+
+	var (
+		certPath = filepath.Join(c.infraDriver.GetClusterRootfs(), "certs")
+		certName = c.Domain
+	)
 
 	DNSNames := []string{c.Domain}
 	DNSNames = append(DNSNames, c.Cert.SubjectAltName.IPs...)
@@ -98,7 +99,19 @@ func (c *localSingletonConfigurator) genTLSCerts() error {
 		Usages:       nil,
 	}
 
-	return c.configFileGenerator.GenTLSCert(c.Domain, regCertConfig)
+	caGenerator := cert.NewAuthorityCertificateGenerator(regCertConfig)
+	caCert, caKey, err := caGenerator.Generate()
+	if err != nil {
+		return fmt.Errorf("unable to generate registry cert: %v", err)
+	}
+
+	// write cert file to disk
+	err = cert.NewCertificateFileManger(certPath, certName).Write(caCert, caKey)
+	if err != nil {
+		return fmt.Errorf("unable to save registry cert: %v", err)
+	}
+
+	return nil
 }
 
 func (c *localSingletonConfigurator) genBasicAuth() error {
@@ -107,12 +120,21 @@ func (c *localSingletonConfigurator) genBasicAuth() error {
 		return nil
 	}
 
-	return c.configFileGenerator.GenBasicAuth(c.Auth.Username, c.Auth.Password)
+	var (
+		basicAuthFile = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", DefaultRegistryHtPasswdFile)
+	)
+
+	htpasswd, err := GenerateHTTPBasicAuth(c.Auth.Username, c.Auth.Password)
+	if err != nil {
+		return err
+	}
+
+	return os.NewCommonWriter(basicAuthFile).WriteFile([]byte(htpasswd))
 }
 
 func (c *localSingletonConfigurator) initRegistry() error {
 	// bash init-registry.sh ${port} ${mountData} ${domain}
-	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", c.rootfs, c.Port, c.DataDir, c.Domain)
+	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", c.infraDriver.GetClusterRootfs(), c.Port, c.DataDir, c.Domain)
 	if err := c.infraDriver.CmdAsync(c.DeployHost, initRegistry); err != nil {
 		return err
 	}
@@ -122,24 +144,15 @@ func (c *localSingletonConfigurator) initRegistry() error {
 
 func (c *localSingletonConfigurator) configHostsFile() error {
 	// add registry ip to "/etc/hosts"
-	var (
-		registryIP = c.DeployHost.String()
-		domain     = c.Domain
-		ips        = c.infraDriver.GetHostIPList()
-	)
-
-	hostsLine := registryIP + " " + domain
-	writeToHostsCmd := fmt.Sprintf("cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts", hostsLine, hostsLine)
-
 	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, writeToHostsCmd)
+		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.DeployHost.String()))
 		if err != nil {
-			return fmt.Errorf("failed to exec cmd %s: %v", writeToHostsCmd, err)
+			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}
 		return nil
 	}
 
-	return ConcurrencyExecute(f, ips)
+	return c.infraDriver.ConcurrencyExecute(f)
 }
 
 func (c *localSingletonConfigurator) configKubeletAuthInfo() error {
@@ -147,7 +160,6 @@ func (c *localSingletonConfigurator) configKubeletAuthInfo() error {
 		username = c.Auth.Username
 		password = c.Auth.Username
 		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
-		ips      = c.infraDriver.GetHostIPList()
 	)
 
 	if username == "" || password == "" {
@@ -160,27 +172,22 @@ func (c *localSingletonConfigurator) configKubeletAuthInfo() error {
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, configAuthCmd)
 		if err != nil {
-			return fmt.Errorf("failed to exec cmd %s: %v", configAuthCmd, err)
+			return fmt.Errorf("failed to config kubelet auth, cmd is %s: %v", configAuthCmd, err)
 		}
 		return nil
 	}
 
-	return ConcurrencyExecute(f, ips)
+	return c.infraDriver.ConcurrencyExecute(f)
 }
 
 func (c *localSingletonConfigurator) configRegistryCert() error {
+	// copy ca cert to "/etc/containerd/certs.d/${domain}:${port}/${domain}.crt
 	var (
 		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
 		caFile   = c.Domain + ".crt"
-		ips      = c.infraDriver.GetHostIPList()
-		dest     = filepath.Join(DockerCertDir, endpoint, caFile)
-		src      = filepath.Join(c.rootfs, "certs", caFile)
+		dest     = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
+		src      = filepath.Join(c.infraDriver.GetClusterRootfs(), "certs", caFile)
 	)
-
-	// copy ca cert to "/etc/containerd/certs.d/${domain}:${port}/${domain}.crt
-	if c.containerRuntimeInfo.Type == "containerd" {
-		dest = filepath.Join(ContainerdCertDir, endpoint, caFile)
-	}
 
 	if !os.IsFileExist(src) {
 		return nil
@@ -194,51 +201,96 @@ func (c *localSingletonConfigurator) configRegistryCert() error {
 		return nil
 	}
 
-	return ConcurrencyExecute(f, ips)
+	return c.infraDriver.ConcurrencyExecute(f)
 }
 
-// ConfigFileGenerator gen registry setting files,like basic auth file Or cert files.
-type ConfigFileGenerator interface {
-	GenBasicAuth(username, password string) error
-	GenTLSCert(certName string, certData cert.CertificateDescriptor) error
-}
+func (c *localSingletonConfigurator) configDaemonService() error {
+	var (
+		src      string
+		dest     string
+		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+	)
 
-type localFileGenerator struct {
-	basicAuthFile string
-	certPath      string
-}
-
-func (l localFileGenerator) GenBasicAuth(username, password string) error {
-	htpasswd, err := GenerateHTTPBasicAuth(username, password)
-	if err != nil {
-		return err
+	if endpoint == DefaultEndpoint {
+		return nil
 	}
 
-	return os.NewCommonWriter(l.basicAuthFile).WriteFile([]byte(htpasswd))
-}
-
-func (l localFileGenerator) GenTLSCert(certName string, certData cert.CertificateDescriptor) error {
-	caGenerator := cert.NewAuthorityCertificateGenerator(certData)
-	caCert, caKey, err := caGenerator.Generate()
-	if err != nil {
-		return fmt.Errorf("unable to generate registry cert: %v", err)
+	if c.containerRuntimeInfo.Type == "docker" {
+		src = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", "daemon.json")
+		dest = "/etc/docker/daemon.json"
+		if err := c.configDockerDaemonService(endpoint, src); err != nil {
+			return err
+		}
 	}
 
-	// write cert file to disk
-	err = cert.NewCertificateFileManger(l.certPath, certName).Write(caCert, caKey)
-	if err != nil {
-		return fmt.Errorf("unable to save registry cert: %v", err)
+	if c.containerRuntimeInfo.Type == "containerd" {
+		src = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", "hosts.toml")
+		dest = filepath.Join("/etc/containerd/certs.d", endpoint, "hosts.toml")
+		if err := c.configContainerdDaemonService(endpoint, src); err != nil {
+			return err
+		}
 	}
 
+	// for docker: copy daemon.json to "/etc/docker/daemon.json"
+	// for containerd : copy hosts.toml to "/etc/containerd/certs.d/${domain}:${port}/hosts.toml"
+	for _, ip := range c.infraDriver.GetHostIPList() {
+		err := c.infraDriver.Copy(ip, src, dest)
+		if err != nil {
+			return err
+		}
+
+		err = c.infraDriver.CmdAsync(ip, "systemctl daemon-reload")
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func NewLocalFileGenerator(rootfs string) ConfigFileGenerator {
-	return localFileGenerator{
-		basicAuthFile: filepath.Join(rootfs, "etc", DefaultRegistryHtPasswdFile),
-		certPath:      filepath.Join(rootfs, "certs"),
+func (c *localSingletonConfigurator) configDockerDaemonService(endpoint, daemonFile string) error {
+	daemonConf := MirrorRegistryConfig{
+		MirrorRegistries: []MirrorRegistry{
+			MirrorRegistry{
+				Domain:  "*",
+				Mirrors: []string{"https://" + endpoint},
+			},
+		},
 	}
+
+	content, err := json.Marshal(daemonConf)
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal daemonFile: %v", err)
+	}
+
+	return os.NewCommonWriter(daemonFile).WriteFile(content)
 }
 
-type RemoteFileSystemConfigurator struct {
+func (c *localSingletonConfigurator) configContainerdDaemonService(endpoint, hostTomlFile string) error {
+	var (
+		caFile             = c.Domain + ".crt"
+		registryCaCertPath = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
+		url                = "https://" + endpoint
+	)
+
+	tree, err := toml.TreeFromMap(map[string]interface{}{
+		"server": url,
+		fmt.Sprintf(`host."%s"`, url): map[string]interface{}{
+			"ca": registryCaCertPath,
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal Containerd hosts.toml file: %v", err)
+	}
+	return os.NewCommonWriter(hostTomlFile).WriteFile([]byte(tree.String()))
+}
+
+type MirrorRegistryConfig struct {
+	MirrorRegistries []MirrorRegistry `json:"mirror-registries"`
+}
+
+type MirrorRegistry struct {
+	Domain  string   `json:"domain"`
+	Mirrors []string `json:"mirrors"`
 }

@@ -33,6 +33,7 @@ type Config struct {
 type Info struct {
 	Config
 	CRISocket string
+	CertsDir   string
 }
 
 // 实现
