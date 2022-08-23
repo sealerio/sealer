@@ -18,6 +18,10 @@ type externalConfigurator struct {
 	Registry
 }
 
-func (c *externalConfigurator) Reconcile() (Driver, error) {
+func (c *externalConfigurator) Clean() error {
+	return nil
+}
+
+func (c *externalConfigurator) Init() (Driver, error) {
 	return nil, nil
 }

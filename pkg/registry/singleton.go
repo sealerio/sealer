@@ -15,6 +15,7 @@
 package registry
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/pelletier/go-toml"
@@ -23,16 +24,15 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/shellcommand"
+	"io/ioutil"
 	"net"
 	"path/filepath"
 	"strconv"
 )
 
 const (
-	DefaultEndpoint = "sea.hub:5000"
-
+	DefaultEndpoint             = "sea.hub:5000"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
-	DeleteRegistryCommand       = "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
 )
 
 type localSingletonConfigurator struct {
@@ -42,8 +42,16 @@ type localSingletonConfigurator struct {
 	infraDriver          infradriver.InfraDriver
 }
 
-// Reconcile local private registry by rootfs scripts.
-func (c *localSingletonConfigurator) Reconcile() (Driver, error) {
+// Clean will stop local private registry via rootfs scripts.
+func (c *localSingletonConfigurator) Clean() error {
+	//TODO delete local registry by container runtime sdk.
+	deleteRegistryCommand := "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
+
+	return c.infraDriver.CmdAsync(c.DeployHost, fmt.Sprintf(deleteRegistryCommand, "sealer-registry"))
+}
+
+// Init will start local private registry via rootfs scripts.
+func (c *localSingletonConfigurator) Init() (Driver, error) {
 	if err := c.genTLSCerts(); err != nil {
 		return nil, err
 	}
@@ -56,19 +64,19 @@ func (c *localSingletonConfigurator) Reconcile() (Driver, error) {
 		return nil, err
 	}
 
-	if err := c.configHostsFile(); err != nil {
+	if err := c.configureHostsFile(); err != nil {
 		return nil, err
 	}
 
-	if err := c.configKubeletAuthInfo(); err != nil {
+	if err := c.configureRegistryCert(); err != nil {
 		return nil, err
 	}
 
-	if err := c.configRegistryCert(); err != nil {
+	if err := c.configureDaemonService(); err != nil {
 		return nil, err
 	}
 
-	if err := c.configDaemonService(); err != nil {
+	if err := c.configureKubeletAuthInfo(); err != nil {
 		return nil, err
 	}
 
@@ -142,7 +150,7 @@ func (c *localSingletonConfigurator) initRegistry() error {
 	return nil
 }
 
-func (c *localSingletonConfigurator) configHostsFile() error {
+func (c *localSingletonConfigurator) configureHostsFile() error {
 	// add registry ip to "/etc/hosts"
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.DeployHost.String()))
@@ -155,7 +163,7 @@ func (c *localSingletonConfigurator) configHostsFile() error {
 	return c.infraDriver.ConcurrencyExecute(f)
 }
 
-func (c *localSingletonConfigurator) configKubeletAuthInfo() error {
+func (c *localSingletonConfigurator) configureKubeletAuthInfo() error {
 	var (
 		username = c.Auth.Username
 		password = c.Auth.Username
@@ -180,7 +188,7 @@ func (c *localSingletonConfigurator) configKubeletAuthInfo() error {
 	return c.infraDriver.ConcurrencyExecute(f)
 }
 
-func (c *localSingletonConfigurator) configRegistryCert() error {
+func (c *localSingletonConfigurator) configureRegistryCert() error {
 	// copy ca cert to "/etc/containerd/certs.d/${domain}:${port}/${domain}.crt
 	var (
 		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
@@ -204,7 +212,7 @@ func (c *localSingletonConfigurator) configRegistryCert() error {
 	return c.infraDriver.ConcurrencyExecute(f)
 }
 
-func (c *localSingletonConfigurator) configDaemonService() error {
+func (c *localSingletonConfigurator) configureDaemonService() error {
 	var (
 		src      string
 		dest     string
@@ -218,7 +226,7 @@ func (c *localSingletonConfigurator) configDaemonService() error {
 	if c.containerRuntimeInfo.Type == "docker" {
 		src = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", "daemon.json")
 		dest = "/etc/docker/daemon.json"
-		if err := c.configDockerDaemonService(endpoint, src); err != nil {
+		if err := c.configureDockerDaemonService(endpoint, src); err != nil {
 			return err
 		}
 	}
@@ -226,7 +234,7 @@ func (c *localSingletonConfigurator) configDaemonService() error {
 	if c.containerRuntimeInfo.Type == "containerd" {
 		src = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", "hosts.toml")
 		dest = filepath.Join("/etc/containerd/certs.d", endpoint, "hosts.toml")
-		if err := c.configContainerdDaemonService(endpoint, src); err != nil {
+		if err := c.configureContainerdDaemonService(endpoint, src); err != nil {
 			return err
 		}
 	}
@@ -247,15 +255,26 @@ func (c *localSingletonConfigurator) configDaemonService() error {
 	return nil
 }
 
-func (c *localSingletonConfigurator) configDockerDaemonService(endpoint, daemonFile string) error {
-	daemonConf := MirrorRegistryConfig{
-		MirrorRegistries: []MirrorRegistry{
-			MirrorRegistry{
-				Domain:  "*",
-				Mirrors: []string{"https://" + endpoint},
-			},
-		},
+func (c *localSingletonConfigurator) configureDockerDaemonService(endpoint, daemonFile string) error {
+	var daemonConf DaemonConfig
+
+	b, err := ioutil.ReadFile(daemonFile)
+	if err != nil {
+		return err
 	}
+
+	b = bytes.TrimSpace(b)
+	// if config file is empty, only add registry config.
+	if len(b) != 0 {
+		if err := json.Unmarshal(b, &daemonConf); err != nil {
+			return fmt.Errorf("failed to load %s to DaemonConfig: %v", daemonFile, err)
+		}
+	}
+
+	daemonConf.MirrorRegistries = append(daemonConf.MirrorRegistries, MirrorRegistry{
+		Domain:  "*",
+		Mirrors: []string{"https://" + endpoint},
+	})
 
 	content, err := json.Marshal(daemonConf)
 
@@ -266,7 +285,7 @@ func (c *localSingletonConfigurator) configDockerDaemonService(endpoint, daemonF
 	return os.NewCommonWriter(daemonFile).WriteFile(content)
 }
 
-func (c *localSingletonConfigurator) configContainerdDaemonService(endpoint, hostTomlFile string) error {
+func (c *localSingletonConfigurator) configureContainerdDaemonService(endpoint, hostTomlFile string) error {
 	var (
 		caFile             = c.Domain + ".crt"
 		registryCaCertPath = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
@@ -286,11 +305,90 @@ func (c *localSingletonConfigurator) configContainerdDaemonService(endpoint, hos
 	return os.NewCommonWriter(hostTomlFile).WriteFile([]byte(tree.String()))
 }
 
-type MirrorRegistryConfig struct {
-	MirrorRegistries []MirrorRegistry `json:"mirror-registries"`
+type DaemonConfig struct {
+	MirrorRegistries               []MirrorRegistry  `json:"mirror-registries,omitempty"`
+	AllowNonDistributableArtifacts []string          `json:"allow-nondistributable-artifacts,omitempty"`
+	APICorsHeader                  string            `json:"api-cors-header,omitempty"`
+	AuthorizationPlugins           []string          `json:"authorization-plugins,omitempty"`
+	Bip                            string            `json:"bip,omitempty"`
+	Bridge                         string            `json:"bridge,omitempty"`
+	CgroupParent                   string            `json:"cgroup-parent,omitempty"`
+	ClusterAdvertise               string            `json:"cluster-advertise,omitempty"`
+	ClusterStore                   string            `json:"cluster-store,omitempty"`
+	Containerd                     string            `json:"containerd,omitempty"`
+	ContainerdNamespace            string            `json:"containerd-namespace,omitempty"`
+	ContainerdPluginNamespace      string            `json:"containerd-plugin-namespace,omitempty"`
+	DataRoot                       string            `json:"data-root,omitempty"`
+	Debug                          bool              `json:"debug,omitempty"`
+	DefaultCgroupnsMode            string            `json:"default-cgroupns-mode,omitempty"`
+	DefaultGateway                 string            `json:"default-gateway,omitempty"`
+	DefaultGatewayV6               string            `json:"default-gateway-v6,omitempty"`
+	DefaultRuntime                 string            `json:"default-runtime,omitempty"`
+	DefaultShmSize                 string            `json:"default-shm-size,omitempty"`
+	DNS                            []string          `json:"dns,omitempty"`
+	DNSOpts                        []string          `json:"dns-opts,omitempty"`
+	DNSSearch                      []string          `json:"dns-search,omitempty"`
+	ExecOpts                       []string          `json:"exec-opts,omitempty"`
+	ExecRoot                       string            `json:"exec-root,omitempty"`
+	Experimental                   bool              `json:"experimental,omitempty"`
+	FixedCidr                      string            `json:"fixed-cidr,omitempty"`
+	FixedCidrV6                    string            `json:"fixed-cidr-v6,omitempty"`
+	Group                          string            `json:"group,omitempty"`
+	Hosts                          []string          `json:"hosts,omitempty"`
+	Icc                            bool              `json:"icc,omitempty"`
+	Init                           bool              `json:"init,omitempty"`
+	InitPath                       string            `json:"init-path,omitempty"`
+	InsecureRegistries             []string          `json:"insecure-registries,omitempty"`
+	IP                             string            `json:"ip,omitempty"`
+	IPForward                      bool              `json:"ip-forward,omitempty"`
+	IPMasq                         bool              `json:"ip-masq,omitempty"`
+	Iptables                       bool              `json:"iptables,omitempty"`
+	IP6Tables                      bool              `json:"ip6tables,omitempty"`
+	Ipv6                           bool              `json:"ipv6,omitempty"`
+	Labels                         []string          `json:"labels,omitempty"`
+	LiveRestore                    bool              `json:"live-restore,omitempty"`
+	LogDriver                      string            `json:"log-driver,omitempty"`
+	LogLevel                       string            `json:"log-level,omitempty"`
+	MaxConcurrentDownloads         int               `json:"max-concurrent-downloads,omitempty"`
+	MaxConcurrentUploads           int               `json:"max-concurrent-uploads,omitempty"`
+	MaxDownloadAttempts            int               `json:"max-download-attempts,omitempty"`
+	Mtu                            int               `json:"mtu,omitempty"`
+	NoNewPrivileges                bool              `json:"no-new-privileges,omitempty"`
+	NodeGenericResources           []string          `json:"node-generic-resources,omitempty"`
+	OomScoreAdjust                 int               `json:"oom-score-adjust,omitempty"`
+	Pidfile                        string            `json:"pidfile,omitempty"`
+	RawLogs                        bool              `json:"raw-logs,omitempty"`
+	RegistryMirrors                []string          `json:"registry-mirrors,omitempty"`
+	SeccompProfile                 string            `json:"seccomp-profile,omitempty"`
+	SelinuxEnabled                 bool              `json:"selinux-enabled,omitempty"`
+	ShutdownTimeout                int               `json:"shutdown-timeout,omitempty"`
+	StorageDriver                  string            `json:"storage-driver,omitempty"`
+	StorageOpts                    []string          `json:"storage-opts,omitempty"`
+	SwarmDefaultAdvertiseAddr      string            `json:"swarm-default-advertise-addr,omitempty"`
+	TLS                            bool              `json:"tls,omitempty"`
+	Tlscacert                      string            `json:"tlscacert,omitempty"`
+	Tlscert                        string            `json:"tlscert,omitempty"`
+	Tlskey                         string            `json:"tlskey,omitempty"`
+	Tlsverify                      bool              `json:"tlsverify,omitempty"`
+	UserlandProxy                  bool              `json:"userland-proxy,omitempty"`
+	UserlandProxyPath              string            `json:"userland-proxy-path,omitempty"`
+	UsernsRemap                    string            `json:"userns-remap,omitempty"`
+	ClusterStoreOpts               map[string]string `json:"cluster-store-opts,omitempty"`
+	LogOpts                        *DaemonLogOpts    `json:"log-opts,omitempty"`
 }
 
 type MirrorRegistry struct {
-	Domain  string   `json:"domain"`
-	Mirrors []string `json:"mirrors"`
+	Domain  string   `json:"domain,omitempty"`
+	Mirrors []string `json:"mirrors,omitempty"`
+}
+
+type DaemonLogOpts struct {
+	CacheDisabled string `json:"cache-disabled,omitempty"`
+	CacheMaxFile  string `json:"cache-max-file,omitempty"`
+	CacheMaxSize  string `json:"cache-max-size,omitempty"`
+	CacheCompress string `json:"cache-compress,omitempty"`
+	Env           string `json:"env,omitempty"`
+	Labels        string `json:"labels,omitempty"`
+	MaxFile       string `json:"max-file,omitempty"`
+	MaxSize       string `json:"max-size,omitempty"`
 }

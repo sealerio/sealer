@@ -23,9 +23,10 @@ import (
 
 // Configurator provide registry lifecycle management.
 type Configurator interface {
-	// Reconcile will start Or Stop registry
-	Reconcile() (Driver, error)
-
+	// Init will start registry
+	Init() (Driver, error)
+	// Clean will Stop registry
+	Clean() error
 	//Upgrade() (Driver, error)
 	//Rollback() (Driver, error)
 }
