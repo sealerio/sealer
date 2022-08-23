@@ -46,3 +46,9 @@ type Driver interface {
 	GetClient() (k8s.Client, error)
 	ExecWithAdminKubeconfig(Cmds []string) error
 }
+
+// Kube运行时驱动器接口，供其他服务操作K8s
+type Driver interface {
+	GetClient() (k8s.Client, error)
+	ExecWithAdminKubeconfig(Cmds []string) error
+}

@@ -22,9 +22,9 @@ import (
 	"github.com/sealerio/sealer/apply/driver"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/filesystem"
-	"github.com/sealerio/sealer/pkg/image"
-	"github.com/sealerio/sealer/pkg/image/store"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
@@ -57,24 +57,22 @@ func NewApplierFromFile(path string) (driver.Interface, error) {
 		}
 		path = filepath.Join(pa, path)
 	}
+
 	Clusterfile, err := clusterfile.NewClusterFile(path)
 	if err != nil {
 		return nil, err
 	}
-	imgSvc, err := image.NewImageService()
+
+	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return nil, err
 	}
 
-	mounter, err := filesystem.NewClusterImageMounter()
+	mounter, err := filesystem.NewClusterImageMounter(imageEngine)
 	if err != nil {
 		return nil, err
 	}
 
-	is, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, err
-	}
 	cluster := Clusterfile.GetCluster()
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty, make sure %s file is correct", path)
@@ -85,9 +83,8 @@ func NewApplierFromFile(path string) (driver.Interface, error) {
 	return &driver.Applier{
 		ClusterDesired:      &cluster,
 		ClusterFile:         Clusterfile,
-		ImageManager:        imgSvc,
+		ImageEngine:         imageEngine,
 		ClusterImageMounter: mounter,
-		ImageStore:          is,
 	}, nil
 }
 
@@ -102,25 +99,19 @@ func NewDefaultApplier(cluster *v2.Cluster) (driver.Interface, error) {
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty")
 	}
-	imgSvc, err := image.NewImageService()
+	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return nil, err
 	}
 
-	mounter, err := filesystem.NewClusterImageMounter()
-	if err != nil {
-		return nil, err
-	}
-
-	is, err := store.NewDefaultImageStore()
+	mounter, err := filesystem.NewClusterImageMounter(imageEngine)
 	if err != nil {
 		return nil, err
 	}
 
 	return &driver.Applier{
 		ClusterDesired:      cluster,
-		ImageManager:        imgSvc,
+		ImageEngine:         imageEngine,
 		ClusterImageMounter: mounter,
-		ImageStore:          is,
 	}, nil
 }

@@ -31,7 +31,6 @@ func PlatformSpecFromOCI(p *v1.Platform) *manifestlist.PlatformSpec {
 	return &manifestlist.PlatformSpec{
 		Architecture: p.Architecture,
 		OS:           p.OS,
-		OSVersion:    p.OSVersion,
 		Variant:      p.Variant,
 	}
 }

@@ -15,22 +15,14 @@
 package cmd
 
 import (
-	"errors"
-	"strings"
-
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/image/utils"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils/platform"
 )
 
-type removeImageFlag struct {
-	platform string
-}
-
-var opts removeImageFlag
+var removeOpts *options.RemoveImageOptions
 
 // rmiCmd represents the rmi command
 var rmiCmd = &cobra.Command{
@@ -47,36 +39,20 @@ var rmiCmd = &cobra.Command{
 }
 
 func runRemove(images []string) error {
-	imageService, err := image.NewImageService()
+	removeOpts.ImageNamesOrIDs = images
+	engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return err
 	}
-	var errs []string
-	var targetPlatforms []*v1.Platform
 
-	if opts.platform != "" {
-		tp, err := platform.ParsePlatforms(opts.platform)
-		if err != nil {
-			return err
-		}
-		targetPlatforms = tp
-	}
-
-	for _, img := range images {
-		if err := imageService.Delete(img, targetPlatforms); err != nil {
-			errs = append(errs, err.Error())
-		}
-	}
-	if len(errs) > 0 {
-		msg := strings.Join(errs, "\n")
-		return errors.New(msg)
-	}
-
-	return nil
+	return engine.RemoveImage(removeOpts)
 }
 
 func init() {
-	opts = removeImageFlag{}
+	removeOpts = &options.RemoveImageOptions{}
+	flags := rmiCmd.Flags()
+	flags.BoolVarP(&removeOpts.All, "all", "a", false, "remove all images")
+	flags.BoolVarP(&removeOpts.Prune, "prune", "p", false, "prune dangling images")
+	flags.BoolVarP(&removeOpts.Force, "force", "f", false, "force removal of the image and any containers using the image")
 	rootCmd.AddCommand(rmiCmd)
-	rmiCmd.Flags().StringVar(&opts.platform, "platform", "", "set ClusterImage platform")
 }

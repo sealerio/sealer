@@ -15,42 +15,41 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/containers/buildah/pkg/parse"
+	pkgauth "github.com/sealerio/sealer/pkg/auth"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/pkg/image"
-	"github.com/sealerio/sealer/utils/platform"
 )
 
-var platformFlag string
+var pullOpts *options.PullOptions
 
 // pullCmd represents the pull command
 var pullCmd = &cobra.Command{
 	Use:   "pull",
 	Short: "pull ClusterImage from a registry to local",
-	// TODO: add long description.
-	Long:    "",
-	Example: `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
-	Args:    cobra.ExactArgs(1),
+	Example: `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --platform linux/amd64
+`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		imgSvc, err := image.NewImageService()
+		engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 		if err != nil {
 			return err
 		}
-
-		plat, err := platform.GetPlatform(platformFlag)
-		if err != nil {
-			return err
-		}
-		if err := imgSvc.Pull(args[0], plat); err != nil {
-			return err
-		}
-		logrus.Infof("succeed in pulling ClusterImage(%s)", args[0])
-		return nil
+		pullOpts.Image = args[0]
+		return engine.Pull(pullOpts)
 	},
 }
 
 func init() {
+	pullOpts = &options.PullOptions{}
+
+	pullCmd.Flags().StringVar(&pullOpts.Platform, "platform", parse.DefaultPlatform(), "prefer OS/ARCH instead of the current operating system and architecture for choosing images")
+	pullCmd.Flags().StringVar(&pullOpts.Authfile, "authfile", pkgauth.GetDefaultAuthFilePath(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	pullCmd.Flags().BoolVar(&pullOpts.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry. TLS verification cannot be used when talking to an insecure registry.")
+	pullCmd.Flags().StringVar(&pullOpts.PullPolicy, "policy", "missing", "missing, always, or never.")
+	pullCmd.Flags().BoolVarP(&pullOpts.Quiet, "quiet", "q", false, "don't output progress information when pulling images")
+
 	rootCmd.AddCommand(pullCmd)
-	pullCmd.Flags().StringVar(&platformFlag, "platform", "", "set ClusterImage platform")
 }

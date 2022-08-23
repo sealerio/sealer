@@ -45,7 +45,7 @@ and run it within any cluster with Clusterfile in one command.
 * [sealer run](sealer_run.md)	 - start to run a cluster from a ClusterImage
 * [sealer save](sealer_save.md)	 - save ClusterImage to a tar file
 * [sealer search](sealer_search.md)	 - search ClusterImage in default registry
-* [sealer tag](sealer_tag.md)	 - create a new tag that refers to a local ClusterImage
+* [sealer tag](sealer_tag.md)	 - create one or more tags for local ClusterImage
 * [sealer upgrade](sealer_upgrade.md)	 - upgrade specified Kubernetes cluster
 * [sealer version](sealer_version.md)	 - show sealer and related versions
 

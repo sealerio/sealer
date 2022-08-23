@@ -18,16 +18,18 @@ import (
 	"fmt"
 	"net"
 
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+
+	"github.com/sealerio/sealer/pkg/auth"
+	"github.com/sealerio/sealer/pkg/imageengine"
+
 	"github.com/sealerio/sealer/apply/processor"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
-	"github.com/sealerio/sealer/pkg/image"
-	"github.com/sealerio/sealer/pkg/image/store"
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
-	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
 	osi "github.com/sealerio/sealer/utils/os"
@@ -46,139 +48,163 @@ type Applier struct {
 	ClusterDesired      *v2.Cluster
 	ClusterCurrent      *v2.Cluster
 	ClusterFile         clusterfile.Interface
-	ImageManager        image.Service
+	ImageEngine         imageengine.Interface
 	ClusterImageMounter clusterimage.Interface
 	Client              *k8s.Client
-	ImageStore          store.ImageStore
 	CurrentClusterInfo  *version.Info
 }
 
-func (c *Applier) Delete() (err error) {
+func (applier *Applier) Delete() (err error) {
 	t := metav1.Now()
-	c.ClusterDesired.DeletionTimestamp = &t
-	return c.deleteCluster()
+	applier.ClusterDesired.DeletionTimestamp = &t
+	return applier.deleteCluster()
 }
 
 // Apply different actions between ClusterDesired and ClusterCurrent.
-func (c *Applier) Apply() (err error) {
+func (applier *Applier) Apply() (err error) {
 	// first time to init cluster
-	if c.ClusterFile == nil {
-		c.ClusterFile, err = clusterfile.NewClusterFile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+	if applier.ClusterFile == nil {
+		applier.ClusterFile, err = clusterfile.NewClusterFile(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 		if err != nil {
 			return err
 		}
 	}
 	if !osi.IsFileExist(common.DefaultKubeConfigFile()) {
-		if err = c.initCluster(); err != nil {
+		if err = applier.initCluster(); err != nil {
 			return err
 		}
 	} else {
-		if err = c.reconcileCluster(); err != nil {
+		if err = applier.reconcileCluster(); err != nil {
 			return err
 		}
 	}
 
-	return clusterfile.SaveToDisk(c.ClusterDesired, c.ClusterDesired.Name)
+	return clusterfile.SaveToDisk(applier.ClusterDesired, applier.ClusterDesired.Name)
 }
 
-func (c *Applier) fillClusterCurrent() error {
-	currentCluster, err := GetCurrentCluster(c.Client)
+func (applier *Applier) fillClusterCurrent() error {
+	currentCluster, err := GetCurrentCluster(applier.Client)
 	if err != nil {
 		return errors.Wrap(err, "get current cluster failed")
 	}
 	if currentCluster != nil {
-		c.ClusterCurrent = c.ClusterDesired.DeepCopy()
-		c.ClusterCurrent.Spec.Hosts = currentCluster.Spec.Hosts
+		applier.ClusterCurrent = applier.ClusterDesired.DeepCopy()
+		applier.ClusterCurrent.Spec.Hosts = currentCluster.Spec.Hosts
 	}
 	return nil
 }
 
-func (c *Applier) mountClusterImage() error {
-	imageName := c.ClusterDesired.Spec.Image
-	platsMap, err := ssh.GetClusterPlatform(c.ClusterDesired)
+func (applier *Applier) mountClusterImage() error {
+	imageName := applier.ClusterDesired.Spec.Image
+	platsMap, err := ssh.GetClusterPlatform(applier.ClusterDesired)
 	if err != nil {
 		return err
 	}
-	plats := []*v1.Platform{platform.GetDefaultPlatform()}
+
+	platVisit := map[string]struct{}{}
+	platVisit[platform.GetDefaultPlatform().ToString()] = struct{}{}
 	for _, v := range platsMap {
-		plat := v
-		plats = append(plats, &plat)
+		platVisit[v.ToString()] = struct{}{}
 	}
-	err = c.ImageManager.PullIfNotExist(imageName, plats)
-	if err != nil {
-		return err
+
+	plats := []string{}
+	for k := range platVisit {
+		plats = append(plats, k)
 	}
-	err = c.ClusterImageMounter.MountImage(c.ClusterDesired)
+	// TODO optimize image engine caller.
+	for _, plat := range plats {
+		err = applier.ImageEngine.Pull(&imagecommon.PullOptions{
+			Authfile:   auth.GetDefaultAuthFilePath(),
+			Quiet:      false,
+			TLSVerify:  true,
+			PullPolicy: "missing",
+			Image:      imageName,
+			Platform:   plat,
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	err = applier.ClusterImageMounter.MountImage(applier.ClusterDesired)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Applier) unMountClusterImage() error {
-	return c.ClusterImageMounter.UnMountImage(c.ClusterDesired)
+func (applier *Applier) unMountClusterImage() error {
+	return applier.ClusterImageMounter.UnMountImage(applier.ClusterDesired)
 }
 
-func (c *Applier) reconcileCluster() error {
+func (applier *Applier) reconcileCluster() error {
 	client, err := k8s.Newk8sClient()
 	if err != nil {
 		return err
 	}
-	c.Client = client
-	info, err := c.Client.GetClusterVersion()
+	applier.Client = client
+	info, err := applier.Client.GetClusterVersion()
 	if err != nil {
 		return err
 	}
-	c.CurrentClusterInfo = info
+	applier.CurrentClusterInfo = info
 
-	if err := c.fillClusterCurrent(); err != nil {
+	if err := applier.fillClusterCurrent(); err != nil {
 		return err
 	}
 
-	if err := c.mountClusterImage(); err != nil {
+	if err := applier.mountClusterImage(); err != nil {
 		return err
 	}
 	defer func() {
-		if err := c.unMountClusterImage(); err != nil {
-			logrus.Warnf("failed to umount image(%s): %v", c.ClusterDesired.ClusterName, err)
+		if err := applier.unMountClusterImage(); err != nil {
+			logrus.Warnf("failed to umount image(%s): %v", applier.ClusterDesired.ClusterName, err)
+		}
+
+		if err := applier.ImageEngine.RemoveContainer(&imagecommon.RemoveContainerOptions{
+			All: true,
+		}); err != nil {
+			logrus.Warnf("failed to clean the buildah containers: %v", err)
 		}
 	}()
-
-	baseImage, err := c.ImageStore.GetByName(c.ClusterDesired.Spec.Image, platform.GetDefaultPlatform())
+	image := applier.ClusterDesired.Spec.Image
+	// TODO
+	imageExtension, err := applier.ImageEngine.GetSealerImageExtension(&imagecommon.GetImageAnnoOptions{ImageNameOrID: image})
 	if err != nil {
-		return fmt.Errorf("failed to get base image(%s): %v", baseImage.Name, err)
-	}
-	// if no rootfs ,try to install applications.
-	if baseImage.Spec.ImageConfig.ImageType == common.AppImage {
-		return c.installApp()
+		return err
 	}
 
-	mj, md := strings.Diff(c.ClusterCurrent.GetMasterIPList(), c.ClusterDesired.GetMasterIPList())
-	nj, nd := strings.Diff(c.ClusterCurrent.GetNodeIPList(), c.ClusterDesired.GetNodeIPList())
-	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
-		return c.upgrade()
+	if imageExtension.ImageType == common.AppImage {
+		return applier.installApp()
 	}
-	return c.scaleCluster(mj, md, nj, nd)
+
+	mj, md := strings.Diff(applier.ClusterCurrent.GetMasterIPList(), applier.ClusterDesired.GetMasterIPList())
+	nj, nd := strings.Diff(applier.ClusterCurrent.GetNodeIPList(), applier.ClusterDesired.GetNodeIPList())
+	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+		return applier.upgrade()
+	}
+	return applier.scaleCluster(mj, md, nj, nd)
 }
 
-func (c *Applier) scaleCluster(mj, md, nj, nd []net.IP) error {
+func (applier *Applier) scaleCluster(mj, md, nj, nd []net.IP) error {
 	logrus.Info("Start to scale this cluster")
-	logrus.Debugf("current cluster: master %s, worker %s", c.ClusterCurrent.GetMasterIPList(), c.ClusterCurrent.GetNodeIPList())
+	logrus.Debugf("current cluster: master %s, worker %s", applier.ClusterCurrent.GetMasterIPList(), applier.ClusterCurrent.GetNodeIPList())
 
-	scaleProcessor, err := processor.NewScaleProcessor(c.ClusterFile.GetKubeadmConfig(), c.ClusterFile, mj, md, nj, nd)
+	scaleProcessor, err := processor.NewScaleProcessor(applier.ClusterFile.GetKubeadmConfig(), applier.ClusterFile, mj, md, nj, nd)
 	if err != nil {
 		return err
 	}
 	var cluster *v2.Cluster
 	if !scaleProcessor.(*processor.ScaleProcessor).IsScaleUp {
-		c, err := utils.DecodeCRDFromFile(common.GetClusterWorkClusterfile(c.ClusterDesired.Name), common.Cluster)
+		c, err := utils.DecodeCRDFromFile(common.GetClusterWorkClusterfile(applier.ClusterDesired.Name), common.Cluster)
 		if err != nil {
 			return err
 		} else if c != nil {
 			cluster = c.(*v2.Cluster)
 		}
 	} else {
-		cluster = c.ClusterDesired
+		cluster = applier.ClusterDesired
 	}
 	err = processor.NewExecutor(scaleProcessor).Execute(cluster)
 	if err != nil {
@@ -190,28 +216,28 @@ func (c *Applier) scaleCluster(mj, md, nj, nd []net.IP) error {
 	return nil
 }
 
-func (c *Applier) Upgrade(upgradeImgName string) error {
-	if err := c.initClusterfile(); err != nil {
+func (applier *Applier) Upgrade(upgradeImgName string) error {
+	if err := applier.initClusterfile(); err != nil {
 		return err
 	}
-	if err := c.initK8sClient(); err != nil {
+	if err := applier.initK8sClient(); err != nil {
 		return err
 	}
 
-	c.ClusterDesired.Spec.Image = upgradeImgName
-	if err := c.mountClusterImage(); err != nil {
+	applier.ClusterDesired.Spec.Image = upgradeImgName
+	if err := applier.mountClusterImage(); err != nil {
 		return err
 	}
 	defer func() {
-		if err := c.unMountClusterImage(); err != nil {
-			logrus.Warnf("failed to umount image(%s): %v", c.ClusterDesired.ClusterName, err)
+		if err := applier.unMountClusterImage(); err != nil {
+			logrus.Warnf("failed to umount image(%s): %v", applier.ClusterDesired.ClusterName, err)
 		}
 	}()
-	return c.upgrade()
+	return applier.upgrade()
 }
 
-func (c *Applier) upgrade() error {
-	runtimeInterface, err := kubernetes.NewDefaultRuntime(c.ClusterDesired, c.ClusterFile.GetKubeadmConfig())
+func (applier *Applier) upgrade() error {
+	runtimeInterface, err := kubernetes.NewDefaultRuntime(applier.ClusterDesired, applier.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime: %v", err)
 	}
@@ -220,47 +246,47 @@ func (c *Applier) upgrade() error {
 		return fmt.Errorf("failed to get cluster metadata: %v", err)
 	}
 
-	if c.CurrentClusterInfo.GitVersion == upgradeImgMeta.Version {
-		logrus.Infof("No upgrade required, image version and cluster version are both %s.", c.CurrentClusterInfo.GitVersion)
+	if applier.CurrentClusterInfo.GitVersion == upgradeImgMeta.Version {
+		logrus.Infof("No upgrade required, image version and cluster version are both %s.", applier.CurrentClusterInfo.GitVersion)
 		return nil
 	}
-	logrus.Infof("Start to upgrade this cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
+	logrus.Infof("Start to upgrade this cluster from version(%s) to version(%s)", applier.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
 
-	upgradeProcessor, err := processor.NewUpgradeProcessor(platform.DefaultMountClusterImageDir(c.ClusterDesired.Name), runtimeInterface)
+	upgradeProcessor, err := processor.NewUpgradeProcessor(platform.DefaultMountClusterImageDir(applier.ClusterDesired.Name), runtimeInterface)
 	if err != nil {
 		return err
 	}
-	err = upgradeProcessor.Execute(c.ClusterDesired)
+	err = upgradeProcessor.Execute(applier.ClusterDesired)
 	if err != nil {
 		return err
 	}
-	logrus.Infof("Succeeded in upgrading current cluster from version(%s) to version(%s)", c.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
-	return clusterfile.SaveToDisk(c.ClusterDesired, c.ClusterDesired.Name)
+	logrus.Infof("Succeeded in upgrading current cluster from version(%s) to version(%s)", applier.CurrentClusterInfo.GitVersion, upgradeImgMeta.Version)
+	return clusterfile.SaveToDisk(applier.ClusterDesired, applier.ClusterDesired.Name)
 }
 
-func (c *Applier) initClusterfile() (err error) {
-	if c.ClusterFile != nil {
+func (applier *Applier) initClusterfile() (err error) {
+	if applier.ClusterFile != nil {
 		return nil
 	}
-	c.ClusterFile, err = clusterfile.NewClusterFile(c.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
+	applier.ClusterFile, err = clusterfile.NewClusterFile(applier.ClusterDesired.GetAnnotationsByKey(common.ClusterfileName))
 	return err
 }
 
-func (c *Applier) initK8sClient() error {
+func (applier *Applier) initK8sClient() error {
 	client, err := k8s.Newk8sClient()
-	c.Client = client
+	applier.Client = client
 	if err != nil {
 		return err
 	}
 	info, err := client.GetClusterVersion()
-	c.CurrentClusterInfo = info
+	applier.CurrentClusterInfo = info
 	return err
 }
 
-func (c *Applier) installApp() error {
-	rootfs := platform.DefaultMountClusterImageDir(c.ClusterDesired.Name)
+func (applier *Applier) installApp() error {
+	rootfs := platform.DefaultMountClusterImageDir(applier.ClusterDesired.Name)
 	// use k8sClient to fetch current cluster version.
-	info := c.CurrentClusterInfo
+	info := applier.CurrentClusterInfo
 
 	clusterMetadata, err := runtime.LoadMetadata(rootfs)
 	if err != nil {
@@ -272,11 +298,11 @@ func (c *Applier) installApp() error {
 		}
 	}
 
-	installProcessor, err := processor.NewInstallProcessor(c.ClusterFile)
+	installProcessor, err := processor.NewInstallProcessor(applier.ClusterFile)
 	if err != nil {
 		return err
 	}
-	err = processor.NewExecutor(installProcessor).Execute(c.ClusterDesired)
+	err = processor.NewExecutor(installProcessor).Execute(applier.ClusterDesired)
 	if err != nil {
 		return err
 	}
@@ -284,14 +310,14 @@ func (c *Applier) installApp() error {
 	return nil
 }
 
-func (c *Applier) initCluster() error {
-	logrus.Infof("Start to create a new cluster: master %s, worker %s", c.ClusterDesired.GetMasterIPList(), c.ClusterDesired.GetNodeIPList())
-	createProcessor, err := processor.NewCreateProcessor(c.ClusterFile)
+func (applier *Applier) initCluster() error {
+	logrus.Infof("Start to create a new cluster: master %s, worker %s", applier.ClusterDesired.GetMasterIPList(), applier.ClusterDesired.GetNodeIPList())
+	createProcessor, err := processor.NewCreateProcessor(applier.ClusterFile)
 	if err != nil {
 		return err
 	}
 
-	if err := processor.NewExecutor(createProcessor).Execute(c.ClusterDesired); err != nil {
+	if err := processor.NewExecutor(createProcessor).Execute(applier.ClusterDesired); err != nil {
 		return err
 	}
 
@@ -300,16 +326,16 @@ func (c *Applier) initCluster() error {
 	return nil
 }
 
-func (c *Applier) deleteCluster() error {
-	deleteProcessor, err := processor.NewDeleteProcessor(c.ClusterFile)
+func (applier *Applier) deleteCluster() error {
+	deleteProcessor, err := processor.NewDeleteProcessor(applier.ClusterFile)
 	if err != nil {
 		return err
 	}
-	if err := c.mountClusterImage(); err != nil {
+	if err := applier.mountClusterImage(); err != nil {
 		return err
 	}
 	//deleteProcessor to unmount image
-	if err := processor.NewExecutor(deleteProcessor).Execute(c.ClusterDesired); err != nil {
+	if err := processor.NewExecutor(deleteProcessor).Execute(applier.ClusterDesired); err != nil {
 		return err
 	}
 

@@ -18,17 +18,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"time"
 
+	options "github.com/sealerio/sealer/pkg/define/options"
+
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/utils/os/fs"
 
 	osi "github.com/sealerio/sealer/utils/os"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/env"
-	"github.com/sealerio/sealer/pkg/image"
-	"github.com/sealerio/sealer/pkg/image/store"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/mount"
@@ -42,8 +44,8 @@ type Interface interface {
 }
 
 type mounter struct {
-	imageStore store.ImageStore
-	fs         fs.Interface
+	imageEngine imageengine.Interface
+	fs          fs.Interface
 }
 
 func (m *mounter) MountImage(cluster *v2.Cluster) error {
@@ -77,6 +79,14 @@ func (m *mounter) umountImage(cluster *v2.Cluster) error {
 		}
 	}
 
+	// this will remove all buildah containers
+	if err = m.imageEngine.RemoveContainer(&options.RemoveContainerOptions{
+		ContainerNamesOrIDs: nil,
+		All:                 true,
+	}); err != nil {
+		return fmt.Errorf("remove containers failed, you'd better execute a prune to remove it: %v", err)
+	}
+
 	return m.fs.RemoveAll(mountRootDir)
 }
 
@@ -84,17 +94,18 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 	var (
 		mountDirs = make(map[string]bool)
 		driver    = mount.NewMountDriver()
+		image     = cluster.Spec.Image
 		err       error
 	)
 	clusterPlatform, err := ssh.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
 	}
+
 	clusterPlatform["local"] = *platform.GetDefaultPlatform()
 	for _, v := range clusterPlatform {
 		pfm := v
 		mountDir := platform.GetMountClusterImagePlatformDir(cluster.Name, pfm)
-		upperDir := filepath.Join(mountDir, "upper")
 		if mountDirs[mountDir] {
 			continue
 		}
@@ -110,21 +121,22 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 				return fmt.Errorf("failed to clean %s: %v", mountDir, err)
 			}
 		}
-		Image, err := m.imageStore.GetByName(cluster.Spec.Image, &pfm)
+
+		err = os.MkdirAll(filepath.Dir(mountDir), 0750)
 		if err != nil {
 			return err
 		}
-		layers, err := image.GetImageLayerDirs(Image)
+
+		// build oci image rootfs under graphroot
+		// and the rootfs will be linked to sealer rootfs.
+		_, err = m.imageEngine.BuildRootfs(&options.BuildRootfsOptions{
+			ImageNameOrID: image,
+			DestDir:       mountDir,
+		})
 		if err != nil {
-			return fmt.Errorf("failed to get layers: %v", err)
+			return err
 		}
 
-		if err = m.fs.MkdirAll(upperDir); err != nil {
-			return fmt.Errorf("failed to create upperdir: %s", err)
-		}
-		if err = driver.Mount(mountDir, upperDir, layers...); err != nil {
-			return fmt.Errorf("failed to mount files: %v", err)
-		}
 		// use env list to render image mount dir: etc,charts,manifests.
 		err = renderENV(mountDir, cluster.GetAllIPList(), env.NewEnvProcessor(cluster))
 		if err != nil {
@@ -153,9 +165,9 @@ func renderENV(imageMountDir string, ipList []net.IP, p env.Interface) error {
 	return nil
 }
 
-func NewClusterImageMounter(is store.ImageStore) (Interface, error) {
+func NewClusterImageMounter(ie imageengine.Interface) (Interface, error) {
 	return &mounter{
-		imageStore: is,
-		fs:         fs.NewFilesystem(),
+		imageEngine: ie,
+		fs:          fs.NewFilesystem(),
 	}, nil
 }

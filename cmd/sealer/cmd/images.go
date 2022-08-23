@@ -15,27 +15,12 @@
 package cmd
 
 import (
-	"fmt"
-	"sort"
-	"strings"
-
-	"github.com/olekukonko/tablewriter"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/image"
-	"github.com/sealerio/sealer/pkg/image/reference"
 )
 
-const (
-	imageID           = "IMAGE ID"
-	imageName         = "IMAGE NAME"
-	imageCreate       = "CREATE"
-	imageSize         = "SIZE"
-	imageArch         = "ARCH"
-	imageVariant      = "VARIANT"
-	timeDefaultFormat = "2006-01-02 15:04:05"
-)
+var imagesOpts *options.ImagesOptions
 
 var listCmd = &cobra.Command{
 	Use:   "images",
@@ -45,84 +30,24 @@ var listCmd = &cobra.Command{
 	Args:    cobra.NoArgs,
 	Example: `sealer images`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-
-		ims, err := image.NewImageMetadataService()
+		engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 		if err != nil {
 			return err
 		}
-
-		imageMetadataMap, err := ims.List()
-		if err != nil {
-			return err
-		}
-
-		var summaries = make(ManifestList, 0, len(imageMetadataMap))
-
-		for name, manifestList := range imageMetadataMap {
-			for _, m := range manifestList.Manifests {
-				displayName := name
-				create := m.CREATED.Format(timeDefaultFormat)
-				size := formatSize(m.SIZE)
-				named, err := reference.ParseToNamed(name)
-				if err != nil {
-					return err
-				}
-
-				if reference.IsDefaultDomain(named.Domain()) {
-					displayName = named.RepoTag()
-					splits := strings.Split(displayName, "/")
-					if reference.IsDefaultRepo(splits[0]) {
-						displayName = splits[1]
-					}
-				}
-
-				summaries = append(summaries, ManifestDescriptor{
-					imageName:    displayName,
-					imageID:      m.ID,
-					imageArch:    m.Platform.Architecture,
-					imageVariant: m.Platform.Variant,
-					imageCreate:  create,
-					imageSize:    size})
-			}
-		}
-
-		sort.Sort(sort.Reverse(summaries))
-
-		table := tablewriter.NewWriter(common.StdOut)
-		table.SetHeader([]string{imageName, imageID, imageArch, imageVariant, imageCreate, imageSize})
-
-		for _, md := range summaries {
-			table.Append([]string{md.imageName, md.imageID, md.imageArch, md.imageVariant, md.imageCreate, md.imageSize})
-		}
-
-		table.Render()
-		return nil
+		return engine.Images(imagesOpts)
 	},
 }
 
-type ManifestDescriptor struct {
-	imageName, imageID, imageArch, imageVariant, imageCreate, imageSize string
-}
-
-type ManifestList []ManifestDescriptor
-
-func (r ManifestList) Len() int           { return len(r) }
-func (r ManifestList) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-func (r ManifestList) Less(i, j int) bool { return r[i].imageCreate < r[j].imageCreate }
-
 func init() {
-	rootCmd.AddCommand(listCmd)
-}
+	imagesOpts = &options.ImagesOptions{}
+	flags := listCmd.Flags()
+	flags.BoolVarP(&imagesOpts.All, "all", "a", false, "show all images, including intermediate images from a build")
+	flags.BoolVar(&imagesOpts.Digests, "digests", false, "show digests")
+	flags.BoolVar(&imagesOpts.JSON, "json", false, "output in JSON format")
+	flags.BoolVarP(&imagesOpts.NoHeading, "noheading", "n", false, "do not print column headings")
+	flags.BoolVar(&imagesOpts.NoTrunc, "no-trunc", false, "do not truncate output")
+	flags.BoolVarP(&imagesOpts.Quiet, "quiet", "q", false, "display only image IDs")
+	flags.BoolVarP(&imagesOpts.History, "history", "", false, "display the image name history")
 
-func formatSize(size int64) (Size string) {
-	if size < 1024 {
-		Size = fmt.Sprintf("%.2fB", float64(size)/float64(1))
-	} else if size < (1024 * 1024) {
-		Size = fmt.Sprintf("%.2fKiB", float64(size)/float64(1024))
-	} else if size < (1024 * 1024 * 1024) {
-		Size = fmt.Sprintf("%.2fMiB", float64(size)/float64(1024*1024))
-	} else {
-		Size = fmt.Sprintf("%.2fGiB", float64(size)/float64(1024*1024*1024))
-	}
-	return
+	rootCmd.AddCommand(listCmd)
 }

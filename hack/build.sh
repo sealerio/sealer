@@ -27,6 +27,11 @@ SEALER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 export THIS_PLATFORM_BIN="${SEALER_ROOT}/_output/bin"
 export THIS_PLATFORM_ASSETS="${SEALER_ROOT}/_output/assets"
 
+# fix containers dependency issue
+# https://github.com/containers/image/pull/271/files
+# for btrfs, we just use overlay at present, so there is no need to include btrfs, otherwise we need fix some lib problems
+GO_BUILD_FLAGS="containers_image_openpgp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs"
+
 debug() {
   timestamp=$(date +"[%m%d %H:%M:%S]")
   echo "[debug] ${timestamp} ${1-}" >&2
@@ -99,7 +104,7 @@ build_binaries() {
   tarFile="${GIT_VERSION}-${1-}-${2-}.tar.gz"
 
   debug "!!! build $osarch sealer"
-  GOOS=${1-} GOARCH=${2-} go build -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/cmd/sealer/main.go
+  GOOS=${1-} GOARCH=${2-} go build -tags "${GO_BUILD_FLAGS}" -o $THIS_PLATFORM_BIN/sealer/$osarch/sealer -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/cmd/sealer/main.go
   check $? "build $osarch sealer"
   debug "output bin: $THIS_PLATFORM_BIN/sealer/$osarch/sealer"
   cd ${SEALER_ROOT}/_output/bin/sealer/$osarch/
