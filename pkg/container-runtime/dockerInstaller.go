@@ -28,7 +28,7 @@ type DockerInstaller struct {
 }
 
 func (d *DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
-	RemoteChmod := "cd %s  && chmod +x scripts/* && cd scripts && bash init.sh /var/lib/docker %s %s"
+	RemoteChmod := "cd %s  && chmod +x scripts/* && cd scripts && bash docker.sh /var/lib/docker %s %s"
 	info := &Info{
 		Config{
 			Docker,
@@ -48,7 +48,7 @@ func (d *DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
 }
 
 func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
-	CleanCmd := "cd %s  && chmod +x scripts/* && cd scripts && bash clean.sh"
+	CleanCmd := "cd %s  && chmod +x scripts/* && cd scripts && bash docker-uninstall.sh"
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, CleanCmd)
 		if err != nil {
