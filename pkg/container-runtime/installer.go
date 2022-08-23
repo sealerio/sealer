@@ -22,14 +22,9 @@ import (
 )
 
 const (
-	DefaultDockerSocket  = "/var/run/dockershim.sock"
-	DefaultSystemdDriver = "systemd"
-	Docker               = "docker"
-	DefaultLimitNoFile   = "infinity"
-	Containerd           = "containerd"
+	DefaultDockerSocket = "/var/run/dockershim.sock"
 )
 
-// 容器运行时安装器
 type Installer interface {
 	InstallOn(hosts []net.IP) (*Info, error)
 
@@ -46,12 +41,12 @@ type Config struct {
 }
 
 type Info struct {
-	Config
+	Config    Config
 	CRISocket string
 }
 
 func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
-	if conf.Type == Docker {
+	if conf.Type == "docker" {
 		dockerinstall := &DockerInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
@@ -59,7 +54,7 @@ func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error
 		return dockerinstall, nil
 	}
 
-	if conf.Type == Containerd {
+	if conf.Type == "containerd" {
 		containerdInstaller := &ContainerdInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
@@ -67,7 +62,7 @@ func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error
 		return containerdInstaller, nil
 	}
 
-	if conf.Type != Docker && conf.Type != Containerd {
+	if conf.Type != "docker" && conf.Type != "containerd" {
 		return nil, fmt.Errorf("please enter the correct container type")
 	}
 	return nil, nil
