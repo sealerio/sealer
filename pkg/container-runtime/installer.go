@@ -23,6 +23,7 @@ import (
 
 const (
 	DefaultDockerSocket = "/var/run/dockershim.sock"
+	DockerCertsDir      = "/etc/docker/certs.d"
 )
 
 type Installer interface {

@@ -43,6 +43,7 @@ func (d *DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
 			CgroupDriver: d.Info.CgroupDriver,
 		},
 		CRISocket: DefaultDockerSocket,
+		CertsDir:  DockerCertsDir,
 	}, nil
 }
 
