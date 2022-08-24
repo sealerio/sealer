@@ -41,18 +41,18 @@ type Config struct {
 }
 
 type Info struct {
-	Config    Config
+	Config
 	CRISocket string
-	CertsDir   string
+	CertsDir  string
 }
 
 func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
 	if conf.Type == "docker" {
-		dockerinstall := &DockerInstaller{
+		dockerInstall := &DockerInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
 		}
-		return dockerinstall, nil
+		return dockerInstall, nil
 	}
 
 	if conf.Type == "containerd" {
