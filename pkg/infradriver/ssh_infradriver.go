@@ -24,6 +24,7 @@ import (
 	"github.com/sealerio/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
 	"net"
+	"path/filepath"
 )
 
 type SSHInfraDriver struct {
@@ -156,8 +157,9 @@ func (d *SSHInfraDriver) GetClusterName() string {
 	return d.clusterName
 }
 
-func (d *SSHInfraDriver) GetImageMountDir() string {
-	return common.TheDefaultClusterCertDir(d.clusterName)
+func (d *SSHInfraDriver) GetImageMountDir(platform v1.Platform) string {
+	platPath := fmt.Sprintf("%s_%s_%s", platform.OS, platform.Architecture, platform.Variant)
+	return filepath.Join(d.GetClusterRootfs(), "mount", platPath)
 }
 
 func (d *SSHInfraDriver) GetClusterRootfs() string {

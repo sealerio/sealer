@@ -32,8 +32,8 @@ type InfraDriver interface {
 	//GetClusterRootfs /var/lib/sealer/data/${clusterName}/rootfs
 	GetClusterRootfs() string
 
-	// GetImageMountDir /var/lib/sealer/data/${clusterName}/mount
-	GetImageMountDir() string
+	// GetImageMountDir /var/lib/sealer/data/${clusterName}/mount/${os_arch_variant}
+	GetImageMountDir(platform v1.Platform) string
 
 	// GetClusterBasePath /var/lib/sealer/data/${clusterName}
 	GetClusterBasePath() string
