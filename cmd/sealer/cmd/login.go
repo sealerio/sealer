@@ -24,12 +24,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type LoginFlag struct {
-	RegistryURL      string
-	RegistryUsername string
-	RegistryPasswd   string
-}
-
 var loginConfig *options.LoginOptions
 
 var loginCmd = &cobra.Command{
@@ -55,7 +49,7 @@ func init() {
 	rootCmd.AddCommand(loginCmd)
 	loginCmd.Flags().StringVarP(&loginConfig.Username, "username", "u", "", "user name for login registry")
 	loginCmd.Flags().StringVarP(&loginConfig.Password, "passwd", "p", "", "password for login registry")
-	loginCmd.Flags().StringVar(&loginConfig.AuthFile, "authfile", auth.GetDefaultAuthFilePath(), "path to store auth file after login. It will be $HOME/.sealer/config.json by default.")
+	loginCmd.Flags().StringVar(&loginConfig.AuthFile, "authfile", auth.GetDefaultAuthFilePath(), "path to store auth file after login. It will be $HOME/.sealer/auth.json by default.")
 	loginCmd.Flags().BoolVar(&loginConfig.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry. TLS verification cannot be used when talking to an insecure registry.")
 
 	if err := loginCmd.MarkFlagRequired("username"); err != nil {
