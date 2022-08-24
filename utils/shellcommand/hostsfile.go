@@ -12,16 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package registry
+package shellcommand
 
-type externalConfigurator struct {
-	Registry
+import "fmt"
+
+const (
+	DefaultSealerHostAlias = "#hostalias-set-by-sealer"
+)
+
+func CommandSetHostAlias(hostName, ip string) string {
+	return fmt.Sprintf(`if grep %s /etc/hosts;then sed -i "/%s/d" /etc/hosts; fi;echo "%s %s #%s" >>/etc/hosts`, hostName, hostName, ip, hostName, DefaultSealerHostAlias)
 }
 
-func (c *externalConfigurator) Clean() error {
-	return nil
-}
-
-func (c *externalConfigurator) Init() (Driver, error) {
-	return nil, nil
+func CommandUnSetHostAlias() string {
+	return fmt.Sprintf(`sed -i "/%s/d" /etc/hosts`, DefaultSealerHostAlias)
 }

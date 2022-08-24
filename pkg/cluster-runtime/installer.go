@@ -85,7 +85,7 @@ func (i *Installer) Install() (*Driver, error) {
 	i.RegistryConfig.LocalRegistry.DeployHost = masters[0]
 
 	// TODO, init here or in constructor?
-	i.registryConfigurator, err = registry.NewConfigurator(i.RegistryConfig, crInfo)
+	i.registryConfigurator, err = registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (*Driver, error) {
 	// TODO, how to
 	i.RegistryConfig.LocalRegistry.DeployHost = masters[0]
 
-	i.registryConfigurator, err = registry.NewConfigurator(i.RegistryConfig, crInfo)
+	i.registryConfigurator, err = registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
 	if err != nil {
 		return nil, err
 	}

@@ -1,27 +1,37 @@
-// alibaba-inc.com Inc.
-// Copyright (c) 2004-2022 All Rights Reserved.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
-// @Author : huaiyou.cyz
-// @Time : 2022/8/7 10:29 PM
-// @File : installer
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package container_runtime
 
-import "net"
+import (
+	"fmt"
+	"net"
 
-// 容器运行时安装器
+	"github.com/sealerio/sealer/pkg/infradriver"
+)
+
+const (
+	DefaultDockerSocket = "/var/run/dockershim.sock"
+)
+
 type Installer interface {
-	InstallOn([]net.IP) (Info, error)
+	InstallOn(hosts []net.IP) (*Info, error)
 
-	UnInstallFrom([]net.IP) error
+	UnInstallFrom(hosts []net.IP) error
 
 	//Upgrade() (ContainerRuntimeInfo, error)
 	//Rollback() (ContainerRuntimeInfo, error)
-}
-
-func NewInstaller(conf Config) Installer {
-
 }
 
 type Config struct {
@@ -31,12 +41,30 @@ type Config struct {
 }
 
 type Info struct {
-	Config
+	Config    Config
 	CRISocket string
+	CertsDir   string
 }
 
-// 实现
-type dockerInstaller struct{}
+func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
+	if conf.Type == "docker" {
+		dockerinstall := &DockerInstaller{
+			rootfs: driver.GetClusterRootfs(),
+			driver: driver,
+		}
+		return dockerinstall, nil
+	}
 
-//type containerdInstaller struct{}
-type customContainerRuntimeInstaller struct{}
+	if conf.Type == "containerd" {
+		containerdInstaller := &ContainerdInstaller{
+			rootfs: driver.GetClusterRootfs(),
+			driver: driver,
+		}
+		return containerdInstaller, nil
+	}
+
+	if conf.Type != "docker" && conf.Type != "containerd" {
+		return nil, fmt.Errorf("please enter the correct container type")
+	}
+	return nil, nil
+}

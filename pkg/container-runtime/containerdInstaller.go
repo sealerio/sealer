@@ -12,16 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package registry
+package container_runtime
 
-type externalConfigurator struct {
-	Registry
+import (
+	"net"
+
+	"github.com/sealerio/sealer/pkg/infradriver"
+)
+
+type ContainerdInstaller struct {
+	rootfs string
+	driver infradriver.InfraDriver
 }
 
-func (c *externalConfigurator) Clean() error {
-	return nil
+func (c ContainerdInstaller) InstallOn(hosts []net.IP) (*Info, error) {
+	panic("implement me")
 }
 
-func (c *externalConfigurator) Init() (Driver, error) {
-	return nil, nil
+func (c ContainerdInstaller) UnInstallFrom(hosts []net.IP) error {
+	panic("implement me")
 }
