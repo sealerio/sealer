@@ -14,14 +14,18 @@
 
 package registry
 
-type externalConfigurator struct {
-	Registry
-}
+import (
+	"fmt"
+	"golang.org/x/crypto/bcrypt"
+)
 
-func (c *externalConfigurator) Clean() error {
-	return nil
-}
-
-func (c *externalConfigurator) Init() (Driver, error) {
-	return nil, nil
+func GenerateHTTPBasicAuth(username, password string) (string, error) {
+	if username == "" || password == "" {
+		return "", fmt.Errorf("failed to generate HTTP basic authentication: registry username or password is empty")
+	}
+	pwdHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate registry password: %v", err)
+	}
+	return username + ":" + string(pwdHash), nil
 }

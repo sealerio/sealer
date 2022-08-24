@@ -43,6 +43,7 @@ type Config struct {
 type Info struct {
 	Config    Config
 	CRISocket string
+	CertsDir   string
 }
 
 func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
