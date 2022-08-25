@@ -87,10 +87,23 @@ func (f *Formatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 	if !f.DisableColor {
 		levelColor := getColorByLevel(entry.Level)
-		fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m", levelColor, newLog)
+		//here is the console color format specification example:
+		//var Reset = "\033[0m"
+		//var Red = "\033[31m"
+		//var Green = "\033[32m"
+		//var Yellow = "\033[33m"
+		//var Blue = "\033[34m"
+		//var Purple = "\033[35m"
+		//var Cyan = "\033[36m"
+		//var Gray = "\033[37m"
+		//var White = "\033[97m"
+
+		fmt.Fprintf(b, "\033[%dm%s\033[0m", levelColor, newLog)
 	} else {
 		b.WriteString(newLog)
 	}
+
+	b.WriteByte('\n')
 
 	return b.Bytes(), nil
 }

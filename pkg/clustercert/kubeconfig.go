@@ -263,7 +263,7 @@ func createKubeConfigFileIfNotExists(outDir, filename string, config *clientcmda
 		if !os.IsNotExist(err) {
 			return err
 		}
-		logrus.Infof("[kubeconfig] Writing %q kubeconfig file\n", filename)
+		logrus.Infof("[kubeconfig] Writing %q kubeconfig file", filename)
 		err = WriteToDisk(kubeConfigFilePath, config)
 		if err != nil {
 			return errors.Wrapf(err, "failed to save kubeconfig file %q on disk", kubeConfigFilePath)
