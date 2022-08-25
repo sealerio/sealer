@@ -58,8 +58,7 @@ join default cluster:
 		}
 
 		//TODO mount image and copy to new hosts
-
-		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
 		if err != nil {
 			return err
 		}
