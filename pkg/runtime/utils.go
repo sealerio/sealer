@@ -73,14 +73,14 @@ func GetKubectlAndKubeconfig(ssh ssh.Interface, host, rootfs string) error {
 		return errors.Wrap(err, "failed to add master IP to etc hosts")
 	}
 
-	if !osi.IsFileExist(common.KubectlPath) {
-		err = osi.RecursionCopy(filepath.Join(rootfs, "bin/kubectl"), common.KubectlPath)
+	if !osi.IsCommandExist("kubectl") {
+		err = osi.RecursionCopy(filepath.Join(rootfs, "bin/kubectl"), common.DefaultKubectlPath)
 		if err != nil {
 			return err
 		}
-		err = exec.Cmd("chmod", "+x", common.KubectlPath)
+		err = exec.Cmd("chmod", "+x", common.DefaultKubectlPath)
 		if err != nil {
-			return errors.Wrap(err, "chmod a+x kubectl failed")
+			return errors.Wrap(err, "failed to chmod a+x kubectl")
 		}
 	}
 	return nil

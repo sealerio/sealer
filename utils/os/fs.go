@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 
@@ -29,6 +30,11 @@ import (
 func IsFileExist(fileName string) bool {
 	_, err := os.Stat(fileName)
 	return err == nil || os.IsExist(err)
+}
+
+func IsCommandExist(cmdName string) bool {
+	_, err := exec.LookPath(cmdName)
+	return err == nil
 }
 
 func CountDirFiles(dirName string) int {
