@@ -22,7 +22,7 @@ import (
 )
 
 type DockerInstaller struct {
-	Info   Info
+	Info
 	rootfs string
 	driver infradriver.InfraDriver
 }
@@ -30,10 +30,10 @@ type DockerInstaller struct {
 func (d *DockerInstaller) InstallOn(hosts []net.IP) error {
 	RemoteChmod := "cd %s/scripts && chmod +x docker.sh && bash docker.sh %s %s"
 	for _, ip := range hosts {
-		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, d.Info.Config.CgroupDriver, d.Info.Config.LimitNofile)
+		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, d.Info.CgroupDriver, d.Info.LimitNofile)
 		err := d.driver.CmdAsync(ip, initCmd)
 		if err != nil {
-			return fmt.Errorf("failed to exec on host %s the install docker command remote: %s", ip, err)
+			return fmt.Errorf("failed to execute install command(%s) on host (%s): error(%v)", initCmd, ip, err)
 		}
 	}
 	return nil
@@ -44,7 +44,7 @@ func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, CleanCmd)
 		if err != nil {
-			return fmt.Errorf("failed to exec on host %s uninstall docker command remote: %s", ip, err)
+			return fmt.Errorf("failed to execute clean command(%s) on host (%s): error(%v)", CleanCmd, ip, err)
 		}
 	}
 	return nil
@@ -53,6 +53,7 @@ func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
 func (d DockerInstaller) GetInfo() (Info, error) {
 	info := d.Info
 	info.CRISocket = DefaultDockerSocket
+	info.CertsDir = DockerCertsDir
 
 	return info, nil
 }

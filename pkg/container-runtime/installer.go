@@ -23,6 +23,7 @@ import (
 
 const (
 	DefaultDockerSocket = "/var/run/dockershim.sock"
+	DockerCertsDir      = "/etc/docker/certs.d"
 )
 
 type Installer interface {
@@ -43,21 +44,21 @@ type Config struct {
 }
 
 type Info struct {
-	Config    Config
+	Config
 	CRISocket string
 	CertsDir  string
 }
 
 func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
 	if conf.Type == "docker" {
-		dockerinstall := &DockerInstaller{
+		dockerInstall := &DockerInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
 			Info: Info{
 				Config: conf,
 			},
 		}
-		return dockerinstall, nil
+		return dockerInstall, nil
 	}
 
 	if conf.Type == "containerd" {
