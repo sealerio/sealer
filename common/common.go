@@ -55,7 +55,7 @@ const (
 	DefaultRegistryAuthDir        = "/root/.docker/config.json"
 	KubeAdminConf                 = "/etc/kubernetes/admin.conf"
 	DefaultKubeDir                = "/root/.kube"
-	KubectlPath                   = "/usr/bin/kubectl"
+	DefaultKubectlPath            = "/usr/bin/kubectl"
 	EtcHosts                      = "/etc/hosts"
 	ClusterWorkDir                = "/root/.sealer/%s"
 	RemoteSealerPath              = "/usr/local/bin/sealer"
