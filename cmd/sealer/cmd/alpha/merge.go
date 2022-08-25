@@ -38,7 +38,7 @@ func NewMergeCmd() *cobra.Command {
 		Example: exampleForMergeCmd,
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return errors.New("merge is not implemented yet.")
+			return errors.New("merge is not implemented yet")
 		},
 	}
 
