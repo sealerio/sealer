@@ -180,7 +180,7 @@ func DefaultTheClusterRootfsPluginDir(clusterName string) string {
 }
 
 func TheDefaultClusterPKIDir(clusterName string) string {
-	return filepath.Join(DefaultClusterRootfsDir, clusterName, "pki")
+	return
 }
 
 func TheDefaultClusterCertDir(clusterName string) string {

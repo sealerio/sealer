@@ -20,6 +20,7 @@ import (
 )
 
 type Info struct {
+	URL string
 }
 
 // Driver provide external interaction to work with registry.
@@ -42,7 +43,7 @@ func (l LocalRegistryDriver) GetInfo() Info {
 	return Info{}
 }
 
-func NewLocalRegistryDriver(dataDir string, infraDriver infradriver.InfraDriver) Driver {
+func newLocalRegistryDriver(dataDir string, infraDriver infradriver.InfraDriver) Driver {
 	return LocalRegistryDriver{
 		infraDriver: infraDriver,
 		DataDir:     dataDir,

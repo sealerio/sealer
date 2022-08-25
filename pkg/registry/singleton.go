@@ -50,37 +50,41 @@ func (c *localSingletonConfigurator) Clean() error {
 	return c.infraDriver.CmdAsync(c.DeployHost, fmt.Sprintf(deleteRegistryCommand, "sealer-registry"))
 }
 
-// Init will start local private registry via rootfs scripts.
-func (c *localSingletonConfigurator) Init() (Driver, error) {
+func (c *localSingletonConfigurator) GetDriver() (Driver, error) {
+	return newLocalRegistryDriver(c.DataDir, c.infraDriver), nil
+}
+
+// Reconcile will start local private registry via rootfs scripts.
+func (c *localSingletonConfigurator) Reconcile() error {
 	if err := c.genTLSCerts(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.genBasicAuth(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.initRegistry(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.configureHostsFile(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.configureRegistryCert(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.configureDaemonService(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.configureKubeletAuthInfo(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return NewLocalRegistryDriver(c.DataDir, c.infraDriver), nil
+	return nil
 }
 
 func (c *localSingletonConfigurator) genTLSCerts() error {
@@ -223,7 +227,7 @@ func (c *localSingletonConfigurator) configureDaemonService() error {
 		return nil
 	}
 
-	if c.containerRuntimeInfo.Type == "docker" {
+	if c.containerRuntimeInfo.Config.Type == "docker" {
 		src = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", "daemon.json")
 		dest = "/etc/docker/daemon.json"
 		if err := c.configureDockerDaemonService(endpoint, src); err != nil {
@@ -231,7 +235,7 @@ func (c *localSingletonConfigurator) configureDaemonService() error {
 		}
 	}
 
-	if c.containerRuntimeInfo.Type == "containerd" {
+	if c.containerRuntimeInfo.Config.Type == "containerd" {
 		src = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", "hosts.toml")
 		dest = filepath.Join("/etc/containerd/certs.d", endpoint, "hosts.toml")
 		if err := c.configureContainerdDaemonService(endpoint, src); err != nil {

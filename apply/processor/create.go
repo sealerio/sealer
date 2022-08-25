@@ -40,7 +40,7 @@ import (
 type CreateProcessor struct {
 	ClusterFile       clusterfile.Interface
 	cloudImageMounter clusterimage.Interface
-	Runtime           runtime.Interface
+	Runtime           runtime.Installer
 	Guest             guest.Interface
 	Config            config.Interface
 	Plugins           plugin.Plugins
@@ -139,7 +139,7 @@ func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 }
 
 func (c *CreateProcessor) Init(cluster *v2.Cluster) error {
-	return c.Runtime.Init()
+	return c.Runtime.Install()
 }
 
 func (c *CreateProcessor) Join(cluster *v2.Cluster) error {

@@ -88,11 +88,11 @@ func (k *Runtime) UpdateCert(certs []string) error {
 
 // NewK0sRuntime arg "clusterConfig" is the k0s config file under etc/${ant_name.yaml}, runtime need read k0s config from it
 // Mount image is required before new Runtime.
-func NewK0sRuntime(cluster *v2.Cluster) (runtime.Interface, error) {
+func NewK0sRuntime(cluster *v2.Cluster) (runtime.Installer, error) {
 	return newK0sRuntime(cluster)
 }
 
-func newK0sRuntime(cluster *v2.Cluster) (runtime.Interface, error) {
+func newK0sRuntime(cluster *v2.Cluster) (runtime.Installer, error) {
 	k := &Runtime{
 		cluster: cluster,
 	}

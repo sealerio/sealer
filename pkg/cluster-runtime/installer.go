@@ -15,7 +15,8 @@ import (
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 	"net"
 )
 
@@ -23,23 +24,31 @@ import (
 type RuntimeConfig struct {
 	RegistryConfig         registry.RegistryConfig
 	ContainerRuntimeConfig containerruntime.Config
-	KubeadmConfig          *kubeadm.KubeadmConfig
+	KubeadmConfig          kubeadm_config.KubeadmConfig
 	HookConfig             HookConfig
 }
 
 type Installer struct {
 	RuntimeConfig
 	infraDriver               infradriver.InfraDriver
-	registryConfigurator      registry.Configurator
 	containerRuntimeInstaller containerruntime.Installer
-	kubeRuntimeInstaller      runtime.Interface
 	hooks                     map[Phase][]HookFunc
 }
 
-func NewInstaller(infra infradriver.InfraDriver, conf RuntimeConfig) (*Installer, error) {
-	// set RuntimeConfig and check valid
+func NewInstaller(infra infradriver.InfraDriver, cluster *v2.Cluster) (*Installer, error) {
+	//TODO: use cluster set RuntimeConfig and check valid
 
-	// add hooks
+	installer := Installer{}
+
+	var err error
+	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(conf.ContainerRuntimeConfig, infra)
+	if err != nil {
+		return nil, err
+	}
+
+	installer.RegistryConfig.LocalRegistry.DeployHost = masters[0]
+
+	//TODO: use cluster set hooks
 }
 
 func getWorkerIPList(infraDriver infradriver.InfraDriver) []net.IP {
@@ -61,136 +70,245 @@ func getWorkerIPList(infraDriver infradriver.InfraDriver) []net.IP {
 	return workers
 }
 
-func (i *Installer) Install() (*Driver, error) {
+func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
 	if err := i.runHook(PreInstall); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := i.runHookOnHosts(PreInitHost, all); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var err error
-	i.containerRuntimeInstaller = containerruntime.NewInstaller(i.ContainerRuntimeConfig)
+	if err := i.containerRuntimeInstaller.InstallOn(all); err != nil {
+		return nil, nil, err
+	}
 
-	crInfo, err := i.containerRuntimeInstaller.InstallOn(all)
+	crInfo, err := i.containerRuntimeInstaller.GetInfo()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	// TODO, how to
-	i.RegistryConfig.LocalRegistry.DeployHost = masters[0]
 
 	// TODO, init here or in constructor?
-	i.registryConfigurator, err = registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	registryDriver, err := i.registryConfigurator.Reconcile()
-	if err != nil {
-		return nil, err
+	if err := registryConfigurator.Reconcile(); err != nil {
+		return nil, nil, err
 	}
 
-	i.kubeRuntimeInstaller, err = kubernetes.NewDefaultRuntime(i.KubeadmConfig, registryDriver.GetInfo(), crInfo)
+	registryDriver, err := registryConfigurator.GetDriver()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err := i.kubeRuntimeInstaller.Init(); err != nil {
-		return nil, err
+	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, crInfo, registryDriver.GetInfo())
+	if err != nil {
+		return nil, nil, err
 	}
 
-	runtimeDriver, err := i.kubeRuntimeInstaller.GetCurrentRuntimeDriver()
+	if err := kubeRuntimeInstaller.Install(); err != nil {
+		return nil, nil, err
+	}
+
+	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := i.runHookOnHosts(PostInitHost, all); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := i.runHook(PostInstall); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &Driver{
-		RegistryDriver:    registryDriver,
-		KubeRuntimeDriver: runtimeDriver,
-	}, nil
+	return registryDriver, runtimeDriver, nil
 }
 
-func (i *Installer) UnInstall() error {}
-
-func (i *Installer) GetCurrentDriver() (*Driver, error) {}
-
-func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (*Driver, error) {
+func (i *Installer) UnInstall() error {
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
+	workers := getWorkerIPList(i.infraDriver)
+	all := append(masters, workers...)
 
-	if err := i.runHook(PreInstall); err != nil {
-		return nil, err
+	if err := i.runHook(PreUnInstall); err != nil {
+		return err
+	}
+
+	if err := i.runHookOnHosts(PreCleanHost, all); err != nil {
+		return err
+	}
+
+	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, containerruntime.Info{}, registry.Info{})
+	if err != nil {
+		return err
+	}
+
+	if err := kubeRuntimeInstaller.Reset(); err != nil {
+		return err
+	}
+
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, containerruntime.Info{}, i.infraDriver)
+	if err != nil {
+		return err
+	}
+
+	if err := registryConfigurator.Clean(); err != nil {
+		return err
+	}
+
+	if err := i.containerRuntimeInstaller.UnInstallFrom(all); err != nil {
+		return err
+	}
+
+	if err := i.runHookOnHosts(PostCleanHost, all); err != nil {
+		return err
+	}
+
+	if err := i.runHook(PostUnInstall); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) {
+	crInfo, err := i.containerRuntimeInstaller.GetInfo()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO, init here or in constructor?
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	registryDriver, err := registryConfigurator.GetDriver()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, crInfo, registryDriver.GetInfo())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return registryDriver, runtimeDriver, nil
+}
+
+func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, runtime.Driver, error) {
+	if err := i.runHook(PreScaleUp); err != nil {
+		return nil, nil, err
 	}
 
 	if err := i.runHookOnHosts(PreInitHost, append(newMasters, newWorkers...)); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var err error
-	i.containerRuntimeInstaller = containerruntime.NewInstaller(i.ContainerRuntimeConfig)
+	if err := i.containerRuntimeInstaller.InstallOn(append(newMasters, newWorkers...)); err != nil {
+		return nil, nil, err
+	}
 
-	crInfo, err := i.containerRuntimeInstaller.InstallOn(append(newMasters, newWorkers...))
+	crInfo, err := i.containerRuntimeInstaller.GetInfo()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	// TODO, how to
-	i.RegistryConfig.LocalRegistry.DeployHost = masters[0]
-
-	i.registryConfigurator, err = registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	registryDriver, err := i.registryConfigurator.Reconcile()
+	if err := registryConfigurator.Reconcile(); err != nil {
+		return nil, nil, err
+	}
+
+	registryDriver, err := registryConfigurator.GetDriver()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	i.kubeRuntimeInstaller, err = kubernetes.NewDefaultRuntime(i.KubeadmConfig, registryDriver.GetInfo(), crInfo)
+	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, crInfo, registryDriver.GetInfo())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err := i.kubeRuntimeInstaller.JoinMasters(newMasters); err != nil {
-		return nil, err
+	if err := kubeRuntimeInstaller.ScaleUp(newMasters, newWorkers); err != nil {
+		return nil, nil, err
 	}
 
-	if err := i.kubeRuntimeInstaller.JoinNodes(newWorkers); err != nil {
-		return nil, err
-	}
-
-	runtimeDriver, err := i.kubeRuntimeInstaller.GetCurrentRuntimeDriver()
+	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := i.runHookOnHosts(PostInitHost, append(newMasters, newWorkers...)); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err := i.runHook(PostInstall); err != nil {
-		return nil, err
+	if err := i.runHook(PostScaleUp); err != nil {
+		return nil, nil, err
 	}
 
-	return &Driver{
-		RegistryDriver:    registryDriver,
-		KubeRuntimeDriver: runtimeDriver,
-	}, nil
+	return registryDriver, runtimeDriver, nil
 }
 
-func (i *Installer) ScaleDown(hosts []net.IP) (*Driver, error) {
+func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (registry.Driver, runtime.Driver, error) {
+	if err := i.runHookOnHosts(PreCleanHost, append(mastersToDelete, workersToDelete...)); err != nil {
+		return nil, nil, err
+	}
 
+	crInfo, err := i.containerRuntimeInstaller.GetInfo()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := registryConfigurator.Reconcile(); err != nil {
+		return nil, nil, err
+	}
+
+	registryDriver, err := registryConfigurator.GetDriver()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, crInfo, registryDriver.GetInfo())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := kubeRuntimeInstaller.ScaleDown(mastersToDelete, workersToDelete); err != nil {
+		return nil, nil, err
+	}
+
+	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := i.containerRuntimeInstaller.UnInstallFrom(append(mastersToDelete, workersToDelete...)); err != nil {
+		return nil, nil, err
+	}
+
+	if err := i.runHookOnHosts(PostCleanHost, append(mastersToDelete, workersToDelete...)); err != nil {
+		return nil, nil, err
+	}
+
+	return registryDriver, runtimeDriver, nil
 }

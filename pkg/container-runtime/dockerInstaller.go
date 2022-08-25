@@ -27,23 +27,16 @@ type DockerInstaller struct {
 	driver infradriver.InfraDriver
 }
 
-func (d *DockerInstaller) InstallOn(hosts []net.IP) (*Info, error) {
+func (d *DockerInstaller) InstallOn(hosts []net.IP) error {
 	RemoteChmod := "cd %s/scripts && chmod +x docker.sh && bash docker.sh %s %s"
 	for _, ip := range hosts {
 		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, d.Info.Config.CgroupDriver, d.Info.Config.LimitNofile)
 		err := d.driver.CmdAsync(ip, initCmd)
 		if err != nil {
-			return nil, fmt.Errorf("failed to exec on host %s the install docker command remote: %s", ip, err)
+			return fmt.Errorf("failed to exec on host %s the install docker command remote: %s", ip, err)
 		}
 	}
-	return &Info{
-		Config: Config{
-			Type:         "docker",
-			LimitNofile:  d.Info.Config.LimitNofile,
-			CgroupDriver: d.Info.Config.CgroupDriver,
-		},
-		CRISocket: DefaultDockerSocket,
-	}, nil
+	return nil
 }
 
 func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
@@ -55,4 +48,11 @@ func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
 		}
 	}
 	return nil
+}
+
+func (d DockerInstaller) GetInfo() (Info, error) {
+	info := d.Info
+	info.CRISocket = DefaultDockerSocket
+
+	return info, nil
 }

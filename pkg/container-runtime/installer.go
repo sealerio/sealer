@@ -26,7 +26,9 @@ const (
 )
 
 type Installer interface {
-	InstallOn(hosts []net.IP) (*Info, error)
+	InstallOn(hosts []net.IP) error
+
+	GetInfo() (Info, error)
 
 	UnInstallFrom(hosts []net.IP) error
 
@@ -43,7 +45,7 @@ type Config struct {
 type Info struct {
 	Config    Config
 	CRISocket string
-	CertsDir   string
+	CertsDir  string
 }
 
 func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
@@ -51,6 +53,9 @@ func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error
 		dockerinstall := &DockerInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
+			Info: Info{
+				Config: conf,
+			},
 		}
 		return dockerinstall, nil
 	}
@@ -60,11 +65,9 @@ func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
 		}
+
 		return containerdInstaller, nil
 	}
 
-	if conf.Type != "docker" && conf.Type != "containerd" {
-		return nil, fmt.Errorf("please enter the correct container type")
-	}
-	return nil, nil
+	return nil, fmt.Errorf("please enter the correct container type")
 }

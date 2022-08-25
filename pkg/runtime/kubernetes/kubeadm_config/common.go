@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubeadm
+package kubeadm_config
 
 const (
 	InitConfiguration      = "InitConfiguration"
@@ -27,7 +27,6 @@ const (
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  # advertiseAddress: 192.168.2.110
   bindPort: 6443
 nodeRegistration:
   criSocket: /var/run/dockershim.sock
@@ -36,21 +35,12 @@ nodeRegistration:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 kubernetesVersion: v1.19.8
-#controlPlaneEndpoint: "apiserver.cluster.local:6443"
 imageRepository: sea.hub:5000
 networking:
-  # dnsDomain: cluster.local
   podSubnet: 100.64.0.0/10
   serviceSubnet: 10.96.0.0/22
 apiServer:
-  #  certSANs:
-  #    - 127.0.0.1
-  #    - apiserver.cluster.local
-  #    - aliyun-inc.com
-  #    - 10.0.0.2
-  #    - 10.103.97.2
   extraArgs:
-    #    etcd-servers: https://192.168.2.110:2379
     feature-gates: TTLAfterFinished=true,EphemeralContainers=true
     audit-policy-file: "/etc/kubernetes/audit-policy.yml"
     audit-log-path: "/var/log/kubernetes/audit.log"
@@ -185,6 +175,5 @@ nodeRegistration:
   criSocket: /var/run/dockershim.sock
 controlPlane:
   localAPIEndpoint:
-    # advertiseAddress: 192.168.56.7
     bindPort: 6443`
 )

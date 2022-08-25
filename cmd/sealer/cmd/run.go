@@ -15,19 +15,17 @@
 package cmd
 
 import (
+	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
 )
 
 var runArgs *apply.Args
@@ -83,21 +81,21 @@ create a cluster with custom environment variables:
 			return err
 		}
 
-		// TODO imageService and imageStore?
-		imgSvc, err := image.NewImageService(infraDriver)
+		//TODO mount image and copy to cluster
+
+		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
 		if err != nil {
 			return err
 		}
 
-		if err := imgSvc.Mount(cluster.Spec.Image, infraDriver.GetHostIPList()); err != nil {
-			return err
-		}
-
-		applier, err := apply.NewApplierFromArgs(args[0], runArgs)
+		regDriver, kubeDriver, err := installer.Install()
 		if err != nil {
 			return err
 		}
-		return applier.Apply()
+
+		// TODO install APP
+
+		return
 	},
 }
 

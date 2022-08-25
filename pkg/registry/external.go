@@ -19,9 +19,13 @@ type externalConfigurator struct {
 }
 
 func (c *externalConfigurator) Clean() error {
-	return nil
+	panic("implement external")
 }
 
-func (c *externalConfigurator) Init() (Driver, error) {
-	return nil, nil
+func (c *externalConfigurator) GetDriver() (Driver, error) {
+	panic("implement external")
+}
+
+func (c *externalConfigurator) Reconcile() error {
+	panic("implement external")
 }

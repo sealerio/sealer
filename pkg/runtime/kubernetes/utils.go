@@ -1,4 +1,4 @@
-// Copyright © 2022 Alibaba Group Holding Ltd.
+// Copyright © 2021 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,76 +16,148 @@ package kubernetes
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config/v1beta2"
+	"github.com/sealerio/sealer/utils"
+	versionUtils "github.com/sealerio/sealer/utils/version"
+	"github.com/sirupsen/logrus"
 	"net"
-	"path"
-	"path/filepath"
+	"strconv"
 	"strings"
-
-	"github.com/sealerio/sealer/pkg/clustercert/cert"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils/exec"
-	osi "github.com/sealerio/sealer/utils/os"
-	"github.com/sealerio/sealer/utils/ssh"
-
-	"github.com/pkg/errors"
 )
 
-func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) error {
-	// fetch the cluster kubeconfig, and add /etc/hosts "EIP apiserver.cluster.local" so we can get the current cluster status later
-	err := ssh.CopyR(host, path.Join(common.DefaultKubeConfigDir(), "config"), common.KubeAdminConf)
-	if err != nil {
-		return errors.Wrap(err, "failed to copy kubeconfig")
-	}
-	_, err = exec.RunSimpleCmd(fmt.Sprintf("cat /etc/hosts |grep '%s %s' || echo '%s %s' >> /etc/hosts",
-		host, common.APIServerDomain, host, common.APIServerDomain))
-	if err != nil {
-		return errors.Wrap(err, "failed to add master IP to etc hosts")
-	}
+const (
+	AuditPolicyYml = "audit-policy.yml"
+	KubeadmFileYml = "/etc/kubernetes/kubeadm.yaml"
+	AdminConf      = "admin.conf"
+	ControllerConf = "controller-manager.conf"
+	SchedulerConf  = "scheduler.conf"
+	KubeletConf    = "kubelet.conf"
 
-	if !osi.IsFileExist(common.KubectlPath) {
-		err = osi.RecursionCopy(filepath.Join(rootfs, "bin/kubectl"), common.KubectlPath)
-		if err != nil {
+	// kube file
+	KUBECONTROLLERCONFIGFILE = "/etc/kubernetes/controller-manager.conf"
+	KUBESCHEDULERCONFIGFILE  = "/etc/kubernetes/scheduler.conf"
+
+	StaticPodDir       = "/etc/kubernetes/manifests"
+	LvscarePodFileName = "kube-lvscare.yaml"
+)
+
+const (
+	RemoteAddEtcHosts       = "cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts"
+	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
+	RemoveKubeConfig        = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
+	RemoteCleanK8sOnHost    = `if which kubeadm;then kubeadm reset -f %s;fi && \
+rm -rf /etc/kubernetes/ && \
+rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
+rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
+rm -rf /usr/bin/kubelet && rm -rf /usr/bin/crictl && \
+rm -rf /etc/cni && rm -rf /opt/cni && \
+rm -rf /var/lib/etcd/* && rm -rf /var/etcd/*
+`
+	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
+	RemoteRemoveRegistryCerts    = "rm -rf " + DockerCertDir + "/%s*"
+	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
+	KubeDeleteNode               = "kubectl delete node %s"
+
+	CreateLvscareStaticPod = "mkdir -p %s && echo \"%s\" > %s"
+	RemoteCheckRoute       = "seautil route check --host %s"
+	RemoteAddRoute         = "seautil route add --host %s --gateway %s"
+	RemoteDelRoute         = "if command -v seautil > /dev/null 2>&1; then seautil route del --host %s --gateway %s; fi"
+)
+
+// StaticFile :static file should not be template, will never be changed while initialization.
+type StaticFile struct {
+	DestinationDir string
+	Name           string
+}
+
+//MasterStaticFiles Put static files here, can be moved to all master nodes before kubeadm execution
+var MasterStaticFiles = []*StaticFile{
+	{
+		DestinationDir: "/etc/kubernetes",
+		Name:           AuditPolicyYml,
+	},
+}
+
+func confirmDeleteHosts(role string, nodesToDelete []net.IP) error {
+	if !ForceDelete {
+		if pass, err := utils.ConfirmOperation(fmt.Sprintf("Are you sure to delete these %s: %v? ", role, nodesToDelete)); err != nil {
 			return err
+		} else if !pass {
+			return fmt.Errorf("exit the operation of delete these nodes")
 		}
-		err = exec.Cmd("chmod", "+x", common.KubectlPath)
-		if err != nil {
-			return errors.Wrap(err, "failed to chmod a+x kubectl")
-		}
-	}
-	return nil
-}
-
-func GenerateRegistryCert(registryCertPath string, baseName string) error {
-	regCertConfig := cert.CertificateDescriptor{
-		CommonName:   baseName,
-		DNSNames:     []string{baseName},
-		Organization: []string{common.ExecBinaryFileName},
-		Year:         100,
-	}
-	if baseName != SeaHub {
-		regCertConfig.DNSNames = append(regCertConfig.DNSNames, SeaHub)
-	}
-
-	caGenerator := cert.NewAuthorityCertificateGenerator(regCertConfig)
-	caCert, caKey, err := caGenerator.Generate()
-	if err != nil {
-		return fmt.Errorf("unable to generate %s cert: %v", baseName, err)
-	}
-
-	// write cert file to disk
-	err = cert.NewCertificateFileManger(registryCertPath, baseName).Write(caCert, caKey)
-	if err != nil {
-		return fmt.Errorf("unable to save %s cert: %v", baseName, err)
 	}
 
 	return nil
 }
 
-func getEtcdEndpointsWithHTTPSPrefix(masters []net.IP) string {
-	var tmpSlice []string
-	for _, ip := range masters {
-		tmpSlice = append(tmpSlice, fmt.Sprintf("https://%s:2379", ip))
+// return nodename in k8s cluster, if not found, return "" and error is nil
+func (k *Runtime) getNodeNameByCmd(master, host net.IP) (string, error) {
+	hostString, err := k.infra.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
+
+	if err != nil {
+		return "", err
 	}
-	return strings.Join(tmpSlice, ",")
+
+	cmd := fmt.Sprintf("kubectl get nodes -o wide | grep -v NAME  | grep %s | awk '{print $1}'", host)
+	hostName, _ := k.infra.CmdToString(master, cmd, "")
+	nodeNames := strings.Split(hostString, ",")
+	for _, nodeName := range nodeNames {
+		if strings.TrimSpace(nodeName) == "" {
+			continue
+		} else if strings.EqualFold(nodeName, hostName) {
+			return nodeName, nil
+		}
+	}
+
+	return "", nil
+}
+
+func vlogToStr(vlog int) string {
+	str := strconv.Itoa(vlog)
+	return " -v " + str
+}
+
+type CommandType string
+
+const InitMaster CommandType = "initMaster"
+const JoinMaster CommandType = "joinMaster"
+const JoinNode CommandType = "joinNode"
+
+func (k *Runtime) Command(version, master0IP string, name CommandType, token v1beta2.BootstrapTokenDiscovery, certKey string) (string, error) {
+	//cmds := make(map[CommandType]string)
+	// Please convert your v1beta1 configuration files to v1beta2 using the
+	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
+	cmds := map[CommandType]string{
+		InitMaster: fmt.Sprintf("kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs", k.infra.GetClusterRootfs()),
+		JoinMaster: fmt.Sprintf("kubeadm join %s --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s", net.JoinHostPort(master0IP, "6443"), token.Token, token.CACertHashes, certKey),
+		JoinNode:   fmt.Sprintf("kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s", net.JoinHostPort(k.getAPIServerVIP().String(), "6443"), token.Token, token.CACertHashes),
+	}
+
+	kv := versionUtils.Version(version)
+	cmp, err := kv.Compare(kubeadm_config.V1150)
+	//other version >= 1.15.x
+	if err != nil {
+		logrus.Errorf("failed to compare Kubernetes version: %s", err)
+	}
+	if cmp {
+		cmds[InitMaster] = fmt.Sprintf("kubeadm init --config=%s --upload-certs", KubeadmFileYml)
+		cmds[JoinMaster] = fmt.Sprintf("kubeadm join --config=%s", KubeadmFileYml)
+		cmds[JoinNode] = fmt.Sprintf("kubeadm join --config=%s", KubeadmFileYml)
+	}
+
+	v, ok := cmds[name]
+	if !ok {
+		return "", fmt.Errorf("failed to get kubeadm command: %v", cmds)
+	}
+
+	if runtime.IsInContainer() {
+		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=all"), nil
+	}
+	if name == InitMaster || name == JoinMaster {
+		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=SystemVerification"), nil
+	}
+
+	return fmt.Sprintf("%s%s", v, vlogToStr(k.Config.Vlog)), nil
 }

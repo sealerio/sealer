@@ -25,10 +25,14 @@ type ContainerdInstaller struct {
 	driver infradriver.InfraDriver
 }
 
-func (c ContainerdInstaller) InstallOn(hosts []net.IP) (*Info, error) {
+func (c ContainerdInstaller) InstallOn(hosts []net.IP) error {
 	panic("implement me")
 }
 
 func (c ContainerdInstaller) UnInstallFrom(hosts []net.IP) error {
+	panic("implement me")
+}
+
+func (c ContainerdInstaller) GetInfo() (Info, error) {
 	panic("implement me")
 }

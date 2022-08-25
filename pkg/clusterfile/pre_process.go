@@ -20,8 +20,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/env"
@@ -164,7 +162,7 @@ func (c *ClusterFile) DecodePlugins(data []byte) error {
 }
 
 func (c *ClusterFile) DecodeKubeadmConfig(data []byte) error {
-	kubeadmConfig, err := kubeadm.LoadKubeadmConfigs(string(data), yaml2.DecodeCRDFromString)
+	kubeadmConfig, err := kubeadm_config.LoadKubeadmConfigs(string(data), yaml2.DecodeCRDFromString)
 	if err != nil {
 		return err
 	}

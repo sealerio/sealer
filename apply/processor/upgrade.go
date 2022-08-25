@@ -26,7 +26,7 @@ import (
 
 type UpgradeProcessor struct {
 	fileSystem cloudfilesystem.Interface
-	Runtime    runtime.Interface
+	Runtime    runtime.Installer
 }
 
 // Execute :according to the different of desired cluster to upgrade cluster.
@@ -57,7 +57,7 @@ func (u UpgradeProcessor) Upgrade() error {
 	return u.Runtime.Upgrade()
 }
 
-func NewUpgradeProcessor(rootfs string, rt runtime.Interface) (Interface, error) {
+func NewUpgradeProcessor(rootfs string, rt runtime.Installer) (Interface, error) {
 	// only do upgrade here. cancel scale action.
 	fs, err := filesystem.NewFilesystem(rootfs)
 	if err != nil {

@@ -62,6 +62,8 @@ type InfraDriver interface {
 
 	// GetPlatform Get remote platform
 	GetPlatform(host net.IP) (v1.Platform, error)
+
+	GetHostName(host net.IP) (string, error)
 	// Ping Ping remote host
 	Ping(host net.IP) error
 	// SetHostName add or update host name on host

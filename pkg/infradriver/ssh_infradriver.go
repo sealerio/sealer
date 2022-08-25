@@ -24,6 +24,7 @@ import (
 	"github.com/sealerio/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
 	"net"
+	"strings"
 )
 
 type SSHInfraDriver struct {
@@ -154,6 +155,18 @@ func (d *SSHInfraDriver) SetHostName(host net.IP, hostName string) error {
 
 func (d *SSHInfraDriver) GetClusterName() string {
 	return d.clusterName
+}
+
+func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {
+	hostName, err := d.CmdToString(hostIP, "hostname", "")
+	if err != nil {
+		return "", err
+	}
+	if hostName == "" {
+		return "", fmt.Errorf("faild to get remote hostname of host(%s)", hostIP.String())
+	}
+
+	return strings.ToLower(hostName), nil
 }
 
 func (d *SSHInfraDriver) GetImageMountDir() string {

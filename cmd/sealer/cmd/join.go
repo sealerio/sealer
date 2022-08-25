@@ -15,7 +15,10 @@
 package cmd
 
 import (
+	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
+	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/spf13/cobra"
+	"net"
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
@@ -24,6 +27,8 @@ import (
 
 var clusterName string
 var joinArgs *apply.Args
+
+var newMasters, newWorkers []net.IP
 
 var joinCmd = &cobra.Command{
 	Use:   "join",
@@ -37,19 +42,31 @@ join default cluster:
     sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if clusterName == "" {
-			cn, err := clusterfile.GetDefaultClusterName()
+		var cf clusterfile.Interface
+		if clusterFile != "" {
+			var err error
+			cf, err = clusterfile.NewClusterFile(clusterFile)
 			if err != nil {
 				return err
 			}
-			clusterName = cn
 		}
-		path := common.GetClusterWorkClusterfile(clusterName)
-		applier, err := apply.NewScaleApplierFromArgs(path, joinArgs, common.JoinSubCmd)
+
+		cluster := cf.GetCluster()
+		infraDriver, err := infradriver.NewInfraDriver(&cluster)
 		if err != nil {
 			return err
 		}
-		return applier.Apply()
+
+		//TODO mount image and copy to new hosts
+
+		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = installer.ScaleUp(newMasters, newWorkers)
+
+		return err
 	},
 }
 
@@ -64,7 +81,9 @@ func init() {
 	joinCmd.Flags().StringVar(&joinArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	joinCmd.Flags().StringSliceVarP(&joinArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 
-	joinCmd.Flags().StringVarP(&joinArgs.Masters, "masters", "m", "", "set Count or IPList to masters")
-	joinCmd.Flags().StringVarP(&joinArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
+	joinCmd.Flags().IPSliceVarP(&newMasters, "masters", "m", nil, "set Count or IPList to masters")
+	joinCmd.Flags().IPSliceVarP(&newWorkers, "nodes", "n", nil, "set Count or IPList to nodes")
+	joinCmd.Flags().IPSliceVar(&newWorkers, "workers", nil, "set Count or IPList to nodes")
+
 	joinCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "specify the name of cluster")
 }

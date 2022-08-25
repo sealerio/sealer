@@ -15,11 +15,11 @@
 package cmd
 
 import (
-	"fmt"
+	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
+	"github.com/sealerio/sealer/pkg/infradriver"
+	"net"
 
 	"github.com/sealerio/sealer/apply"
-	"github.com/sealerio/sealer/common"
-
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 
@@ -30,6 +30,9 @@ var (
 	deleteArgs        *apply.Args
 	deleteClusterFile string
 	deleteClusterName string
+	mastersToDelete   []net.IP
+	workersToDelete   []net.IP
+	deleteAll         bool
 )
 
 // deleteCmd represents the delete command
@@ -49,55 +52,56 @@ delete all:
 	sealer delete -c my-cluster [--force]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		all, err := cmd.Flags().GetBool("all")
-		if err != nil {
-			return err
-		}
-		if deleteClusterName == "" && deleteClusterFile == "" {
-			if !all && deleteArgs.Masters == "" && deleteArgs.Nodes == "" {
-				return fmt.Errorf("the delete parameter needs to be set")
-			}
-			deleteClusterName, err = clusterfile.GetDefaultClusterName()
-			if err == clusterfile.ErrClusterNotExist {
-				fmt.Println("Find no exist cluster, skip delete")
-				return nil
-			}
+		var cf clusterfile.Interface
+		if clusterFile != "" {
+			var err error
+			cf, err = clusterfile.NewClusterFile(clusterFile)
 			if err != nil {
 				return err
 			}
-			deleteClusterFile = common.GetClusterWorkClusterfile(deleteClusterName)
-		} else if deleteClusterName != "" && deleteClusterFile != "" {
-			tmpClusterfile := common.GetClusterWorkClusterfile(deleteClusterName)
-			if tmpClusterfile != deleteClusterFile {
-				return fmt.Errorf("arguments error:%s and %s refer to different clusters", deleteClusterFile, tmpClusterfile)
-			}
-		} else if deleteClusterFile == "" {
-			deleteClusterFile = common.GetClusterWorkClusterfile(deleteClusterName)
-		}
-		if deleteArgs.Nodes != "" || deleteArgs.Masters != "" {
-			applier, err := apply.NewScaleApplierFromArgs(deleteClusterFile, deleteArgs, common.DeleteSubCmd)
-			if err != nil {
-				return err
-			}
-			return applier.Apply()
 		}
 
-		applier, err := apply.NewApplierFromFile(deleteClusterFile)
+		cluster := cf.GetCluster()
+		infraDriver, err := infradriver.NewInfraDriver(&cluster)
 		if err != nil {
 			return err
 		}
-		return applier.Delete()
+
+		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		if err != nil {
+			return err
+		}
+
+		if deleteAll {
+			if err = installer.UnInstall(); err != nil {
+				return err
+			}
+		} else {
+			_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
+			if err != nil {
+				return err
+			}
+		}
+
+		//TODO remove files from deleted hosts
+
+		if deleteAll {
+			//TODO umount image
+		}
+
+		return nil
 	},
 }
 
 func init() {
 	deleteArgs = &apply.Args{}
 	rootCmd.AddCommand(deleteCmd)
-	deleteCmd.Flags().StringVarP(&deleteArgs.Masters, "masters", "m", "", "reduce Count or IPList to masters")
-	deleteCmd.Flags().StringVarP(&deleteArgs.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
+	deleteCmd.Flags().IPSliceVarP(&mastersToDelete, "masters", "m", nil, "reduce Count or IPList to masters")
+	deleteCmd.Flags().IPSliceVarP(&workersToDelete, "nodes", "n", nil, "reduce Count or IPList to nodes")
+
 	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
 	deleteCmd.Flags().StringVarP(&deleteClusterName, "cluster", "c", "", "delete a kubernetes cluster with cluster name")
 	deleteCmd.Flags().StringSliceVarP(&deleteArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	deleteCmd.Flags().BoolVar(&kubernetes.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
-	deleteCmd.Flags().BoolP("all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
+	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
 }

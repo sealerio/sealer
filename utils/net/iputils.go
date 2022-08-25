@@ -285,3 +285,19 @@ func IPsToIPStrs(ips []net.IP) []string {
 	}
 	return result
 }
+
+func RemoveIPs(old, toRemove []net.IP) []net.IP {
+	toRmMap := make(map[string]bool)
+	for _, md := range toRemove {
+		toRmMap[md.String()] = true
+	}
+
+	var remains []net.IP
+	for _, m := range old {
+		if _, ok := toRmMap[m.String()]; !ok {
+			remains = append(remains, m)
+		}
+	}
+
+	return remains
+}
