@@ -37,7 +37,6 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/docker/auth"
-	"github.com/sealerio/sealer/pkg/image/distributionutil"
 	"github.com/sealerio/sealer/pkg/image/save/distributionpkg/proxy"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
@@ -243,7 +242,7 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 	case manifestV2, manifestOCI:
 		return imagedigest, nil
 	case manifestList, manifestOCIIndex:
-		imageDigest, err := distributionutil.GetImageManifestDigest(p, platform)
+		imageDigest, err := getImageManifestDigest(p, platform)
 		if err != nil {
 			return "", fmt.Errorf("failed to get digest from manifest list: %v", err)
 		}
@@ -251,7 +250,7 @@ func (is *DefaultImageSaver) handleManifest(manifest distribution.ManifestServic
 	case "":
 		//OCI image or image index - no media type in the content
 		//First see if it is a list
-		imageDigest, _ := distributionutil.GetImageManifestDigest(p, platform)
+		imageDigest, _ := getImageManifestDigest(p, platform)
 		if imageDigest != "" {
 			return imageDigest, nil
 		}
@@ -286,7 +285,7 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 				return err
 			}
 
-			blobList, err := distributionutil.GetBlobList(blobListJSON)
+			blobList, err := getBlobList(blobListJSON)
 			if err != nil {
 				return fmt.Errorf("failed to get blob list: %v", err)
 			}

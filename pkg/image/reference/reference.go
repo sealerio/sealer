@@ -44,18 +44,6 @@ func ParseToNamed(name string) (Named, error) {
 	return named, nil
 }
 
-func IsDefaultTag(tag string) bool {
-	return tag == defaultTag
-}
-
-func IsDefaultDomain(domain string) bool {
-	return domain == defaultDomain
-}
-
-func IsDefaultRepo(repo string) bool {
-	return repo == defaultRepo
-}
-
 func (n Named) String() string {
 	return n.Name()
 }

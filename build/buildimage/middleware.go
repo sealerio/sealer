@@ -98,10 +98,3 @@ func normalizedImageListWithAuth(sec ImageSection) (map[string][]save.Named, err
 	}
 	return domainToImages, nil
 }
-
-func NewMiddlewarePuller(platform v1.Platform) Differ {
-	return MiddlewarePuller{
-		platform: platform,
-		puller:   save.DefaultImageSaver{},
-	}
-}

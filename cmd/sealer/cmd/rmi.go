@@ -18,8 +18,6 @@ import (
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/pkg/image/utils"
 )
 
 var removeOpts *options.RemoveImageOptions
@@ -35,7 +33,6 @@ var rmiCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runRemove(args)
 	},
-	ValidArgsFunction: utils.ImageListFuncForCompletion,
 }
 
 func runRemove(images []string) error {
