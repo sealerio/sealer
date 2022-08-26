@@ -59,7 +59,6 @@ Context 结构体
 
 ```yaml
 BuildContext: 构建的上下文。
-BuildType: 构建的类型。
 UseCache: 标志位，用于检测是否使用缓存。
 ```
 
@@ -157,7 +156,6 @@ ExecContext 结构体
 
 ```yaml
 BuildContext: 构建的上下文。
-BuildType: 构建的类型。
 ContinueCache: 标志位，用于检测是否继续使用缓存，会在每一层layer执行的时候修改。
 ParentID cache.ChainID: 缓存chain id，起始值为 ""。会在每一层layer执行的时候修改为包括当前layer的chain id。
 CacheSvc cache.Service: 缓存layer生成接口，根据当前layer和cache id,生成对应的缓存layer。用于和ParentID一起，生成当前的chain id。

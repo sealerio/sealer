@@ -50,7 +50,7 @@ func GetTestImageName() string {
 }
 
 type ArgsOfBuild struct {
-	KubeFile, ImageName, Context, BuildType string
+	KubeFile, ImageName, Context string
 }
 
 func (a *ArgsOfBuild) SetKubeFile(kubeFile string) *ArgsOfBuild {
@@ -68,11 +68,6 @@ func (a *ArgsOfBuild) SetContext(context string) *ArgsOfBuild {
 	return a
 }
 
-func (a *ArgsOfBuild) SetBuildType(buildType string) *ArgsOfBuild {
-	a.BuildType = buildType
-	return a
-}
-
 func (a *ArgsOfBuild) Build() string {
 	if settings.DefaultSealerBin == "" || a.KubeFile == "" || a.ImageName == "" {
 		return ""
@@ -82,10 +77,7 @@ func (a *ArgsOfBuild) Build() string {
 		a.Context = "."
 	}
 
-	if a.BuildType == "" {
-		a.BuildType = settings.LiteBuild
-	}
-	return fmt.Sprintf("%s build -f %s -t %s -m %s %s -d", settings.DefaultSealerBin, a.KubeFile, a.ImageName, a.BuildType, a.Context)
+	return fmt.Sprintf("%s build -f %s -t %s %s -d", settings.DefaultSealerBin, a.KubeFile, a.ImageName, a.Context)
 }
 
 func NewArgsOfBuild() *ArgsOfBuild {
