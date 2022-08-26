@@ -16,7 +16,6 @@ package options
 
 // BuildOptions should be out of buildah scope.
 type BuildOptions struct {
-	BuildType   string
 	Kubefile    string
 	Tags        []string
 	NoCache     bool

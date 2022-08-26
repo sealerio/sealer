@@ -37,7 +37,6 @@ import (
 type BuildFlag struct {
 	ImageName    string
 	KubefileName string
-	BuildType    string
 	BuildArgs    []string
 	Platform     string
 	NoCache      bool
@@ -157,7 +156,6 @@ func buildSealerImage() error {
 }
 
 func init() {
-	buildCmd.Flags().StringVarP(&buildFlags.BuildType, "mode", "m", "lite", "ClusterImage build type, default is lite")
 	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
 	buildCmd.Flags().StringVar(&buildFlags.Platform, "platform", parse.DefaultPlatform(), "set the target platform, like linux/amd64 or linux/amd64/v7")
 	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always")
