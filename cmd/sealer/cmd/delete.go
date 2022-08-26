@@ -15,9 +15,16 @@
 package cmd
 
 import (
+	"fmt"
+	"net"
+	"strings"
+
+	"github.com/sealerio/sealer/pkg/env"
+
+	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
+
 	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"net"
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -27,12 +34,13 @@ import (
 )
 
 var (
-	deleteArgs        *apply.Args
-	deleteClusterFile string
-	deleteClusterName string
-	mastersToDelete   []net.IP
-	workersToDelete   []net.IP
-	deleteAll         bool
+	deleteArgs                  *apply.Args
+	deleteClusterFile           string
+	deleteClusterName           string
+	mastersToDelete             []net.IP
+	workersToDelete             []net.IP
+	deleteAll                   bool
+	DefaultClusterClearBashFile = "%s/scripts/clean.sh"
 )
 
 // deleteCmd represents the delete command
@@ -76,19 +84,50 @@ delete all:
 			if err = installer.UnInstall(); err != nil {
 				return err
 			}
+			// exec clean.sh
+			ips := infraDriver.GetHostIPList()
+			clusterRootfsDir := infraDriver.GetClusterRootfs()
+			cleanFile := fmt.Sprintf(DefaultClusterClearBashFile, clusterRootfsDir)
+			unmount := fmt.Sprintf("(! mountpoint -q %[1]s || umount -lf %[1]s)", clusterRootfsDir)
+			execClean := fmt.Sprintf("if [ -f \"%[1]s\" ];then chmod +x %[1]s && /bin/bash -c %[1]s;fi", cleanFile)
+			envProcessor := env.NewEnvProcessor(&cluster)
+			cmd := strings.Join([]string{execClean, unmount}, " && ")
+			for _, ip := range ips {
+				err := infraDriver.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd))
+				if err != nil {
+					return err
+				}
+			}
+			//delete rootfs file
+			system, err := cloudfilesystem.NewOverlayFileSystem()
+			if err != nil {
+				return err
+			}
+
+			err = system.UnMountRootfs(&cluster, ips)
+			if err != nil {
+				return err
+			}
+			//todo delete CleanFs
+			err = cloudfilesystem.CleanFilesystem(cluster.Name)
+			if err != nil {
+				return err
+			}
 		} else {
 			_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
 			if err != nil {
 				return err
 			}
+			system, err := cloudfilesystem.NewOverlayFileSystem()
+			if err != nil {
+				return err
+			}
+			hosts := append(mastersToDelete, workersToDelete...)
+			err = system.UnMountRootfs(&cluster, hosts)
+			if err != nil {
+				return err
+			}
 		}
-
-		//TODO remove files from deleted hosts
-
-		if deleteAll {
-			//TODO umount image
-		}
-
 		return nil
 	},
 }
