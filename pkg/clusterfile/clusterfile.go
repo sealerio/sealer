@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
@@ -55,7 +56,7 @@ func (c *ClusterFile) GetKubeadmConfig() *kubeadm.KubeadmConfig {
 }
 
 func NewClusterFile(path string) (Interface, error) {
-	clusterFileData, err := ioutil.ReadFile(path)
+	clusterFileData, err := ioutil.ReadFile(filepath.Clean(path))
 
 	if err != nil {
 		return nil, err

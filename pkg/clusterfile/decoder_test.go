@@ -110,7 +110,7 @@ ipvs:
 				PkPasswd: "xxx",
 			},
 			Hosts: []v2.Host{
-				v2.Host{
+				{
 					IPS:   []net.IP{net.IPv4(192, 168, 0, 2)},
 					Roles: []string{"master"},
 					Env:   []string{"etcd-dir=/data/etcd"},
@@ -120,7 +120,7 @@ ipvs:
 						Port:   "22",
 					},
 				},
-				v2.Host{
+				{
 					IPS:   []net.IP{net.IPv4(192, 168, 0, 3)},
 					Roles: []string{"node", "db"},
 				},
