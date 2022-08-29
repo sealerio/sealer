@@ -15,61 +15,58 @@
 package clusterfile
 
 import (
-	"errors"
-	"sync"
+	"bytes"
+	"fmt"
+	"io/ioutil"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-var ErrTypeNotFound = errors.New("no corresponding type structure was found")
-
-type ClusterFile struct {
-	path       string
-	Cluster    v2.Cluster
-	Configs    []v1.Config
-	KubeConfig *kubeadm.KubeadmConfig
-	Plugins    []v1.Plugin
-}
-
-var (
-	clusterFile = &ClusterFile{}
-	once        sync.Once
-)
-
 type Interface interface {
-	PreProcessor
 	GetCluster() v2.Cluster
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
 	GetKubeadmConfig() *kubeadm.KubeadmConfig
 }
 
+type ClusterFile struct {
+	cluster       v2.Cluster
+	configs       []v1.Config
+	kubeadmConfig kubeadm.KubeadmConfig
+	plugins       []v1.Plugin
+}
+
 func (c *ClusterFile) GetCluster() v2.Cluster {
-	return c.Cluster
+	return c.cluster
 }
 
 func (c *ClusterFile) GetConfigs() []v1.Config {
-	return c.Configs
+	return c.configs
 }
 
 func (c *ClusterFile) GetPlugins() []v1.Plugin {
-	return c.Plugins
+	return c.plugins
 }
 
 func (c *ClusterFile) GetKubeadmConfig() *kubeadm.KubeadmConfig {
-	return c.KubeConfig
+	return &c.kubeadmConfig
 }
 
-func NewClusterFile(path string) (i Interface, err error) {
-	if path == "" {
-		return clusterFile, nil
+func NewClusterFile(path string) (Interface, error) {
+	clusterFileData, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		return nil, err
 	}
-	once.Do(func() {
-		clusterFile.path = path
-		err = clusterFile.Process()
-	})
-	return clusterFile, err
+
+	clusterFile := new(ClusterFile)
+	err = decodeClusterFile(bytes.NewReader(clusterFileData), clusterFile)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to load clusterfile: %v", err)
+	}
+
+	return clusterFile, nil
 }
