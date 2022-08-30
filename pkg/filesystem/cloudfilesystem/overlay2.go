@@ -124,6 +124,7 @@ func unmountRootfs(ipList []net.IP, cluster *v2.Cluster) error {
 			if err != nil {
 				return err
 			}
+
 			return SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd))
 		})
 	}
