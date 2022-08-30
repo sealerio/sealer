@@ -1,0 +1,20 @@
+apiVersion: v1
+data:
+  key1: myConfigMap1
+kind: ConfigMap
+metadata:
+  name: myConfigMap1
+---
+apiVersion: v1
+data:
+  key2: myConfigMap2
+kind: ConfigMap
+metadata:
+  name: myConfigMap2
+---
+apiVersion: v1
+data:
+  key3: myConfigMap3
+kind: ConfigMap
+metadata:
+  name: myConfigMap3

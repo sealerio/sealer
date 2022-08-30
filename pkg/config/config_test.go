@@ -69,28 +69,24 @@ import (
 */
 
 func Test_getMergeConfig(t *testing.T) {
+	configmapData := `data:
+  test-key: test-key
+metadata:
+  namespace: test-namespace
+`
 	type args struct {
 		path string
 		data []byte
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
+		name string
+		args args
 	}{
-		// TODO: Add test cases.
 		{
-			name: "test",
+			name: "test merge each yaml section",
 			args: args{
-				data: []byte("spec:\n  image: kubernetes:v1.19.8"),
-				path: "test/test_clusterfile.yaml",
-			},
-		}, {
-			name: "test",
-			args: args{
-				data: []byte("spec:\n  template:\n    metadata:\n      labels:\n        name: tigera-operatorssssss"),
-				path: "test/tigera-operator.yaml",
+				data: []byte(configmapData),
+				path: "test/configmap.yaml",
 			},
 		},
 	}
@@ -101,7 +97,7 @@ func Test_getMergeConfig(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			err = ioutil.WriteFile(""+tt.args.path, got, common.FileMode0644)
+			err = ioutil.WriteFile(tt.args.path, got, common.FileMode0644)
 			if err != nil {
 				t.Error(err)
 			}

@@ -17,14 +17,14 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
-	"strings"
-
+	"github.com/imdario/mergo"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+	"io/ioutil"
 	k8sv1 "k8s.io/api/core/v1"
+	"path/filepath"
 	k8sYaml "sigs.k8s.io/yaml"
+	"strings"
 
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
@@ -120,56 +120,45 @@ func (c *Dumper) WriteFiles() (err error) {
 	return nil
 }
 
-//merge the contents of data into the path file
-func getMergeConfigData(path string, data []byte) ([]byte, error) {
-	var configs [][]byte
-	context, err := ioutil.ReadFile(filepath.Clean(path))
+//getMergeConfigData merge data to each section of given file with overriding.
+// given file is must be yaml marshalled.
+func getMergeConfigData(filePath string, data []byte) ([]byte, error) {
+	var (
+		configs    [][]byte
+		srcDataMap = make(map[string]interface{})
+	)
+
+	err := yaml.Unmarshal(data, &srcDataMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config data: %v", err)
+	}
+
+	contents, err := ioutil.ReadFile(filepath.Clean(filePath))
 	if err != nil {
 		return nil, err
 	}
-	mergeConfigMap := make(map[string]interface{})
-	err = yaml.Unmarshal(data, &mergeConfigMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal merge map: %v", err)
-	}
-	for _, rawCfgData := range bytes.Split(context, []byte("---\n")) {
-		configMap := make(map[string]interface{})
-		err = yaml.Unmarshal(rawCfgData, &configMap)
+
+	for _, rawCfgData := range bytes.Split(contents, []byte("---\n")) {
+		destConfigMap := make(map[string]interface{})
+
+		err = yaml.Unmarshal(rawCfgData, &destConfigMap)
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal config: %v", err)
+			return nil, fmt.Errorf("failed to unmarshal config data from %s: %v", filePath, err)
 		}
-		if len(configMap) == 0 {
-			continue
+
+		err = mergo.Merge(&destConfigMap, &srcDataMap, mergo.WithOverride)
+		if err != nil {
+			return nil, fmt.Errorf("failed to merge config: %v", err)
 		}
-		deepMerge(&configMap, &mergeConfigMap)
-		cfg, err := k8sYaml.Marshal(&configMap)
+
+		cfg, err := yaml.Marshal(&destConfigMap)
 		if err != nil {
 			return nil, err
 		}
+
 		configs = append(configs, cfg)
 	}
-	return bytes.Join(configs, []byte("\n---\n")), nil
-}
-
-func deepMerge(dst, src *map[string]interface{}) {
-	for srcK, srcV := range *src {
-		dstV, ok := (*dst)[srcK]
-		if !ok {
-			continue
-		}
-		dV, ok := dstV.(map[string]interface{})
-		// dstV is string type
-		if !ok {
-			(*dst)[srcK] = srcV
-			continue
-		}
-		sV, ok := srcV.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		deepMerge(&dV, &sV)
-		(*dst)[srcK] = dV
-	}
+	return bytes.Join(configs, []byte("---\n")), nil
 }
 
 func convertSecretYaml(config v1.Config, configPath string) ([]byte, error) {
