@@ -106,7 +106,6 @@ func (k *Runtime) Install() error {
 	return nil
 }
 
-//TODO implement me
 func (k *Runtime) GetCurrentRuntimeDriver() (runtime.Driver, error) {
 	return nil, nil
 }
