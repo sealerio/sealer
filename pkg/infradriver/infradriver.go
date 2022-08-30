@@ -26,14 +26,13 @@ type InfraDriver interface {
 
 	GetHostIPListByRole(role string) []net.IP
 
+	GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net.IP, error)
+
 	//GetClusterName ${clusterName}
 	GetClusterName() string
 
 	//GetClusterRootfs /var/lib/sealer/data/${clusterName}/rootfs
 	GetClusterRootfs() string
-
-	// GetImageMountDir /var/lib/sealer/data/${clusterName}/mount
-	GetImageMountDir() string
 
 	// GetClusterBasePath /var/lib/sealer/data/${clusterName}
 	GetClusterBasePath() string

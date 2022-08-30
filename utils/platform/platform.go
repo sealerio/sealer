@@ -247,5 +247,5 @@ func DefaultMountClusterImageDir(clusterName string) string {
 }
 
 func GetMountClusterImagePlatformDir(clusterName string, platform v1.Platform) string {
-	return filepath.Join(common.DefaultClusterRootfsDir, clusterName, "mount", fmt.Sprintf("%s_%s_%s", platform.OS, platform.Architecture, platform.Variant))
+	return filepath.Join(common.DefaultSealerDataDir, clusterName, "mount", fmt.Sprintf("%s_%s_%s", platform.OS, platform.Architecture, platform.Variant))
 }

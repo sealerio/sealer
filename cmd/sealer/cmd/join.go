@@ -15,14 +15,16 @@
 package cmd
 
 import (
+	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/common"
 	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
+	"github.com/sealerio/sealer/pkg/clusterfile"
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/spf13/cobra"
 	"net"
-
-	"github.com/sealerio/sealer/apply"
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/clusterfile"
 )
 
 var clusterName string
@@ -57,8 +59,29 @@ join default cluster:
 			return err
 		}
 
-		//TODO mount image and copy to new hosts
-		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
+		imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+		if err != nil {
+			return err
+		}
+
+		distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver)
+		if err != nil {
+			return err
+		}
+
+		var (
+			clusterImageName = cluster.Spec.Image
+			hosts            = append(newMasters, newWorkers...)
+		)
+
+		// distribute rootfs
+		if err = distributor.Distribute(clusterImageName, imagedistributor.FilterOptions{
+			ExceptDirs: []string{"registry"},
+		}, hosts); err != nil {
+			return err
+		}
+
+		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
 		if err != nil {
 			return err
 		}

@@ -15,17 +15,20 @@
 package cmd
 
 import (
-	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
-	"github.com/sealerio/sealer/pkg/infradriver"
-	"os"
-	"path/filepath"
-
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
+	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	"github.com/sealerio/sealer/utils/strings"
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sealerio/sealer/pkg/infradriver"
+	strUtil "github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"net"
+	"os"
+	"path/filepath"
 )
 
 var runArgs *apply.Args
@@ -38,16 +41,13 @@ var runCmd = &cobra.Command{
 create cluster to your bare metal server, appoint the iplist:
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 		--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
-
 specify server SSH port :
   All servers use the same SSH port (default port: 22):
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --port 24 --passwd xxx
-
   Different SSH port numbers exist:
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3:23,192.168.0.4:24 \
 	--nodes 192.168.0.5:25,192.168.0.6:25,192.168.0.7:27 --passwd xxx
-
 create a cluster with custom environment variables:
 	sealer run -e DashBoardPort=8443 mydashboard:latest  --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
@@ -66,6 +66,7 @@ create a cluster with custom environment variables:
 		//	runArgs.Masters = ip
 		//}
 
+		//todo merge args from commandline , write to disk.
 		var cf clusterfile.Interface
 		if clusterFile != "" {
 			var err error
@@ -76,13 +77,43 @@ create a cluster with custom environment variables:
 		}
 
 		cluster := cf.GetCluster()
+
 		infraDriver, err := infradriver.NewInfraDriver(&cluster)
 		if err != nil {
 			return err
 		}
 
-		//TODO mount image and copy to cluster
-		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
+		imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+		if err != nil {
+			return err
+		}
+
+		distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver)
+		if err != nil {
+			return err
+		}
+
+		var (
+			clusterImageName = cluster.Spec.Image
+			hosts            = infraDriver.GetHostIPList()
+			master0          = infraDriver.GetHostIPListByRole("master")[0]
+		)
+
+		// distribute registry
+		if err = distributor.Distribute(clusterImageName, imagedistributor.FilterOptions{
+			OnlyDirs: []string{"registry"},
+		}, []net.IP{master0}); err != nil {
+			return err
+		}
+
+		// distribute rootfs
+		if err = distributor.Distribute(clusterImageName, imagedistributor.FilterOptions{
+			ExceptDirs: []string{"registry"},
+		}, hosts); err != nil {
+			return err
+		}
+
+		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
 		if err != nil {
 			return err
 		}
@@ -93,7 +124,8 @@ create a cluster with custom environment variables:
 		}
 
 		// TODO install APP
-
+		// todo render app env data
+		// todo dump app config
 		return nil
 	},
 }
@@ -114,7 +146,7 @@ func init() {
 	runCmd.Flags().StringSliceVar(&runArgs.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
+		return strUtil.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
 		logrus.Errorf("provide completion for provider flag, err: %v", err)

@@ -169,8 +169,24 @@ func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {
 	return strings.ToLower(hostName), nil
 }
 
-func (d *SSHInfraDriver) GetImageMountDir() string {
-	return common.TheDefaultClusterCertDir(d.clusterName)
+func (d *SSHInfraDriver) GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net.IP, error) {
+	hostsPlatformMap := make(map[v1.Platform][]net.IP)
+
+	for _, ip := range hosts {
+		plat, err := d.GetPlatform(ip)
+		if err != nil {
+			return nil, err
+		}
+
+		_, ok := hostsPlatformMap[plat]
+		if !ok {
+			hostsPlatformMap[plat] = []net.IP{ip}
+		} else {
+			hostsPlatformMap[plat] = append(hostsPlatformMap[plat], ip)
+		}
+	}
+
+	return hostsPlatformMap, nil
 }
 
 func (d *SSHInfraDriver) GetClusterRootfs() string {
@@ -188,7 +204,7 @@ func (d *SSHInfraDriver) ConcurrencyExecute(f func(host net.IP) error) error {
 		eg.Go(func() error {
 			err := f(host)
 			if err != nil {
-				return fmt.Errorf("on host [%s]: %v", ip.String(), err)
+				return fmt.Errorf("on host [%s]: %v", host.String(), err)
 			}
 			return nil
 		})
