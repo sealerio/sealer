@@ -17,7 +17,6 @@ package cloudfilesystem
 import (
 	"context"
 	"fmt"
-	"github.com/sealerio/sealer/pkg/infradriver"
 	"net"
 	"strings"
 	"sync"
@@ -121,11 +120,11 @@ func unmountRootfs(ipList []net.IP, cluster *v2.Cluster) error {
 	for _, IP := range ipList {
 		ip := IP
 		eg.Go(func() error {
-			driver, err := infradriver.NewInfraDriver(cluster)
+			SSH, err := ssh.GetHostSSHClient(ip, cluster)
 			if err != nil {
 				return err
 			}
-			return driver.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd))
+			return SSH.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd))
 		})
 	}
 	return eg.Wait()
