@@ -15,16 +15,13 @@
 package config
 
 import (
-	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"os"
 	"testing"
 
-	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_getMergeConfig(t *testing.T) {
-	testFileData := `apiVersion: v1
+	testSrcData := `apiVersion: v1
 data:
   key1: myConfigMap1
 kind: ConfigMap
@@ -46,7 +43,7 @@ metadata:
   name: myConfigMap3
 `
 
-	wantedFileData := `apiVersion: v1
+	wantedData := `apiVersion: v1
 data:
     key1: myConfigMap1
     test-key: test-key
@@ -80,16 +77,9 @@ metadata:
   namespace: test-namespace
 `
 
-	filename := "/tmp/test-configmap"
-	err := ioutil.WriteFile(filename, []byte(testFileData), os.ModePerm)
-	if err != nil {
-		t.Error(err)
-	}
-	defer os.Remove(filename)
-
 	type args struct {
-		path string
-		data []byte
+		src        []byte
+		configData []byte
 	}
 	tests := []struct {
 		name string
@@ -98,20 +88,20 @@ metadata:
 		{
 			name: "add namespace to each configmap",
 			args: args{
-				data: []byte(configmapData),
-				path: filename,
+				configData: []byte(configmapData),
+				src:        []byte(testSrcData),
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getMergeConfigData(tt.args.path, tt.args.data)
+			got, err := getMergeConfigData(tt.args.src, tt.args.configData)
 			if err != nil {
 				assert.Errorf(t, err, "failed to MergeConfigData")
 				return
 			}
-			assert.Equal(t, wantedFileData, string(got))
+			assert.Equal(t, wantedData, string(got))
 		})
 	}
 }
@@ -147,46 +137,32 @@ metadata:
   creationTimestamp: null
 `
 
-	filename := "/tmp/test-secret"
-	err := ioutil.WriteFile(filename, []byte(testFileData), os.ModePerm)
-	if err != nil {
-		t.Error(err)
-	}
-	defer os.Remove(filename)
-
-	testConfig := v1.Config{
-		Spec: v1.ConfigSpec{
-			Data: configData,
-		},
-	}
-
 	type args struct {
-		config     v1.Config
-		configPath string
-		wanted     string
+		src        []byte
+		configData []byte
+		wanted     []byte
 	}
 	tests := []struct {
 		name string
 		args args
 	}{
 		{
-			"test secret convert to file (file exist)",
+			"test secret convert with src",
 			args{
-				config: testConfig, configPath: filename, wanted: secretFileExistWanted},
+				src: []byte(testFileData), configData: []byte(configData), wanted: []byte(secretFileExistWanted)},
 		},
 		{
-			"test secret convert to file (file not exist)",
-			args{testConfig, "test/secret1.yaml", secretFileNotExistWanted},
-		},
+			"test secret convert without src",
+			args{src: nil, configData: []byte(configData), wanted: []byte(secretFileNotExistWanted)}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := convertSecretYaml(tt.args.config, tt.args.configPath)
+			got, err := convertSecretYaml(tt.args.src, tt.args.configData)
 			if err != nil {
 				t.Errorf("convertSecretYaml() error = %v", err)
 				return
 			}
-			assert.Equal(t, tt.args.wanted, string(got))
+			assert.Equal(t, tt.args.wanted, got)
 		})
 	}
 }

@@ -45,7 +45,7 @@ func (i *InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, err
 }
 
 func (i *InstallProcessor) Process(cluster *v2.Cluster) error {
-	i.Config = config.NewConfiguration(cluster)
+	i.Config = config.NewConfiguration(platform.DefaultMountClusterImageDir(cluster.Name))
 	i.Plugins = plugin.NewPlugins(cluster, i.clusterFile.GetPlugins())
 	return nil
 }

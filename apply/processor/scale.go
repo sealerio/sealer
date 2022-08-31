@@ -16,6 +16,7 @@ package processor
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/utils/platform"
 	"net"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
@@ -77,7 +78,7 @@ func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
 		return fmt.Errorf("failed to init default runtime: %v", err)
 	}
 	s.Runtime = runTime
-	s.Config = config.NewConfiguration(cluster)
+	s.Config = config.NewConfiguration(platform.DefaultMountClusterImageDir(cluster.Name))
 	if s.IsScaleUp {
 		if err = clusterfile.SaveToDisk(cluster, cluster.Name); err != nil {
 			return err
