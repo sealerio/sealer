@@ -17,36 +17,17 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"github.com/imdario/mergo"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
-	k8sv1 "k8s.io/api/core/v1"
 	"path/filepath"
-	k8sYaml "sigs.k8s.io/yaml"
-	"strings"
 
+	"github.com/imdario/mergo"
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/os"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
-
-/*
-config in Clusterfile:
-
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Config
-metadata:
-  name: redis-config
-spec:
-  path: etc/redis-config.yaml
-  data: |
-       redis-user: root
-       redis-passwd: xxx
-
-Dump will dump the config to etc/redis-config.yaml file
-*/
 
 const (
 	Merge     = "merge"
@@ -81,7 +62,7 @@ func (c *Dumper) Dump(configs []v1.Config) error {
 	return nil
 }
 
-func (c *Dumper) WriteFiles() (err error) {
+func (c *Dumper) WriteFiles() error {
 	if c.Configs == nil {
 		logrus.Debug("empty config found")
 		return nil
@@ -89,30 +70,33 @@ func (c *Dumper) WriteFiles() (err error) {
 	for _, config := range c.Configs {
 		configData := []byte(config.Spec.Data)
 		mountRoot := filepath.Join(common.DefaultClusterRootfsDir, c.Cluster.Name, "mount")
+
 		mountDirs, err := ioutil.ReadDir(mountRoot)
 		if err != nil {
 			return err
 		}
-		convertSecret := strings.Contains(config.Spec.Process, toSecretProcessorName)
+
 		for _, f := range mountDirs {
 			if !f.IsDir() {
 				continue
 			}
+
 			configPath := filepath.Join(mountRoot, f.Name(), config.Spec.Path)
-			if convertSecret {
-				if configData, err = convertSecretYaml(config, configPath); err != nil {
-					return fmt.Errorf("faild to convert to secret file: %v", err)
-				}
+			if !os.IsFileExist(configPath) {
+				continue
 			}
-			//only the YAML format is supported
-			if os.IsFileExist(configPath) && !convertSecret && config.Spec.Strategy == Merge {
+			//Only files in yaml format are supported.
+			//if Strategy is "Merge" will deeply merge each yaml file section.
+			//if not, overwrite the hole file content with config data.
+			if config.Spec.Strategy == Merge {
 				if configData, err = getMergeConfigData(configPath, configData); err != nil {
 					return err
 				}
 			}
+
 			err = os.NewCommonWriter(configPath).WriteFile(configData)
 			if err != nil {
-				return fmt.Errorf("write config file failed %v", err)
+				return fmt.Errorf("failed to write config file %s: %v", configPath, err)
 			}
 		}
 	}
@@ -151,7 +135,7 @@ func getMergeConfigData(filePath string, data []byte) ([]byte, error) {
 			return nil, fmt.Errorf("failed to merge config: %v", err)
 		}
 
-		cfg, err := yaml.Marshal(&destConfigMap)
+		cfg, err := yaml.Marshal(destConfigMap)
 		if err != nil {
 			return nil, err
 		}
@@ -159,30 +143,4 @@ func getMergeConfigData(filePath string, data []byte) ([]byte, error) {
 		configs = append(configs, cfg)
 	}
 	return bytes.Join(configs, []byte("---\n")), nil
-}
-
-func convertSecretYaml(config v1.Config, configPath string) ([]byte, error) {
-	secret := k8sv1.Secret{}
-	dataMap := make(map[string]string)
-	if err := k8sYaml.Unmarshal([]byte(config.Spec.Data), &dataMap); err != nil {
-		return nil, err
-	}
-	if os.IsFileExist(configPath) {
-		rawData, err := ioutil.ReadFile(filepath.Clean(configPath))
-		if err != nil {
-			return nil, err
-		}
-		if err = k8sYaml.Unmarshal(rawData, &secret); err != nil {
-			return nil, err
-		}
-	}
-	if secret.Data == nil {
-		secret.Data = make(map[string][]byte)
-	}
-	//set secret data
-	for k, v := range dataMap {
-		v := []byte(v)
-		secret.Data[k] = v
-	}
-	return k8sYaml.Marshal(secret)
 }

@@ -30,7 +30,6 @@ const (
 	valueProcessorName    = "value"
 	toJSONProcessorName   = "toJson"
 	toBase64ProcessorName = "toBase64"
-	toSecretProcessorName = "toSecret"
 	trueLabelValue        = "true"
 	trueLabelKey          = "preprocess.value"
 )
@@ -44,7 +43,6 @@ func NewProcessorsAndRun(config *v1.Config) error {
 		valueProcessorName:    &valueProcessor{},
 		toJSONProcessorName:   &toJSONProcessor{},
 		toBase64ProcessorName: &toBase64Processor{},
-		toSecretProcessorName: nil,
 	}
 
 	processors := strings.Split(config.Spec.Process, "|")
