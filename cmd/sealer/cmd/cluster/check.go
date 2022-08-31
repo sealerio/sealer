@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package cluster
 
 import (
 	"fmt"
@@ -29,29 +29,30 @@ type CheckArgs struct {
 
 var checkArgs *CheckArgs
 
-// pushCmd represents the push command
-var checkCmd = &cobra.Command{
-	Use:   "check",
-	Short: "check the state of cluster",
-	Long: `check command is used to check status of the cluster, including node status
-, service status and pod status.`,
-	Example: `sealer check --pre or sealer check --post`,
-	Args:    cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if checkArgs.Pre && checkArgs.Post {
-			return fmt.Errorf("don't allow to set two flags --pre and --post")
-		}
-		list := []checker.Interface{checker.NewNodeChecker(), checker.NewSvcChecker(), checker.NewPodChecker()}
-		if checkArgs.Pre {
-			return checker.RunCheckList(list, nil, checker.PhasePre)
-		}
-		return checker.RunCheckList(list, nil, checker.PhasePost)
-	},
-}
+var longNewCheckCmdDescription = `check command is used to check status of the cluster, including node status
+, service status and pod status.`
 
-func init() {
+// NewCheckCmd pushCmd represents the push command
+func NewCheckCmd() *cobra.Command {
+	checkCmd := &cobra.Command{
+		Use:     "check",
+		Short:   "check the state of cluster",
+		Long:    longNewCheckCmdDescription,
+		Example: `sealer check --pre or sealer check --post`,
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if checkArgs.Pre && checkArgs.Post {
+				return fmt.Errorf("don't allow to set two flags --pre and --post")
+			}
+			list := []checker.Interface{checker.NewNodeChecker(), checker.NewSvcChecker(), checker.NewPodChecker()}
+			if checkArgs.Pre {
+				return checker.RunCheckList(list, nil, checker.PhasePre)
+			}
+			return checker.RunCheckList(list, nil, checker.PhasePost)
+		},
+	}
 	checkArgs = &CheckArgs{}
-	rootCmd.AddCommand(checkCmd)
 	checkCmd.Flags().BoolVar(&checkArgs.Pre, "pre", false, "Check dependencies before cluster creation")
 	checkCmd.Flags().BoolVar(&checkArgs.Post, "post", false, "Check the status of the cluster after it is created")
+	return checkCmd
 }

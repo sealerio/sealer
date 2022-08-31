@@ -19,14 +19,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var upgradeClusterName string
-
 var exampleForUpgradeCmd = `The following command will upgrade the current cluster to kubernetes:v1.19.9
 sealer alpha upgrade kubernetes:v1.19.9
 `
-
 var longUpgradeCmdDescription = `Sealer upgrade command will upgrade the current cluster to the specified version with the ClusterImage using kubeadm upgrade
 `
+
+var upgradeClusterName string
 
 // NewUpgradeCmd implement the sealer upgrade command
 func NewUpgradeCmd() *cobra.Command {

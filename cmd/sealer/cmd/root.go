@@ -19,6 +19,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/cmd/sealer/cmd/cluster"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/image"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/alpha"
 
 	"github.com/sealerio/sealer/pkg/logger"
@@ -48,6 +51,11 @@ const (
 	colorModeAlways = "always"
 )
 
+var longRootCmdDescription = `sealer is a tool to seal application's all dependencies and Kubernetes
+into ClusterImage by Kubefile, distribute this application anywhere via ClusterImage, 
+and run it within any cluster with Clusterfile in one command.
+`
+
 var supportedColorModes = []string{
 	colorModeNever,
 	colorModeAlways,
@@ -55,12 +63,9 @@ var supportedColorModes = []string{
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "sealer",
-	Short: "A tool to build, share and run any distributed applications.",
-	Long: `sealer is a tool to seal application's all dependencies and Kubernetes
-into ClusterImage by Kubefile, distribute this application anywhere via ClusterImage, 
-and run it within any cluster with Clusterfile in one command.
-`,
+	Use:           "sealer",
+	Short:         "A tool to build, share and run any distributed applications.",
+	Long:          longRootCmdDescription,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
@@ -77,7 +82,10 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.AddCommand(alpha.NewCmdAlpha())
+	rootCmd.AddCommand(alpha.NewCmdAlpha(), image.NewCmdImage(), NewCompletionCmd(), NewVersionCmd(),
+		cluster.NewApplyCmd(), cluster.NewCheckCmd(), cluster.NewDeleteCmd(), cluster.NewJoinCmd(), cluster.NewRunCmd(),
+		image.NewBuildCmd(), image.NewGenDocCommand(), image.NewListCmd(), image.NewInspectCmd(), image.NewLoadCmd(), image.NewLoginCmd(),
+		image.NewLogoutCmd(), image.NewPullCmd(), image.NewPushCmd(), image.NewRmiCmd(), image.NewSaveCmd(), image.NewSearchCmd(), image.NewTagCmd())
 
 	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file of sealer tool (default is $HOME/.sealer.json)")
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")

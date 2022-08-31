@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"github.com/sealerio/sealer/pkg/auth"
@@ -23,26 +23,25 @@ import (
 
 var logoutConfig *options.LogoutOptions
 
-var logoutCmd = &cobra.Command{
-	Use:   "logout",
-	Short: "logout from image registry",
-	// TODO: add long description.
-	Long:    "",
-	Example: `sealer logout registry.cn-qingdao.aliyuncs.com`,
-	Args:    cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		adaptor, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-		if err != nil {
-			return err
-		}
-		logoutConfig.Domain = args[0]
+func NewLogoutCmd() *cobra.Command {
+	logoutCmd := &cobra.Command{
+		Use:   "logout",
+		Short: "logout from image registry",
+		// TODO: add long description.
+		Long:    "",
+		Example: `sealer logout registry.cn-qingdao.aliyuncs.com`,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			adaptor, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+			logoutConfig.Domain = args[0]
 
-		return adaptor.Logout(logoutConfig)
-	},
-}
-
-func init() {
+			return adaptor.Logout(logoutConfig)
+		},
+	}
 	logoutConfig = &options.LogoutOptions{}
-	rootCmd.AddCommand(logoutCmd)
 	logoutCmd.Flags().StringVar(&logoutConfig.Authfile, "authfile", auth.GetDefaultAuthFilePath(), "path to store auth file after login. It will be $HOME/.sealer/auth.json by default.")
+	return logoutCmd
 }
