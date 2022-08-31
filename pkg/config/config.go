@@ -17,6 +17,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"github.com/imdario/mergo"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -31,22 +32,6 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/os"
 )
-
-/*
-config in Clusterfile:
-
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Config
-metadata:
-  name: redis-config
-spec:
-  path: etc/redis-config.yaml
-  data: |
-       redis-user: root
-       redis-passwd: xxx
-
-Dump will dump the config to etc/redis-config.yaml file
-*/
 
 const (
 	Merge     = "merge"
@@ -81,7 +66,7 @@ func (c *Dumper) Dump(configs []v1.Config) error {
 	return nil
 }
 
-func (c *Dumper) WriteFiles() (err error) {
+func (c *Dumper) WriteFiles() error {
 	if c.Configs == nil {
 		logrus.Debug("empty config found")
 		return nil
@@ -104,7 +89,10 @@ func (c *Dumper) WriteFiles() (err error) {
 					return fmt.Errorf("faild to convert to secret file: %v", err)
 				}
 			}
-			//only the YAML format is supported
+
+			//Only files in yaml format are supported.
+			//if Strategy is "Merge" will deeply merge each yaml file section.
+			//if not, overwrite the whole file content with config data.
 			if os.IsFileExist(configPath) && !convertSecret && config.Spec.Strategy == Merge {
 				if configData, err = getMergeConfigData(configPath, configData); err != nil {
 					return err
@@ -112,7 +100,7 @@ func (c *Dumper) WriteFiles() (err error) {
 			}
 			err = os.NewCommonWriter(configPath).WriteFile(configData)
 			if err != nil {
-				return fmt.Errorf("write config file failed %v", err)
+				return fmt.Errorf("failed to write config file %s: %v", configPath, err)
 			}
 		}
 	}
@@ -120,56 +108,45 @@ func (c *Dumper) WriteFiles() (err error) {
 	return nil
 }
 
-//merge the contents of data into the path file
-func getMergeConfigData(path string, data []byte) ([]byte, error) {
-	var configs [][]byte
-	context, err := ioutil.ReadFile(filepath.Clean(path))
+//getMergeConfigData merge data to each section of given file with overriding.
+// given file is must be yaml marshalled.
+func getMergeConfigData(filePath string, data []byte) ([]byte, error) {
+	var (
+		configs    [][]byte
+		srcDataMap = make(map[string]interface{})
+	)
+
+	err := yaml.Unmarshal(data, &srcDataMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config data: %v", err)
+	}
+
+	contents, err := ioutil.ReadFile(filepath.Clean(filePath))
 	if err != nil {
 		return nil, err
 	}
-	mergeConfigMap := make(map[string]interface{})
-	err = yaml.Unmarshal(data, &mergeConfigMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal merge map: %v", err)
-	}
-	for _, rawCfgData := range bytes.Split(context, []byte("---\n")) {
-		configMap := make(map[string]interface{})
-		err = yaml.Unmarshal(rawCfgData, &configMap)
+
+	for _, rawCfgData := range bytes.Split(contents, []byte("---\n")) {
+		destConfigMap := make(map[string]interface{})
+
+		err = yaml.Unmarshal(rawCfgData, &destConfigMap)
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal config: %v", err)
+			return nil, fmt.Errorf("failed to unmarshal config data from %s: %v", filePath, err)
 		}
-		if len(configMap) == 0 {
-			continue
+
+		err = mergo.Merge(&destConfigMap, &srcDataMap, mergo.WithOverride)
+		if err != nil {
+			return nil, fmt.Errorf("failed to merge config: %v", err)
 		}
-		deepMerge(&configMap, &mergeConfigMap)
-		cfg, err := k8sYaml.Marshal(&configMap)
+
+		cfg, err := yaml.Marshal(destConfigMap)
 		if err != nil {
 			return nil, err
 		}
+
 		configs = append(configs, cfg)
 	}
-	return bytes.Join(configs, []byte("\n---\n")), nil
-}
-
-func deepMerge(dst, src *map[string]interface{}) {
-	for srcK, srcV := range *src {
-		dstV, ok := (*dst)[srcK]
-		if !ok {
-			continue
-		}
-		dV, ok := dstV.(map[string]interface{})
-		// dstV is string type
-		if !ok {
-			(*dst)[srcK] = srcV
-			continue
-		}
-		sV, ok := srcV.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		deepMerge(&dV, &sV)
-		(*dst)[srcK] = dV
-	}
+	return bytes.Join(configs, []byte("---\n")), nil
 }
 
 func convertSecretYaml(config v1.Config, configPath string) ([]byte, error) {

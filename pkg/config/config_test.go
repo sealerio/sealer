@@ -15,108 +15,155 @@
 package config
 
 import (
-	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"os"
 	"testing"
-
-	"github.com/sealerio/sealer/common"
 
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
-/* (t *testing.T) {
-	type fields struct {
-		configs     []v1.Config
-		clusterName string
-	}
-	type args struct {
-		clusterfile string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			"test dump clusterfile configs",
-			fields{
-				configs:     nil,
-				clusterName: "my-cluster",
-			},
-			args{clusterfile: "test/test_clusterfile.yaml"},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &Dumper{
-				Configs: tt.fields.configs,
-				Cluster: &v2.Cluster{},
-			}
-			c.Cluster.Name = tt.fields.clusterName
-			configs, err := utils.DecodeCRDFromFile(tt.args.clusterfile, common.Config)
-			if err != nil {
-				t.Error(err)
-				return
-			}
-			if err := c.Dump(configs.([]v1.Config)); (err != nil) != tt.wantErr {
-				t.Errorf("Dump() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-*/
-
 func Test_getMergeConfig(t *testing.T) {
+	testFileData := `apiVersion: v1
+data:
+  key1: myConfigMap1
+kind: ConfigMap
+metadata:
+  name: myConfigMap1
+---
+apiVersion: v1
+data:
+  key2: myConfigMap2
+kind: ConfigMap
+metadata:
+  name: myConfigMap2
+---
+apiVersion: v1
+data:
+  key3: myConfigMap3
+kind: ConfigMap
+metadata:
+  name: myConfigMap3
+`
+
+	wantedFileData := `apiVersion: v1
+data:
+    key1: myConfigMap1
+    test-key: test-key
+kind: ConfigMap
+metadata:
+    name: myConfigMap1
+    namespace: test-namespace
+---
+apiVersion: v1
+data:
+    key2: myConfigMap2
+    test-key: test-key
+kind: ConfigMap
+metadata:
+    name: myConfigMap2
+    namespace: test-namespace
+---
+apiVersion: v1
+data:
+    key3: myConfigMap3
+    test-key: test-key
+kind: ConfigMap
+metadata:
+    name: myConfigMap3
+    namespace: test-namespace
+`
+
+	configmapData := `data:
+  test-key: test-key
+metadata:
+  namespace: test-namespace
+`
+
+	filename := "/tmp/test-configmap"
+	err := ioutil.WriteFile(filename, []byte(testFileData), os.ModePerm)
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.Remove(filename)
+
 	type args struct {
 		path string
 		data []byte
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
+		name string
+		args args
 	}{
-		// TODO: Add test cases.
 		{
-			name: "test",
+			name: "add namespace to each configmap",
 			args: args{
-				data: []byte("spec:\n  image: kubernetes:v1.19.8"),
-				path: "test/test_clusterfile.yaml",
-			},
-		}, {
-			name: "test",
-			args: args{
-				data: []byte("spec:\n  template:\n    metadata:\n      labels:\n        name: tigera-operatorssssss"),
-				path: "test/tigera-operator.yaml",
+				data: []byte(configmapData),
+				path: filename,
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := getMergeConfigData(tt.args.path, tt.args.data)
 			if err != nil {
-				t.Error(err)
+				assert.Errorf(t, err, "failed to MergeConfigData")
 				return
 			}
-			err = ioutil.WriteFile(""+tt.args.path, got, common.FileMode0644)
-			if err != nil {
-				t.Error(err)
-			}
+			assert.Equal(t, wantedFileData, string(got))
 		})
 	}
 }
 
 func Test_convertSecretYaml(t *testing.T) {
-	testConfig := v1.Config{}
-	testConfig.Spec.Data = `
-global: e2FiYzogeHh4fQo=
+	configData := `global: e2FiYzogeHh4fQo=
 components: e215c3FsOntjcHU6e3JlcXVlc3Q6IDEwMDBtfX19Cg==`
+
+	testFileData := `apiVersion: v1
+data:
+kind: Secret
+metadata:
+  name: gu-demo-configuration
+  namespace: default
+type: Opaque`
+
+	secretFileExistWanted := `apiVersion: v1
+data:
+  components: ZTIxNWMzRnNPbnRqY0hVNmUzSmxjWFZsYzNRNklERXdNREJ0ZlgxOUNnPT0=
+  global: ZTJGaVl6b2dlSGg0ZlFvPQ==
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: gu-demo-configuration
+  namespace: default
+type: Opaque
+`
+
+	secretFileNotExistWanted := `data:
+  components: ZTIxNWMzRnNPbnRqY0hVNmUzSmxjWFZsYzNRNklERXdNREJ0ZlgxOUNnPT0=
+  global: ZTJGaVl6b2dlSGg0ZlFvPQ==
+metadata:
+  creationTimestamp: null
+`
+
+	filename := "/tmp/test-secret"
+	err := ioutil.WriteFile(filename, []byte(testFileData), os.ModePerm)
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.Remove(filename)
+
+	testConfig := v1.Config{
+		Spec: v1.ConfigSpec{
+			Data: configData,
+		},
+	}
+
 	type args struct {
 		config     v1.Config
 		configPath string
+		wanted     string
 	}
 	tests := []struct {
 		name string
@@ -124,11 +171,12 @@ components: e215c3FsOntjcHU6e3JlcXVlc3Q6IDEwMDBtfX19Cg==`
 	}{
 		{
 			"test secret convert to file (file exist)",
-			args{testConfig, "test/secret.yaml"},
+			args{
+				config: testConfig, configPath: filename, wanted: secretFileExistWanted},
 		},
 		{
 			"test secret convert to file (file not exist)",
-			args{testConfig, "test/secret1.yaml"},
+			args{testConfig, "test/secret1.yaml", secretFileNotExistWanted},
 		},
 	}
 	for _, tt := range tests {
@@ -138,7 +186,7 @@ components: e215c3FsOntjcHU6e3JlcXVlc3Q6IDEwMDBtfX19Cg==`
 				t.Errorf("convertSecretYaml() error = %v", err)
 				return
 			}
-			fmt.Println(string(got))
+			assert.Equal(t, tt.args.wanted, string(got))
 		})
 	}
 }
