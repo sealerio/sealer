@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package cluster
 
 import (
+	"net"
+
 	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"net"
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -35,14 +36,10 @@ var (
 	deleteAll         bool
 )
 
-// deleteCmd represents the delete command
-var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "delete an existing cluster",
-	Long: `delete command is used to delete part or all of existing cluster.
-User can delete cluster by explicitly specifying node IP, Clusterfile, or cluster name.`,
-	Args: cobra.NoArgs,
-	Example: `
+var longDeleteCmdDescription = `delete command is used to delete part or all of existing cluster.
+User can delete cluster by explicitly specifying node IP, Clusterfile, or cluster name.`
+
+var exampleForDeleteCmd = `
 delete default cluster: 
 	sealer delete --masters x.x.x.x --nodes x.x.x.x
 	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
@@ -50,58 +47,64 @@ delete all:
 	sealer delete --all [--force]
 	sealer delete -f /root/.sealer/mycluster/Clusterfile [--force]
 	sealer delete -c my-cluster [--force]
-`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var cf clusterfile.Interface
-		if clusterFile != "" {
-			var err error
-			cf, err = clusterfile.NewClusterFile(clusterFile)
+`
+
+// NewDeleteCmd deleteCmd represents the delete command
+func NewDeleteCmd() *cobra.Command {
+	deleteCmd := &cobra.Command{
+		Use:     "delete",
+		Short:   "delete an existing cluster",
+		Long:    longDeleteCmdDescription,
+		Args:    cobra.NoArgs,
+		Example: exampleForDeleteCmd,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var cf clusterfile.Interface
+			if clusterFile != "" {
+				var err error
+				cf, err = clusterfile.NewClusterFile(clusterFile)
+				if err != nil {
+					return err
+				}
+			}
+
+			cluster := cf.GetCluster()
+			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
 			}
-		}
 
-		cluster := cf.GetCluster()
-		infraDriver, err := infradriver.NewInfraDriver(&cluster)
-		if err != nil {
-			return err
-		}
-
-		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
-		if err != nil {
-			return err
-		}
-
-		if deleteAll {
-			if err = installer.UnInstall(); err != nil {
-				return err
-			}
-		} else {
-			_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
+			installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
 			if err != nil {
 				return err
 			}
-		}
 
-		//TODO remove files from deleted hosts
+			if deleteAll {
+				if err = installer.UnInstall(); err != nil {
+					return err
+				}
+			} else {
+				_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
+				if err != nil {
+					return err
+				}
+			}
 
-		if deleteAll {
-			//TODO umount image
-		}
+			//TODO remove files from deleted hosts
 
-		return nil
-	},
-}
+			if deleteAll {
+				//TODO umount image
+			}
 
-func init() {
+			return nil
+		},
+	}
 	deleteArgs = &apply.Args{}
-	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.Flags().IPSliceVarP(&mastersToDelete, "masters", "m", nil, "reduce Count or IPList to masters")
 	deleteCmd.Flags().IPSliceVarP(&workersToDelete, "nodes", "n", nil, "reduce Count or IPList to nodes")
-
 	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
 	deleteCmd.Flags().StringVarP(&deleteClusterName, "cluster", "c", "", "delete a kubernetes cluster with cluster name")
 	deleteCmd.Flags().StringSliceVarP(&deleteArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	deleteCmd.Flags().BoolVar(&kubernetes.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
+	return deleteCmd
 }

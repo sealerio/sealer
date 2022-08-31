@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"os"
@@ -23,11 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// completionCmd represents the completion command
-var completionCmd = &cobra.Command{
-	Use:   "completion",
-	Short: "generate autocompletion script for bash",
-	Long: `Generate the autocompletion script for sealer for the bash shell.
+var longCompletionCmdDescription = `Generate the autocompletion script for sealer for the bash shell.
 To load completions in your current shell session:
 
 	source <(sealer completion bash)
@@ -37,21 +33,26 @@ To load completions for every new session, execute once:
 - Linux :
 	## If bash-completion is not installed on Linux, please install the 'bash-completion' package
 		sealer completion bash > /etc/bash_completion.d/sealer
-	`,
-	DisableFlagsInUseLine: true,
-	ValidArgs:             []string{"bash"},
-	Args:                  cobra.ExactValidArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		switch args[0] {
-		case "bash":
-			if err := cmd.Root().GenBashCompletion(common.StdOut); err != nil {
-				logrus.Errorf("failed to use bash completion, %v", err)
-				os.Exit(1)
-			}
-		}
-	},
-}
+	`
 
-func init() {
-	rootCmd.AddCommand(completionCmd)
+// NewCompletionCmd completionCmd represents the completion command
+func NewCompletionCmd() *cobra.Command {
+	completionCmd := &cobra.Command{
+		Use:                   "completion",
+		Short:                 "generate autocompletion script for bash",
+		Long:                  longCompletionCmdDescription,
+		DisableFlagsInUseLine: true,
+		ValidArgs:             []string{"bash"},
+		Args:                  cobra.ExactValidArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			switch args[0] {
+			case "bash":
+				if err := cmd.Root().GenBashCompletion(common.StdOut); err != nil {
+					logrus.Errorf("failed to use bash completion, %v", err)
+					os.Exit(1)
+				}
+			}
+		},
+	}
+	return completionCmd
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"github.com/sealerio/sealer/pkg/define/options"
@@ -22,23 +22,22 @@ import (
 
 var imagesOpts *options.ImagesOptions
 
-var listCmd = &cobra.Command{
-	Use:   "images",
-	Short: "list all ClusterImages on the local node",
-	// TODO: add long description.
-	Long:    "",
-	Args:    cobra.NoArgs,
-	Example: `sealer images`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-		if err != nil {
-			return err
-		}
-		return engine.Images(imagesOpts)
-	},
-}
-
-func init() {
+func NewListCmd() *cobra.Command {
+	listCmd := &cobra.Command{
+		Use:   "images",
+		Short: "list all ClusterImages on the local node",
+		// TODO: add long description.
+		Long:    "",
+		Args:    cobra.NoArgs,
+		Example: `sealer images`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+			return engine.Images(imagesOpts)
+		},
+	}
 	imagesOpts = &options.ImagesOptions{}
 	flags := listCmd.Flags()
 	flags.BoolVarP(&imagesOpts.All, "all", "a", false, "show all images, including intermediate images from a build")
@@ -48,6 +47,5 @@ func init() {
 	flags.BoolVar(&imagesOpts.NoTrunc, "no-trunc", false, "do not truncate output")
 	flags.BoolVarP(&imagesOpts.Quiet, "quiet", "q", false, "display only image IDs")
 	flags.BoolVarP(&imagesOpts.History, "history", "", false, "display the image name history")
-
-	rootCmd.AddCommand(listCmd)
+	return listCmd
 }

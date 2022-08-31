@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"github.com/sealerio/sealer/pkg/define/options"
@@ -24,18 +24,26 @@ import (
 
 var removeOpts *options.RemoveImageOptions
 
-// rmiCmd represents the rmi command
-var rmiCmd = &cobra.Command{
-	Use:   "rmi",
-	Short: "remove local images by name",
-	// TODO: add long description.
-	Long:    "",
-	Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
-	Args:    cobra.MinimumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runRemove(args)
-	},
-	ValidArgsFunction: utils.ImageListFuncForCompletion,
+// NewRmiCmd rmiCmd represents the rmi command
+func NewRmiCmd() *cobra.Command {
+	rmiCmd := &cobra.Command{
+		Use:   "rmi",
+		Short: "remove local images by name",
+		// TODO: add long description.
+		Long:    "",
+		Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
+		Args:    cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runRemove(args)
+		},
+		ValidArgsFunction: utils.ImageListFuncForCompletion,
+	}
+	removeOpts = &options.RemoveImageOptions{}
+	flags := rmiCmd.Flags()
+	flags.BoolVarP(&removeOpts.All, "all", "a", false, "remove all images")
+	flags.BoolVarP(&removeOpts.Prune, "prune", "p", false, "prune dangling images")
+	flags.BoolVarP(&removeOpts.Force, "force", "f", false, "force removal of the image and any containers using the image")
+	return rmiCmd
 }
 
 func runRemove(images []string) error {
@@ -46,13 +54,4 @@ func runRemove(images []string) error {
 	}
 
 	return engine.RemoveImage(removeOpts)
-}
-
-func init() {
-	removeOpts = &options.RemoveImageOptions{}
-	flags := rmiCmd.Flags()
-	flags.BoolVarP(&removeOpts.All, "all", "a", false, "remove all images")
-	flags.BoolVarP(&removeOpts.Prune, "prune", "p", false, "prune dangling images")
-	flags.BoolVarP(&removeOpts.Force, "force", "f", false, "force removal of the image and any containers using the image")
-	rootCmd.AddCommand(rmiCmd)
 }

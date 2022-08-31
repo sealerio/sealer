@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"github.com/sealerio/sealer/pkg/define/options"
@@ -27,27 +27,28 @@ import (
 
 var saveOpts *options.SaveOptions
 
-// saveCmd represents the save command
-var saveCmd = &cobra.Command{
-	Use:   "save",
-	Short: "save ClusterImage to a tar file",
-	Long:  `sealer save -o [output file name] [image name]`,
-	Example: `
+var exampleForSaveCmd = `
 save kubernetes:v1.19.8 image to kubernetes.tar file:
 
-sealer save -o kubernetes.tar kubernetes:v1.19.8`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-		if err != nil {
-			return err
-		}
-		saveOpts.ImageNameOrID = args[0]
-		return engine.Save(saveOpts)
-	},
-}
+sealer save -o kubernetes.tar kubernetes:v1.19.8`
 
-func init() {
+// NewSaveCmd saveCmd represents the save command
+func NewSaveCmd() *cobra.Command {
+	saveCmd := &cobra.Command{
+		Use:     "save",
+		Short:   "save ClusterImage to a tar file",
+		Long:    `sealer save -o [output file name] [image name]`,
+		Example: exampleForSaveCmd,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+			saveOpts.ImageNameOrID = args[0]
+			return engine.Save(saveOpts)
+		},
+	}
 	saveOpts = &options.SaveOptions{}
 	flags := saveCmd.Flags()
 	flags.StringVar(&saveOpts.Format, "format", buildah.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
@@ -59,6 +60,5 @@ func init() {
 		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
-
-	rootCmd.AddCommand(saveCmd)
+	return saveCmd
 }

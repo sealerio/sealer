@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"encoding/json"
@@ -25,27 +25,27 @@ import (
 
 var shortPrint bool
 
-var versionCmd = &cobra.Command{
-	Use:     "version",
-	Short:   "show sealer and related versions",
-	Args:    cobra.NoArgs,
-	Example: `sealer version`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		marshalled, err := json.Marshal(version.Get())
-		if err != nil {
-			return err
-		}
-		if shortPrint {
-			fmt.Println(version.Get().String())
-		} else {
-			fmt.Println(string(marshalled))
-		}
-		return nil
+func NewVersionCmd() *cobra.Command {
+	versionCmd := &cobra.Command{
+		Use:     "version",
+		Short:   "show sealer and related versions",
+		Args:    cobra.NoArgs,
+		Example: `sealer version`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			marshalled, err := json.Marshal(version.Get())
+			if err != nil {
+				return err
+			}
+			if shortPrint {
+				fmt.Println(version.Get().String())
+			} else {
+				fmt.Println(string(marshalled))
+			}
+			return nil
 
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(versionCmd)
+		},
+	}
 	versionCmd.Flags().BoolVar(&shortPrint, "short", false, "if true, print sealer's own version number.")
+
+	return versionCmd
 }

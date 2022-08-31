@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ type GenDocCommand struct {
 	path string
 }
 
-func init() {
+func NewGenDocCommand() *cobra.Command {
 	genDocCommand := &GenDocCommand{}
 	genDocCommand.cmd = &cobra.Command{
 		Use:           "gen-doc",
@@ -43,7 +43,7 @@ func init() {
 		},
 	}
 	genDocCommand.addFlags()
-	rootCmd.AddCommand(genDocCommand.cmd)
+	return genDocCommand.cmd
 }
 
 // addFlags adds flags for specific command.

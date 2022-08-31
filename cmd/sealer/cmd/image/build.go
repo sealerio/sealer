@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"fmt"
@@ -46,15 +46,11 @@ type BuildFlag struct {
 
 var buildFlags = bc.BuildOptions{}
 
-// buildCmd represents the build command
-var buildCmd = &cobra.Command{
-	Use:   "build [flags] PATH",
-	Short: "build a ClusterImage from a Kubefile",
-	Long: `build command is used to generate a ClusterImage from specified Kubefile.
+var longNewBuildCmdDescription = `build command is used to generate a ClusterImage from specified Kubefile.
 It organizes the specified Kubefile and input building context, and builds
-a brand new ClusterImage.`,
-	Args: cobra.MaximumNArgs(1),
-	Example: `the current path is the context path, default build type is lite and use build cache
+a brand new ClusterImage.`
+
+var exampleNewBuildCmd = `the current path is the context path, default build type is lite and use build cache
 
 build:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 .
@@ -67,11 +63,41 @@ build without base:
 
 build with args:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
-`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		buildFlags.ContextDir = args[0]
-		return buildSealerImage()
-	},
+`
+
+// NewBuildCmd buildCmd represents the build command
+func NewBuildCmd() *cobra.Command {
+
+	buildCmd := &cobra.Command{
+		Use:     "build [flags] PATH",
+		Short:   "build a ClusterImage from a Kubefile",
+		Long:    longNewBuildCmdDescription,
+		Args:    cobra.MaximumNArgs(1),
+		Example: exampleNewBuildCmd,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			buildFlags.ContextDir = args[0]
+			return buildSealerImage()
+		},
+	}
+	buildCmd.Flags().StringVarP(&buildFlags.BuildType, "mode", "m", "lite", "ClusterImage build type, default is lite")
+	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
+	buildCmd.Flags().StringVar(&buildFlags.Platform, "platform", parse.DefaultPlatform(), "set the target platform, like linux/amd64 or linux/amd64/v7")
+	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always")
+	buildCmd.Flags().StringVar(&buildFlags.Authfile, "authfile", pkgauth.GetDefaultAuthFilePath(), "path of the authentication file.")
+	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
+	buildCmd.Flags().BoolVar(&buildFlags.Base, "base", true, "build with base image, default value is true.")
+	buildCmd.Flags().StringSliceVarP(&buildFlags.Tags, "tag", "t", []string{}, "specify a name for ClusterImage")
+	buildCmd.Flags().StringSliceVar(&buildFlags.BuildArgs, "build-arg", []string{}, "set custom build args")
+	buildCmd.Flags().StringSliceVar(&buildFlags.Annotations, "annotation", []string{}, "add annotations for image. Format like --annotation key=[value]")
+	buildCmd.Flags().StringSliceVar(&buildFlags.Labels, "label", []string{getSealerLabel()}, "add labels for image. Format like --label key=[value]")
+
+	requiredFlags := []string{"tag"}
+	for _, flag := range requiredFlags {
+		if err := buildCmd.MarkFlagRequired(flag); err != nil {
+			logrus.Fatal(err)
+		}
+	}
+	return buildCmd
 }
 
 func buildSealerImage() error {
@@ -154,28 +180,6 @@ func buildSealerImage() error {
 	}
 
 	return nil
-}
-
-func init() {
-	buildCmd.Flags().StringVarP(&buildFlags.BuildType, "mode", "m", "lite", "ClusterImage build type, default is lite")
-	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
-	buildCmd.Flags().StringVar(&buildFlags.Platform, "platform", parse.DefaultPlatform(), "set the target platform, like linux/amd64 or linux/amd64/v7")
-	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always")
-	buildCmd.Flags().StringVar(&buildFlags.Authfile, "authfile", pkgauth.GetDefaultAuthFilePath(), "path of the authentication file.")
-	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
-	buildCmd.Flags().BoolVar(&buildFlags.Base, "base", true, "build with base image, default value is true.")
-	buildCmd.Flags().StringSliceVarP(&buildFlags.Tags, "tag", "t", []string{}, "specify a name for ClusterImage")
-	buildCmd.Flags().StringSliceVar(&buildFlags.BuildArgs, "build-arg", []string{}, "set custom build args")
-	buildCmd.Flags().StringSliceVar(&buildFlags.Annotations, "annotation", []string{}, "add annotations for image. Format like --annotation key=[value]")
-	buildCmd.Flags().StringSliceVar(&buildFlags.Labels, "label", []string{getSealerLabel()}, "add labels for image. Format like --label key=[value]")
-
-	requiredFlags := []string{"tag"}
-	for _, flag := range requiredFlags {
-		if err := buildCmd.MarkFlagRequired(flag); err != nil {
-			logrus.Fatal(err)
-		}
-	}
-	rootCmd.AddCommand(buildCmd)
 }
 
 func getSealerLabel() string {

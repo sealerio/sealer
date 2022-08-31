@@ -28,7 +28,7 @@ import (
 )
 
 func ConstructClusterFromArg(imageName string, runArgs *Args) (*v2.Cluster, error) {
-	resultHosts, err := getHosts(runArgs.Masters, runArgs.Nodes)
+	resultHosts, err := GetHosts(runArgs.Masters, runArgs.Nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func ConstructClusterFromArg(imageName string, runArgs *Args) (*v2.Cluster, erro
 }
 
 func NewApplierFromArgs(imageName string, runArgs *Args) (driver.Interface, error) {
-	if err := validateArgs(runArgs); err != nil {
+	if err := ValidateArgs(runArgs); err != nil {
 		return nil, fmt.Errorf("failed to validate input run args: %v", err)
 	}
 	cluster, err := ConstructClusterFromArg(imageName, runArgs)
@@ -67,7 +67,7 @@ func NewApplierFromArgs(imageName string, runArgs *Args) (driver.Interface, erro
 }
 
 // validateArgs validates all the input args from sealer run command.
-func validateArgs(runArgs *Args) error {
+func ValidateArgs(runArgs *Args) error {
 	// TODO: add detailed validation steps.
 	var errMsg []string
 
@@ -94,7 +94,7 @@ func validateArgs(runArgs *Args) error {
 // IP list, like 192.168.0.1,192.168.0.2,192.168.0.3
 // IP range, like 192.168.0.5-192.168.0.7, which means 192.168.0.5,192.168.0.6,192.168.0.7
 // P.S. we have guaranteed that all the input masters and nodes are validated.
-func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
+func GetHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	var err error
 	if isRange(inMasters) {
 		inMasters, err = utilsnet.IPRangeToList(inMasters)

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"github.com/sealerio/sealer/pkg/define/options"
@@ -22,33 +22,34 @@ import (
 
 var inspectOpts *options.InspectOptions
 
-// inspectCmd represents the inspect command
-var inspectCmd = &cobra.Command{
-	Use:   "inspect",
-	Short: "print the image information or Clusterfile",
-	Example: `sealer inspect {imageName or imageID}
+var examoleForInspectCmd = `sealer inspect {imageName or imageID}
 sealer inspect --format '{{.OCIv1.Config.Env}}' {imageName or imageID}
-`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-		if err != nil {
-			return err
-		}
+`
 
-		inspectOpts.ImageNameOrID = args[0]
-		err = engine.Inspect(inspectOpts)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
-}
+// NewInspectCmd inspectCmd represents the inspect command
+func NewInspectCmd() *cobra.Command {
+	inspectCmd := &cobra.Command{
+		Use:     "inspect",
+		Short:   "print the image information or Clusterfile",
+		Example: examoleForInspectCmd,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
 
-func init() {
+			inspectOpts.ImageNameOrID = args[0]
+			err = engine.Inspect(inspectOpts)
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	}
 	inspectOpts = &options.InspectOptions{}
 	flags := inspectCmd.Flags()
 	flags.StringVarP(&inspectOpts.Format, "format", "f", "", "use `format` as a Go template to format the output")
 	flags.StringVarP(&inspectOpts.InspectType, "type", "t", "image", "look at the item of the specified `type` (container or image) and name")
-	rootCmd.AddCommand(inspectCmd)
+	return inspectCmd
 }

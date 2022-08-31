@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"os"
@@ -32,27 +32,25 @@ type LoginFlag struct {
 
 var loginConfig *options.LoginOptions
 
-var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "login image registry",
-	// TODO: add long description.
-	Long:    "",
-	Example: `sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]`,
-	Args:    cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		adaptor, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-		if err != nil {
-			return err
-		}
-		loginConfig.Domain = args[0]
+func NewLoginCmd() *cobra.Command {
+	loginCmd := &cobra.Command{
+		Use:   "login",
+		Short: "login image registry",
+		// TODO: add long description.
+		Long:    "",
+		Example: `sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]`,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			adaptor, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+			loginConfig.Domain = args[0]
 
-		return adaptor.Login(loginConfig)
-	},
-}
-
-func init() {
+			return adaptor.Login(loginConfig)
+		},
+	}
 	loginConfig = &options.LoginOptions{}
-	rootCmd.AddCommand(loginCmd)
 	loginCmd.Flags().StringVarP(&loginConfig.Username, "username", "u", "", "user name for login registry")
 	loginCmd.Flags().StringVarP(&loginConfig.Password, "passwd", "p", "", "password for login registry")
 	loginCmd.Flags().StringVar(&loginConfig.AuthFile, "authfile", auth.GetDefaultAuthFilePath(), "path to store auth file after login. It will be $HOME/.sealer/config.json by default.")
@@ -66,4 +64,5 @@ func init() {
 		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
+	return loginCmd
 }
