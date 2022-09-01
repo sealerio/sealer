@@ -16,6 +16,7 @@ package processor
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	"net"
 
 	"github.com/sealerio/sealer/common"

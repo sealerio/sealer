@@ -42,14 +42,14 @@ var (
 
 type Interface interface {
 	PreProcessor
-	GetCluster() v2.Cluster
+	GetCluster() *v2.Cluster
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
 	GetKubeadmConfig() *kubeadm_config.KubeadmConfig
 }
 
-func (c *ClusterFile) GetCluster() v2.Cluster {
-	return c.Cluster
+func (c *ClusterFile) GetCluster() *v2.Cluster {
+	return &c.Cluster
 }
 
 func (c *ClusterFile) GetConfigs() []v1.Config {

@@ -81,7 +81,7 @@ func NewApplierFromFile(path string) (driver.Interface, error) {
 		cluster.SetAnnotations(common.ClusterfileName, path)
 	}
 	return &driver.Applier{
-		ClusterDesired:      &cluster,
+		ClusterDesired:      cluster,
 		ClusterFile:         Clusterfile,
 		ImageEngine:         imageEngine,
 		ClusterImageMounter: mounter,

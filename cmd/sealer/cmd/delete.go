@@ -62,12 +62,12 @@ delete all:
 		}
 
 		cluster := cf.GetCluster()
-		infraDriver, err := infradriver.NewInfraDriver(&cluster)
+		infraDriver, err := infradriver.NewInfraDriver(cluster)
 		if err != nil {
 			return err
 		}
 
-		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
 		if err != nil {
 			return err
 		}

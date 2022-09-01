@@ -15,12 +15,17 @@
 package cmd
 
 import (
-	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
+	"fmt"
 	"os"
 	"path/filepath"
 
+	v2 "github.com/sealerio/sealer/types/api/v2"
+
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
+
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
+	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/strings"
@@ -67,23 +72,34 @@ create a cluster with custom environment variables:
 		//}
 
 		var cf clusterfile.Interface
+		var cluster *v2.Cluster
 		if clusterFile != "" {
 			var err error
 			cf, err = clusterfile.NewClusterFile(clusterFile)
 			if err != nil {
 				return err
 			}
+			cluster = cf.GetCluster()
+		}
+		if clusterFile == "" {
+			var err error
+			if err := utils.ValidateRunArgs(runArgs); err != nil {
+				return fmt.Errorf("failed to validate input run args: %v", err)
+			}
+			cluster, err = utils.ConstructClusterFromArg(args[0], runArgs)
+			if err != nil {
+				return err
+			}
 		}
 
-		cluster := cf.GetCluster()
-		infraDriver, err := infradriver.NewInfraDriver(&cluster)
+		infraDriver, err := infradriver.NewInfraDriver(cluster)
 		if err != nil {
 			return err
 		}
 
 		//TODO mount image and copy to cluster
 
-		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
 		if err != nil {
 			return err
 		}
@@ -95,7 +111,7 @@ create a cluster with custom environment variables:
 
 		// TODO install APP
 
-		return
+		return nil
 	},
 }
 

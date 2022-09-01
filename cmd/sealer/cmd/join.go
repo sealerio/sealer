@@ -15,10 +15,16 @@
 package cmd
 
 import (
+	"fmt"
+	"net"
+
+	v2 "github.com/sealerio/sealer/types/api/v2"
+
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
+
 	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/spf13/cobra"
-	"net"
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
@@ -43,23 +49,34 @@ join default cluster:
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var cf clusterfile.Interface
+		var cluster *v2.Cluster
 		if clusterFile != "" {
 			var err error
 			cf, err = clusterfile.NewClusterFile(clusterFile)
 			if err != nil {
 				return err
 			}
+			cluster = cf.GetCluster()
+		}
+		if clusterFile == "" {
+			var err error
+			if err := utils.ValidateJoinArgs(joinArgs); err != nil {
+				return fmt.Errorf("failed to validate input join args: %v", err)
+			}
+			cluster, err = utils.ConstructClusterFromArg(args[0], runArgs)
+			if err != nil {
+				return err
+			}
 		}
 
-		cluster := cf.GetCluster()
-		infraDriver, err := infradriver.NewInfraDriver(&cluster)
+		infraDriver, err := infradriver.NewInfraDriver(cluster)
 		if err != nil {
 			return err
 		}
 
 		//TODO mount image and copy to new hosts
 
-		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
 		if err != nil {
 			return err
 		}
