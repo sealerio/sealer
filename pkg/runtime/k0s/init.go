@@ -79,9 +79,6 @@ func (k *Runtime) generateK0sConfig() error {
 	if _, err := ssh.Cmd(master0IP, configCreateCMD); err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -123,10 +120,7 @@ func (k *Runtime) generateK0sToken() error {
 	}
 	workerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", WorkerRole, DefaultK0sWorkerJoin)
 	controllerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", ControllerRole, DefaultK0sControllerJoin)
-	if err := ssh.CmdAsync(master0IP, workerTokenCreateCMD, controllerTokenCreateCMD); err != nil {
-		return err
-	}
-	return nil
+	return ssh.CmdAsync(master0IP, workerTokenCreateCMD, controllerTokenCreateCMD)
 }
 
 func (k *Runtime) GetKubectlAndKubeconfig() error {
@@ -135,7 +129,7 @@ func (k *Runtime) GetKubectlAndKubeconfig() error {
 	}
 	client, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 	if err != nil {
-		return fmt.Errorf("failed to get ssh client of master0(%s) when get kubbectl and kubeconfig: %v", k.cluster.GetMaster0IP(), err)
+		return fmt.Errorf("failed to get ssh client of master0(%s) when get kubectl and kubeconfig: %v", k.cluster.GetMaster0IP(), err)
 	}
-	return GetKubectlAndKubeconfig(client, k.cluster.GetMaster0IP(), k.getImageMountDir())
+	return FetchKubeconfigAndGetKubectl(client, k.cluster.GetMaster0IP(), k.getImageMountDir())
 }

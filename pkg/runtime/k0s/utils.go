@@ -55,7 +55,7 @@ func GenerateRegistryCert(registryCertPath string, baseName string) error {
 	return nil
 }
 
-func GetKubectlAndKubeconfig(ssh ssh.Interface, host net.IP, rootfs string) error {
+func FetchKubeconfigAndGetKubectl(ssh ssh.Interface, host net.IP, rootfs string) error {
 	// fetch the cluster kubeconfig
 	err := ssh.Fetch(host, path.Join(common.DefaultKubeConfigDir(), "config"), DefaultAdminConf)
 	if err != nil {
