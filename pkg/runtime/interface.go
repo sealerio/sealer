@@ -39,5 +39,5 @@ type Installer interface {
 type Driver interface {
 	client.Client
 
-	ExecWithAdminKubeconfig(Cmds []string) error
+	GetAdminKubeconfig() string
 }

@@ -90,6 +90,25 @@ func (k *Runtime) generateCert(kubeadmConf kubeadm_config.KubeadmConfig, master0
 	)
 }
 
+func (k *Runtime) initKubeletService(hosts []net.IP) error {
+	initKubeletCmd := fmt.Sprintf("bash %s", filepath.Join(k.infra.GetClusterRootfs(), "scripts", "ini-kube.sh"))
+
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, h := range hosts {
+		host := h
+		eg.Go(func() error {
+			if err := k.infra.CmdAsync(host, initKubeletCmd); err != nil {
+				return fmt.Errorf("failed to init Kubelet Service on (%s): %s", host, err.Error())
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (k *Runtime) createKubeConfig(master0 net.IP) error {
 	hostName, err := k.infra.GetHostName(master0)
 	if err != nil {

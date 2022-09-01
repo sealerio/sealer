@@ -73,6 +73,11 @@ func (k *Runtime) Install() error {
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 	workers := k.infra.GetHostIPListByRole(common.NODE)
 
+	err := k.initKubeletService(append(masters, workers...))
+	if err != nil {
+		return err
+	}
+
 	kubeadmConf, err := k.initKubeadmConfig(masters)
 	if err != nil {
 		return err
@@ -103,11 +108,15 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
+	if err := k.reconcileClusterStatus(masters[0]); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (k *Runtime) GetCurrentRuntimeDriver() (runtime.Driver, error) {
-	return nil, nil
+	return NewKubeDriver(AdminKubeConfPath)
 }
 
 func (k *Runtime) Upgrade() error {
@@ -134,6 +143,11 @@ func (k *Runtime) Reset() error {
 }
 
 func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
+	err := k.initKubeletService(append(newMasters, newWorkers...))
+	if err != nil {
+		return err
+	}
+
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 
 	kubeadmConfig, err := kubeadm_config.LoadKubeadmConfigs(KubeadmFileYml, utils.DecodeCRDFromFile)
