@@ -57,7 +57,7 @@ func (m *mounter) UnMountImage(cluster *v2.Cluster) error {
 }
 
 func (m *mounter) umountImage(cluster *v2.Cluster) error {
-	mountRootDir := filepath.Join(common.DefaultClusterRootfsDir, cluster.Name, "mount")
+	mountRootDir := filepath.Join(common.DefaultSealerDataDir, cluster.Name, "mount")
 	if !osi.IsFileExist(mountRootDir) {
 		return nil
 	}

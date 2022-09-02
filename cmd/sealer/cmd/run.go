@@ -112,7 +112,6 @@ create a cluster with custom environment variables:
 		}, hosts); err != nil {
 			return err
 		}
-
 		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
 		if err != nil {
 			return err
