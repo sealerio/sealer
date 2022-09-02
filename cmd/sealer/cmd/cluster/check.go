@@ -35,11 +35,12 @@ var longNewCheckCmdDescription = `check command is used to check status of the c
 // NewCheckCmd pushCmd represents the push command
 func NewCheckCmd() *cobra.Command {
 	checkCmd := &cobra.Command{
-		Use:     "check",
-		Short:   "check the state of cluster",
-		Long:    longNewCheckCmdDescription,
-		Example: `sealer check --pre \n sealer check --post`,
-		Args:    cobra.NoArgs,
+		Use:   "check",
+		Short: "check the state of cluster",
+		Long:  longNewCheckCmdDescription,
+		Example: `sealer check --pre 
+				  sealer check --post`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if checkArgs.Pre && checkArgs.Post {
 				return fmt.Errorf("don't allow to set two flags --pre and --post")
