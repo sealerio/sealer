@@ -38,7 +38,7 @@ func NewCheckCmd() *cobra.Command {
 		Use:     "check",
 		Short:   "check the state of cluster",
 		Long:    longNewCheckCmdDescription,
-		Example: `sealer check --pre or sealer check --post`,
+		Example: `sealer check --pre \n sealer check --post`,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if checkArgs.Pre && checkArgs.Post {
