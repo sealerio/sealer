@@ -16,12 +16,8 @@ package cluster
 
 import "github.com/spf13/cobra"
 
-func NewCmdCluster() *cobra.Command {
-	cmd := &cobra.Command{}
-	cmd.AddCommand(NewApplyCmd())
-	cmd.AddCommand(NewCheckCmd())
-	cmd.AddCommand(NewDeleteCmd())
-	cmd.AddCommand(NewJoinCmd())
-	cmd.AddCommand(NewRunCmd())
-	return cmd
+func NewClusterCommands() []*cobra.Command {
+	var clusterCommands []*cobra.Command
+	clusterCommands = append(clusterCommands, NewApplyCmd(), NewCheckCmd(), NewDeleteCmd(), NewJoinCmd(), NewRunCmd())
+	return clusterCommands
 }

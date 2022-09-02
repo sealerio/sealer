@@ -14,22 +14,13 @@
 
 package image
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
-func NewCmdImage() *cobra.Command {
-	cmd := &cobra.Command{}
-	cmd.AddCommand(NewBuildCmd())
-	cmd.AddCommand(NewGenDocCommand())
-	cmd.AddCommand(NewListCmd())
-	cmd.AddCommand(NewInspectCmd())
-	cmd.AddCommand(NewLoadCmd())
-	cmd.AddCommand(NewLoginCmd())
-	cmd.AddCommand(NewLogoutCmd())
-	cmd.AddCommand(NewPullCmd())
-	cmd.AddCommand(NewPushCmd())
-	cmd.AddCommand(NewRmiCmd())
-	cmd.AddCommand(NewSaveCmd())
-	cmd.AddCommand(NewSearchCmd())
-	cmd.AddCommand(NewTagCmd())
-	return cmd
+func NewImageCommands() []*cobra.Command {
+	var imageCommands []*cobra.Command
+	imageCommands = append(imageCommands, NewBuildCmd(), NewListCmd(), NewInspectCmd(), NewLoadCmd(),
+		NewLoadCmd(), NewLoginCmd(), NewLogoutCmd(), NewPullCmd(), NewPushCmd(), NewRmiCmd(), NewSaveCmd(), NewSearchCmd(), NewTagCmd())
+	return imageCommands
 }

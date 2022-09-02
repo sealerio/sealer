@@ -82,7 +82,10 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.AddCommand(alpha.NewCmdAlpha(), cluster.NewCmdCluster(), image.NewCmdImage(), NewCompletionCmd(), NewVersionCmd())
+	rootCmd.AddCommand(alpha.NewCmdAlpha(), NewCompletionCmd(), NewVersionCmd(), NewGenDocCommand())
+	rootCmd.AddCommand(cluster.NewClusterCommands()...)
+	rootCmd.AddCommand(image.NewImageCommands()...)
+
 	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file of sealer tool (default is $HOME/.sealer.json)")
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")
 	rootCmd.PersistentFlags().BoolVarP(&rootCmd.SilenceUsage, "quiet", "q", false, "silence the usage when fail")
