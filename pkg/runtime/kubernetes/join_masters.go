@@ -21,7 +21,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert"
 	"github.com/sealerio/sealer/pkg/ipvs"
@@ -32,10 +34,6 @@ import (
 	"github.com/sealerio/sealer/utils/yaml"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-
-	"sync"
-
-	"github.com/pkg/errors"
 )
 
 const (
