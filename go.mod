@@ -18,13 +18,9 @@ require (
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
 	github.com/docker/go-units v0.4.0
 	github.com/go-git/go-git/v5 v5.4.2
-	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/imdario/mergo v0.3.12
-	github.com/k0sproject/dig v0.2.0
-	github.com/k0sproject/k0sctl v0.13.1
-	github.com/k0sproject/rig v0.6.4
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
 	github.com/mitchellh/go-homedir v1.1.0

@@ -15,8 +15,11 @@
 package k0s
 
 const (
-	GetK0sVersionCMD = "k0s version"
+	DefaultAdminConf = "/var/lib/k0s/pki/admin.conf"
 
-	SSHKeyGenCMD    = "ssh-keygen -f /root/.ssh/id_rsa -P \"\""
-	SSHCopyIDPrefix = "ssh-copy-id -f "
+	DefaultK0sConfigPath     = "/etc/k0s/k0s.yaml"
+	DefaultK0sWorkerJoin     = "/etc/k0s/worker"
+	DefaultK0sControllerJoin = "/etc/k0s/controller"
+	WorkerRole               = "worker"
+	ControllerRole           = "controller"
 )
