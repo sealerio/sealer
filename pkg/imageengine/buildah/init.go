@@ -22,6 +22,10 @@ import (
 )
 
 const (
+	policyAbsPath     = "/etc/containers/policy.json"
+	registriesAbsPath = "/etc/containers/registries.conf"
+	storageConfPath   = "/etc/containers/storage.conf"
+
 	buildahEtcRegistriesConf = `
 [registries.search]
 registries = ['docker.io']
@@ -111,12 +115,9 @@ func writeFileIfNotExist(path string, content []byte) error {
 }
 
 func initBuildah() error {
-	policyAbsPath := "/etc/containers/policy.json"
 	if err := writeFileIfNotExist(policyAbsPath, []byte(builadhEtcPolicy)); err != nil {
 		return err
 	}
-
-	registriesAbsPath := "/etc/containers/registries.conf"
 	if err := writeFileIfNotExist(registriesAbsPath, []byte(buildahEtcRegistriesConf)); err != nil {
 		return err
 	}

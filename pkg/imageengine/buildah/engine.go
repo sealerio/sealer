@@ -15,11 +15,17 @@
 package buildah
 
 import (
+	"path/filepath"
+
+	"github.com/BurntSushi/toml"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
+	"github.com/containers/storage/drivers/overlay"
+	types2 "github.com/containers/storage/types"
 	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -37,10 +43,35 @@ func (engine *Engine) ImageStore() storage.Store {
 	return engine.imageStore
 }
 
+func checkOverlaySupported() {
+	conf := types2.TomlConfig{}
+	if _, err := toml.DecodeFile(storageConfPath, &conf); err != nil {
+		logrus.Warnf("failed to decode storage.conf, which may incur problems: %v", err)
+		return
+	}
+
+	if conf.Storage.RunRoot == "" || conf.Storage.GraphRoot == "" {
+		logrus.Warnf("runroot or graphroot is empty")
+		return
+	}
+
+	// this check aims to register "overlay" and "overlay2" driver.
+	// Otherwise, there will be "overlay" unsupported problem.
+	// This issue is relevant with low-level library problem.
+	// This is a weird problem. So fix it in this way currently.
+	if _, err := overlay.SupportsNativeOverlay(
+		filepath.Join(conf.Storage.GraphRoot, "overlay"),
+		filepath.Join(conf.Storage.RunRoot, "overlay")); err != nil {
+		logrus.Warnf("detect there is no native overlay supported: %v", err)
+	}
+}
+
 func NewBuildahImageEngine(configurations options.EngineGlobalConfigurations) (*Engine, error) {
 	if err := initBuildah(); err != nil {
 		return nil, err
 	}
+
+	checkOverlaySupported()
 
 	store, err := getStore(&configurations)
 	if err != nil {
