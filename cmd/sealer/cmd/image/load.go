@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package image
 
 import (
 	"os"
@@ -26,23 +26,22 @@ import (
 
 var loadOpts *options.LoadOptions
 
-// loadCmd represents the load command
-var loadCmd = &cobra.Command{
-	Use:     "load",
-	Short:   "load a ClusterImage from a tar file",
-	Long:    `Load a ClusterImage from a tar archive`,
-	Example: `sealer load -i kubernetes.tar`,
-	Args:    cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-		if err != nil {
-			return err
-		}
-		return engine.Load(loadOpts)
-	},
-}
-
-func init() {
+// NewLoadCmd loadCmd represents the load command
+func NewLoadCmd() *cobra.Command {
+	loadCmd := &cobra.Command{
+		Use:     "load",
+		Short:   "load a ClusterImage from a tar file",
+		Long:    `Load a ClusterImage from a tar archive`,
+		Example: `sealer load -i kubernetes.tar`,
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+			return engine.Load(loadOpts)
+		},
+	}
 	loadOpts = &options.LoadOptions{}
 	flags := loadCmd.Flags()
 	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Load image from file")
@@ -51,5 +50,5 @@ func init() {
 		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
-	rootCmd.AddCommand(loadCmd)
+	return loadCmd
 }

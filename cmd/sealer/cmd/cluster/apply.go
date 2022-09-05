@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package cluster
 
 import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
@@ -23,26 +23,27 @@ import (
 
 var clusterFile string
 
-// applyCmd represents the apply command
-var applyCmd = &cobra.Command{
-	Use:   "apply",
-	Short: "apply a Kubernetes cluster via specified Clusterfile",
-	Long: `apply command is used to apply a Kubernetes cluster via specified Clusterfile.
+var longNewApplyCmdDescription = `apply command is used to apply a Kubernetes cluster via specified Clusterfile.
 If the Clusterfile is applied first time, Kubernetes cluster will be created. Otherwise, sealer
-will apply the diff change of current Clusterfile and the original one.`,
-	Example: `sealer apply -f Clusterfile`,
-	Args:    cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		applier, err := apply.NewApplierFromFile(clusterFile)
-		if err != nil {
-			return err
-		}
-		return applier.Apply()
-	},
-}
+will apply the diff change of current Clusterfile and the original one.`
 
-func init() {
-	rootCmd.AddCommand(applyCmd)
+// NewApplyCmd applyCmd represents the apply command
+func NewApplyCmd() *cobra.Command {
+	applyCmd := &cobra.Command{
+		Use:     "apply",
+		Short:   "apply a Kubernetes cluster via specified Clusterfile",
+		Long:    longNewApplyCmdDescription,
+		Example: `sealer apply -f Clusterfile`,
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			applier, err := apply.NewApplierFromFile(clusterFile)
+			if err != nil {
+				return err
+			}
+			return applier.Apply()
+		},
+	}
 	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "Clusterfile path to apply a Kubernetes cluster")
 	applyCmd.Flags().BoolVar(&kubernetes.ForceDelete, "force", false, "force to delete the specified cluster if set true")
+	return applyCmd
 }

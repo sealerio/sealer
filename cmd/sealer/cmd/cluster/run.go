@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package cluster
 
 import (
 	"os"
@@ -30,11 +30,7 @@ import (
 
 var runArgs *apply.Args
 
-var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "start to run a cluster from a ClusterImage",
-	Long:  `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`,
-	Example: `
+var exampleForRunCmd = `
 create cluster to your bare metal server, appoint the iplist:
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 		--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
@@ -51,31 +47,35 @@ specify server SSH port :
 create a cluster with custom environment variables:
 	sealer run -e DashBoardPort=8443 mydashboard:latest  --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
-`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// set local ip address as master0 default ip if user input is empty.
-		// this is convenient to execute `sealer run` without set many arguments.
-		// Example looks like "sealer run kubernetes:v1.19.8"
-		if runArgs.Masters == "" {
-			ip, err := net.GetLocalDefaultIP()
+`
+
+func NewRunCmd() *cobra.Command {
+	runCmd := &cobra.Command{
+		Use:     "run",
+		Short:   "start to run a cluster from a ClusterImage",
+		Long:    `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`,
+		Example: exampleForRunCmd,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// set local ip address as master0 default ip if user input is empty.
+			// this is convenient to execute `sealer run` without set many arguments.
+			// Example looks like "sealer run kubernetes:v1.19.8"
+			if runArgs.Masters == "" {
+				ip, err := net.GetLocalDefaultIP()
+				if err != nil {
+					return err
+				}
+				runArgs.Masters = ip
+			}
+
+			applier, err := apply.NewApplierFromArgs(args[0], runArgs)
 			if err != nil {
 				return err
 			}
-			runArgs.Masters = ip
-		}
-
-		applier, err := apply.NewApplierFromArgs(args[0], runArgs)
-		if err != nil {
-			return err
-		}
-		return applier.Apply()
-	},
-}
-
-func init() {
+			return applier.Apply()
+		},
+	}
 	runArgs = &apply.Args{}
-	rootCmd.AddCommand(runCmd)
 	runCmd.Flags().StringVarP(&runArgs.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runArgs.Masters, "masters", "m", "", "set count or IPList to masters")
 	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set count or IPList to nodes")
@@ -94,4 +94,5 @@ func init() {
 		logrus.Errorf("provide completion for provider flag, err: %v", err)
 		os.Exit(1)
 	}
+	return runCmd
 }
