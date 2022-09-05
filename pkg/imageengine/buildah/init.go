@@ -56,6 +56,41 @@ registries = []
 	"auths": {}
 }
 `
+
+	buildahStorageConf = `
+# storage.conf is the configuration file for all tools
+# that share the containers/storage libraries
+# See man 5 containers-storage.conf for more information
+# The "container storage" table contains all of the server options.
+[storage]
+
+# Default Storage Driver
+driver = "overlay"
+
+# Temporary storage location
+runroot = "/var/run/containers/storage"
+
+# Primary Read/Write location of container storage
+graphroot = "/var/lib/containers/storage"
+
+[storage.options]
+# Storage options to be passed to underlying storage drivers
+
+# Size is used to set a maximum size of the container image.  Only supported by
+# certain container storage drivers.
+size = ""
+
+[storage.options.thinpool]
+
+# log_level sets the log level of devicemapper.
+# 0: LogLevelSuppress 0 (Default)
+# 2: LogLevelFatal
+# 3: LogLevelErr
+# 4: LogLevelWarn
+# 5: LogLevelNotice
+# 6: LogLevelInfo
+# 7: LogLevelDebug
+# log_level = "7"`
 )
 
 // TODO do we have an util or unified local storage accessing pattern?
@@ -83,6 +118,11 @@ func initBuildah() error {
 
 	registriesAbsPath := "/etc/containers/registries.conf"
 	if err := writeFileIfNotExist(registriesAbsPath, []byte(buildahEtcRegistriesConf)); err != nil {
+		return err
+	}
+
+	storageAbsPath := "/etc/containers/storage.conf"
+	if err := writeFileIfNotExist(storageAbsPath, []byte(buildahStorageConf)); err != nil {
 		return err
 	}
 
