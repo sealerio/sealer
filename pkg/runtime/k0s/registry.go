@@ -26,6 +26,8 @@ const (
 	ContainerdLoginCommand      = "nerdctl login -u %s -p %s %s"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerCertDir               = "/etc/docker/certs.d"
+	DeleteRegistryCommand       = "((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
+	RegistryName                = "sealer-registry"
 )
 
 // sendRegistryCertAndKey send registry cert to Master0 host. path like: /var/lib/sealer/data/my-k0s-cluster/certs
@@ -99,4 +101,13 @@ func (k *Runtime) SendRegistryCert(host []net.IP) error {
 		return err
 	}
 	return k.sendRegistryCert(host)
+}
+
+func (k *Runtime) DeleteRegistry() error {
+	ssh, err := k.getHostSSHClient(k.RegConfig.IP)
+	if err != nil {
+		return fmt.Errorf("failed to delete registry: %v", err)
+	}
+
+	return ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf(DeleteRegistryCommand, RegistryName))
 }

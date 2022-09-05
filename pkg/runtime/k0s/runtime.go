@@ -17,12 +17,16 @@ package k0s
 import (
 	"context"
 	"fmt"
+
 	"net"
+	"strings"
+	"time"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 
@@ -38,48 +42,60 @@ type Runtime struct {
 	RegConfig *registry.Config
 }
 
+var ForceDelete bool
+
 func (k *Runtime) Init() error {
 	return k.init()
 }
 
 func (k *Runtime) Upgrade() error {
-	//TODO implement me
-	panic("implement me")
+	return k.upgrade()
 }
 
 func (k *Runtime) Reset() error {
-	//TODO implement me
-	panic("implement me")
+	logrus.Infof("Start to delete cluster: master %s, node %s", k.cluster.GetMasterIPList(), k.cluster.GetNodeIPList())
+	if err := k.confirmDeleteNodes(); err != nil {
+		return err
+	}
+	return k.reset()
 }
 
 func (k *Runtime) JoinMasters(newMastersIPList []net.IP) error {
-	//TODO implement me
-	panic("implement me")
+	if len(newMastersIPList) != 0 {
+		logrus.Infof("%s will be added as master", newMastersIPList)
+	}
+	return k.joinMasters(newMastersIPList)
 }
 
 func (k *Runtime) JoinNodes(newNodesIPList []net.IP) error {
-	//TODO implement me
-	panic("implement me")
+	if len(newNodesIPList) != 0 {
+		logrus.Infof("%s will be added as worker", newNodesIPList)
+	}
+	return k.joinNodes(newNodesIPList)
 }
 
 func (k *Runtime) DeleteMasters(mastersIPList []net.IP) error {
-	//TODO implement me
-	panic("implement me")
+	if len(mastersIPList) != 0 {
+		logrus.Infof("master %s will be deleted", mastersIPList)
+		if err := k.confirmDeleteNodes(); err != nil {
+			return err
+		}
+	}
+	return k.deleteMasters(mastersIPList)
 }
 
 func (k *Runtime) DeleteNodes(nodesIPList []net.IP) error {
-	//TODO implement me
-	panic("implement me")
+	if len(nodesIPList) != 0 {
+		logrus.Infof("worker %s will be deleted", nodesIPList)
+		if err := k.confirmDeleteNodes(); err != nil {
+			return err
+		}
+	}
+	return k.deleteNodes(nodesIPList)
 }
 
 func (k *Runtime) GetClusterMetadata() (*runtime.Metadata, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (k *Runtime) UpdateCert(certs []string) error {
-	//TODO implement me
-	panic("implement me")
+	return k.getClusterMetadata()
 }
 
 // NewK0sRuntime arg "clusterConfig" is the k0s config file under etc/${ant_name.yaml}, runtime need read k0s config from it
@@ -157,4 +173,115 @@ func (k *Runtime) sendFileToHosts(Hosts []net.IP, src, dst string) error {
 		})
 	}
 	return eg.Wait()
+}
+
+func (k *Runtime) WaitSSHReady(tryTimes int, hosts ...net.IP) error {
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, h := range hosts {
+		host := h
+		eg.Go(func() error {
+			for i := 0; i < tryTimes; i++ {
+				sshClient, err := k.getHostSSHClient(host)
+				if err != nil {
+					return err
+				}
+				err = sshClient.Ping(host)
+				if err == nil {
+					return nil
+				}
+				time.Sleep(time.Duration(i) * time.Second)
+			}
+			return fmt.Errorf("wait for [%s] ssh ready timeout, ensure that the IP address or password is correct", host)
+		})
+	}
+	return eg.Wait()
+}
+
+func (k *Runtime) CopyJoinToken(role string, hosts []net.IP) error {
+	var joinCertPath string
+	ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
+	if err != nil {
+		return err
+	}
+	switch role {
+	case ControllerRole:
+		joinCertPath = DefaultK0sControllerJoin
+	case WorkerRole:
+		joinCertPath = DefaultK0sWorkerJoin
+	default:
+		joinCertPath = DefaultK0sWorkerJoin
+	}
+
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, host := range hosts {
+		host := host
+		eg.Go(func() error {
+			return ssh.Copy(host, joinCertPath, joinCertPath)
+		})
+	}
+	return nil
+}
+
+func (k *Runtime) Command(role string) []string {
+	cmds := map[string][]string{
+		ControllerRole: {"mkdir -r /etc/k0s", fmt.Sprintf("k0s config create > %s", DefaultK0sConfigPath),
+			fmt.Sprintf("sed -i '/  images/ a\\    repository: \"%s:%s\"' %s", k.RegConfig.Domain, k.RegConfig.Port, DefaultK0sConfigPath),
+			fmt.Sprintf("k0s install controller --token-file %s -c %s",
+				DefaultK0sControllerJoin, DefaultK0sConfigPath),
+			"k0s start",
+		},
+		WorkerRole: {fmt.Sprintf("k0s install worker --cri-socket %s --token-file %s", ExternalCRI, DefaultK0sWorkerJoin),
+			"k0s start"},
+	}
+
+	v, ok := cmds[role]
+	if !ok {
+		logrus.Errorf("failed to get k0s command: %v", cmds)
+		return nil
+	}
+	return v
+}
+
+func (k *Runtime) confirmDeleteNodes() error {
+	if !ForceDelete {
+		if pass, err := utils.ConfirmOperation("Are you sure to delete these nodes? "); err != nil {
+			return err
+		} else if !pass {
+			return fmt.Errorf("exit the operation of delete these nodes")
+		}
+	}
+	return nil
+}
+
+//CmdToString is in host exec cmd and replace to spilt str
+func (k *Runtime) CmdToString(host net.IP, cmd, split string) (string, error) {
+	ssh, err := k.getHostSSHClient(host)
+	if err != nil {
+		return "", fmt.Errorf("failed to get ssh clientof host(%s): %v", host, err)
+	}
+	return ssh.CmdToString(host, cmd, split)
+}
+
+func (k *Runtime) getClusterMetadata() (*runtime.Metadata, error) {
+	metadata := &runtime.Metadata{}
+
+	version, err := k.getKubeVersion()
+	if err != nil {
+		return metadata, err
+	}
+	metadata.Version = version
+	metadata.ClusterRuntime = RuntimeFlag
+	return metadata, nil
+}
+
+func (k *Runtime) getKubeVersion() (string, error) {
+	ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
+	if err != nil {
+		return "", err
+	}
+	bytes, err := ssh.Cmd(k.cluster.GetMaster0IP(), VersionCmd)
+	if err != nil {
+		return "", err
+	}
+	return strings.Split(string(bytes), "+")[0], nil
 }
