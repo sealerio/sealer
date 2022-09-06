@@ -6,6 +6,7 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"sigs.k8s.io/yaml"
 )
@@ -16,7 +17,13 @@ const (
 	ComponentVersion      = "kustomize.config.k8s.io/v1alpha1"
 	ComponentKind         = "Component"
 	MetadataNamespacePath = "metadata/namespace"
+
+	OriginAnnotations      = "originAnnotations"
+	TransformerAnnotations = "transformerAnnotations"
+	ManagedByLabelOption   = "managedByLabel"
 )
+
+var BuildMetadataOptions = []string{OriginAnnotations, TransformerAnnotations, ManagedByLabelOption}
 
 // Kustomization holds the information needed to generate customized k8s api resources.
 type Kustomization struct {
@@ -46,12 +53,15 @@ type Kustomization struct {
 	// CommonLabels to add to all objects and selectors.
 	CommonLabels map[string]string `json:"commonLabels,omitempty" yaml:"commonLabels,omitempty"`
 
+	// Labels to add to all objects but not selectors.
+	Labels []Label `json:"labels,omitempty" yaml:"labels,omitempty"`
+
 	// CommonAnnotations to add to all objects.
 	CommonAnnotations map[string]string `json:"commonAnnotations,omitempty" yaml:"commonAnnotations,omitempty"`
 
 	// PatchesStrategicMerge specifies the relative path to a file
 	// containing a strategic merge patch.  Format documented at
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/strategic-merge-patch.md
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md
 	// URLs and globs are not supported.
 	PatchesStrategicMerge []PatchStrategicMerge `json:"patchesStrategicMerge,omitempty" yaml:"patchesStrategicMerge,omitempty"`
 
@@ -69,6 +79,10 @@ type Kustomization struct {
 	// for changing image names, tags or digests. This can also be achieved with a
 	// patch, but this operator is simpler to specify.
 	Images []Image `json:"images,omitempty" yaml:"images,omitempty"`
+
+	// Replacements is a list of replacements, which will copy nodes from a
+	// specified source to N specified targets.
+	Replacements []ReplacementField `json:"replacements,omitempty" yaml:"replacements,omitempty"`
 
 	// Replicas is a list of {resourcename, count} that allows for simpler replica
 	// specification. This can also be done with a patch.
@@ -125,9 +139,14 @@ type Kustomization struct {
 	// the map will have a suffix hash generated from its contents.
 	SecretGenerator []SecretArgs `json:"secretGenerator,omitempty" yaml:"secretGenerator,omitempty"`
 
+	// HelmGlobals contains helm configuration that isn't chart specific.
+	HelmGlobals *HelmGlobals `json:"helmGlobals,omitempty" yaml:"helmGlobals,omitempty"`
+
+	// HelmCharts is a list of helm chart configuration instances.
+	HelmCharts []HelmChart `json:"helmCharts,omitempty" yaml:"helmCharts,omitempty"`
+
 	// HelmChartInflationGenerator is a list of helm chart configurations.
-	// The resulting resource is a normal operand rendered from
-	// a remote chart by `helm template`
+	// Deprecated.  Auto-converted to HelmGlobals and HelmCharts.
 	HelmChartInflationGenerator []HelmChartArgs `json:"helmChartInflationGenerator,omitempty" yaml:"helmChartInflationGenerator,omitempty"`
 
 	// GeneratorOptions modify behavior of all ConfigMap and Secret generators.
@@ -148,6 +167,9 @@ type Kustomization struct {
 	// Inventory appends an object that contains the record
 	// of all other objects, which can be used in apply, prune and delete
 	Inventory *Inventory `json:"inventory,omitempty" yaml:"inventory,omitempty"`
+
+	// BuildMetadata is a list of strings used to toggle different build options
+	BuildMetadata []string `json:"buildMetadata,omitempty" yaml:"buildMetadata,omitempty"`
 }
 
 // FixKustomizationPostUnmarshalling fixes things
@@ -181,15 +203,42 @@ func (k *Kustomization) FixKustomizationPostUnmarshalling() {
 			k.SecretGenerator[i].EnvSource = ""
 		}
 	}
+	charts, globals := SplitHelmParameters(k.HelmChartInflationGenerator)
+	if k.HelmGlobals == nil {
+		if globals.ChartHome != "" || globals.ConfigHome != "" {
+			k.HelmGlobals = &globals
+		}
+	}
+	k.HelmCharts = append(k.HelmCharts, charts...)
+	// Wipe it for the fix command.
+	k.HelmChartInflationGenerator = nil
 }
 
 // FixKustomizationPreMarshalling fixes things
 // that should occur after the kustomization file
 // has been processed.
-func (k *Kustomization) FixKustomizationPreMarshalling() {
+func (k *Kustomization) FixKustomizationPreMarshalling() error {
 	// PatchesJson6902 should be under the Patches field.
 	k.Patches = append(k.Patches, k.PatchesJson6902...)
 	k.PatchesJson6902 = nil
+
+	// this fix is not in FixKustomizationPostUnmarshalling because
+	// it will break some commands like `create` and `add`. those
+	// commands depend on 'commonLabels' field
+	if cl := labelFromCommonLabels(k.CommonLabels); cl != nil {
+		// check conflicts between commonLabels and labels
+		for _, l := range k.Labels {
+			for k := range l.Pairs {
+				if _, exist := cl.Pairs[k]; exist {
+					return fmt.Errorf("label name '%s' exists in both commonLabels and labels", k)
+				}
+			}
+		}
+		k.Labels = append(k.Labels, *cl)
+		k.CommonLabels = nil
+	}
+
+	return nil
 }
 
 func (k *Kustomization) EnforceFields() []string {

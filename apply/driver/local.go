@@ -159,7 +159,7 @@ func (applier *Applier) reconcileCluster() error {
 	}
 	defer func() {
 		if err := applier.unMountClusterImage(); err != nil {
-			logrus.Warnf("failed to umount image(%s): %v", applier.ClusterDesired.ClusterName, err)
+			logrus.Warnf("failed to umount cluster(%s): %v", applier.ClusterDesired.Name, err)
 		}
 
 		if err := applier.ImageEngine.RemoveContainer(&imagecommon.RemoveContainerOptions{
@@ -230,7 +230,7 @@ func (applier *Applier) Upgrade(upgradeImgName string) error {
 	}
 	defer func() {
 		if err := applier.unMountClusterImage(); err != nil {
-			logrus.Warnf("failed to umount image(%s): %v", applier.ClusterDesired.ClusterName, err)
+			logrus.Warnf("failed to umount cluster(%s): %v", applier.ClusterDesired.Name, err)
 		}
 	}()
 	return applier.upgrade()
