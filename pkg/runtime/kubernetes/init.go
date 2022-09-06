@@ -90,8 +90,9 @@ func (k *Runtime) generateCert(kubeadmConf kubeadm_config.KubeadmConfig, master0
 	)
 }
 
-func (k *Runtime) initKubeletService(hosts []net.IP) error {
-	initKubeletCmd := fmt.Sprintf("bash %s", filepath.Join(k.infra.GetClusterRootfs(), "scripts", "ini-kube.sh"))
+// initKube do some initialize kubelet works, such as configuring the host environment, initializing the kubelet service, and so on.
+func (k *Runtime) initKube(hosts []net.IP) error {
+	initKubeletCmd := fmt.Sprintf("bash %s", filepath.Join(k.infra.GetClusterRootfs(), "scripts", "init-kube.sh"))
 
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {

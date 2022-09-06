@@ -73,42 +73,49 @@ func (k *Runtime) Install() error {
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 	workers := k.infra.GetHostIPListByRole(common.NODE)
 
-	err := k.initKubeletService(append(masters, workers...))
-	if err != nil {
-		return err
-	}
-
 	kubeadmConf, err := k.initKubeadmConfig(masters)
 	if err != nil {
 		return err
 	}
 
-	if err := k.generateCert(kubeadmConf, masters[0]); err != nil {
+	if err = k.generateCert(kubeadmConf, masters[0]); err != nil {
 		return err
 	}
 
-	if err := k.createKubeConfig(masters[0]); err != nil {
+	if err = k.createKubeConfig(masters[0]); err != nil {
 		return err
 	}
 
-	if err := k.CopyStaticFiles(masters[0:1]); err != nil {
+	if err = k.CopyStaticFiles(masters[0:1]); err != nil {
 		return err
 	}
 
+	// init master0
+	if err = k.initKube([]net.IP{masters[0]}); err != nil {
+		return err
+	}
 	token, certKey, err := k.initMaster0(kubeadmConf, masters[0])
 	if err != nil {
 		return err
 	}
 
-	if err := k.joinMasters(masters[1:], masters[0], kubeadmConf, token, certKey); err != nil {
+	// join master
+	if err = k.initKube(masters[1:]); err != nil {
+		return err
+	}
+	if err = k.joinMasters(masters[1:], masters[0], kubeadmConf, token, certKey); err != nil {
 		return err
 	}
 
-	if err := k.joinNodes(workers, masters, kubeadmConf, token); err != nil {
+	// join node
+	if err = k.initKube(workers); err != nil {
+		return err
+	}
+	if err = k.joinNodes(workers, masters, kubeadmConf, token); err != nil {
 		return err
 	}
 
-	if err := k.reconcileClusterStatus(masters[0]); err != nil {
+	if err := k.dumpKubeConfigIntoCluster(masters[0]); err != nil {
 		return err
 	}
 
@@ -143,11 +150,6 @@ func (k *Runtime) Reset() error {
 }
 
 func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
-	err := k.initKubeletService(append(newMasters, newWorkers...))
-	if err != nil {
-		return err
-	}
-
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 
 	kubeadmConfig, err := kubeadm_config.LoadKubeadmConfigs(KubeadmFileYml, utils.DecodeCRDFromFile)
@@ -160,11 +162,19 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 		return err
 	}
 
-	if err := k.joinMasters(newMasters, masters[0], kubeadmConfig, token, certKey); err != nil {
+	//join master
+	if err = k.initKube(newMasters); err != nil {
+		return err
+	}
+	if err = k.joinMasters(newMasters, masters[0], kubeadmConfig, token, certKey); err != nil {
 		return err
 	}
 
-	if err := k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
+	//join node
+	if err = k.initKube(newWorkers); err != nil {
+		return err
+	}
+	if err = k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
 		return err
 	}
 

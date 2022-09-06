@@ -184,7 +184,8 @@ func (k *Runtime) getJoinTokenHashAndKey(master0 net.IP) (v1beta2.BootstrapToken
 	return token, certKey, nil
 }
 
-func (k *Runtime) reconcileClusterStatus(master0 net.IP) error {
+// dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
+func (k *Runtime) dumpKubeConfigIntoCluster(master0 net.IP) error {
 	driver, err := k.GetCurrentRuntimeDriver()
 	if err != nil {
 		return err
