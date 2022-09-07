@@ -31,6 +31,8 @@ import (
 )
 
 const (
+	DefaultDomain               = "sea.hub"
+	DefaultPort                 = 5000
 	DefaultEndpoint             = "sea.hub:5000"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 )

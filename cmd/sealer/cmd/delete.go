@@ -67,7 +67,7 @@ delete all:
 			return err
 		}
 
-		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
 		if err != nil {
 			return err
 		}

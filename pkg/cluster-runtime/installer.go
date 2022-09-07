@@ -1,54 +1,111 @@
-// alibaba-inc.com Inc.
-// Copyright (c) 2004-2022 All Rights Reserved.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
-// @Author : huaiyou.cyz
-// @Time : 2022/8/7 9:59 PM
-// @File : cluster_runtime
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-package cluster_runtime
+package clusterruntime
 
 import (
+	"fmt"
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"net"
+	"path/filepath"
+	"strings"
 )
 
-// 初始化配置
+// RuntimeConfig for Installer
 type RuntimeConfig struct {
 	RegistryConfig         registry.RegistryConfig
 	ContainerRuntimeConfig containerruntime.Config
 	KubeadmConfig          kubeadm_config.KubeadmConfig
-	HookConfig             HookConfig
 }
 
 type Installer struct {
 	RuntimeConfig
 	infraDriver               infradriver.InfraDriver
 	containerRuntimeInstaller containerruntime.Installer
-	hooks                     map[Phase][]HookFunc
+	hooks                     map[Phase]HookConfigList
 }
 
-func NewInstaller(infra infradriver.InfraDriver, cluster *v2.Cluster) (*Installer, error) {
-	//TODO: use cluster set RuntimeConfig and check valid
+func NewInstaller(infraDriver infradriver.InfraDriver, cf clusterfile.Interface) (*Installer, error) {
+	var (
+		err       error
+		installer = &Installer{}
+	)
 
-	installer := Installer{}
-
-	var err error
-	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(conf.ContainerRuntimeConfig, infra)
+	// configure container runtime
+	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(containerruntime.Config{}, infraDriver)
 	if err != nil {
 		return nil, err
 	}
 
-	installer.RegistryConfig.LocalRegistry.DeployHost = masters[0]
+	// configure cluster registry
+	installer.RegistryConfig.LocalRegistry = &registry.LocalRegistry{
+		DataDir:      filepath.Join(infraDriver.GetClusterRootfs(), "registry"),
+		InsecureMode: false,
+		DeployHost:   infraDriver.GetHostIPListByRole(common.MASTER)[0],
+		Registry: registry.Registry{
+			Domain: registry.DefaultDomain,
+			Port:   registry.DefaultPort,
+		},
+	}
 
-	//TODO: use cluster set hooks
+	// add installer hooks
+	hooks := make(map[Phase]HookConfigList)
+	plugins := cf.GetPlugins()
+
+	for _, pluginConfig := range plugins {
+		hookType := HookType(pluginConfig.Spec.Type)
+
+		_, ok := hookFactories[hookType]
+		if !ok {
+			return nil, fmt.Errorf("hook type: %s is not registered", hookType)
+		}
+
+		//split pluginConfig.Spec.Action with "|" to support combined actions
+		phaseList := strings.Split(pluginConfig.Spec.Action, "|")
+		for _, phase := range phaseList {
+			if phase == "" {
+				continue
+			}
+			hookConfig := HookConfig{
+				Name:  pluginConfig.Name,
+				Data:  pluginConfig.Spec.Data,
+				Type:  hookType,
+				Phase: Phase(phase),
+				Scope: Scope(pluginConfig.Spec.On),
+			}
+
+			if _, ok = hooks[hookConfig.Phase]; !ok {
+				// add new Phase
+				hooks[hookConfig.Phase] = []HookConfig{hookConfig}
+			} else {
+				hooks[hookConfig.Phase] = append(hooks[hookConfig.Phase], hookConfig)
+			}
+		}
+	}
+
+	installer.hooks = hooks
+	installer.infraDriver = infraDriver
+	installer.KubeadmConfig = *cf.GetKubeadmConfig()
+
+	return installer, nil
 }
 
 func getWorkerIPList(infraDriver infradriver.InfraDriver) []net.IP {
@@ -74,11 +131,12 @@ func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
-	if err := i.runHook(PreInstall); err != nil {
+
+	if err := i.runClusterHook(PreInstallCluster); err != nil {
 		return nil, nil, err
 	}
 
-	if err := i.runHookOnHosts(PreInitHost, all); err != nil {
+	if err := i.runHostHook(PreInitHost, all); err != nil {
 		return nil, nil, err
 	}
 
@@ -91,7 +149,6 @@ func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
 		return nil, nil, err
 	}
 
-	// TODO, init here or in constructor?
 	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
 	if err != nil {
 		return nil, nil, err
@@ -120,11 +177,11 @@ func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
 		return nil, nil, err
 	}
 
-	if err := i.runHookOnHosts(PostInitHost, all); err != nil {
+	if err := i.runClusterHook(PostInstallCluster); err != nil {
 		return nil, nil, err
 	}
 
-	if err := i.runHook(PostInstall); err != nil {
+	if err := i.runHostHook(PostInitHost, all); err != nil {
 		return nil, nil, err
 	}
 
@@ -136,11 +193,11 @@ func (i *Installer) UnInstall() error {
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
 
-	if err := i.runHook(PreUnInstall); err != nil {
+	if err := i.runClusterHook(PreUnInstallCluster); err != nil {
 		return err
 	}
 
-	if err := i.runHookOnHosts(PreCleanHost, all); err != nil {
+	if err := i.runHostHook(PreCleanHost, all); err != nil {
 		return err
 	}
 
@@ -166,11 +223,11 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
-	if err := i.runHookOnHosts(PostCleanHost, all); err != nil {
+	if err := i.runHostHook(PostCleanHost, all); err != nil {
 		return err
 	}
 
-	if err := i.runHook(PostUnInstall); err != nil {
+	if err := i.runClusterHook(PostUnInstallCluster); err != nil {
 		return err
 	}
 
@@ -208,11 +265,12 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 }
 
 func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, runtime.Driver, error) {
-	if err := i.runHook(PreScaleUp); err != nil {
+	all := append(newMasters, newWorkers...)
+	if err := i.runClusterHook(PreScaleUpCluster); err != nil {
 		return nil, nil, err
 	}
 
-	if err := i.runHookOnHosts(PreInitHost, append(newMasters, newWorkers...)); err != nil {
+	if err := i.runHostHook(PreInitHost, all); err != nil {
 		return nil, nil, err
 	}
 
@@ -253,11 +311,11 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	if err := i.runHookOnHosts(PostInitHost, append(newMasters, newWorkers...)); err != nil {
+	if err := i.runHostHook(PostInitHost, all); err != nil {
 		return nil, nil, err
 	}
 
-	if err := i.runHook(PostScaleUp); err != nil {
+	if err := i.runClusterHook(PostScaleUpCluster); err != nil {
 		return nil, nil, err
 	}
 
@@ -265,7 +323,8 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 }
 
 func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (registry.Driver, runtime.Driver, error) {
-	if err := i.runHookOnHosts(PreCleanHost, append(mastersToDelete, workersToDelete...)); err != nil {
+	all := append(mastersToDelete, workersToDelete...)
+	if err := i.runHostHook(PreCleanHost, all); err != nil {
 		return nil, nil, err
 	}
 
@@ -306,7 +365,7 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	if err := i.runHookOnHosts(PostCleanHost, append(mastersToDelete, workersToDelete...)); err != nil {
+	if err := i.runHostHook(PostCleanHost, all); err != nil {
 		return nil, nil, err
 	}
 
