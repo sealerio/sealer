@@ -22,19 +22,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	chmodCmd       = `chmod +x %s/*`
-	mvCmd          = `mv %s/* /usr/bin`
-	getNodeNameCmd = `$(uname -n | tr '[A-Z]' '[a-z]')`
-	drainCmd       = `kubectl drain ` + getNodeNameCmd + ` --ignore-daemonsets`
-	upgradeCmd     = `k0s stop && k0s start`
-	uncordonCmd    = `kubectl uncordon ` + getNodeNameCmd
-)
-
 func (k *Runtime) upgrade() error {
 	var err error
 	binPath := filepath.Join(k.getRootfs(), `bin`)
 
+	/** To upgrade a node
+	STEP1: prepare a k0s bin file with expected version
+	STEP2: move k0s bin to /usr/bin
+	STEP3: stop k0s service
+	STEP4: start k0s service
+	*/
 	err = k.upgradeMasters([]net.IP{k.cluster.GetMaster0IP()}, binPath)
 	if err != nil {
 		return err
@@ -52,11 +49,10 @@ func (k *Runtime) upgrade() error {
 
 func (k *Runtime) upgradeMasters(IPs []net.IP, binPath string) error {
 	var cmds = []string{
-		fmt.Sprintf(chmodCmd, binPath),
-		fmt.Sprintf(mvCmd, binPath),
-		fmt.Sprintf("%s %s", drainCmd, "--delete-emptydir-data"),
-		upgradeCmd,
-		uncordonCmd,
+		fmt.Sprintf("chmod +x %s/*", binPath),
+		fmt.Sprintf("mv %s/* /usr/bin", binPath),
+		"k0s stop",
+		"k0s start",
 	}
 
 	for _, ip := range IPs {
@@ -74,11 +70,12 @@ func (k *Runtime) upgradeMasters(IPs []net.IP, binPath string) error {
 	return nil
 }
 
-func (k *Runtime) upgradeNodes(IPs []net.IP, binpath string) error {
+func (k *Runtime) upgradeNodes(IPs []net.IP, binPath string) error {
 	var nodeCmds = []string{
-		fmt.Sprintf(chmodCmd, binpath),
-		fmt.Sprintf(mvCmd, binpath),
-		upgradeCmd,
+		fmt.Sprintf("chmod +x %s/*", binPath),
+		fmt.Sprintf("mv %s/* /usr/bin", binPath),
+		"k0s stop",
+		"k0s start",
 	}
 	var err error
 	for _, ip := range IPs {

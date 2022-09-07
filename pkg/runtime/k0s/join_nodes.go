@@ -31,6 +31,13 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 	if err := k.WaitSSHReady(6, nodes...); err != nil {
 		return errors.Wrap(err, "join nodes wait for ssh ready time out")
 	}
+	/**To join a node, following these steps.
+	STEP1: send private registry cert and add registry info into node
+	STEP2: copy k0s join token
+	STEP3: use k0s command to join node with worker role.
+	STEP4: join node with token
+	STEP5: start the k0sworker.service
+	*/
 	if err := k.sendRegistryCert(nodes); err != nil {
 		return err
 	}
@@ -39,7 +46,7 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 	}
 	addRegistryHostsAndLogin := k.addRegistryDomainToHosts()
 	if k.RegConfig.Domain != SeaHub {
-		addSeaHubHost := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
+		addSeaHubHost := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
 	}
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
@@ -59,7 +66,7 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 			nodeCmds := append([]string{addRegistryHostsAndLogin}, cmds...)
 			ssh, err := k.getHostSSHClient(node)
 			if err != nil {
-				return fmt.Errorf("failed to join node %s: %v", node, err)
+				return fmt.Errorf("failed to get node ssh client %s: %v", node, err)
 			}
 			if err := ssh.CmdAsync(node, nodeCmds...); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)

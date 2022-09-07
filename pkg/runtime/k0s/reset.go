@@ -19,52 +19,62 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
 func (k *Runtime) reset() error {
-	k.resetNodes(k.cluster.GetNodeIPList())
-	k.resetMasters(k.cluster.GetMasterIPList())
+	if err := k.resetNodes(k.cluster.GetNodeIPList()); err != nil {
+		return err
+	}
+	if err := k.resetMasters(k.cluster.GetMasterIPList()); err != nil {
+		return err
+	}
 
 	return k.DeleteRegistry()
 }
 
-func (k *Runtime) resetNodes(nodes []net.IP) {
+func (k *Runtime) resetNodes(nodes []net.IP) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
 			if err := k.resetNode(node); err != nil {
-				logrus.Errorf("failed to delete node %s: %v", node, err)
+				return fmt.Errorf("failed to reset node %s: %v", node, err)
 			}
 			return nil
 		})
 	}
-	if err := eg.Wait(); err != nil {
-		return
-	}
+	return eg.Wait()
 }
 
-func (k *Runtime) resetMasters(nodes []net.IP) {
+func (k *Runtime) resetMasters(nodes []net.IP) error {
 	for _, node := range nodes {
 		if err := k.resetNode(node); err != nil {
-			logrus.Errorf("failed to delete master(%s): %v", node, err)
+			return fmt.Errorf("failed to reset master %s: %v", node, err)
 		}
 	}
+	return nil
 }
 
 func (k *Runtime) resetNode(node net.IP) error {
 	ssh, err := k.getHostSSHClient(node)
 	if err != nil {
-		return fmt.Errorf("failed to reset node: %v", err)
+		return err
 	}
-	if err := ssh.CmdAsync(node, fmt.Sprintf(RemoteCleanMasterOrNode, DefaultK0sConfigPath, ExternalCRI),
-		RemoveKubeConfig,
-		fmt.Sprintf(RemoteRemoveEtcHost, SeaHub),
-		fmt.Sprintf(RemoteRemoveEtcHost, k.RegConfig.Domain),
-		fmt.Sprintf(RemoteRemoveRegistryCerts, k.RegConfig.Domain),
-		fmt.Sprintf(RemoteRemoveRegistryCerts, SeaHub)); err != nil {
+	/** To reset a node, do following command one by one:
+	STEP1: stop k0s service
+	STEP2: reset the node with install configuration
+	STEP3: remove k0s cluster config generate by k0s under /etc/k0s
+	STEP4: remove private registry config in /etc/host
+	*/
+	if err := ssh.CmdAsync(node, "k0s stop",
+		fmt.Sprintf("k0s reset --config %s --cri-socket %s", DefaultK0sConfigPath, ExternalCRI),
+		"rm -rf /etc/k0s/",
+		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
+		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", SeaHub),
+		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),
+		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, k.RegConfig.Domain),
+		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, SeaHub)); err != nil {
 		return err
 	}
 	return nil

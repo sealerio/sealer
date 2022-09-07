@@ -22,11 +22,8 @@ import (
 
 const (
 	SeaHub                      = "sea.hub"
-	RemoteAddEtcHosts           = "cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts"
-	ContainerdLoginCommand      = "nerdctl login -u %s -p %s %s"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerCertDir               = "/etc/docker/certs.d"
-	DeleteRegistryCommand       = "((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
 	RegistryName                = "sealer-registry"
 )
 
@@ -47,7 +44,7 @@ func (k *Runtime) sendRegistryCert(host []net.IP) error {
 
 func (k *Runtime) addRegistryDomainToHosts() (host string) {
 	content := fmt.Sprintf("%s %s", k.RegConfig.IP.String(), k.RegConfig.Domain)
-	return fmt.Sprintf(RemoteAddEtcHosts, content, content)
+	return fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", content, content)
 }
 
 // ApplyRegistryOnMaster0 Only use this for init, due to the initiation operations.
@@ -67,10 +64,10 @@ func (k *Runtime) ApplyRegistryOnMaster0() error {
 			return err
 		}
 	}
-	initRegistry := fmt.Sprintf("cd %s/scripts && ./init-registry.sh %s %s %s", k.getRootfs(), k.RegConfig.Port, fmt.Sprintf("%s/registry", k.getRootfs()), k.RegConfig.Domain)
+	initRegistry := k.initRegistryCmd()
 	addRegistryHosts := k.addRegistryDomainToHosts()
 	if k.RegConfig.Domain != SeaHub {
-		addSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
+		addSeaHubHosts := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
 		addRegistryHosts = fmt.Sprintf("%s && %s", addRegistryHosts, addSeaHubHosts)
 	}
 	if err = ssh.CmdAsync(k.RegConfig.IP, initRegistry); err != nil {
@@ -87,8 +84,8 @@ func (k *Runtime) ApplyRegistryOnMaster0() error {
 
 func (k *Runtime) GenLoginCommand() string {
 	return fmt.Sprintf("%s && %s",
-		fmt.Sprintf(ContainerdLoginCommand, k.RegConfig.Username, k.RegConfig.Password, k.RegConfig.Domain+":"+k.RegConfig.Port),
-		fmt.Sprintf(ContainerdLoginCommand, k.RegConfig.Username, k.RegConfig.Password, SeaHub+":"+k.RegConfig.Port))
+		fmt.Sprintf("nerdctl login -u %s -p %s %s", k.RegConfig.Username, k.RegConfig.Password, k.RegConfig.Domain+":"+k.RegConfig.Port),
+		fmt.Sprintf("nerdctl login -u %s -p %s %s", k.RegConfig.Username, k.RegConfig.Password, SeaHub+":"+k.RegConfig.Port))
 }
 
 func (k *Runtime) GenerateRegistryCert() error {
@@ -109,5 +106,9 @@ func (k *Runtime) DeleteRegistry() error {
 		return fmt.Errorf("failed to delete registry: %v", err)
 	}
 
-	return ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf(DeleteRegistryCommand, RegistryName))
+	return ssh.CmdAsync(k.RegConfig.IP, fmt.Sprintf("((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))", RegistryName))
+}
+
+func (k *Runtime) initRegistryCmd() string {
+	return fmt.Sprintf("cd %s/scripts && ./init-registry.sh %s %s %s", k.getRootfs(), k.RegConfig.Port, fmt.Sprintf("%s/registry", k.getRootfs()), k.RegConfig.Domain)
 }

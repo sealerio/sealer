@@ -25,8 +25,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const RemoteNonRootCopyKubeConfig = `rm -rf ${HOME}/.kube/config && mkdir -p ${HOME}/.kube && cp /var/lib/k0s/pki/admin.conf ${HOME}/.kube/config && chown $(id -u):$(id -g) ${HOME}/.kube/config`
-
 func (k *Runtime) joinMasters(masters []net.IP) error {
 	if len(masters) == 0 {
 		return nil
@@ -34,10 +32,19 @@ func (k *Runtime) joinMasters(masters []net.IP) error {
 	if err := k.WaitSSHReady(6, masters...); err != nil {
 		return errors.Wrap(err, "join masters wait for ssh ready time out")
 	}
-	if err := k.CopyJoinToken(ControllerRole, masters); err != nil {
+	/**To join a node, following these steps.
+	STEP1: send private registry cert and add registry info into node
+	STEP2: copy k0s join token
+	STEP3: use k0s command to join node with master role.
+	STEP4: k0s create default config
+	STEP5: modify the private image repository field and so on in k0s config
+	STEP6: join node with token
+	STEP7: start the k0scontroller.service
+	*/
+	if err := k.sendRegistryCert(masters); err != nil {
 		return err
 	}
-	if err := k.sendRegistryCert(masters); err != nil {
+	if err := k.CopyJoinToken(ControllerRole, masters); err != nil {
 		return err
 	}
 	cmds := k.Command(ControllerRole)
@@ -55,7 +62,7 @@ func (k *Runtime) joinMasters(masters []net.IP) error {
 		}
 
 		if client.(*ssh.SSH).User != common.ROOT {
-			masterCmds = append(masterCmds, RemoteNonRootCopyKubeConfig)
+			masterCmds = append(masterCmds, "rm -rf ${HOME}/.kube/config && mkdir -p ${HOME}/.kube && cp /var/lib/k0s/pki/admin.conf ${HOME}/.kube/config && chown $(id -u):$(id -g) ${HOME}/.kube/config")
 		}
 
 		if err := client.CmdAsync(master, masterCmds...); err != nil {
@@ -70,7 +77,7 @@ func (k *Runtime) joinMasters(masters []net.IP) error {
 func (k *Runtime) JoinMasterCommands(cmds []string) []string {
 	cmdAddRegistryHosts := k.addRegistryDomainToHosts()
 	if k.RegConfig.Domain != SeaHub {
-		cmdAddSeaHubHosts := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
+		cmdAddSeaHubHosts := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
 		cmdAddRegistryHosts = fmt.Sprintf("%s && %s", cmdAddRegistryHosts, cmdAddSeaHubHosts)
 	}
 	joinCommands := []string{cmdAddRegistryHosts}

@@ -20,19 +20,10 @@ import (
 	"net"
 	"strings"
 
+	"github.com/sealerio/sealer/pkg/client/k8s"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-)
-
-const (
-	RemoteCleanMasterOrNode = `if which k0s; then k0s stop && k0s reset --config %s --cri-socket %s;fi && \
-rm -rf /etc/k0s/
-`
-	RemoveKubeConfig          = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
-	RemoveK0sBin              = "rm -rf /usr/bin/k0s"
-	RemoteRemoveEtcHost       = "sed -i \"/%s/d\" /etc/hosts"
-	RemoteRemoveRegistryCerts = "rm -rf " + DockerCertDir + "/%s*"
-	KubeDeleteNode            = "kubectl delete node %s"
 )
 
 func (k *Runtime) deleteMasters(masters []net.IP) error {
@@ -43,13 +34,11 @@ func (k *Runtime) deleteMasters(masters []net.IP) error {
 	for _, master := range masters {
 		master := master
 		eg.Go(func() error {
-			master := master
 			logrus.Infof("Start to delete master %s", master)
 			if err := k.deleteMaster(master); err != nil {
-				logrus.Errorf("failed to delete master %s: %v", master, err)
-			} else {
-				logrus.Infof("Succeeded in deleting master %s", master)
+				return fmt.Errorf("failed to delete master %s: %v", master, err)
 			}
+			logrus.Infof("Succeeded in deleting master %s", master)
 			return nil
 		})
 	}
@@ -61,12 +50,24 @@ func (k *Runtime) deleteMaster(master net.IP) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete master: %v", err)
 	}
-	remoteCleanCmd := []string{fmt.Sprintf(RemoteCleanMasterOrNode, DefaultK0sConfigPath, ExternalCRI),
-		fmt.Sprintf(RemoteRemoveEtcHost, SeaHub),
-		fmt.Sprintf(RemoteRemoveRegistryCerts, k.RegConfig.Domain),
-		fmt.Sprintf(RemoteRemoveRegistryCerts, SeaHub),
-		RemoveKubeConfig,
-		RemoveK0sBin}
+	/** To delete a node from k0s cluster, following these steps.
+	STEP1: stop k0s service
+	STEP2: reset the node with install configuration
+	STEP3: remove k0s cluster config generate by k0s under /etc/k0s
+	STEP4: remove private registry config in /etc/host
+	STEP5: remove bin file such as: kubectl, and remove .kube directory
+	STEP6: remove k0s bin file
+	STEP7: delete node though k8s client
+	*/
+	remoteCleanCmd := []string{"k0s stop",
+		fmt.Sprintf("k0s reset --config %s --cri-socket %s", DefaultK0sConfigPath, ExternalCRI),
+		"rm -rf /etc/k0s/",
+		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", SeaHub),
+		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),
+		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, k.RegConfig.Domain),
+		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, SeaHub),
+		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
+		"rm -rf /usr/bin/k0s"}
 
 	if err := ssh.CmdAsync(master, remoteCleanCmd...); err != nil {
 		return err
@@ -81,43 +82,50 @@ func (k *Runtime) deleteMaster(master net.IP) error {
 	}
 
 	if len(masterIPs) > 0 {
-		hostname, err := k.isHostName(k.cluster.GetMaster0IP(), master)
+		hostname, err := k.isHostName(master)
 		if err != nil {
 			return err
 		}
-		master0SSH, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
+		client, err := k8s.Newk8sClient()
 		if err != nil {
-			return fmt.Errorf("failed to get master0 ssh client: %v", err)
+			return err
 		}
-
-		if err := master0SSH.CmdAsync(k.cluster.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
-			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
+		if err := client.DeleteNode(hostname); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (k *Runtime) isHostName(master, host net.IP) (string, error) {
-	hostString, err := k.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
+func (k *Runtime) isHostName(host net.IP) (string, error) {
+	client, err := k8s.Newk8sClient()
 	if err != nil {
 		return "", err
 	}
+	nodeList, err := client.ListNodes()
+	if err != nil {
+		return "", err
+	}
+	var hosts []string
+	for _, node := range nodeList.Items {
+		hosts = append(hosts, node.GetName())
+	}
+
 	hostName, err := k.CmdToString(host, "hostname", "")
 	if err != nil {
 		return "", err
 	}
-	hosts := strings.Split(hostString, ",")
+
 	var name string
 	for _, h := range hosts {
 		if strings.TrimSpace(h) == "" {
 			continue
-		} else {
-			hh := strings.ToLower(h)
-			fromH := strings.ToLower(hostName)
-			if hh == fromH {
-				name = h
-				break
-			}
+		}
+		hh := strings.ToLower(h)
+		fromH := strings.ToLower(hostName)
+		if hh == fromH {
+			name = h
+			break
 		}
 	}
 	return name, nil
