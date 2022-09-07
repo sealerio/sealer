@@ -84,8 +84,6 @@ func (r HookConfigList) Less(i, j int) bool { return r[i].Name < r[j].Name }
 
 // runHostHook run host scope hook by Phase and only execute hook on the given host list.
 func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
-	var targetHosts []net.IP
-
 	hookConfigList, ok := i.hooks[phase]
 	if !ok {
 		return fmt.Errorf("failed to load hook at phase: %s", phase)
@@ -94,9 +92,10 @@ func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 	// sorted by hookConfig name in alphabetical order
 	sort.Sort(hookConfigList)
 	for _, hookConfig := range hookConfigList {
-		scopeHosts := i.infraDriver.GetHostIPListByRole(string(hookConfig.Scope))
+		var targetHosts []net.IP
+		expectedHosts := i.infraDriver.GetHostIPListByRole(string(hookConfig.Scope))
 		// Make sure each host got from Scope is in the given host ip list.
-		for _, expected := range scopeHosts {
+		for _, expected := range expectedHosts {
 			if !netUtils.NotInIPList(expected, hosts) {
 				targetHosts = append(targetHosts, expected)
 			}
