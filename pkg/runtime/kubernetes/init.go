@@ -185,6 +185,10 @@ func (k *Runtime) decodeJoinCmd(cmd string) (v1beta2.BootstrapTokenDiscovery, st
 
 //initMaster0 is using kubeadm init to start up the cluster master0.
 func (k *Runtime) initMaster0(kubeadmConf kubeadm_config.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
+	if err := k.initKube([]net.IP{master0}); err != nil {
+		return v1beta2.BootstrapTokenDiscovery{}, "", err
+	}
+
 	if err := k.SendJoinMasterKubeConfigs([]net.IP{master0}, kubeadmConf.KubernetesVersion, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}

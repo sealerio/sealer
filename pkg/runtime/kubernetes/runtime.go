@@ -90,27 +90,15 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	// init master0
-	if err = k.initKube([]net.IP{masters[0]}); err != nil {
-		return err
-	}
 	token, certKey, err := k.initMaster0(kubeadmConf, masters[0])
 	if err != nil {
 		return err
 	}
 
-	// join master
-	if err = k.initKube(masters[1:]); err != nil {
-		return err
-	}
 	if err = k.joinMasters(masters[1:], masters[0], kubeadmConf, token, certKey); err != nil {
 		return err
 	}
 
-	// join node
-	if err = k.initKube(workers); err != nil {
-		return err
-	}
 	if err = k.joinNodes(workers, masters, kubeadmConf, token); err != nil {
 		return err
 	}
@@ -162,18 +150,10 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 		return err
 	}
 
-	//join master
-	if err = k.initKube(newMasters); err != nil {
-		return err
-	}
 	if err = k.joinMasters(newMasters, masters[0], kubeadmConfig, token, certKey); err != nil {
 		return err
 	}
 
-	//join node
-	if err = k.initKube(newWorkers); err != nil {
-		return err
-	}
 	if err = k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
 		return err
 	}

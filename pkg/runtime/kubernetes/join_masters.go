@@ -94,6 +94,10 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 
 	logrus.Infof("%s will be added as master", newMasters)
 
+	if err := k.initKube(newMasters); err != nil {
+		return err
+	}
+
 	if err := k.CopyStaticFiles(newMasters); err != nil {
 		return err
 	}
