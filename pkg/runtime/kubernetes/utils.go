@@ -15,6 +15,7 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
@@ -22,9 +23,14 @@ import (
 	"github.com/sealerio/sealer/utils"
 	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/clientcmd"
 	"net"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -38,9 +44,9 @@ const (
 	// kube file
 	KUBECONTROLLERCONFIGFILE = "/etc/kubernetes/controller-manager.conf"
 	KUBESCHEDULERCONFIGFILE  = "/etc/kubernetes/scheduler.conf"
-
-	StaticPodDir       = "/etc/kubernetes/manifests"
-	LvscarePodFileName = "kube-lvscare.yaml"
+	AdminKubeConfPath        = "/etc/kubernetes/admin.conf"
+	StaticPodDir             = "/etc/kubernetes/manifests"
+	LvscarePodFileName       = "kube-lvscare.yaml"
 )
 
 const (
@@ -160,4 +166,32 @@ func (k *Runtime) Command(version, master0IP string, name CommandType, token v1b
 	}
 
 	return fmt.Sprintf("%s%s", v, vlogToStr(k.Config.Vlog)), nil
+}
+
+func GetClientFromConfig(adminConfPath string) (runtimeClient.Client, error) {
+	adminConfig, err := clientcmd.BuildConfigFromFlags("", adminConfPath)
+	if nil != err {
+		return nil, err
+	}
+
+	var ret runtimeClient.Client
+
+	timeout := time.Second * 30
+	err = wait.PollImmediate(time.Second*10, timeout, func() (done bool, err error) {
+		cli, err := runtimeClient.New(adminConfig, runtimeClient.Options{})
+		if nil != err {
+			return false, err
+		}
+
+		ns := corev1.Namespace{}
+		if err := cli.Get(context.Background(), runtimeClient.ObjectKey{Name: "default"}, &ns); nil != err {
+			return false, err
+		}
+
+		ret = cli
+
+		return true, nil
+	})
+
+	return ret, err
 }

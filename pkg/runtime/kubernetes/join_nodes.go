@@ -36,6 +36,10 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm_co
 		return nil
 	}
 
+	if err := k.initKube(newNodes); err != nil {
+		return err
+	}
+
 	var rs []string
 	for _, m := range masters {
 		rs = append(rs, fmt.Sprintf("--rs %s", net.JoinHostPort(m.String(), "6443")))

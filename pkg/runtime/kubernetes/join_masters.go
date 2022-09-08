@@ -15,12 +15,18 @@
 package kubernetes
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config/v1beta2"
 	"github.com/sealerio/sealer/utils/shellcommand"
+	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/sealerio/sealer/pkg/clustercert"
@@ -87,6 +93,10 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 	}
 
 	logrus.Infof("%s will be added as master", newMasters)
+
+	if err := k.initKube(newMasters); err != nil {
+		return err
+	}
 
 	if err := k.CopyStaticFiles(newMasters); err != nil {
 		return err
@@ -176,4 +186,42 @@ func (k *Runtime) getJoinTokenHashAndKey(master0 net.IP) (v1beta2.BootstrapToken
 	}
 
 	return token, certKey, nil
+}
+
+// dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
+func (k *Runtime) dumpKubeConfigIntoCluster(master0 net.IP) error {
+	driver, err := k.GetCurrentRuntimeDriver()
+	if err != nil {
+		return err
+	}
+
+	kubeConfigContent, err := ioutil.ReadFile(AdminKubeConfPath)
+	if err != nil {
+		return err
+	}
+
+	kubeConfigContent = bytes.ReplaceAll(kubeConfigContent, []byte("apiserver.cluster.local"), []byte(master0.String()))
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "admin.conf",
+			Namespace: metav1.NamespaceSystem,
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"admin.conf": kubeConfigContent,
+		},
+	}
+
+	if err := driver.Create(context.Background(), secret, &runtimeClient.CreateOptions{}); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("unable to create secret: %v", err)
+		}
+
+		if err := driver.Update(context.Background(), secret, &runtimeClient.UpdateOptions{}); err != nil {
+			return fmt.Errorf("unable to update secret: %v", err)
+		}
+	}
+
+	return nil
 }

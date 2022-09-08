@@ -78,15 +78,15 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	if err := k.generateCert(kubeadmConf, masters[0]); err != nil {
+	if err = k.generateCert(kubeadmConf, masters[0]); err != nil {
 		return err
 	}
 
-	if err := k.createKubeConfig(masters[0]); err != nil {
+	if err = k.createKubeConfig(masters[0]); err != nil {
 		return err
 	}
 
-	if err := k.CopyStaticFiles(masters[0:1]); err != nil {
+	if err = k.CopyStaticFiles(masters[0:1]); err != nil {
 		return err
 	}
 
@@ -95,20 +95,23 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	if err := k.joinMasters(masters[1:], masters[0], kubeadmConf, token, certKey); err != nil {
+	if err = k.joinMasters(masters[1:], masters[0], kubeadmConf, token, certKey); err != nil {
 		return err
 	}
 
-	if err := k.joinNodes(workers, masters, kubeadmConf, token); err != nil {
+	if err = k.joinNodes(workers, masters, kubeadmConf, token); err != nil {
+		return err
+	}
+
+	if err := k.dumpKubeConfigIntoCluster(masters[0]); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-//TODO implement me
 func (k *Runtime) GetCurrentRuntimeDriver() (runtime.Driver, error) {
-	return nil, nil
+	return NewKubeDriver(AdminKubeConfPath)
 }
 
 func (k *Runtime) Upgrade() error {
@@ -147,11 +150,11 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 		return err
 	}
 
-	if err := k.joinMasters(newMasters, masters[0], kubeadmConfig, token, certKey); err != nil {
+	if err = k.joinMasters(newMasters, masters[0], kubeadmConfig, token, certKey); err != nil {
 		return err
 	}
 
-	if err := k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
+	if err = k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
 		return err
 	}
 

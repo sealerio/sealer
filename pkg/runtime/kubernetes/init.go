@@ -90,6 +90,26 @@ func (k *Runtime) generateCert(kubeadmConf kubeadm_config.KubeadmConfig, master0
 	)
 }
 
+// initKube do some initialize kubelet works, such as configuring the host environment, initializing the kubelet service, and so on.
+func (k *Runtime) initKube(hosts []net.IP) error {
+	initKubeletCmd := fmt.Sprintf("bash %s", filepath.Join(k.infra.GetClusterRootfs(), "scripts", "init-kube.sh"))
+
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, h := range hosts {
+		host := h
+		eg.Go(func() error {
+			if err := k.infra.CmdAsync(host, initKubeletCmd); err != nil {
+				return fmt.Errorf("failed to init Kubelet Service on (%s): %s", host, err.Error())
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (k *Runtime) createKubeConfig(master0 net.IP) error {
 	hostName, err := k.infra.GetHostName(master0)
 	if err != nil {
@@ -165,6 +185,10 @@ func (k *Runtime) decodeJoinCmd(cmd string) (v1beta2.BootstrapTokenDiscovery, st
 
 //initMaster0 is using kubeadm init to start up the cluster master0.
 func (k *Runtime) initMaster0(kubeadmConf kubeadm_config.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
+	if err := k.initKube([]net.IP{master0}); err != nil {
+		return v1beta2.BootstrapTokenDiscovery{}, "", err
+	}
+
 	if err := k.SendJoinMasterKubeConfigs([]net.IP{master0}, kubeadmConf.KubernetesVersion, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
