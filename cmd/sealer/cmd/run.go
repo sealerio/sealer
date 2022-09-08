@@ -16,6 +16,8 @@ package cmd
 
 import (
 	"fmt"
+	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
+	"github.com/sealerio/sealer/pkg/infradriver"
 	"os"
 	"path/filepath"
 
@@ -25,9 +27,7 @@ import (
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
-	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -98,7 +98,6 @@ create a cluster with custom environment variables:
 		}
 
 		//TODO mount image and copy to cluster
-
 		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
 		if err != nil {
 			return err
