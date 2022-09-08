@@ -26,7 +26,6 @@ import (
 	"github.com/sealerio/sealer/utils/mount"
 	"io/ioutil"
 
-	strUtils "github.com/sealerio/sealer/utils/strings"
 	"golang.org/x/sync/errgroup"
 	"net"
 	"os"
@@ -38,7 +37,7 @@ type scpDistributor struct {
 	imageEngine imageengine.Interface
 }
 
-func (s *scpDistributor) Distribute(imageName string, opts FilterOptions, hosts []net.IP) error {
+func (s *scpDistributor) Distribute(imageName string, hosts []net.IP) error {
 	var (
 		rootfs = s.infraDriver.GetClusterRootfs()
 	)
@@ -59,7 +58,7 @@ func (s *scpDistributor) Distribute(imageName string, opts FilterOptions, hosts 
 			return err
 		}
 
-		targetDirs, err := s.filterRootfs(mountDir, opts)
+		targetDirs, err := s.filterRootfs(mountDir)
 		if err != nil {
 			return err
 		}
@@ -111,15 +110,8 @@ func (s *scpDistributor) buildRootfs(imageName, mountDir string) error {
 	return nil
 }
 
-func (s *scpDistributor) filterRootfs(mountDir string, options FilterOptions) ([]string, error) {
+func (s *scpDistributor) filterRootfs(mountDir string) ([]string, error) {
 	var AllMountFiles []string
-
-	if len(options.OnlyDirs) != 0 {
-		for _, dir := range options.OnlyDirs {
-			AllMountFiles = append(AllMountFiles, filepath.Join(mountDir, dir))
-		}
-		return AllMountFiles, nil
-	}
 
 	files, err := ioutil.ReadDir(mountDir)
 	if err != nil {
@@ -127,7 +119,8 @@ func (s *scpDistributor) filterRootfs(mountDir string, options FilterOptions) ([
 	}
 
 	for _, f := range files {
-		if f.IsDir() && !strUtils.NotIn(f.Name(), options.ExceptDirs) {
+		//skip registry directory
+		if f.IsDir() && f.Name() == "registry" {
 			continue
 		}
 		AllMountFiles = append(AllMountFiles, filepath.Join(mountDir, f.Name()))

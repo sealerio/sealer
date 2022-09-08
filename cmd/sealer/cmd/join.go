@@ -75,13 +75,11 @@ join default cluster:
 		)
 
 		// distribute rootfs
-		if err = distributor.Distribute(clusterImageName, imagedistributor.FilterOptions{
-			ExceptDirs: []string{"registry"},
-		}, hosts); err != nil {
+		if err = distributor.Distribute(clusterImageName, hosts); err != nil {
 			return err
 		}
 
-		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		installer, err := cluster_runtime.NewInstaller(infraDriver, cf, imageEngine)
 		if err != nil {
 			return err
 		}

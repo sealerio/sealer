@@ -26,7 +26,6 @@ import (
 	strUtil "github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"net"
 	"os"
 	"path/filepath"
 )
@@ -96,23 +95,14 @@ create a cluster with custom environment variables:
 		var (
 			clusterImageName = cluster.Spec.Image
 			hosts            = infraDriver.GetHostIPList()
-			master0          = infraDriver.GetHostIPListByRole("master")[0]
 		)
 
-		// distribute registry
-		if err = distributor.Distribute(clusterImageName, imagedistributor.FilterOptions{
-			OnlyDirs: []string{"registry"},
-		}, []net.IP{master0}); err != nil {
+		// distribute rootfs
+		if err = distributor.Distribute(clusterImageName, hosts); err != nil {
 			return err
 		}
 
-		// distribute rootfs
-		if err = distributor.Distribute(clusterImageName, imagedistributor.FilterOptions{
-			ExceptDirs: []string{"registry"},
-		}, hosts); err != nil {
-			return err
-		}
-		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		installer, err := cluster_runtime.NewInstaller(infraDriver, cf, imageEngine)
 		if err != nil {
 			return err
 		}

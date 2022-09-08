@@ -14,6 +14,8 @@
 
 package registry
 
+import "net"
+
 type externalConfigurator struct {
 	Registry
 }
@@ -26,6 +28,10 @@ func (c *externalConfigurator) GetDriver() (Driver, error) {
 	panic("implement external")
 }
 
-func (c *externalConfigurator) Reconcile() error {
+func (c *externalConfigurator) ReconcileOn(hosts []net.IP) error {
+	panic("implement external")
+}
+
+func (c *externalConfigurator) UninstallFrom(hosts []net.IP) error {
 	panic("implement external")
 }

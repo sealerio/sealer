@@ -28,19 +28,21 @@ import (
 )
 
 type SSHInfraDriver struct {
-	sshConfigs   map[string]ssh.Interface
-	hosts        []net.IP
-	roleHostsMap map[string][]net.IP
-	clusterName  string
+	sshConfigs        map[string]ssh.Interface
+	hosts             []net.IP
+	roleHostsMap      map[string][]net.IP
+	clusterName       string
+	clusterImagerName string
 }
 
 func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	var err error
 	ret := &SSHInfraDriver{
-		clusterName:  cluster.Name,
-		sshConfigs:   map[string]ssh.Interface{},
-		hosts:        cluster.GetAllIPList(),
-		roleHostsMap: map[string][]net.IP{},
+		clusterName:       cluster.Name,
+		clusterImagerName: cluster.Spec.Image,
+		sshConfigs:        map[string]ssh.Interface{},
+		hosts:             cluster.GetAllIPList(),
+		roleHostsMap:      map[string][]net.IP{},
 	}
 
 	// initialize sshConfigs field
@@ -157,6 +159,10 @@ func (d *SSHInfraDriver) GetClusterName() string {
 	return d.clusterName
 }
 
+func (d *SSHInfraDriver) GetClusterImageName() string {
+	return d.clusterImagerName
+}
+
 func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {
 	hostName, err := d.CmdToString(hostIP, "hostname", "")
 	if err != nil {
@@ -197,9 +203,9 @@ func (d *SSHInfraDriver) GetClusterBasePath() string {
 	return common.DefaultClusterBaseDir(d.clusterName)
 }
 
-func (d *SSHInfraDriver) ConcurrencyExecute(f func(host net.IP) error) error {
+func (d *SSHInfraDriver) ConcurrencyExecute(hosts []net.IP, f func(host net.IP) error) error {
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, ip := range d.hosts {
+	for _, ip := range hosts {
 		host := ip
 		eg.Go(func() error {
 			err := f(host)

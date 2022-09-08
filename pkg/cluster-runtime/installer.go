@@ -19,6 +19,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
@@ -38,12 +39,13 @@ type RuntimeConfig struct {
 
 type Installer struct {
 	RuntimeConfig
+	imageEngine               imageengine.Interface
 	infraDriver               infradriver.InfraDriver
 	containerRuntimeInstaller containerruntime.Installer
 	hooks                     map[Phase]HookConfigList
 }
 
-func NewInstaller(infraDriver infradriver.InfraDriver, cf clusterfile.Interface) (*Installer, error) {
+func NewInstaller(infraDriver infradriver.InfraDriver, cf clusterfile.Interface, imageEngine imageengine.Interface) (*Installer, error) {
 	var (
 		err       error
 		installer = &Installer{}
@@ -104,6 +106,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, cf clusterfile.Interface)
 	installer.hooks = hooks
 	installer.infraDriver = infraDriver
 	installer.KubeadmConfig = *cf.GetKubeadmConfig()
+	installer.imageEngine = imageEngine
 
 	return installer, nil
 }
@@ -149,12 +152,12 @@ func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err := registryConfigurator.Reconcile(); err != nil {
+	if err := registryConfigurator.ReconcileOn(all); err != nil {
 		return nil, nil, err
 	}
 
@@ -206,28 +209,32 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
-	if err := kubeRuntimeInstaller.Reset(); err != nil {
+	if err = kubeRuntimeInstaller.Reset(); err != nil {
 		return err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, containerruntime.Info{}, i.infraDriver)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, containerruntime.Info{}, i.infraDriver, i.imageEngine)
 	if err != nil {
 		return err
 	}
 
-	if err := registryConfigurator.Clean(); err != nil {
+	if err = registryConfigurator.UninstallFrom(all); err != nil {
 		return err
 	}
 
-	if err := i.containerRuntimeInstaller.UnInstallFrom(all); err != nil {
+	if err = registryConfigurator.Clean(); err != nil {
 		return err
 	}
 
-	if err := i.runHostHook(PostCleanHost, all); err != nil {
+	if err = i.containerRuntimeInstaller.UnInstallFrom(all); err != nil {
 		return err
 	}
 
-	if err := i.runClusterHook(PostUnInstallCluster); err != nil {
+	if err = i.runHostHook(PostCleanHost, all); err != nil {
+		return err
+	}
+
+	if err = i.runClusterHook(PostUnInstallCluster); err != nil {
 		return err
 	}
 
@@ -241,7 +248,7 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	}
 
 	// TODO, init here or in constructor?
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -274,7 +281,7 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	if err := i.containerRuntimeInstaller.InstallOn(append(newMasters, newWorkers...)); err != nil {
+	if err := i.containerRuntimeInstaller.InstallOn(all); err != nil {
 		return nil, nil, err
 	}
 
@@ -283,12 +290,12 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err := registryConfigurator.Reconcile(); err != nil {
+	if err := registryConfigurator.ReconcileOn(all); err != nil {
 		return nil, nil, err
 	}
 
@@ -333,12 +340,12 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err := registryConfigurator.Reconcile(); err != nil {
+	if err = registryConfigurator.UninstallFrom(all); err != nil {
 		return nil, nil, err
 	}
 
@@ -361,7 +368,7 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	if err := i.containerRuntimeInstaller.UnInstallFrom(append(mastersToDelete, workersToDelete...)); err != nil {
+	if err := i.containerRuntimeInstaller.UnInstallFrom(all); err != nil {
 		return nil, nil, err
 	}
 

@@ -17,17 +17,8 @@ package imagedistributor
 import "net"
 
 type Interface interface {
-	// Distribute each files under mounted cluster image directory to target hosts with FilterOptions.
-	Distribute(imageName string, opts FilterOptions, hosts []net.IP) error
+	// Distribute each files under mounted cluster image directory to target hosts.
+	Distribute(imageName string, hosts []net.IP) error
 	// Restore will do some clean works via infra driver, like delete rootfs.
 	Restore(targetDir string, hosts []net.IP) error
-}
-
-type FilterOptions struct {
-	// if NeedAll is true, will distribute all cluster image files.
-	NeedAll bool
-	//will distribute all cluster image files except ExceptDirs.
-	ExceptDirs []string
-	//will distribute the target directory only.
-	OnlyDirs []string
 }

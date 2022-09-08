@@ -31,6 +31,9 @@ type InfraDriver interface {
 	//GetClusterName ${clusterName}
 	GetClusterName() string
 
+	//GetClusterImageName ${cluster image Name}
+	GetClusterImageName() string
+
 	//GetClusterRootfs /var/lib/sealer/data/${clusterName}/rootfs
 	GetClusterRootfs() string
 
@@ -38,7 +41,7 @@ type InfraDriver interface {
 	GetClusterBasePath() string
 
 	// ConcurrencyExecute use eg.Go to execute shell cmd concurrently
-	ConcurrencyExecute(f func(host net.IP) error) error
+	ConcurrencyExecute(hosts []net.IP, f func(host net.IP) error) error
 
 	// Copy local files to remote host
 	// scp -r /tmp root@192.168.0.2:/root/tmp => Copy("192.168.0.2","tmp","/root/tmp")
