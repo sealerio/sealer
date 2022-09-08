@@ -28,7 +28,7 @@ func (c *externalConfigurator) GetDriver() (Driver, error) {
 	panic("implement external")
 }
 
-func (c *externalConfigurator) ReconcileOn(hosts []net.IP) error {
+func (c *externalConfigurator) Reconcile(hosts []net.IP) error {
 	panic("implement external")
 }
 

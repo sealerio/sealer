@@ -14,7 +14,9 @@
 
 package imagedistributor
 
-import "net"
+import (
+	"net"
+)
 
 type Interface interface {
 	// Distribute each files under mounted cluster image directory to target hosts.

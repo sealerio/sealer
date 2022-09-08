@@ -190,6 +190,5 @@ func (s *scpDistributor) Restore(targetDir string, hosts []net.IP) error {
 func NewScpDistributor(imageEngine imageengine.Interface, driver infradriver.InfraDriver) (Interface, error) {
 	return &scpDistributor{
 		imageEngine: imageEngine,
-		infraDriver: driver,
-	}, nil
+		infraDriver: driver}, nil
 }

@@ -17,7 +17,7 @@ package cmd
 import (
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
-	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
+	"github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
@@ -79,10 +79,16 @@ join default cluster:
 			return err
 		}
 
-		installer, err := cluster_runtime.NewInstaller(infraDriver, cf, imageEngine)
-		if err != nil {
-			return err
+		runtimeConfig := new(clusterruntime.RuntimeConfig)
+		if cf.GetPlugins() != nil {
+			runtimeConfig.Plugins = cf.GetPlugins()
 		}
+
+		if cf.GetKubeadmConfig() != nil {
+			runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+		}
+
+		installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
 
 		_, _, err = installer.ScaleUp(newMasters, newWorkers)
 

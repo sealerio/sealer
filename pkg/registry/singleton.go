@@ -76,8 +76,8 @@ func (c *localSingletonConfigurator) GetDriver() (Driver, error) {
 	return newLocalRegistryDriver(c.DataDir, c.infraDriver), nil
 }
 
-// ReconcileOn will start local private registry via rootfs scripts.
-func (c *localSingletonConfigurator) ReconcileOn(hosts []net.IP) error {
+// Reconcile will start local private registry via rootfs scripts.
+func (c *localSingletonConfigurator) Reconcile(hosts []net.IP) error {
 	if err := c.genBasicAuth(); err != nil {
 		return err
 	}

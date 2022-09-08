@@ -28,6 +28,9 @@ type InfraDriver interface {
 
 	GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net.IP, error)
 
+	//GetHostEnv return host env
+	GetHostEnv(host net.IP) map[string]interface{}
+
 	//GetClusterName ${clusterName}
 	GetClusterName() string
 

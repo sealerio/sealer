@@ -31,8 +31,48 @@ type SSHInfraDriver struct {
 	sshConfigs        map[string]ssh.Interface
 	hosts             []net.IP
 	roleHostsMap      map[string][]net.IP
+	hostEnvMap        map[string]map[string]interface{}
 	clusterName       string
 	clusterImagerName string
+}
+
+func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {
+	if len(hostEnv) == 0 {
+		return globalEnv
+	}
+	for globalEnvKey, globalEnvValue := range globalEnv {
+		if _, ok := hostEnv[globalEnvKey]; ok {
+			continue
+		}
+		hostEnv[globalEnvKey] = globalEnvValue
+	}
+	return hostEnv
+}
+
+// ConvertEnv []string to map[string]interface{}, example [IP=127.0.0.1,IP=192.160.0.2,Key=value] will convert to {IP:[127.0.0.1,192.168.0.2],key:value}
+func ConvertEnv(envList []string) (env map[string]interface{}) {
+	temp := make(map[string][]string)
+	env = make(map[string]interface{})
+
+	for _, e := range envList {
+		var kv []string
+		if kv = strings.SplitN(e, "=", 2); len(kv) != 2 {
+			continue
+		}
+		temp[kv[0]] = append(temp[kv[0]], strings.Split(kv[1], ";")...)
+	}
+
+	for k, v := range temp {
+		if len(v) > 1 {
+			env[k] = v
+			continue
+		}
+		if len(v) == 1 {
+			env[k] = v[0]
+		}
+	}
+
+	return
 }
 
 func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
@@ -43,6 +83,7 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		sshConfigs:        map[string]ssh.Interface{},
 		hosts:             cluster.GetAllIPList(),
 		roleHostsMap:      map[string][]net.IP{},
+		hostEnvMap:        map[string]map[string]interface{}{},
 	}
 
 	// initialize sshConfigs field
@@ -67,6 +108,15 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		}
 	}
 
+	// initialize hostEnvMap field
+	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
+	globalEnv := ConvertEnv(cluster.Spec.Env)
+	for _, host := range cluster.Spec.Hosts {
+		for _, ip := range host.IPS {
+			ret.hostEnvMap[ip.String()] = mergeList(ConvertEnv(host.Env), globalEnv)
+		}
+	}
+
 	return ret, err
 }
 
@@ -76,6 +126,10 @@ func (d *SSHInfraDriver) GetHostIPList() []net.IP {
 
 func (d *SSHInfraDriver) GetHostIPListByRole(role string) []net.IP {
 	return d.roleHostsMap[role]
+}
+
+func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]interface{} {
+	return d.hostEnvMap[host.String()]
 }
 
 func (d *SSHInfraDriver) Copy(host net.IP, srcFilePath, dstFilePath string) error {

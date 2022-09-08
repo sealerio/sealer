@@ -24,8 +24,8 @@ import (
 
 // Configurator provide registry lifecycle management.
 type Configurator interface {
-	// ReconcileOn will configure cluster registry component.
-	ReconcileOn(hosts []net.IP) error
+	// Reconcile will configure cluster registry component.
+	Reconcile(hosts []net.IP) error
 
 	// UninstallFrom will clean host registry configuration.
 	UninstallFrom(hosts []net.IP) error
