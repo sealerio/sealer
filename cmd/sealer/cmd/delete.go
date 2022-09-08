@@ -75,7 +75,7 @@ delete all:
 			return err
 		}
 
-		installer, err := cluster_runtime.NewInstaller(infraDriver, &cluster)
+		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
 		if err != nil {
 			return err
 		}
@@ -93,25 +93,23 @@ delete all:
 			envProcessor := env.NewEnvProcessor(&cluster)
 			cmd := strings.Join([]string{execClean, unmount}, " && ")
 			for _, ip := range ips {
-				err := infraDriver.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd))
-				if err != nil {
-					return err
+				//return fmt.Errorf("failed to execute clean command(%s) on host (%s): error(%v)", CleanCmd, ip, err)
+				if err := infraDriver.CmdAsync(ip, envProcessor.WrapperShell(ip, cmd)); err != nil {
+					return fmt.Errorf("failed to exec command(%s) on host(%s): error(%v)", cmd, ip, err)
 				}
 			}
 			//delete rootfs file
 			system, err := cloudfilesystem.NewOverlayFileSystem()
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get system: error(%v)", err)
 			}
 
-			err = system.UnMountRootfs(&cluster, ips)
-			if err != nil {
-				return err
+			if err = system.UnMountRootfs(&cluster, ips); err != nil {
+				return fmt.Errorf("failed to unmount rootfs: error(%v)", err)
 			}
 			//todo delete CleanFs
-			err = cloudfilesystem.CleanFilesystem(cluster.Name)
-			if err != nil {
-				return err
+			if err = cloudfilesystem.CleanFilesystem(cluster.Name); err != nil {
+				return fmt.Errorf("failed to clean file system: error(%v)", err)
 			}
 		} else {
 			_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
@@ -123,9 +121,8 @@ delete all:
 				return err
 			}
 			hosts := append(mastersToDelete, workersToDelete...)
-			err = system.UnMountRootfs(&cluster, hosts)
-			if err != nil {
-				return err
+			if err = system.UnMountRootfs(&cluster, hosts); err != nil {
+				return fmt.Errorf("failed to unmount rootfs: error(%v)", err)
 			}
 		}
 		return nil
