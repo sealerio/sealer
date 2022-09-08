@@ -22,6 +22,7 @@ import (
 
 	"github.com/sealerio/sealer/pkg/client/k8s"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -74,30 +75,26 @@ func (k *Runtime) deleteMaster(master net.IP) error {
 	}
 
 	// remove master
-	masterIPs := []net.IP{}
-	for _, ip := range k.cluster.GetMasterIPList() {
-		if !ip.Equal(master) {
-			masterIPs = append(masterIPs, ip)
-		}
+	masterExist := len(k.cluster.GetMasterIPList()) > 1
+	if !masterExist {
+		return errors.New("can not delete the last master")
 	}
 
-	if len(masterIPs) > 0 {
-		hostname, err := k.isHostName(master)
-		if err != nil {
-			return err
-		}
-		client, err := k8s.Newk8sClient()
-		if err != nil {
-			return err
-		}
-		if err := client.DeleteNode(hostname); err != nil {
-			return err
-		}
+	hostname, err := k.getHostName(master)
+	if err != nil {
+		return err
+	}
+	client, err := k8s.Newk8sClient()
+	if err != nil {
+		return err
+	}
+	if err := client.DeleteNode(hostname); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (k *Runtime) isHostName(host net.IP) (string, error) {
+func (k *Runtime) getHostName(host net.IP) (string, error) {
 	client, err := k8s.Newk8sClient()
 	if err != nil {
 		return "", err

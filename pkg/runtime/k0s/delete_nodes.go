@@ -74,7 +74,7 @@ func (k *Runtime) deleteNode(node net.IP) error {
 
 	//remove node
 	if len(k.cluster.GetMasterIPList()) > 0 {
-		hostname, err := k.isHostName(node)
+		hostname, err := k.getHostName(node)
 		if err != nil {
 			return err
 		}

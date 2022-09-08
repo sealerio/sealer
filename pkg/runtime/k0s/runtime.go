@@ -17,7 +17,6 @@ package k0s
 import (
 	"context"
 	"fmt"
-
 	"net"
 	"strings"
 	"time"
