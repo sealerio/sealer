@@ -71,18 +71,18 @@ create a cluster with custom environment variables:
 		//	runArgs.Masters = ip
 		//}
 
-		var cf clusterfile.Interface
-		var cluster *v2.Cluster
+		var (
+			cf      clusterfile.Interface
+			cluster *v2.Cluster
+			err     error
+		)
 		if clusterFile != "" {
-			var err error
 			cf, err = clusterfile.NewClusterFile(clusterFile)
 			if err != nil {
 				return err
 			}
 			cluster = cf.GetCluster()
-		}
-		if clusterFile == "" {
-			var err error
+		} else {
 			if err := utils.ValidateRunArgs(runArgs); err != nil {
 				return fmt.Errorf("failed to validate input run args: %v", err)
 			}

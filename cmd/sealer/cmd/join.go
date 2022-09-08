@@ -48,8 +48,11 @@ join default cluster:
     sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var cf clusterfile.Interface
-		var cluster *v2.Cluster
+		var (
+			cf      clusterfile.Interface
+			cluster *v2.Cluster
+			err     error
+		)
 		if clusterFile != "" {
 			var err error
 			cf, err = clusterfile.NewClusterFile(clusterFile)
@@ -57,9 +60,7 @@ join default cluster:
 				return err
 			}
 			cluster = cf.GetCluster()
-		}
-		if clusterFile == "" {
-			var err error
+		} else {
 			if err := utils.ValidateJoinArgs(joinArgs); err != nil {
 				return fmt.Errorf("failed to validate input join args: %v", err)
 			}
