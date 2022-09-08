@@ -42,7 +42,7 @@ debug() {
 }
 
 get_version_vars() {
-  GIT_VERSION=latest
+  GIT_VERSION=unknown
   if [[ $GIT_TAG ]]; then
     GIT_VERSION=$GIT_TAG
   fi

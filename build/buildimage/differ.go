@@ -112,6 +112,7 @@ func parseChartImages(srcPath string) ([]string, error) {
 				return err
 			}
 			images = append(images, ima...)
+			return filepath.SkipDir
 		}
 		return nil
 	})

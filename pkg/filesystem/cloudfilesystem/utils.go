@@ -67,5 +67,5 @@ func copyRegistry(regIP net.IP, cluster *v2.Cluster, mountDir map[string]bool, t
 
 func CleanFilesystem(clusterName string) error {
 	return fs.NewFilesystem().RemoveAll(common.GetClusterWorkDir(clusterName), common.DefaultClusterBaseDir(clusterName),
-		common.DefaultKubeConfigDir(), common.KubectlPath)
+		common.DefaultKubeConfigDir(), common.DefaultKubectlPath)
 }

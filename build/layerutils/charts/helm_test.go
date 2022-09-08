@@ -14,59 +14,42 @@
 
 package charts
 
-/* func TestPackageHelmChart(t *testing.T) {
+import (
+	"reflect"
+	"sort"
+	"testing"
+)
+
+func TestGetImageList(t *testing.T) {
 	type args struct {
 		chartPath string
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    string
+		want    []string
 		wantErr bool
 	}{
 		{
-			"test package helm chart",
-			args{"./test/alpine"},
-			"alpine-0.1.0.tgz",
+			"test get image list in chart",
+			args{"./testcharts/apps"},
+			[]string{"nginx:apps_release", "nginx:app1_release", "nginx:app2_test"},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := PackageHelmChart(tt.args.chartPath)
+			images, err := GetImageList(tt.args.chartPath)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("PackageHelmChart() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetImageList() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("PackageHelmChart() got = %v, want %v", got, tt.want)
+			sort.Strings(images)
+			sort.Strings(tt.want)
+			if !reflect.DeepEqual(images, tt.want) {
+				t.Errorf("GetImageList() error get %v, want %v", images, tt.want)
+				return
 			}
 		})
 	}
 }
-
-func TestRenderHelmChart(t *testing.T) {
-	type args struct {
-		chartPath string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			"test render helm chart",
-			args{"./test/alpine"},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := RenderHelmChart(tt.args.chartPath)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RenderHelmChart() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}*/

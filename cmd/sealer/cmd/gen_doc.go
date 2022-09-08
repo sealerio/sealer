@@ -30,7 +30,7 @@ type GenDocCommand struct {
 	path string
 }
 
-func init() {
+func NewGenDocCommand() *cobra.Command {
 	genDocCommand := &GenDocCommand{}
 	genDocCommand.cmd = &cobra.Command{
 		Use:           "gen-doc",
@@ -43,7 +43,7 @@ func init() {
 		},
 	}
 	genDocCommand.addFlags()
-	rootCmd.AddCommand(genDocCommand.cmd)
+	return genDocCommand.cmd
 }
 
 // addFlags adds flags for specific command.

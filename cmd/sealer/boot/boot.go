@@ -26,9 +26,7 @@ var rootDirs = []string{
 	common.DefaultTmpDir,
 	common.DefaultImageRootDir,
 	common.DefaultImageMetaRootDir,
-	common.DefaultImageDBRootDir,
-	common.DefaultLayerDir,
-	common.DefaultLayerDBRoot}
+	common.DefaultLayerDir}
 
 func initRootDirectory() error {
 	for _, dir := range rootDirs {

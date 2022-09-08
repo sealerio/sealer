@@ -25,12 +25,10 @@ import (
 	"github.com/onsi/gomega/gexec"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/image/store"
 	"github.com/sealerio/sealer/test/suites/build"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	"github.com/sealerio/sealer/utils/exec"
-	"github.com/sealerio/sealer/utils/platform"
 )
 
 func DoImageOps(action, imageName string) {
@@ -62,14 +60,6 @@ func GetEnvDirMd5() string {
 	_, err = io.WriteString(ginkgo.GinkgoWriter, getEnvMd5Cmd+dirMd5+"\n")
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return dirMd5
-}
-
-func GetImageID(imageName string) string {
-	is, err := store.NewDefaultImageStore()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	image, err := is.GetByName(imageName, platform.GetDefaultPlatform())
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return image.Spec.ID
 }
 
 func CheckLoginResult(registryURL, username, passwd string, result bool) {

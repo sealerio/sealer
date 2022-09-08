@@ -15,70 +15,59 @@
 package clusterfile
 
 import (
-	"errors"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
-	"os"
+	"bytes"
+	"fmt"
+	"io/ioutil"
 	"path/filepath"
-	"sync"
 
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-var ErrTypeNotFound = errors.New("no corresponding type structure was found")
-
-type ClusterFile struct {
-	path       string
-	Cluster    v2.Cluster
-	Configs    []v1.Config
-	KubeConfig *kubeadm_config.KubeadmConfig
-	Plugins    []v1.Plugin
-}
-
-var (
-	clusterFile = &ClusterFile{}
-	once        sync.Once
-)
-
 type Interface interface {
-	PreProcessor
 	GetCluster() v2.Cluster
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
 	GetKubeadmConfig() *kubeadm_config.KubeadmConfig
 }
 
+type ClusterFile struct {
+	cluster       v2.Cluster
+	configs       []v1.Config
+	kubeadmConfig kubeadm_config.KubeadmConfig
+	plugins       []v1.Plugin
+}
+
 func (c *ClusterFile) GetCluster() v2.Cluster {
-	return c.Cluster
+	return c.cluster
 }
 
 func (c *ClusterFile) GetConfigs() []v1.Config {
-	return c.Configs
+	return c.configs
 }
 
 func (c *ClusterFile) GetPlugins() []v1.Plugin {
-	return c.Plugins
+	return c.plugins
 }
 
 func (c *ClusterFile) GetKubeadmConfig() *kubeadm_config.KubeadmConfig {
-	return c.KubeConfig
+	return &c.kubeadmConfig
 }
 
-func NewClusterFile(path string) (i Interface, err error) {
-	if !filepath.IsAbs(path) {
-		pa, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-		path = filepath.Join(pa, path)
+func NewClusterFile(path string) (Interface, error) {
+	clusterFileData, err := ioutil.ReadFile(filepath.Clean(path))
+
+	if err != nil {
+		return nil, err
 	}
 
-	if path == "" {
-		return clusterFile, nil
+	clusterFile := new(ClusterFile)
+	err = decodeClusterFile(bytes.NewReader(clusterFileData), clusterFile)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to load clusterfile: %v", err)
 	}
-	once.Do(func() {
-		clusterFile.path = path
-		err = clusterFile.Process()
-	})
-	return clusterFile, err
+
+	return clusterFile, nil
 }

@@ -21,32 +21,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/imdario/mergo"
+
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	k8sv1 "k8s.io/api/core/v1"
 	k8sYaml "sigs.k8s.io/yaml"
 
-	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/os"
 )
-
-/*
-config in Clusterfile:
-
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Config
-metadata:
-  name: redis-config
-spec:
-  path: etc/redis-config.yaml
-  data: |
-       redis-user: root
-       redis-passwd: xxx
-
-Dump will dump the config to etc/redis-config.yaml file
-*/
 
 const (
 	Merge     = "merge"
@@ -54,139 +38,121 @@ const (
 )
 
 type Interface interface {
-	// Dump Config in Clusterfile to the cluster rootfs disk
+	// Dump Configs from Clusterfile to the cluster rootfs
 	Dump(configs []v1.Config) error
 }
 
 type Dumper struct {
-	Configs []v1.Config
-	Cluster *v2.Cluster
+	// rootPath typically is cluster image mounted base directory.
+	rootPath string
 }
 
-func NewConfiguration(cluster *v2.Cluster) Interface {
+func NewConfiguration(rootPath string) Interface {
 	return &Dumper{
-		Cluster: cluster,
+		rootPath: rootPath,
 	}
 }
 
 func (c *Dumper) Dump(configs []v1.Config) error {
-	if configs == nil {
-		logrus.Debug("clusterfile config is empty!")
+	if len(configs) == 0 {
+		logrus.Debug("no config is found")
 		return nil
 	}
-	c.Configs = configs
-	if err := c.WriteFiles(); err != nil {
+
+	if err := c.WriteFiles(configs); err != nil {
 		return fmt.Errorf("failed to write config files %v", err)
 	}
 	return nil
 }
 
-func (c *Dumper) WriteFiles() (err error) {
-	if c.Configs == nil {
-		logrus.Debug("empty config found")
-		return nil
-	}
-	for _, config := range c.Configs {
+func (c *Dumper) WriteFiles(configs []v1.Config) error {
+	for _, config := range configs {
 		configData := []byte(config.Spec.Data)
-		mountRoot := filepath.Join(common.DefaultClusterRootfsDir, c.Cluster.Name, "mount")
-		mountDirs, err := ioutil.ReadDir(mountRoot)
+		configPath := filepath.Join(c.rootPath, config.Spec.Path)
+
+		if !os.IsFileExist(configPath) {
+			err := os.NewCommonWriter(configPath).WriteFile(configData)
+			if err != nil {
+				return fmt.Errorf("failed to overwrite config file %s: %v", configPath, err)
+			}
+		}
+
+		contents, err := ioutil.ReadFile(filepath.Clean(configPath))
 		if err != nil {
 			return err
 		}
-		convertSecret := strings.Contains(config.Spec.Process, toSecretProcessorName)
-		for _, f := range mountDirs {
-			if !f.IsDir() {
-				continue
-			}
-			configPath := filepath.Join(mountRoot, f.Name(), config.Spec.Path)
-			if convertSecret {
-				if configData, err = convertSecretYaml(config, configPath); err != nil {
-					return fmt.Errorf("faild to convert to secret file: %v", err)
-				}
-			}
-			//only the YAML format is supported
-			if os.IsFileExist(configPath) && !convertSecret && config.Spec.Strategy == Merge {
-				if configData, err = getMergeConfigData(configPath, configData); err != nil {
-					return err
-				}
-			}
-			err = os.NewCommonWriter(configPath).WriteFile(configData)
-			if err != nil {
-				return fmt.Errorf("write config file failed %v", err)
+
+		// todo: its strange to use config.Spec.Process to control config dump strategy.
+		if strings.Contains(config.Spec.Process, toSecretProcessorName) {
+			if configData, err = convertSecretYaml(contents, configData); err != nil {
+				return fmt.Errorf("faild to convert to secret file: %v", err)
 			}
 		}
-	}
 
+		//Only files in yaml format are supported.
+		//if Strategy is "Merge" will deeply merge each yaml file section.
+		//if not, overwrite the whole file content with config data.
+		if config.Spec.Strategy == Merge {
+			if configData, err = getMergeConfigData(contents, configData); err != nil {
+				return err
+			}
+		}
+
+		err = os.NewCommonWriter(configPath).WriteFile(configData)
+		if err != nil {
+			return fmt.Errorf("failed to write config file %s: %v", configPath, err)
+		}
+	}
 	return nil
 }
 
-//merge the contents of data into the path file
-func getMergeConfigData(path string, data []byte) ([]byte, error) {
-	var configs [][]byte
-	context, err := ioutil.ReadFile(filepath.Clean(path))
+//getMergeConfigData merge data to each section of given file with overriding.
+// given file is must be yaml marshalled.
+func getMergeConfigData(contents, data []byte) ([]byte, error) {
+	var (
+		configs    [][]byte
+		srcDataMap = make(map[string]interface{})
+	)
+
+	err := yaml.Unmarshal(data, &srcDataMap)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load config data: %v", err)
 	}
-	mergeConfigMap := make(map[string]interface{})
-	err = yaml.Unmarshal(data, &mergeConfigMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal merge map: %v", err)
-	}
-	for _, rawCfgData := range bytes.Split(context, []byte("---\n")) {
-		configMap := make(map[string]interface{})
-		err = yaml.Unmarshal(rawCfgData, &configMap)
+
+	for _, rawCfgData := range bytes.Split(contents, []byte("---\n")) {
+		destConfigMap := make(map[string]interface{})
+
+		err = yaml.Unmarshal(rawCfgData, &destConfigMap)
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal config: %v", err)
+			return nil, fmt.Errorf("failed to unmarshal config data: %v", err)
 		}
-		if len(configMap) == 0 {
-			continue
+
+		err = mergo.Merge(&destConfigMap, &srcDataMap, mergo.WithOverride)
+		if err != nil {
+			return nil, fmt.Errorf("failed to merge config: %v", err)
 		}
-		deepMerge(&configMap, &mergeConfigMap)
-		cfg, err := k8sYaml.Marshal(&configMap)
+
+		cfg, err := yaml.Marshal(destConfigMap)
 		if err != nil {
 			return nil, err
 		}
+
 		configs = append(configs, cfg)
 	}
-	return bytes.Join(configs, []byte("\n---\n")), nil
+	return bytes.Join(configs, []byte("---\n")), nil
 }
 
-func deepMerge(dst, src *map[string]interface{}) {
-	for srcK, srcV := range *src {
-		dstV, ok := (*dst)[srcK]
-		if !ok {
-			continue
-		}
-		dV, ok := dstV.(map[string]interface{})
-		// dstV is string type
-		if !ok {
-			(*dst)[srcK] = srcV
-			continue
-		}
-		sV, ok := srcV.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		deepMerge(&dV, &sV)
-		(*dst)[srcK] = dV
-	}
-}
-
-func convertSecretYaml(config v1.Config, configPath string) ([]byte, error) {
+func convertSecretYaml(contents, data []byte) ([]byte, error) {
 	secret := k8sv1.Secret{}
 	dataMap := make(map[string]string)
-	if err := k8sYaml.Unmarshal([]byte(config.Spec.Data), &dataMap); err != nil {
+	if err := k8sYaml.Unmarshal(data, &dataMap); err != nil {
 		return nil, err
 	}
-	if os.IsFileExist(configPath) {
-		rawData, err := ioutil.ReadFile(filepath.Clean(configPath))
-		if err != nil {
-			return nil, err
-		}
-		if err = k8sYaml.Unmarshal(rawData, &secret); err != nil {
-			return nil, err
-		}
+
+	if err := k8sYaml.Unmarshal(contents, &secret); err != nil {
+		return nil, err
 	}
+
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
 	}

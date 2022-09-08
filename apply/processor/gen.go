@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"net"
 
-	common2 "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/auth"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 
 	"strconv"
 
@@ -33,9 +35,7 @@ import (
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
-	"github.com/sealerio/sealer/pkg/image"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
-	apiv1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
@@ -59,13 +59,12 @@ type ParserArg struct {
 
 type GenerateProcessor struct {
 	Runtime      *kubernetes.Runtime
-	ImageManager image.Service
 	ImageEngine  imageengine.Interface
 	ImageMounter clusterimage.Interface
 }
 
 func NewGenerateProcessor() (Processor, error) {
-	imageEngine, err := imageengine.NewImageEngine(common2.EngineGlobalConfigurations{})
+	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return nil, err
 	}
@@ -168,15 +167,30 @@ func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err != nil {
 		return err
 	}
-	plats := []*apiv1.Platform{platform.GetDefaultPlatform()}
+
+	tmpMap := map[string]struct{}{}
+	tmpMap[platform.GetDefaultPlatform().ToString()] = struct{}{}
+	platforms := []string{platform.GetDefaultPlatform().ToString()}
 	for _, v := range platsMap {
-		plat := v
-		plats = append(plats, &plat)
+		if _, ok := tmpMap[v.ToString()]; ok {
+			continue
+		}
+		platforms = append(platforms, v.ToString())
 	}
-	err = g.ImageManager.PullIfNotExist(cluster.Spec.Image, plats)
-	if err != nil {
-		return err
+
+	image := cluster.Spec.Image
+	for _, p := range platforms {
+		if err := g.ImageEngine.Pull(&options.PullOptions{
+			Authfile:   auth.GetDefaultAuthFilePath(),
+			TLSVerify:  true,
+			PullPolicy: "missing",
+			Image:      image,
+			Platform:   p,
+		}); err != nil {
+			return fmt.Errorf("failed to pull image %s with platform %s: %v", image, p, err)
+		}
 	}
+
 	if err = g.ImageMounter.MountImage(cluster); err != nil {
 		return err
 	}

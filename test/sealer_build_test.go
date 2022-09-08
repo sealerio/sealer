@@ -51,7 +51,6 @@ var _ = Describe("sealer build", func() {
 					SetKubeFile("Kubefile").
 					SetImageName(imageName).
 					SetContext(".").
-					SetBuildType(settings.LiteBuild).
 					Build()
 				sess, err := testhelper.Start(cmd)
 				testhelper.CheckErr(err)

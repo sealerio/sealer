@@ -17,6 +17,13 @@ package save
 import (
 	"fmt"
 	"strings"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sirupsen/logrus"
+
+	"github.com/distribution/distribution/v3"
+	"github.com/opencontainers/go-digest"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 //this package contains some utils to handle docker image name
@@ -91,4 +98,85 @@ func ParseNormalizedNamed(s string, registry string) (Named, error) {
 		tag:    tag,
 	}
 	return named, nil
+}
+
+// BlobList this package unmarshal blobs from json into a BlobList struct
+//then return a slice of blob digest
+type BlobList struct {
+	Layers    []distribution.Descriptor `json:"layers"`
+	Config    distribution.Descriptor   `json:"config"`
+	MediaType string                    `json:"mediaType"`
+	Schema    int                       `json:"schemaVersion"`
+}
+
+func getBlobList(blobListJSON distribution.Manifest) ([]digest.Digest, error) {
+	_, list, err := blobListJSON.Payload()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get blob list: %v", err)
+	}
+	var blobList BlobList
+	err = json.Unmarshal(list, &blobList)
+	if err != nil {
+		return nil, fmt.Errorf("json unmarshal error: %v", err)
+	}
+	var blobDigests []digest.Digest
+	blobDigests = append(blobDigests, blobList.Config.Digest)
+	for _, layer := range blobList.Layers {
+		blobDigests = append(blobDigests, layer.Digest)
+	}
+	return blobDigests, nil
+}
+
+// ManifestList this package unmarshal manifests from json into a ManifestList struct
+//then choose corresponding manifest by platform
+type ManifestList struct {
+	List      []ImageManifest `json:"manifests"`
+	MediaType string          `json:"mediaType"`
+	Schema    int             `json:"schemaVersion"`
+}
+
+type ImageManifest struct {
+	Digest    string `json:"digest"`
+	MediaType string `json:"mediaType"`
+	Platform  v1.Platform
+	Size      int
+}
+
+func getImageManifestDigest(payload []byte, plat v1.Platform) (digest.Digest, error) {
+	var (
+		manifestList ManifestList
+	)
+
+	err := json.Unmarshal(payload, &manifestList)
+	if err != nil {
+		return "", fmt.Errorf("json unmarshal error: %v", err)
+	}
+
+	var resDigest []digest.Digest
+	for _, item := range manifestList.List {
+		if matched(item.Platform, plat) {
+			resDigest = append(resDigest, digest.Digest(item.Digest))
+		}
+	}
+
+	if len(resDigest) == 0 {
+		return "", fmt.Errorf("no manifest of the corresponding platform")
+	}
+
+	if len(resDigest) > 1 {
+		logrus.Warn("multiple matches in manifest list")
+	}
+	return resDigest[0], nil
+}
+
+// Matched check if src == dest
+func matched(src, dest v1.Platform) bool {
+	if src.OS == dest.OS &&
+		src.Architecture == "arm64" && dest.Architecture == "arm64" {
+		return true
+	}
+
+	return src.OS == dest.OS &&
+		src.Architecture == dest.Architecture &&
+		src.Variant == dest.Variant
 }

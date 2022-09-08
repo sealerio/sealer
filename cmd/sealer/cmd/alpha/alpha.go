@@ -30,7 +30,6 @@ func NewCmdAlpha() *cobra.Command {
 		Long:  longAlphaCmdDescription,
 	}
 
-	cmd.AddCommand(NewPruneCmd())
 	cmd.AddCommand(NewDebugCmd())
 	cmd.AddCommand(NewExecCmd())
 	cmd.AddCommand(NewMergeCmd())

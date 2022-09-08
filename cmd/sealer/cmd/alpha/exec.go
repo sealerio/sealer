@@ -27,12 +27,10 @@ import (
 )
 
 var (
-	clusterName string
-	roles       []string
+	clusterName            string
+	roles                  []string
+	longExecCmdDescription = `Using sealer builtin ssh client to run shell command on the node filtered by cluster and cluster role. it is convenient for cluster administrator to do quick investigate`
 )
-
-var longExecCmdDescription = `Using sealer builtin ssh client to run shell command on the node filtered by cluster and cluster role. it is convenient for cluster administrator to do quick investigate`
-
 var exampleForExecCmd = `
 Exec the default cluster node:
 	sealer alpha exec "cat /etc/hosts"

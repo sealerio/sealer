@@ -36,6 +36,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm_co
 		return nil
 	}
 
+	//TODO: bugfix: keep the same CRISocket with InitConfiguration
 	if err := k.initKube(newNodes); err != nil {
 		return err
 	}

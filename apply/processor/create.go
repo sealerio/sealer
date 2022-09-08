@@ -67,7 +67,7 @@ func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, erro
 }
 
 func (c *CreateProcessor) PreProcess(cluster *v2.Cluster) error {
-	c.Config = config.NewConfiguration(cluster)
+	c.Config = config.NewConfiguration(platform.DefaultMountClusterImageDir(cluster.Name))
 	if err := c.initPlugin(cluster); err != nil {
 		return err
 	}

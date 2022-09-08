@@ -28,6 +28,7 @@ import (
 	"net"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
+	"sync"
 
 	"github.com/sealerio/sealer/pkg/clustercert"
 	"github.com/sealerio/sealer/pkg/runtime"
