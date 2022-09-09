@@ -19,15 +19,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pelletier/go-toml"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"io/ioutil"
 	"net"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -42,6 +48,7 @@ type localSingletonConfigurator struct {
 
 	containerRuntimeInfo containerruntime.Info
 	infraDriver          infradriver.InfraDriver
+	imageEngine          imageengine.Interface
 }
 
 // Clean will stop local private registry via rootfs scripts.
@@ -52,54 +59,109 @@ func (c *localSingletonConfigurator) Clean() error {
 	return c.infraDriver.CmdAsync(c.DeployHost, fmt.Sprintf(deleteRegistryCommand, "sealer-registry"))
 }
 
+func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
+	var (
+		username = c.Auth.Username
+		password = c.Auth.Username
+		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+	)
+
+	logoutCmd := fmt.Sprintf("nerdctl logout -u %s -p %s %s", username, password, endpoint)
+	unSetHostCmd := shellcommand.CommandUnSetHostAlias()
+
+	f := func(host net.IP) error {
+		err := c.infraDriver.CmdAsync(host, strings.Join([]string{logoutCmd, unSetHostCmd}, "&&"))
+		if err != nil {
+			return fmt.Errorf("failed to delete registry configuration: %v", err)
+		}
+		return nil
+	}
+
+	return c.infraDriver.ConcurrencyExecute(hosts, f)
+}
+
 func (c *localSingletonConfigurator) GetDriver() (Driver, error) {
 	return newLocalRegistryDriver(c.DataDir, c.infraDriver), nil
 }
 
 // Reconcile will start local private registry via rootfs scripts.
-func (c *localSingletonConfigurator) Reconcile() error {
-	if err := c.genTLSCerts(); err != nil {
-		return err
-	}
-
+func (c *localSingletonConfigurator) Reconcile(hosts []net.IP) error {
 	if err := c.genBasicAuth(); err != nil {
 		return err
 	}
 
-	if err := c.initRegistry(); err != nil {
+	if err := c.configureRegistryCert(hosts); err != nil {
 		return err
 	}
 
-	if err := c.configureHostsFile(); err != nil {
+	if err := c.reconcileRegistry(hosts); err != nil {
 		return err
 	}
 
-	if err := c.configureRegistryCert(); err != nil {
+	if err := c.configureHostsFile(hosts); err != nil {
 		return err
 	}
 
-	if err := c.configureDaemonService(); err != nil {
+	if err := c.configureDaemonService(hosts); err != nil {
 		return err
 	}
 
-	if err := c.configureKubeletAuthInfo(); err != nil {
+	if err := c.configureKubeletAuthInfo(hosts); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *localSingletonConfigurator) genTLSCerts() error {
+func (c *localSingletonConfigurator) configureRegistryCert(hosts []net.IP) error {
 	// if deploy registry as InsecureMode ,skip to gen cert.
 	if c.InsecureMode {
 		return nil
 	}
 
 	var (
-		certPath = filepath.Join(c.infraDriver.GetClusterRootfs(), "certs")
-		certName = c.Domain
+		localCertPath = filepath.Join("/tmp", "certs")
+		certPath      = filepath.Join(c.infraDriver.GetClusterRootfs(), "certs")
+		certName      = c.Domain
+		fullCertName  = certName + ".crt"
+		fullKeyName   = certName + ".key"
 	)
 
+	certExisted, err := c.infraDriver.IsFileExist(c.DeployHost, filepath.Join(certPath, fullCertName))
+	if err != nil {
+		return err
+	}
+
+	keyExisted, err := c.infraDriver.IsFileExist(c.DeployHost, filepath.Join(certPath, fullKeyName))
+	if err != nil {
+		return err
+	}
+
+	if certExisted && keyExisted {
+		err = c.infraDriver.CopyR(c.DeployHost, filepath.Join(certPath, fullCertName), filepath.Join(localCertPath, fullCertName))
+		if err != nil {
+			return fmt.Errorf("failed to copy registry cert to local: %v", err)
+		}
+	} else {
+		if err = c.gen(localCertPath, certName); err != nil {
+			return err
+		}
+
+		err = c.infraDriver.Copy(c.DeployHost, localCertPath, certPath)
+		if err != nil {
+			return fmt.Errorf("failed to copy registry cert to deployHost: %v", err)
+		}
+	}
+
+	err = c.copyCertToHosts(localCertPath, hosts)
+	if err != nil {
+		return fmt.Errorf("failed to copy registry cert to hosts: %v", err)
+	}
+
+	return fs.FS.RemoveAll(localCertPath)
+}
+
+func (c *localSingletonConfigurator) gen(certPath, certName string) error {
 	DNSNames := []string{c.Domain}
 	DNSNames = append(DNSNames, c.Cert.SubjectAltName.IPs...)
 	DNSNames = append(DNSNames, c.Cert.SubjectAltName.DNSNames...)
@@ -128,6 +190,26 @@ func (c *localSingletonConfigurator) genTLSCerts() error {
 	return nil
 }
 
+func (c *localSingletonConfigurator) copyCertToHosts(certPath string, hosts []net.IP) error {
+	// copy ca cert to "/etc/containerd/certs.d/${domain}:${port}/${domain}.crt
+	var (
+		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+		caFile   = c.Domain + ".crt"
+		dest     = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
+		src      = filepath.Join(certPath, caFile)
+	)
+
+	f := func(host net.IP) error {
+		err := c.infraDriver.Copy(host, src, dest)
+		if err != nil {
+			return fmt.Errorf("failed to copy registry cert %s: %v", src, err)
+		}
+		return nil
+	}
+
+	return c.infraDriver.ConcurrencyExecute(hosts, f)
+}
+
 func (c *localSingletonConfigurator) genBasicAuth() error {
 	//gen basic auth info: if not config, will skip.
 	if c.Auth.Username == "" || c.Auth.Password == "" {
@@ -135,20 +217,89 @@ func (c *localSingletonConfigurator) genBasicAuth() error {
 	}
 
 	var (
-		basicAuthFile = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", DefaultRegistryHtPasswdFile)
+		localBasicAuthFile = filepath.Join("/tmp", DefaultRegistryHtPasswdFile)
+		basicAuthFile      = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", DefaultRegistryHtPasswdFile)
 	)
+
+	existed, err := c.infraDriver.IsFileExist(c.DeployHost, basicAuthFile)
+	if err != nil {
+		return err
+	}
+	if existed {
+		return nil
+	}
 
 	htpasswd, err := GenerateHTTPBasicAuth(c.Auth.Username, c.Auth.Password)
 	if err != nil {
 		return err
 	}
 
-	return os.NewCommonWriter(basicAuthFile).WriteFile([]byte(htpasswd))
+	err = os.NewCommonWriter(localBasicAuthFile).WriteFile([]byte(htpasswd))
+	if err != nil {
+		return err
+	}
+
+	err = c.infraDriver.Copy(c.DeployHost, localBasicAuthFile, basicAuthFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy registry auth file to %s: %v", basicAuthFile, err)
+	}
+
+	return fs.FS.RemoveAll(localBasicAuthFile)
 }
 
-func (c *localSingletonConfigurator) initRegistry() error {
+func (c *localSingletonConfigurator) reconcileRegistry(hosts []net.IP) error {
+	var (
+		rootfs     = c.infraDriver.GetClusterRootfs()
+		dataDir    = c.DataDir
+		deployHost = c.DeployHost
+		imageName  = c.infraDriver.GetClusterImageName()
+	)
+
+	hostsPlatformMap, err := c.infraDriver.GetHostsPlatform(hosts)
+	if err != nil {
+		return err
+	}
+
+	for platform, _ := range hostsPlatformMap {
+		mountDir := filepath.Join(common.DefaultSealerDataDir, c.infraDriver.GetClusterName(), "mount", platform.ToString())
+
+		if err = c.imageEngine.Pull(&imagecommon.PullOptions{
+			Authfile:   auth.GetDefaultAuthFilePath(),
+			Quiet:      false,
+			TLSVerify:  true,
+			PullPolicy: "missing",
+			Image:      imageName,
+			Platform:   platform.ToString(),
+		}); err != nil {
+			return err
+		}
+
+		if _, err := c.imageEngine.BuildRootfs(&imagecommon.BuildRootfsOptions{
+			DestDir:       mountDir,
+			ImageNameOrID: imageName,
+		}); err != nil {
+			return err
+		}
+
+		err = c.infraDriver.Copy(deployHost, filepath.Join(mountDir, "registry"), dataDir)
+		if err != nil {
+			return fmt.Errorf("failed to copy registry data %s: %v", mountDir, err)
+		}
+
+		if err = c.imageEngine.RemoveContainer(&imagecommon.RemoveContainerOptions{
+			ContainerNamesOrIDs: nil,
+			All:                 true,
+		}); err != nil {
+			return fmt.Errorf("failed to remove mounted dir %s: %v", mountDir, err)
+		}
+
+		if err = fs.FS.RemoveAll(mountDir); err != nil {
+			return err
+		}
+	}
+
 	// bash init-registry.sh ${port} ${mountData} ${domain}
-	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", c.infraDriver.GetClusterRootfs(), c.Port, c.DataDir, c.Domain)
+	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", rootfs, c.Port, dataDir, c.Domain)
 	if err := c.infraDriver.CmdAsync(c.DeployHost, initRegistry); err != nil {
 		return err
 	}
@@ -156,7 +307,7 @@ func (c *localSingletonConfigurator) initRegistry() error {
 	return nil
 }
 
-func (c *localSingletonConfigurator) configureHostsFile() error {
+func (c *localSingletonConfigurator) configureHostsFile(hosts []net.IP) error {
 	// add registry ip to "/etc/hosts"
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.DeployHost.String()))
@@ -166,10 +317,10 @@ func (c *localSingletonConfigurator) configureHostsFile() error {
 		return nil
 	}
 
-	return c.infraDriver.ConcurrencyExecute(f)
+	return c.infraDriver.ConcurrencyExecute(hosts, f)
 }
 
-func (c *localSingletonConfigurator) configureKubeletAuthInfo() error {
+func (c *localSingletonConfigurator) configureKubeletAuthInfo(hosts []net.IP) error {
 	var (
 		username = c.Auth.Username
 		password = c.Auth.Username
@@ -191,34 +342,10 @@ func (c *localSingletonConfigurator) configureKubeletAuthInfo() error {
 		return nil
 	}
 
-	return c.infraDriver.ConcurrencyExecute(f)
+	return c.infraDriver.ConcurrencyExecute(hosts, f)
 }
 
-func (c *localSingletonConfigurator) configureRegistryCert() error {
-	// copy ca cert to "/etc/containerd/certs.d/${domain}:${port}/${domain}.crt
-	var (
-		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
-		caFile   = c.Domain + ".crt"
-		dest     = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
-		src      = filepath.Join(c.infraDriver.GetClusterRootfs(), "certs", caFile)
-	)
-
-	if !os.IsFileExist(src) {
-		return nil
-	}
-
-	f := func(host net.IP) error {
-		err := c.infraDriver.Copy(host, src, dest)
-		if err != nil {
-			return fmt.Errorf("failed to copy registry cert %s: %v", src, err)
-		}
-		return nil
-	}
-
-	return c.infraDriver.ConcurrencyExecute(f)
-}
-
-func (c *localSingletonConfigurator) configureDaemonService() error {
+func (c *localSingletonConfigurator) configureDaemonService(hosts []net.IP) error {
 	var (
 		src      string
 		dest     string
@@ -247,7 +374,7 @@ func (c *localSingletonConfigurator) configureDaemonService() error {
 
 	// for docker: copy daemon.json to "/etc/docker/daemon.json"
 	// for containerd : copy hosts.toml to "/etc/containerd/certs.d/${domain}:${port}/hosts.toml"
-	for _, ip := range c.infraDriver.GetHostIPList() {
+	for _, ip := range hosts {
 		err := c.infraDriver.Copy(ip, src, dest)
 		if err != nil {
 			return err

@@ -88,7 +88,7 @@ func (c *Dumper) WriteFiles() (err error) {
 	}
 	for _, config := range c.Configs {
 		configData := []byte(config.Spec.Data)
-		mountRoot := filepath.Join(common.DefaultClusterRootfsDir, c.Cluster.Name, "mount")
+		mountRoot := filepath.Join(common.DefaultSealerDataDir, c.Cluster.Name, "mount")
 		mountDirs, err := ioutil.ReadDir(mountRoot)
 		if err != nil {
 			return err

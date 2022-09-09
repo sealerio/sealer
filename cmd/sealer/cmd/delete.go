@@ -15,7 +15,7 @@
 package cmd
 
 import (
-	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"net"
 
@@ -67,7 +67,16 @@ delete all:
 			return err
 		}
 
-		installer, err := cluster_runtime.NewInstaller(infraDriver, cf)
+		runtimeConfig := new(clusterruntime.RuntimeConfig)
+		if cf.GetPlugins() != nil {
+			runtimeConfig.Plugins = cf.GetPlugins()
+		}
+
+		if cf.GetKubeadmConfig() != nil {
+			runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+		}
+
+		installer, err := clusterruntime.NewInstaller(infraDriver, nil, *runtimeConfig)
 		if err != nil {
 			return err
 		}
