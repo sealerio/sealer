@@ -20,6 +20,7 @@ import (
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sealerio/sealer/pkg/plugin"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
@@ -70,9 +71,13 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 	}
 
 	// add installer hooks
+	plugins, err := plugin.LoadFromFile(filepath.Join(infraDriver.GetClusterRootfs(), "plugins"))
+	if err != nil {
+		return nil, err
+	}
+
+	plugins = append(plugins, runtimeConfig.Plugins...)
 	hooks := make(map[Phase]HookConfigList)
-	plugins := runtimeConfig.Plugins
-	// todo load Plugins from rootfs
 	for _, pluginConfig := range plugins {
 		hookType := HookType(pluginConfig.Spec.Type)
 

@@ -31,8 +31,8 @@ import (
 	"strings"
 )
 
-// Load plugin config files from $rootfs/plugins dir.
-func Load(pluginPath string) ([]v1.Plugin, error) {
+// LoadFromFile load plugin config files from $rootfs/plugins dir.
+func LoadFromFile(pluginPath string) ([]v1.Plugin, error) {
 	_, err := os.Stat(pluginPath)
 	if os.IsNotExist(err) {
 		return nil, nil
