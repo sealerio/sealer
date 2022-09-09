@@ -17,14 +17,18 @@ package registry
 import (
 	"fmt"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"net"
 )
 
 // Configurator provide registry lifecycle management.
 type Configurator interface {
-	// Reconcile will start registry
-	Reconcile() error
+	// Reconcile will configure cluster registry component.
+	Reconcile(hosts []net.IP) error
+
+	// UninstallFrom will clean host registry configuration.
+	UninstallFrom(hosts []net.IP) error
 
 	GetDriver() (Driver, error)
 	// Clean will Stop registry
@@ -38,9 +42,10 @@ type RegistryConfig struct {
 	ExternalRegistry *Registry
 }
 
-func NewConfigurator(conf RegistryConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver) (Configurator, error) {
+func NewConfigurator(conf RegistryConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface) (Configurator, error) {
 	if conf.LocalRegistry != nil {
 		return &localSingletonConfigurator{
+			imageEngine:          imageEngine,
 			infraDriver:          infraDriver,
 			LocalRegistry:        conf.LocalRegistry,
 			containerRuntimeInfo: containerRuntimeInfo,

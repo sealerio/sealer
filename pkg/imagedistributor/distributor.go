@@ -12,26 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package registry
+package imagedistributor
 
-import "net"
+import (
+	"net"
+)
 
-type externalConfigurator struct {
-	Registry
-}
-
-func (c *externalConfigurator) Clean() error {
-	panic("implement external")
-}
-
-func (c *externalConfigurator) GetDriver() (Driver, error) {
-	panic("implement external")
-}
-
-func (c *externalConfigurator) Reconcile(hosts []net.IP) error {
-	panic("implement external")
-}
-
-func (c *externalConfigurator) UninstallFrom(hosts []net.IP) error {
-	panic("implement external")
+type Interface interface {
+	// Distribute each files under mounted cluster image directory to target hosts.
+	Distribute(imageName string, hosts []net.IP) error
+	// Restore will do some clean works via infra driver, like delete rootfs.
+	Restore(targetDir string, hosts []net.IP) error
 }

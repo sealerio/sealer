@@ -28,19 +28,62 @@ import (
 )
 
 type SSHInfraDriver struct {
-	sshConfigs   map[string]ssh.Interface
-	hosts        []net.IP
-	roleHostsMap map[string][]net.IP
-	clusterName  string
+	sshConfigs        map[string]ssh.Interface
+	hosts             []net.IP
+	roleHostsMap      map[string][]net.IP
+	hostEnvMap        map[string]map[string]interface{}
+	clusterName       string
+	clusterImagerName string
+}
+
+func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {
+	if len(hostEnv) == 0 {
+		return globalEnv
+	}
+	for globalEnvKey, globalEnvValue := range globalEnv {
+		if _, ok := hostEnv[globalEnvKey]; ok {
+			continue
+		}
+		hostEnv[globalEnvKey] = globalEnvValue
+	}
+	return hostEnv
+}
+
+// ConvertEnv []string to map[string]interface{}, example [IP=127.0.0.1,IP=192.160.0.2,Key=value] will convert to {IP:[127.0.0.1,192.168.0.2],key:value}
+func ConvertEnv(envList []string) (env map[string]interface{}) {
+	temp := make(map[string][]string)
+	env = make(map[string]interface{})
+
+	for _, e := range envList {
+		var kv []string
+		if kv = strings.SplitN(e, "=", 2); len(kv) != 2 {
+			continue
+		}
+		temp[kv[0]] = append(temp[kv[0]], strings.Split(kv[1], ";")...)
+	}
+
+	for k, v := range temp {
+		if len(v) > 1 {
+			env[k] = v
+			continue
+		}
+		if len(v) == 1 {
+			env[k] = v[0]
+		}
+	}
+
+	return
 }
 
 func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	var err error
 	ret := &SSHInfraDriver{
-		clusterName:  cluster.Name,
-		sshConfigs:   map[string]ssh.Interface{},
-		hosts:        cluster.GetAllIPList(),
-		roleHostsMap: map[string][]net.IP{},
+		clusterName:       cluster.Name,
+		clusterImagerName: cluster.Spec.Image,
+		sshConfigs:        map[string]ssh.Interface{},
+		hosts:             cluster.GetAllIPList(),
+		roleHostsMap:      map[string][]net.IP{},
+		hostEnvMap:        map[string]map[string]interface{}{},
 	}
 
 	// initialize sshConfigs field
@@ -65,6 +108,15 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		}
 	}
 
+	// initialize hostEnvMap field
+	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
+	globalEnv := ConvertEnv(cluster.Spec.Env)
+	for _, host := range cluster.Spec.Hosts {
+		for _, ip := range host.IPS {
+			ret.hostEnvMap[ip.String()] = mergeList(ConvertEnv(host.Env), globalEnv)
+		}
+	}
+
 	return ret, err
 }
 
@@ -74,6 +126,10 @@ func (d *SSHInfraDriver) GetHostIPList() []net.IP {
 
 func (d *SSHInfraDriver) GetHostIPListByRole(role string) []net.IP {
 	return d.roleHostsMap[role]
+}
+
+func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]interface{} {
+	return d.hostEnvMap[host.String()]
 }
 
 func (d *SSHInfraDriver) Copy(host net.IP, srcFilePath, dstFilePath string) error {
@@ -157,6 +213,10 @@ func (d *SSHInfraDriver) GetClusterName() string {
 	return d.clusterName
 }
 
+func (d *SSHInfraDriver) GetClusterImageName() string {
+	return d.clusterImagerName
+}
+
 func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {
 	hostName, err := d.CmdToString(hostIP, "hostname", "")
 	if err != nil {
@@ -169,8 +229,24 @@ func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {
 	return strings.ToLower(hostName), nil
 }
 
-func (d *SSHInfraDriver) GetImageMountDir() string {
-	return common.TheDefaultClusterCertDir(d.clusterName)
+func (d *SSHInfraDriver) GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net.IP, error) {
+	hostsPlatformMap := make(map[v1.Platform][]net.IP)
+
+	for _, ip := range hosts {
+		plat, err := d.GetPlatform(ip)
+		if err != nil {
+			return nil, err
+		}
+
+		_, ok := hostsPlatformMap[plat]
+		if !ok {
+			hostsPlatformMap[plat] = []net.IP{ip}
+		} else {
+			hostsPlatformMap[plat] = append(hostsPlatformMap[plat], ip)
+		}
+	}
+
+	return hostsPlatformMap, nil
 }
 
 func (d *SSHInfraDriver) GetClusterRootfs() string {
@@ -181,14 +257,14 @@ func (d *SSHInfraDriver) GetClusterBasePath() string {
 	return common.DefaultClusterBaseDir(d.clusterName)
 }
 
-func (d *SSHInfraDriver) ConcurrencyExecute(f func(host net.IP) error) error {
+func (d *SSHInfraDriver) ConcurrencyExecute(hosts []net.IP, f func(host net.IP) error) error {
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, ip := range d.hosts {
+	for _, ip := range hosts {
 		host := ip
 		eg.Go(func() error {
 			err := f(host)
 			if err != nil {
-				return fmt.Errorf("on host [%s]: %v", ip.String(), err)
+				return fmt.Errorf("on host [%s]: %v", host.String(), err)
 			}
 			return nil
 		})

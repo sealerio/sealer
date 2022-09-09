@@ -12,26 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package registry
-
-import "net"
-
-type externalConfigurator struct {
-	Registry
-}
-
-func (c *externalConfigurator) Clean() error {
-	panic("implement external")
-}
-
-func (c *externalConfigurator) GetDriver() (Driver, error) {
-	panic("implement external")
-}
-
-func (c *externalConfigurator) Reconcile(hosts []net.IP) error {
-	panic("implement external")
-}
-
-func (c *externalConfigurator) UninstallFrom(hosts []net.IP) error {
-	panic("implement external")
-}
+package imagedistributor
