@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"github.com/imdario/mergo"
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
 	"net"
@@ -34,8 +34,9 @@ type SSHInfraDriver struct {
 	clusterName  string
 }
 
-func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
+func NewInfraDriver(cf clusterfile.Interface) (InfraDriver, error) {
 	var err error
+	cluster := cf.GetCluster()
 	ret := &SSHInfraDriver{
 		clusterName:  cluster.Name,
 		sshConfigs:   map[string]ssh.Interface{},

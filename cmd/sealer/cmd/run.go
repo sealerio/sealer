@@ -18,10 +18,10 @@ import (
 	"fmt"
 	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sealerio/sealer/utils/yaml"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	v2 "github.com/sealerio/sealer/types/api/v2"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 
@@ -72,27 +72,44 @@ create a cluster with custom environment variables:
 		//}
 
 		var (
-			cf      clusterfile.Interface
-			cluster *v2.Cluster
-			err     error
+			cf  clusterfile.Interface
+			err error
 		)
+		localClusterFile := common.GetClusterWorkClusterfile()
 		if clusterFile != "" {
+			file, err := ioutil.ReadFile(clusterFile)
+			if err != nil {
+				return fmt.Errorf("failed to read clusterile: error(%v)", err)
+			}
+			if err = ioutil.WriteFile(localClusterFile, file, 0666); err != nil {
+				return err
+			}
 			cf, err = clusterfile.NewClusterFile(clusterFile)
 			if err != nil {
 				return err
 			}
-			cluster = cf.GetCluster()
 		} else {
 			if err := utils.ValidateRunArgs(runArgs); err != nil {
 				return fmt.Errorf("failed to validate input run args: %v", err)
 			}
-			cluster, err = utils.ConstructClusterFromArg(args[0], runArgs)
+			resultHosts, err := utils.GetHosts(runArgs.Masters, runArgs.Nodes)
+			if err != nil {
+				return err
+			}
+			cluster, err := utils.ConstructClusterFromArg(args[0], runArgs, resultHosts)
+			if err != nil {
+				return err
+			}
+			if err = yaml.UnmarshalFile(localClusterFile, cluster); err != nil {
+				return err
+			}
+			cf, err = clusterfile.NewClusterFile(localClusterFile)
 			if err != nil {
 				return err
 			}
 		}
 
-		infraDriver, err := infradriver.NewInfraDriver(cluster)
+		infraDriver, err := infradriver.NewInfraDriver(cf)
 		if err != nil {
 			return err
 		}

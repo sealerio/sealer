@@ -22,11 +22,11 @@ import (
 	utilsnet "github.com/sealerio/sealer/utils/net"
 )
 
-// getHosts now only supports input IP list and IP range.
+// GetHosts now only supports input IP list and IP range.
 // IP list, like 192.168.0.1,192.168.0.2,192.168.0.3
 // IP range, like 192.168.0.5-192.168.0.7, which means 192.168.0.5,192.168.0.6,192.168.0.7
 // P.S. we have guaranteed that all the input masters and nodes are validated.
-func getHosts(inMasters, inNodes string) ([]v2.Host, error) {
+func GetHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	var err error
 	if isRange(inMasters) {
 		inMasters, err = utilsnet.IPRangeToList(inMasters)

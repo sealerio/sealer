@@ -16,9 +16,9 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/utils/yaml"
 	"net"
-
-	v2 "github.com/sealerio/sealer/types/api/v2"
+	"strings"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 
@@ -50,27 +50,41 @@ join default cluster:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var (
 			cf      clusterfile.Interface
-			cluster *v2.Cluster
 			err     error
+			Masters []string
+			Nodes   []string
 		)
 		if clusterFile != "" {
-			var err error
-			cf, err = clusterfile.NewClusterFile(clusterFile)
+			localClusterFile := common.GetClusterWorkClusterfile()
+			if err := utils.ValidateJoinArgs(joinArgs); err != nil {
+				return fmt.Errorf("failed to validate input run args: %v", err)
+			}
+			allMasters := append(Masters, runArgs.Masters, joinArgs.Masters)
+			allNodes := append(Nodes, runArgs.Nodes, joinArgs.Nodes)
+			masterList := strings.Join(allMasters, ",")
+			nodeList := strings.Join(allNodes, ",")
+			resultHosts, err := utils.GetHosts(masterList, nodeList)
 			if err != nil {
 				return err
 			}
-			cluster = cf.GetCluster()
-		} else {
-			if err := utils.ValidateJoinArgs(joinArgs); err != nil {
-				return fmt.Errorf("failed to validate input join args: %v", err)
+			cluster, err := utils.ConstructClusterFromArg(args[0], runArgs, resultHosts)
+			if err != nil {
+				return err
 			}
-			cluster, err = utils.ConstructClusterFromArg(args[0], runArgs)
+			if err := yaml.UnmarshalFile(localClusterFile, cluster); err != nil {
+				return err
+			}
+			cf, err = clusterfile.NewClusterFile(localClusterFile)
+			if err != nil {
+				return err
+			}
+			cf, err = clusterfile.NewClusterFile(clusterFile)
 			if err != nil {
 				return err
 			}
 		}
 
-		infraDriver, err := infradriver.NewInfraDriver(cluster)
+		infraDriver, err := infradriver.NewInfraDriver(cf)
 		if err != nil {
 			return err
 		}
