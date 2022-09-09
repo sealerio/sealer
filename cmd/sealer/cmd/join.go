@@ -78,10 +78,6 @@ join default cluster:
 			if err != nil {
 				return err
 			}
-			cf, err = clusterfile.NewClusterFile(clusterFile)
-			if err != nil {
-				return err
-			}
 		}
 
 		infraDriver, err := infradriver.NewInfraDriver(cf)
