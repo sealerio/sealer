@@ -16,20 +16,18 @@ package clusterfile
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
-	"gopkg.in/yaml.v2"
-	"os"
+	"io/ioutil"
 	"path/filepath"
+	"sigs.k8s.io/yaml"
 	"sync"
 
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utils_os "github.com/sealerio/sealer/utils/os"
 )
-
-var ErrTypeNotFound = errors.New("no corresponding type structure was found")
 
 type ClusterFile struct {
 	path       string
@@ -45,7 +43,6 @@ var (
 )
 
 type Interface interface {
-	PreProcessor
 	GetCluster() *v2.Cluster
 	SetCluster(*v2.Cluster)
 	GetConfigs() []v1.Config
@@ -108,21 +105,19 @@ func (c *ClusterFile) SaveAll() error {
 	return nil
 }
 
-func NewClusterFile(path string) (i Interface, err error) {
-	if !filepath.IsAbs(path) {
-		pa, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-		path = filepath.Join(pa, path)
+func NewClusterFile(path string) (Interface, error) {
+	clusterFileData, err := ioutil.ReadFile(filepath.Clean(path))
+
+	if err != nil {
+		return nil, err
 	}
 
-	if path == "" {
-		return clusterFile, nil
+	clusterFile := new(ClusterFile)
+	err = decodeClusterFile(bytes.NewReader(clusterFileData), clusterFile)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to load clusterfile: %v", err)
 	}
-	once.Do(func() {
-		clusterFile.path = path
-		err = clusterFile.Process()
-	})
-	return clusterFile, err
+
+	return clusterFile, nil
 }
