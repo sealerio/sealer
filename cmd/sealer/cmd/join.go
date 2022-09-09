@@ -54,30 +54,31 @@ join default cluster:
 			Masters []string
 			Nodes   []string
 		)
-		if clusterFile != "" {
-			localClusterFile := common.GetClusterWorkClusterfile()
-			if err := utils.ValidateJoinArgs(joinArgs); err != nil {
-				return fmt.Errorf("failed to validate input run args: %v", err)
-			}
-			allMasters := append(Masters, runArgs.Masters, joinArgs.Masters)
-			allNodes := append(Nodes, runArgs.Nodes, joinArgs.Nodes)
-			masterList := strings.Join(allMasters, ",")
-			nodeList := strings.Join(allNodes, ",")
-			resultHosts, err := utils.GetHosts(masterList, nodeList)
-			if err != nil {
-				return err
-			}
-			cluster, err := utils.ConstructClusterFromArg(args[0], runArgs, resultHosts)
-			if err != nil {
-				return err
-			}
-			if err := yaml.UnmarshalFile(localClusterFile, cluster); err != nil {
-				return err
-			}
-			cf, err = clusterfile.NewClusterFile(localClusterFile)
-			if err != nil {
-				return err
-			}
+
+		localClusterFile := common.GetClusterWorkClusterfile()
+		file, err := clusterfile.NewClusterFile(localClusterFile)
+		if err != nil {
+			return err
+		}
+		cluster := file.GetCluster()
+		if err := utils.ValidateJoinArgs(joinArgs); err != nil {
+			return fmt.Errorf("failed to validate input run args: %v", err)
+		}
+		allMasters := append(Masters, runArgs.Masters, joinArgs.Masters)
+		allNodes := append(Nodes, runArgs.Nodes, joinArgs.Nodes)
+		masterList := strings.Join(allMasters, ",")
+		nodeList := strings.Join(allNodes, ",")
+		resultHosts, err := utils.GetHosts(masterList, nodeList)
+		if err != nil {
+			return err
+		}
+		cluster.Spec.Hosts = resultHosts
+		if err := yaml.UnmarshalFile(localClusterFile, cluster); err != nil {
+			return err
+		}
+		cf, err = clusterfile.NewClusterFile(localClusterFile)
+		if err != nil {
+			return err
 		}
 
 		infraDriver, err := infradriver.NewInfraDriver(cf)

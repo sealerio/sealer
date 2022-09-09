@@ -15,8 +15,14 @@
 package cmd
 
 import (
+	"fmt"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
+	"github.com/sealerio/sealer/common"
 	cluster_runtime "github.com/sealerio/sealer/pkg/cluster-runtime"
+	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sealerio/sealer/utils/os/fs"
+	"github.com/sealerio/sealer/utils/yaml"
 	"net"
 
 	"github.com/sealerio/sealer/apply"
@@ -27,12 +33,13 @@ import (
 )
 
 var (
-	deleteArgs        *apply.Args
-	deleteClusterFile string
-	deleteClusterName string
-	mastersToDelete   []net.IP
-	workersToDelete   []net.IP
-	deleteAll         bool
+	deleteArgs                  *apply.Args
+	deleteClusterFile           string
+	deleteClusterName           string
+	mastersToDelete             []net.IP
+	workersToDelete             []net.IP
+	deleteAll                   bool
+	DefaultClusterClearBashFile = "%s/scripts/clean.sh"
 )
 
 // deleteCmd represents the delete command
@@ -62,7 +69,7 @@ delete all:
 		}
 
 		cluster := cf.GetCluster()
-		infraDriver, err := infradriver.NewInfraDriver(cluster)
+		infraDriver, err := infradriver.NewInfraDriver(cf)
 		if err != nil {
 			return err
 		}
@@ -76,19 +83,72 @@ delete all:
 			if err = installer.UnInstall(); err != nil {
 				return err
 			}
+			// exec clean.sh
+			ips := infraDriver.GetHostIPList()
+			clusterRootfsDir := infraDriver.GetClusterRootfs()
+			cleanFile := fmt.Sprintf(DefaultClusterClearBashFile, clusterRootfsDir)
+			for _, ip := range ips {
+				if err := infraDriver.CmdAsync(ip, cleanFile); err != nil {
+					return fmt.Errorf("failed to exec command(%s) on host(%s): error(%v)", cleanFile, ip, err)
+				}
+			}
+			//delete rootfs file
+			system, err := cloudfilesystem.NewOverlayFileSystem()
+			if err != nil {
+				return fmt.Errorf("failed to get system: error(%v)", err)
+			}
+
+			if err = system.UnMountRootfs(cluster, ips); err != nil {
+				return fmt.Errorf("failed to unmount rootfs: error(%v)", err)
+			}
+			//todo delete CleanFs
+			if err := fs.NewFilesystem().RemoveAll(common.GetClusterWorkDir(), common.DefaultClusterBaseDir(clusterName),
+				common.DefaultKubeConfigDir(), common.KubectlPath); err != nil {
+				return err
+			}
 		} else {
 			_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
 			if err != nil {
 				return err
 			}
+			system, err := cloudfilesystem.NewOverlayFileSystem()
+			if err != nil {
+				return err
+			}
+			hosts := append(mastersToDelete, workersToDelete...)
+			if err := system.UnMountRootfs(cluster, hosts); err != nil {
+				return fmt.Errorf("failed to unmount rootfs: error(%v)", err)
+			}
+
+			localClusterFile := common.GetClusterWorkClusterfile()
+			file, err := clusterfile.NewClusterFile(localClusterFile)
+			if err != nil {
+				return err
+			}
+			localCluster := file.GetCluster()
+			for _, ip := range localCluster.Spec.Hosts {
+				for _, Ip := range ip.IPS {
+					var masterip net.IP
+					var nodeip net.IP
+					if string(Ip) != deleteArgs.Masters {
+						masterip = Ip
+					}
+					if string(Ip) != deleteArgs.Nodes {
+						nodeip = Ip
+					}
+					resultHosts, err := utils.GetHosts(string(masterip), string(nodeip))
+					if err != nil {
+						return err
+					}
+					localCluster.Spec.Hosts = resultHosts
+				}
+			}
+
+			if err := yaml.UnmarshalFile(localClusterFile, localCluster); err != nil {
+				return err
+			}
+
 		}
-
-		//TODO remove files from deleted hosts
-
-		if deleteAll {
-			//TODO umount image
-		}
-
 		return nil
 	},
 }
