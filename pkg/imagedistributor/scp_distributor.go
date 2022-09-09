@@ -17,6 +17,8 @@ package imagedistributor
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/auth"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
@@ -24,12 +26,12 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils/mount"
-	"io/ioutil"
 
-	"golang.org/x/sync/errgroup"
 	"net"
 	"os"
 	"path/filepath"
+
+	"golang.org/x/sync/errgroup"
 )
 
 const (

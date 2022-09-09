@@ -18,6 +18,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	"github.com/pelletier/go-toml"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/auth"
@@ -29,11 +35,6 @@ import (
 	"github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sealerio/sealer/utils/shellcommand"
-	"io/ioutil"
-	"net"
-	"path/filepath"
-	"strconv"
-	"strings"
 )
 
 const (

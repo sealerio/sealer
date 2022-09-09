@@ -16,11 +16,12 @@ package kubeadm_config
 
 import (
 	"fmt"
-	versionUtils "github.com/sealerio/sealer/utils/version"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"strings"
+
+	versionUtils "github.com/sealerio/sealer/utils/version"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config/v1beta2"
 

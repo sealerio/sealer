@@ -17,14 +17,15 @@ package infradriver
 import (
 	"context"
 	"fmt"
+	"net"
+	"strings"
+
 	"github.com/imdario/mergo"
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
-	"net"
-	"strings"
 )
 
 type SSHInfraDriver struct {

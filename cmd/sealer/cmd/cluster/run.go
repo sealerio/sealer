@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package cluster
 
 import (
 	"github.com/sealerio/sealer/apply"
@@ -23,7 +23,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	strUtil "github.com/sealerio/sealer/utils/strings"
+	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
@@ -32,11 +32,7 @@ import (
 
 var runArgs *apply.Args
 
-var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "start to run a cluster from a ClusterImage",
-	Long:  `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`,
-	Example: `
+var exampleForRunCmd = `
 create cluster to your bare metal server, appoint the iplist:
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 		--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
@@ -50,84 +46,88 @@ specify server SSH port :
 create a cluster with custom environment variables:
 	sealer run -e DashBoardPort=8443 mydashboard:latest  --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
 	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
-`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// TODO: remove this now, maybe we can support it later
-		// set local ip address as master0 default ip if user input is empty.
-		// this is convenient to execute `sealer run` without set many arguments.
-		// Example looks like "sealer run kubernetes:v1.19.8"
-		//if runArgs.Masters == "" {
-		//	ip, err := net.GetLocalDefaultIP()
-		//	if err != nil {
-		//		return err
-		//	}
-		//	runArgs.Masters = ip
-		//}
+`
 
-		//todo merge args from commandline , write to disk.
-		var cf clusterfile.Interface
-		if clusterFile != "" {
-			var err error
-			cf, err = clusterfile.NewClusterFile(clusterFile)
+func NewRunCmd() *cobra.Command {
+	runCmd := &cobra.Command{
+		Use:     "run",
+		Short:   "start to run a cluster from a ClusterImage",
+		Long:    `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`,
+		Example: exampleForRunCmd,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// TODO: remove this now, maybe we can support it later
+			// set local ip address as master0 default ip if user input is empty.
+			// this is convenient to execute `sealer run` without set many arguments.
+			// Example looks like "sealer run kubernetes:v1.19.8"
+			//if runArgs.Masters == "" {
+			//	ip, err := net.GetLocalDefaultIP()
+			//	if err != nil {
+			//		return err
+			//	}
+			//	runArgs.Masters = ip
+			//}
+
+			//todo merge args from commandline , write to disk.
+			var cf clusterfile.Interface
+			if clusterFile != "" {
+				var err error
+				cf, err = clusterfile.NewClusterFile(clusterFile)
+				if err != nil {
+					return err
+				}
+			}
+
+			cluster := cf.GetCluster()
+
+			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
 			}
-		}
 
-		cluster := cf.GetCluster()
+			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
 
-		infraDriver, err := infradriver.NewInfraDriver(&cluster)
-		if err != nil {
-			return err
-		}
+			distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver)
+			if err != nil {
+				return err
+			}
 
-		imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
-		if err != nil {
-			return err
-		}
+			// distribute rootfs
+			if err = distributor.Distribute(cluster.Spec.Image, infraDriver.GetHostIPList()); err != nil {
+				return err
+			}
 
-		distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver)
-		if err != nil {
-			return err
-		}
+			runtimeConfig := new(clusterruntime.RuntimeConfig)
+			if cf.GetPlugins() != nil {
+				runtimeConfig.Plugins = cf.GetPlugins()
+			}
 
-		// distribute rootfs
-		if err = distributor.Distribute(cluster.Spec.Image, infraDriver.GetHostIPList()); err != nil {
-			return err
-		}
+			if cf.GetKubeadmConfig() != nil {
+				runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+			}
 
-		runtimeConfig := new(clusterruntime.RuntimeConfig)
-		if cf.GetPlugins() != nil {
-			runtimeConfig.Plugins = cf.GetPlugins()
-		}
+			installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
 
-		if cf.GetKubeadmConfig() != nil {
-			runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-		}
+			if err != nil {
+				return err
+			}
 
-		installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
+			_, _, err = installer.Install()
+			if err != nil {
+				return err
+			}
 
-		if err != nil {
-			return err
-		}
+			// TODO install APP
+			// todo render app env data
+			// todo dump app config
+			return nil
 
-		regDriver, kubeDriver, err := installer.Install()
-		if err != nil {
-			return err
-		}
-
-		// TODO install APP
-		// todo render app env data
-		// todo dump app config
-		return nil
-	},
-}
-
-func init() {
+		},
+	}
 	runArgs = &apply.Args{}
-	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "Clusterfile path to apply a Kubernetes cluster")
 	runCmd.Flags().StringVarP(&runArgs.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runArgs.Masters, "masters", "m", "", "set count or IPList to masters")
 	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set count or IPList to nodes")
@@ -140,10 +140,11 @@ func init() {
 	runCmd.Flags().StringSliceVar(&runArgs.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return strUtil.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
+		return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
 		logrus.Errorf("provide completion for provider flag, err: %v", err)
 		os.Exit(1)
 	}
+	return runCmd
 }

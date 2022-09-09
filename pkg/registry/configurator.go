@@ -16,10 +16,11 @@ package registry
 
 import (
 	"fmt"
+	"net"
+
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"net"
 )
 
 // Configurator provide registry lifecycle management.
