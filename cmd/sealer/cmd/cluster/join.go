@@ -15,16 +15,21 @@
 package cluster
 
 import (
+	"fmt"
+	"io/ioutil"
+	"net"
+	"path/filepath"
+
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/cluster-runtime"
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/spf13/cobra"
-	"net"
 )
 
 var clusterName string
@@ -46,16 +51,30 @@ func NewJoinCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Example: exampleForJoinCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var cf clusterfile.Interface
-			if clusterFile != "" {
-				var err error
-				cf, err = clusterfile.NewClusterFile(clusterFile)
-				if err != nil {
-					return err
-				}
+			var (
+				cf  clusterfile.Interface
+				err error
+			)
+			if err := utils.ValidateJoinArgs(joinArgs); err != nil {
+				return fmt.Errorf("failed to validate input run args: %v", err)
 			}
-
+			workClusterfile := common.GetClusterWorkClusterfile()
+			clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
+			if err != nil {
+				return err
+			}
+			cf, err = clusterfile.NewClusterFile(clusterFileData)
+			if err != nil {
+				return err
+			}
+			resultHosts, err := utils.GetHosts(joinArgs.Masters, joinArgs.Nodes)
+			if err != nil {
+				return err
+			}
 			cluster := cf.GetCluster()
+			cluster.Spec.Hosts = append(cluster.Spec.Hosts, resultHosts...)
+			cf.SetCluster(cluster)
+
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
@@ -93,6 +112,10 @@ func NewJoinCmd() *cobra.Command {
 			installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
 
 			_, _, err = installer.ScaleUp(newMasters, newWorkers)
+
+			if err = cf.SaveAll(); err != nil {
+				return err
+			}
 
 			return err
 		},

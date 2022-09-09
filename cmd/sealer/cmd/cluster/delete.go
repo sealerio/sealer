@@ -15,13 +15,23 @@
 package cluster
 
 import (
-	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
-	"github.com/sealerio/sealer/pkg/infradriver"
+	"fmt"
+	"io/ioutil"
 	"net"
+	"path/filepath"
 
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
+	"github.com/sealerio/sealer/common"
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
+	utilsnet "github.com/sealerio/sealer/utils/net"
+	"github.com/sealerio/sealer/utils/os/fs"
 
 	"github.com/spf13/cobra"
 )
@@ -57,53 +67,12 @@ func NewDeleteCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Example: exampleForDeleteCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var cf clusterfile.Interface
-			if clusterFile != "" {
-				var err error
-				cf, err = clusterfile.NewClusterFile(clusterFile)
-				if err != nil {
-					return err
-				}
-			}
-
-			cluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
-			if err != nil {
-				return err
-			}
-
-			runtimeConfig := new(clusterruntime.RuntimeConfig)
-			if cf.GetPlugins() != nil {
-				runtimeConfig.Plugins = cf.GetPlugins()
-			}
-
-			if cf.GetKubeadmConfig() != nil {
-				runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-			}
-
-			installer, err := clusterruntime.NewInstaller(infraDriver, nil, *runtimeConfig)
-			if err != nil {
-				return err
-			}
-
+			workClusterfile := common.GetClusterWorkClusterfile()
 			if deleteAll {
-				if err = installer.UnInstall(); err != nil {
-					return err
-				}
-			} else {
-				_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
-				if err != nil {
-					return err
-				}
+				return deleteCluster(workClusterfile)
+
 			}
-
-			//TODO remove files from deleted hosts
-
-			if deleteAll {
-				//TODO umount image
-			}
-
-			return nil
+			return scaleDownCluster(workClusterfile)
 		},
 	}
 
@@ -117,4 +86,121 @@ func NewDeleteCmd() *cobra.Command {
 	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
 
 	return deleteCmd
+}
+
+func getRuntimeInterfaces(cf clusterfile.Interface) (imagedistributor.Interface, infradriver.InfraDriver, *clusterruntime.Installer, error) {
+	cluster := cf.GetCluster()
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	runtimeConfig := new(clusterruntime.RuntimeConfig)
+	if cf.GetPlugins() != nil {
+		runtimeConfig.Plugins = cf.GetPlugins()
+	}
+
+	if cf.GetKubeadmConfig() != nil {
+		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, nil, *runtimeConfig)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return distributor, infraDriver, installer, nil
+}
+
+func deleteCluster(workClusterfile string) error {
+	var err error
+	clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
+	if err != nil {
+		return err
+	}
+	cf, err := clusterfile.NewClusterFile(clusterFileData)
+	if err != nil {
+		return err
+	}
+	distributor, infraDriver, installer, err := getRuntimeInterfaces(cf)
+	if err != nil {
+		return err
+	}
+	if err = installer.UnInstall(); err != nil {
+		return err
+	}
+	// exec clean.sh
+	ips := infraDriver.GetHostIPList()
+	clusterRootfsDir := infraDriver.GetClusterRootfs()
+	cleanFile := fmt.Sprintf(common.DefaultClusterClearBashFile, clusterRootfsDir)
+	for _, ip := range ips {
+		if err := infraDriver.CmdAsync(ip, cleanFile); err != nil {
+			return fmt.Errorf("failed to exec command(%s) on host(%s): error(%v)", cleanFile, ip, err)
+		}
+	}
+	//delete rootfs file
+	if err := distributor.Restore(infraDriver.GetClusterRootfs(), infraDriver.GetHostIPList()); err != nil {
+		return err
+	}
+
+	//todo delete CleanFs
+	if err := fs.FS.RemoveAll(common.GetClusterWorkDir(), common.DefaultClusterBaseDir(clusterName),
+		common.DefaultKubeConfigDir()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func scaleDownCluster(workClusterfile string) error {
+	clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
+	if err != nil {
+		return err
+	}
+	cf, err := clusterfile.NewClusterFile(clusterFileData)
+	if err != nil {
+		return err
+	}
+	cluster := cf.GetCluster()
+
+	hosts, err := utils.GetHosts(deleteArgs.Masters, deleteArgs.Nodes)
+	if err != nil {
+		return err
+	}
+
+	for _, host := range cluster.Spec.Hosts {
+		for _, ip := range hosts {
+			host.IPS = utilsnet.RemoveIPs(host.IPS, ip.IPS)
+		}
+	}
+
+	cf.SetCluster(cluster)
+
+	distributor, infraDriver, installer, err := getRuntimeInterfaces(cf)
+	if err != nil {
+		return err
+	}
+	for _, host := range hosts {
+		if err := distributor.Restore(infraDriver.GetClusterRootfs(), host.IPS); err != nil {
+			return err
+		}
+	}
+
+	_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
+	if err != nil {
+		return err
+	}
+	if err := cf.SaveAll(); err != nil {
+		return err
+	}
+	return nil
 }

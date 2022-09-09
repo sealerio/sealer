@@ -197,7 +197,7 @@ func (applier *Applier) scaleCluster(mj, md, nj, nd []net.IP) error {
 	}
 	var cluster *v2.Cluster
 	if !scaleProcessor.(*processor.ScaleProcessor).IsScaleUp {
-		c, err := utils.DecodeCRDFromFile(common.GetClusterWorkClusterfile(applier.ClusterDesired.Name), common.Cluster)
+		c, err := utils.DecodeCRDFromFile(common.GetClusterWorkClusterfile(), common.Cluster)
 		if err != nil {
 			return err
 		} else if c != nil {

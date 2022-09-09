@@ -91,7 +91,7 @@ func GetCurrentClusterByName(name string) (*v2.Cluster, error) {
 		}
 	}
 
-	cluster, err := clusterfile.GetClusterFromFile(common.GetClusterWorkClusterfile(name))
+	cluster, err := clusterfile.GetClusterFromFile(common.GetClusterWorkClusterfile())
 	if err != nil {
 		return nil, err
 	}
