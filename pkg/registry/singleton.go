@@ -33,6 +33,7 @@ import (
 	"net"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -59,12 +60,19 @@ func (c *localSingletonConfigurator) Clean() error {
 }
 
 func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
-	cmd := fmt.Sprintf("rm -f /root/.docker/config.json && %s", shellcommand.CommandUnSetHostAlias())
+	var (
+		username = c.Auth.Username
+		password = c.Auth.Username
+		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+	)
+
+	logoutCmd := fmt.Sprintf("nerdctl logout -u %s -p %s %s", username, password, endpoint)
+	unSetHostCmd := shellcommand.CommandUnSetHostAlias()
 
 	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, cmd)
+		err := c.infraDriver.CmdAsync(host, strings.Join([]string{logoutCmd, unSetHostCmd}, "&&"))
 		if err != nil {
-			return fmt.Errorf("failed to delete registry configuration, cmd is %s: %v", cmd, err)
+			return fmt.Errorf("failed to delete registry configuration: %v", err)
 		}
 		return nil
 	}

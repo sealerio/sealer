@@ -32,6 +32,10 @@ import (
 	"path/filepath"
 )
 
+const (
+	RegistryDirName = "registry"
+)
+
 type scpDistributor struct {
 	infraDriver infradriver.InfraDriver
 	imageEngine imageengine.Interface
@@ -120,7 +124,7 @@ func (s *scpDistributor) filterRootfs(mountDir string) ([]string, error) {
 
 	for _, f := range files {
 		//skip registry directory
-		if f.IsDir() && f.Name() == "registry" {
+		if f.IsDir() && f.Name() == RegistryDirName {
 			continue
 		}
 		AllMountFiles = append(AllMountFiles, filepath.Join(mountDir, f.Name()))
