@@ -14,47 +14,48 @@
 
 package image
 
-import (
-	"github.com/sealerio/sealer/pkg/image/store"
-	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sealerio/sealer/utils/os/fs"
-)
-
-func NewImageService(driver infradriver.InfraDriver) (Service, error) {
-	imageStore, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, err
-	}
-
-	return DefaultImageService{
-		imageStore:  imageStore,
-		infraDriver: driver,
-	}, nil
-}
-
-func NewImageMetadataService() (MetadataService, error) {
-	imageStore, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, err
-	}
-	return DefaultImageMetadataService{
-		imageStore: imageStore,
-	}, nil
-}
-
-func NewImageFileService() (FileService, error) {
-	layerStore, err := store.NewDefaultLayerStore()
-	if err != nil {
-		return nil, err
-	}
-
-	imageStore, err := store.NewDefaultImageStore()
-	if err != nil {
-		return nil, err
-	}
-	return DefaultImageFileService{
-		layerStore: layerStore,
-		imageStore: imageStore,
-		fs:         fs.NewFilesystem(),
-	}, nil
-}
+//
+//import (
+//	"github.com/sealerio/sealer/pkg/image/store"
+//	"github.com/sealerio/sealer/pkg/infradriver"
+//	"github.com/sealerio/sealer/utils/os/fs"
+//)
+//
+//func NewImageService(driver infradriver.InfraDriver) (Service, error) {
+//	imageStore, err := store.NewDefaultImageStore()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return DefaultImageService{
+//		imageStore:  imageStore,
+//		infraDriver: driver,
+//	}, nil
+//}
+//
+//func NewImageMetadataService() (MetadataService, error) {
+//	imageStore, err := store.NewDefaultImageStore()
+//	if err != nil {
+//		return nil, err
+//	}
+//	return DefaultImageMetadataService{
+//		imageStore: imageStore,
+//	}, nil
+//}
+//
+//func NewImageFileService() (FileService, error) {
+//	layerStore, err := store.NewDefaultLayerStore()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	imageStore, err := store.NewDefaultImageStore()
+//	if err != nil {
+//		return nil, err
+//	}
+//	return DefaultImageFileService{
+//		layerStore: layerStore,
+//		imageStore: imageStore,
+//		fs:         fs.NewFilesystem(),
+//	}, nil
+//}

@@ -16,6 +16,9 @@ package kubernetes
 
 import (
 	"fmt"
+	"net"
+	"path/filepath"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -24,8 +27,6 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	"github.com/sealerio/sealer/utils"
 	utilsnet "github.com/sealerio/sealer/utils/net"
-	"net"
-	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 )

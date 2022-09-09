@@ -169,7 +169,6 @@ require (
 	github.com/opencontainers/selinux v1.10.1 // indirect
 	github.com/openshift/imagebuilder v1.2.2 // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f // indirect
-	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/proglottis/gpgme v0.1.1 // indirect

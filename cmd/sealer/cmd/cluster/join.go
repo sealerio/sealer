@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package cluster
 
 import (
 	"github.com/sealerio/sealer/apply"
@@ -29,87 +29,84 @@ import (
 
 var clusterName string
 var joinArgs *apply.Args
-
 var newMasters, newWorkers []net.IP
 
-var joinCmd = &cobra.Command{
-	Use:   "join",
-	Short: "join new master or worker node to specified cluster",
-	// TODO: add long description.
-	Long: "",
-	Args: cobra.NoArgs,
-	Example: `
+var exampleForJoinCmd = `
 join default cluster:
 	sealer join --masters x.x.x.x --nodes x.x.x.x
     sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
-`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var cf clusterfile.Interface
-		if clusterFile != "" {
-			var err error
-			cf, err = clusterfile.NewClusterFile(clusterFile)
+`
+
+func NewJoinCmd() *cobra.Command {
+	joinCmd := &cobra.Command{
+		Use:   "join",
+		Short: "join new master or worker node to specified cluster",
+		// TODO: add long description.
+		Long:    "",
+		Args:    cobra.NoArgs,
+		Example: exampleForJoinCmd,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var cf clusterfile.Interface
+			if clusterFile != "" {
+				var err error
+				cf, err = clusterfile.NewClusterFile(clusterFile)
+				if err != nil {
+					return err
+				}
+			}
+
+			cluster := cf.GetCluster()
+			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
 			}
-		}
 
-		cluster := cf.GetCluster()
-		infraDriver, err := infradriver.NewInfraDriver(&cluster)
-		if err != nil {
+			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+
+			distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver)
+			if err != nil {
+				return err
+			}
+
+			var (
+				clusterImageName = cluster.Spec.Image
+				hosts            = append(newMasters, newWorkers...)
+			)
+
+			// distribute rootfs
+			if err = distributor.Distribute(clusterImageName, hosts); err != nil {
+				return err
+			}
+
+			runtimeConfig := new(clusterruntime.RuntimeConfig)
+			if cf.GetPlugins() != nil {
+				runtimeConfig.Plugins = cf.GetPlugins()
+			}
+
+			if cf.GetKubeadmConfig() != nil {
+				runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+			}
+
+			installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
+
+			_, _, err = installer.ScaleUp(newMasters, newWorkers)
+
 			return err
-		}
+		},
+	}
 
-		imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
-		if err != nil {
-			return err
-		}
-
-		distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver)
-		if err != nil {
-			return err
-		}
-
-		var (
-			clusterImageName = cluster.Spec.Image
-			hosts            = append(newMasters, newWorkers...)
-		)
-
-		// distribute rootfs
-		if err = distributor.Distribute(clusterImageName, hosts); err != nil {
-			return err
-		}
-
-		runtimeConfig := new(clusterruntime.RuntimeConfig)
-		if cf.GetPlugins() != nil {
-			runtimeConfig.Plugins = cf.GetPlugins()
-		}
-
-		if cf.GetKubeadmConfig() != nil {
-			runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-		}
-
-		installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
-
-		_, _, err = installer.ScaleUp(newMasters, newWorkers)
-
-		return err
-	},
-}
-
-func init() {
 	joinArgs = &apply.Args{}
-	rootCmd.AddCommand(joinCmd)
-
 	joinCmd.Flags().StringVarP(&joinArgs.User, "user", "u", "root", "set baremetal server username")
 	joinCmd.Flags().StringVarP(&joinArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	joinCmd.Flags().Uint16Var(&joinArgs.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	joinCmd.Flags().StringVar(&joinArgs.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
 	joinCmd.Flags().StringVar(&joinArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	joinCmd.Flags().StringSliceVarP(&joinArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-
 	joinCmd.Flags().IPSliceVarP(&newMasters, "masters", "m", nil, "set Count or IPList to masters")
 	joinCmd.Flags().IPSliceVarP(&newWorkers, "nodes", "n", nil, "set Count or IPList to nodes")
-	joinCmd.Flags().IPSliceVar(&newWorkers, "workers", nil, "set Count or IPList to nodes")
-
 	joinCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "specify the name of cluster")
+	return joinCmd
 }

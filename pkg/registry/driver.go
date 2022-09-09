@@ -15,8 +15,9 @@
 package registry
 
 import (
-	"github.com/sealerio/sealer/pkg/infradriver"
 	"net"
+
+	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
 type Info struct {

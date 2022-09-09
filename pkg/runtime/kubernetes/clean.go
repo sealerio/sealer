@@ -17,10 +17,11 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"github.com/sealerio/sealer/pkg/ipvs"
 	"net"
 	"path"
 	"strings"
+
+	"github.com/sealerio/sealer/pkg/ipvs"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"

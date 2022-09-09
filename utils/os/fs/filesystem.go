@@ -59,7 +59,7 @@ func (f filesystem) Rename(oldPath, newPath string) error {
 
 	// create dir if filepath.Dir(newPath) not exist
 	_, err = f.Stat(filepath.Dir(newPath))
-	if err != nil{
+	if err != nil {
 		err = f.MkdirAll(filepath.Dir(newPath))
 		if err != nil {
 			return err

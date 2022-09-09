@@ -15,8 +15,9 @@
 package infradriver
 
 import (
-	v1 "github.com/sealerio/sealer/types/api/v1"
 	"net"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 // InfraDriver treat the entire cluster as an operating system kernel,
