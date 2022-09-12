@@ -18,18 +18,15 @@ import (
 	"fmt"
 	"net"
 
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
-
-	"github.com/sealerio/sealer/pkg/auth"
-	"github.com/sealerio/sealer/pkg/imageengine"
-
 	"github.com/sealerio/sealer/apply/processor"
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
 	osi "github.com/sealerio/sealer/utils/os"
@@ -237,7 +234,7 @@ func (applier *Applier) Upgrade(upgradeImgName string) error {
 }
 
 func (applier *Applier) upgrade() error {
-	runtimeInterface, err := kubernetes.NewDefaultRuntime(applier.ClusterDesired, applier.ClusterFile.GetKubeadmConfig())
+	runtimeInterface, err := processor.RuntimeChoose(platform.DefaultMountClusterImageDir(applier.ClusterDesired.Name), applier.ClusterDesired, applier.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime: %v", err)
 	}

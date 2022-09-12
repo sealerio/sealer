@@ -17,20 +17,18 @@ package processor
 import (
 	"fmt"
 
-	common2 "github.com/sealerio/sealer/pkg/define/options"
-
-	"github.com/sealerio/sealer/pkg/imageengine"
-	"github.com/sealerio/sealer/pkg/registry"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	common2 "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/plugin"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
+	"github.com/sealerio/sealer/pkg/registry"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
+	"github.com/sealerio/sealer/utils/platform"
 )
 
 type DeleteProcessor struct {
@@ -40,7 +38,7 @@ type DeleteProcessor struct {
 }
 
 func (d *DeleteProcessor) Reset(cluster *v2.Cluster) error {
-	runTime, err := kubernetes.NewDefaultRuntime(cluster, d.ClusterFile.GetKubeadmConfig())
+	runTime, err := RuntimeChoose(platform.DefaultMountClusterImageDir(cluster.Name), cluster, d.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime: %v", err)
 	}

@@ -18,10 +18,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sealerio/sealer/utils/platform"
-
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/config"
@@ -29,8 +25,9 @@ import (
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/sealerio/sealer/pkg/plugin"
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	platform "github.com/sealerio/sealer/utils/platform"
 )
 
 type ScaleProcessor struct {
@@ -74,7 +71,7 @@ func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 }
 
 func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
-	runTime, err := kubernetes.NewDefaultRuntime(cluster, s.KubeadmConfig)
+	runTime, err := RuntimeChoose(platform.DefaultMountClusterImageDir(cluster.Name), cluster, s.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init default runtime: %v", err)
 	}
