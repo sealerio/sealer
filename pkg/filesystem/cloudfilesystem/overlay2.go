@@ -27,6 +27,8 @@ import (
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -35,14 +37,17 @@ const (
 )
 
 type overlayFileSystem struct {
+	ApplyMode string
 }
 
 func (o *overlayFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error {
+	logrus.Debugf("start to mount root fs with overlay file system")
 	clusterRootfsDir := common.DefaultTheClusterRootfsDir(cluster.Name)
 	//scp roofs to all Masters and Nodes,then do init.sh
-	if err := mountRootfs(hosts, clusterRootfsDir, cluster, initFlag); err != nil {
+	if err := mountRootfs(hosts, clusterRootfsDir, cluster, initFlag, o.ApplyMode); err != nil {
 		return fmt.Errorf("mount rootfs failed %v", err)
 	}
+	logrus.Debugf("success to mount rootfs")
 	return nil
 }
 
@@ -54,7 +59,7 @@ func (o *overlayFileSystem) UnMountRootfs(cluster *v2.Cluster, hosts []string) e
 	return nil
 }
 
-func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool) error {
+func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag bool, applyMode string) error {
 	clusterPlatform, err := ssh.GetClusterPlatform(cluster)
 	if err != nil {
 		return err
@@ -79,6 +84,9 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 				mountEntry.mountDirs[src] = true
 			}
 			mountEntry.Unlock()
+			if applyMode == common.ApplyModeLoadImage {
+				return nil
+			}
 			sshClient, err := ssh.GetHostSSHClient(ip, cluster, false)
 			if err != nil {
 				return fmt.Errorf("get host ssh client failed %v", err)
@@ -100,10 +108,15 @@ func mountRootfs(ipList []string, target string, cluster *v2.Cluster, initFlag b
 		return err
 	}
 	// if config.ip is not in mountRootfs ipList, mean copy registry dir is not required, like scale up node
-	if strUtils.NotIn(config.IP, ipList) {
+	if applyMode != common.ApplyModeLoadImage && strUtils.NotIn(config.IP, ipList) {
 		return nil
 	}
-	return copyRegistry(config.IP, cluster, mountEntry.mountDirs, target)
+	logrus.Debugf("start to copy registry")
+	if err := copyRegistry(config.IP, cluster, mountEntry.mountDirs, target); err != nil {
+		return err
+	}
+	logrus.Debugf("success to copy registry")
+	return nil
 }
 
 func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
@@ -133,6 +146,8 @@ func unmountRootfs(ipList []string, cluster *v2.Cluster) error {
 	return eg.Wait()
 }
 
-func NewOverlayFileSystem() (Interface, error) {
-	return &overlayFileSystem{}, nil
+func NewOverlayFileSystem(applyMode string) (Interface, error) {
+	return &overlayFileSystem{
+		ApplyMode: applyMode,
+	}, nil
 }

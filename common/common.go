@@ -27,6 +27,11 @@ const (
 )
 
 const (
+	ApplyModeApply     = "apply"
+	ApplyModeLoadImage = "loadImage"
+)
+
+const (
 	FROMCOMMAND        = "FROM"
 	COPYCOMMAND        = "COPY"
 	RUNCOMMAND         = "RUN"

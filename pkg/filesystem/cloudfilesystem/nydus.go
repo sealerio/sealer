@@ -40,6 +40,7 @@ const (
 )
 
 type nydusFileSystem struct {
+	ApplyMode string
 }
 
 func (n *nydusFileSystem) MountRootfs(cluster *v2.Cluster, hosts []string, initFlag bool) error {
@@ -166,6 +167,8 @@ func mountNydusRootfs(ipList []string, target string, cluster *v2.Cluster, initF
 	return nil
 }
 
-func NewNydusFileSystem() (Interface, error) {
-	return &nydusFileSystem{}, nil
+func NewNydusFileSystem(applyMode string) (Interface, error) {
+	return &nydusFileSystem{
+		ApplyMode: applyMode,
+	}, nil
 }

@@ -21,9 +21,11 @@ import (
 	"github.com/sealerio/sealer/apply/applydriver"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sirupsen/logrus"
 )
 
 var clusterFile string
+var applyMode string
 
 // applyCmd represents the apply command
 var applyCmd = &cobra.Command{
@@ -35,7 +37,8 @@ will apply the diff change of current Clusterfile and the original one.`,
 	Example: `sealer apply -f Clusterfile`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		applier, err := apply.NewApplierFromFile(clusterFile, common.ApplySubCmd)
+		logrus.Infof("start to apply with mode(%s)", applyMode)
+		applier, err := apply.NewApplierFromFileWithMode(clusterFile, common.ApplySubCmd, applyMode)
 		if err != nil {
 			return err
 		}
@@ -49,4 +52,5 @@ func init() {
 	rootCmd.AddCommand(applyCmd)
 	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "Clusterfile path to apply a Kubernetes cluster")
 	applyCmd.Flags().BoolVar(&runtime.ForceDelete, "force", false, "force to delete the specified cluster if set true")
+	applyCmd.Flags().StringVarP(&applyMode, "applyMode", "m", common.ApplyModeApply, "the run mode")
 }

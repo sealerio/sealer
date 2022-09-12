@@ -17,6 +17,7 @@ package filesystem
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/filesystem/cloudfilesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
 	"github.com/sealerio/sealer/pkg/image/store"
@@ -34,14 +35,19 @@ func NewClusterImageMounter() (clusterimage.Interface, error) {
 
 // NewFilesystem :according to the Metadata file content to determine what kind of Filesystem will be load.
 func NewFilesystem(rootfs string) (cloudfilesystem.Interface, error) {
+	return NewFilesystemWithApplyMode(rootfs, common.ApplyModeApply)
+}
+
+// NewFilesystem :according to the Metadata file content to determine what kind of Filesystem will be load.
+func NewFilesystemWithApplyMode(rootfs, applyMode string) (cloudfilesystem.Interface, error) {
 	md, err := runtime.LoadMetadata(rootfs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load Metadata file to determine the filesystem type %v", err)
 	}
 
 	if md == nil || !md.NydusFlag {
-		return cloudfilesystem.NewOverlayFileSystem()
+		return cloudfilesystem.NewOverlayFileSystem(applyMode)
 	}
 
-	return cloudfilesystem.NewNydusFileSystem()
+	return cloudfilesystem.NewNydusFileSystem(applyMode)
 }
