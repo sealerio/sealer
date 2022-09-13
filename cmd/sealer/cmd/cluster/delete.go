@@ -70,7 +70,6 @@ func NewDeleteCmd() *cobra.Command {
 			workClusterfile := common.GetClusterWorkClusterfile()
 			if deleteAll {
 				return deleteCluster(workClusterfile)
-
 			}
 			return scaleDownCluster(workClusterfile)
 		},
