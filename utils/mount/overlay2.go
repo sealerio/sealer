@@ -18,10 +18,8 @@
 package mount
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"syscall"
@@ -46,26 +44,17 @@ func NewMountDriver() Interface {
 	return &Default{}
 }
 
-func supportsOverlay() bool {
-	if err := exec.Command("modprobe", "overlay").Run(); err != nil {
-		return false
-	}
-	f, err := os.Open("/proc/filesystems")
+func supportsOverlay() (flag bool) {
+	content, err := os.ReadFile("/proc/filesystems")
 	if err != nil {
 		return false
 	}
 	defer func() {
-		if err := f.Close(); err != nil {
-			logrus.Errorf("failed to close file: %v", err)
+		if !flag {
+			logrus.Warn("The current environment does not support overlay")
 		}
 	}()
-	s := bufio.NewScanner(f)
-	for s.Scan() {
-		if s.Text() == "nodev\toverlay" {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(string(content), "overlay")
 }
 
 // Mount using overlay2 to merged layer files
