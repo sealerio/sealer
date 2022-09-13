@@ -20,6 +20,7 @@ package mount
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 	"syscall"
@@ -45,6 +46,7 @@ func NewMountDriver() Interface {
 }
 
 func supportsOverlay() (flag bool) {
+	_ = exec.Command("modprobe", "overlay").Run()
 	content, err := os.ReadFile("/proc/filesystems")
 	if err != nil {
 		return false
