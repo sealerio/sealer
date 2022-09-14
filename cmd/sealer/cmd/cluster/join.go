@@ -15,21 +15,29 @@
 package cluster
 
 import (
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
+	utilsnet "github.com/sealerio/sealer/utils/net"
+
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/cluster-runtime"
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/spf13/cobra"
-	"net"
 )
 
 var clusterName string
 var joinArgs *apply.Args
-var newMasters, newWorkers []net.IP
+var newMasters string
+var newWorkers string
 
 var exampleForJoinCmd = `
 join default cluster:
@@ -46,16 +54,30 @@ func NewJoinCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Example: exampleForJoinCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var cf clusterfile.Interface
-			if clusterFile != "" {
-				var err error
-				cf, err = clusterfile.NewClusterFile(clusterFile)
-				if err != nil {
-					return err
-				}
+			var (
+				cf  clusterfile.Interface
+				err error
+			)
+			if err := utils.ValidateJoinArgs(newMasters, newWorkers); err != nil {
+				return fmt.Errorf("failed to validate input run args: %v", err)
+			}
+			workClusterfile := common.GetClusterWorkClusterfile()
+			clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
+			if err != nil {
+				return err
+			}
+			cf, err = clusterfile.NewClusterFile(clusterFileData)
+			if err != nil {
+				return err
+			}
+			cluster := cf.GetCluster()
+
+			if err := utils.JoinArgsIntoClusterFile(&cluster, joinArgs, newMasters, newWorkers); err != nil {
+				return err
 			}
 
-			cluster := cf.GetCluster()
+			cf.SetCluster(cluster)
+
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
@@ -71,13 +93,16 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
+			newMasterIPList := utilsnet.IPStrsToIPs(strings.Split(newMasters, ","))
+			newNodeIPList := utilsnet.IPStrsToIPs(strings.Split(newWorkers, ","))
+
 			var (
 				clusterImageName = cluster.Spec.Image
-				hosts            = append(newMasters, newWorkers...)
+				newHosts         = append(newMasterIPList, newNodeIPList...)
 			)
 
 			// distribute rootfs
-			if err = distributor.Distribute(clusterImageName, hosts); err != nil {
+			if err = distributor.Distribute(clusterImageName, newHosts); err != nil {
 				return err
 			}
 
@@ -92,7 +117,11 @@ func NewJoinCmd() *cobra.Command {
 
 			installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
 
-			_, _, err = installer.ScaleUp(newMasters, newWorkers)
+			_, _, err = installer.ScaleUp(newMasterIPList, newNodeIPList)
+
+			if err = cf.SaveAll(); err != nil {
+				return err
+			}
 
 			return err
 		},
@@ -105,8 +134,8 @@ func NewJoinCmd() *cobra.Command {
 	joinCmd.Flags().StringVar(&joinArgs.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
 	joinCmd.Flags().StringVar(&joinArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	joinCmd.Flags().StringSliceVarP(&joinArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	joinCmd.Flags().IPSliceVarP(&newMasters, "masters", "m", nil, "set Count or IPList to masters")
-	joinCmd.Flags().IPSliceVarP(&newWorkers, "nodes", "n", nil, "set Count or IPList to nodes")
+	joinCmd.Flags().StringVarP(&newMasters, "masters", "m", "", "set Count or IPList to masters")
+	joinCmd.Flags().StringVarP(&newWorkers, "nodes", "n", "", "set Count or IPList to nodes")
 	joinCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "specify the name of cluster")
 	return joinCmd
 }

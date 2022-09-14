@@ -61,7 +61,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			if err := yaml.Unmarshal(ext.Raw, &cluster); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
-			clusterfile.cluster = cluster
+			clusterfile.cluster = &cluster
 
 		case common.Config:
 			var cfg v1.Config

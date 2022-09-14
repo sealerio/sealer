@@ -15,9 +15,17 @@
 package cluster
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	"sigs.k8s.io/yaml"
+
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/cluster-runtime"
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
@@ -26,8 +34,6 @@ import (
 	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
 )
 
 var runArgs *apply.Args
@@ -69,10 +75,33 @@ func NewRunCmd() *cobra.Command {
 			//}
 
 			//todo merge args from commandline , write to disk.
-			var cf clusterfile.Interface
+			var (
+				cf              clusterfile.Interface
+				clusterFileData []byte
+				err             error
+			)
 			if clusterFile != "" {
-				var err error
-				cf, err = clusterfile.NewClusterFile(clusterFile)
+				clusterFileData, err = ioutil.ReadFile(filepath.Clean(clusterFile))
+				if err != nil {
+					return err
+				}
+				cf, err = clusterfile.NewClusterFile(clusterFileData)
+				if err != nil {
+					return err
+				}
+			} else {
+				if err := utils.ValidateRunArgs(runArgs); err != nil {
+					return fmt.Errorf("failed to validate input run args: %v", err)
+				}
+				cluster, err := utils.ConstructClusterFromArg(args[0], runArgs)
+				if err != nil {
+					return err
+				}
+				clusterData, err := yaml.Marshal(cluster)
+				if err != nil {
+					return err
+				}
+				cf, err = clusterfile.NewClusterFile(clusterData)
 				if err != nil {
 					return err
 				}
@@ -117,6 +146,10 @@ func NewRunCmd() *cobra.Command {
 
 			_, _, err = installer.Install()
 			if err != nil {
+				return err
+			}
+
+			if err = cf.SaveAll(); err != nil {
 				return err
 			}
 
