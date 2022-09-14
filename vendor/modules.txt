@@ -99,6 +99,9 @@ github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
 github.com/blang/semver
+# github.com/bramvdbogaerde/go-scp v1.2.0
+## explicit; go 1.13
+github.com/bramvdbogaerde/go-scp
 # github.com/cavaliergopher/grab/v3 v3.0.1
 ## explicit; go 1.14
 github.com/cavaliergopher/grab/v3

@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.985
+	github.com/bramvdbogaerde/go-scp v1.2.0
 	github.com/cavaliergopher/grab/v3 v3.0.1
 	github.com/containers/buildah v1.25.0
 	github.com/containers/common v0.47.5
