@@ -41,8 +41,8 @@ var (
 	deleteArgs        *apply.Args
 	deleteClusterFile string
 	deleteClusterName string
-	mastersToDelete   []net.IP
-	workersToDelete   []net.IP
+	mastersToDelete   string
+	workersToDelete   string
 	deleteAll         bool
 )
 
@@ -77,8 +77,8 @@ func NewDeleteCmd() *cobra.Command {
 	}
 
 	deleteArgs = &apply.Args{}
-	deleteCmd.Flags().IPSliceVarP(&mastersToDelete, "masters", "m", nil, "reduce Count or IPList to masters")
-	deleteCmd.Flags().IPSliceVarP(&workersToDelete, "nodes", "n", nil, "reduce Count or IPList to nodes")
+	deleteCmd.Flags().StringVarP(&mastersToDelete, "masters", "m", "", "reduce Count or IPList to masters")
+	deleteCmd.Flags().StringVarP(&workersToDelete, "nodes", "n", "", "reduce Count or IPList to nodes")
 	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
 	deleteCmd.Flags().StringVarP(&deleteClusterName, "cluster", "c", "", "delete a kubernetes cluster with cluster name")
 	deleteCmd.Flags().StringSliceVarP(&deleteArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
@@ -176,16 +176,7 @@ func scaleDownCluster(workClusterfile string) error {
 	}
 	cluster := cf.GetCluster()
 
-	masterList := utilsnet.IPsToIPStrs(mastersToDelete)
-	workerList := utilsnet.IPsToIPStrs(workersToDelete)
-	deleteMasters := strings.Join(masterList, ",")
-	deleteNodes := strings.Join(workerList, ",")
-	resultHosts, err := utils.GetHosts(deleteMasters, deleteNodes)
-	if err != nil {
-		return err
-	}
-
-	if err = utils.Delete(&cluster, deleteMasters, deleteNodes); err != nil {
+	if err = utils.DeleteClusterNode(&cluster, deleteArgs, mastersToDelete, workersToDelete); err != nil {
 		return err
 	}
 
@@ -196,15 +187,20 @@ func scaleDownCluster(workClusterfile string) error {
 		return err
 	}
 
-	_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
+	masters := strings.Split(newMasters, ",")
+	masterIpList := utilsnet.IPStrsToIPs(masters)
+	nodes := strings.Split(newMasters, ",")
+	nodeIpList := utilsnet.IPStrsToIPs(nodes)
+
+	_, _, err = installer.ScaleDown(masterIpList, nodeIpList)
 	if err != nil {
 		return err
 	}
 
-	for _, host := range resultHosts {
-		if err := distributor.Restore(infraDriver.GetClusterRootfs(), host.IPS); err != nil {
-			return err
-		}
+	ips := append(masterIpList, nodeIpList...)
+
+	if err := distributor.Restore(infraDriver.GetClusterRootfs(), ips); err != nil {
+		return err
 	}
 
 	if err := cf.SaveAll(); err != nil {
