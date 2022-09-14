@@ -21,11 +21,9 @@ import (
 
 	v1 "github.com/sealerio/sealer/types/api/v1"
 
-	utilsnet "github.com/sealerio/sealer/utils/net"
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 )
 
 const (
@@ -36,33 +34,38 @@ const (
 )
 
 func GetIpsByOnField(on string, context Context, phase Phase) (ipList []net.IP, err error) {
-	on = strings.TrimSpace(on)
-	if strings.Contains(on, EqualSymbol) {
-		if (phase != PhasePostInstall && phase != PhasePostJoin) && phase != PhasePreClean {
-			logrus.Warnf("Current phase is %s. When nodes is specified with a label, the plugin action must be PostInstall or PostJoin, ", phase)
-			return nil, nil
+	splits := strings.Split(on, SplitSymbol)
+	for _, split := range splits {
+		var ips []net.IP
+		split = strings.TrimSpace(split)
+		switch {
+		case strings.Contains(split, EqualSymbol):
+			if (phase != PhasePostInstall && phase != PhasePostJoin) && phase != PhasePreClean {
+				return nil, fmt.Errorf("current phase is %s. When nodes is specified with a label, the plugin action must be PostInstall or PostJoin. ", phase)
+			}
+			client, err := k8s.Newk8sClient()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get k8s client: %v", err)
+			}
+			ips, err = client.ListNodeIPByLabel(strings.TrimSpace(split))
+			if err != nil {
+				return nil, err
+			}
+		case split == common.MASTER || split == common.NODE:
+			ips = context.Cluster.GetIPSByRole(split)
+		case split == common.MASTER0:
+			ips = context.Cluster.GetIPSByRole(common.MASTER)
+			if len(ips) < 1 {
+				return nil, fmt.Errorf("invalid on field: [%s]", on)
+			}
+			ips = ips[:1]
+		default:
+			ips = utilsnet.DisassembleIPList(split)
 		}
-		client, err := k8s.Newk8sClient()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get k8s client: %v", err)
+		if len(ips) == 0 {
+			return nil, fmt.Errorf("node not found by on field [%s]", on)
 		}
-		ipList, err = client.ListNodeIPByLabel(strings.TrimSpace(on))
-		if err != nil {
-			return nil, err
-		}
-	} else if on == common.MASTER || on == common.NODE {
-		ipList = context.Cluster.GetIPSByRole(on)
-	} else if on == common.MASTER0 {
-		ipList = context.Cluster.GetIPSByRole(common.MASTER)
-		if len(ipList) < 1 {
-			return nil, fmt.Errorf("invalid on filed: [%s]", on)
-		}
-		ipList = ipList[:1]
-	} else {
-		ipList = utilsnet.DisassembleIPList(on)
-	}
-	if len(ipList) == 0 {
-		logrus.Debugf("node not found by on field [%s]", on)
+		ipList = append(ipList, ips...)
 	}
 	return ipList, nil
 }
