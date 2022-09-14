@@ -16,14 +16,8 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
-	"strings"
-
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
-	utilsnet "github.com/sealerio/sealer/utils/net"
-
-	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -31,11 +25,15 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/spf13/cobra"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
 )
 
 var clusterName string
-var joinArgs *apply.Args
+var joinArgs *types.Args
 var newMasters string
 var newWorkers string
 
@@ -72,10 +70,9 @@ func NewJoinCmd() *cobra.Command {
 			}
 			cluster := cf.GetCluster()
 
-			if err := utils.JoinArgsIntoClusterFile(&cluster, joinArgs, newMasters, newWorkers); err != nil {
+			if err = utils.JoinArgsIntoClusterFile(&cluster, joinArgs, newMasters, newWorkers); err != nil {
 				return err
 			}
-
 			cf.SetCluster(cluster)
 
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
@@ -116,7 +113,6 @@ func NewJoinCmd() *cobra.Command {
 			}
 
 			installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
-
 			_, _, err = installer.ScaleUp(newMasterIPList, newNodeIPList)
 
 			if err = cf.SaveAll(); err != nil {
@@ -127,7 +123,7 @@ func NewJoinCmd() *cobra.Command {
 		},
 	}
 
-	joinArgs = &apply.Args{}
+	joinArgs = &types.Args{}
 	joinCmd.Flags().StringVarP(&joinArgs.User, "user", "u", "root", "set baremetal server username")
 	joinCmd.Flags().StringVarP(&joinArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	joinCmd.Flags().Uint16Var(&joinArgs.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")

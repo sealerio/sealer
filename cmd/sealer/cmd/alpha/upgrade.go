@@ -15,7 +15,7 @@
 package alpha
 
 import (
-	"github.com/sealerio/sealer/apply"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -44,15 +44,5 @@ func NewUpgradeCmd() *cobra.Command {
 }
 
 func upgradeAction(cmd *cobra.Command, args []string) error {
-	desiredCluster, err := GetCurrentClusterByName(upgradeClusterName)
-	if err != nil {
-		return err
-	}
-
-	applier, err := apply.NewDefaultApplier(desiredCluster)
-	if err != nil {
-		return err
-	}
-
-	return applier.Upgrade(args[0])
+	return errors.New("upgrade is not implemented yet")
 }

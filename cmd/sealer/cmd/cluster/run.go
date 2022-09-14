@@ -16,13 +16,11 @@ package cluster
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"sigs.k8s.io/yaml"
-
-	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
@@ -34,9 +32,11 @@ import (
 	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
-var runArgs *apply.Args
+var runArgs *types.Args
+var clusterFile string
 
 var exampleForRunCmd = `
 create cluster to your bare metal server, appoint the iplist:
@@ -73,13 +73,12 @@ func NewRunCmd() *cobra.Command {
 			//	}
 			//	runArgs.Masters = ip
 			//}
-
-			//todo merge args from commandline , write to disk.
 			var (
 				cf              clusterfile.Interface
 				clusterFileData []byte
 				err             error
 			)
+
 			if clusterFile != "" {
 				clusterFileData, err = ioutil.ReadFile(filepath.Clean(clusterFile))
 				if err != nil {
@@ -108,7 +107,6 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			cluster := cf.GetCluster()
-
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
@@ -139,7 +137,6 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
-
 			if err != nil {
 				return err
 			}
@@ -152,15 +149,10 @@ func NewRunCmd() *cobra.Command {
 			if err = cf.SaveAll(); err != nil {
 				return err
 			}
-
-			// TODO install APP
-			// todo render app env data
-			// todo dump app config
 			return nil
-
 		},
 	}
-	runArgs = &apply.Args{}
+	runArgs = &types.Args{}
 	runCmd.Flags().StringVarP(&runArgs.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runArgs.Masters, "masters", "m", "", "set count or IPList to masters")
 	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set count or IPList to nodes")
@@ -172,6 +164,8 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringVar(&runArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	runCmd.Flags().StringSliceVar(&runArgs.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
+	runCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "Clusterfile path to run a Kubernetes cluster")
+
 	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
 	})

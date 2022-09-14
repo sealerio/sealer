@@ -16,16 +16,15 @@ package utils
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"net"
 	"strings"
-
-	"github.com/sealerio/sealer/apply"
 
 	netutils "github.com/sealerio/sealer/utils/net"
 )
 
 // ValidateRunArgs validates all the input args from sealer run command.
-func ValidateRunArgs(runArgs *apply.Args) error {
+func ValidateRunArgs(runArgs *types.Args) error {
 	// TODO: add detailed validation steps.
 	var errMsg []string
 

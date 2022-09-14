@@ -16,6 +16,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"net"
 	"strconv"
 	"strings"
@@ -24,13 +25,12 @@ import (
 	netutils "github.com/sealerio/sealer/utils/net"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 
-	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-func ConstructClusterFromArg(imageName string, runArgs *apply.Args) (*v2.Cluster, error) {
+func ConstructClusterFromArg(imageName string, runArgs *types.Args) (*v2.Cluster, error) {
 	resultHosts, err := GetHosts(runArgs.Masters, runArgs.Nodes)
 	if err != nil {
 		return nil, err
@@ -56,11 +56,11 @@ func ConstructClusterFromArg(imageName string, runArgs *apply.Args) (*v2.Cluster
 	return &cluster, nil
 }
 
-func JoinArgsIntoClusterFile(cluster *v2.Cluster, scaleArgs *apply.Args, joinMasters, joinWorkers string) error {
+func JoinArgsIntoClusterFile(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters, joinWorkers string) error {
 	return joinBaremetalNodes(cluster, scaleArgs, joinMasters, joinWorkers)
 }
 
-func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *apply.Args, joinMasters, joinWorkers string) error {
+func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters, joinWorkers string) error {
 	var err error
 	// merge custom Env to the existed cluster
 	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
@@ -159,11 +159,11 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *apply.Args, joinMasters,
 	return nil
 }
 
-func DeleteClusterNode(cluster *v2.Cluster, scaleArgs *apply.Args, deleteMasters, deleteWorkers string) error {
+func DeleteClusterNode(cluster *v2.Cluster, scaleArgs *types.Args, deleteMasters, deleteWorkers string) error {
 	return deleteBaremetalNodes(cluster, scaleArgs, deleteMasters, deleteWorkers)
 }
 
-func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *apply.Args, mastersToDelete, workersToDelete string) error {
+func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *types.Args, mastersToDelete, workersToDelete string) error {
 	var err error
 	// adding custom Env params for delete option here to support executing users clean scripts via env.
 	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)

@@ -12,10 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package driver
+package types
 
-type Interface interface {
-	Apply() error
-	Delete() error
-	Upgrade(imageName string) error
+type Args struct {
+	ClusterName string
+
+	// Masters and Nodes only support:
+	// IP list format: ip1,ip2,ip3
+	// IP range format: x.x.x.x-x.x.x.y
+	Masters string
+	Nodes   string
+
+	User       string
+	Password   string
+	Port       uint16
+	Pk         string
+	PkPassword string
+	PodCidr    string
+	SvcCidr    string
+	Provider   string
+	CustomEnv  []string
+	CMDArgs    []string
 }
