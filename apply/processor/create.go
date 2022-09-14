@@ -17,8 +17,7 @@ package processor
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/utils/net"
-
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/filesystem"
@@ -29,11 +28,13 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 )
 
 type CreateProcessor struct {
+	ApplyMode         string
 	ClusterFile       clusterfile.Interface
 	ImageManager      image.Service
 	cloudImageMounter clusterimage.Interface
@@ -45,6 +46,14 @@ type CreateProcessor struct {
 
 func (c *CreateProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
+	if c.ApplyMode == common.ApplyModeLoadImage {
+		todoList = append(todoList,
+			c.MountImage,
+			c.MountRootfs,
+			c.UnMountImage,
+		)
+		return todoList, nil
+	}
 	todoList = append(todoList,
 		c.MountImage,
 		c.PreProcess,
@@ -113,7 +122,7 @@ func (c *CreateProcessor) MountRootfs(cluster *v2.Cluster) error {
 		hosts = append(hosts, regConfig.IP)
 	}
 
-	fs, err := filesystem.NewFilesystem(platform.DefaultMountClusterImageDir(cluster.Name))
+	fs, err := filesystem.NewFilesystemWithApplyMode(platform.DefaultMountClusterImageDir(cluster.Name), c.ApplyMode)
 	if err != nil {
 		return err
 	}
@@ -155,7 +164,7 @@ func (c *CreateProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *v
 	}
 }
 
-func NewCreateProcessor(clusterFile clusterfile.Interface) (Processor, error) {
+func NewCreateProcessor(clusterFile clusterfile.Interface, applyMode string) (Processor, error) {
 	imgSvc, err := image.NewImageService()
 	if err != nil {
 		return nil, err
@@ -176,5 +185,6 @@ func NewCreateProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 		ImageManager:      imgSvc,
 		cloudImageMounter: mounter,
 		Guest:             gs,
+		ApplyMode:         applyMode,
 	}, nil
 }

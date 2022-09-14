@@ -58,6 +58,10 @@ type Args struct {
 }
 
 func NewApplierFromFile(path, action string) (applydriver.Interface, error) {
+	return NewApplierFromFileWithMode(path, common.ApplyModeApply, common.ApplyModeApply)
+}
+
+func NewApplierFromFileWithMode(path, action, mode string) (applydriver.Interface, error) {
 	if !filepath.IsAbs(path) {
 		pa, err := os.Getwd()
 		if err != nil {
@@ -75,13 +79,17 @@ func NewApplierFromFile(path, action string) (applydriver.Interface, error) {
 		cluster.SetAnnotations(common.ClusterfileName, path)
 	}
 
-	return NewDefaultApplier(&cluster, action, Clusterfile)
+	return NewDefaultApplierWithMode(&cluster, action, mode, Clusterfile)
 }
 
 // NewDefaultApplier news an applier.
 // In NewDefaultApplier, we guarantee that no raw data could be passed in.
 // And all data has to be validated and processed in the pre-process layer.
 func NewDefaultApplier(cluster *v2.Cluster, action string, file clusterfile.Interface) (applydriver.Interface, error) {
+	return NewDefaultApplierWithMode(cluster, action, common.ApplyModeApply, file)
+}
+
+func NewDefaultApplierWithMode(cluster *v2.Cluster, action, mode string, file clusterfile.Interface) (applydriver.Interface, error) {
 	if cluster.Name == "" {
 		return nil, fmt.Errorf("cluster name cannot be empty")
 	}
@@ -112,6 +120,7 @@ func NewDefaultApplier(cluster *v2.Cluster, action string, file clusterfile.Inte
 	}
 
 	return &applydriver.Applier{
+		ApplyMode:           mode,
 		ClusterDesired:      cluster,
 		ClusterFile:         file,
 		ImageManager:        imgSvc,

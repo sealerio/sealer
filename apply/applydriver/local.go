@@ -41,6 +41,7 @@ import (
 
 // Applier cloud builder using cloud provider to build a ClusterImage
 type Applier struct {
+	ApplyMode           string
 	ClusterDesired      *v2.Cluster
 	ClusterCurrent      *v2.Cluster
 	ClusterFile         clusterfile.Interface
@@ -70,6 +71,7 @@ func (c *Applier) Apply(args *Args) (err error) {
 		}
 	}
 	if !osi.IsFileExist(common.DefaultKubeConfigFile()) {
+		logrus.Debugf("start to init cluster")
 		if err = c.initCluster(); err != nil {
 			return err
 		}
@@ -77,11 +79,16 @@ func (c *Applier) Apply(args *Args) (err error) {
 		if args.Action == ActionRun {
 			return fmt.Errorf("sealer run can only be use for init a new cluster, but we find a cluster is already existing")
 		}
+		logrus.Debugf("start to reconcile cluster")
 		if err = c.reconcileCluster(args); err != nil {
 			return err
 		}
 	}
 
+	if c.ApplyMode == common.ApplyModeLoadImage {
+		return nil
+	}
+	logrus.Debugf("start to save desired Clusterfile to disk")
 	return clusterfile.SaveToDisk(c.ClusterDesired, c.ClusterDesired.Name)
 }
 
@@ -140,6 +147,7 @@ func (c *Applier) reconcileCluster(args *Args) error {
 		return err
 	}
 
+	logrus.Debugf("start to mount cluster image")
 	if err := c.mountClusterImage(); err != nil {
 		return err
 	}
@@ -148,6 +156,7 @@ func (c *Applier) reconcileCluster(args *Args) error {
 			logrus.Warnf("failed to umount image %s, %v", c.ClusterDesired.ClusterName, err)
 		}
 	}()
+	logrus.Debugf("success to mount cluster image")
 
 	baseImage, err := c.ImageStore.GetByName(c.ClusterDesired.Spec.Image, platform.GetDefaultPlatform())
 	if err != nil {
@@ -303,7 +312,7 @@ func (c *Applier) installApp() error {
 		}
 	}
 
-	installProcessor, err := processor.NewInstallProcessor(c.ClusterFile)
+	installProcessor, err := processor.NewInstallProcessor(c.ClusterFile, c.ApplyMode)
 	if err != nil {
 		return err
 	}
@@ -317,7 +326,7 @@ func (c *Applier) installApp() error {
 
 func (c *Applier) initCluster() error {
 	logrus.Infof("Start to create a new cluster: master %s, worker %s", c.ClusterDesired.GetMasterIPList(), c.ClusterDesired.GetNodeIPList())
-	createProcessor, err := processor.NewCreateProcessor(c.ClusterFile)
+	createProcessor, err := processor.NewCreateProcessor(c.ClusterFile, c.ApplyMode)
 	if err != nil {
 		return err
 	}

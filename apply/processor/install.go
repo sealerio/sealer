@@ -15,6 +15,7 @@
 package processor
 
 import (
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/filesystem"
@@ -22,6 +23,7 @@ import (
 	"github.com/sealerio/sealer/pkg/plugin"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sirupsen/logrus"
 )
 
 type InstallProcessor struct {
@@ -29,10 +31,17 @@ type InstallProcessor struct {
 	Guest       guest.Interface
 	Config      config.Interface
 	Plugins     plugin.Plugins
+	ApplyMode   string
 }
 
 func (i *InstallProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error) {
 	var todoList []func(cluster *v2.Cluster) error
+	if i.ApplyMode == common.ApplyModeLoadImage {
+		todoList = append(todoList,
+			i.MountRootfs,
+		)
+		return todoList, nil
+	}
 	todoList = append(todoList,
 		i.Process,
 		i.RunConfig,
@@ -57,10 +66,11 @@ func (i *InstallProcessor) RunConfig(cluster *v2.Cluster) error {
 func (i *InstallProcessor) MountRootfs(cluster *v2.Cluster) error {
 	hosts := append(cluster.GetMasterIPList(), cluster.GetNodeIPList()...)
 	//initFlag : no need to do init cmd like installing docker service and so on.
-	fs, err := filesystem.NewFilesystem(platform.DefaultMountClusterImageDir(cluster.Name))
+	fs, err := filesystem.NewFilesystemWithApplyMode(platform.DefaultMountClusterImageDir(cluster.Name), i.ApplyMode)
 	if err != nil {
 		return err
 	}
+	logrus.Debugf("start to mount root fs")
 	return fs.MountRootfs(cluster, hosts, false)
 }
 
@@ -79,7 +89,7 @@ func (i *InstallProcessor) GetPhasePluginFunc(phase plugin.Phase) func(cluster *
 	}
 }
 
-func NewInstallProcessor(clusterFile clusterfile.Interface) (Processor, error) {
+func NewInstallProcessor(clusterFile clusterfile.Interface, applyMode string) (Processor, error) {
 	gs, err := guest.NewGuestManager()
 	if err != nil {
 		return nil, err
@@ -88,5 +98,6 @@ func NewInstallProcessor(clusterFile clusterfile.Interface) (Processor, error) {
 	return &InstallProcessor{
 		clusterFile: clusterFile,
 		Guest:       gs,
+		ApplyMode:   applyMode,
 	}, nil
 }
