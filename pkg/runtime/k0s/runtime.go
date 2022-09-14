@@ -41,8 +41,6 @@ type Runtime struct {
 	RegConfig *registry.Config
 }
 
-var ForceDelete bool
-
 func (k *Runtime) Init() error {
 	return k.init()
 }
@@ -242,7 +240,7 @@ func (k *Runtime) Command(role string) []string {
 }
 
 func (k *Runtime) confirmDeleteNodes() error {
-	if !ForceDelete {
+	if !runtime.ForceDelete {
 		if pass, err := utils.ConfirmOperation("Are you sure to delete these nodes? "); err != nil {
 			return err
 		} else if !pass {

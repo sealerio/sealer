@@ -189,7 +189,7 @@ func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err = g.ImageMounter.MountImage(cluster); err != nil {
 		return err
 	}
-	runt, err := RuntimeChoose(platform.DefaultMountClusterImageDir(cluster.Name), cluster, nil)
+	runt, err := ChooseRuntime(platform.DefaultMountClusterImageDir(cluster.Name), cluster, nil)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (g *GenerateProcessor) UnmountImage(cluster *v2.Cluster) error {
 }
 
 func (g *GenerateProcessor) ApplyRegistry(cluster *v2.Cluster) error {
-	runt, err := RuntimeChoose(platform.DefaultMountClusterImageDir(cluster.Name), cluster, nil)
+	runt, err := ChooseRuntime(platform.DefaultMountClusterImageDir(cluster.Name), cluster, nil)
 	if err != nil {
 		return err
 	}

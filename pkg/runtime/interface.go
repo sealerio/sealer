@@ -36,3 +36,5 @@ type Interface interface {
 	// GetClusterMetadata read the rootfs/Metadata file to get some install info for cluster.
 	GetClusterMetadata() (*Metadata, error)
 }
+
+var ForceDelete bool

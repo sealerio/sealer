@@ -71,14 +71,9 @@ func (s *ScaleProcessor) GetPipeLine() ([]func(cluster *v2.Cluster) error, error
 }
 
 func (s *ScaleProcessor) PreProcess(cluster *v2.Cluster) error {
-	runTime, err := RuntimeChoose(platform.DefaultMountClusterImageDir(cluster.Name), cluster, s.ClusterFile.GetKubeadmConfig())
-	if err != nil {
-		return fmt.Errorf("failed to init default runtime: %v", err)
-	}
-	s.Runtime = runTime
 	s.Config = config.NewConfiguration(platform.DefaultMountClusterImageDir(cluster.Name))
 	if s.IsScaleUp {
-		if err = clusterfile.SaveToDisk(cluster, cluster.Name); err != nil {
+		if err := clusterfile.SaveToDisk(cluster, cluster.Name); err != nil {
 			return err
 		}
 	}
@@ -127,7 +122,8 @@ func (s *ScaleProcessor) Delete(cluster *v2.Cluster) error {
 }
 
 func NewScaleProcessor(kubeadmConfig *kubeadm.KubeadmConfig, clusterFile clusterfile.Interface, masterToJoin, masterToDelete, nodeToJoin, nodeToDelete []net.IP) (Processor, error) {
-	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(clusterFile.GetCluster().Name))
+	cluster := clusterFile.GetCluster()
+	fs, err := filesystem.NewFilesystem(common.DefaultTheClusterRootfsDir(cluster.Name))
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +134,13 @@ func NewScaleProcessor(kubeadmConfig *kubeadm.KubeadmConfig, clusterFile cluster
 		up = true
 	}
 
+	runTime, err := ChooseRuntime(platform.DefaultMountClusterImageDir(cluster.Name), &cluster, clusterFile.GetKubeadmConfig())
+	if err != nil {
+		return nil, fmt.Errorf("failed to init default runtime: %v", err)
+	}
+
 	return &ScaleProcessor{
+		Runtime:         runTime,
 		MastersToDelete: masterToDelete,
 		MastersToJoin:   masterToJoin,
 		NodesToDelete:   nodeToDelete,

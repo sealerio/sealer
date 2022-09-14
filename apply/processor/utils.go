@@ -20,13 +20,17 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sirupsen/logrus"
 )
 
-func RuntimeChoose(rootfs string, cluster *v2.Cluster, config *kubeadm.KubeadmConfig) (runtime.Interface, error) {
+func ChooseRuntime(rootfs string, cluster *v2.Cluster, config *kubeadm.KubeadmConfig) (runtime.Interface, error) {
 	metadata, err := runtime.LoadMetadata(rootfs)
 	if err != nil {
 		return nil, err
 	}
+
+	hintInfo(metadata.ClusterRuntime)
+
 	switch metadata.ClusterRuntime {
 	case runtime.K8s:
 		return kubernetes.NewDefaultRuntime(cluster, config)
@@ -36,4 +40,14 @@ func RuntimeChoose(rootfs string, cluster *v2.Cluster, config *kubeadm.KubeadmCo
 	default:
 		return kubernetes.NewDefaultRuntime(cluster, config)
 	}
+}
+
+// hintInfo will hint end-user which cluster runtime will load and move to using new version ClusterImage.
+func hintInfo(clusterRuntime runtime.ClusterRuntime) {
+	if clusterRuntime != "" {
+		logrus.Infof("using %s as a cluster runtime.", clusterRuntime)
+		return
+	}
+	logrus.Infof("using k8s as a default cluster runtime.")
+	logrus.Infof("the old sealer version is deprecated, using new version of sealer and ClusterImage is encouraged!")
 }

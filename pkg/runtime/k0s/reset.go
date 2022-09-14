@@ -48,12 +48,17 @@ func (k *Runtime) resetNodes(nodes []net.IP) error {
 }
 
 func (k *Runtime) resetMasters(nodes []net.IP) error {
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range nodes {
-		if err := k.resetNode(node); err != nil {
-			return fmt.Errorf("failed to reset master %s: %v", node, err)
-		}
+		node := node
+		eg.Go(func() error {
+			if err := k.resetNode(node); err != nil {
+				return fmt.Errorf("failed to reset master %s: %v", node, err)
+			}
+			return nil
+		})
 	}
-	return nil
+	return eg.Wait()
 }
 
 func (k *Runtime) resetNode(node net.IP) error {

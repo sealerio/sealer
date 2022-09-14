@@ -234,7 +234,7 @@ func (applier *Applier) Upgrade(upgradeImgName string) error {
 }
 
 func (applier *Applier) upgrade() error {
-	runtimeInterface, err := processor.RuntimeChoose(platform.DefaultMountClusterImageDir(applier.ClusterDesired.Name), applier.ClusterDesired, applier.ClusterFile.GetKubeadmConfig())
+	runtimeInterface, err := processor.ChooseRuntime(platform.DefaultMountClusterImageDir(applier.ClusterDesired.Name), applier.ClusterDesired, applier.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime: %v", err)
 	}

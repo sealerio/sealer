@@ -111,7 +111,7 @@ func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 		return err
 	}
 	//TODO split kubeadm config from cluster file.
-	runTime, err := RuntimeChoose(platform.DefaultMountClusterImageDir(cluster.Name), cluster, c.ClusterFile.GetKubeadmConfig())
+	runTime, err := ChooseRuntime(platform.DefaultMountClusterImageDir(cluster.Name), cluster, c.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime: %v", err)
 	}

@@ -15,10 +15,10 @@
 package cluster
 
 import (
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/pkg/runtime"
+
+	"github.com/spf13/cobra"
 )
 
 var clusterFile string
@@ -44,6 +44,6 @@ func NewApplyCmd() *cobra.Command {
 		},
 	}
 	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "Clusterfile path to apply a Kubernetes cluster")
-	applyCmd.Flags().BoolVar(&kubernetes.ForceDelete, "force", false, "force to delete the specified cluster if set true")
+	applyCmd.Flags().BoolVar(&runtime.ForceDelete, "force", false, "force to delete the specified cluster if set true")
 	return applyCmd
 }
