@@ -15,6 +15,7 @@
 package ssh
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"os/exec"
@@ -123,28 +124,35 @@ func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
 	if s.User != common.ROOT {
 		cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
 	}
+
+	var stdoutContent, stderrContent bytes.Buffer
+
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
-		b, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
-		if err != nil {
-			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
-			return nil, err
+		localCmd := exec.Command("/bin/sh", "-c", cmd)
+		localCmd.Stdout = &stdoutContent
+		localCmd.Stderr = &stderrContent
+		if err := localCmd.Run(); err != nil {
+			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, stderrContent.String())
+			return nil, fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, stderrContent.String())
 		}
-		return b, err
+		return stdoutContent.Bytes(), nil
 	}
 
 	client, session, err := s.Connect(host)
 	if err != nil {
-		return nil, fmt.Errorf("[ssh][%s] create ssh session failed, %s", host, err)
+		return nil, fmt.Errorf("[ssh][%s] failed to create ssh session: %s", host, err)
 	}
 	defer client.Close()
 	defer session.Close()
-	b, err := session.CombinedOutput(cmd)
-	if err != nil {
-		logrus.Debugf("[ssh][%s]run command failed [%s]", host, cmd)
-		return b, fmt.Errorf("[ssh][%s]run command failed [%s]", host, cmd)
+
+	session.Stdout = &stdoutContent
+	session.Stderr = &stderrContent
+	if err := session.Run(cmd); err != nil {
+		logrus.Debugf("[ssh][%s]failed to run command[%s]: %s", host, cmd, stderrContent.String())
+		return stdoutContent.Bytes(), fmt.Errorf("[ssh][%s]failed to run command[%s]: %s", host, cmd, stderrContent.String())
 	}
 
-	return b, nil
+	return stdoutContent.Bytes(), nil
 }
 
 //CmdToString is in host exec cmd and replace to spilt str
@@ -152,7 +160,7 @@ func (s *SSH) CmdToString(host net.IP, cmd, split string) (string, error) {
 	data, err := s.Cmd(host, cmd)
 	str := string(data)
 	if err != nil {
-		return str, fmt.Errorf("failed to exec command(%s) on host(%s): %v", cmd, host, err)
+		return str, err
 	}
 	if data != nil {
 		str = strings.ReplaceAll(str, "\r\n", split)
