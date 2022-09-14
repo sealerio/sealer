@@ -19,9 +19,11 @@ import (
 	"io/ioutil"
 	"net"
 	"path/filepath"
+	"strings"
+
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 
 	"github.com/sealerio/sealer/apply"
-	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -29,6 +31,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/spf13/cobra"
 )
 
@@ -55,9 +58,6 @@ func NewJoinCmd() *cobra.Command {
 				cf  clusterfile.Interface
 				err error
 			)
-			if err := utils.ValidateJoinArgs(joinArgs); err != nil {
-				return fmt.Errorf("failed to validate input run args: %v", err)
-			}
 			workClusterfile := common.GetClusterWorkClusterfile()
 			clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
 			if err != nil {
@@ -67,12 +67,20 @@ func NewJoinCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resultHosts, err := utils.GetHosts(joinArgs.Masters, joinArgs.Nodes)
-			if err != nil {
+			cluster := cf.GetCluster()
+			masterList := utilsnet.IPsToIPStrs(newMasters)
+			workerList := utilsnet.IPsToIPStrs(newWorkers)
+			joinMasters := strings.Join(masterList, ",")
+			joinNodes := strings.Join(workerList, ",")
+
+			if err := utils.ValidateJoinArgs(joinMasters, joinNodes); err != nil {
+				return fmt.Errorf("failed to validate input run args: %v", err)
+			}
+
+			if err := utils.Join(&cluster, joinArgs, joinMasters, joinNodes); err != nil {
 				return err
 			}
-			cluster := cf.GetCluster()
-			cluster.Spec.Hosts = append(cluster.Spec.Hosts, resultHosts...)
+
 			cf.SetCluster(cluster)
 
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)

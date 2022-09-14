@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"net"
 	"path/filepath"
+	"strings"
 
 	"github.com/sealerio/sealer/apply"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
@@ -122,7 +123,6 @@ func getRuntimeInterfaces(cf clusterfile.Interface) (imagedistributor.Interface,
 }
 
 func deleteCluster(workClusterfile string) error {
-	var err error
 	clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
 	if err != nil {
 		return err
@@ -141,18 +141,23 @@ func deleteCluster(workClusterfile string) error {
 	// exec clean.sh
 	ips := infraDriver.GetHostIPList()
 	clusterRootfsDir := infraDriver.GetClusterRootfs()
-	cleanFile := fmt.Sprintf(common.DefaultClusterClearBashFile, clusterRootfsDir)
-	for _, ip := range ips {
-		if err := infraDriver.CmdAsync(ip, cleanFile); err != nil {
-			return fmt.Errorf("failed to exec command(%s) on host(%s): error(%v)", cleanFile, ip, err)
+	cleanFile := fmt.Sprintf(common.DefaultClusterCleanBashFile, clusterRootfsDir)
+	f := func(host net.IP) error {
+		err := infraDriver.CmdAsync(host, cleanFile)
+		if err != nil {
+			return fmt.Errorf("failed to exec command(%s) on host(%s): error(%v)", cleanFile, host, err)
 		}
+		return nil
+	}
+	if err := infraDriver.ConcurrencyExecute(ips, f); err != nil {
+		return err
 	}
 	//delete rootfs file
-	if err := distributor.Restore(infraDriver.GetClusterRootfs(), infraDriver.GetHostIPList()); err != nil {
+	if err := distributor.Restore(clusterRootfsDir, ips); err != nil {
 		return err
 	}
 
-	//todo delete CleanFs
+	//delete CleanFs
 	if err := fs.FS.RemoveAll(common.GetClusterWorkDir(), common.DefaultClusterBaseDir(clusterName),
 		common.DefaultKubeConfigDir()); err != nil {
 		return err
@@ -171,15 +176,17 @@ func scaleDownCluster(workClusterfile string) error {
 	}
 	cluster := cf.GetCluster()
 
-	hosts, err := utils.GetHosts(deleteArgs.Masters, deleteArgs.Nodes)
+	masterList := utilsnet.IPsToIPStrs(mastersToDelete)
+	workerList := utilsnet.IPsToIPStrs(workersToDelete)
+	deleteMasters := strings.Join(masterList, ",")
+	deleteNodes := strings.Join(workerList, ",")
+	resultHosts, err := utils.GetHosts(deleteMasters, deleteNodes)
 	if err != nil {
 		return err
 	}
 
-	for _, host := range cluster.Spec.Hosts {
-		for _, ip := range hosts {
-			host.IPS = utilsnet.RemoveIPs(host.IPS, ip.IPS)
-		}
+	if err = utils.Delete(&cluster, deleteMasters, deleteNodes); err != nil {
+		return err
 	}
 
 	cf.SetCluster(cluster)
@@ -188,16 +195,18 @@ func scaleDownCluster(workClusterfile string) error {
 	if err != nil {
 		return err
 	}
-	for _, host := range hosts {
-		if err := distributor.Restore(infraDriver.GetClusterRootfs(), host.IPS); err != nil {
-			return err
-		}
-	}
 
 	_, _, err = installer.ScaleDown(mastersToDelete, workersToDelete)
 	if err != nil {
 		return err
 	}
+
+	for _, host := range resultHosts {
+		if err := distributor.Restore(infraDriver.GetClusterRootfs(), host.IPS); err != nil {
+			return err
+		}
+	}
+
 	if err := cf.SaveAll(); err != nil {
 		return err
 	}

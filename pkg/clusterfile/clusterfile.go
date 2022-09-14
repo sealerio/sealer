@@ -64,7 +64,7 @@ func (c *ClusterFile) GetKubeadmConfig() *kubeadm_config.KubeadmConfig {
 }
 
 func (c *ClusterFile) SaveAll() error {
-	var configs [][]byte
+	var clusterfileBytes [][]byte
 
 	cluster, err := yaml.Marshal(c.cluster)
 	if err != nil {
@@ -86,15 +86,11 @@ func (c *ClusterFile) SaveAll() error {
 		return err
 	}
 
-	configs = append(configs, cluster, config, plugin, kubeconfig)
+	clusterfileBytes = append(clusterfileBytes, cluster, config, plugin, kubeconfig)
 
 	path := common.GetClusterWorkClusterfile()
 
-	if err := os.NewCommonWriter(path).WriteFile(bytes.Join(configs, []byte("---\n"))); err != nil {
-		return err
-	}
-
-	return nil
+	return os.NewCommonWriter(path).WriteFile(bytes.Join(clusterfileBytes, []byte("---\n")))
 }
 
 func NewClusterFile(b []byte) (Interface, error) {

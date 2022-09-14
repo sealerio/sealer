@@ -93,11 +93,7 @@ func NewRunCmd() *cobra.Command {
 				if err := utils.ValidateRunArgs(runArgs); err != nil {
 					return fmt.Errorf("failed to validate input run args: %v", err)
 				}
-				resultHosts, err := utils.GetHosts(runArgs.Masters, runArgs.Nodes)
-				if err != nil {
-					return err
-				}
-				cluster, err := utils.ConstructClusterFromArg(args[0], runArgs, resultHosts)
+				cluster, err := utils.ConstructClusterFromArg(args[0], runArgs)
 				if err != nil {
 					return err
 				}

@@ -23,7 +23,11 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-func ConstructClusterFromArg(imageName string, runArgs *apply.Args, resultHosts []v2.Host) (*v2.Cluster, error) {
+func ConstructClusterFromArg(imageName string, runArgs *apply.Args) (*v2.Cluster, error) {
+	resultHosts, err := GetHosts(runArgs.Masters, runArgs.Nodes)
+	if err != nil {
+		return nil, err
+	}
 	cluster := v2.Cluster{
 		Spec: v2.ClusterSpec{
 			SSH: v1.SSH{

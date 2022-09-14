@@ -46,7 +46,7 @@ const (
 	DefaultClusterFileName        = "Clusterfile"
 	DefaultSealerDataDir          = "/var/lib/sealer/data"
 	DefaultClusterInitBashFile    = "/var/lib/sealer/data/%s/scripts/init.sh"
-	DefaultClusterClearBashFile   = "/var/lib/sealer/data/%s/rootfs/scripts/clean.sh"
+	DefaultClusterCleanBashFile   = "/var/lib/sealer/data/%s/rootfs/scripts/clean.sh"
 	TarGzSuffix                   = ".tar.gz"
 	YamlSuffix                    = ".yaml"
 	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
