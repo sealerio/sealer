@@ -187,17 +187,15 @@ func scaleDownCluster(workClusterfile string) error {
 		return err
 	}
 
-	masters := strings.Split(newMasters, ",")
-	masterIpList := utilsnet.IPStrsToIPs(masters)
-	nodes := strings.Split(newMasters, ",")
-	nodeIpList := utilsnet.IPStrsToIPs(nodes)
+	deleteMasterIPList := utilsnet.IPStrsToIPs(strings.Split(mastersToDelete, ","))
+	deleteNodeIPList := utilsnet.IPStrsToIPs(strings.Split(workersToDelete, ","))
 
-	_, _, err = installer.ScaleDown(masterIpList, nodeIpList)
+	_, _, err = installer.ScaleDown(deleteMasterIPList, deleteNodeIPList)
 	if err != nil {
 		return err
 	}
 
-	ips := append(masterIpList, nodeIpList...)
+	ips := append(deleteMasterIPList, deleteNodeIPList...)
 
 	if err := distributor.Restore(infraDriver.GetClusterRootfs(), ips); err != nil {
 		return err

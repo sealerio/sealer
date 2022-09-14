@@ -56,11 +56,7 @@ func ConstructClusterFromArg(imageName string, runArgs *apply.Args) (*v2.Cluster
 	return &cluster, nil
 }
 
-func removeDuplicate(ipList []string) []string {
-	return strUtils.RemoveDuplicate(strUtils.NewComparator(ipList, []string{""}).GetSrcSubtraction())
-}
-
-func JoinClusterNode(cluster *v2.Cluster, scaleArgs *apply.Args, joinMasters, joinWorkers string) error {
+func JoinArgsIntoClusterFile(cluster *v2.Cluster, scaleArgs *apply.Args, joinMasters, joinWorkers string) error {
 	return joinBaremetalNodes(cluster, scaleArgs, joinMasters, joinWorkers)
 }
 
@@ -114,7 +110,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *apply.Args, joinMasters,
 	//add joined masters
 	if joinMasters != "" {
 		masterIPs := cluster.GetMasterIPList()
-		addedMasterIPStr := removeDuplicate(strings.Split(joinMasters, ","))
+		addedMasterIPStr := strUtils.RemoveDuplicate(strUtils.NewComparator(strings.Split(joinMasters, ","), []string{""}).GetSrcSubtraction())
 		addedMasterIP := netutils.IPStrsToIPs(addedMasterIPStr)
 
 		for _, ip := range addedMasterIP {
@@ -139,7 +135,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *apply.Args, joinMasters,
 	//add joined nodes
 	if joinWorkers != "" {
 		nodeIPs := cluster.GetNodeIPList()
-		addedNodeIPStrs := removeDuplicate(strings.Split(joinWorkers, ","))
+		addedNodeIPStrs := strUtils.RemoveDuplicate(strUtils.NewComparator(strings.Split(joinWorkers, ","), []string{""}).GetSrcSubtraction())
 		addedNodeIP := netutils.IPStrsToIPs(addedNodeIPStrs)
 
 		for _, ip := range addedNodeIP {

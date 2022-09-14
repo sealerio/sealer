@@ -72,7 +72,7 @@ func NewJoinCmd() *cobra.Command {
 			}
 			cluster := cf.GetCluster()
 
-			if err := utils.JoinClusterNode(&cluster, joinArgs, newMasters, newWorkers); err != nil {
+			if err := utils.JoinArgsIntoClusterFile(&cluster, joinArgs, newMasters, newWorkers); err != nil {
 				return err
 			}
 
@@ -93,18 +93,16 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
-			masters := strings.Split(newMasters, ",")
-			masterIpList := utilsnet.IPStrsToIPs(masters)
-			nodes := strings.Split(newMasters, ",")
-			nodeIpList := utilsnet.IPStrsToIPs(nodes)
+			newMasterIPList := utilsnet.IPStrsToIPs(strings.Split(newMasters, ","))
+			newNodeIPList := utilsnet.IPStrsToIPs(strings.Split(newWorkers, ","))
 
 			var (
 				clusterImageName = cluster.Spec.Image
-				hosts            = append(masterIpList, nodeIpList...)
+				newHosts         = append(newMasterIPList, newNodeIPList...)
 			)
 
 			// distribute rootfs
-			if err = distributor.Distribute(clusterImageName, hosts); err != nil {
+			if err = distributor.Distribute(clusterImageName, newHosts); err != nil {
 				return err
 			}
 
@@ -119,7 +117,7 @@ func NewJoinCmd() *cobra.Command {
 
 			installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
 
-			_, _, err = installer.ScaleUp(masterIpList, nodeIpList)
+			_, _, err = installer.ScaleUp(newMasterIPList, newNodeIPList)
 
 			if err = cf.SaveAll(); err != nil {
 				return err
