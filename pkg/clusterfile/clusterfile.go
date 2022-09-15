@@ -64,29 +64,73 @@ func (c *ClusterFile) GetKubeadmConfig() *kubeadm_config.KubeadmConfig {
 }
 
 func (c *ClusterFile) SaveAll() error {
-	var clusterfileBytes [][]byte
+	var (
+		clusterfileBytes [][]byte
+		config           []byte
+		plugin           []byte
+	)
 
 	cluster, err := yaml.Marshal(c.cluster)
 	if err != nil {
 		return err
 	}
+	clusterfileBytes = append(clusterfileBytes, cluster)
 
-	config, err := yaml.Marshal(c.configs)
-	if err != nil {
-		return err
+	if len(c.configs) != 0 {
+		config, err = yaml.Marshal(c.configs)
+		if err != nil {
+			return err
+		}
+		clusterfileBytes = append(clusterfileBytes, config)
 	}
 
-	plugin, err := yaml.Marshal(c.plugins)
-	if err != nil {
-		return err
+	if len(c.plugins) != 0 {
+		plugin, err = yaml.Marshal(c.plugins)
+		if err != nil {
+			return err
+		}
+		clusterfileBytes = append(clusterfileBytes, plugin)
 	}
 
-	kubeconfig, err := yaml.Marshal(c.kubeadmConfig)
-	if err != nil {
-		return err
+	if c.kubeadmConfig.InitConfiguration.TypeMeta.Kind != "" {
+		initConfiguration, err := yaml.Marshal(c.kubeadmConfig.InitConfiguration)
+		if err != nil {
+			return err
+		}
+		clusterfileBytes = append(clusterfileBytes, initConfiguration)
 	}
 
-	clusterfileBytes = append(clusterfileBytes, cluster, config, plugin, kubeconfig)
+	if c.kubeadmConfig.JoinConfiguration.TypeMeta.Kind != "" {
+		joinConfiguration, err := yaml.Marshal(c.kubeadmConfig.JoinConfiguration)
+		if err != nil {
+			return err
+		}
+		clusterfileBytes = append(clusterfileBytes, joinConfiguration)
+	}
+
+	if c.kubeadmConfig.ClusterConfiguration.TypeMeta.Kind != "" {
+		clusterConfiguration, err := yaml.Marshal(c.kubeadmConfig.ClusterConfiguration)
+		if err != nil {
+			return err
+		}
+		clusterfileBytes = append(clusterfileBytes, clusterConfiguration)
+	}
+
+	if c.kubeadmConfig.KubeletConfiguration.TypeMeta.Kind != "" {
+		kubeletConfiguration, err := yaml.Marshal(c.kubeadmConfig.KubeletConfiguration)
+		if err != nil {
+			return err
+		}
+		clusterfileBytes = append(clusterfileBytes, kubeletConfiguration)
+	}
+
+	if c.kubeadmConfig.KubeProxyConfiguration.TypeMeta.Kind != "" {
+		kubeProxyConfiguration, err := yaml.Marshal(c.kubeadmConfig.KubeProxyConfiguration)
+		if err != nil {
+			return err
+		}
+		clusterfileBytes = append(clusterfileBytes, kubeProxyConfiguration)
+	}
 
 	path := common.GetClusterWorkClusterfile()
 
