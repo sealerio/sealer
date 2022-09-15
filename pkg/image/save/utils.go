@@ -136,10 +136,10 @@ type ManifestList struct {
 }
 
 type ImageManifest struct {
-	Digest    string `json:"digest"`
-	MediaType string `json:"mediaType"`
-	Platform  v1.Platform
-	Size      int
+	Digest    string      `json:"digest"`
+	MediaType string      `json:"mediaType"`
+	Platform  v1.Platform `json:"platform"`
+	Size      int         `json:"size"`
 }
 
 func getImageManifestDigest(payload []byte, plat v1.Platform) (digest.Digest, error) {
