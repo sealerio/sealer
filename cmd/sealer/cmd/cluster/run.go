@@ -16,10 +16,11 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"

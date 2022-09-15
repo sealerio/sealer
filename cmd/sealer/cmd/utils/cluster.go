@@ -16,10 +16,11 @@ package utils
 
 import (
 	"fmt"
-	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 
 	"github.com/sealerio/sealer/utils/hash"
 	netutils "github.com/sealerio/sealer/utils/net"

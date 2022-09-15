@@ -21,8 +21,6 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/exec"
-	v2 "github.com/sealerio/sealer/types/api/v2"
-
 	"github.com/spf13/cobra"
 )
 
@@ -62,7 +60,7 @@ func NewExecCmd() *cobra.Command {
 func execActionFunc(cmd *cobra.Command, args []string) error {
 	var ipList []net.IP
 
-	cluster, err := GetCurrentClusterByName(clusterName)
+	cluster, err := clusterfile.GetClusterFromFile(common.GetClusterWorkClusterfile())
 	if err != nil {
 		return err
 	}
@@ -80,21 +78,4 @@ func execActionFunc(cmd *cobra.Command, args []string) error {
 
 	execCmd := exec.NewExecCmd(cluster, ipList)
 	return execCmd.RunCmd(args[0])
-}
-
-func GetCurrentClusterByName(name string) (*v2.Cluster, error) {
-	var err error
-	if name == "" {
-		name, err = clusterfile.GetDefaultClusterName()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get default cluster name from home dir: %v", err)
-		}
-	}
-
-	cluster, err := clusterfile.GetClusterFromFile(common.GetClusterWorkClusterfile())
-	if err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
 }

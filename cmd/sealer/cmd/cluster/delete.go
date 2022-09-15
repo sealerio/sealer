@@ -16,6 +16,11 @@ package cluster
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net"
+	"path/filepath"
+	"strings"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -28,10 +33,6 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/os/fs"
-	"io/ioutil"
-	"net"
-	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 )

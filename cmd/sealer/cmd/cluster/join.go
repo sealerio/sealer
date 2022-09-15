@@ -16,6 +16,10 @@ package cluster
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -27,9 +31,6 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-	"path/filepath"
-	"strings"
 )
 
 var clusterName string

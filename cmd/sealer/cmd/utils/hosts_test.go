@@ -50,5 +50,4 @@ func Test_getHosts(t *testing.T) {
 			fmt.Println(hosts)
 		})
 	}
-
 }
