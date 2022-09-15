@@ -41,8 +41,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var ForceDelete bool
-
 type Config struct {
 	Vlog      int
 	VIP       string
@@ -142,7 +140,7 @@ func (k *Runtime) DeleteNodes(nodesIPList []net.IP) error {
 }
 
 func (k *Runtime) confirmDeleteNodes() error {
-	if !ForceDelete {
+	if !runtime.ForceDelete {
 		if pass, err := utils.ConfirmOperation("Are you sure to delete these nodes? "); err != nil {
 			return err
 		} else if !pass {

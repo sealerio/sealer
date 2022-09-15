@@ -30,7 +30,6 @@ import (
 	"github.com/sealerio/sealer/pkg/guest"
 	"github.com/sealerio/sealer/pkg/plugin"
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
@@ -111,7 +110,8 @@ func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err = c.cloudImageMounter.MountImage(cluster); err != nil {
 		return err
 	}
-	runTime, err := kubernetes.NewDefaultRuntime(cluster, c.ClusterFile.GetKubeadmConfig())
+	//TODO split kubeadm config from cluster file.
+	runTime, err := ChooseRuntime(platform.DefaultMountClusterImageDir(cluster.Name), cluster, c.ClusterFile.GetKubeadmConfig())
 	if err != nil {
 		return fmt.Errorf("failed to init runtime: %v", err)
 	}

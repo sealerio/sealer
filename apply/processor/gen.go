@@ -19,22 +19,17 @@ package processor
 import (
 	"fmt"
 	"net"
-
-	"github.com/sealerio/sealer/pkg/auth"
-
-	"github.com/sealerio/sealer/pkg/define/options"
-
 	"strconv"
 
-	"github.com/sealerio/sealer/pkg/imageengine"
-
-	"github.com/sealerio/sealer/pkg/registry"
-
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/filesystem"
 	"github.com/sealerio/sealer/pkg/filesystem/clusterimage"
+	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
@@ -194,7 +189,7 @@ func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	if err = g.ImageMounter.MountImage(cluster); err != nil {
 		return err
 	}
-	runt, err := kubernetes.NewDefaultRuntime(cluster, nil)
+	runt, err := ChooseRuntime(platform.DefaultMountClusterImageDir(cluster.Name), cluster, nil)
 	if err != nil {
 		return err
 	}
@@ -207,7 +202,7 @@ func (g *GenerateProcessor) UnmountImage(cluster *v2.Cluster) error {
 }
 
 func (g *GenerateProcessor) ApplyRegistry(cluster *v2.Cluster) error {
-	runt, err := kubernetes.NewDefaultRuntime(cluster, nil)
+	runt, err := ChooseRuntime(platform.DefaultMountClusterImageDir(cluster.Name), cluster, nil)
 	if err != nil {
 		return err
 	}
