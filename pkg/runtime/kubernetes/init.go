@@ -17,7 +17,9 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -61,8 +63,16 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm_config.KubeadmCon
 	}
 
 	//TODO, save it into kubernetes
-	cmd := fmt.Sprintf("echo '%s' > %s", string(bs), KubeadmFileYml)
-	if err := k.infra.CmdAsync(masters[0], cmd); err != nil {
+	localTmpFile := "/tmp/kubeadm.yaml"
+	if err = ioutil.WriteFile(localTmpFile, bs, 0644); err != nil {
+		return kubeadm_config.KubeadmConfig{}, err
+	}
+
+	if err = k.infra.Copy(masters[0], localTmpFile, KubeadmFileYml); err != nil {
+		return kubeadm_config.KubeadmConfig{}, err
+	}
+
+	if err = os.Remove(localTmpFile); err != nil {
 		return kubeadm_config.KubeadmConfig{}, err
 	}
 
@@ -93,8 +103,7 @@ func (k *Runtime) generateCert(kubeadmConf kubeadm_config.KubeadmConfig, master0
 
 // initKube do some initialize kubelet works, such as configuring the host environment, initializing the kubelet service, and so on.
 func (k *Runtime) initKube(hosts []net.IP) error {
-	initKubeletCmd := fmt.Sprintf("bash %s", filepath.Join(k.infra.GetClusterRootfs(), "scripts", "init-kube.sh"))
-
+	initKubeletCmd := fmt.Sprintf("cd %s && bash %s", filepath.Join(k.infra.GetClusterRootfs(), "scripts"), "init-kube.sh")
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
 		host := h

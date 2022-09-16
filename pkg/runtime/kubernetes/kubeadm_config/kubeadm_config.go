@@ -208,7 +208,9 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	if conf.ClusterConfiguration.Networking.DNSDomain == "" {
 		conf.ClusterConfiguration.Networking.DNSDomain = "cluster.local"
 	}
-
+	if conf.JoinConfiguration.Discovery.BootstrapToken == nil {
+		conf.JoinConfiguration.Discovery.BootstrapToken = &v1beta2.BootstrapTokenDiscovery{}
+	}
 	conf.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = masters[0].String()
 
 	return conf, nil

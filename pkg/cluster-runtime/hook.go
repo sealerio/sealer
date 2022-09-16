@@ -87,7 +87,8 @@ func (r HookConfigList) Less(i, j int) bool { return r[i].Name < r[j].Name }
 func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 	hookConfigList, ok := i.hooks[phase]
 	if !ok {
-		return fmt.Errorf("failed to load hook at phase: %s", phase)
+		logrus.Debugf("no hooks found at phase: %s", phase)
+		return nil
 	}
 
 	// sorted by hookConfig name in alphabetical order
@@ -119,7 +120,8 @@ func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 func (i *Installer) runClusterHook(phase Phase) error {
 	hookConfigList, ok := i.hooks[phase]
 	if !ok {
-		return fmt.Errorf("failed to load hook at phase: %s", phase)
+		logrus.Debugf("no hooks found at phase: %s", phase)
+		return nil
 	}
 
 	master0 := i.infraDriver.GetHostIPListByRole(common.MASTER)[0]

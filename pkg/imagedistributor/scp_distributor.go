@@ -19,17 +19,16 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"net"
+	"os"
+	"path/filepath"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/auth"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils/mount"
-
-	"net"
-	"os"
-	"path/filepath"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -54,13 +53,12 @@ func (s *scpDistributor) Distribute(imageName string, hosts []net.IP) error {
 	}
 
 	for platform, targetHosts := range hostsPlatformMap {
-		mountDir := filepath.Join(common.DefaultSealerDataDir, s.infraDriver.GetClusterName(), "mount", platform.ToString())
-
 		if err = s.pull(imageName, platform); err != nil {
 			return err
 		}
 
-		if err = s.buildRootfs(imageName, mountDir); err != nil {
+		mountDir, err := s.buildRootfs(imageName)
+		if err != nil {
 			return err
 		}
 
@@ -96,24 +94,17 @@ func (s *scpDistributor) pull(imageName string, plat v1.Platform) error {
 	})
 }
 
-func (s *scpDistributor) buildRootfs(imageName, mountDir string) error {
-	// mount cluster image
-	driver := mount.NewMountDriver()
-	if isMount, _ := mount.GetMountDetails(mountDir); isMount {
-		err := driver.Unmount(mountDir)
-		if err != nil {
-			return fmt.Errorf("%s is already mounted, failed to umount: %v", mountDir, err)
-		}
-	}
+func (s *scpDistributor) buildRootfs(imageName string) (string, error) {
+	mountDir := filepath.Join(common.DefaultSealerDataDir, "mount")
 
 	if _, err := s.imageEngine.BuildRootfs(&imagecommon.BuildRootfsOptions{
 		DestDir:       mountDir,
 		ImageNameOrID: imageName,
 	}); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return mountDir, nil
 }
 
 func (s *scpDistributor) filterRootfs(mountDir string) ([]string, error) {

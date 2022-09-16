@@ -89,7 +89,7 @@ func (epu *easyProgressUtil) startMessage() {
 func (s *SSH) CopyR(host net.IP, localFilePath, remoteFilePath string) error {
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		if remoteFilePath != localFilePath {
-			logrus.Debugf("local copy files src %s to dst %s", remoteFilePath, localFilePath)
+			logrus.Debugf("copy local files: src %s to dst %s", remoteFilePath, localFilePath)
 			return osi.RecursionCopy(remoteFilePath, localFilePath)
 		}
 		return nil
@@ -139,7 +139,7 @@ func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 		if localPath == remotePath {
 			return nil
 		}
-		logrus.Debugf("local copy files src %s to dst %s", localPath, remotePath)
+		logrus.Debugf("copy local files: src %s to dst %s", localPath, remotePath)
 		return osi.RecursionCopy(localPath, remotePath)
 	}
 	logrus.Debugf("remote copy files src %s to dst %s", localPath, remotePath)
