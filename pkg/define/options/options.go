@@ -142,7 +142,6 @@ type BuildRootfsOptions struct {
 type RemoveImageOptions struct {
 	ImageNamesOrIDs []string
 	Force           bool
-	All             bool
 	Prune           bool
 }
 

@@ -26,14 +26,8 @@ import (
 )
 
 func (engine *Engine) RemoveImage(opts *options.RemoveImageOptions) error {
-	if len(opts.ImageNamesOrIDs) == 0 && !opts.All && !opts.Prune {
+	if len(opts.ImageNamesOrIDs) == 0 && !opts.Prune {
 		return errors.Errorf("image name or ID must be specified")
-	}
-	if len(opts.ImageNamesOrIDs) > 0 && opts.All {
-		return errors.Errorf("when using the --all switch, you may not pass any images names or IDs")
-	}
-	if opts.All && opts.Prune {
-		return errors.Errorf("when using the --all switch, you may not use --prune switch")
 	}
 	if len(opts.ImageNamesOrIDs) > 0 && opts.Prune {
 		return errors.Errorf("when using the --prune switch, you may not pass any images names or IDs")
@@ -45,8 +39,6 @@ func (engine *Engine) RemoveImage(opts *options.RemoveImageOptions) error {
 
 	if opts.Prune {
 		options.Filters = append(options.Filters, "dangling=true")
-	} else if !opts.All {
-		options.Filters = append(options.Filters, "intermediate=false")
 	}
 	options.Force = opts.Force
 
