@@ -114,7 +114,7 @@ func getRuntimeInterfaces(cf clusterfile.Interface) (imagedistributor.Interface,
 		return nil, nil, nil, err
 	}
 
-	distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver)
+	distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver, cf.GetConfigs())
 	if err != nil {
 		return nil, nil, nil, err
 	}
