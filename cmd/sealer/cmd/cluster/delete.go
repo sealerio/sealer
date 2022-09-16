@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
@@ -38,7 +38,7 @@ import (
 )
 
 var (
-	deleteArgs        *apply.Args
+	deleteArgs        *types.Args
 	deleteClusterFile string
 	deleteClusterName string
 	mastersToDelete   string
@@ -76,7 +76,7 @@ func NewDeleteCmd() *cobra.Command {
 		},
 	}
 
-	deleteArgs = &apply.Args{}
+	deleteArgs = &types.Args{}
 	deleteCmd.Flags().StringVarP(&mastersToDelete, "masters", "m", "", "reduce Count or IPList to masters")
 	deleteCmd.Flags().StringVarP(&workersToDelete, "nodes", "n", "", "reduce Count or IPList to nodes")
 	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
@@ -195,9 +195,7 @@ func scaleDownCluster(workClusterfile string) error {
 		return err
 	}
 
-	ips := append(deleteMasterIPList, deleteNodeIPList...)
-
-	if err := distributor.Restore(infraDriver.GetClusterRootfs(), ips); err != nil {
+	if err := distributor.Restore(infraDriver.GetClusterRootfs(), append(deleteMasterIPList, deleteNodeIPList...)); err != nil {
 		return err
 	}
 

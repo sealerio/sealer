@@ -17,13 +17,22 @@ package alpha
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/common"
 
-	"github.com/sealerio/sealer/apply/processor"
 	"github.com/spf13/cobra"
 )
 
-var flag *processor.ParserArg
+type ParserArg struct {
+	Name       string
+	Passwd     string
+	Image      string
+	Port       uint16
+	Pk         string
+	PkPassword string
+}
+
+var flag *ParserArg
 
 var exampleForGenCmd = `The following command will generate Clusterfile used by sealer under user home dir:
 
@@ -47,20 +56,11 @@ func NewGenCmd() *cobra.Command {
 			if flag.Passwd == "" || flag.Image == "" {
 				return fmt.Errorf("password and image name cannot be empty")
 			}
-
-			cluster, err := processor.GenerateCluster(flag)
-			if err != nil {
-				return err
-			}
-			genProcessor, err := processor.NewGenerateProcessor()
-			if err != nil {
-				return err
-			}
-			return processor.NewExecutor(genProcessor).Execute(cluster)
+			return errors.New("gen is not implemented yet")
 		},
 	}
 
-	flag = &processor.ParserArg{}
+	flag = &ParserArg{}
 	genCmd.Flags().Uint16Var(&flag.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	genCmd.Flags().StringVar(&flag.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set server private key")
 	genCmd.Flags().StringVar(&flag.PkPassword, "pk-passwd", "", "set server private key password")

@@ -12,17 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cloudfilesystem
+package types
 
-import (
-	"net"
+type Args struct {
+	ClusterName string
 
-	v2 "github.com/sealerio/sealer/types/api/v2"
-)
+	// Masters and Nodes only support:
+	// IP list format: ip1,ip2,ip3
+	// IP range format: x.x.x.x-x.x.x.y
+	Masters string
+	Nodes   string
 
-type Interface interface {
-	// MountRootfs :send cloud rootfs to all hosts.
-	MountRootfs(cluster *v2.Cluster, hosts []net.IP, initFlag bool) error
-	// UnMountRootfs :umount rootfs on all hosts.
-	UnMountRootfs(cluster *v2.Cluster, hosts []net.IP) error
+	User       string
+	Password   string
+	Port       uint16
+	Pk         string
+	PkPassword string
+	PodCidr    string
+	SvcCidr    string
+	Provider   string
+	CustomEnv  []string
+	CMDArgs    []string
 }
