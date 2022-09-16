@@ -22,16 +22,13 @@ import (
 
 var removeOpts *options.RemoveImageOptions
 
-var exampleForRmiCmd = `sealer rmi {imageName or imageID} ...
-
-remove all images:
-        sealer rmi --all/-a
+var exampleForRmiCmd = `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 
 prune dangling images:
         sealer rmi --prune/-p
 
 force removal of the image and any containers using the image:
-        sealer rmi {imageName or imageID} --force/-f
+        sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --force/-f
 
 `
 
