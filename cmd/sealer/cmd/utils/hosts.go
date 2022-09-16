@@ -18,6 +18,8 @@ import (
 	"net"
 	"strings"
 
+	"github.com/sealerio/sealer/common"
+
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 )
@@ -44,18 +46,23 @@ func GetHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	masters := strings.Split(inMasters, ",")
 	masterHosts := make([]v2.Host, 0, len(masters))
 	for _, master := range masters {
+		if master == "" {
+			continue
+		}
 		masterHosts = append(masterHosts, v2.Host{
-			IPS: []net.IP{net.ParseIP(master)},
+			Roles: []string{common.MASTER},
+			IPS:   []net.IP{net.ParseIP(master)},
 		})
 	}
 	nodes := strings.Split(inNodes, ",")
 	nodeHosts := make([]v2.Host, 0, len(nodes))
 	for _, node := range nodes {
-		if node != "" {
+		if node == "" {
 			continue
 		}
 		nodeHosts = append(nodeHosts, v2.Host{
-			IPS: []net.IP{net.ParseIP(node)},
+			Roles: []string{common.NODE},
+			IPS:   []net.IP{net.ParseIP(node)},
 		})
 	}
 	result := make([]v2.Host, 0, len(masters)+len(nodes))

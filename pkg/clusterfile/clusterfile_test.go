@@ -15,7 +15,6 @@
 package clusterfile
 
 import (
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -23,7 +22,6 @@ import (
 
 func TestSetCluster(t *testing.T) {
 	type args struct {
-		cluster v2.Cluster
 	}
 	tests := []struct {
 		name string

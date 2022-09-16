@@ -164,8 +164,10 @@ func (c *localSingletonConfigurator) configureRegistryCert(hosts []net.IP) error
 
 func (c *localSingletonConfigurator) gen(certPath, certName string) error {
 	DNSNames := []string{c.Domain}
-	DNSNames = append(DNSNames, c.Cert.SubjectAltName.IPs...)
-	DNSNames = append(DNSNames, c.Cert.SubjectAltName.DNSNames...)
+	if c.Cert.SubjectAltName != nil {
+		DNSNames = append(DNSNames, c.Cert.SubjectAltName.IPs...)
+		DNSNames = append(DNSNames, c.Cert.SubjectAltName.DNSNames...)
+	}
 
 	regCertConfig := cert.CertificateDescriptor{
 		CommonName:   "registry-ca",
@@ -262,8 +264,7 @@ func (c *localSingletonConfigurator) reconcileRegistry(hosts []net.IP) error {
 	}
 
 	for platform, _ := range hostsPlatformMap {
-		mountDir := filepath.Join(common.DefaultSealerDataDir, c.infraDriver.GetClusterName(), "mount", platform.ToString())
-
+		mountDir := filepath.Join(common.DefaultSealerDataDir, "mount")
 		if err = c.imageEngine.Pull(&imagecommon.PullOptions{
 			Authfile:   auth.GetDefaultAuthFilePath(),
 			Quiet:      false,
@@ -275,7 +276,7 @@ func (c *localSingletonConfigurator) reconcileRegistry(hosts []net.IP) error {
 			return err
 		}
 
-		if _, err := c.imageEngine.BuildRootfs(&imagecommon.BuildRootfsOptions{
+		if _, err = c.imageEngine.BuildRootfs(&imagecommon.BuildRootfsOptions{
 			DestDir:       mountDir,
 			ImageNameOrID: imageName,
 		}); err != nil {
@@ -300,7 +301,7 @@ func (c *localSingletonConfigurator) reconcileRegistry(hosts []net.IP) error {
 	}
 
 	// bash init-registry.sh ${port} ${mountData} ${domain}
-	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", rootfs, c.Port, dataDir, c.Domain)
+	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", rootfs, strconv.Itoa(c.Port), dataDir, c.Domain)
 	if err := c.infraDriver.CmdAsync(c.DeployHost, initRegistry); err != nil {
 		return err
 	}
@@ -331,14 +332,14 @@ func (c *localSingletonConfigurator) configureKubeletAuthInfo(hosts []net.IP) er
 	if username == "" || password == "" {
 		return nil
 	}
-
+	// todo use sdk to login instead of shell cmd
 	configAuthCmd := fmt.Sprintf("nerdctl login -u %s -p %s %s && mkdir -p /var/lib/kubelet && cp /root/.docker/config.json /var/lib/kubelet",
 		username, password, endpoint)
 
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, configAuthCmd)
 		if err != nil {
-			return fmt.Errorf("failed to config kubelet auth, cmd is %s: %v", configAuthCmd, err)
+			return fmt.Errorf("failed to config kubelet auth: %v", err)
 		}
 		return nil
 	}

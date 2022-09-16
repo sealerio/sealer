@@ -54,7 +54,9 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 	)
 
 	// configure container runtime
-	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(containerruntime.Config{}, infraDriver)
+	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(containerruntime.Config{
+		Type: "docker",
+	}, infraDriver)
 	if err != nil {
 		return nil, err
 	}
@@ -63,10 +65,12 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 	installer.RegistryConfig.LocalRegistry = &registry.LocalRegistry{
 		DataDir:      filepath.Join(infraDriver.GetClusterRootfs(), "registry"),
 		InsecureMode: false,
+		Cert:         &registry.TLSCert{},
 		DeployHost:   infraDriver.GetHostIPListByRole(common.MASTER)[0],
 		Registry: registry.Registry{
 			Domain: registry.DefaultDomain,
 			Port:   registry.DefaultPort,
+			Auth:   &registry.RegistryAuth{},
 		},
 	}
 

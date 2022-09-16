@@ -50,10 +50,9 @@ type InfraDriver interface {
 	// Copy local files to remote host
 	// scp -r /tmp root@192.168.0.2:/root/tmp => Copy("192.168.0.2","tmp","/root/tmp")
 	// need check md5sum
-	Copy(host net.IP, srcFilePath, dstFilePath string) error
+	Copy(host net.IP, localFilePath, remoteFilePath string) error
 	// CopyR copy remote host files to localhost
-	CopyR(host net.IP, srcFilePath, dstFilePath string) error
-
+	CopyR(host net.IP, remoteFilePath, localFilePath string) error
 	// CmdAsync exec command on remote host, and asynchronous return logs
 	CmdAsync(host net.IP, cmd ...string) error
 	// Cmd exec command on remote host, and return combined standard output and standard error

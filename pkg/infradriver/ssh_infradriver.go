@@ -82,9 +82,13 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		clusterName:       cluster.Name,
 		clusterImagerName: cluster.Spec.Image,
 		sshConfigs:        map[string]ssh.Interface{},
-		hosts:             cluster.GetAllIPList(),
 		roleHostsMap:      map[string][]net.IP{},
 		hostEnvMap:        map[string]map[string]interface{}{},
+	}
+
+	// initialize hosts field
+	for _, host := range cluster.Spec.Hosts {
+		ret.hosts = append(ret.hosts, host.IPS...)
 	}
 
 	// initialize sshConfigs field
@@ -133,20 +137,21 @@ func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]interface{} {
 	return d.hostEnvMap[host.String()]
 }
 
-func (d *SSHInfraDriver) Copy(host net.IP, srcFilePath, dstFilePath string) error {
+func (d *SSHInfraDriver) Copy(host net.IP, localFilePath, remoteFilePath string) error {
 	client := d.sshConfigs[host.String()]
 	if client == nil {
 		return fmt.Errorf("ip(%s) is not in cluster", host.String())
 	}
-	return client.Copy(host, srcFilePath, dstFilePath)
+	return client.Copy(host, localFilePath, remoteFilePath)
 }
 
-func (d *SSHInfraDriver) CopyR(host net.IP, srcFilePath, dstFilePath string) error {
+func (d *SSHInfraDriver) CopyR(host net.IP, remoteFilePath, localFilePath string) error {
 	client := d.sshConfigs[host.String()]
 	if client == nil {
 		return fmt.Errorf("ip(%s) is not in cluster", host.String())
 	}
-	return client.CopyR(host, srcFilePath, dstFilePath)
+	//client.CopyR take remoteFilePath as src file
+	return client.CopyR(host, localFilePath, remoteFilePath)
 }
 
 func (d *SSHInfraDriver) CmdAsync(host net.IP, cmd ...string) error {
