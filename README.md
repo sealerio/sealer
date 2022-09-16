@@ -104,7 +104,6 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ## Developing Sealer
 
 * [contributing guide](./CONTRIBUTING.md)
-* [贡献文档](./docs/contributing_zh.md)
 
 ## Communication Channels
 
