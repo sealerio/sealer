@@ -15,6 +15,9 @@
 package k0s
 
 const (
+	RuntimeFlag = "k0s"
+	VersionCmd  = "k0s version"
+
 	DefaultAdminConf = "/var/lib/k0s/pki/admin.conf"
 
 	DefaultK0sConfigPath     = "/etc/k0s/k0s.yaml"
@@ -22,4 +25,6 @@ const (
 	DefaultK0sControllerJoin = "/etc/k0s/controller"
 	WorkerRole               = "worker"
 	ControllerRole           = "controller"
+
+	ExternalCRI = "/run/containerd/containerd.sock"
 )

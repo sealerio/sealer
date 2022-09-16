@@ -79,7 +79,7 @@ type StaticFile struct {
 	Name           string
 }
 
-//MasterStaticFiles Put static files here, can be moved to all master nodes before kubeadm execution
+// MasterStaticFiles Put static files here, can be moved to all master nodes before kubeadm execution
 var MasterStaticFiles = []*StaticFile{
 	{
 		DestinationDir: "/etc/kubernetes",
@@ -88,7 +88,7 @@ var MasterStaticFiles = []*StaticFile{
 }
 
 func confirmDeleteHosts(role string, nodesToDelete []net.IP) error {
-	if !ForceDelete {
+	if !runtime.ForceDelete {
 		if pass, err := utils.ConfirmOperation(fmt.Sprintf("Are you sure to delete these %s: %v? ", role, nodesToDelete)); err != nil {
 			return err
 		} else if !pass {

@@ -31,8 +31,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var ForceDelete bool
-
 type Config struct {
 	Vlog                         int
 	VIP                          string
@@ -43,7 +41,7 @@ type Config struct {
 	APIServerDomain              string
 }
 
-//Runtime struct is the runtime interface for kubernetes
+// Runtime struct is the runtime interface for kubernetes
 type Runtime struct {
 	infra  infradriver.InfraDriver
 	Config *Config

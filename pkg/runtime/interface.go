@@ -42,3 +42,5 @@ type Driver interface {
 
 	GetAdminKubeconfig() string
 }
+
+var ForceDelete bool

@@ -19,12 +19,12 @@ import (
 	"net"
 	"strings"
 
+	"github.com/moby/sys/mountinfo"
+	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/utils/exec"
 	"github.com/sealerio/sealer/utils/os/fs"
-	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
@@ -87,7 +87,7 @@ func (m mounter) GetMountTarget() string {
 	return m.TempTarget
 }
 
-//NewMountService will create temp dir if target or upper is nil. it is convenient for use in build stage
+// NewMountService will create temp dir if target or upper is nil. it is convenient for use in build stage
 func NewMountService(target, upper string, lowLayers []string) (Service, error) {
 	f := fs.NewFilesystem()
 	if len(lowLayers) == 0 {
@@ -120,7 +120,19 @@ func NewMountService(target, upper string, lowLayers []string) (Service, error) 
 	}, nil
 }
 
-//NewMountServiceByTarget will filter file system by target,if not existed,return false.
+func GetDirNameListInDir(dir string) ([]string, error) {
+	var dirs []string
+	infos, err := mountinfo.GetMounts(mountinfo.PrefixFilter(dir))
+	if err != nil {
+		return dirs, err
+	}
+	for _, info := range infos {
+		dirs = append(dirs, info.Mountpoint)
+	}
+	return dirs, nil
+}
+
+// NewMountServiceByTarget will filter file system by target,if not existed,return false.
 func NewMountServiceByTarget(target string) Service {
 	mounted, info := GetMountDetails(target)
 	if !mounted {
@@ -141,12 +153,11 @@ type Info struct {
 }
 
 func GetMountDetails(target string) (bool, *Info) {
-	cmd := fmt.Sprintf("mount | grep %s", target)
-	result, err := exec.RunSimpleCmd(cmd)
+	infos, err := mountinfo.GetMounts(mountinfo.SingleEntryFilter(target))
 	if err != nil {
 		return false, nil
 	}
-	return mountCmdResultSplit(result, target)
+	return mountCmdResultSplit(infos[0].VFSOptions, target)
 }
 
 func GetRemoteMountDetails(s ssh.Interface, ip net.IP, target string) (bool, *Info) {
