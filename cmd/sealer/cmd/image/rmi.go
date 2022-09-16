@@ -37,7 +37,6 @@ func NewRmiCmd() *cobra.Command {
 	}
 	removeOpts = &options.RemoveImageOptions{}
 	flags := rmiCmd.Flags()
-	flags.BoolVarP(&removeOpts.All, "all", "a", false, "remove all images")
 	flags.BoolVarP(&removeOpts.Prune, "prune", "p", false, "prune dangling images")
 	flags.BoolVarP(&removeOpts.Force, "force", "f", false, "force removal of the image and any containers using the image")
 	return rmiCmd
