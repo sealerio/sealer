@@ -1,3 +1,0 @@
-FROM kubernetes:v1.19.8
-COPY label_nodes.so plugin
-COPY label_nodes.yaml plugin
