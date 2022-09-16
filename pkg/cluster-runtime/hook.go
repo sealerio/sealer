@@ -16,6 +16,7 @@ package clusterruntime
 
 import (
 	"fmt"
+	"github.com/sealerio/sealer/pkg/env"
 	"net"
 	"sort"
 
@@ -137,7 +138,7 @@ func (i *Installer) runClusterHook(phase Phase) error {
 func NewShellHook() HookFunc {
 	return func(data string, hosts []net.IP, driver infradriver.InfraDriver) error {
 		for _, ip := range hosts {
-			err := driver.CmdAsync(ip, data)
+			err := driver.CmdAsync(ip, env.WrapperShell(data, driver.GetHostEnv(ip)))
 			if err != nil {
 				return fmt.Errorf("failed to run shell hook on host(%s): %v", ip.String(), err)
 			}
