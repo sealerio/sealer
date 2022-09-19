@@ -54,6 +54,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 	)
 
 	// configure container runtime
+	//todo need to support other container runtimes
 	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(containerruntime.Config{
 		Type: "docker",
 	}, infraDriver)

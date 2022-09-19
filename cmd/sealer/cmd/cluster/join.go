@@ -86,7 +86,7 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
-			distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver)
+			distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver, cf.GetConfigs())
 			if err != nil {
 				return err
 			}

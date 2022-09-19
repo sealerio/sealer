@@ -17,6 +17,9 @@ package imagedistributor
 import (
 	"context"
 	"fmt"
+	"github.com/sealerio/sealer/pkg/config"
+	"github.com/sealerio/sealer/pkg/env"
+	osi "github.com/sealerio/sealer/utils/os"
 	"io/ioutil"
 
 	"net"
@@ -38,6 +41,7 @@ const (
 )
 
 type scpDistributor struct {
+	configs     []v1.Config
 	infraDriver infradriver.InfraDriver
 	imageEngine imageengine.Interface
 }
@@ -59,6 +63,14 @@ func (s *scpDistributor) Distribute(imageName string, hosts []net.IP) error {
 
 		mountDir, err := s.buildRootfs(imageName)
 		if err != nil {
+			return err
+		}
+
+		if err = s.dumpConfigToRootfs(mountDir); err != nil {
+			return err
+		}
+
+		if err = s.renderRootfs(mountDir); err != nil {
 			return err
 		}
 
@@ -162,6 +174,31 @@ func (s *scpDistributor) copyRootfs(mountDir, targetDir string, hosts []net.IP) 
 	return nil
 }
 
+func (s *scpDistributor) dumpConfigToRootfs(mountDir string) error {
+	return config.NewConfiguration(mountDir).Dump(s.configs)
+}
+
+// using cluster render data to render Rootfs files
+func (s *scpDistributor) renderRootfs(mountDir string) error {
+	var (
+		renderEtc       = filepath.Join(mountDir, common.EtcDir)
+		renderChart     = filepath.Join(mountDir, common.RenderChartsDir)
+		renderManifests = filepath.Join(mountDir, common.RenderManifestsDir)
+		renderData      = s.infraDriver.GetClusterRenderData()
+	)
+
+	for _, dir := range []string{renderEtc, renderChart, renderManifests} {
+		if osi.IsFileExist(dir) {
+			err := env.RenderTemplate(dir, renderData)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *scpDistributor) Restore(targetDir string, hosts []net.IP) error {
 	rmRootfsCMD := fmt.Sprintf("rm -rf %s", targetDir)
 
@@ -184,8 +221,9 @@ func (s *scpDistributor) Restore(targetDir string, hosts []net.IP) error {
 	return nil
 }
 
-func NewScpDistributor(imageEngine imageengine.Interface, driver infradriver.InfraDriver) (Interface, error) {
+func NewScpDistributor(imageEngine imageengine.Interface, driver infradriver.InfraDriver, configs []v1.Config) (Interface, error) {
 	return &scpDistributor{
+		configs:     configs,
 		imageEngine: imageEngine,
 		infraDriver: driver}, nil
 }

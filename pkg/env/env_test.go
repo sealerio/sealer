@@ -15,112 +15,52 @@
 package env
 
 import (
-	"net"
-	"reflect"
 	"testing"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-func Test_convertEnv(t *testing.T) {
+func Test_processor_WrapperShell(t *testing.T) {
 	type args struct {
-		envList []string
+		wrapperData map[string]interface{}
+		shell       string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantEnv map[string]interface{}
-	}{
-		{
-			"test convert env",
-			args{envList: []string{"IP=127.0.0.1;127.0.0.2;127.0.0.3", "IP=192.168.0.2", "key=value"}},
-			map[string]interface{}{"IP": []string{"127.0.0.1", "127.0.0.2", "127.0.0.3", "192.168.0.2"}, "key": "value"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if gotEnv := ConvertEnv(tt.args.envList); !reflect.DeepEqual(gotEnv, tt.wantEnv) {
-				t.Errorf("convertEnv() = %v, want %v", gotEnv, tt.wantEnv)
-			}
-		})
-	}
-}
-
-func getTestCluster() *v2.Cluster {
-	return &v2.Cluster{
-		Spec: v2.ClusterSpec{
-			Image: "",
-			Env:   []string{"IP=127.0.0.1", "key=value"},
-			Hosts: []v2.Host{
-				{
-					IPS:   []net.IP{net.ParseIP("192.168.0.2"), net.ParseIP("192.168.0.3"), net.ParseIP("192.168.0.4")},
-					Roles: []string{"master"},
-					Env:   []string{"key=bar", "key=foo", "foo=bar", "IP=127.0.0.2"},
-				},
-			},
-			SSH: v1.SSH{},
-		},
-	}
-}
-
-/* func Test_processor_WrapperShell(t *testing.T) {
-	type fields struct {
-		Cluster *v2.Cluster
-	}
-	type args struct {
-		host  net.IP
-		shell string
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
+		name string
+		args args
+		want string
 	}{
 		{
 			"test command ENV",
-			fields{Cluster: getTestCluster()},
 			args{
-				host:  net.ParseIP("192.168.0.2"),
-				shell: "echo $foo ${IP[@]}",
+				wrapperData: map[string]interface{}{},
+				shell:       "echo $foo ${IP[@]}",
 			},
 			"key=(bar foo) foo=bar IP=127.0.0.2 && echo $foo ${IP[@]}",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &processor{
-				Cluster: tt.fields.Cluster,
-			}
-			if got := p.WrapperShell(tt.args.host, tt.args.shell); got != tt.want {
+			if got := WrapperShell(tt.args.shell, tt.args.wrapperData); got != tt.want {
 				t.Errorf("WrapperShell() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
-*/
 
 func Test_processor_RenderAll(t *testing.T) {
-	type fields struct {
-		Cluster *v2.Cluster
-	}
 	type args struct {
-		host net.IP
-		dir  string
+		renderData map[string]interface{}
+		dir        string
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		wantErr bool
 	}{
 		{
 			"test render dir",
-			fields{getTestCluster()},
 			args{
-				host: net.ParseIP("192.168.0.2"),
-				dir:  "test/template",
+				renderData: map[string]interface{}{},
+				dir:        "test/template",
 			},
 			false,
 		},
@@ -128,10 +68,7 @@ func Test_processor_RenderAll(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &processor{
-				Cluster: tt.fields.Cluster,
-			}
-			if err := p.RenderAll(tt.args.host, tt.args.dir); (err != nil) != tt.wantErr {
+			if err := RenderTemplate(tt.args.dir, tt.args.renderData); (err != nil) != tt.wantErr {
 				t.Errorf("RenderAll() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

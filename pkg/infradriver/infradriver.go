@@ -32,6 +32,9 @@ type InfraDriver interface {
 	//GetHostEnv return host env
 	GetHostEnv(host net.IP) map[string]interface{}
 
+	//GetClusterRenderData return cluster.spec.env as map[string]interface{}
+	GetClusterRenderData() map[string]interface{}
+
 	//GetClusterName ${clusterName}
 	GetClusterName() string
 
