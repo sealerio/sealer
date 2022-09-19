@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/auth"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -97,7 +96,6 @@ func (s *scpDistributor) Distribute(imageName string, hosts []net.IP) error {
 func (s *scpDistributor) pull(imageName string, plat v1.Platform) error {
 	// pull cluster image via it`s platform
 	return s.imageEngine.Pull(&imagecommon.PullOptions{
-		Authfile:   auth.GetDefaultAuthFilePath(),
 		Quiet:      false,
 		TLSVerify:  true,
 		PullPolicy: "missing",

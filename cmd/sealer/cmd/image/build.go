@@ -25,7 +25,6 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/build/buildimage"
-	pkgauth "github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/version"
@@ -73,14 +72,15 @@ func NewBuildCmd() *cobra.Command {
 		Args:    cobra.MaximumNArgs(1),
 		Example: exampleNewBuildCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			buildFlags.ContextDir = args[0]
+			if len(args) > 0 {
+				buildFlags.ContextDir = args[0]
+			}
 			return buildSealerImage()
 		},
 	}
 	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
 	buildCmd.Flags().StringVar(&buildFlags.Platform, "platform", parse.DefaultPlatform(), "set the target platform, like linux/amd64 or linux/amd64/v7")
 	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always")
-	buildCmd.Flags().StringVar(&buildFlags.Authfile, "authfile", pkgauth.GetDefaultAuthFilePath(), "path of the authentication file.")
 	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
 	buildCmd.Flags().BoolVar(&buildFlags.Base, "base", true, "build with base image, default value is true.")
 	buildCmd.Flags().StringSliceVarP(&buildFlags.Tags, "tag", "t", []string{}, "specify a name for ClusterImage")

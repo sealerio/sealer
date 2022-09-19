@@ -26,7 +26,6 @@ import (
 
 	"github.com/pelletier/go-toml"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
@@ -266,7 +265,6 @@ func (c *localSingletonConfigurator) reconcileRegistry(hosts []net.IP) error {
 	for platform, _ := range hostsPlatformMap {
 		mountDir := filepath.Join(common.DefaultSealerDataDir, "mount")
 		if err = c.imageEngine.Pull(&imagecommon.PullOptions{
-			Authfile:   auth.GetDefaultAuthFilePath(),
 			Quiet:      false,
 			TLSVerify:  true,
 			PullPolicy: "missing",

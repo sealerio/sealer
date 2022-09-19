@@ -17,7 +17,6 @@ package buildah
 import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"os"
@@ -68,14 +67,6 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 		logrus.Debugf("Assuming docker:// as the transport method for DESTINATION: %s", destSpec)
 	}
 
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
-	// PushOptions from build does not support passing authfile
-	// they use authfile from system context.
-	systemContext.AuthFilePath = opts.Authfile
-
 	var manifestType string
 	if opts.Format != "" {
 		switch opts.Format {
@@ -90,11 +81,13 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 		}
 	}
 
+	systemCxt := engine.SystemContext()
+
 	options := buildah.PushOptions{
 		Compression:   compress,
 		ManifestType:  manifestType,
 		Store:         store,
-		SystemContext: systemContext,
+		SystemContext: systemCxt,
 		MaxRetries:    maxPullPushRetries,
 		RetryDelay:    pullPushRetryDelay,
 	}
@@ -106,7 +99,7 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 	if err != nil {
 		if errors.Cause(err) != storage.ErrImageUnknown {
 			// Image might be a manifest so attempt a manifest push
-			if manifestsErr := manifestPush(systemContext, store, src, destSpec, *opts); manifestsErr == nil {
+			if manifestsErr := manifestPush(systemCxt, store, src, destSpec, *opts); manifestsErr == nil {
 				return nil
 			}
 		}

@@ -22,22 +22,30 @@ import (
 
 var removeOpts *options.RemoveImageOptions
 
+var exampleForRmiCmd = `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+
+prune dangling images:
+        sealer rmi --prune/-p
+
+force removal of the image and any containers using the image:
+        sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --force/-f
+
+`
+
 // NewRmiCmd rmiCmd represents the rmi command
 func NewRmiCmd() *cobra.Command {
 	rmiCmd := &cobra.Command{
 		Use:   "rmi",
-		Short: "remove local images by name",
+		Short: "remove local images",
 		// TODO: add long description.
 		Long:    "",
-		Example: `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8`,
-		Args:    cobra.MinimumNArgs(1),
+		Example: exampleForRmiCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRemove(args)
 		},
 	}
 	removeOpts = &options.RemoveImageOptions{}
 	flags := rmiCmd.Flags()
-	flags.BoolVarP(&removeOpts.All, "all", "a", false, "remove all images")
 	flags.BoolVarP(&removeOpts.Prune, "prune", "p", false, "prune dangling images")
 	flags.BoolVarP(&removeOpts.Force, "force", "f", false, "force removal of the image and any containers using the image")
 	return rmiCmd

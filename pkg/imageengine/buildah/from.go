@@ -53,10 +53,7 @@ func (engine *Engine) createContainerFromImage(opts *options.FromOptions) (strin
 	}
 
 	// TODO be aware of this, maybe this will incur platform problem.
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return "", errors.Wrapf(err, "error building system context")
-	}
+	systemCxt := engine.SystemContext()
 
 	// TODO we do not support from remote currently
 	// which is to make the policy pull-if-missing
@@ -100,7 +97,7 @@ func (engine *Engine) createContainerFromImage(opts *options.FromOptions) (strin
 		Container:             "",
 		ContainerSuffix:       "",
 		PullPolicy:            pullPolicy,
-		SystemContext:         systemContext,
+		SystemContext:         systemCxt,
 		DefaultMountsFilePath: "",
 		Isolation:             isolation,
 		NamespaceOptions:      namespaceOptions,

@@ -21,7 +21,6 @@ import (
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/pkg/errors"
 	"golang.org/x/term"
 
@@ -40,12 +39,10 @@ func (engine *Engine) Inspect(opts *options.InspectOptions) error {
 	if len(opts.ImageNameOrID) == 0 {
 		return errors.Errorf("image name or image id must be specified.")
 	}
-	var builder *buildah.Builder
-
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return err
-	}
+	var (
+		builder *buildah.Builder
+		err     error
+	)
 
 	ctx := getContext()
 	store := engine.ImageStore()
@@ -53,7 +50,7 @@ func (engine *Engine) Inspect(opts *options.InspectOptions) error {
 
 	switch opts.InspectType {
 	case inspectTypeImage:
-		builder, err = openImage(ctx, systemContext, store, name)
+		builder, err = openImage(ctx, engine.SystemContext(), store, name)
 		if err != nil {
 			return err
 		}

@@ -15,7 +15,6 @@
 package buildah
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -25,10 +24,8 @@ import (
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
 	"github.com/docker/go-units"
-	"github.com/pkg/errors"
 )
 
 const none = "<none>"
@@ -81,18 +78,7 @@ var imagesHeader = map[string]string{
 }
 
 func (engine *Engine) Images(opts *options.ImagesOptions) error {
-	store := engine.ImageStore()
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
-	runtime, err := libimage.RuntimeFromStore(store, &libimage.RuntimeOptions{SystemContext: systemContext})
-	if err != nil {
-		return err
-	}
-
-	ctx := context.Background()
-
+	runtime := engine.libimageRuntime
 	options := &libimage.ListImagesOptions{}
 	if !opts.All {
 		options.Filters = append(options.Filters, "intermediate=false")
@@ -100,7 +86,7 @@ func (engine *Engine) Images(opts *options.ImagesOptions) error {
 	}
 
 	//TODO add some label to identify sealer image and oci image.
-	images, err := runtime.ListImages(ctx, []string{}, options)
+	images, err := runtime.ListImages(getContext(), []string{}, options)
 	if err != nil {
 		return err
 	}
