@@ -15,7 +15,6 @@
 package image
 
 import (
-	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/spf13/cobra"
@@ -42,6 +41,5 @@ func NewLogoutCmd() *cobra.Command {
 		},
 	}
 	logoutConfig = &options.LogoutOptions{}
-	logoutCmd.Flags().StringVar(&logoutConfig.Authfile, "authfile", auth.GetDefaultAuthFilePath(), "path to store auth file after login. It will be $HOME/.sealer/auth.json by default.")
 	return logoutCmd
 }

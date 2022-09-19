@@ -15,14 +15,12 @@
 package buildah
 
 import (
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/auth"
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"os"
 
 	"github.com/pkg/errors"
-	pkgauth "github.com/sealerio/sealer/pkg/auth"
 )
 
 func (engine *Engine) Logout(opts *options.LogoutOptions) error {
@@ -30,12 +28,9 @@ func (engine *Engine) Logout(opts *options.LogoutOptions) error {
 		return errors.Errorf("registry must be given")
 	}
 
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
-	return auth.Logout(systemContext, &auth.LogoutOptions{
-		AuthFile:           pkgauth.GetDefaultAuthFilePath(),
+	systemCxt := engine.SystemContext()
+	return auth.Logout(systemCxt, &auth.LogoutOptions{
+		AuthFile:           systemCxt.AuthFilePath,
 		All:                opts.All,
 		AcceptRepositories: true,
 		Stdout:             os.Stdout,

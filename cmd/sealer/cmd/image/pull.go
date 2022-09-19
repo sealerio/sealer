@@ -16,7 +16,6 @@ package image
 
 import (
 	"github.com/containers/buildah/pkg/parse"
-	pkgauth "github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/spf13/cobra"
@@ -46,7 +45,6 @@ func NewPullCmd() *cobra.Command {
 	}
 	pullOpts = &options.PullOptions{}
 	pullCmd.Flags().StringVar(&pullOpts.Platform, "platform", parse.DefaultPlatform(), "prefer OS/ARCH instead of the current operating system and architecture for choosing images")
-	pullCmd.Flags().StringVar(&pullOpts.Authfile, "authfile", pkgauth.GetDefaultAuthFilePath(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	pullCmd.Flags().BoolVar(&pullOpts.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry. TLS verification cannot be used when talking to an insecure registry.")
 	pullCmd.Flags().StringVar(&pullOpts.PullPolicy, "policy", "missing", "missing, always, or never.")
 	pullCmd.Flags().BoolVarP(&pullOpts.Quiet, "quiet", "q", false, "don't output progress information when pulling images")

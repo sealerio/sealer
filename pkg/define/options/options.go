@@ -23,7 +23,6 @@ type BuildOptions struct {
 	BuildArgs   []string
 	Platform    string
 	ContextDir  string
-	Authfile    string
 	PullPolicy  string
 	Labels      []string
 	Annotations []string
@@ -72,14 +71,11 @@ type LoginOptions struct {
 	Username  string
 	Password  string
 	TLSVerify bool
-	CertDir   string
-	AuthFile  string
 }
 
 type LogoutOptions struct {
-	Authfile string
-	All      bool
-	Domain   string
+	All    bool
+	Domain string
 }
 
 type PushOptions struct {
@@ -94,7 +90,6 @@ type PushOptions struct {
 }
 
 type PullOptions struct {
-	Authfile   string
 	CertDir    string
 	Quiet      bool
 	TLSVerify  bool

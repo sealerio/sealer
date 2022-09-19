@@ -19,7 +19,6 @@ import (
 
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 
-	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/registry"
 
@@ -96,7 +95,6 @@ func (c *CreateProcessor) MountImage(cluster *v2.Cluster) error {
 	}
 	for _, plat := range plats {
 		if err = c.ImageEngine.Pull(&imagecommon.PullOptions{
-			Authfile:   auth.GetDefaultAuthFilePath(),
 			Quiet:      false,
 			TLSVerify:  true,
 			PullPolicy: "missing",

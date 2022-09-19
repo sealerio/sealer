@@ -22,7 +22,6 @@ import (
 	"strconv"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/define/options"
@@ -176,7 +175,6 @@ func (g *GenerateProcessor) MountImage(cluster *v2.Cluster) error {
 	image := cluster.Spec.Image
 	for _, p := range platforms {
 		if err := g.ImageEngine.Pull(&options.PullOptions{
-			Authfile:   auth.GetDefaultAuthFilePath(),
 			TLSVerify:  true,
 			PullPolicy: "missing",
 			Image:      image,

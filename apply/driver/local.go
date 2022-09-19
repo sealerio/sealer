@@ -20,7 +20,6 @@ import (
 
 	"github.com/sealerio/sealer/apply/processor"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
@@ -111,7 +110,6 @@ func (applier *Applier) mountClusterImage() error {
 	// TODO optimize image engine caller.
 	for _, plat := range plats {
 		err = applier.ImageEngine.Pull(&imagecommon.PullOptions{
-			Authfile:   auth.GetDefaultAuthFilePath(),
 			Quiet:      false,
 			TLSVerify:  true,
 			PullPolicy: "missing",

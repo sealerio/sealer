@@ -22,7 +22,6 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/pkg/shortnames"
 	storageTransport "github.com/containers/image/v5/storage"
@@ -60,16 +59,13 @@ func (engine *Engine) Commit(opts *options.CommitOptions) error {
 		return errors.Wrapf(err, "error reading build container %q", name)
 	}
 
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
+	systemCxt := engine.SystemContext()
 
 	// If the user specified an image, we may need to massage it a bit if
 	// no transport is specified.
 	// TODO we support commit to local image only, we'd better limit the input of name
 	if dest, err = alltransports.ParseImageName(image); err != nil {
-		candidates, err := shortnames.ResolveLocally(systemContext, image)
+		candidates, err := shortnames.ResolveLocally(systemCxt, image)
 		if err != nil {
 			return err
 		}
@@ -87,7 +83,7 @@ func (engine *Engine) Commit(opts *options.CommitOptions) error {
 		PreferredManifestType: format,
 		Manifest:              opts.Manifest,
 		Compression:           compress,
-		SystemContext:         systemContext,
+		SystemContext:         systemCxt,
 		Squash:                opts.Squash,
 	}
 	if opts.Timestamp != 0 {

@@ -88,30 +88,33 @@ func (engine *Engine) Build(opts *options.BuildOptions) (string, error) {
 
 func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *buildFlagsWrapper) (define.BuildOptions, []string, error) {
 	output := ""
-	cleanTmpFile := false
-	tags := []string{}
-	if engine.Flag("tag").Changed {
-		tags = wrapper.Tag
-		if len(tags) > 0 {
-			output = tags[0]
-			tags = tags[1:]
-		}
-		if engine.Flag("manifest").Changed {
-			for _, tag := range tags {
-				if tag == wrapper.Manifest {
-					return define.BuildOptions{}, []string{}, errors.New("the same name must not be specified for both '--tag' and '--manifest'")
-				}
+	tags := wrapper.Tag
+	if len(tags) > 0 {
+		output = tags[0]
+		tags = tags[1:]
+	}
+	if engine.Flag("manifest").Changed {
+		for _, tag := range tags {
+			if tag == wrapper.Manifest {
+				return define.BuildOptions{}, []string{}, errors.New("the same name must not be specified for both '--tag' and '--manifest'")
 			}
 		}
 	}
 
-	if err := auth.CheckAuthFile(wrapper.Authfile); err != nil {
+	args, err := parseArgs(opts.BuildArgs)
+	if err != nil {
+		return define.BuildOptions{}, nil, err
+	}
+
+	systemCxt := engine.SystemContext()
+
+	if err := auth.CheckAuthFile(systemCxt.AuthFilePath); err != nil {
 		return define.BuildOptions{}, []string{}, err
 	}
-	wrapper.Authfile, cleanTmpFile =
-		buildahutil.MirrorToTempFileIfPathIsDescriptor(wrapper.Authfile)
+	tempAuthFile, cleanTmpFile :=
+		buildahutil.MirrorToTempFileIfPathIsDescriptor(systemCxt.AuthFilePath)
 	if cleanTmpFile {
-		defer os.Remove(wrapper.Authfile)
+		defer os.Remove(tempAuthFile)
 	}
 
 	// Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always
@@ -134,10 +137,7 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 		return define.BuildOptions{}, []string{}, err
 	}
 
-	layers := buildahcli.UseLayers()
-	if engine.Flag("layers").Changed {
-		layers = wrapper.Layers
-	}
+	layers := wrapper.Layers
 
 	contextDir := opts.ContextDir
 
@@ -190,11 +190,6 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 		reporter = f
 	}
 
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return define.BuildOptions{}, []string{}, errors.Wrapf(err, "error building system context")
-	}
-
 	isolation, err := defaultIsolationOption()
 	if err != nil {
 		return define.BuildOptions{}, []string{}, err
@@ -242,12 +237,12 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 	}
 
 	options := define.BuildOptions{
-		AddCapabilities: wrapper.CapAdd,
-		AdditionalTags:  tags,
-		AllPlatforms:    wrapper.AllPlatforms,
-		Annotations:     wrapper.Annotation,
-		Architecture:    systemContext.ArchitectureChoice,
-		//Args:                    args,
+		AddCapabilities:         wrapper.CapAdd,
+		AdditionalTags:          tags,
+		AllPlatforms:            wrapper.AllPlatforms,
+		Annotations:             wrapper.Annotation,
+		Architecture:            systemCxt.ArchitectureChoice,
+		Args:                    args,
 		BlobDirectory:           wrapper.BlobCache,
 		CNIConfigDir:            wrapper.CNIConfigDir,
 		CNIPluginPath:           wrapper.CNIPlugInPath,
@@ -273,7 +268,7 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 		MaxPullPushRetries:      maxPullPushRetries,
 		NamespaceOptions:        namespaceOptions,
 		NoCache:                 wrapper.NoCache,
-		OS:                      systemContext.OSChoice,
+		OS:                      systemCxt.OSChoice,
 		Out:                     stdout,
 		Output:                  output,
 		OutputFormat:            format,
@@ -288,7 +283,7 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 		SignBy:                  wrapper.SignBy,
 		SignaturePolicyPath:     wrapper.SignaturePolicy,
 		Squash:                  wrapper.Squash,
-		SystemContext:           systemContext,
+		SystemContext:           systemCxt,
 		Target:                  wrapper.Target,
 		TransientMounts:         wrapper.Volumes,
 		Jobs:                    &wrapper.Jobs,
@@ -303,6 +298,20 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 	}
 
 	return options, kubefiles, nil
+}
+
+func parseArgs(buildArgs []string) (map[string]string, error) {
+	res := map[string]string{}
+	for _, arg := range buildArgs {
+		kvs := strings.Split(arg, "=")
+		if len(kvs) < 2 {
+			return nil, errors.New("build args should be key=value")
+		}
+
+		res[kvs[0]] = kvs[1]
+	}
+
+	return res, nil
 }
 
 func (engine *Engine) build(cxt context.Context, kubefiles []string, options define.BuildOptions) (id string, err error) {
@@ -334,23 +343,15 @@ func (engine *Engine) migrateFlags2Wrapper(opts *options.BuildOptions, wrapper *
 	flags := engine.Flags()
 	// imageengine cache related flags
 	// cache is enabled when "layers" is true & "no-cache" is false
-	err := flags.Set("layers", "true")
-	if err != nil {
-		return err
-	}
 	wrapper.Layers = !opts.NoCache
 	wrapper.NoCache = opts.NoCache
 	// tags. Like -t kubernetes:v1.16
-	err = flags.Set("tag", strings.Join(opts.Tags, ","))
 	wrapper.Tag = opts.Tags
-	if err != nil {
-		return err
-	}
 	// Hardcoded for network configuration.
 	// check parse.NamespaceOptions for detailed logic.
 	// this network setup for stage container, especially for RUN wget and so on.
 	// so I think we can set as host network.
-	err = flags.Set("network", "host")
+	err := flags.Set("network", "host")
 	if err != nil {
 		return err
 	}
@@ -362,7 +363,6 @@ func (engine *Engine) migrateFlags2Wrapper(opts *options.BuildOptions, wrapper *
 		return err
 	}
 
-	wrapper.Authfile = opts.Authfile
 	// do not pack kubefile into image.
 	wrapper.IgnoreFile = opts.Kubefile
 	wrapper.File = []string{opts.Kubefile}

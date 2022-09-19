@@ -17,13 +17,14 @@ package buildah
 import (
 	"fmt"
 
+	"github.com/containers/buildah/pkg/parse"
+
 	"os"
 
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/auth"
 	"github.com/pkg/errors"
 )
@@ -33,21 +34,22 @@ func (engine *Engine) Pull(opts *options.PullOptions) error {
 		return errors.Errorf("an image name must be specified")
 	}
 
-	if err := auth.CheckAuthFile(opts.Authfile); err != nil {
-		return err
-	}
-
-	if err := engine.migratePullOptionsFlags2Command(opts); err != nil {
-		return err
-	}
-
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
-	systemContext.AuthFilePath = opts.Authfile
-
+	systemCxt := engine.SystemContext()
 	store := engine.ImageStore()
+	if err := auth.CheckAuthFile(systemCxt.AuthFilePath); err != nil {
+		return err
+	}
+
+	// we need to new a systemContext instead of taking the systemContext of engine,
+	// because pullOption does not export platform option
+	newSystemCxt := systemContext()
+	_os, arch, variant, err := parse.Platform(opts.Platform)
+	if err != nil {
+		return errors.Errorf("failed to init platform from %s: %v", opts.Platform, err)
+	}
+	newSystemCxt.OSChoice = _os
+	newSystemCxt.ArchitectureChoice = arch
+	newSystemCxt.VariantChoice = variant
 
 	policy, ok := define.PolicyMap[opts.PullPolicy]
 	if !ok {
@@ -55,7 +57,7 @@ func (engine *Engine) Pull(opts *options.PullOptions) error {
 	}
 	options := buildah.PullOptions{
 		Store:         store,
-		SystemContext: systemContext,
+		SystemContext: newSystemCxt,
 		// consider export this option later
 		AllTags:      false,
 		ReportWriter: os.Stderr,
@@ -73,22 +75,5 @@ func (engine *Engine) Pull(opts *options.PullOptions) error {
 		return err
 	}
 	fmt.Printf("%s\n", id)
-	return nil
-}
-
-func (engine *Engine) migratePullOptionsFlags2Command(opts *options.PullOptions) error {
-	var (
-		flags = engine.Command.Flags()
-		err   error
-	)
-
-	if len(opts.Platform) > 0 {
-		flags.StringSlice("platform", []string{}, "")
-		// set pull platform, check "parse.SystemContextFromOptions(engine.Command)"
-		err = flags.Set("platform", opts.Platform)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }

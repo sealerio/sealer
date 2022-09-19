@@ -20,7 +20,6 @@ import (
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah"
-	"github.com/containers/buildah/pkg/parse"
 )
 
 func (engine *Engine) GetImageAnnotation(opts *options.GetImageAnnoOptions) (map[string]string, error) {
@@ -28,17 +27,11 @@ func (engine *Engine) GetImageAnnotation(opts *options.GetImageAnnoOptions) (map
 		return nil, errors.New("image name id or image name should be specified")
 	}
 
-	var builder *buildah.Builder
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return nil, err
-	}
-
 	ctx := getContext()
 	store := engine.ImageStore()
 	name := opts.ImageNameOrID
 
-	builder, err = openImage(ctx, systemContext, store, name)
+	builder, err := openImage(ctx, engine.SystemContext(), store, name)
 	if err != nil {
 		return nil, err
 	}
