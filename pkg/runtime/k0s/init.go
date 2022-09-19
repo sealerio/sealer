@@ -109,6 +109,9 @@ func (k *Runtime) BootstrapMaster0() error {
 	if _, err := ssh.Cmd(master0IP, startSvcCMD); err != nil {
 		return err
 	}
+	if err := k.WaitK0sReady(ssh, master0IP); err != nil {
+		return err
+	}
 	return nil
 }
 
