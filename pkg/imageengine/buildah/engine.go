@@ -16,11 +16,14 @@ package buildah
 
 import (
 	"path/filepath"
+	"runtime"
+
+	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/image/v5/types"
+	"github.com/sealerio/sealer/pkg/auth"
 
 	"github.com/BurntSushi/toml"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/drivers/overlay"
 	types2 "github.com/containers/storage/types"
@@ -41,6 +44,10 @@ func (engine *Engine) ImageRuntime() *libimage.Runtime {
 
 func (engine *Engine) ImageStore() storage.Store {
 	return engine.imageStore
+}
+
+func (engine *Engine) SystemContext() *types.SystemContext {
+	return engine.libimageRuntime.SystemContext()
 }
 
 func checkOverlaySupported() {
@@ -66,6 +73,28 @@ func checkOverlaySupported() {
 	}
 }
 
+// TODO we can provide a configuration file to export those options.
+// the detailed information in the parse.SystemContextFromOptions
+func systemContext() *types.SystemContext {
+	// TODO
+	// options for the following
+	// DockerCertPath
+	// tls-verify
+	// os
+	// arch
+	// variant
+	return &types.SystemContext{
+		DockerRegistryUserAgent:           "Buildah/1.25.0",
+		AuthFilePath:                      auth.GetDefaultAuthFilePath(),
+		BigFilesTemporaryDir:              parse.GetTempDir(),
+		OSChoice:                          runtime.GOOS,
+		ArchitectureChoice:                runtime.GOARCH,
+		DockerInsecureSkipTLSVerify:       types.NewOptionalBool(false),
+		OCIInsecureSkipTLSVerify:          false,
+		DockerDaemonInsecureSkipTLSVerify: false,
+	}
+}
+
 func NewBuildahImageEngine(configurations options.EngineGlobalConfigurations) (*Engine, error) {
 	if err := initBuildah(); err != nil {
 		return nil, err
@@ -78,7 +107,7 @@ func NewBuildahImageEngine(configurations options.EngineGlobalConfigurations) (*
 		return nil, err
 	}
 
-	sysCxt := &types.SystemContext{BigFilesTemporaryDir: parse.GetTempDir()}
+	sysCxt := systemContext()
 	imageRuntime, err := libimage.RuntimeFromStore(store, &libimage.RuntimeOptions{SystemContext: sysCxt})
 	if err != nil {
 		return nil, err

@@ -17,7 +17,6 @@ package image
 import (
 	"os"
 
-	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sirupsen/logrus"
@@ -47,7 +46,6 @@ func NewLoginCmd() *cobra.Command {
 	loginConfig = &options.LoginOptions{}
 	loginCmd.Flags().StringVarP(&loginConfig.Username, "username", "u", "", "user name for login registry")
 	loginCmd.Flags().StringVarP(&loginConfig.Password, "passwd", "p", "", "password for login registry")
-	loginCmd.Flags().StringVar(&loginConfig.AuthFile, "authfile", auth.GetDefaultAuthFilePath(), "path to store auth file after login. It will be $HOME/.sealer/auth.json by default.")
 	loginCmd.Flags().BoolVar(&loginConfig.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry. TLS verification cannot be used when talking to an insecure registry.")
 	if err := loginCmd.MarkFlagRequired("username"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)

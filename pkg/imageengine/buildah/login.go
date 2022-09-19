@@ -17,7 +17,6 @@ package buildah
 import (
 	"context"
 
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/auth"
 	"github.com/sealerio/sealer/pkg/define/options"
 
@@ -31,18 +30,12 @@ func (engine *Engine) Login(opts *options.LoginOptions) error {
 		return errors.Errorf("please specify a registry to login to")
 	}
 
-	systemContext, err := parse.SystemContextFromOptions(engine.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
-
-	systemContext.AuthFilePath = opts.AuthFile
+	systemCxt := engine.SystemContext()
 
 	return auth.Login(context.TODO(),
-		systemContext,
+		systemCxt,
 		&auth.LoginOptions{
-			AuthFile:           opts.AuthFile,
-			CertDir:            opts.CertDir,
+			AuthFile:           systemCxt.AuthFilePath,
 			Password:           opts.Password,
 			Username:           opts.Username,
 			Stdout:             os.Stdout,
