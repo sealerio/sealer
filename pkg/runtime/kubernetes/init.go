@@ -64,7 +64,7 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm_config.KubeadmCon
 
 	//TODO, save it into kubernetes
 	localTmpFile := "/tmp/kubeadm.yaml"
-	if err = ioutil.WriteFile(localTmpFile, bs, 0644); err != nil {
+	if err = ioutil.WriteFile(localTmpFile, bs, 0600|0064); err != nil {
 		return kubeadm_config.KubeadmConfig{}, err
 	}
 
