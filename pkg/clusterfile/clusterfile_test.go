@@ -16,10 +16,11 @@ package clusterfile
 
 import (
 	"fmt"
-	"github.com/sealerio/sealer/common"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	"github.com/sealerio/sealer/common"
 )
 
 func TestSaveAll(t *testing.T) {
