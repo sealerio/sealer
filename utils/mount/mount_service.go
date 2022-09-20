@@ -154,7 +154,7 @@ type Info struct {
 
 func GetMountDetails(target string) (bool, *Info) {
 	infos, err := mountinfo.GetMounts(mountinfo.SingleEntryFilter(target))
-	if err != nil {
+	if err != nil || len(infos) == 0 {
 		return false, nil
 	}
 	return mountCmdResultSplit(infos[0].VFSOptions, target)
