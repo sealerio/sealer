@@ -39,6 +39,7 @@ import (
 var runArgs *types.Args
 var clusterFile string
 
+//todo rewrite the cmd description
 var exampleForRunCmd = `
 create cluster to your bare metal server, appoint the iplist:
 	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
@@ -61,7 +62,6 @@ func NewRunCmd() *cobra.Command {
 		Short:   "start to run a cluster from a ClusterImage",
 		Long:    `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`,
 		Example: exampleForRunCmd,
-		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO: remove this now, maybe we can support it later
 			// set local ip address as master0 default ip if user input is empty.

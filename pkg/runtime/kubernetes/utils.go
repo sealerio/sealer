@@ -63,7 +63,6 @@ rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd/* && rm -rf /var/etcd/*
 `
 	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
-	RemoteRemoveRegistryCerts    = "rm -rf " + DockerCertDir + "/%s*"
 	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
 	KubeDeleteNode               = "kubectl delete node %s"
 

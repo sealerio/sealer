@@ -15,9 +15,16 @@
 package kubernetes
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net"
 	"path/filepath"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
@@ -85,7 +92,7 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	if err = k.CopyStaticFiles(masters[0:1]); err != nil {
+	if err = k.copyStaticFiles(masters[0:1]); err != nil {
 		return err
 	}
 
@@ -106,6 +113,7 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
+	logrus.Info("Succeeded in creating a new cluster, enjoy it!")
 	return nil
 }
 
@@ -156,7 +164,7 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 	if err = k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
 		return err
 	}
-
+	logrus.Info("cluster scale up succeeded !")
 	return nil
 }
 
@@ -191,13 +199,54 @@ func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
 		}
 	}
 
+	logrus.Info("cluster scale down succeeded !")
 	return nil
 }
 
-// /var/lib/sealer/data/my-cluster/certs
-func (k *Runtime) getCertsDir() string {
-	return filepath.Join(k.infra.GetClusterRootfs(), "certs")
+// dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
+func (k *Runtime) dumpKubeConfigIntoCluster(master0 net.IP) error {
+	driver, err := k.GetCurrentRuntimeDriver()
+	if err != nil {
+		return err
+	}
+
+	kubeConfigContent, err := ioutil.ReadFile(AdminKubeConfPath)
+	if err != nil {
+		return err
+	}
+
+	kubeConfigContent = bytes.ReplaceAll(kubeConfigContent, []byte("apiserver.cluster.local"), []byte(master0.String()))
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "admin.conf",
+			Namespace: metav1.NamespaceSystem,
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"admin.conf": kubeConfigContent,
+		},
+	}
+
+	if err := driver.Create(context.Background(), secret, &runtimeClient.CreateOptions{}); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("unable to create secret: %v", err)
+		}
+
+		if err := driver.Update(context.Background(), secret, &runtimeClient.UpdateOptions{}); err != nil {
+			return fmt.Errorf("unable to update secret: %v", err)
+		}
+	}
+
+	return nil
 }
+
+
+
+
+
+
+
 
 // /var/lib/sealer/data/my-cluster/pki
 func (k *Runtime) getPKIPath() string {
@@ -212,6 +261,11 @@ func (k *Runtime) getEtcdCertPath() string {
 // /var/lib/sealer/data/my-cluster/rootfs/statics
 func (k *Runtime) getStaticFileDir() string {
 	return filepath.Join(k.infra.GetClusterRootfs(), "statics")
+}
+
+// /var/lib/sealer/data/my-cluster/mount/etc/kubeadm.yml
+func (k *Runtime) getDefaultKubeadmConfig() string {
+	return filepath.Join(k.infra.GetClusterRootfs(), "etc", "kubeadm.yml")
 }
 
 func (k *Runtime) getAPIServerDomain() string {

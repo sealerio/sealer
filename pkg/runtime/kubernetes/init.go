@@ -39,7 +39,6 @@ const (
 	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
 	DefaultVIP             = "10.103.97.2"
 	DefaultAPIserverDomain = "apiserver.cluster.local"
-	DockerCertDir          = "/etc/docker/certs.d"
 )
 
 func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm_config.KubeadmConfig, error) {
@@ -79,11 +78,6 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm_config.KubeadmCon
 	return conf, nil
 }
 
-// /var/lib/sealer/data/my-cluster/mount/etc/kubeadm.yml
-func (k *Runtime) getDefaultKubeadmConfig() string {
-	return filepath.Join(k.infra.GetClusterRootfs(), "etc", "kubeadm.yml")
-}
-
 func (k *Runtime) generateCert(kubeadmConf kubeadm_config.KubeadmConfig, master0 net.IP) error {
 	hostName, err := k.infra.GetHostName(master0)
 	if err != nil {
@@ -101,25 +95,6 @@ func (k *Runtime) generateCert(kubeadmConf kubeadm_config.KubeadmConfig, master0
 	)
 }
 
-// initKube do some initialize kubelet works, such as configuring the host environment, initializing the kubelet service, and so on.
-func (k *Runtime) initKube(hosts []net.IP) error {
-	initKubeletCmd := fmt.Sprintf("cd %s && bash %s", filepath.Join(k.infra.GetClusterRootfs(), "scripts"), "init-kube.sh")
-	eg, _ := errgroup.WithContext(context.Background())
-	for _, h := range hosts {
-		host := h
-		eg.Go(func() error {
-			if err := k.infra.CmdAsync(host, initKubeletCmd); err != nil {
-				return fmt.Errorf("failed to init Kubelet Service on (%s): %s", host, err.Error())
-			}
-			return nil
-		})
-	}
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (k *Runtime) createKubeConfig(master0 net.IP) error {
 	hostName, err := k.infra.GetHostName(master0)
 	if err != nil {
@@ -132,15 +107,15 @@ func (k *Runtime) createKubeConfig(master0 net.IP) error {
 		"ca", hostName, controlPlaneEndpoint, "kubernetes")
 }
 
-func (k *Runtime) CopyStaticFiles(nodes []net.IP) error {
+func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 	for _, file := range MasterStaticFiles {
 		staticFilePath := filepath.Join(k.getStaticFileDir(), file.Name)
 		cmdLinkStatic := fmt.Sprintf(RemoteCmdCopyStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
 		eg, _ := errgroup.WithContext(context.Background())
 		for _, host := range nodes {
-			host := host
+			h := host
 			eg.Go(func() error {
-				if err := k.infra.CmdAsync(host, cmdLinkStatic); err != nil {
+				if err := k.infra.CmdAsync(h, cmdLinkStatic); err != nil {
 					return fmt.Errorf("[%s] failed to link static file: %s", host, err.Error())
 				}
 
@@ -152,6 +127,49 @@ func (k *Runtime) CopyStaticFiles(nodes []net.IP) error {
 		}
 	}
 	return nil
+}
+
+//initMaster0 is using kubeadm init to start up the cluster master0.
+func (k *Runtime) initMaster0(kubeadmConf kubeadm_config.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
+	if err := k.initKube([]net.IP{master0}); err != nil {
+		return v1beta2.BootstrapTokenDiscovery{}, "", err
+	}
+
+	if err := k.sendClusterCert([]net.IP{master0}); err != nil {
+		return v1beta2.BootstrapTokenDiscovery{}, "", err
+	}
+
+	if err := k.sendKubeConfigFilesToMaster([]net.IP{master0}, kubeadmConf.KubernetesVersion, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
+		return v1beta2.BootstrapTokenDiscovery{}, "", err
+	}
+
+	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
+		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
+	}
+
+	cmdInit, err := k.Command(kubeadmConf.KubernetesVersion, master0.String(), InitMaster, v1beta2.BootstrapTokenDiscovery{}, "")
+	if err != nil {
+		return v1beta2.BootstrapTokenDiscovery{}, "", err
+	}
+	logrus.Info("start to init master0...")
+
+	// TODO skip docker version error check for test
+	output, err := k.infra.Cmd(master0, cmdInit)
+	if err != nil {
+		_, wErr := common.StdOut.WriteString(string(output))
+		if wErr != nil {
+			return v1beta2.BootstrapTokenDiscovery{}, "", err
+		}
+		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
+	}
+
+	if err := k.infra.CmdAsync(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
+		return v1beta2.BootstrapTokenDiscovery{}, "", err
+	}
+
+	token, certKey := k.decodeMaster0Output(output)
+
+	return token, certKey, nil
 }
 
 //decode output to join token hash and key
@@ -193,40 +211,95 @@ func (k *Runtime) decodeJoinCmd(cmd string) (v1beta2.BootstrapTokenDiscovery, st
 	return token, certKey
 }
 
-//initMaster0 is using kubeadm init to start up the cluster master0.
-func (k *Runtime) initMaster0(kubeadmConf kubeadm_config.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
-	if err := k.initKube([]net.IP{master0}); err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", err
+// initKube do some initialize kubelet works, such as configuring the host environment, initializing the kubelet service, and so on.
+func (k *Runtime) initKube(hosts []net.IP) error {
+	initKubeletCmd := fmt.Sprintf("cd %s && bash %s", filepath.Join(k.infra.GetClusterRootfs(), "scripts"), "init-kube.sh")
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, h := range hosts {
+		host := h
+		eg.Go(func() error {
+			if err := k.infra.CmdAsync(host, initKubeletCmd); err != nil {
+				return fmt.Errorf("failed to init Kubelet Service on (%s): %s", host, err.Error())
+			}
+			return nil
+		})
 	}
-
-	if err := k.SendJoinMasterKubeConfigs([]net.IP{master0}, kubeadmConf.KubernetesVersion, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", err
+	if err := eg.Wait(); err != nil {
+		return err
 	}
+	return nil
+}
 
-	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
-	}
-
-	cmdInit, err := k.Command(kubeadmConf.KubernetesVersion, master0.String(), InitMaster, v1beta2.BootstrapTokenDiscovery{}, "")
-	if err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", err
-	}
-
-	// TODO skip docker version error check for test
-	output, err := k.infra.Cmd(master0, cmdInit)
-	if err != nil {
-		_, wErr := common.StdOut.WriteString(string(output))
-		if wErr != nil {
-			return v1beta2.BootstrapTokenDiscovery{}, "", err
+func (k *Runtime) sendClusterCert(hosts []net.IP) error {
+	f := func(host net.IP) error {
+		err := k.infra.Copy(host, k.getPKIPath(), clustercert.KubeDefaultCertPath)
+		if err != nil {
+			return fmt.Errorf("failed to copy cluster cert : %v", err)
 		}
-		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
+		return nil
 	}
 
-	if err := k.infra.CmdAsync(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
+	return k.infra.ConcurrencyExecute(hosts, f)
+}
+
+func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, kubeVersion string, files ...string) error {
+	for _, kubeFile := range files {
+		src := filepath.Join(k.infra.GetClusterRootfs(), kubeFile)
+		dest := filepath.Join(clustercert.KubernetesConfigDir, kubeFile)
+
+		f := func(host net.IP) error {
+			err := k.infra.Copy(host, src, dest)
+			if err != nil {
+				return fmt.Errorf("failed to copy cluster kubeconfig file : %v", err)
+			}
+			return nil
+		}
+		if err := k.infra.ConcurrencyExecute(masters, f); err != nil {
+			return err
+		}
+	}
+
+	//todo load kube-controller-manager and kube-scheduler locally and then do send options
+	// fix > 1.19.1 kube-controller-manager and kube-scheduler use the LocalAPIEndpoint instead of the ControlPlaneEndpoint.
+	if kubeVersion == kubeadm_config.V1991 || kubeVersion == kubeadm_config.V1992 {
+		for _, v := range masters {
+			cmd := fmt.Sprintf(RemoteReplaceKubeConfig, KUBESCHEDULERCONFIGFILE, v.String(), KUBECONTROLLERCONFIGFILE, v.String(), KUBESCHEDULERCONFIGFILE)
+			if err := k.infra.CmdAsync(v, cmd); err != nil {
+				return fmt.Errorf("failed to replace kube config on %s: %v ", v, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (k *Runtime) getJoinTokenHashAndKey(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
+	cmd := fmt.Sprintf(`kubeadm init phase upload-certs --upload-certs -v %d`, k.Config.Vlog)
+
+	output, err := k.infra.CmdToString(master0, cmd, "\r\n")
+	if err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
+	logrus.Debugf("[globals]decodeCertCmd: %s", output)
+	slice := strings.Split(output, "Using certificate key:")
+	if len(slice) != 2 {
+		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to get certifacate key: %s", slice)
+	}
+	key := strings.Replace(slice[1], "\r\n", "", -1)
+	certKey := strings.Replace(key, "\n", "", -1)
 
-	token, certKey := k.decodeMaster0Output(output)
+	cmd = fmt.Sprintf("kubeadm token create --print-join-command -v %d", k.Config.Vlog)
+
+	out, err := k.infra.Cmd(master0, cmd)
+	if err != nil {
+		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to create kubeadm join token: %v", err)
+	}
+
+	token, certKey2 := k.decodeMaster0Output(out)
+
+	if certKey == "" {
+		certKey = certKey2
+	}
 
 	return token, certKey, nil
 }
