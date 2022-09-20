@@ -15,12 +15,14 @@
 package clusterfile
 
 import (
+	"fmt"
+	"github.com/sealerio/sealer/common"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 )
 
-func TestSetCluster(t *testing.T) {
+func TestSaveAll(t *testing.T) {
 	type args struct {
 	}
 	tests := []struct {
@@ -47,6 +49,12 @@ func TestSetCluster(t *testing.T) {
 			cluster := cf.GetCluster()
 			env := "a=b,b=c,c=d"
 			cluster.Spec.Env = append(cluster.Spec.Env, env)
+			configs := cf.GetConfigs()
+			fmt.Println(configs)
+			plugins := cf.GetPlugins()
+			fmt.Println(plugins)
+			config := cf.GetKubeadmConfig()
+			config.InitConfiguration.TypeMeta.Kind = common.InitConfiguration
 			cf.SetCluster(cluster)
 			if err := cf.SaveAll(); err != nil {
 				t.Errorf("failed to save all error:(%v)", err)

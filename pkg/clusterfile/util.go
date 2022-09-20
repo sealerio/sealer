@@ -73,7 +73,7 @@ func GetDefaultCluster() (cluster *v2.Cluster, err error) {
 }
 
 // SaveToDisk save cluster obj to disk file with encrypted ssh credential
-func SaveToDisk(cluster *v2.Cluster, clusterName string) error {
+func SaveToDisk(cluster *v2.Cluster) error {
 	fileName := common.GetClusterWorkClusterfile()
 	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
 	if err != nil {
