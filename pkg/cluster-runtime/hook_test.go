@@ -15,9 +15,10 @@
 package clusterruntime
 
 import (
+	"testing"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestLoadPluginsFromFile(t *testing.T) {

@@ -28,7 +28,7 @@ type PluginSpec struct {
 	Type   string `json:"type,omitempty"`
 	Data   string `json:"data,omitempty"`
 	Action string `json:"action,omitempty"`
-	Scope     string `json:"scope,omitempty"`
+	Scope  string `json:"scope,omitempty"`
 }
 
 // PluginStatus defines the observed state of Plugin

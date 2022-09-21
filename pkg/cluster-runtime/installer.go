@@ -15,6 +15,9 @@
 package clusterruntime
 
 import (
+	"net"
+	"path/filepath"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imageengine"
@@ -24,8 +27,6 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"net"
-	"path/filepath"
 )
 
 // RuntimeConfig for Installer
