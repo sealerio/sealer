@@ -17,9 +17,10 @@ package clusterfile
 import (
 	"bytes"
 	"fmt"
-	"github.com/sealerio/sealer/utils/hash"
 	"os"
 	"path/filepath"
+
+	"github.com/sealerio/sealer/utils/hash"
 
 	"github.com/sealerio/sealer/common"
 	utilsos "github.com/sealerio/sealer/utils/os"

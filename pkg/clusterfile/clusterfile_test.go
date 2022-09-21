@@ -146,7 +146,7 @@ ipvs:
 		Spec: v1.PluginSpec{
 			Type:   "SHELL",
 			Data:   "kubectl get nodes",
-			On:     "master",
+			Scope:  "master",
 			Action: "PostInstall",
 		},
 	}
