@@ -84,24 +84,24 @@ func ValidateIPStr(inputStr string) error {
 	return nil
 }
 
-// ValidateJoinArgs validates all the input args from sealer join command.
-func ValidateJoinArgs(joinMasters, joinNodes string) error {
+// ValidateScaleIPStr validates all the input args from scale up Or scale down command.
+func ValidateScaleIPStr(masters, nodes string) error {
 	var errMsg []string
 
-	if joinNodes == "" && joinMasters == "" {
+	if nodes == "" && masters == "" {
 		return fmt.Errorf("master and node cannot both be empty")
 	}
 
 	// validate input masters IP info
-	if len(joinMasters) != 0 {
-		if err := ValidateIPStr(joinMasters); err != nil {
+	if len(masters) != 0 {
+		if err := ValidateIPStr(masters); err != nil {
 			errMsg = append(errMsg, err.Error())
 		}
 	}
 
 	// validate input nodes IP info
-	if len(joinNodes) != 0 {
-		if err := ValidateIPStr(joinNodes); err != nil {
+	if len(nodes) != 0 {
+		if err := ValidateIPStr(nodes); err != nil {
 			errMsg = append(errMsg, err.Error())
 		}
 	}
@@ -110,4 +110,21 @@ func ValidateJoinArgs(joinMasters, joinNodes string) error {
 		return nil
 	}
 	return fmt.Errorf(strings.Join(errMsg, ","))
+}
+
+func ParseToNetIPList(masters, workers string) ([]net.IP, []net.IP, error) {
+	newMasters, err := netutils.TransferToIPList(masters)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	newNodes, err := netutils.TransferToIPList(workers)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	newMasterIPList := netutils.IPStrsToIPs(strings.Split(newMasters, ","))
+	newNodeIPList := netutils.IPStrsToIPs(strings.Split(newNodes, ","))
+
+	return newMasterIPList, newNodeIPList, nil
 }

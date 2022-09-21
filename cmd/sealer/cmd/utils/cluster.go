@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 
@@ -31,11 +30,12 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-func ConstructClusterFromArg(imageName string, runArgs *types.Args) (*v2.Cluster, error) {
-	resultHosts, err := GetHosts(runArgs.Masters, runArgs.Nodes)
+func ConstructClusterForRun(imageName string, runArgs *types.Args) (*v2.Cluster, error) {
+	resultHosts, err := TransferIPStrToHosts(runArgs.Masters, runArgs.Nodes)
 	if err != nil {
 		return nil, err
 	}
+
 	cluster := v2.Cluster{
 		Spec: v2.ClusterSpec{
 			SSH: v1.SSH{
@@ -57,28 +57,10 @@ func ConstructClusterFromArg(imageName string, runArgs *types.Args) (*v2.Cluster
 	return &cluster, nil
 }
 
-func JoinArgsIntoClusterFile(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters, joinWorkers string) error {
-	return joinBaremetalNodes(cluster, scaleArgs, joinMasters, joinWorkers)
-}
-
-func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters, joinWorkers string) error {
+func ConstructClusterForJoin(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters, joinWorkers []net.IP) error {
 	var err error
 	// merge custom Env to the existed cluster
 	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
-
-	joinMasters, err = netutils.AssemblyIPList(joinMasters)
-	if err != nil {
-		return err
-	}
-
-	joinWorkers, err = netutils.AssemblyIPList(joinWorkers)
-	if err != nil {
-		return err
-	}
-
-	if (!netutils.IsIPList(joinWorkers) && joinWorkers != "") || (!netutils.IsIPList(joinMasters) && joinMasters != "") {
-		return fmt.Errorf("parameter error: current mode should submit iplist")
-	}
 
 	// if scaleArgs`s ssh auth credential is different from local cluster,will add it to each host.
 	// if not use local cluster ssh auth credential.
@@ -109,12 +91,9 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters,
 	}
 
 	//add joined masters
-	if joinMasters != "" {
+	if len(joinMasters) != 0 {
 		masterIPs := cluster.GetMasterIPList()
-		addedMasterIPStr := strUtils.RemoveDuplicate(strUtils.NewComparator(strings.Split(joinMasters, ","), []string{""}).GetSrcSubtraction())
-		addedMasterIP := netutils.IPStrsToIPs(addedMasterIPStr)
-
-		for _, ip := range addedMasterIP {
+		for _, ip := range joinMasters {
 			// if ip already taken by master will return join duplicated ip error
 			if !netutils.NotInIPList(ip, masterIPs) {
 				return fmt.Errorf("failed to scale master for duplicated ip: %s", ip)
@@ -122,7 +101,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters,
 		}
 
 		host := v2.Host{
-			IPS:   addedMasterIP,
+			IPS:   joinMasters,
 			Roles: []string{common.MASTER},
 		}
 
@@ -134,12 +113,9 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters,
 	}
 
 	//add joined nodes
-	if joinWorkers != "" {
+	if len(joinWorkers) != 0 {
 		nodeIPs := cluster.GetNodeIPList()
-		addedNodeIPStrs := strUtils.RemoveDuplicate(strUtils.NewComparator(strings.Split(joinWorkers, ","), []string{""}).GetSrcSubtraction())
-		addedNodeIP := netutils.IPStrsToIPs(addedNodeIPStrs)
-
-		for _, ip := range addedNodeIP {
+		for _, ip := range joinWorkers {
 			// if ip already taken by node will return join duplicated ip error
 			if !netutils.NotInIPList(ip, nodeIPs) {
 				return fmt.Errorf("failed to scale node for duplicated ip: %s", ip)
@@ -147,7 +123,7 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters,
 		}
 
 		host := v2.Host{
-			IPS:   addedNodeIP,
+			IPS:   joinWorkers,
 			Roles: []string{common.NODE},
 		}
 
@@ -160,51 +136,45 @@ func joinBaremetalNodes(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters,
 	return nil
 }
 
-func DeleteClusterNode(cluster *v2.Cluster, scaleArgs *types.Args, deleteMasters, deleteWorkers string) error {
-	return deleteBaremetalNodes(cluster, scaleArgs, deleteMasters, deleteWorkers)
+func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersToDelete []net.IP) error {
+	if len(mastersToDelete) != 0 {
+		for i := range cluster.Spec.Hosts {
+			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
+				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, mastersToDelete)
+			}
+		}
+	}
+
+	if len(workersToDelete) != 0 {
+		for i := range cluster.Spec.Hosts {
+			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
+				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, workersToDelete)
+			}
+		}
+	}
+
+	// if hosts have no ip address exist,then delete this host.
+	var hosts []v2.Host
+	for _, host := range cluster.Spec.Hosts {
+		if len(host.IPS) == 0 {
+			continue
+		}
+		hosts = append(hosts, host)
+	}
+	cluster.Spec.Hosts = hosts
+
+	return nil
 }
 
-func deleteBaremetalNodes(cluster *v2.Cluster, scaleArgs *types.Args, mastersToDelete, workersToDelete string) error {
-	var err error
-	// adding custom Env params for delete option here to support executing users clean scripts via env.
-	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
-
-	mastersToDelete, err = netutils.AssemblyIPList(mastersToDelete)
-	if err != nil {
-		return err
-	}
-
-	workersToDelete, err = netutils.AssemblyIPList(workersToDelete)
-	if err != nil {
-		return err
-	}
-
-	if (!netutils.IsIPList(workersToDelete) && workersToDelete != "") || (!netutils.IsIPList(mastersToDelete) && mastersToDelete != "") {
-		return fmt.Errorf("parameter error: current mode should submit iplist")
-	}
-
+func ParseScaleDownArgs(cluster *v2.Cluster, scaleArgs *types.Args, mastersToDelete []net.IP) error {
 	//master0 machine cannot be deleted
-	scaleMasterIPs := netutils.IPStrsToIPs(strings.Split(mastersToDelete, ","))
-	if !netutils.NotInIPList(cluster.GetMaster0IP(), scaleMasterIPs) {
+	if !netutils.NotInIPList(cluster.GetMaster0IP(), mastersToDelete) {
 		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
 	}
 
-	if mastersToDelete != "" && netutils.IsIPList(mastersToDelete) {
-		for i := range cluster.Spec.Hosts {
-			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
-				masterIPs := netutils.IPStrsToIPs(strings.Split(mastersToDelete, ","))
-				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, masterIPs)
-			}
-		}
-	}
-	if workersToDelete != "" && netutils.IsIPList(workersToDelete) {
-		for i := range cluster.Spec.Hosts {
-			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
-				nodeIPs := netutils.IPStrsToIPs(strings.Split(workersToDelete, ","))
-				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, nodeIPs)
-			}
-		}
-	}
+	// adding custom Env params for delete option here to support executing users clean scripts via env.
+	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
+
 	return nil
 }
 

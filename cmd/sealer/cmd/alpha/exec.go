@@ -60,7 +60,7 @@ func NewExecCmd() *cobra.Command {
 func execActionFunc(cmd *cobra.Command, args []string) error {
 	var ipList []net.IP
 
-	cluster, err := clusterfile.GetClusterFromFile(common.GetClusterWorkClusterfile())
+	cluster, err := clusterfile.GetClusterFromFile(common.GetDefaultClusterfile())
 	if err != nil {
 		return err
 	}

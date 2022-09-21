@@ -85,22 +85,26 @@ func NewRunCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
+
 				cf, err = clusterfile.NewClusterFile(clusterFileData)
 				if err != nil {
 					return err
 				}
 			} else {
-				if err := utils.ValidateRunArgs(runArgs); err != nil {
+				if err = utils.ValidateRunArgs(runArgs); err != nil {
 					return fmt.Errorf("failed to validate input run args: %v", err)
 				}
-				cluster, err := utils.ConstructClusterFromArg(args[0], runArgs)
+
+				cluster, err := utils.ConstructClusterForRun(args[0], runArgs)
 				if err != nil {
 					return err
 				}
+
 				clusterData, err := yaml.Marshal(cluster)
 				if err != nil {
 					return err
 				}
+
 				cf, err = clusterfile.NewClusterFile(clusterData)
 				if err != nil {
 					return err

@@ -37,6 +37,7 @@ const (
 	RootfsLayerValue   = "rootfs cache"
 )
 
+//todo clean all unused const make build file size less
 const (
 	DefaultWorkDir                = "/tmp/%s/workdir"
 	EtcDir                        = "etc"
@@ -46,7 +47,7 @@ const (
 	DefaultClusterFileName        = "Clusterfile"
 	DefaultSealerDataDir          = "/var/lib/sealer/data"
 	DefaultClusterInitBashFile    = "/var/lib/sealer/data/%s/scripts/init.sh"
-	DefaultClusterCleanBashFile   = "/var/lib/sealer/data/%s/rootfs/scripts/clean.sh"
+	DefaultClusterCleanBashFile   = "%s/scripts/clean.sh"
 	TarGzSuffix                   = ".tar.gz"
 	YamlSuffix                    = ".yaml"
 	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
@@ -139,12 +140,12 @@ const (
 	WINDOWS            = "windows"
 )
 
-func GetClusterWorkDir() string {
+func GetSealerWorkDir() string {
 	return filepath.Join(GetHomeDir(), ".sealer")
 }
 
-func GetClusterWorkClusterfile() string {
-	return filepath.Join(GetClusterWorkDir(), "Clusterfile")
+func GetDefaultClusterfile() string {
+	return filepath.Join(GetSealerWorkDir(), "Clusterfile")
 }
 
 func DefaultRegistryAuthConfigDir() string {

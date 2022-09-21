@@ -96,13 +96,13 @@ func (k *Runtime) deleteNodes(nodesToDelete, remainMasters []net.IP) error {
 
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, node := range nodesToDelete {
-		node := node
+		n := node
 		eg.Go(func() error {
-			logrus.Infof("Start to delete worker %s", node)
-			if err := k.deleteNode(node, remainMaster0); err != nil {
-				return fmt.Errorf("failed to delete node %s: %v", node, err)
+			logrus.Infof("Start to delete worker %s", n)
+			if err := k.deleteNode(n, remainMaster0); err != nil {
+				return fmt.Errorf("failed to delete node %s: %v", n, err)
 			}
-			logrus.Infof("Succeeded in deleting worker %s", node)
+			logrus.Infof("Succeeded in deleting worker %s", n)
 
 			return nil
 		})

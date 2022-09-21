@@ -131,8 +131,8 @@ func (c *ClusterFile) SaveAll() error {
 		}
 		clusterfileBytes = append(clusterfileBytes, kubeProxyConfiguration)
 	}
-
-	path := common.GetClusterWorkClusterfile()
+	//todo cluster ssh info need to be encrypted
+	path := common.GetDefaultClusterfile()
 
 	return os.NewCommonWriter(path).WriteFile(bytes.Join(clusterfileBytes, []byte("---\n")))
 }

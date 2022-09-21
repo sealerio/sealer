@@ -17,10 +17,11 @@ package imagedistributor
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/env"
 	osi "github.com/sealerio/sealer/utils/os"
-	"io/ioutil"
 
 	"net"
 	"os"

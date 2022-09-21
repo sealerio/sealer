@@ -16,13 +16,14 @@ package kubernetes
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config/v1beta2"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/yaml"
 	"github.com/sirupsen/logrus"
-	"net"
 )
 
 func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig kubeadm_config.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery, certKey string) error {
@@ -53,7 +54,8 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 	if err != nil {
 		return fmt.Errorf("failed to get join master command, kubernetes version is %s", kubeadmConfig.KubernetesVersion)
 	}
-
+	//set master0 as APIServerEndpoint when join master
+	vs := net.JoinHostPort(master0.String(), "6443")
 	for _, m := range newMasters {
 		logrus.Infof("Start to join %s as master", m)
 
@@ -62,21 +64,24 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return err
 		}
 
-		if err := kubeadmConfig.JoinConfiguration.SetJoinAdvertiseAddress(m); err != nil {
-			return err
-		}
+		//if err = kubeadmConfig.JoinConfiguration.SetJoinAdvertiseAddress(m); err != nil {
+		//	return err
+		//}
 		kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken = &token
+		kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = vs
+		kubeadmConfig.JoinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = m
+		kubeadmConfig.JoinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort = int32(6443)
 		kubeadmConfig.JoinConfiguration.ControlPlane.CertificateKey = certKey
 		str, err := yaml.MarshalWithDelimiter(kubeadmConfig.JoinConfiguration, kubeadmConfig.KubeletConfiguration)
 		if err != nil {
 			return err
 		}
-		cmd := fmt.Sprintf("echo \"%s\" > %s", str, KubeadmFileYml)
+		cmd := fmt.Sprintf("mkdir -p /etc/kubernetes && echo \"%s\" > %s", str, KubeadmFileYml)
 		if err := k.infra.CmdAsync(m, cmd); err != nil {
 			return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", m, cmd, err)
 		}
 
-		if err := k.infra.CmdAsync(m, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), m.String())); err != nil {
+		if err := k.infra.CmdAsync(m, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
 			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}
 

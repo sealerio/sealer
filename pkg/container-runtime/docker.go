@@ -40,11 +40,12 @@ func (d *DockerInstaller) InstallOn(hosts []net.IP) error {
 }
 
 func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
-	CleanCmd := "cd %s/scripts && chmod +x docker-uninstall.sh && bash docker-uninstall.sh"
+	//todo need to cooperator with the rootfs files, so the name of uninstall bash file need to discuss
+	cleanCmd := fmt.Sprintf("cd %s/scripts && chmod +x uninstall-docker.sh && bash uninstall-docker.sh", d.driver.GetClusterRootfs())
 	for _, ip := range hosts {
-		err := d.driver.CmdAsync(ip, CleanCmd)
+		err := d.driver.CmdAsync(ip, cleanCmd)
 		if err != nil {
-			return fmt.Errorf("failed to execute clean command(%s) on host (%s): error(%v)", CleanCmd, ip, err)
+			return fmt.Errorf("failed to execute clean command(%s) on host (%s): error(%v)", cleanCmd, ip, err)
 		}
 	}
 	return nil

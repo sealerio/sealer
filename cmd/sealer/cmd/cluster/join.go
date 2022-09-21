@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"strings"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
@@ -29,7 +28,6 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/spf13/cobra"
 )
 
@@ -57,21 +55,29 @@ func NewJoinCmd() *cobra.Command {
 				cf  clusterfile.Interface
 				err error
 			)
-			if err := utils.ValidateJoinArgs(newMasters, newWorkers); err != nil {
+
+			if err = utils.ValidateScaleIPStr(newMasters, newWorkers); err != nil {
 				return fmt.Errorf("failed to validate input run args: %v", err)
 			}
-			workClusterfile := common.GetClusterWorkClusterfile()
+
+			joinMasterIPList, joinNodeIPList, err := utils.ParseToNetIPList(newMasters, newWorkers)
+			if err != nil {
+				return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
+			}
+
+			workClusterfile := common.GetDefaultClusterfile()
 			clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
 			if err != nil {
 				return err
 			}
+
 			cf, err = clusterfile.NewClusterFile(clusterFileData)
 			if err != nil {
 				return err
 			}
 			cluster := cf.GetCluster()
 
-			if err = utils.JoinArgsIntoClusterFile(&cluster, joinArgs, newMasters, newWorkers); err != nil {
+			if err = utils.ConstructClusterForJoin(&cluster, joinArgs, joinMasterIPList, joinNodeIPList); err != nil {
 				return err
 			}
 			cf.SetCluster(cluster)
@@ -80,7 +86,6 @@ func NewJoinCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
@@ -91,12 +96,9 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
-			newMasterIPList := utilsnet.IPStrsToIPs(strings.Split(newMasters, ","))
-			newNodeIPList := utilsnet.IPStrsToIPs(strings.Split(newWorkers, ","))
-
 			var (
 				clusterImageName = cluster.Spec.Image
-				newHosts         = append(newMasterIPList, newNodeIPList...)
+				newHosts         = append(joinMasterIPList, joinNodeIPList...)
 			)
 
 			// distribute rootfs
@@ -114,13 +116,16 @@ func NewJoinCmd() *cobra.Command {
 			}
 
 			installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
-			_, _, err = installer.ScaleUp(newMasterIPList, newNodeIPList)
+			_, _, err = installer.ScaleUp(joinMasterIPList, joinNodeIPList)
+			if err != nil {
+				return err
+			}
 
 			if err = cf.SaveAll(); err != nil {
 				return err
 			}
 
-			return err
+			return nil
 		},
 	}
 

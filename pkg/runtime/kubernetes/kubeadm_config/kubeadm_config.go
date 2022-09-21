@@ -211,7 +211,5 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	if conf.JoinConfiguration.Discovery.BootstrapToken == nil {
 		conf.JoinConfiguration.Discovery.BootstrapToken = &v1beta2.BootstrapTokenDiscovery{}
 	}
-	conf.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = masters[0].String()
-
 	return conf, nil
 }

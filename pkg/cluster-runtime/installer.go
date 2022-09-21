@@ -78,7 +78,6 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 	// add installer hooks
 	hooks := make(map[Phase]HookConfigList)
 	plugins := runtimeConfig.Plugins
-	// todo load Plugins from rootfs
 	for _, pluginConfig := range plugins {
 		hookType := HookType(pluginConfig.Spec.Type)
 
@@ -220,7 +219,12 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, containerruntime.Info{}, i.infraDriver, i.imageEngine)
+	crInfo, err := i.containerRuntimeInstaller.GetInfo()
+	if err != nil {
+		return err
+	}
+
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
 	if err != nil {
 		return err
 	}

@@ -19,11 +19,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"path/filepath"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net"
-	"path/filepath"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/sealerio/sealer/common"
@@ -164,7 +165,7 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 	if err = k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
 		return err
 	}
-	logrus.Info("cluster scale up succeeded !")
+	logrus.Info("cluster scale up succeeded!")
 	return nil
 }
 
@@ -199,7 +200,7 @@ func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
 		}
 	}
 
-	logrus.Info("cluster scale down succeeded !")
+	logrus.Info("cluster scale down succeeded!")
 	return nil
 }
 
@@ -240,13 +241,6 @@ func (k *Runtime) dumpKubeConfigIntoCluster(master0 net.IP) error {
 
 	return nil
 }
-
-
-
-
-
-
-
 
 // /var/lib/sealer/data/my-cluster/pki
 func (k *Runtime) getPKIPath() string {

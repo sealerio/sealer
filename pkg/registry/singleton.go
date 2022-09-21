@@ -60,17 +60,16 @@ func (c *localSingletonConfigurator) Clean() error {
 }
 
 func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
-	var (
-		username = c.Auth.Username
-		password = c.Auth.Username
-		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
-	)
+	uninstallCmd := []string{shellcommand.CommandUnSetHostAlias()}
 
-	logoutCmd := fmt.Sprintf("nerdctl logout -u %s -p %s %s", username, password, endpoint)
-	unSetHostCmd := shellcommand.CommandUnSetHostAlias()
+	if c.Auth.Username != "" && c.Auth.Password != "" {
+		//todo use sdk to logout instead of shell cmd
+		logoutCmd := fmt.Sprintf("nerdctl logout -u %s -p %s %s ", c.Auth.Username, c.Auth.Password, c.Domain+":"+strconv.Itoa(c.Port))
+		uninstallCmd = append(uninstallCmd, logoutCmd)
+	}
 
 	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, strings.Join([]string{logoutCmd, unSetHostCmd}, "&&"))
+		err := c.infraDriver.CmdAsync(host, strings.Join(uninstallCmd, "&&"))
 		if err != nil {
 			return fmt.Errorf("failed to delete registry configuration: %v", err)
 		}

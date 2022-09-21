@@ -56,7 +56,8 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm_config.KubeadmCon
 	bs, err := yaml.MarshalWithDelimiter(&conf.InitConfiguration,
 		&conf.ClusterConfiguration,
 		&conf.KubeletConfiguration,
-		&conf.KubeProxyConfiguration)
+		&conf.KubeProxyConfiguration,
+		&conf.JoinConfiguration)
 	if err != nil {
 		return kubeadm_config.KubeadmConfig{}, err
 	}

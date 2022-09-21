@@ -46,6 +46,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm_co
 	for _, m := range masters {
 		rs = append(rs, fmt.Sprintf("--rs %s", net.JoinHostPort(m.String(), "6443")))
 	}
+	//set cluster VIP as APIServerEndpoint when join node
 	vs := net.JoinHostPort(k.getAPIServerVIP().String(), "6443")
 	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
 
@@ -56,7 +57,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm_co
 	if err != nil {
 		return err
 	}
-	writeJoinConfigCmd := fmt.Sprintf("echo \"%s\" > %s", joinConfig, KubeadmFileYml)
+	writeJoinConfigCmd := fmt.Sprintf("mkdir -p /etc/kubernetes && echo \"%s\" > %s", joinConfig, KubeadmFileYml)
 
 	y := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), masters, k.Config.LvsImage)
 	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
@@ -90,12 +91,12 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm_co
 				return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 			}
 
-			if err := k.infra.CmdAsync(node, lvscareStaticCmd); err != nil {
+			if err := k.infra.CmdAsync(node, joinNodeCmd); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
 
-			if err := k.infra.CmdAsync(node, joinNodeCmd); err != nil {
-				return fmt.Errorf("failed to join node %s: %v", node, err)
+			if err := k.infra.CmdAsync(node, lvscareStaticCmd); err != nil {
+				return fmt.Errorf("failed to set lvscare static pod %s: %v", node, err)
 			}
 
 			logrus.Infof("Succeeded in joining %s as worker", node)
