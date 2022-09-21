@@ -70,6 +70,10 @@ func (c *ClusterFile) SaveAll(path string) error {
 		plugin           []byte
 	)
 
+	if err := SaveToDisk(c.cluster); err != nil {
+		return err
+	}
+
 	cluster, err := yaml.Marshal(c.cluster)
 	if err != nil {
 		return err
@@ -130,10 +134,6 @@ func (c *ClusterFile) SaveAll(path string) error {
 			return err
 		}
 		clusterfileBytes = append(clusterfileBytes, kubeProxyConfiguration)
-	}
-
-	if err := SaveToDisk(c.cluster); err != nil {
-		return err
 	}
 
 	return os.NewCommonWriter(path).WriteFile(bytes.Join(clusterfileBytes, []byte("---\n")))
