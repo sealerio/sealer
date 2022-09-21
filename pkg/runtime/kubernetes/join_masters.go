@@ -64,9 +64,6 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return err
 		}
 
-		//if err = kubeadmConfig.JoinConfiguration.SetJoinAdvertiseAddress(m); err != nil {
-		//	return err
-		//}
 		kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken = &token
 		kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = vs
 		kubeadmConfig.JoinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = m

@@ -42,7 +42,7 @@ func Test_getHosts(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hosts, err := TransferIpStrToHosts(tt.args.inMasters, tt.args.inNodes)
+			hosts, err := TransferIPStrToHosts(tt.args.inMasters, tt.args.inNodes)
 			if err != nil {
 				t.Error(err)
 				return

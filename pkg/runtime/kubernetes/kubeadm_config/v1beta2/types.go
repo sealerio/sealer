@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	"fmt"
 	"net"
 
 	v1 "k8s.io/api/core/v1"
@@ -333,16 +332,6 @@ type JoinConfiguration struct {
 	// ControlPlane defines the additional control plane instance to be deployed on the joining node.
 	// If nil, no additional control plane instance will be deployed.
 	ControlPlane *JoinControlPlane `json:"controlPlane,omitempty"`
-}
-
-func (k *JoinConfiguration) SetJoinAdvertiseAddress(advertiseAddress net.IP) error {
-	if k.ControlPlane == nil {
-		return fmt.Errorf("JoinConfiguration is nil, please check")
-	}
-
-	k.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
-
-	return nil
 }
 
 // JoinControlPlane contains elements describing an additional control plane instance to be deployed on the joining node.
