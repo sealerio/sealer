@@ -121,7 +121,7 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
-			if err = cf.SaveAll(workClusterfile); err != nil {
+			if err = cf.SaveAll(); err != nil {
 				return err
 			}
 
