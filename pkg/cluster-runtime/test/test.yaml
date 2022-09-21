@@ -1,0 +1,23 @@
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: pre-init-host2
+spec:
+  type: SHELL
+  action: pre-init-host
+  scope: master
+  data: |
+    echo "i am pre-init-host2 from rootfs"
+
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: post-init-host2
+spec:
+  type: SHELL
+  action: post-init-host
+  scope: master
+  data: |
+    echo "i am post-init-host2 from rootfs"

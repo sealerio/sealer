@@ -122,6 +122,7 @@ func (k *Runtime) deleteNode(node net.IP, remainMaster0 *net.IP) error {
 
 	// if remainMaster0 is nil, no need delete master from cluster
 	if remainMaster0 != nil {
+		// todo: bug if delete node is master node, then will get null node name at this stage,because already run kubeadm reset
 		hostname, err := k.getNodeNameByCmd(*remainMaster0, node)
 		if err != nil {
 			return err

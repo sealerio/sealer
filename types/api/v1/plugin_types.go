@@ -25,17 +25,10 @@ import (
 
 // PluginSpec defines the desired state of Plugin
 type PluginSpec struct {
-	/*
-		Plugin type, like
-		EtcdPlugin     = "ETCD"
-		LabelPlugin    = "LABEL"
-		ShellPlugin    = "SHELL"
-		HostNamePlugin = "HOSTNAME"
-	*/
 	Type   string `json:"type,omitempty"`
 	Data   string `json:"data,omitempty"`
 	Action string `json:"action,omitempty"`
-	On     string `json:"on,omitempty"`
+	Scope     string `json:"scope,omitempty"`
 }
 
 // PluginStatus defines the observed state of Plugin

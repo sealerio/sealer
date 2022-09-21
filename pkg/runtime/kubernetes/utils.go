@@ -54,13 +54,13 @@ const (
 	RemoteAddEtcHosts       = "cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts"
 	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
 	RemoveKubeConfig        = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
-	RemoteCleanK8sOnHost    = `if which kubeadm;then kubeadm reset -f %s;fi && \
+	RemoteCleanK8sOnHost    = `if which kubeadm > /dev/null 2>&1;then kubeadm reset -f %s;fi && \
 rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
 rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
 rm -rf /usr/bin/kubelet && rm -rf /usr/bin/crictl && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
-rm -rf /var/lib/etcd/* && rm -rf /var/etcd/*
+rm -rf /var/lib/etcd && rm -rf /var/etcd
 `
 	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
 	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
@@ -86,6 +86,7 @@ var MasterStaticFiles = []*StaticFile{
 	},
 }
 
+//todo bug move this logic to installer. because at this stage will run pre uninstall plugin
 func confirmDeleteHosts(role string, nodesToDelete []net.IP) error {
 	if !runtime.ForceDelete {
 		if pass, err := utils.ConfirmOperation(fmt.Sprintf("Are you sure to delete these %s: %v? ", role, nodesToDelete)); err != nil {
@@ -98,7 +99,7 @@ func confirmDeleteHosts(role string, nodesToDelete []net.IP) error {
 	return nil
 }
 
-// return nodename in k8s cluster, if not found, return "" and error is nil
+// return node name from k8s cluster, if not found, return "" and error is nil
 func (k *Runtime) getNodeNameByCmd(master, host net.IP) (string, error) {
 	hostString, err := k.infra.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
 

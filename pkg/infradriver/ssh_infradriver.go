@@ -51,7 +51,7 @@ func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{}
 	return hostEnv
 }
 
-// ConvertEnv []string to map[string]interface{}, example [IP=127.0.0.1,IP=192.160.0.2,Key=value] will convert to {IP:[127.0.0.1,192.168.0.2],key:value}
+// ConvertEnv Convert []string to map[string]interface{}
 func ConvertEnv(envList []string) (env map[string]interface{}) {
 	temp := make(map[string][]string)
 	env = make(map[string]interface{})

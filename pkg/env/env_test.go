@@ -59,8 +59,11 @@ func Test_processor_RenderAll(t *testing.T) {
 		{
 			"test render dir",
 			args{
-				renderData: map[string]interface{}{},
-				dir:        "test/template",
+				renderData: map[string]interface{}{
+					"PodCIDR": "100.64.0.0/10",
+					"SvcCIDR": "10.96.0.0/16",
+				},
+				dir: "test/template",
 			},
 			false,
 		},

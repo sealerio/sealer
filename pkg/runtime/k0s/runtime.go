@@ -113,7 +113,9 @@ func newK0sRuntime(cluster *v2.Cluster) (runtime.Installer, error) {
 	}
 
 	setDebugLevel(k)
-	return k, nil
+	// todo need to adapt the new runtime interface.temporarily return nil
+	return nil, nil
+	//return k, nil
 }
 
 func setDebugLevel(k *Runtime) {

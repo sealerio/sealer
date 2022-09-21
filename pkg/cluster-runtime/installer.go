@@ -15,11 +15,6 @@
 package clusterruntime
 
 import (
-	"fmt"
-	"net"
-	"path/filepath"
-	"strings"
-
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imageengine"
@@ -29,6 +24,8 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	"net"
+	"path/filepath"
 )
 
 // RuntimeConfig for Installer
@@ -76,37 +73,14 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 	}
 
 	// add installer hooks
-	hooks := make(map[Phase]HookConfigList)
-	plugins := runtimeConfig.Plugins
-	for _, pluginConfig := range plugins {
-		hookType := HookType(pluginConfig.Spec.Type)
-
-		_, ok := hookFactories[hookType]
-		if !ok {
-			return nil, fmt.Errorf("hook type: %s is not registered", hookType)
-		}
-
-		//split pluginConfig.Spec.Action with "|" to support combined actions
-		phaseList := strings.Split(pluginConfig.Spec.Action, "|")
-		for _, phase := range phaseList {
-			if phase == "" {
-				continue
-			}
-			hookConfig := HookConfig{
-				Name:  pluginConfig.Name,
-				Data:  pluginConfig.Spec.Data,
-				Type:  hookType,
-				Phase: Phase(phase),
-				Scope: Scope(pluginConfig.Spec.On),
-			}
-
-			if _, ok = hooks[hookConfig.Phase]; !ok {
-				// add new Phase
-				hooks[hookConfig.Phase] = []HookConfig{hookConfig}
-			} else {
-				hooks[hookConfig.Phase] = append(hooks[hookConfig.Phase], hookConfig)
-			}
-		}
+	plugins, err := LoadPluginsFromFile(filepath.Join(infraDriver.GetClusterRootfs(), "plugins"))
+	if err != nil {
+		return nil, err
+	}
+	plugins = append(plugins, runtimeConfig.Plugins...)
+	hooks, err := transferPluginsToHooks(plugins)
+	if err != nil {
+		return nil, err
 	}
 
 	installer.hooks = hooks

@@ -15,11 +15,22 @@
 package clusterruntime
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
-	"net"
-	"sort"
-
 	"github.com/sealerio/sealer/pkg/env"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/yaml"
+	"io"
+	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
+	"net"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -162,6 +173,111 @@ func Register(name HookType, factory HookFunc) {
 	}
 
 	hookFactories[name] = factory
+}
+
+func transferPluginsToHooks(plugins []v1.Plugin) (map[Phase]HookConfigList, error) {
+	hooks := make(map[Phase]HookConfigList)
+
+	for _, pluginConfig := range plugins {
+		hookType := HookType(pluginConfig.Spec.Type)
+
+		_, ok := hookFactories[hookType]
+		if !ok {
+			return nil, fmt.Errorf("hook type: %s is not registered", hookType)
+		}
+
+		//split pluginConfig.Spec.Action with "|" to support combined actions
+		phaseList := strings.Split(pluginConfig.Spec.Action, "|")
+		for _, phase := range phaseList {
+			if phase == "" {
+				continue
+			}
+			hookConfig := HookConfig{
+				Name:  pluginConfig.Name,
+				Data:  pluginConfig.Spec.Data,
+				Type:  hookType,
+				Phase: Phase(phase),
+				Scope: Scope(pluginConfig.Spec.Scope),
+			}
+
+			if _, ok = hooks[hookConfig.Phase]; !ok {
+				// add new Phase
+				hooks[hookConfig.Phase] = []HookConfig{hookConfig}
+			} else {
+				hooks[hookConfig.Phase] = append(hooks[hookConfig.Phase], hookConfig)
+			}
+		}
+	}
+	return hooks, nil
+}
+
+// LoadPluginsFromFile load plugin config files from $rootfs/plugins dir.
+func LoadPluginsFromFile(pluginPath string) ([]v1.Plugin, error) {
+	_, err := os.Stat(pluginPath)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	files, err := ioutil.ReadDir(pluginPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ReadDir plugin dir %s: %v", pluginPath, err)
+	}
+
+	var plugins []v1.Plugin
+	for _, f := range files {
+		if !yaml.Matcher(f.Name()) {
+			continue
+		}
+		pluginFile := filepath.Join(pluginPath, f.Name())
+		pluginList, err := decodePluginFile(pluginFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode plugin file %s: %v", pluginFile, err)
+		}
+
+		var plugs []v1.Plugin
+		for _, p := range pluginList {
+			plugs = append(plugs, p)
+		}
+		plugins = append(plugins, plugs...)
+	}
+
+	return plugins, nil
+}
+
+func decodePluginFile(pluginFile string) ([]v1.Plugin, error) {
+	var plugins []v1.Plugin
+	data, err := ioutil.ReadFile(filepath.Clean(pluginFile))
+	if err != nil {
+		return nil, err
+	}
+
+	decoder := k8syaml.NewYAMLToJSONDecoder(bufio.NewReaderSize(bytes.NewReader(data), 4096))
+	for {
+		ext := runtime.RawExtension{}
+		if err := decoder.Decode(&ext); err != nil {
+			if err == io.EOF {
+				return plugins, nil
+			}
+			return nil, err
+		}
+
+		ext.Raw = bytes.TrimSpace(ext.Raw)
+		if len(ext.Raw) == 0 || bytes.Equal(ext.Raw, []byte("null")) {
+			continue
+		}
+		metaType := metav1.TypeMeta{}
+		if err := k8syaml.Unmarshal(ext.Raw, &metaType); err != nil {
+			return nil, fmt.Errorf("failed to decode TypeMeta: %v", err)
+		}
+
+		var plu v1.Plugin
+		if err := k8syaml.Unmarshal(ext.Raw, &plu); err != nil {
+			return nil, fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
+		}
+
+		plu.Spec.Data = strings.TrimSuffix(plu.Spec.Data, "\n")
+		plugins = append(plugins, plu)
+	}
 }
 
 func init() {

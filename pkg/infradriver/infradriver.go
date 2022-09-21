@@ -29,7 +29,7 @@ type InfraDriver interface {
 
 	GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net.IP, error)
 
-	//GetHostEnv return host env
+	//GetHostEnv return merged env with host env and cluster env.
 	GetHostEnv(host net.IP) map[string]interface{}
 
 	//GetClusterRenderData return cluster.spec.env as map[string]interface{}
