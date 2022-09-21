@@ -17,9 +17,12 @@ package clusterfile
 import (
 	"bytes"
 	"fmt"
+	"github.com/sealerio/sealer/utils/hash"
+	"os"
+	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils/os"
+	utilsos "github.com/sealerio/sealer/utils/os"
 	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
@@ -33,7 +36,7 @@ type Interface interface {
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
 	GetKubeadmConfig() *kubeadm_config.KubeadmConfig
-	SaveAll(path string) error
+	SaveAll() error
 }
 
 type ClusterFile struct {
@@ -63,16 +66,46 @@ func (c *ClusterFile) GetKubeadmConfig() *kubeadm_config.KubeadmConfig {
 	return &c.kubeadmConfig
 }
 
-func (c *ClusterFile) SaveAll(path string) error {
+func (c *ClusterFile) SaveAll() error {
 	var (
 		clusterfileBytes [][]byte
 		config           []byte
 		plugin           []byte
 	)
 
-	if err := SaveToDisk(c.cluster); err != nil {
-		return err
+	fileName := common.GetDefaultClusterfile()
+	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to mkdir %s: %v", fileName, err)
 	}
+
+	// if user run cluster image without password,skip to encrypt.
+	if !c.cluster.Spec.SSH.Encrypted && c.cluster.Spec.SSH.Passwd != "" {
+		passwd, err := hash.AesEncrypt([]byte(c.cluster.Spec.SSH.Passwd))
+		if err != nil {
+			return err
+		}
+		c.cluster.Spec.SSH.Passwd = passwd
+		c.cluster.Spec.SSH.Encrypted = true
+	}
+
+	var hosts []v2.Host
+	for _, host := range c.cluster.Spec.Hosts {
+		if len(host.IPS) == 0 {
+			continue
+		}
+		if !host.SSH.Encrypted && host.SSH.Passwd != "" {
+			passwd, err := hash.AesEncrypt([]byte(host.SSH.Passwd))
+			if err != nil {
+				return err
+			}
+			host.SSH.Passwd = passwd
+			host.SSH.Encrypted = true
+		}
+		hosts = append(hosts, host)
+	}
+
+	c.cluster.Spec.Hosts = hosts
 
 	cluster, err := yaml.Marshal(c.cluster)
 	if err != nil {
@@ -136,7 +169,7 @@ func (c *ClusterFile) SaveAll(path string) error {
 		clusterfileBytes = append(clusterfileBytes, kubeProxyConfiguration)
 	}
 
-	return os.NewCommonWriter(path).WriteFile(bytes.Join(clusterfileBytes, []byte("---\n")))
+	return utilsos.NewCommonWriter(fileName).WriteFile(bytes.Join(clusterfileBytes, []byte("---\n")))
 }
 
 func NewClusterFile(b []byte) (Interface, error) {

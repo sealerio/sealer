@@ -216,8 +216,7 @@ ipvs:
 			assert.Equal(t, kubeadm.InitConfiguration.TypeMeta.Kind, common.InitConfiguration)
 			assert.Equal(t, kubeadm.KubeProxyConfiguration.TypeMeta.Kind, common.KubeProxyConfiguration)
 
-			path := "clusterfile.yaml"
-			if err := cf.SaveAll(path); err != nil {
+			if err := cf.SaveAll(); err != nil {
 				t.Errorf("failed to save all error:(%v)", err)
 			}
 		})
