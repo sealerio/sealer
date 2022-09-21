@@ -151,7 +151,8 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			if err = cf.SaveAll(); err != nil {
+			defaultClusterfile := common.GetDefaultClusterfile()
+			if err = cf.SaveAll(defaultClusterfile); err != nil {
 				return err
 			}
 			return nil
