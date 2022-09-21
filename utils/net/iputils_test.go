@@ -71,7 +71,7 @@ func TestAssemblyIPList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			logrus.Infof("start to test case %s", tt.name)
-			resultIPStr, err := AssemblyIPList(tt.ipStr)
+			resultIPStr, err := TransferToIPList(tt.ipStr)
 			if err != nil && tt.wantErr == false {
 				t.Errorf("input ipStr(%s), found non-nil error(%v), but expect nil error. returned ipStr(%s)", tt.ipStr, err, resultIPStr)
 			}

@@ -53,7 +53,7 @@ metadata:
 spec:
   type: SHELL
   action: PostInstall # PreInit PostInstall
-  'on': master #on field type needs to be enclosed in quotes
+  Scope: master #on field type needs to be enclosed in quotes
   data: |
     kubectl get nodes
 ---
