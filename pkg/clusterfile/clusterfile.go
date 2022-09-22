@@ -17,9 +17,14 @@ package clusterfile
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
+
+	"github.com/sealerio/sealer/utils/hash"
+
+	"os"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils/os"
+	utilsos "github.com/sealerio/sealer/utils/os"
 	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
@@ -69,7 +74,39 @@ func (c *ClusterFile) SaveAll() error {
 		config           []byte
 		plugin           []byte
 	)
+	fileName := common.GetDefaultClusterfile()
+	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to mkdir %s: %v", fileName, err)
+	}
 
+	// if user run cluster image without password,skip to encrypt.
+	if !c.cluster.Spec.SSH.Encrypted && c.cluster.Spec.SSH.Passwd != "" {
+		passwd, err := hash.AesEncrypt([]byte(c.cluster.Spec.SSH.Passwd))
+		if err != nil {
+			return err
+		}
+		c.cluster.Spec.SSH.Passwd = passwd
+		c.cluster.Spec.SSH.Encrypted = true
+	}
+
+	var hosts []v2.Host
+	for _, host := range c.cluster.Spec.Hosts {
+		if len(host.IPS) == 0 {
+			continue
+		}
+		if !host.SSH.Encrypted && host.SSH.Passwd != "" {
+			passwd, err := hash.AesEncrypt([]byte(host.SSH.Passwd))
+			if err != nil {
+				return err
+			}
+			host.SSH.Passwd = passwd
+			host.SSH.Encrypted = true
+		}
+		hosts = append(hosts, host)
+	}
+
+	c.cluster.Spec.Hosts = hosts
 	cluster, err := yaml.Marshal(c.cluster)
 	if err != nil {
 		return err
@@ -77,22 +114,26 @@ func (c *ClusterFile) SaveAll() error {
 	clusterfileBytes = append(clusterfileBytes, cluster)
 
 	if len(c.configs) != 0 {
-		config, err = yaml.Marshal(c.configs)
-		if err != nil {
-			return err
+		for _, cg := range c.configs {
+			config, err = yaml.Marshal(cg)
+			if err != nil {
+				return err
+			}
+			clusterfileBytes = append(clusterfileBytes, config)
 		}
-		clusterfileBytes = append(clusterfileBytes, config)
 	}
 
 	if len(c.plugins) != 0 {
-		plugin, err = yaml.Marshal(c.plugins)
-		if err != nil {
-			return err
+		for _, p := range c.plugins {
+			plugin, err = yaml.Marshal(p)
+			if err != nil {
+				return err
+			}
+			clusterfileBytes = append(clusterfileBytes, plugin)
 		}
-		clusterfileBytes = append(clusterfileBytes, plugin)
 	}
 
-	if c.kubeadmConfig.InitConfiguration.TypeMeta.Kind != "" {
+	if c.kubeadmConfig.InitConfiguration.TypeMeta.Kind == common.InitConfiguration {
 		initConfiguration, err := yaml.Marshal(c.kubeadmConfig.InitConfiguration)
 		if err != nil {
 			return err
@@ -100,7 +141,7 @@ func (c *ClusterFile) SaveAll() error {
 		clusterfileBytes = append(clusterfileBytes, initConfiguration)
 	}
 
-	if c.kubeadmConfig.JoinConfiguration.TypeMeta.Kind != "" {
+	if c.kubeadmConfig.JoinConfiguration.TypeMeta.Kind == common.JoinConfiguration {
 		joinConfiguration, err := yaml.Marshal(c.kubeadmConfig.JoinConfiguration)
 		if err != nil {
 			return err
@@ -108,7 +149,7 @@ func (c *ClusterFile) SaveAll() error {
 		clusterfileBytes = append(clusterfileBytes, joinConfiguration)
 	}
 
-	if c.kubeadmConfig.ClusterConfiguration.TypeMeta.Kind != "" {
+	if c.kubeadmConfig.ClusterConfiguration.TypeMeta.Kind == common.ClusterConfiguration {
 		clusterConfiguration, err := yaml.Marshal(c.kubeadmConfig.ClusterConfiguration)
 		if err != nil {
 			return err
@@ -116,7 +157,7 @@ func (c *ClusterFile) SaveAll() error {
 		clusterfileBytes = append(clusterfileBytes, clusterConfiguration)
 	}
 
-	if c.kubeadmConfig.KubeletConfiguration.TypeMeta.Kind != "" {
+	if c.kubeadmConfig.KubeletConfiguration.TypeMeta.Kind == common.KubeletConfiguration {
 		kubeletConfiguration, err := yaml.Marshal(c.kubeadmConfig.KubeletConfiguration)
 		if err != nil {
 			return err
@@ -124,7 +165,7 @@ func (c *ClusterFile) SaveAll() error {
 		clusterfileBytes = append(clusterfileBytes, kubeletConfiguration)
 	}
 
-	if c.kubeadmConfig.KubeProxyConfiguration.TypeMeta.Kind != "" {
+	if c.kubeadmConfig.KubeProxyConfiguration.TypeMeta.Kind == common.KubeProxyConfiguration {
 		kubeProxyConfiguration, err := yaml.Marshal(c.kubeadmConfig.KubeProxyConfiguration)
 		if err != nil {
 			return err
@@ -132,9 +173,8 @@ func (c *ClusterFile) SaveAll() error {
 		clusterfileBytes = append(clusterfileBytes, kubeProxyConfiguration)
 	}
 	//todo cluster ssh info need to be encrypted
-	path := common.GetDefaultClusterfile()
 
-	return os.NewCommonWriter(path).WriteFile(bytes.Join(clusterfileBytes, []byte("---\n")))
+	return utilsos.NewCommonWriter(fileName).WriteFile(bytes.Join(clusterfileBytes, []byte("---\n")))
 }
 
 func NewClusterFile(b []byte) (Interface, error) {

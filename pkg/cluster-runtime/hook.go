@@ -180,6 +180,7 @@ func transferPluginsToHooks(plugins []v1.Plugin) (map[Phase]HookConfigList, erro
 	hooks := make(map[Phase]HookConfigList)
 
 	for _, pluginConfig := range plugins {
+		pluginConfig.Spec.Data = strings.TrimSuffix(pluginConfig.Spec.Data, "\n")
 		hookType := HookType(pluginConfig.Spec.Type)
 
 		_, ok := hookFactories[hookType]
