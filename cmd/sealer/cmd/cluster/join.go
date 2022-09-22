@@ -121,9 +121,9 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
+			//if err = cf.SaveAll(); err != nil {
+			//	return err
+			//}
 
 			return nil
 		},

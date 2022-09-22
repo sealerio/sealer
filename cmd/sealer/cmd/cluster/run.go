@@ -79,13 +79,18 @@ func NewRunCmd() *cobra.Command {
 				clusterFileData []byte
 				err             error
 			)
-
+			defaultClusterFile := common.GetDefaultClusterfile()
+			if err = os.MkdirAll(filepath.Dir(defaultClusterFile), os.ModePerm); err != nil {
+				return fmt.Errorf("failed to mkdir %s: %v", defaultClusterFile, err)
+			}
 			if clusterFile != "" {
 				clusterFileData, err = ioutil.ReadFile(filepath.Clean(clusterFile))
 				if err != nil {
 					return err
 				}
-
+				if err = yaml.Unmarshal(clusterFileData, defaultClusterFile); err != nil {
+					return err
+				}
 				cf, err = clusterfile.NewClusterFile(clusterFileData)
 				if err != nil {
 					return err
@@ -105,6 +110,9 @@ func NewRunCmd() *cobra.Command {
 					return err
 				}
 
+				if err = yaml.Unmarshal(clusterData, defaultClusterFile); err != nil {
+					return err
+				}
 				cf, err = clusterfile.NewClusterFile(clusterData)
 				if err != nil {
 					return err
@@ -151,9 +159,9 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
+			//if err = cf.SaveAll(); err != nil {
+			//	return err
+			//}
 			return nil
 		},
 	}
