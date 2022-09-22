@@ -216,9 +216,10 @@ ipvs:
 			assert.Equal(t, kubeadm.InitConfiguration.TypeMeta.Kind, common.InitConfiguration)
 			assert.Equal(t, kubeadm.KubeProxyConfiguration.TypeMeta.Kind, common.KubeProxyConfiguration)
 
-			if err := cf.SaveAll(); err != nil {
-				t.Errorf("failed to save all error:(%v)", err)
-			}
+			//todo Consider whether you need to pass the Clusterfle path as a parameter later.
+			//if err := cf.SaveAll(); err != nil {
+			//	t.Errorf("failed to save all error:(%v)", err)
+			//}
 		})
 	}
 }
