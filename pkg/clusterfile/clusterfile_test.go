@@ -134,7 +134,7 @@ ipvs:
 	plugin1 := v1.Plugin{
 		Spec: v1.PluginSpec{
 			Type:   "HOSTNAME",
-			Data:   "192.168.0.2 master-0",
+			Data:   "192.168.0.2 master-0\n",
 			Action: "PreInit",
 		},
 	}
@@ -145,7 +145,7 @@ ipvs:
 	plugin2 := v1.Plugin{
 		Spec: v1.PluginSpec{
 			Type:   "SHELL",
-			Data:   "kubectl get nodes",
+			Data:   "kubectl get nodes\n",
 			Scope:  "master",
 			Action: "PostInstall",
 		},
