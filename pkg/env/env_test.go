@@ -29,12 +29,15 @@ func Test_processor_WrapperShell(t *testing.T) {
 		want string
 	}{
 		{
-			"test command ENV",
+			"test WrapperShell ",
 			args{
-				wrapperData: map[string]interface{}{},
-				shell:       "echo $foo ${IP[@]}",
+				wrapperData: map[string]interface{}{
+					"foo": "bar",
+					"IP":  "127.0.0.1",
+				},
+				shell: "hostname",
 			},
-			"key=(bar foo) foo=bar IP=127.0.0.2 && echo $foo ${IP[@]}",
+			"foo=bar IP=127.0.0.1 && hostname",
 		},
 	}
 	for _, tt := range tests {

@@ -53,7 +53,7 @@ metadata:
 spec:
   type: SHELL
   action: PostInstall # PreInit PostInstall
-  'on': master #on field type needs to be enclosed in quotes
+  scope: master
   data: |
     kubectl get nodes
 ---
@@ -146,7 +146,7 @@ ipvs:
 		Spec: v1.PluginSpec{
 			Type:   "SHELL",
 			Data:   "kubectl get nodes",
-			On:     "master",
+			Scope:     "master",
 			Action: "PostInstall",
 		},
 	}
