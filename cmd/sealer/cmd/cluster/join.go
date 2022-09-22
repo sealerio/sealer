@@ -31,23 +31,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var clusterName string
 var joinArgs *types.Args
 var newMasters string
 var newWorkers string
 
+var longJoinCmdDescription = `join command is used to join master or node to the existing cluster.
+User can join cluster by explicitly specifying host IP`
+
 var exampleForJoinCmd = `
-join default cluster:
-	sealer join --masters x.x.x.x --nodes x.x.x.x
-    sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
+join cluster:
+	sealer join --masters x.x.x.x --nodes x.x.x.x -p xxxx
+    sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y -p xxx
 `
 
 func NewJoinCmd() *cobra.Command {
 	joinCmd := &cobra.Command{
 		Use:   "join",
 		Short: "join new master or worker node to specified cluster",
-		// TODO: add long description.
-		Long:    "",
+		Long:    longJoinCmdDescription,
 		Args:    cobra.NoArgs,
 		Example: exampleForJoinCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -75,13 +76,13 @@ func NewJoinCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cluster := cf.GetCluster()
 
+			cluster := cf.GetCluster()
 			if err = utils.ConstructClusterForJoin(&cluster, joinArgs, joinMasterIPList, joinNodeIPList); err != nil {
 				return err
 			}
-			cf.SetCluster(cluster)
 
+			cf.SetCluster(cluster)
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
@@ -141,6 +142,5 @@ func NewJoinCmd() *cobra.Command {
 	joinCmd.Flags().StringSliceVarP(&joinArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	joinCmd.Flags().StringVarP(&newMasters, "masters", "m", "", "set Count or IPList to masters")
 	joinCmd.Flags().StringVarP(&newWorkers, "nodes", "n", "", "set Count or IPList to nodes")
-	joinCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "specify the name of cluster")
 	return joinCmd
 }

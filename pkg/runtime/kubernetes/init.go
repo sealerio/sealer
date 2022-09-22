@@ -164,7 +164,7 @@ func (k *Runtime) initMaster0(kubeadmConf kubeadm_config.KubeadmConfig, master0 
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
 	}
 
-	if err := k.infra.CmdAsync(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
+	if err = k.infra.CmdAsync(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
 

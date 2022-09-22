@@ -16,8 +16,8 @@ package cluster
 
 import (
 	"fmt"
+	netutils "github.com/sealerio/sealer/utils/net"
 	"io/ioutil"
-	"net"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -35,25 +35,22 @@ import (
 )
 
 var (
-	deleteArgs        *types.Args
-	deleteClusterFile string
-	deleteClusterName string
-	mastersToDelete   string
-	workersToDelete   string
-	deleteAll         bool
+	deleteArgs      *types.Args
+	mastersToDelete string
+	workersToDelete string
+	deleteAll       bool
 )
 
 var longDeleteCmdDescription = `delete command is used to delete part or all of existing cluster.
-User can delete cluster by explicitly specifying node IP, Clusterfile, or cluster name.`
+User can delete cluster by explicitly specifying host IP`
 
 var exampleForDeleteCmd = `
-delete default cluster: 
-	sealer delete --masters x.x.x.x --nodes x.x.x.x
-	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
+delete cluster node: 
+    sealer delete --nodes x.x.x.x [--force]
+	sealer delete --masters x.x.x.x --nodes x.x.x.x [--force]
+	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y [--force]
 delete all:
 	sealer delete --all [--force]
-	sealer delete -f /root/.sealer/mycluster/Clusterfile [--force]
-	sealer delete -c my-cluster [--force]
 `
 
 // NewDeleteCmd deleteCmd represents the delete command
@@ -65,18 +62,14 @@ func NewDeleteCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Example: exampleForDeleteCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var workClusterfile string
-			if deleteClusterFile == "" {
-				workClusterfile = common.GetDefaultClusterfile()
-			} else {
-				// use clusterfile if user set from CLI
-				workClusterfile = deleteClusterFile
+			if mastersToDelete == "" && workersToDelete == "" && !deleteAll {
+				return fmt.Errorf("you must input node ip Or set flag -a")
 			}
 
+			workClusterfile := common.GetDefaultClusterfile()
 			if deleteAll {
 				return deleteCluster(workClusterfile)
 			}
-			//todo read cluster hosts first, if only one master be found from clusterfile,then do deleteCluster.
 			return scaleDownCluster(mastersToDelete, workersToDelete, workClusterfile)
 		},
 	}
@@ -84,11 +77,9 @@ func NewDeleteCmd() *cobra.Command {
 	deleteArgs = &types.Args{}
 	deleteCmd.Flags().StringVarP(&mastersToDelete, "masters", "m", "", "reduce Count or IPList to masters")
 	deleteCmd.Flags().StringVarP(&workersToDelete, "nodes", "n", "", "reduce Count or IPList to nodes")
-	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
-	deleteCmd.Flags().StringVarP(&deleteClusterName, "cluster", "c", "", "delete a kubernetes cluster with cluster name")
 	deleteCmd.Flags().StringSliceVarP(&deleteArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	deleteCmd.Flags().BoolVar(&clusterruntime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
-	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
+	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete the entire cluster, default is false")
 
 	return deleteCmd
 }
@@ -138,6 +129,11 @@ func deleteCluster(workClusterfile string) error {
 		return err
 	}
 
+	//todo do we need CustomEnv ?
+	//append custom env from CLI to cluster, if it is used to wrapper shell plugin
+	cluster := cf.GetCluster()
+	cluster.Spec.Env = append(cluster.Spec.Env, deleteArgs.CustomEnv...)
+
 	distributor, infraDriver, installer, err := getRuntimeInterfaces(cf)
 	if err != nil {
 		return err
@@ -147,24 +143,10 @@ func deleteCluster(workClusterfile string) error {
 		return err
 	}
 
-	ips := infraDriver.GetHostIPList()
-	clusterRootfsDir := infraDriver.GetClusterRootfs()
-	//todo DefaultClusterCleanBashFile contains clean container runtime logic. need to split those.
-	cleanFile := fmt.Sprintf("bash %s/scripts/clean.sh ", clusterRootfsDir)
-
-	f := func(host net.IP) error {
-		err := infraDriver.CmdAsync(host, cleanFile)
-		if err != nil {
-			return fmt.Errorf("failed to exec command(%s) on host(%s): error(%v)", cleanFile, host, err)
-		}
-		return nil
-	}
-	if err = infraDriver.Execute(ips, f); err != nil {
-		return err
-	}
-
 	//Restore rootfs
-	if err = distributor.Restore(clusterRootfsDir, ips); err != nil {
+	ips := infraDriver.GetHostIPList()
+	clusterBaseDir := infraDriver.GetClusterBasePath()
+	if err = distributor.Restore(clusterBaseDir, ips); err != nil {
 		return err
 	}
 
@@ -197,9 +179,11 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 	}
 
 	cluster := cf.GetCluster()
-	if err = utils.ParseScaleDownArgs(&cluster, deleteArgs, deleteMasterIPList); err != nil {
-		return err
+	//master0 machine cannot be deleted
+	if !netutils.NotInIPList(cluster.GetMaster0IP(), deleteMasterIPList) {
+		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
 	}
+	cluster.Spec.Env = append(cluster.Spec.Env, deleteArgs.CustomEnv...)
 
 	distributor, infraDriver, installer, err := getRuntimeInterfaces(cf)
 	if err != nil {
@@ -211,7 +195,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 		return err
 	}
 
-	if err = distributor.Restore(infraDriver.GetClusterRootfs(), append(deleteMasterIPList, deleteNodeIPList...)); err != nil {
+	if err = distributor.Restore(infraDriver.GetClusterBasePath(), append(deleteMasterIPList, deleteNodeIPList...)); err != nil {
 		return err
 	}
 

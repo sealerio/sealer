@@ -15,8 +15,6 @@
 package types
 
 type Args struct {
-	ClusterName string
-
 	// Masters and Nodes only support:
 	// IP list format: ip1,ip2,ip3
 	// IP range format: x.x.x.x-x.x.x.y
@@ -28,9 +26,6 @@ type Args struct {
 	Port       uint16
 	Pk         string
 	PkPassword string
-	PodCidr    string
-	SvcCidr    string
-	Provider   string
 	CustomEnv  []string
 	CMDArgs    []string
 }

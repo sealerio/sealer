@@ -17,6 +17,7 @@ package containerruntime
 import (
 	"fmt"
 	"net"
+	"path/filepath"
 
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
@@ -41,7 +42,7 @@ func (d *DockerInstaller) InstallOn(hosts []net.IP) error {
 
 func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
 	//todo need to cooperator with the rootfs files, so the name of uninstall bash file need to discuss
-	cleanCmd := fmt.Sprintf("cd %s/scripts && chmod +x uninstall-docker.sh && bash uninstall-docker.sh", d.driver.GetClusterRootfs())
+	cleanCmd := fmt.Sprintf("bash %s", filepath.Join(d.driver.GetClusterRootfs(), "scripts", "uninstall-docker.sh"))
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, cleanCmd)
 		if err != nil {

@@ -74,21 +74,25 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return err
 		}
 		cmd := fmt.Sprintf("mkdir -p /etc/kubernetes && echo \"%s\" > %s", str, KubeadmFileYml)
-		if err := k.infra.CmdAsync(m, cmd); err != nil {
+		if err = k.infra.CmdAsync(m, cmd); err != nil {
 			return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", m, cmd, err)
 		}
 
-		if err := k.infra.CmdAsync(m, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
+		if err = k.infra.CmdAsync(m, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
 			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}
 
 		certCMD := runtime.RemoteCertCmd(kubeadmConfig.GetCertSANS(), m, hostname, kubeadmConfig.GetSvcCIDR(), "")
-		if err := k.infra.CmdAsync(m, certCMD); err != nil {
+		if err = k.infra.CmdAsync(m, certCMD); err != nil {
 			return fmt.Errorf("failed to exec command(%s) on master(%s): %v", certCMD, m, err)
 		}
 
-		if err := k.infra.CmdAsync(m, joinCmd); err != nil {
+		if err = k.infra.CmdAsync(m, joinCmd); err != nil {
 			return fmt.Errorf("failed to exec command(%s) on master(%s): %v", joinCmd, m, err)
+		}
+
+		if err = k.infra.CmdAsync(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
+			return err
 		}
 
 		logrus.Infof("Succeeded in joining %s as master", m)

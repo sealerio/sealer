@@ -53,7 +53,7 @@ func ConstructClusterForRun(imageName string, runArgs *types.Args) (*v2.Cluster,
 	}
 	cluster.APIVersion = common.APIVersion
 	cluster.Kind = common.Kind
-	cluster.Name = runArgs.ClusterName
+	cluster.Name = "my-cluster"
 	return &cluster, nil
 }
 
@@ -162,18 +162,6 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 		hosts = append(hosts, host)
 	}
 	cluster.Spec.Hosts = hosts
-
-	return nil
-}
-
-func ParseScaleDownArgs(cluster *v2.Cluster, scaleArgs *types.Args, mastersToDelete []net.IP) error {
-	//master0 machine cannot be deleted
-	if !netutils.NotInIPList(cluster.GetMaster0IP(), mastersToDelete) {
-		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
-	}
-
-	// adding custom Env params for delete option here to support executing users clean scripts via env.
-	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
 
 	return nil
 }
