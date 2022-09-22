@@ -128,7 +128,7 @@ func GetDefaultPlatform() *v1.Platform {
 	}
 }
 
-//GetPlatform : parse platform string,if is nil will return the default platform.
+// GetPlatform : parse platform string,if is nil will return the default platform.
 func GetPlatform(v string) ([]*v1.Platform, error) {
 	var targetPlatforms []*v1.Platform
 

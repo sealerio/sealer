@@ -14,6 +14,7 @@
 
 package registry
 
+//ignore:deadcode
 type localHAConfigurator struct {
 	LocalRegistry
 }

@@ -112,10 +112,11 @@ func (connector *Connector) ContainerToConnect() (*corev1.Container, error) {
 }
 
 // SetTTY handles the stdin and tty with following:
-// 		1. stdin false, tty false 	--- stdout
-// 		2. stdin false, tty true 	--- stdout
-// 		3. stdin true, tty false 	--- stdin、stdout
-// 		4. stdin true, tty true 	--- stdin、stdout、tty	--- t.Raw
+//  1. stdin false, tty false 	--- stdout
+//  2. stdin false, tty true 	--- stdout
+//  3. stdin true, tty false 	--- stdin、stdout
+//  4. stdin true, tty true 	--- stdin、stdout、tty	--- t.Raw
+//
 // then returns a TTY object based on connectOpts.
 func (connector *Connector) SetTTY() TTY {
 	t := TTY{

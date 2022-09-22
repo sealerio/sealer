@@ -143,7 +143,7 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-//notExist false ,Exist true
+// notExist false ,Exist true
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {

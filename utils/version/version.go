@@ -19,7 +19,7 @@ import (
 	"strings"
 )
 
-//Version is a string that we used to normalize version string.
+// Version is a string that we used to normalize version string.
 type Version string
 
 // splitVersion takes version string, and encapsulates it in comparable []string.

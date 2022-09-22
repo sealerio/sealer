@@ -89,7 +89,7 @@ var MasterStaticFiles = []*StaticFile{
 func (k *Runtime) getNodeNameByCmd(master, host net.IP) (string, error) {
 	//todo get node name from k8s sdk
 	cmd := fmt.Sprintf("kubectl get nodes -o wide | grep -v NAME  | grep %s | awk '{print $1}'", host)
-	hostName, err:= k.infra.CmdToString(master, cmd, "")
+	hostName, err := k.infra.CmdToString(master, cmd, "")
 	if err != nil {
 		return "", err
 	}

@@ -261,7 +261,7 @@ func (c *localSingletonConfigurator) reconcileRegistry(hosts []net.IP) error {
 		return err
 	}
 
-	for platform, _ := range hostsPlatformMap {
+	for platform := range hostsPlatformMap {
 		mountDir := filepath.Join(common.DefaultSealerDataDir, "mount")
 		if err = c.imageEngine.Pull(&imagecommon.PullOptions{
 			Quiet:      false,

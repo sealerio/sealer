@@ -147,7 +147,7 @@ func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
 	return b, nil
 }
 
-//CmdToString is in host exec cmd and replace to spilt str
+// CmdToString is in host exec cmd and replace to spilt str
 func (s *SSH) CmdToString(host net.IP, cmd, split string) (string, error) {
 	data, err := s.Cmd(host, cmd)
 	str := string(data)

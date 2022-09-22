@@ -16,8 +16,9 @@ package clusterruntime
 
 import (
 	"fmt"
-	"github.com/sealerio/sealer/utils"
 	"net"
+
+	"github.com/sealerio/sealer/utils"
 )
 
 func confirmDeleteHosts(role string, nodesToDelete []net.IP) error {

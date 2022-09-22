@@ -234,12 +234,7 @@ func LoadPluginsFromFile(pluginPath string) ([]v1.Plugin, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode plugin file %s: %v", pluginFile, err)
 		}
-
-		var plugs []v1.Plugin
-		for _, p := range pluginList {
-			plugs = append(plugs, p)
-		}
-		plugins = append(plugins, plugs...)
+		plugins = append(plugins, pluginList...)
 	}
 
 	return plugins, nil

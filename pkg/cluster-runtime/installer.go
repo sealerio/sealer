@@ -34,7 +34,7 @@ var ForceDelete bool
 
 // RuntimeConfig for Installer
 type RuntimeConfig struct {
-	RegistryConfig         registry.RegistryConfig
+	RegistryConfig         registry.RegConfig
 	ContainerRuntimeConfig containerruntime.Config
 	KubeadmConfig          kubeadm_config.KubeadmConfig
 	Plugins                []v1.Plugin
@@ -72,7 +72,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 		Registry: registry.Registry{
 			Domain: registry.DefaultDomain,
 			Port:   registry.DefaultPort,
-			Auth:   &registry.RegistryAuth{},
+			Auth:   &registry.Auth{},
 		},
 	}
 

@@ -38,12 +38,12 @@ type Configurator interface {
 	//Rollback() (Driver, error)
 }
 
-type RegistryConfig struct {
+type RegConfig struct {
 	LocalRegistry    *LocalRegistry
 	ExternalRegistry *Registry
 }
 
-func NewConfigurator(conf RegistryConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface) (Configurator, error) {
+func NewConfigurator(conf RegConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface) (Configurator, error) {
 	if conf.LocalRegistry != nil {
 		return &localSingletonConfigurator{
 			imageEngine:          imageEngine,
@@ -78,12 +78,12 @@ type SubjectAltName struct {
 }
 
 type Registry struct {
-	Domain string        `json:"domain,omitempty" yaml:"domain,omitempty"`
-	Port   int           `json:"port,omitempty" yaml:"port,omitempty"`
-	Auth   *RegistryAuth `json:"auth,omitempty" yaml:"auth,omitempty"`
+	Domain string `json:"domain,omitempty" yaml:"domain,omitempty"`
+	Port   int    `json:"port,omitempty" yaml:"port,omitempty"`
+	Auth   *Auth  `json:"auth,omitempty" yaml:"auth,omitempty"`
 }
 
-type RegistryAuth struct {
+type Auth struct {
 	Username string `json:"username" yaml:"username"`
 	Password string `json:"password" yaml:"password"`
 }

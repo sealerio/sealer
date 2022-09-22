@@ -117,7 +117,7 @@ func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 			h := host
 			eg.Go(func() error {
 				if err := k.infra.CmdAsync(h, cmdLinkStatic); err != nil {
-					return fmt.Errorf("[%s] failed to link static file: %s", host, err.Error())
+					return fmt.Errorf("[%s] failed to link static file: %s", h, err.Error())
 				}
 
 				return nil
