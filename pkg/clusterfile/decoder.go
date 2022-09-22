@@ -19,10 +19,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -70,13 +68,6 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 
-			cfg.Spec.Data = strings.TrimSuffix(cfg.Spec.Data, "\n")
-
-			err := config.NewProcessorsAndRun(&cfg)
-			if err != nil {
-				return err
-			}
-
 			clusterfile.configs = append(clusterfile.configs, cfg)
 
 		case common.Plugin:
@@ -86,7 +77,6 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 
-			plu.Spec.Data = strings.TrimSuffix(plu.Spec.Data, "\n")
 			clusterfile.plugins = append(clusterfile.plugins, plu)
 
 		case common.InitConfiguration:

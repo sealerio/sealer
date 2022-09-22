@@ -67,6 +67,11 @@ func (c *Dumper) Dump(configs []v1.Config) error {
 
 func (c *Dumper) WriteFiles(configs []v1.Config) error {
 	for _, config := range configs {
+		config.Spec.Data = strings.TrimSuffix(config.Spec.Data, "\n")
+		//#nosec
+		if err := NewProcessorsAndRun(&config); err != nil {
+			return err
+		}
 		configData := []byte(config.Spec.Data)
 		configPath := filepath.Join(c.rootPath, config.Spec.Path)
 
