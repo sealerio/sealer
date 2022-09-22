@@ -390,7 +390,7 @@ func (c *localSingletonConfigurator) configureDaemonService(hosts []net.IP) erro
 func (c *localSingletonConfigurator) configureDockerDaemonService(endpoint, daemonFile string) error {
 	var daemonConf DaemonConfig
 
-	b, err := ioutil.ReadFile(daemonFile)
+	b, err := ioutil.ReadFile(filepath.Clean(daemonFile))
 	if err != nil {
 		return err
 	}

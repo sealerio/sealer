@@ -74,28 +74,28 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm_co
 		eg.Go(func() error {
 			logrus.Infof("Start to join %s as worker", node)
 
-			err := k.checkMultiNetworkAddVIPRoute(node)
+			err = k.checkMultiNetworkAddVIPRoute(node)
 			if err != nil {
 				return fmt.Errorf("failed to check multi network: %v", err)
 			}
 
-			if err := k.infra.CmdAsync(node, ipvsCmd); err != nil {
+			if err = k.infra.CmdAsync(node, ipvsCmd); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
 
-			if err := k.infra.CmdAsync(node, writeJoinConfigCmd); err != nil {
+			if err = k.infra.CmdAsync(node, writeJoinConfigCmd); err != nil {
 				return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", node, writeJoinConfigCmd, err)
 			}
 
-			if err := k.infra.CmdAsync(node, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), k.getAPIServerVIP().String())); err != nil {
+			if err = k.infra.CmdAsync(node, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), k.getAPIServerVIP().String())); err != nil {
 				return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 			}
 
-			if err := k.infra.CmdAsync(node, joinNodeCmd); err != nil {
+			if err = k.infra.CmdAsync(node, joinNodeCmd); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
 
-			if err := k.infra.CmdAsync(node, lvscareStaticCmd); err != nil {
+			if err = k.infra.CmdAsync(node, lvscareStaticCmd); err != nil {
 				return fmt.Errorf("failed to set lvscare static pod %s: %v", node, err)
 			}
 

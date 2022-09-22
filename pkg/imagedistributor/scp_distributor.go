@@ -155,7 +155,8 @@ func (s *scpDistributor) cleanRootfs(mountDir string) error {
 
 func (s *scpDistributor) copyRootfs(mountDir, targetDir string, hosts []net.IP) error {
 	eg, _ := errgroup.WithContext(context.Background())
-
+	//todo bug: If the clusterimage has too many layer files,will cause the ssh session to crash,
+	// then need to config target host sshd "maxstartups"
 	for _, ip := range hosts {
 		host := ip
 		eg.Go(func() error {

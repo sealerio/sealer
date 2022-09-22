@@ -64,7 +64,7 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm_config.KubeadmCon
 
 	//TODO, save it into kubernetes
 	localTmpFile := "/tmp/kubeadm.yaml"
-	if err = ioutil.WriteFile(localTmpFile, bs, 0644); err != nil {
+	if err = ioutil.WriteFile(localTmpFile, bs, 0600); err != nil {
 		return kubeadm_config.KubeadmConfig{}, err
 	}
 
@@ -164,7 +164,7 @@ func (k *Runtime) initMaster0(kubeadmConf kubeadm_config.KubeadmConfig, master0 
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
 	}
 
-	if err := k.infra.CmdAsync(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
+	if err = k.infra.CmdAsync(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
 

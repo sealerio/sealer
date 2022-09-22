@@ -17,7 +17,6 @@ package cluster
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -30,8 +29,6 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sealerio/sealer/utils/strings"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 )
@@ -39,21 +36,12 @@ import (
 var runArgs *types.Args
 var clusterFile string
 
-//todo rewrite the cmd description
 var exampleForRunCmd = `
-create cluster to your bare metal server, appoint the iplist:
-	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
-		--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
-specify server SSH port :
-  All servers use the same SSH port (default port: 22):
-	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
-	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --port 24 --passwd xxx
-  Different SSH port numbers exist:
-	sealer run kubernetes:v1.19.8 --masters 192.168.0.2,192.168.0.3:23,192.168.0.4:24 \
-	--nodes 192.168.0.5:25,192.168.0.6:25,192.168.0.7:27 --passwd xxx
-create a cluster with custom environment variables:
-	sealer run -e DashBoardPort=8443 mydashboard:latest  --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
-	--nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
+run cluster by Clusterfile: 
+    sealer run -f ${yourClusterfile}
+
+run cluster by CLI flags:
+	sealer run kubernetes:v1.19.8 -m x.x.x.x -n x.x.x.x -p xxxx
 `
 
 func NewRunCmd() *cobra.Command {
@@ -79,6 +67,9 @@ func NewRunCmd() *cobra.Command {
 				clusterFileData []byte
 				err             error
 			)
+			if runArgs.Masters == "" && clusterFile == "" {
+				return fmt.Errorf("you must input master ip Or use Clusterfile")
+			}
 
 			if clusterFile != "" {
 				clusterFileData, err = ioutil.ReadFile(filepath.Clean(clusterFile))
@@ -91,6 +82,10 @@ func NewRunCmd() *cobra.Command {
 					return err
 				}
 			} else {
+				if args[0] == "" {
+					return fmt.Errorf("you must input cluster image name")
+				}
+
 				if err = utils.ValidateRunArgs(runArgs); err != nil {
 					return fmt.Errorf("failed to validate input run args: %v", err)
 				}
@@ -158,10 +153,10 @@ func NewRunCmd() *cobra.Command {
 		},
 	}
 	runArgs = &types.Args{}
-	runCmd.Flags().StringVarP(&runArgs.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
+	//todo remove provider Flag now, maybe we can support it later
+	//runCmd.Flags().StringVarP(&runArgs.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runArgs.Masters, "masters", "m", "", "set count or IPList to masters")
 	runCmd.Flags().StringVarP(&runArgs.Nodes, "nodes", "n", "", "set count or IPList to nodes")
-	runCmd.Flags().StringVar(&runArgs.ClusterName, "cluster-name", "my-cluster", "set cluster name")
 	runCmd.Flags().StringVarP(&runArgs.User, "user", "u", "root", "set baremetal server username")
 	runCmd.Flags().StringVarP(&runArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	runCmd.Flags().Uint16Var(&runArgs.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
@@ -171,12 +166,12 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringSliceVarP(&runArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	runCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
 
-	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
-	})
-	if err != nil {
-		logrus.Errorf("provide completion for provider flag, err: %v", err)
-		os.Exit(1)
-	}
+	//err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	//	return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
+	//})
+	//if err != nil {
+	//	logrus.Errorf("provide completion for provider flag, err: %v", err)
+	//	os.Exit(1)
+	//}
 	return runCmd
 }
