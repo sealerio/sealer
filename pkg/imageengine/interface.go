@@ -24,6 +24,8 @@ type Interface interface {
 
 	CreateContainer(opts *options.FromOptions) (string, error)
 
+	CreateWorkingContainer(opts *options.BuildRootfsOptions) (string, error)
+
 	Mount(opts *options.MountOptions) ([]options.JSONMount, error)
 
 	Copy(opts *options.CopyOptions) error
@@ -53,9 +55,6 @@ type Interface interface {
 	RemoveContainer(opts *options.RemoveContainerOptions) error
 
 	Tag(opts *options.TagOptions) error
-
-	// TODO the following functions should be upper to image engine
-	BuildRootfs(opts *options.BuildRootfsOptions) (string, error)
 
 	GetSealerImageExtension(opts *options.GetImageAnnoOptions) (v1.ImageExtension, error)
 }

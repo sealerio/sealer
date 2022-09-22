@@ -138,7 +138,7 @@ func buildSealerImage() error {
 	}
 
 	tmpDirForLink := filepath.Join(tmpDir, "tmp-rootfs")
-	cid, err := engine.BuildRootfs(&bc.BuildRootfsOptions{
+	cid, err := engine.CreateWorkingContainer(&bc.BuildRootfsOptions{
 		ImageNameOrID: iid,
 		DestDir:       tmpDirForLink,
 	})
