@@ -23,7 +23,7 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/config"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

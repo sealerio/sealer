@@ -26,7 +26,7 @@ import (
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 

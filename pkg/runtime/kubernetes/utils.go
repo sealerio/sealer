@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
 	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"

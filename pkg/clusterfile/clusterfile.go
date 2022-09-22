@@ -22,7 +22,7 @@ import (
 	"github.com/sealerio/sealer/utils/os"
 	"sigs.k8s.io/yaml"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )

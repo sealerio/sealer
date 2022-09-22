@@ -21,8 +21,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
 	"github.com/sealerio/sealer/utils/shellcommand"
 
 	"github.com/sealerio/sealer/pkg/ipvs"
