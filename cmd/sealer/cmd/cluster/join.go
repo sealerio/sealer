@@ -16,9 +16,6 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -29,6 +26,8 @@ import (
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/spf13/cobra"
+	"io/ioutil"
+	"path/filepath"
 )
 
 var clusterName string
@@ -121,9 +120,9 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
-			//if err = cf.SaveAll(); err != nil {
-			//	return err
-			//}
+			if err = cf.SaveAll(); err != nil {
+				return err
+			}
 
 			return nil
 		},

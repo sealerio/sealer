@@ -157,7 +157,7 @@ ipvs:
 	config := v1.Config{
 		Spec: v1.ConfigSpec{
 			Path: "etc/mysql.yaml",
-			Data: "mysql-user: root\nmysql-passwd: xxx",
+			Data: "mysql-user: root\nmysql-passwd: xxx\n",
 		},
 	}
 	config.Name = "mysql-config"
