@@ -25,7 +25,6 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config/v1beta2"
-	"github.com/sealerio/sealer/utils"
 	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -86,30 +85,21 @@ var MasterStaticFiles = []*StaticFile{
 	},
 }
 
-//todo bug move this logic to installer. because at this stage will run pre uninstall plugin
-func confirmDeleteHosts(role string, nodesToDelete []net.IP) error {
-	if !runtime.ForceDelete {
-		if pass, err := utils.ConfirmOperation(fmt.Sprintf("Are you sure to delete these %s: %v? ", role, nodesToDelete)); err != nil {
-			return err
-		} else if !pass {
-			return fmt.Errorf("exit the operation of delete these nodes")
-		}
-	}
-
-	return nil
-}
-
 // return node name from k8s cluster, if not found, return "" and error is nil
 func (k *Runtime) getNodeNameByCmd(master, host net.IP) (string, error) {
-	hostString, err := k.infra.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
-
+	//todo get node name from k8s sdk
+	cmd := fmt.Sprintf("kubectl get nodes -o wide | grep -v NAME  | grep %s | awk '{print $1}'", host)
+	hostName, err:= k.infra.CmdToString(master, cmd, "")
 	if err != nil {
 		return "", err
 	}
 
-	cmd := fmt.Sprintf("kubectl get nodes -o wide | grep -v NAME  | grep %s | awk '{print $1}'", host)
-	hostName, _ := k.infra.CmdToString(master, cmd, "")
+	hostString, err := k.infra.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
+	if err != nil {
+		return "", err
+	}
 	nodeNames := strings.Split(hostString, ",")
+
 	for _, nodeName := range nodeNames {
 		if strings.TrimSpace(nodeName) == "" {
 			continue
@@ -118,7 +108,7 @@ func (k *Runtime) getNodeNameByCmd(master, host net.IP) (string, error) {
 		}
 	}
 
-	return "", nil
+	return "", fmt.Errorf("failed to find node name form %s", host.String())
 }
 
 func vlogToStr(vlog int) string {

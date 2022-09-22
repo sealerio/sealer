@@ -79,9 +79,8 @@ func (k *Runtime) deleteMaster(master net.IP, remainMaster0 *net.IP) error {
 		if err != nil {
 			return err
 		}
-
-		if err := k.infra.CmdAsync(*remainMaster0, fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
-			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
+		if err = k.infra.CmdAsync(*remainMaster0, fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
+			return fmt.Errorf("failed to delete master %s: %v", hostname, err)
 		}
 	}
 
@@ -122,13 +121,12 @@ func (k *Runtime) deleteNode(node net.IP, remainMaster0 *net.IP) error {
 
 	// if remainMaster0 is nil, no need delete master from cluster
 	if remainMaster0 != nil {
-		// todo: bug if delete node is master node, then will get null node name at this stage,because already run kubeadm reset
 		hostname, err := k.getNodeNameByCmd(*remainMaster0, node)
 		if err != nil {
 			return err
 		}
 
-		if err := k.infra.CmdAsync(*remainMaster0, fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
+		if err = k.infra.CmdAsync(*remainMaster0, fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
 			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
 		}
 	}

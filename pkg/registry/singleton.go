@@ -76,7 +76,7 @@ func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
 		return nil
 	}
 
-	return c.infraDriver.ConcurrencyExecute(hosts, f)
+	return c.infraDriver.Execute(hosts, f)
 }
 
 func (c *localSingletonConfigurator) GetDriver() (Driver, error) {
@@ -208,7 +208,7 @@ func (c *localSingletonConfigurator) copyCertToHosts(certPath string, hosts []ne
 		return nil
 	}
 
-	return c.infraDriver.ConcurrencyExecute(hosts, f)
+	return c.infraDriver.Execute(hosts, f)
 }
 
 func (c *localSingletonConfigurator) genBasicAuth() error {
@@ -316,7 +316,7 @@ func (c *localSingletonConfigurator) configureHostsFile(hosts []net.IP) error {
 		return nil
 	}
 
-	return c.infraDriver.ConcurrencyExecute(hosts, f)
+	return c.infraDriver.Execute(hosts, f)
 }
 
 func (c *localSingletonConfigurator) configureKubeletAuthInfo(hosts []net.IP) error {
@@ -341,7 +341,7 @@ func (c *localSingletonConfigurator) configureKubeletAuthInfo(hosts []net.IP) er
 		return nil
 	}
 
-	return c.infraDriver.ConcurrencyExecute(hosts, f)
+	return c.infraDriver.Execute(hosts, f)
 }
 
 func (c *localSingletonConfigurator) configureDaemonService(hosts []net.IP) error {

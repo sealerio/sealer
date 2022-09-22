@@ -269,7 +269,7 @@ func (d *SSHInfraDriver) GetClusterBasePath() string {
 	return common.DefaultClusterBaseDir(d.clusterName)
 }
 
-func (d *SSHInfraDriver) ConcurrencyExecute(hosts []net.IP, f func(host net.IP) error) error {
+func (d *SSHInfraDriver) Execute(hosts []net.IP, f func(host net.IP) error) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, ip := range hosts {
 		host := ip

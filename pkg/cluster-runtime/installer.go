@@ -15,6 +15,7 @@
 package clusterruntime
 
 import (
+	"fmt"
 	"net"
 	"path/filepath"
 
@@ -28,6 +29,8 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
+
+var ForceDelete bool
 
 // RuntimeConfig for Installer
 type RuntimeConfig struct {
@@ -177,6 +180,10 @@ func (i *Installer) UnInstall() error {
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
 
+	if err := confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), all); err != nil {
+		return err
+	}
+
 	if err := i.runClusterHook(PreUnInstallCluster); err != nil {
 		return err
 	}
@@ -316,6 +323,18 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 }
 
 func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (registry.Driver, runtime.Driver, error) {
+	if len(workersToDelete) > 0 {
+		if err := confirmDeleteHosts(common.NODE, workersToDelete); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	if len(mastersToDelete) > 0 {
+		if err := confirmDeleteHosts(common.MASTER, mastersToDelete); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	all := append(mastersToDelete, workersToDelete...)
 	if err := i.runHostHook(PreCleanHost, all); err != nil {
 		return nil, nil, err
@@ -345,7 +364,7 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	if err := kubeRuntimeInstaller.ScaleDown(mastersToDelete, workersToDelete); err != nil {
+	if err = kubeRuntimeInstaller.ScaleDown(mastersToDelete, workersToDelete); err != nil {
 		return nil, nil, err
 	}
 
@@ -354,11 +373,11 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	if err := i.containerRuntimeInstaller.UnInstallFrom(all); err != nil {
+	if err = i.containerRuntimeInstaller.UnInstallFrom(all); err != nil {
 		return nil, nil, err
 	}
 
-	if err := i.runHostHook(PostCleanHost, all); err != nil {
+	if err = i.runHostHook(PostCleanHost, all); err != nil {
 		return nil, nil, err
 	}
 

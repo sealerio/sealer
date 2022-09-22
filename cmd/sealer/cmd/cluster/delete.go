@@ -29,7 +29,6 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/utils/os/fs"
 
 	"github.com/spf13/cobra"
@@ -88,7 +87,7 @@ func NewDeleteCmd() *cobra.Command {
 	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
 	deleteCmd.Flags().StringVarP(&deleteClusterName, "cluster", "c", "", "delete a kubernetes cluster with cluster name")
 	deleteCmd.Flags().StringSliceVarP(&deleteArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	deleteCmd.Flags().BoolVar(&runtime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
+	deleteCmd.Flags().BoolVar(&clusterruntime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
 
 	return deleteCmd
@@ -160,7 +159,7 @@ func deleteCluster(workClusterfile string) error {
 		}
 		return nil
 	}
-	if err = infraDriver.ConcurrencyExecute(ips, f); err != nil {
+	if err = infraDriver.Execute(ips, f); err != nil {
 		return err
 	}
 

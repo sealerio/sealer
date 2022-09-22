@@ -130,10 +130,6 @@ func (k *Runtime) Reset() error {
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 	workers := k.infra.GetHostIPListByRole(common.NODE)
 
-	if err := confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), append(masters, workers...)); err != nil {
-		return err
-	}
-
 	if err := k.deleteNodes(workers, []net.IP{}); err != nil {
 		return err
 	}
@@ -179,22 +175,13 @@ func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
 	}
 
 	if len(workersToDelete) > 0 {
-		if err := confirmDeleteHosts(common.NODE, workersToDelete); err != nil {
-			return err
-		}
-
 		if err := k.deleteNodes(workersToDelete, remainMasters); err != nil {
 			return err
 		}
 	}
 
 	if len(mastersToDelete) > 0 {
-		if err := confirmDeleteHosts(common.MASTER, mastersToDelete); err != nil {
-			return err
-		}
-
 		remainWorkers := utilsnet.RemoveIPs(workers, workersToDelete)
-
 		if err := k.deleteMasters(mastersToDelete, remainMasters, remainWorkers); err != nil {
 			return err
 		}

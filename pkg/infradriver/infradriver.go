@@ -47,8 +47,8 @@ type InfraDriver interface {
 	// GetClusterBasePath /var/lib/sealer/data/${clusterName}
 	GetClusterBasePath() string
 
-	// ConcurrencyExecute use eg.Go to execute shell cmd concurrently
-	ConcurrencyExecute(hosts []net.IP, f func(host net.IP) error) error
+	// Execute use eg.Go to execute shell cmd concurrently
+	Execute(hosts []net.IP, f func(host net.IP) error) error
 
 	// Copy local files to remote host
 	// scp -r /tmp root@192.168.0.2:/root/tmp => Copy("192.168.0.2","tmp","/root/tmp")

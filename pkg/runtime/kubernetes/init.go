@@ -240,7 +240,7 @@ func (k *Runtime) sendClusterCert(hosts []net.IP) error {
 		return nil
 	}
 
-	return k.infra.ConcurrencyExecute(hosts, f)
+	return k.infra.Execute(hosts, f)
 }
 
 func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, kubeVersion string, files ...string) error {
@@ -255,7 +255,7 @@ func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, kubeVersion stri
 			}
 			return nil
 		}
-		if err := k.infra.ConcurrencyExecute(masters, f); err != nil {
+		if err := k.infra.Execute(masters, f); err != nil {
 			return err
 		}
 	}
