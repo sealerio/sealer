@@ -37,7 +37,7 @@ func Test_processor_WrapperShell(t *testing.T) {
 				},
 				shell: "hostname",
 			},
-			"foo=bar IP=127.0.0.1 && hostname",
+			"foo=bar IP=127.0.0.1  && hostname",
 		},
 	}
 	for _, tt := range tests {
