@@ -32,14 +32,14 @@ type Interface interface {
 	SetCluster(v2.Cluster)
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
-	GetKubeadmConfig() *kubeadm_config.KubeadmConfig
+	GetKubeadmConfig() *kubeadmconfig.KubeadmConfig
 	SaveAll() error
 }
 
 type ClusterFile struct {
 	cluster       *v2.Cluster
 	configs       []v1.Config
-	kubeadmConfig kubeadm_config.KubeadmConfig
+	kubeadmConfig kubeadmconfig.KubeadmConfig
 	plugins       []v1.Plugin
 }
 
@@ -59,7 +59,7 @@ func (c *ClusterFile) GetPlugins() []v1.Plugin {
 	return c.plugins
 }
 
-func (c *ClusterFile) GetKubeadmConfig() *kubeadm_config.KubeadmConfig {
+func (c *ClusterFile) GetKubeadmConfig() *kubeadmconfig.KubeadmConfig {
 	return &c.kubeadmConfig
 }
 

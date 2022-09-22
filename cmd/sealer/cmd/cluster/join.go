@@ -46,8 +46,8 @@ join cluster:
 
 func NewJoinCmd() *cobra.Command {
 	joinCmd := &cobra.Command{
-		Use:   "join",
-		Short: "join new master or worker node to specified cluster",
+		Use:     "join",
+		Short:   "join new master or worker node to specified cluster",
 		Long:    longJoinCmdDescription,
 		Args:    cobra.NoArgs,
 		Example: exampleForJoinCmd,

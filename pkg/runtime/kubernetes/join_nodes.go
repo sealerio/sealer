@@ -32,7 +32,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm_config.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery) error {
+func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadmconfig.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery) error {
 	if len(newNodes) == 0 {
 		return nil
 	}

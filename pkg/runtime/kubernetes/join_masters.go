@@ -26,7 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig kubeadm_config.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery, certKey string) error {
+func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig kubeadmconfig.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery, certKey string) error {
 	if len(newMasters) == 0 {
 		return nil
 	}

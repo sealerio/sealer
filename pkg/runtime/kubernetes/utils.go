@@ -134,7 +134,7 @@ func (k *Runtime) Command(version, master0IP string, name CommandType, token v1b
 	}
 
 	kv := versionUtils.Version(version)
-	cmp, err := kv.Compare(kubeadm_config.V1150)
+	cmp, err := kv.Compare(kubeadmconfig.V1150)
 	//other version >= 1.15.x
 	if err != nil {
 		logrus.Errorf("failed to compare Kubernetes version: %s", err)

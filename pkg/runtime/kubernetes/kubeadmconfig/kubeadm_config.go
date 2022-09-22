@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubeadm_config
+package kubeadmconfig
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ import (
 	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm_config/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
 
 	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"

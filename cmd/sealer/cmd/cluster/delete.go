@@ -16,9 +16,10 @@ package cluster
 
 import (
 	"fmt"
-	netutils "github.com/sealerio/sealer/utils/net"
 	"io/ioutil"
 	"path/filepath"
+
+	netutils "github.com/sealerio/sealer/utils/net"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"

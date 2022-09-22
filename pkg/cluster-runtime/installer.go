@@ -36,7 +36,7 @@ var ForceDelete bool
 type RuntimeConfig struct {
 	RegistryConfig         registry.RegConfig
 	ContainerRuntimeConfig containerruntime.Config
-	KubeadmConfig          kubeadm_config.KubeadmConfig
+	KubeadmConfig          kubeadmconfig.KubeadmConfig
 	Plugins                []v1.Plugin
 }
 

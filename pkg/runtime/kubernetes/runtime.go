@@ -44,7 +44,7 @@ type Config struct {
 	VIP                          string
 	RegistryInfo                 registry.Info
 	containerRuntimeInfo         containerruntime.Info
-	KubeadmConfigFromClusterFile kubeadm_config.KubeadmConfig
+	KubeadmConfigFromClusterFile kubeadmconfig.KubeadmConfig
 	LvsImage                     string
 	APIServerDomain              string
 }
@@ -55,7 +55,7 @@ type Runtime struct {
 	Config *Config
 }
 
-func NewKubeadmRuntime(clusterFileKubeConfig kubeadm_config.KubeadmConfig, infra infradriver.InfraDriver, containerRuntimeInfo containerruntime.Info, registryInfo registry.Info) (runtime.Installer, error) {
+func NewKubeadmRuntime(clusterFileKubeConfig kubeadmconfig.KubeadmConfig, infra infradriver.InfraDriver, containerRuntimeInfo containerruntime.Info, registryInfo registry.Info) (runtime.Installer, error) {
 	k := &Runtime{
 		infra: infra,
 		Config: &Config{
@@ -144,7 +144,7 @@ func (k *Runtime) Reset() error {
 func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 
-	kubeadmConfig, err := kubeadm_config.LoadKubeadmConfigs(KubeadmFileYml, utils.DecodeCRDFromFile)
+	kubeadmConfig, err := kubeadmconfig.LoadKubeadmConfigs(KubeadmFileYml, utils.DecodeCRDFromFile)
 	if err != nil {
 		return err
 	}
