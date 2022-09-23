@@ -28,7 +28,7 @@ import (
 )
 
 func TestSaveAll(t *testing.T) {
-	data := `apiVersion: sealer.com/v1alpha1
+	data := `apiVersion: sealer.com/v1alpha2
 kind: Config
 metadata:
   name: mysql-config
@@ -38,7 +38,7 @@ spec:
        mysql-user: root
        mysql-passwd: xxx
 ---
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.aliyun.com/v1alpha2
 kind: Plugin
 metadata:
   name: MyHostname # Specify this plugin name,will dump in $rootfs/plugins dir.
@@ -46,9 +46,9 @@ spec:
   type: HOSTNAME # fixed string,should not change this name.
   action: PreInit # Specify which phase to run.
   data: |
-    192.168.0.2 master-0
+    192.168.0.5 master-0
 ---
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.aliyun.com/v1alpha2
 kind: Plugin
 metadata:
   name: MyShell # Specify this plugin name,will dump in $rootfs/plugins dir.
@@ -57,7 +57,7 @@ spec:
   action: PostInstall # PreInit PostInstall
   scope: master
   data: |
-    kubectl get nodes
+    kubectl get pod
 ---
 apiVersion: sealer.cloud/v2
 kind: Cluster
@@ -136,25 +136,25 @@ ipvs:
 	plugin1 := v1.Plugin{
 		Spec: v1.PluginSpec{
 			Type:   "HOSTNAME",
-			Data:   "192.168.0.2 master-0\n",
+			Data:   "192.168.0.5 master-0\n",
 			Action: "PreInit",
 		},
 	}
 	plugin1.Name = "MyHostname"
 	plugin1.Kind = common.Plugin
-	plugin1.APIVersion = APIVersion
+	plugin1.APIVersion = "sealer.aliyun.com/v1alpha2"
 
 	plugin2 := v1.Plugin{
 		Spec: v1.PluginSpec{
 			Type:   "SHELL",
-			Data:   "kubectl get nodes\n",
+			Data:   "kubectl get pod\n",
 			Scope:  "master",
 			Action: "PostInstall",
 		},
 	}
 	plugin2.Name = "MyShell"
 	plugin2.Kind = "Plugin"
-	plugin2.APIVersion = "sealer.aliyun.com/v1alpha1"
+	plugin2.APIVersion = "sealer.aliyun.com/v1alpha2"
 
 	config := v1.Config{
 		Spec: v1.ConfigSpec{
@@ -164,7 +164,7 @@ ipvs:
 	}
 	config.Name = "mysql-config"
 	config.Kind = "Config"
-	config.APIVersion = "sealer.com/v1alpha1"
+	config.APIVersion = "sealer.com/v1alpha2"
 
 	type wanted struct {
 		cluster v2.Cluster
