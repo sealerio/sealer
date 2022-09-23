@@ -29,6 +29,7 @@ import (
 	"github.com/sealerio/sealer/utils/ssh"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const DelayTimes = 5
@@ -86,8 +87,10 @@ func (k *Runtime) WaitK0sReady(ssh ssh.Interface, host net.IP) error {
 		if times == 0 {
 			break
 		}
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * 2)
 		bytes, err := ssh.Cmd(host, "k0s status")
+		//TODO remove this debug log!
+		logrus.Infof("k0s status: %s", string(bytes))
 		if err != nil {
 			return err
 		}

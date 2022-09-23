@@ -19,6 +19,8 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	osi "github.com/sealerio/sealer/utils/os"
+
+	"github.com/sirupsen/logrus"
 )
 
 func (k *Runtime) init() error {
@@ -42,21 +44,30 @@ func (k *Runtime) init() error {
 
 // GenerateConfigOnMaster0 generate the k0s.yaml to /etc/k0s/k0s.yaml and lead the controller node install
 func (k *Runtime) GenerateConfigOnMaster0() error {
+	//TODO remove this debug log!
+	logrus.Infof("start to generate config")
 	if err := k.generateK0sConfig(); err != nil {
 		return fmt.Errorf("failed to generate config: %v", err)
 	}
+	//TODO remove this debug log!
+	logrus.Infof("k0s config created")
+	logrus.Infof("modify config")
 	if err := k.modifyConfigRepo(); err != nil {
 		return fmt.Errorf("failed to modify config to private repository: %s", err)
 	}
+	//TODO remove this debug log!
+	logrus.Infof("config modified successfully")
 	return nil
 }
 
 // GenerateCert generate the containerd CA for registry TLS and k0s join token for 100 years.
 func (k *Runtime) GenerateCert() error {
+	//TODO remove this debug log!
+	logrus.Infof("generate k0s token")
 	if err := k.generateK0sToken(); err != nil {
 		return err
 	}
-
+	logrus.Infof("generate k0s token successfully")
 	if err := k.GenerateRegistryCert(); err != nil {
 		return err
 	}
@@ -76,6 +87,7 @@ func (k *Runtime) generateK0sConfig() error {
 	}
 
 	configCreateCMD := fmt.Sprintf("k0s config create > %s", DefaultK0sConfigPath)
+
 	if _, err := ssh.Cmd(master0IP, configCreateCMD); err != nil {
 		return err
 	}
@@ -101,17 +113,27 @@ func (k *Runtime) BootstrapMaster0() error {
 	if err != nil {
 		return err
 	}
+	//TODO remove this debug log!
+	logrus.Infof("start to install controller on master0")
 	bootstrapCMD := fmt.Sprintf("k0s install controller -c %s", DefaultK0sConfigPath)
 	if _, err := ssh.Cmd(master0IP, bootstrapCMD); err != nil {
 		return err
 	}
+	//TODO remove this debug log!
+	logrus.Infof("controller installed")
+	logrus.Infof("k0s will start")
 	startSvcCMD := "k0s start"
 	if _, err := ssh.Cmd(master0IP, startSvcCMD); err != nil {
 		return err
 	}
+	//TODO remove this debug log!
+	logrus.Infof("k0s start exec successed")
+	logrus.Infof("wait k0s service ready")
 	if err := k.WaitK0sReady(ssh, master0IP); err != nil {
 		return err
 	}
+	//TODO remove this debug log!
+	logrus.Infof("k0s start successfully")
 	return nil
 }
 
