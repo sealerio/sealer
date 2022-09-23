@@ -56,13 +56,18 @@ func (c *ClusterFile) GetKubeadmConfig() *kubeadm.KubeadmConfig {
 }
 
 func NewClusterFile(path string) (Interface, error) {
+	clusterFile := new(ClusterFile)
+
+	if path == "" {
+		return clusterFile, nil
+	}
+
 	clusterFileData, err := ioutil.ReadFile(filepath.Clean(path))
 
 	if err != nil {
 		return nil, err
 	}
 
-	clusterFile := new(ClusterFile)
 	err = decodeClusterFile(bytes.NewReader(clusterFileData), clusterFile)
 
 	if err != nil {
