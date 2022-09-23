@@ -104,7 +104,7 @@ func (c *ClusterFile) SaveAll() error {
 		}
 	}
 
-	if &c.kubeadmConfig.InitConfiguration != nil {
+	if c.kubeadmConfig.InitConfiguration != nil {
 		initConfiguration, err := yaml.Marshal(c.kubeadmConfig.InitConfiguration)
 		if err != nil {
 			return err
@@ -112,7 +112,7 @@ func (c *ClusterFile) SaveAll() error {
 		clusterfileBytes = append(clusterfileBytes, initConfiguration)
 	}
 
-	if &c.kubeadmConfig.JoinConfiguration != nil {
+	if c.kubeadmConfig.JoinConfiguration != nil {
 		joinConfiguration, err := yaml.Marshal(c.kubeadmConfig.JoinConfiguration)
 		if err != nil {
 			return err
@@ -120,7 +120,7 @@ func (c *ClusterFile) SaveAll() error {
 		clusterfileBytes = append(clusterfileBytes, joinConfiguration)
 	}
 
-	if &c.kubeadmConfig.ClusterConfiguration != nil {
+	if c.kubeadmConfig.ClusterConfiguration != nil {
 		clusterConfiguration, err := yaml.Marshal(c.kubeadmConfig.ClusterConfiguration)
 		if err != nil {
 			return err
@@ -128,7 +128,7 @@ func (c *ClusterFile) SaveAll() error {
 		clusterfileBytes = append(clusterfileBytes, clusterConfiguration)
 	}
 
-	if &c.kubeadmConfig.KubeletConfiguration != nil {
+	if c.kubeadmConfig.KubeletConfiguration != nil {
 		kubeletConfiguration, err := yaml.Marshal(c.kubeadmConfig.KubeletConfiguration)
 		if err != nil {
 			return err
@@ -136,7 +136,7 @@ func (c *ClusterFile) SaveAll() error {
 		clusterfileBytes = append(clusterfileBytes, kubeletConfiguration)
 	}
 
-	if &c.kubeadmConfig.KubeProxyConfiguration != nil {
+	if c.kubeadmConfig.KubeProxyConfiguration != nil {
 		kubeProxyConfiguration, err := yaml.Marshal(c.kubeadmConfig.KubeProxyConfiguration)
 		if err != nil {
 			return err

@@ -211,7 +211,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 				t.Errorf("err: %v", err)
 				return
 			}
-			if err := k.LoadFromClusterfile(KubeadmConfig); (err != nil) != tt.wantErr {
+			if err := k.LoadFromClusterfile(&KubeadmConfig); (err != nil) != tt.wantErr {
 				t.Errorf("LoadFromClusterfile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			logrus.Infof("k.InitConfiguration.Kind: %v", k.InitConfiguration.Kind)
