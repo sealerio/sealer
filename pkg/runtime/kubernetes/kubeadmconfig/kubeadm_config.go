@@ -42,11 +42,11 @@ import (
 
 //nolint
 type KubeadmConfig struct {
-	*v1beta2.InitConfiguration
-	*v1beta2.ClusterConfiguration
-	*v1alpha1.KubeProxyConfiguration
-	*v1beta1.KubeletConfiguration
-	*v1beta2.JoinConfiguration
+	v1beta2.InitConfiguration
+	v1beta2.ClusterConfiguration
+	v1alpha1.KubeProxyConfiguration
+	v1beta1.KubeletConfiguration
+	v1beta2.JoinConfiguration
 }
 
 const (
@@ -69,10 +69,8 @@ const (
 // LoadFromClusterfile :Load KubeadmConfig from Clusterfile.
 // If it has `KubeadmConfig` in Clusterfile, load every field to each configuration.
 // If Kubeadm raw config in Clusterfile, just load it.
-func (k *KubeadmConfig) LoadFromClusterfile(kubeadmConfig *KubeadmConfig) error {
-	if kubeadmConfig == nil {
-		k.APIServer.CertSANs = strUtils.RemoveDuplicate(k.APIServer.CertSANs)
-	}
+func (k *KubeadmConfig) LoadFromClusterfile(kubeadmConfig KubeadmConfig) error {
+	k.APIServer.CertSANs = strUtils.RemoveDuplicate(append(k.APIServer.CertSANs, kubeadmConfig.APIServer.CertSANs...))
 
 	return mergo.Merge(k, kubeadmConfig)
 }
@@ -134,31 +132,31 @@ func LoadKubeadmConfigs(arg string, decode func(arg string, kind string) (interf
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if initConfig != nil {
-		kubeadmConfig.InitConfiguration = initConfig.(*v1beta2.InitConfiguration)
+		kubeadmConfig.InitConfiguration = *initConfig.(*v1beta2.InitConfiguration)
 	}
 	clusterConfig, err := decode(arg, ClusterConfiguration)
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if clusterConfig != nil {
-		kubeadmConfig.ClusterConfiguration = clusterConfig.(*v1beta2.ClusterConfiguration)
+		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta2.ClusterConfiguration)
 	}
 	kubeProxyConfig, err := decode(arg, KubeProxyConfiguration)
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if kubeProxyConfig != nil {
-		kubeadmConfig.KubeProxyConfiguration = kubeProxyConfig.(*v1alpha1.KubeProxyConfiguration)
+		kubeadmConfig.KubeProxyConfiguration = *kubeProxyConfig.(*v1alpha1.KubeProxyConfiguration)
 	}
 	kubeletConfig, err := decode(arg, KubeletConfiguration)
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if kubeletConfig != nil {
-		kubeadmConfig.KubeletConfiguration = kubeletConfig.(*v1beta1.KubeletConfiguration)
+		kubeadmConfig.KubeletConfiguration = *kubeletConfig.(*v1beta1.KubeletConfiguration)
 	}
 	joinConfig, err := decode(arg, JoinConfiguration)
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if joinConfig != nil {
-		kubeadmConfig.JoinConfiguration = joinConfig.(*v1beta2.JoinConfiguration)
+		kubeadmConfig.JoinConfiguration = *joinConfig.(*v1beta2.JoinConfiguration)
 	}
 	return kubeadmConfig, nil
 }
@@ -176,7 +174,7 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	masters []net.IP, apiServerDomain, cgroupDriver string, apiServerVIP net.IP) (KubeadmConfig, error) {
 	conf := KubeadmConfig{}
 
-	if err := conf.LoadFromClusterfile(&fromClusterFile); err != nil {
+	if err := conf.LoadFromClusterfile(fromClusterFile); err != nil {
 		return conf, fmt.Errorf("failed to load kubeadm config from clusterfile: %v", err)
 	}
 	// TODO handle the kubeadm config, like kubeproxy config

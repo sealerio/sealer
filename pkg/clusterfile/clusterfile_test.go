@@ -28,6 +28,78 @@ import (
 )
 
 func TestSaveAll(t *testing.T) {
+	data := `apiVersion: sealer.com/v1alpha1
+kind: Config
+metadata:
+  name: mysql-config
+spec:
+  path: etc/mysql.yaml
+  data: |
+       mysql-user: root
+       mysql-passwd: xxx
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: MyHostname # Specify this plugin name,will dump in $rootfs/plugins dir.
+spec:
+  type: HOSTNAME # fixed string,should not change this name.
+  action: PreInit # Specify which phase to run.
+  data: |
+    192.168.0.2 master-0
+---
+apiVersion: sealer.aliyun.com/v1alpha1
+kind: Plugin
+metadata:
+  name: MyShell # Specify this plugin name,will dump in $rootfs/plugins dir.
+spec:
+  type: SHELL
+  action: PostInstall # PreInit PostInstall
+  scope: master
+  data: |
+    kubectl get nodes
+---
+apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  image: kubernetes:v1.19.8
+  env:
+    - key1=value1
+    - key2=value2;value3 #key2=[value2, value3]
+  ssh:
+    passwd: test123
+    pk: xxx
+    pkPasswd: xxx
+    user: root
+    port: "22"
+  hosts:
+    - ips: [ 192.168.0.2 ]
+      roles: [ master ] # add role field to specify the node role
+      env: # rewrite some nodes has different env config
+        - etcd-dir=/data/etcd
+      ssh: # rewrite ssh config if some node has different passwd...
+        user: root
+        passwd: test456
+        port: "22"
+    - ips: [ 192.168.0.3 ]
+      roles: [ node,db ]
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: InitConfiguration
+localAPIEndpoint:
+  bindPort: 6443
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: "ipvs"
+ipvs:
+  excludeCIDRs:
+    - "10.103.97.2/32"`
+
 	cluster := v2.Cluster{
 		Spec: v2.ClusterSpec{
 			Image: "kubernetes:v1.19.8",
