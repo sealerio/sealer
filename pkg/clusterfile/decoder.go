@@ -86,7 +86,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 
-			clusterfile.kubeadmConfig.InitConfiguration = in
+			clusterfile.kubeadmConfig.InitConfiguration = &in
 
 		case common.JoinConfiguration:
 			var in v1beta2.JoinConfiguration
@@ -95,7 +95,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 
-			clusterfile.kubeadmConfig.JoinConfiguration = in
+			clusterfile.kubeadmConfig.JoinConfiguration = &in
 
 		case common.ClusterConfiguration:
 			var in v1beta2.ClusterConfiguration
@@ -104,7 +104,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 
-			clusterfile.kubeadmConfig.ClusterConfiguration = in
+			clusterfile.kubeadmConfig.ClusterConfiguration = &in
 
 		case common.KubeletConfiguration:
 			var in v1beta1.KubeletConfiguration
@@ -113,7 +113,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 
-			clusterfile.kubeadmConfig.KubeletConfiguration = in
+			clusterfile.kubeadmConfig.KubeletConfiguration = &in
 
 		case common.KubeProxyConfiguration:
 			var in v1alpha1.KubeProxyConfiguration
@@ -122,7 +122,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 
-			clusterfile.kubeadmConfig.KubeProxyConfiguration = in
+			clusterfile.kubeadmConfig.KubeProxyConfiguration = &in
 		}
 	}
 }

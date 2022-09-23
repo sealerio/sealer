@@ -123,7 +123,7 @@ func TestSaveAll(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cf, err := NewClusterFile(tt.args.data)
 			if err != nil {
-				t.Errorf("failed to get cluster file interface error:(%v)", err)
+				t.Errorf("failed to decode cluster file, error is:(%v)", err)
 			}
 
 			cluster := cf.GetCluster()
@@ -143,11 +143,6 @@ func TestSaveAll(t *testing.T) {
 
 			assert.Equal(t, kubeadm.InitConfiguration.TypeMeta.Kind, common.InitConfiguration)
 			assert.Equal(t, kubeadm.KubeProxyConfiguration.TypeMeta.Kind, common.KubeProxyConfiguration)
-
-			//todo Consider whether you need to pass the Clusterfle path as a parameter later.
-			//if err := cf.SaveAll(); err != nil {
-			//	t.Errorf("failed to save all error:(%v)", err)
-			//}
 		})
 	}
 }
