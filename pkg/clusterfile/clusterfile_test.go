@@ -18,6 +18,8 @@ import (
 	"net"
 	"testing"
 
+	"k8s.io/kube-proxy/config/v1alpha1"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/stretchr/testify/assert"
@@ -141,8 +143,11 @@ func TestSaveAll(t *testing.T) {
 			kubeadm := cf.GetKubeadmConfig()
 			assert.NotNil(t, kubeadm)
 
-			assert.Equal(t, kubeadm.InitConfiguration.TypeMeta.Kind, common.InitConfiguration)
-			assert.Equal(t, kubeadm.KubeProxyConfiguration.TypeMeta.Kind, common.KubeProxyConfiguration)
+			assert.Equal(t, kubeadm.LocalAPIEndpoint.BindPort, int32(6443))
+			assert.Equal(t, kubeadm.InitConfiguration.NodeRegistration.CRISocket, "/var/run/dockershim.sock")
+
+			assert.Equal(t, kubeadm.Mode, v1alpha1.ProxyMode("ipvs"))
+			assert.Equal(t, kubeadm.IPVS.ExcludeCIDRs, []string{"10.103.97.2/32"})
 		})
 	}
 }
