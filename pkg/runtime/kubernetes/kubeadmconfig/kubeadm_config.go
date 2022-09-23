@@ -71,7 +71,7 @@ const (
 // If Kubeadm raw config in Clusterfile, just load it.
 func (k *KubeadmConfig) LoadFromClusterfile(kubeadmConfig *KubeadmConfig) error {
 	if kubeadmConfig == nil {
-		k.APIServer.CertSANs = strUtils.RemoveDuplicate(append(k.APIServer.CertSANs, kubeadmConfig.APIServer.CertSANs...))
+		k.APIServer.CertSANs = strUtils.RemoveDuplicate(k.APIServer.CertSANs)
 	}
 
 	return mergo.Merge(k, kubeadmConfig)
