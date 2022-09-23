@@ -140,7 +140,7 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 	if len(mastersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
 			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, mastersToDelete)
+				cluster.Spec.Hosts[i].IPS = removeIPList(cluster.Spec.Hosts[i].IPS, mastersToDelete)
 			}
 		}
 	}
@@ -148,7 +148,7 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 	if len(workersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
 			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, workersToDelete)
+				cluster.Spec.Hosts[i].IPS = removeIPList(cluster.Spec.Hosts[i].IPS, workersToDelete)
 			}
 		}
 	}
@@ -166,7 +166,7 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 	return nil
 }
 
-func returnFilteredIPList(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP) {
+func removeIPList(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP) {
 	for _, ip := range clusterIPList {
 		if netutils.NotInIPList(ip, toBeDeletedIPList) {
 			res = append(res, ip)
