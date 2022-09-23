@@ -22,8 +22,11 @@ import (
 )
 
 const (
-	DefaultDockerSocket = "/var/run/dockershim.sock"
-	DockerCertsDir      = "/etc/docker/certs.d"
+	DefaultDockerCRISocket     = "/var/run/dockershim.sock"
+	DefaultContainerdCRISocket = "/run/containerd/containerd.sock"
+	DefaultSystemdCgroupDriver = "systemd"
+	DefaultCgroupDriver        = "cgroupfs"
+	DockerDockerCertsDir       = "/etc/docker/certs.d"
 )
 
 type Installer interface {
@@ -51,23 +54,22 @@ type Info struct {
 
 func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
 	if conf.Type == "docker" {
-		dockerInstall := &DockerInstaller{
+		return &DockerInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
 			Info: Info{
-				Config: conf,
+				CertsDir:  DockerDockerCertsDir,
+				CRISocket: DefaultDockerCRISocket,
+				Config:    conf,
 			},
-		}
-		return dockerInstall, nil
+		}, nil
 	}
 
 	if conf.Type == "containerd" {
-		containerdInstaller := &ContainerdInstaller{
+		return &ContainerdInstaller{
 			rootfs: driver.GetClusterRootfs(),
 			driver: driver,
-		}
-
-		return containerdInstaller, nil
+		}, nil
 	}
 
 	return nil, fmt.Errorf("please enter the correct container type")

@@ -19,6 +19,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils/os"
+	"github.com/sirupsen/logrus"
+
 	netutils "github.com/sealerio/sealer/utils/net"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -120,6 +123,10 @@ func getRuntimeInterfaces(cf clusterfile.Interface) (imagedistributor.Interface,
 }
 
 func deleteCluster(workClusterfile string) error {
+	if !os.IsFileExist(workClusterfile) {
+		logrus.Info("no cluster found")
+		return nil
+	}
 	clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
 	if err != nil {
 		return err

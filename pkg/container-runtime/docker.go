@@ -29,33 +29,27 @@ type DockerInstaller struct {
 }
 
 func (d *DockerInstaller) InstallOn(hosts []net.IP) error {
-	RemoteChmod := "cd %s/scripts && chmod +x docker.sh && bash docker.sh %s %s"
+	installCmd := fmt.Sprintf("bash %s %s", filepath.Join(d.rootfs, "scripts", "docker.sh"), d.Info.LimitNofile)
 	for _, ip := range hosts {
-		initCmd := fmt.Sprintf(RemoteChmod, d.rootfs, d.Info.CgroupDriver, d.Info.LimitNofile)
-		err := d.driver.CmdAsync(ip, initCmd)
+		err := d.driver.CmdAsync(ip, installCmd)
 		if err != nil {
-			return fmt.Errorf("failed to execute install command(%s) on host (%s): error(%v)", initCmd, ip, err)
+			return fmt.Errorf("failed to install docker: execute command(%s) on host (%s): error(%v)", installCmd, ip, err)
 		}
 	}
 	return nil
 }
 
 func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
-	//todo need to cooperator with the rootfs files, so the name of uninstall bash file need to discuss
-	cleanCmd := fmt.Sprintf("bash %s", filepath.Join(d.driver.GetClusterRootfs(), "scripts", "uninstall-docker.sh"))
+	cleanCmd := fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", "uninstall-docker.sh"))
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, cleanCmd)
 		if err != nil {
-			return fmt.Errorf("failed to execute clean command(%s) on host (%s): error(%v)", cleanCmd, ip, err)
+			return fmt.Errorf("failed to uninstall docker: execute command(%s) on host (%s): error(%v)", cleanCmd, ip, err)
 		}
 	}
 	return nil
 }
 
 func (d DockerInstaller) GetInfo() (Info, error) {
-	info := d.Info
-	info.CRISocket = DefaultDockerSocket
-	info.CertsDir = DockerCertsDir
-
-	return info, nil
+	return d.Info, nil
 }
