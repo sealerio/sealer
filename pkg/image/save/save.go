@@ -307,6 +307,9 @@ func (is *DefaultImageSaver) saveBlobs(imageDigests []digest.Digest, repo distri
 				<-numCh
 			}()
 
+			if len(string(tmpBlob)) < 19 {
+				return nil
+			}
 			simpleDgst := string(tmpBlob)[7:19]
 
 			_, err = blobStore.Stat(is.ctx, tmpBlob)
