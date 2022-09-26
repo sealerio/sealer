@@ -15,6 +15,7 @@
 package clusterfile
 
 import (
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -112,19 +113,28 @@ func TestSaveAll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clusterFile := &ClusterFile{cluster: &cluster, configs: []v1.Config{config}, plugins: []v1.Plugin{plugin2}}
-			clusterfile := common.GetDefaultClusterfile()
-			if err := os.MkdirAll(filepath.Dir(clusterfile), common.FileMode0755); err != nil {
+			clusterFilePath := common.GetDefaultClusterfile()
+			if err := os.MkdirAll(filepath.Dir(clusterFilePath), common.FileMode0755); err != nil {
 				t.Errorf("failed to create directory, error is:(%v)", err)
 			}
 			if err := clusterFile.SaveAll(); err != nil {
 				t.Errorf("failed to save all file, error is:(%v)", err)
 			}
+			clusterFileData, err := ioutil.ReadFile(filepath.Clean(clusterFilePath))
+			if err != nil {
+				t.Errorf("failed to read cluster file, error is:(%v)", err)
+			}
 
-			assert.Equal(t, tt.args.wanted.config, clusterFile.GetConfigs())
-			assert.Equal(t, tt.args.wanted.plugins, clusterFile.GetPlugins())
-			assert.Equal(t, tt.args.wanted.cluster, clusterFile.GetCluster())
+			cf, err := NewClusterFile(clusterFileData)
+			if err != nil {
+				t.Errorf("failed to get clusterfile interface, error is:(%v)", err)
+			}
 
-			if err := os.Remove(clusterfile); err != nil {
+			assert.Equal(t, tt.args.wanted.config, cf.GetConfigs())
+			assert.Equal(t, tt.args.wanted.plugins, cf.GetPlugins())
+			assert.Equal(t, tt.args.wanted.cluster, cf.GetCluster())
+
+			if err := os.Remove(clusterFilePath); err != nil {
 				t.Errorf("failed to remove clusterfile, error is:(%v)", err)
 			}
 		})
