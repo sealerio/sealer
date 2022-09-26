@@ -153,6 +153,33 @@ func (engine *Engine) CreateContainer(opts *options.FromOptions) (string, error)
 	return engine.createContainerFromImage(opts)
 }
 
+// CreateWorkingContainer will make a workingContainer with rootfs under /var/lib/containers/storage
+// And then link rootfs to the DestDir
+// And remember to call RemoveContainer to remove the link and remove the container(umount rootfs) manually.
+func (engine *Engine) CreateWorkingContainer(opts *options.BuildRootfsOptions) (containerID string, err error) {
+	// TODO clean environment when it fails
+	cid, err := engine.CreateContainer(&options.FromOptions{
+		Image: opts.ImageNameOrID,
+		Quiet: false,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	mounts, err := engine.Mount(&options.MountOptions{Containers: []string{cid}})
+	if err != nil {
+		return "", err
+	}
+
+	// remove destination dir if it exists, otherwise the Symlink will fail.
+	if _, err = os.Stat(opts.DestDir); err == nil {
+		return "", fmt.Errorf("destination directionay %s exists, you should remove it first", opts.DestDir)
+	}
+
+	mountPoint := mounts[0].MountPoint
+	return cid, os.Symlink(mountPoint, opts.DestDir)
+}
+
 func (engine *Engine) migrateFlags2BuildahFrom(opts *options.FromOptions) error {
 	return nil
 }

@@ -129,7 +129,7 @@ func (m *mounter) mountImage(cluster *v2.Cluster) error {
 
 		// build oci image rootfs under graphroot
 		// and the rootfs will be linked to sealer rootfs.
-		_, err = m.imageEngine.BuildRootfs(&options.BuildRootfsOptions{
+		_, err = m.imageEngine.CreateWorkingContainer(&options.BuildRootfsOptions{
 			ImageNameOrID: image,
 			DestDir:       mountDir,
 		})
