@@ -14,6 +14,8 @@
 
 package ipvs
 
+import "testing"
+
 /*var want = []string{
 	`apiVersion: v1
 kind: Pod
@@ -93,3 +95,38 @@ func TestLvsStaticPodYaml(t *testing.T) {
 	}
 }
 */
+
+func TestLvsStaticPodYaml(t *testing.T) {
+	type args struct {
+		vip     string
+		masters []string
+		image   string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			args: args{
+				vip:     "10.107.2.1",
+				masters: []string{"172.16.228.157", "172.16.228.157", "172.16.228.157"},
+				image:   "fdfadf",
+			},
+		},
+		{
+			args: args{
+				vip:     "10.107.2.1",
+				masters: []string{"172.16.228.157"},
+				image:   "fdfadf",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := LvsStaticPodYaml(tt.args.vip, tt.args.masters, tt.args.image); got != tt.want {
+				t.Errorf("LvsStaticPodYaml() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
