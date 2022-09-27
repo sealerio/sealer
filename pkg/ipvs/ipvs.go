@@ -17,12 +17,10 @@ package ipvs
 import (
 	"net"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -53,25 +51,14 @@ func LvsStaticPodYaml(vip string, masters []string, image string) string {
 		ImagePullPolicy: v1.PullIfNotPresent,
 		SecurityContext: &v1.SecurityContext{Privileged: &flag},
 	})
-	yaml, err := podToYaml(pod)
+
+	yml, err := yaml.Marshal(pod)
 	if err != nil {
 		logrus.Errorf("failed to decode lvs care static pod yaml: %s", err)
 		return ""
 	}
-	return string(yaml)
-}
 
-func podToYaml(pod v1.Pod) ([]byte, error) {
-	codecs := scheme.Codecs
-	gv := v1.SchemeGroupVersion
-	const mediaType = runtime.ContentTypeYAML
-	info, ok := runtime.SerializerInfoForMediaType(codecs.SupportedMediaTypes(), mediaType)
-	if !ok {
-		return []byte{}, errors.Errorf("unsupported media type %q", mediaType)
-	}
-
-	encoder := codecs.EncoderForVersion(info.Serializer, gv)
-	return runtime.Encode(encoder, &pod)
+	return string(yml)
 }
 
 // componentPod returns a Pod object from the container and volume specifications
