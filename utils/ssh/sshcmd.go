@@ -160,7 +160,7 @@ func (s *SSH) CmdToString(host net.IP, cmd, split string) (string, error) {
 	data, err := s.Cmd(host, cmd)
 	str := string(data)
 	if err != nil {
-		return str, fmt.Errorf("failed to exec command(%s) on host(%s): %v", cmd, host, err)
+		return str, err
 	}
 	if data != nil {
 		str = strings.ReplaceAll(str, "\r\n", split)
