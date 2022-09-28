@@ -247,10 +247,6 @@ func (k *Runtime) InitMaster0() error {
 	// TODO skip docker version error check for test
 	output, err := client.Cmd(k.cluster.GetMaster0IP(), cmdInit)
 	if err != nil {
-		_, wErr := common.StdOut.WriteString(string(output))
-		if wErr != nil {
-			return err
-		}
 		return fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
 	}
 	k.decodeMaster0Output(output)
@@ -298,7 +294,7 @@ func (k *Runtime) init() error {
 
 	for _, f := range pipeline {
 		if err := f(); err != nil {
-			return fmt.Errorf("failed to init master0: %v", err)
+			return fmt.Errorf("failed to init cluster: %v", err)
 		}
 	}
 
