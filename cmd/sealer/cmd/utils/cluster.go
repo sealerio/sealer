@@ -1,17 +1,3 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package utils
 
 import (
@@ -21,7 +7,6 @@ import (
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 
-	"github.com/sealerio/sealer/utils/hash"
 	netutils "github.com/sealerio/sealer/utils/net"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 
@@ -58,37 +43,10 @@ func ConstructClusterForRun(imageName string, runArgs *types.Args) (*v2.Cluster,
 }
 
 func ConstructClusterForJoin(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters, joinWorkers []net.IP) error {
-	var err error
 	// merge custom Env to the existed cluster
 	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
 
-	// if scaleArgs`s ssh auth credential is different from local cluster,will add it to each host.
-	// if not use local cluster ssh auth credential.
-	var changedSSH *v1.SSH
-
-	passwd := cluster.Spec.SSH.Passwd
-	if cluster.Spec.SSH.Encrypted {
-		passwd, err = hash.AesDecrypt([]byte(cluster.Spec.SSH.Passwd))
-		if err != nil {
-			return err
-		}
-	}
-
-	if scaleArgs.Password != "" && scaleArgs.Password != passwd {
-		// Encrypt password here to avoid merge failed.
-		passwd, err = hash.AesEncrypt([]byte(scaleArgs.Password))
-		if err != nil {
-			return err
-		}
-		changedSSH = &v1.SSH{
-			Encrypted: true,
-			User:      scaleArgs.User,
-			Passwd:    passwd,
-			Pk:        scaleArgs.Pk,
-			PkPasswd:  scaleArgs.PkPassword,
-			Port:      strconv.Itoa(int(scaleArgs.Port)),
-		}
-	}
+	//todo Add password encryption mode in the future
 
 	//add joined masters
 	if len(joinMasters) != 0 {
@@ -100,16 +58,21 @@ func ConstructClusterForJoin(cluster *v2.Cluster, scaleArgs *types.Args, joinMas
 			}
 		}
 
-		host := v2.Host{
-			IPS:   joinMasters,
-			Roles: []string{common.MASTER},
+		for i := range cluster.Spec.Hosts {
+			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
+				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, joinMasters...)
+			}
 		}
 
-		if changedSSH != nil {
-			host.SSH = *changedSSH
+		var hosts []v2.Host
+		for _, h := range cluster.Spec.Hosts {
+			if len(h.IPS) == 0 {
+				continue
+			}
+			hosts = append(hosts, h)
 		}
 
-		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
+		cluster.Spec.Hosts = hosts
 	}
 
 	//add joined nodes
@@ -122,16 +85,21 @@ func ConstructClusterForJoin(cluster *v2.Cluster, scaleArgs *types.Args, joinMas
 			}
 		}
 
-		host := v2.Host{
-			IPS:   joinWorkers,
-			Roles: []string{common.NODE},
+		for i := range cluster.Spec.Hosts {
+			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
+				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, joinWorkers...)
+			}
 		}
 
-		if changedSSH != nil {
-			host.SSH = *changedSSH
+		var hosts []v2.Host
+		for _, h := range cluster.Spec.Hosts {
+			if len(h.IPS) == 0 {
+				continue
+			}
+			hosts = append(hosts, h)
 		}
 
-		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
+		cluster.Spec.Hosts = hosts
 	}
 	return nil
 }

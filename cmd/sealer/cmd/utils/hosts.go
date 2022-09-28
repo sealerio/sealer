@@ -16,7 +16,6 @@ package utils
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/sealerio/sealer/common"
 
@@ -34,20 +33,16 @@ func TransferIPStrToHosts(inMasters, inNodes string) ([]v2.Host, error) {
 	}
 
 	masterHosts := make([]v2.Host, 0, len(masterIPList))
-	for _, master := range masterIPList {
-		masterHosts = append(masterHosts, v2.Host{
-			Roles: []string{common.MASTER},
-			IPS:   []net.IP{master},
-		})
-	}
+	masterHosts = append(masterHosts, v2.Host{
+		Roles: []string{common.MASTER},
+		IPS:   masterIPList,
+	})
 
 	nodeHosts := make([]v2.Host, 0, len(nodeIPList))
-	for _, node := range nodeIPList {
-		nodeHosts = append(nodeHosts, v2.Host{
-			Roles: []string{common.NODE},
-			IPS:   []net.IP{node},
-		})
-	}
+	nodeHosts = append(nodeHosts, v2.Host{
+		Roles: []string{common.NODE},
+		IPS:   nodeIPList,
+	})
 
 	return append(masterHosts, nodeHosts...), nil
 }
