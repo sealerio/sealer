@@ -82,7 +82,7 @@ func NewRunCmd() *cobra.Command {
 					return err
 				}
 			} else {
-				if args[0] == "" {
+				if len(args) == 0 {
 					return fmt.Errorf("you must input cluster image name")
 				}
 

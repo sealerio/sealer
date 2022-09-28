@@ -91,7 +91,7 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return fmt.Errorf("failed to exec command(%s) on master(%s): %v", joinCmd, m, err)
 		}
 
-		if err = k.infra.CmdAsync(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
+		if err = k.infra.CmdAsync(m, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
 			return err
 		}
 

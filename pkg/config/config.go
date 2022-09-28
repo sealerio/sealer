@@ -74,12 +74,12 @@ func (c *Dumper) WriteFiles(configs []v1.Config) error {
 		}
 		configData := []byte(config.Spec.Data)
 		configPath := filepath.Join(c.rootPath, config.Spec.Path)
-
 		if !os.IsFileExist(configPath) {
 			err := os.NewCommonWriter(configPath).WriteFile(configData)
 			if err != nil {
 				return fmt.Errorf("failed to overwrite config file %s: %v", configPath, err)
 			}
+			continue
 		}
 
 		contents, err := ioutil.ReadFile(filepath.Clean(configPath))
@@ -93,7 +93,6 @@ func (c *Dumper) WriteFiles(configs []v1.Config) error {
 				return fmt.Errorf("faild to convert to secret file: %v", err)
 			}
 		}
-
 		//Only files in yaml format are supported.
 		//if Strategy is "Merge" will deeply merge each yaml file section.
 		//if not, overwrite the whole file content with config data.
