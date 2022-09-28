@@ -87,7 +87,7 @@ func (m mounter) GetMountTarget() string {
 	return m.TempTarget
 }
 
-// NewMountService will create temp dir if target or upper is nil. it is convenient for use in build stage
+//NewMountService will create temp dir if target or upper is nil. it is convenient for use in build stage
 func NewMountService(target, upper string, lowLayers []string) (Service, error) {
 	f := fs.NewFilesystem()
 	if len(lowLayers) == 0 {
@@ -132,7 +132,7 @@ func GetDirNameListInDir(dir string) ([]string, error) {
 	return dirs, nil
 }
 
-// NewMountServiceByTarget will filter file system by target,if not existed,return false.
+//NewMountServiceByTarget will filter file system by target,if not existed,return false.
 func NewMountServiceByTarget(target string) Service {
 	mounted, info := GetMountDetails(target)
 	if !mounted {
@@ -154,7 +154,7 @@ type Info struct {
 
 func GetMountDetails(target string) (bool, *Info) {
 	infos, err := mountinfo.GetMounts(mountinfo.SingleEntryFilter(target))
-	if err != nil {
+	if err != nil || len(infos) == 0 {
 		return false, nil
 	}
 	return mountCmdResultSplit(infos[0].VFSOptions, target)

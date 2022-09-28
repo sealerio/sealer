@@ -108,7 +108,7 @@ func (s *scpDistributor) pull(imageName string, plat v1.Platform) error {
 func (s *scpDistributor) buildRootfs(imageName string) (string, error) {
 	mountDir := filepath.Join(common.DefaultSealerDataDir, "mount")
 
-	if _, err := s.imageEngine.BuildRootfs(&imagecommon.BuildRootfsOptions{
+	if _, err := s.imageEngine.CreateWorkingContainer(&imagecommon.BuildRootfsOptions{
 		DestDir:       mountDir,
 		ImageNameOrID: imageName,
 	}); err != nil {

@@ -54,7 +54,7 @@ type easyProgressUtil struct {
 	total          int
 }
 
-// must call DisplayInit first
+//must call DisplayInit first
 func registerEpu(ip net.IP, total int) {
 	if progressChanOut == nil {
 		logrus.Warn("call DisplayInit first")

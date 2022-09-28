@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/util/keyutil"
 )
 
-// CertificateFileManger Asymmetric encryption, like ca.crt and ca.key
+//CertificateFileManger Asymmetric encryption, like ca.crt and ca.key
 type CertificateFileManger struct {
 	certName string
 	certPath string

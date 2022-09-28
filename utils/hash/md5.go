@@ -28,7 +28,7 @@ func MD5(body []byte) string {
 	return hex.EncodeToString(bytes[:])
 }
 
-// FileMD5 count file md5
+//FileMD5 count file md5
 func FileMD5(path string) (string, error) {
 	file, err := os.Open(filepath.Clean(path))
 	if err != nil {

@@ -273,7 +273,7 @@ func (c *localSingletonConfigurator) reconcileRegistry(hosts []net.IP) error {
 			return err
 		}
 
-		if _, err = c.imageEngine.BuildRootfs(&imagecommon.BuildRootfsOptions{
+		if _, err = c.imageEngine.CreateWorkingContainer(&imagecommon.BuildRootfsOptions{
 			DestDir:       mountDir,
 			ImageNameOrID: imageName,
 		}); err != nil {

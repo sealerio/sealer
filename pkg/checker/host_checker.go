@@ -63,7 +63,7 @@ func checkHostnameUnique(cluster *v2.Cluster, ipList []net.IP) error {
 	return nil
 }
 
-// Check whether the node time is synchronized
+//Check whether the node time is synchronized
 func checkTimeSync(cluster *v2.Cluster, ipList []net.IP) error {
 	for _, ip := range ipList {
 		s, err := ssh.GetHostSSHClient(ip, cluster)

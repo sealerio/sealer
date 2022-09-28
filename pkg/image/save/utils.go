@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
-// this package contains some utils to handle docker image name
+//this package contains some utils to handle docker image name
 const (
 	legacyDefaultDomain = "index.docker.io"
 	defaultDomain       = "docker.io"
@@ -101,7 +101,7 @@ func ParseNormalizedNamed(s string, registry string) (Named, error) {
 }
 
 // BlobList this package unmarshal blobs from json into a BlobList struct
-// then return a slice of blob digest
+//then return a slice of blob digest
 type BlobList struct {
 	Layers    []distribution.Descriptor `json:"layers"`
 	Config    distribution.Descriptor   `json:"config"`
@@ -128,7 +128,7 @@ func getBlobList(blobListJSON distribution.Manifest) ([]digest.Digest, error) {
 }
 
 // ManifestList this package unmarshal manifests from json into a ManifestList struct
-// then choose corresponding manifest by platform
+//then choose corresponding manifest by platform
 type ManifestList struct {
 	List      []ImageManifest `json:"manifests"`
 	MediaType string          `json:"mediaType"`
