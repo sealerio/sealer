@@ -19,6 +19,8 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	osi "github.com/sealerio/sealer/utils/os"
+
+	"github.com/sirupsen/logrus"
 )
 
 func (k *Runtime) init() error {
@@ -45,6 +47,8 @@ func (k *Runtime) GenerateConfigOnMaster0() error {
 	if err := k.generateK0sConfig(); err != nil {
 		return fmt.Errorf("failed to generate config: %v", err)
 	}
+	logrus.Infof("k0s config created under /etc/k0s")
+
 	if err := k.modifyConfigRepo(); err != nil {
 		return fmt.Errorf("failed to modify config to private repository: %s", err)
 	}
@@ -56,7 +60,6 @@ func (k *Runtime) GenerateCert() error {
 	if err := k.generateK0sToken(); err != nil {
 		return err
 	}
-
 	if err := k.GenerateRegistryCert(); err != nil {
 		return err
 	}
@@ -76,6 +79,7 @@ func (k *Runtime) generateK0sConfig() error {
 	}
 
 	configCreateCMD := fmt.Sprintf("k0s config create > %s", DefaultK0sConfigPath)
+
 	if _, err := ssh.Cmd(master0IP, configCreateCMD); err != nil {
 		return err
 	}
@@ -109,6 +113,11 @@ func (k *Runtime) BootstrapMaster0() error {
 	if _, err := ssh.Cmd(master0IP, startSvcCMD); err != nil {
 		return err
 	}
+
+	if err := k.WaitK0sReady(ssh, master0IP); err != nil {
+		return err
+	}
+	logrus.Infof("k0s start successfully on master0")
 	return nil
 }
 

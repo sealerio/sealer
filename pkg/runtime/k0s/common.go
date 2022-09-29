@@ -26,5 +26,5 @@ const (
 	WorkerRole               = "worker"
 	ControllerRole           = "controller"
 
-	ExternalCRI = "/run/containerd/containerd.sock"
+	ExternalCRI = "remote:/run/containerd/containerd.sock"
 )
