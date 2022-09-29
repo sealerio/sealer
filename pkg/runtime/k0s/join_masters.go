@@ -47,7 +47,7 @@ func (k *Runtime) joinMasters(masters []net.IP) error {
 	if err := k.CopyJoinToken(ControllerRole, masters); err != nil {
 		return err
 	}
-	cmds := k.Command(ControllerRole)
+	cmds := k.JoinCommand(ControllerRole)
 	if cmds == nil {
 		return fmt.Errorf("failed to get join master command")
 	}

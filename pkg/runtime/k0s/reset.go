@@ -66,14 +66,15 @@ func (k *Runtime) resetNode(node net.IP) error {
 	if err != nil {
 		return err
 	}
-	/** To reset a node, do following command one by one:
+
+	/** To reset a node, do following commands one by one:
 	STEP1: stop k0s service
 	STEP2: reset the node with install configuration
 	STEP3: remove k0s cluster config generate by k0s under /etc/k0s
 	STEP4: remove private registry config in /etc/host
 	*/
 	if err := ssh.CmdAsync(node, "k0s stop",
-		fmt.Sprintf("k0s reset --config %s --cri-socket %s", DefaultK0sConfigPath, ExternalCRI),
+		fmt.Sprintf("k0s reset --cri-socket %s", ExternalCRI),
 		"rm -rf /etc/k0s/",
 		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
 		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", SeaHub),
