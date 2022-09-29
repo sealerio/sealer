@@ -28,13 +28,13 @@ type listFlag struct {
 // parse --key=[a,b,c] or --key=a,b,c or --key="[a, b, c]"
 // to listFlag {flag: key, items:[a, b, c]}
 func parseListFlag(str string) (listFlag, error) {
-	strs := strings.Split(strings.TrimLeft(str, "-"), "=")
+	strs := strings.SplitN(strings.TrimLeft(str, "-"), "=", 2)
 	if len(strs) < 2 {
 		return listFlag{}, errors.New("flags should be like --flag=[value] or --flag=value")
 	}
 	key, values := strs[0], strs[1]
-	values = strings.TrimLeft(values, "[")
-	values = strings.TrimRight(values, "]")
+	values = strings.TrimLeft(values, "\"[")
+	values = strings.TrimRight(values, "\"]")
 	items := strings.Split(values, ",")
 	if len(items) == 0 {
 		return listFlag{}, errors.Errorf("empty input for flag %s is illegal", key)

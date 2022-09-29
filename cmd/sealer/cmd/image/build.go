@@ -140,7 +140,7 @@ func buildSealerImage() error {
 	}()
 
 	// set the image extension to oci image annotation
-	imageExtension := buildImageExtensionOnResult(result)
+	imageExtension := buildImageExtensionOnResult(result, buildFlags.ImageType)
 	iejson, err := json.Marshal(imageExtension)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal image extension")
@@ -229,9 +229,9 @@ func saveDockerfileAsTempfile(dockerFileContent string) (string, error) {
 	return f.Name(), nil
 }
 
-func buildImageExtensionOnResult(result *parser.KubefileResult) *v12.ImageExtension {
+func buildImageExtensionOnResult(result *parser.KubefileResult, imageType string) *v12.ImageExtension {
 	extension := &v12.ImageExtension{
-		Type:         result.ImageType,
+		Type:         imageType,
 		Applications: []version2.VersionedApplication{},
 		Launch:       v12.Launch{},
 	}

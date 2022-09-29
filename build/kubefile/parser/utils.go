@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	schemaLocal = "local://"
-	schemaHTTP  = "http://"
-	schemaHTTPS = "https://"
+	schemeLocal = "local://"
+	schemeHTTP  = "http://"
+	schemeHTTPS = "https://"
 )
 
 func mergeLines(lines ...string) string {
@@ -43,19 +43,19 @@ func makeItDir(str string) string {
 }
 
 func isLocal(str string) bool {
-	return strings.HasPrefix(str, schemaLocal)
+	return strings.HasPrefix(str, schemeLocal)
 }
 
 func trimLocal(str string) string {
-	return strings.TrimPrefix(str, schemaLocal)
+	return strings.TrimPrefix(str, schemeLocal)
 }
 
 func isRemote(str string) bool {
-	return strings.HasPrefix(str, schemaHTTP) || strings.HasPrefix(str, schemaHTTPS)
+	return strings.HasPrefix(str, schemeHTTP) || strings.HasPrefix(str, schemeHTTPS)
 }
 
 func isHelm(sources ...string) (bool, error) {
-	isChartArtifactEnough := func(path string) bool {
+	isChartsArtifactEnough := func(path string) bool {
 		return osi.IsFileExist(filepath.Join(path, "Chart.yaml")) &&
 			osi.IsFileExist(filepath.Join(path, "values.yaml")) &&
 			osi.IsFileExist(filepath.Join(path, "templates"))
@@ -68,7 +68,7 @@ func isHelm(sources ...string) (bool, error) {
 				return err
 			}
 
-			isH = isChartArtifactEnough(path)
+			isH = isChartsArtifactEnough(path)
 			return filepath.SkipDir
 		})
 
@@ -80,7 +80,7 @@ func isHelm(sources ...string) (bool, error) {
 	}
 
 	chartInTargetsRoot := 0
-	oneOfChatsArtifact := func(str string) {
+	oneOfChartsArtifact := func(str string) {
 		switch {
 		case strings.HasSuffix(str, "Chart.yaml"):
 			chartInTargetsRoot |= 1
@@ -110,11 +110,11 @@ func isHelm(sources ...string) (bool, error) {
 			}
 			for _, f := range files {
 				if !f.IsDir() {
-					oneOfChatsArtifact(f.Name())
+					oneOfChartsArtifact(f.Name())
 				}
 			}
 		} else {
-			oneOfChatsArtifact(source)
+			oneOfChartsArtifact(source)
 		}
 	}
 

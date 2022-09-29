@@ -96,41 +96,49 @@ contains multiple yaml or a single yaml for deploying CSI. `https://...; oss://`
 
 `APP` allows user to specify which applications to be installed over Kubernetes.
 
-Some behaviors are available:
+The `APP` instruction has one form:
 
-`APP --file=[path_to_config_file] [path, https://, oss://] AS [kube|helm]:[UNIQUE-NAME]`. `[UNIQUE-NAME]` is a declaration for an application, which is unique for sealer image. `path` is a relative path refers to local build context, this can be a directory
-contains multiple yaml or a single file for deploying app. `https://...; oss://` are remote addresses for downloading related files to deploy applications. `--file="[path_to_config_file]"` is the config file for rendering reserved flags.
+`APP APP_NAME scheme:path1 scheme:path2`.
 
-`--file="[path_to_config1.yaml, path_to_config2.yaml]"` for `helm` application will be translated to `helm -f config.yaml -f config2.yaml`. The `""` is necessary.
+The `APP_NAME` is a unique name to kube image.
 
-`[]` means user could declare several sources
+The `scheme` has three forms:
+
+* `local://path_rel_2_build_context` (files are from build context, path is relative to build context)
+* `http://example.yaml`
+* `https://example.yaml`
+* `helm://` (unrealized)
+
+There can be many `APP` in a `Kubefile`.
 
 ### LAUNCH
 
 `LAUNCH` allows user to specify which apps(specified by instruction `APP`) to start right after the completion of cluster initiation.
 Users are able to declare which applications to launch within the sealer image.
 
-#### Example
+The `LAUNCH` instruction has one form:
 
-```
-LAUNCH --app="[mysql, es, ...]" --cmd="[kubectl apply -f *.yaml, ...]"
-```
+`LAUNCH APP_1 APP_2`
 
-## Implement
+`LAUNCH ["APP_1", "APP_2"]`
 
-`sealer build` will generate an image of oci format. Sealer achieve this by integrating `buildah`.
-In simplest words to say is that sealer will input a dockerfile-like description to `buildah`, and the whole
-building phase will be same as `building a container image`.
+There are two behaviors for `LAUNCH`:
 
-The key of implementation for kubefile is to translate the description to dockerfile-like description.
+* `helm install APP_1 APP_1_PATH_REL_2_Rootfs` (APP_1 is detected as helm app)
+* `kubectl apply -f APP_2_PATH_REL_2_Rootfs` (APP_2 is detected as raw yaml set app)
 
-### Example
+The behaviors will be generated automatically, users don't have to care about that.
 
-kubefile:
+There can be only one `LAUNCH` or `CMDS` instruction in a `Kubefile`.
 
-```
-FROM scratch
-APP --set=key_a=value --set=key_b=value [path_of_mysql] AS kube:mysql
-APP --set=key=value [path_of_charts] AS helm:kube-prometheus-stack
-LAUNCH --app="[mysql, kube-prometheus-stack]"
-```
+### CMDS
+
+`CMDS` allows user to specify the self-defined executing commands at a cluster startup.
+
+The `CMDS` instruction has one form:
+
+`CMDS ["cmd1", "cmd2"]`
+
+symbol `""` is necessary for `CMDS` instruction.
+
+There can be only one `LAUNCH` or `CMDS` instruction in a `Kubefile`.

@@ -52,7 +52,6 @@ type LegacyContext struct {
 }
 
 type KubefileResult struct {
-	ImageType     string
 	Dockerfile    string
 	LaunchList    []string
 	Applications  map[string]version.VersionedApplication
@@ -64,7 +63,6 @@ type KubefileParser struct {
 	// path to build context
 	buildContext string
 	pullPolicy   string
-	imageType    string
 	imageEngine  imageengine.Interface
 }
 
@@ -88,7 +86,6 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 				apps2Files:  map[string][]string{},
 			},
 			LaunchList: []string{},
-			ImageType:  kp.imageType,
 		}
 
 		err error
@@ -243,8 +240,6 @@ func (kp *KubefileParser) processFrom(node *Node, result *KubefileResult) error 
 		return fmt.Errorf("failed to get image-extension %s: %s", image, err)
 	}
 
-	result.ImageType = extension.Type
-
 	for _, app := range extension.Applications {
 		// for range has problem.
 		// can't assign address to the target.
@@ -285,6 +280,5 @@ func NewParser(appRootPath string,
 		imageEngine:  imageEngine,
 		buildContext: buildOptions.ContextDir,
 		pullPolicy:   buildOptions.PullPolicy,
-		imageType:    buildOptions.ImageType,
 	}
 }
