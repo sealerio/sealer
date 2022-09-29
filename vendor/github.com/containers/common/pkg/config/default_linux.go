@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,10 @@ import (
 const (
 	oldMaxSize = uint64(1048576)
 )
+
+func getDefaultCgroupsMode() string {
+	return "enabled"
+}
 
 // getDefaultMachineImage returns the default machine image stream
 // On Linux/Mac, this returns the FCOS stream
@@ -47,4 +52,21 @@ func getDefaultProcessLimits() []string {
 		defaultLimits = append(defaultLimits, fmt.Sprintf("nproc=%d:%d", oldrlim.Cur, oldrlim.Max))
 	}
 	return defaultLimits
+}
+
+// getDefaultTmpDir for linux
+func getDefaultTmpDir() string {
+	// first check the TMPDIR env var
+	if path, found := os.LookupEnv("TMPDIR"); found {
+		return path
+	}
+	return "/var/tmp"
+}
+
+func getDefaultLockType() string {
+	return "shm"
+}
+
+func getLibpodTmpDir() string {
+	return "/run/libpod"
 }

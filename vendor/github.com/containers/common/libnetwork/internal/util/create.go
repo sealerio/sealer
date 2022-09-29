@@ -1,8 +1,10 @@
 package util
 
 import (
+	"fmt"
+
 	"github.com/containers/common/libnetwork/types"
-	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func CommonNetworkCreate(n NetUtil, network *types.Network) error {
@@ -21,10 +23,10 @@ func CommonNetworkCreate(n NetUtil, network *types.Network) error {
 	// validate the name when given
 	if network.Name != "" {
 		if !types.NameRegex.MatchString(network.Name) {
-			return errors.Wrapf(types.RegexError, "network name %s invalid", network.Name)
+			return fmt.Errorf("network name %s invalid: %w", network.Name, types.RegexError)
 		}
 		if _, err := n.Network(network.Name); err == nil {
-			return errors.Wrapf(types.ErrNetworkExists, "network name %s already used", network.Name)
+			return fmt.Errorf("network name %s already used: %w", network.Name, types.ErrNetworkExists)
 		}
 	} else {
 		name, err = GetFreeDeviceName(n)
@@ -38,4 +40,11 @@ func CommonNetworkCreate(n NetUtil, network *types.Network) error {
 		}
 	}
 	return nil
+}
+
+func IpamNoneDisableDNS(network *types.Network) {
+	if network.IPAMOptions[types.Driver] == types.NoneIPAMDriver {
+		logrus.Debugf("dns disabled for network %q because ipam driver is set to none", network.Name)
+		network.DNSEnabled = false
+	}
 }

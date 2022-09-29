@@ -19,6 +19,8 @@ import (
 	"net"
 	"path"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
@@ -28,6 +30,8 @@ import (
 
 	"github.com/pkg/errors"
 )
+
+const WaitingFork0sServiceStartTimes = 5
 
 func GenerateRegistryCert(registryCertPath string, baseName string) error {
 	regCertConfig := cert.CertificateDescriptor{
@@ -73,4 +77,25 @@ func FetchKubeconfigAndGetKubectl(ssh ssh.Interface, host net.IP, rootfs string)
 		}
 	}
 	return nil
+}
+
+func (k *Runtime) WaitK0sReady(ssh ssh.Interface, host net.IP) error {
+	times := WaitingFork0sServiceStartTimes
+	for {
+		times--
+		if times == 0 {
+			break
+		}
+		time.Sleep(time.Second * 2)
+		bytes, err := ssh.Cmd(host, "k0s status")
+		if err != nil {
+			return err
+		}
+		// k0s status return: `Process ID: xxx` when it started successfully, or return: `connect failed`,
+		// so we use field `Process` whether contains in string(bytes) to verify if k0s service started successfully.
+		if strings.Contains(string(bytes), "Process") {
+			return nil
+		}
+	}
+	return errors.New("failed to start k0s: failed to get k0s status after 10 seconds")
 }

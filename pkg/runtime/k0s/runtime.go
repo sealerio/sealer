@@ -233,6 +233,20 @@ func (k *Runtime) Command(role string) []string {
 	return v
 }
 
+<<<<<<< HEAD
+=======
+func (k *Runtime) confirmDeleteNodes() error {
+	if !runtime.ForceDelete {
+		if pass, err := utils.ConfirmOperation("Are you sure to delete these nodes? "); err != nil {
+			return err
+		} else if !pass {
+			return fmt.Errorf("exit the operation of delete these nodes")
+		}
+	}
+	return nil
+}
+
+>>>>>>> upstream/main
 // CmdToString is in host exec cmd and replace to spilt str
 func (k *Runtime) CmdToString(host net.IP, cmd, split string) (string, error) {
 	ssh, err := k.getHostSSHClient(host)

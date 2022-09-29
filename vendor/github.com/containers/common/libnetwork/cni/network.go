@@ -1,4 +1,5 @@
-// +build linux
+//go:build linux || freebsd
+// +build linux freebsd
 
 package cni
 
@@ -6,6 +7,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,8 +16,8 @@ import (
 
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/lockfile"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,6 +33,9 @@ type cniNetwork struct {
 	defaultNetwork string
 	// defaultSubnet is the default subnet for the default network.
 	defaultSubnet types.IPNet
+
+	// defaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
+	defaultsubnetPools []config.SubnetPool
 
 	// isMachine describes whenever podman runs in a podman machine environment.
 	isMachine bool
@@ -62,6 +68,9 @@ type InitConfig struct {
 	// DefaultSubnet is the default subnet for the default network.
 	DefaultSubnet string
 
+	// DefaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
+	DefaultsubnetPools []config.SubnetPool
+
 	// IsMachine describes whenever podman runs in a podman machine environment.
 	IsMachine bool
 }
@@ -86,18 +95,24 @@ func NewCNINetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 	}
 	defaultNet, err := types.ParseCIDR(defaultSubnet)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse default subnet")
+		return nil, fmt.Errorf("failed to parse default subnet: %w", err)
+	}
+
+	defaultSubnetPools := conf.DefaultsubnetPools
+	if defaultSubnetPools == nil {
+		defaultSubnetPools = config.DefaultSubnetPools
 	}
 
 	cni := libcni.NewCNIConfig(conf.CNIPluginDirs, &cniExec{})
 	n := &cniNetwork{
-		cniConfigDir:   conf.CNIConfigDir,
-		cniPluginDirs:  conf.CNIPluginDirs,
-		cniConf:        cni,
-		defaultNetwork: defaultNetworkName,
-		defaultSubnet:  defaultNet,
-		isMachine:      conf.IsMachine,
-		lock:           lock,
+		cniConfigDir:       conf.CNIConfigDir,
+		cniPluginDirs:      conf.CNIPluginDirs,
+		cniConf:            cni,
+		defaultNetwork:     defaultNetworkName,
+		defaultSubnet:      defaultNet,
+		defaultsubnetPools: defaultSubnetPools,
+		isMachine:          conf.IsMachine,
+		lock:               lock,
 	}
 
 	return n, nil
@@ -187,7 +202,7 @@ func (n *cniNetwork) loadNetworks() error {
 	if networks[n.defaultNetwork] == nil {
 		networkInfo, err := n.createDefaultNetwork()
 		if err != nil {
-			return errors.Wrapf(err, "failed to create default network %s", n.defaultNetwork)
+			return fmt.Errorf("failed to create default network %s: %w", n.defaultNetwork, err)
 		}
 		networks[n.defaultNetwork] = networkInfo
 	}
@@ -229,7 +244,7 @@ func (n *cniNetwork) getNetwork(nameOrID string) (*network, error) {
 
 		if strings.HasPrefix(val.libpodNet.ID, nameOrID) {
 			if net != nil {
-				return nil, errors.Errorf("more than one result for network ID %s", nameOrID)
+				return nil, fmt.Errorf("more than one result for network ID %s", nameOrID)
 			}
 			net = val
 		}
@@ -237,7 +252,7 @@ func (n *cniNetwork) getNetwork(nameOrID string) (*network, error) {
 	if net != nil {
 		return net, nil
 	}
-	return nil, errors.Wrapf(types.ErrNoSuchNetwork, "unable to find network with name or ID %s", nameOrID)
+	return nil, fmt.Errorf("unable to find network with name or ID %s: %w", nameOrID, types.ErrNoSuchNetwork)
 }
 
 // getNetworkIDFromName creates a network ID from the name. It is just the

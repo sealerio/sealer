@@ -28,6 +28,10 @@ const (
 	KeyFlagSign
 	KeyFlagEncryptCommunications
 	KeyFlagEncryptStorage
+	KeyFlagSplitKey
+	KeyFlagAuthenticate
+	_
+	KeyFlagGroupKey
 )
 
 // Signature represents a signature. See RFC 4880, section 5.2.
@@ -75,8 +79,8 @@ type Signature struct {
 
 	// FlagsValid is set if any flags were given. See RFC 4880, section
 	// 5.2.3.21 for details.
-	FlagsValid                                                           bool
-	FlagCertify, FlagSign, FlagEncryptCommunications, FlagEncryptStorage bool
+	FlagsValid                                                                                                         bool
+	FlagCertify, FlagSign, FlagEncryptCommunications, FlagEncryptStorage, FlagSplitKey, FlagAuthenticate, FlagGroupKey bool
 
 	// RevocationReason is set if this signature has been revoked.
 	// See RFC 4880, section 5.2.3.23 for details.
@@ -373,6 +377,15 @@ func parseSignatureSubpacket(sig *Signature, subpacket []byte, isHashed bool) (r
 		}
 		if subpacket[0]&KeyFlagEncryptStorage != 0 {
 			sig.FlagEncryptStorage = true
+		}
+		if subpacket[0]&KeyFlagSplitKey != 0 {
+			sig.FlagSplitKey = true
+		}
+		if subpacket[0]&KeyFlagAuthenticate != 0 {
+			sig.FlagAuthenticate = true
+		}
+		if subpacket[0]&KeyFlagGroupKey != 0 {
+			sig.FlagGroupKey = true
 		}
 	case reasonForRevocationSubpacket:
 		// Reason For Revocation, section 5.2.3.23
@@ -872,6 +885,15 @@ func (sig *Signature) buildSubpackets(issuer PublicKey) (subpackets []outputSubp
 		}
 		if sig.FlagEncryptStorage {
 			flags |= KeyFlagEncryptStorage
+		}
+		if sig.FlagSplitKey {
+			flags |= KeyFlagSplitKey
+		}
+		if sig.FlagAuthenticate {
+			flags |= KeyFlagAuthenticate
+		}
+		if sig.FlagGroupKey {
+			flags |= KeyFlagGroupKey
 		}
 		subpackets = append(subpackets, outputSubpacket{true, keyFlagsSubpacket, false, []byte{flags}})
 	}
