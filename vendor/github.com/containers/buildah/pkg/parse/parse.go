@@ -5,6 +5,7 @@ package parse
 // would be useful to projects vendoring buildah
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -18,13 +19,14 @@ import (
 	internalParse "github.com/containers/buildah/internal/parse"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/parse"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
+	storageTypes "github.com/containers/storage/types"
 	units "github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -47,6 +49,18 @@ const (
 	BuildahCacheDir = "buildah-cache"
 )
 
+// RepoNameToNamedReference parse the raw string to Named reference
+func RepoNameToNamedReference(dest string) (reference.Named, error) {
+	named, err := reference.ParseNormalizedNamed(dest)
+	if err != nil {
+		return nil, fmt.Errorf("invalid repo %q: must contain registry and repository: %w", dest, err)
+	}
+	if !reference.IsNameOnly(named) {
+		return nil, fmt.Errorf("repository must contain neither a tag nor digest: %v", named)
+	}
+	return named, nil
+}
+
 // CommonBuildOptions parses the build options from the bud cli
 func CommonBuildOptions(c *cobra.Command) (*define.CommonBuildOptions, error) {
 	return CommonBuildOptionsFromFlagSet(c.Flags(), c.Flag)
@@ -65,7 +79,7 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 	if memVal != "" {
 		memoryLimit, err = units.RAMInBytes(memVal)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid value for memory")
+			return nil, fmt.Errorf("invalid value for memory: %w", err)
 		}
 	}
 
@@ -76,7 +90,7 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		} else {
 			memorySwap, err = units.RAMInBytes(memSwapValue)
 			if err != nil {
-				return nil, errors.Wrapf(err, "invalid value for memory-swap")
+				return nil, fmt.Errorf("invalid value for memory-swap: %w", err)
 			}
 		}
 	}
@@ -86,11 +100,11 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 	addHost, _ := flags.GetStringSlice("add-host")
 	if len(addHost) > 0 {
 		if noHosts {
-			return nil, errors.Errorf("--no-hosts and --add-host conflict, can not be used together")
+			return nil, errors.New("--no-hosts and --add-host conflict, can not be used together")
 		}
 		for _, host := range addHost {
 			if err := validateExtraHost(host); err != nil {
-				return nil, errors.Wrapf(err, "invalid value for add-host")
+				return nil, fmt.Errorf("invalid value for add-host: %w", err)
 			}
 		}
 	}
@@ -105,7 +119,7 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 			}
 		}
 		if noDNS && len(dnsServers) > 1 {
-			return nil, errors.Errorf("invalid --dns, --dns=none may not be used with any other --dns options")
+			return nil, errors.New("invalid --dns, --dns=none may not be used with any other --dns options")
 		}
 	}
 
@@ -113,7 +127,7 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 	if flags.Changed("dns-search") {
 		dnsSearch, _ = flags.GetStringSlice("dns-search")
 		if noDNS && len(dnsSearch) > 0 {
-			return nil, errors.Errorf("invalid --dns-search, --dns-search may not be used with --dns=none")
+			return nil, errors.New("invalid --dns-search, --dns-search may not be used with --dns=none")
 		}
 	}
 
@@ -121,12 +135,12 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 	if flags.Changed("dns-option") {
 		dnsOptions, _ = flags.GetStringSlice("dns-option")
 		if noDNS && len(dnsOptions) > 0 {
-			return nil, errors.Errorf("invalid --dns-option, --dns-option may not be used with --dns=none")
+			return nil, errors.New("invalid --dns-option, --dns-option may not be used with --dns=none")
 		}
 	}
 
 	if _, err := units.FromHumanSize(findFlagFunc("shm-size").Value.String()); err != nil {
-		return nil, errors.Wrapf(err, "invalid --shm-size")
+		return nil, fmt.Errorf("invalid --shm-size: %w", err)
 	}
 	volumes, _ := flags.GetStringArray("volume")
 	if err := Volumes(volumes); err != nil {
@@ -136,6 +150,8 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 	cpuQuota, _ := flags.GetInt64("cpu-quota")
 	cpuShares, _ := flags.GetUint64("cpu-shares")
 	httpProxy, _ := flags.GetBool("http-proxy")
+	identityLabel, _ := flags.GetBool("identity-label")
+	omitHistory, _ := flags.GetBool("omit-history")
 
 	ulimit := []string{}
 	if flags.Changed("ulimit") {
@@ -144,27 +160,31 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 
 	secrets, _ := flags.GetStringArray("secret")
 	sshsources, _ := flags.GetStringArray("ssh")
+	ociHooks, _ := flags.GetStringArray("hooks-dir")
 
 	commonOpts := &define.CommonBuildOptions{
-		AddHost:      addHost,
-		CPUPeriod:    cpuPeriod,
-		CPUQuota:     cpuQuota,
-		CPUSetCPUs:   findFlagFunc("cpuset-cpus").Value.String(),
-		CPUSetMems:   findFlagFunc("cpuset-mems").Value.String(),
-		CPUShares:    cpuShares,
-		CgroupParent: findFlagFunc("cgroup-parent").Value.String(),
-		DNSOptions:   dnsOptions,
-		DNSSearch:    dnsSearch,
-		DNSServers:   dnsServers,
-		HTTPProxy:    httpProxy,
-		Memory:       memoryLimit,
-		MemorySwap:   memorySwap,
-		NoHosts:      noHosts,
-		ShmSize:      findFlagFunc("shm-size").Value.String(),
-		Ulimit:       ulimit,
-		Volumes:      volumes,
-		Secrets:      secrets,
-		SSHSources:   sshsources,
+		AddHost:       addHost,
+		CPUPeriod:     cpuPeriod,
+		CPUQuota:      cpuQuota,
+		CPUSetCPUs:    findFlagFunc("cpuset-cpus").Value.String(),
+		CPUSetMems:    findFlagFunc("cpuset-mems").Value.String(),
+		CPUShares:     cpuShares,
+		CgroupParent:  findFlagFunc("cgroup-parent").Value.String(),
+		DNSOptions:    dnsOptions,
+		DNSSearch:     dnsSearch,
+		DNSServers:    dnsServers,
+		HTTPProxy:     httpProxy,
+		IdentityLabel: types.NewOptionalBool(identityLabel),
+		Memory:        memoryLimit,
+		MemorySwap:    memorySwap,
+		NoHosts:       noHosts,
+		OmitHistory:   omitHistory,
+		ShmSize:       findFlagFunc("shm-size").Value.String(),
+		Ulimit:        ulimit,
+		Volumes:       volumes,
+		Secrets:       secrets,
+		SSHSources:    sshsources,
+		OCIHooksDir:   ociHooks,
 	}
 	securityOpts, _ := flags.GetStringArray("security-opt")
 	if err := parseSecurityOpts(securityOpts, commonOpts); err != nil {
@@ -173,14 +193,39 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 	return commonOpts, nil
 }
 
+// GetAdditionalBuildContext consumes raw string and returns parsed AdditionalBuildContext
+func GetAdditionalBuildContext(value string) (define.AdditionalBuildContext, error) {
+	ret := define.AdditionalBuildContext{IsURL: false, IsImage: false, Value: value}
+	if strings.HasPrefix(value, "docker-image://") {
+		ret.IsImage = true
+		ret.Value = strings.TrimPrefix(value, "docker-image://")
+	} else if strings.HasPrefix(value, "container-image://") {
+		ret.IsImage = true
+		ret.Value = strings.TrimPrefix(value, "container-image://")
+	} else if strings.HasPrefix(value, "docker://") {
+		ret.IsImage = true
+		ret.Value = strings.TrimPrefix(value, "docker://")
+	} else if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
+		ret.IsImage = false
+		ret.IsURL = true
+	} else {
+		path, err := filepath.Abs(value)
+		if err != nil {
+			return define.AdditionalBuildContext{}, fmt.Errorf("unable to convert additional build-context %q path to absolute: %w", value, err)
+		}
+		ret.Value = path
+	}
+	return ret, nil
+}
+
 func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOptions) error {
 	for _, opt := range securityOpts {
 		if opt == "no-new-privileges" {
-			return errors.Errorf("no-new-privileges is not supported")
+			return errors.New("no-new-privileges is not supported")
 		}
 		con := strings.SplitN(opt, "=", 2)
 		if len(con) != 2 {
-			return errors.Errorf("Invalid --security-opt name=value pair: %q", opt)
+			return fmt.Errorf("invalid --security-opt name=value pair: %q", opt)
 		}
 
 		switch con[0] {
@@ -191,7 +236,7 @@ func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOpti
 		case "seccomp":
 			commonOpts.SeccompProfilePath = con[1]
 		default:
-			return errors.Errorf("Invalid --security-opt 2: %q", opt)
+			return fmt.Errorf("invalid --security-opt 2: %q", opt)
 		}
 
 	}
@@ -200,12 +245,12 @@ func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOpti
 		if _, err := os.Stat(SeccompOverridePath); err == nil {
 			commonOpts.SeccompProfilePath = SeccompOverridePath
 		} else {
-			if !os.IsNotExist(err) {
-				return errors.WithStack(err)
+			if !errors.Is(err, os.ErrNotExist) {
+				return err
 			}
 			if _, err := os.Stat(SeccompDefaultPath); err != nil {
-				if !os.IsNotExist(err) {
-					return errors.WithStack(err)
+				if !errors.Is(err, os.ErrNotExist) {
+					return err
 				}
 			} else {
 				commonOpts.SeccompProfilePath = SeccompDefaultPath
@@ -260,10 +305,10 @@ func validateExtraHost(val string) error {
 	// allow for IPv6 addresses in extra hosts by only splitting on first ":"
 	arr := strings.SplitN(val, ":", 2)
 	if len(arr) != 2 || len(arr[0]) == 0 {
-		return errors.Errorf("bad format for add-host: %q", val)
+		return fmt.Errorf("bad format for add-host: %q", val)
 	}
 	if _, err := validateIPAddress(arr[1]); err != nil {
-		return errors.Errorf("invalid IP address in add-host: %q", arr[1])
+		return fmt.Errorf("invalid IP address in add-host: %q", arr[1])
 	}
 	return nil
 }
@@ -275,7 +320,7 @@ func validateIPAddress(val string) (string, error) {
 	if ip != nil {
 		return ip.String(), nil
 	}
-	return "", errors.Errorf("%s is not an ip address", val)
+	return "", fmt.Errorf("%s is not an ip address", val)
 }
 
 // SystemContextFromOptions returns a SystemContext populated with values
@@ -364,7 +409,7 @@ func SystemContextFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name strin
 			return nil, err
 		}
 		if len(specs) == 0 || specs[0] == "" {
-			return nil, errors.Errorf("unable to parse --platform value %v", specs)
+			return nil, fmt.Errorf("unable to parse --platform value %v", specs)
 		}
 		platform := specs[0]
 		os, arch, variant, err := Platform(platform)
@@ -372,7 +417,7 @@ func SystemContextFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name strin
 			return nil, err
 		}
 		if ctx.OSChoice != "" || ctx.ArchitectureChoice != "" || ctx.VariantChoice != "" {
-			return nil, errors.Errorf("invalid --platform may not be used with --os, --arch, or --variant")
+			return nil, errors.New("invalid --platform may not be used with --os, --arch, or --variant")
 		}
 		ctx.OSChoice = os
 		ctx.ArchitectureChoice = arch
@@ -399,7 +444,7 @@ func PlatformFromOptions(c *cobra.Command) (os, arch string, err error) {
 		return "", "", err
 	}
 	if len(platforms) < 1 {
-		return "", "", errors.Errorf("invalid platform syntax for --platform (use OS/ARCH[/VARIANT])")
+		return "", "", errors.New("invalid platform syntax for --platform (use OS/ARCH[/VARIANT])")
 	}
 	return platforms[0].OS, platforms[0].Arch, nil
 }
@@ -429,14 +474,14 @@ func PlatformsFromOptions(c *cobra.Command) (platforms []struct{ OS, Arch, Varia
 		platforms = nil
 		platformSpecs, err := c.Flags().GetStringSlice("platform")
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to parse platform")
+			return nil, fmt.Errorf("unable to parse platform: %w", err)
 		}
 		if os != "" || arch != "" || variant != "" {
-			return nil, errors.Errorf("invalid --platform may not be used with --os, --arch, or --variant")
+			return nil, fmt.Errorf("invalid --platform may not be used with --os, --arch, or --variant")
 		}
 		for _, pf := range platformSpecs {
 			if os, arch, variant, err = Platform(pf); err != nil {
-				return nil, errors.Wrapf(err, "unable to parse platform %q", pf)
+				return nil, fmt.Errorf("unable to parse platform %q: %w", pf, err)
 			}
 			platforms = append(platforms, struct{ OS, Arch, Variant string }{os, arch, variant})
 		}
@@ -468,7 +513,7 @@ func Platform(platform string) (os, arch, variant string, err error) {
 			return Platform(DefaultPlatform())
 		}
 	}
-	return "", "", "", errors.Errorf("invalid platform syntax for %q (use OS/ARCH[/VARIANT][,...])", platform)
+	return "", "", "", fmt.Errorf("invalid platform syntax for %q (use OS/ARCH[/VARIANT][,...])", platform)
 }
 
 func parseCreds(creds string) (string, string) {
@@ -497,7 +542,7 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 		fmt.Print("Password: ")
 		termPassword, err := term.ReadPassword(0)
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not read password from terminal")
+			return nil, fmt.Errorf("could not read password from terminal: %w", err)
 		}
 		password = string(termPassword)
 	}
@@ -508,13 +553,124 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 	}, nil
 }
 
+// GetBuildOutput is responsible for parsing custom build output argument i.e `build --output` flag.
+// Takes `buildOutput` as string and returns BuildOutputOption
+func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
+	if len(buildOutput) == 1 && buildOutput == "-" {
+		// Feature parity with buildkit, output tar to stdout
+		// Read more here: https://docs.docker.com/engine/reference/commandline/build/#custom-build-outputs
+		return define.BuildOutputOption{Path: "",
+			IsDir:    false,
+			IsStdout: true}, nil
+	}
+	if !strings.Contains(buildOutput, ",") {
+		// expect default --output <dirname>
+		return define.BuildOutputOption{Path: buildOutput,
+			IsDir:    true,
+			IsStdout: false}, nil
+	}
+	isDir := true
+	isStdout := false
+	typeSelected := false
+	pathSelected := false
+	path := ""
+	tokens := strings.Split(buildOutput, ",")
+	for _, option := range tokens {
+		arr := strings.SplitN(option, "=", 2)
+		if len(arr) != 2 {
+			return define.BuildOutputOption{}, fmt.Errorf("invalid build output options %q, expected format key=value", buildOutput)
+		}
+		switch arr[0] {
+		case "type":
+			if typeSelected {
+				return define.BuildOutputOption{}, fmt.Errorf("duplicate %q not supported", arr[0])
+			}
+			typeSelected = true
+			if arr[1] == "local" {
+				isDir = true
+			} else if arr[1] == "tar" {
+				isDir = false
+			} else {
+				return define.BuildOutputOption{}, fmt.Errorf("invalid type %q selected for build output options %q", arr[1], buildOutput)
+			}
+		case "dest":
+			if pathSelected {
+				return define.BuildOutputOption{}, fmt.Errorf("duplicate %q not supported", arr[0])
+			}
+			pathSelected = true
+			path = arr[1]
+		default:
+			return define.BuildOutputOption{}, fmt.Errorf("unrecognized key %q in build output option: %q", arr[0], buildOutput)
+		}
+	}
+
+	if !typeSelected || !pathSelected {
+		return define.BuildOutputOption{}, fmt.Errorf("invalid build output option %q, accepted keys are type and dest must be present", buildOutput)
+	}
+
+	if path == "-" {
+		if isDir {
+			return define.BuildOutputOption{}, fmt.Errorf("invalid build output option %q, type=local and dest=- is not supported", buildOutput)
+		}
+		return define.BuildOutputOption{Path: "",
+			IsDir:    false,
+			IsStdout: true}, nil
+	}
+
+	return define.BuildOutputOption{Path: path, IsDir: isDir, IsStdout: isStdout}, nil
+}
+
 // IDMappingOptions parses the build options related to user namespaces and ID mapping.
 func IDMappingOptions(c *cobra.Command, isolation define.Isolation) (usernsOptions define.NamespaceOptions, idmapOptions *define.IDMappingOptions, err error) {
 	return IDMappingOptionsFromFlagSet(c.Flags(), c.PersistentFlags(), c.Flag)
 }
 
+// GetAutoOptions returns a AutoUserNsOptions with the settings to setup automatically
+// a user namespace.
+func GetAutoOptions(base string) (*storageTypes.AutoUserNsOptions, error) {
+	parts := strings.SplitN(base, ":", 2)
+	if parts[0] != "auto" {
+		return nil, errors.New("wrong user namespace mode")
+	}
+	options := storageTypes.AutoUserNsOptions{}
+	if len(parts) == 1 {
+		return &options, nil
+	}
+	for _, o := range strings.Split(parts[1], ",") {
+		v := strings.SplitN(o, "=", 2)
+		if len(v) != 2 {
+			return nil, fmt.Errorf("invalid option specified: %q", o)
+		}
+		switch v[0] {
+		case "size":
+			s, err := strconv.ParseUint(v[1], 10, 32)
+			if err != nil {
+				return nil, err
+			}
+			options.Size = uint32(s)
+		case "uidmapping":
+			mapping, err := storageTypes.ParseIDMapping([]string{v[1]}, nil, "", "")
+			if err != nil {
+				return nil, err
+			}
+			options.AdditionalUIDMappings = append(options.AdditionalUIDMappings, mapping.UIDMap...)
+		case "gidmapping":
+			mapping, err := storageTypes.ParseIDMapping(nil, []string{v[1]}, "", "")
+			if err != nil {
+				return nil, err
+			}
+			options.AdditionalGIDMappings = append(options.AdditionalGIDMappings, mapping.GIDMap...)
+		default:
+			return nil, fmt.Errorf("unknown option specified: %q", v[0])
+		}
+	}
+	return &options, nil
+}
+
 // IDMappingOptionsFromFlagSet parses the build options related to user namespaces and ID mapping.
 func IDMappingOptionsFromFlagSet(flags *pflag.FlagSet, persistentFlags *pflag.FlagSet, findFlagFunc func(name string) *pflag.Flag) (usernsOptions define.NamespaceOptions, idmapOptions *define.IDMappingOptions, err error) {
+	isAuto := false
+	autoOpts := &storageTypes.AutoUserNsOptions{}
 	user := findFlagFunc("userns-uid-map-user").Value.String()
 	group := findFlagFunc("userns-gid-map-group").Value.String()
 	// If only the user or group was specified, use the same value for the
@@ -597,18 +753,27 @@ func IDMappingOptionsFromFlagSet(flags *pflag.FlagSet, persistentFlags *pflag.Fl
 	// user namespaces, override that default.
 	if findFlagFunc("userns").Changed {
 		how := findFlagFunc("userns").Value.String()
-		switch how {
-		case "", "container", "private":
-			usernsOption.Host = false
-		case "host":
-			usernsOption.Host = true
-		default:
-			how = strings.TrimPrefix(how, "ns:")
-			if _, err := os.Stat(how); err != nil {
-				return nil, nil, errors.Wrapf(err, "checking %s namespace", string(specs.UserNamespace))
+		if strings.HasPrefix(how, "auto") {
+			autoOpts, err = GetAutoOptions(how)
+			if err != nil {
+				return nil, nil, err
 			}
-			logrus.Debugf("setting %q namespace to %q", string(specs.UserNamespace), how)
-			usernsOption.Path = how
+			isAuto = true
+			usernsOption.Host = false
+		} else {
+			switch how {
+			case "", "container", "private":
+				usernsOption.Host = false
+			case "host":
+				usernsOption.Host = true
+			default:
+				how = strings.TrimPrefix(how, "ns:")
+				if _, err := os.Stat(how); err != nil {
+					return nil, nil, fmt.Errorf("checking %s namespace: %w", string(specs.UserNamespace), err)
+				}
+				logrus.Debugf("setting %q namespace to %q", string(specs.UserNamespace), how)
+				usernsOption.Path = how
+			}
 		}
 	}
 	usernsOptions = define.NamespaceOptions{usernsOption}
@@ -616,13 +781,15 @@ func IDMappingOptionsFromFlagSet(flags *pflag.FlagSet, persistentFlags *pflag.Fl
 	// If the user requested that we use the host namespace, but also that
 	// we use mappings, that's not going to work.
 	if (len(uidmap) != 0 || len(gidmap) != 0) && usernsOption.Host {
-		return nil, nil, errors.Errorf("can not specify ID mappings while using host's user namespace")
+		return nil, nil, fmt.Errorf("can not specify ID mappings while using host's user namespace")
 	}
 	return usernsOptions, &define.IDMappingOptions{
 		HostUIDMapping: usernsOption.Host,
 		HostGIDMapping: usernsOption.Host,
 		UIDMap:         uidmap,
 		GIDMap:         gidmap,
+		AutoUserNs:     isAuto,
+		AutoUserNsOpts: *autoOpts,
 	}, nil
 }
 
@@ -630,20 +797,20 @@ func parseIDMap(spec []string) (m [][3]uint32, err error) {
 	for _, s := range spec {
 		args := strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsDigit(r) })
 		if len(args)%3 != 0 {
-			return nil, errors.Errorf("mapping %q is not in the form containerid:hostid:size[,...]", s)
+			return nil, fmt.Errorf("mapping %q is not in the form containerid:hostid:size[,...]", s)
 		}
 		for len(args) >= 3 {
 			cid, err := strconv.ParseUint(args[0], 10, 32)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error parsing container ID %q from mapping %q as a number", args[0], s)
+				return nil, fmt.Errorf("error parsing container ID %q from mapping %q as a number: %w", args[0], s, err)
 			}
 			hostid, err := strconv.ParseUint(args[1], 10, 32)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error parsing host ID %q from mapping %q as a number", args[1], s)
+				return nil, fmt.Errorf("error parsing host ID %q from mapping %q as a number: %w", args[1], s, err)
 			}
 			size, err := strconv.ParseUint(args[2], 10, 32)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error parsing %q from mapping %q as a number", args[2], s)
+				return nil, fmt.Errorf("error parsing %q from mapping %q as a number: %w", args[2], s, err)
 			}
 			m = append(m, [3]uint32{uint32(cid), uint32(hostid), uint32(size)})
 			args = args[3:]
@@ -697,7 +864,7 @@ func NamespaceOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name st
 				// if not a path we assume it is a comma separated network list, see setupNamespaces() in run_linux.go
 				if filepath.IsAbs(how) || what != string(specs.NetworkNamespace) {
 					if _, err := os.Stat(how); err != nil {
-						return nil, define.NetworkDefault, errors.Wrapf(err, "checking %s namespace", what)
+						return nil, define.NetworkDefault, fmt.Errorf("checking %s namespace: %w", what, err)
 					}
 				}
 				policy = define.NetworkEnabled
@@ -723,7 +890,7 @@ func defaultIsolation() (define.Isolation, error) {
 		case "chroot":
 			return define.IsolationChroot, nil
 		default:
-			return 0, errors.Errorf("unrecognized $BUILDAH_ISOLATION value %q", isolation)
+			return 0, fmt.Errorf("unrecognized $BUILDAH_ISOLATION value %q", isolation)
 		}
 	}
 	if unshare.IsRootless() {
@@ -743,7 +910,7 @@ func IsolationOption(isolation string) (define.Isolation, error) {
 		case "chroot":
 			return define.IsolationChroot, nil
 		default:
-			return 0, errors.Errorf("unrecognized isolation type %q", isolation)
+			return 0, fmt.Errorf("unrecognized isolation type %q", isolation)
 		}
 	}
 	return defaultIsolation()
@@ -763,7 +930,7 @@ func Device(device string) (string, string, string, error) {
 	switch len(arr) {
 	case 3:
 		if !isValidDeviceMode(arr[2]) {
-			return "", "", "", errors.Errorf("invalid device mode: %s", arr[2])
+			return "", "", "", fmt.Errorf("invalid device mode: %s", arr[2])
 		}
 		permissions = arr[2]
 		fallthrough
@@ -772,7 +939,7 @@ func Device(device string) (string, string, string, error) {
 			permissions = arr[1]
 		} else {
 			if len(arr[1]) == 0 || arr[1][0] != '/' {
-				return "", "", "", errors.Errorf("invalid device mode: %s", arr[1])
+				return "", "", "", fmt.Errorf("invalid device mode: %s", arr[1])
 			}
 			dst = arr[1]
 		}
@@ -784,7 +951,7 @@ func Device(device string) (string, string, string, error) {
 		}
 		fallthrough
 	default:
-		return "", "", "", errors.Errorf("invalid device specification: %s", device)
+		return "", "", "", fmt.Errorf("invalid device specification: %s", device)
 	}
 
 	if dst == "" {
@@ -822,7 +989,7 @@ func GetTempDir() string {
 
 // Secrets parses the --secret flag
 func Secrets(secrets []string) (map[string]define.Secret, error) {
-	invalidSyntax := errors.Errorf("incorrect secret flag format: should be --secret id=foo,src=bar[,env=ENV,type=file|env]")
+	invalidSyntax := fmt.Errorf("incorrect secret flag format: should be --secret id=foo,src=bar[,env=ENV,type=file|env]")
 	parsed := make(map[string]define.Secret)
 	for _, secret := range secrets {
 		tokens := strings.Split(secret, ",")
@@ -861,11 +1028,11 @@ func Secrets(secrets []string) (map[string]define.Secret, error) {
 		if typ == "file" {
 			fullPath, err := filepath.Abs(src)
 			if err != nil {
-				return nil, errors.Wrap(err, "could not parse secrets")
+				return nil, fmt.Errorf("could not parse secrets: %w", err)
 			}
 			_, err = os.Stat(fullPath)
 			if err != nil {
-				return nil, errors.Wrap(err, "could not parse secrets")
+				return nil, fmt.Errorf("could not parse secrets: %w", err)
 			}
 			src = fullPath
 		}
@@ -905,11 +1072,11 @@ func ContainerIgnoreFile(contextDir, path string) ([]string, string, error) {
 	}
 	path = filepath.Join(contextDir, ".containerignore")
 	excludes, err := imagebuilder.ParseIgnore(path)
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		path = filepath.Join(contextDir, ".dockerignore")
 		excludes, err = imagebuilder.ParseIgnore(path)
 	}
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		return excludes, "", nil
 	}
 	return excludes, path, err

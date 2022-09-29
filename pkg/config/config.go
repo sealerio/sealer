@@ -106,7 +106,7 @@ func (c *Dumper) WriteFiles(configs []v1.Config) error {
 	return nil
 }
 
-//getMergeConfigData merge data to each section of given file with overriding.
+// getMergeConfigData merge data to each section of given file with overriding.
 // given file is must be yaml marshalled.
 func getMergeConfigData(contents, data []byte) ([]byte, error) {
 	var (

@@ -37,6 +37,7 @@ spec:
      kubectl taint nodes node-role.kubernetes.io/master=:NoSchedule
 
 */
+
 func TestSheller_Run(t *testing.T) {
 	type args struct {
 		context Context

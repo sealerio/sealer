@@ -2,20 +2,24 @@ package util
 
 import (
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"net"
-
-	"github.com/pkg/errors"
 )
 
 func incByte(subnet *net.IPNet, idx int, shift uint) error {
 	if idx < 0 {
 		return errors.New("no more subnets left")
 	}
-	if subnet.IP[idx] == 255 {
-		subnet.IP[idx] = 0
-		return incByte(subnet, idx-1, 0)
+
+	var val byte = 1 << shift
+	// if overflow we have to inc the previous byte
+	if uint(subnet.IP[idx])+uint(val) > 255 {
+		if err := incByte(subnet, idx-1, 0); err != nil {
+			return err
+		}
 	}
-	subnet.IP[idx] += 1 << shift
+	subnet.IP[idx] += val
 	return nil
 }
 
@@ -27,14 +31,11 @@ func NextSubnet(subnet *net.IPNet) (*net.IPNet, error) {
 	}
 	ones, bits := newSubnet.Mask.Size()
 	if ones == 0 {
-		return nil, errors.Errorf("%s has only one subnet", subnet.String())
+		return nil, fmt.Errorf("%s has only one subnet", subnet.String())
 	}
 	zeroes := uint(bits - ones)
 	shift := zeroes % 8
-	idx := ones/8 - 1
-	if idx < 0 {
-		idx = 0
-	}
+	idx := (ones - 1) / 8
 	if err := incByte(newSubnet, idx, shift); err != nil {
 		return nil, err
 	}

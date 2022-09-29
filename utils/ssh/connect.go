@@ -106,7 +106,7 @@ func (s *SSH) sshAuthMethod(password, pkFile, pkPasswd string) (auth []ssh.AuthM
 	return auth
 }
 
-//Authentication with a private key,private key has password and no password to verify in this
+// Authentication with a private key,private key has password and no password to verify in this
 func (s *SSH) sshPrivateKeyMethod(pkFile, pkPassword string) (am ssh.AuthMethod, err error) {
 	pkData, err := ioutil.ReadFile(filepath.Clean(pkFile))
 	if err != nil {

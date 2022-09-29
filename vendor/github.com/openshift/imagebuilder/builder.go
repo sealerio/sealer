@@ -44,6 +44,7 @@ type Run struct {
 type Executor interface {
 	Preserve(path string) error
 	EnsureContainerPath(path string) error
+	EnsureContainerPathAs(path, user string, mode *os.FileMode) error
 	Copy(excludes []string, copies ...Copy) error
 	Run(run Run, config docker.Config) error
 	UnrecognizedInstruction(step *Step) error
@@ -58,6 +59,15 @@ func (logExecutor) Preserve(path string) error {
 
 func (logExecutor) EnsureContainerPath(path string) error {
 	log.Printf("ENSURE %s", path)
+	return nil
+}
+
+func (logExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
+	if mode != nil {
+		log.Printf("ENSURE %s AS %q with MODE=%q", path, user, *mode)
+	} else {
+		log.Printf("ENSURE %s AS %q", path, user)
+	}
 	return nil
 }
 
@@ -85,6 +95,10 @@ func (noopExecutor) Preserve(path string) error {
 }
 
 func (noopExecutor) EnsureContainerPath(path string) error {
+	return nil
+}
+
+func (noopExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
 	return nil
 }
 
@@ -201,6 +215,17 @@ type Stage struct {
 
 func NewStages(node *parser.Node, b *Builder) (Stages, error) {
 	var stages Stages
+	var allDeclaredArgs []string
+	for _, root := range SplitBy(node, command.Arg) {
+		argNode := root.Children[0]
+		if argNode.Value == command.Arg {
+			// extract declared variable
+			s := strings.SplitN(argNode.Original, " ", 2)
+			if len(s) == 2 && (strings.ToLower(s[0]) == command.Arg) {
+				allDeclaredArgs = append(allDeclaredArgs, s[1])
+			}
+		}
+	}
 	if err := b.extractHeadingArgsFromNode(node); err != nil {
 		return stages, err
 	}
@@ -212,7 +237,7 @@ func NewStages(node *parser.Node, b *Builder) (Stages, error) {
 		stages = append(stages, Stage{
 			Position: i,
 			Name:     name,
-			Builder:  b.builderForStage(),
+			Builder:  b.builderForStage(allDeclaredArgs),
 			Node:     root,
 		})
 	}
@@ -276,8 +301,8 @@ func extractNameFromNode(node *parser.Node) (string, bool) {
 	return n.Next.Value, true
 }
 
-func (b *Builder) builderForStage() *Builder {
-	stageBuilder := NewBuilder(b.UserArgs)
+func (b *Builder) builderForStage(globalArgsList []string) *Builder {
+	stageBuilder := newBuilderWithGlobalAllowedArgs(b.UserArgs, globalArgsList)
 	for k, v := range b.HeadingArgs {
 		stageBuilder.HeadingArgs[k] = v
 	}
@@ -293,6 +318,12 @@ type Builder struct {
 	UserArgs    map[string]string
 	CmdSet      bool
 	Author      string
+	// Certain instructions like `FROM` will need to use
+	// `ARG` decalred before or not in this stage hence
+	// while processing instruction like `FROM ${SOME_ARG}`
+	// we will make sure to verify if they are declared any
+	// where in containerfile or not.
+	GlobalAllowedArgs []string
 
 	AllowedArgs map[string]bool
 	Volumes     VolumeSet
@@ -309,6 +340,10 @@ type Builder struct {
 }
 
 func NewBuilder(args map[string]string) *Builder {
+	return newBuilderWithGlobalAllowedArgs(args, []string{})
+}
+
+func newBuilderWithGlobalAllowedArgs(args map[string]string, globalallowedargs []string) *Builder {
 	allowed := make(map[string]bool)
 	for k, v := range builtinAllowedBuildArgs {
 		allowed[k] = v
@@ -320,10 +355,11 @@ func NewBuilder(args map[string]string) *Builder {
 		initialArgs[k] = v
 	}
 	return &Builder{
-		Args:        initialArgs,
-		UserArgs:    userArgs,
-		HeadingArgs: make(map[string]string),
-		AllowedArgs: allowed,
+		Args:              initialArgs,
+		UserArgs:          userArgs,
+		HeadingArgs:       make(map[string]string),
+		AllowedArgs:       allowed,
+		GlobalAllowedArgs: globalallowedargs,
 	}
 }
 
@@ -378,7 +414,7 @@ func (b *Builder) Run(step *Step, exec Executor, noRunsRemaining bool) error {
 	}
 
 	if len(b.RunConfig.WorkingDir) > 0 {
-		if err := exec.EnsureContainerPath(b.RunConfig.WorkingDir); err != nil {
+		if err := exec.EnsureContainerPathAs(b.RunConfig.WorkingDir, b.RunConfig.User, nil); err != nil {
 			return err
 		}
 	}

@@ -1,22 +1,22 @@
-// +build linux
+//go:build linux || freebsd
+// +build linux freebsd
 
 package cni
 
 import (
+	"errors"
+	"fmt"
 	"net"
 	"os"
 
 	internalutil "github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	pkgutil "github.com/containers/common/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/vishvananda/netlink"
 )
 
 // NetworkCreate will take a partial filled Network and fill the
 // missing fields. It creates the Network and returns the full Network.
-// nolint:gocritic
 func (n *cniNetwork) NetworkCreate(net types.Network) (types.Network, error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
@@ -44,10 +44,15 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 	// FIXME: Should we use a different type for network create without the ID field?
 	// the caller is not allowed to set a specific ID
 	if newNetwork.ID != "" {
-		return nil, errors.Wrap(types.ErrInvalidArg, "ID can not be set for network create")
+		return nil, fmt.Errorf("ID can not be set for network create: %w", types.ErrInvalidArg)
 	}
 
 	err := internalutil.CommonNetworkCreate(n, newNetwork)
+	if err != nil {
+		return nil, err
+	}
+
+	err = validateIPAMDriver(newNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +74,7 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 
 	switch newNetwork.Driver {
 	case types.BridgeNetworkDriver:
-		err = internalutil.CreateBridge(n, newNetwork, usedNetworks)
+		err = internalutil.CreateBridge(n, newNetwork, usedNetworks, n.defaultsubnetPools)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +84,7 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 			return nil, err
 		}
 	default:
-		return nil, errors.Wrapf(types.ErrInvalidArg, "unsupported driver %s", newNetwork.Driver)
+		return nil, fmt.Errorf("unsupported driver %s: %w", newNetwork.Driver, types.ErrInvalidArg)
 	}
 
 	err = internalutil.ValidateSubnets(newNetwork, !newNetwork.Internal, usedNetworks)
@@ -89,6 +94,9 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 
 	// generate the network ID
 	newNetwork.ID = getNetworkIDFromName(newNetwork.Name)
+
+	// when we do not have ipam we must disable dns
+	internalutil.IpamNoneDisableDNS(newNetwork)
 
 	// FIXME: Should this be a hard error?
 	if newNetwork.DNSEnabled && newNetwork.Internal && hasDNSNamePlugin(n.cniPluginDirs) {
@@ -120,19 +128,12 @@ func (n *cniNetwork) NetworkRemove(nameOrID string) error {
 
 	// Removing the default network is not allowed.
 	if network.libpodNet.Name == n.defaultNetwork {
-		return errors.Errorf("default network %s cannot be removed", n.defaultNetwork)
+		return fmt.Errorf("default network %s cannot be removed", n.defaultNetwork)
 	}
 
 	// Remove the bridge network interface on the host.
 	if network.libpodNet.Driver == types.BridgeNetworkDriver {
-		link, err := netlink.LinkByName(network.libpodNet.NetworkInterface)
-		if err == nil {
-			err = netlink.LinkDel(link)
-			// only log the error, it is not fatal
-			if err != nil {
-				logrus.Infof("Failed to remove network interface %s: %v", network.libpodNet.NetworkInterface, err)
-			}
-		}
+		deleteLink(network.libpodNet.NetworkInterface)
 	}
 
 	file := network.filename
@@ -187,22 +188,47 @@ func (n *cniNetwork) NetworkInspect(nameOrID string) (types.Network, error) {
 }
 
 func createIPMACVLAN(network *types.Network) error {
-	if network.Internal {
-		return errors.New("internal is not supported with macvlan")
-	}
 	if network.NetworkInterface != "" {
 		interfaceNames, err := internalutil.GetLiveNetworkNames()
 		if err != nil {
 			return err
 		}
 		if !pkgutil.StringInSlice(network.NetworkInterface, interfaceNames) {
-			return errors.Errorf("parent interface %s does not exist", network.NetworkInterface)
+			return fmt.Errorf("parent interface %s does not exist", network.NetworkInterface)
 		}
 	}
-	if len(network.Subnets) == 0 {
-		network.IPAMOptions["driver"] = types.DHCPIPAMDriver
-	} else {
-		network.IPAMOptions["driver"] = types.HostLocalIPAMDriver
+
+	switch network.IPAMOptions[types.Driver] {
+	// set default
+	case "":
+		if len(network.Subnets) == 0 {
+			// if no subnets and no driver choose dhcp
+			network.IPAMOptions[types.Driver] = types.DHCPIPAMDriver
+		} else {
+			network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
+		}
+	case types.HostLocalIPAMDriver:
+		if len(network.Subnets) == 0 {
+			return errors.New("host-local ipam driver set but no subnets are given")
+		}
+	}
+
+	if network.IPAMOptions[types.Driver] == types.DHCPIPAMDriver && network.Internal {
+		return errors.New("internal is not supported with macvlan and dhcp ipam driver")
+	}
+	return nil
+}
+
+func validateIPAMDriver(n *types.Network) error {
+	ipamDriver := n.IPAMOptions[types.Driver]
+	switch ipamDriver {
+	case "", types.HostLocalIPAMDriver:
+	case types.DHCPIPAMDriver, types.NoneIPAMDriver:
+		if len(n.Subnets) > 0 {
+			return fmt.Errorf("%s ipam driver is set but subnets are given", ipamDriver)
+		}
+	default:
+		return fmt.Errorf("unsupported ipam driver %q", ipamDriver)
 	}
 	return nil
 }

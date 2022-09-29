@@ -1,4 +1,5 @@
-// +build linux
+//go:build linux || freebsd
+// +build linux freebsd
 
 package netavark
 
@@ -9,7 +10,6 @@ import (
 
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,7 +41,17 @@ func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions
 
 	netavarkOpts, err := n.convertNetOpts(options.NetworkOptions)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert net opts")
+		return nil, fmt.Errorf("failed to convert net opts: %w", err)
+	}
+
+	// Warn users if one or more networks have dns enabled
+	// but aardvark-dns binary is not configured
+	for _, network := range netavarkOpts.Networks {
+		if network != nil && network.DNSEnabled && n.aardvarkBinary == "" {
+			// this is not a fatal error we can still use container without dns
+			logrus.Warnf("aardvark-dns binary not found, container dns will not be enabled")
+			break
+		}
 	}
 
 	// trace output to get the json
@@ -92,7 +102,7 @@ func (n *netavarkNetwork) Teardown(namespacePath string, options types.TeardownO
 
 	netavarkOpts, err := n.convertNetOpts(options.NetworkOptions)
 	if err != nil {
-		return errors.Wrap(err, "failed to convert net opts")
+		return fmt.Errorf("failed to convert net opts: %w", err)
 	}
 
 	retErr := n.execNetavark([]string{"teardown", namespacePath}, netavarkOpts, nil)

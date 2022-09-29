@@ -1,14 +1,15 @@
+//go:build linux
 // +build linux
 
 package buildah
 
 import (
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/opencontainers/runtime-tools/generate"
 	selinux "github.com/opencontainers/selinux/go-selinux"
-	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 )
 
 func selinuxGetEnabled() bool {
@@ -29,12 +30,12 @@ func runLabelStdioPipes(stdioPipe [][]int, processLabel, mountLabel string) erro
 	}
 	pipeContext, err := selinux.ComputeCreateContext(processLabel, mountLabel, "fifo_file")
 	if err != nil {
-		return errors.Wrapf(err, "computing file creation context for pipes")
+		return fmt.Errorf("computing file creation context for pipes: %w", err)
 	}
 	for i := range stdioPipe {
 		pipeFdName := fmt.Sprintf("/proc/self/fd/%d", stdioPipe[i][0])
-		if err := label.Relabel(pipeFdName, pipeContext, false); err != nil {
-			return errors.Wrapf(err, "setting file label on %q", pipeFdName)
+		if err := selinux.SetFileLabel(pipeFdName, pipeContext); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("setting file label on %q: %w", pipeFdName, err)
 		}
 	}
 	return nil

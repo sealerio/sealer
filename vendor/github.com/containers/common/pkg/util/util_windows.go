@@ -1,9 +1,10 @@
+//go:build windows
 // +build windows
 
 package util
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 )
 
 // getRuntimeDir returns the runtime directory

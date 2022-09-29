@@ -14,9 +14,12 @@ type Seccomp struct {
 
 	// Architectures is kept to maintain backward compatibility with the old
 	// seccomp profile.
-	Architectures []Arch         `json:"architectures,omitempty"`
-	ArchMap       []Architecture `json:"archMap,omitempty"`
-	Syscalls      []*Syscall     `json:"syscalls"`
+	Architectures    []Arch         `json:"architectures,omitempty"`
+	ArchMap          []Architecture `json:"archMap,omitempty"`
+	Syscalls         []*Syscall     `json:"syscalls"`
+	Flags            []string       `json:"flags,omitempty"`
+	ListenerPath     string         `json:"listenerPath,omitempty"`
+	ListenerMetadata string         `json:"listenerMetadata,omitempty"`
 }
 
 // Architecture is used to represent a specific architecture
@@ -72,6 +75,7 @@ const (
 	ActTrace      Action = "SCMP_ACT_TRACE"
 	ActAllow      Action = "SCMP_ACT_ALLOW"
 	ActLog        Action = "SCMP_ACT_LOG"
+	ActNotify     Action = "SCMP_ACT_NOTIFY"
 )
 
 // Operator used to match syscall arguments in Seccomp

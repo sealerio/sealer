@@ -99,6 +99,10 @@ func shouldPreferIdentity(existingId, potentialNewId *Identity) bool {
 		return false
 	}
 
+	if existingId.SelfSignature == nil {
+		return true
+	}
+
 	if (existingId.SelfSignature.IsPrimaryId != nil && *existingId.SelfSignature.IsPrimaryId &&
 		!(potentialNewId.SelfSignature.IsPrimaryId != nil && *potentialNewId.SelfSignature.IsPrimaryId)) {
 		return false
@@ -118,6 +122,7 @@ func (e *Entity) EncryptionKey(now time.Time) (Key, bool) {
 	// Fail to find any encryption key if the...
 	i := e.PrimaryIdentity()
 	if e.PrimaryKey.KeyExpired(i.SelfSignature, now) || // primary key has expired
+		i.SelfSignature == nil || // user ID has no self-signature
 		i.SelfSignature.SigExpired(now) || // user ID self-signature has expired
 		e.Revoked(now) || // primary key has been revoked
 		i.Revoked(now) { // user ID has been revoked
@@ -169,6 +174,7 @@ func (e *Entity) SigningKeyById(now time.Time, id uint64) (Key, bool) {
 	// Fail to find any signing key if the...
 	i := e.PrimaryIdentity()
 	if e.PrimaryKey.KeyExpired(i.SelfSignature, now) || // primary key has expired
+		i.SelfSignature == nil || // user ID has no self-signature
 		i.SelfSignature.SigExpired(now) || // user ID self-signature has expired
 		e.Revoked(now) || // primary key has been revoked
 		i.Revoked(now) { // user ID has been revoked
@@ -277,7 +283,7 @@ func (el EntityList) KeysById(id uint64) (keys []Key) {
 // the bitwise-OR of packet.KeyFlag* values.
 func (el EntityList) KeysByIdUsage(id uint64, requiredUsage byte) (keys []Key) {
 	for _, key := range el.KeysById(id) {
-		if key.SelfSignature.FlagsValid && requiredUsage != 0 {
+		if key.SelfSignature != nil && key.SelfSignature.FlagsValid && requiredUsage != 0 {
 			var usage byte
 			if key.SelfSignature.FlagCertify {
 				usage |= packet.KeyFlagCertify
@@ -615,6 +621,9 @@ func (e *Entity) serializePrivate(w io.Writer, config *packet.Config, reSign boo
 			return
 		}
 		if reSign {
+			if ident.SelfSignature == nil {
+				return goerrors.New("openpgp: can't re-sign identity without valid self-signature")
+			}
 			err = ident.SelfSignature.SignUserId(ident.UserId.Id, e.PrimaryKey, e.PrivateKey, config)
 			if err != nil {
 				return
@@ -626,9 +635,11 @@ func (e *Entity) serializePrivate(w io.Writer, config *packet.Config, reSign boo
 				return err
 			}
 		}
-		err = ident.SelfSignature.Serialize(w)
-		if err != nil {
-			return
+		if ident.SelfSignature != nil {
+			err = ident.SelfSignature.Serialize(w)
+			if err != nil {
+				return
+			}
 		}
 	}
 	for _, subkey := range e.Subkeys {

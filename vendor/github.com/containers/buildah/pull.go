@@ -2,6 +2,7 @@ package buildah
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
 )
 
 // PullOptions can be used to alter how an image is copied in from somewhere.
@@ -69,8 +69,15 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 		libimageOptions.MaxRetries = &retries
 	}
 
-
 	pullPolicy, err := config.ParsePullPolicy(options.PullPolicy.String())
+	if err != nil {
+		return "", err
+	}
+
+	// Note: It is important to do this before we pull any images/create containers.
+	// The default backend detection logic needs an empty store to correctly detect
+	// that we can use netavark, if the store was not empty it will use CNI to not break existing installs.
+	_, err = getNetworkInterface(options.Store, "", "")
 	if err != nil {
 		return "", err
 	}
@@ -86,7 +93,7 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 	}
 
 	if len(pulledImages) == 0 {
-		return "", errors.Errorf("internal error pulling %s: no image pulled and no error", imageName)
+		return "", fmt.Errorf("internal error pulling %s: no image pulled and no error", imageName)
 	}
 
 	return pulledImages[0].ID(), nil

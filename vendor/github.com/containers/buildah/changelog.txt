@@ -1,3 +1,109 @@
+- Changelog for v1.27.1 (2022-09-09)
+  * run: add container gid to additional groups.
+
+- Changelog for v1.27.0 (2022-08-01)
+  * build: support filtering cache by duration using `--cache-ttl`.
+  * build: support building from commit when using git repo as build context.
+  * build: clean up git repos correctly when using subdirs.
+  * build: add support for distributing cache to remote sources using `--cache-to` and `--cache-from`.
+  * imagebuildah: optimize cache hits for `COPY` and `ADD` instructions.
+  * build: support OCI hooks for ephemeral build containers.
+  * build: add support for `--userns=auto`.
+  * copier: add NoOverwriteNonDirDir option .
+  * add initial support for building images using Buildah on FreeBSD.
+  * multistage: this now skips the computing of unwanted stages to improve performance.
+  * multiarch: support splitting build logs for `--platform` using `--logsplit`.
+  * build: add support for building images where the base image has no history.
+  * commit: allow disabling image history with `--omit-history`.
+  * build: add support for renaming a device in rootless setups.
+  * build: now supports additionalBuildContext in builds via the `--build-context` option.
+  * build: `--output` produces artifacts even if the build container is not committed.
+  * build: now accepts `-cpp-flag`, allowing users to pass in CPP flags when processing a Containerfile with C Preprocessor-like syntax.
+  * build: now accepts a branch and a subdirectory when the build context is a git repository.
+  * build: output now shows a progress bar while pushing and pulling images
+  * build: now errors out if the path to Containerfile is a directory.
+  * build: support building container images on environments that are rootless and without any valid login sessions.
+  * fix: `--output` now generates artifacts even if the entire build is cached.
+  * fix: `--output` generates artifacts only for the target stage in multi-stage builds.
+  * fix,add: now fails on a bad HTTP response instead of writing to container
+  * fix,squash: never use build cache when computing the last step of the last stage
+  * fix,build,run: allow reusing secret more than once in different RUN steps
+  * fix: compatibility with Docker build by making its --label and --annotate options set empty labels and annotations when given a name but no `=` or label value.
+
+- Changelog for v1.26.0 (2022-05-04)
+  * imagebuildah,build: move deepcopy of args before we spawn goroutine
+  * Vendor in containers/storage v1.40.2
+  * buildah.BuilderOptions.DefaultEnv is ignored, so mark it as deprecated
+  * help output: get more consistent about option usage text
+  * Handle OS version and features flags
+  * buildah build: --annotation and --label should remove values
+  * buildah build: add a --env
+  * buildah: deep copy options.Args before performing concurrent build/stage
+  * test: inline platform and builtinargs behaviour
+  * vendor: bump imagebuilder to master/009dbc6
+  * build: automatically set correct TARGETPLATFORM where expected
+  * build(deps): bump github.com/fsouza/go-dockerclient
+  * Vendor in containers/(common, storage, image)
+  * imagebuildah, executor: process arg variables while populating baseMap
+  * buildkit: add support for custom build output with --output
+  * Cirrus: Update CI VMs to F36
+  * fix staticcheck linter warning for deprecated function
+  * Fix docs build on FreeBSD
+  * build(deps): bump github.com/containernetworking/cni from 1.0.1 to 1.1.0
+  * copier.unwrapError(): update for Go 1.16
+  * copier.PutOptions: add StripSetuidBit/StripSetgidBit/StripStickyBit
+  * copier.Put(): write to read-only directories
+  * build(deps): bump github.com/cpuguy83/go-md2man/v2 in /tests/tools
+  * Rename $TESTSDIR (the plural one), step 4 of 3
+  * Rename $TESTSDIR (the plural one), step 3 of 3
+  * Rename $TESTSDIR (the plural one), step 2 of 3
+  * Rename $TESTSDIR (the plural one), step 1 of 3
+  * build(deps): bump github.com/containerd/containerd from 1.6.2 to 1.6.3
+  * Ed's periodic test cleanup
+  * using consistent lowercase 'invalid' word in returned err msg
+  * Update vendor of containers/(common,storage,image)
+  * use etchosts package from c/common
+  * run: set actual hostname in /etc/hostname to match docker parity
+  * update c/common to latest main
+  * Update vendor of containers/(common,storage,image)
+  * Stop littering
+  * manifest-create: allow creating manifest list from local image
+  * Update vendor of storage,common,image
+  * Bump golang.org/x/crypto to 7b82a4e
+  * Initialize network backend before first pull
+  * oci spec: change special mount points for namespaces
+  * tests/helpers.bash: assert handle corner cases correctly
+  * buildah: actually use containers.conf settings
+  * integration tests: learn to start a dummy registry
+  * Fix error check to work on Podman
+  * buildah build should accept at most one arg
+  * tests: reduce concurrency for flaky bud-multiple-platform-no-run
+  * vendor in latest containers/common,image,storage
+  * manifest-add: allow override arch,variant while adding image
+  * Remove a stray `\` from .containerenv
+  * Vendor in latest opencontainers/selinux v1.10.1
+  * build, commit: allow removing default identity labels
+  * Create shorter names for containers based on image IDs
+  * test: skip rootless on cgroupv2 in root env
+  * fix hang when oci runtime fails
+  * Set permissions for GitHub actions
+  * copier test: use correct UID/GID in test archives
+  * run: set parent-death signals and forward SIGHUP/SIGINT/SIGTERM
+  * Bump back to v1.26.0-dev
+  * build(deps): bump github.com/opencontainers/runc from 1.1.0 to 1.1.1
+  * Included the URL to check the SHA
+
+- Changelog for v1.25.1 (2022-03-30)
+  * buildah: create WORKDIR with USER permissions
+  * vendor: update github.com/openshift/imagebuilder
+  * copier: attempt to open the dir before adding it
+  * Updated dependabot to get updates for GitHub actions.
+  * Switch most calls to filepath.Walk to filepath.WalkDir
+  * build: allow --no-cache and --layers so build cache can be overrided
+  * build(deps): bump github.com/onsi/gomega from 1.18.1 to 1.19.0
+  * Bump to v1.26.0-dev
+  * build(deps): bump github.com/golangci/golangci-lint in /tests/tools
+
 - Changelog for v1.25.0 (2022-03-25)
   * install: drop RHEL/CentOS 7 doc
   * build(deps): bump github.com/containers/common from 0.47.4 to 0.47.5

@@ -6,6 +6,7 @@ package overlay
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,7 +27,6 @@ import (
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/fsutils"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/locker"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
@@ -37,9 +37,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/userns"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/vbatts/tar-split/tar/storage"
 	"golang.org/x/sys/unix"
 )
 
@@ -120,7 +118,8 @@ type Driver struct {
 	supportsDType    bool
 	supportsVolatile *bool
 	usingMetacopy    bool
-	locker           *locker.Locker
+
+	supportsIDMappedMounts *bool
 }
 
 type additionalLayerStore struct {
@@ -198,11 +197,35 @@ func checkSupportVolatile(home, runhome string) (bool, error) {
 				logrus.Debugf("overlay: test mount indicated that volatile is not being used")
 			}
 			if err = cachedFeatureRecord(runhome, feature, usingVolatile, ""); err != nil {
-				return false, errors.Wrap(err, "recording volatile-being-used status")
+				return false, fmt.Errorf("recording volatile-being-used status: %w", err)
 			}
 		}
 	}
 	return usingVolatile, nil
+}
+
+// checkAndRecordIDMappedSupport checks and stores if the kernel supports mounting overlay on top of a
+// idmapped lower layer.
+func checkAndRecordIDMappedSupport(home, runhome string) (bool, error) {
+	if os.Geteuid() != 0 {
+		return false, nil
+	}
+
+	feature := "idmapped-lower-dir"
+	overlayCacheResult, overlayCacheText, err := cachedFeatureCheck(runhome, feature)
+	if err == nil {
+		if overlayCacheResult {
+			logrus.Debugf("Cached value indicated that idmapped mounts for overlay are supported")
+			return true, nil
+		}
+		logrus.Debugf("Cached value indicated that idmapped mounts for overlay are not supported")
+		return false, errors.New(overlayCacheText)
+	}
+	supportsIDMappedMounts, err := supportsIdmappedLowerLayers(home)
+	if err2 := cachedFeatureRecord(runhome, feature, supportsIDMappedMounts, ""); err2 != nil {
+		return false, fmt.Errorf("recording overlay idmapped mounts support status: %w", err2)
+	}
+	return supportsIDMappedMounts, err
 }
 
 func checkAndRecordOverlaySupport(fsMagic graphdriver.FsMagic, home, runhome string) (bool, error) {
@@ -233,14 +256,14 @@ func checkAndRecordOverlaySupport(fsMagic graphdriver.FsMagic, home, runhome str
 			if ok && patherr.Err == syscall.ENOSPC {
 				return false, err
 			}
-			err = errors.Wrap(err, "kernel does not support overlay fs")
+			err = fmt.Errorf("kernel does not support overlay fs: %w", err)
 			if err2 := cachedFeatureRecord(runhome, feature, false, err.Error()); err2 != nil {
-				return false, errors.Wrapf(err2, "recording overlay not being supported (%v)", err)
+				return false, fmt.Errorf("recording overlay not being supported (%v): %w", err, err2)
 			}
 			return false, err
 		}
 		if err = cachedFeatureRecord(runhome, feature, supportsDType, ""); err != nil {
-			return false, errors.Wrap(err, "recording overlay support status")
+			return false, fmt.Errorf("recording overlay support status: %w", err)
 		}
 	}
 	return supportsDType, nil
@@ -299,7 +322,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	}
 
 	// Create the driver home dir
-	if err := idtools.MkdirAllAs(path.Join(home, linkDir), 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(path.Join(home, linkDir), 0755, 0, 0); err != nil {
 		return nil, err
 	}
 
@@ -334,10 +357,10 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		// check if they are running over btrfs, aufs, zfs, overlay, or ecryptfs
 		switch fsMagic {
 		case graphdriver.FsMagicAufs, graphdriver.FsMagicZfs, graphdriver.FsMagicOverlay, graphdriver.FsMagicEcryptfs:
-			return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "'overlay' is not supported over %s, a mount_program is required", backingFs)
+			return nil, fmt.Errorf("'overlay' is not supported over %s, a mount_program is required: %w", backingFs, graphdriver.ErrIncompatibleFS)
 		}
 		if unshare.IsRootless() && isNetworkFileSystem(fsMagic) {
-			return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "A network file system with user namespaces is not supported.  Please use a mount_program")
+			return nil, fmt.Errorf("a network file system with user namespaces is not supported.  Please use a mount_program: %w", graphdriver.ErrIncompatibleFS)
 		}
 	}
 
@@ -371,7 +394,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 					logrus.Debugf("overlay: test mount indicated that metacopy is not being used")
 				}
 				if err = cachedFeatureRecord(runhome, feature, usingMetacopy, ""); err != nil {
-					return nil, errors.Wrap(err, "recording metacopy-being-used status")
+					return nil, fmt.Errorf("recording metacopy-being-used status: %w", err)
 				}
 			} else {
 				logrus.Infof("overlay: test mount did not indicate whether or not metacopy is being used: %v", err)
@@ -401,7 +424,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		supportsDType:    supportsDType,
 		usingMetacopy:    usingMetacopy,
 		supportsVolatile: supportsVolatile,
-		locker:           locker.New(),
 		options:          *opts,
 	}
 
@@ -411,11 +433,11 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		if d.quotaCtl, err = quota.NewControl(home); err == nil {
 			projectQuotaSupported = true
 		} else if opts.quota.Size > 0 || opts.quota.Inodes > 0 {
-			return nil, fmt.Errorf("Storage options overlay.size and overlay.inodes not supported. Filesystem does not support Project Quota: %v", err)
+			return nil, fmt.Errorf("storage options overlay.size and overlay.inodes not supported. Filesystem does not support Project Quota: %w", err)
 		}
 	} else if opts.quota.Size > 0 || opts.quota.Inodes > 0 {
 		// if xfs is not the backing fs then error out if the storage-opt overlay.size is used.
-		return nil, fmt.Errorf("Storage option overlay.size and overlay.inodes only supported for backingFS XFS. Found %v", backingFs)
+		return nil, fmt.Errorf("storage option overlay.size and overlay.inodes only supported for backingFS XFS. Found %v", backingFs)
 	}
 
 	logrus.Debugf("backingFs=%s, projectQuotaSupported=%v, useNativeDiff=%v, usingMetacopy=%v", backingFs, projectQuotaSupported, !d.useNaiveDiff(), d.usingMetacopy)
@@ -466,7 +488,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				}
 				st, err := os.Stat(store)
 				if err != nil {
-					return nil, fmt.Errorf("overlay: can't stat imageStore dir %s: %v", store, err)
+					return nil, fmt.Errorf("overlay: can't stat imageStore dir %s: %w", store, err)
 				}
 				if !st.IsDir() {
 					return nil, fmt.Errorf("overlay: image path %q must be a directory", store)
@@ -487,7 +509,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				}
 				st, err := os.Stat(lstore)
 				if err != nil {
-					return nil, errors.Wrap(err, "overlay: can't stat additionallayerstore dir")
+					return nil, fmt.Errorf("overlay: can't stat additionallayerstore dir: %w", err)
 				}
 				if !st.IsDir() {
 					return nil, fmt.Errorf("overlay: additionallayerstore path %q must be a directory", lstore)
@@ -514,7 +536,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			if val != "" {
 				_, err := os.Stat(val)
 				if err != nil {
-					return nil, errors.Wrapf(err, "overlay: can't stat program %q", val)
+					return nil, fmt.Errorf("overlay: can't stat program %q: %w", val, err)
 				}
 			}
 			o.mountProgram = val
@@ -685,7 +707,7 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		}
 		if err := syscall.Mknod(filepath.Join(upperDir, "whiteout"), syscall.S_IFCHR|0600, int(unix.Mkdev(0, 0))); err != nil {
 			logrus.Debugf("Unable to create kernel-style whiteout: %v", err)
-			return supportsDType, errors.Wrapf(err, "unable to create kernel-style whiteout")
+			return supportsDType, fmt.Errorf("unable to create kernel-style whiteout: %w", err)
 		}
 
 		if len(flags) < unix.Getpagesize() {
@@ -704,16 +726,16 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 			err := unix.Mount("overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
 				logrus.StandardLogger().Logf(logLevel, "overlay: test mount with multiple lowers failed, but succeeded with a single lower")
-				return supportsDType, errors.Wrap(graphdriver.ErrNotSupported, "kernel too old to provide multiple lowers feature for overlay")
+				return supportsDType, fmt.Errorf("kernel too old to provide multiple lowers feature for overlay: %w", graphdriver.ErrNotSupported)
 			}
 			logrus.Debugf("overlay: test mount with a single lower failed %v", err)
 		}
 		logrus.StandardLogger().Logf(logLevel, "'overlay' is not supported over %s at %q", backingFs, home)
-		return supportsDType, errors.Wrapf(graphdriver.ErrIncompatibleFS, "'overlay' is not supported over %s at %q", backingFs, home)
+		return supportsDType, fmt.Errorf("'overlay' is not supported over %s at %q: %w", backingFs, home, graphdriver.ErrIncompatibleFS)
 	}
 
 	logrus.StandardLogger().Logf(logLevel, "'overlay' not found as a supported filesystem on this host. Please ensure kernel is new enough and has overlay support loaded.")
-	return supportsDType, errors.Wrap(graphdriver.ErrNotSupported, "'overlay' not found as a supported filesystem on this host. Please ensure kernel is new enough and has overlay support loaded.")
+	return supportsDType, fmt.Errorf("'overlay' not found as a supported filesystem on this host. Please ensure kernel is new enough and has overlay support loaded.: %w", graphdriver.ErrNotSupported)
 }
 
 func (d *Driver) useNaiveDiff() bool {
@@ -895,6 +917,11 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 		gidMaps = opts.IDMappings.GIDs()
 	}
 
+	// Make the link directory if it does not exist
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0755, 0, 0); err != nil {
+		return err
+	}
+
 	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
 	if err != nil {
 		return err
@@ -905,12 +932,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 		GID: rootGID,
 	}
 
-	// Make the link directory if it does not exist
-	if err := idtools.MkdirAllAndChownNew(path.Join(d.home, linkDir), 0700, idPair); err != nil {
-		return err
-	}
-
-	if err := idtools.MkdirAllAndChownNew(path.Dir(dir), 0700, idPair); err != nil {
+	if err := idtools.MkdirAllAndChownNew(path.Dir(dir), 0755, idPair); err != nil {
 		return err
 	}
 	if parent != "" {
@@ -921,6 +943,16 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 		rootUID = int(st.UID())
 		rootGID = int(st.GID())
 	}
+
+	if _, err := system.Lstat(dir); err == nil {
+		logrus.Warnf("Trying to create a layer %#v while directory %q already exists; removing it first", id, dir)
+		// Don’t just os.RemoveAll(dir) here; d.Remove also removes the link in linkDir,
+		// so that we can’t end up with two symlinks in linkDir pointing to the same layer.
+		if err := d.Remove(id); err != nil {
+			return fmt.Errorf("removing a pre-existing layer directory %q: %w", dir, err)
+		}
+	}
+
 	if err := idtools.MkdirAllAndChownNew(dir, 0700, idPair); err != nil {
 		return err
 	}
@@ -1025,7 +1057,7 @@ func (d *Driver) parseStorageOpt(storageOpt map[string]string, driver *Driver) e
 			}
 			driver.options.quota.Inodes = uint64(inodes)
 		default:
-			return fmt.Errorf("Unknown option %s", key)
+			return fmt.Errorf("unknown option %s", key)
 		}
 	}
 
@@ -1048,7 +1080,7 @@ func (d *Driver) getLower(parent string) (string, error) {
 		}
 		logrus.Warnf("Can't read parent link %q because it does not exist. Going through storage to recreate the missing links.", path.Join(parentDir, "link"))
 		if err := d.recreateSymlinks(); err != nil {
-			return "", errors.Wrap(err, "recreating the links")
+			return "", fmt.Errorf("recreating the links: %w", err)
 		}
 		parentLink, err = ioutil.ReadFile(path.Join(parentDir, "link"))
 		if err != nil {
@@ -1097,7 +1129,7 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 				if os.IsNotExist(err) {
 					logrus.Warnf("Can't read link %q because it does not exist. A storage corruption might have occurred, attempting to recreate the missing symlinks. It might be best wipe the storage to avoid further errors due to storage corruption.", lower)
 					if err := d.recreateSymlinks(); err != nil {
-						return nil, fmt.Errorf("recreating the missing symlinks: %v", err)
+						return nil, fmt.Errorf("recreating the missing symlinks: %w", err)
 					}
 					// let's call Readlink on lower again now that we have recreated the missing symlinks
 					lp, err = os.Readlink(lower)
@@ -1154,9 +1186,6 @@ func (d *Driver) optsAppendMappings(opts string, uidMaps, gidMaps []idtools.IDMa
 
 // Remove cleans the directories that are created for this id.
 func (d *Driver) Remove(id string) error {
-	d.locker.Lock(id)
-	defer d.locker.Unlock(id)
-
 	dir := d.dir(id)
 	lid, err := ioutil.ReadFile(path.Join(dir, "link"))
 	if err == nil {
@@ -1183,15 +1212,10 @@ func (d *Driver) recreateSymlinks() error {
 	// List all the directories under the home directory
 	dirs, err := ioutil.ReadDir(d.home)
 	if err != nil {
-		return fmt.Errorf("reading driver home directory %q: %v", d.home, err)
+		return fmt.Errorf("reading driver home directory %q: %w", d.home, err)
 	}
-	linksDir := filepath.Join(d.home, "l")
 	// This makes the link directory if it doesn't exist
-	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
-	if err != nil {
-		return err
-	}
-	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0755, 0, 0); err != nil {
 		return err
 	}
 	// Keep looping as long as we take some corrective action in each iteration
@@ -1211,7 +1235,7 @@ func (d *Driver) recreateSymlinks() error {
 			// Read the "link" file under each layer to get the name of the symlink
 			data, err := ioutil.ReadFile(path.Join(d.dir(dir.Name()), "link"))
 			if err != nil {
-				errs = multierror.Append(errs, errors.Wrapf(err, "reading name of symlink for %q", dir.Name()))
+				errs = multierror.Append(errs, fmt.Errorf("reading name of symlink for %q: %w", dir.Name(), err))
 				continue
 			}
 			linkPath := path.Join(d.home, linkDir, strings.Trim(string(data), "\n"))
@@ -1229,9 +1253,12 @@ func (d *Driver) recreateSymlinks() error {
 				continue
 			}
 		}
+
+		// linkDirFullPath is the full path to the linkDir
+		linkDirFullPath := filepath.Join(d.home, "l")
 		// Now check if we somehow lost a "link" file, by making sure
 		// that each symlink we have corresponds to one.
-		links, err := ioutil.ReadDir(linksDir)
+		links, err := ioutil.ReadDir(linkDirFullPath)
 		if err != nil {
 			errs = multierror.Append(errs, err)
 			continue
@@ -1239,18 +1266,18 @@ func (d *Driver) recreateSymlinks() error {
 		// Go through all of the symlinks in the "l" directory
 		for _, link := range links {
 			// Read the symlink's target, which should be "../$layer/diff"
-			target, err := os.Readlink(filepath.Join(linksDir, link.Name()))
+			target, err := os.Readlink(filepath.Join(linkDirFullPath, link.Name()))
 			if err != nil {
 				errs = multierror.Append(errs, err)
 				continue
 			}
 			targetComponents := strings.Split(target, string(os.PathSeparator))
 			if len(targetComponents) != 3 || targetComponents[0] != ".." || targetComponents[2] != "diff" {
-				errs = multierror.Append(errs, errors.Errorf("link target of %q looks weird: %q", link, target))
+				errs = multierror.Append(errs, fmt.Errorf("link target of %q looks weird: %q", link, target))
 				// force the link to be recreated on the next pass
-				if err := os.Remove(filepath.Join(linksDir, link.Name())); err != nil {
+				if err := os.Remove(filepath.Join(linkDirFullPath, link.Name())); err != nil {
 					if !os.IsNotExist(err) {
-						errs = multierror.Append(errs, errors.Wrapf(err, "removing link %q", link))
+						errs = multierror.Append(errs, fmt.Errorf("removing link %q: %w", link, err))
 					} // else don’t report any error, but also don’t set madeProgress.
 					continue
 				}
@@ -1266,7 +1293,7 @@ func (d *Driver) recreateSymlinks() error {
 				// NOTE: If two or more links point to the same target, we will update linkFile
 				// with every value of link.Name(), and set madeProgress = true every time.
 				if err := ioutil.WriteFile(linkFile, []byte(link.Name()), 0644); err != nil {
-					errs = multierror.Append(errs, errors.Wrapf(err, "correcting link for layer %s", targetID))
+					errs = multierror.Append(errs, fmt.Errorf("correcting link for layer %s: %w", targetID, err))
 					continue
 				}
 				madeProgress = true
@@ -1274,7 +1301,7 @@ func (d *Driver) recreateSymlinks() error {
 		}
 		iterations++
 		if iterations >= maxIterations {
-			errs = multierror.Append(errs, fmt.Errorf("Reached %d iterations in overlay graph driver’s recreateSymlink, giving up", iterations))
+			errs = multierror.Append(errs, fmt.Errorf("reached %d iterations in overlay graph driver’s recreateSymlink, giving up", iterations))
 			break
 		}
 	}
@@ -1290,8 +1317,6 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr
 }
 
 func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountOpts) (_ string, retErr error) {
-	d.locker.Lock(id)
-	defer d.locker.Unlock(id)
 	dir, inAdditionalStore := d.dir2(id)
 	if _, err := os.Stat(dir); err != nil {
 		return "", err
@@ -1356,7 +1381,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 		logrus.Warnf("Can't read parent link %q because it does not exist. Going through storage to recreate the missing links.", path.Join(dir, "link"))
 		if err := d.recreateSymlinks(); err != nil {
-			return "", errors.Wrap(err, "recreating the links")
+			return "", fmt.Errorf("recreating the links: %w", err)
 		}
 		link, err = ioutil.ReadFile(path.Join(dir, "link"))
 		if err != nil {
@@ -1376,7 +1401,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	}
 	for err == nil {
 		absLowers = append(absLowers, filepath.Join(dir, nameWithSuffix("diff", diffN)))
-		relLowers = append(relLowers, dumbJoin(string(link), "..", nameWithSuffix("diff", diffN)))
+		relLowers = append(relLowers, dumbJoin(linkDir, string(link), "..", nameWithSuffix("diff", diffN)))
 		diffN++
 		st, err = os.Stat(filepath.Join(dir, nameWithSuffix("diff", diffN)))
 		if err == nil && !permsKnown {
@@ -1411,11 +1436,11 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			if lower == "" && os.IsNotExist(err) {
 				logrus.Warnf("Can't stat lower layer %q because it does not exist. Going through storage to recreate the missing symlinks.", newpath)
 				if err := d.recreateSymlinks(); err != nil {
-					return "", fmt.Errorf("Recreating the missing symlinks: %v", err)
+					return "", fmt.Errorf("recreating the missing symlinks: %w", err)
 				}
 				lower = newpath
 			} else if lower == "" {
-				return "", fmt.Errorf("Can't stat lower layer %q: %v", newpath, err)
+				return "", fmt.Errorf("can't stat lower layer %q: %w", newpath, err)
 			}
 		} else {
 			if !permsKnown {
@@ -1485,6 +1510,51 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	}
 
+	if d.supportsIDmappedMounts() && len(options.UidMaps) > 0 && len(options.GidMaps) > 0 {
+		var newAbsDir []string
+		mappedRoot := filepath.Join(d.home, id, "mapped")
+		if err := os.MkdirAll(mappedRoot, 0700); err != nil {
+			return "", err
+		}
+
+		pid, cleanupFunc, err := createUsernsProcess(options.UidMaps, options.GidMaps)
+		if err != nil {
+			return "", err
+		}
+		defer cleanupFunc()
+
+		idMappedMounts := make(map[string]string)
+
+		// rewrite the lower dirs to their idmapped mount.
+		c := 0
+		for _, absLower := range absLowers {
+			mappedMountSrc := getMappedMountRoot(absLower)
+
+			root, found := idMappedMounts[mappedMountSrc]
+			if !found {
+				root = filepath.Join(mappedRoot, fmt.Sprintf("%d", c))
+				c++
+				if err := createIDMappedMount(mappedMountSrc, root, int(pid)); err != nil {
+					return "", fmt.Errorf("create mapped mount for %q on %q: %w", mappedMountSrc, root, err)
+				}
+				idMappedMounts[mappedMountSrc] = root
+
+				// overlay takes a reference on the mount, so it is safe to unmount
+				// the mapped idmounts as soon as the final overlay file system is mounted.
+				defer unix.Unmount(root, unix.MNT_DETACH)
+			}
+
+			// relative path to the layer through the id mapped mount
+			rel, err := filepath.Rel(mappedMountSrc, absLower)
+			if err != nil {
+				return "", err
+			}
+
+			newAbsDir = append(newAbsDir, filepath.Join(root, rel))
+		}
+		absLowers = newAbsDir
+	}
+
 	var opts string
 	if readWrite {
 		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workdir)
@@ -1522,7 +1592,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 				if output == "" {
 					output = "<stderr empty>"
 				}
-				return errors.Wrapf(err, "using mount program %s: %s", d.options.mountProgram, output)
+				return fmt.Errorf("using mount program %s: %s: %w", d.options.mountProgram, output, err)
 			}
 			return nil
 		}
@@ -1563,7 +1633,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	flags, data := mount.ParseOptions(mountData)
 	logrus.Debugf("overlay: mount_data=%s", mountData)
 	if err := mountFunc("overlay", mountTarget, "overlay", uintptr(flags), data); err != nil {
-		return "", fmt.Errorf("creating overlay mount to %s, mount_data=%q: %v", mountTarget, mountData, err)
+		return "", fmt.Errorf("creating overlay mount to %s, mount_data=%q: %w", mountTarget, mountData, err)
 	}
 
 	return mergedDir, nil
@@ -1571,8 +1641,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 // Put unmounts the mount path created for the give id.
 func (d *Driver) Put(id string) error {
-	d.locker.Lock(id)
-	defer d.locker.Unlock(id)
 	dir := d.dir(id)
 	if _, err := os.Stat(dir); err != nil {
 		return err
@@ -1587,12 +1655,24 @@ func (d *Driver) Put(id string) error {
 
 	unmounted := false
 
+	mappedRoot := filepath.Join(d.home, id, "mapped")
+	// It should not happen, but cleanup any mapped mount if it was leaked.
+	if _, err := os.Stat(mappedRoot); err == nil {
+		mounts, err := ioutil.ReadDir(mappedRoot)
+		if err == nil {
+			// Go through all of the mapped mounts.
+			for _, m := range mounts {
+				_ = unix.Unmount(filepath.Join(mappedRoot, m.Name()), unix.MNT_DETACH)
+			}
+		}
+	}
+
 	if d.options.mountProgram != "" {
 		// Attempt to unmount the FUSE mount using either fusermount or fusermount3.
 		// If they fail, fallback to unix.Unmount
 		for _, v := range []string{"fusermount3", "fusermount"} {
 			err := exec.Command(v, "-u", mountpoint).Run()
-			if err != nil && errors.Cause(err) != exec.ErrNotFound {
+			if err != nil && !errors.Is(err, exec.ErrNotFound) {
 				logrus.Debugf("Error unmounting %s with %s - %v", mountpoint, v, err)
 			}
 			if err == nil {
@@ -1664,11 +1744,24 @@ func (d *Driver) getWhiteoutFormat() archive.WhiteoutFormat {
 	return whiteoutFormat
 }
 
-type fileGetNilCloser struct {
-	storage.FileGetter
+type overlayFileGetter struct {
+	diffDirs []string
 }
 
-func (f fileGetNilCloser) Close() error {
+func (g *overlayFileGetter) Get(path string) (io.ReadCloser, error) {
+	for _, d := range g.diffDirs {
+		f, err := os.Open(filepath.Join(d, path))
+		if err == nil {
+			return f, nil
+		}
+	}
+	if len(g.diffDirs) > 0 {
+		return os.Open(filepath.Join(g.diffDirs[0], path))
+	}
+	return nil, fmt.Errorf("%s: %w", path, os.ErrNotExist)
+}
+
+func (g *overlayFileGetter) Close() error {
 	return nil
 }
 
@@ -1677,13 +1770,18 @@ func (d *Driver) getStagingDir() string {
 }
 
 // DiffGetter returns a FileGetCloser that can read files from the directory that
-// contains files for the layer differences. Used for direct access for tar-split.
+// contains files for the layer differences, either for this layer, or one of our
+// lowers if we're just a template directory. Used for direct access for tar-split.
 func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
 	p, err := d.getDiffPath(id)
 	if err != nil {
 		return nil, err
 	}
-	return fileGetNilCloser{storage.NewPathFileGetter(p)}, nil
+	paths, err := d.getLowerDiffPaths(id)
+	if err != nil {
+		return nil, err
+	}
+	return &overlayFileGetter{diffDirs: append([]string{p}, paths...)}, nil
 }
 
 // CleanupStagingDirectory cleanups the staging directory.
@@ -1958,12 +2056,31 @@ func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMapp
 	return nil
 }
 
+// supportsIDmappedMounts returns whether the kernel supports using idmapped mounts with
+// overlay lower layers.
+func (d *Driver) supportsIDmappedMounts() bool {
+	if d.supportsIDMappedMounts != nil {
+		return *d.supportsIDMappedMounts
+	}
+
+	supportsIDMappedMounts, err := checkAndRecordIDMappedSupport(d.home, d.runhome)
+	d.supportsIDMappedMounts = &supportsIDMappedMounts
+	if err == nil {
+		return supportsIDMappedMounts
+	}
+	logrus.Debugf("Check for idmapped mounts support %v", err)
+	return false
+}
+
 // SupportsShifting tells whether the driver support shifting of the UIDs/GIDs in an userNS
 func (d *Driver) SupportsShifting() bool {
 	if os.Getenv("_TEST_FORCE_SUPPORT_SHIFTING") == "yes-please" {
 		return true
 	}
-	return d.options.mountProgram != ""
+	if d.options.mountProgram != "" {
+		return true
+	}
+	return d.supportsIDmappedMounts()
 }
 
 // dumbJoin is more or less a dumber version of filepath.Join, but one which
@@ -1998,15 +2115,14 @@ func (d *Driver) getAdditionalLayerPath(dgst digest.Digest, ref string) (string,
 			filepath.Join(target, "blob"),
 		} {
 			if _, err := os.Stat(p); err != nil {
-				return "", errors.Wrapf(graphdriver.ErrLayerUnknown,
-					"failed to stat additional layer %q: %v", p, err)
+				wrapped := fmt.Errorf("failed to stat additional layer %q: %w", p, err)
+				return "", fmt.Errorf("%v: %w", wrapped, graphdriver.ErrLayerUnknown)
 			}
 		}
 		return target, nil
 	}
 
-	return "", errors.Wrapf(graphdriver.ErrLayerUnknown,
-		"additional layer (%q, %q) not found", dgst, ref)
+	return "", fmt.Errorf("additional layer (%q, %q) not found: %w", dgst, ref, graphdriver.ErrLayerUnknown)
 }
 
 func (d *Driver) releaseAdditionalLayerByID(id string) {
@@ -2131,4 +2247,16 @@ func redirectDiffIfAdditionalLayer(diffPath string) (string, error) {
 		return "", err
 	}
 	return diffPath, nil
+}
+
+// getMappedMountRoot is a heuristic that calculates the parent directory where
+// the idmapped mount should be applied.
+// It is useful to minimize the number of idmapped mounts and at the same time use
+// a common path as long as possible to reduce the length of the mount data argument.
+func getMappedMountRoot(path string) string {
+	dirName := filepath.Dir(path)
+	if filepath.Base(dirName) == linkDir {
+		return filepath.Dir(dirName)
+	}
+	return dirName
 }
