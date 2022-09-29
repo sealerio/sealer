@@ -104,7 +104,7 @@ func (l *Taint) Run(context Context, phase Phase) (err error) {
 	return nil
 }
 
-//key1=value1:NoSchedule;key1=value1:NoSchedule-;key1:NoSchedule;key1:NoSchedule-;key1=:NoSchedule-;key1=value1:NoSchedule
+// key1=value1:NoSchedule;key1=value1:NoSchedule-;key1:NoSchedule;key1:NoSchedule-;key1=:NoSchedule-;key1=value1:NoSchedule
 func (l *Taint) formatData(data string) error {
 	items := strings.Split(data, "\n")
 	if l.TaintList == nil {
@@ -181,7 +181,7 @@ func (l *Taint) UpdateTaints(taints []v1.Taint, ip string) []v1.Taint {
 	return append(updateTaints, l.TaintList[ip].AddTaintList...)
 }
 
-//Remove existing taint
+// Remove existing taint
 func (l *Taint) removePresenceTaint(taint v1.Taint, ip string) {
 	for k, v := range l.TaintList[ip].AddTaintList {
 		if v.Key == taint.Key && v.Value == taint.Value && v.Effect == taint.Effect {

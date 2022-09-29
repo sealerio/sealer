@@ -78,7 +78,7 @@ const (
 	DefaultLayerDir         = "/var/lib/sealer/data/overlay2"
 )
 
-//about infra
+// about infra
 const (
 	AliDomain         = "sea.aliyun.com/"
 	Eip               = AliDomain + "ClusterEIP"
@@ -91,7 +91,7 @@ const (
 	SecurityGroupID   = AliDomain + "SecurityGroupID"
 )
 
-//CRD kind
+// CRD kind
 const (
 	Config                 = "Config"
 	Plugin                 = "Plugin"
@@ -103,7 +103,7 @@ const (
 	KubeProxyConfiguration = "KubeProxyConfiguration"
 )
 
-//plugin type
+// plugin type
 const (
 	TAINT    = "TAINT"
 	LABEL    = "LABEL"

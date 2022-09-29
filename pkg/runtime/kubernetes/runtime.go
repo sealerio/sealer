@@ -50,7 +50,7 @@ type Config struct {
 	APIServerDomain       string
 }
 
-//Runtime struct is the runtime interface for kubernetes
+// Runtime struct is the runtime interface for kubernetes
 type Runtime struct {
 	*sync.Mutex
 	cluster *v2.Cluster
