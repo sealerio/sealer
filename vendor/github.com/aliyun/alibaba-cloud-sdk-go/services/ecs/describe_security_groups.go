@@ -79,6 +79,7 @@ type DescribeSecurityGroupsRequest struct {
 	SecurityGroupName    string                       `position:"Query" name:"SecurityGroupName"`
 	PageNumber           requests.Integer             `position:"Query" name:"PageNumber"`
 	ResourceGroupId      string                       `position:"Query" name:"ResourceGroupId"`
+	NextToken            string                       `position:"Query" name:"NextToken"`
 	PageSize             requests.Integer             `position:"Query" name:"PageSize"`
 	Tag                  *[]DescribeSecurityGroupsTag `position:"Query" name:"Tag"  type:"Repeated"`
 	DryRun               requests.Boolean             `position:"Query" name:"DryRun"`
@@ -88,6 +89,7 @@ type DescribeSecurityGroupsRequest struct {
 	SecurityGroupIds     string                       `position:"Query" name:"SecurityGroupIds"`
 	SecurityGroupType    string                       `position:"Query" name:"SecurityGroupType"`
 	VpcId                string                       `position:"Query" name:"VpcId"`
+	MaxResults           requests.Integer             `position:"Query" name:"MaxResults"`
 }
 
 // DescribeSecurityGroupsTag is a repeated param struct in DescribeSecurityGroupsRequest
@@ -99,11 +101,12 @@ type DescribeSecurityGroupsTag struct {
 // DescribeSecurityGroupsResponse is the response struct for api DescribeSecurityGroups
 type DescribeSecurityGroupsResponse struct {
 	*responses.BaseResponse
-	RequestId      string         `json:"RequestId" xml:"RequestId"`
-	RegionId       string         `json:"RegionId" xml:"RegionId"`
-	TotalCount     int            `json:"TotalCount" xml:"TotalCount"`
-	PageNumber     int            `json:"PageNumber" xml:"PageNumber"`
 	PageSize       int            `json:"PageSize" xml:"PageSize"`
+	PageNumber     int            `json:"PageNumber" xml:"PageNumber"`
+	RequestId      string         `json:"RequestId" xml:"RequestId"`
+	TotalCount     int            `json:"TotalCount" xml:"TotalCount"`
+	RegionId       string         `json:"RegionId" xml:"RegionId"`
+	NextToken      string         `json:"NextToken" xml:"NextToken"`
 	SecurityGroups SecurityGroups `json:"SecurityGroups" xml:"SecurityGroups"`
 }
 

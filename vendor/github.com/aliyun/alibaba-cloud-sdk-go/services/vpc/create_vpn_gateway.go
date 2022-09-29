@@ -74,6 +74,7 @@ type CreateVpnGatewayRequest struct {
 	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
 	ClientToken          string           `position:"Query" name:"ClientToken"`
 	EnableIpsec          requests.Boolean `position:"Query" name:"EnableIpsec"`
+	NetworkType          string           `position:"Query" name:"NetworkType"`
 	InstanceChargeType   string           `position:"Query" name:"InstanceChargeType"`
 	Period               requests.Integer `position:"Query" name:"Period"`
 	AutoPay              requests.Boolean `position:"Query" name:"AutoPay"`
@@ -92,8 +93,8 @@ type CreateVpnGatewayRequest struct {
 // CreateVpnGatewayResponse is the response struct for api CreateVpnGateway
 type CreateVpnGatewayResponse struct {
 	*responses.BaseResponse
-	RequestId    string `json:"RequestId" xml:"RequestId"`
 	VpnGatewayId string `json:"VpnGatewayId" xml:"VpnGatewayId"`
+	RequestId    string `json:"RequestId" xml:"RequestId"`
 	Name         string `json:"Name" xml:"Name"`
 	OrderId      int64  `json:"OrderId" xml:"OrderId"`
 }

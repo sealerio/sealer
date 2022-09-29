@@ -80,18 +80,22 @@ type CreateDiskRequest struct {
 	ResourceGroupId           string           `position:"Query" name:"ResourceGroupId"`
 	DiskCategory              string           `position:"Query" name:"DiskCategory"`
 	StorageSetPartitionNumber requests.Integer `position:"Query" name:"StorageSetPartitionNumber"`
+	MultiAttach               string           `position:"Query" name:"MultiAttach"`
 	Tag                       *[]CreateDiskTag `position:"Query" name:"Tag"  type:"Repeated"`
-	Arn                       *[]CreateDiskArn `position:"Query" name:"Arn"  type:"Repeated"`
 	AdvancedFeatures          string           `position:"Query" name:"AdvancedFeatures"`
+	Arn                       *[]CreateDiskArn `position:"Query" name:"Arn"  type:"Repeated"`
 	ResourceOwnerAccount      string           `position:"Query" name:"ResourceOwnerAccount"`
 	PerformanceLevel          string           `position:"Query" name:"PerformanceLevel"`
 	OwnerAccount              string           `position:"Query" name:"OwnerAccount"`
 	OwnerId                   requests.Integer `position:"Query" name:"OwnerId"`
+	BurstingEnabled           requests.Boolean `position:"Query" name:"BurstingEnabled"`
+	ProvisionedIops           requests.Integer `position:"Query" name:"ProvisionedIops"`
 	InstanceId                string           `position:"Query" name:"InstanceId"`
 	StorageSetId              string           `position:"Query" name:"StorageSetId"`
 	Size                      requests.Integer `position:"Query" name:"Size"`
 	Encrypted                 requests.Boolean `position:"Query" name:"Encrypted"`
 	ZoneId                    string           `position:"Query" name:"ZoneId"`
+	StorageClusterId          string           `position:"Query" name:"StorageClusterId"`
 	KMSKeyId                  string           `position:"Query" name:"KMSKeyId"`
 }
 
@@ -111,8 +115,8 @@ type CreateDiskArn struct {
 // CreateDiskResponse is the response struct for api CreateDisk
 type CreateDiskResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	DiskId    string `json:"DiskId" xml:"DiskId"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 	OrderId   string `json:"OrderId" xml:"OrderId"`
 }
 

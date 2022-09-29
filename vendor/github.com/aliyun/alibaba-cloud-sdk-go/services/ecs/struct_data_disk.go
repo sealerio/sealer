@@ -17,13 +17,16 @@ package ecs
 
 // DataDisk is a nested struct in ecs response
 type DataDisk struct {
-	Size               int    `json:"Size" xml:"Size"`
-	SnapshotId         string `json:"SnapshotId" xml:"SnapshotId"`
-	Category           string `json:"Category" xml:"Category"`
-	Encrypted          string `json:"Encrypted" xml:"Encrypted"`
-	DiskName           string `json:"DiskName" xml:"DiskName"`
-	Description        string `json:"Description" xml:"Description"`
-	DeleteWithInstance bool   `json:"DeleteWithInstance" xml:"DeleteWithInstance"`
-	Device             string `json:"Device" xml:"Device"`
-	PerformanceLevel   string `json:"PerformanceLevel" xml:"PerformanceLevel"`
+	PerformanceLevel     string `json:"PerformanceLevel" xml:"PerformanceLevel"`
+	Description          string `json:"Description" xml:"Description"`
+	SnapshotId           string `json:"SnapshotId" xml:"SnapshotId"`
+	Device               string `json:"Device" xml:"Device"`
+	Size                 int    `json:"Size" xml:"Size"`
+	DiskName             string `json:"DiskName" xml:"DiskName"`
+	Category             string `json:"Category" xml:"Category"`
+	DeleteWithInstance   bool   `json:"DeleteWithInstance" xml:"DeleteWithInstance"`
+	Encrypted            string `json:"Encrypted" xml:"Encrypted"`
+	ProvisionedIops      int64  `json:"ProvisionedIops" xml:"ProvisionedIops"`
+	BurstingEnabled      bool   `json:"BurstingEnabled" xml:"BurstingEnabled"`
+	AutoSnapshotPolicyId string `json:"AutoSnapshotPolicyId" xml:"AutoSnapshotPolicyId"`
 }

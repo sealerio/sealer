@@ -72,6 +72,7 @@ func (client *Client) ResetDisksWithCallback(request *ResetDisksRequest, callbac
 type ResetDisksRequest struct {
 	*requests.RpcRequest
 	ResourceOwnerId      requests.Integer  `position:"Query" name:"ResourceOwnerId"`
+	DryRun               requests.Boolean  `position:"Query" name:"DryRun"`
 	ResourceOwnerAccount string            `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string            `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer  `position:"Query" name:"OwnerId"`
@@ -80,8 +81,8 @@ type ResetDisksRequest struct {
 
 // ResetDisksDisk is a repeated param struct in ResetDisksRequest
 type ResetDisksDisk struct {
-	DiskId     string `name:"DiskId"`
 	SnapshotId string `name:"SnapshotId"`
+	DiskId     string `name:"DiskId"`
 }
 
 // ResetDisksResponse is the response struct for api ResetDisks

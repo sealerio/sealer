@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm/v1beta2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
 	"github.com/sealerio/sealer/utils"
 	osi "github.com/sealerio/sealer/utils/os"
@@ -36,7 +36,7 @@ import (
 // https://github.com/kubernetes/kubernetes/blob/master/cmd/kubeadm/app/apis/kubeadm/v1beta2/types.go
 // Using map to overwrite Kubeadm configs
 
-//nolint
+// nolint
 type KubeadmConfig struct {
 	v1beta2.InitConfiguration
 	v1beta2.ClusterConfiguration

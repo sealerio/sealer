@@ -95,6 +95,7 @@ type DescribeInstancesRequest struct {
 	InternetChargeType      string                  `position:"Query" name:"InternetChargeType"`
 	ZoneId                  string                  `position:"Query" name:"ZoneId"`
 	MaxResults              requests.Integer        `position:"Query" name:"MaxResults"`
+	Ipv6Address             *[]string               `position:"Query" name:"Ipv6Address"  type:"Repeated"`
 	InstanceNetworkType     string                  `position:"Query" name:"InstanceNetworkType"`
 	Status                  string                  `position:"Query" name:"Status"`
 	ImageId                 string                  `position:"Query" name:"ImageId"`
@@ -129,11 +130,11 @@ type DescribeInstancesTag struct {
 // DescribeInstancesResponse is the response struct for api DescribeInstances
 type DescribeInstancesResponse struct {
 	*responses.BaseResponse
+	NextToken  string                       `json:"NextToken" xml:"NextToken"`
+	PageSize   int                          `json:"PageSize" xml:"PageSize"`
+	PageNumber int                          `json:"PageNumber" xml:"PageNumber"`
 	RequestId  string                       `json:"RequestId" xml:"RequestId"`
 	TotalCount int                          `json:"TotalCount" xml:"TotalCount"`
-	PageNumber int                          `json:"PageNumber" xml:"PageNumber"`
-	PageSize   int                          `json:"PageSize" xml:"PageSize"`
-	NextToken  string                       `json:"NextToken" xml:"NextToken"`
 	Instances  InstancesInDescribeInstances `json:"Instances" xml:"Instances"`
 }
 

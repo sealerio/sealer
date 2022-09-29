@@ -31,11 +31,11 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm/v1beta2"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -294,14 +294,14 @@ func (k *Runtime) setAPIServerEndpoint(endpoint string) {
 }
 
 func (k *Runtime) setInitAdvertiseAddress(advertiseAddress net.IP) {
-	k.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
+	k.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = string(advertiseAddress)
 }
 
 func (k *Runtime) setJoinAdvertiseAddress(advertiseAddress net.IP) {
 	if k.JoinConfiguration.ControlPlane == nil {
 		k.JoinConfiguration.ControlPlane = &v1beta2.JoinControlPlane{}
 	}
-	k.JoinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = advertiseAddress
+	k.JoinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = string(advertiseAddress)
 }
 
 func (k *Runtime) cleanJoinLocalAPIEndPoint() {

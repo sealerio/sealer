@@ -71,8 +71,11 @@ func (client *Client) UpdateDhcpOptionsSetAttributeWithCallback(request *UpdateD
 // UpdateDhcpOptionsSetAttributeRequest is the request struct for api UpdateDhcpOptionsSetAttribute
 type UpdateDhcpOptionsSetAttributeRequest struct {
 	*requests.RpcRequest
+	BootFileName              string           `position:"Query" name:"BootFileName"`
 	ResourceOwnerId           requests.Integer `position:"Query" name:"ResourceOwnerId"`
 	ClientToken               string           `position:"Query" name:"ClientToken"`
+	TFTPServerName            string           `position:"Query" name:"TFTPServerName"`
+	LeaseTime                 string           `position:"Query" name:"LeaseTime"`
 	DomainNameServers         string           `position:"Query" name:"DomainNameServers"`
 	DhcpOptionsSetDescription string           `position:"Query" name:"DhcpOptionsSetDescription"`
 	DryRun                    requests.Boolean `position:"Query" name:"DryRun"`
@@ -82,6 +85,7 @@ type UpdateDhcpOptionsSetAttributeRequest struct {
 	DomainName                string           `position:"Query" name:"DomainName"`
 	OwnerId                   requests.Integer `position:"Query" name:"OwnerId"`
 	DhcpOptionsSetName        string           `position:"Query" name:"DhcpOptionsSetName"`
+	Ipv6LeaseTime             string           `position:"Query" name:"Ipv6LeaseTime"`
 }
 
 // UpdateDhcpOptionsSetAttributeResponse is the response struct for api UpdateDhcpOptionsSetAttribute

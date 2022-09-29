@@ -74,12 +74,14 @@ type InvokeCommandRequest struct {
 	ResourceOwnerId      requests.Integer       `position:"Query" name:"ResourceOwnerId"`
 	CommandId            string                 `position:"Query" name:"CommandId"`
 	Frequency            string                 `position:"Query" name:"Frequency"`
+	RepeatMode           string                 `position:"Query" name:"RepeatMode"`
 	WindowsPasswordName  string                 `position:"Query" name:"WindowsPasswordName"`
 	Timed                requests.Boolean       `position:"Query" name:"Timed"`
 	ResourceOwnerAccount string                 `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string                 `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer       `position:"Query" name:"OwnerId"`
 	InstanceId           *[]string              `position:"Query" name:"InstanceId"  type:"Repeated"`
+	ContainerId          string                 `position:"Query" name:"ContainerId"`
 	Parameters           map[string]interface{} `position:"Query" name:"Parameters"`
 	Username             string                 `position:"Query" name:"Username"`
 }
@@ -87,8 +89,8 @@ type InvokeCommandRequest struct {
 // InvokeCommandResponse is the response struct for api InvokeCommand
 type InvokeCommandResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	InvokeId  string `json:"InvokeId" xml:"InvokeId"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateInvokeCommandRequest creates a request to invoke InvokeCommand API

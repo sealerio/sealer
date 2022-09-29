@@ -1,7 +1,7 @@
 package care
 
 import (
-	"github.com/wonderivan/logger"
+	"github.com/sealyun/lvscare/internal/glog"
 	"time"
 
 	"github.com/sealyun/lvscare/service"
@@ -13,10 +13,10 @@ func (care *LvsCare) VsAndRsCare() {
 	//set inner lvs
 	care.lvs = lvs
 	if care.Clean {
-		logger.Debug("VsAndRsCare DeleteVirtualServer")
+		glog.V(8).Info("lvscare deleteVirtualServer")
 		err := lvs.DeleteVirtualServer(care.VirtualServer, false)
 		if err != nil {
-			logger.Warn("VsAndRsCare DeleteVirtualServer:", err)
+			glog.Infof("virtualServer is not exist skip...: %v", err)
 		}
 	}
 	care.createVsAndRs()
