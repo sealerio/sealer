@@ -1,4 +1,5 @@
-// +build linux
+//go:build linux || freebsd
+// +build linux freebsd
 
 package netavark
 
@@ -9,7 +10,6 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
-	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 )
 
@@ -58,9 +58,7 @@ func newIPAMError(cause error, msg string, args ...interface{}) *ipamError {
 // openDB will open the ipam database
 // Note that the caller has to Close it.
 func (n *netavarkNetwork) openDB() (*bbolt.DB, error) {
-	// linter complains about the octal value
-	// nolint:gocritic
-	db, err := bbolt.Open(n.ipamDBPath, 0600, nil)
+	db, err := bbolt.Open(n.ipamDBPath, 0o600, nil)
 	if err != nil {
 		return nil, newIPAMError(err, "failed to open database %s", n.ipamDBPath)
 	}
@@ -181,7 +179,7 @@ func getFreeIPFromBucket(bucket *bbolt.Bucket, subnet *types.Subnet) (net.IP, er
 		lastIP, err := util.LastIPInSubnet(&subnet.Subnet.IPNet)
 		// this error should never happen but lets check anyways to prevent panics
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get lastIP")
+			return nil, fmt.Errorf("failed to get lastIP: %w", err)
 		}
 		// ipv4 uses the last ip in a subnet for broadcast so we cannot use it
 		if util.IsIPv4(lastIP) {
@@ -361,7 +359,7 @@ func (n *netavarkNetwork) deallocIPs(opts *types.NetworkOptions) error {
 // it checks the ipam driver and if subnets are set
 func requiresIPAMAlloc(network *types.Network) bool {
 	// only do host allocation when driver is set to HostLocalIPAMDriver or unset
-	switch network.IPAMOptions["driver"] {
+	switch network.IPAMOptions[types.Driver] {
 	case "", types.HostLocalIPAMDriver:
 	default:
 		return false

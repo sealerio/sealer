@@ -1,3 +1,4 @@
+//go:build systemd && cgo
 // +build systemd,cgo
 
 package config
@@ -57,7 +58,6 @@ func useSystemd() bool {
 			val := strings.TrimSuffix(string(dat), "\n")
 			usesSystemd = (val == "systemd")
 		}
-		return
 	})
 	return usesSystemd
 }
@@ -81,7 +81,6 @@ func useJournald() bool {
 				}
 			}
 		}
-		return
 	})
 	return usesJournald
 }
