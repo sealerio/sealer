@@ -10,17 +10,13 @@ run:
   skip-dirs-use-default: true
 
   skip-files:
+    - go.mod
     - go.sum
 
   modules-download-mode: vendor
 
   build-tags:
     - containers_image_openpgp
-
-linters-settings:
-  misspell:
-    ignore-words:
-      - importas
 
 linters:
   # please, do not use `enable-all`: it's deprecated and will be removed soon.
