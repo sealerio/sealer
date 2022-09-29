@@ -75,11 +75,12 @@ type ModifySecurityGroupEgressRuleRequest struct {
 	ResourceOwnerId       requests.Integer `position:"Query" name:"ResourceOwnerId"`
 	SourcePortRange       string           `position:"Query" name:"SourcePortRange"`
 	ClientToken           string           `position:"Query" name:"ClientToken"`
+	DestPrefixListId      string           `position:"Query" name:"DestPrefixListId"`
 	SecurityGroupId       string           `position:"Query" name:"SecurityGroupId"`
 	Description           string           `position:"Query" name:"Description"`
+	Policy                string           `position:"Query" name:"Policy"`
 	Ipv6DestCidrIp        string           `position:"Query" name:"Ipv6DestCidrIp"`
 	Ipv6SourceCidrIp      string           `position:"Query" name:"Ipv6SourceCidrIp"`
-	Policy                string           `position:"Query" name:"Policy"`
 	PortRange             string           `position:"Query" name:"PortRange"`
 	ResourceOwnerAccount  string           `position:"Query" name:"ResourceOwnerAccount"`
 	IpProtocol            string           `position:"Query" name:"IpProtocol"`
@@ -87,8 +88,8 @@ type ModifySecurityGroupEgressRuleRequest struct {
 	SourceCidrIp          string           `position:"Query" name:"SourceCidrIp"`
 	DestGroupId           string           `position:"Query" name:"DestGroupId"`
 	OwnerId               requests.Integer `position:"Query" name:"OwnerId"`
-	DestGroupOwnerAccount string           `position:"Query" name:"DestGroupOwnerAccount"`
 	Priority              string           `position:"Query" name:"Priority"`
+	DestGroupOwnerAccount string           `position:"Query" name:"DestGroupOwnerAccount"`
 	DestCidrIp            string           `position:"Query" name:"DestCidrIp"`
 	DestGroupOwnerId      requests.Integer `position:"Query" name:"DestGroupOwnerId"`
 }

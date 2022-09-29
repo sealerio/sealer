@@ -20,6 +20,7 @@ type RouteEntry struct {
 	PrivateIpAddress         string                        `json:"PrivateIpAddress" xml:"PrivateIpAddress"`
 	NextHopOppsiteInstanceId string                        `json:"NextHopOppsiteInstanceId" xml:"NextHopOppsiteInstanceId"`
 	NextHopType              string                        `json:"NextHopType" xml:"NextHopType"`
+	GmtModified              string                        `json:"GmtModified" xml:"GmtModified"`
 	IpVersion                string                        `json:"IpVersion" xml:"IpVersion"`
 	RouteTableId             string                        `json:"RouteTableId" xml:"RouteTableId"`
 	RouteEntryName           string                        `json:"RouteEntryName" xml:"RouteEntryName"`

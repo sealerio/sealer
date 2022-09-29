@@ -97,7 +97,10 @@ func copyFileContent(dst, src *os.File) error {
 			buf := bufferPool.Get().(*[]byte)
 			_, err = io.CopyBuffer(dst, src, *buf)
 			bufferPool.Put(buf)
-			return errors.Wrap(err, "userspace copy failed")
+			if err != nil {
+				return errors.Wrap(err, "userspace copy failed")
+			}
+			return nil
 		}
 
 		first = false
@@ -106,10 +109,6 @@ func copyFileContent(dst, src *os.File) error {
 	return nil
 }
 
-func copyDevice(dst string, fi os.FileInfo) error {
-	st, ok := fi.Sys().(*syscall.Stat_t)
-	if !ok {
-		return errors.New("unsupported stat type")
-	}
-	return unix.Mknod(dst, uint32(fi.Mode()), int(st.Rdev))
+func mknod(dst string, mode uint32, rDev int) error {
+	return unix.Mknod(dst, uint32(mode), rDev)
 }

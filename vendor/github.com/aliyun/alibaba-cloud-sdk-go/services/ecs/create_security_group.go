@@ -94,8 +94,8 @@ type CreateSecurityGroupTag struct {
 // CreateSecurityGroupResponse is the response struct for api CreateSecurityGroup
 type CreateSecurityGroupResponse struct {
 	*responses.BaseResponse
-	RequestId       string `json:"RequestId" xml:"RequestId"`
 	SecurityGroupId string `json:"SecurityGroupId" xml:"SecurityGroupId"`
+	RequestId       string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateCreateSecurityGroupRequest creates a request to invoke CreateSecurityGroup API

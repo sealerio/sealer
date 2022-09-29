@@ -78,6 +78,7 @@ type ReplaceSystemDiskRequest struct {
 	KeyPairName                 string           `position:"Query" name:"KeyPairName"`
 	Platform                    string           `position:"Query" name:"Platform"`
 	Password                    string           `position:"Query" name:"Password"`
+	LoginAsNonRoot              requests.Boolean `position:"Query" name:"LoginAsNonRoot"`
 	PasswordInherit             requests.Boolean `position:"Query" name:"PasswordInherit"`
 	DiskId                      string           `position:"Query" name:"DiskId"`
 	Architecture                string           `position:"Query" name:"Architecture"`
@@ -92,8 +93,8 @@ type ReplaceSystemDiskRequest struct {
 // ReplaceSystemDiskResponse is the response struct for api ReplaceSystemDisk
 type ReplaceSystemDiskResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	DiskId    string `json:"DiskId" xml:"DiskId"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateReplaceSystemDiskRequest creates a request to invoke ReplaceSystemDisk API

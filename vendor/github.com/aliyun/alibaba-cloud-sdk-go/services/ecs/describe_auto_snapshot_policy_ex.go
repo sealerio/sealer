@@ -71,14 +71,16 @@ func (client *Client) DescribeAutoSnapshotPolicyExWithCallback(request *Describe
 // DescribeAutoSnapshotPolicyExRequest is the request struct for api DescribeAutoSnapshotPolicyEx
 type DescribeAutoSnapshotPolicyExRequest struct {
 	*requests.RpcRequest
-	ResourceOwnerId      requests.Integer                   `position:"Query" name:"ResourceOwnerId"`
-	AutoSnapshotPolicyId string                             `position:"Query" name:"AutoSnapshotPolicyId"`
-	PageNumber           requests.Integer                   `position:"Query" name:"PageNumber"`
-	PageSize             requests.Integer                   `position:"Query" name:"PageSize"`
-	Tag                  *[]DescribeAutoSnapshotPolicyExTag `position:"Query" name:"Tag"  type:"Repeated"`
-	ResourceOwnerAccount string                             `position:"Query" name:"ResourceOwnerAccount"`
-	OwnerAccount         string                             `position:"Query" name:"OwnerAccount"`
-	OwnerId              requests.Integer                   `position:"Query" name:"OwnerId"`
+	ResourceOwnerId        requests.Integer                   `position:"Query" name:"ResourceOwnerId"`
+	AutoSnapshotPolicyId   string                             `position:"Query" name:"AutoSnapshotPolicyId"`
+	PageNumber             requests.Integer                   `position:"Query" name:"PageNumber"`
+	ResourceGroupId        string                             `position:"Query" name:"ResourceGroupId"`
+	PageSize               requests.Integer                   `position:"Query" name:"PageSize"`
+	Tag                    *[]DescribeAutoSnapshotPolicyExTag `position:"Query" name:"Tag"  type:"Repeated"`
+	ResourceOwnerAccount   string                             `position:"Query" name:"ResourceOwnerAccount"`
+	OwnerAccount           string                             `position:"Query" name:"OwnerAccount"`
+	OwnerId                requests.Integer                   `position:"Query" name:"OwnerId"`
+	AutoSnapshotPolicyName string                             `position:"Query" name:"AutoSnapshotPolicyName"`
 }
 
 // DescribeAutoSnapshotPolicyExTag is a repeated param struct in DescribeAutoSnapshotPolicyExRequest
@@ -90,10 +92,10 @@ type DescribeAutoSnapshotPolicyExTag struct {
 // DescribeAutoSnapshotPolicyExResponse is the response struct for api DescribeAutoSnapshotPolicyEx
 type DescribeAutoSnapshotPolicyExResponse struct {
 	*responses.BaseResponse
-	RequestId            string               `json:"RequestId" xml:"RequestId"`
-	TotalCount           int                  `json:"TotalCount" xml:"TotalCount"`
-	PageNumber           int                  `json:"PageNumber" xml:"PageNumber"`
 	PageSize             int                  `json:"PageSize" xml:"PageSize"`
+	RequestId            string               `json:"RequestId" xml:"RequestId"`
+	PageNumber           int                  `json:"PageNumber" xml:"PageNumber"`
+	TotalCount           int                  `json:"TotalCount" xml:"TotalCount"`
 	AutoSnapshotPolicies AutoSnapshotPolicies `json:"AutoSnapshotPolicies" xml:"AutoSnapshotPolicies"`
 }
 

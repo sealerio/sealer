@@ -89,11 +89,11 @@ type DescribeRouteTablesRequest struct {
 // DescribeRouteTablesResponse is the response struct for api DescribeRouteTables
 type DescribeRouteTablesResponse struct {
 	*responses.BaseResponse
-	RequestId   string      `json:"RequestId" xml:"RequestId"`
-	TotalCount  int         `json:"TotalCount" xml:"TotalCount"`
-	PageNumber  int         `json:"PageNumber" xml:"PageNumber"`
-	PageSize    int         `json:"PageSize" xml:"PageSize"`
-	RouteTables RouteTables `json:"RouteTables" xml:"RouteTables"`
+	PageSize    int                              `json:"PageSize" xml:"PageSize"`
+	RequestId   string                           `json:"RequestId" xml:"RequestId"`
+	PageNumber  int                              `json:"PageNumber" xml:"PageNumber"`
+	TotalCount  int                              `json:"TotalCount" xml:"TotalCount"`
+	RouteTables RouteTablesInDescribeRouteTables `json:"RouteTables" xml:"RouteTables"`
 }
 
 // CreateDescribeRouteTablesRequest creates a request to invoke DescribeRouteTables API

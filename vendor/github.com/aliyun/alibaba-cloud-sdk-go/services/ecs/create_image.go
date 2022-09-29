@@ -78,6 +78,7 @@ type CreateImageRequest struct {
 	Description          string                          `position:"Query" name:"Description"`
 	Platform             string                          `position:"Query" name:"Platform"`
 	ResourceGroupId      string                          `position:"Query" name:"ResourceGroupId"`
+	BootMode             string                          `position:"Query" name:"BootMode"`
 	ImageName            string                          `position:"Query" name:"ImageName"`
 	Tag                  *[]CreateImageTag               `position:"Query" name:"Tag"  type:"Repeated"`
 	Architecture         string                          `position:"Query" name:"Architecture"`
@@ -106,8 +107,8 @@ type CreateImageTag struct {
 // CreateImageResponse is the response struct for api CreateImage
 type CreateImageResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	ImageId   string `json:"ImageId" xml:"ImageId"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateCreateImageRequest creates a request to invoke CreateImage API

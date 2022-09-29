@@ -5,7 +5,6 @@ package overlay
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"syscall"
 	"unsafe"
@@ -98,14 +97,14 @@ func createIDMappedMount(source, target string, pid int) error {
 	}
 
 	var attr attr
-	attr.attrSet = _MOUNT_ATTR_IDMAP
+	attr.attrSet = unix.MOUNT_ATTR_IDMAP
 	attr.attrClr = 0
 	attr.propagation = 0
 	attr.userNs = uint64(userNsFile.Fd())
 
 	defer userNsFile.Close()
 
-	targetDirFd, err := openTree(source, _OPEN_TREE_CLONE|unix.AT_RECURSIVE)
+	targetDirFd, err := openTree(source, _OPEN_TREE_CLONE)
 	if err != nil {
 		return err
 	}
@@ -144,7 +143,7 @@ func createUsernsProcess(uidMaps []idtools.IDMap, gidMaps []idtools.IDMap) (int,
 		for _, m := range idmap {
 			mappings = mappings + fmt.Sprintf("%d %d %d\n", m.ContainerID, m.HostID, m.Size)
 		}
-		return ioutil.WriteFile(fmt.Sprintf("/proc/%d/%s", pid, fname), []byte(mappings), 0600)
+		return os.WriteFile(fmt.Sprintf("/proc/%d/%s", pid, fname), []byte(mappings), 0600)
 	}
 	if err := writeMappings("uid_map", uidMaps); err != nil {
 		cleanupFunc()

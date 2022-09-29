@@ -96,6 +96,7 @@ type DescribeDisksRequest struct {
 	NextToken                     string              `position:"Query" name:"NextToken"`
 	PageSize                      requests.Integer    `position:"Query" name:"PageSize"`
 	DiskIds                       string              `position:"Query" name:"DiskIds"`
+	MultiAttach                   string              `position:"Query" name:"MultiAttach"`
 	DeleteWithInstance            requests.Boolean    `position:"Query" name:"DeleteWithInstance"`
 	ResourceOwnerAccount          string              `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount                  string              `position:"Query" name:"OwnerAccount"`
@@ -117,11 +118,11 @@ type DescribeDisksTag struct {
 // DescribeDisksResponse is the response struct for api DescribeDisks
 type DescribeDisksResponse struct {
 	*responses.BaseResponse
+	NextToken  string               `json:"NextToken" xml:"NextToken"`
+	PageSize   int                  `json:"PageSize" xml:"PageSize"`
+	PageNumber int                  `json:"PageNumber" xml:"PageNumber"`
 	RequestId  string               `json:"RequestId" xml:"RequestId"`
 	TotalCount int                  `json:"TotalCount" xml:"TotalCount"`
-	PageNumber int                  `json:"PageNumber" xml:"PageNumber"`
-	PageSize   int                  `json:"PageSize" xml:"PageSize"`
-	NextToken  string               `json:"NextToken" xml:"NextToken"`
 	Disks      DisksInDescribeDisks `json:"Disks" xml:"Disks"`
 }
 

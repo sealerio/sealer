@@ -77,6 +77,7 @@ type CreateCommandRequest struct {
 	Type                 string           `position:"Query" name:"Type"`
 	CommandContent       string           `position:"Query" name:"CommandContent"`
 	Timeout              requests.Integer `position:"Query" name:"Timeout"`
+	ContentEncoding      string           `position:"Query" name:"ContentEncoding"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
@@ -87,8 +88,8 @@ type CreateCommandRequest struct {
 // CreateCommandResponse is the response struct for api CreateCommand
 type CreateCommandResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	CommandId string `json:"CommandId" xml:"CommandId"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateCreateCommandRequest creates a request to invoke CreateCommand API
