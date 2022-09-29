@@ -9,15 +9,13 @@ run:
   #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
   skip-dirs-use-default: true
 
+  skip-files:
+    - go.sum
+
   modules-download-mode: vendor
 
   build-tags:
     - containers_image_openpgp
-
-linters-settings:
-  misspell:
-    ignore-words:
-      - importas
 
 linters:
   # please, do not use `enable-all`: it's deprecated and will be removed soon.
