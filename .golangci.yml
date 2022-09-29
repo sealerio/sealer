@@ -9,6 +9,9 @@ run:
   #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
   skip-dirs-use-default: true
 
+  skip-files:
+    - go.sum
+
   modules-download-mode: vendor
 
   build-tags:
