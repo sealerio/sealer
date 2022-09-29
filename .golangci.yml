@@ -10,7 +10,9 @@ run:
   skip-dirs-use-default: true
 
   skip-files:
+    - go.mod
     - go.sum
+    - .golangci.yml
 
   modules-download-mode: vendor
 
