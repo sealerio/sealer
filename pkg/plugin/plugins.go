@@ -54,7 +54,7 @@ type PluginsProcessor struct {
 	Cluster *v2.Cluster
 }
 
-//plugins form Clusterfile
+// plugins form Clusterfile
 func NewPlugins(cluster *v2.Cluster, plugins []v1.Plugin) Plugins {
 	return &PluginsProcessor{
 		Cluster: cluster,

@@ -14,6 +14,11 @@ run:
   build-tags:
     - containers_image_openpgp
 
+linters-settings:
+  misspell:
+    ignore-words:
+      - importas
+
 linters:
   # please, do not use `enable-all`: it's deprecated and will be removed soon.
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint

@@ -117,6 +117,7 @@ func (connector *Connector) ContainerToConnect() (*corev1.Container, error) {
 // 		3. stdin true, tty false 	--- stdin、stdout
 // 		4. stdin true, tty true 	--- stdin、stdout、tty	--- t.Raw
 // then returns a TTY object based on connectOpts.
+
 func (connector *Connector) SetTTY() TTY {
 	t := TTY{
 		Out: connector.Out,

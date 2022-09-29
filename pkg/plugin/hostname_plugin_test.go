@@ -35,6 +35,7 @@ spec:
      192.168.0.6 node-1
      192.168.0.7 node-2
 */
+
 func TestHostnamePlugin_Run(t *testing.T) {
 	type fields struct {
 		data map[string]string

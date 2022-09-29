@@ -89,7 +89,7 @@ func (k *Runtime) handleKubeadmConfig() {
 	k.IPVS.ExcludeCIDRs = append(k.KubeProxyConfiguration.IPVS.ExcludeCIDRs, fmt.Sprintf("%s/32", k.getVIP()))
 }
 
-//CmdToString is in host exec cmd and replace to spilt str
+// CmdToString is in host exec cmd and replace to spilt str
 func (k *Runtime) CmdToString(host net.IP, cmd, split string) (string, error) {
 	ssh, err := k.getHostSSHClient(host)
 	if err != nil {
@@ -190,7 +190,7 @@ func (k *Runtime) CopyStaticFiles(nodes []net.IP) error {
 	return nil
 }
 
-//decode output to join token hash and key
+// decode output to join token hash and key
 func (k *Runtime) decodeMaster0Output(output []byte) {
 	s0 := string(output)
 	logrus.Debugf("decodeOutput: %s", s0)
@@ -200,7 +200,7 @@ func (k *Runtime) decodeMaster0Output(output []byte) {
 	k.decodeJoinCmd(slice1[0])
 }
 
-//  192.168.0.200:6443 --token 9vr73a.a8uxyaju799qwdjv --discovery-token-ca-cert-hash sha256:7c2e69131a36ae2a042a339b33381c6d0d43887e2de83720eff5359e26aec866 --experimental-control-plane --certificate-key f8902e114ef118304e561c3ecd4d0b543adc226b7a07f675f56564185ffe0c07
+// 192.168.0.200:6443 --token 9vr73a.a8uxyaju799qwdjv --discovery-token-ca-cert-hash sha256:7c2e69131a36ae2a042a339b33381c6d0d43887e2de83720eff5359e26aec866 --experimental-control-plane --certificate-key f8902e114ef118304e561c3ecd4d0b543adc226b7a07f675f56564185ffe0c07
 func (k *Runtime) decodeJoinCmd(cmd string) {
 	logrus.Debugf("[globals]decodeJoinCmd: %s", cmd)
 	stringSlice := strings.Split(cmd, " ")
@@ -224,7 +224,7 @@ func (k *Runtime) decodeJoinCmd(cmd string) {
 	logrus.Debugf("joinToken: %v\nTokenCaCertHash: %v\nCertificateKey: %v", k.getJoinToken(), k.getTokenCaCertHash(), k.getCertificateKey())
 }
 
-//InitMaster0 is using kubeadm init to start up the cluster master0.
+// InitMaster0 is using kubeadm init to start up the cluster master0.
 func (k *Runtime) InitMaster0() error {
 	client, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
 	if err != nil {

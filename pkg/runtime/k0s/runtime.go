@@ -250,7 +250,7 @@ func (k *Runtime) confirmDeleteNodes() error {
 	return nil
 }
 
-//CmdToString is in host exec cmd and replace to spilt str
+// CmdToString is in host exec cmd and replace to spilt str
 func (k *Runtime) CmdToString(host net.IP, cmd, split string) (string, error) {
 	ssh, err := k.getHostSSHClient(host)
 	if err != nil {
