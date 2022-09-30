@@ -32,17 +32,20 @@ func TransferIPStrToHosts(inMasters, inNodes string) ([]v2.Host, error) {
 		return nil, fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 	}
 
-	masterHosts := make([]v2.Host, 0, len(masterIPList))
-	masterHosts = append(masterHosts, v2.Host{
-		Roles: []string{common.MASTER},
-		IPS:   masterIPList,
-	})
+	var hosts []v2.Host
+	if len(masterIPList) != 0 {
+		hosts = append(hosts, v2.Host{
+			Roles: []string{common.MASTER},
+			IPS:   masterIPList,
+		})
+	}
 
-	nodeHosts := make([]v2.Host, 0, len(nodeIPList))
-	nodeHosts = append(nodeHosts, v2.Host{
-		Roles: []string{common.NODE},
-		IPS:   nodeIPList,
-	})
+	if len(nodeIPList) != 0 {
+		hosts = append(hosts, v2.Host{
+			Roles: []string{common.NODE},
+			IPS:   nodeIPList,
+		})
+	}
 
-	return append(masterHosts, nodeHosts...), nil
+	return hosts, nil
 }

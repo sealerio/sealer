@@ -19,6 +19,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
@@ -130,6 +132,13 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
+			defer func() {
+				err = imageMounter.Umount(imageMountInfo)
+				if err != nil {
+					logrus.Errorf("failed to umount cluster image")
+				}
+			}()
+
 			distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
 			if err != nil {
 				return err
@@ -152,11 +161,6 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			_, _, err = installer.Install()
-			if err != nil {
-				return err
-			}
-
-			err = imageMounter.Umount(imageMountInfo)
 			if err != nil {
 				return err
 			}

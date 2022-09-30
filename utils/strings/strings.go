@@ -90,10 +90,10 @@ func NewComparator(src, dst []string) Interface {
 func IsInSlice(key string, slice []string) bool {
 	for _, s := range slice {
 		if key == s {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func Reverse(s []string) []string {

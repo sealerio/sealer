@@ -74,6 +74,7 @@ func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, jo
 			if strUtils.IsInSlice(common.MASTER, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, joinMasters...)
 			}
+			continue
 		}
 	}
 
@@ -87,10 +88,21 @@ func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, jo
 			}
 		}
 
+		var alreadyHasNode bool
 		for i := range cluster.Spec.Hosts {
 			if strUtils.IsInSlice(common.NODE, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, joinWorkers...)
+				alreadyHasNode = true
 			}
+			continue
+		}
+
+		// add first node
+		if !alreadyHasNode {
+			cluster.Spec.Hosts = append(cluster.Spec.Hosts, v2.Host{
+				Roles: []string{common.NODE},
+				IPS:   joinWorkers,
+			})
 		}
 	}
 	return nil
@@ -100,16 +112,18 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 	if len(mastersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
 			if strUtils.IsInSlice(common.MASTER, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, mastersToDelete)
+				cluster.Spec.Hosts[i].IPS = removeIPList(cluster.Spec.Hosts[i].IPS, mastersToDelete)
 			}
+			continue
 		}
 	}
 
 	if len(workersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
 			if strUtils.IsInSlice(common.NODE, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, workersToDelete)
+				cluster.Spec.Hosts[i].IPS = removeIPList(cluster.Spec.Hosts[i].IPS, workersToDelete)
 			}
+			continue
 		}
 	}
 
@@ -126,9 +140,9 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 	return nil
 }
 
-func returnFilteredIPList(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP) {
+func removeIPList(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP) {
 	for _, ip := range clusterIPList {
-		if netutils.IsInIPList(ip, toBeDeletedIPList) {
+		if !netutils.IsInIPList(ip, toBeDeletedIPList) {
 			res = append(res, ip)
 		}
 	}
