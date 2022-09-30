@@ -14,7 +14,7 @@
 
 package types
 
-type Args struct {
+type Flags struct {
 	// Masters and Nodes only support:
 	// IP list format: ip1,ip2,ip3
 	// IP range format: x.x.x.x-x.x.x.y

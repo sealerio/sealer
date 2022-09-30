@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	netUtils "github.com/sealerio/sealer/utils/net"
 	"github.com/sirupsen/logrus"
@@ -112,7 +111,7 @@ func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 		expectedHosts := i.infraDriver.GetHostIPListByRole(string(hookConfig.Scope))
 		// Make sure each host got from Scope is in the given host ip list.
 		for _, expected := range expectedHosts {
-			if !netUtils.NotInIPList(expected, hosts) {
+			if netUtils.IsInIPList(expected, hosts) {
 				targetHosts = append(targetHosts, expected)
 			}
 		}
@@ -131,14 +130,12 @@ func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 }
 
 // runClusterHook run cluster scope hook by Phase that means will only execute hook on master0.
-func (i *Installer) runClusterHook(phase Phase) error {
+func (i *Installer) runClusterHook(master0 net.IP, phase Phase) error {
 	hookConfigList, ok := i.hooks[phase]
 	if !ok {
 		logrus.Debugf("no hooks found at phase: %s", phase)
 		return nil
 	}
-
-	master0 := i.infraDriver.GetHostIPListByRole(common.MASTER)[0]
 	// sorted by hookConfig name in alphabetical order
 	sort.Sort(hookConfigList)
 	for _, hookConfig := range hookConfigList {

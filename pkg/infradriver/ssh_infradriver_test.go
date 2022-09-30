@@ -100,7 +100,7 @@ func TestSSHInfraDriver_GetClusterInfo(t *testing.T) {
 	assert.Equal(t, driver.GetClusterName(), "my-cluster")
 	assert.Equal(t, driver.GetClusterImageName(), "kubernetes:v1.19.8")
 	assert.Equal(t, driver.GetClusterBasePath(), "/var/lib/sealer/data/my-cluster")
-	assert.Equal(t, driver.GetClusterRootfs(), "/var/lib/sealer/data/my-cluster/rootfs")
+	assert.Equal(t, driver.GetClusterRootfsPath(), "/var/lib/sealer/data/my-cluster/rootfs")
 
 	assert.Equal(t, driver.GetHostIPListByRole(common.MASTER), []net.IP{
 		net.IPv4(192, 168, 0, 2),
@@ -115,7 +115,7 @@ func TestSSHInfraDriver_GetClusterInfo(t *testing.T) {
 		net.IPv4(192, 168, 0, 3),
 	})
 
-	assert.Equal(t, driver.GetClusterRenderData(), map[string]interface{}{
+	assert.Equal(t, driver.GetClusterEnv(), map[string]interface{}{
 		"key1": "value1",
 		"key2": []string{"value2", "value3"},
 	})

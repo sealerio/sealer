@@ -19,9 +19,10 @@ import (
 	"net"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
-	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
@@ -34,6 +35,7 @@ var ForceDelete bool
 
 // RuntimeConfig for Installer
 type RuntimeConfig struct {
+	Distributor            imagedistributor.Distributor
 	RegistryConfig         registry.RegConfig
 	ContainerRuntimeConfig containerruntime.Config
 	KubeadmConfig          kubeadmconfig.KubeadmConfig
@@ -42,13 +44,12 @@ type RuntimeConfig struct {
 
 type Installer struct {
 	RuntimeConfig
-	imageEngine               imageengine.Interface
 	infraDriver               infradriver.InfraDriver
 	containerRuntimeInstaller containerruntime.Installer
 	hooks                     map[Phase]HookConfigList
 }
 
-func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, runtimeConfig RuntimeConfig) (*Installer, error) {
+func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConfig) (*Installer, error) {
 	var (
 		err       error
 		installer = &Installer{}
@@ -66,7 +67,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 
 	// configure cluster registry
 	installer.RegistryConfig.LocalRegistry = &registry.LocalRegistry{
-		DataDir:      filepath.Join(infraDriver.GetClusterRootfs(), "registry"),
+		DataDir:      filepath.Join(infraDriver.GetClusterRootfsPath(), "registry"),
 		InsecureMode: false,
 		Cert:         &registry.TLSCert{},
 		DeployHost:   infraDriver.GetHostIPListByRole(common.MASTER)[0],
@@ -78,7 +79,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 	}
 
 	// add installer hooks
-	plugins, err := LoadPluginsFromFile(filepath.Join(infraDriver.GetClusterRootfs(), "plugins"))
+	plugins, err := LoadPluginsFromFile(filepath.Join(infraDriver.GetClusterRootfsPath(), "plugins"))
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, imageEngine imageengine.I
 	installer.hooks = hooks
 	installer.infraDriver = infraDriver
 	installer.KubeadmConfig = runtimeConfig.KubeadmConfig
-	installer.imageEngine = imageEngine
+	installer.Distributor = runtimeConfig.Distributor
 
 	return installer, nil
 }
@@ -116,11 +117,17 @@ func getWorkerIPList(infraDriver infradriver.InfraDriver) []net.IP {
 }
 
 func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
+	master0 := i.infraDriver.GetHostIPListByRole(common.MASTER)[0]
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
 
-	if err := i.runClusterHook(PreInstallCluster); err != nil {
+	// distribute rootfs
+	if err := i.Distributor.DistributeRootfs(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
+		return nil, nil, err
+	}
+
+	if err := i.runClusterHook(master0, PreInstallCluster); err != nil {
 		return nil, nil, err
 	}
 
@@ -137,7 +144,7 @@ func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -165,7 +172,7 @@ func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
 		return nil, nil, err
 	}
 
-	if err := i.runClusterHook(PostInstallCluster); err != nil {
+	if err := i.runClusterHook(master0, PostInstallCluster); err != nil {
 		return nil, nil, err
 	}
 
@@ -177,6 +184,7 @@ func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
 }
 
 func (i *Installer) UnInstall() error {
+	master0 := i.infraDriver.GetHostIPListByRole(common.MASTER)[0]
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
@@ -185,7 +193,7 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
-	if err := i.runClusterHook(PreUnInstallCluster); err != nil {
+	if err := i.runClusterHook(master0, PreUnInstallCluster); err != nil {
 		return err
 	}
 
@@ -207,7 +215,7 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return err
 	}
@@ -228,7 +236,11 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
-	if err = i.runClusterHook(PostUnInstallCluster); err != nil {
+	if err = i.runClusterHook(master0, PostUnInstallCluster); err != nil {
+		return err
+	}
+
+	if err = i.Distributor.Restore(i.infraDriver.GetClusterBasePath(), all); err != nil {
 		return err
 	}
 
@@ -242,7 +254,7 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	}
 
 	// TODO, init here or in constructor?
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -266,8 +278,15 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 }
 
 func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, runtime.Driver, error) {
+	master0 := i.infraDriver.GetHostIPListByRole(common.MASTER)[0]
 	all := append(newMasters, newWorkers...)
-	if err := i.runClusterHook(PreScaleUpCluster); err != nil {
+
+	// distribute rootfs
+	if err := i.Distributor.DistributeRootfs(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
+		return nil, nil, err
+	}
+
+	if err := i.runClusterHook(master0, PreScaleUpCluster); err != nil {
 		return nil, nil, err
 	}
 
@@ -284,7 +303,7 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -316,7 +335,7 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	if err := i.runClusterHook(PostScaleUpCluster); err != nil {
+	if err := i.runClusterHook(master0, PostScaleUpCluster); err != nil {
 		return nil, nil, err
 	}
 
@@ -346,7 +365,7 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.imageEngine)
+	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -379,6 +398,10 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 	}
 
 	if err = i.runHostHook(PostCleanHost, all); err != nil {
+		return nil, nil, err
+	}
+
+	if err = i.Distributor.Restore(i.infraDriver.GetClusterBasePath(), all); err != nil {
 		return nil, nil, err
 	}
 

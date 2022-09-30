@@ -32,8 +32,8 @@ type InfraDriver interface {
 	//GetHostEnv return merged env with host env and cluster env.
 	GetHostEnv(host net.IP) map[string]interface{}
 
-	//GetClusterRenderData return cluster.spec.env as map[string]interface{}
-	GetClusterRenderData() map[string]interface{}
+	//GetClusterEnv return cluster.spec.env as map[string]interface{}
+	GetClusterEnv() map[string]interface{}
 
 	//GetClusterName ${clusterName}
 	GetClusterName() string
@@ -41,8 +41,8 @@ type InfraDriver interface {
 	//GetClusterImageName ${cluster image Name}
 	GetClusterImageName() string
 
-	//GetClusterRootfs /var/lib/sealer/data/${clusterName}/rootfs
-	GetClusterRootfs() string
+	//GetClusterRootfsPath /var/lib/sealer/data/${clusterName}/rootfs
+	GetClusterRootfsPath() string
 
 	// GetClusterBasePath /var/lib/sealer/data/${clusterName}
 	GetClusterBasePath() string
@@ -65,8 +65,8 @@ type InfraDriver interface {
 
 	// IsFileExist check remote file exist or not
 	IsFileExist(host net.IP, remoteFilePath string) (bool, error)
-	// RemoteDirExist Remote file existence returns true, nil
-	RemoteDirExist(host net.IP, remoteDirpath string) (bool, error)
+	// IsDirExist Remote file existence returns true, nil
+	IsDirExist(host net.IP, remoteDirPath string) (bool, error)
 
 	// GetPlatform Get remote platform
 	GetPlatform(host net.IP) (v1.Platform, error)

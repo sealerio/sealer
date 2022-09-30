@@ -29,9 +29,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
-	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/os/fs"
 
@@ -39,10 +37,8 @@ import (
 )
 
 var (
-	deleteArgs      *types.Args
-	mastersToDelete string
-	workersToDelete string
-	deleteAll       bool
+	deleteFlags *types.Flags
+	deleteAll   bool
 )
 
 var longDeleteCmdDescription = `delete command is used to delete part or all of existing cluster.
@@ -66,6 +62,11 @@ func NewDeleteCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Example: exampleForDeleteCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var (
+				mastersToDelete = deleteFlags.Masters
+				workersToDelete = deleteFlags.Nodes
+			)
+
 			if mastersToDelete == "" && workersToDelete == "" && !deleteAll {
 				return fmt.Errorf("you must input node ip Or set flag -a")
 			}
@@ -78,48 +79,14 @@ func NewDeleteCmd() *cobra.Command {
 		},
 	}
 
-	deleteArgs = &types.Args{}
-	deleteCmd.Flags().StringVarP(&mastersToDelete, "masters", "m", "", "reduce Count or IPList to masters")
-	deleteCmd.Flags().StringVarP(&workersToDelete, "nodes", "n", "", "reduce Count or IPList to nodes")
-	deleteCmd.Flags().StringSliceVarP(&deleteArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
+	deleteFlags = &types.Flags{}
+	deleteCmd.Flags().StringVarP(&deleteFlags.Masters, "masters", "m", "", "reduce Count or IPList to masters")
+	deleteCmd.Flags().StringVarP(&deleteFlags.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
+	deleteCmd.Flags().StringSliceVarP(&deleteFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	deleteCmd.Flags().BoolVar(&clusterruntime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete the entire cluster, default is false")
 
 	return deleteCmd
-}
-
-func getRuntimeInterfaces(cf clusterfile.Interface) (imagedistributor.Interface, infradriver.InfraDriver, *clusterruntime.Installer, error) {
-	cluster := cf.GetCluster()
-	infraDriver, err := infradriver.NewInfraDriver(&cluster)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	runtimeConfig := new(clusterruntime.RuntimeConfig)
-	if cf.GetPlugins() != nil {
-		runtimeConfig.Plugins = cf.GetPlugins()
-	}
-
-	if cf.GetKubeadmConfig() != nil {
-		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-	}
-
-	installer, err := clusterruntime.NewInstaller(infraDriver, nil, *runtimeConfig)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver, cf.GetConfigs())
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return distributor, infraDriver, installer, nil
 }
 
 func deleteCluster(workClusterfile string) error {
@@ -140,21 +107,35 @@ func deleteCluster(workClusterfile string) error {
 	//todo do we need CustomEnv ?
 	//append custom env from CLI to cluster, if it is used to wrapper shell plugin
 	cluster := cf.GetCluster()
-	cluster.Spec.Env = append(cluster.Spec.Env, deleteArgs.CustomEnv...)
+	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
 
-	distributor, infraDriver, installer, err := getRuntimeInterfaces(cf)
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return err
+	}
+
+	distributor, err := imagedistributor.NewScpDistributor(nil, infraDriver, nil)
+	if err != nil {
+		return err
+	}
+
+	runtimeConfig := &clusterruntime.RuntimeConfig{
+		Distributor: distributor,
+	}
+	if cf.GetPlugins() != nil {
+		runtimeConfig.Plugins = cf.GetPlugins()
+	}
+
+	if cf.GetKubeadmConfig() != nil {
+		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
 	if err != nil {
 		return err
 	}
 
 	if err = installer.UnInstall(); err != nil {
-		return err
-	}
-
-	//Restore rootfs
-	ips := infraDriver.GetHostIPList()
-	clusterBaseDir := infraDriver.GetClusterBasePath()
-	if err = distributor.Restore(clusterBaseDir, ips); err != nil {
 		return err
 	}
 
@@ -188,22 +169,39 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 
 	cluster := cf.GetCluster()
 	//master0 machine cannot be deleted
-	if !netutils.NotInIPList(cluster.GetMaster0IP(), deleteMasterIPList) {
+	if netutils.IsInIPList(cluster.GetMaster0IP(), deleteMasterIPList) {
 		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
 	}
-	cluster.Spec.Env = append(cluster.Spec.Env, deleteArgs.CustomEnv...)
+	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
 
-	distributor, infraDriver, installer, err := getRuntimeInterfaces(cf)
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return err
+	}
+
+	distributor, err := imagedistributor.NewScpDistributor(nil, infraDriver, nil)
+	if err != nil {
+		return err
+	}
+
+	runtimeConfig := &clusterruntime.RuntimeConfig{
+		Distributor: distributor,
+	}
+	if cf.GetPlugins() != nil {
+		runtimeConfig.Plugins = cf.GetPlugins()
+	}
+
+	if cf.GetKubeadmConfig() != nil {
+		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
 	if err != nil {
 		return err
 	}
 
 	_, _, err = installer.ScaleDown(deleteMasterIPList, deleteNodeIPList)
 	if err != nil {
-		return err
-	}
-
-	if err = distributor.Restore(infraDriver.GetClusterBasePath(), append(deleteMasterIPList, deleteNodeIPList...)); err != nil {
 		return err
 	}
 

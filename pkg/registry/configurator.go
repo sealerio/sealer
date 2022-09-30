@@ -18,8 +18,9 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
-	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
@@ -43,13 +44,13 @@ type RegConfig struct {
 	ExternalRegistry *Registry
 }
 
-func NewConfigurator(conf RegConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface) (Configurator, error) {
+func NewConfigurator(conf RegConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) (Configurator, error) {
 	if conf.LocalRegistry != nil {
 		return &localSingletonConfigurator{
-			imageEngine:          imageEngine,
 			infraDriver:          infraDriver,
 			LocalRegistry:        conf.LocalRegistry,
 			containerRuntimeInfo: containerRuntimeInfo,
+			Distributor:          distributor,
 		}, nil
 	}
 

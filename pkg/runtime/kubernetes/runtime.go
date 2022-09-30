@@ -62,7 +62,7 @@ func NewKubeadmRuntime(clusterFileKubeConfig kubeadmconfig.KubeadmConfig, infra 
 			KubeadmConfigFromClusterFile: clusterFileKubeConfig,
 			APIServerDomain:              DefaultAPIserverDomain,
 			//TODO
-			LvsImage:             fmt.Sprintf("%s/fanux/lvscare:latest", registryInfo.URL),
+			LvsImage:             fmt.Sprintf("%s/labring/lvscare:v1.1.3-beta.8", registryInfo.URL),
 			VIP:                  DefaultVIP,
 			RegistryInfo:         registryInfo,
 			containerRuntimeInfo: containerRuntimeInfo,
@@ -231,7 +231,7 @@ func (k *Runtime) dumpKubeConfigIntoCluster(master0 net.IP) error {
 
 // /var/lib/sealer/data/my-cluster/pki
 func (k *Runtime) getPKIPath() string {
-	return filepath.Join(k.infra.GetClusterRootfs(), "pki")
+	return filepath.Join(k.infra.GetClusterRootfsPath(), "pki")
 }
 
 // /var/lib/sealer/data/my-cluster/pki/etcd
@@ -241,12 +241,12 @@ func (k *Runtime) getEtcdCertPath() string {
 
 // /var/lib/sealer/data/my-cluster/rootfs/statics
 func (k *Runtime) getStaticFileDir() string {
-	return filepath.Join(k.infra.GetClusterRootfs(), "statics")
+	return filepath.Join(k.infra.GetClusterRootfsPath(), "statics")
 }
 
 // /var/lib/sealer/data/my-cluster/mount/etc/kubeadm.yml
 func (k *Runtime) getDefaultKubeadmConfig() string {
-	return filepath.Join(k.infra.GetClusterRootfs(), "etc", "kubeadm.yml")
+	return filepath.Join(k.infra.GetClusterRootfsPath(), "etc", "kubeadm.yml")
 }
 
 func (k *Runtime) getAPIServerDomain() string {

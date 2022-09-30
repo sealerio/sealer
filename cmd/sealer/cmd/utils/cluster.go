@@ -29,8 +29,8 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-func ConstructClusterForRun(imageName string, runArgs *types.Args) (*v2.Cluster, error) {
-	resultHosts, err := TransferIPStrToHosts(runArgs.Masters, runArgs.Nodes)
+func ConstructClusterForRun(imageName string, runFlags *types.Flags) (*v2.Cluster, error) {
+	resultHosts, err := TransferIPStrToHosts(runFlags.Masters, runFlags.Nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -38,16 +38,16 @@ func ConstructClusterForRun(imageName string, runArgs *types.Args) (*v2.Cluster,
 	cluster := v2.Cluster{
 		Spec: v2.ClusterSpec{
 			SSH: v1.SSH{
-				User:     runArgs.User,
-				Passwd:   runArgs.Password,
-				PkPasswd: runArgs.PkPassword,
-				Pk:       runArgs.Pk,
-				Port:     strconv.Itoa(int(runArgs.Port)),
+				User:     runFlags.User,
+				Passwd:   runFlags.Password,
+				PkPasswd: runFlags.PkPassword,
+				Pk:       runFlags.Pk,
+				Port:     strconv.Itoa(int(runFlags.Port)),
 			},
 			Image:   imageName,
 			Hosts:   resultHosts,
-			Env:     runArgs.CustomEnv,
-			CMDArgs: runArgs.CMDArgs,
+			Env:     runFlags.CustomEnv,
+			CMDArgs: runFlags.CMDArgs,
 		},
 	}
 	cluster.APIVersion = common.APIVersion
@@ -56,37 +56,25 @@ func ConstructClusterForRun(imageName string, runArgs *types.Args) (*v2.Cluster,
 	return &cluster, nil
 }
 
-func ConstructClusterForJoin(cluster *v2.Cluster, scaleArgs *types.Args, joinMasters, joinWorkers []net.IP) error {
+func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, joinMasters, joinWorkers []net.IP) error {
 	// merge custom Env to the existed cluster
-	cluster.Spec.Env = append(cluster.Spec.Env, scaleArgs.CustomEnv...)
-
+	cluster.Spec.Env = append(cluster.Spec.Env, scaleFlags.CustomEnv...)
 	//todo Add password encryption mode in the future
-
 	//add joined masters
 	if len(joinMasters) != 0 {
 		masterIPs := cluster.GetMasterIPList()
 		for _, ip := range joinMasters {
 			// if ip already taken by master will return join duplicated ip error
-			if !netutils.NotInIPList(ip, masterIPs) {
+			if netutils.IsInIPList(ip, masterIPs) {
 				return fmt.Errorf("failed to scale master for duplicated ip: %s", ip)
 			}
 		}
 
 		for i := range cluster.Spec.Hosts {
-			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
+			if strUtils.IsInSlice(common.MASTER, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, joinMasters...)
 			}
 		}
-
-		var hosts []v2.Host
-		for _, h := range cluster.Spec.Hosts {
-			if len(h.IPS) == 0 {
-				continue
-			}
-			hosts = append(hosts, h)
-		}
-
-		cluster.Spec.Hosts = hosts
 	}
 
 	//add joined nodes
@@ -94,26 +82,16 @@ func ConstructClusterForJoin(cluster *v2.Cluster, scaleArgs *types.Args, joinMas
 		nodeIPs := cluster.GetNodeIPList()
 		for _, ip := range joinWorkers {
 			// if ip already taken by node will return join duplicated ip error
-			if !netutils.NotInIPList(ip, nodeIPs) {
+			if netutils.IsInIPList(ip, nodeIPs) {
 				return fmt.Errorf("failed to scale node for duplicated ip: %s", ip)
 			}
 		}
 
 		for i := range cluster.Spec.Hosts {
-			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
+			if strUtils.IsInSlice(common.NODE, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, joinWorkers...)
 			}
 		}
-
-		var hosts []v2.Host
-		for _, h := range cluster.Spec.Hosts {
-			if len(h.IPS) == 0 {
-				continue
-			}
-			hosts = append(hosts, h)
-		}
-
-		cluster.Spec.Hosts = hosts
 	}
 	return nil
 }
@@ -121,7 +99,7 @@ func ConstructClusterForJoin(cluster *v2.Cluster, scaleArgs *types.Args, joinMas
 func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersToDelete []net.IP) error {
 	if len(mastersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
-			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
+			if strUtils.IsInSlice(common.MASTER, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, mastersToDelete)
 			}
 		}
@@ -129,7 +107,7 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 
 	if len(workersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
-			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
+			if strUtils.IsInSlice(common.NODE, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = returnFilteredIPList(cluster.Spec.Hosts[i].IPS, workersToDelete)
 			}
 		}
@@ -150,7 +128,7 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 
 func returnFilteredIPList(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP) {
 	for _, ip := range clusterIPList {
-		if netutils.NotInIPList(ip, toBeDeletedIPList) {
+		if netutils.IsInIPList(ip, toBeDeletedIPList) {
 			res = append(res, ip)
 		}
 	}

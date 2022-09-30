@@ -24,12 +24,9 @@ import (
 	osi "github.com/sealerio/sealer/utils/os"
 
 	"net"
-	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 
@@ -41,36 +38,29 @@ const (
 )
 
 type scpDistributor struct {
-	configs     []v1.Config
-	infraDriver infradriver.InfraDriver
-	imageEngine imageengine.Interface
+	configs        []v1.Config
+	infraDriver    infradriver.InfraDriver
+	imageMountInfo map[string]string
 }
 
-func (s *scpDistributor) Distribute(imageName string, hosts []net.IP) error {
-	var (
-		rootfs = s.infraDriver.GetClusterRootfs()
-	)
-
-	hostsPlatformMap, err := s.infraDriver.GetHostsPlatform(hosts)
-	if err != nil {
-		return err
+func (s *scpDistributor) DistributeRegistry(deployHost net.IP, dataDir string) error {
+	for _, mountDir := range s.imageMountInfo {
+		err := s.infraDriver.Copy(deployHost, filepath.Join(mountDir, RegistryDirName), dataDir)
+		if err != nil {
+			return fmt.Errorf("failed to copy registry data %s: %v", mountDir, err)
+		}
 	}
 
-	for platform, targetHosts := range hostsPlatformMap {
-		if err = s.pull(imageName, platform); err != nil {
+	return nil
+}
+
+func (s *scpDistributor) DistributeRootfs(hosts []net.IP, rootfsPath string) error {
+	for _, mountDir := range s.imageMountInfo {
+		if err := s.dumpConfigToRootfs(mountDir); err != nil {
 			return err
 		}
 
-		mountDir, err := s.buildRootfs(imageName)
-		if err != nil {
-			return err
-		}
-
-		if err = s.dumpConfigToRootfs(mountDir); err != nil {
-			return err
-		}
-
-		if err = s.renderRootfs(mountDir); err != nil {
+		if err := s.renderRootfs(mountDir); err != nil {
 			return err
 		}
 
@@ -80,42 +70,14 @@ func (s *scpDistributor) Distribute(imageName string, hosts []net.IP) error {
 		}
 
 		for _, target := range targetDirs {
-			err = s.copyRootfs(target, filepath.Join(rootfs, filepath.Base(target)), targetHosts)
+			err = s.copyRootfs(target, filepath.Join(rootfsPath, filepath.Base(target)), hosts)
 			if err != nil {
 				return err
 			}
 		}
-
-		if err = s.cleanRootfs(mountDir); err != nil {
-			return fmt.Errorf("failed to remove mounted dir %s: %v", mountDir, err)
-		}
 	}
 
 	return nil
-}
-
-func (s *scpDistributor) pull(imageName string, plat v1.Platform) error {
-	// pull cluster image via it`s platform
-	return s.imageEngine.Pull(&imagecommon.PullOptions{
-		Quiet:      false,
-		TLSVerify:  true,
-		PullPolicy: "missing",
-		Image:      imageName,
-		Platform:   plat.ToString(),
-	})
-}
-
-func (s *scpDistributor) buildRootfs(imageName string) (string, error) {
-	mountDir := filepath.Join(common.DefaultSealerDataDir, "mount")
-
-	if _, err := s.imageEngine.CreateWorkingContainer(&imagecommon.BuildRootfsOptions{
-		DestDir:       mountDir,
-		ImageNameOrID: imageName,
-	}); err != nil {
-		return "", err
-	}
-
-	return mountDir, nil
 }
 
 func (s *scpDistributor) filterRootfs(mountDir string) ([]string, error) {
@@ -135,22 +97,6 @@ func (s *scpDistributor) filterRootfs(mountDir string) ([]string, error) {
 	}
 
 	return AllMountFiles, nil
-}
-
-func (s *scpDistributor) cleanRootfs(mountDir string) error {
-	// umount cluster image this will remove all buildah containers
-	if err := s.imageEngine.RemoveContainer(&imagecommon.RemoveContainerOptions{
-		ContainerNamesOrIDs: nil,
-		All:                 true,
-	}); err != nil {
-		return fmt.Errorf("remove containers failed, you'd better execute a prune to remove it: %v", err)
-	}
-
-	if err := os.RemoveAll(mountDir); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (s *scpDistributor) copyRootfs(mountDir, targetDir string, hosts []net.IP) error {
@@ -184,7 +130,7 @@ func (s *scpDistributor) renderRootfs(mountDir string) error {
 		renderEtc       = filepath.Join(mountDir, common.EtcDir)
 		renderChart     = filepath.Join(mountDir, common.RenderChartsDir)
 		renderManifests = filepath.Join(mountDir, common.RenderManifestsDir)
-		renderData      = s.infraDriver.GetClusterRenderData()
+		renderData      = s.infraDriver.GetClusterEnv()
 	)
 
 	for _, dir := range []string{renderEtc, renderChart, renderManifests} {
@@ -221,9 +167,9 @@ func (s *scpDistributor) Restore(targetDir string, hosts []net.IP) error {
 	return nil
 }
 
-func NewScpDistributor(imageEngine imageengine.Interface, driver infradriver.InfraDriver, configs []v1.Config) (Interface, error) {
+func NewScpDistributor(imageMountInfo map[string]string, driver infradriver.InfraDriver, configs []v1.Config) (Distributor, error) {
 	return &scpDistributor{
-		configs:     configs,
-		imageEngine: imageEngine,
-		infraDriver: driver}, nil
+		configs:        configs,
+		imageMountInfo: imageMountInfo,
+		infraDriver:    driver}, nil
 }

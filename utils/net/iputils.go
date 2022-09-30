@@ -254,13 +254,13 @@ func SortIPList(iplist []string) {
 	}
 }
 
-func NotInIPList(key net.IP, slice []net.IP) bool {
+func IsInIPList(key net.IP, slice []net.IP) bool {
 	for _, s := range slice {
 		if s.Equal(key) {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func IPStrsToIPs(ipStrs []string) []net.IP {

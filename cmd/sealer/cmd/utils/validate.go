@@ -24,20 +24,20 @@ import (
 	netutils "github.com/sealerio/sealer/utils/net"
 )
 
-// ValidateRunArgs validates all the input args from sealer run command.
-func ValidateRunArgs(runArgs *types.Args) error {
+// ValidateRunFlags validates all the input args from sealer run command.
+func ValidateRunFlags(runFlags *types.Flags) error {
 	// TODO: add detailed validation steps.
 	var errMsg []string
 
 	// validate input masters IP info
-	if err := ValidateIPStr(runArgs.Masters); err != nil {
+	if err := ValidateIPStr(runFlags.Masters); err != nil {
 		errMsg = append(errMsg, err.Error())
 	}
 
 	// validate input nodes IP info
-	if len(runArgs.Nodes) != 0 {
-		// empty runArgs.Nodes are valid, since no nodes are input.
-		if err := ValidateIPStr(runArgs.Nodes); err != nil {
+	if len(runFlags.Nodes) != 0 {
+		// empty runFlags.Nodes are valid, since no nodes are input.
+		if err := ValidateIPStr(runFlags.Nodes); err != nil {
 			errMsg = append(errMsg, err.Error())
 		}
 	}

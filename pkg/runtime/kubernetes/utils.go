@@ -128,7 +128,7 @@ func (k *Runtime) Command(version, master0IP string, name CommandType, token v1b
 	// Please convert your v1beta1 configuration files to v1beta2 using the
 	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
 	cmds := map[CommandType]string{
-		InitMaster: fmt.Sprintf("kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs", k.infra.GetClusterRootfs()),
+		InitMaster: fmt.Sprintf("kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs", k.infra.GetClusterRootfsPath()),
 		JoinMaster: fmt.Sprintf("kubeadm join %s --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s", net.JoinHostPort(master0IP, "6443"), token.Token, token.CACertHashes, certKey),
 		JoinNode:   fmt.Sprintf("kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s", net.JoinHostPort(k.getAPIServerVIP().String(), "6443"), token.Token, token.CACertHashes),
 	}

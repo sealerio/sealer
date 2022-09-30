@@ -62,7 +62,6 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadmconfig.KubeadmConf
 		return kubeadmconfig.KubeadmConfig{}, err
 	}
 
-	//TODO, save it into kubernetes
 	localTmpFile := "/tmp/kubeadm.yaml"
 	if err = ioutil.WriteFile(localTmpFile, bs, 0600); err != nil {
 		return kubeadmconfig.KubeadmConfig{}, err
@@ -85,61 +84,7 @@ func (k *Runtime) generateCert(kubeadmConf kubeadmconfig.KubeadmConfig, master0 
 		return err
 	}
 
-<<<<<<< HEAD
 	return clustercert.GenerateAllKubernetesCerts(
-=======
-func (k *Runtime) generateConfigs() ([]byte, error) {
-	//getCgroupDriverFromShell need get CRISocket, so after merge
-	cGroupDriver, err := k.getCgroupDriverFromShell(k.cluster.GetMaster0IP())
-	if err != nil {
-		return nil, err
-	}
-	k.setCgroupDriver(cGroupDriver)
-	k.setKubeadmAPIVersion()
-	return yaml.MarshalWithDelimiter(&k.InitConfiguration,
-		&k.ClusterConfiguration,
-		&k.KubeletConfiguration,
-		&k.KubeProxyConfiguration)
-}
-
-func (k *Runtime) handleKubeadmConfig() {
-	//The configuration set here does not require merge
-	k.setInitAdvertiseAddress(k.cluster.GetMaster0IP())
-	k.setControlPlaneEndpoint(fmt.Sprintf("%s:6443", k.getAPIServerDomain()))
-	if k.APIServer.ExtraArgs == nil {
-		k.APIServer.ExtraArgs = make(map[string]string)
-	}
-	k.APIServer.ExtraArgs[EtcdServers] = getEtcdEndpointsWithHTTPSPrefix(k.cluster.GetMasterIPList())
-	k.IPVS.ExcludeCIDRs = append(k.KubeProxyConfiguration.IPVS.ExcludeCIDRs, fmt.Sprintf("%s/32", k.getVIP()))
-}
-
-// CmdToString is in host exec cmd and replace to spilt str
-func (k *Runtime) CmdToString(host net.IP, cmd, split string) (string, error) {
-	ssh, err := k.getHostSSHClient(host)
-	if err != nil {
-		return "", fmt.Errorf("failed to get ssh clientof host(%s): %v", host, err)
-	}
-	return ssh.CmdToString(host, cmd, split)
-}
-
-func (k *Runtime) getRemoteHostName(hostIP net.IP) (string, error) {
-	hostName, err := k.CmdToString(hostIP, "hostname", "")
-	if err != nil {
-		return "", err
-	}
-	if hostName == "" {
-		return "", fmt.Errorf("faild to get remote hostname of host(%s)", hostIP)
-	}
-	return strings.ToLower(hostName), nil
-}
-
-func (k *Runtime) GenerateCert() error {
-	hostName, err := k.getRemoteHostName(k.cluster.GetMaster0IP())
-	if err != nil {
-		return err
-	}
-	err = clustercert.GenerateAllKubernetesCerts(
->>>>>>> upstream/main
 		k.getPKIPath(),
 		k.getEtcdCertPath(),
 		hostName,
@@ -158,7 +103,7 @@ func (k *Runtime) createKubeConfig(master0 net.IP) error {
 
 	controlPlaneEndpoint := fmt.Sprintf("https://%s:6443", k.getAPIServerDomain())
 
-	return clustercert.CreateJoinControlPlaneKubeConfigFiles(k.infra.GetClusterRootfs(), k.getPKIPath(),
+	return clustercert.CreateJoinControlPlaneKubeConfigFiles(k.infra.GetClusterRootfsPath(), k.getPKIPath(),
 		"ca", hostName, controlPlaneEndpoint, "kubernetes")
 }
 
@@ -184,7 +129,6 @@ func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 	return nil
 }
 
-<<<<<<< HEAD
 //initMaster0 is using kubeadm init to start up the cluster master0.
 func (k *Runtime) initMaster0(kubeadmConf kubeadmconfig.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
 	if err := k.initKube([]net.IP{master0}); err != nil {
@@ -230,10 +174,6 @@ func (k *Runtime) initMaster0(kubeadmConf kubeadmconfig.KubeadmConfig, master0 n
 
 //decode output to join token hash and key
 func (k *Runtime) decodeMaster0Output(output []byte) (v1beta2.BootstrapTokenDiscovery, string) {
-=======
-// decode output to join token hash and key
-func (k *Runtime) decodeMaster0Output(output []byte) {
->>>>>>> upstream/main
 	s0 := string(output)
 	logrus.Debugf("decodeOutput: %s", s0)
 	slice := strings.Split(s0, "kubeadm join")
@@ -243,13 +183,8 @@ func (k *Runtime) decodeMaster0Output(output []byte) {
 	return k.decodeJoinCmd(slice1[0])
 }
 
-<<<<<<< HEAD
 //  192.168.0.200:6443 --token 9vr73a.a8uxyaju799qwdjv --discovery-token-ca-cert-hash sha256:7c2e69131a36ae2a042a339b33381c6d0d43887e2de83720eff5359e26aec866 --experimental-control-plane --certificate-key f8902e114ef118304e561c3ecd4d0b543adc226b7a07f675f56564185ffe0c07
 func (k *Runtime) decodeJoinCmd(cmd string) (v1beta2.BootstrapTokenDiscovery, string) {
-=======
-// 192.168.0.200:6443 --token 9vr73a.a8uxyaju799qwdjv --discovery-token-ca-cert-hash sha256:7c2e69131a36ae2a042a339b33381c6d0d43887e2de83720eff5359e26aec866 --experimental-control-plane --certificate-key f8902e114ef118304e561c3ecd4d0b543adc226b7a07f675f56564185ffe0c07
-func (k *Runtime) decodeJoinCmd(cmd string) {
->>>>>>> upstream/main
 	logrus.Debugf("[globals]decodeJoinCmd: %s", cmd)
 	stringSlice := strings.Split(cmd, " ")
 
@@ -276,10 +211,9 @@ func (k *Runtime) decodeJoinCmd(cmd string) {
 	return token, certKey
 }
 
-<<<<<<< HEAD
 // initKube do some initialize kubelet works, such as configuring the host environment, initializing the kubelet service, and so on.
 func (k *Runtime) initKube(hosts []net.IP) error {
-	initKubeletCmd := fmt.Sprintf("cd %s && bash %s", filepath.Join(k.infra.GetClusterRootfs(), "scripts"), "init-kube.sh")
+	initKubeletCmd := fmt.Sprintf("cd %s && bash %s", filepath.Join(k.infra.GetClusterRootfsPath(), "scripts"), "init-kube.sh")
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
 		host := h
@@ -289,13 +223,6 @@ func (k *Runtime) initKube(hosts []net.IP) error {
 			}
 			return nil
 		})
-=======
-// InitMaster0 is using kubeadm init to start up the cluster master0.
-func (k *Runtime) InitMaster0() error {
-	client, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
-	if err != nil {
-		return fmt.Errorf("failed to get ssh client of master0(%s): %v", k.cluster.GetMaster0IP(), err)
->>>>>>> upstream/main
 	}
 	if err := eg.Wait(); err != nil {
 		return err
@@ -317,7 +244,7 @@ func (k *Runtime) sendClusterCert(hosts []net.IP) error {
 
 func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, kubeVersion string, files ...string) error {
 	for _, kubeFile := range files {
-		src := filepath.Join(k.infra.GetClusterRootfs(), kubeFile)
+		src := filepath.Join(k.infra.GetClusterRootfsPath(), kubeFile)
 		dest := filepath.Join(clustercert.KubernetesConfigDir, kubeFile)
 
 		f := func(host net.IP) error {

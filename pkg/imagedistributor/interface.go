@@ -16,11 +16,20 @@ package imagedistributor
 
 import (
 	"net"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
-type Interface interface {
-	// Distribute each files under mounted cluster image directory to target hosts.
-	Distribute(imageName string, hosts []net.IP) error
+type Distributor interface {
+	// DistributeRootfs each files under mounted cluster image directory to target hosts.
+	DistributeRootfs(hosts []net.IP, rootfsPath string) error
+	// DistributeRegistry each files under registry directory to target hosts.
+	DistributeRegistry(deployHost net.IP, dataDir string) error
 	// Restore will do some clean works via infra driver, like delete rootfs.
 	Restore(targetDir string, hosts []net.IP) error
+}
+
+type Mounter interface {
+	Mount(imageName string, platform v1.Platform) (string, error)
+	Umount(dir string) error
 }

@@ -24,12 +24,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+
 	"github.com/pelletier/go-toml"
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
@@ -48,7 +47,7 @@ type localSingletonConfigurator struct {
 
 	containerRuntimeInfo containerruntime.Info
 	infraDriver          infradriver.InfraDriver
-	imageEngine          imageengine.Interface
+	Distributor          imagedistributor.Distributor
 }
 
 // Clean will stop local private registry via rootfs scripts.
@@ -93,7 +92,7 @@ func (c *localSingletonConfigurator) Reconcile(hosts []net.IP) error {
 		return err
 	}
 
-	if err := c.reconcileRegistry(hosts); err != nil {
+	if err := c.reconcileRegistry(); err != nil {
 		return err
 	}
 
@@ -120,7 +119,7 @@ func (c *localSingletonConfigurator) configureRegistryCert(hosts []net.IP) error
 
 	var (
 		localCertPath = filepath.Join("/tmp", "certs")
-		certPath      = filepath.Join(c.infraDriver.GetClusterRootfs(), "certs")
+		certPath      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "certs")
 		certName      = c.Domain
 		fullCertName  = certName + ".crt"
 		fullKeyName   = certName + ".key"
@@ -219,7 +218,7 @@ func (c *localSingletonConfigurator) genBasicAuth() error {
 
 	var (
 		localBasicAuthFile = filepath.Join("/tmp", DefaultRegistryHtPasswdFile)
-		basicAuthFile      = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", DefaultRegistryHtPasswdFile)
+		basicAuthFile      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", DefaultRegistryHtPasswdFile)
 	)
 
 	existed, err := c.infraDriver.IsFileExist(c.DeployHost, basicAuthFile)
@@ -248,53 +247,15 @@ func (c *localSingletonConfigurator) genBasicAuth() error {
 	return fs.FS.RemoveAll(localBasicAuthFile)
 }
 
-func (c *localSingletonConfigurator) reconcileRegistry(hosts []net.IP) error {
+func (c *localSingletonConfigurator) reconcileRegistry() error {
 	var (
-		rootfs     = c.infraDriver.GetClusterRootfs()
+		rootfs     = c.infraDriver.GetClusterRootfsPath()
 		dataDir    = c.DataDir
 		deployHost = c.DeployHost
-		imageName  = c.infraDriver.GetClusterImageName()
 	)
 
-	hostsPlatformMap, err := c.infraDriver.GetHostsPlatform(hosts)
-	if err != nil {
+	if err := c.Distributor.DistributeRegistry(deployHost, dataDir); err != nil {
 		return err
-	}
-
-	for platform := range hostsPlatformMap {
-		mountDir := filepath.Join(common.DefaultSealerDataDir, "mount")
-		if err = c.imageEngine.Pull(&imagecommon.PullOptions{
-			Quiet:      false,
-			TLSVerify:  true,
-			PullPolicy: "missing",
-			Image:      imageName,
-			Platform:   platform.ToString(),
-		}); err != nil {
-			return err
-		}
-
-		if _, err = c.imageEngine.CreateWorkingContainer(&imagecommon.BuildRootfsOptions{
-			DestDir:       mountDir,
-			ImageNameOrID: imageName,
-		}); err != nil {
-			return err
-		}
-
-		err = c.infraDriver.Copy(deployHost, filepath.Join(mountDir, "registry"), dataDir)
-		if err != nil {
-			return fmt.Errorf("failed to copy registry data %s: %v", mountDir, err)
-		}
-
-		if err = c.imageEngine.RemoveContainer(&imagecommon.RemoveContainerOptions{
-			ContainerNamesOrIDs: nil,
-			All:                 true,
-		}); err != nil {
-			return fmt.Errorf("failed to remove mounted dir %s: %v", mountDir, err)
-		}
-
-		if err = fs.FS.RemoveAll(mountDir); err != nil {
-			return err
-		}
 	}
 
 	// bash init-registry.sh ${port} ${mountData} ${domain}
@@ -356,7 +317,7 @@ func (c *localSingletonConfigurator) configureDaemonService(hosts []net.IP) erro
 	}
 
 	if c.containerRuntimeInfo.Config.Type == "docker" {
-		src = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", "daemon.json")
+		src = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", "daemon.json")
 		dest = "/etc/docker/daemon.json"
 		if err := c.configureDockerDaemonService(endpoint, src); err != nil {
 			return err
@@ -364,7 +325,7 @@ func (c *localSingletonConfigurator) configureDaemonService(hosts []net.IP) erro
 	}
 
 	if c.containerRuntimeInfo.Config.Type == "containerd" {
-		src = filepath.Join(c.infraDriver.GetClusterRootfs(), "etc", "hosts.toml")
+		src = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", "hosts.toml")
 		dest = filepath.Join("/etc/containerd/certs.d", endpoint, "hosts.toml")
 		if err := c.configureContainerdDaemonService(endpoint, src); err != nil {
 			return err

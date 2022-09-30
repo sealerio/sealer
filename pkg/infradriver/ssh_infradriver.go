@@ -139,7 +139,7 @@ func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]interface{} {
 	return d.hostEnvMap[host.String()]
 }
 
-func (d *SSHInfraDriver) GetClusterRenderData() map[string]interface{} {
+func (d *SSHInfraDriver) GetClusterEnv() map[string]interface{} {
 	return d.clusterRenderData
 }
 
@@ -192,7 +192,7 @@ func (d *SSHInfraDriver) IsFileExist(host net.IP, remoteFilePath string) (bool, 
 	return client.IsFileExist(host, remoteFilePath)
 }
 
-func (d *SSHInfraDriver) RemoteDirExist(host net.IP, remoteDirPath string) (bool, error) {
+func (d *SSHInfraDriver) IsDirExist(host net.IP, remoteDirPath string) (bool, error) {
 	client := d.sshConfigs[host.String()]
 	if client == nil {
 		return false, fmt.Errorf("ip(%s) is not in cluster", host.String())
@@ -261,7 +261,7 @@ func (d *SSHInfraDriver) GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net
 	return hostsPlatformMap, nil
 }
 
-func (d *SSHInfraDriver) GetClusterRootfs() string {
+func (d *SSHInfraDriver) GetClusterRootfsPath() string {
 	return common.DefaultTheClusterRootfsDir(d.clusterName)
 }
 

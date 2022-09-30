@@ -24,16 +24,12 @@ import (
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
-	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/spf13/cobra"
 )
 
-var joinArgs *types.Args
-var newMasters string
-var newWorkers string
+var joinFlags *types.Flags
 
 var longJoinCmdDescription = `join command is used to join master or node to the existing cluster.
 User can join cluster by explicitly specifying host IP`
@@ -57,11 +53,11 @@ func NewJoinCmd() *cobra.Command {
 				err error
 			)
 
-			if err = utils.ValidateScaleIPStr(newMasters, newWorkers); err != nil {
+			if err = utils.ValidateScaleIPStr(joinFlags.Masters, joinFlags.Nodes); err != nil {
 				return fmt.Errorf("failed to validate input run args: %v", err)
 			}
 
-			joinMasterIPList, joinNodeIPList, err := utils.ParseToNetIPList(newMasters, newWorkers)
+			joinMasterIPList, joinNodeIPList, err := utils.ParseToNetIPList(joinFlags.Masters, joinFlags.Nodes)
 			if err != nil {
 				return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 			}
@@ -78,21 +74,12 @@ func NewJoinCmd() *cobra.Command {
 			}
 
 			cluster := cf.GetCluster()
-			if err = utils.ConstructClusterForJoin(&cluster, joinArgs, joinMasterIPList, joinNodeIPList); err != nil {
+			if err = utils.ConstructClusterForScaleUp(&cluster, joinFlags, joinMasterIPList, joinNodeIPList); err != nil {
 				return err
 			}
 
 			cf.SetCluster(cluster)
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
-			if err != nil {
-				return err
-			}
-			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
-			if err != nil {
-				return err
-			}
-
-			distributor, err := imagedistributor.NewScpDistributor(imageEngine, infraDriver, cf.GetConfigs())
 			if err != nil {
 				return err
 			}
@@ -102,12 +89,29 @@ func NewJoinCmd() *cobra.Command {
 				newHosts         = append(joinMasterIPList, joinNodeIPList...)
 			)
 
-			// distribute rootfs
-			if err = distributor.Distribute(clusterImageName, newHosts); err != nil {
+			clusterHostsPlatform, err := infraDriver.GetHostsPlatform(newHosts)
+			if err != nil {
 				return err
 			}
 
-			runtimeConfig := new(clusterruntime.RuntimeConfig)
+			imageMounter, err := imagedistributor.NewImageMounter(clusterHostsPlatform)
+			if err != nil {
+				return err
+			}
+
+			imageMountInfo, err := imageMounter.Mount(clusterImageName)
+			if err != nil {
+				return err
+			}
+
+			distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+			if err != nil {
+				return err
+			}
+
+			runtimeConfig := &clusterruntime.RuntimeConfig{
+				Distributor: distributor,
+			}
 			if cf.GetPlugins() != nil {
 				runtimeConfig.Plugins = cf.GetPlugins()
 			}
@@ -116,11 +120,16 @@ func NewJoinCmd() *cobra.Command {
 				runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
 			}
 
-			installer, err := clusterruntime.NewInstaller(infraDriver, imageEngine, *runtimeConfig)
+			installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
 			if err != nil {
 				return err
 			}
 			_, _, err = installer.ScaleUp(joinMasterIPList, joinNodeIPList)
+			if err != nil {
+				return err
+			}
+
+			err = imageMounter.Umount(imageMountInfo)
 			if err != nil {
 				return err
 			}
@@ -133,14 +142,14 @@ func NewJoinCmd() *cobra.Command {
 		},
 	}
 
-	joinArgs = &types.Args{}
-	joinCmd.Flags().StringVarP(&joinArgs.User, "user", "u", "root", "set baremetal server username")
-	joinCmd.Flags().StringVarP(&joinArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
-	joinCmd.Flags().Uint16Var(&joinArgs.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
-	joinCmd.Flags().StringVar(&joinArgs.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
-	joinCmd.Flags().StringVar(&joinArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
-	joinCmd.Flags().StringSliceVarP(&joinArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	joinCmd.Flags().StringVarP(&newMasters, "masters", "m", "", "set Count or IPList to masters")
-	joinCmd.Flags().StringVarP(&newWorkers, "nodes", "n", "", "set Count or IPList to nodes")
+	joinFlags = &types.Flags{}
+	joinCmd.Flags().StringVarP(&joinFlags.User, "user", "u", "root", "set baremetal server username")
+	joinCmd.Flags().StringVarP(&joinFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
+	joinCmd.Flags().Uint16Var(&joinFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
+	joinCmd.Flags().StringVar(&joinFlags.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
+	joinCmd.Flags().StringVar(&joinFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
+	joinCmd.Flags().StringSliceVarP(&joinFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
+	joinCmd.Flags().StringVarP(&joinFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
+	joinCmd.Flags().StringVarP(&joinFlags.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
 	return joinCmd
 }
