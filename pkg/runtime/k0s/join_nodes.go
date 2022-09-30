@@ -52,7 +52,7 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, k.GenLoginCommand())
 	}
-	cmds := k.Command(WorkerRole)
+	cmds := k.JoinCommand(WorkerRole)
 	if cmds == nil {
 		return fmt.Errorf("failed to get join node command")
 	}

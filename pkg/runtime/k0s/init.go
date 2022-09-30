@@ -105,7 +105,7 @@ func (k *Runtime) BootstrapMaster0() error {
 	if err != nil {
 		return err
 	}
-	bootstrapCMD := fmt.Sprintf("k0s install controller -c %s", DefaultK0sConfigPath)
+	bootstrapCMD := fmt.Sprintf("k0s install controller -c %s --cri-socket %s", DefaultK0sConfigPath, ExternalCRI)
 	if _, err := ssh.Cmd(master0IP, bootstrapCMD); err != nil {
 		return err
 	}
