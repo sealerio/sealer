@@ -17,7 +17,7 @@ package clusterfile
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
@@ -62,7 +62,7 @@ func NewClusterFile(path string) (Interface, error) {
 		return clusterFile, nil
 	}
 
-	clusterFileData, err := ioutil.ReadFile(filepath.Clean(path))
+	clusterFileData, err := os.ReadFile(filepath.Clean(path))
 
 	if err != nil {
 		return nil, err

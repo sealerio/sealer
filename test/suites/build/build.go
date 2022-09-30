@@ -17,7 +17,6 @@ package build
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -91,9 +90,9 @@ func CheckIsImageExist(imageName string) bool {
 }
 
 func UpdateKubeFromImage(imageName string, KubefilePath string) {
-	Kube, err := ioutil.ReadFile(filepath.Clean(KubefilePath))
+	Kube, err := os.ReadFile(filepath.Clean(KubefilePath))
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	Kube = append([]byte(fmt.Sprintf("FROM %s", imageName)), Kube[bytes.IndexByte(Kube, '\n'):]...) // #nosec
-	err = ioutil.WriteFile(KubefilePath, Kube, os.ModePerm)
+	err = os.WriteFile(KubefilePath, Kube, os.ModePerm)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }

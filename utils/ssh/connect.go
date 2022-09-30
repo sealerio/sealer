@@ -17,8 +17,8 @@ package ssh
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -108,7 +108,7 @@ func (s *SSH) sshAuthMethod(password, pkFile, pkPasswd string) (auth []ssh.AuthM
 
 // Authentication with a private key,private key has password and no password to verify in this
 func (s *SSH) sshPrivateKeyMethod(pkFile, pkPassword string) (am ssh.AuthMethod, err error) {
-	pkData, err := ioutil.ReadFile(filepath.Clean(pkFile))
+	pkData, err := os.ReadFile(filepath.Clean(pkFile))
 	if err != nil {
 		return nil, err
 	}

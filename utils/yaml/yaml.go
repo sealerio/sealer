@@ -17,7 +17,7 @@ package yaml
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -28,7 +28,7 @@ import (
 )
 
 func UnmarshalFile(file string, obj interface{}) error {
-	data, err := ioutil.ReadFile(filepath.Clean(file))
+	data, err := os.ReadFile(filepath.Clean(file))
 	if err != nil {
 		return err
 	}

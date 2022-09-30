@@ -17,7 +17,6 @@ package mount
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -90,7 +89,7 @@ func copyDir(srcPath string, dstPath string) error {
 		}
 	}
 
-	srcFiles, err := ioutil.ReadDir(srcPath)
+	srcFiles, err := os.ReadDir(srcPath)
 	if err != nil {
 		return err
 	}

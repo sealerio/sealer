@@ -16,7 +16,6 @@ package clusterimage
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -61,7 +60,7 @@ func (m *mounter) umountImage(cluster *v2.Cluster) error {
 	if !osi.IsFileExist(mountRootDir) {
 		return nil
 	}
-	dir, err := ioutil.ReadDir(mountRootDir)
+	dir, err := os.ReadDir(mountRootDir)
 	if err != nil {
 		return err
 	}

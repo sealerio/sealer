@@ -16,7 +16,6 @@ package plugin
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -70,7 +69,7 @@ func (c *PluginsProcessor) Load() error {
 		return nil
 	}
 
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return fmt.Errorf("failed to load plugin dir: %v", err)
 	}

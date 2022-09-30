@@ -17,7 +17,7 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	stdos "os"
 	"path/filepath"
 	"strings"
 
@@ -77,7 +77,7 @@ func (c *Dumper) WriteFiles(configs []v1.Config) error {
 			}
 		}
 
-		contents, err := ioutil.ReadFile(filepath.Clean(configPath))
+		contents, err := stdos.ReadFile(filepath.Clean(configPath))
 		if err != nil {
 			return err
 		}

@@ -15,7 +15,6 @@
 package os
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -52,7 +51,7 @@ func (a *atomicFileWriter) close() (err error) {
 }
 
 func newAtomicFileWriter(path string, perm os.FileMode) (*atomicFileWriter, error) {
-	tmpFile, err := ioutil.TempFile(filepath.Dir(path), ".FTmp-")
+	tmpFile, err := os.CreateTemp(filepath.Dir(path), ".FTmp-")
 	if err != nil {
 		return nil, err
 	}

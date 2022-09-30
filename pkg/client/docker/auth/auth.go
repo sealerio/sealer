@@ -19,7 +19,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -79,7 +78,7 @@ func (s *DockerAuthService) SetAuthInfo(hostname, username, password string) err
 		return err
 	}
 
-	if err := ioutil.WriteFile(s.FilePath, data, common.FileMode0644); err != nil {
+	if err := os.WriteFile(s.FilePath, data, common.FileMode0644); err != nil {
 		return fmt.Errorf("write %s failed,%s", s.FilePath, err)
 	}
 	return nil
@@ -115,7 +114,7 @@ func NewDockerAuthService() (DockerAuthService, error) {
 		return das, nil
 	}
 
-	content, err := ioutil.ReadFile(filepath.Clean(authFile))
+	content, err := os.ReadFile(filepath.Clean(authFile))
 	if err != nil {
 		return das, err
 	}

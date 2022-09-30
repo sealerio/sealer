@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//nolint
+// nolint
 package archive
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -120,7 +119,7 @@ func TestTarWithRootDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	tmp, err := ioutil.TempFile("/tmp", "tar")
+	tmp, err := os.CreateTemp("/tmp", "tar")
 	_, err = io.Copy(tmp, reader)
 	if err != nil {
 		t.Error(err)

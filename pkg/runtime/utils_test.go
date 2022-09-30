@@ -15,7 +15,6 @@
 package runtime
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -87,7 +86,7 @@ func TestLoadMetadata(t *testing.T) {
 				t.Errorf("Make dir %s error = %s, wantErr %v", dir, err, tt.wantErr)
 			}
 
-			err = ioutil.WriteFile(filepath.Join(dir, rootfsPath, metadataFileName), tt.object.RuntimeMetadata, 0777)
+			err = os.WriteFile(filepath.Join(dir, rootfsPath, metadataFileName), tt.object.RuntimeMetadata, 0777)
 			if err != nil {
 				t.Errorf("Write file %s error = %v, wantErr %v", filepath.Join(dir, rootfsPath, metadataFileName), err, tt.wantErr)
 			}
