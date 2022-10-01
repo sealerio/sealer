@@ -17,8 +17,8 @@ package runtime
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -37,7 +37,7 @@ func LoadMetadata(rootfs string) (*Metadata, error) {
 		return nil, nil
 	}
 
-	metadataFile, err = ioutil.ReadFile(filepath.Clean(metadataPath))
+	metadataFile, err = os.ReadFile(filepath.Clean(metadataPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read ClusterImage metadata: %v", err)
 	}

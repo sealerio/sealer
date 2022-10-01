@@ -16,7 +16,6 @@ package clusterfile
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,7 +31,7 @@ import (
 var ErrClusterNotExist = fmt.Errorf("no cluster exist")
 
 func GetDefaultClusterName() (string, error) {
-	files, err := ioutil.ReadDir(fmt.Sprintf("%s/.sealer", common.GetHomeDir()))
+	files, err := os.ReadDir(fmt.Sprintf("%s/.sealer", common.GetHomeDir()))
 	if err != nil {
 		return "", err
 	}

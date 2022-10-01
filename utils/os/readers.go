@@ -17,7 +17,6 @@ package os
 import (
 	"bufio"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -76,7 +75,7 @@ func (r fileReader) ReadAll() ([]byte, error) {
 		}
 	}()
 
-	content, err := ioutil.ReadFile(filepath.Clean(r.fileName))
+	content, err := os.ReadFile(filepath.Clean(r.fileName))
 	if err != nil {
 		return nil, err
 	}

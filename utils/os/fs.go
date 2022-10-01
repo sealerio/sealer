@@ -16,7 +16,6 @@ package os
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -81,7 +80,7 @@ type FilterOptions struct {
 
 // GetDirNameListInDir :Get all Dir Name or file name List In Dir
 func GetDirNameListInDir(dir string, opts FilterOptions) ([]string, error) {
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}

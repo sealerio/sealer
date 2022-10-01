@@ -16,8 +16,8 @@ package cloudfilesystem
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/utils/os/fs"
@@ -30,7 +30,7 @@ import (
 )
 
 func copyFiles(sshEntry ssh.Interface, ip net.IP, src, target string) error {
-	files, err := ioutil.ReadDir(src)
+	files, err := os.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("failed to copy files: %s", err)
 	}

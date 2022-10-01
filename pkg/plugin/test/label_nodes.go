@@ -111,9 +111,9 @@ func (l LabelsNodes) getAddress(addresses []v1.NodeAddress) string {
 }
 
 // Plugin is the exposed variable sealer will look up it.
-//nolint
+// nolint
 var Plugin LabelsNodes
 
 // PluginType is the exposed variable defined the type of this plugin.
-//nolint
+// nolint
 var PluginType = "LABEL_TEST_SO"

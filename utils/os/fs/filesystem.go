@@ -18,7 +18,6 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -64,7 +63,7 @@ func (f filesystem) MkdirAll(path string) error {
 }
 
 func (f filesystem) MkTmpdir() (string, error) {
-	tempDir, err := ioutil.TempDir(common.DefaultTmpDir, ".DTmp-")
+	tempDir, err := os.MkdirTemp(common.DefaultTmpDir, ".DTmp-")
 	if err != nil {
 		return "", err
 	}
@@ -77,7 +76,7 @@ func (f filesystem) CopyDir(srcPath, dstPath string) error {
 		return err
 	}
 
-	fis, err := ioutil.ReadDir(srcPath)
+	fis, err := os.ReadDir(srcPath)
 	if err != nil {
 		return err
 	}

@@ -20,8 +20,8 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -96,7 +96,7 @@ func connEtcd(masterIP net.IP) (clientv3.Config, error) {
 		return clientv3.Config{}, fmt.Errorf("failed to load cacert or key file: %v", err)
 	}
 
-	caData, err := ioutil.ReadFile(etcdCa)
+	caData, err := os.ReadFile(etcdCa)
 	if err != nil {
 		return clientv3.Config{}, fmt.Errorf("failed to read ca certificate: %v", err)
 	}
