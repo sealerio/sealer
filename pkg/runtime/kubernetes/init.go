@@ -32,19 +32,16 @@ import (
 )
 
 const (
-	RemoteCmdCopyStatic            = "mkdir -p %s && cp -f %s %s"
-	RemoteApplyYaml                = `echo '%s' | kubectl apply -f -`
-	RemoteCmdGetNetworkInterface   = "ls /sys/class/net"
-	RemoteCmdExistNetworkInterface = "ip addr show %s | egrep \"%s\" || true"
-	WriteKubeadmConfigCmd          = `cd %s && echo '%s' > etc/kubeadm.yml`
-	DefaultVIP                     = "10.103.97.2"
-	DefaultAPIserverDomain         = "apiserver.cluster.local"
-	DefaultRegistryPort            = 5000
-	DockerCertDir                  = "/etc/docker/certs.d"
+	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
+	WriteKubeadmConfigCmd  = `cd %s && echo '%s' > etc/kubeadm.yml`
+	DefaultVIP             = "10.103.97.2"
+	DefaultAPIserverDomain = "apiserver.cluster.local"
+	DefaultRegistryPort    = 5000
+	DockerCertDir          = "/etc/docker/certs.d"
 )
 
 func (k *Runtime) ConfigKubeadmOnMaster0() error {
-	if err := k.LoadFromClusterfile(k.Config.ClusterFileKubeConfig); err != nil {
+	if err := k.LoadFromClusterfile(k.KubeadmConfigFromClusterfile); err != nil {
 		return fmt.Errorf("failed to load kubeadm config from clusterfile: %v", err)
 	}
 	// TODO handle the kubeadm config, like kubeproxy config

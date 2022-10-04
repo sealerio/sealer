@@ -23,7 +23,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert"
 	"github.com/sealerio/sealer/pkg/ipvs"
@@ -32,6 +31,8 @@ import (
 	"github.com/sealerio/sealer/utils/ssh"
 	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sealerio/sealer/utils/yaml"
+
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -71,7 +72,6 @@ rm -rf /var/lib/etcd && rm -rf /var/etcd
 	RemoteRemoveRegistryCerts    = "rm -rf " + DockerCertDir + "/%s*"
 	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
 	CreateLvscareStaticPod       = "mkdir -p /etc/kubernetes/manifests && echo '%s' > /etc/kubernetes/manifests/kube-sealyun-lvscare.yaml"
-	KubeDeleteNode               = "kubectl delete node %s"
 	// TODO check kubernetes certs
 	RemoteCheckCerts = "kubeadm alpha certs check-expiration"
 )
@@ -389,30 +389,32 @@ func (k *Runtime) deleteMasters(masters []net.IP) error {
 	return eg.Wait()
 }
 
-func (k *Runtime) isHostName(master, host net.IP) (string, error) {
-	hostString, err := k.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
+// isHostInExistingCluster checks if the input host is contained in the existing cluster.
+// It gets all nodes within existing cluster,
+//  judges each node name with the hostname of input host node
+//  and finially get the comparison result.
+func (k *Runtime) isHostInExistingCluster(host net.IP) (string, error) {
+	nodes, err := k.ListNodes()
 	if err != nil {
 		return "", err
 	}
+	if len(nodes.Items) == 0 {
+		return "", fmt.Errorf("no node gotten by k8s client")
+	}
+
 	hostName, err := k.CmdToString(host, "hostname", "")
 	if err != nil {
 		return "", err
 	}
-	hosts := strings.Split(hostString, ",")
-	var name string
-	for _, h := range hosts {
-		if strings.TrimSpace(h) == "" {
-			continue
-		} else {
-			hh := strings.ToLower(h)
-			fromH := strings.ToLower(hostName)
-			if hh == fromH {
-				name = h
-				break
-			}
+
+	for _, nodeItem := range nodes.Items {
+		hh := strings.ToLower(nodeItem.Name)
+		fromH := strings.ToLower(hostName)
+		if hh == fromH {
+			return hh, nil
 		}
 	}
-	return name, nil
+	return "", fmt.Errorf("failed to get node: no node's hostname matches hostname of host(%s)", host)
 }
 
 func (k *Runtime) deleteMaster(master net.IP) error {
@@ -449,19 +451,15 @@ func (k *Runtime) deleteMaster(master net.IP) error {
 	}
 
 	if len(masterIPs) > 0 {
-		hostname, err := k.isHostName(k.cluster.GetMaster0IP(), master)
+		hostname, err := k.isHostInExistingCluster(master)
 		if err != nil {
 			return err
 		}
-		master0SSH, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
-		if err != nil {
-			return fmt.Errorf("failed to get master0 ssh client: %v", err)
-		}
-
-		if err := master0SSH.CmdAsync(k.cluster.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
-			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
+		if err := k.DeleteNode(strings.TrimSpace(hostname)); err != nil {
+			return err
 		}
 	}
+
 	lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
 	yaml := ipvs.LvsStaticPodYaml(k.getVIP(), masterIPs, lvsImage)
 	eg, _ := errgroup.WithContext(context.Background())

@@ -166,21 +166,17 @@ func (k *Runtime) deleteNode(node net.IP) error {
 	if err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {
 		return err
 	}
-	//remove node
+
+	// remove node
 	if len(k.cluster.GetMasterIPList()) > 0 {
-		hostname, err := k.isHostName(k.cluster.GetMaster0IP(), node)
+		hostname, err := k.isHostInExistingCluster(node)
 		if err != nil {
 			return err
 		}
-		ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
-		if err != nil {
-			return fmt.Errorf("failed to get master0 ssh client(%s): %v", k.cluster.GetMaster0IP(), err)
-		}
-		if err := ssh.CmdAsync(k.cluster.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
-			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
+		if err := k.DeleteNode(strings.TrimSpace(hostname)); err != nil {
+			return err
 		}
 	}
-
 	return nil
 }
 

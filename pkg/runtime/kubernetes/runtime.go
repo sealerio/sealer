@@ -17,45 +17,53 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"strings"
-	"sync"
-
-	"github.com/sealerio/sealer/pkg/registry"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-	"github.com/sealerio/sealer/utils"
-	versionUtils "github.com/sealerio/sealer/utils/version"
-
 	"net"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtils "github.com/sealerio/sealer/utils/strings"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+	versionUtils "github.com/sealerio/sealer/utils/version"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 )
 
 type Config struct {
-	Vlog      int
-	VIP       string
-	RegConfig *registry.Config
 	// Clusterfile: the absolute path, we need to read kubeadm config from Clusterfile
 	ClusterFileKubeConfig *kubeadm.KubeadmConfig
-	APIServerDomain       string
 }
 
 // Runtime struct is the runtime interface for kubernetes
 type Runtime struct {
 	*sync.Mutex
+	// TODO: remove field cluster from runtime pkg
+	// just make runtime to use essential data from cluster, rather than the whole cluster scope.
 	cluster *v2.Cluster
+
+	// The KubeadmConfig used to setup the final cluster.
+	// Its data is from KubeadmConfig input from Clusterfile and KubeadmConfig in ClusterImage.
 	*kubeadm.KubeadmConfig
-	*Config
+	// *Config
+	KubeadmConfigFromClusterfile *kubeadm.KubeadmConfig
+	APIServerDomain              string
+	Vlog                         int
+	VIP                          string
+
+	// RegConfig contains the embedded registry configuration of cluster
+	RegConfig *registry.Config
+	*k8s.Client
 }
 
 // NewDefaultRuntime arg "clusterfileKubeConfig" is the Clusterfile path/name, runtime need read kubeadm config from it
@@ -67,13 +75,24 @@ func NewDefaultRuntime(cluster *v2.Cluster, clusterfileKubeConfig *kubeadm.Kubea
 func newKubernetesRuntime(cluster *v2.Cluster, clusterFileKubeConfig *kubeadm.KubeadmConfig) (runtime.Interface, error) {
 	k := &Runtime{
 		cluster: cluster,
-		Config: &Config{
+		/*Config: &Config{
 			ClusterFileKubeConfig: clusterFileKubeConfig,
-			APIServerDomain:       DefaultAPIserverDomain,
-		},
-		KubeadmConfig: &kubeadm.KubeadmConfig{},
+		},*/
+		KubeadmConfigFromClusterfile: clusterFileKubeConfig,
+		KubeadmConfig:                &kubeadm.KubeadmConfig{},
+		APIServerDomain:              DefaultAPIserverDomain,
 	}
-	k.Config.RegConfig = registry.GetConfig(k.getImageMountDir(), k.cluster.GetMaster0IP())
+
+	var err error
+	if k.Client, err = k8s.Newk8sClient(); err != nil {
+		// In current design, as runtime controls all cluster operations including run, join, delete
+		// and so on, then when executing run operation, it will definitely fail when creating k8s client
+		// since no k8s cluster is setup. While when join and delete operation, the cluster already exists,
+		// we can make it to create k8s client. Therefore just throw a warn log to move on.
+		logrus.Warnf("failed to create k8s client: %v", err)
+	}
+
+	k.RegConfig = registry.GetConfig(k.getImageMountDir(), k.cluster.GetMaster0IP())
 	k.setCertSANS(append(
 		[]string{"127.0.0.1", k.getAPIServerDomain(), k.getVIP().String()},
 		k.cluster.GetMasterIPStrList()...),
@@ -239,7 +258,7 @@ func (k *Runtime) getDNSDomain() string {
 }
 
 func (k *Runtime) getAPIServerDomain() string {
-	return k.Config.APIServerDomain
+	return k.APIServerDomain
 }
 
 func (k *Runtime) getKubeVersion() string {
@@ -369,8 +388,8 @@ func (k *Runtime) MergeKubeadmConfig() error {
 	if k.getKubeVersion() != "" {
 		return nil
 	}
-	if k.Config.ClusterFileKubeConfig != nil {
-		if err := k.LoadFromClusterfile(k.Config.ClusterFileKubeConfig); err != nil {
+	if k.KubeadmConfigFromClusterfile != nil {
+		if err := k.LoadFromClusterfile(k.KubeadmConfigFromClusterfile); err != nil {
 			return fmt.Errorf("failed to load kubeadm config from clusterfile: %v", err)
 		}
 	}
