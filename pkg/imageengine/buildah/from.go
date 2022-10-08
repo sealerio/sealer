@@ -16,13 +16,11 @@ package buildah
 
 import (
 	"fmt"
-
-	"github.com/sealerio/sealer/pkg/define/options"
-
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
@@ -243,7 +241,7 @@ func onBuild(builder *buildah.Builder, quiet bool) error {
 		case "RUN":
 			var stdout io.Writer
 			if quiet {
-				stdout = ioutil.Discard
+				stdout = io.Discard
 			}
 			if err := builder.Run(args, buildah.RunOptions{Stdout: stdout}); err != nil {
 				return err

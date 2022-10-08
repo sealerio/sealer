@@ -23,8 +23,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
+	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+
 	"github.com/sealerio/sealer/utils/shellcommand"
 
 	"github.com/sealerio/sealer/common"
@@ -41,8 +42,8 @@ const (
 	DefaultAPIserverDomain = "apiserver.cluster.local"
 )
 
-func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadmconfig.KubeadmConfig, error) {
-	conf, err := kubeadmconfig.NewKubeadmConfig(
+func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, error) {
+	conf, err := kubeadm.NewKubeadmConfig(
 		k.Config.KubeadmConfigFromClusterFile,
 		k.getDefaultKubeadmConfig(),
 		masters,
@@ -50,7 +51,7 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadmconfig.KubeadmConf
 		k.Config.containerRuntimeInfo.Config.CgroupDriver,
 		k.getAPIServerVIP())
 	if err != nil {
-		return kubeadmconfig.KubeadmConfig{}, err
+		return kubeadm.KubeadmConfig{}, err
 	}
 
 	bs, err := yaml.MarshalWithDelimiter(&conf.InitConfiguration,
@@ -59,26 +60,26 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadmconfig.KubeadmConf
 		&conf.KubeProxyConfiguration,
 		&conf.JoinConfiguration)
 	if err != nil {
-		return kubeadmconfig.KubeadmConfig{}, err
+		return kubeadm.KubeadmConfig{}, err
 	}
 
 	localTmpFile := "/tmp/kubeadm.yaml"
 	if err = ioutil.WriteFile(localTmpFile, bs, 0600); err != nil {
-		return kubeadmconfig.KubeadmConfig{}, err
+		return kubeadm.KubeadmConfig{}, err
 	}
 
 	if err = k.infra.Copy(masters[0], localTmpFile, KubeadmFileYml); err != nil {
-		return kubeadmconfig.KubeadmConfig{}, err
+		return kubeadm.KubeadmConfig{}, err
 	}
 
 	if err = os.Remove(localTmpFile); err != nil {
-		return kubeadmconfig.KubeadmConfig{}, err
+		return kubeadm.KubeadmConfig{}, err
 	}
 
 	return conf, nil
 }
 
-func (k *Runtime) generateCert(kubeadmConf kubeadmconfig.KubeadmConfig, master0 net.IP) error {
+func (k *Runtime) generateCert(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP) error {
 	hostName, err := k.infra.GetHostName(master0)
 	if err != nil {
 		return err
@@ -130,7 +131,7 @@ func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 }
 
 //initMaster0 is using kubeadm init to start up the cluster master0.
-func (k *Runtime) initMaster0(kubeadmConf kubeadmconfig.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
+func (k *Runtime) initMaster0(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
 	if err := k.initKube([]net.IP{master0}); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
@@ -261,7 +262,7 @@ func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, kubeVersion stri
 
 	//todo load kube-controller-manager and kube-scheduler locally and then do send options
 	// fix > 1.19.1 kube-controller-manager and kube-scheduler use the LocalAPIEndpoint instead of the ControlPlaneEndpoint.
-	if kubeVersion == kubeadmconfig.V1991 || kubeVersion == kubeadmconfig.V1992 {
+	if kubeVersion == kubeadm.V1991 || kubeVersion == kubeadm.V1992 {
 		for _, v := range masters {
 			cmd := fmt.Sprintf(RemoteReplaceKubeConfig, KUBESCHEDULERCONFIGFILE, v.String(), KUBECONTROLLERCONFIGFILE, v.String(), KUBESCHEDULERCONFIGFILE)
 			if err := k.infra.CmdAsync(v, cmd); err != nil {

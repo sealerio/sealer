@@ -19,6 +19,8 @@ import (
 	"net"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
+
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 
 	"github.com/sealerio/sealer/common"
@@ -27,7 +29,7 @@ import (
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
@@ -38,7 +40,7 @@ type RuntimeConfig struct {
 	Distributor            imagedistributor.Distributor
 	RegistryConfig         registry.RegConfig
 	ContainerRuntimeConfig containerruntime.Config
-	KubeadmConfig          kubeadmconfig.KubeadmConfig
+	KubeadmConfig          kubeadm.KubeadmConfig
 	Plugins                []v1.Plugin
 }
 

@@ -21,9 +21,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"github.com/sealerio/sealer/utils/shellcommand"
+	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 
 	"github.com/sealerio/sealer/pkg/ipvs"
 	utilsnet "github.com/sealerio/sealer/utils/net"
@@ -32,7 +32,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadmconfig.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery) error {
+func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery) error {
 	if len(newNodes) == 0 {
 		return nil
 	}

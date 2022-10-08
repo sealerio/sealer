@@ -60,7 +60,7 @@ func (k *Runtime) deleteNode(node net.IP) error {
 	STEP7: delete node though k8s client
 	*/
 	remoteCleanCmds := []string{"k0s stop",
-		fmt.Sprintf("k0s reset --config %s --cri-socket %s", DefaultK0sConfigPath, ExternalCRI),
+		fmt.Sprintf("k0s reset --cri-socket %s", ExternalCRI),
 		"rm -rf /etc/k0s/",
 		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", SeaHub),
 		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),

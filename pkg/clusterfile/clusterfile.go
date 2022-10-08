@@ -17,17 +17,15 @@ package clusterfile
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"path/filepath"
 
-	"os"
-
 	"github.com/sealerio/sealer/common"
-	utilsos "github.com/sealerio/sealer/utils/os"
-	"sigs.k8s.io/yaml"
-
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	utilsos "github.com/sealerio/sealer/utils/os"
+	"sigs.k8s.io/yaml"
 )
 
 type Interface interface {
@@ -35,14 +33,14 @@ type Interface interface {
 	SetCluster(v2.Cluster)
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
-	GetKubeadmConfig() *kubeadmconfig.KubeadmConfig
+	GetKubeadmConfig() *kubeadm.KubeadmConfig
 	SaveAll() error
 }
 
 type ClusterFile struct {
 	cluster       *v2.Cluster
 	configs       []v1.Config
-	kubeadmConfig kubeadmconfig.KubeadmConfig
+	kubeadmConfig kubeadm.KubeadmConfig
 	plugins       []v1.Plugin
 }
 
@@ -62,7 +60,7 @@ func (c *ClusterFile) GetPlugins() []v1.Plugin {
 	return c.plugins
 }
 
-func (c *ClusterFile) GetKubeadmConfig() *kubeadmconfig.KubeadmConfig {
+func (c *ClusterFile) GetKubeadmConfig() *kubeadm.KubeadmConfig {
 	return &c.kubeadmConfig
 }
 

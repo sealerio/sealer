@@ -22,9 +22,10 @@ import (
 	"strings"
 	"time"
 
+	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -134,7 +135,7 @@ func (k *Runtime) Command(version, master0IP string, name CommandType, token v1b
 	}
 
 	kv := versionUtils.Version(version)
-	cmp, err := kv.Compare(kubeadmconfig.V1150)
+	cmp, err := kv.Compare(kubeadm.V1150)
 	//other version >= 1.15.x
 	if err != nil {
 		logrus.Errorf("failed to compare Kubernetes version: %s", err)

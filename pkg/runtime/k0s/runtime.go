@@ -213,12 +213,12 @@ func (k *Runtime) CopyJoinToken(role string, hosts []net.IP) error {
 	return nil
 }
 
-func (k *Runtime) Command(role string) []string {
+func (k *Runtime) JoinCommand(role string) []string {
 	cmds := map[string][]string{
 		ControllerRole: {"mkdir -r /etc/k0s", fmt.Sprintf("k0s config create > %s", DefaultK0sConfigPath),
 			fmt.Sprintf("sed -i '/  images/ a\\    repository: \"%s:%s\"' %s", k.RegConfig.Domain, k.RegConfig.Port, DefaultK0sConfigPath),
-			fmt.Sprintf("k0s install controller --token-file %s -c %s",
-				DefaultK0sControllerJoin, DefaultK0sConfigPath),
+			fmt.Sprintf("k0s install controller --token-file %s -c %s --cri-socket %s",
+				DefaultK0sControllerJoin, DefaultK0sConfigPath, ExternalCRI),
 			"k0s start",
 		},
 		WorkerRole: {fmt.Sprintf("k0s install worker --cri-socket %s --token-file %s", ExternalCRI, DefaultK0sWorkerJoin),
@@ -227,7 +227,6 @@ func (k *Runtime) Command(role string) []string {
 
 	v, ok := cmds[role]
 	if !ok {
-		logrus.Errorf("failed to get k0s command: %v", cmds)
 		return nil
 	}
 	return v

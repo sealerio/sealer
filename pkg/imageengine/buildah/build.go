@@ -16,17 +16,14 @@ package buildah
 
 import (
 	"context"
-
 	"fmt"
-
-	"github.com/sealerio/sealer/pkg/define/options"
-
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/imagebuildah"
@@ -294,7 +291,7 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 	}
 
 	if wrapper.Quiet {
-		options.ReportWriter = ioutil.Discard
+		options.ReportWriter = io.Discard
 	}
 
 	return options, kubefiles, nil

@@ -21,7 +21,6 @@ import (
 	"io"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
+	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 )
 
 func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
@@ -66,7 +66,6 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			if err := yaml.Unmarshal(ext.Raw, &cfg); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
-
 			clusterfile.configs = append(clusterfile.configs, cfg)
 		case common.Plugin:
 			var plu v1.Plugin

@@ -16,7 +16,6 @@ package testhelper
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -63,7 +62,7 @@ func WriteFile(fileName string, content []byte) error {
 		}
 	}
 
-	if err := ioutil.WriteFile(fileName, content, settings.FileMode0644); err != nil {
+	if err := os.WriteFile(fileName, content, settings.FileMode0644); err != nil {
 		return err
 	}
 	return nil

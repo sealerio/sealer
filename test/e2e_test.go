@@ -15,7 +15,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -54,7 +53,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		"color": true
 	},
 	"TimeFormat":"2006-01-02 15:04:05"}`
-	err = ioutil.WriteFile(filepath.Join(home, ".sealer.json"), []byte(logcfg), os.ModePerm)
+	err = os.WriteFile(filepath.Join(home, ".sealer.json"), []byte(logcfg), os.ModePerm)
 	Expect(err).NotTo(HaveOccurred())
 	return nil
 }, func(data []byte) {

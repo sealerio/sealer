@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubeadmconfig
+package kubeadm
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -196,7 +195,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			k := tt.fields.KubeConfig
 			testfile := "test-Clusterfile"
-			err := ioutil.WriteFile(testfile, tt.args.kubeadmconfig, 0644)
+			err := os.WriteFile(testfile, tt.args.kubeadmconfig, 0644)
 			if err != nil {
 				t.Errorf("WriteFile %s error = %v, wantErr %v", testfile, err, tt.wantErr)
 			}

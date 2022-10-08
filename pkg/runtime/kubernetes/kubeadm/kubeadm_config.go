@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubeadmconfig
+package kubeadm
 
 import (
 	"fmt"
@@ -22,8 +22,7 @@ import (
 
 	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
-
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
+	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 
 	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"
@@ -40,7 +39,7 @@ import (
 // https://github.com/kubernetes/kubernetes/blob/master/cmd/kubeadm/app/apis/kubeadm/v1beta2/types.go
 // Using map to overwrite Kubeadm configs
 
-//nolint
+// nolint
 type KubeadmConfig struct {
 	v1beta2.InitConfiguration
 	v1beta2.ClusterConfiguration
@@ -180,7 +179,7 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	// TODO handle the kubeadm config, like kubeproxy config
 	//The configuration set here does not require merge
 
-	conf.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = masters[0]
+	conf.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = string(masters[0])
 	conf.ControlPlaneEndpoint = fmt.Sprintf("%s:6443", apiServerDomain)
 
 	if conf.APIServer.ExtraArgs == nil {

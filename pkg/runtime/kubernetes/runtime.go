@@ -32,10 +32,9 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"github.com/sealerio/sealer/utils"
 	utilsnet "github.com/sealerio/sealer/utils/net"
-
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,7 +43,7 @@ type Config struct {
 	VIP                          string
 	RegistryInfo                 registry.Info
 	containerRuntimeInfo         containerruntime.Info
-	KubeadmConfigFromClusterFile kubeadmconfig.KubeadmConfig
+	KubeadmConfigFromClusterFile kubeadm.KubeadmConfig
 	LvsImage                     string
 	APIServerDomain              string
 }
@@ -55,7 +54,7 @@ type Runtime struct {
 	Config *Config
 }
 
-func NewKubeadmRuntime(clusterFileKubeConfig kubeadmconfig.KubeadmConfig, infra infradriver.InfraDriver, containerRuntimeInfo containerruntime.Info, registryInfo registry.Info) (runtime.Installer, error) {
+func NewKubeadmRuntime(clusterFileKubeConfig kubeadm.KubeadmConfig, infra infradriver.InfraDriver, containerRuntimeInfo containerruntime.Info, registryInfo registry.Info) (runtime.Installer, error) {
 	k := &Runtime{
 		infra: infra,
 		Config: &Config{
@@ -144,7 +143,7 @@ func (k *Runtime) Reset() error {
 func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 
-	kubeadmConfig, err := kubeadmconfig.LoadKubeadmConfigs(KubeadmFileYml, utils.DecodeCRDFromFile)
+	kubeadmConfig, err := kubeadm.LoadKubeadmConfigs(KubeadmFileYml, utils.DecodeCRDFromFile)
 	if err != nil {
 		return err
 	}

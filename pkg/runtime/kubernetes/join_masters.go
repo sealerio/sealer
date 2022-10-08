@@ -18,15 +18,16 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
+	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/yaml"
 	"github.com/sirupsen/logrus"
 )
 
-func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig kubeadmconfig.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery, certKey string) error {
+func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig kubeadm.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery, certKey string) error {
 	if len(newMasters) == 0 {
 		return nil
 	}
@@ -66,7 +67,7 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 
 		kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken = &token
 		kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = vs
-		kubeadmConfig.JoinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = m
+		kubeadmConfig.JoinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = string(m)
 		kubeadmConfig.JoinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort = int32(6443)
 		kubeadmConfig.JoinConfiguration.ControlPlane.CertificateKey = certKey
 		str, err := yaml.MarshalWithDelimiter(kubeadmConfig.JoinConfiguration, kubeadmConfig.KubeletConfiguration)

@@ -17,7 +17,6 @@ package ssh
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -203,7 +202,7 @@ func (s *SSH) remoteMd5Sum(host net.IP, remoteFilePath string) string {
 }
 
 func (s *SSH) copyLocalDirToRemote(host net.IP, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
-	localFiles, err := ioutil.ReadDir(localPath)
+	localFiles, err := os.ReadDir(localPath)
 	if err != nil {
 		logrus.Errorf("failed to read local path dir(%s) on host(%s): %s", localPath, host, err)
 		return

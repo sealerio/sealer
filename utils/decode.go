@@ -31,9 +31,9 @@ import (
 	"k8s.io/kubelet/config/v1beta1"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadmconfig/v1beta2"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 )
 
 const typeV1 = "zlink.aliyun.com/v1alpha1"
