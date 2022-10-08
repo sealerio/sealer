@@ -98,8 +98,8 @@ func Test_validateIPStr(t *testing.T) {
 
 func Test_ParseToNetIPList(t *testing.T) {
 	type args struct {
-		testmasters []net.IP
-		testnodes   []net.IP
+		testMasters []net.IP
+		testNodes   []net.IP
 	}
 	tests := []struct {
 		name    string
@@ -112,8 +112,8 @@ func Test_ParseToNetIPList(t *testing.T) {
 			masters: "192.168.1.1,192.168.1.2,192.168.1.3",
 			nodes:   "192.168.1.4,192.168.1.5,192.168.1.6",
 			want: args{
-				testmasters: []net.IP{net.ParseIP("192.168.1.1"), net.ParseIP("192.168.1.2"), net.ParseIP("192.168.1.3")},
-				testnodes:   []net.IP{net.ParseIP("192.168.1.4"), net.ParseIP("192.168.1.5"), net.ParseIP("192.168.1.6")},
+				testMasters: []net.IP{net.ParseIP("192.168.1.1"), net.ParseIP("192.168.1.2"), net.ParseIP("192.168.1.3")},
+				testNodes:   []net.IP{net.ParseIP("192.168.1.4"), net.ParseIP("192.168.1.5"), net.ParseIP("192.168.1.6")},
 			},
 		},
 	}
@@ -121,11 +121,11 @@ func Test_ParseToNetIPList(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			masterList, nodeList, err := ParseToNetIPList(tt.masters, tt.nodes)
 			if err != nil {
-				t.Errorf("%v", err)
+				t.Errorf("failed to parsing IP, error:%v", err)
 			}
 			assert.NotNil(t, masterList, nodeList)
-			assert.Equal(t, masterList, tt.want.testmasters)
-			assert.Equal(t, nodeList, tt.want.testnodes)
+			assert.Equal(t, masterList, tt.want.testMasters)
+			assert.Equal(t, nodeList, tt.want.testNodes)
 		})
 	}
 }
