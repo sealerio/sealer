@@ -139,7 +139,7 @@ func ConstructClusterForJoin(cluster *v2.Cluster, scaleArgs *types.Args, joinMas
 func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersToDelete []net.IP) error {
 	if len(mastersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
-			if !strUtils.NotIn(common.MASTER, cluster.Spec.Hosts[i].Roles) {
+			if strUtils.IsInSlice(common.MASTER, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = removeIPList(cluster.Spec.Hosts[i].IPS, mastersToDelete)
 			}
 		}
@@ -147,7 +147,7 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 
 	if len(workersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
-			if !strUtils.NotIn(common.NODE, cluster.Spec.Hosts[i].Roles) {
+			if strUtils.IsInSlice(common.NODE, cluster.Spec.Hosts[i].Roles) {
 				cluster.Spec.Hosts[i].IPS = removeIPList(cluster.Spec.Hosts[i].IPS, workersToDelete)
 			}
 		}
