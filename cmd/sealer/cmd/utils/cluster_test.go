@@ -19,6 +19,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
+
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/stretchr/testify/assert"
 
@@ -129,13 +131,74 @@ status: {}`
 			}
 			var ips []net.IP
 			for _, host := range cluster.Spec.Hosts {
-				for _, ip := range host.IPS {
-					ips = append(ips, ip)
-				}
+				ips = append(ips, host.IPS...)
 			}
-			expectIp := append(tt.want.expectMaster, tt.want.expectNode...)
+			expectIP := append(tt.want.expectMaster, tt.want.expectNode...)
 			assert.NotNil(t, ips)
-			assert.Equal(t, expectIp, ips)
+			assert.Equal(t, expectIP, ips)
+		})
+	}
+}
+
+// func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, joinMasters, joinWorkers []net.IP) error {
+func Test_ConstructClusterForScaleUp(t *testing.T) {
+	data := `apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  creationTimestamp: null
+  name: my-cluster
+spec:
+  hosts:
+  - ips:
+    - 172.16.0.230
+    roles:
+    - master
+    ssh: {}
+  - ips:
+    - 172.16.0.233
+    roles:
+    - node
+    ssh: {}`
+
+	type want struct {
+		expectMaster []net.IP
+		expectNode   []net.IP
+	}
+
+	tests := []struct {
+		name string
+		//scaleFlags  *types.Flags
+		joinMasters []net.IP
+		joinWorkers []net.IP
+		want        want
+	}{
+		{
+			name:        "test scale up to build clusters ",
+			joinMasters: []net.IP{net.ParseIP("172.16.0.231"), net.ParseIP("172.16.0.232")},
+			joinWorkers: []net.IP{net.ParseIP("172.16.0.234"), net.ParseIP("172.16.0.235")},
+			want: want{
+				expectMaster: []net.IP{net.ParseIP("172.16.0.230"), net.ParseIP("172.16.0.231"), net.ParseIP("172.16.0.232")},
+				expectNode:   []net.IP{net.ParseIP("172.16.0.233"), net.ParseIP("172.16.0.234"), net.ParseIP("172.16.0.235")},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cf, err := clusterfile.NewClusterFile([]byte(data))
+			if err != nil {
+				t.Errorf("failed to NewClusterFile by name,error:%v", err)
+			}
+			cluster := cf.GetCluster()
+			if err := ConstructClusterForScaleUp(&cluster, &types.Flags{}, tt.joinMasters, tt.joinWorkers); err != nil {
+				t.Errorf("Scale up failed to reduce a cluster node,error:%v", err)
+			}
+			var ips []net.IP
+			for _, host := range cluster.Spec.Hosts {
+				ips = append(ips, host.IPS...)
+			}
+			expectIP := append(tt.want.expectMaster, tt.want.expectNode...)
+			assert.NotNil(t, ips)
+			assert.Equal(t, expectIP, ips)
 		})
 	}
 }
