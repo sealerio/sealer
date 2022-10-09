@@ -1,0 +1,8 @@
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+kubernetesVersion: v1.19.8
+controlPlaneEndpoint: "apiserver.cluster.local:6443"
+imageRepository: sea.hub:5000/library
+networking:
+  podSubnet: {{ .PodCIDR }}
+  serviceSubnet: {{ .SvcCIDR }}

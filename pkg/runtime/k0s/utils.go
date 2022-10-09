@@ -61,7 +61,7 @@ func GenerateRegistryCert(registryCertPath string, baseName string) error {
 
 func FetchKubeconfigAndGetKubectl(ssh ssh.Interface, host net.IP, rootfs string) error {
 	// fetch the cluster kubeconfig
-	err := ssh.Fetch(host, path.Join(common.DefaultKubeConfigDir(), "config"), DefaultAdminConf)
+	err := ssh.CopyR(host, path.Join(common.DefaultKubeConfigDir(), "config"), DefaultAdminConf)
 	if err != nil {
 		return errors.Wrap(err, "failed to copy kubeconfig")
 	}

@@ -14,14 +14,6 @@
 
 package ssh
 
-import (
-	"net"
-	"testing"
-
-	"github.com/sealerio/sealer/utils/os/fs"
-	"github.com/sirupsen/logrus"
-)
-
 /*
 func TestSSHCopyLocalToRemote(t *testing.T) {
 	type args struct {
@@ -112,65 +104,65 @@ func TestSSHCopyLocalToRemote(t *testing.T) {
 	}
 }*/
 
-func TestSSHFetchRemoteToLocal(t *testing.T) {
-	type args struct {
-		host       net.IP
-		localPath  string
-		remotePath string
-	}
-	var (
-		host = net.IP{}
-		ssh  = SSH{
-			User:       "root",
-			Password:   "",
-			PkFile:     "",
-			PkPassword: "",
-			Timeout:    nil,
-		}
-	)
-	tests := []struct {
-		name    string
-		fields  SSH
-		args    args
-		wantErr bool
-	}{
-		{
-			name:   "test for fetch remote file to local",
-			fields: ssh,
-			args: args{
-				host,
-				"/root/.kube/config",
-				"/root/Clusterfile",
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ss := &SSH{
-				User:       tt.fields.User,
-				Password:   tt.fields.Password,
-				PkFile:     tt.fields.PkFile,
-				PkPassword: tt.fields.PkPassword,
-				Timeout:    tt.fields.Timeout,
-				Fs:         fs.NewFilesystem(),
-			}
-
-			if exist, err := ss.IsFileExist(host, tt.args.remotePath); err != nil {
-				logrus.Error("err: ", err)
-				return
-			} else if !exist {
-				logrus.Error("remote filepath is not exit")
-				return
-			}
-			err := ss.Fetch(tt.args.host, tt.args.localPath, tt.args.remotePath)
-			if (err != nil) != tt.wantErr {
-				logrus.Error(err)
-				t.Errorf("err: %v", err)
-			}
-		})
-	}
-}
+//func TestSSHFetchRemoteToLocal(t *testing.T) {
+//	type args struct {
+//		host       net.IP
+//		localPath  string
+//		remotePath string
+//	}
+//	var (
+//		host = net.IP{}
+//		ssh  = SSH{
+//			User:       "root",
+//			Password:   "",
+//			PkFile:     "",
+//			PkPassword: "",
+//			Timeout:    nil,
+//		}
+//	)
+//	tests := []struct {
+//		name    string
+//		fields  SSH
+//		args    args
+//		wantErr bool
+//	}{
+//		{
+//			name:   "test for fetch remote file to local",
+//			fields: ssh,
+//			args: args{
+//				host,
+//				"/root/.kube/config",
+//				"/root/Clusterfile",
+//			},
+//			wantErr: false,
+//		},
+//	}
+//	for _, tt := range tests {
+//		t.Run(tt.name, func(t *testing.T) {
+//			ss := &SSH{
+//				User:       tt.fields.User,
+//				Password:   tt.fields.Password,
+//				PkFile:     tt.fields.PkFile,
+//				PkPassword: tt.fields.PkPassword,
+//				Timeout:    tt.fields.Timeout,
+//				Fs:         fs.NewFilesystem(),
+//			}
+//
+//			if exist, err := ss.IsFileExist(host, tt.args.remotePath); err != nil {
+//				logrus.Error("err: ", err)
+//				return
+//			} else if !exist {
+//				logrus.Error("remote filepath is not exit")
+//				return
+//			}
+//			err := ss.CopyR(tt.args.host, tt.args.localPath, tt.args.remotePath)
+//			if (err != nil) != tt.wantErr {
+//				logrus.Error(err)
+//				t.Errorf("err: %v", err)
+//			}
+//		})
+//	}
+//}
 
 /*
 func TestSSH_Copy(t *testing.T) {

@@ -123,7 +123,8 @@ func GetLocalIP(master0IPPort string) (net.IP, error) {
 	return net.ParseIP(strings.Split(localAddr, ":")[0]), err
 }
 
-func AssemblyIPList(ipStr string) (string, error) {
+//TransferToIPList transfer network segment string to ip list string
+func TransferToIPList(ipStr string) (string, error) {
 	var result []string
 	var ips = strings.Split(ipStr, "-")
 	if ipStr == "" || !strings.Contains(ipStr, "-") {
@@ -182,7 +183,7 @@ func DisassembleIPList(arg string) []net.IP {
 	for _, i := range ipList {
 		if strings.Contains(i, "-") {
 			// #nosec
-			ipStr, err := AssemblyIPList(i)
+			ipStr, err := TransferToIPList(i)
 			if err != nil {
 				fmt.Printf("failed to get Addr: %v", err)
 				continue
@@ -253,13 +254,13 @@ func SortIPList(iplist []string) {
 	}
 }
 
-func NotInIPList(key net.IP, slice []net.IP) bool {
+func IsInIPList(key net.IP, slice []net.IP) bool {
 	for _, s := range slice {
 		if s.Equal(key) {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func IPStrsToIPs(ipStrs []string) []net.IP {
@@ -269,6 +270,9 @@ func IPStrsToIPs(ipStrs []string) []net.IP {
 
 	var result []net.IP
 	for _, ipStr := range ipStrs {
+		if ipStr == "" {
+			continue
+		}
 		result = append(result, net.ParseIP(ipStr))
 	}
 	return result
@@ -284,4 +288,20 @@ func IPsToIPStrs(ips []net.IP) []string {
 		result = append(result, ip.String())
 	}
 	return result
+}
+
+func RemoveIPs(old, toRemove []net.IP) []net.IP {
+	toRmMap := make(map[string]bool)
+	for _, md := range toRemove {
+		toRmMap[md.String()] = true
+	}
+
+	var remains []net.IP
+	for _, m := range old {
+		if _, ok := toRmMap[m.String()]; !ok {
+			remains = append(remains, m)
+		}
+	}
+
+	return remains
 }

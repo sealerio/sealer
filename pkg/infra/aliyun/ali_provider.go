@@ -123,7 +123,7 @@ func (a *AliProvider) ReconcileResource(resourceKey string, action Alifunc) erro
 }
 
 func (a *AliProvider) SaveToDisk() error {
-	fileName := common.GetClusterWorkClusterfile(a.Cluster.Name)
+	fileName := common.GetDefaultClusterfile()
 	err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("mkdir failed %s %v", fileName, err)

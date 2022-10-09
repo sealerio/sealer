@@ -19,10 +19,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/config"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 )
 
 func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
@@ -61,24 +59,14 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			if err := yaml.Unmarshal(ext.Raw, &cluster); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
-			clusterfile.cluster = cluster
-
+			clusterfile.cluster = &cluster
 		case common.Config:
 			var cfg v1.Config
 
 			if err := yaml.Unmarshal(ext.Raw, &cfg); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
-
-			cfg.Spec.Data = strings.TrimSuffix(cfg.Spec.Data, "\n")
-
-			err := config.NewProcessorsAndRun(&cfg)
-			if err != nil {
-				return err
-			}
-
 			clusterfile.configs = append(clusterfile.configs, cfg)
-
 		case common.Plugin:
 			var plu v1.Plugin
 
@@ -86,9 +74,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 
-			plu.Spec.Data = strings.TrimSuffix(plu.Spec.Data, "\n")
 			clusterfile.plugins = append(clusterfile.plugins, plu)
-
 		case common.InitConfiguration:
 			var in v1beta2.InitConfiguration
 
@@ -97,7 +83,6 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			}
 
 			clusterfile.kubeadmConfig.InitConfiguration = in
-
 		case common.JoinConfiguration:
 			var in v1beta2.JoinConfiguration
 
@@ -106,7 +91,6 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			}
 
 			clusterfile.kubeadmConfig.JoinConfiguration = in
-
 		case common.ClusterConfiguration:
 			var in v1beta2.ClusterConfiguration
 
@@ -115,7 +99,6 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			}
 
 			clusterfile.kubeadmConfig.ClusterConfiguration = in
-
 		case common.KubeletConfiguration:
 			var in v1beta1.KubeletConfiguration
 
@@ -124,7 +107,6 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			}
 
 			clusterfile.kubeadmConfig.KubeletConfiguration = in
-
 		case common.KubeProxyConfiguration:
 			var in v1alpha1.KubeProxyConfiguration
 

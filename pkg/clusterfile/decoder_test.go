@@ -19,14 +19,15 @@ import (
 	"os"
 	"testing"
 
+	"github.com/sealerio/sealer/common"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kube-proxy/config/v1alpha1"
 )
 
-func TestDecodeClusterFile(t *testing.T) {
-	data := `apiVersion: sealer.com/v1alpha1
+const data = `apiVersion: sealer.com/v1alpha1
 kind: Config
 metadata:
   name: mysql-config
@@ -53,7 +54,7 @@ metadata:
 spec:
   type: SHELL
   action: PostInstall # PreInit PostInstall
-  'on': master #on field type needs to be enclosed in quotes
+  scope: master
   data: |
     kubectl get nodes
 ---
@@ -98,6 +99,9 @@ ipvs:
   excludeCIDRs:
     - "10.103.97.2/32"`
 
+const APIVersion = "sealer.aliyun.com/v1alpha1"
+
+func TestDecodeClusterFile(t *testing.T) {
 	cluster := v2.Cluster{
 		Spec: v2.ClusterSpec{
 			Image: "kubernetes:v1.19.8",
@@ -134,19 +138,19 @@ ipvs:
 	plugin1 := v1.Plugin{
 		Spec: v1.PluginSpec{
 			Type:   "HOSTNAME",
-			Data:   "192.168.0.2 master-0",
+			Data:   "192.168.0.2 master-0\n",
 			Action: "PreInit",
 		},
 	}
 	plugin1.Name = "MyHostname"
-	plugin1.Kind = "Plugin"
-	plugin1.APIVersion = "sealer.aliyun.com/v1alpha1"
+	plugin1.Kind = common.Plugin
+	plugin1.APIVersion = APIVersion
 
 	plugin2 := v1.Plugin{
 		Spec: v1.PluginSpec{
 			Type:   "SHELL",
-			Data:   "kubectl get nodes",
-			On:     "master",
+			Data:   "kubectl get nodes\n",
+			Scope:  "master",
 			Action: "PostInstall",
 		},
 	}
@@ -157,7 +161,7 @@ ipvs:
 	config := v1.Config{
 		Spec: v1.ConfigSpec{
 			Path: "etc/mysql.yaml",
-			Data: "mysql-user: root\nmysql-passwd: xxx",
+			Data: "mysql-user: root\nmysql-passwd: xxx\n",
 		},
 	}
 	config.Name = "mysql-config"
@@ -207,7 +211,7 @@ ipvs:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i, err := NewClusterFile(f.Name())
+			i, err := NewClusterFile([]byte(data))
 			if err != nil {
 				assert.Errorf(t, err, "failed to NewClusterFile by name")
 			}

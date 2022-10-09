@@ -27,6 +27,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+var FS = NewFilesystem()
+
 type Interface interface {
 	Stat(name string) (os.FileInfo, error)
 	Rename(oldPath, newPath string) error
@@ -45,6 +47,24 @@ func (f filesystem) Stat(name string) (os.FileInfo, error) {
 }
 
 func (f filesystem) Rename(oldPath, newPath string) error {
+	// remove newPath before mv files to target
+	_, err := f.Stat(newPath)
+	if err == nil {
+		err = f.RemoveAll(newPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	// create dir if filepath.Dir(newPath) not exist
+	_, err = f.Stat(filepath.Dir(newPath))
+	if err != nil {
+		err = f.MkdirAll(filepath.Dir(newPath))
+		if err != nil {
+			return err
+		}
+	}
+
 	return os.Rename(oldPath, newPath)
 }
 

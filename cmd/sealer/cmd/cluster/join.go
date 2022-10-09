@@ -15,55 +15,144 @@
 package cluster
 
 import (
-	"github.com/spf13/cobra"
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
 
-	"github.com/sealerio/sealer/apply"
+	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/spf13/cobra"
 )
 
-var clusterName string
-var joinArgs *apply.Args
+var joinFlags *types.Flags
+
+var longJoinCmdDescription = `join command is used to join master or node to the existing cluster.
+User can join cluster by explicitly specifying host IP`
 
 var exampleForJoinCmd = `
-join default cluster:
-	sealer join --masters x.x.x.x --nodes x.x.x.x
-    sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
+join cluster:
+	sealer join --masters x.x.x.x --nodes x.x.x.x -p xxxx
+    sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y -p xxx
 `
 
 func NewJoinCmd() *cobra.Command {
 	joinCmd := &cobra.Command{
-		Use:   "join",
-		Short: "join new master or worker node to specified cluster",
-		// TODO: add long description.
-		Long:    "",
+		Use:     "join",
+		Short:   "join new master or worker node to specified cluster",
+		Long:    longJoinCmdDescription,
 		Args:    cobra.NoArgs,
 		Example: exampleForJoinCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if clusterName == "" {
-				cn, err := clusterfile.GetDefaultClusterName()
-				if err != nil {
-					return err
-				}
-				clusterName = cn
+			var (
+				cf  clusterfile.Interface
+				err error
+			)
+
+			if err = utils.ValidateScaleIPStr(joinFlags.Masters, joinFlags.Nodes); err != nil {
+				return fmt.Errorf("failed to validate input run args: %v", err)
 			}
-			path := common.GetClusterWorkClusterfile(clusterName)
-			applier, err := apply.NewScaleApplierFromArgs(path, joinArgs, common.JoinSubCmd)
+
+			joinMasterIPList, joinNodeIPList, err := utils.ParseToNetIPList(joinFlags.Masters, joinFlags.Nodes)
+			if err != nil {
+				return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
+			}
+
+			workClusterfile := common.GetDefaultClusterfile()
+			clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
 			if err != nil {
 				return err
 			}
-			return applier.Apply()
+
+			cf, err = clusterfile.NewClusterFile(clusterFileData)
+			if err != nil {
+				return err
+			}
+
+			cluster := cf.GetCluster()
+			if err = utils.ConstructClusterForScaleUp(&cluster, joinFlags, joinMasterIPList, joinNodeIPList); err != nil {
+				return err
+			}
+
+			cf.SetCluster(cluster)
+			infraDriver, err := infradriver.NewInfraDriver(&cluster)
+			if err != nil {
+				return err
+			}
+
+			var (
+				clusterImageName = cluster.Spec.Image
+				newHosts         = append(joinMasterIPList, joinNodeIPList...)
+			)
+
+			clusterHostsPlatform, err := infraDriver.GetHostsPlatform(newHosts)
+			if err != nil {
+				return err
+			}
+
+			imageMounter, err := imagedistributor.NewImageMounter(clusterHostsPlatform)
+			if err != nil {
+				return err
+			}
+
+			imageMountInfo, err := imageMounter.Mount(clusterImageName)
+			if err != nil {
+				return err
+			}
+			defer func() {
+				err = imageMounter.Umount(imageMountInfo)
+				if err != nil {
+					logrus.Errorf("failed to umount cluster image")
+				}
+			}()
+
+			distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+			if err != nil {
+				return err
+			}
+
+			runtimeConfig := &clusterruntime.RuntimeConfig{
+				Distributor: distributor,
+			}
+			if cf.GetPlugins() != nil {
+				runtimeConfig.Plugins = cf.GetPlugins()
+			}
+
+			if cf.GetKubeadmConfig() != nil {
+				runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+			}
+
+			installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+			if err != nil {
+				return err
+			}
+			_, _, err = installer.ScaleUp(joinMasterIPList, joinNodeIPList)
+			if err != nil {
+				return err
+			}
+
+			if err = cf.SaveAll(); err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
-	joinArgs = &apply.Args{}
-	joinCmd.Flags().StringVarP(&joinArgs.User, "user", "u", "root", "set baremetal server username")
-	joinCmd.Flags().StringVarP(&joinArgs.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
-	joinCmd.Flags().Uint16Var(&joinArgs.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
-	joinCmd.Flags().StringVar(&joinArgs.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
-	joinCmd.Flags().StringVar(&joinArgs.PkPassword, "pk-passwd", "", "set baremetal server private key password")
-	joinCmd.Flags().StringSliceVarP(&joinArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	joinCmd.Flags().StringVarP(&joinArgs.Masters, "masters", "m", "", "set Count or IPList to masters")
-	joinCmd.Flags().StringVarP(&joinArgs.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
-	joinCmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "specify the name of cluster")
+
+	joinFlags = &types.Flags{}
+	joinCmd.Flags().StringVarP(&joinFlags.User, "user", "u", "root", "set baremetal server username")
+	joinCmd.Flags().StringVarP(&joinFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
+	joinCmd.Flags().Uint16Var(&joinFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
+	joinCmd.Flags().StringVar(&joinFlags.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
+	joinCmd.Flags().StringVar(&joinFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
+	joinCmd.Flags().StringSliceVarP(&joinFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
+	joinCmd.Flags().StringVarP(&joinFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
+	joinCmd.Flags().StringVarP(&joinFlags.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
 	return joinCmd
 }

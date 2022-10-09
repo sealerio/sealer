@@ -25,7 +25,6 @@ import (
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sealerio/sealer/utils/ssh"
 
@@ -51,9 +50,6 @@ func (k *Runtime) Upgrade() error {
 
 func (k *Runtime) Reset() error {
 	logrus.Infof("Start to delete cluster: master %s, node %s", k.cluster.GetMasterIPList(), k.cluster.GetNodeIPList())
-	if err := k.confirmDeleteNodes(); err != nil {
-		return err
-	}
 	return k.reset()
 }
 
@@ -74,21 +70,17 @@ func (k *Runtime) JoinNodes(newNodesIPList []net.IP) error {
 func (k *Runtime) DeleteMasters(mastersIPList []net.IP) error {
 	if len(mastersIPList) != 0 {
 		logrus.Infof("master %s will be deleted", mastersIPList)
-		if err := k.confirmDeleteNodes(); err != nil {
-			return err
-		}
+		return k.deleteMasters(mastersIPList)
 	}
-	return k.deleteMasters(mastersIPList)
+	return nil
 }
 
 func (k *Runtime) DeleteNodes(nodesIPList []net.IP) error {
 	if len(nodesIPList) != 0 {
 		logrus.Infof("worker %s will be deleted", nodesIPList)
-		if err := k.confirmDeleteNodes(); err != nil {
-			return err
-		}
+		return k.deleteNodes(nodesIPList)
 	}
-	return k.deleteNodes(nodesIPList)
+	return nil
 }
 
 func (k *Runtime) GetClusterMetadata() (*runtime.Metadata, error) {
@@ -97,11 +89,11 @@ func (k *Runtime) GetClusterMetadata() (*runtime.Metadata, error) {
 
 // NewK0sRuntime arg "clusterConfig" is the k0s config file under etc/${ant_name.yaml}, runtime need read k0s config from it
 // Mount image is required before new Runtime.
-func NewK0sRuntime(cluster *v2.Cluster) (runtime.Interface, error) {
+func NewK0sRuntime(cluster *v2.Cluster) (runtime.Installer, error) {
 	return newK0sRuntime(cluster)
 }
 
-func newK0sRuntime(cluster *v2.Cluster) (runtime.Interface, error) {
+func newK0sRuntime(cluster *v2.Cluster) (runtime.Installer, error) {
 	k := &Runtime{
 		cluster: cluster,
 	}
@@ -113,7 +105,9 @@ func newK0sRuntime(cluster *v2.Cluster) (runtime.Interface, error) {
 	}
 
 	setDebugLevel(k)
-	return k, nil
+	// todo need to adapt the new runtime interface.temporarily return nil
+	return nil, nil
+	//return k, nil
 }
 
 func setDebugLevel(k *Runtime) {
@@ -236,17 +230,6 @@ func (k *Runtime) JoinCommand(role string) []string {
 		return nil
 	}
 	return v
-}
-
-func (k *Runtime) confirmDeleteNodes() error {
-	if !runtime.ForceDelete {
-		if pass, err := utils.ConfirmOperation("Are you sure to delete these nodes? "); err != nil {
-			return err
-		} else if !pass {
-			return fmt.Errorf("exit the operation of delete these nodes")
-		}
-	}
-	return nil
 }
 
 // CmdToString is in host exec cmd and replace to spilt str

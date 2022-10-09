@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	MASTER  = "master"
+	MASTER = "master"
+	// TODO，警惕，不能通过此标志来获取worker，因为master也可以role=node
 	NODE    = "node"
 	MASTER0 = "master0"
 )
@@ -36,6 +37,7 @@ const (
 	RootfsLayerValue   = "rootfs cache"
 )
 
+// todo clean all unused const make build file size less
 const (
 	DefaultWorkDir                = "/tmp/%s/workdir"
 	EtcDir                        = "etc"
@@ -43,9 +45,9 @@ const (
 	DefaultLiteBuildUpper         = "/var/lib/sealer/tmp/lite_build_upper"
 	DefaultLogDir                 = "/var/lib/sealer/log"
 	DefaultClusterFileName        = "Clusterfile"
-	DefaultClusterRootfsDir       = "/var/lib/sealer/data"
+	DefaultSealerDataDir          = "/var/lib/sealer/data"
 	DefaultClusterInitBashFile    = "/var/lib/sealer/data/%s/scripts/init.sh"
-	DefaultClusterClearBashFile   = "/var/lib/sealer/data/%s/rootfs/scripts/clean.sh"
+	DefaultClusterCleanBashFile   = "%s/scripts/clean.sh"
 	TarGzSuffix                   = ".tar.gz"
 	YamlSuffix                    = ".yaml"
 	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
@@ -138,12 +140,12 @@ const (
 	WINDOWS            = "windows"
 )
 
-func GetClusterWorkDir(clusterName string) string {
-	return filepath.Join(GetHomeDir(), ".sealer", clusterName)
+func GetSealerWorkDir() string {
+	return filepath.Join(GetHomeDir(), ".sealer")
 }
 
-func GetClusterWorkClusterfile(clusterName string) string {
-	return filepath.Join(GetClusterWorkDir(clusterName), "Clusterfile")
+func GetDefaultClusterfile() string {
+	return filepath.Join(GetSealerWorkDir(), "Clusterfile")
 }
 
 func DefaultRegistryAuthConfigDir() string {
@@ -159,31 +161,27 @@ func DefaultKubeConfigFile() string {
 }
 
 func DefaultTheClusterRootfsDir(clusterName string) string {
-	return filepath.Join(DefaultClusterRootfsDir, clusterName, "rootfs")
+	return filepath.Join(DefaultSealerDataDir, clusterName, "rootfs")
 }
 
 func DefaultTheClusterNydusdDir(clusterName string) string {
-	return filepath.Join(DefaultClusterRootfsDir, clusterName, "nydusd")
+	return filepath.Join(DefaultSealerDataDir, clusterName, "nydusd")
 }
 
 func DefaultTheClusterNydusdFileDir(clusterName string) string {
-	return filepath.Join(DefaultClusterRootfsDir, clusterName, "nydusdfile")
+	return filepath.Join(DefaultSealerDataDir, clusterName, "nydusdfile")
 }
 
 func DefaultTheClusterRootfsPluginDir(clusterName string) string {
 	return filepath.Join(DefaultTheClusterRootfsDir(clusterName), "plugins")
 }
 
-func TheDefaultClusterPKIDir(clusterName string) string {
-	return filepath.Join(DefaultClusterRootfsDir, clusterName, "pki")
-}
-
 func TheDefaultClusterCertDir(clusterName string) string {
-	return filepath.Join(DefaultClusterRootfsDir, clusterName, "certs")
+	return filepath.Join(DefaultSealerDataDir, clusterName, "certs")
 }
 
 func DefaultClusterBaseDir(clusterName string) string {
-	return filepath.Join(DefaultClusterRootfsDir, clusterName)
+	return filepath.Join(DefaultSealerDataDir, clusterName)
 }
 
 func GetHomeDir() string {

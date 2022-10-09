@@ -15,10 +15,13 @@
 package fs
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMkdir(t *testing.T) {
@@ -41,6 +44,57 @@ func TestMkdir(t *testing.T) {
 			if err := NewFilesystem().MkdirAll(tt.args.dirName); (err != nil) != tt.wantErr {
 				t.Errorf("Mkdir() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func TestRenameDir(t *testing.T) {
+	oldPath := "/tmp/mytest"
+	newPath := "/tmp/abc/mytest"
+	defer os.RemoveAll(newPath)
+
+	err := FS.MkdirAll(oldPath)
+	if err != nil {
+		t.Fatalf("TempDir %s: %v", t.Name(), err)
+	}
+
+	filename := "tmp-file"
+	data := []byte("i am a tmp file\n")
+	if err := ioutil.WriteFile(filepath.Join(oldPath, filename), data, 0644); err != nil {
+		t.Fatalf("WriteFile %s: %v", filename, err)
+	}
+
+	type args struct {
+		filename    string
+		fileContent []byte
+		newPath     string
+		oldPath     string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"test rename dri",
+			args{
+				filename:    filename,
+				fileContent: data,
+				oldPath:     oldPath,
+				newPath:     newPath},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := FS.Rename(tt.args.oldPath, tt.args.newPath); (err != nil) != tt.wantErr {
+				t.Errorf("Rename() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			content, err := ioutil.ReadFile(filepath.Join(tt.args.newPath, filename))
+			assert.NoErrorf(t, err, "failed to load file content form new path")
+			assert.Equal(t, tt.args.fileContent, content)
 		})
 	}
 }

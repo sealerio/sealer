@@ -66,22 +66,22 @@ func fileExist(path string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func ReadPipe(stdout, stderr io.Reader, isStdout bool) {
+func ReadPipe(stdout, stderr io.Reader, alsoToStdout bool) {
 	var combineSlice []string
 	var combineLock sync.Mutex
 	doneout := make(chan error, 1)
 	doneerr := make(chan error, 1)
 	go func() {
-		doneerr <- readPipe(stderr, &combineSlice, &combineLock, isStdout)
+		doneerr <- readPipe(stderr, &combineSlice, &combineLock, alsoToStdout)
 	}()
 	go func() {
-		doneout <- readPipe(stdout, &combineSlice, &combineLock, isStdout)
+		doneout <- readPipe(stdout, &combineSlice, &combineLock, alsoToStdout)
 	}()
 	<-doneerr
 	<-doneout
 }
 
-func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, isStdout bool) error {
+func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, alsoToStdout bool) error {
 	r := bufio.NewReader(pipe)
 	for {
 		line, _, err := r.ReadLine()
@@ -92,7 +92,7 @@ func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, i
 		combineLock.Lock()
 		*combineSlice = append(*combineSlice, string(line))
 		logrus.Tracef("command execution result is: %s", line)
-		if isStdout {
+		if alsoToStdout {
 			fmt.Println(string(line))
 		}
 		combineLock.Unlock()
@@ -107,7 +107,7 @@ func GetClusterPlatform(cluster *v2.Cluster) (map[string]v1.Platform, error) {
 		if err != nil {
 			return nil, err
 		}
-		clusterStatus[IP.String()], err = ssh.Platform(IP)
+		clusterStatus[IP.String()], err = ssh.GetPlatform(IP)
 		if err != nil {
 			return nil, err
 		}

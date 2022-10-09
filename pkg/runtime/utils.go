@@ -72,7 +72,7 @@ func GetClusterImagePlatform(rootfs string) (cp ocispecs.Platform) {
 	return
 }
 
-func RemoteCerts(altNames []string, hostIP net.IP, hostName, serviceCIRD, DNSDomain string) string {
+func RemoteCertCmd(altNames []string, hostIP net.IP, hostName, serviceCIRD, DNSDomain string) string {
 	cmd := "seautil cert gen "
 	if hostIP != nil {
 		cmd += fmt.Sprintf(" --node-ip %s", hostIP.String())

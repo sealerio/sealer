@@ -18,193 +18,103 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"path"
 	"strings"
+
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
+	"github.com/sealerio/sealer/utils/shellcommand"
+	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 
 	"github.com/sealerio/sealer/pkg/ipvs"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/pkg/errors"
 )
 
-const (
-	RemoteAddIPVS                   = "seautil ipvs --vs %s:6443 %s --health-path /healthz --health-schem https --run-once"
-	RemoteStaticPodMkdir            = "mkdir -p /etc/kubernetes/manifests"
-	RemoteJoinConfig                = `echo "%s" > %s/etc/kubeadm.yml`
-	LvscareDefaultStaticPodFileName = "/etc/kubernetes/manifests/kube-lvscare.yaml"
-	RemoteAddIPVSEtcHosts           = "echo %s %s >> /etc/hosts"
-	RemoteCheckRoute                = "seautil route check --host %s"
-	RemoteAddRoute                  = "seautil route add --host %s --gateway %s"
-	RemoteDelRoute                  = "if command -v seautil > /dev/null 2>&1; then seautil route del --host %s --gateway %s; fi"
-	LvscareStaticPodCmd             = `echo "%s" > %s`
-)
-
-func (k *Runtime) joinNodeConfig(nodeIP net.IP) ([]byte, error) {
-	// TODO get join config from config file
-	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
-	cGroupDriver, err := k.getCgroupDriverFromShell(nodeIP)
-	if err != nil {
-		return nil, err
-	}
-	k.setCgroupDriver(cGroupDriver)
-	// bugfix: keep the same CRISocket with InitConfiguration
-	k.JoinConfiguration.NodeRegistration.CRISocket = k.InitConfiguration.NodeRegistration.CRISocket
-	return yaml.MarshalWithDelimiter(k.JoinConfiguration, k.KubeletConfiguration)
-}
-
-func (k *Runtime) joinNodes(nodes []net.IP) error {
-	if len(nodes) == 0 {
+func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery) error {
+	if len(newNodes) == 0 {
 		return nil
 	}
-	if err := k.MergeKubeadmConfig(); err != nil {
+
+	//TODO: bugfix: keep the same CRISocket with InitConfiguration
+	if err := k.initKube(newNodes); err != nil {
 		return err
 	}
-	if err := k.WaitSSHReady(6, nodes...); err != nil {
-		return errors.Wrap(err, "join nodes wait for ssh ready time out")
+
+	var rs []string
+	for _, m := range masters {
+		rs = append(rs, fmt.Sprintf("--rs %s", net.JoinHostPort(m.String(), "6443")))
 	}
-	if err := k.sendRegistryCert(nodes); err != nil {
+	//set cluster VIP as APIServerEndpoint when join node
+	vs := net.JoinHostPort(k.getAPIServerVIP().String(), "6443")
+	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
+
+	kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken = &token
+	kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = vs
+	kubeadmConfig.JoinConfiguration.ControlPlane = nil
+	joinConfig, err := yaml.MarshalWithDelimiter(kubeadmConfig.JoinConfiguration, kubeadmConfig.KubeletConfiguration)
+	if err != nil {
 		return err
 	}
-	if err := k.GetJoinTokenHashAndKey(); err != nil {
+	writeJoinConfigCmd := fmt.Sprintf("mkdir -p /etc/kubernetes && echo \"%s\" > %s", joinConfig, KubeadmFileYml)
+
+	y := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), masters, k.Config.LvsImage)
+	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
+
+	joinNodeCmd, err := k.Command(kubeadmConfig.KubernetesVersion, masters[0].String(), JoinNode, token, "")
+	if err != nil {
 		return err
 	}
-	var masters string
+
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, master := range k.cluster.GetMasterIPList() {
-		masters += fmt.Sprintf(" --rs %s:6443", master)
-	}
-	ipvsCmd := fmt.Sprintf(RemoteAddIPVS, k.getVIP(), masters)
 
-	k.setAPIServerEndpoint(fmt.Sprintf("%s:6443", k.getVIP()))
-	k.cleanJoinLocalAPIEndPoint()
-
-	addRegistryHostsAndLogin := k.addRegistryDomainToHosts()
-	if k.RegConfig.Domain != SeaHub {
-		addSeaHubHost := fmt.Sprintf(RemoteAddEtcHosts, k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
-		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
-	}
-	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, k.GenLoginCommand())
-	}
-	for _, node := range nodes {
-		node := node
+	for _, n := range newNodes {
+		node := n
 		eg.Go(func() error {
 			logrus.Infof("Start to join %s as worker", node)
-			err := k.checkMultiNetworkAddVIPRoute(node)
+
+			err = k.checkMultiNetworkAddVIPRoute(node)
 			if err != nil {
 				return fmt.Errorf("failed to check multi network: %v", err)
 			}
-			// send join node config, get cgroup driver on every join nodes
-			joinConfig, err := k.joinNodeConfig(node)
-			if err != nil {
-				return fmt.Errorf("failed to join node %s: %v", node, err)
-			}
-			cmdWriteJoinConfig := fmt.Sprintf(RemoteJoinConfig, string(joinConfig), k.getRootfs())
-			cmdHosts := fmt.Sprintf(RemoteAddIPVSEtcHosts, k.getVIP(), k.getAPIServerDomain())
-			cmd := k.Command(k.getKubeVersion(), JoinNode)
-			lvsImage := k.RegConfig.Repo() + "/fanux/lvscare:latest"
-			yaml := ipvs.LvsStaticPodYaml(k.getVIP(), k.cluster.GetMasterIPList(), lvsImage)
-			lvscareStaticCmd := fmt.Sprintf(LvscareStaticPodCmd, yaml, LvscareDefaultStaticPodFileName)
-			ssh, err := k.getHostSSHClient(node)
-			if err != nil {
-				return fmt.Errorf("failed to join node %s: %v", node, err)
-			}
-			if err := ssh.CmdAsync(node, addRegistryHostsAndLogin, cmdWriteJoinConfig, cmdHosts, ipvsCmd, cmd, RemoteStaticPodMkdir, lvscareStaticCmd); err != nil {
-				return fmt.Errorf("failed to join node %s: %v", node, err)
-			}
-			logrus.Infof("Succeeded in joining %s as worker", node)
-			return err
-		})
-	}
-	return eg.Wait()
-}
 
-func (k *Runtime) deleteNodes(nodes []net.IP) error {
-	if len(nodes) == 0 {
-		return nil
-	}
-	eg, _ := errgroup.WithContext(context.Background())
-	for _, node := range nodes {
-		node := node
-		eg.Go(func() error {
-			logrus.Infof("Start to delete worker %s", node)
-			if err := k.deleteNode(node); err != nil {
-				return fmt.Errorf("failed to delete node %s: %v", node, err)
+			if err = k.infra.CmdAsync(node, ipvsCmd); err != nil {
+				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
-			err := k.deleteVIPRouteIfExist(node)
-			if err != nil {
-				return fmt.Errorf("failed to delete %s route: %v", node, err)
+
+			if err = k.infra.CmdAsync(node, writeJoinConfigCmd); err != nil {
+				return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", node, writeJoinConfigCmd, err)
 			}
-			logrus.Infof("Succeeded in deleting worker %s", node)
+
+			if err = k.infra.CmdAsync(node, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), k.getAPIServerVIP().String())); err != nil {
+				return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
+			}
+
+			if err = k.infra.CmdAsync(node, joinNodeCmd); err != nil {
+				return fmt.Errorf("failed to join node %s: %v", node, err)
+			}
+
+			if err = k.infra.CmdAsync(node, lvscareStaticCmd); err != nil {
+				return fmt.Errorf("failed to set lvscare static pod %s: %v", node, err)
+			}
+
+			logrus.Infof("Succeeded in joining %s as worker", node)
 			return nil
 		})
 	}
 	return eg.Wait()
 }
 
-func (k *Runtime) deleteNode(node net.IP) error {
-	ssh, err := k.getHostSSHClient(node)
-	if err != nil {
-		return fmt.Errorf("failed to delete node: %v", err)
-	}
-	remoteCleanCmds := []string{fmt.Sprintf(RemoteCleanMasterOrNode, vlogToStr(k.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.RegConfig.Domain),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, SeaHub),
-		fmt.Sprintf(RemoteRemoveRegistryCerts, k.RegConfig.Domain),
-		fmt.Sprintf(RemoteRemoveRegistryCerts, SeaHub),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
-	address, err := utilsnet.GetLocalHostAddresses()
-	//if the node to be removed is the execution machine, kubelet, ~./kube and ApiServer host will be added
-	if err != nil || !utilsnet.IsLocalIP(node, address) {
-		remoteCleanCmds = append(remoteCleanCmds, RemoveKubeConfig)
-	} else {
-		apiServerHost := getAPIServerHost(k.cluster.GetMaster0IP(), k.getAPIServerDomain())
-		remoteCleanCmds = append(remoteCleanCmds, fmt.Sprintf(RemoteAddEtcHosts, apiServerHost, apiServerHost))
-	}
-	if err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {
-		return err
-	}
-	//remove node
-	if len(k.cluster.GetMasterIPList()) > 0 {
-		hostname, err := k.isHostName(k.cluster.GetMaster0IP(), node)
-		if err != nil {
-			return err
-		}
-		ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
-		if err != nil {
-			return fmt.Errorf("failed to get master0 ssh client(%s): %v", k.cluster.GetMaster0IP(), err)
-		}
-		if err := ssh.CmdAsync(k.cluster.GetMaster0IP(), fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
-			return fmt.Errorf("failed to delete node %s: %v", hostname, err)
-		}
-	}
-
-	return nil
-}
-
 func (k *Runtime) checkMultiNetworkAddVIPRoute(node net.IP) error {
-	sshClient, err := k.getHostSSHClient(node)
-	if err != nil {
-		return err
-	}
-	result, err := sshClient.CmdToString(node, fmt.Sprintf(RemoteCheckRoute, node), "")
+	result, err := k.infra.CmdToString(node, fmt.Sprintf(RemoteCheckRoute, node), "")
 	if err != nil {
 		return err
 	}
 	if result == utilsnet.RouteOK {
 		return nil
 	}
-	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getVIP(), node))
-	return err
-}
+	_, err = k.infra.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getAPIServerVIP(), node))
 
-func (k *Runtime) deleteVIPRouteIfExist(node net.IP) error {
-	sshClient, err := k.getHostSSHClient(node)
-	if err != nil {
-		return err
-	}
-	_, err = sshClient.Cmd(node, fmt.Sprintf(RemoteDelRoute, k.getVIP(), node))
 	return err
 }

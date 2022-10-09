@@ -16,25 +16,29 @@ package runtime
 
 import (
 	"net"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type Interface interface {
-	// Init exec init phase for cluster. TODO: make the annotation more comprehensive
-	Init() error
-	// Upgrade exec upgrading phase for cluster.TODO: make the annotation more comprehensive
-	Upgrade() error
+type Installer interface {
+	// Install exec init phase for cluster. TODO: make the annotation more comprehensive
+	Install() error
+
+	GetCurrentRuntimeDriver() (Driver, error)
+
 	// Reset exec reset phase for cluster.TODO: make the annotation more comprehensive
 	Reset() error
-	// JoinMasters exec joining phase for cluster, add master role for these nodes. net.IP is the master node IP array.
-	JoinMasters(newMastersIPList []net.IP) error
-	// JoinNodes exec joining phase for cluster, add worker/<none> role for these nodes. net.IP is the worker/<none> node IP array.
-	JoinNodes(newNodesIPList []net.IP) error
-	// DeleteMasters exec deleting phase for deleting cluster master role nodes. net.IP is the master node IP array.
-	DeleteMasters(mastersIPList []net.IP) error
-	// DeleteNodes exec deleting phase for deleting worker/<none> master role nodes. net.IP is the worker/<none> node IP array.
-	DeleteNodes(nodesIPList []net.IP) error
-	// GetClusterMetadata read the rootfs/Metadata file to get some install info for cluster.
-	GetClusterMetadata() (*Metadata, error)
+	// ScaleUp exec joining phase for cluster, add master role for these nodes. net.IP is the master node IP array.
+	ScaleUp(newMasters, newWorkers []net.IP) error
+	// ScaleDown exec deleting phase for deleting cluster master role nodes. net.IP is the master node IP array.
+	ScaleDown(mastersToDelete, workersToDelete []net.IP) error
+
+	// Upgrade exec upgrading phase for cluster.TODO: make the annotation more comprehensive
+	Upgrade() error
 }
 
-var ForceDelete bool
+type Driver interface {
+	client.Client
+
+	GetAdminKubeconfig() string
+}

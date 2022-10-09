@@ -40,7 +40,7 @@ func (c Comparator) GetIntersection() []string {
 	var result []string
 	for _, elem := range c.Src {
 		// elem both exist in src and dst at the same time.
-		if !NotIn(elem, c.Dst) {
+		if IsInSlice(elem, c.Dst) {
 			result = append(result, elem)
 		}
 	}
@@ -51,7 +51,7 @@ func (c Comparator) GetUnion() []string {
 	result := c.Src
 	for _, elem := range c.Dst {
 		// get all elem
-		if NotIn(elem, c.Src) {
+		if !IsInSlice(elem, c.Src) {
 			result = append(result, elem)
 		}
 	}
@@ -62,7 +62,7 @@ func (c Comparator) GetSrcSubtraction() []string {
 	var result []string
 	for _, elem := range c.Src {
 		// get src elem which not in dst
-		if NotIn(elem, c.Dst) {
+		if !IsInSlice(elem, c.Dst) {
 			result = append(result, elem)
 		}
 	}
@@ -73,7 +73,7 @@ func (c Comparator) GetDstSubtraction() []string {
 	var result []string
 	for _, elem := range c.Dst {
 		// get dst elem which not in src
-		if NotIn(elem, c.Src) {
+		if !IsInSlice(elem, c.Src) {
 			result = append(result, elem)
 		}
 	}
@@ -87,13 +87,13 @@ func NewComparator(src, dst []string) Interface {
 	}
 }
 
-func NotIn(key string, slice []string) bool {
+func IsInSlice(key string, slice []string) bool {
 	for _, s := range slice {
 		if key == s {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func Reverse(s []string) []string {

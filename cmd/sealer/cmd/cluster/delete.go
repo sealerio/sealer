@@ -16,32 +16,41 @@ package cluster
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 
-	"github.com/sealerio/sealer/apply"
+	"github.com/sealerio/sealer/utils/os"
+	"github.com/sirupsen/logrus"
+
+	netutils "github.com/sealerio/sealer/utils/net"
+
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sealerio/sealer/utils/os/fs"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	deleteArgs        *apply.Args
-	deleteClusterFile string
-	deleteClusterName string
+	deleteFlags *types.Flags
+	deleteAll   bool
 )
 
 var longDeleteCmdDescription = `delete command is used to delete part or all of existing cluster.
-User can delete cluster by explicitly specifying node IP, Clusterfile, or cluster name.`
+User can delete cluster by explicitly specifying host IP`
 
 var exampleForDeleteCmd = `
-delete default cluster: 
-	sealer delete --masters x.x.x.x --nodes x.x.x.x
-	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y
+delete cluster node: 
+    sealer delete --nodes x.x.x.x [--force]
+	sealer delete --masters x.x.x.x --nodes x.x.x.x [--force]
+	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y [--force]
 delete all:
 	sealer delete --all [--force]
-	sealer delete -f /root/.sealer/mycluster/Clusterfile [--force]
-	sealer delete -c my-cluster [--force]
 `
 
 // NewDeleteCmd deleteCmd represents the delete command
@@ -53,53 +62,156 @@ func NewDeleteCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Example: exampleForDeleteCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			all, err := cmd.Flags().GetBool("all")
-			if err != nil {
-				return err
-			}
-			if deleteClusterName == "" && deleteClusterFile == "" {
-				if !all && deleteArgs.Masters == "" && deleteArgs.Nodes == "" {
-					return fmt.Errorf("the delete parameter needs to be set")
-				}
-				deleteClusterName, err = clusterfile.GetDefaultClusterName()
-				if err == clusterfile.ErrClusterNotExist {
-					fmt.Println("Find no exist cluster, skip delete")
-					return nil
-				}
-				if err != nil {
-					return err
-				}
-				deleteClusterFile = common.GetClusterWorkClusterfile(deleteClusterName)
-			} else if deleteClusterName != "" && deleteClusterFile != "" {
-				tmpClusterfile := common.GetClusterWorkClusterfile(deleteClusterName)
-				if tmpClusterfile != deleteClusterFile {
-					return fmt.Errorf("arguments error:%s and %s refer to different clusters", deleteClusterFile, tmpClusterfile)
-				}
-			} else if deleteClusterFile == "" {
-				deleteClusterFile = common.GetClusterWorkClusterfile(deleteClusterName)
-			}
-			if deleteArgs.Nodes != "" || deleteArgs.Masters != "" {
-				applier, err := apply.NewScaleApplierFromArgs(deleteClusterFile, deleteArgs, common.DeleteSubCmd)
-				if err != nil {
-					return err
-				}
-				return applier.Apply()
+			var (
+				mastersToDelete = deleteFlags.Masters
+				workersToDelete = deleteFlags.Nodes
+			)
+
+			if mastersToDelete == "" && workersToDelete == "" && !deleteAll {
+				return fmt.Errorf("you must input node ip Or set flag -a")
 			}
 
-			applier, err := apply.NewApplierFromFile(deleteClusterFile)
-			if err != nil {
-				return err
+			workClusterfile := common.GetDefaultClusterfile()
+			if deleteAll {
+				return deleteCluster(workClusterfile)
 			}
-			return applier.Delete()
+			return scaleDownCluster(mastersToDelete, workersToDelete, workClusterfile)
 		},
 	}
-	deleteArgs = &apply.Args{}
-	deleteCmd.Flags().StringVarP(&deleteArgs.Masters, "masters", "m", "", "reduce Count or IPList to masters")
-	deleteCmd.Flags().StringVarP(&deleteArgs.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
-	deleteCmd.Flags().StringVarP(&deleteClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile Annotations")
-	deleteCmd.Flags().StringVarP(&deleteClusterName, "cluster", "c", "", "delete a kubernetes cluster with cluster name")
-	deleteCmd.Flags().StringSliceVarP(&deleteArgs.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	deleteCmd.Flags().BoolVar(&runtime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
-	deleteCmd.Flags().BoolP("all", "a", false, "this flags is for delete nodes, if this is true, empty all node ip")
+
+	deleteFlags = &types.Flags{}
+	deleteCmd.Flags().StringVarP(&deleteFlags.Masters, "masters", "m", "", "reduce Count or IPList to masters")
+	deleteCmd.Flags().StringVarP(&deleteFlags.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
+	deleteCmd.Flags().StringSliceVarP(&deleteFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
+	deleteCmd.Flags().BoolVar(&clusterruntime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
+	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete the entire cluster, default is false")
+
 	return deleteCmd
+}
+
+func deleteCluster(workClusterfile string) error {
+	if !os.IsFileExist(workClusterfile) {
+		logrus.Info("no cluster found")
+		return nil
+	}
+	clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
+	if err != nil {
+		return err
+	}
+
+	cf, err := clusterfile.NewClusterFile(clusterFileData)
+	if err != nil {
+		return err
+	}
+
+	//todo do we need CustomEnv ?
+	//append custom env from CLI to cluster, if it is used to wrapper shell plugin
+	cluster := cf.GetCluster()
+	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
+
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return err
+	}
+
+	distributor, err := imagedistributor.NewScpDistributor(nil, infraDriver, nil)
+	if err != nil {
+		return err
+	}
+
+	runtimeConfig := &clusterruntime.RuntimeConfig{
+		Distributor: distributor,
+	}
+	if cf.GetPlugins() != nil {
+		runtimeConfig.Plugins = cf.GetPlugins()
+	}
+
+	if cf.GetKubeadmConfig() != nil {
+		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	if err != nil {
+		return err
+	}
+
+	if err = installer.UnInstall(); err != nil {
+		return err
+	}
+
+	//delete local files,including sealer workdir,cluster file under sealer,kubeconfig under home dir.
+	if err = fs.FS.RemoveAll(common.GetSealerWorkDir(), common.DefaultClusterBaseDir(infraDriver.GetClusterName()),
+		common.DefaultKubeConfigDir()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func scaleDownCluster(masters, workers, workClusterfile string) error {
+	if err := utils.ValidateScaleIPStr(masters, workers); err != nil {
+		return fmt.Errorf("failed to validate input run args: %v", err)
+	}
+
+	deleteMasterIPList, deleteNodeIPList, err := utils.ParseToNetIPList(masters, workers)
+	if err != nil {
+		return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
+	}
+
+	clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
+	if err != nil {
+		return err
+	}
+
+	cf, err := clusterfile.NewClusterFile(clusterFileData)
+	if err != nil {
+		return err
+	}
+
+	cluster := cf.GetCluster()
+	//master0 machine cannot be deleted
+	if netutils.IsInIPList(cluster.GetMaster0IP(), deleteMasterIPList) {
+		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
+	}
+	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
+
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return err
+	}
+
+	distributor, err := imagedistributor.NewScpDistributor(nil, infraDriver, nil)
+	if err != nil {
+		return err
+	}
+
+	runtimeConfig := &clusterruntime.RuntimeConfig{
+		Distributor: distributor,
+	}
+	if cf.GetPlugins() != nil {
+		runtimeConfig.Plugins = cf.GetPlugins()
+	}
+
+	if cf.GetKubeadmConfig() != nil {
+		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = installer.ScaleDown(deleteMasterIPList, deleteNodeIPList)
+	if err != nil {
+		return err
+	}
+
+	if err = utils.ConstructClusterForScaleDown(&cluster, deleteMasterIPList, deleteNodeIPList); err != nil {
+		return err
+	}
+	cf.SetCluster(cluster)
+
+	if err = cf.SaveAll(); err != nil {
+		return err
+	}
+	return nil
 }
