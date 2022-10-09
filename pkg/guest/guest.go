@@ -17,15 +17,14 @@ package guest
 import (
 	"fmt"
 
+	v1 "github.com/sealerio/sealer/pkg/define/image/v1"
+
 	common2 "github.com/sealerio/sealer/pkg/define/options"
 
-	"github.com/sealerio/sealer/pkg/imageengine"
-	"github.com/sealerio/sealer/utils/strings"
-
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
+	"github.com/sealerio/sealer/pkg/imageengine"
 
 	"github.com/sealerio/sealer/common"
-	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/ssh"
 )
@@ -59,7 +58,7 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 	if err != nil {
 		return fmt.Errorf("failed to get ClusterImage: %s", err)
 	}
-	cmdArgs := d.getGuestCmdArg(cluster.Spec.CMDArgs, extension)
+	//cmdArgs := d.getGuestCmdArg(cluster.Spec.CMDArgs, extension)
 	cmd := d.getGuestCmd(cluster.Spec.CMD, extension)
 	sshClient, err := ssh.NewStdoutSSHClient(cluster.GetMaster0IP(), cluster)
 	if err != nil {
@@ -70,7 +69,7 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 		if value == "" {
 			continue
 		}
-		cmdline, err := ex.ProcessWordWithMap(value, cmdArgs)
+		cmdline, err := ex.ProcessWordWithMap(value, map[string]string{})
 		if err != nil {
 			return fmt.Errorf("failed to render build args: %v", err)
 		}
@@ -84,42 +83,28 @@ func (d *Default) Apply(cluster *v2.Cluster) error {
 }
 
 func (d *Default) getGuestCmd(CmdFromClusterFile []string, extension v1.ImageExtension) []string {
-	var (
-		cmd        = extension.CmdSet
-		clusterCmd = CmdFromClusterFile
-		imageType  = extension.ImageType
-	)
-
-	// application image: if cluster cmd not nil, use cluster cmd directly
-	if imageType == common.AppImage {
-		return clusterCmd
+	if len(CmdFromClusterFile) > 0 {
+		return CmdFromClusterFile
 	}
 
-	// normal image: if cluster cmd not nil, use cluster cmd as current cmd
-	if len(clusterCmd) != 0 {
-		return strings.Merge(cmd, clusterCmd)
-	}
-	return strings.Merge(cmd, clusterCmd)
+	return extension.Launch.Cmds
 }
 
-func (d *Default) getGuestCmdArg(clusterCmdsArgs []string, extension v1.ImageExtension) map[string]string {
-	var (
-		base        map[string]string
-		clusterArgs = clusterCmdsArgs
-		//imageType   = extension.ImageType
-	)
-
-	//if imageType == common.AppImage {
-	//	base = extension.ArgSet
-	//} else {
-	//	base = maps.Merge(image.Spec.ImageConfig.Args.Parent, image.Spec.ImageConfig.Args.Current)
-	//}
-	base = extension.ArgSet
-	for k, v := range strings.ConvertToMap(clusterArgs) {
-		base[k] = v
-	}
-	return base
-}
+//func (d *Default) getGuestCmdArg(clusterCmdsArgs []string, extension v1.ImageExtension) map[string]string {
+//	var (
+//		clusterArgs = clusterCmdsArgs
+//		imageType   = extension.Type
+//	)
+//
+//	if imageType == common.AppImage {
+//		base = extension.Launch
+//	}
+//	base = extension.ArgSet
+//	for k, v := range strings.ConvertToMap(clusterArgs) {
+//		base[k] = v
+//	}
+//	return base
+//}
 
 func (d Default) Delete(cluster *v2.Cluster) error {
 	panic("implement me")

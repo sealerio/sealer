@@ -68,7 +68,7 @@ base image.
 
 base image could be any of cluster image or scratch.
 
-### CNI
+### CNI(Unrealized)
 
 `CNI` allows user to define which CNI to be installed over Kubernetes.
 
@@ -79,7 +79,7 @@ Some behaviors are available:
 `CNI path / https://... / oss://`. `path` is a relative path refers to local build context, this can be a directory
 contains multiple yaml or a single yaml for deploying CNI. `https://...; oss://` are remote addresses for downloading related files to deploy CNI.
 
-### CSI
+### CSI(Unrealized)
 
 `CSI` allows user to define which CSI to be installed over Kubernetes.
 
@@ -96,20 +96,49 @@ contains multiple yaml or a single yaml for deploying CSI. `https://...; oss://`
 
 `APP` allows user to specify which applications to be installed over Kubernetes.
 
-Some behaviors are available:
+The `APP` instruction has one form:
 
-`APP [UNIQUE-NAME] [path, https://, oss://]`. `[UNIQUE-NAME]` is a declaration for an application, which is unique for sealer image. `path` is a relative path refers to local build context, this can be a directory
-contains multiple yaml or a single file for deploying app. `https://...; oss://` are remote addresses for downloading related files to deploy applications.
+`APP APP_NAME scheme:path1 scheme:path2`.
 
-`[]` means user could declare several sources
+The `APP_NAME` is a unique name to kube image.
+
+The `scheme` has three forms:
+
+* `local://path_rel_2_build_context` (files are from build context, path is relative to build context)
+* `http://example.yaml`
+* `https://example.yaml`
+* `helm://` (unrealized)
+
+There can be many `APP` in a `Kubefile`.
 
 ### LAUNCH
 
 `LAUNCH` allows user to specify which apps(specified by instruction `APP`) to start right after the completion of cluster initiation.
 Users are able to declare which applications to launch within the sealer image.
 
-#### Example
+The `LAUNCH` instruction has one form:
 
-```
-LAUNCH --app [mysql, es, ...] --rawcmd [kubectl apply -f *.yaml, ...] --helm [...]
-```
+`LAUNCH APP_1 APP_2`
+
+`LAUNCH ["APP_1", "APP_2"]`
+
+There are two behaviors for `LAUNCH`:
+
+* `helm install APP_1 APP_1_PATH_REL_2_Rootfs` (APP_1 is detected as helm app)
+* `kubectl apply -f APP_2_PATH_REL_2_Rootfs` (APP_2 is detected as raw yaml set app)
+
+The behaviors will be generated automatically, users don't have to care about that.
+
+There can be only one `LAUNCH` or `CMDS` instruction in a `Kubefile`.
+
+### CMDS
+
+`CMDS` allows user to specify the self-defined executing commands at a cluster startup.
+
+The `CMDS` instruction has one form:
+
+`CMDS ["cmd1", "cmd2"]`
+
+symbol `""` is necessary for `CMDS` instruction.
+
+There can be only one `LAUNCH` or `CMDS` instruction in a `Kubefile`.

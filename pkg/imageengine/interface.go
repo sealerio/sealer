@@ -15,8 +15,8 @@
 package imageengine
 
 import (
+	v1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
-	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 type Interface interface {

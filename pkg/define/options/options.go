@@ -26,6 +26,7 @@ type BuildOptions struct {
 	PullPolicy  string
 	Labels      []string
 	Annotations []string
+	ImageType   string
 }
 
 type FromOptions struct {
@@ -92,7 +93,6 @@ type PushOptions struct {
 type PullOptions struct {
 	CertDir    string
 	Quiet      bool
-	TLSVerify  bool
 	PullPolicy string
 	Image      string
 	Platform   string

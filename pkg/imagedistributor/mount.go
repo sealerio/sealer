@@ -35,7 +35,6 @@ func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, e
 	mountDir := filepath.Join(common.DefaultSealerDataDir, path)
 	if err := b.imageEngine.Pull(&imagecommon.PullOptions{
 		Quiet:      false,
-		TLSVerify:  true,
 		PullPolicy: "missing",
 		Image:      imageName,
 		Platform:   platform.ToString(),

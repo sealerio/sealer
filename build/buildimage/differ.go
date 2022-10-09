@@ -18,8 +18,13 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
+
+	"github.com/sealerio/sealer/pkg/rootfs"
 
 	osi "github.com/sealerio/sealer/utils/os"
 
@@ -33,17 +38,19 @@ import (
 )
 
 var (
-	copyToManifests = "manifests"
-	copyToChart     = "charts"
-	copyToImageList = "imageList"
-	dispatch        map[string]func(srcPath string) ([]string, error)
+	copyToManifests   = "manifests"
+	copyToChart       = "charts"
+	copyToImageList   = "imageList"
+	copyToApplication = "application"
+	dispatch          map[string]func(srcPath string) ([]string, error)
 )
 
 func init() {
 	dispatch = map[string]func(srcPath string) ([]string, error){
-		copyToManifests: parseYamlImages,
-		copyToChart:     parseChartImages,
-		copyToImageList: parseRawImageList,
+		copyToManifests:   parseYamlImages,
+		copyToChart:       parseChartImages,
+		copyToImageList:   parseRawImageList,
+		copyToApplication: parseApplicationImages,
 	}
 }
 
@@ -84,6 +91,122 @@ func NewRegistryDiffer(platform v1.Platform) Differ {
 	}
 }
 
+func parseApplicationImages(srcPath string) ([]string, error) {
+	applicationPath := filepath.Clean(filepath.Join(srcPath, rootfs.GlobalManager.App().Root()))
+
+	if !osi.IsFileExist(applicationPath) {
+		return nil, nil
+	}
+
+	var (
+		images []string
+		err    error
+	)
+
+	entries, err := os.ReadDir(applicationPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "error in readdir in parseApplicationImages")
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		appPath := filepath.Join(applicationPath, name)
+		if entry.IsDir() {
+			if !isChartArtifactEnough(appPath) {
+				imagesTmp, err := parseKubeImages(appPath)
+				if err != nil {
+					return nil, errors.Wrap(err, fmt.Sprintf("error in parseKubeImages of %s", appPath))
+				}
+				images = append(images, imagesTmp...)
+				continue
+			}
+
+			imagesTmp, err := parseHelmImages(appPath)
+			if err != nil {
+				return nil, errors.Wrap(err, fmt.Sprintf("error in parseHelmImages of %s", appPath))
+			}
+			images = append(images, imagesTmp...)
+		}
+	}
+
+	return images, nil
+}
+
+func parseHelmImages(helmPath string) ([]string, error) {
+	if !osi.IsFileExist(helmPath) {
+		return nil, nil
+	}
+
+	var images []string
+
+	imageSearcher, err := charts.NewCharts()
+	if err != nil {
+		return nil, err
+	}
+
+	err = filepath.Walk(helmPath, func(path string, f fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !f.IsDir() {
+			return nil
+		}
+
+		if isChartArtifactEnough(path) {
+			imgs, err := imageSearcher.ListImages(path)
+			if err != nil {
+				return err
+			}
+
+			images = append(images, imgs...)
+			return filepath.SkipDir
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return FormatImages(images), nil
+}
+
+func parseKubeImages(kubePath string) ([]string, error) {
+	if !osi.IsFileExist(kubePath) {
+		return nil, nil
+	}
+	var images []string
+	imageSearcher, err := manifest.NewManifests()
+	if err != nil {
+		return nil, err
+	}
+
+	err = filepath.Walk(kubePath, func(path string, f fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if f.IsDir() {
+			return nil
+		}
+
+		ext := strings.ToLower(filepath.Ext(f.Name()))
+		if ext != ".yaml" && ext != ".yml" && ext != ".tmpl" {
+			return nil
+		}
+
+		ima, err := imageSearcher.ListImages(path)
+
+		if err != nil {
+			return err
+		}
+		images = append(images, ima...)
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return FormatImages(images), nil
+}
+
 func parseChartImages(srcPath string) ([]string, error) {
 	chartsPath := filepath.Join(srcPath, copyToChart)
 	if !osi.IsFileExist(chartsPath) {
@@ -105,8 +228,7 @@ func parseChartImages(srcPath string) ([]string, error) {
 			return nil
 		}
 
-		if osi.IsFileExist(filepath.Join(path, "Chart.yaml")) && osi.IsFileExist(filepath.Join(path, "values.yaml")) &&
-			osi.IsFileExist(filepath.Join(path, "templates")) {
+		if isChartArtifactEnough(path) {
 			ima, err := imageSearcher.ListImages(path)
 			if err != nil {
 				return err
@@ -226,4 +348,10 @@ func (m metadata) loadMetadata(srcPath, rootfs string) (*runtime.Metadata, error
 
 func NewMetadataDiffer() Differ {
 	return metadata{}
+}
+
+var isChartArtifactEnough = func(path string) bool {
+	return osi.IsFileExist(filepath.Join(path, "Chart.yaml")) &&
+		osi.IsFileExist(filepath.Join(path, "values.yaml")) &&
+		osi.IsFileExist(filepath.Join(path, "templates"))
 }

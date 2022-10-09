@@ -122,6 +122,5 @@ CMD helm install mysql -f etc/redis-config.yaml
 ## Development Document
 
 Before mounting Rootfs, templates need to be rendered for the files in etc, charts, and manifest directories,
-and render environment variables and annotations to the [configuration file](
-https://github.com/sealerio/sealer/blob/main/pkg/filesystem/filesystem.go#L145).
+and render environment variables and annotations to the [configuration file].
 Generate the global.yaml file to the etc directory

@@ -1,0 +1,85 @@
+# Copyright © 2022 Alibaba Group Holding Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+rbac:
+  enabled: true
+
+serviceAccount:
+  create: true
+  name: 
+
+## Image configuration
+registry: brigadecore
+name: brigade-github-app
+## Image tags in this chart default to the value specified by appVersion in Chart.yaml
+# tag: latest
+# pullPolicy: "Always"
+
+service:
+  name: brigade-github-app
+  type: ClusterIP
+  externalPort: 80
+  internalPort: 7746
+
+ingress:
+  enabled: true
+  # From Kubernetes 1.18+ this field is supported in case your ingress controller supports it. When set, you do not need to add the ingress class as annotation.
+  ingressClassName:
+  ## Used to create an Ingress record.
+  hosts:
+  - gh-app.example.com
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+  tls:
+  ## Secrets must be manually created in the namespace.
+  - secretName: gh-app-tls
+    hosts:
+    - gh-app.example.com
+
+gateway:
+  ## The author associations who are allowed to have PRs built
+  ## Classes are: COLLABORATOR, CONTRIBUTOR, OWNER, NONE, MEMBER, FIRST_TIMER, FIRST_TME_CONTRIBUTOR
+  ## See https://developer.github.com/v4/enum/commentauthorassociation/
+  ## To completely disable pull request builds, leave this list blank.
+  allowedAuthorRoles:
+  - OWNER
+  - MEMBER
+  - COLLABORATOR
+  ## The opt-in list of events to be emitted
+  ## Brigade creates one or two worker pods for each webhook request so
+  ## ignoring unnecessary events saves your cluster's resource.
+  ## Defaults to "*" that matches any event type and action.
+  ## Remove "*" and set qualified(e.g. `issue_comment:created`) or unqualified(e.g. `issue_comment`) events instead so that Brigade emit creates worker pods for those events only.
+  emittedEvents:
+  - "*"
+
+github:
+  ## The x509 PEM-formatted keyfile GitHub issued for you App.
+  key: |
+    REQUIRED: Your key goes here.
+  ## This represents the unique ID for a GitHub App
+  ## The value can be retrieved from the main App page or any inbound webhook payloads
+  appID:
+  ## Trigger a Check Suite on Pull Requests
+  ## This will need to be set to true to enable running Check Suites on PRs originating from forks
+  checkSuiteOnPR: true
+  ## Set a defaultSharedSecret if you want to use this one instance of the
+  ## Github gateway with multiple Brigade projects. Leave the shared secret field
+  ## blank in project-level configuration and this default will be used.
+  # defaultSharedSecret:
+
+  ## Add custom annotations to the api pod
+  # podAnnotations:
+  #   name: value

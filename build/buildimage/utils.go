@@ -61,26 +61,28 @@ func readCharts(chartsPath string) string {
 }
 
 func FormatImages(images []string) (res []string) {
-	for _, ima := range strUtils.RemoveDuplicate(images) {
-		if ima == "" {
+	for _, img := range images {
+		tmpImg := strings.TrimSpace(img)
+		tmpImg = strings.Trim(tmpImg, `'"`)
+		tmpImg = strings.TrimSpace(tmpImg)
+		if strings.HasPrefix(tmpImg, "#") || tmpImg == "" {
 			continue
 		}
-		if strings.HasPrefix(ima, "#") {
-			continue
-		}
-		res = append(res, trimQuotes(strings.TrimSpace(ima)))
+		res = append(res, tmpImg)
 	}
+
+	res = strUtils.RemoveDuplicate(res)
 	return
 }
 
-func trimQuotes(s string) string {
-	if len(s) >= 2 {
-		if c := s[len(s)-1]; s[0] == c && (c == '"' || c == '\'') {
-			return s[1 : len(s)-1]
-		}
-	}
-	return s
-}
+//func trimQuotes(s string) string {
+//	if len(s) >= 2 {
+//		if c := s[len(s)-1]; s[0] == c && (c == '"' || c == '\'') {
+//			return s[1 : len(s)-1]
+//		}
+//	}
+//	return s
+//}
 
 func marshalJSONToFile(file string, obj interface{}) error {
 	data, err := json.MarshalIndent(obj, "", "  ")

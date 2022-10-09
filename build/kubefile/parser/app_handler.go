@@ -1,0 +1,140 @@
+// Copyright © 2022 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package parser
+
+import (
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
+	"github.com/sealerio/sealer/pkg/define/application"
+
+	"github.com/sealerio/sealer/build/kubefile/command"
+
+	"github.com/pkg/errors"
+	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
+)
+
+func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
+	var (
+		appName     = ""
+		localFiles  = []string{}
+		remoteFiles = []string{}
+		filesToCopy = []string{}
+		legacyCxt   = result.legacyContext
+	)
+
+	// first node value is the command
+	for ptr := node.Next; ptr != nil; ptr = ptr.Next {
+		val := ptr.Value
+		// record the first word to be the app name
+		if appName == "" {
+			appName = val
+			continue
+		}
+		switch {
+		//
+		case isLocal(val):
+			localFiles = append(localFiles, trimLocal(val))
+		case isRemote(val):
+			remoteFiles = append(remoteFiles, val)
+		default:
+			return errors.New("source schema should be specified with https:// http:// local:// in APP")
+		}
+	}
+
+	if appName == "" {
+		return errors.New("app name should be specified in the app cmd")
+	}
+
+	// TODO clean the app directory first before putting files into it.
+	// this will rely on the storage interface
+	if len(localFiles) > 0 {
+		filesToCopy = append(filesToCopy, localFiles...)
+	}
+
+	// for the remote files
+	// 1. create a temp dir under the build context
+	// 2. download remote files to the temp dir
+	// 3. append the temp files to filesToCopy
+	if len(remoteFiles) > 0 {
+		remoteCxtAbs, err := ioutil.TempDir(kp.buildContext, "sealer-remote-files")
+		if err != nil {
+			return errors.Errorf("failed to create remote context: %s", err)
+		}
+
+		files, err := downloadRemoteFiles(remoteCxtAbs, remoteFiles)
+		if err != nil {
+			return err
+		}
+
+		remoteCxtBase := filepath.Base(remoteCxtAbs)
+		for _, f := range files {
+			fileBase := filepath.Base(f)
+			fileRel2Cxt := filepath.Join(remoteCxtBase, fileBase)
+			filesToCopy = append(filesToCopy, fileRel2Cxt)
+		}
+
+		// append it to the legacy.
+		// it will be deleted by CleanContext
+		legacyCxt.directories = append(legacyCxt.directories, remoteCxtAbs)
+	}
+
+	destDir := kp.appRootPathFunc(appName)
+	tmpLine := strings.Join(append([]string{command.Copy}, append(filesToCopy, destDir)...), " ")
+	result.Dockerfile = mergeLines(result.Dockerfile, tmpLine)
+	result.legacyContext.apps2Files[appName] = append([]string{}, filesToCopy...)
+
+	isH, err := isHelm(filesToCopy...)
+	if err != nil {
+		return fmt.Errorf("error in judging the application type: %v", err)
+	}
+
+	appType := ""
+	switch isH {
+	case true:
+		appType = application.HelmApp
+	case false:
+		appType = application.KubeApp
+	default:
+		return errors.Errorf("error in identifying the type of app:%s", appName)
+	}
+
+	v1App := v1.NewV1Application(
+		appName,
+		appType,
+	).(*v1.Application)
+
+	result.Applications[v1App.Name()] = v1App
+	return nil
+}
+
+func downloadRemoteFiles(shadowDir string, files []string) ([]string, error) {
+	var (
+		downloaded = []string{}
+		err        error
+	)
+
+	for _, src := range files {
+		var filePath string
+		filePath, err = getFileFromURL(src, "", shadowDir)
+		if err != nil {
+			return nil, errors.Errorf("failed to download file %s, %s", src, err)
+		}
+		downloaded = append(downloaded, filePath)
+	}
+	return downloaded, nil
+}

@@ -16,8 +16,19 @@ package image
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	version2 "github.com/sealerio/sealer/pkg/define/application/version"
+
+	"github.com/sealerio/sealer/pkg/rootfs"
+
+	"github.com/sealerio/sealer/pkg/imageengine/buildah"
+
+	"github.com/sealerio/sealer/build/kubefile/parser"
+
+	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 
 	bc "github.com/sealerio/sealer/pkg/define/options"
 
@@ -33,15 +44,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
-type BuildFlag struct {
-	ImageName    string
-	KubefileName string
-	BuildArgs    []string
-	Platform     string
-	NoCache      bool
-	Base         bool
-}
-
 var buildFlags = bc.BuildOptions{}
 
 var longNewBuildCmdDescription = `build command is used to generate a ClusterImage from specified Kubefile.
@@ -56,11 +58,13 @@ build:
 build without cache:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .
 
-build without base:
-	sealer build -f Kubefile -t my-kubernetes:1.19.8 --base=false .
-
 build with args:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
+
+build with image type:
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=app-installer .
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default) .
+	app-installer type image will not install kubernetes.
 `
 
 // NewBuildCmd buildCmd represents the build command
@@ -80,24 +84,30 @@ func NewBuildCmd() *cobra.Command {
 	}
 	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
 	buildCmd.Flags().StringVar(&buildFlags.Platform, "platform", parse.DefaultPlatform(), "set the target platform, like linux/amd64 or linux/amd64/v7")
-	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always")
+	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "ifnewer", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always, --pull=ifnewer")
 	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
-	buildCmd.Flags().BoolVar(&buildFlags.Base, "base", true, "build with base image, default value is true.")
+	buildCmd.Flags().StringVar(&buildFlags.ImageType, "type", v12.KubeInstaller, fmt.Sprintf("specify the image type, --type=%s, --type=%s, default is %s", v12.KubeInstaller, v12.AppInstaller, v12.KubeInstaller))
 	buildCmd.Flags().StringSliceVarP(&buildFlags.Tags, "tag", "t", []string{}, "specify a name for ClusterImage")
 	buildCmd.Flags().StringSliceVar(&buildFlags.BuildArgs, "build-arg", []string{}, "set custom build args")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Annotations, "annotation", []string{}, "add annotations for image. Format like --annotation key=[value]")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Labels, "label", []string{getSealerLabel()}, "add labels for image. Format like --label key=[value]")
+
 	requiredFlags := []string{"tag"}
 	for _, flag := range requiredFlags {
 		if err := buildCmd.MarkFlagRequired(flag); err != nil {
 			logrus.Fatal(err)
 		}
 	}
+
+	supportedImageType := map[string]struct{}{v12.KubeInstaller: {}, v12.AppInstaller: {}}
+	if _, ok := supportedImageType[buildFlags.ImageType]; !ok {
+		logrus.Fatalf("image type %s is not supported", buildFlags.ImageType)
+	}
+
 	return buildCmd
 }
 
 func buildSealerImage() error {
-	// TODO clean the logic here
 	_os, arch, variant, err := parse.Platform(buildFlags.Platform)
 	if err != nil {
 		return err
@@ -108,13 +118,36 @@ func buildSealerImage() error {
 		return errors.Wrap(err, "failed to initiate a builder")
 	}
 
-	extension := v1.ImageExtension{}
-	extensionBytes, err := json.Marshal(extension)
+	kubefileParser := parser.NewParser(rootfs.GlobalManager.App().Root(), buildFlags, engine)
+	result, err := getKubefileParseResult(buildFlags.ContextDir, buildFlags.Kubefile, kubefileParser)
 	if err != nil {
 		return err
 	}
+	logrus.Debugf("the result of kubefile parse as follows:\n %+v \n", &result)
+	defer func() {
+		if err2 := result.CleanLegacyContext(); err2 != nil {
+			logrus.Warnf("error in cleaning legacy in build sealer image: %v", err2)
+		}
+	}()
+	// save the parsed dockerfile to a temporary file
+	// and give it to buildFlags(buildFlags.Kubefile = dockerfilePath)
+	dockerfilePath, err := saveDockerfileAsTempfile(result.Dockerfile)
+	if err != nil {
+		return errors.Wrap(err, "failed to save docker file as tempfile")
+	}
+	defer func() {
+		_ = os.Remove(dockerfilePath)
+	}()
 
-	buildFlags.Annotations = append(buildFlags.Annotations, fmt.Sprintf("%s=%s", v1.SealerImageExtension, string(extensionBytes)))
+	// set the image extension to oci image annotation
+	imageExtension := buildImageExtensionOnResult(result, buildFlags.ImageType)
+	iejson, err := json.Marshal(imageExtension)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal image extension")
+	}
+
+	buildFlags.Kubefile = dockerfilePath
+	buildFlags.Annotations = append(buildFlags.Annotations, fmt.Sprintf("%s=%s", v12.SealerImageExtension, string(iejson)))
 	iid, err := engine.Build(&buildFlags)
 	if err != nil {
 		return errors.Errorf("error in building image, %v", err)
@@ -137,6 +170,13 @@ func buildSealerImage() error {
 		return err
 	}
 
+	defer func() {
+		err = os.RemoveAll(tmpDir)
+		if err != nil {
+			logrus.Warnf("failed to rm link dir to rootfs: %v : %v", tmpDir, err)
+		}
+	}()
+
 	tmpDirForLink := filepath.Join(tmpDir, "tmp-rootfs")
 	cid, err := engine.CreateWorkingContainer(&bc.BuildRootfsOptions{
 		ImageNameOrID: iid,
@@ -146,13 +186,6 @@ func buildSealerImage() error {
 		return err
 	}
 
-	defer func() {
-		err = os.RemoveAll(tmpDir)
-		if err != nil {
-			logrus.Warnf("failed to rm link dir to rootfs: %v : %v", tmpDir, err)
-		}
-	}()
-
 	differ := buildimage.NewRegistryDiffer(v1.Platform{
 		Architecture: arch,
 		OS:           _os,
@@ -160,22 +193,117 @@ func buildSealerImage() error {
 	})
 
 	// TODO optimize the differ.
-	err = differ.Process(tmpDirForLink, tmpDirForLink)
-	if err != nil {
+	if err = differ.Process(tmpDirForLink, tmpDirForLink); err != nil {
 		return err
 	}
 
-	err = engine.Commit(&bc.CommitOptions{
+	if err = engine.Commit(&bc.CommitOptions{
 		Format:      cli.DefaultFormat(),
 		Rm:          true,
 		ContainerID: cid,
 		Image:       buildFlags.Tags[0],
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func saveDockerfileAsTempfile(dockerFileContent string) (string, error) {
+	f, err := ioutil.TempFile("/tmp", "sealer-dockerfile")
+	if err != nil {
+		return "", err
+	}
+
+	defer func() {
+		if err != nil {
+			_ = os.Remove(f.Name())
+		}
+	}()
+
+	_, err = f.WriteString(dockerFileContent)
+	if err != nil {
+		return "", err
+	}
+
+	return f.Name(), nil
+}
+
+func buildImageExtensionOnResult(result *parser.KubefileResult, imageType string) *v12.ImageExtension {
+	extension := &v12.ImageExtension{
+		Type:         imageType,
+		Applications: []version2.VersionedApplication{},
+		Launch:       v12.Launch{},
+	}
+
+	for _, app := range result.Applications {
+		extension.Applications = append(extension.Applications, app)
+	}
+	extension.Launch.Cmds = result.LaunchList
+	return extension
+}
+
+func getKubefileParseResult(contextDir, file string, kubefileParser *parser.KubefileParser) (*parser.KubefileResult, error) {
+	kubefile, err := getKubefile(contextDir, file)
+	if err != nil {
+		return nil, err
+	}
+
+	kfr, err := os.Open(filepath.Clean(kubefile))
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = kfr.Close()
+	}()
+
+	kr, err := kubefileParser.ParseKubefile(kfr)
+	if err != nil {
+		return nil, err
+	}
+
+	return kr, nil
+}
+
+func getKubefile(contextDir, file string) (string, error) {
+	var (
+		kubefile = file
+		err      error
+	)
+
+	ctxDir, err := getContextDir(contextDir)
+	if err != nil {
+		return "", err
+	}
+
+	if len(kubefile) == 0 {
+		kubefile, err = buildah.DiscoverKubefile(ctxDir)
+		if err != nil {
+			return "", err
+		}
+	}
+	return kubefile, nil
+}
+
+func getContextDir(cxtDir string) (string, error) {
+	var (
+		contextDir = cxtDir
+		err        error
+	)
+	if len(contextDir) == 0 {
+		contextDir, err = os.Getwd()
+		if err != nil {
+			return "", err
+		}
+	} else {
+		// It was local.  Use it as is.
+		contextDir, err = filepath.Abs(contextDir)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return contextDir, nil
 }
 
 func getSealerLabel() string {

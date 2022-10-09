@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2022 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buildimage
+package application
 
-type Differ interface {
-	// Process :diff changes by build-in handler and save to dst,like pull docker image from manifests or helm charts
-	//diff Metadata file changes save to the base layer.generally dst is the rootfs.
-	Process(srcPath, rootfs string) error
-}
+const (
+	KubeApp string = "kube"
+	HelmApp string = "helm"
+)

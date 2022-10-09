@@ -20,10 +20,10 @@ import (
 )
 
 /*
-	https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing
-	CIDR doc:
-	IPv4   	network Addr/prefixLength		192.168.1.0/24
-	IPv6	network Addr/prefixLength		2001:db8::/64
+https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing
+CIDR doc:
+IPv4   	network Addr/prefixLength		192.168.1.0/24
+IPv6	network Addr/prefixLength		2001:db8::/64
 */
 
 type CIDR struct {
