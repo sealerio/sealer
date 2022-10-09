@@ -140,7 +140,6 @@ status: {}`
 	}
 }
 
-// func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, joinMasters, joinWorkers []net.IP) error {
 func Test_ConstructClusterForScaleUp(t *testing.T) {
 	data := `apiVersion: sealer.cloud/v2
 kind: Cluster
