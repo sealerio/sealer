@@ -19,6 +19,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/pkg/application"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -160,11 +162,23 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
+			// install cluster
 			_, _, err = installer.Install()
 			if err != nil {
 				return err
 			}
+			// install app
+			appInstaller, err := application.NewAppInstaller(infraDriver)
+			if err != nil {
+				return err
+			}
 
+			err = appInstaller.Install(cluster.Spec.CMD)
+			if err != nil {
+				return err
+			}
+
+			//save clusterfile
 			if err = cf.SaveAll(); err != nil {
 				return err
 			}
