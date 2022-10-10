@@ -22,7 +22,7 @@ import (
 
 	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
-	v1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
 	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"
@@ -179,7 +179,7 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	// TODO handle the kubeadm config, like kubeproxy config
 	//The configuration set here does not require merge
 
-	conf.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = string(masters[0])
+	conf.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = masters[0].String()
 	conf.ControlPlaneEndpoint = fmt.Sprintf("%s:6443", apiServerDomain)
 
 	if conf.APIServer.ExtraArgs == nil {
