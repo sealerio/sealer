@@ -15,13 +15,37 @@
 package utils
 
 import (
-	"fmt"
+	"net"
 	"testing"
 
+	"github.com/sealerio/sealer/pkg/clusterfile"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/stretchr/testify/assert"
 )
 
-func Test_getHosts(t *testing.T) {
+func Test_TransferIPStrToHosts(t *testing.T) {
+	data := `apiVersion: sealer.cloud/v2
+kind: Cluster
+metadata:
+  creationTimestamp: null
+  name: my-cluster
+spec:
+  hosts:
+  - ips:
+    - 192.168.0.5
+    - 192.168.0.6
+    - 192.168.0.7
+    roles:
+    - master
+    ssh: {}
+  - ips:
+    - 192.168.0.4
+    - 192.168.0.3
+    - 192.168.0.2
+    roles:
+    - node
+    ssh: {}
+`
 	type ages struct {
 		inMasters string
 		inNodes   string
@@ -47,7 +71,25 @@ func Test_getHosts(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			fmt.Println(hosts)
+			cf, err := clusterfile.NewClusterFile([]byte(data))
+			if err != nil {
+				assert.Errorf(t, err, "failed to NewClusterFile by name")
+			}
+			cluster := cf.GetCluster()
+			var ips net.IP
+			for _, host := range cluster.Spec.Hosts {
+				for _, ips = range host.IPS {
+					assert.NotNil(t, ips)
+				}
+			}
+
+			var i net.IP
+			for _, ip := range hosts {
+				for _, i = range ip.IPS {
+					assert.NotNil(t, i)
+				}
+			}
+			assert.Equal(t, ips, i)
 		})
 	}
 }
