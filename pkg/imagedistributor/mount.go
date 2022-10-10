@@ -104,11 +104,7 @@ func (c ImagerMounter) Umount(imageMountInfo map[string]string) error {
 	return nil
 }
 
-func NewImageMounter(hostsPlatform map[v1.Platform][]net.IP) (*ImagerMounter, error) {
-	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
-	if err != nil {
-		return nil, err
-	}
+func NewImageMounter(imageEngine imageengine.Interface, hostsPlatform map[v1.Platform][]net.IP) (*ImagerMounter, error) {
 	c := &ImagerMounter{
 		hostsPlatform: hostsPlatform,
 	}

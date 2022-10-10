@@ -19,15 +19,16 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -91,12 +92,17 @@ func NewJoinCmd() *cobra.Command {
 				newHosts         = append(joinMasterIPList, joinNodeIPList...)
 			)
 
+			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+
 			clusterHostsPlatform, err := infraDriver.GetHostsPlatform(newHosts)
 			if err != nil {
 				return err
 			}
 
-			imageMounter, err := imagedistributor.NewImageMounter(clusterHostsPlatform)
+			imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
 			if err != nil {
 				return err
 			}

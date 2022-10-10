@@ -19,17 +19,18 @@ import (
 	"net"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-
-	"github.com/sealerio/sealer/pkg/imagedistributor"
-
+	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
+	common2 "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
-
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
@@ -37,6 +38,7 @@ var ForceDelete bool
 
 // RuntimeConfig for Installer
 type RuntimeConfig struct {
+	ImageEngine            imageengine.Interface
 	Distributor            imagedistributor.Distributor
 	RegistryConfig         registry.RegConfig
 	ContainerRuntimeConfig containerruntime.Config
@@ -118,71 +120,126 @@ func getWorkerIPList(infraDriver infradriver.InfraDriver) []net.IP {
 	return workers
 }
 
-func (i *Installer) Install() (registry.Driver, runtime.Driver, error) {
-	master0 := i.infraDriver.GetHostIPListByRole(common.MASTER)[0]
-	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
-	workers := getWorkerIPList(i.infraDriver)
-	all := append(masters, workers...)
+func (i *Installer) Install() error {
+	var (
+		masters           = i.infraDriver.GetHostIPListByRole(common.MASTER)
+		master0           = masters[0]
+		workers           = getWorkerIPList(i.infraDriver)
+		all               = append(masters, workers...)
+		image             = i.infraDriver.GetClusterImageName()
+		clusterLaunchCmds = i.infraDriver.GetClusterLaunchCmds()
+	)
 
 	// distribute rootfs
 	if err := i.Distributor.DistributeRootfs(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	if err := i.runClusterHook(master0, PreInstallCluster); err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	if err := i.runHostHook(PreInitHost, all); err != nil {
-		return nil, nil, err
+		return err
 	}
 
+	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: image})
+	if err != nil {
+		return fmt.Errorf("failed to get ClusterImage: %s", err)
+	}
+
+	var cmds []string
+	if len(clusterLaunchCmds) > 0 {
+		cmds = clusterLaunchCmds
+	} else {
+		cmds = extension.Launch.Cmds
+	}
+
+	if extension.Type == v12.AppInstaller {
+		err = i.installApp(master0, cmds)
+		if err != nil {
+			return fmt.Errorf("failed to install application: %s", err)
+		}
+	} else {
+		err = i.installKubeCluster(all)
+		if err != nil {
+			return fmt.Errorf("failed to install cluster: %s", err)
+		}
+
+		err = i.installApp(master0, cmds)
+		if err != nil {
+			return fmt.Errorf("failed to install application: %s", err)
+		}
+	}
+
+	if err = i.runClusterHook(master0, PostInstallCluster); err != nil {
+		return err
+	}
+
+	if err = i.runHostHook(PostInitHost, all); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Installer) installKubeCluster(all []net.IP) error {
 	if err := i.containerRuntimeInstaller.InstallOn(all); err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	crInfo, err := i.containerRuntimeInstaller.GetInfo()
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	if err := registryConfigurator.Reconcile(all); err != nil {
-		return nil, nil, err
+	if err = registryConfigurator.Reconcile(all); err != nil {
+		return err
 	}
 
 	registryDriver, err := registryConfigurator.GetDriver()
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, crInfo, registryDriver.GetInfo())
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	if err := kubeRuntimeInstaller.Install(); err != nil {
-		return nil, nil, err
+	if err = kubeRuntimeInstaller.Install(); err != nil {
+		return err
 	}
 
-	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
-	if err != nil {
-		return nil, nil, err
+	return nil
+}
+
+func (i *Installer) installApp(master0 net.IP, cmds []string) error {
+	var (
+		clusterRootfs = i.infraDriver.GetClusterRootfsPath()
+		ex            = shell.NewLex('\\')
+	)
+
+	for _, value := range cmds {
+		if value == "" {
+			continue
+		}
+		cmdline, err := ex.ProcessWordWithMap(value, map[string]string{})
+		if err != nil {
+			return fmt.Errorf("failed to render launch cmd: %v", err)
+		}
+
+		if err = i.infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, cmdline)); err != nil {
+			return err
+		}
 	}
 
-	if err := i.runClusterHook(master0, PostInstallCluster); err != nil {
-		return nil, nil, err
-	}
-
-	if err := i.runHostHook(PostInitHost, all); err != nil {
-		return nil, nil, err
-	}
-
-	return registryDriver, runtimeDriver, nil
+	return nil
 }
 
 func (i *Installer) UnInstall() error {
