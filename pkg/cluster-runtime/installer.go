@@ -97,6 +97,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	installer.infraDriver = infraDriver
 	installer.KubeadmConfig = runtimeConfig.KubeadmConfig
 	installer.Distributor = runtimeConfig.Distributor
+	installer.ImageEngine = runtimeConfig.ImageEngine
 
 	return installer, nil
 }
@@ -145,7 +146,7 @@ func (i *Installer) Install() error {
 
 	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: image})
 	if err != nil {
-		return fmt.Errorf("failed to get ClusterImage: %s", err)
+		return fmt.Errorf("failed to get ClusterImage extension: %s", err)
 	}
 
 	var cmds []string
