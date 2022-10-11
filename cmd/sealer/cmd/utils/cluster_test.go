@@ -29,40 +29,35 @@ func Test_returnFilteredIPList(t *testing.T) {
 		clusterIPList     []net.IP
 		toBeDeletedIPList []net.IP
 		IPListExpected    []net.IP
-		wantErr           bool
 	}{
 		{
 			"test",
 			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
 			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
 			[]net.IP{},
-			false,
 		},
 		{
 			"test1",
 			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
 			[]net.IP{},
 			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
-			false,
 		},
 		{
 			"test2",
 			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
 			[]net.IP{net.ParseIP("10.10.10.4")},
 			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3")},
-			false,
 		},
 		{
 			"test3",
 			[]net.IP{},
 			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
 			[]net.IP{},
-			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if res := removeIPList(tt.clusterIPList, tt.toBeDeletedIPList); (res != nil) != tt.wantErr {
+			if res := removeIPList(tt.clusterIPList, tt.toBeDeletedIPList); res != nil {
 				assert.Equal(t, tt.IPListExpected, res)
 			}
 		})
