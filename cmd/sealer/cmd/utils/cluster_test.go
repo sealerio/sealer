@@ -63,11 +63,7 @@ func Test_returnFilteredIPList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if res := removeIPList(tt.clusterIPList, tt.toBeDeletedIPList); (res != nil) != tt.wantErr {
-				assert.NotNil(t, res)
-				result := assert.Equal(t, tt.IPListExpected, res)
-				if !result {
-					t.Error("The filtered ip address is different from the expected value")
-				}
+				assert.Equal(t, tt.IPListExpected, res)
 			}
 		})
 	}
