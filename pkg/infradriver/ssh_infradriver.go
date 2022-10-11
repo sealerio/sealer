@@ -35,7 +35,8 @@ type SSHInfraDriver struct {
 	hostEnvMap        map[string]map[string]interface{}
 	clusterRenderData map[string]interface{}
 	clusterName       string
-	clusterImagerName string
+	clusterImageName  string
+	clusterLaunchCmds []string
 }
 
 func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {
@@ -81,7 +82,8 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	var err error
 	ret := &SSHInfraDriver{
 		clusterName:       cluster.Name,
-		clusterImagerName: cluster.Spec.Image,
+		clusterImageName:  cluster.Spec.Image,
+		clusterLaunchCmds: cluster.Spec.CMD,
 		sshConfigs:        map[string]ssh.Interface{},
 		roleHostsMap:      map[string][]net.IP{},
 		// todo need to separate env into app render data and sys render data
@@ -226,7 +228,11 @@ func (d *SSHInfraDriver) GetClusterName() string {
 }
 
 func (d *SSHInfraDriver) GetClusterImageName() string {
-	return d.clusterImagerName
+	return d.clusterImageName
+}
+
+func (d *SSHInfraDriver) GetClusterLaunchCmds() []string {
+	return d.clusterLaunchCmds
 }
 
 func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {

@@ -19,6 +19,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -122,7 +125,12 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			imageMounter, err := imagedistributor.NewImageMounter(clusterHostsPlatform)
+			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+
+			imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
 			if err != nil {
 				return err
 			}
@@ -146,6 +154,7 @@ func NewRunCmd() *cobra.Command {
 
 			runtimeConfig := &clusterruntime.RuntimeConfig{
 				Distributor: distributor,
+				ImageEngine: imageEngine,
 			}
 			if cf.GetPlugins() != nil {
 				runtimeConfig.Plugins = cf.GetPlugins()
@@ -160,11 +169,12 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			_, _, err = installer.Install()
+			err = installer.Install()
 			if err != nil {
 				return err
 			}
 
+			//save clusterfile
 			if err = cf.SaveAll(); err != nil {
 				return err
 			}

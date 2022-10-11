@@ -41,6 +41,9 @@ type InfraDriver interface {
 	//GetClusterImageName ${cluster image Name}
 	GetClusterImageName() string
 
+	//GetClusterLaunchCmds ${user-defined launch command}
+	GetClusterLaunchCmds() []string
+
 	//GetClusterRootfsPath /var/lib/sealer/data/${clusterName}/rootfs
 	GetClusterRootfsPath() string
 

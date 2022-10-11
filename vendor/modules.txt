@@ -1437,6 +1437,8 @@ k8s.io/kubelet/config/v1beta1
 # k8s.io/kubernetes v1.21.0
 ## explicit; go 1.16
 k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm
+k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2
+k8s.io/kubernetes/cmd/kubeadm/app/constants
 k8s.io/kubernetes/cmd/kubeadm/app/features
 # k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 ## explicit; go 1.12
