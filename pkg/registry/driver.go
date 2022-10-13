@@ -17,6 +17,7 @@ package registry
 import (
 	"net"
 
+	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
@@ -27,26 +28,30 @@ type Info struct {
 // Driver provide external interaction to work with registry.
 type Driver interface {
 	// UploadContainerImages2Registry :upload src registry filesystem to registry data directory.
-	UploadContainerImages2Registry(src string, host net.IP) error
+	UploadContainerImages2Registry() error
 	GetInfo() Info
 }
 
 type LocalRegistryDriver struct {
 	infraDriver infradriver.InfraDriver
-	DataDir     string
+	distributor imagedistributor.Distributor
+	dataDir     string
+	deployHost  net.IP
 }
 
-func (l LocalRegistryDriver) UploadContainerImages2Registry(src string, host net.IP) error {
-	return l.infraDriver.Copy(host, src, l.DataDir)
+func (l LocalRegistryDriver) UploadContainerImages2Registry() error {
+	return l.distributor.DistributeRegistry(l.deployHost, l.dataDir)
 }
 
 func (l LocalRegistryDriver) GetInfo() Info {
 	return Info{}
 }
 
-func newLocalRegistryDriver(dataDir string, infraDriver infradriver.InfraDriver) Driver {
+func newLocalRegistryDriver(dataDir string, deployHost net.IP, infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) Driver {
 	return LocalRegistryDriver{
+		distributor: distributor,
 		infraDriver: infraDriver,
-		DataDir:     dataDir,
+		dataDir:     dataDir,
+		deployHost:  deployHost,
 	}
 }
