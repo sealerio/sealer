@@ -33,6 +33,11 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
+	// delete HostAlias
+	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {
+		return err
+	}
+
 	if err := i.runClusterHook(master0, PreUnInstallCluster); err != nil {
 		return err
 	}

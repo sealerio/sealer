@@ -69,7 +69,6 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	if err != nil {
 		return nil, err
 	}
-
 	// configure cluster registry
 	installer.RegistryConfig.LocalRegistry = &registry.LocalRegistry{
 		DataDir:      filepath.Join(infraDriver.GetClusterRootfsPath(), "registry"),
@@ -115,6 +114,11 @@ func (i *Installer) Install() error {
 
 	// distribute rootfs
 	if err := i.Distributor.DistributeRootfs(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
+		return err
+	}
+
+	// set HostAlias
+	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
 		return err
 	}
 

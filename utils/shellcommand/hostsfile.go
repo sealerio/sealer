@@ -20,10 +20,10 @@ const (
 	DefaultSealerHostAlias = "#hostalias-set-by-sealer"
 )
 
-func CommandSetHostAlias(hostName, ip string) string {
-	return fmt.Sprintf(`if grep %s /etc/hosts;then sed -i "/%s/d" /etc/hosts; fi;echo "%s %s #%s" >>/etc/hosts`, hostName, hostName, ip, hostName, DefaultSealerHostAlias)
+func CommandSetHostAlias(hostName, ip, alias string) string {
+	return fmt.Sprintf(`if grep %s /etc/hosts;then sed -i "/%s/d" /etc/hosts; fi;echo "%s %s #%s" >>/etc/hosts`, hostName, hostName, ip, hostName, alias)
 }
 
-func CommandUnSetHostAlias() string {
-	return fmt.Sprintf(`sed -i "/%s/d" /etc/hosts`, DefaultSealerHostAlias)
+func CommandUnSetHostAlias(alias string) string {
+	return fmt.Sprintf(`sed -i "/%s/d" /etc/hosts`, alias)
 }

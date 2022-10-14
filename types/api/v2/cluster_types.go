@@ -41,6 +41,9 @@ type ClusterSpec struct {
 	CMD     []string `json:"cmd,omitempty"`
 	Hosts   []Host   `json:"hosts,omitempty"`
 	SSH     v1.SSH   `json:"ssh,omitempty"`
+	// HostAliases holds the mapping between IP and hostnames that will be injected as an entry in the
+	// host's hosts file.
+	HostAliases []HostAlias `json:"hostAliases,omitempty"`
 }
 
 type Host struct {
@@ -50,6 +53,15 @@ type Host struct {
 	SSH v1.SSH `json:"ssh,omitempty"`
 	//overwrite env
 	Env []string `json:"env,omitempty"`
+}
+
+// HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the
+// pod's hosts file.
+type HostAlias struct {
+	// IP address of the host file entry.
+	IP string `json:"ip,omitempty"`
+	// Hostnames for the above IP address.
+	Hostnames []string `json:"hostnames,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster

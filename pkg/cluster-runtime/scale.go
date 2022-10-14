@@ -32,6 +32,11 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
+	// set HostAlias
+	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
+		return nil, nil, err
+	}
+
 	if err := i.runClusterHook(master0, PreScaleUpCluster); err != nil {
 		return nil, nil, err
 	}
@@ -102,6 +107,11 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 	}
 
 	all := append(mastersToDelete, workersToDelete...)
+	// delete HostAlias
+	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {
+		return nil, nil, err
+	}
+
 	if err := i.runHostHook(PreCleanHost, all); err != nil {
 		return nil, nil, err
 	}
