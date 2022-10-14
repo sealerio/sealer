@@ -110,6 +110,11 @@ func NewRunCmd() *cobra.Command {
 				}
 			}
 
+			//save desired clusterfile
+			if err = cf.SaveAll(); err != nil {
+				return err
+			}
+
 			cluster := cf.GetCluster()
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {

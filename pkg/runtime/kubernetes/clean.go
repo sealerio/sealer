@@ -22,10 +22,39 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/pkg/ipvs"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
+
+func (k *Runtime) reset(mastersToDelete, workersToDelete []net.IP) error {
+	all := append(mastersToDelete, workersToDelete...)
+	remoteCleanCmd := []string{fmt.Sprintf(RemoteCleanK8sOnHost, vlogToStr(k.Config.Vlog)),
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain())}
+
+	// do kubeadm reset
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, node := range all {
+		n := node
+		eg.Go(func() error {
+			if err := k.infra.CmdAsync(n, remoteCleanCmd...); err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+	err := eg.Wait()
+	if err != nil {
+		return err
+	}
+
+	// clean vip route on node
+	for _, node := range workersToDelete {
+		if err = k.deleteVIPRouteIfExist(node); err != nil {
+			return fmt.Errorf("failed to delete vip route %s: %v", node, err)
+		}
+	}
+	return nil
+}
 
 func (k *Runtime) deleteMasters(mastersToDelete, remainMasters, remainWorkers []net.IP) error {
 	y := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), remainMasters, k.Config.LvsImage)
