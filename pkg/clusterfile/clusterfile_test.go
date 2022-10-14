@@ -21,9 +21,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/sealerio/sealer/common"
 )

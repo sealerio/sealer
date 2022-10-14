@@ -27,6 +27,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 
 	"github.com/pelletier/go-toml"
+
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"

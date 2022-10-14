@@ -17,8 +17,9 @@ package alpha
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/spf13/cobra"
+
+	"github.com/sealerio/sealer/common"
 
 	"github.com/sealerio/sealer/pkg/debug"
 )

@@ -25,6 +25,7 @@ import (
 	"github.com/sealerio/sealer/build/kubefile/command"
 
 	"github.com/pkg/errors"
+
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 )
 

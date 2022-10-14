@@ -19,8 +19,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sealerio/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/sealerio/sealer/utils/ssh"
 
 	"github.com/spf13/cobra"
 

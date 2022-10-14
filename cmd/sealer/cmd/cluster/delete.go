@@ -19,8 +19,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/utils/os"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/utils/os"
 
 	netutils "github.com/sealerio/sealer/utils/net"
 

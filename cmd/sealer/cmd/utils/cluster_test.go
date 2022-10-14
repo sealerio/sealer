@@ -18,9 +18,10 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_returnFilteredIPList(t *testing.T) {

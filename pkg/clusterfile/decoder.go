@@ -20,15 +20,16 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sealerio/sealer/common"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+
+	"github.com/sealerio/sealer/common"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {

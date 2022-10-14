@@ -25,6 +25,7 @@ import (
 	osi "github.com/sealerio/sealer/utils/os"
 
 	"github.com/docker/docker/api/types"
+
 	"github.com/sealerio/sealer/common"
 )
 

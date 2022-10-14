@@ -26,14 +26,15 @@ import (
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
 )
 
 var runFlags *types.Flags

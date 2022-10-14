@@ -27,6 +27,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -35,7 +37,6 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"github.com/sealerio/sealer/utils"
 	utilsnet "github.com/sealerio/sealer/utils/net"
-	"github.com/sirupsen/logrus"
 )
 
 type Config struct {

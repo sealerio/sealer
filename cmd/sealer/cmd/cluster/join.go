@@ -19,6 +19,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -28,8 +31,6 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 var joinFlags *types.Flags

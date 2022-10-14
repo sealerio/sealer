@@ -35,13 +35,14 @@ import (
 	"github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/util/json"
+
 	"github.com/sealerio/sealer/build/buildimage"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/version"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/util/json"
 )
 
 var buildFlags = bc.BuildOptions{}

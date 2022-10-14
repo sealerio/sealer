@@ -18,10 +18,11 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/spf13/cobra"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/exec"
-	"github.com/spf13/cobra"
 )
 
 var (

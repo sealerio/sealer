@@ -22,9 +22,10 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/utils/exec"
-	"github.com/sirupsen/logrus"
 
 	"github.com/vishvananda/netlink"
 	k8snet "k8s.io/apimachinery/pkg/util/net"

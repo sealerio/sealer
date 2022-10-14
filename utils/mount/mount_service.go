@@ -20,9 +20,10 @@ import (
 	"strings"
 
 	"github.com/moby/sys/mountinfo"
-	"github.com/sealerio/sealer/utils/ssh"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/utils/ssh"
 
 	"github.com/sealerio/sealer/utils/os/fs"
 	strUtils "github.com/sealerio/sealer/utils/strings"

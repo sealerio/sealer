@@ -24,10 +24,11 @@ import (
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/alpha"
 
-	"github.com/sealerio/sealer/pkg/logger"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/sealerio/sealer/pkg/logger"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/version"

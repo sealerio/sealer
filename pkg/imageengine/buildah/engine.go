@@ -20,6 +20,7 @@ import (
 
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/v5/types"
+
 	"github.com/sealerio/sealer/pkg/auth"
 
 	"github.com/BurntSushi/toml"
@@ -27,9 +28,10 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/drivers/overlay"
 	types2 "github.com/containers/storage/types"
-	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 type Engine struct {

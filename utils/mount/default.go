@@ -21,8 +21,9 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/utils/strings"
 )
 
 type Default struct {

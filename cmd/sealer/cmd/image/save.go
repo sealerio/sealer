@@ -20,9 +20,10 @@ import (
 
 	"os"
 
-	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 )
 
 var saveOpts *options.SaveOptions

@@ -24,14 +24,15 @@ import (
 
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
-	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
+	versionUtils "github.com/sealerio/sealer/utils/version"
 )
 
 const (
