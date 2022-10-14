@@ -21,10 +21,11 @@ import (
 
 	"github.com/sealerio/sealer/common"
 
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kube-proxy/config/v1alpha1"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 const data = `apiVersion: sealer.com/v1alpha1

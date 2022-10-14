@@ -22,8 +22,9 @@ import (
 
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
-	"github.com/sealerio/sealer/common"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/common"
 )
 
 func NewFileHook(filePath string) (logrus.Hook, error) {

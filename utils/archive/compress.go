@@ -28,8 +28,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/common"
 )
 
 const compressionBufSize = 32768

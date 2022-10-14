@@ -17,6 +17,7 @@ package buildah
 import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
+
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"os"

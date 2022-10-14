@@ -22,9 +22,10 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	"github.com/sirupsen/logrus"
 	utilnet "k8s.io/utils/net"
+
+	"github.com/sealerio/sealer/pkg/clustercert/cert"
 )
 
 const (

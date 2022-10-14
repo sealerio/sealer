@@ -23,8 +23,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 
 	"github.com/sealerio/sealer/utils/shellcommand"
 

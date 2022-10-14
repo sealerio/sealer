@@ -18,13 +18,15 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/pkg/runtime"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/yaml"
-	"github.com/sirupsen/logrus"
 )
 
 func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig kubeadm.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery, certKey string) error {

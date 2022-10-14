@@ -19,6 +19,7 @@ import (
 	"github.com/containers/common/libimage/manifests"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/manifest"
+
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"os"

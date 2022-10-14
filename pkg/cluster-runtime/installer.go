@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"

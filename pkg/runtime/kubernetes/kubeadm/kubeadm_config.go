@@ -20,9 +20,10 @@ import (
 	"net"
 	"strings"
 
-	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+
+	versionUtils "github.com/sealerio/sealer/utils/version"
 
 	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"

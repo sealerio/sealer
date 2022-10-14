@@ -17,8 +17,9 @@ package kubernetes
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/pkg/runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/sealerio/sealer/pkg/runtime"
 )
 
 type kubeDriver struct {

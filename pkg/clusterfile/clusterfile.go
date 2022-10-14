@@ -20,12 +20,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"sigs.k8s.io/yaml"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsos "github.com/sealerio/sealer/utils/os"
-	"sigs.k8s.io/yaml"
 )
 
 type Interface interface {

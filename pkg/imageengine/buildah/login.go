@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/containers/common/pkg/auth"
+
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"os"

@@ -18,8 +18,9 @@ import (
 	"fmt"
 	"strings"
 
-	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sirupsen/logrus"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
 
 	"github.com/distribution/distribution/v3"
 	"github.com/opencontainers/go-digest"

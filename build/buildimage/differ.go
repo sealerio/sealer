@@ -28,13 +28,14 @@ import (
 
 	osi "github.com/sealerio/sealer/utils/os"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sealerio/sealer/build/layerutils/charts"
 	manifest "github.com/sealerio/sealer/build/layerutils/manifests"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/save"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	"golang.org/x/sync/errgroup"
 )
 
 var (

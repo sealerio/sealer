@@ -25,8 +25,9 @@ import (
 	"strings"
 	"syscall"
 
-	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
+
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 type Interface interface {

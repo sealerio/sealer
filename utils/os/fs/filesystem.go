@@ -21,8 +21,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/common"
 
 	"golang.org/x/sys/unix"
 )

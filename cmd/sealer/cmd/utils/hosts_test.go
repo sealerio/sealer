@@ -18,9 +18,10 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_TransferIPStrToHosts(t *testing.T) {

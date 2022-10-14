@@ -21,10 +21,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"helm.sh/helm/v3/pkg/chartutil"
+
 	"github.com/sealerio/sealer/common"
 	osi "github.com/sealerio/sealer/utils/os"
 	strUtils "github.com/sealerio/sealer/utils/strings"
-	"helm.sh/helm/v3/pkg/chartutil"
 )
 
 func getKubeVersion(rootfs string) string {
