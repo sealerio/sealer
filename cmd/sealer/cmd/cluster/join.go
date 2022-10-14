@@ -81,8 +81,13 @@ func NewJoinCmd() *cobra.Command {
 			if err = utils.ConstructClusterForScaleUp(&cluster, joinFlags, joinMasterIPList, joinNodeIPList); err != nil {
 				return err
 			}
-
 			cf.SetCluster(cluster)
+
+			//save desired clusterfile
+			if err = cf.SaveAll(); err != nil {
+				return err
+			}
+
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err

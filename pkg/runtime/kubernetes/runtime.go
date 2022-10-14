@@ -22,13 +22,6 @@ import (
 	"net"
 	"path/filepath"
 
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -37,6 +30,11 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"github.com/sealerio/sealer/utils"
 	utilsnet "github.com/sealerio/sealer/utils/net"
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Config struct {
@@ -129,16 +127,7 @@ func (k *Runtime) Upgrade() error {
 func (k *Runtime) Reset() error {
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 	workers := k.infra.GetHostIPListByRole(common.NODE)
-
-	if err := k.deleteNodes(workers, []net.IP{}); err != nil {
-		return err
-	}
-
-	if err := k.deleteMasters(masters, []net.IP{}, []net.IP{}); err != nil {
-		return err
-	}
-
-	return nil
+	return k.reset(masters, workers)
 }
 
 func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
