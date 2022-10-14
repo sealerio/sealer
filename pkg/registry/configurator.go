@@ -50,7 +50,7 @@ func NewConfigurator(conf RegConfig, containerRuntimeInfo containerruntime.Info,
 			infraDriver:          infraDriver,
 			LocalRegistry:        conf.LocalRegistry,
 			containerRuntimeInfo: containerRuntimeInfo,
-			Distributor:          distributor,
+			distributor:          distributor,
 		}, nil
 	}
 

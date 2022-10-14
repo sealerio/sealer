@@ -18,6 +18,9 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/infradriver"
+
 	"github.com/sealerio/sealer/utils"
 )
 
@@ -31,4 +34,23 @@ func confirmDeleteHosts(role string, nodesToDelete []net.IP) error {
 	}
 
 	return nil
+}
+
+func getWorkerIPList(infraDriver infradriver.InfraDriver) []net.IP {
+	masters := make(map[string]bool)
+	for _, master := range infraDriver.GetHostIPListByRole(common.MASTER) {
+		masters[master.String()] = true
+	}
+	all := infraDriver.GetHostIPList()
+	workers := make([]net.IP, len(all)-len(masters))
+
+	index := 0
+	for _, ip := range all {
+		if !masters[ip.String()] {
+			workers[index] = ip
+			index++
+		}
+	}
+
+	return workers
 }

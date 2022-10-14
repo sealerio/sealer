@@ -47,7 +47,7 @@ type localSingletonConfigurator struct {
 
 	containerRuntimeInfo containerruntime.Info
 	infraDriver          infradriver.InfraDriver
-	Distributor          imagedistributor.Distributor
+	distributor          imagedistributor.Distributor
 }
 
 // Clean will stop local private registry via rootfs scripts.
@@ -79,7 +79,7 @@ func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
 }
 
 func (c *localSingletonConfigurator) GetDriver() (Driver, error) {
-	return newLocalRegistryDriver(c.DataDir, c.infraDriver), nil
+	return newLocalRegistryDriver(c.DataDir, c.DeployHost, c.infraDriver, c.distributor), nil
 }
 
 // Reconcile will start local private registry via rootfs scripts.
@@ -254,7 +254,7 @@ func (c *localSingletonConfigurator) reconcileRegistry() error {
 		deployHost = c.DeployHost
 	)
 
-	if err := c.Distributor.DistributeRegistry(deployHost, dataDir); err != nil {
+	if err := c.distributor.DistributeRegistry(deployHost, dataDir); err != nil {
 		return err
 	}
 
