@@ -17,6 +17,9 @@ package containerruntime
 import (
 	"fmt"
 	"net"
+	"path/filepath"
+
+	"github.com/sealerio/sealer/common"
 
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
@@ -27,6 +30,7 @@ const (
 	DefaultSystemdCgroupDriver = "systemd"
 	DefaultCgroupDriver        = "cgroupfs"
 	DockerDockerCertsDir       = "/etc/docker/certs.d"
+	DockerConfigFileName       = "config.json"
 )
 
 type Installer interface {
@@ -48,8 +52,9 @@ type Config struct {
 
 type Info struct {
 	Config
-	CRISocket string
-	CertsDir  string
+	CRISocket      string
+	CertsDir       string
+	ConfigFilePath string
 }
 
 func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
@@ -58,9 +63,10 @@ func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
 			Info: Info{
-				CertsDir:  DockerDockerCertsDir,
-				CRISocket: DefaultDockerCRISocket,
-				Config:    conf,
+				CertsDir:       DockerDockerCertsDir,
+				CRISocket:      DefaultDockerCRISocket,
+				Config:         conf,
+				ConfigFilePath: filepath.Join(common.GetHomeDir(), ".docker", DockerConfigFileName),
 			},
 		}, nil
 	}
