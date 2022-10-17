@@ -69,17 +69,33 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	if err != nil {
 		return nil, err
 	}
+
+	// todo maybe we can support custom registry config later
+
+	clusterENV := infraDriver.GetClusterEnv()
+
+	var registryConfig = registry.Registry{
+		Domain: registry.DefaultDomain,
+		Port:   registry.DefaultPort,
+		Auth:   &registry.Auth{},
+	}
+	if domain := clusterENV["RegistryDomain"]; domain != nil {
+		registryConfig.Domain = domain.(string)
+	}
+	if userName := clusterENV["RegistryUsername"]; userName != nil {
+		registryConfig.Auth.Username = userName.(string)
+	}
+	if password := clusterENV["RegistryPassword"]; password != nil {
+		registryConfig.Auth.Password = password.(string)
+	}
+
 	// configure cluster registry
 	installer.RegistryConfig.LocalRegistry = &registry.LocalRegistry{
 		DataDir:      filepath.Join(infraDriver.GetClusterRootfsPath(), "registry"),
 		InsecureMode: false,
 		Cert:         &registry.TLSCert{},
 		DeployHost:   infraDriver.GetHostIPListByRole(common.MASTER)[0],
-		Registry: registry.Registry{
-			Domain: registry.DefaultDomain,
-			Port:   registry.DefaultPort,
-			Auth:   &registry.Auth{},
-		},
+		Registry:     registryConfig,
 	}
 
 	// add installer hooks
