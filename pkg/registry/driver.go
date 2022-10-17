@@ -36,6 +36,7 @@ type LocalRegistryDriver struct {
 	infraDriver infradriver.InfraDriver
 	distributor imagedistributor.Distributor
 	dataDir     string
+	endpoint    string
 	deployHost  net.IP
 }
 
@@ -44,11 +45,12 @@ func (l LocalRegistryDriver) UploadContainerImages2Registry() error {
 }
 
 func (l LocalRegistryDriver) GetInfo() Info {
-	return Info{}
+	return Info{URL: l.endpoint}
 }
 
-func newLocalRegistryDriver(dataDir string, deployHost net.IP, infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) Driver {
+func newLocalRegistryDriver(endpoint string, dataDir string, deployHost net.IP, infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) Driver {
 	return LocalRegistryDriver{
+		endpoint:    endpoint,
 		distributor: distributor,
 		infraDriver: infraDriver,
 		dataDir:     dataDir,

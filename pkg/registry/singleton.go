@@ -16,24 +16,26 @@ package registry
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/imagedistributor"
-
+	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
-
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sealerio/sealer/utils/os"
+	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sealerio/sealer/utils/shellcommand"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -60,14 +62,17 @@ func (c *localSingletonConfigurator) Clean() error {
 }
 
 func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
-	uninstallCmd := []string{shellcommand.CommandUnSetHostAlias(shellcommand.DefaultSealerHostAlias)}
-
+	var uninstallCmd []string
 	if c.Auth.Username != "" && c.Auth.Password != "" {
 		//todo use sdk to logout instead of shell cmd
-		logoutCmd := fmt.Sprintf("nerdctl logout -u %s -p %s %s ", c.Auth.Username, c.Auth.Password, c.Domain+":"+strconv.Itoa(c.Port))
+		logoutCmd := fmt.Sprintf("docker logout %s ", c.Domain+":"+strconv.Itoa(c.Port))
+		if c.containerRuntimeInfo.Type != "docker" {
+			logoutCmd = fmt.Sprintf("nerdctl logout %s ", c.Domain+":"+strconv.Itoa(c.Port))
+		}
 		uninstallCmd = append(uninstallCmd, logoutCmd)
 	}
 
+	uninstallCmd = append(uninstallCmd, shellcommand.CommandUnSetHostAlias(shellcommand.DefaultSealerHostAlias))
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, strings.Join(uninstallCmd, "&&"))
 		if err != nil {
@@ -80,7 +85,9 @@ func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
 }
 
 func (c *localSingletonConfigurator) GetDriver() (Driver, error) {
-	return newLocalRegistryDriver(c.DataDir, c.DeployHost, c.infraDriver, c.distributor), nil
+	// todo transfer registry config to driver more precisely obey to minimization principle
+	endpoint := c.Domain + ":" + strconv.Itoa(c.Port)
+	return newLocalRegistryDriver(endpoint, c.DataDir, c.DeployHost, c.infraDriver, c.distributor), nil
 }
 
 // Reconcile will start local private registry via rootfs scripts.
@@ -105,7 +112,7 @@ func (c *localSingletonConfigurator) Reconcile(hosts []net.IP) error {
 		return err
 	}
 
-	if err := c.configureKubeletAuthInfo(hosts); err != nil {
+	if err := c.configureAccessCredential(hosts); err != nil {
 		return err
 	}
 
@@ -200,15 +207,7 @@ func (c *localSingletonConfigurator) copyCertToHosts(certPath string, hosts []ne
 		src      = filepath.Join(certPath, caFile)
 	)
 
-	f := func(host net.IP) error {
-		err := c.infraDriver.Copy(host, src, dest)
-		if err != nil {
-			return fmt.Errorf("failed to copy registry cert %s: %v", src, err)
-		}
-		return nil
-	}
-
-	return c.infraDriver.Execute(hosts, f)
+	return c.copy2RemoteHosts(src, dest, hosts)
 }
 
 func (c *localSingletonConfigurator) genBasicAuth() error {
@@ -235,7 +234,7 @@ func (c *localSingletonConfigurator) genBasicAuth() error {
 		return err
 	}
 
-	err = os.NewCommonWriter(localBasicAuthFile).WriteFile([]byte(htpasswd))
+	err = osutils.NewCommonWriter(localBasicAuthFile).WriteFile([]byte(htpasswd))
 	if err != nil {
 		return err
 	}
@@ -281,24 +280,60 @@ func (c *localSingletonConfigurator) configureHostsFile(hosts []net.IP) error {
 	return c.infraDriver.Execute(hosts, f)
 }
 
-func (c *localSingletonConfigurator) configureKubeletAuthInfo(hosts []net.IP) error {
+func (c *localSingletonConfigurator) configureAccessCredential(hosts []net.IP) error {
 	var (
-		username = c.Auth.Username
-		password = c.Auth.Username
-		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+		username        = c.Auth.Username
+		password        = c.Auth.Password
+		endpoint        = c.Domain + ":" + strconv.Itoa(c.Port)
+		tmpAuthFilePath = "/tmp/config.json"
+		// todo we need this config file when kubelet pull images from registry. while, we could optimize the logic here.
+		remoteKubeletAuthFilePath = "/var/lib/kubelet/config.json"
 	)
 
 	if username == "" || password == "" {
 		return nil
 	}
-	// todo use sdk to login instead of shell cmd
-	configAuthCmd := fmt.Sprintf("nerdctl login -u %s -p %s %s && mkdir -p /var/lib/kubelet && cp /root/.docker/config.json /var/lib/kubelet",
-		username, password, endpoint)
 
-	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, configAuthCmd)
+	err := auth.Login(context.TODO(),
+		nil,
+		&auth.LoginOptions{
+			AuthFile:           tmpAuthFilePath,
+			Password:           password,
+			Username:           username,
+			Stdout:             os.Stdout,
+			AcceptRepositories: true,
+		},
+		[]string{endpoint})
+
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = os.Remove(tmpAuthFilePath)
 		if err != nil {
-			return fmt.Errorf("failed to config kubelet auth: %v", err)
+			logrus.Debugf("failed to remove tmp registry auth file:%s", tmpAuthFilePath)
+		}
+	}()
+
+	err = c.copy2RemoteHosts(tmpAuthFilePath, c.containerRuntimeInfo.ConfigFilePath, hosts)
+	if err != nil {
+		return err
+	}
+
+	err = c.copy2RemoteHosts(tmpAuthFilePath, remoteKubeletAuthFilePath, hosts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *localSingletonConfigurator) copy2RemoteHosts(src, dest string, hosts []net.IP) error {
+	f := func(host net.IP) error {
+		err := c.infraDriver.Copy(host, src, dest)
+		if err != nil {
+			return fmt.Errorf("failed to copy local file %s to remote %s : %v", src, dest, err)
 		}
 		return nil
 	}
@@ -376,7 +411,7 @@ func (c *localSingletonConfigurator) configureDockerDaemonService(endpoint, daem
 		return fmt.Errorf("failed to marshal daemonFile: %v", err)
 	}
 
-	return os.NewCommonWriter(daemonFile).WriteFile(content)
+	return osutils.NewCommonWriter(daemonFile).WriteFile(content)
 }
 
 func (c *localSingletonConfigurator) configureContainerdDaemonService(endpoint, hostTomlFile string) error {
@@ -396,7 +431,7 @@ func (c *localSingletonConfigurator) configureContainerdDaemonService(endpoint, 
 	if err != nil {
 		return fmt.Errorf("failed to marshal Containerd hosts.toml file: %v", err)
 	}
-	return os.NewCommonWriter(hostTomlFile).WriteFile([]byte(tree.String()))
+	return osutils.NewCommonWriter(hostTomlFile).WriteFile([]byte(tree.String()))
 }
 
 type DaemonConfig struct {
