@@ -145,7 +145,7 @@ func (k *Runtime) initMaster0(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP)
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
 
-	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
+	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String(), shellcommand.DefaultSealerHostAlias)); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 	}
 

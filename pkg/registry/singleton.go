@@ -60,7 +60,7 @@ func (c *localSingletonConfigurator) Clean() error {
 }
 
 func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
-	uninstallCmd := []string{shellcommand.CommandUnSetHostAlias()}
+	uninstallCmd := []string{shellcommand.CommandUnSetHostAlias(shellcommand.DefaultSealerHostAlias)}
 
 	if c.Auth.Username != "" && c.Auth.Password != "" {
 		//todo use sdk to logout instead of shell cmd
@@ -271,7 +271,7 @@ func (c *localSingletonConfigurator) reconcileRegistry() error {
 func (c *localSingletonConfigurator) configureHostsFile(hosts []net.IP) error {
 	// add registry ip to "/etc/hosts"
 	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.DeployHost.String()))
+		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.DeployHost.String(), shellcommand.DefaultSealerHostAlias))
 		if err != nil {
 			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}

@@ -21,23 +21,24 @@ import (
 	"strings"
 
 	"github.com/imdario/mergo"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/ssh"
+	"golang.org/x/sync/errgroup"
 )
 
 type SSHInfraDriver struct {
-	sshConfigs        map[string]ssh.Interface
-	hosts             []net.IP
-	roleHostsMap      map[string][]net.IP
-	hostEnvMap        map[string]map[string]interface{}
-	clusterRenderData map[string]interface{}
-	clusterName       string
-	clusterImageName  string
-	clusterLaunchCmds []string
+	sshConfigs         map[string]ssh.Interface
+	hosts              []net.IP
+	roleHostsMap       map[string][]net.IP
+	hostEnvMap         map[string]map[string]interface{}
+	clusterRenderData  map[string]interface{}
+	clusterName        string
+	clusterImageName   string
+	clusterLaunchCmds  []string
+	clusterHostAliases []v2.HostAlias
 }
 
 func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {
@@ -88,8 +89,9 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		sshConfigs:        map[string]ssh.Interface{},
 		roleHostsMap:      map[string][]net.IP{},
 		// todo need to separate env into app render data and sys render data
-		hostEnvMap:        map[string]map[string]interface{}{},
-		clusterRenderData: ConvertEnv(cluster.Spec.Env),
+		hostEnvMap:         map[string]map[string]interface{}{},
+		clusterRenderData:  ConvertEnv(cluster.Spec.Env),
+		clusterHostAliases: cluster.Spec.HostAliases,
 	}
 
 	// initialize hosts field
@@ -222,6 +224,29 @@ func (d *SSHInfraDriver) Ping(host net.IP) error {
 func (d *SSHInfraDriver) SetHostName(host net.IP, hostName string) error {
 	setHostNameCmd := fmt.Sprintf("hostnamectl set-hostname %s", hostName)
 	return d.CmdAsync(host, setHostNameCmd)
+}
+
+func (d *SSHInfraDriver) SetClusterHostAliases(hosts []net.IP) error {
+	for _, host := range hosts {
+		for _, hostAliases := range d.clusterHostAliases {
+			hostname := strings.Join(hostAliases.Hostnames, " ")
+			err := d.CmdAsync(host, shellcommand.CommandSetHostAlias(hostname, hostAliases.IP, "#clusterhostalias-set-by-sealer"))
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (d *SSHInfraDriver) DeleteClusterHostAliases(hosts []net.IP) error {
+	for _, host := range hosts {
+		err := d.CmdAsync(host, shellcommand.CommandUnSetHostAlias("#clusterhostalias-set-by-sealer"))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (d *SSHInfraDriver) GetClusterName() string {

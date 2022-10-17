@@ -79,6 +79,13 @@ type InfraDriver interface {
 	Ping(host net.IP) error
 	// SetHostName add or update host name on host
 	SetHostName(host net.IP, hostName string) error
+
+	//SetClusterHostAliases set additional HostAliases
+	SetClusterHostAliases(hosts []net.IP) error
+
+	//DeleteClusterHostAliases delete additional HostAliases
+	DeleteClusterHostAliases(hosts []net.IP) error
+
 	// SetLvsRule add or update host name on host
 	//SetLvsRule(host net.IP, hostName string) error
 }
