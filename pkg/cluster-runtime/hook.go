@@ -26,6 +26,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/sealerio/sealer/common"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
@@ -151,8 +153,10 @@ func (i *Installer) runClusterHook(master0 net.IP, phase Phase) error {
 
 func NewShellHook() HookFunc {
 	return func(data string, hosts []net.IP, driver infradriver.InfraDriver) error {
+		rootfs := driver.GetClusterRootfsPath()
 		for _, ip := range hosts {
-			err := driver.CmdAsync(ip, env.WrapperShell(data, driver.GetHostEnv(ip)))
+			cmd := env.WrapperShell(data, driver.GetHostEnv(ip))
+			err := driver.CmdAsync(ip, fmt.Sprintf(common.CdAndExecCmd, rootfs, cmd))
 			if err != nil {
 				return fmt.Errorf("failed to run shell hook on host(%s): %v", ip.String(), err)
 			}
