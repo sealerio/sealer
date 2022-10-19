@@ -15,17 +15,15 @@
 package alpha
 
 import (
-	"context"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/sealerio/sealer/utils/ssh"
-
-	"github.com/spf13/cobra"
-
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/spf13/cobra"
 )
 
 var longCertCmdDescription = `This command will add the new domain or IP address in cert to update cluster API server.
@@ -54,26 +52,32 @@ func NewCertCmd() *cobra.Command {
 				return fmt.Errorf("IP address or DNS domain needed for cert Subject Alternative Names")
 			}
 
-			cluster, err := clusterfile.GetDefaultCluster()
+			workClusterfile := common.GetDefaultClusterfile()
+			clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
 			if err != nil {
-				return fmt.Errorf("failed to get default cluster: %v", err)
+				return err
+			}
+
+			cf, err := clusterfile.NewClusterFile(clusterFileData)
+			if err != nil {
+				return err
+			}
+
+			cluster := cf.GetCluster()
+			infraDriver, err := infradriver.NewInfraDriver(&cluster)
+			if err != nil {
+				return err
 			}
 
 			certUpdateCmd := fmt.Sprintf("seautil cert update --alt-names %s", strings.Join(altNames, ","))
-			// send new cert to all master.
-			ips := cluster.GetMasterIPList()
-			eg, _ := errgroup.WithContext(context.Background())
-			for _, ip := range ips {
-				node := ip
-				eg.Go(func() error {
-					sshClient, err := ssh.NewStdoutSSHClient(node, cluster)
-					if err != nil {
-						return fmt.Errorf("failed to new ssh client: %v", err)
-					}
-					return sshClient.CmdAsync(node, certUpdateCmd)
-				})
+			// modify new api cert to all master.
+			for _, ip := range cluster.GetMasterIPList() {
+				err = infraDriver.CmdAsync(ip, certUpdateCmd)
+				if err != nil {
+					return fmt.Errorf("failed to update cluster api server cert: %v", err)
+				}
 			}
-			return eg.Wait()
+			return nil
 		},
 	}
 

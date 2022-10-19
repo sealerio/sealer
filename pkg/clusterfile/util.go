@@ -16,36 +16,11 @@ package clusterfile
 
 import (
 	"fmt"
-	"os"
-	"strings"
-
-	yamlUtils "github.com/sealerio/sealer/utils/yaml"
 
 	"github.com/sealerio/sealer/common"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	yamlUtils "github.com/sealerio/sealer/utils/yaml"
 )
-
-var ErrClusterNotExist = fmt.Errorf("no cluster exist")
-
-func GetDefaultClusterName() (string, error) {
-	files, err := os.ReadDir(fmt.Sprintf("%s/.sealer", common.GetHomeDir()))
-	if err != nil {
-		return "", err
-	}
-	var clusters []string
-	for _, f := range files {
-		if f.IsDir() {
-			clusters = append(clusters, f.Name())
-		}
-	}
-	if len(clusters) == 1 {
-		return clusters[0], nil
-	} else if len(clusters) > 1 {
-		return "", fmt.Errorf("select a cluster through the -c parameter: " + strings.Join(clusters, ","))
-	}
-
-	return "", ErrClusterNotExist
-}
 
 func GetClusterFromFile(filepath string) (cluster *v2.Cluster, err error) {
 	cluster = &v2.Cluster{}
@@ -54,16 +29,4 @@ func GetClusterFromFile(filepath string) (cluster *v2.Cluster, err error) {
 	}
 	cluster.SetAnnotations(common.ClusterfileName, filepath)
 	return cluster, nil
-}
-
-func GetDefaultCluster() (cluster *v2.Cluster, err error) {
-	name, err := GetDefaultClusterName()
-	if err != nil {
-		return nil, err
-	}
-	userHome, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-	return GetClusterFromFile(fmt.Sprintf("%s/.sealer/%s/Clusterfile", userHome, name))
 }
