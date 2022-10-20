@@ -15,10 +15,10 @@
 package ipvs
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,17 +28,14 @@ import (
 const (
 	LvsCareStaticPodName = "kube-lvscare"
 	LvsCareCommand       = "/usr/bin/lvscare"
-	DefaultLvsCareImage  = "sea.hub:5000/fanux/lvscare:latest"
 )
 
 // LvsStaticPodYaml return lvs care static pod yaml
-func LvsStaticPodYaml(vip net.IP, masters []net.IP, image string) string {
-	if vip == nil || len(masters) == 0 {
-		return ""
+func LvsStaticPodYaml(vip net.IP, masters []net.IP, image string) (string, error) {
+	if vip == nil || len(masters) == 0 || image == "" {
+		return "", fmt.Errorf("invalid args to create Lvs static pod")
 	}
-	if image == "" {
-		image = DefaultLvsCareImage
-	}
+
 	args := []string{"care", "--vs", vip.String() + ":6443", "--health-path", "/healthz", "--health-schem", "https"}
 	for _, m := range masters {
 		args = append(args, "--rs")
@@ -55,10 +52,9 @@ func LvsStaticPodYaml(vip net.IP, masters []net.IP, image string) string {
 	})
 	yaml, err := podToYaml(pod)
 	if err != nil {
-		logrus.Errorf("failed to decode lvs care static pod yaml: %s", err)
-		return ""
+		return "", fmt.Errorf("failed to decode lvs care static pod yaml: %s", err)
 	}
-	return string(yaml)
+	return string(yaml), nil
 }
 
 func podToYaml(pod v1.Pod) ([]byte, error) {

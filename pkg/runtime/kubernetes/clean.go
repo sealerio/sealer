@@ -57,7 +57,13 @@ func (k *Runtime) reset(mastersToDelete, workersToDelete []net.IP) error {
 }
 
 func (k *Runtime) deleteMasters(mastersToDelete, remainMasters, remainWorkers []net.IP) error {
-	y := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), remainMasters, k.Config.LvsImage)
+	//todo should make lvs image name as const value in sealer repo.
+	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", k.Config.RegistryInfo.URL)
+	y, err := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), remainMasters, lvsImageURL)
+	if err != nil {
+		return err
+	}
+
 	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
 
 	eg, _ := errgroup.WithContext(context.Background())
