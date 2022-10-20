@@ -161,7 +161,7 @@ func NewJoinCmd() *cobra.Command {
 	joinCmd.Flags().StringVarP(&joinFlags.User, "user", "u", "root", "set baremetal server username")
 	joinCmd.Flags().StringVarP(&joinFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	joinCmd.Flags().Uint16Var(&joinFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
-	joinCmd.Flags().StringVar(&joinFlags.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set baremetal server private key")
+	joinCmd.Flags().StringVar(&joinFlags.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
 	joinCmd.Flags().StringVar(&joinFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	joinCmd.Flags().StringSliceVarP(&joinFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	joinCmd.Flags().StringVarP(&joinFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
