@@ -128,24 +128,6 @@ func (i *Installer) Install() error {
 		clusterLaunchCmds = i.infraDriver.GetClusterLaunchCmds()
 	)
 
-	// distribute rootfs
-	if err := i.Distributor.DistributeRootfs(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
-		return err
-	}
-
-	// set HostAlias
-	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
-		return err
-	}
-
-	if err := i.runClusterHook(master0, PreInstallCluster); err != nil {
-		return err
-	}
-
-	if err := i.runHostHook(PreInitHost, all); err != nil {
-		return err
-	}
-
 	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: image})
 	if err != nil {
 		return fmt.Errorf("failed to get ClusterImage extension: %s", err)
@@ -168,14 +150,6 @@ func (i *Installer) Install() error {
 		if err != nil {
 			return fmt.Errorf("failed to install cluster: %s", err)
 		}
-	}
-
-	if err = i.runClusterHook(master0, PostInstallCluster); err != nil {
-		return err
-	}
-
-	if err = i.runHostHook(PostInitHost, all); err != nil {
-		return err
 	}
 
 	return nil
@@ -210,6 +184,24 @@ func (i *Installer) installApp(master0 net.IP, cmds []string) error {
 }
 
 func (i *Installer) installKubeCluster(master0 net.IP, all []net.IP, cmds []string) error {
+	// distribute rootfs
+	if err := i.Distributor.DistributeRootfs(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
+		return err
+	}
+
+	// set HostAlias
+	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
+		return err
+	}
+
+	if err := i.runClusterHook(master0, PreInstallCluster); err != nil {
+		return err
+	}
+
+	if err := i.runHostHook(PreInitHost, all); err != nil {
+		return err
+	}
+
 	if err := i.containerRuntimeInstaller.InstallOn(all); err != nil {
 		return err
 	}
@@ -243,6 +235,14 @@ func (i *Installer) installKubeCluster(master0 net.IP, all []net.IP, cmds []stri
 	}
 
 	if err = i.launchClusterImage(master0, cmds); err != nil {
+		return err
+	}
+
+	if err = i.runClusterHook(master0, PostInstallCluster); err != nil {
+		return err
+	}
+
+	if err = i.runHostHook(PostInitHost, all); err != nil {
 		return err
 	}
 
