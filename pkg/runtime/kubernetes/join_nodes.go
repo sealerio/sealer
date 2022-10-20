@@ -61,7 +61,11 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	}
 	writeJoinConfigCmd := fmt.Sprintf("mkdir -p /etc/kubernetes && echo \"%s\" > %s", joinConfig, KubeadmFileYml)
 
-	y := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), masters, k.Config.LvsImage)
+	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", k.Config.RegistryInfo.URL)
+	y, err := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), masters, lvsImageURL)
+	if err != nil {
+		return err
+	}
 	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
 
 	joinNodeCmd, err := k.Command(kubeadmConfig.KubernetesVersion, masters[0].String(), JoinNode, token, "")

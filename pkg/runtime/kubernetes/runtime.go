@@ -43,7 +43,6 @@ type Config struct {
 	RegistryInfo                 registry.Info
 	containerRuntimeInfo         containerruntime.Info
 	KubeadmConfigFromClusterFile kubeadm.KubeadmConfig
-	LvsImage                     string
 	APIServerDomain              string
 }
 
@@ -59,11 +58,9 @@ func NewKubeadmRuntime(clusterFileKubeConfig kubeadm.KubeadmConfig, infra infrad
 		Config: &Config{
 			KubeadmConfigFromClusterFile: clusterFileKubeConfig,
 			APIServerDomain:              DefaultAPIserverDomain,
-			//TODO get LvsImage from options
-			LvsImage:             fmt.Sprintf("%s/labring/lvscare:v1.1.3-beta.8", registryInfo.URL),
-			VIP:                  DefaultVIP,
-			RegistryInfo:         registryInfo,
-			containerRuntimeInfo: containerRuntimeInfo,
+			VIP:                          DefaultVIP,
+			RegistryInfo:                 registryInfo,
+			containerRuntimeInfo:         containerRuntimeInfo,
 		},
 	}
 
