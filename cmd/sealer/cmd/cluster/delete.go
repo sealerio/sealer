@@ -17,10 +17,13 @@ package cluster
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/utils"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
-	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
+	cmdutils "github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -38,6 +41,7 @@ import (
 var (
 	deleteFlags *types.Flags
 	deleteAll   bool
+	forceDelete bool
 )
 
 var longDeleteCmdDescription = `delete command is used to delete part or all of existing cluster.
@@ -82,7 +86,7 @@ func NewDeleteCmd() *cobra.Command {
 	deleteCmd.Flags().StringVarP(&deleteFlags.Masters, "masters", "m", "", "reduce Count or IPList to masters")
 	deleteCmd.Flags().StringVarP(&deleteFlags.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
 	deleteCmd.Flags().StringSliceVarP(&deleteFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	deleteCmd.Flags().BoolVar(&clusterruntime.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
+	deleteCmd.Flags().BoolVarP(&forceDelete, "force", "f", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete the entire cluster, default is false")
 
 	return deleteCmd
@@ -107,6 +111,12 @@ func deleteCluster(workClusterfile string) error {
 	//append custom env from CLI to cluster, if it is used to wrapper shell plugin
 	cluster := cf.GetCluster()
 	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
+
+	if !forceDelete {
+		if err = confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), cluster.GetAllIPList()); err != nil {
+			return err
+		}
+	}
 
 	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {
@@ -180,11 +190,11 @@ func deleteCluster(workClusterfile string) error {
 }
 
 func scaleDownCluster(masters, workers, workClusterfile string) error {
-	if err := utils.ValidateScaleIPStr(masters, workers); err != nil {
+	if err := cmdutils.ValidateScaleIPStr(masters, workers); err != nil {
 		return fmt.Errorf("failed to validate input run args: %v", err)
 	}
 
-	deleteMasterIPList, deleteNodeIPList, err := utils.ParseToNetIPList(masters, workers)
+	deleteMasterIPList, deleteNodeIPList, err := cmdutils.ParseToNetIPList(masters, workers)
 	if err != nil {
 		return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 	}
@@ -204,6 +214,24 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 	if netutils.IsInIPList(cluster.GetMaster0IP(), deleteMasterIPList) {
 		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
 	}
+	// make sure deleted ip in current cluster
+	for _, ip := range deleteMasterIPList {
+		if !netutils.IsInIPList(ip, cluster.GetMasterIPList()) {
+			return fmt.Errorf("ip(%s) not found in current master list", ip)
+		}
+	}
+	for _, ip := range deleteNodeIPList {
+		if !netutils.IsInIPList(ip, cluster.GetNodeIPList()) {
+			return fmt.Errorf("ip(%s) not found in current master list", ip)
+		}
+	}
+
+	if !forceDelete {
+		if err = confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), append(deleteMasterIPList, deleteNodeIPList...)); err != nil {
+			return err
+		}
+	}
+
 	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
 
 	infraDriver, err := infradriver.NewInfraDriver(&cluster)
@@ -270,7 +298,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 		return err
 	}
 
-	if err = utils.ConstructClusterForScaleDown(&cluster, deleteMasterIPList, deleteNodeIPList); err != nil {
+	if err = cmdutils.ConstructClusterForScaleDown(&cluster, deleteMasterIPList, deleteNodeIPList); err != nil {
 		return err
 	}
 	cf.SetCluster(cluster)
@@ -278,5 +306,15 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 	if err = cf.SaveAll(); err != nil {
 		return err
 	}
+	return nil
+}
+
+func confirmDeleteHosts(role string, hostsToDelete []net.IP) error {
+	if pass, err := utils.ConfirmOperation(fmt.Sprintf("Are you sure to delete these %s: %v? ", role, hostsToDelete)); err != nil {
+		return err
+	} else if !pass {
+		return fmt.Errorf("exit the operation of delete these nodes")
+	}
+
 	return nil
 }

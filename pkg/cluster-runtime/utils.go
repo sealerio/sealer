@@ -15,26 +15,11 @@
 package clusterruntime
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/infradriver"
-
-	"github.com/sealerio/sealer/utils"
 )
-
-func confirmDeleteHosts(role string, nodesToDelete []net.IP) error {
-	if !ForceDelete {
-		if pass, err := utils.ConfirmOperation(fmt.Sprintf("Are you sure to delete these %s: %v? ", role, nodesToDelete)); err != nil {
-			return err
-		} else if !pass {
-			return fmt.Errorf("exit the operation of delete these nodes")
-		}
-	}
-
-	return nil
-}
 
 func getWorkerIPList(infraDriver infradriver.InfraDriver) []net.IP {
 	masters := make(map[string]bool)

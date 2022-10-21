@@ -94,18 +94,6 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 }
 
 func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (registry.Driver, runtime.Driver, error) {
-	if len(workersToDelete) > 0 {
-		if err := confirmDeleteHosts(common.NODE, workersToDelete); err != nil {
-			return nil, nil, err
-		}
-	}
-
-	if len(mastersToDelete) > 0 {
-		if err := confirmDeleteHosts(common.MASTER, mastersToDelete); err != nil {
-			return nil, nil, err
-		}
-	}
-
 	all := append(mastersToDelete, workersToDelete...)
 	// delete HostAlias
 	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {

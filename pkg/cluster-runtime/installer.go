@@ -35,8 +35,6 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
-var ForceDelete bool
-
 // RuntimeConfig for Installer
 type RuntimeConfig struct {
 	ImageEngine            imageengine.Interface
@@ -71,14 +69,13 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	}
 
 	// todo maybe we can support custom registry config later
-
-	clusterENV := infraDriver.GetClusterEnv()
-
 	var registryConfig = registry.Registry{
 		Domain: registry.DefaultDomain,
 		Port:   registry.DefaultPort,
 		Auth:   &registry.Auth{},
 	}
+
+	clusterENV := infraDriver.GetClusterEnv()
 	if domain := clusterENV["RegistryDomain"]; domain != nil {
 		registryConfig.Domain = domain.(string)
 	}

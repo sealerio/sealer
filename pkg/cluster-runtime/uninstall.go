@@ -15,8 +15,6 @@
 package clusterruntime
 
 import (
-	"fmt"
-
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/registry"
@@ -28,11 +26,6 @@ func (i *Installer) UnInstall() error {
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
-
-	if err := confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), all); err != nil {
-		return err
-	}
-
 	// delete HostAlias
 	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {
 		return err
