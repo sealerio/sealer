@@ -17,6 +17,7 @@ package utils
 import (
 	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -69,13 +70,8 @@ func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, jo
 				return fmt.Errorf("failed to scale master for duplicated ip: %s", ip)
 			}
 		}
-
-		for i := range cluster.Spec.Hosts {
-			if strUtils.IsInSlice(common.MASTER, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, joinMasters...)
-			}
-			continue
-		}
+		host := constructHost(common.MASTER, joinMasters, scaleFlags, cluster.Spec.SSH)
+		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
 	}
 
 	//add joined nodes
@@ -88,22 +84,8 @@ func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, jo
 			}
 		}
 
-		var alreadyHasNode bool
-		for i := range cluster.Spec.Hosts {
-			if strUtils.IsInSlice(common.NODE, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = append(cluster.Spec.Hosts[i].IPS, joinWorkers...)
-				alreadyHasNode = true
-			}
-			continue
-		}
-
-		// add first node
-		if !alreadyHasNode {
-			cluster.Spec.Hosts = append(cluster.Spec.Hosts, v2.Host{
-				Roles: []string{common.NODE},
-				IPS:   joinWorkers,
-			})
-		}
+		host := constructHost(common.NODE, joinWorkers, scaleFlags, cluster.Spec.SSH)
+		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
 	}
 	return nil
 }
@@ -138,6 +120,30 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 	cluster.Spec.Hosts = hosts
 
 	return nil
+}
+
+func constructHost(role string, joinIPs []net.IP, scaleFlags *types.Flags, clusterSSH v1.SSH) v2.Host {
+	//todo we could support host level env form cli later.
+	//todo we could support host level role form cli later.
+	host := v2.Host{
+		IPS:   joinIPs,
+		Roles: []string{role},
+	}
+
+	scaleFlagSSH := v1.SSH{
+		User:     scaleFlags.User,
+		Passwd:   scaleFlags.Password,
+		Port:     strconv.Itoa(int(scaleFlags.Port)),
+		Pk:       scaleFlags.Pk,
+		PkPasswd: scaleFlags.PkPassword,
+	}
+
+	if reflect.DeepEqual(scaleFlagSSH, clusterSSH) {
+		return host
+	}
+
+	host.SSH = scaleFlagSSH
+	return host
 }
 
 func removeIPList(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP) {

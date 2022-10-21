@@ -18,10 +18,11 @@ import (
 	"net"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_returnFilteredIPList(t *testing.T) {
@@ -137,63 +138,114 @@ status: {}`
 }
 
 func Test_ConstructClusterForScaleUp(t *testing.T) {
-	data := `apiVersion: sealer.cloud/v2
-kind: Cluster
-metadata:
-  creationTimestamp: null
-  name: my-cluster
-spec:
-  hosts:
-  - ips:
-    - 172.16.0.230
-    roles:
-    - master
-    ssh: {}
-  - ips:
-    - 172.16.0.233
-    roles:
-    - node
-    ssh: {}`
-
-	type want struct {
-		expectMaster []net.IP
-		expectNode   []net.IP
+	rawCluster := v2.Cluster{
+		Spec: v2.ClusterSpec{
+			Image: "kubernetes:v1.19.8",
+			Env:   []string{"key1=value1", "key2=value2;value3", "key=value"},
+			SSH: v1.SSH{
+				User:   "root",
+				Passwd: "test123",
+				Port:   "22",
+			},
+			Hosts: []v2.Host{
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.2")},
+					Roles: []string{"master"},
+					Env:   []string{"etcd-dir=/data/etcd"},
+					SSH: v1.SSH{
+						User:   "root",
+						Passwd: "test456",
+						Port:   "22",
+					},
+				},
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.3")},
+					Roles: []string{"node", "db"},
+				},
+			},
+		},
 	}
+	rawCluster.APIVersion = "sealer.cloud/v2"
+	rawCluster.Kind = "Cluster"
+	rawCluster.Name = "mycluster"
+
+	expectedCluster := v2.Cluster{
+		Spec: v2.ClusterSpec{
+			Image: "kubernetes:v1.19.8",
+			Env:   []string{"key1=value1", "key2=value2;value3", "key=value"},
+			SSH: v1.SSH{
+				User:   "root",
+				Passwd: "test123",
+				Port:   "22",
+			},
+			Hosts: []v2.Host{
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.2")},
+					Roles: []string{"master"},
+					Env:   []string{"etcd-dir=/data/etcd"},
+					SSH: v1.SSH{
+						User:   "root",
+						Passwd: "test456",
+						Port:   "22",
+					},
+				},
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.3")},
+					Roles: []string{"node", "db"},
+				},
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.4"), net.ParseIP("192.168.0.6")},
+					Roles: []string{"master"},
+					SSH: v1.SSH{
+						User:   "root",
+						Passwd: "test456",
+						Port:   "22",
+					},
+				},
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.5"), net.ParseIP("192.168.0.7")},
+					Roles: []string{"node"},
+					SSH: v1.SSH{
+						User:   "root",
+						Passwd: "test456",
+						Port:   "22",
+					},
+				},
+			},
+		},
+	}
+	expectedCluster.APIVersion = "sealer.cloud/v2"
+	expectedCluster.Kind = "Cluster"
+	expectedCluster.Name = "mycluster"
 
 	tests := []struct {
-		name string
-		//scaleFlags  *types.Flags
-		joinMasters []net.IP
-		joinWorkers []net.IP
-		want        want
+		name            string
+		scaleFlags      *types.Flags
+		joinMasters     []net.IP
+		joinWorkers     []net.IP
+		rawCluster      v2.Cluster
+		expectedCluster v2.Cluster
 	}{
 		{
 			name:        "test scale up to build clusters ",
-			joinMasters: []net.IP{net.ParseIP("172.16.0.231"), net.ParseIP("172.16.0.232")},
-			joinWorkers: []net.IP{net.ParseIP("172.16.0.234"), net.ParseIP("172.16.0.235")},
-			want: want{
-				expectMaster: []net.IP{net.ParseIP("172.16.0.230"), net.ParseIP("172.16.0.231"), net.ParseIP("172.16.0.232")},
-				expectNode:   []net.IP{net.ParseIP("172.16.0.233"), net.ParseIP("172.16.0.234"), net.ParseIP("172.16.0.235")},
+			joinMasters: []net.IP{net.ParseIP("192.168.0.4"), net.ParseIP("192.168.0.6")},
+			joinWorkers: []net.IP{net.ParseIP("192.168.0.5"), net.ParseIP("192.168.0.7")},
+			scaleFlags: &types.Flags{
+				User:     "root",
+				Password: "test456",
+				Port:     22,
 			},
+			rawCluster:      rawCluster,
+			expectedCluster: expectedCluster,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cf, err := clusterfile.NewClusterFile([]byte(data))
-			if err != nil {
-				t.Errorf("failed to NewClusterFile by name,error:%v", err)
-			}
-			cluster := cf.GetCluster()
-			if err := ConstructClusterForScaleUp(&cluster, &types.Flags{}, tt.joinMasters, tt.joinWorkers); err != nil {
+			if err := ConstructClusterForScaleUp(&tt.rawCluster, tt.scaleFlags, tt.joinMasters, tt.joinWorkers); err != nil {
 				t.Errorf("Scale up failed to reduce a cluster node,error:%v", err)
 			}
-			var ips []net.IP
-			for _, host := range cluster.Spec.Hosts {
-				ips = append(ips, host.IPS...)
-			}
-			expectIP := append(tt.want.expectMaster, tt.want.expectNode...)
-			assert.NotNil(t, ips)
-			assert.Equal(t, expectIP, ips)
+
+			assert.Equal(t, tt.rawCluster.Spec.Hosts, tt.expectedCluster.Spec.Hosts)
 		})
 	}
 }
