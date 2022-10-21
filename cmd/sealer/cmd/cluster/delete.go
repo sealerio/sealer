@@ -19,21 +19,19 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/sealerio/sealer/utils/os"
-
-	netutils "github.com/sealerio/sealer/utils/net"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	netutils "github.com/sealerio/sealer/utils/net"
+	"github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
-
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -115,16 +113,49 @@ func deleteCluster(workClusterfile string) error {
 		return err
 	}
 
-	distributor, err := imagedistributor.NewScpDistributor(nil, infraDriver, nil)
+	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
 	if err != nil {
 		return err
 	}
 
+	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(infraDriver.GetHostIPList())
+	if err != nil {
+		return err
+	}
+
+	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
+	if err != nil {
+		return err
+	}
+
+	imageMountInfo, err := imageMounter.Mount(cluster.Spec.Image)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = imageMounter.Umount(imageMountInfo)
+		if err != nil {
+			logrus.Errorf("failed to umount cluster image")
+		}
+	}()
+
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil)
+	if err != nil {
+		return err
+	}
+
+	plugins, err := loadPluginsFromImage(imageMountInfo)
+	if err != nil {
+		return err
+	}
+
+	if cf.GetPlugins() != nil {
+		plugins = append(plugins, cf.GetPlugins()...)
+	}
+
 	runtimeConfig := &clusterruntime.RuntimeConfig{
 		Distributor: distributor,
-	}
-	if cf.GetPlugins() != nil {
-		runtimeConfig.Plugins = cf.GetPlugins()
+		Plugins:     plugins,
 	}
 
 	if cf.GetKubeadmConfig() != nil {
@@ -180,16 +211,49 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 		return err
 	}
 
-	distributor, err := imagedistributor.NewScpDistributor(nil, infraDriver, nil)
+	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
 	if err != nil {
 		return err
 	}
 
+	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(append(deleteMasterIPList, deleteNodeIPList...))
+	if err != nil {
+		return err
+	}
+
+	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
+	if err != nil {
+		return err
+	}
+
+	imageMountInfo, err := imageMounter.Mount(cluster.Spec.Image)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = imageMounter.Umount(imageMountInfo)
+		if err != nil {
+			logrus.Errorf("failed to umount cluster image")
+		}
+	}()
+
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil)
+	if err != nil {
+		return err
+	}
+
+	plugins, err := loadPluginsFromImage(imageMountInfo)
+	if err != nil {
+		return err
+	}
+
+	if cf.GetPlugins() != nil {
+		plugins = append(plugins, cf.GetPlugins()...)
+	}
+
 	runtimeConfig := &clusterruntime.RuntimeConfig{
 		Distributor: distributor,
-	}
-	if cf.GetPlugins() != nil {
-		runtimeConfig.Plugins = cf.GetPlugins()
+		Plugins:     plugins,
 	}
 
 	if cf.GetKubeadmConfig() != nil {

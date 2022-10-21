@@ -30,7 +30,7 @@ import (
 
 func (s *SSH) GetPlatform(host net.IP) (v1.Platform, error) {
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
-		return *platform.GetDefaultPlatform(), nil
+		return platform.GetDefaultPlatform(), nil
 	}
 
 	p := v1.Platform{}

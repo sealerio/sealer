@@ -19,22 +19,20 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imageengine"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
-
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
 var runFlags *types.Flags
@@ -158,12 +156,19 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
+			plugins, err := loadPluginsFromImage(imageMountInfo)
+			if err != nil {
+				return err
+			}
+
+			if cf.GetPlugins() != nil {
+				plugins = append(plugins, cf.GetPlugins()...)
+			}
+
 			runtimeConfig := &clusterruntime.RuntimeConfig{
 				Distributor: distributor,
 				ImageEngine: imageEngine,
-			}
-			if cf.GetPlugins() != nil {
-				runtimeConfig.Plugins = cf.GetPlugins()
+				Plugins:     plugins,
 			}
 
 			if cf.GetKubeadmConfig() != nil {
@@ -209,4 +214,17 @@ func NewRunCmd() *cobra.Command {
 	//	os.Exit(1)
 	//}
 	return runCmd
+}
+
+func loadPluginsFromImage(imageMountInfo []imagedistributor.ClusterImageMountInfo) (plugins []v1.Plugin, err error) {
+	for _, info := range imageMountInfo {
+		if info.Platform.ToString() == platform.GetDefaultPlatform().ToString() {
+			plugins, err = clusterruntime.LoadPluginsFromFile(filepath.Join(info.MountDir, "plugins"))
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	return plugins, nil
 }

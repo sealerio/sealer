@@ -99,12 +99,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	}
 
 	// add installer hooks
-	plugins, err := LoadPluginsFromFile(filepath.Join(infraDriver.GetClusterRootfsPath(), "plugins"))
-	if err != nil {
-		return nil, err
-	}
-	plugins = append(plugins, runtimeConfig.Plugins...)
-	hooks, err := transferPluginsToHooks(plugins)
+	hooks, err := transferPluginsToHooks(runtimeConfig.Plugins)
 	if err != nil {
 		return nil, err
 	}

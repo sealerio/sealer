@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
@@ -119,29 +118,13 @@ func Parse(specifier string) (v1.Platform, error) {
 	return v1.Platform{}, errors.Wrapf(ErrInvalidArgument, "%q: cannot parse platform specifier", specifier)
 }
 
-func GetDefaultPlatform() *v1.Platform {
-	return &v1.Platform{
+func GetDefaultPlatform() v1.Platform {
+	return v1.Platform{
 		OS:           runtime.GOOS,
 		Architecture: runtime.GOARCH,
 		// The Variant field will be empty if arch != ARM.
 		Variant: cpuVariant(),
 	}
-}
-
-// GetPlatform : parse platform string,if is nil will return the default platform.
-func GetPlatform(v string) ([]*v1.Platform, error) {
-	var targetPlatforms []*v1.Platform
-
-	if v == "" {
-		targetPlatforms = []*v1.Platform{GetDefaultPlatform()}
-	} else {
-		tp, err := ParsePlatforms(v)
-		if err != nil {
-			return nil, err
-		}
-		targetPlatforms = tp
-	}
-	return targetPlatforms, nil
 }
 
 // Format returns a string specifier from the provided platform specification.
@@ -241,9 +224,8 @@ func normalizeOS(os string) string {
 	}
 	return os
 }
-
 func DefaultMountClusterImageDir(clusterName string) string {
-	return GetMountClusterImagePlatformDir(clusterName, *GetDefaultPlatform())
+	return GetMountClusterImagePlatformDir(clusterName, GetDefaultPlatform())
 }
 
 func GetMountClusterImagePlatformDir(clusterName string, platform v1.Platform) string {

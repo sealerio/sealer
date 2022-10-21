@@ -40,14 +40,14 @@ const (
 type scpDistributor struct {
 	configs        []v1.Config
 	infraDriver    infradriver.InfraDriver
-	imageMountInfo map[string]string
+	imageMountInfo []ClusterImageMountInfo
 }
 
 func (s *scpDistributor) DistributeRegistry(deployHost net.IP, dataDir string) error {
-	for _, mountDir := range s.imageMountInfo {
-		err := s.infraDriver.Copy(deployHost, filepath.Join(mountDir, RegistryDirName), dataDir)
+	for _, info := range s.imageMountInfo {
+		err := s.infraDriver.Copy(deployHost, filepath.Join(info.MountDir, RegistryDirName), dataDir)
 		if err != nil {
-			return fmt.Errorf("failed to copy registry data %s: %v", mountDir, err)
+			return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
 		}
 	}
 
@@ -55,22 +55,22 @@ func (s *scpDistributor) DistributeRegistry(deployHost net.IP, dataDir string) e
 }
 
 func (s *scpDistributor) DistributeRootfs(hosts []net.IP, rootfsPath string) error {
-	for _, mountDir := range s.imageMountInfo {
-		if err := s.dumpConfigToRootfs(mountDir); err != nil {
+	for _, info := range s.imageMountInfo {
+		if err := s.dumpConfigToRootfs(info.MountDir); err != nil {
 			return err
 		}
 
-		if err := s.renderRootfs(mountDir); err != nil {
+		if err := s.renderRootfs(info.MountDir); err != nil {
 			return err
 		}
 
-		targetDirs, err := s.filterRootfs(mountDir)
+		targetDirs, err := s.filterRootfs(info.MountDir)
 		if err != nil {
 			return err
 		}
 
 		for _, target := range targetDirs {
-			err = s.copyRootfs(target, filepath.Join(rootfsPath, filepath.Base(target)), hosts)
+			err = s.copyRootfs(target, filepath.Join(rootfsPath, filepath.Base(target)), info.Hosts)
 			if err != nil {
 				return err
 			}
@@ -167,7 +167,7 @@ func (s *scpDistributor) Restore(targetDir string, hosts []net.IP) error {
 	return nil
 }
 
-func NewScpDistributor(imageMountInfo map[string]string, driver infradriver.InfraDriver, configs []v1.Config) (Distributor, error) {
+func NewScpDistributor(imageMountInfo []ClusterImageMountInfo, driver infradriver.InfraDriver, configs []v1.Config) (Distributor, error) {
 	return &scpDistributor{
 		configs:        configs,
 		imageMountInfo: imageMountInfo,

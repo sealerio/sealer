@@ -76,29 +76,36 @@ type ImagerMounter struct {
 	hostsPlatform map[v1.Platform][]net.IP
 }
 
-func (c ImagerMounter) Mount(imageName string) (map[string]string, error) {
-	// map[ip.string][mountDir]
-	imageMountInfo := make(map[string]string)
+type ClusterImageMountInfo struct {
+	// target hosts ip list, not all cluster ips.
+	Hosts    []net.IP
+	Platform v1.Platform
+	MountDir string
+}
 
+func (c ImagerMounter) Mount(imageName string) ([]ClusterImageMountInfo, error) {
+	var imageMountInfos []ClusterImageMountInfo
 	for platform, hosts := range c.hostsPlatform {
 		mountDir, err := c.Mounter.Mount(imageName, platform)
 		if err != nil {
 			return nil, fmt.Errorf("failed to mount image with platform %s:%v", platform.ToString(), err)
 		}
 
-		for _, host := range hosts {
-			imageMountInfo[host.String()] = mountDir
-		}
+		imageMountInfos = append(imageMountInfos, ClusterImageMountInfo{
+			Hosts:    hosts,
+			Platform: platform,
+			MountDir: mountDir,
+		})
 	}
 
-	return imageMountInfo, nil
+	return imageMountInfos, nil
 }
 
-func (c ImagerMounter) Umount(imageMountInfo map[string]string) error {
-	for _, mountDir := range imageMountInfo {
-		err := c.Mounter.Umount(mountDir)
+func (c ImagerMounter) Umount(imageMountInfo []ClusterImageMountInfo) error {
+	for _, info := range imageMountInfo {
+		err := c.Mounter.Umount(info.MountDir)
 		if err != nil {
-			return fmt.Errorf("failed to umount %s:%v", mountDir, err)
+			return fmt.Errorf("failed to umount %s:%v", info.MountDir, err)
 		}
 	}
 	return nil
