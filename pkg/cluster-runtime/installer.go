@@ -216,7 +216,11 @@ func (i *Installer) installKubeCluster(master0 net.IP, all []net.IP, cmds []stri
 		return err
 	}
 
-	if err = registryConfigurator.Reconcile(all); err != nil {
+	if err = registryConfigurator.Launch(); err != nil {
+		return err
+	}
+
+	if err = registryConfigurator.InstallOn(all); err != nil {
 		return err
 	}
 

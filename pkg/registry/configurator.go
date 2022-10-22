@@ -26,15 +26,19 @@ import (
 
 // Configurator provide registry lifecycle management.
 type Configurator interface {
-	// Reconcile will configure cluster registry component.
-	Reconcile(hosts []net.IP) error
+	// Launch will start built-in cluster registry component.
+	Launch() error
+	// Clean will stop built-in cluster registry component.
+	Clean() error
 
-	// UninstallFrom will clean host registry configuration.
+	// InstallOn will install registry configuration on each given hosts.
+	InstallOn(hosts []net.IP) error
+
+	// UninstallFrom will uninstall registry configuration on each given hosts.
 	UninstallFrom(hosts []net.IP) error
 
 	GetDriver() (Driver, error)
-	// Clean will Stop registry
-	Clean() error
+
 	//Upgrade() (Driver, error)
 	//Rollback() (Driver, error)
 }

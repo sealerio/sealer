@@ -90,13 +90,13 @@ func (c *localSingletonConfigurator) GetDriver() (Driver, error) {
 	return newLocalRegistryDriver(endpoint, c.DataDir, c.DeployHost, c.infraDriver, c.distributor), nil
 }
 
-// Reconcile will start local private registry via rootfs scripts.
-func (c *localSingletonConfigurator) Reconcile(hosts []net.IP) error {
+// Launch will start local private registry via rootfs scripts.
+func (c *localSingletonConfigurator) Launch() error {
 	if err := c.genBasicAuth(); err != nil {
 		return err
 	}
 
-	if err := c.configureRegistryCert(hosts); err != nil {
+	if err := c.genRegistryCert(); err != nil {
 		return err
 	}
 
@@ -104,22 +104,39 @@ func (c *localSingletonConfigurator) Reconcile(hosts []net.IP) error {
 		return err
 	}
 
-	if err := c.configureHostsFile(hosts); err != nil {
-		return err
-	}
-
-	if err := c.configureDaemonService(hosts); err != nil {
-		return err
-	}
-
-	if err := c.configureAccessCredential(hosts); err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (c *localSingletonConfigurator) configureRegistryCert(hosts []net.IP) error {
+func (c *localSingletonConfigurator) genBasicAuth() error {
+	//gen basic auth info: if not config, will skip.
+	if c.Auth.Username == "" || c.Auth.Password == "" {
+		return nil
+	}
+
+	var (
+		localBasicAuthFile = filepath.Join("/tmp", DefaultRegistryHtPasswdFile)
+		basicAuthFile      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", DefaultRegistryHtPasswdFile)
+	)
+
+	htpasswd, err := GenerateHTTPBasicAuth(c.Auth.Username, c.Auth.Password)
+	if err != nil {
+		return err
+	}
+
+	err = osutils.NewCommonWriter(localBasicAuthFile).WriteFile([]byte(htpasswd))
+	if err != nil {
+		return err
+	}
+
+	err = c.infraDriver.Copy(c.DeployHost, localBasicAuthFile, basicAuthFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy registry auth file to %s: %v", basicAuthFile, err)
+	}
+
+	return fs.FS.RemoveAll(localBasicAuthFile)
+}
+
+func (c *localSingletonConfigurator) genRegistryCert() error {
 	// if deploy registry as InsecureMode ,skip to gen cert.
 	if c.InsecureMode {
 		return nil
@@ -143,12 +160,7 @@ func (c *localSingletonConfigurator) configureRegistryCert(hosts []net.IP) error
 		return err
 	}
 
-	if certExisted && keyExisted {
-		err = c.infraDriver.CopyR(c.DeployHost, filepath.Join(certPath, fullCertName), filepath.Join(localCertPath, fullCertName))
-		if err != nil {
-			return fmt.Errorf("failed to copy registry cert to local: %v", err)
-		}
-	} else {
+	if !certExisted || !keyExisted {
 		if err = c.gen(localCertPath, certName); err != nil {
 			return err
 		}
@@ -157,14 +169,13 @@ func (c *localSingletonConfigurator) configureRegistryCert(hosts []net.IP) error
 		if err != nil {
 			return fmt.Errorf("failed to copy registry cert to deployHost: %v", err)
 		}
+		err = fs.FS.RemoveAll(localCertPath)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = c.copyCertToHosts(localCertPath, hosts)
-	if err != nil {
-		return fmt.Errorf("failed to copy registry cert to hosts: %v", err)
-	}
-
-	return fs.FS.RemoveAll(localCertPath)
+	return nil
 }
 
 func (c *localSingletonConfigurator) gen(certPath, certName string) error {
@@ -198,55 +209,6 @@ func (c *localSingletonConfigurator) gen(certPath, certName string) error {
 	return nil
 }
 
-func (c *localSingletonConfigurator) copyCertToHosts(certPath string, hosts []net.IP) error {
-	// copy ca cert to "/etc/containerd/certs.d/${domain}:${port}/${domain}.crt
-	var (
-		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
-		caFile   = c.Domain + ".crt"
-		dest     = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
-		src      = filepath.Join(certPath, caFile)
-	)
-
-	return c.copy2RemoteHosts(src, dest, hosts)
-}
-
-func (c *localSingletonConfigurator) genBasicAuth() error {
-	//gen basic auth info: if not config, will skip.
-	if c.Auth.Username == "" || c.Auth.Password == "" {
-		return nil
-	}
-
-	var (
-		localBasicAuthFile = filepath.Join("/tmp", DefaultRegistryHtPasswdFile)
-		basicAuthFile      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", DefaultRegistryHtPasswdFile)
-	)
-
-	existed, err := c.infraDriver.IsFileExist(c.DeployHost, basicAuthFile)
-	if err != nil {
-		return err
-	}
-	if existed {
-		return nil
-	}
-
-	htpasswd, err := GenerateHTTPBasicAuth(c.Auth.Username, c.Auth.Password)
-	if err != nil {
-		return err
-	}
-
-	err = osutils.NewCommonWriter(localBasicAuthFile).WriteFile([]byte(htpasswd))
-	if err != nil {
-		return err
-	}
-
-	err = c.infraDriver.Copy(c.DeployHost, localBasicAuthFile, basicAuthFile)
-	if err != nil {
-		return fmt.Errorf("failed to copy registry auth file to %s: %v", basicAuthFile, err)
-	}
-
-	return fs.FS.RemoveAll(localBasicAuthFile)
-}
-
 func (c *localSingletonConfigurator) reconcileRegistry() error {
 	var (
 		rootfs     = c.infraDriver.GetClusterRootfsPath()
@@ -267,6 +229,26 @@ func (c *localSingletonConfigurator) reconcileRegistry() error {
 	return nil
 }
 
+func (c *localSingletonConfigurator) InstallOn(hosts []net.IP) error {
+	if err := c.configureHostsFile(hosts); err != nil {
+		return err
+	}
+
+	if err := c.configureRegistryCert(hosts); err != nil {
+		return err
+	}
+
+	if err := c.configureDaemonService(hosts); err != nil {
+		return err
+	}
+
+	if err := c.configureAccessCredential(hosts); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *localSingletonConfigurator) configureHostsFile(hosts []net.IP) error {
 	// add registry ip to "/etc/hosts"
 	f := func(host net.IP) error {
@@ -278,6 +260,22 @@ func (c *localSingletonConfigurator) configureHostsFile(hosts []net.IP) error {
 	}
 
 	return c.infraDriver.Execute(hosts, f)
+}
+
+func (c *localSingletonConfigurator) configureRegistryCert(hosts []net.IP) error {
+	// if deploy registry as InsecureMode ,skip to configure cert.
+	if c.InsecureMode {
+		return nil
+	}
+
+	var (
+		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+		caFile   = c.Domain + ".crt"
+		src      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "certs", caFile)
+		dest     = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
+	)
+
+	return c.copy2RemoteHosts(src, dest, hosts)
 }
 
 func (c *localSingletonConfigurator) configureAccessCredential(hosts []net.IP) error {
