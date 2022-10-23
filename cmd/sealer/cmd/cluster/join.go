@@ -19,9 +19,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -31,6 +28,8 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var joinFlags *types.Flags
@@ -129,11 +128,18 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
+			plugins, err := loadPluginsFromImage(imageMountInfo)
+			if err != nil {
+				return err
+			}
+
+			if cf.GetPlugins() != nil {
+				plugins = append(plugins, cf.GetPlugins()...)
+			}
+
 			runtimeConfig := &clusterruntime.RuntimeConfig{
 				Distributor: distributor,
-			}
-			if cf.GetPlugins() != nil {
-				runtimeConfig.Plugins = cf.GetPlugins()
+				Plugins:     plugins,
 			}
 
 			if cf.GetKubeadmConfig() != nil {
