@@ -60,7 +60,7 @@ rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
 rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
 rm -rf /usr/bin/kubelet && rm -rf /usr/bin/kubectl && \
-rm -rf /var/lib/kubelet && rm -rf /etc/sysctl.d/k8s.conf && \
+rm -rf /var/lib/kubelet/* && rm -rf /etc/sysctl.d/k8s.conf && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd && rm -rf /var/etcd
 `
