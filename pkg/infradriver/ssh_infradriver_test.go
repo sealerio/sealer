@@ -117,17 +117,21 @@ func TestSSHInfraDriver_GetClusterInfo(t *testing.T) {
 	})
 
 	assert.Equal(t, driver.GetClusterEnv(), map[string]interface{}{
-		"key1": "value1",
-		"key2": []string{"value2", "value3"},
+		"RegistryDomain": "sea.hub",
+		"RegistryPort":   "5000",
+		"key1":           "value1",
+		"key2":           []string{"value2", "value3"},
 	})
 
 	assert.Equal(t, driver.GetHostEnv(net.IPv4(192, 168, 0, 2)), map[string]interface{}{
+		"HostIP":   "192.168.0.2",
 		"key1":     "value1",
 		"key2":     []string{"value2", "value3"},
 		"etcd-dir": "/data/etcd",
 	})
 
 	assert.Equal(t, driver.GetHostEnv(net.IPv4(192, 168, 0, 3)), map[string]interface{}{
+		"HostIP":            "192.168.0.3",
 		"key1":              "value1",
 		"key2":              []string{"value2", "value3"},
 		"test_node_env_key": "test_node_env_value",
