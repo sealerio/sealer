@@ -20,18 +20,22 @@ type externalConfigurator struct {
 	Registry
 }
 
+func (c *externalConfigurator) Launch() error {
+	panic("implement external")
+}
+
 func (c *externalConfigurator) Clean() error {
 	panic("implement external")
 }
 
-func (c *externalConfigurator) GetDriver() (Driver, error) {
-	panic("implement external")
-}
-
-func (c *externalConfigurator) Reconcile(hosts []net.IP) error {
+func (c *externalConfigurator) InstallOn(hosts []net.IP) error {
 	panic("implement external")
 }
 
 func (c *externalConfigurator) UninstallFrom(hosts []net.IP) error {
+	panic("implement external")
+}
+
+func (c *externalConfigurator) GetDriver() (Driver, error) {
 	panic("implement external")
 }
