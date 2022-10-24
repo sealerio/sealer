@@ -88,6 +88,7 @@ func NewDeleteCmd() *cobra.Command {
 	deleteCmd.Flags().StringSliceVarP(&deleteFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	deleteCmd.Flags().BoolVarP(&forceDelete, "force", "f", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete the entire cluster, default is false")
+	deleteCmd.Flags().BoolVarP(&imagedistributor.IsPrune, "prune", "p", true, "this flags is for delete all cluster rootfs, default is true")
 
 	return deleteCmd
 }
@@ -182,10 +183,17 @@ func deleteCluster(workClusterfile string) error {
 	}
 
 	//delete local files,including sealer workdir,cluster file under sealer,kubeconfig under home dir.
-	if err = fs.FS.RemoveAll(common.GetSealerWorkDir(), common.DefaultClusterBaseDir(infraDriver.GetClusterName()),
-		common.DefaultKubeConfigDir()); err != nil {
+	if err = fs.FS.RemoveAll(common.GetSealerWorkDir(), common.DefaultKubeConfigDir()); err != nil {
 		return err
 	}
+
+	// delete cluster file under sealer if isPrune is true
+	if imagedistributor.IsPrune {
+		if err = fs.FS.RemoveAll(common.DefaultClusterBaseDir(infraDriver.GetClusterName())); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
