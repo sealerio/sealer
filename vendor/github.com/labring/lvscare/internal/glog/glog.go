@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package klog implements logging analogous to the Google-internal C++ INFO/ERROR/V setup.
+// Package glog implements logging analogous to the Google-internal C++ INFO/ERROR/V setup.
 // It provides functions Info, Warning, Error, Fatal, plus formatting variants such as
 // Infof. It also provides V-style logging controlled by the -v and -vmodule=file=2 flags.
 //
@@ -68,7 +68,7 @@
 //			-vmodule=gopher*=3
 //		sets the V level to 3 in all Go files whose names begin "gopher".
 //
-package klog
+package glog
 
 import (
 	"bufio"
@@ -87,6 +87,10 @@ import (
 	"sync/atomic"
 	"time"
 )
+
+func InitVerbosity(v int32) {
+	logging.verbosity = Level(v)
+}
 
 // severity identifies the sort of log: info, warning etc. It also implements
 // the flag.Value interface. The -stderrthreshold flag is of type severity and
@@ -396,27 +400,18 @@ type flushSyncWriter interface {
 }
 
 func init() {
+	flag.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of files")
+	flag.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files")
+	flag.Var(&logging.verbosity, "v", "log level for V logs")
+	flag.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
+	flag.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
+	flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
+
 	// Default stderrThreshold is ERROR.
 	logging.stderrThreshold = errorLog
 
 	logging.setVState(0, nil, false)
 	go logging.flushDaemon()
-}
-
-// InitFlags is for explicitly initializing the flags
-func InitFlags(flagset *flag.FlagSet) {
-	if flagset == nil {
-		flagset = flag.CommandLine
-	}
-	flagset.StringVar(&logging.logDir, "log_dir", "", "If non-empty, write log files in this directory")
-	flagset.StringVar(&logging.logFile, "log_file", "", "If non-empty, use this log file")
-	flagset.BoolVar(&logging.toStderr, "logtostderr", true, "log to standard error instead of files")
-	flagset.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files")
-	flagset.Var(&logging.verbosity, "v", "number for the log level verbosity")
-	flagset.BoolVar(&logging.skipHeaders, "skip_headers", false, "If true, avoid header prefixes in the log messages")
-	flagset.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
-	flagset.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
-	flagset.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
 }
 
 // Flush flushes all pending log I/O.
@@ -462,17 +457,6 @@ type loggingT struct {
 	// safely using atomic.LoadInt32.
 	vmodule   moduleSpec // The state of the -vmodule flag.
 	verbosity Level      // V logging level, the value of the -v flag/
-
-	// If non-empty, overrides the choice of directory in which to write logs.
-	// See createLogDirs for the full list of possible destinations.
-	logDir string
-
-	// If non-empty, specifies the path of the file to write logs. mutually exclusive
-	// with the log-dir option.
-	logFile string
-
-	// If true, do not add the prefix headers, useful when used with SetOutput
-	skipHeaders bool
 }
 
 // buffer holds a byte Buffer for reuse. The zero value is ready for use.
@@ -576,9 +560,6 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 		s = infoLog // for safety.
 	}
 	buf := l.getBuffer()
-	if l.skipHeaders {
-		return buf
-	}
 
 	// Avoid Fprintf, for speed. The format is so simple that we can do it quickly by hand.
 	// It's worth about 3X. Fprintf is hard.
@@ -690,45 +671,6 @@ func (l *loggingT) printWithFileLine(s severity, file string, line int, alsoToSt
 	l.output(s, buf, file, line, alsoToStderr)
 }
 
-// redirectBuffer is used to set an alternate destination for the logs
-type redirectBuffer struct {
-	w io.Writer
-}
-
-func (rb *redirectBuffer) Sync() error {
-	return nil
-}
-
-func (rb *redirectBuffer) Flush() error {
-	return nil
-}
-
-func (rb *redirectBuffer) Write(bytes []byte) (n int, err error) {
-	return rb.w.Write(bytes)
-}
-
-// SetOutput sets the output destination for all severities
-func SetOutput(w io.Writer) {
-	for s := fatalLog; s >= infoLog; s-- {
-		rb := &redirectBuffer{
-			w: w,
-		}
-		logging.file[s] = rb
-	}
-}
-
-// SetOutputBySeverity sets the output destination for specific severity
-func SetOutputBySeverity(name string, w io.Writer) {
-	sev, ok := severityByName(name)
-	if !ok {
-		panic(fmt.Sprintf("SetOutputBySeverity(%q): unrecognized severity name", name))
-	}
-	rb := &redirectBuffer{
-		w: w,
-	}
-	logging.file[sev] = rb
-}
-
 // output writes the data to the log files and releases the buffer.
 func (l *loggingT) output(s severity, buf *buffer, file string, line int, alsoToStderr bool) {
 	l.mu.Lock()
@@ -738,7 +680,10 @@ func (l *loggingT) output(s severity, buf *buffer, file string, line int, alsoTo
 		}
 	}
 	data := buf.Bytes()
-	if l.toStderr {
+	if !flag.Parsed() {
+		//os.Stderr.Write([]byte("ERROR: logging before flag.Parse: "))
+		os.Stderr.Write(data)
+	} else if l.toStderr {
 		os.Stderr.Write(data)
 	} else {
 		if alsoToStderr || l.alsoToStderr || s >= l.stderrThreshold.get() {
@@ -872,7 +817,7 @@ func (sb *syncBuffer) Sync() error {
 
 func (sb *syncBuffer) Write(p []byte) (n int, err error) {
 	if sb.nbytes+uint64(len(p)) >= MaxSize {
-		if err := sb.rotateFile(time.Now(), false); err != nil {
+		if err := sb.rotateFile(time.Now()); err != nil {
 			sb.logger.exit(err)
 		}
 	}
@@ -885,15 +830,13 @@ func (sb *syncBuffer) Write(p []byte) (n int, err error) {
 }
 
 // rotateFile closes the syncBuffer's file and starts a new one.
-// The startup argument indicates whether this is the initial startup of klog.
-// If startup is true, existing files are opened for apending instead of truncated.
-func (sb *syncBuffer) rotateFile(now time.Time, startup bool) error {
+func (sb *syncBuffer) rotateFile(now time.Time) error {
 	if sb.file != nil {
 		sb.Flush()
 		sb.file.Close()
 	}
 	var err error
-	sb.file, _, err = create(severityName[sb.sev], now, startup)
+	sb.file, _, err = create(severityName[sb.sev], now)
 	sb.nbytes = 0
 	if err != nil {
 		return err
@@ -928,7 +871,7 @@ func (l *loggingT) createFiles(sev severity) error {
 			logger: l,
 			sev:    s,
 		}
-		if err := sb.rotateFile(now, true); err != nil {
+		if err := sb.rotateFile(now); err != nil {
 			return err
 		}
 		l.file[s] = sb
@@ -936,11 +879,11 @@ func (l *loggingT) createFiles(sev severity) error {
 	return nil
 }
 
-const flushInterval = 5 * time.Second
+const flushInterval = 30 * time.Second
 
 // flushDaemon periodically flushes the log file buffers.
 func (l *loggingT) flushDaemon() {
-	for range time.NewTicker(flushInterval).C {
+	for _ = range time.NewTicker(flushInterval).C {
 		l.lockAndFlushAll()
 	}
 }

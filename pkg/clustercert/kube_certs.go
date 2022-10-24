@@ -377,7 +377,7 @@ func getEtcdCertificateConfig(etcdCertPath, certPath, nodeName string, nodeIP ne
 		},
 		IPs: map[string]net.IP{
 			net.IPv4(127, 0, 0, 1).String(): net.IPv4(127, 0, 0, 1),
-			nodeIP.To4().String():           nodeIP.To4(),
+			nodeIP.String():                 nodeIP,
 			net.IPv6loopback.String():       net.IPv6loopback,
 		},
 	}

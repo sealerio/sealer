@@ -16,7 +16,7 @@
 
 // File I/O for logs.
 
-package klog
+package glog
 
 import (
 	"errors"
@@ -35,9 +35,13 @@ var MaxSize uint64 = 1024 * 1024 * 1800
 // logDirs lists the candidate directories for new log files.
 var logDirs []string
 
+// If non-empty, overrides the choice of directory in which to write logs.
+// See createLogDirs for the full list of possible destinations.
+var logDir string
+
 func createLogDirs() {
-	if logging.logDir != "" {
-		logDirs = append(logDirs, logging.logDir)
+	if logDir != "" {
+		logDirs = append(logDirs, logDir)
 	}
 	logDirs = append(logDirs, os.TempDir())
 }
@@ -97,16 +101,7 @@ var onceLogDirs sync.Once
 // contains tag ("INFO", "FATAL", etc.) and t.  If the file is created
 // successfully, create also attempts to update the symlink for that tag, ignoring
 // errors.
-// The startup argument indicates whether this is the initial startup of klog.
-// If startup is true, existing files are opened for apending instead of truncated.
-func create(tag string, t time.Time, startup bool) (f *os.File, filename string, err error) {
-	if logging.logFile != "" {
-		f, err := openOrCreate(logging.logFile, startup)
-		if err == nil {
-			return f, logging.logFile, nil
-		}
-		return nil, "", fmt.Errorf("log: unable to create log: %v", err)
-	}
+func create(tag string, t time.Time) (f *os.File, filename string, err error) {
 	onceLogDirs.Do(createLogDirs)
 	if len(logDirs) == 0 {
 		return nil, "", errors.New("log: no log dirs")
@@ -115,7 +110,7 @@ func create(tag string, t time.Time, startup bool) (f *os.File, filename string,
 	var lastErr error
 	for _, dir := range logDirs {
 		fname := filepath.Join(dir, name)
-		f, err := openOrCreate(fname, startup)
+		f, err := os.Create(fname)
 		if err == nil {
 			symlink := filepath.Join(dir, link)
 			os.Remove(symlink)        // ignore err
@@ -125,15 +120,4 @@ func create(tag string, t time.Time, startup bool) (f *os.File, filename string,
 		lastErr = err
 	}
 	return nil, "", fmt.Errorf("log: cannot create log: %v", lastErr)
-}
-
-// The startup argument indicates whether this is the initial startup of klog.
-// If startup is true, existing files are opened for appending instead of truncated.
-func openOrCreate(name string, startup bool) (*os.File, error) {
-	if startup {
-		f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		return f, err
-	}
-	f, err := os.Create(name)
-	return f, err
 }

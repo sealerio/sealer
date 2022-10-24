@@ -34,10 +34,10 @@ func LvsStaticPodYaml(vip net.IP, masters []net.IP, image string) (string, error
 		return "", fmt.Errorf("invalid args to create Lvs static pod")
 	}
 
-	args := []string{"care", "--vs", vip.String() + ":6443", "--health-path", "/healthz", "--health-schem", "https"}
+	args := []string{"care", "--vs", net.JoinHostPort(vip.String(), "6443"), "--health-path", "/healthz", "--health-schem", "https"}
 	for _, m := range masters {
 		args = append(args, "--rs")
-		args = append(args, m.String()+":6443")
+		args = append(args, net.JoinHostPort(m.String(), "6443"))
 	}
 	flag := true
 	pod := componentPod(v1.Container{

@@ -20,14 +20,15 @@ import (
 	"net"
 	"strings"
 
+	"github.com/containers/buildah/util"
 	"github.com/imdario/mergo"
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/ssh"
-
 	"golang.org/x/sync/errgroup"
+	k8snet "k8s.io/utils/net"
 )
 
 type SSHInfraDriver struct {
@@ -91,13 +92,27 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		roleHostsMap:      map[string][]net.IP{},
 		// todo need to separate env into app render data and sys render data
 		hostEnvMap:         map[string]map[string]interface{}{},
-		clusterEnv:         ConvertEnv(cluster.Spec.Env),
 		clusterHostAliases: cluster.Spec.HostAliases,
 	}
 
 	// initialize hosts field
 	for _, host := range cluster.Spec.Hosts {
 		ret.hosts = append(ret.hosts, host.IPS...)
+	}
+
+	if len(ret.hosts) == 0 {
+		return nil, fmt.Errorf("no hosts specified")
+	}
+
+	if err := checkAllHostsSameFamily(ret.hosts); err != nil {
+		return nil, err
+	}
+
+	if k8snet.IsIPv6String(ret.hosts[0].String()) {
+		hostIPFamilyEnv := fmt.Sprintf("%s=%s", common.EnvHostIPFamily, k8snet.IPv6)
+		if !util.StringInSlice(hostIPFamilyEnv, cluster.Spec.Env) {
+			cluster.Spec.Env = append(cluster.Spec.Env, hostIPFamilyEnv)
+		}
 	}
 
 	// initialize sshConfigs field
@@ -121,6 +136,8 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 			}
 		}
 	}
+
+	ret.clusterEnv = ConvertEnv(cluster.Spec.Env)
 
 	// initialize hostEnvMap field
 	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
@@ -330,6 +347,24 @@ func (d *SSHInfraDriver) Execute(hosts []net.IP, f func(host net.IP) error) erro
 
 	if err := eg.Wait(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func checkAllHostsSameFamily(nodeList []net.IP) error {
+	hasIPV4 := false
+	hasIPV6 := false
+	for _, ip := range nodeList {
+		if k8snet.IsIPv4(ip) {
+			hasIPV4 = true
+		} else if k8snet.IsIPv6(ip) {
+			hasIPV6 = true
+		}
+	}
+
+	if hasIPV4 && hasIPV6 {
+		return fmt.Errorf("all hosts must be in same ip family, but the node list given are mixed with ipv4 and ipv6: %v", nodeList)
 	}
 
 	return nil

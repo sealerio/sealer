@@ -99,7 +99,7 @@ func GetLocalHostAddresses() ([]net.Addr, error) {
 
 func IsLocalIP(ip net.IP, addrs []net.Addr) bool {
 	for _, address := range addrs {
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil && ipnet.IP.Equal(ip) {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.Equal(ip) {
 			return true
 		}
 	}
@@ -123,7 +123,7 @@ func GetLocalIP(master0IPPort string) (net.IP, error) {
 	return net.ParseIP(strings.Split(localAddr, ":")[0]), err
 }
 
-//TransferToIPList transfer network segment string to ip list string
+// TransferToIPList transfer network segment string to ip list string
 func TransferToIPList(ipStr string) (string, error) {
 	var result []string
 	var ips = strings.Split(ipStr, "-")
@@ -150,55 +150,6 @@ func TransferToIPList(ipStr string) (string, error) {
 		return "", fmt.Errorf("input IP(%s) is invalid", ipStr)
 	}
 	return strings.Join(result, ","), nil
-}
-
-// IPRangeToList converts IP range to IP list format.
-func IPRangeToList(inputStr string) (string, error) {
-	var result []string
-	ips := strings.Split(inputStr, "-")
-	for res := CompareIP(ips[0], ips[1]); res <= 0; {
-		result = append(result, ips[0])
-		ips[0] = NextIP(ips[0]).String()
-		res = CompareIP(ips[0], ips[1])
-	}
-	if len(result) == 0 {
-		return "", fmt.Errorf("input IP(%s) is invalid", inputStr)
-	}
-	return strings.Join(result, ","), nil
-}
-
-func CheckIP(i string) bool {
-	if !strings.Contains(i, ":") {
-		return net.ParseIP(i) != nil
-	}
-	if _, err := net.ResolveTCPAddr("tcp", i); err != nil {
-		return false
-	}
-	return true
-}
-
-func DisassembleIPList(arg string) []net.IP {
-	var res []string
-	ipList := strings.Split(arg, ",")
-	for _, i := range ipList {
-		if strings.Contains(i, "-") {
-			// #nosec
-			ipStr, err := TransferToIPList(i)
-			if err != nil {
-				fmt.Printf("failed to get Addr: %v", err)
-				continue
-			}
-			res = append(res, strings.Split(ipStr, ",")...)
-		}
-		res = append(res, i)
-	}
-
-	resIP := make([]net.IP, 0, len(res))
-	for _, ip := range res {
-		resIP = append(resIP, net.ParseIP(ip))
-	}
-
-	return resIP
 }
 
 func IPToInt(v string) *big.Int {

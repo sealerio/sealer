@@ -55,7 +55,7 @@ const (
 	RemoteAddEtcHosts       = "cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts"
 	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
 	RemoveKubeConfig        = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
-	RemoteCleanK8sOnHost    = `if which kubeadm > /dev/null 2>&1;then kubeadm reset -f %s;fi && \
+	RemoteCleanK8sOnHost    = `systemctl restart docker kubelet; if which kubeadm > /dev/null 2>&1;then kubeadm reset -f %s;fi && \
 rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
 rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
@@ -132,7 +132,7 @@ func (k *Runtime) Command(version, master0IP string, name CommandType, token v1b
 	cmds := map[CommandType]string{
 		InitMaster: fmt.Sprintf("kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs", k.infra.GetClusterRootfsPath()),
 		JoinMaster: fmt.Sprintf("kubeadm join %s --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s", net.JoinHostPort(master0IP, "6443"), token.Token, token.CACertHashes, certKey),
-		JoinNode:   fmt.Sprintf("kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s", net.JoinHostPort(k.getAPIServerVIP().String(), "6443"), token.Token, token.CACertHashes),
+		JoinNode:   fmt.Sprintf("kubeadm join %s --token %s --discovery-token-ca-cert-hash %s", net.JoinHostPort(k.getAPIServerVIP().String(), "6443"), token.Token, token.CACertHashes),
 	}
 
 	kv := versionUtils.Version(version)
