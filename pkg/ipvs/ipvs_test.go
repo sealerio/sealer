@@ -14,37 +14,39 @@
 
 package ipvs
 
-/*var want = []string{
+import (
+	"net"
+	"testing"
+)
+
+var want = []string{
 	`apiVersion: v1
 kind: Pod
 metadata:
   creationTimestamp: null
-  labels:
-    component: kube-sealyun-lvscare
-    tier: control-plane
-  name: kube-sealyun-lvscare
+  name: kube-lvscare
   namespace: kube-system
 spec:
   containers:
   - args:
     - care
     - --vs
-    - 10.10.10.10:6443
+    - 10.107.2.1:6443
     - --health-path
     - /healthz
     - --health-schem
     - https
     - --rs
-    - 116.31.96.134:6443
+    - 172.16.228.157:6443
     - --rs
-    - 116.31.96.135:6443
+    - 172.16.228.158:6443
     - --rs
-    - 116.31.96.136:6443
+    - 172.16.228.159:6443
     command:
     - /usr/bin/lvscare
-    image: fanux/lvscare:latest
+    image: fdfadf
     imagePullPolicy: IfNotPresent
-    name: kube-sealyun-lvscare
+    name: kube-lvscare
     resources: {}
     securityContext:
       privileged: true
@@ -53,7 +55,44 @@ spec:
       name: lib-modules
       readOnly: true
   hostNetwork: true
-  priorityClassName: system-cluster-critical
+  volumes:
+  - hostPath:
+      path: /lib/modules
+      type: ""
+    name: lib-modules
+status: {}
+`,
+	`apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  name: kube-lvscare
+  namespace: kube-system
+spec:
+  containers:
+  - args:
+    - care
+    - --vs
+    - 10.107.2.1:6443
+    - --health-path
+    - /healthz
+    - --health-schem
+    - https
+    - --rs
+    - 172.16.228.157:6443
+    command:
+    - /usr/bin/lvscare
+    image: fdfadf
+    imagePullPolicy: IfNotPresent
+    name: kube-lvscare
+    resources: {}
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /lib/modules
+      name: lib-modules
+      readOnly: true
+  hostNetwork: true
   volumes:
   - hostPath:
       path: /lib/modules
@@ -65,8 +104,8 @@ status: {}
 
 func TestLvsStaticPodYaml(t *testing.T) {
 	type args struct {
-		vip     string
-		masters []string
+		vip     net.IP
+		masters []net.IP
 		image   string
 	}
 	tests := []struct {
@@ -75,21 +114,30 @@ func TestLvsStaticPodYaml(t *testing.T) {
 		want string
 	}{
 		{
-			"test generate lvs care static pod",
-			args{
-				"10.10.10.10",
-				[]string{"116.31.96.134:6443", "116.31.96.135:6443", "116.31.96.136:6443"},
-				"fanux/lvscare:latest",
+			args: args{
+				vip: net.ParseIP("10.107.2.1"),
+				masters: []net.IP{
+					net.ParseIP("172.16.228.157"),
+					net.ParseIP("172.16.228.158"),
+					net.ParseIP("172.16.228.159")},
+				image: "fdfadf",
 			},
-			want[0],
+			want: want[0],
+		},
+		{
+			args: args{
+				vip:     net.ParseIP("10.107.2.1"),
+				masters: []net.IP{net.ParseIP("172.16.228.157")},
+				image:   "fdfadf",
+			},
+			want: want[1],
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := LvsStaticPodYaml(tt.args.vip, tt.args.masters, tt.args.image); got != tt.want {
+			if got, _ := LvsStaticPodYaml(tt.args.vip, tt.args.masters, tt.args.image); got != tt.want {
 				t.Errorf("LvsStaticPodYaml() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
-*/

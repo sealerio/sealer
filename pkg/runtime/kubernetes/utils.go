@@ -62,7 +62,7 @@ rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
 rm -rf /usr/bin/kubelet && rm -rf /usr/bin/kubectl && \
 rm -rf /var/lib/kubelet/* && rm -rf /etc/sysctl.d/k8s.conf && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
-rm -rf /var/lib/etcd && rm -rf /var/etcd
+rm -rf /var/lib/etcd/* && rm -rf /var/etcd/*
 `
 	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
 	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
@@ -156,10 +156,10 @@ func (k *Runtime) Command(version, master0IP string, name CommandType, token v1b
 		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=all"), nil
 	}
 	if name == InitMaster || name == JoinMaster {
-		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=SystemVerification"), nil
+		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=SystemVerification,Port-10250,DirAvailable--etc-kubernetes-manifests"), nil
 	}
 
-	return fmt.Sprintf("%s%s", v, vlogToStr(k.Config.Vlog)), nil
+	return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=Port-10250,DirAvailable--etc-kubernetes-manifests"), nil
 }
 
 func GetClientFromConfig(adminConfPath string) (runtimeClient.Client, error) {
