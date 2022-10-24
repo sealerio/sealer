@@ -16,6 +16,7 @@ package utils
 
 import (
 	"fmt"
+	"net"
 	"regexp"
 	"time"
 )
@@ -52,4 +53,8 @@ func ConfirmOperation(promptInfo string) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func WrapExecResult(host net.IP, command string, output []byte, err error) error {
+	return fmt.Errorf("failed to execute command(%s) on host(%s): output(%s), error(%v)", command, host.String(), output, err)
 }

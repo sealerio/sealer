@@ -23,13 +23,12 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils/exec"
-
 	"github.com/vishvananda/netlink"
 	k8snet "k8s.io/apimachinery/pkg/util/net"
 	k8sutilsnet "k8s.io/utils/net"
+
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/utils/exec"
 )
 
 const (
@@ -74,7 +73,8 @@ func CheckIsDefaultRoute(host net.IP) error {
 // SetRoute ip route add $route
 func (r *Route) SetRoute() error {
 	if !k8sutilsnet.IsIPv4(r.Gateway) || !k8sutilsnet.IsIPv4(r.Host) {
-		return ErrNotIPV4
+		logrus.Warningf("%v, skip", ErrNotIPV4)
+		return nil
 	}
 	err := addRouteGatewayViaHost(r.Host, r.Gateway, 50)
 	if err != nil && !errors.Is(err, os.ErrExist) /* return if route already exist */ {
@@ -99,7 +99,8 @@ func (r *Route) SetRoute() error {
 // DelRoute ip route del $route
 func (r *Route) DelRoute() error {
 	if !k8sutilsnet.IsIPv4(r.Gateway) || !k8sutilsnet.IsIPv4(r.Host) {
-		return ErrNotIPV4
+		logrus.Warningf("%v, skip", ErrNotIPV4)
+		return nil
 	}
 	err := delRouteGatewayViaHost(r.Host, r.Gateway)
 	if err != nil && !errors.Is(err, syscall.ESRCH) /* return if route does not exist */ {

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -202,15 +203,17 @@ func GenerateAllKubernetesCerts(certPath, etcdCertPath, nodeName, serviceCIRD, D
 
 	clusterCertArgs.APIServerAltNames.IPs[nodeIP.String()] = nodeIP
 
-	_, svcSubnet, err := net.ParseCIDR(serviceCIRD)
-	if err != nil {
-		return errors.Wrapf(err, "unable to parse ServiceSubnet %v", serviceCIRD)
+	for _, svcCidr := range strings.Split(serviceCIRD, ",") {
+		_, svcSubnet, err := net.ParseCIDR(svcCidr)
+		if err != nil {
+			return errors.Wrapf(err, "unable to parse ServiceSubnet %v", svcCidr)
+		}
+		svcFirstIP, err := utilnet.GetIndexedIP(svcSubnet, 1)
+		if err != nil {
+			return err
+		}
+		clusterCertArgs.APIServerAltNames.IPs[svcFirstIP.String()] = svcFirstIP
 	}
-	svcFirstIP, err := utilnet.GetIndexedIP(svcSubnet, 1)
-	if err != nil {
-		return err
-	}
-	clusterCertArgs.APIServerAltNames.IPs[svcFirstIP.String()] = svcFirstIP
 
 	for _, altName := range altNames {
 		ip := net.ParseIP(altName)
@@ -229,7 +232,7 @@ func GenerateAllKubernetesCerts(certPath, etcdCertPath, nodeName, serviceCIRD, D
 		serviceAccount: cert.NewKeyPairFileGenerator(certPath, "sa"),
 	}
 
-	err = certService.GenerateKubeComponentCert()
+	err := certService.GenerateKubeComponentCert()
 	if err != nil {
 		return err
 	}

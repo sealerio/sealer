@@ -45,7 +45,7 @@ type SSHInfraDriver struct {
 
 func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {
 	if len(hostEnv) == 0 {
-		return globalEnv
+		return copyEnv(globalEnv)
 	}
 	for globalEnvKey, globalEnvValue := range globalEnv {
 		if _, ok := hostEnv[globalEnvKey]; ok {
@@ -54,6 +54,18 @@ func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{}
 		hostEnv[globalEnvKey] = globalEnvValue
 	}
 	return hostEnv
+}
+
+func copyEnv(origin map[string]interface{}) map[string]interface{} {
+	if origin == nil {
+		return nil
+	}
+	ret := make(map[string]interface{}, len(origin))
+	for k, v := range origin {
+		ret[k] = v
+	}
+
+	return ret
 }
 
 // ConvertEnv Convert []string to map[string]interface{}
