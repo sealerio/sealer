@@ -29,3 +29,10 @@ type Flags struct {
 	CustomEnv  []string
 	CMDArgs    []string
 }
+
+type APPFlags struct {
+	// override default LaunchCmds of clusterimage
+	LaunchCmds []string
+	// maybe we can support to override default LaunchArgs of clusterimage to render LaunchCmds.
+	LaunchArgs []string
+}
