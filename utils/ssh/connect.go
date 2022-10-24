@@ -140,9 +140,9 @@ type Client struct {
 
 var sshClientMap = map[string]Client{}
 
-func (s *SSH) sftpConnect(host net.IP) (*ssh.Client, *sftp.Client, error) {
+func (s *SSH) sftpConnect(host net.IP) (*sftp.Client, error) {
 	if ret, ok := sshClientMap[host.String()]; ok {
-		return ret.SSHClient, ret.SftpClient, nil
+		return ret.SftpClient, nil
 	}
 
 	var (
@@ -153,7 +153,7 @@ func (s *SSH) sftpConnect(host net.IP) (*ssh.Client, *sftp.Client, error) {
 
 	sshClient, err = s.connect(host)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// create sftp client
@@ -168,7 +168,7 @@ func (s *SSH) sftpConnect(host net.IP) (*ssh.Client, *sftp.Client, error) {
 		SftpClient: sftpClient,
 	}
 
-	return sshClient, sftpClient, err
+	return sftpClient, err
 }
 
 func (s *SSH) NewSudoSftpClient(conn *ssh.Client, opts ...sftp.ClientOption) (*sftp.Client, error) {
