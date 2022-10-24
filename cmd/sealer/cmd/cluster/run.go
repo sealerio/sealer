@@ -120,8 +120,9 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			var (
-				clusterHosts     = infraDriver.GetHostIPList()
-				clusterImageName = cluster.Spec.Image
+				clusterLaunchCmds = infraDriver.GetClusterLaunchCmds()
+				clusterHosts      = infraDriver.GetHostIPList()
+				clusterImageName  = cluster.Spec.Image
 			)
 
 			clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
@@ -166,9 +167,11 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			runtimeConfig := &clusterruntime.RuntimeConfig{
-				Distributor: distributor,
-				ImageEngine: imageEngine,
-				Plugins:     plugins,
+				Distributor:       distributor,
+				ImageEngine:       imageEngine,
+				Plugins:           plugins,
+				ClusterLaunchCmds: clusterLaunchCmds,
+				ClusterImageImage: clusterImageName,
 			}
 
 			if cf.GetKubeadmConfig() != nil {

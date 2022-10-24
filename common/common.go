@@ -152,6 +152,10 @@ func GetDefaultClusterfile() string {
 	return filepath.Join(GetSealerWorkDir(), "Clusterfile")
 }
 
+func GetDefaultApplicationFile() string {
+	return filepath.Join(GetSealerWorkDir(), "application.json")
+}
+
 func DefaultRegistryAuthConfigDir() string {
 	return filepath.Join(GetHomeDir(), ".docker/config.json")
 }

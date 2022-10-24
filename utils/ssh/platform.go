@@ -69,7 +69,7 @@ func (s *SSH) GetPlatform(host net.IP) (v1.Platform, error) {
 }
 
 func (s *SSH) getCPUInfo(host net.IP, pattern string) (info string, err error) {
-	_, sftpClient, err := s.sftpConnect(host)
+	sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return "", fmt.Errorf("failed to new sftp client: %v", err)
 	}

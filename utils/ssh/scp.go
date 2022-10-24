@@ -94,7 +94,7 @@ func (s *SSH) CopyR(host net.IP, localFilePath, remoteFilePath string) error {
 		return nil
 	}
 
-	_, sftpClient, err := s.sftpConnect(host)
+	sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return fmt.Errorf("failed to new sftp client: %v", err)
 	}
@@ -140,7 +140,7 @@ func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 	}
 	logrus.Debugf("remote copy files src %s to dst %s", localPath, remotePath)
 
-	_, sftpClient, err := s.sftpConnect(host)
+	sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return fmt.Errorf("failed to new sftp client of host(%s): %s", host, err)
 	}
@@ -283,7 +283,7 @@ func (s *SSH) copyLocalFileToRemote(host net.IP, sftpClient *sftp.Client, localP
 
 // RemoteDirExist if remote file not exist return false and nil
 func (s *SSH) RemoteDirExist(host net.IP, remoteDirPath string) (bool, error) {
-	_, sftpClient, err := s.sftpConnect(host)
+	sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return false, fmt.Errorf("new sftp client failed %v", err)
 	}
@@ -295,7 +295,7 @@ func (s *SSH) RemoteDirExist(host net.IP, remoteDirPath string) (bool, error) {
 }
 
 func (s *SSH) IsFileExist(host net.IP, remoteFilePath string) (bool, error) {
-	_, sftpClient, err := s.sftpConnect(host)
+	sftpClient, err := s.sftpConnect(host)
 	if err != nil {
 		return false, fmt.Errorf("failed to new sftp client of host(%s): %s", host, err)
 	}

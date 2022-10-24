@@ -16,10 +16,7 @@ package clusterruntime
 
 import (
 	"fmt"
-	"net"
 	"path/filepath"
-
-	"github.com/moby/buildkit/frontend/dockerfile/shell"
 
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
@@ -43,6 +40,8 @@ type RuntimeConfig struct {
 	ContainerRuntimeConfig containerruntime.Config
 	KubeadmConfig          kubeadm.KubeadmConfig
 	Plugins                []v1.Plugin
+	ClusterLaunchCmds      []string
+	ClusterImageImage      string
 }
 
 type Installer struct {
@@ -57,6 +56,8 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 		err       error
 		installer = &Installer{}
 	)
+
+	installer.RuntimeConfig = runtimeConfig
 
 	// configure container runtime
 	//todo need to support other container runtimes
@@ -103,84 +104,28 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 
 	installer.hooks = hooks
 	installer.infraDriver = infraDriver
-	installer.KubeadmConfig = runtimeConfig.KubeadmConfig
-	installer.Distributor = runtimeConfig.Distributor
-	installer.ImageEngine = runtimeConfig.ImageEngine
 
 	return installer, nil
 }
 
 func (i *Installer) Install() error {
 	var (
-		masters           = i.infraDriver.GetHostIPListByRole(common.MASTER)
-		master0           = masters[0]
-		workers           = getWorkerIPList(i.infraDriver)
-		all               = append(masters, workers...)
-		image             = i.infraDriver.GetClusterImageName()
-		clusterLaunchCmds = i.infraDriver.GetClusterLaunchCmds()
+		masters = i.infraDriver.GetHostIPListByRole(common.MASTER)
+		master0 = masters[0]
+		workers = getWorkerIPList(i.infraDriver)
+		all     = append(masters, workers...)
+		cmds    = i.ClusterLaunchCmds
 	)
 
-	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: image})
+	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: i.ClusterImageImage})
 	if err != nil {
-		return fmt.Errorf("failed to get ClusterImage extension: %s", err)
+		return fmt.Errorf("failed to get cluster image extension: %s", err)
 	}
 
-	var cmds []string
-	if len(clusterLaunchCmds) > 0 {
-		cmds = clusterLaunchCmds
-	} else {
-		cmds = extension.Launch.Cmds
+	if extension.Type != v12.KubeInstaller {
+		return fmt.Errorf("exit install process, wrong cluster image type: %s", extension.Type)
 	}
 
-	if extension.Type == v12.AppInstaller {
-		err = i.installApp(master0, cmds)
-		if err != nil {
-			return fmt.Errorf("failed to install application: %s", err)
-		}
-	} else {
-		err = i.installKubeCluster(master0, all, cmds)
-		if err != nil {
-			return fmt.Errorf("failed to install cluster: %s", err)
-		}
-	}
-
-	return nil
-}
-
-func (i *Installer) installApp(master0 net.IP, cmds []string) error {
-	// distribute rootfs
-	if err := i.Distributor.DistributeRootfs([]net.IP{master0}, i.infraDriver.GetClusterRootfsPath()); err != nil {
-		return err
-	}
-
-	crInfo, err := i.containerRuntimeInstaller.GetInfo()
-	if err != nil {
-		return err
-	}
-
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
-	if err != nil {
-		return err
-	}
-
-	registryDriver, err := registryConfigurator.GetDriver()
-	if err != nil {
-		return err
-	}
-
-	err = registryDriver.UploadContainerImages2Registry()
-	if err != nil {
-		return err
-	}
-
-	if err = i.launchClusterImage(master0, cmds); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (i *Installer) installKubeCluster(master0 net.IP, all []net.IP, cmds []string) error {
 	// distribute rootfs
 	if err := i.Distributor.DistributeRootfs(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
 		return err
@@ -235,10 +180,6 @@ func (i *Installer) installKubeCluster(master0 net.IP, all []net.IP, cmds []stri
 		return err
 	}
 
-	if err = i.launchClusterImage(master0, cmds); err != nil {
-		return err
-	}
-
 	if err = i.runClusterHook(master0, PostInstallCluster); err != nil {
 		return err
 	}
@@ -247,27 +188,10 @@ func (i *Installer) installKubeCluster(master0 net.IP, all []net.IP, cmds []stri
 		return err
 	}
 
-	return nil
-}
+	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension, i.RegistryConfig)
 
-func (i *Installer) launchClusterImage(master0 net.IP, cmds []string) error {
-	var (
-		clusterRootfs = i.infraDriver.GetClusterRootfsPath()
-		ex            = shell.NewLex('\\')
-	)
-
-	for _, value := range cmds {
-		if value == "" {
-			continue
-		}
-		cmdline, err := ex.ProcessWordWithMap(value, map[string]string{})
-		if err != nil {
-			return fmt.Errorf("failed to render launch cmd: %v", err)
-		}
-
-		if err = i.infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, cmdline)); err != nil {
-			return err
-		}
+	if err = appInstaller.LaunchClusterImage(master0, cmds); err != nil {
+		return err
 	}
 
 	return nil
