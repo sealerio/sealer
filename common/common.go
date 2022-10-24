@@ -68,6 +68,9 @@ const (
 	RenderManifestsDir            = "manifests"
 	APIVersion                    = "sealer.cloud/v2"
 	Kind                          = "Cluster"
+	DefaultRegistryDomain         = "sea.hub"
+	DefaultRegistryPort           = "5000"
+	HostIP                        = "HostIP"
 )
 
 // image module
