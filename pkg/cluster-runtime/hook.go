@@ -151,7 +151,7 @@ func (i *Installer) runClusterHook(master0 net.IP, phase Phase) error {
 	return nil
 }
 
-// runClusterHook run cluster scope hook by Phase that means will only execute hook on master0.
+// getHostIPListByScope get ip list for scope, support use '|' to specify multiple scopes, they are ORed
 func (i *Installer) getHostIPListByScope(scope Scope) []net.IP {
 	var ret []net.IP
 	scopes := strings.Split(string(scope), "|")
