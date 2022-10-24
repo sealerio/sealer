@@ -148,6 +148,11 @@ func (i *Installer) Install() error {
 }
 
 func (i *Installer) installApp(master0 net.IP, cmds []string) error {
+	// distribute rootfs
+	if err := i.Distributor.DistributeRootfs([]net.IP{master0}, i.infraDriver.GetClusterRootfsPath()); err != nil {
+		return err
+	}
+
 	crInfo, err := i.containerRuntimeInstaller.GetInfo()
 	if err != nil {
 		return err
