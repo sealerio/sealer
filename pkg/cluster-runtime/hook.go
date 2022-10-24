@@ -112,7 +112,7 @@ func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 	sort.Sort(hookConfigList)
 	for _, hookConfig := range hookConfigList {
 		var targetHosts []net.IP
-		expectedHosts := i.infraDriver.GetHostIPListByRole(string(hookConfig.Scope))
+		expectedHosts := i.getHostIPListByScope(hookConfig.Scope)
 		// Make sure each host got from Scope is in the given host ip list.
 		for _, expected := range expectedHosts {
 			if netUtils.IsInIPList(expected, hosts) {
@@ -149,6 +149,24 @@ func (i *Installer) runClusterHook(master0 net.IP, phase Phase) error {
 	}
 
 	return nil
+}
+
+// getHostIPListByScope get ip list for scope, support use '|' to specify multiple scopes, they are ORed
+func (i *Installer) getHostIPListByScope(scope Scope) []net.IP {
+	var ret []net.IP
+	scopes := strings.Split(string(scope), "|")
+	for _, s := range scopes {
+		hosts := i.infraDriver.GetHostIPListByRole(strings.TrimSpace(s))
+
+		// remove duplicates
+		for _, h := range hosts {
+			if !netUtils.IsInIPList(h, ret) {
+				ret = append(ret, h)
+			}
+		}
+	}
+
+	return ret
 }
 
 func NewShellHook() HookFunc {
