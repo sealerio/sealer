@@ -133,7 +133,7 @@ func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
 		localCmd.Stderr = &stderrContent
 		if err := localCmd.Run(); err != nil {
 			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, stderrContent.String())
-			return nil, fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, stderrContent.String())
+			return stdoutContent.Bytes(), fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, stderrContent.String())
 		}
 		return stdoutContent.Bytes(), nil
 	}

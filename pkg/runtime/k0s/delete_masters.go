@@ -88,7 +88,7 @@ func (k *Runtime) deleteMaster(master net.IP) error {
 	if err != nil {
 		return err
 	}
-	if err := client.DeleteNode(hostname); err != nil {
+	if err := client.DeleteNode(strings.TrimSpace(hostname)); err != nil {
 		return err
 	}
 	return nil
