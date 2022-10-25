@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 /*
@@ -21,13 +22,13 @@ package ipvs
 import (
 	"errors"
 	"fmt"
+	"github.com/labring/lvscare/internal/glog"
 	"net"
 	"strings"
 	"sync"
 	"syscall"
 
 	libipvs "github.com/moby/ipvs"
-	"github.com/sealyun/lvscare/internal/klog"
 )
 
 // runner implements ipvs.Interface.
@@ -43,7 +44,7 @@ type Protocol uint16
 func New() Interface {
 	handle, err := libipvs.New("")
 	if err != nil {
-		klog.Errorf("IPVS interface can't be initialized, error: %v", err)
+		glog.Errorf("IPVS interface can't be initialized, error: %v", err)
 		return nil
 	}
 	return &runner{

@@ -181,7 +181,7 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	//The configuration set here does not require merge
 
 	conf.InitConfiguration.LocalAPIEndpoint.AdvertiseAddress = masters[0].String()
-	conf.ControlPlaneEndpoint = fmt.Sprintf("%s:6443", apiServerDomain)
+	conf.ControlPlaneEndpoint = net.JoinHostPort(apiServerDomain, "6443")
 
 	if conf.APIServer.ExtraArgs == nil {
 		conf.APIServer.ExtraArgs = make(map[string]string)

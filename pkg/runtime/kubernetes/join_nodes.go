@@ -21,16 +21,15 @@ import (
 	"path"
 	"strings"
 
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
-
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-	"github.com/sealerio/sealer/utils/shellcommand"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
 	"github.com/sealerio/sealer/pkg/ipvs"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
+	"github.com/sealerio/sealer/utils"
 	utilsnet "github.com/sealerio/sealer/utils/net"
+	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/yaml"
 )
 
@@ -120,7 +119,9 @@ func (k *Runtime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 	if result == utilsnet.RouteOK {
 		return nil
 	}
-	_, err = k.infra.Cmd(node, fmt.Sprintf(RemoteAddRoute, k.getAPIServerVIP(), node))
 
-	return err
+	cmd := fmt.Sprintf(RemoteAddRoute, k.getAPIServerVIP(), node)
+	output, err := k.infra.Cmd(node, cmd)
+
+	return utils.WrapExecResult(node, cmd, output, err)
 }

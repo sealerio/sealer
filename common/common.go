@@ -71,6 +71,8 @@ const (
 	DefaultRegistryDomain         = "sea.hub"
 	DefaultRegistryPort           = "5000"
 	HostIP                        = "HostIP"
+	EnvHostIPFamily               = "HostIPFamily"
+	EnvIPv6DualStack              = "IPv6DualStack"
 )
 
 // image module

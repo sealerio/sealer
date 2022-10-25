@@ -34,6 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8snet "k8s.io/utils/net"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -62,6 +63,10 @@ func NewKubeadmRuntime(clusterFileKubeConfig kubeadm.KubeadmConfig, infra infrad
 			RegistryInfo:                 registryInfo,
 			containerRuntimeInfo:         containerRuntimeInfo,
 		},
+	}
+
+	if ipFamily := infra.GetClusterEnv()[common.EnvHostIPFamily]; ipFamily != nil && ipFamily.(string) == k8snet.IPv6 {
+		k.Config.VIP = DefaultVIPForIPv6
 	}
 
 	if logrus.GetLevel() == logrus.DebugLevel {

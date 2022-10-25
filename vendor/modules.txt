@@ -573,6 +573,16 @@ github.com/klauspost/pgzip
 # github.com/kr/fs v0.1.0
 ## explicit
 github.com/kr/fs
+# github.com/labring/lvscare v1.1.1 => github.com/fanux/lvscare v1.1.3-beta.2.0.20220525083355-d8f3f86677d1
+## explicit; go 1.13
+github.com/labring/lvscare/care
+github.com/labring/lvscare/internal/exec
+github.com/labring/lvscare/internal/glog
+github.com/labring/lvscare/internal/ipvs
+github.com/labring/lvscare/internal/sets
+github.com/labring/lvscare/internal/version
+github.com/labring/lvscare/service
+github.com/labring/lvscare/utils
 # github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 ## explicit
 github.com/lestrrat-go/file-rotatelogs
@@ -806,16 +816,6 @@ github.com/rivo/uniseg
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
-# github.com/sealyun/lvscare v1.1.2-alpha.2
-## explicit; go 1.13
-github.com/sealyun/lvscare/care
-github.com/sealyun/lvscare/internal/exec
-github.com/sealyun/lvscare/internal/ipvs
-github.com/sealyun/lvscare/internal/klog
-github.com/sealyun/lvscare/internal/sets
-github.com/sealyun/lvscare/internal/version
-github.com/sealyun/lvscare/service
-github.com/sealyun/lvscare/utils
 # github.com/seccomp/libseccomp-golang v0.10.0
 ## explicit; go 1.14
 github.com/seccomp/libseccomp-golang
@@ -909,9 +909,6 @@ github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74
 ## explicit; go 1.12
 github.com/vishvananda/netns
-# github.com/wonderivan/logger v1.0.0
-## explicit
-github.com/wonderivan/logger
 # github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb
 ## explicit
 github.com/xeipuuv/gojsonpointer
@@ -1552,6 +1549,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/containerd/containerd => github.com/containerd/containerd v1.6.6
+# github.com/labring/lvscare => github.com/fanux/lvscare v1.1.3-beta.2.0.20220525083355-d8f3f86677d1
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2
 # golang.org/x/crypto => golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 # golang.org/x/net => golang.org/x/net v0.0.0-20210510120150-4163338589ed

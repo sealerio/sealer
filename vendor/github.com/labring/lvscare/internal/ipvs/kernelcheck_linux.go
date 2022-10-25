@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 /*
@@ -20,13 +21,13 @@ package ipvs
 
 import (
 	"fmt"
+	"github.com/labring/lvscare/internal/glog"
 	"regexp"
 	"strings"
 
-	utilsexec "github.com/sealyun/lvscare/internal/exec"
-	"github.com/sealyun/lvscare/internal/sets"
+	utilsexec "github.com/labring/lvscare/internal/exec"
+	"github.com/labring/lvscare/internal/sets"
 
-	"github.com/sealyun/lvscare/internal/klog"
 	"github.com/lithammer/dedent"
 )
 
@@ -43,7 +44,7 @@ func (r RequiredIPVSKernelModulesAvailableCheck) Name() string {
 // Check try to validates IPVS required kernel modules exists or not.
 // The name of function can not be changed.
 func (r RequiredIPVSKernelModulesAvailableCheck) Check() (warnings, errors []error) {
-	klog.V(1).Infoln("validating the kernel module IPVS required exists in machine or not")
+	glog.V(8).Infoln("validating the kernel module IPVS required exists in machine or not")
 
 	kernelVersion, ipvsModules, err := GetKernelVersionAndIPVSMods(r.Executor)
 	if err != nil {

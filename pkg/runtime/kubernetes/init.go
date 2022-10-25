@@ -40,6 +40,7 @@ import (
 const (
 	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
 	DefaultVIP             = "10.103.97.2"
+	DefaultVIPForIPv6      = "1248:4003:10bb:6a01:83b9:6360:c66d:0002"
 	DefaultAPIserverDomain = "apiserver.cluster.local"
 )
 
@@ -103,7 +104,7 @@ func (k *Runtime) createKubeConfig(master0 net.IP) error {
 		return err
 	}
 
-	controlPlaneEndpoint := fmt.Sprintf("https://%s:6443", k.getAPIServerDomain())
+	controlPlaneEndpoint := fmt.Sprintf("https://%s", net.JoinHostPort(k.getAPIServerDomain(), "6443"))
 
 	return clustercert.CreateJoinControlPlaneKubeConfigFiles(k.infra.GetClusterRootfsPath(), k.getPKIPath(),
 		"ca", hostName, controlPlaneEndpoint, "kubernetes")
@@ -131,7 +132,7 @@ func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 	return nil
 }
 
-//initMaster0 is using kubeadm init to start up the cluster master0.
+// initMaster0 is using kubeadm init to start up the cluster master0.
 func (k *Runtime) initMaster0(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
 	if err := k.initKube([]net.IP{master0}); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
@@ -174,7 +175,7 @@ func (k *Runtime) initMaster0(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP)
 	return token, certKey, nil
 }
 
-//decode output to join token hash and key
+// decode output to join token hash and key
 func (k *Runtime) decodeMaster0Output(output []byte) (v1beta2.BootstrapTokenDiscovery, string) {
 	s0 := string(output)
 	logrus.Debugf("decodeOutput: %s", s0)
@@ -185,7 +186,7 @@ func (k *Runtime) decodeMaster0Output(output []byte) (v1beta2.BootstrapTokenDisc
 	return k.decodeJoinCmd(slice1[0])
 }
 
-//  192.168.0.200:6443 --token 9vr73a.a8uxyaju799qwdjv --discovery-token-ca-cert-hash sha256:7c2e69131a36ae2a042a339b33381c6d0d43887e2de83720eff5359e26aec866 --experimental-control-plane --certificate-key f8902e114ef118304e561c3ecd4d0b543adc226b7a07f675f56564185ffe0c07
+// 192.168.0.200:6443 --token 9vr73a.a8uxyaju799qwdjv --discovery-token-ca-cert-hash sha256:7c2e69131a36ae2a042a339b33381c6d0d43887e2de83720eff5359e26aec866 --experimental-control-plane --certificate-key f8902e114ef118304e561c3ecd4d0b543adc226b7a07f675f56564185ffe0c07
 func (k *Runtime) decodeJoinCmd(cmd string) (v1beta2.BootstrapTokenDiscovery, string) {
 	logrus.Debugf("[globals]decodeJoinCmd: %s", cmd)
 	stringSlice := strings.Split(cmd, " ")
