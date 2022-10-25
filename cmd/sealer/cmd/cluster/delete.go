@@ -41,7 +41,7 @@ import (
 var (
 	deleteFlags *types.Flags
 	deleteAll   bool
-	forceDelete bool
+	ForceDelete bool
 )
 
 var longDeleteCmdDescription = `delete command is used to delete part or all of existing cluster.
@@ -86,7 +86,7 @@ func NewDeleteCmd() *cobra.Command {
 	deleteCmd.Flags().StringVarP(&deleteFlags.Masters, "masters", "m", "", "reduce Count or IPList to masters")
 	deleteCmd.Flags().StringVarP(&deleteFlags.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
 	deleteCmd.Flags().StringSliceVarP(&deleteFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	deleteCmd.Flags().BoolVarP(&forceDelete, "force", "f", false, "We also can input an --force flag to delete cluster by force")
+	deleteCmd.Flags().BoolVarP(&ForceDelete, "force", "f", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete the entire cluster, default is false")
 
 	return deleteCmd
@@ -112,7 +112,7 @@ func deleteCluster(workClusterfile string) error {
 	cluster := cf.GetCluster()
 	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
 
-	if !forceDelete {
+	if !ForceDelete {
 		if err = confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), cluster.GetAllIPList()); err != nil {
 			return err
 		}
@@ -226,7 +226,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 		}
 	}
 
-	if !forceDelete {
+	if !ForceDelete {
 		if err = confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), append(deleteMasterIPList, deleteNodeIPList...)); err != nil {
 			return err
 		}
