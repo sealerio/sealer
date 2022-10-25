@@ -30,7 +30,7 @@ var longCertCmdDescription = `This command will add the new domain or IP address
 
 sealer has some default domain and IP in the cert process builtin: localhost,outbound IP address and some DNS domain which is strongly related to the apiserver CertSANs configured by kubeadm.yml.
 
-You need to restart your API server manually after using sealer alpha cert. Then, you can using cmd "openssl x509 -noout -text -in apiserver.crt" to check the cert details.
+You need to restart your API server manually after using sealer cert. Then, you can using cmd "openssl x509 -noout -text -in apiserver.crt" to check the cert details.
 `
 var exampleForCertCmd = `
 The following command will generate new api server cert and key for all control-plane certificates:
