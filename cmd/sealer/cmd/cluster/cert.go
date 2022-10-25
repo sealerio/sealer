@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package alpha
+package cluster
 
 import (
 	"fmt"
@@ -35,7 +35,7 @@ You need to restart your API server manually after using sealer alpha cert. Then
 var exampleForCertCmd = `
 The following command will generate new api server cert and key for all control-plane certificates:
 
-sealer alpha cert --alt-names 39.105.169.253,sealer.cool
+sealer cert --alt-names 39.105.169.253,sealer.cool
 `
 
 var altNames []string
