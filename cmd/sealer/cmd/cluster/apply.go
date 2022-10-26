@@ -93,6 +93,7 @@ will apply the diff change of current Clusterfile and the original one.`,
 			client := getClusterClient()
 			if client == nil {
 				// no k8s client means to init a new cluster.
+				logrus.Infof("start to create new cluster with image: %s", imageName)
 				return createNewCluster(imageName, infraDriver, imageEngine, cf)
 			}
 
@@ -102,6 +103,7 @@ will apply the diff change of current Clusterfile and the original one.`,
 			}
 
 			if extension.Type == v12.AppInstaller {
+				logrus.Infof("start to install application: %s", imageName)
 				return installApplication(imageName, []string{}, extension, infraDriver, imageEngine)
 			}
 
@@ -119,11 +121,10 @@ will apply the diff change of current Clusterfile and the original one.`,
 			if len(md) > 0 || len(nd) > 0 {
 				return fmt.Errorf("scale down not supported: %v,%v", md, nd)
 			}
-
+			logrus.Infof("start to scale up cluster with image: %s", imageName)
 			return scaleUpCluster(imageName, mj, nj, infraDriver, imageEngine, cf)
 		},
 	}
-	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
 	applyCmd.Flags().BoolVar(&ForceDelete, "force", false, "force to delete the specified cluster if set true")
 	applyCmd.Flags().StringVarP(&applyClusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
 	return applyCmd
@@ -304,7 +305,7 @@ func getClusterClient() *k8s.Client {
 		return client
 	}
 	if err != nil {
-		logrus.Warnf("try to new k8s client via default kubeconfig failed: %v", err)
+		logrus.Warnf("try to new k8s client via default kubeconfig, maybe this is a new cluster that needs to be created: %v", err)
 	}
 	return nil
 }
