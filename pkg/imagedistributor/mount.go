@@ -17,12 +17,14 @@ package imagedistributor
 import (
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
 )
 
@@ -33,6 +35,12 @@ type buildAhMounter struct {
 func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, error) {
 	path := platform.OS + "_" + platform.Architecture + "_" + platform.Variant
 	mountDir := filepath.Join(common.DefaultSealerDataDir, path)
+	if osi.IsFileExist(mountDir) {
+		err := os.RemoveAll(mountDir)
+		if err != nil {
+			return "", err
+		}
+	}
 	if err := b.imageEngine.Pull(&imagecommon.PullOptions{
 		Quiet:      false,
 		PullPolicy: "missing",
