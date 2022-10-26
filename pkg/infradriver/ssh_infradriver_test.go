@@ -137,3 +137,48 @@ func TestSSHInfraDriver_GetClusterInfo(t *testing.T) {
 		"test_node_env_key": "test_node_env_value",
 	})
 }
+
+func TestCheckAllHostsSameFamily(t *testing.T) {
+	type args struct {
+		data    []net.IP
+		wanterr bool
+	}
+
+	var tests = []struct {
+		name string
+		args args
+	}{
+		{
+			"test all ipv4",
+			args{
+				data:    []net.IP{net.IPv4(192, 168, 0, 1), net.IPv4(192, 168, 0, 2), net.IPv4(192, 168, 0, 3)},
+				wanterr: false,
+			},
+		},
+		{
+			"test all ipv6",
+			args{
+				data:    []net.IP{net.ParseIP("2408:4003:10bb:6a01:83b9:6360:c66d:ed57"), net.ParseIP("2408:4003:10bb:6a01:83b9:6360:c66d:ed58")},
+				wanterr: false,
+			},
+		},
+		{
+			"test mixed ip address",
+			args{
+				data:    []net.IP{net.IPv4(192, 168, 0, 1), net.ParseIP("2408:4003:10bb:6a01:83b9:6360:c66d:ed57")},
+				wanterr: true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := checkAllHostsSameFamily(tt.args.data)
+			if tt.args.wanterr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
