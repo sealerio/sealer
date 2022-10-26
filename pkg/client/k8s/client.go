@@ -45,7 +45,7 @@ type NamespaceSvc struct {
 	ServiceList *v1.ServiceList
 }
 
-func Newk8sClient() (*Client, error) {
+func NewK8sClient() (*Client, error) {
 	kubeconfig := filepath.Join(common.DefaultKubeConfigDir(), "config")
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = filepath.Join(home, ".kube", "config")

@@ -78,7 +78,7 @@ func (k *Runtime) deleteNode(node net.IP) error {
 		if err != nil {
 			return err
 		}
-		client, err := k8s.Newk8sClient()
+		client, err := k8s.NewK8sClient()
 		if err != nil {
 			return err
 		}

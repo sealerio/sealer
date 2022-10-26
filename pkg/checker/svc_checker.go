@@ -47,7 +47,7 @@ func (n *SvcChecker) Check(cluster *v2.Cluster, phase string) error {
 		return nil
 	}
 	// checker if all the node is ready
-	c, err := k8s.Newk8sClient()
+	c, err := k8s.NewK8sClient()
 	if err != nil {
 		return err
 	}

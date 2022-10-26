@@ -44,7 +44,7 @@ func (n *PodChecker) Check(cluster *v2.Cluster, phase string) error {
 	if phase != PhasePost {
 		return nil
 	}
-	c, err := k8s.Newk8sClient()
+	c, err := k8s.NewK8sClient()
 	if err != nil {
 		return err
 	}
