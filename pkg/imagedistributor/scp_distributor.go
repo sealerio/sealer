@@ -37,6 +37,8 @@ const (
 	RegistryDirName = "registry"
 )
 
+var IsPrune bool
+
 type scpDistributor struct {
 	configs        []v1.Config
 	infraDriver    infradriver.InfraDriver
@@ -146,6 +148,10 @@ func (s *scpDistributor) renderRootfs(mountDir string) error {
 }
 
 func (s *scpDistributor) Restore(targetDir string, hosts []net.IP) error {
+	if !IsPrune {
+		return nil
+	}
+
 	rmRootfsCMD := fmt.Sprintf("rm -rf %s", targetDir)
 
 	eg, _ := errgroup.WithContext(context.Background())
