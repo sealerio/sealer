@@ -365,19 +365,15 @@ func (d *SSHInfraDriver) Execute(hosts []net.IP, f func(host net.IP) error) erro
 }
 
 func checkAllHostsSameFamily(nodeList []net.IP) error {
-	hasIPV4 := false
-	hasIPV6 := false
-	for _, ip := range nodeList {
-		if k8snet.IsIPv4(ip) {
-			hasIPV4 = true
-		} else if k8snet.IsIPv6(ip) {
-			hasIPV6 = true
+	var netFamily bool
+	for i, ip := range nodeList {
+		if i == 0 {
+			netFamily = k8snet.IsIPv4(ip)
+		}
+
+		if netFamily != k8snet.IsIPv4(ip) {
+			return fmt.Errorf("all hosts must be in same ip family, but the node list given are mixed with ipv4 and ipv6: %v", nodeList)
 		}
 	}
-
-	if hasIPV4 && hasIPV6 {
-		return fmt.Errorf("all hosts must be in same ip family, but the node list given are mixed with ipv4 and ipv6: %v", nodeList)
-	}
-
 	return nil
 }
