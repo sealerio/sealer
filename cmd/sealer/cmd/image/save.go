@@ -52,7 +52,7 @@ func NewSaveCmd() *cobra.Command {
 	}
 	saveOpts = &options.SaveOptions{}
 	flags := saveCmd.Flags()
-	flags.StringVar(&saveOpts.Format, "format", buildah.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
+	flags.StringVar(&saveOpts.Format, "format", buildah.OCIArchive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
 	flags.StringVarP(&saveOpts.Output, "output", "o", "", "Write image to a specified file")
 	flags.BoolVarP(&saveOpts.Quiet, "quiet", "q", false, "Suppress the output")
 	flags.BoolVar(&saveOpts.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
