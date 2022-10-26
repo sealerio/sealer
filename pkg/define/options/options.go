@@ -17,15 +17,16 @@ package options
 // BuildOptions should be out of buildah scope.
 type BuildOptions struct {
 	Kubefile    string
-	Tags        []string
-	NoCache     bool
-	Base        bool
-	BuildArgs   []string
-	Platform    string
 	ContextDir  string
 	PullPolicy  string
+	Manifest    string
+	Tag         string
+	BuildArgs   []string
+	Platforms   []string
 	Labels      []string
 	Annotations []string
+	NoCache     bool
+	Base        bool
 }
 
 type FromOptions struct {
@@ -79,14 +80,15 @@ type LogoutOptions struct {
 }
 
 type PushOptions struct {
-	Authfile  string
-	CertDir   string
-	Format    string
-	Rm        bool
-	Quiet     bool
-	TLSVerify bool
-	Image     string
-	All       bool
+	Authfile    string
+	CertDir     string
+	Format      string
+	Image       string
+	Destination string
+	Rm          bool
+	Quiet       bool
+	TLSVerify   bool
+	All         bool
 }
 
 type PullOptions struct {

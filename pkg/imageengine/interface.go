@@ -15,6 +15,7 @@
 package imageengine
 
 import (
+	"github.com/containers/common/libimage"
 	"github.com/sealerio/sealer/pkg/define/options"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
@@ -53,6 +54,8 @@ type Interface interface {
 	RemoveContainer(opts *options.RemoveContainerOptions) error
 
 	Tag(opts *options.TagOptions) error
+
+	LookupManifest(name string) (*libimage.ManifestList, error)
 
 	// TODO the following functions should be upper to image engine
 	BuildRootfs(opts *options.BuildRootfsOptions) (string, error)

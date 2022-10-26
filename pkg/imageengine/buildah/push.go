@@ -42,6 +42,9 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 	}
 
 	src, destSpec := opts.Image, opts.Image
+	if len(opts.Destination) != 0 {
+		destSpec = opts.Destination
+	}
 	compress := define.Gzip
 
 	store := engine.ImageStore()
@@ -99,6 +102,8 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 	if err != nil {
 		if errors.Cause(err) != storage.ErrImageUnknown {
 			// Image might be a manifest so attempt a manifest push
+			// try to push all images if it is a manifest list
+			opts.All = true
 			if manifestsErr := manifestPush(systemCxt, store, src, destSpec, *opts); manifestsErr == nil {
 				return nil
 			}

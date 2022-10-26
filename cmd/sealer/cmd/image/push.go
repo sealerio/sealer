@@ -29,16 +29,30 @@ func NewPushCmd() *cobra.Command {
 		Use:   "push",
 		Short: "push ClusterImage to remote registry",
 		// TODO: add long description.
-		Long:    "",
-		Example: `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest`,
-		Args:    cobra.ExactArgs(1),
+		Long: "",
+		Example: `
+push common image:
+sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest
+
+push image to manifest list:
+sealer push imageID registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest
+`,
+		Args: cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			adaptor, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
-			pushOpts.Image = args[0]
-			return adaptor.Push(pushOpts)
+
+			switch len(args) {
+			case 1:
+				pushOpts.Image = args[0]
+			case 2:
+				pushOpts.Destination = args[1]
+				pushOpts.Image = args[0]
+			}
+
+			return engine.Push(pushOpts)
 		},
 	}
 	pushOpts = &options.PushOptions{}

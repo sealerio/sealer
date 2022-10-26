@@ -85,3 +85,7 @@ func manifestPush(systemContext *types.SystemContext, store storage.Store, listI
 
 	return err
 }
+
+func (engine *Engine) LookupManifest(name string) (*libimage.ManifestList, error) {
+	return engine.libimageRuntime.LookupManifestList(name)
+}

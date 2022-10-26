@@ -78,11 +78,11 @@ var imagesHeader = map[string]string{
 }
 
 func (engine *Engine) Images(opts *options.ImagesOptions) error {
-	runtime := engine.libimageRuntime
+	runtime := engine.ImageRuntime()
 	options := &libimage.ListImagesOptions{}
 	if !opts.All {
 		options.Filters = append(options.Filters, "intermediate=false")
-		options.Filters = append(options.Filters, "label=io.sealer.version")
+		//options.Filters = append(options.Filters, "label=io.sealer.version")
 	}
 
 	//TODO add some label to identify sealer image and oci image.

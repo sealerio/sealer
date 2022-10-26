@@ -36,12 +36,13 @@ func (engine *Engine) Commit(opts *options.CommitOptions) error {
 	if len(opts.ContainerID) == 0 {
 		return errors.Errorf("container ID must be specified")
 	}
-	if len(opts.Image) == 0 {
+	if len(opts.Image) == 0 && len(opts.Manifest) == 0 {
 		return errors.Errorf("image name should be specified")
 	}
 
 	name := opts.ContainerID
 	image := opts.Image
+	manifest := opts.Manifest
 	compress := define.Gzip
 	if opts.DisableCompression {
 		compress = define.Uncompressed
@@ -64,24 +65,26 @@ func (engine *Engine) Commit(opts *options.CommitOptions) error {
 	// If the user specified an image, we may need to massage it a bit if
 	// no transport is specified.
 	// TODO we support commit to local image only, we'd better limit the input of name
-	if dest, err = alltransports.ParseImageName(image); err != nil {
-		candidates, err := shortnames.ResolveLocally(systemCxt, image)
-		if err != nil {
-			return err
+	if image != "" {
+		if dest, err = alltransports.ParseImageName(image); err != nil {
+			candidates, err := shortnames.ResolveLocally(systemCxt, image)
+			if err != nil {
+				return err
+			}
+			if len(candidates) == 0 {
+				return errors.Errorf("no candidate tags for target image name %q", image)
+			}
+			dest2, err2 := storageTransport.Transport.ParseStoreReference(store, candidates[0].String())
+			if err2 != nil {
+				return errors.Wrapf(err, "error parsing target image name %q", image)
+			}
+			dest = dest2
 		}
-		if len(candidates) == 0 {
-			return errors.Errorf("no candidate tags for target image name %q", image)
-		}
-		dest2, err2 := storageTransport.Transport.ParseStoreReference(store, candidates[0].String())
-		if err2 != nil {
-			return errors.Wrapf(err, "error parsing target image name %q", image)
-		}
-		dest = dest2
 	}
 
 	options := buildah.CommitOptions{
 		PreferredManifestType: format,
-		Manifest:              opts.Manifest,
+		Manifest:              manifest,
 		Compression:           compress,
 		SystemContext:         systemCxt,
 		Squash:                opts.Squash,

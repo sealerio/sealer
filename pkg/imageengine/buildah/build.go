@@ -217,6 +217,7 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 	if err != nil {
 		return define.BuildOptions{}, []string{}, err
 	}
+	logrus.Infof("platforms %+v", platforms)
 
 	var excludes []string
 	if wrapper.IgnoreFile != "" {
@@ -343,10 +344,14 @@ func (engine *Engine) migrateFlags2Wrapper(opts *options.BuildOptions, wrapper *
 	flags := engine.Flags()
 	// imageengine cache related flags
 	// cache is enabled when "layers" is true & "no-cache" is false
-	wrapper.Layers = !opts.NoCache
+
+	// Layers should be "false" when there will be multi-platform building
+	// Otherwise, the will only one platform generated
+	wrapper.Layers = len(opts.Platforms) <= 1 && !opts.NoCache
 	wrapper.NoCache = opts.NoCache
 	// tags. Like -t kubernetes:v1.16
-	wrapper.Tag = opts.Tags
+	wrapper.Tag = []string{opts.Tag}
+	wrapper.Manifest = opts.Manifest
 	// Hardcoded for network configuration.
 	// check parse.NamespaceOptions for detailed logic.
 	// this network setup for stage container, especially for RUN wget and so on.
@@ -358,7 +363,7 @@ func (engine *Engine) migrateFlags2Wrapper(opts *options.BuildOptions, wrapper *
 
 	// set platform to the flags in buildah
 	// check the detail in parse.PlatformsFromOptions
-	err = flags.Set("platform", opts.Platform)
+	err = flags.Set("platform", strings.Join(opts.Platforms, ","))
 	if err != nil {
 		return err
 	}
