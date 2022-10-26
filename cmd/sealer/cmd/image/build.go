@@ -15,6 +15,8 @@
 package image
 
 import (
+	"context"
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -35,7 +37,6 @@ import (
 	"github.com/sealerio/sealer/version"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
@@ -46,20 +47,20 @@ It organizes the specified Kubefile and input building context, and builds
 a brand new ClusterImage.`
 
 var exampleNewBuildCmd = `the current path is the context path, default build type is lite and use build cache
-
 build:
   sealer build -f Kubefile -t my-kubernetes:1.19.8 .
-
 build without cache:
   sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .
-
 build with args:
   sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
-
 build with image type:
   sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=app-installer .
   sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default) .
   app-installer type image will not install kubernetes.
+build multi-platform image:
+	sealer build -f Kubefile --manifest my-kubernetes:1.19.8 --platform linux/amd64,linux/arm64
+build image and commit to manifest:
+	sealer build -f Kubefile --manifest my-kubernetes:1.19.8 --platform linux/amd64
 `
 
 // NewBuildCmd buildCmd represents the build command
@@ -71,6 +72,16 @@ func NewBuildCmd() *cobra.Command {
 		Args:    cobra.MaximumNArgs(1),
 		Example: exampleNewBuildCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(buildFlags.Tag) == 0 && len(buildFlags.Manifest) == 0 {
+				return errors.New("--manifest or --tag should be specified")
+			}
+			if buildFlags.Tag == buildFlags.Manifest {
+				return errors.New("--manifest and --tag should not be equal")
+			}
+			if len(buildFlags.Platforms) > 1 && len(buildFlags.Tag) > 0 {
+				return errors.New("--tag should not be specified when building multi-platform image, you should specify --manifest")
+			}
+
 			if len(args) > 0 {
 				buildFlags.ContextDir = args[0]
 			}
@@ -78,24 +89,19 @@ func NewBuildCmd() *cobra.Command {
 		},
 	}
 	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
+	buildCmd.Flags().StringVarP(&buildFlags.Manifest, "manifest", "m", "", "specify a manifest for image to add")
+	buildCmd.Flags().StringVarP(&buildFlags.Tag, "tag", "t", "", "specify a name for ClusterImage")
 	//todo we can support imageList Flag to download extra container image rather than copy it to rootfs
 	buildCmd.Flags().StringVar(&buildFlags.ImageList, "image-list", "filepath", "`pathname` of imageList filepath, if set, sealer will read its content and download extra container")
 	buildCmd.Flags().StringVar(&buildFlags.ImageListWithAuth, "image-list-with-auth", "", "`pathname` of imageListWithAuth.yaml filepath, if set, sealer will read its content and download extra container images to rootfs(not usually used)")
 	buildCmd.Flags().StringVar(&buildFlags.Platform, "platform", parse.DefaultPlatform(), "set the target platform, like linux/amd64 or linux/amd64/v7")
 	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "ifnewer", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always, --pull=ifnewer")
-	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
 	buildCmd.Flags().StringVar(&buildFlags.ImageType, "type", v12.KubeInstaller, fmt.Sprintf("specify the image type, --type=%s, --type=%s, default is %s", v12.KubeInstaller, v12.AppInstaller, v12.KubeInstaller))
-	buildCmd.Flags().StringSliceVarP(&buildFlags.Tags, "tag", "t", []string{}, "specify a name for ClusterImage")
+	buildCmd.Flags().StringSliceVar(&buildFlags.Platforms, "platform", []string{parse.DefaultPlatform()}, "set the target platform, --platform=linux/amd64 or --platform=linux/amd64/v7. Multi-platform will be like --platform=linux/amd64,linux/amd64/v7")
 	buildCmd.Flags().StringSliceVar(&buildFlags.BuildArgs, "build-arg", []string{}, "set custom build args")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Annotations, "annotation", []string{}, "add annotations for image. Format like --annotation key=[value]")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Labels, "label", []string{getSealerLabel()}, "add labels for image. Format like --label key=[value]")
-
-	requiredFlags := []string{"tag"}
-	for _, flag := range requiredFlags {
-		if err := buildCmd.MarkFlagRequired(flag); err != nil {
-			logrus.Fatal(err)
-		}
-	}
+	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
 
 	supportedImageType := map[string]struct{}{v12.KubeInstaller: {}, v12.AppInstaller: {}}
 	if _, ok := supportedImageType[buildFlags.ImageType]; !ok {
@@ -106,14 +112,9 @@ func NewBuildCmd() *cobra.Command {
 }
 
 func buildSealerImage() error {
-	_os, arch, variant, err := parse.Platform(buildFlags.Platform)
-	if err != nil {
-		return err
-	}
-
 	engine, err := imageengine.NewImageEngine(bc.EngineGlobalConfigurations{})
 	if err != nil {
-		return errors.Wrap(err, "failed to initiate a builder")
+		return errors.Wrap(err, "failed to initiate image engine")
 	}
 
 	kubefileParser := parser.NewParser(rootfs.GlobalManager.App().Root(), buildFlags, engine)
@@ -121,7 +122,7 @@ func buildSealerImage() error {
 	if err != nil {
 		return err
 	}
-	logrus.Debugf("the result of kubefile parse as follows:\n %+v \n", &result)
+	logrus.Debugf("the result of kubefile parse as follows:\n %+v \n", result)
 	defer func() {
 		if err2 := result.CleanLegacyContext(); err2 != nil {
 			logrus.Warnf("error in cleaning legacy in build sealer image: %v", err2)
@@ -144,6 +145,31 @@ func buildSealerImage() error {
 		return errors.Wrap(err, "failed to marshal image extension")
 	}
 
+	var (
+		tag          = buildFlags.Tag
+		manifest     = buildFlags.Manifest
+		randomStr    = getRandomString(8)
+		tempTag      = tag + randomStr
+		tempManifest = manifest + randomStr
+	)
+
+	// add images to manifest
+	// this may lead to create a manifest, or just add them to the existing manifest
+	isMultiPlatform := len(buildFlags.Platforms) > 1
+	if isMultiPlatform {
+		buildFlags.Manifest = tempManifest
+		buildFlags.Tag = ""
+	} else {
+		// for normal building, tag and manifest could be specified meanwhile
+		if len(tag) != 0 {
+			buildFlags.Tag = tempTag
+		}
+		if len(manifest) != 0 {
+			buildFlags.Manifest = tempManifest
+		}
+	}
+
+	// add annotations to image. Store some sealer specific information
 	buildFlags.Kubefile = dockerfilePath
 	buildFlags.Annotations = append(buildFlags.Annotations, fmt.Sprintf("%s=%s", v12.SealerImageExtension, string(iejson)))
 	iid, err := engine.Build(&buildFlags)
@@ -152,15 +178,66 @@ func buildSealerImage() error {
 	}
 
 	defer func() {
-		// the above image is intermediate image, we need to remove it when the build ends.
-		if err := engine.RemoveImage(&bc.RemoveImageOptions{
-			ImageNamesOrIDs: []string{iid},
-			Force:           true,
-		}); err != nil {
-			logrus.Warnf("failed to remove image %s, you need to remove it manually: %v", iid, err)
+		for _, m := range []string{tempTag, tempManifest} {
+			// the above image is intermediate image, we need to remove it when the build ends.
+			if err := engine.RemoveImage(&bc.RemoveImageOptions{
+				ImageNamesOrIDs: []string{m},
+				Force:           true,
+			}); err != nil {
+				logrus.Debugf("failed to remove image %s, you need to remove it manually: %v", m, err)
+			}
 		}
 	}()
 
+	type platformedImage struct {
+		platform      v1.Platform
+		imageNameOrID string
+	}
+	platformedImages := []platformedImage{}
+
+	if len(manifest) == 0 {
+		_os, arch, variant, err := parse.Platform(buildFlags.Platforms[0])
+		if err != nil {
+			return errors.Wrap(err, "failed to parse platform")
+		}
+
+		platformedImages = append(platformedImages,
+			platformedImage{imageNameOrID: iid,
+				platform: v1.Platform{OS: _os, Architecture: arch, Variant: variant}})
+	} else {
+		manifestList, err := engine.LookupManifest(buildFlags.Manifest)
+		if err != nil {
+			return errors.Wrap(err, "failed to lookup manifest")
+		}
+
+		for _, p := range buildFlags.Platforms {
+			_os, arch, variant, err := parse.Platform(p)
+			if err != nil {
+				return errors.Wrap(err, "failed to parse platform")
+			}
+
+			img, err := manifestList.LookupInstance(context.TODO(), arch, _os, variant)
+			if err != nil {
+				return err
+			}
+
+			platformedImages = append(platformedImages,
+				platformedImage{imageNameOrID: img.ID(),
+					platform: v1.Platform{OS: _os, Architecture: arch, Variant: variant}})
+		}
+	}
+
+	for _, pi := range platformedImages {
+		if err := applyRegistryToImage(pi.imageNameOrID, tag, manifest, pi.platform, engine); err != nil {
+			return errors.Wrap(err, "error in apply registry data into image")
+		}
+	}
+
+	return nil
+}
+
+func applyRegistryToImage(imageID, tag, manifest string, platform v1.Platform, engine imageengine.Interface) error {
+	_os, arch, variant := platform.OS, platform.Architecture, platform.Variant
 	// this temporary file is used to execute image pull, and save it to /registry.
 	// engine.BuildRootfs will generate an image rootfs, and link the rootfs to temporary dir(temp sealer rootfs).
 	tmpDir, err := os.MkdirTemp("", "sealer")
@@ -177,11 +254,11 @@ func buildSealerImage() error {
 
 	tmpDirForLink := filepath.Join(tmpDir, "tmp-rootfs")
 	cid, err := engine.CreateWorkingContainer(&bc.BuildRootfsOptions{
-		ImageNameOrID: iid,
+		ImageNameOrID: imageID,
 		DestDir:       tmpDirForLink,
 	})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to create working container, imageid: %s", imageID)
 	}
 
 	differ := buildimage.NewRegistryDiffer(v1.Platform{
@@ -192,7 +269,7 @@ func buildSealerImage() error {
 
 	// TODO optimize the differ.
 	if err = differ.Process(tmpDirForLink, tmpDirForLink); err != nil {
-		return err
+		return errors.Wrap(err, "failed to download container images")
 	}
 
 	// download container image form `imageListWithAuth.yaml`
@@ -204,13 +281,22 @@ func buildSealerImage() error {
 		return err
 	}
 
-	if err = engine.Commit(&bc.CommitOptions{
+	id, err := engine.Commit(&bc.CommitOptions{
 		Format:      cli.DefaultFormat(),
 		Rm:          true,
 		ContainerID: cid,
-		Image:       buildFlags.Tags[0],
-	}); err != nil {
-		return err
+		Image:       tag,
+		Manifest:    manifest,
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to commit image tag: %s, manifest: %s", tag, manifest)
+	}
+
+	if len(manifest) > 0 {
+		logrus.Infof("image(%s) committed to manifest %s, id: %s", platform.ToString(), manifest, id)
+	} else {
+		logrus.Infof("image(%s) named as %s, id: %s", platform.ToString(), tag, id)
 	}
 
 	return nil
@@ -315,4 +401,10 @@ func getContextDir(cxtDir string) (string, error) {
 
 func getSealerLabel() string {
 	return "io.sealer.version=" + version.Get().GitVersion
+}
+
+func getRandomString(n int) string {
+	randBytes := make([]byte, n/2)
+	_, _ = rand.Read(randBytes)
+	return fmt.Sprintf("%x", randBytes)
 }
