@@ -19,12 +19,14 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -44,6 +46,10 @@ will apply the diff change of current Clusterfile and the original one.`,
 				clusterFileData []byte
 				err             error
 			)
+
+			if osi.IsFileExist(common.DefaultKubeConfigFile()) {
+				return fmt.Errorf("the cluster already exists")
+			}
 
 			if clusterFile == "" {
 				return fmt.Errorf("you must input Clusterfile")

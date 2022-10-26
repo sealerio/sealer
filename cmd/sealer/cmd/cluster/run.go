@@ -29,6 +29,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/platform"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -71,6 +72,10 @@ func NewRunCmd() *cobra.Command {
 			)
 			if runFlags.Masters == "" && clusterFile == "" {
 				return fmt.Errorf("you must input master ip Or use Clusterfile")
+			}
+
+			if osi.IsFileExist(common.DefaultKubeConfigFile()) {
+				return fmt.Errorf("the cluster already exists")
 			}
 
 			if clusterFile != "" {
