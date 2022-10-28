@@ -27,6 +27,7 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsos "github.com/sealerio/sealer/utils/os"
+	"github.com/sirupsen/logrus"
 )
 
 type Interface interface {
@@ -35,11 +36,14 @@ type Interface interface {
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
 	GetKubeadmConfig() *kubeadm.KubeadmConfig
+	CommitSnapshot()
 	SaveAll() error
+	RollBackClusterFile()
 }
 
 type ClusterFile struct {
 	cluster       *v2.Cluster
+	cfSnapshot    *v2.Cluster
 	configs       []v1.Config
 	kubeadmConfig kubeadm.KubeadmConfig
 	plugins       []v1.Plugin
@@ -63,6 +67,11 @@ func (c *ClusterFile) GetPlugins() []v1.Plugin {
 
 func (c *ClusterFile) GetKubeadmConfig() *kubeadm.KubeadmConfig {
 	return &c.kubeadmConfig
+}
+
+func (c *ClusterFile) CommitSnapshot() {
+	c.cfSnapshot = new(v2.Cluster)
+	*c.cfSnapshot = *c.cluster
 }
 
 func (c *ClusterFile) SaveAll() error {
@@ -144,6 +153,17 @@ func (c *ClusterFile) SaveAll() error {
 	//todo cluster ssh info need to be encrypted
 
 	return utilsos.NewCommonWriter(fileName).WriteFile(bytes.Join(clusterfileBytes, []byte("---\n")))
+}
+
+func (c *ClusterFile) RollBackClusterFile() {
+	if c.cfSnapshot == nil {
+		logrus.Errorf("cfSnapshot is nill, can not rollback")
+		return
+	}
+	*c.cluster = *c.cfSnapshot
+	if err := c.SaveAll(); err != nil {
+		logrus.Errorf("failed to rollback the ClusterFile to the default file: %v", err)
+	}
 }
 
 func NewClusterFile(b []byte) (Interface, error) {
