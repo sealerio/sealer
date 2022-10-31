@@ -145,7 +145,7 @@ will apply the diff change of current Clusterfile and the original one.`,
 			return nil
 		},
 	}
-	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "Clusterfile path to apply a Kubernetes cluster")
+	applyCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
 	applyCmd.Flags().BoolVar(&ForceDelete, "force", false, "force to delete the specified cluster if set true")
 	return applyCmd
 }
