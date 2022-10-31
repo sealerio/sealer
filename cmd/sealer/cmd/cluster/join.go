@@ -76,6 +76,9 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
+			//store the Cluster as CfSnapshot for rollback
+			cf.CommitSnapshot()
+
 			cluster := cf.GetCluster()
 			if err = utils.ConstructClusterForScaleUp(&cluster, joinFlags, joinMasterIPList, joinNodeIPList); err != nil {
 				return err
@@ -86,6 +89,14 @@ func NewJoinCmd() *cobra.Command {
 			if err = cf.SaveAll(); err != nil {
 				return err
 			}
+
+			defer func() {
+				if err == nil {
+					return
+				}
+				//if there exits an error,rollback the ClusterFile to the default file
+				cf.RollBackClusterFile()
+			}()
 
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
@@ -117,9 +128,8 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 			defer func() {
-				err = imageMounter.Umount(imageMountInfo)
-				if err != nil {
-					logrus.Errorf("failed to umount cluster image")
+				if e := imageMounter.Umount(imageMountInfo); e != nil {
+					logrus.Errorf("failed to umount cluster image: %v", e)
 				}
 			}()
 
