@@ -230,7 +230,7 @@ func (engine *Engine) PushManifest(name, destSpec string, opts *options.PushOpti
 	pushOptions := manifests.PushOptions{
 		Store:              store,
 		SystemContext:      systemCxt,
-		ImageListSelection: cp.CopySpecificImages,
+		ImageListSelection: cp.CopySystemImage,
 		Instances:          nil,
 		ManifestType:       manifestType,
 	}

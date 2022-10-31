@@ -80,7 +80,7 @@ func manifestCreateCommand() *cobra.Command {
 			return engine.CreateManifest(args[0], &createManifestOpts)
 		},
 		Example: `sealer manifest create mylist:v1.11`,
-		Args: cobra.MinimumNArgs(1),
+		Args:    cobra.MinimumNArgs(1),
 	}
 
 	return createCommand
@@ -253,7 +253,8 @@ func manifestPushCommand() *cobra.Command {
 			case 0:
 				return errors.New("at least a source list ID must be specified ")
 			case 1:
-				return errors.New("two arguments are necessary to push: source and destination ")
+				name = args[0]
+				destSpec = args[0]
 			case 2:
 				name = args[0]
 				destSpec = args[1]
@@ -264,7 +265,7 @@ func manifestPushCommand() *cobra.Command {
 					return fmt.Errorf(`invalid image name "%s"`, destSpec)
 				}
 			default:
-				return errors.New("only two arguments are necessary to push: source and destination ")
+				return errors.New("need one Or two arguments are necessary to push: source and destination ")
 			}
 
 			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
@@ -275,7 +276,7 @@ func manifestPushCommand() *cobra.Command {
 			return engine.PushManifest(name, destSpec, &pushManifestOpts)
 		},
 		Example: `sealer manifest push mylist:v1.11 transport:imageName`,
-		Args:    cobra.MinimumNArgs(2),
+		Args:    cobra.MinimumNArgs(1),
 	}
 
 	flags := pushCommand.Flags()
