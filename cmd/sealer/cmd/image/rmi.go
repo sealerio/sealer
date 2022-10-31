@@ -15,21 +15,23 @@
 package image
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/spf13/cobra"
 )
 
 var removeOpts *options.RemoveImageOptions
 
-var exampleForRmiCmd = `sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+var longNewRmiCmdDescription = ``
+
+var exampleForRmiCmd = `
+  sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 
 prune dangling images:
-        sealer rmi --prune/-p
+  sealer rmi --prune/-p
 
 force removal of the image and any containers using the image:
-        sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --force/-f
+  sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --force/-f
 
 `
 
@@ -39,7 +41,7 @@ func NewRmiCmd() *cobra.Command {
 		Use:   "rmi",
 		Short: "remove local images",
 		// TODO: add long description.
-		Long:    "",
+		Long:    longNewRmiCmdDescription,
 		Example: exampleForRmiCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRemove(args)

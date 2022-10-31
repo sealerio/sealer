@@ -17,22 +17,27 @@ package image
 import (
 	"os"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var loginConfig *options.LoginOptions
+
+var longNewLoginCmdDescription = ``
+
+var exampleForLoginCmd = `
+  sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]
+`
 
 func NewLoginCmd() *cobra.Command {
 	loginCmd := &cobra.Command{
 		Use:   "login",
 		Short: "login image registry",
 		// TODO: add long description.
-		Long:    "",
-		Example: `sealer login registry.cn-qingdao.aliyuncs.com -u [username] -p [password]`,
+		Long:    longNewLoginCmdDescription,
+		Example: exampleForLoginCmd,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			adaptor, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})

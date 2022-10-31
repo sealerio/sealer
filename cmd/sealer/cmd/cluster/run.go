@@ -38,19 +38,21 @@ import (
 var runFlags *types.Flags
 var clusterFile string
 
+var longNewRunCmdDescription = `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`
+
 var exampleForRunCmd = `
 run cluster by Clusterfile: 
-    sealer run -f ${yourClusterfile}
+  sealer run -f Clusterfile
 
 run cluster by CLI flags:
-	sealer run kubernetes:v1.19.8 -m x.x.x.x -n x.x.x.x -p xxxx
+  sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.4 -m 172.28.80.01 -n 172.28.80.02 -p Sealer123
 `
 
 func NewRunCmd() *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:     "run",
 		Short:   "start to run a cluster from a ClusterImage",
-		Long:    `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`,
+		Long:    longNewRunCmdDescription,
 		Example: exampleForRunCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO: remove this now, maybe we can support it later

@@ -20,29 +20,23 @@ import (
 	"os"
 	"path/filepath"
 
-	version2 "github.com/sealerio/sealer/pkg/define/application/version"
-
-	"github.com/sealerio/sealer/pkg/rootfs"
-
-	"github.com/sealerio/sealer/pkg/imageengine/buildah"
-
-	"github.com/sealerio/sealer/build/kubefile/parser"
-
-	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
-
-	bc "github.com/sealerio/sealer/pkg/define/options"
-
 	"github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/util/json"
-
 	"github.com/sealerio/sealer/build/buildimage"
+	"github.com/sealerio/sealer/build/kubefile/parser"
+	version2 "github.com/sealerio/sealer/pkg/define/application/version"
+	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
+	bc "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sealerio/sealer/pkg/imageengine/buildah"
+	"github.com/sealerio/sealer/pkg/rootfs"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/version"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 var buildFlags = bc.BuildOptions{}
@@ -54,18 +48,18 @@ a brand new ClusterImage.`
 var exampleNewBuildCmd = `the current path is the context path, default build type is lite and use build cache
 
 build:
-	sealer build -f Kubefile -t my-kubernetes:1.19.8 .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 .
 
 build without cache:
-	sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .
 
 build with args:
-	sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
 
 build with image type:
-	sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=app-installer .
-	sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default) .
-	app-installer type image will not install kubernetes.
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=app-installer .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default) .
+  app-installer type image will not install kubernetes.
 `
 
 // NewBuildCmd buildCmd represents the build command

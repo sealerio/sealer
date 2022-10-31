@@ -18,27 +18,28 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/exec"
+	"github.com/spf13/cobra"
 )
 
 var (
-	clusterName            string
-	roles                  []string
-	longExecCmdDescription = `Using sealer builtin ssh client to run shell command on the node filtered by cluster and cluster role. it is convenient for cluster administrator to do quick investigate`
+	clusterName string
+	roles       []string
 )
+
+var longExecCmdDescription = `Using ssh client which is built in sealer to run shell command on the nodes filtered by cluster and cluster roles. It is convenient for cluster administrator to do quick investigation.`
+
 var exampleForExecCmd = `
 Exec the default cluster node:
-	sealer alpha exec "cat /etc/hosts"
+  sealer alpha exec "cat /etc/hosts"
 
 specify the cluster name:
-    sealer alpha exec -c my-cluster "cat /etc/hosts"
+  sealer alpha exec -c my-cluster "cat /etc/hosts"
 
 using role label to filter node and run exec cmd:
-    sealer alpha exec -c my-cluster -r master,slave,node1 "cat /etc/hosts"		
+  sealer alpha exec -c my-cluster -r master,slave,node1 "cat /etc/hosts"		
 `
 
 // NewExecCmd implement the sealer exec command
