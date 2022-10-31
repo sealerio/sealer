@@ -207,7 +207,7 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringVar(&runFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	runCmd.Flags().StringSliceVar(&runFlags.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	runCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "Clusterfile", "Clusterfile path to run a Kubernetes cluster")
+	runCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
 
 	//err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	//	return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
