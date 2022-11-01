@@ -27,7 +27,6 @@ import (
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -86,7 +85,7 @@ will apply the diff change of current Clusterfile and the original one.`,
 			// use image extension to determine apply type:
 			// scale up cluster, install applications, maybe support upgrade later
 			imageName := desiredCluster.Spec.Image
-			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
