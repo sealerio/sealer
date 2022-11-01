@@ -94,7 +94,7 @@ func NewScaleUpCmd() *cobra.Command {
 				if err == nil {
 					return
 				}
-				//if there exits an error,rollback the ClusterFile to the default file
+				//if there exists an error,rollback the ClusterFile to the default file
 				cf.RollBackClusterFile()
 			}()
 

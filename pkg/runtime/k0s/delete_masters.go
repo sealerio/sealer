@@ -84,7 +84,7 @@ func (k *Runtime) deleteMaster(master net.IP) error {
 	if err != nil {
 		return err
 	}
-	client, err := k8s.Newk8sClient()
+	client, err := k8s.NewK8sClient()
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (k *Runtime) deleteMaster(master net.IP) error {
 }
 
 func (k *Runtime) getHostName(host net.IP) (string, error) {
-	client, err := k8s.Newk8sClient()
+	client, err := k8s.NewK8sClient()
 	if err != nil {
 		return "", err
 	}

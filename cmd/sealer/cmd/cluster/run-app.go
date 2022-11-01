@@ -67,18 +67,12 @@ func NewRunAPPCmd() *cobra.Command {
 				return err
 			}
 
-			var (
-				clusterHosts = infraDriver.GetHostIPList()
-				launchCmds   = appFlags.LaunchCmds
-				appImageName = args[0]
-			)
-
 			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
 
-			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: appImageName})
+			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: args[0]})
 			if err != nil {
 				return fmt.Errorf("failed to get cluster image extension: %s", err)
 			}
@@ -87,53 +81,7 @@ func NewRunAPPCmd() *cobra.Command {
 				return fmt.Errorf("exit install process, wrong cluster image type: %s", extension.Type)
 			}
 
-			clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
-			if err != nil {
-				return err
-			}
-
-			imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-			if err != nil {
-				return err
-			}
-
-			imageMountInfo, err := imageMounter.Mount(appImageName)
-			if err != nil {
-				return err
-			}
-
-			defer func() {
-				err = imageMounter.Umount(imageMountInfo)
-				if err != nil {
-					logrus.Errorf("failed to umount cluster image")
-				}
-			}()
-
-			distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil)
-			if err != nil {
-				return err
-			}
-
-			//todo grab this config from cluster file, that's because it belongs to cluster level information
-			var registryConfig registry.RegConfig
-			var config = registry.Registry{
-				Domain: registry.DefaultDomain,
-				Port:   registry.DefaultPort,
-			}
-
-			registryConfig.LocalRegistry = &registry.LocalRegistry{
-				DataDir:    filepath.Join(infraDriver.GetClusterRootfsPath(), "registry"),
-				DeployHost: infraDriver.GetHostIPListByRole(common.MASTER)[0],
-				Registry:   config,
-			}
-
-			installer := clusterruntime.NewAppInstaller(infraDriver, distributor, extension, registryConfig)
-			err = installer.Install(infraDriver.GetHostIPListByRole(common.MASTER)[0], launchCmds)
-			if err != nil {
-				return err
-			}
-
-			return nil
+			return installApplication(args[0], appFlags.LaunchCmds, extension, infraDriver, imageEngine)
 		},
 	}
 
@@ -141,4 +89,57 @@ func NewRunAPPCmd() *cobra.Command {
 	runCmd.Flags().StringSliceVar(&appFlags.LaunchCmds, "cmds", []string{}, "override default LaunchCmds of clusterimage")
 	//runCmd.Flags().StringSliceVar(&appFlags.LaunchArgs, "args", []string{}, "override default LaunchArgs of clusterimage")
 	return runCmd
+}
+
+func installApplication(appImageName string, launchCmds []string, extension v12.ImageExtension,
+	infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface) error {
+	clusterHosts := infraDriver.GetHostIPList()
+
+	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
+	if err != nil {
+		return err
+	}
+
+	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
+	if err != nil {
+		return err
+	}
+
+	imageMountInfo, err := imageMounter.Mount(appImageName)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = imageMounter.Umount(imageMountInfo)
+		if err != nil {
+			logrus.Errorf("failed to umount cluster image")
+		}
+	}()
+
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil)
+	if err != nil {
+		return err
+	}
+
+	//todo grab this config from cluster file, that's because it belongs to cluster level information
+	var registryConfig registry.RegConfig
+	var config = registry.Registry{
+		Domain: registry.DefaultDomain,
+		Port:   registry.DefaultPort,
+	}
+
+	registryConfig.LocalRegistry = &registry.LocalRegistry{
+		DataDir:    filepath.Join(infraDriver.GetClusterRootfsPath(), "registry"),
+		DeployHost: infraDriver.GetHostIPListByRole(common.MASTER)[0],
+		Registry:   config,
+	}
+
+	installer := clusterruntime.NewAppInstaller(infraDriver, distributor, extension, registryConfig)
+	err = installer.Install(infraDriver.GetHostIPListByRole(common.MASTER)[0], launchCmds)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

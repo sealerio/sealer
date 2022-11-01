@@ -55,6 +55,7 @@ func NewJoinCmd() *cobra.Command {
 				cf  clusterfile.Interface
 				err error
 			)
+			logrus.Warn("sealer join command will be deprecated in the future, please use sealer scale-up instead.")
 
 			if err = utils.ValidateScaleIPStr(joinFlags.Masters, joinFlags.Nodes); err != nil {
 				return fmt.Errorf("failed to validate input run args: %v", err)
@@ -94,7 +95,7 @@ func NewJoinCmd() *cobra.Command {
 				if err == nil {
 					return
 				}
-				//if there exits an error,rollback the ClusterFile to the default file
+				//if there exists an error,rollback the ClusterFile to the default file
 				cf.RollBackClusterFile()
 			}()
 
