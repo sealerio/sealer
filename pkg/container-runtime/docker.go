@@ -40,7 +40,7 @@ func (d *DockerInstaller) InstallOn(hosts []net.IP) error {
 }
 
 func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
-	cleanCmd := fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", "uninstall-docker.sh"))
+	cleanCmd := fmt.Sprintf("if ! which docker;then exit 0;fi; bash %s", filepath.Join(d.rootfs, "scripts", "uninstall-docker.sh"))
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, cleanCmd)
 		if err != nil {
