@@ -114,6 +114,10 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
+			if err := cf.SaveAll(); err != nil {
+				return err
+			}
+
 			var (
 				clusterLaunchCmds = infraDriver.GetClusterLaunchCmds()
 				clusterHosts      = infraDriver.GetHostIPList()

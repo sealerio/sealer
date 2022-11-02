@@ -77,6 +77,10 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
+			if err := cf.SaveAll(); err != nil {
+				return err
+			}
+
 			//store the Cluster as CfSnapshot for rollback
 			cf.CommitSnapshot()
 

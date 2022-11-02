@@ -143,6 +143,10 @@ will apply the diff change of current Clusterfile and the original one.`,
 }
 
 func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+	if err := cf.SaveAll(); err != nil {
+		return err
+	}
+
 	var (
 		clusterHosts      = infraDriver.GetHostIPList()
 		clusterLaunchCmds = infraDriver.GetClusterLaunchCmds()
@@ -210,6 +214,10 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 }
 
 func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+	if err := cf.SaveAll(); err != nil {
+		return err
+	}
+
 	var (
 		newHosts = append(scaleUpMasterIPList, scaleUpNodeIPList...)
 	)
