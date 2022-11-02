@@ -108,13 +108,8 @@ func NewRunCmd() *cobra.Command {
 				}
 			}
 
-			//save desired clusterfile
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
-
 			cluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
+			infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
 			if err != nil {
 				return err
 			}
@@ -188,11 +183,7 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			//save clusterfile
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
-			return nil
+			return cf.SaveAll()
 		},
 	}
 	runFlags = &types.Flags{}

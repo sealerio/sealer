@@ -94,7 +94,8 @@ func ConvertEnv(envList []string) (env map[string]interface{}) {
 	return
 }
 
-func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
+// NewInfraDriver will create a new Infra driver, and if extraEnv specified, it will set env not exist in Cluster
+func NewInfraDriver(cluster *v2.Cluster, extraEnv []string) (InfraDriver, error) {
 	var err error
 	ret := &SSHInfraDriver{
 		clusterName:       cluster.Name,
@@ -151,6 +152,17 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 
 	ret.clusterEnv = ConvertEnv(cluster.Spec.Env)
 
+	ret.SetClusterEnvIfNotExist(extraEnv)
+
+	// Set the default RegistryDomain and RegistryPort env,
+	// and override the env if the user specifies RegistryDomain and RegistryPort env
+	if _, ok := ret.clusterEnv[common.EnvRegistryDomain]; !ok {
+		ret.clusterEnv[common.EnvRegistryDomain] = common.DefaultRegistryDomain
+	}
+	if _, ok := ret.clusterEnv[common.EnvRegistryURL]; !ok {
+		ret.clusterEnv[common.EnvRegistryURL] = fmt.Sprintf("%s:%s", ret.clusterEnv[common.EnvRegistryDomain].(string), common.DefaultRegistryPort)
+	}
+
 	// initialize hostEnvMap field
 	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
 	for _, host := range cluster.Spec.Hosts {
@@ -173,22 +185,26 @@ func (d *SSHInfraDriver) GetHostIPListByRole(role string) []net.IP {
 func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]interface{} {
 	// Set env for each host
 	hostEnv := d.hostEnvMap[host.String()]
-	if _, ok := hostEnv[common.HostIP]; !ok {
-		hostEnv[common.HostIP] = host.String()
+	if _, ok := hostEnv[common.EnvHostIP]; !ok {
+		hostEnv[common.EnvHostIP] = host.String()
 	}
 	return hostEnv
 }
 
 func (d *SSHInfraDriver) GetClusterEnv() map[string]interface{} {
-	// Set the default RegistryDomain and RegistryPort env,
-	// and override the env if the user specifies RegistryDomain and RegistryPort env
-	if _, ok := d.clusterEnv["RegistryDomain"]; !ok {
-		d.clusterEnv["RegistryDomain"] = common.DefaultRegistryDomain
-	}
-	if _, ok := d.clusterEnv["RegistryPort"]; !ok {
-		d.clusterEnv["RegistryPort"] = common.DefaultRegistryPort
-	}
 	return d.clusterEnv
+}
+
+func (d *SSHInfraDriver) SetClusterEnvIfNotExist(envs []string) {
+	if d.clusterEnv == nil || envs == nil {
+		return
+	}
+	newEnv := ConvertEnv(envs)
+	for k, v := range newEnv {
+		if _, ok := d.clusterEnv[k]; !ok {
+			d.clusterEnv[k] = v
+		}
+	}
 }
 
 func (d *SSHInfraDriver) Copy(host net.IP, localFilePath, remoteFilePath string) error {

@@ -28,6 +28,7 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
@@ -39,9 +40,6 @@ import (
 )
 
 const (
-	DefaultDomain               = "sea.hub"
-	DefaultPort                 = 5000
-	DefaultEndpoint             = "sea.hub:5000"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 )
 
@@ -346,7 +344,7 @@ func (c *localSingletonConfigurator) configureDaemonService(hosts []net.IP) erro
 		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
 	)
 
-	if endpoint == DefaultEndpoint {
+	if endpoint == common.DefaultRegistryURL {
 		return nil
 	}
 

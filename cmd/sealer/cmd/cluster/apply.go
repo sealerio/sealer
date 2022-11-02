@@ -72,12 +72,8 @@ will apply the diff change of current Clusterfile and the original one.`,
 				return err
 			}
 
-			//save desired clusterfile
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
 			desiredCluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
+			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster, nil)
 			if err != nil {
 				return err
 			}
@@ -104,6 +100,22 @@ will apply the diff change of current Clusterfile and the original one.`,
 
 			if extension.Type == v12.AppInstaller {
 				logrus.Infof("start to install application: %s", imageName)
+
+				clusterFileData, err = ioutil.ReadFile(common.GetDefaultClusterfile())
+				if err != nil {
+					return err
+				}
+
+				clusterCf, err := clusterfile.NewClusterFile(clusterFileData)
+				if err != nil {
+					return err
+				}
+
+				infraDriver, err = infradriver.NewInfraDriver(&desiredCluster, clusterCf.GetCluster().Spec.Env)
+				if err != nil {
+					return err
+				}
+
 				return installApplication(imageName, []string{}, extension, infraDriver, imageEngine)
 			}
 
@@ -194,11 +206,7 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 		return err
 	}
 
-	//save clusterfile
-	if err = cf.SaveAll(); err != nil {
-		return err
-	}
-	return nil
+	return cf.SaveAll()
 }
 
 func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
@@ -259,11 +267,7 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 		return err
 	}
 
-	if err = cf.SaveAll(); err != nil {
-		return err
-	}
-
-	return nil
+	return cf.SaveAll()
 }
 
 func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {

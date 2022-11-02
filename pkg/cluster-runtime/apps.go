@@ -69,14 +69,14 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 		return err
 	}
 
-	if err = i.LaunchClusterImage(master0, cmds); err != nil {
+	if err = i.Launch(master0, cmds); err != nil {
 		return err
 	}
 
-	return nil
+	return i.save()
 }
 
-func (i AppInstaller) LaunchClusterImage(master0 net.IP, launchCmds []string) error {
+func (i AppInstaller) Launch(master0 net.IP, launchCmds []string) error {
 	var (
 		cmds          []string
 		clusterRootfs = i.infraDriver.GetClusterRootfsPath()
@@ -103,7 +103,7 @@ func (i AppInstaller) LaunchClusterImage(master0 net.IP, launchCmds []string) er
 		}
 	}
 
-	return i.save()
+	return nil
 }
 
 // todo save image info to disk or api server, we need new interface to do this.
