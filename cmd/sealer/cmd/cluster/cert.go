@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -77,6 +78,10 @@ func NewCertCmd() *cobra.Command {
 					return fmt.Errorf("failed to update cluster api server cert: %v", err)
 				}
 			}
+
+			//TODO, should wait for apiserver reload completion
+			time.Sleep(60 * time.Second)
+
 			return nil
 		},
 	}
