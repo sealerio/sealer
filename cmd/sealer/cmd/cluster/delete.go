@@ -20,8 +20,6 @@ import (
 	"net"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/utils"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	cmdutils "github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -31,6 +29,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sealerio/sealer/utils"
 	netutils "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
@@ -39,9 +38,10 @@ import (
 )
 
 var (
-	deleteFlags *types.Flags
-	deleteAll   bool
-	ForceDelete bool
+	deleteFlags        *types.Flags
+	specifyClusterfile string
+	deleteAll          bool
+	ForceDelete        bool
 )
 
 var longDeleteCmdDescription = `delete command is used to delete part or all of existing cluster.
@@ -69,12 +69,13 @@ func NewDeleteCmd() *cobra.Command {
 				mastersToDelete = deleteFlags.Masters
 				workersToDelete = deleteFlags.Nodes
 			)
-
+			workClusterfile := common.GetDefaultClusterfile()
 			if mastersToDelete == "" && workersToDelete == "" && !deleteAll {
 				return fmt.Errorf("you must input node ip Or set flag -a")
 			}
-
-			workClusterfile := common.GetDefaultClusterfile()
+			if specifyClusterfile != "" {
+				workClusterfile = specifyClusterfile
+			}
 			if deleteAll {
 				return deleteCluster(workClusterfile)
 			}
@@ -85,8 +86,9 @@ func NewDeleteCmd() *cobra.Command {
 	deleteFlags = &types.Flags{}
 	deleteCmd.Flags().StringVarP(&deleteFlags.Masters, "masters", "m", "", "reduce Count or IPList to masters")
 	deleteCmd.Flags().StringVarP(&deleteFlags.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
+	deleteCmd.Flags().StringVarP(&specifyClusterfile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile")
 	deleteCmd.Flags().StringSliceVarP(&deleteFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	deleteCmd.Flags().BoolVarP(&ForceDelete, "force", "f", false, "We also can input an --force flag to delete cluster by force")
+	deleteCmd.Flags().BoolVar(&ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolVarP(&deleteAll, "all", "a", false, "this flags is for delete the entire cluster, default is false")
 	deleteCmd.Flags().BoolVarP(&imagedistributor.IsPrune, "prune", "p", true, "this flags is for delete all cluster rootfs, default is true")
 
