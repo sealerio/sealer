@@ -35,6 +35,8 @@ type InfraDriver interface {
 	//GetClusterEnv return cluster.spec.env as map[string]interface{}
 	GetClusterEnv() map[string]interface{}
 
+	AddClusterEnv(envs []string)
+
 	//GetClusterName ${clusterName}
 	GetClusterName() string
 

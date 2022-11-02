@@ -121,7 +121,7 @@ func deleteCluster(workClusterfile string) error {
 		}
 	}
 
-	infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 
 	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
 
-	infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {
 		return err
 	}

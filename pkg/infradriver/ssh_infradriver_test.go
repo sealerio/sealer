@@ -90,7 +90,7 @@ func getDefaultCluster() (InfraDriver, error) {
 	cluster.Kind = "Cluster"
 	cluster.Name = "my-cluster"
 
-	return NewInfraDriver(cluster, nil)
+	return NewInfraDriver(cluster)
 }
 
 func TestSSHInfraDriver_GetClusterInfo(t *testing.T) {

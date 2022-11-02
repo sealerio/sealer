@@ -111,7 +111,7 @@ func (k *Runtime) getNodeNameByCmd(master, host net.IP) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("failed to find node name form %s", host.String())
+	return "", fmt.Errorf("failed to find node name for %s", host.String())
 }
 
 func vlogToStr(vlog int) string {

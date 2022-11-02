@@ -95,7 +95,7 @@ func ConvertEnv(envList []string) (env map[string]interface{}) {
 }
 
 // NewInfraDriver will create a new Infra driver, and if extraEnv specified, it will set env not exist in Cluster
-func NewInfraDriver(cluster *v2.Cluster, extraEnv []string) (InfraDriver, error) {
+func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	var err error
 	ret := &SSHInfraDriver{
 		clusterName:       cluster.Name,
@@ -152,8 +152,6 @@ func NewInfraDriver(cluster *v2.Cluster, extraEnv []string) (InfraDriver, error)
 
 	ret.clusterEnv = ConvertEnv(cluster.Spec.Env)
 
-	ret.SetClusterEnvIfNotExist(extraEnv)
-
 	// Set the default RegistryDomain and RegistryPort env,
 	// and override the env if the user specifies RegistryDomain and RegistryPort env
 	if _, ok := ret.clusterEnv[common.EnvRegistryDomain]; !ok {
@@ -195,15 +193,13 @@ func (d *SSHInfraDriver) GetClusterEnv() map[string]interface{} {
 	return d.clusterEnv
 }
 
-func (d *SSHInfraDriver) SetClusterEnvIfNotExist(envs []string) {
+func (d *SSHInfraDriver) AddClusterEnv(envs []string) {
 	if d.clusterEnv == nil || envs == nil {
 		return
 	}
 	newEnv := ConvertEnv(envs)
 	for k, v := range newEnv {
-		if _, ok := d.clusterEnv[k]; !ok {
-			d.clusterEnv[k] = v
-		}
+		d.clusterEnv[k] = v
 	}
 }
 

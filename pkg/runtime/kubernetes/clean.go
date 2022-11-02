@@ -112,7 +112,8 @@ func (k *Runtime) deleteMaster(master net.IP, remainMaster0 *net.IP) error {
 	if remainMaster0 != nil {
 		hostname, err := k.getNodeNameByCmd(*remainMaster0, master)
 		if err != nil {
-			return err
+			logrus.Infof("%v, just think it not in k8s and skip delete it", err)
+			return nil
 		}
 		if err = k.infra.CmdAsync(*remainMaster0, fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
 			return fmt.Errorf("failed to delete master %s: %v", hostname, err)
@@ -158,7 +159,8 @@ func (k *Runtime) deleteNode(node net.IP, remainMaster0 *net.IP) error {
 	if remainMaster0 != nil {
 		hostname, err := k.getNodeNameByCmd(*remainMaster0, node)
 		if err != nil {
-			return err
+			logrus.Infof("%v, just think it not in k8s and skip delete it", err)
+			return nil
 		}
 
 		if err = k.infra.CmdAsync(*remainMaster0, fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {

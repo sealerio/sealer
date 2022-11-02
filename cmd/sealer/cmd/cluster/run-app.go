@@ -30,6 +30,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -45,44 +46,7 @@ func NewRunAPPCmd() *cobra.Command {
 		Example: exampleForRunAppCmd,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var (
-				cf              clusterfile.Interface
-				clusterFileData []byte
-				err             error
-			)
-
-			//todo grab more cluster info from api server
-			clusterFileData, err = ioutil.ReadFile(common.GetDefaultClusterfile())
-			if err != nil {
-				return err
-			}
-
-			cf, err = clusterfile.NewClusterFile(clusterFileData)
-			if err != nil {
-				return err
-			}
-
-			cluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
-			if err != nil {
-				return err
-			}
-
-			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-			if err != nil {
-				return err
-			}
-
-			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: args[0]})
-			if err != nil {
-				return fmt.Errorf("failed to get cluster image extension: %s", err)
-			}
-
-			if extension.Type != v12.AppInstaller {
-				return fmt.Errorf("exit install process, wrong cluster image type: %s", extension.Type)
-			}
-
-			return installApplication(args[0], appFlags.LaunchCmds, extension, infraDriver, imageEngine)
+			return installApplication(args[0], appFlags.LaunchCmds, nil, nil)
 		},
 	}
 
@@ -92,8 +56,34 @@ func NewRunAPPCmd() *cobra.Command {
 	return runCmd
 }
 
-func installApplication(appImageName string, launchCmds []string, extension v12.ImageExtension,
-	infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface) error {
+const NotAppImageError = "IsNotAppImage"
+
+func installApplication(appImageName string, launchCmds []string, configs []v1.Config, envs []string) error {
+	clusterFileData, err := ioutil.ReadFile(common.GetDefaultClusterfile())
+	if err != nil {
+		return err
+	}
+
+	cf, err := clusterfile.NewClusterFile(clusterFileData)
+	if err != nil {
+		return err
+	}
+
+	cluster := cf.GetCluster()
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return err
+	}
+
+	// add env from app-file
+	infraDriver.AddClusterEnv(envs)
+
+	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+	if err != nil {
+		return err
+	}
+
+	// TODO get arch info from k8s
 	clusterHosts := infraDriver.GetHostIPList()
 
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
@@ -110,7 +100,6 @@ func installApplication(appImageName string, launchCmds []string, extension v12.
 	if err != nil {
 		return err
 	}
-
 	defer func() {
 		err = imageMounter.Umount(imageMountInfo)
 		if err != nil {
@@ -118,7 +107,16 @@ func installApplication(appImageName string, launchCmds []string, extension v12.
 		}
 	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil)
+	extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: appImageName})
+	if err != nil {
+		return fmt.Errorf("failed to get cluster image extension: %s", err)
+	}
+
+	if extension.Type != v12.AppInstaller {
+		return fmt.Errorf(NotAppImageError)
+	}
+
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, configs)
 	if err != nil {
 		return err
 	}

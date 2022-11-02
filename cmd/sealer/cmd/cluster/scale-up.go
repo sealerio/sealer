@@ -89,7 +89,7 @@ func NewScaleUpCmd() *cobra.Command {
 			}
 			cf.SetCluster(cluster)
 
-			infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
+			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
 			}

@@ -109,7 +109,7 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			cluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
+			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
 			}

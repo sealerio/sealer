@@ -25,7 +25,6 @@ import (
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
@@ -73,7 +72,7 @@ will apply the diff change of current Clusterfile and the original one.`,
 			}
 
 			desiredCluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster, nil)
+			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
 			if err != nil {
 				return err
 			}
@@ -93,31 +92,15 @@ will apply the diff change of current Clusterfile and the original one.`,
 				return createNewCluster(imageName, infraDriver, imageEngine, cf)
 			}
 
-			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: imageName})
-			if err != nil {
-				return fmt.Errorf("failed to get cluster image extension: %s", err)
+			if err := installApplication(imageName, []string{}, cf.GetConfigs(), desiredCluster.Spec.Env); err == nil {
+				return nil
+			} else if err.Error() == NotAppImageError {
+				logrus.Debugf("not an app image")
+			} else {
+				return err
 			}
 
-			if extension.Type == v12.AppInstaller {
-				logrus.Infof("start to install application: %s", imageName)
-
-				clusterFileData, err = ioutil.ReadFile(common.GetDefaultClusterfile())
-				if err != nil {
-					return err
-				}
-
-				clusterCf, err := clusterfile.NewClusterFile(clusterFileData)
-				if err != nil {
-					return err
-				}
-
-				infraDriver, err = infradriver.NewInfraDriver(&desiredCluster, clusterCf.GetCluster().Spec.Env)
-				if err != nil {
-					return err
-				}
-
-				return installApplication(imageName, []string{}, extension, infraDriver, imageEngine)
-			}
+			logrus.Infof("start to check if need scale")
 
 			currentCluster, err := GetCurrentCluster(client)
 			if err != nil {
@@ -127,6 +110,8 @@ will apply the diff change of current Clusterfile and the original one.`,
 			mj, md := strings.Diff(currentCluster.GetMasterIPList(), desiredCluster.GetMasterIPList())
 			nj, nd := strings.Diff(currentCluster.GetNodeIPList(), desiredCluster.GetNodeIPList())
 			if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+				logrus.Infof("no need scale, completed")
+
 				return nil
 			}
 
