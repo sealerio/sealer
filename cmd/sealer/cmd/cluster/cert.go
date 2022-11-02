@@ -64,7 +64,7 @@ func NewCertCmd() *cobra.Command {
 			}
 
 			cluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
+			infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
 			if err != nil {
 				return err
 			}

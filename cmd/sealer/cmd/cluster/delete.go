@@ -121,7 +121,7 @@ func deleteCluster(workClusterfile string) error {
 		}
 	}
 
-	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 
 	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
 
-	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
 	if err != nil {
 		return err
 	}
@@ -313,10 +313,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 	}
 	cf.SetCluster(cluster)
 
-	if err = cf.SaveAll(); err != nil {
-		return err
-	}
-	return nil
+	return cf.SaveAll()
 }
 
 func confirmDeleteHosts(role string, hostsToDelete []net.IP) error {

@@ -63,7 +63,7 @@ func NewRunAPPCmd() *cobra.Command {
 			}
 
 			cluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
+			infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
 			if err != nil {
 				return err
 			}
@@ -129,9 +129,18 @@ func installApplication(appImageName string, launchCmds []string, extension v12.
 		return err
 	}
 	var registryConfig registry.RegConfig
+	clusterENV := infraDriver.GetClusterEnv()
 	var config = registry.Registry{
-		Domain: common.DefaultRegistryDomain,
+		Domain: clusterENV[common.EnvRegistryDomain].(string),
 		Port:   port,
+		Auth:   &registry.Auth{},
+	}
+
+	if userName := clusterENV[common.EnvRegistryUsername]; userName != nil {
+		config.Auth.Username = userName.(string)
+	}
+	if password := clusterENV[common.EnvRegistryPassword]; password != nil {
+		config.Auth.Password = password.(string)
 	}
 
 	registryConfig.LocalRegistry = &registry.LocalRegistry{

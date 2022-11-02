@@ -86,20 +86,7 @@ func NewJoinCmd() *cobra.Command {
 			}
 			cf.SetCluster(cluster)
 
-			//save desired clusterfile
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
-
-			defer func() {
-				if err == nil {
-					return
-				}
-				//if there exists an error,rollback the ClusterFile to the default file
-				cf.RollBackClusterFile()
-			}()
-
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
+			infraDriver, err := infradriver.NewInfraDriver(&cluster, nil)
 			if err != nil {
 				return err
 			}
@@ -166,11 +153,7 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
-
-			return nil
+			return cf.SaveAll()
 		},
 	}
 

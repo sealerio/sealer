@@ -23,56 +23,37 @@ import (
 const (
 	MASTER = "master"
 	// TODO，警惕，不能通过此标志来获取worker，因为master也可以role=node
-	NODE    = "node"
-	MASTER0 = "master0"
+	NODE = "node"
 )
 
+// Default dir and file path
 const (
-	FROMCOMMAND        = "FROM"
-	COPYCOMMAND        = "COPY"
-	RUNCOMMAND         = "RUN"
-	CMDCOMMAND         = "CMD"
-	ENVCOMMAND         = "ENV"
-	BaseImageLayerType = "BASE"
-	RootfsLayerValue   = "rootfs cache"
+	EtcDir               = "etc"
+	KubeAdminConf        = "/etc/kubernetes/admin.conf"
+	DefaultKubectlPath   = "/usr/bin/kubectl"
+	DefaultTmpDir        = "/var/lib/sealer/tmp"
+	DefaultLogDir        = "/var/lib/sealer/log"
+	DefaultSealerDataDir = "/var/lib/sealer/data"
+	ClusterfileName      = "ClusterfileName"
+	RenderChartsDir      = "charts"
+	RenderManifestsDir   = "manifests"
 )
 
-// todo clean all unused const make build file size less
+// API
 const (
-	DefaultWorkDir                = "/tmp/%s/workdir"
-	EtcDir                        = "etc"
-	DefaultTmpDir                 = "/var/lib/sealer/tmp"
-	DefaultLiteBuildUpper         = "/var/lib/sealer/tmp/lite_build_upper"
-	DefaultLogDir                 = "/var/lib/sealer/log"
-	DefaultClusterFileName        = "Clusterfile"
-	DefaultSealerDataDir          = "/var/lib/sealer/data"
-	DefaultClusterInitBashFile    = "/var/lib/sealer/data/%s/scripts/init.sh"
-	DefaultClusterCleanBashFile   = "%s/scripts/clean.sh"
-	TarGzSuffix                   = ".tar.gz"
-	YamlSuffix                    = ".yaml"
-	ImageAnnotationForClusterfile = "sea.aliyun.com/ClusterFile"
-	RawClusterfile                = "/var/lib/sealer/Clusterfile"
-	TmpClusterfile                = "/tmp/Clusterfile"
-	DefaultRegistryHostName       = "registry.cn-qingdao.aliyuncs.com"
-	DefaultRegistryAuthDir        = "/root/.docker/config.json"
-	KubeAdminConf                 = "/etc/kubernetes/admin.conf"
-	DefaultKubeDir                = "/root/.kube"
-	DefaultKubectlPath            = "/usr/bin/kubectl"
-	EtcHosts                      = "/etc/hosts"
-	ClusterWorkDir                = "/root/.sealer/%s"
-	RemoteSealerPath              = "/usr/local/bin/sealer"
-	DefaultCloudProvider          = AliCloud
-	ClusterfileName               = "ClusterfileName"
-	CacheID                       = "cacheID"
-	RenderChartsDir               = "charts"
-	RenderManifestsDir            = "manifests"
-	APIVersion                    = "sealer.cloud/v2"
-	Kind                          = "Cluster"
-	DefaultRegistryDomain         = "sea.hub"
-	DefaultRegistryPort           = "5000"
-	HostIP                        = "HostIP"
-	EnvHostIPFamily               = "HostIPFamily"
-	EnvIPv6DualStack              = "IPv6DualStack"
+	APIVersion = "sealer.cloud/v2"
+	Kind       = "Cluster"
+)
+
+// Envs
+const (
+	EnvHostIP           = "HostIP"
+	EnvHostIPFamily     = "HostIPFamily"
+	EnvIPv6DualStack    = "IPv6DualStack"
+	EnvRegistryURL      = "RegistryURL"
+	EnvRegistryDomain   = "RegistryDomain"
+	EnvRegistryUsername = "RegistryUsername"
+	EnvRegistryPassword = "RegistryPassword"
 )
 
 // image module
@@ -82,19 +63,16 @@ const (
 	ImageScratch            = "scratch"
 	DefaultImageMetaRootDir = "/var/lib/sealer/metadata"
 	DefaultLayerDir         = "/var/lib/sealer/data/overlay2"
+	DefaultRegistryDomain   = "sea.hub"
+	DefaultRegistryPort     = "5000"
+	DefaultRegistryURL      = DefaultRegistryDomain + ":" + DefaultRegistryPort
 )
 
 // about infra
 const (
-	AliDomain         = "sea.aliyun.com/"
-	Eip               = AliDomain + "ClusterEIP"
-	RegistryDirName   = "registry"
-	Master0InternalIP = AliDomain + "Master0InternalIP"
-	EipID             = AliDomain + "EipID"
-	Master0ID         = AliDomain + "Master0ID"
-	VpcID             = AliDomain + "VpcID"
-	VSwitchID         = AliDomain + "VSwitchID"
-	SecurityGroupID   = AliDomain + "SecurityGroupID"
+	AliDomain       = "sea.aliyun.com/"
+	Eip             = AliDomain + "ClusterEIP"
+	RegistryDirName = "registry"
 )
 
 // CRD kind
@@ -114,11 +92,6 @@ const (
 	TAINT    = "TAINT"
 	LABEL    = "LABEL"
 	HOSTNAME = "HOSTNAME"
-)
-
-const (
-	JoinSubCmd   = "join"
-	DeleteSubCmd = "delete"
 )
 
 const (

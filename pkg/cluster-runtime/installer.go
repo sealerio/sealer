@@ -75,20 +75,17 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	if err != nil {
 		return nil, err
 	}
+	clusterENV := infraDriver.GetClusterEnv()
 	var registryConfig = registry.Registry{
-		Domain: common.DefaultRegistryDomain,
+		Domain: clusterENV[common.EnvRegistryDomain].(string),
 		Port:   port,
 		Auth:   &registry.Auth{},
 	}
 
-	clusterENV := infraDriver.GetClusterEnv()
-	if domain := clusterENV["RegistryDomain"]; domain != nil {
-		registryConfig.Domain = domain.(string)
-	}
-	if userName := clusterENV["RegistryUsername"]; userName != nil {
+	if userName := clusterENV[common.EnvRegistryUsername]; userName != nil {
 		registryConfig.Auth.Username = userName.(string)
 	}
-	if password := clusterENV["RegistryPassword"]; password != nil {
+	if password := clusterENV[common.EnvRegistryPassword]; password != nil {
 		registryConfig.Auth.Password = password.(string)
 	}
 
@@ -195,11 +192,11 @@ func (i *Installer) Install() error {
 
 	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension, i.RegistryConfig)
 
-	if err = appInstaller.LaunchClusterImage(master0, cmds); err != nil {
+	if err = appInstaller.Launch(master0, cmds); err != nil {
 		return err
 	}
 
-	return nil
+	return appInstaller.save()
 }
 
 func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) {

@@ -344,7 +344,7 @@ func (c *localSingletonConfigurator) configureDaemonService(hosts []net.IP) erro
 		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
 	)
 
-	if endpoint == fmt.Sprintf("%s:%s", common.DefaultRegistryDomain, common.DefaultRegistryPort) {
+	if endpoint == common.DefaultRegistryURL {
 		return nil
 	}
 
