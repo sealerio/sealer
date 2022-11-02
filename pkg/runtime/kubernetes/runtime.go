@@ -114,7 +114,7 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	logrus.Info("Succeeded in creating a new cluster, enjoy it!")
+	logrus.Info("Succeeded in creating a new cluster.")
 	return nil
 }
 
