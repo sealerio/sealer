@@ -29,7 +29,6 @@ import (
 
 const (
 	ConfigFile = "registry.yml"
-	SeaHub     = "sea.hub"
 )
 
 type Config struct {
@@ -59,8 +58,8 @@ func GetConfig(rootfs string, registryIP net.IP) *Config {
 	var config Config
 	var defaultConfig = &Config{
 		IP:     registryIP,
-		Domain: SeaHub,
-		Port:   "5000",
+		Domain: common.DefaultRegistryDomain,
+		Port:   common.DefaultRegistryPort,
 	}
 	registryConfigPath := filepath.Join(rootfs, common.EtcDir, ConfigFile)
 	if !osi.IsFileExist(registryConfigPath) {

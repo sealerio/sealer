@@ -18,10 +18,11 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+
+	"github.com/sealerio/sealer/common"
 )
 
 const (
-	SeaHub                      = "sea.hub"
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 	DockerCertDir               = "/etc/docker/certs.d"
 	RegistryName                = "sealer-registry"
@@ -39,7 +40,7 @@ func (k *Runtime) sendRegistryCert(host []net.IP) error {
 	if err != nil {
 		return err
 	}
-	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, SeaHub, cf.Port, cf.Domain))
+	return k.sendFileToHosts(host, fmt.Sprintf("%s/%s.crt", k.getCertsDir(), cf.Domain), fmt.Sprintf("%s/%s:%s/%s.crt", DockerCertDir, common.DefaultRegistryDomain, cf.Port, cf.Domain))
 }
 
 func (k *Runtime) addRegistryDomainToHosts() (host string) {
@@ -66,8 +67,8 @@ func (k *Runtime) ApplyRegistryOnMaster0() error {
 	}
 	initRegistry := k.initRegistryCmd()
 	addRegistryHosts := k.addRegistryDomainToHosts()
-	if k.RegConfig.Domain != SeaHub {
-		addSeaHubHosts := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
+	if k.RegConfig.Domain != common.DefaultRegistryDomain {
+		addSeaHubHosts := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain, k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain)
 		addRegistryHosts = fmt.Sprintf("%s && %s", addRegistryHosts, addSeaHubHosts)
 	}
 	if err = ssh.CmdAsync(k.RegConfig.IP, initRegistry); err != nil {
@@ -85,7 +86,7 @@ func (k *Runtime) ApplyRegistryOnMaster0() error {
 func (k *Runtime) GenLoginCommand() string {
 	return fmt.Sprintf("%s && %s",
 		fmt.Sprintf("nerdctl login -u %s -p %s %s", k.RegConfig.Username, k.RegConfig.Password, k.RegConfig.Domain+":"+k.RegConfig.Port),
-		fmt.Sprintf("nerdctl login -u %s -p %s %s", k.RegConfig.Username, k.RegConfig.Password, SeaHub+":"+k.RegConfig.Port))
+		fmt.Sprintf("nerdctl login -u %s -p %s %s", k.RegConfig.Username, k.RegConfig.Password, common.DefaultRegistryDomain+":"+k.RegConfig.Port))
 }
 
 func (k *Runtime) GenerateRegistryCert() error {

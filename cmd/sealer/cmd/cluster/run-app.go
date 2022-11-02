@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strconv"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/common"
@@ -123,10 +124,14 @@ func installApplication(appImageName string, launchCmds []string, extension v12.
 	}
 
 	//todo grab this config from cluster file, that's because it belongs to cluster level information
+	port, err := strconv.Atoi(common.DefaultRegistryPort)
+	if err != nil {
+		return err
+	}
 	var registryConfig registry.RegConfig
 	var config = registry.Registry{
-		Domain: registry.DefaultDomain,
-		Port:   registry.DefaultPort,
+		Domain: common.DefaultRegistryDomain,
+		Port:   port,
 	}
 
 	registryConfig.LocalRegistry = &registry.LocalRegistry{

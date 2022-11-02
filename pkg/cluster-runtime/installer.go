@@ -17,6 +17,7 @@ package clusterruntime
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
@@ -70,9 +71,13 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	}
 
 	// todo maybe we can support custom registry config later
+	port, err := strconv.Atoi(common.DefaultRegistryPort)
+	if err != nil {
+		return nil, err
+	}
 	var registryConfig = registry.Registry{
-		Domain: registry.DefaultDomain,
-		Port:   registry.DefaultPort,
+		Domain: common.DefaultRegistryDomain,
+		Port:   port,
 		Auth:   &registry.Auth{},
 	}
 
