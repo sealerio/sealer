@@ -108,7 +108,8 @@ const (
 const APIServerDomain = "apiserver.cluster.local"
 
 const (
-	CdAndExecCmd = "cd %s && %s"
+	CdAndExecCmd        = "cd %s && %s"
+	CdIfExistAndExecCmd = "if [ ! -d %s ];then exit 0;fi; cd %s && %s"
 )
 
 const (

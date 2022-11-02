@@ -64,9 +64,9 @@ func RunSimpleCmd(cmd string) (string, error) {
 	}
 	var result []byte
 	if username != common.ROOT {
-		result, err = exec.Command(SUDO, "/bin/sh", "-c", cmd).CombinedOutput() // #nosec
+		result, err = exec.Command(SUDO, "/bin/bash", "-c", cmd).CombinedOutput() // #nosec
 	} else {
-		result, err = exec.Command("/bin/sh", "-c", cmd).CombinedOutput() // #nosec
+		result, err = exec.Command("/bin/bash", "-c", cmd).CombinedOutput() // #nosec
 	}
 	if err != nil {
 		logrus.Debugf("failed to execute command(%s): error(%v)", cmd, err)

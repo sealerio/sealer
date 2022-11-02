@@ -49,7 +49,7 @@ func (s *SSH) CmdAsync(host net.IP, cmds ...string) error {
 
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		execFunc = func(cmd string) error {
-			c := exec.Command("/bin/sh", "-c", cmd)
+			c := exec.Command("/bin/bash", "-c", cmd)
 			stdout, err := c.StdoutPipe()
 			if err != nil {
 				return err
@@ -128,7 +128,7 @@ func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
 	var stdoutContent, stderrContent bytes.Buffer
 
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
-		localCmd := exec.Command("/bin/sh", "-c", cmd)
+		localCmd := exec.Command("/bin/bash", "-c", cmd)
 		localCmd.Stdout = &stdoutContent
 		localCmd.Stderr = &stderrContent
 		if err := localCmd.Run(); err != nil {
