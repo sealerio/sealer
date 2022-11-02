@@ -113,7 +113,7 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 
 <!-- markdownlint-disable -->
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/9465626/167836908-65ca12e0-4600-44d4-b3bd-8b93d27600fb.png" width="300" title="dingtalk">
+  <img src="https://user-images.githubusercontent.com/65949637/199456294-1ae1cbc0-5769-42bf-be63-edac58d5d466.png" width="300" title="dingtalk">
 </div>
 <!-- markdownlint-restore -->
 
