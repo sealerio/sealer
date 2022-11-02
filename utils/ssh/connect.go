@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sealerio/sealer/common"
@@ -140,7 +141,12 @@ type Client struct {
 
 var sshClientMap = map[string]Client{}
 
+var getSSHClientLock = sync.Mutex{}
+
 func (s *SSH) sftpConnect(host net.IP) (*sftp.Client, error) {
+	getSSHClientLock.Lock()
+	defer getSSHClientLock.Unlock()
+
 	if ret, ok := sshClientMap[host.String()]; ok {
 		return ret.SftpClient, nil
 	}
