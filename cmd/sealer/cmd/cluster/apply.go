@@ -116,7 +116,7 @@ will apply the diff change of current Clusterfile and the original one.`,
 			}
 
 			if len(md) > 0 || len(nd) > 0 {
-				return fmt.Errorf("scale down not supported: %v,%v", md, nd)
+				logrus.Warnf("scale down not supported: %v, %v, skip them", md, nd)
 			}
 			logrus.Infof("start to scale up cluster with image: %s", imageName)
 			return scaleUpCluster(imageName, mj, nj, infraDriver, imageEngine, cf)
