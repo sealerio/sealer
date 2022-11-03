@@ -78,6 +78,9 @@ func NewBuildCmd() *cobra.Command {
 		},
 	}
 	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
+	//todo we can support imageList Flag to download extra container image rather than copy it to rootfs
+	buildCmd.Flags().StringVar(&buildFlags.ImageList, "image-list", "filepath", "`pathname` of imageList filepath, if set, sealer will read its content and download extra container")
+	buildCmd.Flags().StringVar(&buildFlags.ImageListWithAuth, "image-list-with-auth", "", "`pathname` of imageListWithAuth.yaml filepath, if set, sealer will read its content and download extra container images to rootfs(not usually used)")
 	buildCmd.Flags().StringVar(&buildFlags.Platform, "platform", parse.DefaultPlatform(), "set the target platform, like linux/amd64 or linux/amd64/v7")
 	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "ifnewer", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always, --pull=ifnewer")
 	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
@@ -189,6 +192,15 @@ func buildSealerImage() error {
 
 	// TODO optimize the differ.
 	if err = differ.Process(tmpDirForLink, tmpDirForLink); err != nil {
+		return err
+	}
+
+	// download container image form `imageListWithAuth.yaml`
+	if err = buildimage.NewMiddlewarePuller(v1.Platform{
+		Architecture: arch,
+		OS:           _os,
+		Variant:      variant,
+	}).Pull(buildFlags.ImageListWithAuth, tmpDirForLink); err != nil {
 		return err
 	}
 
