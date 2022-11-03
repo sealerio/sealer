@@ -126,7 +126,7 @@ func (i AppInstaller) save() error {
 	}
 
 	extensionList = append(extensionList, i.extension)
-	content, err := json.Marshal(extensionList)
+	content, err := json.MarshalIndent(extensionList, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal image extension: %v", err)
 	}

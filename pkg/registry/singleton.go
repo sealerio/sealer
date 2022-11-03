@@ -396,12 +396,9 @@ func (c *localSingletonConfigurator) configureDockerDaemonService(endpoint, daem
 		}
 	}
 
-	daemonConf.MirrorRegistries = append(daemonConf.MirrorRegistries, MirrorRegistry{
-		Domain:  "*",
-		Mirrors: []string{"https://" + endpoint},
-	})
+	daemonConf.RegistryMirrors = append(daemonConf.RegistryMirrors, "https://"+endpoint)
 
-	content, err := json.Marshal(daemonConf)
+	content, err := json.MarshalIndent(daemonConf, "", "  ")
 
 	if err != nil {
 		return fmt.Errorf("failed to marshal daemonFile: %v", err)
@@ -431,7 +428,6 @@ func (c *localSingletonConfigurator) configureContainerdDaemonService(endpoint, 
 }
 
 type DaemonConfig struct {
-	MirrorRegistries               []MirrorRegistry  `json:"mirror-registries,omitempty"`
 	AllowNonDistributableArtifacts []string          `json:"allow-nondistributable-artifacts,omitempty"`
 	APICorsHeader                  string            `json:"api-cors-header,omitempty"`
 	AuthorizationPlugins           []string          `json:"authorization-plugins,omitempty"`
@@ -500,11 +496,6 @@ type DaemonConfig struct {
 	UsernsRemap                    string            `json:"userns-remap,omitempty"`
 	ClusterStoreOpts               map[string]string `json:"cluster-store-opts,omitempty"`
 	LogOpts                        *DaemonLogOpts    `json:"log-opts,omitempty"`
-}
-
-type MirrorRegistry struct {
-	Domain  string   `json:"domain,omitempty"`
-	Mirrors []string `json:"mirrors,omitempty"`
 }
 
 type DaemonLogOpts struct {

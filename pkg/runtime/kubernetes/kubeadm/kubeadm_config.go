@@ -95,11 +95,11 @@ func (k *KubeadmConfig) setAPIVersion(apiVersion string) {
 
 func (k *KubeadmConfig) setKubeadmAPIVersion() {
 	kv := versionUtils.Version(k.KubernetesVersion)
-	greaterThanKV1150, err := kv.Compare(V1150)
+	greaterThanKV1150, err := kv.GreaterThan(V1150)
 	if err != nil {
 		logrus.Errorf("compare kubernetes version failed: %s", err)
 	}
-	greaterThanKV1230, err := kv.Compare(V1230)
+	greaterThanKV1230, err := kv.GreaterThan(V1230)
 	if err != nil {
 		logrus.Errorf("compare kubernetes version failed: %s", err)
 	}

@@ -136,14 +136,14 @@ func (k *Runtime) Command(version, master0IP string, name CommandType, token v1b
 	}
 
 	kv := versionUtils.Version(version)
-	cmp, err := kv.Compare(kubeadm.V1150)
+	greaterThan, err := kv.GreaterThan(kubeadm.V1150)
 	//other version >= 1.15.x
 	if err != nil {
 		logrus.Errorf("failed to compare Kubernetes version: %s", err)
 	}
-	if cmp {
-		cmds[InitMaster] = fmt.Sprintf("kubeadm init --config=%s --upload-certs", KubeadmFileYml)
-		cmds[JoinMaster] = fmt.Sprintf("kubeadm join --config=%s", KubeadmFileYml)
+	if greaterThan {
+		cmds[InitMaster] = fmt.Sprintf("kubeadm init --config=%s --upload-certs --experimental-patches %s/kubeadm-patchs/", KubeadmFileYml, k.infra.GetClusterRootfsPath())
+		cmds[JoinMaster] = fmt.Sprintf("kubeadm join --config=%s --experimental-patches %s/kubeadm-patchs/", KubeadmFileYml, k.infra.GetClusterRootfsPath())
 		cmds[JoinNode] = fmt.Sprintf("kubeadm join --config=%s", KubeadmFileYml)
 	}
 
