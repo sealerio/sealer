@@ -15,30 +15,30 @@
 package image
 
 import (
-	"github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imageengine"
-
 	"os"
 
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 )
 
 var saveOpts *options.SaveOptions
 
+var longNewSaveCmdDescription = `sealer save -o [output file name] [image name]`
+
 var exampleForSaveCmd = `
 save kubernetes:v1.19.8 image to kubernetes.tar file:
 
-sealer save -o kubernetes.tar kubernetes:v1.19.8`
+  sealer save -o kubernetes.tar kubernetes:v1.19.8`
 
 // NewSaveCmd saveCmd represents the save command
 func NewSaveCmd() *cobra.Command {
 	saveCmd := &cobra.Command{
 		Use:     "save",
 		Short:   "save ClusterImage to a tar file",
-		Long:    `sealer save -o [output file name] [image name]`,
+		Long:    longNewSaveCmdDescription,
 		Example: exampleForSaveCmd,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

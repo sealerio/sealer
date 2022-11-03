@@ -41,14 +41,20 @@ var applyClusterFile string
 
 const MasterRoleLabel = "node-role.kubernetes.io/master"
 
+var longApplyCmdDescription = `apply command is used to apply a Kubernetes cluster via specified Clusterfile.
+If the Clusterfile is applied first time, Kubernetes cluster will be created. Otherwise, sealer
+will apply the diff change of current Clusterfile and the original one.`
+
+var exampleForApplyCmd = `
+  sealer apply -f Clusterfile
+`
+
 func NewApplyCmd() *cobra.Command {
 	applyCmd := &cobra.Command{
-		Use:   "apply",
-		Short: "apply a Kubernetes cluster via specified Clusterfile",
-		Long: `apply command is used to apply a Kubernetes cluster via specified Clusterfile.
-If the Clusterfile is applied first time, Kubernetes cluster will be created. Otherwise, sealer
-will apply the diff change of current Clusterfile and the original one.`,
-		Example: `sealer apply -f Clusterfile`,
+		Use:     "apply",
+		Short:   "apply a Kubernetes cluster via specified Clusterfile",
+		Long:    longApplyCmdDescription,
+		Example: exampleForApplyCmd,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (

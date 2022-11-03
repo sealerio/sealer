@@ -15,17 +15,23 @@
 package image
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/spf13/cobra"
 )
+
+var longNewTagCmdDescription = ``
+
+var exampleForTagCmd = `
+  sealer tag kubernetes:v1.19.8 firstName secondName
+`
 
 func NewTagCmd() *cobra.Command {
 	tagCmd := &cobra.Command{
 		Use:     "tag",
 		Short:   "create one or more tags for local ClusterImage",
-		Example: `sealer tag kubernetes:v1.19.8 firstName secondName`,
+		Long:    longNewTagCmdDescription,
+		Example: exampleForTagCmd,
 		Args:    cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tagOpts := options.TagOptions{

@@ -15,16 +15,18 @@
 package image
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/spf13/cobra"
 )
 
 var inspectOpts *options.InspectOptions
 
-var exampleForInspectCmd = `sealer inspect {imageName or imageID}
-sealer inspect --format '{{.OCIv1.Config.Env}}' {imageName or imageID}
+var longNewInspectCmdDescription = ``
+
+var exampleForInspectCmd = `
+  sealer inspect {imageName or imageID}
+  sealer inspect --format '{{.OCIv1.Config.Env}}' {imageName or imageID}
 `
 
 // NewInspectCmd inspectCmd represents the inspect command
@@ -32,6 +34,7 @@ func NewInspectCmd() *cobra.Command {
 	inspectCmd := &cobra.Command{
 		Use:     "inspect",
 		Short:   "print the image information or Clusterfile",
+		Long:    longNewInspectCmdDescription,
 		Example: exampleForInspectCmd,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

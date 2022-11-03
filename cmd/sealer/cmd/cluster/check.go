@@ -17,9 +17,8 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/checker"
+	"github.com/spf13/cobra"
 )
 
 type CheckArgs struct {
@@ -32,15 +31,19 @@ var checkArgs *CheckArgs
 var longNewCheckCmdDescription = `check command is used to check status of the cluster, including node status
 , service status and pod status.`
 
+var exampleForCheckCmd = `
+  sealer check --pre 
+  sealer check --post
+`
+
 // NewCheckCmd pushCmd represents the push command
 func NewCheckCmd() *cobra.Command {
 	checkCmd := &cobra.Command{
-		Use:   "check",
-		Short: "check the state of cluster",
-		Long:  longNewCheckCmdDescription,
-		Example: `sealer check --pre 
-				  sealer check --post`,
-		Args: cobra.NoArgs,
+		Use:     "check",
+		Short:   "check the state of cluster",
+		Long:    longNewCheckCmdDescription,
+		Example: exampleForCheckCmd,
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if checkArgs.Pre && checkArgs.Post {
 				return fmt.Errorf("don't allow to set two flags --pre and --post")

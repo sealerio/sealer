@@ -18,9 +18,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-
 	"github.com/sealerio/sealer/common"
-
 	"github.com/spf13/cobra"
 )
 
@@ -35,16 +33,17 @@ type ParserArg struct {
 
 var flag *ParserArg
 
-var exampleForGenCmd = `The following command will generate Clusterfile used by sealer under user home dir:
-
-sealer alpha gen --passwd xxxx --image kubernetes:v1.19.8
-`
 var longGenCmdDescription = `Sealer will call kubernetes API to get masters and nodes IP info, then generate a Clusterfile. and also pull a ClusterImage which matches the kubernetes version.
 
 Then you can use any sealer command to manage the cluster like:
 
 > Scale
-	sealer join --node x.x.x.x`
+  sealer join --node 192.168.0.1`
+
+var exampleForGenCmd = `The following command will generate Clusterfile used by sealer under user home dir:
+
+  sealer alpha gen --passwd Sealer123 --image kubernetes:v1.19.8
+`
 
 // NewGenCmd returns the sealer gen Cobra command
 func NewGenCmd() *cobra.Command {

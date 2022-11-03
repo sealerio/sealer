@@ -35,7 +35,7 @@ You need to restart your API server manually after using sealer cert. Then, you 
 var exampleForCertCmd = `
 The following command will generate new api server cert and key for all control-plane certificates:
 
-sealer cert --alt-names 39.105.169.253,sealer.cool
+  sealer cert --alt-names 39.105.169.253,sealer.cool
 `
 
 var altNames []string

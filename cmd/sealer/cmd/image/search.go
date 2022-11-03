@@ -18,18 +18,19 @@ import (
 	"context"
 	"fmt"
 
+	reference2 "github.com/distribution/distribution/v3/reference"
+	"github.com/olekukonko/tablewriter"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/reference"
 	save2 "github.com/sealerio/sealer/pkg/image/save"
-
-	reference2 "github.com/distribution/distribution/v3/reference"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
 const (
 	imageName = "IMAGE NAME"
 )
+
+var longNewSearchCmdDescription = ``
 
 var exampleForSearchCmd = `sealer search <imageDomain>/<imageRepo>/<imageName> ...
 ## default imageDomain: 'registry.cn-qingdao.aliyuncs.com', default imageRepo: 'sealer-io'
@@ -43,7 +44,7 @@ func NewSearchCmd() *cobra.Command {
 		Use:   "search",
 		Short: "search ClusterImage in default registry",
 		// TODO: add long description.
-		Long:    "",
+		Long:    longNewSearchCmdDescription,
 		Example: exampleForSearchCmd,
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

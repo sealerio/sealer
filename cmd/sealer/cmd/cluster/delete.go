@@ -49,11 +49,11 @@ User can delete cluster by explicitly specifying host IP`
 
 var exampleForDeleteCmd = `
 delete cluster node: 
-    sealer delete --nodes x.x.x.x [--force]
-	sealer delete --masters x.x.x.x --nodes x.x.x.x [--force]
-	sealer delete --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y [--force]
+  sealer delete --nodes 192.168.0.1 [--force]
+  sealer delete --masters 192.168.0.1 --nodes 192.168.0.2 [--force]
+  sealer delete --masters 192.168.0.1-192.168.0.3 --nodes 192.168.0.4-192.168.0.6 [--force]
 delete all:
-	sealer delete --all [--force]
+  sealer delete --all [--force]
 `
 
 // NewDeleteCmd deleteCmd represents the delete command

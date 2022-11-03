@@ -16,16 +16,18 @@ package image
 
 import (
 	"github.com/containers/buildah/pkg/parse"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/spf13/cobra"
 )
 
 var pullOpts *options.PullOptions
 
-var exampleForPullCmd = `sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
-sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --platform linux/amd64
+var longNewPullCmdDescription = ``
+
+var exampleForPullCmd = `
+  sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+  sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --platform linux/amd64
 `
 
 // NewPullCmd pullCmd represents the pull command
@@ -33,6 +35,7 @@ func NewPullCmd() *cobra.Command {
 	pullCmd := &cobra.Command{
 		Use:     "pull",
 		Short:   "pull ClusterImage from a registry to local",
+		Long:    longNewPullCmdDescription,
 		Example: exampleForPullCmd,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

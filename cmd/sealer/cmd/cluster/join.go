@@ -39,8 +39,8 @@ User can join cluster by explicitly specifying host IP`
 
 var exampleForJoinCmd = `
 join cluster:
-	sealer join --masters x.x.x.x --nodes x.x.x.x -p xxxx
-    sealer join --masters x.x.x.x-x.x.x.y --nodes x.x.x.x-x.x.x.y -p xxx
+  sealer join --masters 192.168.0.1 --nodes 192.168.0.2 -p Sealer123
+  sealer join --masters 192.168.0.1-192.168.0.3 --nodes 192.168.0.4-192.168.0.6 -p Sealer123
 `
 
 func NewJoinCmd() *cobra.Command {

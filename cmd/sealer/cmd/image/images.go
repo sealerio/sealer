@@ -15,22 +15,27 @@
 package image
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/spf13/cobra"
 )
 
 var imagesOpts *options.ImagesOptions
+
+var longNewListCmdDescription = ``
+
+var exampleForListCmd = `
+  sealer images
+`
 
 func NewListCmd() *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:   "images",
 		Short: "list all ClusterImages on the local node",
 		// TODO: add long description.
-		Long:    "",
+		Long:    longNewListCmdDescription,
 		Args:    cobra.NoArgs,
-		Example: `sealer images`,
+		Example: exampleForListCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 			if err != nil {
