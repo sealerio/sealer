@@ -76,7 +76,11 @@ type Scope string
 
 type Phase string
 
-type HookFunc func(data string, onHosts []net.IP, driver infradriver.InfraDriver) error
+const (
+	ExtraOptionSkipWhenWorkspaceNotExists = "SkipWhenWorkspaceNotExists"
+)
+
+type HookFunc func(data string, onHosts []net.IP, driver infradriver.InfraDriver, extraOpts map[string]bool) error
 
 var hookFactories = make(map[HookType]HookFunc)
 
@@ -108,6 +112,11 @@ func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 		return nil
 	}
 
+	extraOpts := map[string]bool{}
+	if phase == PostCleanHost || phase == PreCleanHost {
+		extraOpts[ExtraOptionSkipWhenWorkspaceNotExists] = true
+	}
+
 	// sorted by hookConfig name in alphabetical order
 	sort.Sort(hookConfigList)
 	for _, hookConfig := range hookConfigList {
@@ -125,7 +134,7 @@ func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 			continue
 		}
 
-		if err := hookFactories[hookConfig.Type](hookConfig.Data, targetHosts, i.infraDriver); err != nil {
+		if err := hookFactories[hookConfig.Type](hookConfig.Data, targetHosts, i.infraDriver, extraOpts); err != nil {
 			return fmt.Errorf("failed to run hook: %s", hookConfig.Name)
 		}
 	}
@@ -142,8 +151,14 @@ func (i *Installer) runClusterHook(master0 net.IP, phase Phase) error {
 	}
 	// sorted by hookConfig name in alphabetical order
 	sort.Sort(hookConfigList)
+
+	extraOpts := map[string]bool{}
+	if phase == PreUnInstallCluster || phase == PostUnInstallCluster {
+		extraOpts[ExtraOptionSkipWhenWorkspaceNotExists] = true
+	}
+
 	for _, hookConfig := range hookConfigList {
-		if err := hookFactories[hookConfig.Type](hookConfig.Data, []net.IP{master0}, i.infraDriver); err != nil {
+		if err := hookFactories[hookConfig.Type](hookConfig.Data, []net.IP{master0}, i.infraDriver, extraOpts); err != nil {
 			return fmt.Errorf("failed to run hook: %s", hookConfig.Name)
 		}
 	}
@@ -170,13 +185,18 @@ func (i *Installer) getHostIPListByScope(scope Scope) []net.IP {
 }
 
 func NewShellHook() HookFunc {
-	return func(data string, hosts []net.IP, driver infradriver.InfraDriver) error {
+	return func(data string, hosts []net.IP, driver infradriver.InfraDriver, extraOpts map[string]bool) error {
 		rootfs := driver.GetClusterRootfsPath()
 		for _, ip := range hosts {
 			cmd := env.WrapperShell(data, driver.GetHostEnv(ip))
-			err := driver.CmdAsync(ip, fmt.Sprintf(common.CdAndExecCmd, rootfs, cmd))
+			wrappedCmd := fmt.Sprintf(common.CdAndExecCmd, rootfs, cmd)
+			if extraOpts[ExtraOptionSkipWhenWorkspaceNotExists] {
+				wrappedCmd = fmt.Sprintf(common.CdIfExistAndExecCmd, rootfs, rootfs, cmd)
+			}
+
+			err := driver.CmdAsync(ip, wrappedCmd)
 			if err != nil {
-				return fmt.Errorf("failed to run shell hook on host(%s): %v", ip.String(), err)
+				return fmt.Errorf("failed to run shell hook(%s) on host(%s): %v", wrappedCmd, ip.String(), err)
 			}
 		}
 

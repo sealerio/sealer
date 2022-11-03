@@ -33,7 +33,7 @@ func Start(cmdLine string) (*gexec.Session, error) {
 		return nil, errors.New("failed to start cmd, line is empty")
 	}
 	cmdLine = fmt.Sprintf("sudo -E %s", cmdLine)
-	execCmd := exec.Command("/bin/sh", "-c", cmdLine) // #nosec
+	execCmd := exec.Command("/bin/bash", "-c", cmdLine) // #nosec
 	_, err := io.WriteString(ginkgo.GinkgoWriter, fmt.Sprintf("%s\n", cmdLine))
 	if err != nil {
 		return nil, err
