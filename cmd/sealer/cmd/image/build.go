@@ -89,6 +89,7 @@ func NewBuildCmd() *cobra.Command {
 	buildCmd.Flags().StringSliceVar(&buildFlags.BuildArgs, "build-arg", []string{}, "set custom build args")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Annotations, "annotation", []string{}, "add annotations for image. Format like --annotation key=[value]")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Labels, "label", []string{getSealerLabel()}, "add labels for image. Format like --label key=[value]")
+	buildCmd.Flags().StringVar(&buildFlags.ImageList, "image-list", "filepath", "`pathname` of imageList filepath, if set, sealer will read its content and download extra container")
 
 	requiredFlags := []string{"tag"}
 	for _, flag := range requiredFlags {
@@ -184,14 +185,20 @@ func buildSealerImage() error {
 		return err
 	}
 
-	differ := buildimage.NewRegistryDiffer(v1.Platform{
+	// download container image form `imageList`
+	if err = buildimage.NewRegistryDiffer(v1.Platform{
 		Architecture: arch,
 		OS:           _os,
 		Variant:      variant,
-	})
+	}).Process(buildFlags.ImageList, tmpDirForLink); err != nil {
+		return err
+	}
 
-	// TODO optimize the differ.
-	if err = differ.Process(tmpDirForLink, tmpDirForLink); err != nil {
+	if err = buildimage.NewRegistryDiffer(v1.Platform{
+		Architecture: arch,
+		OS:           _os,
+		Variant:      variant,
+	}).Process(tmpDirForLink, tmpDirForLink); err != nil {
 		return err
 	}
 
