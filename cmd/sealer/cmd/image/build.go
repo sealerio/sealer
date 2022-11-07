@@ -15,6 +15,7 @@
 package image
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -25,13 +26,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/build/buildimage"
 	"github.com/sealerio/sealer/build/kubefile/parser"
+	"github.com/sealerio/sealer/common"
 	version2 "github.com/sealerio/sealer/pkg/define/application/version"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	bc "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/image/save"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 	"github.com/sealerio/sealer/pkg/rootfs"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/version"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -89,7 +93,6 @@ func NewBuildCmd() *cobra.Command {
 	buildCmd.Flags().StringSliceVar(&buildFlags.BuildArgs, "build-arg", []string{}, "set custom build args")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Annotations, "annotation", []string{}, "add annotations for image. Format like --annotation key=[value]")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Labels, "label", []string{getSealerLabel()}, "add labels for image. Format like --label key=[value]")
-	buildCmd.Flags().StringVar(&buildFlags.ImageList, "image-list", "filepath", "`pathname` of imageList filepath, if set, sealer will read its content and download extra container")
 
 	requiredFlags := []string{"tag"}
 	for _, flag := range requiredFlags {
@@ -186,12 +189,21 @@ func buildSealerImage() error {
 	}
 
 	// download container image form `imageList`
-	if err = buildimage.NewRegistryDiffer(v1.Platform{
-		Architecture: arch,
-		OS:           _os,
-		Variant:      variant,
-	}).Process(buildFlags.ImageList, tmpDirForLink); err != nil {
-		return err
+	if osi.IsFileExist(buildFlags.ImageList) {
+		images, err := osi.NewFileReader(buildFlags.ImageList).ReadLines()
+		if err != nil {
+			return err
+		}
+		formatImages := buildimage.FormatImages(images)
+		ctx := context.Background()
+		imageSave := save.NewImageSaver(ctx)
+		if err = imageSave.SaveImages(formatImages, filepath.Join(tmpDirForLink, common.RegistryDirName), v1.Platform{
+			Architecture: arch,
+			OS:           _os,
+			Variant:      variant,
+		}); err != nil {
+			return err
+		}
 	}
 
 	if err = buildimage.NewRegistryDiffer(v1.Platform{

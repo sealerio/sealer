@@ -44,7 +44,6 @@ var (
 	copyToImageList   = "imageList"
 	copyToApplication = "application"
 	dispatch          map[string]func(srcPath string) ([]string, error)
-	ExtraImageList    = ""
 )
 
 func init() {
@@ -53,7 +52,6 @@ func init() {
 		copyToChart:       parseChartImages,
 		copyToImageList:   parseRawImageList,
 		copyToApplication: parseApplicationImages,
-		ExtraImageList:    buildExtraImageList,
 	}
 }
 
@@ -293,17 +291,6 @@ func parseRawImageList(srcPath string) ([]string, error) {
 		return nil, nil
 	}
 
-	images, err := osi.NewFileReader(imageListFilePath).ReadLines()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file content %s:%v", imageListFilePath, err)
-	}
-	return FormatImages(images), nil
-}
-
-func buildExtraImageList(imageListFilePath string) ([]string, error) {
-	if !osi.IsFileExist(imageListFilePath) {
-		return nil, fmt.Errorf("failed to found file:%s", imageListFilePath)
-	}
 	images, err := osi.NewFileReader(imageListFilePath).ReadLines()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file content %s:%v", imageListFilePath, err)
