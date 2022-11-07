@@ -58,8 +58,6 @@ func ConstructClusterForRun(imageName string, runFlags *types.Flags) (*v2.Cluste
 }
 
 func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, joinMasters, joinWorkers []net.IP) error {
-	// merge custom Env to the existed cluster
-	cluster.Spec.Env = append(cluster.Spec.Env, scaleFlags.CustomEnv...)
 	//todo Add password encryption mode in the future
 	//add joined masters
 	if len(joinMasters) != 0 {
@@ -128,6 +126,7 @@ func constructHost(role string, joinIPs []net.IP, scaleFlags *types.Flags, clust
 	host := v2.Host{
 		IPS:   joinIPs,
 		Roles: []string{role},
+		Env:   scaleFlags.CustomEnv,
 	}
 
 	scaleFlagSSH := v1.SSH{
