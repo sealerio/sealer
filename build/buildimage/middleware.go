@@ -27,10 +27,6 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
-var (
-	imageListWithAuth = "imageListWithAuth.yaml"
-)
-
 type ImageSection struct {
 	Registry string   `json:"registry,omitempty"`
 	Username string   `json:"username,omitempty"`
@@ -43,10 +39,17 @@ type MiddlewarePuller struct {
 	platform v1.Platform
 }
 
-func (m MiddlewarePuller) Process(context, rootfs string) error {
-	//read the filePath named "imageListWithAuth.yaml" if not exists just return;
+func NewMiddlewarePuller(platform v1.Platform) MiddlewarePuller {
+	return MiddlewarePuller{
+		platform: platform,
+		puller:   save.DefaultImageSaver{},
+	}
+}
+
+func (m MiddlewarePuller) Pull(imageListWithAuth, rootfs string) error {
+	//read the filePath if not exists just return;
 	//pares the images and save to rootfs
-	filePath := filepath.Join(context, imageListWithAuth)
+	filePath := imageListWithAuth
 	if !osi.IsFileExist(filePath) {
 		return nil
 	}
