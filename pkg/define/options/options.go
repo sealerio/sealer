@@ -176,9 +176,13 @@ type ManifestDeleteOpts struct {
 }
 
 type ManifestAddOpts struct {
-	Os, Arch, Variant, OsVersion string
-	OsFeatures, Annotations      []string
-	All                          bool
+	Os          string
+	Arch        string
+	Variant     string
+	OsVersion   string
+	OsFeatures  []string
+	Annotations []string
+	All         bool
 }
 
 type ManifestRemoveOpts struct {

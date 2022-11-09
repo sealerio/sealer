@@ -16,14 +16,13 @@ package buildah
 
 import (
 	"fmt"
-
 	"os"
-
-	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sirupsen/logrus"
 )
 
 func (engine *Engine) RemoveContainer(opts *options.RemoveContainerOptions) error {
@@ -49,7 +48,7 @@ func (engine *Engine) RemoveContainer(opts *options.RemoveContainerOptions) erro
 				lastError = util.WriteError(os.Stderr, errors.Wrapf(err, "%s %q", delContainerErrStr, builder.Container), lastError)
 				continue
 			}
-			fmt.Printf("%s\n", id)
+			logrus.Infof("%s\n", id)
 		}
 	} else {
 		for _, name := range opts.ContainerNamesOrIDs {
@@ -63,7 +62,7 @@ func (engine *Engine) RemoveContainer(opts *options.RemoveContainerOptions) erro
 				lastError = util.WriteError(os.Stderr, errors.Wrapf(err, "%s %q", delContainerErrStr, name), lastError)
 				continue
 			}
-			fmt.Printf("%s\n", id)
+			logrus.Infof("%s\n", id)
 		}
 	}
 	return lastError

@@ -339,7 +339,7 @@ func getKubefiles(files []string) []string {
 func (engine *Engine) migrateFlags2Wrapper(opts *options.BuildOptions, wrapper *buildFlagsWrapper) error {
 	flags := engine.Flags()
 	// imageengine cache related flags
-	// cache is enabled when "layers" is true & "no-cache" is false
+	// cache intermediate layers during build, it is enabled when len(opts.Platforms) <= 1 and "no-cache" is false
 	wrapper.Layers = len(opts.Platforms) <= 1 && !opts.NoCache
 	wrapper.NoCache = opts.NoCache
 	// tags. Like -t kubernetes:v1.16

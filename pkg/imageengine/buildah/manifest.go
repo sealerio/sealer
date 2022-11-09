@@ -54,7 +54,7 @@ func (engine *Engine) CreateManifest(name string, opts *options.ManifestCreateOp
 
 	imageID, err := list.SaveToImage(store, "", names, manifest.DockerV2ListMediaType)
 	if err == nil {
-		fmt.Printf("%s\n", imageID)
+		logrus.Infof("%s\n", imageID)
 	}
 
 	return err
@@ -69,12 +69,12 @@ func (engine *Engine) DeleteManifests(names []string, opts *options.ManifestDele
 	})
 	for _, r := range rmiReports {
 		for _, u := range r.Untagged {
-			fmt.Printf("untagged: %s\n", u)
+			logrus.Infof("untagged: %s\n", u)
 		}
 	}
 	for _, r := range rmiReports {
 		if r.Removed {
-			fmt.Printf("%s\n", r.ID)
+			logrus.Infof("%s\n", r.ID)
 		}
 	}
 
@@ -91,7 +91,7 @@ func (engine *Engine) InspectManifest(name string, opts *options.ManifestInspect
 			return fmt.Errorf("rendering manifest for display: %w", err)
 		}
 
-		fmt.Printf("%s\n", b.String())
+		logrus.Infof("%s\n", b.String())
 		return nil
 	}
 
@@ -332,7 +332,7 @@ func (engine *Engine) AddToManifest(name, imageSpec string, opts *options.Manife
 
 	updatedListID, err := list.SaveToImage(store, manifestList.ID(), nil, "")
 	if err == nil {
-		fmt.Printf("%s: %s\n", updatedListID, digestID.String())
+		logrus.Infof("%s: %s\n", updatedListID, digestID.String())
 	}
 
 	return err
@@ -350,7 +350,7 @@ func (engine *Engine) RemoveFromManifest(name string, instanceDigest digest.Dige
 		return err
 	}
 
-	fmt.Printf("%s: %s\n", manifestList.ID(), instanceDigest.String())
+	logrus.Infof("%s: %s\n", manifestList.ID(), instanceDigest.String())
 
 	return nil
 }

@@ -18,8 +18,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/sealerio/sealer/pkg/define/options"
-
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/util"
@@ -27,7 +25,9 @@ import (
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
 )
 
@@ -66,19 +66,9 @@ func (engine *Engine) Commit(opts *options.CommitOptions) (string, error) {
 	// no transport is specified.
 	// TODO we support commit to local image only, we'd better limit the input of name
 	if image != "" {
-		if dest, err = alltransports.ParseImageName(image); err != nil {
-			candidates, err := shortnames.ResolveLocally(systemCxt, image)
-			if err != nil {
-				return "", err
-			}
-			if len(candidates) == 0 {
-				return "", errors.Errorf("no candidate tags for target image name %q", image)
-			}
-			dest2, err2 := storageTransport.Transport.ParseStoreReference(store, candidates[0].String())
-			if err2 != nil {
-				return "", errors.Wrapf(err, "error parsing target image name %q", image)
-			}
-			dest = dest2
+		dest, err = getImageReference(image, store, systemCxt)
+		if err != nil {
+			return "", err
 		}
 	}
 
@@ -115,4 +105,25 @@ func (engine *Engine) Commit(opts *options.CommitOptions) (string, error) {
 		return id, builder.Delete()
 	}
 	return id, nil
+}
+
+func getImageReference(image string, store storage.Store, systemCxt *types.SystemContext) (types.ImageReference, error) {
+	dest, err := alltransports.ParseImageName(image)
+	if err == nil {
+		return dest, nil
+	}
+
+	candidates, err := shortnames.ResolveLocally(systemCxt, image)
+	if err != nil {
+		return nil, err
+	}
+	if len(candidates) == 0 {
+		return nil, errors.Errorf("no candidate tags for target image name %q", image)
+	}
+	dest, err = storageTransport.Transport.ParseStoreReference(store, candidates[0].String())
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing target image name %q", image)
+	}
+
+	return dest, nil
 }
