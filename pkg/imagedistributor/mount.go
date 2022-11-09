@@ -98,7 +98,6 @@ func (c ImagerMounter) Mount(imageName string) ([]ClusterImageMountInfo, error) 
 		if err != nil {
 			return nil, fmt.Errorf("failed to mount image with platform %s:%v", platform.ToString(), err)
 		}
-
 		imageMountInfos = append(imageMountInfos, ClusterImageMountInfo{
 			Hosts:    hosts,
 			Platform: platform,

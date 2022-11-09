@@ -17,6 +17,8 @@ package buildah
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah"
@@ -79,7 +81,7 @@ func (engine *Engine) Copy(opts *options.CopyOptions) error {
 
 	contentType, digest := builder.ContentDigester.Digest()
 	if !opts.Quiet {
-		fmt.Printf("%s\n", digest.Hex())
+		logrus.Infof("%s", digest.Hex())
 	}
 	if contentType != "" {
 		contentType = contentType + ":"

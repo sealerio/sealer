@@ -15,6 +15,8 @@
 package imageengine
 
 import (
+	"github.com/containers/common/libimage"
+	"github.com/opencontainers/go-digest"
 	v1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 )
@@ -30,7 +32,7 @@ type Interface interface {
 
 	Copy(opts *options.CopyOptions) error
 
-	Commit(opts *options.CommitOptions) error
+	Commit(opts *options.CommitOptions) (string, error)
 
 	Login(opts *options.LoginOptions) error
 
@@ -57,4 +59,18 @@ type Interface interface {
 	Tag(opts *options.TagOptions) error
 
 	GetSealerImageExtension(opts *options.GetImageAnnoOptions) (v1.ImageExtension, error)
+
+	LookupManifest(name string) (*libimage.ManifestList, error)
+
+	CreateManifest(name string, opts *options.ManifestCreateOpts) error
+
+	DeleteManifests(names []string, opts *options.ManifestDeleteOpts) error
+
+	InspectManifest(name string, opts *options.ManifestInspectOpts) error
+
+	PushManifest(name, destSpec string, opts *options.PushOptions) error
+
+	AddToManifest(name, imageSpec string, opts *options.ManifestAddOpts) error
+
+	RemoveFromManifest(name string, instanceDigest digest.Digest, opts *options.ManifestRemoveOpts) error
 }

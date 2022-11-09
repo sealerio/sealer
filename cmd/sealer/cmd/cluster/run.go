@@ -223,7 +223,8 @@ func NewRunCmd() *cobra.Command {
 
 func loadPluginsFromImage(imageMountInfo []imagedistributor.ClusterImageMountInfo) (plugins []v1.Plugin, err error) {
 	for _, info := range imageMountInfo {
-		if info.Platform.ToString() == platform.GetDefaultPlatform().ToString() {
+		defaultPlatform := platform.GetDefaultPlatform()
+		if info.Platform.ToString() == defaultPlatform.ToString() {
 			plugins, err = clusterruntime.LoadPluginsFromFile(filepath.Join(info.MountDir, "plugins"))
 			if err != nil {
 				return

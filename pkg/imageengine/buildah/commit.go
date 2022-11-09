@@ -18,8 +18,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/sealerio/sealer/pkg/define/options"
-
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/util"
@@ -27,21 +25,24 @@ import (
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
 )
 
-func (engine *Engine) Commit(opts *options.CommitOptions) error {
+func (engine *Engine) Commit(opts *options.CommitOptions) (string, error) {
 	var dest types.ImageReference
 	if len(opts.ContainerID) == 0 {
-		return errors.Errorf("container ID must be specified")
+		return "", errors.Errorf("container ID must be specified")
 	}
-	if len(opts.Image) == 0 {
-		return errors.Errorf("image name should be specified")
+	if len(opts.Image) == 0 && len(opts.Manifest) == 0 {
+		return "", errors.Errorf("image name should be specified")
 	}
 
 	name := opts.ContainerID
 	image := opts.Image
+	manifest := opts.Manifest
 	compress := define.Gzip
 	if opts.DisableCompression {
 		compress = define.Uncompressed
@@ -49,14 +50,14 @@ func (engine *Engine) Commit(opts *options.CommitOptions) error {
 
 	format, err := getImageType(opts.Format)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	ctx := getContext()
 	store := engine.ImageStore()
 	builder, err := openBuilder(ctx, store, name)
 	if err != nil {
-		return errors.Wrapf(err, "error reading build container %q", name)
+		return "", errors.Wrapf(err, "error reading build container %q", name)
 	}
 
 	systemCxt := engine.SystemContext()
@@ -64,24 +65,16 @@ func (engine *Engine) Commit(opts *options.CommitOptions) error {
 	// If the user specified an image, we may need to massage it a bit if
 	// no transport is specified.
 	// TODO we support commit to local image only, we'd better limit the input of name
-	if dest, err = alltransports.ParseImageName(image); err != nil {
-		candidates, err := shortnames.ResolveLocally(systemCxt, image)
+	if image != "" {
+		dest, err = getImageReference(image, store, systemCxt)
 		if err != nil {
-			return err
+			return "", err
 		}
-		if len(candidates) == 0 {
-			return errors.Errorf("no candidate tags for target image name %q", image)
-		}
-		dest2, err2 := storageTransport.Transport.ParseStoreReference(store, candidates[0].String())
-		if err2 != nil {
-			return errors.Wrapf(err, "error parsing target image name %q", image)
-		}
-		dest = dest2
 	}
 
 	options := buildah.CommitOptions{
 		PreferredManifestType: format,
-		Manifest:              opts.Manifest,
+		Manifest:              manifest,
 		Compression:           compress,
 		SystemContext:         systemCxt,
 		Squash:                opts.Squash,
@@ -96,7 +89,7 @@ func (engine *Engine) Commit(opts *options.CommitOptions) error {
 	}
 	id, ref, _, err := builder.Commit(ctx, dest, options)
 	if err != nil {
-		return util.GetFailureCause(err, errors.Wrapf(err, "error committing container %q to %q", builder.Container, image))
+		return "", util.GetFailureCause(err, errors.Wrapf(err, "error committing container %q to %q", builder.Container, image))
 	}
 	if ref != nil && id != "" {
 		logrus.Debugf("wrote image %s with ID %s", ref, id)
@@ -109,7 +102,28 @@ func (engine *Engine) Commit(opts *options.CommitOptions) error {
 	}
 
 	if opts.Rm {
-		return builder.Delete()
+		return id, builder.Delete()
 	}
-	return nil
+	return id, nil
+}
+
+func getImageReference(image string, store storage.Store, systemCxt *types.SystemContext) (types.ImageReference, error) {
+	dest, err := alltransports.ParseImageName(image)
+	if err == nil {
+		return dest, nil
+	}
+
+	candidates, err := shortnames.ResolveLocally(systemCxt, image)
+	if err != nil {
+		return nil, err
+	}
+	if len(candidates) == 0 {
+		return nil, errors.Errorf("no candidate tags for target image name %q", image)
+	}
+	dest, err = storageTransport.Transport.ParseStoreReference(store, candidates[0].String())
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing target image name %q", image)
+	}
+
+	return dest, nil
 }

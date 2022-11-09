@@ -15,22 +15,21 @@
 package buildah
 
 import (
-	"github.com/containers/buildah"
-	"github.com/containers/buildah/define"
-
-	"github.com/sealerio/sealer/pkg/define/options"
-
+	"fmt"
 	"os"
 	"strings"
 
+	"github.com/containers/buildah"
+	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
-	"github.com/containers/storage"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,10 +43,11 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 	}
 
 	src, destSpec := opts.Image, opts.Image
+	if len(opts.Destination) != 0 {
+		destSpec = opts.Destination
+	}
 	compress := define.Gzip
-
 	store := engine.ImageStore()
-
 	dest, err := alltransports.ParseImageName(destSpec)
 	// add the docker:// transport to see if they neglected it.
 	if err != nil {
@@ -67,6 +67,27 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 		}
 		dest = dest2
 		logrus.Debugf("Assuming docker:// as the transport method for DESTINATION: %s", destSpec)
+	}
+
+	img, _, err := engine.ImageRuntime().LookupImage(src, &libimage.LookupImageOptions{
+		ManifestList: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	isManifest, err := img.IsManifestList(getContext())
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("AAAAA", src, dest, isManifest)
+
+	if isManifest {
+		if manifestsErr := engine.PushManifest(src, destSpec, opts); manifestsErr == nil {
+			return nil
+		}
+		return util.GetFailureCause(err, errors.Wrapf(err, "error pushing image %q to %q", src, destSpec))
 	}
 
 	var manifestType string
@@ -94,15 +115,9 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 	if !opts.Quiet {
 		options.ReportWriter = os.Stderr
 	}
-
+	fmt.Printf("AAAAAA push options %+v\n", options)
 	ref, digest, err := buildah.Push(getContext(), src, dest, options)
 	if err != nil {
-		if errors.Cause(err) != storage.ErrImageUnknown {
-			// Image might be a manifest so attempt a manifest push
-			if manifestsErr := manifestPush(systemCxt, store, src, destSpec, *opts); manifestsErr == nil {
-				return nil
-			}
-		}
 		return util.GetFailureCause(err, errors.Wrapf(err, "error pushing image %q to %q", src, destSpec))
 	}
 	if ref != nil {

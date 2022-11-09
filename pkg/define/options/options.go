@@ -17,16 +17,19 @@ package options
 // BuildOptions should be out of buildah scope.
 type BuildOptions struct {
 	Kubefile          string
-	Tags              []string
-	NoCache           bool
-	Base              bool
-	BuildArgs         []string
-	Platform          string
 	ContextDir        string
 	PullPolicy        string
+	ImageType         string
+	Manifest          string
+	Tag               string
+	BuildArgs         []string
+	Platforms         []string
 	Labels            []string
 	Annotations       []string
-	ImageType         string
+	NoCache           bool
+	Base              bool
+	Tags              []string
+	Platform          string
 	ImageList         string
 	ImageListWithAuth string
 }
@@ -82,14 +85,15 @@ type LogoutOptions struct {
 }
 
 type PushOptions struct {
-	Authfile  string
-	CertDir   string
-	Format    string
-	Rm        bool
-	Quiet     bool
-	TLSVerify bool
-	Image     string
-	All       bool
+	Authfile    string
+	CertDir     string
+	Format      string
+	Image       string
+	Destination string
+	Rm          bool
+	Quiet       bool
+	TLSVerify   bool
+	All         bool
 }
 
 type PullOptions struct {
@@ -160,4 +164,26 @@ type RemoveContainerOptions struct {
 type TagOptions struct {
 	ImageNameOrID string
 	Tags          []string
+}
+
+type ManifestCreateOpts struct {
+}
+
+type ManifestInspectOpts struct {
+}
+
+type ManifestDeleteOpts struct {
+}
+
+type ManifestAddOpts struct {
+	Os          string
+	Arch        string
+	Variant     string
+	OsVersion   string
+	OsFeatures  []string
+	Annotations []string
+	All         bool
+}
+
+type ManifestRemoveOpts struct {
 }
