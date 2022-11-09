@@ -17,11 +17,9 @@ package alpha
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/common"
-
 	"github.com/sealerio/sealer/pkg/debug"
+	"github.com/spf13/cobra"
 )
 
 // NewDebugCmd returns the sealer debug Cobra command

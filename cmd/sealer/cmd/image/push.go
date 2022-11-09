@@ -15,14 +15,19 @@
 package image
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/auth"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/spf13/cobra"
 )
 
 var pushOpts *options.PushOptions
+
+var longNewPushCmdDescription = ``
+
+var exampleForPushCmd = `
+  sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest
+`
 
 // NewPushCmd pushCmd represents the push command
 func NewPushCmd() *cobra.Command {
@@ -30,8 +35,8 @@ func NewPushCmd() *cobra.Command {
 		Use:   "push",
 		Short: "push ClusterImage to remote registry",
 		// TODO: add long description.
-		Long:    "",
-		Example: `sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest`,
+		Long:    longNewPushCmdDescription,
+		Example: exampleForPushCmd,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})

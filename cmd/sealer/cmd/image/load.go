@@ -18,22 +18,26 @@ import (
 	"os"
 
 	"github.com/sealerio/sealer/pkg/define/options"
-
+	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/pkg/imageengine"
 )
 
 var loadOpts *options.LoadOptions
+
+var longNewLoadCmdDescription = `Load a ClusterImage from a tar archive`
+
+var exampleForLoadCmd = `
+  sealer load -i kubernetes.tar
+`
 
 // NewLoadCmd loadCmd represents the load command
 func NewLoadCmd() *cobra.Command {
 	loadCmd := &cobra.Command{
 		Use:     "load",
 		Short:   "load a ClusterImage from a tar file",
-		Long:    `Load a ClusterImage from a tar archive`,
-		Example: `sealer load -i kubernetes.tar`,
+		Long:    longNewLoadCmdDescription,
+		Example: exampleForLoadCmd,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})

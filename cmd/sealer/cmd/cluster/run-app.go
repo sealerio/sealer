@@ -36,13 +36,14 @@ import (
 )
 
 var appFlags *types.APPFlags
+var longNewRunAPPCmdDescription = `sealer run-app localhost/nginx:v1`
 var exampleForRunAppCmd = ``
 
 func NewRunAPPCmd() *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:     "run-app",
 		Short:   "start to run an application cluster image",
-		Long:    `sealer run-app localhost/nginx:v1`,
+		Long:    longNewRunAPPCmdDescription,
 		Example: exampleForRunAppCmd,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

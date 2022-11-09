@@ -15,21 +15,26 @@
 package image
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/spf13/cobra"
 )
 
 var logoutConfig *options.LogoutOptions
+
+var longNewLogoutCmdDescription = ``
+
+var exampleForLogoutCmd = `
+  sealer logout registry.cn-qingdao.aliyuncs.com
+`
 
 func NewLogoutCmd() *cobra.Command {
 	logoutCmd := &cobra.Command{
 		Use:   "logout",
 		Short: "logout from image registry",
 		// TODO: add long description.
-		Long:    "",
-		Example: `sealer logout registry.cn-qingdao.aliyuncs.com`,
+		Long:    longNewLogoutCmdDescription,
+		Example: exampleForLogoutCmd,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			adaptor, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
