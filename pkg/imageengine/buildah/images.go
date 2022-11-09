@@ -159,7 +159,7 @@ func formatImagesJSON(images []*libimage.Image, opts imageOptions) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("%s\n", data)
+	logrus.Infof("%s", data)
 	return nil
 }
 

@@ -48,7 +48,7 @@ func (engine *Engine) RemoveContainer(opts *options.RemoveContainerOptions) erro
 				lastError = util.WriteError(os.Stderr, errors.Wrapf(err, "%s %q", delContainerErrStr, builder.Container), lastError)
 				continue
 			}
-			logrus.Infof("%s\n", id)
+			logrus.Infof("%s", id)
 		}
 	} else {
 		for _, name := range opts.ContainerNamesOrIDs {
@@ -62,7 +62,7 @@ func (engine *Engine) RemoveContainer(opts *options.RemoveContainerOptions) erro
 				lastError = util.WriteError(os.Stderr, errors.Wrapf(err, "%s %q", delContainerErrStr, name), lastError)
 				continue
 			}
-			logrus.Infof("%s\n", id)
+			logrus.Infof("%s", id)
 		}
 	}
 	return lastError

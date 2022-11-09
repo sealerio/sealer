@@ -54,7 +54,7 @@ func (engine *Engine) CreateManifest(name string, opts *options.ManifestCreateOp
 
 	imageID, err := list.SaveToImage(store, "", names, manifest.DockerV2ListMediaType)
 	if err == nil {
-		logrus.Infof("%s\n", imageID)
+		logrus.Infof("%s", imageID)
 	}
 
 	return err
@@ -69,12 +69,12 @@ func (engine *Engine) DeleteManifests(names []string, opts *options.ManifestDele
 	})
 	for _, r := range rmiReports {
 		for _, u := range r.Untagged {
-			logrus.Infof("untagged: %s\n", u)
+			logrus.Infof("untagged: %s", u)
 		}
 	}
 	for _, r := range rmiReports {
 		if r.Removed {
-			logrus.Infof("%s\n", r.ID)
+			logrus.Infof("%s", r.ID)
 		}
 	}
 
@@ -91,7 +91,7 @@ func (engine *Engine) InspectManifest(name string, opts *options.ManifestInspect
 			return fmt.Errorf("rendering manifest for display: %w", err)
 		}
 
-		logrus.Infof("%s\n", b.String())
+		logrus.Infof("%s", b.String())
 		return nil
 	}
 
@@ -226,7 +226,7 @@ func (engine *Engine) PushManifest(name, destSpec string, opts *options.PushOpti
 			return fmt.Errorf("unknown format %q. Choose on of the supported formats: 'oci' or 'v2s2'", opts.Format)
 		}
 	}
-
+	fmt.Printf("AAAAAA PushOptions %+v\n", opts)
 	pushOptions := manifests.PushOptions{
 		Store:              store,
 		SystemContext:      systemCxt,
@@ -332,7 +332,7 @@ func (engine *Engine) AddToManifest(name, imageSpec string, opts *options.Manife
 
 	updatedListID, err := list.SaveToImage(store, manifestList.ID(), nil, "")
 	if err == nil {
-		logrus.Infof("%s: %s\n", updatedListID, digestID.String())
+		logrus.Infof("%s: %s", updatedListID, digestID.String())
 	}
 
 	return err
@@ -350,7 +350,7 @@ func (engine *Engine) RemoveFromManifest(name string, instanceDigest digest.Dige
 		return err
 	}
 
-	logrus.Infof("%s: %s\n", manifestList.ID(), instanceDigest.String())
+	logrus.Infof("%s: %s", manifestList.ID(), instanceDigest.String())
 
 	return nil
 }

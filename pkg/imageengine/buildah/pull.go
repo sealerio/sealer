@@ -76,6 +76,6 @@ func (engine *Engine) Pull(opts *options.PullOptions) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("%s\n", id)
+	logrus.Infof("%s", id)
 	return nil
 }

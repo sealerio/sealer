@@ -45,12 +45,12 @@ func (engine *Engine) RemoveImage(opts *options.RemoveImageOptions) error {
 	rmiReports, rmiErrors := engine.ImageRuntime().RemoveImages(context.Background(), opts.ImageNamesOrIDs, options)
 	for _, r := range rmiReports {
 		for _, u := range r.Untagged {
-			logrus.Infof("untagged: %s\n", u)
+			logrus.Infof("untagged: %s", u)
 		}
 	}
 	for _, r := range rmiReports {
 		if r.Removed {
-			logrus.Infof("%s\n", r.ID)
+			logrus.Infof("%s", r.ID)
 		}
 	}
 
@@ -63,12 +63,12 @@ func (engine *Engine) RemoveImage(opts *options.RemoveImageOptions) error {
 	rmiReports, rmiErrors2 := engine.ImageRuntime().RemoveImages(context.Background(), opts.ImageNamesOrIDs, options)
 	for _, r := range rmiReports {
 		for _, u := range r.Untagged {
-			logrus.Infof("untagged: %s\n", u)
+			logrus.Infof("untagged: %s", u)
 		}
 	}
 	for _, r := range rmiReports {
 		if r.Removed {
-			logrus.Infof("%s\n", r.ID)
+			logrus.Infof("%s", r.ID)
 		}
 	}
 

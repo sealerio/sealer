@@ -81,7 +81,7 @@ func (engine *Engine) Copy(opts *options.CopyOptions) error {
 
 	contentType, digest := builder.ContentDigester.Digest()
 	if !opts.Quiet {
-		logrus.Infof("%s\n", digest.Hex())
+		logrus.Infof("%s", digest.Hex())
 	}
 	if contentType != "" {
 		contentType = contentType + ":"

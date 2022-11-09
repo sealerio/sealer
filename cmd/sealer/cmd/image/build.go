@@ -58,9 +58,7 @@ build with image type:
   sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default) .
   app-installer type image will not install kubernetes.
 build multi-platform image:
-	sealer build -f Kubefile --manifest my-kubernetes:1.19.8 --platform linux/amd64,linux/arm64
-build image and commit to manifest:
-	sealer build -f Kubefile --manifest my-kubernetes:1.19.8 --platform linux/amd64
+	sealer build -f Kubefile -t my-kubernetes:1.19.8 --platform linux/amd64,linux/arm64
 `
 
 // NewBuildCmd buildCmd represents the build command
@@ -72,14 +70,8 @@ func NewBuildCmd() *cobra.Command {
 		Args:    cobra.MaximumNArgs(1),
 		Example: exampleNewBuildCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(buildFlags.Tag) == 0 && len(buildFlags.Manifest) == 0 {
-				return errors.New("--manifest or --tag should be specified")
-			}
-			if buildFlags.Tag == buildFlags.Manifest {
-				return errors.New("--manifest and --tag should not be equal")
-			}
-			if len(buildFlags.Platforms) > 1 && len(buildFlags.Tag) > 0 {
-				return errors.New("--tag should not be specified when building multi-platform image, you should specify --manifest")
+			if len(buildFlags.Tag) == 0 {
+				return errors.New("--tag should be specified")
 			}
 
 			if len(args) > 0 {
@@ -89,7 +81,6 @@ func NewBuildCmd() *cobra.Command {
 		},
 	}
 	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
-	buildCmd.Flags().StringVarP(&buildFlags.Manifest, "manifest", "m", "", "specify a manifest for image to add")
 	buildCmd.Flags().StringVarP(&buildFlags.Tag, "tag", "t", "", "specify a name for ClusterImage")
 	//todo we can support imageList Flag to download extra container image rather than copy it to rootfs
 	buildCmd.Flags().StringVar(&buildFlags.ImageList, "image-list", "filepath", "`pathname` of imageList filepath, if set, sealer will read its content and download extra container")
@@ -145,27 +136,19 @@ func buildSealerImage() error {
 	}
 
 	var (
-		tag          = buildFlags.Tag
-		manifest     = buildFlags.Manifest
-		randomStr    = getRandomString(8)
-		tempTag      = tag + randomStr
-		tempManifest = manifest + randomStr
+		repoTag   = buildFlags.Tag
+		randomStr = getRandomString(8)
+		// use temp tag to do temp image build, because after build,
+		// we need to download some container data loaded from rootfs to it.
+		tempTag = repoTag + randomStr
 	)
 
-	// add images to manifest
-	// this may lead to create a manifest, or just add them to the existing manifest
 	isMultiPlatform := len(buildFlags.Platforms) > 1
 	if isMultiPlatform {
-		buildFlags.Manifest = tempManifest
+		buildFlags.Manifest = tempTag
 		buildFlags.Tag = ""
 	} else {
-		// for normal building, tag and manifest could be specified meanwhile
-		if len(tag) != 0 {
-			buildFlags.Tag = tempTag
-		}
-		if len(manifest) != 0 {
-			buildFlags.Manifest = tempManifest
-		}
+		buildFlags.Tag = tempTag
 	}
 
 	// add annotations to image. Store some sealer specific information
@@ -177,7 +160,7 @@ func buildSealerImage() error {
 	}
 
 	defer func() {
-		for _, m := range []string{tempTag, tempManifest} {
+		for _, m := range []string{tempTag} {
 			// the above image is intermediate image, we need to remove it when the build ends.
 			if err := engine.RemoveImage(&bc.RemoveImageOptions{
 				ImageNamesOrIDs: []string{m},
@@ -188,48 +171,58 @@ func buildSealerImage() error {
 		}
 	}()
 
-	type platformedImage struct {
-		platform      v1.Platform
-		imageNameOrID string
+	if isMultiPlatform {
+		return commitMultiPlatformImage(tempTag, repoTag, engine)
 	}
-	platformedImages := []platformedImage{}
 
-	if len(manifest) == 0 {
-		_os, arch, variant, err := parse.Platform(buildFlags.Platforms[0])
+	return commitSingleImage(iid, repoTag, engine)
+}
+
+type platformedImage struct {
+	platform      v1.Platform
+	imageNameOrID string
+}
+
+func commitMultiPlatformImage(tempTag, manifest string, engine imageengine.Interface) error {
+	var platformedImages []platformedImage
+	manifestList, err := engine.LookupManifest(tempTag)
+	if err != nil {
+		return errors.Wrap(err, "failed to lookup manifest")
+	}
+
+	for _, p := range buildFlags.Platforms {
+		_os, arch, variant, err := parse.Platform(p)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse platform")
 		}
 
-		platformedImages = append(platformedImages,
-			platformedImage{imageNameOrID: iid,
-				platform: v1.Platform{OS: _os, Architecture: arch, Variant: variant}})
-	} else {
-		manifestList, err := engine.LookupManifest(buildFlags.Manifest)
+		img, err := manifestList.LookupInstance(context.TODO(), arch, _os, variant)
 		if err != nil {
-			return errors.Wrap(err, "failed to lookup manifest")
+			return err
 		}
 
-		for _, p := range buildFlags.Platforms {
-			_os, arch, variant, err := parse.Platform(p)
-			if err != nil {
-				return errors.Wrap(err, "failed to parse platform")
-			}
-
-			img, err := manifestList.LookupInstance(context.TODO(), arch, _os, variant)
-			if err != nil {
-				return err
-			}
-
-			platformedImages = append(platformedImages,
-				platformedImage{imageNameOrID: img.ID(),
-					platform: v1.Platform{OS: _os, Architecture: arch, Variant: variant}})
-		}
+		platformedImages = append(platformedImages,
+			platformedImage{imageNameOrID: img.ID(),
+				platform: v1.Platform{OS: _os, Architecture: arch, Variant: variant}})
 	}
 
 	for _, pi := range platformedImages {
-		if err := applyRegistryToImage(pi.imageNameOrID, tag, manifest, pi.platform, engine); err != nil {
+		if err := applyRegistryToImage(pi.imageNameOrID, "", manifest, pi.platform, engine); err != nil {
 			return errors.Wrap(err, "error in apply registry data into image")
 		}
+	}
+
+	return nil
+}
+
+func commitSingleImage(iid string, tag string, engine imageengine.Interface) error {
+	_os, arch, variant, err := parse.Platform(buildFlags.Platforms[0])
+	if err != nil {
+		return errors.Wrap(err, "failed to parse platform")
+	}
+
+	if err := applyRegistryToImage(iid, tag, "", v1.Platform{OS: _os, Architecture: arch, Variant: variant}, engine); err != nil {
+		return errors.Wrap(err, "error in apply registry data into image")
 	}
 
 	return nil
