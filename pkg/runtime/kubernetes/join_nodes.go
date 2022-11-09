@@ -122,6 +122,8 @@ func (k *Runtime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 
 	cmd := fmt.Sprintf(RemoteAddRoute, k.getAPIServerVIP(), node)
 	output, err := k.infra.Cmd(node, cmd)
-
-	return utils.WrapExecResult(node, cmd, output, err)
+	if err != nil {
+		return utils.WrapExecResult(node, cmd, output, err)
+	}
+	return nil
 }
