@@ -226,7 +226,6 @@ func (engine *Engine) PushManifest(name, destSpec string, opts *options.PushOpti
 			return fmt.Errorf("unknown format %q. Choose on of the supported formats: 'oci' or 'v2s2'", opts.Format)
 		}
 	}
-	fmt.Printf("AAAAAA PushOptions %+v\n", opts)
 	pushOptions := manifests.PushOptions{
 		Store:              store,
 		SystemContext:      systemCxt,

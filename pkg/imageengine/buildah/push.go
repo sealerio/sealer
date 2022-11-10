@@ -115,7 +115,6 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 	if !opts.Quiet {
 		options.ReportWriter = os.Stderr
 	}
-	fmt.Printf("AAAAAA push options %+v\n", options)
 	ref, digest, err := buildah.Push(getContext(), src, dest, options)
 	if err != nil {
 		return util.GetFailureCause(err, errors.Wrapf(err, "error pushing image %q to %q", src, destSpec))
