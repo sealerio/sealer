@@ -59,7 +59,7 @@ func (s *scpDistributor) DistributeRegistry(deployHost net.IP, dataDir string) e
 	return nil
 }
 
-func (s *scpDistributor) DistributeRootfs(hosts []net.IP, rootfsPath string) error {
+func (s *scpDistributor) Distribute(hosts []net.IP, dest string) error {
 	for _, info := range s.imageMountInfo {
 		if err := s.dumpConfigToRootfs(info.MountDir); err != nil {
 			return err
@@ -75,7 +75,7 @@ func (s *scpDistributor) DistributeRootfs(hosts []net.IP, rootfsPath string) err
 		}
 
 		for _, target := range targetDirs {
-			err = s.copyRootfs(target, filepath.Join(rootfsPath, filepath.Base(target)), info.Hosts)
+			err = s.copyRootfs(target, filepath.Join(dest, filepath.Base(target)), info.Hosts)
 			if err != nil {
 				return err
 			}
