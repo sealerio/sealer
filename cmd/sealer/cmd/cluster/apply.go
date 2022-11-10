@@ -37,6 +37,7 @@ import (
 )
 
 var applyClusterFile string
+var skipApp bool
 
 const MasterRoleLabel = "node-role.kubernetes.io/master"
 
@@ -95,7 +96,7 @@ func NewApplyCmd() *cobra.Command {
 			if client == nil {
 				// no k8s client means to init a new cluster.
 				logrus.Infof("start to create new cluster with image: %s", imageName)
-				return createNewCluster(imageName, infraDriver, imageEngine, cf)
+				return createNewCluster(imageName, infraDriver, imageEngine, cf, skipApp)
 			}
 
 			if err := installApplication(imageName, []string{}, cf.GetConfigs(), desiredCluster.Spec.Env); err == nil {
@@ -130,10 +131,11 @@ func NewApplyCmd() *cobra.Command {
 	}
 	applyCmd.Flags().BoolVar(&ForceDelete, "force", false, "force to delete the specified cluster if set true")
 	applyCmd.Flags().StringVarP(&applyClusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
+	applyCmd.Flags().BoolVar(&skipApp, "skip-app", false, "if true, will skip install app, default is false")
 	return applyCmd
 }
 
-func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface, skipApp bool) error {
 	if err := cf.SaveAll(); err != nil {
 		return err
 	}
@@ -180,11 +182,12 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor:       distributor,
-		ImageEngine:       imageEngine,
-		Plugins:           plugins,
-		ClusterLaunchCmds: clusterLaunchCmds,
-		ClusterImageImage: clusterImageName,
+		Distributor:            distributor,
+		ImageEngine:            imageEngine,
+		Plugins:                plugins,
+		ClusterLaunchCmds:      clusterLaunchCmds,
+		ClusterImageImage:      clusterImageName,
+		SkipInstallApplication: skipApp,
 	}
 
 	if cf.GetKubeadmConfig() != nil {

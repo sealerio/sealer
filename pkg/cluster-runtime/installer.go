@@ -43,6 +43,7 @@ type RuntimeConfig struct {
 	Plugins                []v1.Plugin
 	ClusterLaunchCmds      []string
 	ClusterImageImage      string
+	SkipInstallApplication bool
 }
 
 type Installer struct {
@@ -190,13 +191,17 @@ func (i *Installer) Install() error {
 		return err
 	}
 
-	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension, i.RegistryConfig)
+	if !i.SkipInstallApplication {
+		appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension, i.RegistryConfig)
 
-	if err = appInstaller.Launch(master0, cmds); err != nil {
-		return err
+		if err = appInstaller.Launch(master0, cmds); err != nil {
+			return err
+		}
+
+		return appInstaller.save()
 	}
 
-	return appInstaller.save()
+	return nil
 }
 
 func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) {
