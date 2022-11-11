@@ -216,7 +216,7 @@ func (k *Runtime) decodeJoinCmd(cmd string) (v1beta2.BootstrapTokenDiscovery, st
 
 // initKube do some initialize kubelet works, such as configuring the host environment, initializing the kubelet service, and so on.
 func (k *Runtime) initKube(hosts []net.IP) error {
-	initKubeletCmd := fmt.Sprintf("cd %s && bash %s", filepath.Join(k.infra.GetClusterRootfsPath(), "scripts"), "init-kube.sh")
+	initKubeletCmd := fmt.Sprintf("cd %s && export RegistryURL=%s && bash %s", filepath.Join(k.infra.GetClusterRootfsPath(), "scripts"), k.Config.RegistryInfo.URL, "init-kube.sh")
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
 		host := h

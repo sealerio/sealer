@@ -125,6 +125,7 @@ func (in *Cluster) GetIPSByRole(role string) []net.IP {
 	}
 	return hosts
 }
+
 func (in *Cluster) GetAnnotationsByKey(key string) string {
 	return in.Annotations[key]
 }

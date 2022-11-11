@@ -27,6 +27,8 @@ type InfraDriver interface {
 
 	GetHostIPListByRole(role string) []net.IP
 
+	GetRoleListByHostIP(ip string) []string
+
 	GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net.IP, error)
 
 	//GetHostEnv return merged env with host env and cluster env.

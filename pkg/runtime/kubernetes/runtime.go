@@ -110,7 +110,16 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	if err := k.dumpKubeConfigIntoCluster(masters[0]); err != nil {
+	driver, err := k.GetCurrentRuntimeDriver()
+	if err != nil {
+		return err
+	}
+
+	if err := k.setRoles(driver); err != nil {
+		return err
+	}
+
+	if err := k.dumpKubeConfigIntoCluster(driver, masters[0]); err != nil {
 		return err
 	}
 
@@ -152,6 +161,16 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 	if err = k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
 		return err
 	}
+
+	driver, err := k.GetCurrentRuntimeDriver()
+	if err != nil {
+		return err
+	}
+
+	if err := k.setRoles(driver); err != nil {
+		return err
+	}
+
 	logrus.Info("cluster scale up succeeded!")
 	return nil
 }
@@ -183,12 +202,38 @@ func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
 }
 
 // dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
-func (k *Runtime) dumpKubeConfigIntoCluster(master0 net.IP) error {
-	driver, err := k.GetCurrentRuntimeDriver()
-	if err != nil {
+func (k *Runtime) setRoles(driver runtime.Driver) error {
+	nodeList := corev1.NodeList{}
+	if err := driver.List(context.TODO(), &nodeList); err != nil {
 		return err
 	}
 
+	for _, node := range nodeList.Items {
+		addresses := node.Status.Addresses
+		for _, address := range addresses {
+			if address.Type != "InternalIP" {
+				continue
+			}
+			roles := k.infra.GetRoleListByHostIP(address.Address)
+			if len(roles) == 0 {
+				continue
+			}
+			newNode := node.DeepCopy()
+			for _, role := range roles {
+				newNode.Labels["node-role.kubernetes.io/"+role] = ""
+			}
+			patch := runtimeClient.MergeFrom(&node)
+			if err := driver.Patch(context.TODO(), newNode, patch); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
+func (k *Runtime) dumpKubeConfigIntoCluster(driver runtime.Driver, master0 net.IP) error {
 	kubeConfigContent, err := ioutil.ReadFile(AdminKubeConfPath)
 	if err != nil {
 		return err
