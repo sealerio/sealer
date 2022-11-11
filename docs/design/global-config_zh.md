@@ -88,5 +88,5 @@ CMD helm install dashboard dashboard-chart -f etc/global.yaml
 ## 开发文档
 
 1. 在apply mountRootfs之前对etc,charts,manifest目录下的文件进行模板渲染，把环境变量和annotations渲染到[配置文件中](
-   https://github.com/sealerio/sealer/blob/main/pkg/filesystem/filesystem.go#L145) 。
+   https://github.com/sealerio/sealer/blob/release-v0.8.6/pkg/filesystem/filesystem.go#L145) 。
 2. 生成global.yaml文件到etc目录下。

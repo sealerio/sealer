@@ -19,8 +19,6 @@ import (
 	"net"
 	"strings"
 
-	v1 "github.com/sealerio/sealer/types/api/v1"
-
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sirupsen/logrus"
 
@@ -65,9 +63,4 @@ func GetIpsByOnField(on string, context Context, phase Phase) (ipList []net.IP, 
 		logrus.Debugf("node not found by on field [%s]", on)
 	}
 	return ipList, nil
-}
-
-func isSamePluginSpec(p1, p2 v1.Plugin) bool {
-	return p1.Spec.Type == p2.Spec.Type && p1.Spec.On == p2.Spec.On &&
-		p1.Spec.Data == p2.Spec.Data && p1.Spec.Action == p2.Spec.Action
 }

@@ -23,15 +23,13 @@ import (
 	"plugin"
 	"strings"
 
-	"github.com/sealerio/sealer/utils"
-
-	"github.com/sealerio/sealer/utils/yaml"
-
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/platform"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sealerio/sealer/utils/yaml"
 )
 
 type InvalidPluginTypeError struct {
@@ -74,6 +72,7 @@ func (c *PluginsProcessor) Load() error {
 	if err != nil {
 		return fmt.Errorf("failed to load plugin dir: %v", err)
 	}
+
 	for _, f := range files {
 		// load shared object(.so) file
 		if filepath.Ext(f.Name()) == ".so" {
@@ -87,21 +86,34 @@ func (c *PluginsProcessor) Load() error {
 		if yaml.Matcher(f.Name()) {
 			plugins, err := utils.DecodeCRDFromFile(filepath.Join(path, f.Name()), common.Plugin)
 			if err != nil {
-				return fmt.Errorf("failed to load plugin: %v", err)
+				return fmt.Errorf("failed to load plugin %v", err)
 			}
-			var plugs []v1.Plugin
-			for _, p := range plugins.([]v1.Plugin) {
-				for _, cp := range c.Plugins {
-					if !isSamePluginSpec(p, cp) {
-						plugs = append(plugs, p)
-					}
-				}
-			}
-			c.Plugins = append(c.Plugins, plugs...)
+
+			c.Plugins = append(c.Plugins, plugins.([]v1.Plugin)...)
+			i := deduplication(c.Plugins)
+			c.Plugins = i
 		}
 	}
 
 	return nil
+}
+
+func deduplication(plugins []v1.Plugin) []v1.Plugin {
+	result := make([]v1.Plugin, len(plugins))
+	resultIdx := 0
+	for i := 0; i < len(plugins); i++ {
+		for j := 0; j <= i; j++ {
+			if plugins[i].Spec.Data == plugins[j].Spec.Data && plugins[i].Spec.Type == plugins[j].Spec.Type &&
+				plugins[i].Spec.On == plugins[j].Spec.On && plugins[i].Spec.Action == plugins[j].Spec.Action {
+				if i == j {
+					result[resultIdx] = plugins[i]
+					resultIdx++
+				}
+				break
+			}
+		}
+	}
+	return result[:resultIdx]
 }
 
 // Run execute each in-tree or out-of-tree plugin by traversing the plugin list.
