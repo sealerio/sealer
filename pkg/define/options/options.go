@@ -16,22 +16,23 @@ package options
 
 // BuildOptions should be out of buildah scope.
 type BuildOptions struct {
-	Kubefile          string
-	ContextDir        string
-	PullPolicy        string
-	ImageType         string
-	Manifest          string
-	Tag               string
-	BuildArgs         []string
-	Platforms         []string
-	Labels            []string
-	Annotations       []string
-	NoCache           bool
-	Base              bool
-	Tags              []string
-	Platform          string
-	ImageList         string
-	ImageListWithAuth string
+	Kubefile               string
+	ContextDir             string
+	PullPolicy             string
+	ImageType              string
+	Manifest               string
+	Tag                    string
+	BuildArgs              []string
+	Platforms              []string
+	Labels                 []string
+	Annotations            []string
+	NoCache                bool
+	Base                   bool
+	Tags                   []string
+	Platform               string
+	ImageList              string
+	ImageListWithAuth      string
+	DownloadContainerImage bool
 }
 
 type FromOptions struct {
