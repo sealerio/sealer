@@ -75,6 +75,11 @@ const (
 	EnvIPv6DualStack              = "IPv6DualStack"
 )
 
+const (
+	ApplyModeApply     = "apply"
+	ApplyModeLoadImage = "loadImage"
+)
+
 // image module
 const (
 	DefaultImageRootDir     = "/var/lib/sealer/data"
