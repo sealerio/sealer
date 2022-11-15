@@ -130,7 +130,7 @@ func (i *Installer) Install() error {
 	}
 
 	// distribute rootfs
-	if err := i.Distributor.DistributeRootfs(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
+	if err := i.Distributor.Distribute(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
 		return err
 	}
 
@@ -198,7 +198,7 @@ func (i *Installer) Install() error {
 			return err
 		}
 
-		return appInstaller.save()
+		return appInstaller.save(common.GetDefaultApplicationFile())
 	}
 
 	return nil

@@ -56,6 +56,11 @@ const (
 	EnvRegistryPassword = "RegistryPassword"
 )
 
+const (
+	ApplyModeApply     = "apply"
+	ApplyModeLoadImage = "loadImage"
+)
+
 // image module
 const (
 	DefaultImageRootDir     = "/var/lib/sealer/data"

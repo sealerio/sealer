@@ -16,13 +16,12 @@ package buildah
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/common/libimage"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sirupsen/logrus"
 )
 
 func (engine *Engine) RemoveImage(opts *options.RemoveImageOptions) error {
@@ -42,19 +41,42 @@ func (engine *Engine) RemoveImage(opts *options.RemoveImageOptions) error {
 	}
 	options.Force = opts.Force
 
+	// take it as image first
 	rmiReports, rmiErrors := engine.ImageRuntime().RemoveImages(context.Background(), opts.ImageNamesOrIDs, options)
 	for _, r := range rmiReports {
 		for _, u := range r.Untagged {
-			fmt.Printf("untagged: %s\n", u)
+			logrus.Infof("untagged: %s", u)
 		}
 	}
 	for _, r := range rmiReports {
 		if r.Removed {
-			fmt.Printf("%s\n", r.ID)
+			logrus.Infof("%s", r.ID)
 		}
 	}
 
+	if len(rmiErrors) == 0 {
+		return nil
+	}
+
+	// take it as manifestList and try again
+	options.LookupManifest = true
+	rmiReports, rmiErrors2 := engine.ImageRuntime().RemoveImages(context.Background(), opts.ImageNamesOrIDs, options)
+	for _, r := range rmiReports {
+		for _, u := range r.Untagged {
+			logrus.Infof("untagged: %s", u)
+		}
+	}
+	for _, r := range rmiReports {
+		if r.Removed {
+			logrus.Infof("%s", r.ID)
+		}
+	}
+
+	if len(rmiErrors2) == 0 {
+		return nil
+	}
+
 	var multiE *multierror.Error
-	multiE = multierror.Append(multiE, rmiErrors...)
+	multiE = multierror.Append(multiE, append(rmiErrors, rmiErrors2...)...)
 	return multiE.ErrorOrNil()
 }

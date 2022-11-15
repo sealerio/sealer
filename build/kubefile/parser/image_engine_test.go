@@ -15,6 +15,8 @@
 package parser
 
 import (
+	"github.com/containers/common/libimage"
+	"github.com/opencontainers/go-digest"
 	v12 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
 	v1 "github.com/sealerio/sealer/pkg/define/image/v1"
@@ -63,7 +65,7 @@ func (testImageEngine) Copy(opts *options.CopyOptions) error {
 	panic("implement me")
 }
 
-func (testImageEngine) Commit(opts *options.CommitOptions) error {
+func (testImageEngine) Commit(opts *options.CommitOptions) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -138,4 +140,32 @@ func (testImageEngine) GetSealerImageExtension(opts *options.GetImageAnnoOptions
 		return testExtensionWithoutApp, nil
 	}
 	return testExtensionWithApp, nil
+}
+
+func (testImageEngine) LookupManifest(name string) (*libimage.ManifestList, error) {
+	panic("implement me")
+}
+
+func (testImageEngine) CreateManifest(name string, opts *options.ManifestCreateOpts) error {
+	panic("implement me")
+}
+
+func (testImageEngine) DeleteManifests(names []string, opts *options.ManifestDeleteOpts) error {
+	panic("implement me")
+}
+
+func (testImageEngine) InspectManifest(name string, opts *options.ManifestInspectOpts) error {
+	panic("implement me")
+}
+
+func (testImageEngine) PushManifest(name, destSpec string, opts *options.PushOptions) error {
+	panic("implement me")
+}
+
+func (testImageEngine) AddToManifest(name, imageSpec string, opts *options.ManifestAddOpts) error {
+	panic("implement me")
+}
+
+func (testImageEngine) RemoveFromManifest(name string, instanceDigest digest.Digest, opts *options.ManifestRemoveOpts) error {
+	panic("implement me")
 }

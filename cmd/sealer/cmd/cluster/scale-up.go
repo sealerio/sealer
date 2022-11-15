@@ -119,7 +119,7 @@ func NewScaleUpCmd() *cobra.Command {
 				return err
 			}
 			defer func() {
-				if e := imageMounter.Umount(imageMountInfo); e != nil {
+				if e := imageMounter.Umount(clusterImageName, imageMountInfo); e != nil {
 					logrus.Errorf("failed to umount cluster image: %v", e)
 				}
 			}()

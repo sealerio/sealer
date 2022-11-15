@@ -17,6 +17,8 @@ package buildah
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/containers/buildah/pkg/parse"
 
 	"os"
@@ -74,6 +76,6 @@ func (engine *Engine) Pull(opts *options.PullOptions) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s\n", id)
+	logrus.Infof("%s", id)
 	return nil
 }

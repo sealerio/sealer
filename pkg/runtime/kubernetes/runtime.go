@@ -209,6 +209,7 @@ func (k *Runtime) setRoles(driver runtime.Driver) error {
 	}
 
 	for _, node := range nodeList.Items {
+		logrus.Infof("%v", node)
 		addresses := node.Status.Addresses
 		for _, address := range addresses {
 			if address.Type != "InternalIP" {
@@ -219,10 +220,15 @@ func (k *Runtime) setRoles(driver runtime.Driver) error {
 				continue
 			}
 			newNode := node.DeepCopy()
+
 			for _, role := range roles {
 				newNode.Labels["node-role.kubernetes.io/"+role] = ""
 			}
+			logrus.Infof("newNode %v", newNode)
 			patch := runtimeClient.MergeFrom(&node)
+
+			logrus.Infof("patch %v", patch)
+
 			if err := driver.Patch(context.TODO(), newNode, patch); err != nil {
 				return err
 			}

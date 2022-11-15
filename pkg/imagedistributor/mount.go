@@ -19,13 +19,17 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/sealerio/sealer/common"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
+)
+
+const (
+	mountBaseDir = "/var/lib/sealer/data/mount"
 )
 
 type buildAhMounter struct {
@@ -34,7 +38,7 @@ type buildAhMounter struct {
 
 func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, error) {
 	path := platform.OS + "_" + platform.Architecture + "_" + platform.Variant
-	mountDir := filepath.Join(common.DefaultSealerDataDir, path)
+	mountDir := filepath.Join(imageMountDir(imageName), path)
 	if osi.IsFileExist(mountDir) {
 		err := os.RemoveAll(mountDir)
 		if err != nil {
@@ -47,6 +51,11 @@ func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, e
 		Image:      imageName,
 		Platform:   platform.ToString(),
 	}); err != nil {
+		return "", err
+	}
+
+	// make sure base mount Dir is existed.
+	if err := fs.FS.MkdirAll(filepath.Dir(mountDir)); err != nil {
 		return "", err
 	}
 
@@ -98,7 +107,6 @@ func (c ImagerMounter) Mount(imageName string) ([]ClusterImageMountInfo, error) 
 		if err != nil {
 			return nil, fmt.Errorf("failed to mount image with platform %s:%v", platform.ToString(), err)
 		}
-
 		imageMountInfos = append(imageMountInfos, ClusterImageMountInfo{
 			Hosts:    hosts,
 			Platform: platform,
@@ -109,12 +117,16 @@ func (c ImagerMounter) Mount(imageName string) ([]ClusterImageMountInfo, error) 
 	return imageMountInfos, nil
 }
 
-func (c ImagerMounter) Umount(imageMountInfo []ClusterImageMountInfo) error {
+func (c ImagerMounter) Umount(imageName string, imageMountInfo []ClusterImageMountInfo) error {
 	for _, info := range imageMountInfo {
 		err := c.Mounter.Umount(info.MountDir)
 		if err != nil {
 			return fmt.Errorf("failed to umount %s:%v", info.MountDir, err)
 		}
+	}
+	// delete all mounted images
+	if err := fs.FS.RemoveAll(imageMountDir(imageName)); err != nil {
+		return err
 	}
 	return nil
 }
@@ -125,4 +137,8 @@ func NewImageMounter(imageEngine imageengine.Interface, hostsPlatform map[v1.Pla
 	}
 	c.Mounter = NewBuildAhMounter(imageEngine)
 	return c, nil
+}
+
+func imageMountDir(name string) string {
+	return filepath.Join(mountBaseDir, strings.ReplaceAll(name, "/", "_"))
 }

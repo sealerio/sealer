@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/buildah/util"
@@ -358,11 +359,11 @@ func (d *SSHInfraDriver) GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net
 }
 
 func (d *SSHInfraDriver) GetClusterRootfsPath() string {
-	return common.DefaultTheClusterRootfsDir(d.clusterName)
+	return filepath.Join(common.DefaultSealerDataDir, d.clusterName, "rootfs")
 }
 
 func (d *SSHInfraDriver) GetClusterBasePath() string {
-	return common.DefaultClusterBaseDir(d.clusterName)
+	return filepath.Join(common.DefaultSealerDataDir, d.clusterName)
 }
 
 func (d *SSHInfraDriver) Execute(hosts []net.IP, f func(host net.IP) error) error {

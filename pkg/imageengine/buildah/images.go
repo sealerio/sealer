@@ -21,11 +21,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sealerio/sealer/pkg/define/options"
-
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/common/libimage"
 	"github.com/docker/go-units"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sirupsen/logrus"
 )
 
 const none = "<none>"
@@ -78,11 +78,11 @@ var imagesHeader = map[string]string{
 }
 
 func (engine *Engine) Images(opts *options.ImagesOptions) error {
-	runtime := engine.libimageRuntime
+	runtime := engine.ImageRuntime()
 	options := &libimage.ListImagesOptions{}
 	if !opts.All {
 		options.Filters = append(options.Filters, "intermediate=false")
-		options.Filters = append(options.Filters, "label=io.sealer.version")
+		//options.Filters = append(options.Filters, "label=io.sealer.version")
 	}
 
 	//TODO add some label to identify sealer image and oci image.
@@ -159,7 +159,7 @@ func formatImagesJSON(images []*libimage.Image, opts imageOptions) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s\n", data)
+	logrus.Infof("%s", data)
 	return nil
 }
 

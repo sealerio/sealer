@@ -102,7 +102,7 @@ type Platform struct {
 	Variant string `json:"variant,omitempty"`
 }
 
-func (p Platform) ToString() string {
+func (p *Platform) ToString() string {
 	str := p.OS + "/" + p.Architecture + "/" + p.Variant
 	str = strings.TrimSuffix(str, "/")
 	str = strings.TrimPrefix(str, "/")

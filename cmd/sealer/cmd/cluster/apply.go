@@ -39,6 +39,8 @@ import (
 var applyClusterFile string
 var skipApp bool
 
+var applyMode string
+
 const MasterRoleLabel = "node-role.kubernetes.io/master"
 
 var longApplyCmdDescription = `apply command is used to apply a Kubernetes cluster via specified Clusterfile.
@@ -131,6 +133,7 @@ func NewApplyCmd() *cobra.Command {
 	}
 	applyCmd.Flags().BoolVar(&ForceDelete, "force", false, "force to delete the specified cluster if set true")
 	applyCmd.Flags().StringVarP(&applyClusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
+	applyCmd.Flags().StringVarP(&applyMode, "applyMode", "m", common.ApplyModeApply, "the run mode")
 	applyCmd.Flags().BoolVar(&skipApp, "skip-app", false, "if true, will skip install app, default is false")
 	return applyCmd
 }
@@ -161,7 +164,7 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 	}
 
 	defer func() {
-		err = imageMounter.Umount(imageMountInfo)
+		err = imageMounter.Umount(clusterImageName, imageMountInfo)
 		if err != nil {
 			logrus.Errorf("failed to umount cluster image")
 		}
@@ -172,6 +175,15 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 		return err
 	}
 
+	if applyMode == common.ApplyModeLoadImage {
+		logrus.Infof("start to apply with mode(%s)", applyMode)
+
+		if err = distributor.DistributeRegistry(infraDriver.GetHostIPList()[0], infraDriver.GetClusterRootfsPath()); err != nil {
+			return err
+		}
+		logrus.Infof("load image success")
+		return nil
+	}
 	plugins, err := loadPluginsFromImage(imageMountInfo)
 	if err != nil {
 		return err
@@ -231,7 +243,7 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 		return err
 	}
 	defer func() {
-		err = imageMounter.Umount(imageMountInfo)
+		err = imageMounter.Umount(clusterImageName, imageMountInfo)
 		if err != nil {
 			logrus.Errorf("failed to umount cluster image")
 		}
