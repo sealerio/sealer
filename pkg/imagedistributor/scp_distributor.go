@@ -17,7 +17,7 @@ package imagedistributor
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/env"
@@ -88,7 +88,7 @@ func (s *scpDistributor) Distribute(hosts []net.IP, dest string) error {
 func (s *scpDistributor) filterRootfs(mountDir string) ([]string, error) {
 	var AllMountFiles []string
 
-	files, err := ioutil.ReadDir(mountDir)
+	files, err := os.ReadDir(mountDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dir %s: %s", mountDir, err)
 	}

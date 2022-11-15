@@ -16,7 +16,7 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -53,7 +53,7 @@ func NewCertCmd() *cobra.Command {
 			}
 
 			workClusterfile := common.GetDefaultClusterfile()
-			clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
+			clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
 			if err != nil {
 				return err
 			}

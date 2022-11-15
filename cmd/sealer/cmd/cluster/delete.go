@@ -16,8 +16,8 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -31,7 +31,7 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils"
 	netutils "github.com/sealerio/sealer/utils/net"
-	"github.com/sealerio/sealer/utils/os"
+	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -96,11 +96,11 @@ func NewDeleteCmd() *cobra.Command {
 }
 
 func deleteCluster(workClusterfile string) error {
-	if !os.IsFileExist(workClusterfile) {
+	if !osutils.IsFileExist(workClusterfile) {
 		logrus.Info("no cluster found")
 		return nil
 	}
-	clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
+	clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 		return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 	}
 
-	clusterFileData, err := ioutil.ReadFile(filepath.Clean(workClusterfile))
+	clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
 	if err != nil {
 		return err
 	}

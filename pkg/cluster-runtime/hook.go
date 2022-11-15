@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -261,7 +260,7 @@ func LoadPluginsFromFile(pluginPath string) ([]v1.Plugin, error) {
 		return nil, nil
 	}
 
-	files, err := ioutil.ReadDir(pluginPath)
+	files, err := os.ReadDir(pluginPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ReadDir plugin dir %s: %v", pluginPath, err)
 	}
@@ -284,7 +283,7 @@ func LoadPluginsFromFile(pluginPath string) ([]v1.Plugin, error) {
 
 func decodePluginFile(pluginFile string) ([]v1.Plugin, error) {
 	var plugins []v1.Plugin
-	data, err := ioutil.ReadFile(filepath.Clean(pluginFile))
+	data, err := os.ReadFile(filepath.Clean(pluginFile))
 	if err != nil {
 		return nil, err
 	}

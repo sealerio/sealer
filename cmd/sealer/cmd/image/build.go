@@ -18,7 +18,6 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -295,7 +294,7 @@ func applyRegistryToImage(imageID, tag, manifest string, platform v1.Platform, e
 }
 
 func saveDockerfileAsTempfile(dockerFileContent string) (string, error) {
-	f, err := ioutil.TempFile("/tmp", "sealer-dockerfile")
+	f, err := os.CreateTemp("/tmp", "sealer-dockerfile")
 	if err != nil {
 		return "", err
 	}

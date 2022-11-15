@@ -15,7 +15,6 @@
 package clusterfile
 
 import (
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -121,7 +120,7 @@ func TestSaveAll(t *testing.T) {
 			if err := clusterFile.SaveAll(); err != nil {
 				t.Errorf("failed to save all file, error is:(%v)", err)
 			}
-			clusterFileData, err := ioutil.ReadFile(filepath.Clean(clusterFilePath))
+			clusterFileData, err := os.ReadFile(filepath.Clean(clusterFilePath))
 			if err != nil {
 				t.Errorf("failed to read cluster file, error is:(%v)", err)
 			}

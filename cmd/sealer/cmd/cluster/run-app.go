@@ -16,7 +16,7 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -52,7 +52,7 @@ func NewRunAPPCmd() *cobra.Command {
 			)
 
 			//todo grab more cluster info from api server
-			clusterFileData, err = ioutil.ReadFile(common.GetDefaultClusterfile())
+			clusterFileData, err = os.ReadFile(common.GetDefaultClusterfile())
 			if err != nil {
 				return err
 			}

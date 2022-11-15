@@ -16,7 +16,7 @@ package parser
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -72,7 +72,7 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
 	// 2. download remote files to the temp dir
 	// 3. append the temp files to filesToCopy
 	if len(remoteFiles) > 0 {
-		remoteCxtAbs, err := ioutil.TempDir(kp.buildContext, "sealer-remote-files")
+		remoteCxtAbs, err := os.MkdirTemp(kp.buildContext, "sealer-remote-files")
 		if err != nil {
 			return errors.Errorf("failed to create remote context: %s", err)
 		}
