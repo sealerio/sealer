@@ -114,7 +114,7 @@ func installApplication(appImageName string, launchCmds []string, extension v12.
 	defer func() {
 		err = imageMounter.Umount(appImageName, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount cluster image: %v", err)
 		}
 	}()
 
