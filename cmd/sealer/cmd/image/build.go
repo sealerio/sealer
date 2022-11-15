@@ -189,7 +189,7 @@ func buildSealerImage() error {
 	}
 
 	// download container image form `imageList`
-	if osi.IsFileExist(buildFlags.ImageList) {
+	if buildFlags.ImageList != "" && osi.IsFileExist(buildFlags.ImageList) {
 		images, err := osi.NewFileReader(buildFlags.ImageList).ReadLines()
 		if err != nil {
 			return err
@@ -197,7 +197,7 @@ func buildSealerImage() error {
 		formatImages := buildimage.FormatImages(images)
 		ctx := context.Background()
 		imageSave := save.NewImageSaver(ctx)
-		if err = imageSave.SaveImages(formatImages, filepath.Join(tmpDirForLink, common.RegistryDirName), v1.Platform{
+		if err := imageSave.SaveImages(formatImages, filepath.Join(tmpDirForLink, common.RegistryDirName), v1.Platform{
 			Architecture: arch,
 			OS:           _os,
 			Variant:      variant,
@@ -206,7 +206,7 @@ func buildSealerImage() error {
 		}
 	}
 
-	if err = buildimage.NewRegistryDiffer(v1.Platform{
+	if err := buildimage.NewRegistryDiffer(v1.Platform{
 		Architecture: arch,
 		OS:           _os,
 		Variant:      variant,
@@ -215,7 +215,7 @@ func buildSealerImage() error {
 	}
 
 	// download container image form `imageListWithAuth.yaml`
-	if err = buildimage.NewMiddlewarePuller(v1.Platform{
+	if err := buildimage.NewMiddlewarePuller(v1.Platform{
 		Architecture: arch,
 		OS:           _os,
 		Variant:      variant,
@@ -223,7 +223,7 @@ func buildSealerImage() error {
 		return err
 	}
 
-	if err = engine.Commit(&bc.CommitOptions{
+	if err := engine.Commit(&bc.CommitOptions{
 		Format:      cli.DefaultFormat(),
 		Rm:          true,
 		ContainerID: cid,
