@@ -15,12 +15,14 @@
 package clusterruntime
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
+	"syscall"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/sealerio/sealer/common"
@@ -29,7 +31,6 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
-	osutils "github.com/sealerio/sealer/utils/os"
 )
 
 type AppInstaller struct {
@@ -50,7 +51,7 @@ func NewAppInstaller(infraDriver infradriver.InfraDriver, distributor imagedistr
 
 func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 	// distribute rootfs
-	if err := i.distributor.DistributeRootfs([]net.IP{master0}, i.infraDriver.GetClusterRootfsPath()); err != nil {
+	if err := i.distributor.Distribute([]net.IP{master0}, i.infraDriver.GetClusterRootfsPath()); err != nil {
 		return err
 	}
 
@@ -78,9 +79,9 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 
 func (i AppInstaller) LaunchClusterImage(master0 net.IP, launchCmds []string) error {
 	var (
-		cmds          []string
-		clusterRootfs = i.infraDriver.GetClusterRootfsPath()
-		ex            = shell.NewLex('\\')
+		cmds    []string
+		appPath = i.infraDriver.GetClusterRootfsPath()
+		ex      = shell.NewLex('\\')
 	)
 
 	if len(launchCmds) > 0 {
@@ -98,38 +99,43 @@ func (i AppInstaller) LaunchClusterImage(master0 net.IP, launchCmds []string) er
 			return fmt.Errorf("failed to render launch cmd: %v", err)
 		}
 
-		if err = i.infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, clusterRootfs, cmdline)); err != nil {
+		if err = i.infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, appPath, cmdline)); err != nil {
 			return err
 		}
 	}
 
-	return i.save()
+	return i.save(common.GetDefaultApplicationFile())
 }
 
 // todo save image info to disk or api server, we need new interface to do this.
-func (i AppInstaller) save() error {
-	var extensionList []v12.ImageExtension
-	applicationFile := common.GetDefaultApplicationFile()
-
-	if osutils.IsFileExist(applicationFile) {
-		b, err := ioutil.ReadFile(filepath.Clean(applicationFile))
-		if err != nil {
-			return err
-		}
-
-		b = bytes.TrimSpace(b)
-		if len(b) != 0 {
-			if err := json.Unmarshal(b, &extensionList); err != nil {
-				return fmt.Errorf("failed to load default application file %s: %v", applicationFile, err)
-			}
-		}
+func (i AppInstaller) save(applicationFile string) error {
+	f, err := os.OpenFile(filepath.Clean(applicationFile), os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
+	if err != nil {
+		return err
 	}
+	defer func() {
+		_ = f.Close()
+	}()
 
-	extensionList = append(extensionList, i.extension)
-	content, err := json.Marshal(extensionList)
+	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		return fmt.Errorf("cannot flock file %s - %s", applicationFile, err)
+	}
+	defer func() {
+		err := syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+		if err != nil {
+			logrus.Errorf("failed to unlock %s", applicationFile)
+		}
+	}()
+
+	content, err := json.Marshal(i.extension)
 	if err != nil {
 		return fmt.Errorf("failed to marshal image extension: %v", err)
 	}
 
-	return osutils.NewCommonWriter(applicationFile).WriteFile(content)
+	if _, err = f.Write(content); err != nil {
+		return err
+	}
+
+	return nil
 }

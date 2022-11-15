@@ -28,7 +28,7 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 	all := append(newMasters, newWorkers...)
 
 	// distribute rootfs
-	if err := i.Distributor.DistributeRootfs(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
+	if err := i.Distributor.Distribute(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
 		return nil, nil, err
 	}
 

@@ -21,8 +21,8 @@ import (
 )
 
 type Distributor interface {
-	// DistributeRootfs each files under mounted cluster image directory to target hosts.
-	DistributeRootfs(hosts []net.IP, rootfsPath string) error
+	// Distribute each files under mounted cluster image directory to target hosts.
+	Distribute(hosts []net.IP, dest string) error
 	// DistributeRegistry each files under registry directory to target hosts.
 	DistributeRegistry(deployHost net.IP, dataDir string) error
 	// Restore will do some clean works via infra driver, like delete rootfs.
