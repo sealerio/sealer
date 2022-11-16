@@ -70,7 +70,6 @@ func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
 		uninstallCmd = append(uninstallCmd, logoutCmd)
 	}
 
-	uninstallCmd = append(uninstallCmd, shellcommand.CommandUnSetHostAlias())
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, strings.Join(uninstallCmd, "&&"))
 		if err != nil {

@@ -21,7 +21,7 @@ import (
 const DefaultSealerHostAliasAnnotation = "#hostalias-set-by-sealer"
 
 func CommandSetHostAlias(hostName, ip string) string {
-	return fmt.Sprintf(`if grep "%s" /etc/hosts &>/dev/null;then sed -i "/%s/d" /etc/hosts; fi;echo "%s %s %s" >>/etc/hosts`, hostName, hostName, ip, hostName, DefaultSealerHostAliasAnnotation)
+	return fmt.Sprintf(`if grep " %s " /etc/hosts &>/dev/null;then sed -i "/\ %s\ /d" /etc/hosts; fi;echo "%s %s %s" >>/etc/hosts`, hostName, hostName, ip, hostName, DefaultSealerHostAliasAnnotation)
 }
 
 func CommandUnSetHostAlias() string {
