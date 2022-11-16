@@ -18,8 +18,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
@@ -189,7 +189,7 @@ func (k *Runtime) dumpKubeConfigIntoCluster(master0 net.IP) error {
 		return err
 	}
 
-	kubeConfigContent, err := ioutil.ReadFile(AdminKubeConfPath)
+	kubeConfigContent, err := os.ReadFile(AdminKubeConfPath)
 	if err != nil {
 		return err
 	}

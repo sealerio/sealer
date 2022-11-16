@@ -15,7 +15,6 @@
 package fs
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -60,7 +59,7 @@ func TestRenameDir(t *testing.T) {
 
 	filename := "tmp-file"
 	data := []byte("i am a tmp file\n")
-	if err := ioutil.WriteFile(filepath.Join(oldPath, filename), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(oldPath, filename), data, 0644); err != nil {
 		t.Fatalf("WriteFile %s: %v", filename, err)
 	}
 
@@ -92,7 +91,7 @@ func TestRenameDir(t *testing.T) {
 				t.Errorf("Rename() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			content, err := ioutil.ReadFile(filepath.Join(tt.args.newPath, filename))
+			content, err := os.ReadFile(filepath.Join(tt.args.newPath, filename))
 			assert.NoErrorf(t, err, "failed to load file content form new path")
 			assert.Equal(t, tt.args.fileContent, content)
 		})

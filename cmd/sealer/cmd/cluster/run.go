@@ -16,7 +16,7 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -76,7 +76,7 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			if clusterFile != "" {
-				clusterFileData, err = ioutil.ReadFile(filepath.Clean(clusterFile))
+				clusterFileData, err = os.ReadFile(filepath.Clean(clusterFile))
 				if err != nil {
 					return err
 				}

@@ -17,7 +17,6 @@ package parser
 import (
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -104,7 +103,7 @@ func isHelm(sources ...string) (bool, error) {
 				return true, nil
 			}
 
-			files, err := ioutil.ReadDir(source)
+			files, err := os.ReadDir(source)
 			if err != nil {
 				return false, fmt.Errorf("failed to read dir (%s) in isHelm: %s", source, err)
 			}
