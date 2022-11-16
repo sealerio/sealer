@@ -15,17 +15,17 @@
 package alpha
 
 import (
-	"fmt"
 	"io/ioutil"
-	"path/filepath"
 
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var clusterFile string
+var hostAlias v2.HostAlias
 
 func NewHostAliasCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -40,11 +40,8 @@ func NewHostAliasCmd() *cobra.Command {
 			)
 			logrus.Warn("sealer apply command will be deprecated in the future, please use sealer run instead.")
 
-			if clusterFile == "" {
-				return fmt.Errorf("you must input Clusterfile")
-			}
-
-			clusterFileData, err = ioutil.ReadFile(filepath.Clean(clusterFile))
+			workClusterfile := common.GetDefaultClusterfile()
+			clusterFileData, err = ioutil.ReadFile(workClusterfile)
 			if err != nil {
 				return err
 			}
@@ -55,6 +52,7 @@ func NewHostAliasCmd() *cobra.Command {
 			}
 
 			desiredCluster := cf.GetCluster()
+			desiredCluster.Spec.HostAliases = append(desiredCluster.Spec.HostAliases, hostAlias)
 			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
 			if err != nil {
 				return err
@@ -65,9 +63,16 @@ func NewHostAliasCmd() *cobra.Command {
 				return err
 			}
 
-			return nil
+			return cf.SaveAll()
 		},
 	}
-	cmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
+	cmd.Flags().StringVar(&hostAlias.IP, "ip", "", "host-alias ip")
+	cmd.Flags().StringSliceVar(&hostAlias.Hostnames, "hostnames", []string{}, "host-alias hostnames")
+	if err := cmd.MarkFlagRequired("ip"); err != nil {
+		panic(err)
+	}
+	if err := cmd.MarkFlagRequired("hostnames"); err != nil {
+		panic(err)
+	}
 	return cmd
 }
