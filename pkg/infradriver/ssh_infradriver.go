@@ -295,7 +295,7 @@ func (d *SSHInfraDriver) SetClusterHostAliases(hosts []net.IP) error {
 	for _, host := range hosts {
 		for _, hostAliases := range d.clusterHostAliases {
 			hostname := strings.Join(hostAliases.Hostnames, " ")
-			err := d.CmdAsync(host, shellcommand.CommandSetHostAlias(hostname, hostAliases.IP, "#clusterhostalias-set-by-sealer"))
+			err := d.CmdAsync(host, shellcommand.CommandSetHostAlias(hostname, hostAliases.IP))
 			if err != nil {
 				return err
 			}
@@ -306,7 +306,7 @@ func (d *SSHInfraDriver) SetClusterHostAliases(hosts []net.IP) error {
 
 func (d *SSHInfraDriver) DeleteClusterHostAliases(hosts []net.IP) error {
 	for _, host := range hosts {
-		err := d.CmdAsync(host, shellcommand.CommandUnSetHostAlias("#clusterhostalias-set-by-sealer"))
+		err := d.CmdAsync(host, shellcommand.CommandUnSetHostAlias())
 		if err != nil {
 			return err
 		}
