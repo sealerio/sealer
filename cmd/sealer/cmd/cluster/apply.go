@@ -163,7 +163,7 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 	defer func() {
 		err = imageMounter.Umount(clusterImageName, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount cluster image: %v", err)
 		}
 	}()
 
@@ -242,7 +242,7 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 	defer func() {
 		err = imageMounter.Umount(clusterImageName, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount cluster image: %v", err)
 		}
 	}()
 

@@ -148,7 +148,7 @@ func deleteCluster(workClusterfile string) error {
 	defer func() {
 		err = imageMounter.Umount(cluster.Spec.Image, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount cluster image: %v", err)
 		}
 	}()
 
@@ -271,7 +271,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 	defer func() {
 		err = imageMounter.Umount(cluster.Spec.Image, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount cluster image: %v", err)
 		}
 	}()
 

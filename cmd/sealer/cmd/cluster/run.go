@@ -150,7 +150,7 @@ func NewRunCmd() *cobra.Command {
 			defer func() {
 				err = imageMounter.Umount(clusterImageName, imageMountInfo)
 				if err != nil {
-					logrus.Errorf("failed to umount cluster image")
+					logrus.Errorf("failed to umount cluster image: %v", err)
 				}
 			}()
 
