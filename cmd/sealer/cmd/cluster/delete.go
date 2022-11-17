@@ -31,7 +31,6 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils"
 	netutils "github.com/sealerio/sealer/utils/net"
-	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -69,17 +68,15 @@ func NewDeleteCmd() *cobra.Command {
 				mastersToDelete = deleteFlags.Masters
 				workersToDelete = deleteFlags.Nodes
 			)
-			workClusterfile := common.GetDefaultClusterfile()
+
 			if mastersToDelete == "" && workersToDelete == "" && !deleteAll {
 				return fmt.Errorf("you must input node ip Or set flag -a")
 			}
-			if specifyClusterfile != "" {
-				workClusterfile = specifyClusterfile
-			}
+
 			if deleteAll {
-				return deleteCluster(workClusterfile)
+				return deleteCluster(specifyClusterfile)
 			}
-			return scaleDownCluster(mastersToDelete, workersToDelete, workClusterfile)
+			return scaleDownCluster(mastersToDelete, workersToDelete)
 		},
 	}
 
@@ -96,18 +93,28 @@ func NewDeleteCmd() *cobra.Command {
 }
 
 func deleteCluster(workClusterfile string) error {
-	if !osutils.IsFileExist(workClusterfile) {
-		logrus.Info("no cluster found")
-		return nil
-	}
-	clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
-	if err != nil {
-		return err
-	}
+	var (
+		cf  clusterfile.Interface
+		err error
+	)
 
-	cf, err := clusterfile.NewClusterFile(clusterFileData)
-	if err != nil {
-		return err
+	if workClusterfile == "" {
+		// use default clusterfile to do delete
+		cf, err = clusterfile.NewClusterFile(nil)
+		if err != nil {
+			return err
+		}
+	} else {
+		// use user specified clusterfile to do delete
+		clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
+		if err != nil {
+			return err
+		}
+
+		cf, err = clusterfile.NewClusterFile(clusterFileData)
+		if err != nil {
+			return err
+		}
 	}
 
 	//todo do we need CustomEnv ?
@@ -199,7 +206,7 @@ func deleteCluster(workClusterfile string) error {
 	return nil
 }
 
-func scaleDownCluster(masters, workers, workClusterfile string) error {
+func scaleDownCluster(masters, workers string) error {
 	if err := cmdutils.ValidateScaleIPStr(masters, workers); err != nil {
 		return fmt.Errorf("failed to validate input run args: %v", err)
 	}
@@ -209,12 +216,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 		return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 	}
 
-	clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
-	if err != nil {
-		return err
-	}
-
-	cf, err := clusterfile.NewClusterFile(clusterFileData)
+	cf, err := clusterfile.NewClusterFile(nil)
 	if err != nil {
 		return err
 	}
@@ -313,7 +315,7 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 	}
 	cf.SetCluster(cluster)
 
-	if err = cf.SaveAll(); err != nil {
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
 		return err
 	}
 	return nil
