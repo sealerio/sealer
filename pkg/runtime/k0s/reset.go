@@ -17,8 +17,9 @@ package k0s
 import (
 	"context"
 	"fmt"
-	"github.com/sealerio/sealer/common"
 	"net"
+
+	"github.com/sealerio/sealer/common"
 
 	"golang.org/x/sync/errgroup"
 )

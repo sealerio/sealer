@@ -117,25 +117,29 @@ func TestSSHInfraDriver_GetClusterInfo(t *testing.T) {
 		net.IPv4(192, 168, 0, 3),
 	})
 
-	assert.Equal(t, driver.GetClusterEnv(), map[string]interface{}{
+	assert.Equal(t, map[string]interface{}{
 		common.EnvRegistryDomain: "sea.hub",
-		"RegistryPort":           "5000",
+		"RegistryURL":            "sea.hub:5000",
 		"key1":                   "value1",
 		"key2":                   []string{"value2", "value3"},
-	})
+	}, driver.GetClusterEnv())
 
-	assert.Equal(t, driver.GetHostEnv(net.IPv4(192, 168, 0, 2)), map[string]interface{}{
-		"HostIP":   "192.168.0.2",
-		"key1":     "value1",
-		"key2":     []string{"value2", "value3"},
-		"etcd-dir": "/data/etcd",
-	})
+	assert.Equal(t, map[string]interface{}{
+		common.EnvRegistryDomain: "sea.hub",
+		"RegistryURL":            "sea.hub:5000",
+		"HostIP":                 "192.168.0.2",
+		"key1":                   "value1",
+		"key2":                   []string{"value2", "value3"},
+		"etcd-dir":               "/data/etcd",
+	}, driver.GetHostEnv(net.IPv4(192, 168, 0, 2)))
 
 	assert.Equal(t, driver.GetHostEnv(net.IPv4(192, 168, 0, 3)), map[string]interface{}{
-		"HostIP":            "192.168.0.3",
-		"key1":              "value1",
-		"key2":              []string{"value2", "value3"},
-		"test_node_env_key": "test_node_env_value",
+		common.EnvRegistryDomain: "sea.hub",
+		"RegistryURL":            "sea.hub:5000",
+		"HostIP":                 "192.168.0.3",
+		"key1":                   "value1",
+		"key2":                   []string{"value2", "value3"},
+		"test_node_env_key":      "test_node_env_value",
 	})
 }
 

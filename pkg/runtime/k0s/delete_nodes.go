@@ -17,10 +17,10 @@ package k0s
 import (
 	"context"
 	"fmt"
-	"github.com/sealerio/sealer/common"
 	"net"
 	"strings"
 
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 
 	"github.com/sirupsen/logrus"

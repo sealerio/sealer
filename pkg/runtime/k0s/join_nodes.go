@@ -17,8 +17,9 @@ package k0s
 import (
 	"context"
 	"fmt"
-	"github.com/sealerio/sealer/common"
 	"net"
+
+	"github.com/sealerio/sealer/common"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
