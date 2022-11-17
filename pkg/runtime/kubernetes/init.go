@@ -17,7 +17,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -66,7 +65,7 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, er
 	}
 
 	localTmpFile := "/tmp/kubeadm.yaml"
-	if err = ioutil.WriteFile(localTmpFile, bs, 0600); err != nil {
+	if err = os.WriteFile(localTmpFile, bs, 0600); err != nil {
 		return kubeadm.KubeadmConfig{}, err
 	}
 

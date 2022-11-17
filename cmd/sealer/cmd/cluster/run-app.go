@@ -16,7 +16,7 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -60,7 +60,7 @@ func NewRunAPPCmd() *cobra.Command {
 const NotAppImageError = "IsNotAppImage"
 
 func installApplication(appImageName string, launchCmds []string, configs []v1.Config, envs []string) error {
-	clusterFileData, err := ioutil.ReadFile(common.GetDefaultClusterfile())
+	clusterFileData, err := os.ReadFile(common.GetDefaultClusterfile())
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func installApplication(appImageName string, launchCmds []string, configs []v1.C
 	defer func() {
 		err = imageMounter.Umount(appImageName, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount cluster image: %v", err)
 		}
 	}()
 

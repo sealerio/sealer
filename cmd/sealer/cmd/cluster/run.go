@@ -16,7 +16,7 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -76,7 +76,7 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			if clusterFile != "" {
-				clusterFileData, err = ioutil.ReadFile(filepath.Clean(clusterFile))
+				clusterFileData, err = os.ReadFile(filepath.Clean(clusterFile))
 				if err != nil {
 					return err
 				}
@@ -149,7 +149,7 @@ func NewRunCmd() *cobra.Command {
 			defer func() {
 				err = imageMounter.Umount(clusterImageName, imageMountInfo)
 				if err != nil {
-					logrus.Errorf("failed to umount cluster image")
+					logrus.Errorf("failed to umount cluster image: %v", err)
 				}
 			}()
 

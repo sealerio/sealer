@@ -18,8 +18,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
@@ -240,7 +240,7 @@ func (k *Runtime) setRoles(driver runtime.Driver) error {
 
 // dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
 func (k *Runtime) dumpKubeConfigIntoCluster(driver runtime.Driver, master0 net.IP) error {
-	kubeConfigContent, err := ioutil.ReadFile(AdminKubeConfPath)
+	kubeConfigContent, err := os.ReadFile(AdminKubeConfPath)
 	if err != nil {
 		return err
 	}

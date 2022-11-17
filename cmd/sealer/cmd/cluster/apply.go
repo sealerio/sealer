@@ -16,8 +16,8 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -70,7 +70,7 @@ func NewApplyCmd() *cobra.Command {
 				return fmt.Errorf("you must input Clusterfile")
 			}
 
-			clusterFileData, err = ioutil.ReadFile(filepath.Clean(applyClusterFile))
+			clusterFileData, err = os.ReadFile(filepath.Clean(applyClusterFile))
 			if err != nil {
 				return err
 			}
@@ -166,7 +166,7 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 	defer func() {
 		err = imageMounter.Umount(clusterImageName, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount cluster image: %v", err)
 		}
 	}()
 
@@ -245,7 +245,7 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 	defer func() {
 		err = imageMounter.Umount(clusterImageName, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount cluster image: %v", err)
 		}
 	}()
 

@@ -19,7 +19,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -382,7 +381,7 @@ func (c *localSingletonConfigurator) configureDaemonService(hosts []net.IP) erro
 func (c *localSingletonConfigurator) configureDockerDaemonService(endpoint, daemonFile string) error {
 	var daemonConf DaemonConfig
 
-	b, err := ioutil.ReadFile(filepath.Clean(daemonFile))
+	b, err := os.ReadFile(filepath.Clean(daemonFile))
 	if err != nil {
 		return err
 	}

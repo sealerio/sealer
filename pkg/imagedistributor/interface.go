@@ -30,6 +30,6 @@ type Distributor interface {
 }
 
 type Mounter interface {
-	Mount(imageName string, platform v1.Platform) (string, error)
-	Umount(dir string) error
+	Mount(imageName string, platform v1.Platform) (string, string, error)
+	Umount(dir, containerID string) error
 }

@@ -36,13 +36,13 @@ type buildAhMounter struct {
 	imageEngine imageengine.Interface
 }
 
-func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, error) {
+func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, string, error) {
 	path := platform.OS + "_" + platform.Architecture + "_" + platform.Variant
 	mountDir := filepath.Join(imageMountDir(imageName), path)
 	if osi.IsFileExist(mountDir) {
 		err := os.RemoveAll(mountDir)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 	if err := b.imageEngine.Pull(&imagecommon.PullOptions{
@@ -51,34 +51,36 @@ func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, e
 		Image:      imageName,
 		Platform:   platform.ToString(),
 	}); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// make sure base mount Dir is existed.
 	if err := fs.FS.MkdirAll(filepath.Dir(mountDir)); err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	if _, err := b.imageEngine.CreateWorkingContainer(&imagecommon.BuildRootfsOptions{
+	id, err := b.imageEngine.CreateWorkingContainer(&imagecommon.BuildRootfsOptions{
 		DestDir:       mountDir,
 		ImageNameOrID: imageName,
-	}); err != nil {
-		return "", err
+	})
+
+	if err != nil {
+		return "", "", err
 	}
-	return mountDir, nil
+	return mountDir, id, nil
 }
 
-func (b buildAhMounter) Umount(mountDir string) error {
-	if err := b.imageEngine.RemoveContainer(&imagecommon.RemoveContainerOptions{
-		ContainerNamesOrIDs: nil,
-		All:                 true,
-	}); err != nil {
-		return fmt.Errorf("failed to remove mounted dir %s: %v", mountDir, err)
+func (b buildAhMounter) Umount(mountDir, cid string) error {
+	if err := fs.FS.RemoveAll(mountDir); err != nil {
+		return fmt.Errorf("failed to remove mount dir %s: %v", mountDir, err)
 	}
 
-	if err := fs.FS.RemoveAll(mountDir); err != nil {
-		return err
+	if err := b.imageEngine.RemoveContainer(&imagecommon.RemoveContainerOptions{
+		ContainerNamesOrIDs: []string{cid},
+	}); err != nil {
+		return fmt.Errorf("failed to remove working container: %v", err)
 	}
+
 	return nil
 }
 
@@ -95,22 +97,24 @@ type ImagerMounter struct {
 
 type ClusterImageMountInfo struct {
 	// target hosts ip list, not all cluster ips.
-	Hosts    []net.IP
-	Platform v1.Platform
-	MountDir string
+	Hosts       []net.IP
+	Platform    v1.Platform
+	MountDir    string
+	ContainerID string
 }
 
 func (c ImagerMounter) Mount(imageName string) ([]ClusterImageMountInfo, error) {
 	var imageMountInfos []ClusterImageMountInfo
 	for platform, hosts := range c.hostsPlatform {
-		mountDir, err := c.Mounter.Mount(imageName, platform)
+		mountDir, cid, err := c.Mounter.Mount(imageName, platform)
 		if err != nil {
 			return nil, fmt.Errorf("failed to mount image with platform %s:%v", platform.ToString(), err)
 		}
 		imageMountInfos = append(imageMountInfos, ClusterImageMountInfo{
-			Hosts:    hosts,
-			Platform: platform,
-			MountDir: mountDir,
+			Hosts:       hosts,
+			Platform:    platform,
+			MountDir:    mountDir,
+			ContainerID: cid,
 		})
 	}
 
@@ -119,7 +123,7 @@ func (c ImagerMounter) Mount(imageName string) ([]ClusterImageMountInfo, error) 
 
 func (c ImagerMounter) Umount(imageName string, imageMountInfo []ClusterImageMountInfo) error {
 	for _, info := range imageMountInfo {
-		err := c.Mounter.Umount(info.MountDir)
+		err := c.Mounter.Umount(info.MountDir, info.ContainerID)
 		if err != nil {
 			return fmt.Errorf("failed to umount %s:%v", info.MountDir, err)
 		}

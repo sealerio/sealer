@@ -9,8 +9,6 @@
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsealerio%2Fsealer.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsealerio%2Fsealer?ref=badge_shield)
 [![codecov](https://codecov.io/gh/sealerio/sealer/branch/main/graph/badge.svg?token=LH8XUR5YPL)](https://codecov.io/gh/sealerio/sealer)
 
-[简体中文](./docs/README_zh.md)
-
 ## Contents
 
 * [Introduction](#introduction)
@@ -64,7 +62,7 @@ Kubefile:
 #    1. kubernetes components like kubectl kubeadm kubelet and apiserver images ...
 #    2. docker engine, and a private registry
 #    3. config files, yaml, static files, scripts ...
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15
 # download kubernetes dashboard yaml file
 RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 # when run this ClusterImage, will apply a dashboard manifests
@@ -94,6 +92,13 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 ```
 
 ## User guide
+
+Sealer provides a valid image list:
+
+| version |                             image                                   |
+| :-----  | :-------------------------------------------------------------------|
+| 0.8.6   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6|
+| main    | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15      |
 
 [get started](http://sealer.cool/docs/getting-started/introduction.html)
 
