@@ -208,7 +208,7 @@ func (k *Runtime) setRoles(driver runtime.Driver) error {
 		return err
 	}
 
-	for _, node := range nodeList.Items {
+	for i, node := range nodeList.Items {
 		logrus.Infof("%v", node)
 		addresses := node.Status.Addresses
 		for _, address := range addresses {
@@ -225,7 +225,7 @@ func (k *Runtime) setRoles(driver runtime.Driver) error {
 				newNode.Labels["node-role.kubernetes.io/"+role] = ""
 			}
 			logrus.Infof("newNode %v", newNode)
-			patch := runtimeClient.MergeFrom(&node)
+			patch := runtimeClient.MergeFrom(&nodeList.Items[i])
 
 			logrus.Infof("patch %v", patch)
 

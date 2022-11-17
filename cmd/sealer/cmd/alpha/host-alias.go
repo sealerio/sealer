@@ -15,7 +15,7 @@
 package alpha
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -40,8 +40,7 @@ func NewHostAliasCmd() *cobra.Command {
 			)
 			logrus.Warn("sealer apply command will be deprecated in the future, please use sealer run instead.")
 
-			workClusterfile := common.GetDefaultClusterfile()
-			clusterFileData, err = ioutil.ReadFile(workClusterfile)
+			clusterFileData, err = os.ReadFile(common.GetDefaultClusterfile())
 			if err != nil {
 				return err
 			}
