@@ -17,6 +17,7 @@ package k0s
 import (
 	"context"
 	"fmt"
+	"github.com/sealerio/sealer/common"
 	"net"
 
 	"github.com/pkg/errors"
@@ -45,8 +46,8 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 		return err
 	}
 	addRegistryHostsAndLogin := k.addRegistryDomainToHosts()
-	if k.RegConfig.Domain != SeaHub {
-		addSeaHubHost := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
+	if k.RegConfig.Domain != common.DefaultRegistryDomain {
+		addSeaHubHost := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain, k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain)
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
 	}
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {

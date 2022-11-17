@@ -17,6 +17,7 @@ package k0s
 import (
 	"context"
 	"fmt"
+	"github.com/sealerio/sealer/common"
 	"net"
 	"strings"
 
@@ -62,10 +63,10 @@ func (k *Runtime) deleteNode(node net.IP) error {
 	remoteCleanCmds := []string{"k0s stop",
 		fmt.Sprintf("k0s reset --cri-socket %s", ExternalCRI),
 		"rm -rf /etc/k0s/",
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", SeaHub),
+		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", common.DefaultRegistryDomain),
 		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),
 		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, SeaHub),
+		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, common.DefaultRegistryDomain),
 		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
 		"rm -rf /usr/bin/k0s"}
 	if err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {

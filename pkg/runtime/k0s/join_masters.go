@@ -76,8 +76,8 @@ func (k *Runtime) joinMasters(masters []net.IP) error {
 
 func (k *Runtime) JoinMasterCommands(cmds []string) []string {
 	cmdAddRegistryHosts := k.addRegistryDomainToHosts()
-	if k.RegConfig.Domain != SeaHub {
-		cmdAddSeaHubHosts := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
+	if k.RegConfig.Domain != common.DefaultRegistryDomain {
+		cmdAddSeaHubHosts := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain, k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain)
 		cmdAddRegistryHosts = fmt.Sprintf("%s && %s", cmdAddRegistryHosts, cmdAddSeaHubHosts)
 	}
 	joinCommands := []string{cmdAddRegistryHosts}
