@@ -44,6 +44,8 @@ var certCmd = &cobra.Command{
     4. kubectl get pod, to check if it works or not
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println("this command is not support now")
+		return nil
 		cluster, err := clusterfile.GetDefaultCluster()
 		if err != nil {
 			return fmt.Errorf("get default cluster failed, %v", err)
