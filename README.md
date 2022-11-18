@@ -49,8 +49,8 @@ Download sealer binary file.
 
 ```shell script
 #install Sealer binaries
-wget https://sealer.oss-cn-beijing.aliyuncs.com/sealers/sealer-v0.8.6-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.8.6-linux-amd64.tar.gz -C /usr/bin
+wget https://github.com/sealerio/sealer/releases/download/v0.8.6/sealer-v0.8.6-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.8.6-linux-amd64.tar.gz && mv sealer /usr/bin
 ```
 
 Build a ClusterImage with Kubernetes dashboard:
