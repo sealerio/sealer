@@ -54,7 +54,8 @@ type Host struct {
 	//overwrite SSH config
 	SSH v1.SSH `json:"ssh,omitempty"`
 	//overwrite env
-	Env []string `json:"env,omitempty"`
+	Env    []string          `json:"env,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the
