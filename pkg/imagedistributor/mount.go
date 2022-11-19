@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
@@ -45,23 +45,24 @@ func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, s
 			return "", "", err
 		}
 	}
-	if err := b.imageEngine.Pull(&imagecommon.PullOptions{
+
+	imageID, err := b.imageEngine.Pull(&options.PullOptions{
 		Quiet:      false,
 		PullPolicy: "missing",
 		Image:      imageName,
 		Platform:   platform.ToString(),
-	}); err != nil {
+	})
+	if err != nil {
 		return "", "", err
 	}
 
-	// make sure base mount Dir is existed.
 	if err := fs.FS.MkdirAll(filepath.Dir(mountDir)); err != nil {
 		return "", "", err
 	}
 
-	id, err := b.imageEngine.CreateWorkingContainer(&imagecommon.BuildRootfsOptions{
+	id, err := b.imageEngine.CreateWorkingContainer(&options.BuildRootfsOptions{
 		DestDir:       mountDir,
-		ImageNameOrID: imageName,
+		ImageNameOrID: imageID,
 	})
 
 	if err != nil {
@@ -75,7 +76,7 @@ func (b buildAhMounter) Umount(mountDir, cid string) error {
 		return fmt.Errorf("failed to remove mount dir %s: %v", mountDir, err)
 	}
 
-	if err := b.imageEngine.RemoveContainer(&imagecommon.RemoveContainerOptions{
+	if err := b.imageEngine.RemoveContainer(&options.RemoveContainerOptions{
 		ContainerNamesOrIDs: []string{cid},
 	}); err != nil {
 		return fmt.Errorf("failed to remove working container: %v", err)

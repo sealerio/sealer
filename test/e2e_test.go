@@ -21,12 +21,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	exe "github.com/sealerio/sealer/utils/exec"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func TestSealerTests(t *testing.T) {

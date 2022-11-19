@@ -15,11 +15,13 @@
 package image
 
 import (
-	"github.com/containers/buildah/pkg/parse"
-	"github.com/spf13/cobra"
+	"fmt"
 
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var pullOpts *options.PullOptions
@@ -45,7 +47,13 @@ func NewPullCmd() *cobra.Command {
 				return err
 			}
 			pullOpts.Image = args[0]
-			return engine.Pull(pullOpts)
+			imageID, err := engine.Pull(pullOpts)
+			if err != nil {
+				return fmt.Errorf("failed to pull image: %s", pullOpts.Image)
+			}
+
+			logrus.Infof("successful pull %s with the image ID: %s", pullOpts.Image, imageID)
+			return err
 		},
 	}
 	pullOpts = &options.PullOptions{}

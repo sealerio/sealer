@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	parse2 "github.com/containers/buildah/pkg/parse"
+	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -46,18 +47,33 @@ type LegacyContext struct {
 }
 
 type KubefileResult struct {
-	Dockerfile         string
-	RawCmds            []string
-	AppNames           []string
-	Applications       map[string]version.VersionedApplication
-	ApplicationConfigs []*v12.ApplicationConfig `json:"applicationConfigs"`
-	legacyContext      LegacyContext
+	// convert Kubefile to Dockerfile content line by line.
+	Dockerfile string
+
+	// RawCmds to launch sealer image
+	// CMDS ["kubectl apply -f recommended.yaml"]
+	RawCmds []string
+
+	// LaunchedAppNames APP name list
+	// LAUNCH ["myapp1","myapp2"]
+	LaunchedAppNames []string
+
+	// Applications structured APP instruction and register it to this map
+	// APP myapp local://app.yaml
+	Applications map[string]version.VersionedApplication
+
+	// ApplicationConfigs structured APPCMDS instruction and register it to this map
+	// APPCMDS myapp ["kubectl apply -f app.yaml"]
+	ApplicationConfigs map[string]*v12.ApplicationConfig
+
+	legacyContext LegacyContext
 }
 
 type KubefileParser struct {
 	appRootPathFunc func(name string) string
 	// path to build context
 	buildContext string
+	platform     string
 	pullPolicy   string
 	imageEngine  imageengine.Interface
 }
@@ -75,14 +91,15 @@ func (kp *KubefileParser) ParseKubefile(rwc io.Reader) (*KubefileResult, error) 
 func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error) {
 	var (
 		result = &KubefileResult{
-			Applications: map[string]version.VersionedApplication{},
+			Applications:       map[string]version.VersionedApplication{},
+			ApplicationConfigs: map[string]*v12.ApplicationConfig{},
 			legacyContext: LegacyContext{
 				files:       []string{},
 				directories: []string{},
 				apps2Files:  map[string][]string{},
 			},
-			RawCmds:  []string{},
-			AppNames: []string{},
+			RawCmds:          []string{},
+			LaunchedAppNames: []string{},
 		}
 
 		err error
@@ -124,7 +141,6 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 			if i != len(mainNode.Children)-1 {
 				return nil, errors.New("launch should be the last instruction")
 			}
-
 		case command.Cmds:
 			cmdsCnt++
 			if cmdsCnt > 1 {
@@ -150,13 +166,26 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 			return nil, err
 		}
 	}
+
+	// check result validation
+	// if no app type detected and no ApplicationConfigs exist for this app, will return error.
+	for name, registered := range result.Applications {
+		if registered.Type() != "" {
+			continue
+		}
+
+		if _, ok := result.ApplicationConfigs[name]; !ok {
+			return nil, fmt.Errorf("app %s need to specify APPCMDS if no app type detected", name)
+		}
+	}
+
 	return result, nil
 }
 
 func (kp *KubefileParser) processOnCmd(result *KubefileResult, node *Node) error {
 	cmd := node.Value
 	switch cmd {
-	case command.Label, command.Maintainer, command.Add, command.Arg, command.From, command.Copy, command.Run:
+	case command.Label, command.Maintainer, command.Add, command.Arg, command.From, command.Run:
 		result.Dockerfile = mergeLines(result.Dockerfile, node.Original)
 		return nil
 	case command.App:
@@ -174,6 +203,8 @@ func (kp *KubefileParser) processOnCmd(result *KubefileResult, node *Node) error
 		return kp.processLaunch(node, result)
 	case command.Cmds:
 		return kp.processCmds(node, result)
+	case command.Copy:
+		return kp.processCopy(node, result)
 	case command.Cmd:
 		return kp.processCmd(node, result)
 	default:
@@ -208,11 +239,49 @@ func (kp *KubefileParser) processKubeVersion(node *Node, result *KubefileResult)
 	return nil
 }
 
+func (kp *KubefileParser) processCopy(node *Node, result *KubefileResult) error {
+	if node.Next == nil || node.Next.Next == nil {
+		return fmt.Errorf("line %d: invalid copy instruction: %s", node.StartLine, node.Original)
+	}
+
+	copySrc := node.Next.Value
+	copyDest := node.Next.Next.Value
+	// support ${arch} on Kubefile COPY instruction
+	// For example:
+	// if arch is amd64
+	// `COPY ${ARCH}/* .` will be mutated to `COPY amd64/* .`
+	// `COPY $ARCH/* .` will be mutated to `COPY amd64/* .`
+	_, arch, _, err := parse2.Platform(kp.platform)
+	if err != nil {
+		return fmt.Errorf("failed to parse platform: %v", err)
+	}
+
+	ex := shell.NewLex('\\')
+	src, err := ex.ProcessWordWithMap(copySrc, map[string]string{"ARCH": arch})
+	if err != nil {
+		return fmt.Errorf("failed to render COPY instruction: %v", err)
+	}
+
+	tmpLine := strings.Join(append([]string{command.Copy}, src, copyDest), " ")
+	result.Dockerfile = mergeLines(result.Dockerfile, tmpLine)
+
+	return nil
+}
+
 func (kp *KubefileParser) processAppCmds(node *Node, result *KubefileResult) error {
 	appNode := node.Next
 	appName := appNode.Value
+
 	if appName == "" {
-		return errors.New("app name should be specified in the APPCMD instruction")
+		return errors.New("app name should be specified in the APPCMDS instruction")
+	}
+
+	tmpPrefix := fmt.Sprintf("%s %s", strings.TrimSpace(strings.ToUpper(command.AppCmds)), strings.TrimSpace(appName))
+	appCmdsStr := strings.TrimSpace(strings.TrimPrefix(node.Original, tmpPrefix))
+
+	var appCmds []string
+	if err := json.Unmarshal([]byte(appCmdsStr), &appCmds); err != nil {
+		return errors.Wrapf(err, `the APPCMDS value should be format: APPCMDS appName ["executable","param1","param2","..."]`)
 	}
 
 	// check whether the app name exist
@@ -226,32 +295,11 @@ func (kp *KubefileParser) processAppCmds(node *Node, result *KubefileResult) err
 		return fmt.Errorf("the specified app name(%s) for `APPCMDS` should be exist", appName)
 	}
 
-	// get app cmds value
-	tmpPrefix := fmt.Sprintf("%s %s", strings.TrimSpace(strings.ToUpper(command.AppCmds)), strings.TrimSpace(appName))
-	appCmdsStr := strings.TrimSpace(strings.TrimPrefix(node.Original, tmpPrefix))
-	var appCmds []string
-	if err := json.Unmarshal([]byte(appCmdsStr), &appCmds); err != nil {
-		return errors.Wrapf(err, `the APPCMDS value should be format: APPCMDS appName ["executable","param1","param2","..."]`)
-	}
-
-	var existedApplicationConfig bool
-	for _, appConfig := range result.ApplicationConfigs {
-		if appConfig.Name != appName {
-			continue
-		}
-		existedApplicationConfig = true
-		if appConfig.Launch == nil {
-			appConfig.Launch = &v12.ApplicationConfigLaunch{}
-		}
-		appConfig.Launch.CMDs = appCmds
-	}
-	if !existedApplicationConfig {
-		result.ApplicationConfigs = append(result.ApplicationConfigs, &v12.ApplicationConfig{
-			Name: appName,
-			Launch: &v12.ApplicationConfigLaunch{
-				CMDs: appCmds,
-			},
-		})
+	result.ApplicationConfigs[appName] = &v12.ApplicationConfig{
+		Name: appName,
+		Launch: &v12.ApplicationConfigLaunch{
+			CMDs: appCmds,
+		},
 	}
 	return nil
 }
@@ -280,7 +328,7 @@ func (kp *KubefileParser) processLaunch(node *Node, result *KubefileResult) erro
 		if _, ok := result.Applications[appName]; !ok {
 			return errors.Errorf("application %s does not exist in the image", appName)
 		}
-		result.AppNames = append(result.AppNames, appName)
+		result.LaunchedAppNames = append(result.LaunchedAppNames, appName)
 	}
 
 	return nil
@@ -311,26 +359,30 @@ func (kp *KubefileParser) processFrom(node *Node, result *KubefileResult) error 
 		return nil
 	}
 
-	if err := kp.imageEngine.Pull(&options.PullOptions{
+	id, err := kp.imageEngine.Pull(&options.PullOptions{
 		PullPolicy: kp.pullPolicy,
 		Image:      image,
 		Platform:   platform,
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("failed to pull image %s: %v", image, err)
 	}
 
-	extension, err := kp.imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: image})
+	imageSpec, err := kp.imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 	if err != nil {
 		return fmt.Errorf("failed to get image-extension %s: %s", image, err)
 	}
 
-	for _, app := range extension.Applications {
+	for _, app := range imageSpec.ImageExtension.Applications {
 		// for range has problem.
 		// can't assign address to the target.
 		// we should use temp value.
 		// https://github.com/golang/gofrontend/blob/e387439bfd24d5e142874b8e68e7039f74c744d7/go/statements.cc#L5501
 		theApp := app
 		result.Applications[app.Name()] = theApp
+	}
+	for _, appConfig := range imageSpec.ImageExtension.Launch.AppConfigs {
+		result.ApplicationConfigs[appConfig.Name] = appConfig
 	}
 
 	return nil
@@ -355,7 +407,8 @@ func (kr *KubefileResult) CleanLegacyContext() error {
 
 func NewParser(appRootPath string,
 	buildOptions options.BuildOptions,
-	imageEngine imageengine.Interface) *KubefileParser {
+	imageEngine imageengine.Interface,
+	platform string) *KubefileParser {
 	return &KubefileParser{
 		// application will be put under approot/name/
 		appRootPathFunc: func(name string) string {
@@ -364,5 +417,6 @@ func NewParser(appRootPath string,
 		imageEngine:  imageEngine,
 		buildContext: buildOptions.ContextDir,
 		pullPolicy:   buildOptions.PullPolicy,
+		platform:     platform,
 	}
 }

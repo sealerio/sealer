@@ -16,24 +16,134 @@ package buildah
 
 import (
 	"context"
-
-	"github.com/sealerio/sealer/pkg/define/options"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/containers/common/libimage"
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/utils/archive"
+	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/os/fs"
+	"github.com/sirupsen/logrus"
 )
 
+// Save image as tar file, if image is multi-arch image, will save all its instances and manifest name as tar file.
 func (engine *Engine) Save(opts *options.SaveOptions) error {
-	if len(opts.ImageNameOrID) == 0 {
+	imageNameOrID := opts.ImageNameOrID
+	imageTar := opts.Output
+
+	if len(imageNameOrID) == 0 {
 		return errors.New("image name or id must be specified")
 	}
 	if opts.Compress && (opts.Format != OCIManifestDir && opts.Format != V2s2ManifestDir) {
 		return errors.New("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
 	}
 
+	img, _, err := engine.ImageRuntime().LookupImage(imageNameOrID, &libimage.LookupImageOptions{
+		ManifestList: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	isManifest, err := img.IsManifestList(getContext())
+	if err != nil {
+		return err
+	}
+
+	if !isManifest {
+		return engine.saveOneImage(imageNameOrID, opts.Format, imageTar, opts.Compress)
+	}
+
+	// save multi-arch images :including each platform images and manifest.
+	var pathsToCompress []string
+
+	if err := fs.FS.MkdirAll(filepath.Dir(imageTar)); err != nil {
+		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
+	}
+
+	file, err := os.Create(filepath.Clean(imageTar))
+	if err != nil {
+		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
+	}
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			logrus.Errorf("failed to close file: %v", err)
+		}
+	}()
+
+	tempDir, err := fs.FS.MkTmpdir()
+	if err != nil {
+		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
+	}
+
+	defer func() {
+		err = fs.FS.RemoveAll(tempDir)
+		if err != nil {
+			logrus.Warnf("failed to delete %s: %v", tempDir, err)
+		}
+	}()
+
+	// save each platform images
+	imageName := img.Names()[0]
+	logrus.Infof("image %q is a manifest list, looking up matching instance to save", imageNameOrID)
+	manifestList, err := engine.ImageRuntime().LookupManifestList(imageName)
+	if err != nil {
+		return err
+	}
+
+	schema2List, err := manifestList.Inspect()
+	if err != nil {
+		return err
+	}
+
+	for _, m := range schema2List.Manifests {
+		instance, err := manifestList.LookupInstance(engine.Context(), m.Platform.Architecture, m.Platform.OS, m.Platform.Variant)
+		if err != nil {
+			return err
+		}
+
+		instanceTar := filepath.Join(tempDir, instance.ID()+".tar")
+		err = engine.saveOneImage(instance.ID(), opts.Format, instanceTar, opts.Compress)
+		if err != nil {
+			return err
+		}
+
+		pathsToCompress = append(pathsToCompress, instanceTar)
+	}
+
+	// save imageName to metadata file
+	metaFile := filepath.Join(tempDir, common.DefaultMetadataName)
+	if err = osi.NewAtomicWriter(metaFile).WriteFile([]byte(imageName)); err != nil {
+		return fmt.Errorf("failed to write temp file %s, err: %v ", metaFile, err)
+	}
+	pathsToCompress = append(pathsToCompress, metaFile)
+
+	// tar all materials
+	tarReader, err := archive.TarWithRootDir(pathsToCompress...)
+	if err != nil {
+		return fmt.Errorf("failed to get tar reader for %s, err: %s", imageNameOrID, err)
+	}
+	defer func() {
+		if err := tarReader.Close(); err != nil {
+			logrus.Errorf("failed to close file: %v", err)
+		}
+	}()
+
+	_, err = io.Copy(file, tarReader)
+
+	return err
+}
+
+func (engine *Engine) saveOneImage(imageNameOrID, format, path string, compress bool) error {
 	saveOptions := &libimage.SaveOptions{
 		CopyOptions: libimage.CopyOptions{
-			DirForceCompress:            opts.Compress,
+			DirForceCompress:            compress,
 			OciAcceptUncompressedLayers: false,
 			// Force signature removal to preserve backwards compat.
 			// See https://github.com/containers/podman/pull/11669#issuecomment-925250264
@@ -41,9 +151,6 @@ func (engine *Engine) Save(opts *options.SaveOptions) error {
 		},
 	}
 
-	// TODO we can support multiAchieve in the future
-	// check podman save
-	names := []string{opts.ImageNameOrID}
-
-	return engine.ImageRuntime().Save(context.Background(), names, opts.Format, opts.Output, saveOptions)
+	names := []string{imageNameOrID}
+	return engine.ImageRuntime().Save(context.Background(), names, format, path, saveOptions)
 }

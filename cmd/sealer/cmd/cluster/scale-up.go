@@ -146,15 +146,22 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor: distributor,
-		Plugins:     plugins,
+		Distributor:            distributor,
+		Plugins:                plugins,
+		ContainerRuntimeConfig: cf.GetCluster().Spec.ContainerRuntime,
 	}
 
 	if cf.GetKubeadmConfig() != nil {
 		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
 	}
 
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	imageSpec, err := imageEngine.Inspect(&imagecommon.InspectOptions{ImageNameOrID: clusterImageName})
+	if err != nil {
+		return fmt.Errorf("failed to get cluster image extension: %s", err)
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
+		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
 	if err != nil {
 		return err
 	}
@@ -170,7 +177,8 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 		return err
 	}
 
-	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
+	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
 		return err
 	}
 

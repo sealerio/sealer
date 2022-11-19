@@ -17,11 +17,9 @@ package parser
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
-
 	"github.com/sealerio/sealer/build/kubefile/command"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
@@ -33,7 +31,6 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (versio
 		localFiles  = []string{}
 		remoteFiles = []string{}
 		filesToCopy = []string{}
-		legacyCxt   = result.legacyContext
 	)
 
 	// first node value is the command
@@ -70,25 +67,20 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (versio
 	// 2. download remote files to the temp dir
 	// 3. append the temp files to filesToCopy
 	if len(remoteFiles) > 0 {
-		remoteCxtAbs, err := os.MkdirTemp(kp.buildContext, "sealer-remote-files")
+		tmpDir, err := os.MkdirTemp(kp.buildContext, "sealer-remote-files")
 		if err != nil {
 			return nil, errors.Errorf("failed to create remote context: %s", err)
 		}
 
-		files, err := downloadRemoteFiles(remoteCxtAbs, remoteFiles)
+		files, err := downloadRemoteFiles(tmpDir, remoteFiles)
 		if err != nil {
 			return nil, err
 		}
 
-		remoteCxtBase := filepath.Base(remoteCxtAbs)
-		for _, f := range files {
-			fileBase := filepath.Base(f)
-			fileRel2Cxt := filepath.Join(remoteCxtBase, fileBase)
-			filesToCopy = append(filesToCopy, fileRel2Cxt)
-		}
+		filesToCopy = append(filesToCopy, files...)
 		// append it to the legacy.
 		// it will be deleted by CleanContext
-		legacyCxt.directories = append(legacyCxt.directories, remoteCxtAbs)
+		result.legacyContext.directories = append(result.legacyContext.directories, tmpDir)
 	}
 
 	destDir := kp.appRootPathFunc(appName)

@@ -16,6 +16,7 @@ package proxy
 
 import (
 	"crypto/tls"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -87,7 +88,12 @@ func getAuthURLs(remoteURL string) ([]string, error) {
 			return nil, err
 		}
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			logrus.Warnf("failed to close http reader")
+		}
+	}(resp.Body)
 
 	for _, c := range challenge.ResponseChallenges(resp) {
 		if strings.EqualFold(c.Scheme, "bearer") {

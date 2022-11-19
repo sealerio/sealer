@@ -28,7 +28,21 @@ import (
 	osi "github.com/sealerio/sealer/utils/os"
 )
 
-// LoadMetadata :read metadata via ClusterImage name.
+// Deprecated
+type Metadata struct {
+	Version string `json:"version"`
+	Arch    string `json:"arch"`
+	Variant string `json:"variant"`
+	// KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
+	KubeVersion string `json:"kubeVersion"`
+	NydusFlag   bool   `json:"NydusFlag"`
+	// ClusterRuntime is a flag to distinguish the runtime for k0s、k8s、k3s
+	ClusterRuntime ClusterRuntime `json:"ClusterRuntime"`
+}
+
+type ClusterRuntime string
+
+// Deprecated
 func LoadMetadata(rootfs string) (*Metadata, error) {
 	metadataPath := filepath.Join(rootfs, common.DefaultMetadataName)
 	var metadataFile []byte
@@ -49,6 +63,7 @@ func LoadMetadata(rootfs string) (*Metadata, error) {
 	return &md, nil
 }
 
+// Deprecated
 func GetClusterImagePlatform(rootfs string) (cp ocispecs.Platform) {
 	// current we only support build on linux
 	cp = ocispecs.Platform{

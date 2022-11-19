@@ -26,14 +26,15 @@ import (
 	"github.com/sealerio/sealer/pkg/application"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -52,6 +53,9 @@ run cluster by CLI flags:
 
 run app image:
   sealer run localhost/nginx:v1
+
+run upgrade image:
+  sealer run docker.io/sealerio/kubernetes:v1.22.15-upgrade --mode upgrade
 `
 
 func NewRunCmd() *cobra.Command {
@@ -86,33 +90,41 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			if clusterFile != "" {
+				if runFlags.Mode == common.ApplyModeUpgrade {
+					return fmt.Errorf("you can't specify Clusterfile in upgrade mode")
+				}
 				return runWithClusterfile(clusterFile, runFlags)
 			}
 
-			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
 
-			if err = imageEngine.Pull(&imagecommon.PullOptions{
+			id, err := imageEngine.Pull(&options.PullOptions{
 				Quiet:      false,
 				PullPolicy: "missing",
 				Image:      args[0],
 				Platform:   "local",
-			}); err != nil {
+			})
+			if err != nil {
 				return err
 			}
 
-			extension, err := imageEngine.GetSealerImageExtension(&imagecommon.GetImageAnnoOptions{ImageNameOrID: args[0]})
+			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 			if err != nil {
 				return fmt.Errorf("failed to get cluster image extension: %s", err)
 			}
 
-			if extension.Type == v12.AppInstaller {
+			if runFlags.Mode == common.ApplyModeUpgrade {
+				return upgradeCluster(imageEngine, imageSpec, args[0])
+			}
+
+			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
 				app := v2.ConstructApplication(nil, runFlags.Cmds, runFlags.AppNames)
 
 				return installApplication(args[0], runFlags.CustomEnv,
-					app, extension, nil, imageEngine, runFlags.Mode)
+					app, imageSpec.ImageExtension, nil, imageEngine, runFlags.Mode)
 			}
 
 			clusterFromFlag, err := utils.ConstructClusterForRun(args[0], runFlags)
@@ -130,7 +142,7 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			return createNewCluster(imageEngine, cf, runFlags.Mode)
+			return createNewCluster(imageEngine, cf, imageSpec, runFlags.Mode)
 		},
 	}
 	runFlags = &types.RunFlags{}
@@ -187,36 +199,37 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 
 	cf.SetCluster(*cluster)
 	imageName := cluster.Spec.Image
-	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return err
 	}
 
-	if err = imageEngine.Pull(&imagecommon.PullOptions{
+	id, err := imageEngine.Pull(&options.PullOptions{
 		Quiet:      false,
 		PullPolicy: "missing",
 		Image:      imageName,
 		Platform:   "local",
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
-	extension, err := imageEngine.GetSealerImageExtension(&imagecommon.GetImageAnnoOptions{ImageNameOrID: imageName})
+	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 	if err != nil {
 		return fmt.Errorf("failed to get cluster image extension: %s", err)
 	}
 
-	if extension.Type == v12.AppInstaller {
+	if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
 		app := v2.ConstructApplication(cf.GetApplication(), cluster.Spec.CMD, cluster.Spec.APPNames)
 
 		return installApplication(imageName, runFlags.CustomEnv, app,
-			extension, cf.GetConfigs(), imageEngine, runFlags.Mode)
+			imageSpec.ImageExtension, cf.GetConfigs(), imageEngine, runFlags.Mode)
 	}
 
-	return createNewCluster(imageEngine, cf, runFlags.Mode)
+	return createNewCluster(imageEngine, cf, imageSpec, runFlags.Mode)
 }
 
-func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interface, mode string) error {
+func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interface, imageSpec *imagev1.ImageSpec, mode string) error {
 	cluster := cf.GetCluster()
 	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {
@@ -269,9 +282,10 @@ func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interfac
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor: distributor,
-		ImageEngine: imageEngine,
-		Plugins:     plugins,
+		Distributor:            distributor,
+		ImageSpec:              imageSpec,
+		Plugins:                plugins,
+		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
 	}
 
 	if cf.GetKubeadmConfig() != nil {
@@ -282,7 +296,8 @@ func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interfac
 		runtimeConfig.Application = cf.GetApplication()
 	}
 
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
+		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
 	if err != nil {
 		return err
 	}
@@ -298,8 +313,9 @@ func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interfac
 		return err
 	}
 
+	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
 	//save and commit
-	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
 		return err
 	}
 
@@ -349,7 +365,7 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	return nil
 }
 
-func installApplication(appImageName string, envs []string, app *v2.Application, extension v12.ImageExtension, configs []v1.Config, imageEngine imageengine.Interface, mode string) error {
+func installApplication(appImageName string, envs []string, app *v2.Application, extension imagev1.ImageExtension, configs []v1.Config, imageEngine imageengine.Interface, mode string) error {
 	logrus.Infof("start to install application: %s", appImageName)
 
 	v2App, err := application.NewV2Application(app, extension)
@@ -410,6 +426,91 @@ func installApplication(appImageName string, envs []string, app *v2.Application,
 	}
 
 	logrus.Infof("succeeded in installing new app with image %s", appImageName)
+
+	return nil
+}
+
+func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec, imageName string) error {
+	cf, err := clusterfile.NewClusterFile(nil)
+	if err != nil {
+		return err
+	}
+
+	cluster := cf.GetCluster()
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return err
+	}
+	clusterHosts := infraDriver.GetHostIPList()
+
+	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("start to upgrade cluster with image: %s", imageName)
+
+	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
+	if err != nil {
+		return err
+	}
+
+	imageMountInfo, err := imageMounter.Mount(imageName)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = imageMounter.Umount(imageName, imageMountInfo)
+		if err != nil {
+			logrus.Errorf("failed to umount cluster image")
+		}
+	}()
+
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+	if err != nil {
+		return err
+	}
+
+	plugins, err := loadPluginsFromImage(imageMountInfo)
+	if err != nil {
+		return err
+	}
+
+	if cf.GetPlugins() != nil {
+		plugins = append(plugins, cf.GetPlugins()...)
+	}
+
+	runtimeConfig := &clusterruntime.RuntimeConfig{
+		Distributor:            distributor,
+		ImageSpec:              imageSpec,
+		Plugins:                plugins,
+		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
+	}
+
+	upgrader, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig, clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
+	if err != nil {
+		return err
+	}
+
+	//we need to save desired clusterfile to local disk temporarily
+	//and will use it later to clean the cluster node if apply failed.
+	if err = cf.SaveAll(clusterfile.SaveOptions{}); err != nil {
+		return err
+	}
+
+	err = upgrader.Upgrade()
+	if err != nil {
+		return err
+	}
+
+	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
+	//save and commit
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
+		return err
+	}
+
+	logrus.Infof("succeeded in upgrading cluster with image %s", imageName)
 
 	return nil
 }

@@ -17,15 +17,22 @@ package buildah
 import (
 	"context"
 	"fmt"
-
-	"github.com/sealerio/sealer/pkg/define/options"
-
+	"io/fs"
+	"io/ioutil"
 	"os"
-
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/common/libimage"
+	"github.com/go-errors/errors"
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/utils/archive"
+	fsUtil "github.com/sealerio/sealer/utils/os/fs"
+	"github.com/sirupsen/logrus"
 )
+
+var LoadError = errors.Errorf("failed to load new image")
 
 func (engine *Engine) Load(opts *options.LoadOptions) error {
 	// Download the input file if needed.
@@ -42,7 +49,8 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 	//	loadOpts.Input = tmpfile
 	//}
 
-	if _, err := os.Stat(opts.Input); err != nil {
+	imageSrc := opts.Input
+	if _, err := os.Stat(imageSrc); err != nil {
 		return err
 	}
 
@@ -51,10 +59,110 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 		loadOpts.Writer = os.Stderr
 	}
 
-	loadedImages, err := engine.ImageRuntime().Load(context.Background(), opts.Input, loadOpts)
+	srcFile, err := os.Open(filepath.Clean(imageSrc))
+	if err != nil {
+		return fmt.Errorf("failed to open %s, err : %v", imageSrc, err)
+	}
+
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			logrus.Errorf("failed to close file: %v", err)
+		}
+	}()
+
+	tempDir, err := fsUtil.FS.MkTmpdir()
+	if err != nil {
+		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
+	}
+
+	defer func() {
+		err = fsUtil.FS.RemoveAll(tempDir)
+		if err != nil {
+			logrus.Warnf("failed to delete %s: %v", tempDir, err)
+		}
+	}()
+
+	// decompress tar file
+	if _, err = archive.Decompress(srcFile, tempDir, archive.Options{Compress: false}); err != nil {
+		return err
+	}
+
+	metaFile := filepath.Join(tempDir, common.DefaultMetadataName)
+	if _, err := os.Stat(metaFile); err != nil {
+		//assume it is single image to load
+		return engine.loadOneImage(imageSrc, loadOpts)
+	}
+
+	// get manifestName
+	metaBytes, err := ioutil.ReadFile(filepath.Clean(metaFile))
 	if err != nil {
 		return err
 	}
-	fmt.Println("Loaded image: " + strings.Join(loadedImages, "\nLoaded image: "))
+
+	manifestName := string(metaBytes)
+	// delete it if manifestName is already used
+	_, err = engine.ImageRuntime().LookupManifestList(manifestName)
+	if err == nil {
+		logrus.Warnf("%s is already in use, will delete it", manifestName)
+		delErr := engine.DeleteManifests([]string{manifestName}, &options.ManifestDeleteOpts{})
+		if delErr != nil {
+			return fmt.Errorf("%s is already in use: %v", manifestName, delErr)
+		}
+	}
+
+	// walk through temp dir to load each instance
+	var instancesIDs []string
+	err = filepath.Walk(tempDir, func(path string, f fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !strings.HasSuffix(f.Name(), ".tar") {
+			return nil
+		}
+
+		instanceSrc := filepath.Join(tempDir, f.Name())
+		err = engine.loadOneImage(instanceSrc, loadOpts)
+		if err != nil {
+			return fmt.Errorf("failed to load %s from %s: %v", f.Name(), imageSrc, err)
+		}
+
+		instancesIDs = append(instancesIDs, strings.TrimSuffix(f.Name(), ".tar"))
+		return nil
+	})
+
+	// create a new manifest and add instance to it.
+	_, err = engine.CreateManifest(manifestName, &options.ManifestCreateOpts{})
+	if err != nil {
+		return fmt.Errorf("failed to create new manifest %s :%v ", manifestName, err)
+	}
+
+	defer func() {
+		if errors.Is(err, LoadError) {
+			err = engine.DeleteManifests([]string{manifestName}, &options.ManifestDeleteOpts{})
+			if err != nil {
+				logrus.Errorf("failed to delete manifest %s :%v ", manifestName, err)
+			}
+		}
+	}()
+
+	for _, imageID := range instancesIDs {
+		err = engine.AddToManifest(manifestName, imageID, &options.ManifestAddOpts{})
+		if err != nil {
+			logrus.Errorf("failed to add new image %s to %s :%v ", imageID, manifestName, err)
+			return LoadError
+		}
+	}
+
+	return nil
+}
+
+func (engine *Engine) loadOneImage(imageSrc string, loadOpts *libimage.LoadOptions) error {
+	loadedImages, err := engine.ImageRuntime().Load(context.Background(), imageSrc, loadOpts)
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("Loaded image: " + strings.Join(loadedImages, "\nLoaded image: "))
 	return nil
 }

@@ -20,9 +20,8 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sirupsen/logrus"
 )
 
 func (engine *Engine) RemoveImage(opts *options.RemoveImageOptions) error {
@@ -32,7 +31,6 @@ func (engine *Engine) RemoveImage(opts *options.RemoveImageOptions) error {
 	if len(opts.ImageNamesOrIDs) > 0 && opts.Prune {
 		return errors.Errorf("when using the --prune switch, you may not pass any images names or IDs")
 	}
-
 	options := &libimage.RemoveImagesOptions{
 		Filters: []string{"readonly=false"},
 	}

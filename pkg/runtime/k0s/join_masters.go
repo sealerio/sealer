@@ -17,18 +17,23 @@ package k0s
 import (
 	"fmt"
 	"net"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils/ssh"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-func (k *Runtime) joinMasters(masters []net.IP) error {
+const TimeForWaitingK0sStart = 10
+
+func (k *Runtime) joinMasters(masters []net.IP, registryInfo string) error {
 	if len(masters) == 0 {
 		return nil
 	}
+
+	if err := k.initKube(masters); err != nil {
+		return err
+	}
+
 	if err := k.WaitSSHReady(6, masters...); err != nil {
 		return errors.Wrap(err, "join masters wait for ssh ready time out")
 	}
@@ -41,49 +46,33 @@ func (k *Runtime) joinMasters(masters []net.IP) error {
 	STEP6: join node with token
 	STEP7: start the k0scontroller.service
 	*/
-	if err := k.sendRegistryCert(masters); err != nil {
-		return err
-	}
 	if err := k.CopyJoinToken(ControllerRole, masters); err != nil {
 		return err
 	}
-	cmds := k.JoinCommand(ControllerRole)
+	cmds := k.JoinCommand(ControllerRole, registryInfo)
 	if cmds == nil {
 		return fmt.Errorf("failed to get join master command")
 	}
 
 	for _, master := range masters {
-		logrus.Infof("start to join %s as master", master)
-
-		masterCmds := k.JoinMasterCommands(cmds)
-		client, err := k.getHostSSHClient(master)
-		if err != nil {
-			return err
-		}
-
-		if client.(*ssh.SSH).User != common.ROOT {
-			masterCmds = append(masterCmds, "rm -rf ${HOME}/.kube/config && mkdir -p ${HOME}/.kube && cp /var/lib/k0s/pki/admin.conf ${HOME}/.kube/config && chown $(id -u):$(id -g) ${HOME}/.kube/config")
-		}
-
-		if err := client.CmdAsync(master, masterCmds...); err != nil {
+		logrus.Infof("Start to join %s as master", master)
+		if err := k.infra.CmdAsync(master, cmds...); err != nil {
 			return fmt.Errorf("failed to exec command(%s) on master(%s): %v", cmds, master, err)
 		}
-
-		logrus.Infof("succeeded in joining %s as master", master)
+		if err := k.fetchKubeconfig(master); err != nil {
+			return fmt.Errorf("failed to fetch admin.conf on master(%s): %v", master, err)
+		}
+		logrus.Infof("Succeeded in joining %s as master", master)
 	}
 	return nil
 }
 
-func (k *Runtime) JoinMasterCommands(cmds []string) []string {
-	cmdAddRegistryHosts := k.addRegistryDomainToHosts()
-	if k.RegConfig.Domain != common.DefaultRegistryDomain {
-		cmdAddSeaHubHosts := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain, k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain)
-		cmdAddRegistryHosts = fmt.Sprintf("%s && %s", cmdAddRegistryHosts, cmdAddSeaHubHosts)
+func (k *Runtime) fetchKubeconfig(m net.IP) error {
+	logrus.Infof("waiting around 10 seconds for fetch k0s admin.conf")
+	// waiting k0s start success.
+	time.Sleep(time.Second * TimeForWaitingK0sStart)
+	if err := k.infra.CmdAsync(m, "rm -rf .kube/config && mkdir -p /root/.kube && cp /var/lib/k0s/pki/admin.conf /root/.kube/config"); err != nil {
+		return err
 	}
-	joinCommands := []string{cmdAddRegistryHosts}
-	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		joinCommands = append(joinCommands, k.GenLoginCommand())
-	}
-
-	return append(joinCommands, cmds...)
+	return nil
 }

@@ -17,24 +17,24 @@ package apply
 import (
 	"bytes"
 	"fmt"
-	"net"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/onsi/gomega"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/checker"
+	k "github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/infra"
 	"github.com/sealerio/sealer/test/testhelper"
+	"github.com/sealerio/sealer/test/testhelper/client/k8s"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	"github.com/sealerio/sealer/types/api/constants"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/exec"
 	"github.com/sealerio/sealer/utils/os"
-	"github.com/sealerio/sealer/utils/ssh"
+
+	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -255,27 +255,26 @@ func CleanUpContainerInfra(cluster *v1.Cluster) {
 	testhelper.CheckErr(err)
 }
 
-// CheckNodeNumWithSSH check node mum of remote cluster;for bare metal apply
-func CheckNodeNumWithSSH(sshClient *testhelper.SSHClient, expectNum int) {
-	if sshClient == nil {
+// CheckNodeNumWithSSH check node num of remote cluster
+func CheckNodeNumWithSSH(client *k8s.Client, expectNum int) {
+	if client == nil {
 		return
 	}
-	cmd := "kubectl get nodes | wc -l"
-	result, err := sshClient.SSH.CmdToString(sshClient.RemoteHostIP, cmd, "")
+	nodes, err := client.ListNodes()
 	testhelper.CheckErr(err)
-	num, err := strconv.Atoi(strings.ReplaceAll(result, "\n", ""))
-	testhelper.CheckErr(err)
-	testhelper.CheckEqual(num, expectNum+1)
+	num := len(nodes.Items)
+	testhelper.CheckEqual(num, expectNum)
 }
 
-// CheckNodeNumLocally check node mum of remote cluster;for cloud apply
-func CheckNodeNumLocally(expectNum int) {
-	cmd := "sudo -E kubectl get nodes | wc -l"
-	result, err := exec.RunSimpleCmd(cmd)
+// CheckNodeNumLocally check node num of local cluster
+func CheckNodeNumLocally(client *k.Client, expectNum int) {
+	if client == nil {
+		return
+	}
+	nodes, err := client.ListNodes()
 	testhelper.CheckErr(err)
-	num, err := strconv.Atoi(strings.ReplaceAll(result, "\n", ""))
-	testhelper.CheckErr(err)
-	testhelper.CheckEqual(num, expectNum+1)
+	num := len(nodes.Items)
+	testhelper.CheckEqual(num, expectNum)
 }
 
 func WaitAllNodeRunning() {
@@ -286,21 +285,19 @@ func WaitAllNodeRunning() {
 	testhelper.CheckErr(err)
 }
 
-func WaitAllNodeRunningBySSH(s ssh.Interface, masterIP net.IP) {
+func WaitAllNodeRunningBySSH(client *k8s.Client) {
 	time.Sleep(30 * time.Second)
 	err := utils.Retry(10, 5*time.Second, func() error {
-		result, err := s.CmdToString(masterIP, "kubectl get nodes", "")
+		flag, err := client.CheckAllNodeReady()
 		if err != nil {
 			return err
 		}
-		fmt.Println(result)
-		if strings.Contains(result, "NotReady") {
-			resultPod, err := s.CmdToString(masterIP, "kubectl get pod -A", "")
+		if !flag {
+			err = client.OutputNotReadyPodInfo()
 			if err != nil {
 				return err
 			}
-			fmt.Println(resultPod)
-			return fmt.Errorf("node not ready: \n %s", result)
+			return fmt.Errorf("node not ready")
 		}
 		return nil
 	})

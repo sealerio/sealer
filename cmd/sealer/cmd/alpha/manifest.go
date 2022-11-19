@@ -15,15 +15,16 @@
 package alpha
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/containers/common/pkg/auth"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -47,7 +48,7 @@ func NewManifestCmd() *cobra.Command {
 		Use:   "manifest",
 		Short: "manipulate manifest lists",
 		Long:  manifestDescription,
-		Example: `sealer manifest create localhost/my-manifest
+		Example: `sealer alpha manifest create localhost/my-manifest
   sealer alpha manifest add localhost/my-manifest localhost/image
   sealer alpha manifest inspect localhost/my-manifest
   sealer alpha manifest push localhost/my-manifest transport:destination
@@ -78,7 +79,13 @@ func manifestCreateCommand() *cobra.Command {
 				return err
 			}
 
-			return engine.CreateManifest(args[0], &createManifestOpts)
+			id, err := engine.CreateManifest(args[0], &createManifestOpts)
+			if err != nil {
+				return err
+			}
+
+			logrus.Infof("successfully create manifest %s with ID %s", args[0], id)
+			return nil
 		},
 		Example: `sealer alpha manifest create mylist:v1.11`,
 		Args:    cobra.MinimumNArgs(1),
@@ -209,7 +216,18 @@ func manifestInspectCommand() *cobra.Command {
 				return err
 			}
 
-			return engine.InspectManifest(name, &inspectManifestOpts)
+			schema2List, err := engine.InspectManifest(name, &inspectManifestOpts)
+			if err != nil {
+				return err
+			}
+
+			b, err := json.MarshalIndent(schema2List, "", "    ")
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(string(b))
+			return nil
 		},
 		Example: `sealer alpha manifest inspect mylist:v1.11`,
 		Args:    cobra.MinimumNArgs(1),

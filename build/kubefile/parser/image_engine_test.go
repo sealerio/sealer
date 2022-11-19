@@ -18,35 +18,11 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/opencontainers/go-digest"
 
-	v12 "github.com/sealerio/sealer/pkg/define/application/v1"
-	"github.com/sealerio/sealer/pkg/define/application/version"
 	v1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 type testImageEngine struct{}
-
-var testExtensionWithApp = v1.ImageExtension{
-	Applications: []version.VersionedApplication{
-		v12.NewV1Application(
-			"es",
-			"helm",
-			[]string{},
-		),
-		v12.NewV1Application(
-			"ts",
-			"kube",
-			[]string{},
-		),
-	},
-}
-
-var testExtensionWithoutApp = v1.ImageExtension{}
-
-var testImage map[string]v1.ImageExtension = map[string]v1.ImageExtension{
-	"withApp":    testExtensionWithApp,
-	"withoutApp": testExtensionWithoutApp,
-}
 
 func (testImageEngine) Build(sealerBuildFlags *options.BuildOptions) (string, error) {
 	//TODO implement me
@@ -93,8 +69,8 @@ func (testImageEngine) Push(opts *options.PushOptions) error {
 	panic("implement me")
 }
 
-func (testImageEngine) Pull(opts *options.PullOptions) error {
-	return nil
+func (testImageEngine) Pull(opts *options.PullOptions) (string, error) {
+	return "", nil
 }
 
 func (testImageEngine) Images(opts *options.ImagesOptions) error {
@@ -112,12 +88,7 @@ func (testImageEngine) Load(opts *options.LoadOptions) error {
 	panic("implement me")
 }
 
-func (testImageEngine) Inspect(opts *options.InspectOptions) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (testImageEngine) GetImageAnnotation(opts *options.GetImageAnnoOptions) (map[string]string, error) {
+func (testImageEngine) Inspect(opts *options.InspectOptions) (*v1.ImageSpec, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -142,19 +113,11 @@ func (testImageEngine) CreateWorkingContainer(opts *options.BuildRootfsOptions) 
 	panic("implement me")
 }
 
-func (testImageEngine) GetSealerImageExtension(opts *options.GetImageAnnoOptions) (v1.ImageExtension, error) {
-	_, ok := testImage[opts.ImageNameOrID]
-	if !ok {
-		return testExtensionWithoutApp, nil
-	}
-	return testExtensionWithApp, nil
-}
-
 func (testImageEngine) LookupManifest(name string) (*libimage.ManifestList, error) {
 	panic("implement me")
 }
 
-func (testImageEngine) CreateManifest(name string, opts *options.ManifestCreateOpts) error {
+func (testImageEngine) CreateManifest(name string, opts *options.ManifestCreateOpts) (string, error) {
 	panic("implement me")
 }
 
@@ -162,7 +125,7 @@ func (testImageEngine) DeleteManifests(names []string, opts *options.ManifestDel
 	panic("implement me")
 }
 
-func (testImageEngine) InspectManifest(name string, opts *options.ManifestInspectOpts) error {
+func (testImageEngine) InspectManifest(name string, opts *options.ManifestInspectOpts) (*libimage.ManifestListData, error) {
 	panic("implement me")
 }
 

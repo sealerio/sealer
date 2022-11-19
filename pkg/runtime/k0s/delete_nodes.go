@@ -18,75 +18,78 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/client/k8s"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (k *Runtime) deleteNodes(nodes []net.IP) error {
-	if len(nodes) == 0 {
-		return nil
+func (k *Runtime) deleteNodes(nodesToDelete, remainMasters []net.IP) error {
+	var remainMaster0 *net.IP
+	if len(remainMasters) > 0 {
+		remainMaster0 = &remainMasters[0]
 	}
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, node := range nodes {
+	for _, node := range nodesToDelete {
 		node := node
 		eg.Go(func() error {
-			logrus.Infof("start to delete node %s", node)
-			if err := k.deleteNode(node); err != nil {
+			logrus.Infof("Start to delete node %s", node)
+			if err := k.deleteNode(node, remainMaster0); err != nil {
 				return fmt.Errorf("failed to delete node %s: %v", node, err)
 			}
-			logrus.Infof("succeeded in deleting node %s", node)
+			logrus.Infof("Succeeded in deleting node %s", node)
 			return nil
 		})
 	}
 	return eg.Wait()
 }
 
-func (k *Runtime) deleteNode(node net.IP) error {
-	ssh, err := k.getHostSSHClient(node)
-	if err != nil {
-		return fmt.Errorf("failed to delete node: %v", err)
-	}
+func (k *Runtime) deleteNode(node net.IP, remainMaster0 *net.IP) error {
 	/** To delete a node from k0s cluster, following these steps.
-	STEP1: stop k0s service
-	STEP2: reset the node with install configuration
-	STEP3: remove k0s cluster config generate by k0s under /etc/k0s
-	STEP4: remove private registry config in /etc/host
-	STEP5: remove bin file such as: kubectl, and remove .kube directory
-	STEP6: remove k0s bin file.
-	STEP7: delete node though k8s client
+	STEP1: drain specified node
+	STEP2: stop k0s service
+	STEP3: unmount kubelet related pod volume, this would cause k0s reset return error
+	STEP4: reset the node with install configuration
+	STEP5: remove k0s cluster config generate by k0s under /etc/k0s
+	STEP6: remove private registry config in /etc/host
+	STEP7: remove bin file such as: kubectl, and remove .kube directory
+	STEP8: remove k0s bin file.
+	STEP9: delete node though k8s client
 	*/
+	// remove node, if remainMaster0 is nil, no need delete master from cluster
+	if remainMaster0 != nil {
+		nodeName, err := k.getNodeName(node)
+		if err != nil {
+			return err
+		}
+
+		if err = k.deleteNodeFromCluster(nodeName); err != nil {
+			return err
+		}
+	}
+
 	remoteCleanCmds := []string{"k0s stop",
-		fmt.Sprintf("k0s reset --cri-socket %s", ExternalCRI),
+		"umount $(df -HT | grep '/var/lib/k0s/kubelet/pods' | awk '{print $7}')",
+		"k0s reset",
 		"rm -rf /etc/k0s/",
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", common.DefaultRegistryDomain),
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, common.DefaultRegistryDomain),
 		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
 		"rm -rf /usr/bin/k0s"}
-	if err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {
+	if err := k.infra.CmdAsync(node, remoteCleanCmds...); err != nil {
 		return err
 	}
-
-	//remove node
-	if len(k.cluster.GetMasterIPList()) > 0 {
-		hostname, err := k.getHostName(node)
-		if err != nil {
-			return err
-		}
-		client, err := k8s.NewK8sClient()
-		if err != nil {
-			return err
-		}
-		if err := client.DeleteNode(strings.TrimSpace(hostname)); err != nil {
-			return err
-		}
-	}
-
 	return nil
+}
+
+func (k *Runtime) deleteNodeFromCluster(nodeName string) error {
+	client, err := k.GetCurrentRuntimeDriver()
+	if err != nil {
+		return err
+	}
+	nodeToDelete := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nodeName,
+		},
+	}
+	return client.Delete(context.Background(), nodeToDelete)
 }

@@ -18,29 +18,27 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/client/k8s"
-
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
-func (k *Runtime) deleteMasters(masters []net.IP) error {
-	if len(masters) == 0 {
-		return nil
+func (k *Runtime) deleteMasters(mastersToDelete, remainMasters []net.IP) error {
+	var remainMaster0 *net.IP
+	if len(remainMasters) > 0 {
+		remainMaster0 = &remainMasters[0]
+		logrus.Infof("Master changed, remain master0 is: %s", remainMaster0)
 	}
+
 	eg, _ := errgroup.WithContext(context.Background())
-	for _, master := range masters {
-		master := master
+	for _, m := range mastersToDelete {
+		master := m
 		eg.Go(func() error {
-			logrus.Infof("start to delete master %s", master)
+			logrus.Infof("Start to delete master %s", master)
 			if err := k.deleteMaster(master); err != nil {
 				return fmt.Errorf("failed to delete master %s: %v", master, err)
 			}
-			logrus.Infof("succeeded in deleting master %s", master)
+			logrus.Infof("Succeeded in deleting master %s", master)
 			return nil
 		})
 	}
@@ -48,10 +46,6 @@ func (k *Runtime) deleteMasters(masters []net.IP) error {
 }
 
 func (k *Runtime) deleteMaster(master net.IP) error {
-	ssh, err := k.getHostSSHClient(master)
-	if err != nil {
-		return fmt.Errorf("failed to delete master: %v", err)
-	}
 	/** To delete a node from k0s cluster, following these steps.
 	STEP1: stop k0s service
 	STEP2: reset the node with install configuration
@@ -59,72 +53,15 @@ func (k *Runtime) deleteMaster(master net.IP) error {
 	STEP4: remove private registry config in /etc/host
 	STEP5: remove bin file such as: kubectl, and remove .kube directory
 	STEP6: remove k0s bin file
-	STEP7: delete node though k8s client
+	STEP7: no need to delete node though k8s client, cause k0s don't show master node in k8s cluster
 	*/
 	remoteCleanCmd := []string{"k0s stop",
-		fmt.Sprintf("k0s reset --cri-socket %s", ExternalCRI),
+		"k0s reset",
 		"rm -rf /etc/k0s/",
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", common.DefaultRegistryDomain),
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, common.DefaultRegistryDomain),
 		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
 		"rm -rf /usr/bin/k0s"}
-
-	if err := ssh.CmdAsync(master, remoteCleanCmd...); err != nil {
-		return err
-	}
-
-	// remove master
-	masterExist := len(k.cluster.GetMasterIPList()) > 1
-	if !masterExist {
-		return errors.New("can not delete the last master")
-	}
-
-	hostname, err := k.getHostName(master)
-	if err != nil {
-		return err
-	}
-	client, err := k8s.NewK8sClient()
-	if err != nil {
-		return err
-	}
-	if err := client.DeleteNode(strings.TrimSpace(hostname)); err != nil {
+	if err := k.infra.CmdAsync(master, remoteCleanCmd...); err != nil {
 		return err
 	}
 	return nil
-}
-
-func (k *Runtime) getHostName(host net.IP) (string, error) {
-	client, err := k8s.NewK8sClient()
-	if err != nil {
-		return "", err
-	}
-	nodeList, err := client.ListNodes()
-	if err != nil {
-		return "", err
-	}
-	var hosts []string
-	for _, node := range nodeList.Items {
-		hosts = append(hosts, node.GetName())
-	}
-
-	hostName, err := k.CmdToString(host, "hostname", "")
-	if err != nil {
-		return "", err
-	}
-
-	var name string
-	for _, h := range hosts {
-		if strings.TrimSpace(h) == "" {
-			continue
-		}
-		hh := strings.ToLower(h)
-		fromH := strings.ToLower(hostName)
-		if hh == fromH {
-			name = h
-			break
-		}
-	}
-	return name, nil
 }

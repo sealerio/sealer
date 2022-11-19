@@ -22,7 +22,6 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 )
 
 func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, runtime.Driver, error) {
@@ -80,7 +79,8 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, crInfo, registryDriver.GetInfo())
+	kubeRuntimeInstaller, err := getClusterRuntimeInstaller(i.clusterRuntimeType, i.infraDriver,
+		crInfo, registryDriver.GetInfo(), i.KubeadmConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -150,7 +150,8 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, crInfo, registryDriver.GetInfo())
+	kubeRuntimeInstaller, err := getClusterRuntimeInstaller(i.clusterRuntimeType, i.infraDriver,
+		crInfo, registryDriver.GetInfo(), i.KubeadmConfig)
 	if err != nil {
 		return nil, nil, err
 	}

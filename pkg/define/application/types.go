@@ -15,7 +15,8 @@
 package application
 
 const (
-	KubeApp  string = "kube"
-	HelmApp  string = "helm"
-	ShellApp string = "shell"
+	KubeApp    string = "kube"
+	HelmApp    string = "helm"
+	ShellApp   string = "shell"
+	UnknownApp string = "unknown"
 )

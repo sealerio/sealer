@@ -23,6 +23,7 @@ import (
 
 	"github.com/sealerio/sealer/pkg/define/application"
 	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -121,6 +122,10 @@ func isHelm(sources ...string) (bool, error) {
 	return chartInTargetsRoot == 7, nil
 }
 
+// getApplicationType:
+// walk through files to copy,try to find obvious application type,
+// we only support helm,kube,shell at present, and it is a strict match file suffix.
+// if not found, will return "".
 func getApplicationType(sources []string) (string, error) {
 	isHelmType, helmErr := isHelm(sources...)
 	if helmErr != nil {
@@ -141,7 +146,7 @@ func getApplicationType(sources []string) (string, error) {
 			return application.KubeApp
 		}
 
-		return "invalid"
+		return application.UnknownApp
 	}
 
 	var appTypeList []string
@@ -166,7 +171,7 @@ func getApplicationType(sources []string) (string, error) {
 			})
 
 			if err != nil {
-				return "", fmt.Errorf("failed to walk shell dir %s: %v", source, err)
+				return "", fmt.Errorf("failed to walk copy dir %s: %v", source, err)
 			}
 			continue
 		}
@@ -175,10 +180,13 @@ func getApplicationType(sources []string) (string, error) {
 		appTypeList = append(appTypeList, appTypeFunc(source))
 	}
 
+	//matches the file suffix strictly
 	var isShell, isKube bool
 	for _, appType := range appTypeList {
-		if appType == "invalid" {
-			return "", fmt.Errorf("unsupported application type in %s,%s,%s", application.KubeApp, application.HelmApp, application.ShellApp)
+		if appType == application.UnknownApp {
+			logrus.Debugf("application type not detected in %s,%s,%s",
+				application.KubeApp, application.HelmApp, application.ShellApp)
+			return "", nil
 		}
 
 		if appType == application.ShellApp {
@@ -190,10 +198,6 @@ func getApplicationType(sources []string) (string, error) {
 		}
 	}
 
-	if isShell && isKube {
-		return "", fmt.Errorf("mixed app type is not supportted")
-	}
-
 	if isShell && !isKube {
 		return application.ShellApp, nil
 	}
@@ -202,10 +206,15 @@ func getApplicationType(sources []string) (string, error) {
 		return application.KubeApp, nil
 	}
 
-	return "", fmt.Errorf("application type not found")
+	return "", nil
 }
 
+// getApplicationFiles: get application files
 func getApplicationFiles(appName, appType string, sources []string) ([]string, error) {
+	if appType == "" {
+		return nil, nil
+	}
+
 	if appType == application.HelmApp {
 		return []string{appName}, nil
 	}
@@ -233,7 +242,7 @@ func getApplicationFiles(appName, appType string, sources []string) ([]string, e
 				return nil
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to walk shell dir %s: %v", source, err)
+				return nil, fmt.Errorf("failed to walk application dir %s: %v", source, err)
 			}
 
 			// if type is shell, only use first build context

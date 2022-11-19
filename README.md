@@ -8,6 +8,7 @@
 [![Twitter](https://img.shields.io/badge/Follow-sealer-1DA1F2?logo=twitter)](https://twitter.com/sealer_oss)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsealerio%2Fsealer.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsealerio%2Fsealer?ref=badge_shield)
 [![codecov](https://codecov.io/gh/sealerio/sealer/branch/main/graph/badge.svg?token=LH8XUR5YPL)](https://codecov.io/gh/sealerio/sealer)
+[![](https://img.shields.io/badge/Sealer-Check%20Your%20Contribution-orange)](https://opensource.alibaba.com/contribution_leaderboard/details?projectValue=sealer)
 
 ## Contents
 

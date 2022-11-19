@@ -1,0 +1,6 @@
+FROM scratch
+APP yamlapp local://yamlcontext
+APP shellapp local://shellcontext
+APP mixedapp local://install.sh local://mixedcontext
+APPCMDS mixedapp ["kubectl apply -f app.yaml"]
+LAUNCH ["mixedapp","shellapp"]

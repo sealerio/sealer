@@ -176,15 +176,22 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor: distributor,
-		Plugins:     plugins,
+		Distributor:            distributor,
+		Plugins:                plugins,
+		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
 	}
 
 	if cf.GetKubeadmConfig() != nil {
 		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
 	}
 
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	imageSpec, err := imageEngine.Inspect(&imagecommon.InspectOptions{ImageNameOrID: cluster.Spec.Image})
+	if err != nil {
+		return fmt.Errorf("failed to get cluster image extension: %s", err)
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
+		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
 	if err != nil {
 		return err
 	}
@@ -305,15 +312,22 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor: distributor,
-		Plugins:     plugins,
+		Distributor:            distributor,
+		Plugins:                plugins,
+		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
 	}
 
 	if cf.GetKubeadmConfig() != nil {
 		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
 	}
 
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	imageSpec, err := imageEngine.Inspect(&imagecommon.InspectOptions{ImageNameOrID: cluster.Spec.Image})
+	if err != nil {
+		return fmt.Errorf("failed to get cluster image extension: %s", err)
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
+		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
 	if err != nil {
 		return err
 	}
@@ -328,7 +342,8 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 	}
 	cf.SetCluster(cluster)
 
-	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
+	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
 		return err
 	}
 	return nil

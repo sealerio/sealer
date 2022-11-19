@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sealerio/sealer/common"
-
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -30,6 +28,11 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 	if len(nodes) == 0 {
 		return nil
 	}
+
+	if err := k.initKube(nodes); err != nil {
+		return err
+	}
+
 	if err := k.WaitSSHReady(6, nodes...); err != nil {
 		return errors.Wrap(err, "join nodes wait for ssh ready time out")
 	}
@@ -40,21 +43,11 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 	STEP4: join node with token
 	STEP5: start the k0sworker.service
 	*/
-	if err := k.sendRegistryCert(nodes); err != nil {
-		return err
-	}
 	if err := k.CopyJoinToken(WorkerRole, nodes); err != nil {
 		return err
 	}
-	addRegistryHostsAndLogin := k.addRegistryDomainToHosts()
-	if k.RegConfig.Domain != common.DefaultRegistryDomain {
-		addSeaHubHost := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain, k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain)
-		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
-	}
-	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
-		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, k.GenLoginCommand())
-	}
-	cmds := k.JoinCommand(WorkerRole)
+
+	cmds := k.JoinCommand(WorkerRole, "")
 	if cmds == nil {
 		return fmt.Errorf("failed to get join node command")
 	}
@@ -63,18 +56,13 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			logrus.Infof("start to join %s as worker", node)
+			logrus.Infof("Start to join %s as worker", node)
 
-			nodeCmds := append([]string{addRegistryHostsAndLogin}, cmds...)
-			ssh, err := k.getHostSSHClient(node)
-			if err != nil {
-				return fmt.Errorf("failed to get node ssh client %s: %v", node, err)
-			}
-			if err := ssh.CmdAsync(node, nodeCmds...); err != nil {
+			if err := k.infra.CmdAsync(node, cmds...); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
-			logrus.Infof("succeeded in joining %s as worker", node)
-			return err
+			logrus.Infof("Succeeded in joining %s as worker", node)
+			return nil
 		})
 	}
 	return eg.Wait()

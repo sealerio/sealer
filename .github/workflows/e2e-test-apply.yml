@@ -6,6 +6,10 @@ on:
   issue_comment:
     types:
       - created
+
+permissions:
+  statuses: write
+  
 jobs:
   build:
     name: test
@@ -14,9 +18,22 @@ jobs:
     env:
       GO111MODULE: on
     steps:
+      - name: Get PR details
+        if: ${{ github.event_name == 'issue_comment' }}
+        uses: xt0rted/pull-request-comment-branch@v1
+        id: comment-branch
+
+      - name: Set commit status as pending
+        if: ${{ github.event_name == 'issue_comment' }}
+        uses: myrotvorets/set-commit-status-action@master
+        with:
+          sha: ${{ steps.comment-branch.outputs.head_sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: pending
+
       - name: Github API Request
         id: request
-        uses: octokit/request-action@v2.0.2
+        uses: octokit/request-action@v2.1.7
         with:
           route: ${{ github.event.issue.pull_request.url }}
         env:
@@ -24,11 +41,11 @@ jobs:
       - name: Get PR informations
         id: pr_data
         run: |
-          echo "::set-output name=repo_name::${{ fromJson(steps.request.outputs.data).head.repo.full_name }}"
-          echo "::set-output name=repo_clone_url::${{ fromJson(steps.request.outputs.data).head.repo.clone_url }}"
-          echo "::set-output name=repo_ssh_url::${{ fromJson(steps.request.outputs.data).head.repo.ssh_url }}"
+          echo "repo_name=${{ fromJson(steps.request.outputs.data).head.repo.full_name }}" >> $GITHUB_STATE
+          echo "repo_clone_url=${{ fromJson(steps.request.outputs.data).head.repo.clone_url }}" >> $GITHUB_STATE
+          echo "repo_ssh_url=${{ fromJson(steps.request.outputs.data).head.repo.ssh_url }}" >> $GITHUB_STATE
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{fromJson(steps.request.outputs.data).head.repo.full_name}}
@@ -72,6 +89,14 @@ jobs:
           RegionID: ${{ secrets.RegionID }}
         if: ${{ github.event.comment.body == '/test apply' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
-          # fix:open /proc/sys/net/netfilter/nf_conntrack_max: permission denied, see: https://github.com/kubernetes-sigs/kind/issues/2240
+          # fix bug in kernal 5.12.2+:open /proc/sys/net/netfilter/nf_conntrack_max: permission denied, see: https://github.com/kubernetes-sigs/kind/issues/2240
           sudo sysctl net/netfilter/nf_conntrack_max=131072
           ginkgo -v --focus="sealer apply" test
+      
+      - name: Set final commit status
+        uses: myrotvorets/set-commit-status-action@master
+        if: always()
+        with:
+          sha: ${{ steps.comment-branch.outputs.head_sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}

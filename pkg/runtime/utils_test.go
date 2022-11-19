@@ -18,15 +18,16 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"syscall"
 	"testing"
+
+	"github.com/sealerio/sealer/common"
 )
 
 const (
 	mockMetadata = `{
   "version": "v1.19.8",
   "arch": "amd64",
-  "ClusterRuntime": "k8s",
+  "ClusterRuntime": "kubernetes",
   "NydusFlag": false,
   "kubeVersion": "",
   "variant": ""
@@ -56,7 +57,7 @@ func TestLoadMetadata(t *testing.T) {
 			want: &Metadata{
 				Version:        "v1.19.8",
 				Arch:           "amd64",
-				ClusterRuntime: K8s,
+				ClusterRuntime: ClusterRuntime(common.K8s),
 				NydusFlag:      false,
 				KubeVersion:    "",
 				Variant:        "",
@@ -66,10 +67,6 @@ func TestLoadMetadata(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//prevent the read permission denied.
-			oldmask := syscall.Umask(0)
-			defer syscall.Umask(oldmask)
-
 			dir, err := os.MkdirTemp("", "test-rootfs-metadata-tmp")
 			if err != nil {
 				t.Errorf("Make temp dir %s error = %s, wantErr %v", dir, err, tt.wantErr)

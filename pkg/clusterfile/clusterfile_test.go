@@ -35,7 +35,9 @@ func TestSaveAll(t *testing.T) {
 	cluster := v2.Cluster{
 		Spec: v2.ClusterSpec{
 			Image: "kubernetes:v1.19.8",
-			Env:   []string{"key1=value1", "key2=value2;value3", "key=value", "RegistryDomain=sea.hub", "RegistryPort=5000", "RegistryURL=sea.hub:5000"},
+			Env: []string{"key1=value1", "key2=value2;value3", "key=value",
+				"LocalRegistryDomain=sea.hub", "LocalRegistryPort=5000", "LocalRegistryURL=sea.hub:5000",
+				"RegistryDomain=sea.hub", "RegistryPort=5000", "RegistryURL=sea.hub:5000"},
 			Registry: v2.Registry{
 				LocalRegistry: &v2.LocalRegistry{
 					RegistryConfig: v2.RegistryConfig{

@@ -16,50 +16,35 @@ package image
 
 import (
 	"fmt"
-	"io"
-	"path/filepath"
 
-	"github.com/onsi/ginkgo"
+	"github.com/sealerio/sealer/test/testhelper"
+	"github.com/sealerio/sealer/test/testhelper/settings"
+
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/test/suites/build"
-	"github.com/sealerio/sealer/test/testhelper"
-	"github.com/sealerio/sealer/test/testhelper/settings"
-	"github.com/sealerio/sealer/utils/exec"
 )
 
 func DoImageOps(action, imageName string) {
 	cmd := ""
 	switch action {
-	case settings.SubCmdPullOfSealer:
+	case "pull":
 		cmd = fmt.Sprintf("%s pull %s -d", settings.DefaultSealerBin, imageName)
-	case settings.SubCmdPushOfSealer:
+	case "push":
 		cmd = fmt.Sprintf("%s push %s -d", settings.DefaultSealerBin, imageName)
-	case settings.SubCmdRmiOfSealer:
+	case "rmi":
 		cmd = fmt.Sprintf("%s rmi %s -d", settings.DefaultSealerBin, imageName)
-	case settings.SubCmdRunOfSealer:
-		cmd = fmt.Sprintf("%s run %s -d", settings.DefaultSealerBin, imageName)
-	case settings.SubCmdListOfSealer:
+	case "images":
 		cmd = fmt.Sprintf("%s images", settings.DefaultSealerBin)
+	case "inspect":
+		cmd = fmt.Sprintf("%s inspect %s -d", settings.DefaultSealerBin, imageName)
 	}
 
 	testhelper.RunCmdAndCheckResult(cmd, 0)
 }
 func TagImages(oldName, newName string) {
-	cmd := fmt.Sprintf("%s %s %s %s", settings.DefaultSealerBin, settings.SubCmdTagOfSealer, oldName, newName)
+	cmd := fmt.Sprintf("%s tag %s %s", settings.DefaultSealerBin, oldName, newName)
 	testhelper.RunCmdAndCheckResult(cmd, 0)
-}
-
-func GetEnvDirMd5() string {
-	getEnvMd5Cmd := fmt.Sprintf("sudo -E find %s -type f -print0|xargs -0 sudo md5sum|cut -d\" \" -f1|md5sum|cut -d\" \" -f1\n", filepath.Dir(common.DefaultImageRootDir))
-	dirMd5, err := exec.RunSimpleCmd(getEnvMd5Cmd)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	_, err = io.WriteString(ginkgo.GinkgoWriter, getEnvMd5Cmd+dirMd5+"\n")
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return dirMd5
 }
 
 func CheckLoginResult(registryURL, username, passwd string, result bool) {
@@ -85,19 +70,4 @@ func CheckLoginResult(registryURL, username, passwd string, result bool) {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Eventually(sess).ShouldNot(gbytes.Say(fmt.Sprintln("Login Succeeded!")))
 	gomega.Eventually(sess).ShouldNot(gexec.Exit(0))
-}
-
-func TagImageList(imageNameOrID string, tagImageNames []string) {
-	for _, tagImageName := range tagImageNames {
-		tagImageName := tagImageName
-		TagImages(imageNameOrID, tagImageName)
-		gomega.Expect(build.CheckIsImageExist(settings.TestImageName)).Should(gomega.BeTrue())
-	}
-}
-
-func RemoveImageList(imageNameList []string) {
-	for _, imageName := range imageNameList {
-		removeImage := imageName
-		DoImageOps(settings.SubCmdRmiOfSealer, removeImage)
-	}
 }

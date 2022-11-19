@@ -37,11 +37,6 @@ func (manifests *Manifests) ListImages(yamlFile string) ([]string, error) {
 	if len(images) != 0 {
 		list = append(list, images...)
 	}
-
-	if err != nil {
-		return list, fmt.Errorf("failed to walk filepath: %s", err)
-	}
-
 	return list, nil
 }
 

@@ -55,6 +55,7 @@ type Interface interface {
 type SaveOptions struct {
 	// if true ,will commit clusterfile to cluster
 	CommitToCluster bool
+	ConfPath        string
 }
 
 type ClusterFile struct {
@@ -173,13 +174,13 @@ func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 	}
 
 	if opts.CommitToCluster {
-		return saveToCluster(content)
+		return saveToCluster(content, opts.ConfPath)
 	}
 	return nil
 }
 
-func saveToCluster(data []byte) error {
-	cli, err := kubernetes.GetClientFromConfig(kubernetes.AdminKubeConfPath)
+func saveToCluster(data []byte, confPath string) error {
+	cli, err := kubernetes.GetClientFromConfig(confPath)
 	if err != nil {
 		return fmt.Errorf("failed to new k8s runtime client via adminconf: %v", err)
 	}

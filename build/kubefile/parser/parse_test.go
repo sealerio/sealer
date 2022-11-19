@@ -21,14 +21,11 @@ import (
 	"strings"
 	"testing"
 
+	platformParse "github.com/containers/buildah/pkg/parse"
 	"github.com/sealerio/sealer/pkg/define/application"
-
-	"github.com/sealerio/sealer/pkg/define/options"
-
-	"github.com/sealerio/sealer/pkg/define/application/version"
-
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
-
+	"github.com/sealerio/sealer/pkg/define/application/version"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,13 +51,13 @@ func TestParserKubeApp(t *testing.T) {
 	}()
 
 	opts.ContextDir = buildCxt
-	testParser = NewParser(testAppRootPath, opts, imageEngine)
+	testParser = NewParser(testAppRootPath, opts, imageEngine, platformParse.DefaultPlatform())
 
 	var (
 		app1Name = "nginx"
 		app1Path = testParser.appRootPathFunc(app1Name)
 		text     = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 APP %s local://%s
 LAUNCH ["%s"]
 `, app1Name, nginxDemoPath, app1Name)
@@ -76,7 +73,7 @@ LAUNCH ["%s"]
 	}()
 
 	var expectedText = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 copy %s %s
 `,
 		strings.Join(result.legacyContext.apps2Files[app1Name], " "),
@@ -85,8 +82,8 @@ copy %s %s
 
 	result.Dockerfile = strings.TrimSpace(result.Dockerfile)
 	expectedResult := &KubefileResult{
-		Dockerfile: strings.TrimSpace(expectedText),
-		AppNames:   []string{app1Name},
+		Dockerfile:       strings.TrimSpace(expectedText),
+		LaunchedAppNames: []string{app1Name},
 		Applications: map[string]version.VersionedApplication{
 			app1Name: v1.NewV1Application(
 				app1Name,
@@ -100,7 +97,7 @@ copy %s %s
 	assert.Equal(t, len(expectedResult.Applications), len(result.Applications))
 	assert.Equal(t, expectedResult.Applications[app1Name].Name(), result.Applications[app1Name].Name())
 	assert.Equal(t, expectedResult.Applications[app1Name].Type(), result.Applications[app1Name].Type())
-	assert.Equal(t, expectedResult.AppNames, result.AppNames)
+	assert.Equal(t, expectedResult.LaunchedAppNames, result.LaunchedAppNames)
 }
 
 func TestParserHelmApp(t *testing.T) {
@@ -117,13 +114,13 @@ func TestParserHelmApp(t *testing.T) {
 	}()
 
 	opts.ContextDir = buildCxt
-	testParser = NewParser(testAppRootPath, opts, imageEngine)
+	testParser = NewParser(testAppRootPath, opts, imageEngine, platformParse.DefaultPlatform())
 
 	var (
 		app1Name = "github-app"
 		app1Path = testParser.appRootPathFunc(app1Name)
 		text     = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 APP %s local://%s
 LAUNCH %s
 `, app1Name, githubAppPath, app1Name)
@@ -139,7 +136,7 @@ LAUNCH %s
 	}()
 
 	var expectedText = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 copy %s %s
 `,
 		strings.Join(result.legacyContext.apps2Files[app1Name], " "),
@@ -148,8 +145,8 @@ copy %s %s
 
 	result.Dockerfile = strings.TrimSpace(result.Dockerfile)
 	expectedResult := &KubefileResult{
-		Dockerfile: strings.TrimSpace(expectedText),
-		AppNames:   []string{app1Name},
+		Dockerfile:       strings.TrimSpace(expectedText),
+		LaunchedAppNames: []string{app1Name},
 		Applications: map[string]version.VersionedApplication{
 			app1Name: v1.NewV1Application(
 				app1Name,
@@ -163,7 +160,7 @@ copy %s %s
 	assert.Equal(t, len(expectedResult.Applications), len(result.Applications))
 	assert.Equal(t, expectedResult.Applications[app1Name].Name(), result.Applications[app1Name].Name())
 	assert.Equal(t, expectedResult.Applications[app1Name].Type(), result.Applications[app1Name].Type())
-	assert.Equal(t, expectedResult.AppNames, result.AppNames)
+	assert.Equal(t, expectedResult.LaunchedAppNames, result.LaunchedAppNames)
 }
 
 func TestParserCMDS(t *testing.T) {
@@ -179,11 +176,11 @@ func TestParserCMDS(t *testing.T) {
 	}()
 
 	opts.ContextDir = buildCxt
-	testParser = NewParser(testAppRootPath, opts, imageEngine)
+	testParser = NewParser(testAppRootPath, opts, imageEngine, platformParse.DefaultPlatform())
 
 	var (
 		text = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 CMDS ["%s", "%s"]
 `, "kubectl apply -f abc.yaml", "kubectl apply -f bcd.yaml")
 	)
@@ -198,7 +195,7 @@ CMDS ["%s", "%s"]
 	}()
 
 	var expectedText = `
-FROM busybox as base
+FROM scratch
 `
 
 	result.Dockerfile = strings.TrimSpace(result.Dockerfile)
