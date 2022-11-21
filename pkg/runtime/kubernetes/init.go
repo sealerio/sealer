@@ -44,13 +44,20 @@ const (
 )
 
 func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, error) {
+	extraSANsStr := k.infra.GetClusterEnv()[common.EnvCertSANs]
+	var extraSANs []string
+	if extraSANsStr != nil {
+		extraSANs = strings.Split(extraSANsStr.(string), ",")
+	}
 	conf, err := kubeadm.NewKubeadmConfig(
 		k.Config.KubeadmConfigFromClusterFile,
 		k.getDefaultKubeadmConfig(),
 		masters,
 		k.getAPIServerDomain(),
 		k.Config.containerRuntimeInfo.Config.CgroupDriver,
-		k.getAPIServerVIP())
+		k.getAPIServerVIP(),
+		extraSANs,
+	)
 	if err != nil {
 		return kubeadm.KubeadmConfig{}, err
 	}

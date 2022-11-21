@@ -170,8 +170,8 @@ func getEtcdEndpointsWithHTTPSPrefix(masters []net.IP) string {
 	return strings.Join(tmpSlice, ",")
 }
 
-func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
-	masters []net.IP, apiServerDomain, cgroupDriver string, apiServerVIP net.IP) (KubeadmConfig, error) {
+func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string, masters []net.IP, apiServerDomain,
+	cgroupDriver string, apiServerVIP net.IP, extraSANs []string) (KubeadmConfig, error) {
 	conf := KubeadmConfig{}
 
 	if err := conf.LoadFromClusterfile(fromClusterFile); err != nil {
@@ -191,6 +191,7 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	conf.KubeletConfiguration.CgroupDriver = cgroupDriver
 
 	conf.ClusterConfiguration.APIServer.CertSANs = []string{"127.0.0.1", apiServerDomain, apiServerVIP.String()}
+	conf.ClusterConfiguration.APIServer.CertSANs = append(conf.ClusterConfiguration.APIServer.CertSANs, extraSANs...)
 	for _, m := range masters {
 		conf.ClusterConfiguration.APIServer.CertSANs = append(conf.ClusterConfiguration.APIServer.CertSANs, m.String())
 	}

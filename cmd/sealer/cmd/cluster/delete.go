@@ -225,15 +225,25 @@ func scaleDownCluster(masters, workers, workClusterfile string) error {
 		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
 	}
 	// make sure deleted ip in current cluster
+	var filteredDeleteMasterIPList []net.IP
 	for _, ip := range deleteMasterIPList {
-		if !netutils.IsInIPList(ip, cluster.GetMasterIPList()) {
-			return fmt.Errorf("ip(%s) not found in current master list", ip)
+		if netutils.IsInIPList(ip, cluster.GetMasterIPList()) {
+			filteredDeleteMasterIPList = append(filteredDeleteMasterIPList, ip)
 		}
 	}
+	deleteMasterIPList = filteredDeleteMasterIPList
+
+	var filteredDeleteNodeIPList []net.IP
 	for _, ip := range deleteNodeIPList {
-		if !netutils.IsInIPList(ip, cluster.GetNodeIPList()) {
-			return fmt.Errorf("ip(%s) not found in current master list", ip)
+		// filter ip not in current cluster
+		if netutils.IsInIPList(ip, cluster.GetNodeIPList()) {
+			filteredDeleteNodeIPList = append(filteredDeleteNodeIPList, ip)
 		}
+	}
+	deleteNodeIPList = filteredDeleteNodeIPList
+	if len(deleteMasterIPList) == 0 && len(deleteNodeIPList) == 0 {
+		logrus.Infof("both master and node need to be deleted all not in current cluster, skip delete")
+		return nil
 	}
 
 	if !ForceDelete {

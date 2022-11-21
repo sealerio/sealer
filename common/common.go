@@ -54,6 +54,7 @@ const (
 	EnvRegistryDomain   = "RegistryDomain"
 	EnvRegistryUsername = "RegistryUsername"
 	EnvRegistryPassword = "RegistryPassword"
+	EnvCertSANs         = "CertSANs"
 )
 
 const (
