@@ -95,7 +95,7 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 
 Sealer provides a valid image list:
 
-| version |                             cni-calico-image                        |                                   base-image                              |
+| version |                   clusterimage with CNI(calico)                     |                                   clusterimage                            |
 | :-----  | :-------------------------------------------------------------------| :-------------------------------------------------------------------------|
 | 0.8.6   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6| registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6-alpha|
 | main    | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15      | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-alpha      |
