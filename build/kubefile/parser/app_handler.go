@@ -20,12 +20,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/define/application"
-
-	"github.com/sealerio/sealer/build/kubefile/command"
-
 	"github.com/pkg/errors"
-
+	"github.com/sealerio/sealer/build/kubefile/command"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 )
 
@@ -99,24 +95,15 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
 	result.Dockerfile = mergeLines(result.Dockerfile, tmpLine)
 	result.legacyContext.apps2Files[appName] = append([]string{}, filesToCopy...)
 
-	isH, err := isHelm(filesToCopy...)
+	appType, launchFiles, err := getApplicationType(filesToCopy)
 	if err != nil {
 		return fmt.Errorf("error in judging the application type: %v", err)
-	}
-
-	appType := ""
-	switch isH {
-	case true:
-		appType = application.HelmApp
-	case false:
-		appType = application.KubeApp
-	default:
-		return errors.Errorf("error in identifying the type of app:%s", appName)
 	}
 
 	v1App := v1.NewV1Application(
 		appName,
 		appType,
+		launchFiles,
 	).(*v1.Application)
 
 	result.Applications[v1App.Name()] = v1App

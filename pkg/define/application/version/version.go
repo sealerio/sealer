@@ -21,4 +21,6 @@ type VersionedApplication interface {
 	Name() string
 
 	Type() string
+
+	LaunchFiles() []string
 }

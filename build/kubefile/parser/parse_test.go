@@ -91,13 +91,15 @@ copy %s %s
 			app1Name: v1.NewV1Application(
 				app1Name,
 				application.KubeApp,
+				[]string{},
 			),
 		},
 	}
 
 	assert.Equal(t, expectedResult.Dockerfile, result.Dockerfile)
 	assert.Equal(t, len(expectedResult.Applications), len(result.Applications))
-	assert.Equal(t, expectedResult.Applications[app1Name], result.Applications[app1Name])
+	assert.Equal(t, expectedResult.Applications[app1Name].Name(), result.Applications[app1Name].Name())
+	assert.Equal(t, expectedResult.Applications[app1Name].Type(), result.Applications[app1Name].Type())
 	assert.Equal(t, expectedResult.LaunchList, result.LaunchList)
 }
 
@@ -154,13 +156,15 @@ copy %s %s
 			app1Name: v1.NewV1Application(
 				app1Name,
 				application.HelmApp,
+				[]string{},
 			),
 		},
 	}
 
 	assert.Equal(t, expectedResult.Dockerfile, result.Dockerfile)
 	assert.Equal(t, len(expectedResult.Applications), len(result.Applications))
-	assert.Equal(t, expectedResult.Applications[app1Name], result.Applications[app1Name])
+	assert.Equal(t, expectedResult.Applications[app1Name].Name(), result.Applications[app1Name].Name())
+	assert.Equal(t, expectedResult.Applications[app1Name].Type(), result.Applications[app1Name].Type())
 	assert.Equal(t, expectedResult.LaunchList, result.LaunchList)
 }
 

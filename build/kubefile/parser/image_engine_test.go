@@ -30,10 +30,12 @@ var testExtensionWithApp = v1.ImageExtension{
 		v12.NewV1Application(
 			"es",
 			"helm",
+			[]string{},
 		),
 		v12.NewV1Application(
 			"ts",
 			"kube",
+			[]string{},
 		),
 	},
 }

@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/pkg/define/application"
 	osi "github.com/sealerio/sealer/utils/os"
 )
 
@@ -118,4 +119,129 @@ func isHelm(sources ...string) (bool, error) {
 	}
 
 	return chartInTargetsRoot == 7, nil
+}
+
+// isYaml sources slice only has one element
+func isYaml(sources ...string) (bool, error) {
+	isYamlType := func(fileName string) bool {
+		ext := strings.ToLower(filepath.Ext(fileName))
+		if ext == ".yaml" || ext == ".yml" {
+			return true
+		}
+		return false
+	}
+
+	for _, source := range sources {
+		s, err := os.Stat(source)
+		if err != nil {
+			return false, fmt.Errorf("failed to stat %s: %v", source, err)
+		}
+
+		if s.IsDir() {
+			isAllYamlFiles := true
+			err = filepath.Walk(source, func(path string, f fs.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if f.IsDir() {
+					return nil
+				}
+				// make sure all files under source dir is yaml type.
+				if !isYamlType(f.Name()) {
+					isAllYamlFiles = false
+					return filepath.SkipDir
+				}
+				return nil
+			})
+			if err != nil {
+				return false, fmt.Errorf("failed to walk yaml dir %s: %v", source, err)
+			}
+
+			if isAllYamlFiles {
+				return true, nil
+			}
+			return false, nil
+		}
+		if isYamlType(source) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// isShell sources slice only has one element
+func isShell(sources ...string) (bool, []string, error) {
+	var launchFiles []string
+	isShellType := func(fileName string) bool {
+		ext := strings.ToLower(filepath.Ext(fileName))
+		return ext == ".sh"
+	}
+
+	for _, source := range sources {
+		s, err := os.Stat(source)
+		if err != nil {
+			return false, nil, fmt.Errorf("failed to stat %s: %v", source, err)
+		}
+		if s.IsDir() {
+			err = filepath.Walk(source, func(path string, f fs.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if f.IsDir() {
+					return nil
+				}
+				// todo optimize: use more accurate methods to determine file types.
+				if !isShellType(f.Name()) {
+					return filepath.SkipDir
+				}
+
+				launchFiles = append(launchFiles, path)
+				return nil
+			})
+
+			if err != nil {
+				return false, nil, fmt.Errorf("failed to walk shell dir %s: %v", source, err)
+			}
+
+			if len(launchFiles) > 0 {
+				return true, launchFiles, nil
+			}
+			return false, nil, nil
+		}
+		if isShellType(source) {
+			return true, []string{source}, nil
+		}
+	}
+
+	return false, nil, nil
+}
+
+func getApplicationType(sources []string) (string, []string, error) {
+	isy, yamlErr := isYaml(sources...)
+	if isy {
+		return application.KubeApp, nil, nil
+	}
+
+	iss, files, shellErr := isShell(sources...)
+	if iss {
+		return application.ShellApp, files, nil
+	}
+
+	ish, helmErr := isHelm(sources...)
+	if ish {
+		return application.HelmApp, nil, nil
+	}
+
+	if yamlErr != nil {
+		return "", nil, yamlErr
+	}
+	if shellErr != nil {
+		return "", nil, shellErr
+	}
+	if helmErr != nil {
+		return "", nil, helmErr
+	}
+
+	return "", nil, fmt.Errorf("unsupported application type in %s,%s,%s", application.KubeApp, application.HelmApp, application.ShellApp)
 }

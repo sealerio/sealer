@@ -184,6 +184,12 @@ func (kp *KubefileParser) processLaunch(node *Node, result *KubefileResult) erro
 			return fmt.Sprintf("kubectl apply -f %s", path), nil
 		case application.HelmApp:
 			return fmt.Sprintf("helm install %s %s", v1app.Name(), path), nil
+		case application.ShellApp:
+			var cmds []string
+			for _, file := range v1app.LaunchFiles() {
+				cmds = append(cmds, fmt.Sprintf("bash %s", filepath.Join(path, file)))
+			}
+			return strings.Join(cmds, " && "), nil
 		default:
 			return "", errors.Errorf("unexpected application type %s", v1app.Type())
 		}
