@@ -95,10 +95,10 @@ sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
 
 Sealer provides a valid image list:
 
-| version |                             image                                   |
-| :-----  | :-------------------------------------------------------------------|
-| 0.8.6   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6|
-| main    | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15      |
+| version |                             cni-calico-image                        |                                   base-image                              |
+| :-----  | :-------------------------------------------------------------------| :-------------------------------------------------------------------------|
+| 0.8.6   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6| registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6-alpha|
+| main    | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15      | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-alpha      |
 
 [get started](http://sealer.cool/docs/getting-started/introduction.html)
 
