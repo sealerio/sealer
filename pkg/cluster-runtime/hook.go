@@ -193,6 +193,7 @@ func NewShellHook() HookFunc {
 				wrappedCmd = fmt.Sprintf(common.CdIfExistAndExecCmd, rootfs, rootfs, cmd)
 			}
 
+			logrus.Infof("start to run hook(%s) on host(%s)", wrappedCmd, ip.String())
 			err := driver.CmdAsync(ip, wrappedCmd)
 			if err != nil {
 				return fmt.Errorf("failed to run shell hook(%s) on host(%s): %v", wrappedCmd, ip.String(), err)
