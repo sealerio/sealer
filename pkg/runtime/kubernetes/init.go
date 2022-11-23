@@ -46,7 +46,7 @@ const (
 func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, error) {
 	extraSANsStr := k.infra.GetClusterEnv()[common.EnvCertSANs]
 	var extraSANs []string
-	if extraSANsStr != nil {
+	if extraSANsStr != nil && extraSANsStr.(string) != "" {
 		extraSANs = strings.Split(extraSANsStr.(string), ",")
 	}
 	conf, err := kubeadm.NewKubeadmConfig(
