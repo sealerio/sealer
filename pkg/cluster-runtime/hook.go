@@ -133,6 +133,7 @@ func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 			continue
 		}
 
+		logrus.Infof("start to run hook(%s) on host(%s)", hookConfig.Name, targetHosts)
 		if err := hookFactories[hookConfig.Type](hookConfig.Data, targetHosts, i.infraDriver, extraOpts); err != nil {
 			return fmt.Errorf("failed to run hook: %s", hookConfig.Name)
 		}
@@ -157,6 +158,7 @@ func (i *Installer) runClusterHook(master0 net.IP, phase Phase) error {
 	}
 
 	for _, hookConfig := range hookConfigList {
+		logrus.Infof("start to run hook(%s) on host(%s)", hookConfig.Name, master0)
 		if err := hookFactories[hookConfig.Type](hookConfig.Data, []net.IP{master0}, i.infraDriver, extraOpts); err != nil {
 			return fmt.Errorf("failed to run hook: %s", hookConfig.Name)
 		}

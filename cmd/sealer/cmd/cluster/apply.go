@@ -135,7 +135,7 @@ func NewApplyCmd() *cobra.Command {
 	}
 	applyCmd.Flags().BoolVar(&ForceDelete, "force", false, "force to delete the specified cluster if set true")
 	applyCmd.Flags().StringVarP(&applyClusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
-	applyCmd.Flags().StringVarP(&applyMode, "applyMode", "m", common.ApplyModeApply, "the run mode")
+	applyCmd.Flags().StringVarP(&applyMode, "applyMode", "m", common.ApplyModeApply, "load images to the specified registry in advance")
 	return applyCmd
 }
 
