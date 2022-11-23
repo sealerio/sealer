@@ -30,7 +30,9 @@ const (
 	DefaultSystemdCgroupDriver = "systemd"
 	DefaultCgroupDriver        = "cgroupfs"
 	DockerDockerCertsDir       = "/etc/docker/certs.d"
+	ContainerdCertsDir         = "/etc/containerd/certs.d"
 	DockerConfigFileName       = "config.json"
+	ContainerdConfigFileName   = "/etc/containerd/config.toml"
 )
 
 type Installer interface {
@@ -75,6 +77,12 @@ func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error
 		return &ContainerdInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
+			Info: Info{
+				CertsDir:       ContainerdCertsDir,
+				CRISocket:      DefaultContainerdCRISocket,
+				Config:         conf,
+				ConfigFilePath: ContainerdConfigFileName,
+			},
 		}, nil
 	}
 

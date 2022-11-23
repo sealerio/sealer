@@ -15,24 +15,41 @@
 package containerruntime
 
 import (
+	"fmt"
 	"net"
+	"path/filepath"
 
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
 type ContainerdInstaller struct {
+	Info
 	rootfs string
 	driver infradriver.InfraDriver
 }
 
 func (c ContainerdInstaller) InstallOn(hosts []net.IP) error {
-	panic("implement me")
+	installCmd := fmt.Sprintf("bash %s %s", filepath.Join(c.rootfs, "scripts", "containerd.sh"), c.Info.LimitNofile)
+	for _, ip := range hosts {
+		err := c.driver.CmdAsync(ip, installCmd)
+		if err != nil {
+			return fmt.Errorf("failed to install containerd: execute command(%s) on host (%s): error(%v)", installCmd, ip, err)
+		}
+	}
+	return nil
 }
 
 func (c ContainerdInstaller) UnInstallFrom(hosts []net.IP) error {
-	panic("implement me")
+	cleanCmd := fmt.Sprintf("if ! which containerd;then exit 0;fi; bash %s", filepath.Join(c.rootfs, "scripts", "uninstall-containerd.sh"))
+	for _, ip := range hosts {
+		err := c.driver.CmdAsync(ip, cleanCmd)
+		if err != nil {
+			return fmt.Errorf("failed to uninstall containerd: execute command(%s) on host (%s): error(%v)", cleanCmd, ip, err)
+		}
+	}
+	return nil
 }
 
 func (c ContainerdInstaller) GetInfo() (Info, error) {
-	panic("implement me")
+	return c.Info, nil
 }
