@@ -22,7 +22,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/build/kubefile/command"
+	"github.com/sealerio/sealer/pkg/define/application"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
+	"github.com/sealerio/sealer/pkg/define/application/version"
 )
 
 func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
@@ -100,12 +102,45 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
 		return fmt.Errorf("error in judging the application type: %v", err)
 	}
 
-	v1App := v1.NewV1Application(
-		appName,
-		appType,
-		launchFiles,
-	).(*v1.Application)
+	launchAppFunc := func(appName, appType, path string, launchFiles []string) (version.VersionedApplication, error) {
+		appName = strings.TrimSpace(appName)
+		_, ok := result.Applications[appName]
+		if ok {
+			return nil, errors.Errorf("application %s already exist in the image", appName)
+		}
 
+		switch appType {
+		case application.KubeApp:
+			return v1.NewV1Application(
+				appName,
+				appType,
+				fmt.Sprintf("kubectl apply -f %s", path),
+			).(*v1.Application), nil
+		case application.HelmApp:
+			return v1.NewV1Application(
+				appName,
+				appType,
+				fmt.Sprintf("helm install %s %s", appName, path),
+			).(*v1.Application), nil
+		case application.ShellApp:
+			var cmds []string
+			for _, file := range launchFiles {
+				cmds = append(cmds, fmt.Sprintf("bash %s", filepath.Join(path, file)))
+			}
+			return v1.NewV1Application(
+				appName,
+				appType,
+				strings.Join(cmds, " && "),
+			).(*v1.Application), nil
+		default:
+			return nil, errors.Errorf("unexpected application type %s", appType)
+		}
+	}
+
+	v1App, err := launchAppFunc(appName, appType, destDir, launchFiles)
+	if err != nil {
+		return err
+	}
 	result.Applications[v1App.Name()] = v1App
 	return nil
 }

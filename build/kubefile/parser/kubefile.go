@@ -19,19 +19,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/sealerio/sealer/pkg/define/application"
 
 	"github.com/sealerio/sealer/pkg/define/options"
 
 	parse2 "github.com/containers/buildah/pkg/parse"
 
 	"github.com/sealerio/sealer/pkg/imageengine"
-
-	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 
 	"github.com/sealerio/sealer/pkg/define/application/version"
 
@@ -52,8 +47,11 @@ type LegacyContext struct {
 }
 
 type KubefileResult struct {
-	Dockerfile    string
-	LaunchList    []string
+	Dockerfile string
+	// user specified LAUNCH App name list
+	LaunchApps []string
+	// user specified CMDs instruction value
+	CmdsList      []string
 	Applications  map[string]version.VersionedApplication
 	legacyContext LegacyContext
 }
@@ -85,7 +83,8 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 				directories: []string{},
 				apps2Files:  map[string][]string{},
 			},
-			LaunchList: []string{},
+			CmdsList:   []string{},
+			LaunchApps: []string{},
 		}
 
 		err error
@@ -164,45 +163,20 @@ func (kp *KubefileParser) processOnCmd(result *KubefileResult, node *Node) error
 func (kp *KubefileParser) processCmds(node *Node, result *KubefileResult) error {
 	cmdsNode := node.Next
 	for iter := cmdsNode; iter != nil; iter = iter.Next {
-		result.LaunchList = append(result.LaunchList, iter.Value)
+		result.CmdsList = append(result.CmdsList, iter.Value)
 	}
 	return nil
 }
 
 func (kp *KubefileParser) processLaunch(node *Node, result *KubefileResult) error {
-	launchApp := func(appName string) (string, error) {
-		appName = strings.TrimSpace(appName)
-		app, ok := result.Applications[appName]
-		if !ok {
-			return "", errors.Errorf("application %s does not exist in the image", appName)
-		}
-
-		v1app := app.(*v1.Application)
-		path := kp.appRootPathFunc(appName)
-		switch v1app.Type() {
-		case application.KubeApp:
-			return fmt.Sprintf("kubectl apply -f %s", path), nil
-		case application.HelmApp:
-			return fmt.Sprintf("helm install %s %s", v1app.Name(), path), nil
-		case application.ShellApp:
-			var cmds []string
-			for _, file := range v1app.LaunchFiles() {
-				cmds = append(cmds, fmt.Sprintf("bash %s", filepath.Join(path, file)))
-			}
-			return strings.Join(cmds, " && "), nil
-		default:
-			return "", errors.Errorf("unexpected application type %s", v1app.Type())
-		}
-	}
-
 	appNode := node.Next
 	for iter := appNode; iter != nil; iter = iter.Next {
 		app := iter.Value
-		lstr, err := launchApp(app)
-		if err != nil {
-			return err
+		v1App, ok := result.Applications[app]
+		if !ok {
+			return errors.Errorf("application %s does not exist in the image", app)
 		}
-		result.LaunchList = append(result.LaunchList, lstr)
+		result.LaunchApps = append(result.LaunchApps, v1App.Name())
 	}
 
 	return nil

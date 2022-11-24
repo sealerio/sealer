@@ -19,10 +19,10 @@ import (
 )
 
 type Application struct {
-	NameVar        string   `json:"name"`
-	TypeVar        string   `json:"type,omitempty"`
-	LaunchFilesVar []string `json:"launchfiles,omitempty"`
-	VersionVar     string   `json:"version,omitempty"`
+	NameVar      string `json:"name"`
+	TypeVar      string `json:"type,omitempty"`
+	LaunchCMDVar string `json:"launch_cmd,omitempty"`
+	VersionVar   string `json:"version,omitempty"`
 }
 
 func (app *Application) Version() string {
@@ -37,17 +37,17 @@ func (app *Application) Type() string {
 	return app.TypeVar
 }
 
-func (app *Application) LaunchFiles() []string {
-	return app.LaunchFilesVar
+func (app *Application) LaunchCMD() string {
+	return app.LaunchCMDVar
 }
 
 func NewV1Application(
 	name string,
-	appType string, launchFiles []string) version.VersionedApplication {
+	appType string, launchCMD string) version.VersionedApplication {
 	return &Application{
-		NameVar:        name,
-		TypeVar:        appType,
-		LaunchFilesVar: launchFiles,
-		VersionVar:     "v1",
+		NameVar:      name,
+		TypeVar:      appType,
+		LaunchCMDVar: launchCMD,
+		VersionVar:   "v1",
 	}
 }

@@ -38,7 +38,10 @@ type ImageExtension struct {
 }
 
 type Launch struct {
+	// user specified CMDS instruction
 	Cmds []string `json:"cmds,omitempty"`
+	// user specified LAUNCH instruction
+	AppNames []string `json:"app_names,omitempty"`
 }
 
 type v1ImageExtension struct {

@@ -30,12 +30,12 @@ var testExtensionWithApp = v1.ImageExtension{
 		v12.NewV1Application(
 			"es",
 			"helm",
-			[]string{},
+			"helm install es application/apps/es",
 		),
 		v12.NewV1Application(
 			"ts",
 			"kube",
-			[]string{},
+			"kubectl apply -f application/apps/ts",
 		),
 	},
 }

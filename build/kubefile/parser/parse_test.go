@@ -63,7 +63,8 @@ func TestParserKubeApp(t *testing.T) {
 		text     = fmt.Sprintf(`
 FROM busybox as base
 APP %s local://%s
-`, app1Name, nginxDemoPath)
+LAUNCH ["%s"] 
+`, app1Name, nginxDemoPath, app1Name)
 	)
 
 	reader := bytes.NewReader([]byte(text))
@@ -86,12 +87,12 @@ copy %s %s
 	result.Dockerfile = strings.TrimSpace(result.Dockerfile)
 	expectedResult := &KubefileResult{
 		Dockerfile: strings.TrimSpace(expectedText),
-		LaunchList: []string{},
+		LaunchApps: []string{app1Name},
 		Applications: map[string]version.VersionedApplication{
 			app1Name: v1.NewV1Application(
 				app1Name,
 				application.KubeApp,
-				[]string{},
+				fmt.Sprintf("kubectl apply -f %s", app1Path),
 			),
 		},
 	}
@@ -100,7 +101,8 @@ copy %s %s
 	assert.Equal(t, len(expectedResult.Applications), len(result.Applications))
 	assert.Equal(t, expectedResult.Applications[app1Name].Name(), result.Applications[app1Name].Name())
 	assert.Equal(t, expectedResult.Applications[app1Name].Type(), result.Applications[app1Name].Type())
-	assert.Equal(t, expectedResult.LaunchList, result.LaunchList)
+	assert.Equal(t, expectedResult.Applications[app1Name].LaunchCMD(), result.Applications[app1Name].LaunchCMD())
+	assert.Equal(t, expectedResult.LaunchApps, result.LaunchApps)
 }
 
 func TestParserHelmApp(t *testing.T) {
@@ -149,14 +151,12 @@ copy %s %s
 	result.Dockerfile = strings.TrimSpace(result.Dockerfile)
 	expectedResult := &KubefileResult{
 		Dockerfile: strings.TrimSpace(expectedText),
-		LaunchList: []string{
-			fmt.Sprintf("helm install %s %s", app1Name, app1Path),
-		},
+		LaunchApps: []string{app1Name},
 		Applications: map[string]version.VersionedApplication{
 			app1Name: v1.NewV1Application(
 				app1Name,
 				application.HelmApp,
-				[]string{},
+				fmt.Sprintf("helm install %s %s", app1Name, app1Path),
 			),
 		},
 	}
@@ -165,7 +165,8 @@ copy %s %s
 	assert.Equal(t, len(expectedResult.Applications), len(result.Applications))
 	assert.Equal(t, expectedResult.Applications[app1Name].Name(), result.Applications[app1Name].Name())
 	assert.Equal(t, expectedResult.Applications[app1Name].Type(), result.Applications[app1Name].Type())
-	assert.Equal(t, expectedResult.LaunchList, result.LaunchList)
+	assert.Equal(t, expectedResult.Applications[app1Name].LaunchCMD(), result.Applications[app1Name].LaunchCMD())
+	assert.Equal(t, expectedResult.LaunchApps, result.LaunchApps)
 }
 
 func TestParserCMDS(t *testing.T) {
@@ -206,7 +207,7 @@ FROM busybox as base
 	result.Dockerfile = strings.TrimSpace(result.Dockerfile)
 	expectedResult := &KubefileResult{
 		Dockerfile: strings.TrimSpace(expectedText),
-		LaunchList: []string{
+		CmdsList: []string{
 			"kubectl apply -f abc.yaml",
 			"kubectl apply -f bcd.yaml",
 		},
@@ -215,7 +216,7 @@ FROM busybox as base
 
 	assert.Equal(t, expectedResult.Dockerfile, result.Dockerfile)
 	assert.Equal(t, len(expectedResult.Applications), len(result.Applications))
-	assert.Equal(t, expectedResult.LaunchList, result.LaunchList)
+	assert.Equal(t, expectedResult.CmdsList, result.CmdsList)
 }
 
 func setupTempContext() (string, error) {
