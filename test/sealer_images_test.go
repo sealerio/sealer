@@ -96,6 +96,9 @@ var _ = Describe("sealer image", func() {
 		})
 		It("push image", func() {
 			pushImageName := "registry.cn-qingdao.aliyuncs.com/sealer-io/e2e_image_test:v0.01"
+			if settings.RegistryURL != "" && settings.RegistryUsername != "" && settings.RegistryPasswd != "" {
+				pushImageName = settings.RegistryURL + "/" + settings.RegistryUsername + "/kubernetes:v1.22.4-test"
+			}
 			image.TagImages(settings.TestImageName, pushImageName)
 			image.DoImageOps(settings.SubCmdPushOfSealer, pushImageName)
 		})

@@ -160,14 +160,20 @@ func (p *Provider) GetServerInfo() (*client.DockerInfo, error) {
 		return nil, err
 	}
 
-	return &client.DockerInfo{
-		CgroupDriver:    sysInfo.CgroupDriver,
-		CgroupVersion:   sysInfo.CgroupVersion,
-		StorageDriver:   sysInfo.Driver,
-		MemoryLimit:     sysInfo.MemoryLimit,
-		PidsLimit:       sysInfo.PidsLimit,
-		CPUShares:       sysInfo.CPUShares,
-		CPUNumber:       sysInfo.NCPU,
-		SecurityOptions: sysInfo.SecurityOptions,
-	}, nil
+	var dInfo client.DockerInfo
+
+	// When CgroupDriver == "none", the MemoryLimit/PidsLimit/CPUShares
+	// values are meaningless and need to be considered false.
+	// https://github.com/moby/moby/issues/42151
+	if sysInfo.CgroupDriver != "none" {
+		dInfo.MemoryLimit = sysInfo.MemoryLimit
+		dInfo.PidsLimit = sysInfo.PidsLimit
+		dInfo.CPUShares = sysInfo.CPUShares
+		dInfo.CgroupDriver = sysInfo.CgroupDriver
+		dInfo.CPUNumber = sysInfo.NCPU
+		dInfo.CgroupVersion = sysInfo.CgroupVersion
+		dInfo.StorageDriver = sysInfo.Driver
+		dInfo.SecurityOptions = sysInfo.SecurityOptions
+	}
+	return &dInfo, nil
 }

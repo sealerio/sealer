@@ -64,7 +64,7 @@ rm -rf /var/lib/kubelet/* && rm -rf /etc/sysctl.d/k8s.conf && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd/* && rm -rf /var/etcd/*
 `
-	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
+	RemoteRemoveAPIServerEtcHost = "echo \"$(sed \"/%s/d\" /etc/hosts)\" > /etc/hosts"
 	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
 	KubeDeleteNode               = "kubectl delete node %s"
 

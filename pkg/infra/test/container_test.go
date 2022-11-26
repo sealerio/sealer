@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -53,7 +52,7 @@ func SetUpClient() (*container.ApplyProvider, error) {
 			},
 			Provider: container.CONTAINER,
 			SSH: v1.SSH{
-				Passwd: "kakazhou719",
+				Passwd: "zhy76",
 			},
 		},
 	}
@@ -113,20 +112,20 @@ func TestContainerApply(t *testing.T) {
 			Masters: v1.Hosts{
 				Count:      "1",
 				CPU:        "2",
-				Memory:     "4",
+				Memory:     "2",
 				SystemDisk: "100",
 				DataDisks:  []string{"100"},
 			},
 			Nodes: v1.Hosts{
 				Count:      "1",
 				CPU:        "2",
-				Memory:     "4",
+				Memory:     "2",
 				SystemDisk: "100",
 				DataDisks:  []string{"100"},
 			},
 			Provider: container.CONTAINER,
 			SSH: v1.SSH{
-				Passwd: "kakazhou719",
+				Passwd: "zhy76",
 			},
 		},
 	}
@@ -149,36 +148,36 @@ func TestContainerApply(t *testing.T) {
 	t.Logf("succuss to apply container infra")
 	// change apply :scale up ,3 master + 3 node
 	cluster.Spec.Masters.Count = "3"
-	cluster.Spec.Nodes.Count = "3"
-	err = client.Apply()
-	if err != nil {
-		t.Logf("failed to scale up container infra %v", err)
-		return
-	}
-	if CheckContainerApplyResult(cluster) {
-		t.Logf("container infra does not meet expectation %+v", cluster)
-		return
-	}
-	t.Logf("succuss to scale up container infra")
-	// change apply:scale down, 3 master + 1 node
-	cluster.Spec.Masters.Count = "3"
-	cluster.Spec.Nodes.Count = "1"
-	err = client.Apply()
-	if err != nil {
-		t.Logf("failed to scale down container infra %v", err)
-		return
-	}
-	if CheckContainerApplyResult(cluster) {
-		t.Logf("container infra does not meet expectation %+v", cluster)
-		return
-	}
-	t.Logf("succuss to scale down container infra")
-	// delete apply
-	time.Sleep(60 * time.Second)
-	now := metav1.Now()
-	cluster.ObjectMeta.DeletionTimestamp = &now
-	fmt.Printf("%v", client.Apply())
-	t.Logf("succuss to clean up container infra")
+	// cluster.Spec.Nodes.Count = "3"
+	// err = client.Apply()
+	// if err != nil {
+	// 	t.Logf("failed to scale up container infra %v", err)
+	// 	return
+	// }
+	// if CheckContainerApplyResult(cluster) {
+	// 	t.Logf("container infra does not meet expectation %+v", cluster)
+	// 	return
+	// }
+	// t.Logf("succuss to scale up container infra")
+	// // change apply:scale down, 3 master + 1 node
+	// cluster.Spec.Masters.Count = "3"
+	// cluster.Spec.Nodes.Count = "1"
+	// err = client.Apply()
+	// if err != nil {
+	// 	t.Logf("failed to scale down container infra %v", err)
+	// 	return
+	// }
+	// if CheckContainerApplyResult(cluster) {
+	// 	t.Logf("container infra does not meet expectation %+v", cluster)
+	// 	return
+	// }
+	// t.Logf("succuss to scale down container infra")
+	// // delete apply
+	// time.Sleep(60 * time.Second)
+	// now := metav1.Now()
+	// cluster.ObjectMeta.DeletionTimestamp = &now
+	// fmt.Printf("%v", client.Apply())
+	// t.Logf("succuss to clean up container infra")
 }
 
 func CheckContainerApplyResult(cluster *v1.Cluster) bool {

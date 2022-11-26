@@ -1,4 +1,4 @@
-FROM sealer-io/kubernetes:v1.19.8
+FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.4-test
 COPY test1 .
 COPY recommended.yaml manifests
 COPY test2 .

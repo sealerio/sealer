@@ -90,6 +90,13 @@ func (a *ApplyProvider) CheckServerInfo() error {
 	if err != nil {
 		return fmt.Errorf("failed to get docker server, please check docker server running status")
 	}
+
+	for _, opt := range info.SecurityOptions {
+		if opt == "name=rootless" {
+			return fmt.Errorf("do not support rootless docker currently")
+		}
+	}
+
 	if info.StorageDriver != "overlay2" {
 		return fmt.Errorf("only support storage driver overlay2 ,but current is :%s", info.StorageDriver)
 	}
@@ -98,10 +105,8 @@ func (a *ApplyProvider) CheckServerInfo() error {
 		return fmt.Errorf("cpu number of docker server must greater than 1 ,but current is :%d", info.CPUNumber)
 	}
 
-	for _, opt := range info.SecurityOptions {
-		if opt == "name=rootless" {
-			return fmt.Errorf("do not support rootless docker currently")
-		}
+	if !info.MemoryLimit || !info.PidsLimit || !info.CPUShares {
+		return fmt.Errorf("requires setting systemd property \"Delegate=yes\"")
 	}
 
 	if !osi.IsFileExist(DockerHost) && os.Getenv("DOCKER_HOST") == "" {
@@ -148,7 +153,8 @@ func (a *ApplyProvider) ReconcileContainer() error {
 
 func (a *ApplyProvider) applyResult(result *ApplyResult) error {
 	// create or delete an update iplist
-	if result.Role == MASTER {
+	switch result.Role {
+	case MASTER:
 		if result.ToJoinNumber > 0 {
 			joinIPList, err := a.applyToJoin(result.ToJoinNumber, result.Role)
 			if err != nil {
@@ -164,9 +170,7 @@ func (a *ApplyProvider) applyResult(result *ApplyResult) error {
 			a.Cluster.Spec.Masters.IPList = a.Cluster.Spec.Masters.IPList[:len(a.Cluster.Spec.Masters.IPList)-
 				len(result.ToDeleteIPList)]
 		}
-	}
-
-	if result.Role == NODE {
+	case NODE:
 		if result.ToJoinNumber > 0 {
 			joinIPList, err := a.applyToJoin(result.ToJoinNumber, result.Role)
 			if err != nil {
@@ -182,6 +186,8 @@ func (a *ApplyProvider) applyResult(result *ApplyResult) error {
 			a.Cluster.Spec.Nodes.IPList = a.Cluster.Spec.Nodes.IPList[:len(a.Cluster.Spec.Nodes.IPList)-
 				len(result.ToDeleteIPList)]
 		}
+	default:
+		return fmt.Errorf("unknown node role: %q", result.Role)
 	}
 	return nil
 }

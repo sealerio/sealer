@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 
 	"github.com/sealerio/sealer/test/suites/build"
-	"github.com/sealerio/sealer/test/suites/image"
 	"github.com/sealerio/sealer/test/suites/registry"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
@@ -57,7 +56,7 @@ var _ = Describe("sealer build", func() {
 				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
 				// check: sealer images whether image exist
 				testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
-				image.DoImageOps(settings.SubCmdPushOfSealer, imageName)
+				// image.DoImageOps(settings.SubCmdPushOfSealer, imageName)
 			})
 		})
 	})

@@ -25,5 +25,5 @@ func CommandSetHostAlias(hostName, ip, alias string) string {
 }
 
 func CommandUnSetHostAlias(alias string) string {
-	return fmt.Sprintf(`sed -i "/%s/d" /etc/hosts`, alias)
+	return fmt.Sprintf(`echo "$(sed "/%s/d" /etc/hosts)" > /etc/hosts`, alias)
 }

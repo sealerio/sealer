@@ -61,7 +61,10 @@ func DeleteClusterByFile(clusterFile string) {
 
 func WriteClusterFileToDisk(cluster *v1.Cluster, clusterFilePath string) {
 	testhelper.CheckNotNil(cluster)
-	err := testhelper.MarshalYamlToFile(clusterFilePath, cluster)
+	//convert clusterfilev1 to clusterfilev2
+	clusterv2 := utils.ConvertV1ClusterToV2Cluster(cluster)
+	clusterv2.Spec.Env = []string{"env=TestEnv"}
+	err := testhelper.MarshalYamlToFile(clusterFilePath, clusterv2)
 	testhelper.CheckErr(err)
 }
 
@@ -89,8 +92,10 @@ func LoadPluginFromDisk(clusterFilePath string) []v1.Plugin {
 func GenerateClusterfile(clusterfile string) {
 	fp := GetRawConfigPluginFilePath()
 	cluster := LoadClusterFileFromDisk(clusterfile)
-	cluster.Spec.Env = []string{"env=TestEnv"}
-	data, err := yaml.Marshal(cluster)
+	//convert clusterfilev1 to clusterfilev2
+	clusterv2 := utils.ConvertV1ClusterToV2Cluster(cluster)
+	clusterv2.Spec.Env = []string{"env=TestEnv"}
+	data, err := yaml.Marshal(clusterv2)
 	testhelper.CheckErr(err)
 	appendData := [][]byte{data}
 	plugins := LoadPluginFromDisk(fp)
@@ -140,6 +145,14 @@ func SealerDeleteCmd(clusterFile string) string {
 	return fmt.Sprintf("%s delete -f %s --force -d", settings.DefaultSealerBin, clusterFile)
 }
 
+func SealerDeleteAll() string {
+	return fmt.Sprintf("%s delete --all --force -d", settings.DefaultSealerBin)
+}
+
+func SealerDeleteNodeCmd(ip string) string {
+	return fmt.Sprintf("%s delete -n %s --force -d", settings.DefaultSealerBin, ip)
+}
+
 func SealerApplyCmd(clusterFile string) string {
 	return fmt.Sprintf("%s apply -f %s --force -d", settings.DefaultSealerBin, clusterFile)
 }
@@ -171,34 +184,34 @@ func SealerJoinCmd(masters, nodes string) string {
 	if nodes != "" {
 		nodes = fmt.Sprintf("-n %s", nodes)
 	}
-	return fmt.Sprintf("%s join %s %s -c my-test-cluster -d", settings.DefaultSealerBin, masters, nodes)
+	return fmt.Sprintf("%s join %s %s -d", settings.DefaultSealerBin, masters, nodes)
 }
 
 func SealerJoin(masters, nodes string) {
 	testhelper.RunCmdAndCheckResult(SealerJoinCmd(masters, nodes), 0)
 }
 
-func CreateAliCloudInfraAndSave(cluster *v1.Cluster, clusterFile string) *v1.Cluster {
-	CreateAliCloudInfra(cluster)
+func CreateContainerInfraAndSave(cluster *v1.Cluster, clusterFile string) *v1.Cluster {
+	CreateContainerInfra(cluster)
 	//save used cluster file
 	cluster.Spec.Provider = settings.BAREMETAL
 	MarshalClusterToFile(clusterFile, cluster)
-	cluster.Spec.Provider = settings.AliCloud
+	cluster.Spec.Provider = settings.CONTAINER
 	return cluster
 }
 
 func ChangeMasterOrderAndSave(cluster *v1.Cluster, clusterFile string) *v1.Cluster {
 	cluster.Spec.Masters.Count = strconv.Itoa(3)
-	CreateAliCloudInfra(cluster)
+	CreateContainerInfra(cluster)
 	//change master order and save used cluster file
 	cluster.Spec.Masters.IPList[0], cluster.Spec.Masters.IPList[1] = cluster.Spec.Masters.IPList[1], cluster.Spec.Masters.IPList[0]
 	cluster.Spec.Provider = settings.BAREMETAL
 	MarshalClusterToFile(clusterFile, cluster)
-	cluster.Spec.Provider = settings.AliCloud
+	cluster.Spec.Provider = settings.CONTAINER
 	return cluster
 }
 
-func CreateAliCloudInfra(cluster *v1.Cluster) {
+func CreateContainerInfra(cluster *v1.Cluster) {
 	cluster.DeletionTimestamp = nil
 	infraManager, err := infra.NewDefaultProvider(cluster)
 	testhelper.CheckErr(err)
@@ -228,12 +241,12 @@ func SendAndRemoteExecCluster(sshClient *testhelper.SSHClient, clusterFile strin
 	testhelper.CheckErr(err)
 }
 
-func CleanUpAliCloudInfra(cluster *v1.Cluster) {
+func CleanUpContainerInfra(cluster *v1.Cluster) {
 	if cluster == nil {
 		return
 	}
-	if cluster.Spec.Provider != settings.AliCloud {
-		cluster.Spec.Provider = settings.AliCloud
+	if cluster.Spec.Provider != settings.CONTAINER {
+		cluster.Spec.Provider = settings.CONTAINER
 	}
 	t := metav1.Now()
 	cluster.DeletionTimestamp = &t

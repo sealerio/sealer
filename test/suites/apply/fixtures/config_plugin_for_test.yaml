@@ -17,8 +17,8 @@ kind: Cluster
 metadata:
   name: my-test-cluster
 spec:
-  image: sealer-io/kubernetes:v1.19.8
-  provider: ALI_CLOUD
+  image: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.4-test
+  provider: CONTAINER
   ssh:
     passwd: Sealer123
     pk: xxx
@@ -32,15 +32,15 @@ spec:
     - 10.0.0.2
 
   masters:
-    cpu: 4
-    memory: 4
+    cpu: 2
+    memory: 2
     count: 1
     systemDisk: 100
     dataDisks:
       - 100
   nodes:
-    cpu: 4
-    memory: 4
+    cpu: 2
+    memory: 2
     count: 1
     systemDisk: 100
     dataDisks:
@@ -134,24 +134,24 @@ spec:
   action: PostInstall
   data: |
     echo "$env: PostInstallShell was successfully run from Clusterfile"
----
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Plugin
-metadata:
-  name: LABEL
-spec:
-  type: LABEL
-  action: PreGuest
-  data: |
-    172.17.102.186 ssd=true
----
-apiVersion: sealer.aliyun.com/v1alpha1
-kind: Plugin
-metadata:
-  name: taint
-spec:
-  type: TAINT
-  action: PreGuest
-  data: |
-    172.16.0.249 node-role.kubernetes.io/master:NoSchedule-
-    172.16.0.249 sealer-test=true:NoSchedule
+# ---
+# apiVersion: sealer.aliyun.com/v1alpha1
+# kind: Plugin
+# metadata:
+#   name: LABEL
+# spec:
+#   type: LABEL
+#   action: PreGuest
+#   data: |
+#     172.17.102.186 ssd=true
+# ---
+# apiVersion: sealer.aliyun.com/v1alpha1
+# kind: Plugin
+# metadata:
+#   name: taint
+# spec:
+#   type: TAINT
+#   action: PreGuest
+#   data: |
+#     172.16.0.249 node-role.kubernetes.io/master:NoSchedule-
+#     172.16.0.249 sealer-test=true:NoSchedule

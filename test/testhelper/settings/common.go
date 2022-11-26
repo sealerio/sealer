@@ -28,7 +28,7 @@ const (
 	ImageName                         = "sealer_test_image_"
 	DefaultImageDomain                = "registry.cn-qingdao.aliyuncs.com"
 	DefaultImageRepo                  = "sealer-io"
-	DefaultImageName                  = "kubernetes:v1.19.8"
+	DefaultImageName                  = "kubernetes:v1.22.4-test"
 	DefaultRegistryAuthFileDir        = "/root/.docker"
 	DefaultClusterFileNeedToBeCleaned = "/root/.sealer/%s/Clusterfile"
 	SubCmdBuildOfSealer               = "build"
@@ -56,7 +56,7 @@ const (
 	BAREMETAL         = "BAREMETAL"
 	AliCloud          = "ALI_CLOUD"
 	CONTAINER         = "CONTAINER"
-	DefaultImage      = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8"
+	DefaultImage      = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.4-test"
 	DefaultNydusImage = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nydus:v1.19.8"
 	ClusterNameForRun = "my-cluster"
 	TMPClusterFile    = "/tmp/Clusterfile"
@@ -78,7 +78,7 @@ var (
 	AccessKey          = os.Getenv("ACCESSKEYID")
 	AccessSecret       = os.Getenv("ACCESSKEYSECRET")
 	Region             = os.Getenv("RegionID")
-	TestImageName      = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8.test"       //default: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+	TestImageName      = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.4-test"       //default: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
 	TestNydusImageName = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nydus:v1.19.8.test" //default: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nydus:v1.19.8
 )
 
