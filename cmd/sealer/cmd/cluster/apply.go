@@ -178,7 +178,7 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 	if applyMode == common.ApplyModeLoadImage {
 		logrus.Infof("start to apply with mode(%s)", applyMode)
 
-		if err = distributor.DistributeRegistry(infraDriver.GetHostIPList()[0], infraDriver.GetClusterRootfsPath()); err != nil {
+		if err = distributor.DistributeRegistry(infraDriver.GetHostIPListByRole(common.MASTER)[0], filepath.Join(infraDriver.GetClusterRootfsPath(), "registry")); err != nil {
 			return err
 		}
 		logrus.Infof("load image success")
