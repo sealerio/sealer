@@ -122,6 +122,16 @@ func installApplication(appImageName string, launchCmds []string, configs []v1.C
 		return err
 	}
 
+	if applyMode == common.ApplyModeLoadImage {
+		logrus.Infof("start to apply with mode(%s)", applyMode)
+
+		if err = distributor.DistributeRegistry(infraDriver.GetHostIPList()[0], infraDriver.GetClusterRootfsPath()); err != nil {
+			return err
+		}
+		logrus.Infof("load image success")
+		return nil
+	}
+
 	//todo grab this config from cluster file, that's because it belongs to cluster level information
 	port, err := strconv.Atoi(common.DefaultRegistryPort)
 	if err != nil {
