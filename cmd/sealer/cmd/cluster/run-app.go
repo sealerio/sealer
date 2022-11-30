@@ -16,7 +16,6 @@ package cluster
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
@@ -46,18 +45,11 @@ func NewRunAPPCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				cf              clusterfile.Interface
-				clusterFileData []byte
-				err             error
+				cf  clusterfile.Interface
+				err error
 			)
 
-			//todo grab more cluster info from api server
-			clusterFileData, err = os.ReadFile(common.GetDefaultClusterfile())
-			if err != nil {
-				return err
-			}
-
-			cf, err = clusterfile.NewClusterFile(clusterFileData)
+			cf, err = clusterfile.NewClusterFile(nil)
 			if err != nil {
 				return err
 			}

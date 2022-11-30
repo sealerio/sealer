@@ -16,19 +16,20 @@ package cluster
 
 import (
 	"fmt"
-	"os"
+	"net"
 	"path/filepath"
+
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
-	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -65,19 +66,10 @@ func NewScaleUpCmd() *cobra.Command {
 				return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 			}
 
-			workClusterfile := common.GetDefaultClusterfile()
-			clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
+			cf, err = clusterfile.NewClusterFile(nil)
 			if err != nil {
 				return err
 			}
-
-			cf, err = clusterfile.NewClusterFile(clusterFileData)
-			if err != nil {
-				return err
-			}
-
-			//store the Cluster as CfSnapshot for rollback
-			cf.CommitSnapshot()
 
 			cluster := cf.GetCluster()
 			if err = utils.ConstructClusterForScaleUp(&cluster, ScaleUpFlags, scaleUpMasterIPList, scaleUpNodeIPList); err != nil {
@@ -85,91 +77,17 @@ func NewScaleUpCmd() *cobra.Command {
 			}
 			cf.SetCluster(cluster)
 
-			//save desired clusterfile
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
-
-			defer func() {
-				if err == nil {
-					return
-				}
-				//if there exists an error,rollback the ClusterFile to the default file
-				cf.RollBackClusterFile()
-			}()
-
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
 			}
-
-			var (
-				clusterImageName = cluster.Spec.Image
-				newHosts         = append(scaleUpMasterIPList, scaleUpNodeIPList...)
-			)
 
 			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
 
-			clusterHostsPlatform, err := infraDriver.GetHostsPlatform(newHosts)
-			if err != nil {
-				return err
-			}
-
-			imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-			if err != nil {
-				return err
-			}
-
-			imageMountInfo, err := imageMounter.Mount(clusterImageName)
-			if err != nil {
-				return err
-			}
-			defer func() {
-				if e := imageMounter.Umount(clusterImageName, imageMountInfo); e != nil {
-					logrus.Errorf("failed to umount cluster image: %v", e)
-				}
-			}()
-
-			distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
-			if err != nil {
-				return err
-			}
-
-			plugins, err := loadPluginsFromImage(imageMountInfo)
-			if err != nil {
-				return err
-			}
-
-			if cf.GetPlugins() != nil {
-				plugins = append(plugins, cf.GetPlugins()...)
-			}
-
-			runtimeConfig := &clusterruntime.RuntimeConfig{
-				Distributor: distributor,
-				Plugins:     plugins,
-			}
-
-			if cf.GetKubeadmConfig() != nil {
-				runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-			}
-
-			installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
-			if err != nil {
-				return err
-			}
-			_, _, err = installer.ScaleUp(scaleUpMasterIPList, scaleUpNodeIPList)
-			if err != nil {
-				return err
-			}
-
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
-
-			return nil
+			return scaleUpCluster(cluster.Spec.Image, scaleUpMasterIPList, scaleUpNodeIPList, infraDriver, imageEngine, cf)
 		},
 	}
 
@@ -183,4 +101,76 @@ func NewScaleUpCmd() *cobra.Command {
 	scaleUpFlagsCmd.Flags().StringVarP(&ScaleUpFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
 	scaleUpFlagsCmd.Flags().StringVarP(&ScaleUpFlags.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
 	return scaleUpFlagsCmd
+}
+
+func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+	var (
+		newHosts = append(scaleUpMasterIPList, scaleUpNodeIPList...)
+	)
+
+	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(newHosts)
+	if err != nil {
+		return err
+	}
+
+	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
+	if err != nil {
+		return err
+	}
+
+	imageMountInfo, err := imageMounter.Mount(clusterImageName)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = imageMounter.Umount(clusterImageName, imageMountInfo)
+		if err != nil {
+			logrus.Errorf("failed to umount cluster image")
+		}
+	}()
+
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+	if err != nil {
+		return err
+	}
+
+	plugins, err := loadPluginsFromImage(imageMountInfo)
+	if err != nil {
+		return err
+	}
+
+	if cf.GetPlugins() != nil {
+		plugins = append(plugins, cf.GetPlugins()...)
+	}
+
+	runtimeConfig := &clusterruntime.RuntimeConfig{
+		Distributor: distributor,
+		Plugins:     plugins,
+	}
+
+	if cf.GetKubeadmConfig() != nil {
+		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	if err != nil {
+		return err
+	}
+
+	//we need to save desired clusterfile to local disk temporarily.
+	//and will use it later to clean the cluster node if ScaleUp failed.
+	if err = cf.SaveAll(clusterfile.SaveOptions{}); err != nil {
+		return err
+	}
+
+	_, _, err = installer.ScaleUp(scaleUpMasterIPList, scaleUpNodeIPList)
+	if err != nil {
+		return err
+	}
+
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
+		return err
+	}
+
+	return nil
 }

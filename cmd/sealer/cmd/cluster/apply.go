@@ -23,11 +23,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
-	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -80,10 +78,6 @@ func NewApplyCmd() *cobra.Command {
 				return err
 			}
 
-			//save desired clusterfile
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
 			desiredCluster := cf.GetCluster()
 			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
 			if err != nil {
@@ -98,13 +92,6 @@ func NewApplyCmd() *cobra.Command {
 				return err
 			}
 
-			client := getClusterClient()
-			if client == nil {
-				// no k8s client means to init a new cluster.
-				logrus.Infof("start to create new cluster with image: %s", imageName)
-				return createNewCluster(imageName, infraDriver, imageEngine, cf)
-			}
-
 			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: imageName})
 			if err != nil {
 				return fmt.Errorf("failed to get cluster image extension: %s", err)
@@ -113,6 +100,13 @@ func NewApplyCmd() *cobra.Command {
 			if extension.Type == v12.AppInstaller {
 				logrus.Infof("start to install application: %s", imageName)
 				return installApplication(imageName, []string{}, extension, infraDriver, imageEngine)
+			}
+
+			client := getClusterClient()
+			if client == nil {
+				// no k8s client means to init a new cluster.
+				logrus.Infof("start to create new cluster with image: %s", imageName)
+				return createNewCluster(imageName, infraDriver, imageEngine, cf)
 			}
 
 			currentCluster, err := GetCurrentCluster(client)
@@ -137,152 +131,6 @@ func NewApplyCmd() *cobra.Command {
 	applyCmd.Flags().StringVarP(&applyClusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
 	applyCmd.Flags().StringVarP(&applyMode, "applyMode", "m", common.ApplyModeApply, "load images to the specified registry in advance")
 	return applyCmd
-}
-
-func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
-	var (
-		clusterHosts      = infraDriver.GetHostIPList()
-		clusterLaunchCmds = infraDriver.GetClusterLaunchCmds()
-	)
-
-	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
-	if err != nil {
-		return err
-	}
-
-	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-	if err != nil {
-		return err
-	}
-
-	imageMountInfo, err := imageMounter.Mount(clusterImageName)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		err = imageMounter.Umount(clusterImageName, imageMountInfo)
-		if err != nil {
-			logrus.Errorf("failed to umount cluster image: %v", err)
-		}
-	}()
-
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
-	if err != nil {
-		return err
-	}
-
-	if applyMode == common.ApplyModeLoadImage {
-		logrus.Infof("start to apply with mode(%s)", applyMode)
-
-		if err = distributor.DistributeRegistry(infraDriver.GetHostIPList()[0], infraDriver.GetClusterRootfsPath()); err != nil {
-			return err
-		}
-		logrus.Infof("load image success")
-		return nil
-	}
-	plugins, err := loadPluginsFromImage(imageMountInfo)
-	if err != nil {
-		return err
-	}
-
-	if cf.GetPlugins() != nil {
-		plugins = append(plugins, cf.GetPlugins()...)
-	}
-
-	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor:       distributor,
-		ImageEngine:       imageEngine,
-		Plugins:           plugins,
-		ClusterLaunchCmds: clusterLaunchCmds,
-		ClusterImageImage: clusterImageName,
-	}
-
-	if cf.GetKubeadmConfig() != nil {
-		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-	}
-
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
-	if err != nil {
-		return err
-	}
-
-	err = installer.Install()
-	if err != nil {
-		return err
-	}
-
-	//save clusterfile
-	if err = cf.SaveAll(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
-	var (
-		newHosts = append(scaleUpMasterIPList, scaleUpNodeIPList...)
-	)
-
-	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(newHosts)
-	if err != nil {
-		return err
-	}
-
-	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-	if err != nil {
-		return err
-	}
-
-	imageMountInfo, err := imageMounter.Mount(clusterImageName)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = imageMounter.Umount(clusterImageName, imageMountInfo)
-		if err != nil {
-			logrus.Errorf("failed to umount cluster image: %v", err)
-		}
-	}()
-
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
-	if err != nil {
-		return err
-	}
-
-	plugins, err := loadPluginsFromImage(imageMountInfo)
-	if err != nil {
-		return err
-	}
-
-	if cf.GetPlugins() != nil {
-		plugins = append(plugins, cf.GetPlugins()...)
-	}
-
-	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor: distributor,
-		Plugins:     plugins,
-	}
-
-	if cf.GetKubeadmConfig() != nil {
-		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-	}
-
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
-	if err != nil {
-		return err
-	}
-	_, _, err = installer.ScaleUp(scaleUpMasterIPList, scaleUpNodeIPList)
-	if err != nil {
-		return err
-	}
-
-	if err = cf.SaveAll(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {

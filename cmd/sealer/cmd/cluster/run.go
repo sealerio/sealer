@@ -110,24 +110,8 @@ func NewRunCmd() *cobra.Command {
 				}
 			}
 
-			//save desired clusterfile
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
-
 			cluster := cf.GetCluster()
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
-			if err != nil {
-				return err
-			}
-
-			var (
-				clusterLaunchCmds = infraDriver.GetClusterLaunchCmds()
-				clusterHosts      = infraDriver.GetHostIPList()
-				clusterImageName  = cluster.Spec.Image
-			)
-
-			clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
 			if err != nil {
 				return err
 			}
@@ -137,64 +121,7 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-			if err != nil {
-				return err
-			}
-
-			imageMountInfo, err := imageMounter.Mount(clusterImageName)
-			if err != nil {
-				return err
-			}
-
-			defer func() {
-				err = imageMounter.Umount(clusterImageName, imageMountInfo)
-				if err != nil {
-					logrus.Errorf("failed to umount cluster image: %v", err)
-				}
-			}()
-
-			distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
-			if err != nil {
-				return err
-			}
-
-			plugins, err := loadPluginsFromImage(imageMountInfo)
-			if err != nil {
-				return err
-			}
-
-			if cf.GetPlugins() != nil {
-				plugins = append(plugins, cf.GetPlugins()...)
-			}
-
-			runtimeConfig := &clusterruntime.RuntimeConfig{
-				Distributor:       distributor,
-				ImageEngine:       imageEngine,
-				Plugins:           plugins,
-				ClusterLaunchCmds: clusterLaunchCmds,
-				ClusterImageImage: clusterImageName,
-			}
-
-			if cf.GetKubeadmConfig() != nil {
-				runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-			}
-
-			installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
-			if err != nil {
-				return err
-			}
-
-			err = installer.Install()
-			if err != nil {
-				return err
-			}
-
-			//save clusterfile
-			if err = cf.SaveAll(); err != nil {
-				return err
-			}
-			return nil
+			return createNewCluster(cluster.Spec.Image, infraDriver, imageEngine, cf)
 		},
 	}
 	runFlags = &types.Flags{}
@@ -219,6 +146,93 @@ func NewRunCmd() *cobra.Command {
 	//	os.Exit(1)
 	//}
 	return runCmd
+}
+
+func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+	var (
+		clusterHosts      = infraDriver.GetHostIPList()
+		clusterLaunchCmds = infraDriver.GetClusterLaunchCmds()
+	)
+
+	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
+	if err != nil {
+		return err
+	}
+
+	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
+	if err != nil {
+		return err
+	}
+
+	imageMountInfo, err := imageMounter.Mount(clusterImageName)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = imageMounter.Umount(clusterImageName, imageMountInfo)
+		if err != nil {
+			logrus.Errorf("failed to umount cluster image")
+		}
+	}()
+
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+	if err != nil {
+		return err
+	}
+
+	if applyMode == common.ApplyModeLoadImage {
+		logrus.Infof("start to apply with mode(%s)", applyMode)
+
+		if err = distributor.DistributeRegistry(infraDriver.GetHostIPList()[0], infraDriver.GetClusterRootfsPath()); err != nil {
+			return err
+		}
+		logrus.Infof("load image success")
+		return nil
+	}
+	plugins, err := loadPluginsFromImage(imageMountInfo)
+	if err != nil {
+		return err
+	}
+
+	if cf.GetPlugins() != nil {
+		plugins = append(plugins, cf.GetPlugins()...)
+	}
+
+	runtimeConfig := &clusterruntime.RuntimeConfig{
+		Distributor:       distributor,
+		ImageEngine:       imageEngine,
+		Plugins:           plugins,
+		ClusterLaunchCmds: clusterLaunchCmds,
+		ClusterImageImage: clusterImageName,
+	}
+
+	if cf.GetKubeadmConfig() != nil {
+		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+	}
+
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	if err != nil {
+		return err
+	}
+
+	//we need to save desired clusterfile to local disk temporarily
+	//and will use it later to clean the cluster node if apply failed.
+	if err = cf.SaveAll(clusterfile.SaveOptions{}); err != nil {
+		return err
+	}
+
+	err = installer.Install()
+	if err != nil {
+		return err
+	}
+
+	//save and commit
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func loadPluginsFromImage(imageMountInfo []imagedistributor.ClusterImageMountInfo) (plugins []v1.Plugin, err error) {
