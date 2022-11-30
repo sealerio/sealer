@@ -44,6 +44,8 @@ type ClusterSpec struct {
 	// HostAliases holds the mapping between IP and hostnames that will be injected as an entry in the
 	// host's hosts file.
 	HostAliases []HostAlias `json:"hostAliases,omitempty"`
+	// Registry field contains configurations about local registry and remote registry.
+	Registry Registry `json:"registry,omitempty"`
 }
 
 type Host struct {
@@ -62,6 +64,44 @@ type HostAlias struct {
 	IP string `json:"ip,omitempty"`
 	// Hostnames for the above IP address.
 	Hostnames []string `json:"hostnames,omitempty"`
+}
+
+type Registry struct {
+	// LocalRegistry is the sealer builtin registry configuration
+	LocalRegistry *LocalRegistry `json:"local_registry,omitempty"`
+	// ExternalRegistry used to serve external registry service. do not support yet.
+	ExternalRegistry *ExternalRegistry `json:"external_registry,omitempty"`
+}
+
+type RegistryConfig struct {
+	Domain   string `json:"domain,omitempty"`
+	Port     int    `json:"port,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+type ExternalRegistry struct {
+	RegistryConfig
+}
+
+type LocalRegistry struct {
+	RegistryConfig
+	// DeployHosts is the target host list that local registry will be deployed on.
+	// if not set ,master0 will be the default value.
+	DeployHosts []net.IP `json:"deploy_hosts,omitempty"`
+	// InsecureMode indicated that whether the local registry is exposed in HTTPS.
+	// if true sealer will generate default ssl cert.
+	InsecureMode bool    `json:"insecure_mode,omitempty"`
+	Cert         TLSCert `json:"cert,omitempty"`
+}
+
+type TLSCert struct {
+	SubjectAltName *SubjectAltName `json:"subjectAltName,omitempty"`
+}
+
+type SubjectAltName struct {
+	DNSNames []string `json:"dnsNames,omitempty"`
+	IPs      []string `json:"ips,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster

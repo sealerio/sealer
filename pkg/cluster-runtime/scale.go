@@ -54,7 +54,7 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
+	registryConfigurator, err := registry.NewConfigurator(crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,7 +109,7 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
+	registryConfigurator, err := registry.NewConfigurator(crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return nil, nil, err
 	}

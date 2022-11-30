@@ -16,7 +16,6 @@ package clusterruntime
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
@@ -36,12 +35,9 @@ import (
 type RuntimeConfig struct {
 	ImageEngine            imageengine.Interface
 	Distributor            imagedistributor.Distributor
-	RegistryConfig         registry.RegConfig
 	ContainerRuntimeConfig containerruntime.Config
 	KubeadmConfig          kubeadm.KubeadmConfig
 	Plugins                []v1.Plugin
-	ClusterLaunchCmds      []string
-	ClusterImageImage      string
 }
 
 type Installer struct {
@@ -58,7 +54,6 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	)
 
 	installer.RuntimeConfig = runtimeConfig
-
 	// configure container runtime
 	//todo need to support other container runtimes
 	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(containerruntime.Config{
@@ -69,39 +64,11 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 		return nil, err
 	}
 
-	// todo maybe we can support custom registry config later
-	var registryConfig = registry.Registry{
-		Domain: registry.DefaultDomain,
-		Port:   registry.DefaultPort,
-		Auth:   &registry.Auth{},
-	}
-
-	clusterENV := infraDriver.GetClusterEnv()
-	if domain := clusterENV["RegistryDomain"]; domain != nil {
-		registryConfig.Domain = domain.(string)
-	}
-	if userName := clusterENV["RegistryUsername"]; userName != nil {
-		registryConfig.Auth.Username = userName.(string)
-	}
-	if password := clusterENV["RegistryPassword"]; password != nil {
-		registryConfig.Auth.Password = password.(string)
-	}
-
-	// configure cluster registry
-	installer.RegistryConfig.LocalRegistry = &registry.LocalRegistry{
-		DataDir:      filepath.Join(infraDriver.GetClusterRootfsPath(), "registry"),
-		InsecureMode: false,
-		Cert:         &registry.TLSCert{},
-		DeployHost:   infraDriver.GetHostIPListByRole(common.MASTER)[0],
-		Registry:     registryConfig,
-	}
-
 	// add installer hooks
 	hooks, err := transferPluginsToHooks(runtimeConfig.Plugins)
 	if err != nil {
 		return nil, err
 	}
-
 	installer.hooks = hooks
 	installer.infraDriver = infraDriver
 
@@ -110,14 +77,15 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 
 func (i *Installer) Install() error {
 	var (
-		masters = i.infraDriver.GetHostIPListByRole(common.MASTER)
-		master0 = masters[0]
-		workers = getWorkerIPList(i.infraDriver)
-		all     = append(masters, workers...)
-		cmds    = i.ClusterLaunchCmds
+		masters          = i.infraDriver.GetHostIPListByRole(common.MASTER)
+		master0          = masters[0]
+		workers          = getWorkerIPList(i.infraDriver)
+		all              = append(masters, workers...)
+		cmds             = i.infraDriver.GetClusterLaunchCmds()
+		clusterImageName = i.infraDriver.GetClusterImageName()
 	)
 
-	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: i.ClusterImageImage})
+	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: clusterImageName})
 	if err != nil {
 		return fmt.Errorf("failed to get cluster image extension: %s", err)
 	}
@@ -153,7 +121,7 @@ func (i *Installer) Install() error {
 		return err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
+	registryConfigurator, err := registry.NewConfigurator(crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return err
 	}
@@ -188,7 +156,7 @@ func (i *Installer) Install() error {
 		return err
 	}
 
-	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension, i.RegistryConfig)
+	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
 
 	if err = appInstaller.LaunchClusterImage(master0, cmds); err != nil {
 		return err
@@ -204,7 +172,7 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	}
 
 	// TODO, init here or in constructor?
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
+	registryConfigurator, err := registry.NewConfigurator(crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return nil, nil, err
 	}

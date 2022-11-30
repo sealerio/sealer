@@ -26,6 +26,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	netutils "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
@@ -33,6 +34,7 @@ import (
 )
 
 type SSHInfraDriver struct {
+	cluster            *v2.Cluster
 	sshConfigs         map[string]ssh.Interface
 	hosts              []net.IP
 	roleHostsMap       map[string][]net.IP
@@ -98,6 +100,7 @@ func ConvertEnv(envList []string) (env map[string]interface{}) {
 func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	var err error
 	ret := &SSHInfraDriver{
+		cluster:           cluster,
 		clusterName:       cluster.Name,
 		clusterImageName:  cluster.Spec.Image,
 		clusterLaunchCmds: cluster.Spec.CMD,
@@ -150,8 +153,20 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		}
 	}
 
-	ret.clusterEnv = ConvertEnv(cluster.Spec.Env)
+	// check registry config
+	// make sure each registry deploy host is in masters group
+	// todo make sure there is no duplicated deploy host
+	if cluster.Spec.Registry.LocalRegistry != nil {
+		deployHosts := cluster.Spec.Registry.LocalRegistry.DeployHosts
+		for _, deployHost := range deployHosts {
+			if netutils.IsInIPList(deployHost, ret.roleHostsMap[common.MASTER]) {
+				continue
+			}
+			return nil, fmt.Errorf("make sure each registry deploy host is in masters group: %s", deployHost)
+		}
+	}
 
+	ret.clusterEnv = ConvertEnv(cluster.Spec.Env)
 	// initialize hostEnvMap field
 	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
 	for _, host := range cluster.Spec.Hosts {
@@ -181,15 +196,45 @@ func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]interface{} {
 }
 
 func (d *SSHInfraDriver) GetClusterEnv() map[string]interface{} {
-	// Set the default RegistryDomain and RegistryPort env,
-	// and override the env if the user specifies RegistryDomain and RegistryPort env
+	// expose RegistryDomain and RegistryPort to env in order others needed.
+	regConfig := d.GetClusterRegistryConfig()
 	if _, ok := d.clusterEnv["RegistryDomain"]; !ok {
-		d.clusterEnv["RegistryDomain"] = common.DefaultRegistryDomain
+		d.clusterEnv["RegistryDomain"] = regConfig.LocalRegistry.Domain
 	}
 	if _, ok := d.clusterEnv["RegistryPort"]; !ok {
-		d.clusterEnv["RegistryPort"] = common.DefaultRegistryPort
+		d.clusterEnv["RegistryPort"] = regConfig.LocalRegistry.Port
 	}
+
 	return d.clusterEnv
+}
+
+func (d *SSHInfraDriver) GetClusterRegistryConfig() v2.Registry {
+	clusterRegistryConfig := d.cluster.Spec.Registry
+	// configure default cluster registry
+	if clusterRegistryConfig.LocalRegistry == nil {
+		localRegistry := &v2.LocalRegistry{
+			InsecureMode: false,
+			DeployHosts:  []net.IP{d.roleHostsMap[common.MASTER][0]},
+		}
+		localRegistry.RegistryConfig = v2.RegistryConfig{
+			Domain: common.DefaultDomain,
+			Port:   common.DefaultPort,
+		}
+		return v2.Registry{LocalRegistry: localRegistry}
+	}
+
+	if clusterRegistryConfig.LocalRegistry.Domain == "" {
+		clusterRegistryConfig.LocalRegistry.Domain = common.DefaultDomain
+	}
+	if clusterRegistryConfig.LocalRegistry.Port == 0 {
+		clusterRegistryConfig.LocalRegistry.Port = common.DefaultPort
+	}
+
+	if len(clusterRegistryConfig.LocalRegistry.DeployHosts) == 0 {
+		clusterRegistryConfig.LocalRegistry.DeployHosts = []net.IP{d.roleHostsMap[common.MASTER][0]}
+	}
+
+	return clusterRegistryConfig
 }
 
 func (d *SSHInfraDriver) Copy(host net.IP, localFilePath, remoteFilePath string) error {

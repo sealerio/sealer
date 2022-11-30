@@ -25,6 +25,10 @@ import (
 	"strconv"
 	"strings"
 
+	v2 "github.com/sealerio/sealer/types/api/v2"
+
+	"github.com/sealerio/sealer/common"
+
 	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
@@ -37,15 +41,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	DefaultDomain               = "sea.hub"
-	DefaultPort                 = 5000
-	DefaultEndpoint             = "sea.hub:5000"
-	DefaultRegistryHtPasswdFile = "registry_htpasswd"
-)
-
 type localSingletonConfigurator struct {
-	*LocalRegistry
+	*v2.LocalRegistry
 
 	containerRuntimeInfo containerruntime.Info
 	infraDriver          infradriver.InfraDriver
@@ -56,13 +53,12 @@ type localSingletonConfigurator struct {
 func (c *localSingletonConfigurator) Clean() error {
 	//TODO delete local registry by container runtime sdk.
 	deleteRegistryCommand := "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
-
-	return c.infraDriver.CmdAsync(c.DeployHost, fmt.Sprintf(deleteRegistryCommand, "sealer-registry"))
+	return c.infraDriver.CmdAsync(c.DeployHosts[0], fmt.Sprintf(deleteRegistryCommand, "sealer-registry"))
 }
 
 func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
 	var uninstallCmd []string
-	if c.Auth.Username != "" && c.Auth.Password != "" {
+	if c.RegistryConfig.Username != "" && c.RegistryConfig.Password != "" {
 		//todo use sdk to logout instead of shell cmd
 		logoutCmd := fmt.Sprintf("docker logout %s ", c.Domain+":"+strconv.Itoa(c.Port))
 		if c.containerRuntimeInfo.Type != "docker" {
@@ -71,7 +67,7 @@ func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
 		uninstallCmd = append(uninstallCmd, logoutCmd)
 	}
 
-	uninstallCmd = append(uninstallCmd, shellcommand.CommandUnSetHostAlias(shellcommand.DefaultSealerHostAlias))
+	uninstallCmd = append(uninstallCmd, shellcommand.CommandUnSetHostAlias(shellcommand.DefaultSealerHostAliasForRegistry))
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, strings.Join(uninstallCmd, "&&"))
 		if err != nil {
@@ -86,7 +82,8 @@ func (c *localSingletonConfigurator) UninstallFrom(hosts []net.IP) error {
 func (c *localSingletonConfigurator) GetDriver() (Driver, error) {
 	// todo transfer registry config to driver more precisely obey to minimization principle
 	endpoint := c.Domain + ":" + strconv.Itoa(c.Port)
-	return newLocalRegistryDriver(endpoint, c.DataDir, c.DeployHost, c.infraDriver, c.distributor), nil
+	dataDir := filepath.Join(c.infraDriver.GetClusterRootfsPath(), "registry")
+	return newLocalRegistryDriver(endpoint, dataDir, c.DeployHosts, c.infraDriver, c.distributor), nil
 }
 
 // Launch will start local private registry via rootfs scripts.
@@ -108,16 +105,16 @@ func (c *localSingletonConfigurator) Launch() error {
 
 func (c *localSingletonConfigurator) genBasicAuth() error {
 	//gen basic auth info: if not config, will skip.
-	if c.Auth.Username == "" || c.Auth.Password == "" {
+	if c.RegistryConfig.Username == "" || c.RegistryConfig.Password == "" {
 		return nil
 	}
 
 	var (
-		localBasicAuthFile = filepath.Join("/tmp", DefaultRegistryHtPasswdFile)
-		basicAuthFile      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", DefaultRegistryHtPasswdFile)
+		localBasicAuthFile = filepath.Join("/tmp", common.DefaultRegistryHtPasswdFile)
+		basicAuthFile      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", common.DefaultRegistryHtPasswdFile)
 	)
 
-	htpasswd, err := GenerateHTTPBasicAuth(c.Auth.Username, c.Auth.Password)
+	htpasswd, err := GenerateHTTPBasicAuth(c.RegistryConfig.Username, c.RegistryConfig.Password)
 	if err != nil {
 		return err
 	}
@@ -127,9 +124,11 @@ func (c *localSingletonConfigurator) genBasicAuth() error {
 		return err
 	}
 
-	err = c.infraDriver.Copy(c.DeployHost, localBasicAuthFile, basicAuthFile)
-	if err != nil {
-		return fmt.Errorf("failed to copy registry auth file to %s: %v", basicAuthFile, err)
+	for _, deployHost := range c.DeployHosts {
+		err = c.infraDriver.Copy(deployHost, localBasicAuthFile, basicAuthFile)
+		if err != nil {
+			return fmt.Errorf("failed to copy registry auth file to %s: %v", basicAuthFile, err)
+		}
 	}
 
 	return fs.FS.RemoveAll(localBasicAuthFile)
@@ -140,38 +139,26 @@ func (c *localSingletonConfigurator) genRegistryCert() error {
 	if c.InsecureMode {
 		return nil
 	}
-
 	var (
 		localCertPath = filepath.Join("/tmp", "certs")
 		certPath      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "certs")
 		certName      = c.Domain
-		fullCertName  = certName + ".crt"
-		fullKeyName   = certName + ".key"
 	)
 
-	certExisted, err := c.infraDriver.IsFileExist(c.DeployHost, filepath.Join(certPath, fullCertName))
-	if err != nil {
+	if err := c.gen(localCertPath, certName); err != nil {
 		return err
 	}
 
-	keyExisted, err := c.infraDriver.IsFileExist(c.DeployHost, filepath.Join(certPath, fullKeyName))
-	if err != nil {
-		return err
-	}
-
-	if !certExisted || !keyExisted {
-		if err = c.gen(localCertPath, certName); err != nil {
-			return err
-		}
-
-		err = c.infraDriver.Copy(c.DeployHost, localCertPath, certPath)
+	for _, deployHost := range c.DeployHosts {
+		err := c.infraDriver.Copy(deployHost, localCertPath, certPath)
 		if err != nil {
 			return fmt.Errorf("failed to copy registry cert to deployHost: %v", err)
 		}
-		err = fs.FS.RemoveAll(localCertPath)
-		if err != nil {
-			return err
-		}
+	}
+
+	err := fs.FS.RemoveAll(localCertPath)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -211,17 +198,17 @@ func (c *localSingletonConfigurator) gen(certPath, certName string) error {
 func (c *localSingletonConfigurator) reconcileRegistry() error {
 	var (
 		rootfs     = c.infraDriver.GetClusterRootfsPath()
-		dataDir    = c.DataDir
-		deployHost = c.DeployHost
+		dataDir    = filepath.Join(rootfs, "registry")
+		deployHost = c.DeployHosts[0]
 	)
 
-	if err := c.distributor.DistributeRegistry(deployHost, dataDir); err != nil {
+	if err := c.distributor.DistributeRegistry(c.DeployHosts, dataDir); err != nil {
 		return err
 	}
 
 	// bash init-registry.sh ${port} ${mountData} ${domain}
 	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", rootfs, strconv.Itoa(c.Port), dataDir, c.Domain)
-	if err := c.infraDriver.CmdAsync(c.DeployHost, initRegistry); err != nil {
+	if err := c.infraDriver.CmdAsync(deployHost, initRegistry); err != nil {
 		return err
 	}
 
@@ -250,8 +237,12 @@ func (c *localSingletonConfigurator) InstallOn(hosts []net.IP) error {
 
 func (c *localSingletonConfigurator) configureHostsFile(hosts []net.IP) error {
 	// add registry ip to "/etc/hosts"
+	var (
+		deployHost = c.DeployHosts[0]
+	)
+
 	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.DeployHost.String(), shellcommand.DefaultSealerHostAlias))
+		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, deployHost.String(), shellcommand.DefaultSealerHostAliasForRegistry))
 		if err != nil {
 			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}
@@ -279,8 +270,8 @@ func (c *localSingletonConfigurator) configureRegistryCert(hosts []net.IP) error
 
 func (c *localSingletonConfigurator) configureAccessCredential(hosts []net.IP) error {
 	var (
-		username        = c.Auth.Username
-		password        = c.Auth.Password
+		username        = c.RegistryConfig.Username
+		password        = c.RegistryConfig.Password
 		endpoint        = c.Domain + ":" + strconv.Itoa(c.Port)
 		tmpAuthFilePath = "/tmp/config.json"
 		// todo we need this config file when kubelet pull images from registry. while, we could optimize the logic here.
@@ -345,7 +336,7 @@ func (c *localSingletonConfigurator) configureDaemonService(hosts []net.IP) erro
 		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
 	)
 
-	if endpoint == DefaultEndpoint {
+	if endpoint == common.DefaultEndpoint {
 		return nil
 	}
 

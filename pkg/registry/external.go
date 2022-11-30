@@ -14,10 +14,14 @@
 
 package registry
 
-import "net"
+import (
+	"net"
+
+	v2 "github.com/sealerio/sealer/types/api/v2"
+)
 
 type externalConfigurator struct {
-	Registry
+	v2.RegistryConfig
 }
 
 func (c *externalConfigurator) Launch() error {

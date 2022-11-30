@@ -21,6 +21,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
@@ -195,23 +197,13 @@ func NewClusterFile(b []byte) (Interface, error) {
 	}
 
 	// assume that we already have an existed cluster
-	client, _ := k8s.NewK8sClient()
-	if client != nil {
-		cm, err := client.ConfigMap(configMapNamespace).Get(context.TODO(), configMapName, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		data := cm.Data[configMapDataName]
-		if len(data) > 0 {
-			err := decodeClusterFile(bytes.NewReader([]byte(data)), clusterFile)
-			if err != nil {
-				return nil, err
-			}
-			return clusterFile, nil
-		}
+	fromCluster, err := getClusterfileFromCluster()
+	if err != nil {
+		logrus.Warn("try to get clusterfile from cluster:", err)
 	}
-
+	if fromCluster != nil {
+		return fromCluster, nil
+	}
 	// read local disk clusterfile
 	workClusterfile := common.GetDefaultClusterfile()
 	clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
@@ -223,4 +215,27 @@ func NewClusterFile(b []byte) (Interface, error) {
 		return nil, fmt.Errorf("failed to load clusterfile: %v", err)
 	}
 	return clusterFile, nil
+}
+
+func getClusterfileFromCluster() (*ClusterFile, error) {
+	clusterFile := new(ClusterFile)
+	client, err := k8s.NewK8sClient()
+	if err != nil {
+		return nil, err
+	}
+
+	cm, err := client.ConfigMap(configMapNamespace).Get(context.TODO(), configMapName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	data := cm.Data[configMapDataName]
+	if len(data) > 0 {
+		err = decodeClusterFile(bytes.NewReader([]byte(data)), clusterFile)
+		if err != nil {
+			return nil, err
+		}
+		return clusterFile, nil
+	}
+	return nil, fmt.Errorf("failed to get clusterfile from cluster")
 }

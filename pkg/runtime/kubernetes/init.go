@@ -50,6 +50,7 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, er
 		masters,
 		k.getAPIServerDomain(),
 		k.Config.containerRuntimeInfo.Config.CgroupDriver,
+		k.Config.RegistryInfo.URL,
 		k.getAPIServerVIP())
 	if err != nil {
 		return kubeadm.KubeadmConfig{}, err
@@ -145,7 +146,7 @@ func (k *Runtime) initMaster0(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP)
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
 
-	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String(), shellcommand.DefaultSealerHostAlias)); err != nil {
+	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String(), shellcommand.DefaultSealerHostAliasForApiserver)); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 	}
 

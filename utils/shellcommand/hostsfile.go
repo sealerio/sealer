@@ -17,7 +17,8 @@ package shellcommand
 import "fmt"
 
 const (
-	DefaultSealerHostAlias = "#hostalias-set-by-sealer"
+	DefaultSealerHostAliasForApiserver = "#hostalias-apiserver"
+	DefaultSealerHostAliasForRegistry  = "#hostalias-registry"
 )
 
 func CommandSetHostAlias(hostName, ip, alias string) string {

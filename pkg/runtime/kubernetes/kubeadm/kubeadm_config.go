@@ -171,7 +171,7 @@ func getEtcdEndpointsWithHTTPSPrefix(masters []net.IP) string {
 }
 
 func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
-	masters []net.IP, apiServerDomain, cgroupDriver string, apiServerVIP net.IP) (KubeadmConfig, error) {
+	masters []net.IP, apiServerDomain, cgroupDriver string, imageRepo string, apiServerVIP net.IP) (KubeadmConfig, error) {
 	conf := KubeadmConfig{}
 
 	if err := conf.LoadFromClusterfile(fromClusterFile); err != nil {
@@ -189,7 +189,9 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	conf.APIServer.ExtraArgs[EtcdServers] = getEtcdEndpointsWithHTTPSPrefix(masters)
 	conf.IPVS.ExcludeCIDRs = append(conf.KubeProxyConfiguration.IPVS.ExcludeCIDRs, fmt.Sprintf("%s/32", apiServerVIP))
 	conf.KubeletConfiguration.CgroupDriver = cgroupDriver
-
+	// set cluster image repo,kubeadm will pull container image from this registry.
+	conf.ClusterConfiguration.ImageRepository = imageRepo
+	conf.ClusterConfiguration.DNS.ImageMeta.ImageRepository = fmt.Sprintf("%s/%s", imageRepo, "coredns")
 	conf.ClusterConfiguration.APIServer.CertSANs = []string{"127.0.0.1", apiServerDomain, apiServerVIP.String()}
 	for _, m := range masters {
 		conf.ClusterConfiguration.APIServer.CertSANs = append(conf.ClusterConfiguration.APIServer.CertSANs, m.String())
@@ -211,5 +213,6 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	if conf.JoinConfiguration.Discovery.BootstrapToken == nil {
 		conf.JoinConfiguration.Discovery.BootstrapToken = &v1beta2.BootstrapTokenDiscovery{}
 	}
+
 	return conf, nil
 }

@@ -241,18 +241,11 @@ func IPsToIPStrs(ips []net.IP) []string {
 	return result
 }
 
-func RemoveIPs(old, toRemove []net.IP) []net.IP {
-	toRmMap := make(map[string]bool)
-	for _, md := range toRemove {
-		toRmMap[md.String()] = true
-	}
-
-	var remains []net.IP
-	for _, m := range old {
-		if _, ok := toRmMap[m.String()]; !ok {
-			remains = append(remains, m)
+func RemoveIPs(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP) {
+	for _, ip := range clusterIPList {
+		if !IsInIPList(ip, toBeDeletedIPList) {
+			res = append(res, ip)
 		}
 	}
-
-	return remains
+	return
 }

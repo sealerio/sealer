@@ -36,7 +36,6 @@ import (
 )
 
 var runFlags *types.Flags
-var clusterFile string
 
 var longNewRunCmdDescription = `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`
 
@@ -70,7 +69,10 @@ func NewRunCmd() *cobra.Command {
 				cf              clusterfile.Interface
 				clusterFileData []byte
 				err             error
+				clusterFile     = runFlags.ClusterFile
+				applyMode       = runFlags.Mode
 			)
+
 			if runFlags.Masters == "" && clusterFile == "" {
 				return fmt.Errorf("you must input master ip Or use Clusterfile")
 			}
@@ -121,7 +123,7 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			return createNewCluster(cluster.Spec.Image, infraDriver, imageEngine, cf)
+			return createNewCluster(cluster.Spec.Image, infraDriver, imageEngine, cf, applyMode)
 		},
 	}
 	runFlags = &types.Flags{}
@@ -136,7 +138,8 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringVar(&runFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	runCmd.Flags().StringSliceVar(&runFlags.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	runCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
+	runCmd.Flags().StringVarP(&runFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
+	runCmd.Flags().StringVar(&runFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
 
 	//err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	//	return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
@@ -148,10 +151,9 @@ func NewRunCmd() *cobra.Command {
 	return runCmd
 }
 
-func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface, createMode string) error {
 	var (
-		clusterHosts      = infraDriver.GetHostIPList()
-		clusterLaunchCmds = infraDriver.GetClusterLaunchCmds()
+		clusterHosts = infraDriver.GetHostIPList()
 	)
 
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
@@ -181,10 +183,10 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 		return err
 	}
 
-	if applyMode == common.ApplyModeLoadImage {
-		logrus.Infof("start to apply with mode(%s)", applyMode)
-
-		if err = distributor.DistributeRegistry(infraDriver.GetHostIPList()[0], infraDriver.GetClusterRootfsPath()); err != nil {
+	if createMode == common.ApplyModeLoadImage {
+		logrus.Infof("start to apply with mode(%s)", createMode)
+		reg := infraDriver.GetClusterRegistryConfig()
+		if err = distributor.DistributeRegistry(reg.LocalRegistry.DeployHosts, infraDriver.GetClusterRootfsPath()); err != nil {
 			return err
 		}
 		logrus.Infof("load image success")
@@ -200,11 +202,9 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor:       distributor,
-		ImageEngine:       imageEngine,
-		Plugins:           plugins,
-		ClusterLaunchCmds: clusterLaunchCmds,
-		ClusterImageImage: clusterImageName,
+		Distributor: distributor,
+		ImageEngine: imageEngine,
+		Plugins:     plugins,
 	}
 
 	if cf.GetKubeadmConfig() != nil {

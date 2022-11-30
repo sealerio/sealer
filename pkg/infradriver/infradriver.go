@@ -17,6 +17,8 @@ package infradriver
 import (
 	"net"
 
+	v2 "github.com/sealerio/sealer/types/api/v2"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
@@ -86,6 +88,7 @@ type InfraDriver interface {
 	//DeleteClusterHostAliases delete additional HostAliases
 	DeleteClusterHostAliases(hosts []net.IP) error
 
+	GetClusterRegistryConfig() v2.Registry
 	// SetLvsRule add or update host name on host
 	//SetLvsRule(host net.IP, hostName string) error
 }

@@ -53,7 +53,7 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
+	registryConfigurator, err := registry.NewConfigurator(crInfo, i.infraDriver, i.Distributor)
 	if err != nil {
 		return err
 	}

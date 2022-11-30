@@ -34,18 +34,16 @@ import (
 )
 
 type AppInstaller struct {
-	infraDriver    infradriver.InfraDriver
-	distributor    imagedistributor.Distributor
-	registryConfig registry.RegConfig
-	extension      v12.ImageExtension
+	infraDriver infradriver.InfraDriver
+	distributor imagedistributor.Distributor
+	extension   v12.ImageExtension
 }
 
-func NewAppInstaller(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor, extension v12.ImageExtension, registryConfig registry.RegConfig) AppInstaller {
+func NewAppInstaller(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor, extension v12.ImageExtension) AppInstaller {
 	return AppInstaller{
-		infraDriver:    infraDriver,
-		distributor:    distributor,
-		registryConfig: registryConfig,
-		extension:      extension,
+		infraDriver: infraDriver,
+		distributor: distributor,
+		extension:   extension,
 	}
 }
 
@@ -55,7 +53,7 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 		return err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.registryConfig, containerruntime.Info{}, i.infraDriver, i.distributor)
+	registryConfigurator, err := registry.NewConfigurator(containerruntime.Info{}, i.infraDriver, i.distributor)
 	if err != nil {
 		return err
 	}

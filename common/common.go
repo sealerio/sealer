@@ -68,8 +68,6 @@ const (
 	RenderManifestsDir            = "manifests"
 	APIVersion                    = "sealer.cloud/v2"
 	Kind                          = "Cluster"
-	DefaultRegistryDomain         = "sea.hub"
-	DefaultRegistryPort           = "5000"
 	HostIP                        = "HostIP"
 	EnvHostIPFamily               = "HostIPFamily"
 	EnvIPv6DualStack              = "IPv6DualStack"
@@ -119,6 +117,14 @@ const (
 	TAINT    = "TAINT"
 	LABEL    = "LABEL"
 	HOSTNAME = "HOSTNAME"
+)
+
+// default registry configuration
+const (
+	DefaultDomain               = "sea.hub"
+	DefaultPort                 = 5000
+	DefaultEndpoint             = "sea.hub:5000"
+	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 )
 
 const (

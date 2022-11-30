@@ -18,9 +18,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sealerio/sealer/pkg/imagedistributor"
-
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
@@ -43,12 +42,8 @@ type Configurator interface {
 	//Rollback() (Driver, error)
 }
 
-type RegConfig struct {
-	LocalRegistry    *LocalRegistry
-	ExternalRegistry *Registry
-}
-
-func NewConfigurator(conf RegConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) (Configurator, error) {
+func NewConfigurator(containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) (Configurator, error) {
+	conf := infraDriver.GetClusterRegistryConfig()
 	if conf.LocalRegistry != nil {
 		return &localSingletonConfigurator{
 			infraDriver:          infraDriver,
@@ -59,36 +54,8 @@ func NewConfigurator(conf RegConfig, containerRuntimeInfo containerruntime.Info,
 	}
 
 	if conf.ExternalRegistry != nil {
-		return &externalConfigurator{Registry: *conf.ExternalRegistry}, nil
+		return &externalConfigurator{RegistryConfig: conf.ExternalRegistry.RegistryConfig}, nil
 	}
 
 	return nil, fmt.Errorf("")
-}
-
-type LocalRegistry struct {
-	Registry
-	DeployHost   net.IP
-	DataDir      string   `json:"dataDir,omitempty" yaml:"dataDir,omitempty"`
-	InsecureMode bool     `json:"insecure_mode,omitempty" yaml:"insecure_mode,omitempty"`
-	Cert         *TLSCert `json:"cert,omitempty" yaml:"cert,omitempty"`
-}
-
-type TLSCert struct {
-	SubjectAltName *SubjectAltName `json:"subjectAltName,omitempty" yaml:"subjectAltName,omitempty"`
-}
-
-type SubjectAltName struct {
-	DNSNames []string `json:"dnsNames,omitempty" yaml:"dnsNames,omitempty"`
-	IPs      []string `json:"ips,omitempty" yaml:"ips,omitempty"`
-}
-
-type Registry struct {
-	Domain string `json:"domain,omitempty" yaml:"domain,omitempty"`
-	Port   int    `json:"port,omitempty" yaml:"port,omitempty"`
-	Auth   *Auth  `json:"auth,omitempty" yaml:"auth,omitempty"`
-}
-
-type Auth struct {
-	Username string `json:"username" yaml:"username"`
-	Password string `json:"password" yaml:"password"`
 }
