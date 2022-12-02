@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package image
+package alpha
 
 import (
 	"context"
@@ -32,10 +32,10 @@ const (
 
 var longNewSearchCmdDescription = ``
 
-var exampleForSearchCmd = `sealer search <imageDomain>/<imageRepo>/<imageName> ...
-## default imageDomain: 'registry.cn-qingdao.aliyuncs.com', default imageRepo: 'sealer-io'
+var exampleForSearchCmd = `sealer alpha search <imageDomain>/<imageRepo>/<imageName> ...
+## default imageDomain: 'docker.io', default imageRepo: 'sealerio'
 ex.:
-  sealer search kubernetes seadent/rootfs docker.io/library/hello-world
+  sealer alpha search kubernetes
 `
 
 // NewSearchCmd searchCmd represents the search command
