@@ -15,7 +15,6 @@
 package buildah
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -80,8 +79,6 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("AAAAA", src, dest, isManifest)
 
 	if isManifest {
 		if manifestsErr := engine.PushManifest(src, destSpec, opts); manifestsErr == nil {
