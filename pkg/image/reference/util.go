@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	defaultDomain = "registry.cn-qingdao.aliyuncs.com"
-	defaultRepo   = "sealer-io"
+	defaultDomain = "docker.io"
+	defaultRepo   = "sealerio"
 	defaultTag    = "latest"
 	localhost     = "localhost"
 )
