@@ -31,7 +31,7 @@ const (
 )
 
 const (
-	defaultTimestampFormat = "2006-01-02 15:03:04"
+	defaultTimestampFormat = "2006-01-02 15:04:05"
 )
 
 func getColorByLevel(level logrus.Level) int {
