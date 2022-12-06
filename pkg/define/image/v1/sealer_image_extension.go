@@ -19,6 +19,8 @@ import (
 
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
+
+	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
@@ -28,17 +30,53 @@ const (
 	AppInstaller  = "app-installer"
 )
 
+type ImageSpec struct {
+	// ID the image id
+	ID string `json:"id"`
+
+	// Name the image name
+	Name string `json:"name"`
+
+	// Digest the image digest
+	Digest string `json:"digest"`
+
+	// ManifestV1 OCI version v1 image manifest
+	ManifestV1 ociv1.Manifest `json:"manifestv1"`
+
+	// OCIv1 OCI version v1 image spec
+	OCIv1 ociv1.Image `json:"ociv1"`
+
+	ImageExtension
+}
+
 type ImageExtension struct {
+	// BuildClient build client info
+	BuildClient *BuildClient `json:"buildClient"`
+
+	// image spec schema version
+	SchemaVersion string `json:"schemaVersion"`
+
 	// sealer image type, like AppImage
 	Type string `json:"type,omitempty"`
+
 	// applications in the sealer image
 	Applications []version.VersionedApplication `json:"applications,omitempty"`
+
 	// launch spec will declare
 	Launch Launch `json:"launch,omitempty"`
 }
 
+type BuildClient struct {
+	SealerVersion string `json:"sealerVersion"`
+
+	BuildahVersion string `json:"buildahVersion"`
+}
+
 type Launch struct {
 	Cmds []string `json:"cmds,omitempty"`
+
+	// user specified LAUNCH instruction
+	AppNames []string `json:"app_names,omitempty"`
 }
 
 type v1ImageExtension struct {
