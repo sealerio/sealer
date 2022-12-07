@@ -20,7 +20,7 @@ import (
 
 func NewImageCommands() []*cobra.Command {
 	var imageCommands []*cobra.Command
-	imageCommands = append(imageCommands, NewManifestCmd(), NewBuildCmd(), NewListCmd(), NewInspectCmd(), NewLoadCmd(),
+	imageCommands = append(imageCommands, NewBuildCmd(), NewListCmd(), NewInspectCmd(), NewLoadCmd(),
 		NewLoginCmd(), NewLogoutCmd(), NewPullCmd(), NewPushCmd(), NewRmiCmd(), NewSaveCmd(), NewTagCmd())
 	return imageCommands
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package image
+package alpha
 
 import (
 	"errors"
@@ -47,11 +47,11 @@ func NewManifestCmd() *cobra.Command {
 		Short: "manipulate manifest lists",
 		Long:  manifestDescription,
 		Example: `sealer manifest create localhost/my-manifest
-  sealer manifest add localhost/my-manifest localhost/image
-  sealer manifest inspect localhost/my-manifest
-  sealer manifest push localhost/my-manifest transport:destination
-  sealer manifest remove localhost/my-manifest sha256:entryManifestDigest
-  sealer manifest delete localhost/my-manifest`,
+  sealer alpha manifest add localhost/my-manifest localhost/image
+  sealer alpha manifest inspect localhost/my-manifest
+  sealer alpha manifest push localhost/my-manifest transport:destination
+  sealer alpha manifest remove localhost/my-manifest sha256:entryManifestDigest
+  sealer alpha manifest delete localhost/my-manifest`,
 	}
 
 	manifestCommand.AddCommand(manifestCreateCommand())
@@ -79,7 +79,7 @@ func manifestCreateCommand() *cobra.Command {
 
 			return engine.CreateManifest(args[0], &createManifestOpts)
 		},
-		Example: `sealer manifest create mylist:v1.11`,
+		Example: `sealer alpha manifest create mylist:v1.11`,
 		Args:    cobra.MinimumNArgs(1),
 	}
 
@@ -119,8 +119,8 @@ func manifestAddCommand() *cobra.Command {
 
 			return engine.AddToManifest(name, imageSpec, &addManifestOpts)
 		},
-		Example: `sealer manifest add mylist:v1.11 image:v1.11-amd64
-  sealer manifest add mylist:v1.11 transport:imageName`,
+		Example: `sealer alpha manifest add mylist:v1.11 image:v1.11-amd64
+  sealer alpha manifest add mylist:v1.11 transport:imageName`,
 		Args: cobra.MinimumNArgs(2),
 	}
 
@@ -175,7 +175,7 @@ func manifestRemoveCommand() *cobra.Command {
 
 			return engine.RemoveFromManifest(name, instanceDigest, &removeManifestOpts)
 		},
-		Example: `sealer manifest remove mylist:v1.11 sha256:15352d97781ffdf357bf3459c037be3efac4133dc9070c2dce7eca7c05c3e736`,
+		Example: `sealer alpha manifest remove mylist:v1.11 sha256:15352d97781ffdf357bf3459c037be3efac4133dc9070c2dce7eca7c05c3e736`,
 		Args:    cobra.MinimumNArgs(2),
 	}
 
@@ -210,7 +210,7 @@ func manifestInspectCommand() *cobra.Command {
 
 			return engine.InspectManifest(name, &inspectManifestOpts)
 		},
-		Example: `sealer manifest inspect mylist:v1.11`,
+		Example: `sealer alpha manifest inspect mylist:v1.11`,
 		Args:    cobra.MinimumNArgs(1),
 	}
 	return inspectCommand
@@ -229,7 +229,7 @@ func manifestDeleteCommand() *cobra.Command {
 
 			return engine.DeleteManifests(args, &deleteManifestOpts)
 		},
-		Example: `sealer manifest delete mylist:v1.11`,
+		Example: `sealer alpha manifest delete mylist:v1.11`,
 		Args:    cobra.MinimumNArgs(1),
 	}
 	return deleteCommand
@@ -275,7 +275,7 @@ func manifestPushCommand() *cobra.Command {
 
 			return engine.PushManifest(name, destSpec, &pushManifestOpts)
 		},
-		Example: `sealer manifest push mylist:v1.11 transport:imageName`,
+		Example: `sealer alpha manifest push mylist:v1.11 transport:imageName`,
 		Args:    cobra.MinimumNArgs(1),
 	}
 
