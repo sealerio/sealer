@@ -64,6 +64,15 @@ func NewRunAPPCmd() *cobra.Command {
 				return err
 			}
 
+			if err = imageEngine.Pull(&options.PullOptions{
+				Quiet:      false,
+				PullPolicy: "missing",
+				Image:      args[0],
+				Platform:   "local",
+			}); err != nil {
+				return err
+			}
+
 			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: args[0]})
 			if err != nil {
 				return fmt.Errorf("failed to get cluster image extension: %s", err)
@@ -86,7 +95,7 @@ func NewRunAPPCmd() *cobra.Command {
 }
 
 func installApplication(appImageName string, launchCmds []string, extension v12.ImageExtension,
-	infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, createMode string) error {
+	infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, mode string) error {
 	clusterHosts := infraDriver.GetHostIPList()
 
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
@@ -116,14 +125,8 @@ func installApplication(appImageName string, launchCmds []string, extension v12.
 		return err
 	}
 
-	if createMode == common.ApplyModeLoadImage {
-		logrus.Infof("start to apply with mode(%s)", createMode)
-		reg := infraDriver.GetClusterRegistryConfig()
-		if err = distributor.DistributeRegistry(reg.LocalRegistry.DeployHosts, infraDriver.GetClusterRootfsPath()); err != nil {
-			return err
-		}
-		logrus.Infof("load image success")
-		return nil
+	if mode == common.ApplyModeLoadImage {
+		return loadToRegistry(infraDriver, distributor)
 	}
 
 	installer := clusterruntime.NewAppInstaller(infraDriver, distributor, extension)

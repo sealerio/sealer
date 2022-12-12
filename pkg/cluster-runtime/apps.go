@@ -48,27 +48,37 @@ func NewAppInstaller(infraDriver infradriver.InfraDriver, distributor imagedistr
 }
 
 func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
+	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
+	regConfig := i.infraDriver.GetClusterRegistryConfig()
 	// distribute rootfs
 	if err := i.distributor.Distribute([]net.IP{master0}, i.infraDriver.GetClusterRootfsPath()); err != nil {
 		return err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(containerruntime.Info{}, i.infraDriver, i.distributor)
-	if err != nil {
-		return err
+	//if we use local registry service, load container image to registry
+	if regConfig.LocalRegistry != nil {
+		deployHosts := masters
+		if !regConfig.LocalRegistry.HaMode {
+			deployHosts = []net.IP{masters[0]}
+		}
+
+		registryConfigurator, err := registry.NewConfigurator(deployHosts, containerruntime.Info{}, regConfig, i.infraDriver, i.distributor)
+		if err != nil {
+			return err
+		}
+
+		registryDriver, err := registryConfigurator.GetDriver()
+		if err != nil {
+			return err
+		}
+
+		err = registryDriver.UploadContainerImages2Registry()
+		if err != nil {
+			return err
+		}
 	}
 
-	registryDriver, err := registryConfigurator.GetDriver()
-	if err != nil {
-		return err
-	}
-
-	err = registryDriver.UploadContainerImages2Registry()
-	if err != nil {
-		return err
-	}
-
-	if err = i.LaunchClusterImage(master0, cmds); err != nil {
+	if err := i.LaunchClusterImage(master0, cmds); err != nil {
 		return err
 	}
 

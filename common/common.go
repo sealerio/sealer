@@ -74,6 +74,10 @@ const (
 )
 
 const (
+	MasterRoleLabel = "node-role.kubernetes.io/master"
+)
+
+const (
 	ApplyModeApply     = "apply"
 	ApplyModeLoadImage = "loadImage"
 )
@@ -127,9 +131,18 @@ const (
 	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 )
 
+// default cluster runtime configuration
 const (
-	JoinSubCmd   = "join"
-	DeleteSubCmd = "delete"
+	DefaultVIP             = "10.103.97.2"
+	DefaultVIPForIPv6      = "1248:4003:10bb:6a01:83b9:6360:c66d:0002"
+	DefaultAPIserverDomain = "apiserver.cluster.local"
+)
+
+// build-in ENV key
+const (
+	RegistryDomainEnvKey = "RegistryDomain"
+	RegistryPortEnvKey   = "RegistryPort"
+	RegistryURLEnvKey    = "RegistryURL"
 )
 
 const (

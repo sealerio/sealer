@@ -16,6 +16,7 @@ package cluster
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -123,7 +124,7 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			return createNewCluster(cluster.Spec.Image, infraDriver, imageEngine, cf, applyMode)
+			return createNewCluster(infraDriver, imageEngine, cf, applyMode)
 		},
 	}
 	runFlags = &types.Flags{}
@@ -151,9 +152,10 @@ func NewRunCmd() *cobra.Command {
 	return runCmd
 }
 
-func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface, createMode string) error {
+func createNewCluster(infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface, mode string) error {
 	var (
-		clusterHosts = infraDriver.GetHostIPList()
+		clusterHosts     = infraDriver.GetHostIPList()
+		clusterImageName = infraDriver.GetClusterImageName()
 	)
 
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
@@ -183,15 +185,10 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 		return err
 	}
 
-	if createMode == common.ApplyModeLoadImage {
-		logrus.Infof("start to apply with mode(%s)", createMode)
-		reg := infraDriver.GetClusterRegistryConfig()
-		if err = distributor.DistributeRegistry(reg.LocalRegistry.DeployHosts, infraDriver.GetClusterRootfsPath()); err != nil {
-			return err
-		}
-		logrus.Infof("load image success")
-		return nil
+	if mode == common.ApplyModeLoadImage {
+		return loadToRegistry(infraDriver, distributor)
 	}
+
 	plugins, err := loadPluginsFromImage(imageMountInfo)
 	if err != nil {
 		return err
@@ -247,4 +244,31 @@ func loadPluginsFromImage(imageMountInfo []imagedistributor.ClusterImageMountInf
 	}
 
 	return plugins, nil
+}
+
+// loadToRegistry just load container image to local registry
+func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) error {
+	regConfig := infraDriver.GetClusterRegistryConfig()
+	// todo only support load image to local registry at present
+	if regConfig.LocalRegistry == nil {
+		return nil
+	}
+
+	deployHosts := infraDriver.GetHostIPListByRole(common.MASTER)
+	if len(deployHosts) < 1 {
+		return fmt.Errorf("local registry host can not be nil")
+	}
+	master0 := deployHosts[0]
+
+	logrus.Infof("start to apply with mode(%s)", common.ApplyModeLoadImage)
+	if !regConfig.LocalRegistry.HaMode {
+		deployHosts = []net.IP{master0}
+	}
+
+	if err := distributor.DistributeRegistry(deployHosts, filepath.Join(infraDriver.GetClusterRootfsPath(), "registry")); err != nil {
+		return err
+	}
+
+	logrus.Infof("load image success")
+	return nil
 }

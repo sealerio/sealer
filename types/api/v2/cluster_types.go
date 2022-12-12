@@ -68,9 +68,9 @@ type HostAlias struct {
 
 type Registry struct {
 	// LocalRegistry is the sealer builtin registry configuration
-	LocalRegistry *LocalRegistry `json:"local_registry,omitempty"`
+	LocalRegistry *LocalRegistry `json:"localRegistry,omitempty"`
 	// ExternalRegistry used to serve external registry service. do not support yet.
-	ExternalRegistry *ExternalRegistry `json:"external_registry,omitempty"`
+	ExternalRegistry *ExternalRegistry `json:"externalRegistry,omitempty"`
 }
 
 type RegistryConfig struct {
@@ -86,12 +86,12 @@ type ExternalRegistry struct {
 
 type LocalRegistry struct {
 	RegistryConfig
-	// DeployHosts is the target host list that local registry will be deployed on.
-	// if not set ,master0 will be the default value.
-	DeployHosts []net.IP `json:"deploy_hosts,omitempty"`
+	// HAMode indicate that whether local registry will be deployed on all master nodes.
+	// if LocalRegistry is not specified, default value is true.
+	HaMode bool `json:"haMode,omitempty"`
 	// InsecureMode indicated that whether the local registry is exposed in HTTPS.
-	// if true sealer will generate default ssl cert.
-	InsecureMode bool    `json:"insecure_mode,omitempty"`
+	// if true sealer will not generate default ssl cert.
+	InsecureMode bool    `json:"insecureMode,omitempty"`
 	Cert         TLSCert `json:"cert,omitempty"`
 }
 

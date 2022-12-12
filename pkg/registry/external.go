@@ -15,31 +15,125 @@
 package registry
 
 import (
+	"context"
+	"fmt"
 	"net"
+	"os"
+	"strconv"
 
+	"github.com/containers/common/pkg/auth"
+	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sirupsen/logrus"
 )
 
 type externalConfigurator struct {
-	v2.RegistryConfig
+	containerRuntimeInfo containerruntime.Info
+	infraDriver          infradriver.InfraDriver
+	endpoint             string
+	username             string
+	password             string
 }
 
-func (c *externalConfigurator) Launch() error {
-	panic("implement external")
+func (e *externalConfigurator) InstallOn(masters, nodes []net.IP) error {
+	hosts := append(masters, nodes...)
+	var (
+		username        = e.username
+		password        = e.password
+		endpoint        = e.endpoint
+		tmpAuthFilePath = "/tmp/config.json"
+		// todo we need this config file when kubelet pull images from registry. while, we could optimize the logic here.
+		remoteKubeletAuthFilePath = "/var/lib/kubelet/config.json"
+	)
+
+	if username == "" || password == "" {
+		return nil
+	}
+
+	err := auth.Login(context.TODO(),
+		nil,
+		&auth.LoginOptions{
+			AuthFile:           tmpAuthFilePath,
+			Password:           password,
+			Username:           username,
+			Stdout:             os.Stdout,
+			AcceptRepositories: true,
+		},
+		[]string{endpoint})
+
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = os.Remove(tmpAuthFilePath)
+		if err != nil {
+			logrus.Debugf("failed to remove tmp registry auth file:%s", tmpAuthFilePath)
+		}
+	}()
+
+	err = e.copy2RemoteHosts(tmpAuthFilePath, e.containerRuntimeInfo.ConfigFilePath, hosts)
+	if err != nil {
+		return err
+	}
+
+	err = e.copy2RemoteHosts(tmpAuthFilePath, remoteKubeletAuthFilePath, hosts)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (c *externalConfigurator) Clean() error {
-	panic("implement external")
+func (e *externalConfigurator) copy2RemoteHosts(src, dest string, hosts []net.IP) error {
+	f := func(host net.IP) error {
+		err := e.infraDriver.Copy(host, src, dest)
+		if err != nil {
+			return fmt.Errorf("failed to copy local file %s to remote %s : %v", src, dest, err)
+		}
+		return nil
+	}
+
+	return e.infraDriver.Execute(hosts, f)
 }
 
-func (c *externalConfigurator) InstallOn(hosts []net.IP) error {
-	panic("implement external")
+func (e *externalConfigurator) UninstallFrom(masters, nodes []net.IP) error {
+	if e.username == "" || e.password == "" {
+		return nil
+	}
+	hosts := append(masters, nodes...)
+	//todo use sdk to logout instead of shell cmd
+	logoutCmd := fmt.Sprintf("docker logout %s ", e.endpoint)
+	//nolint
+	if e.containerRuntimeInfo.Type != "docker" {
+		logoutCmd = fmt.Sprintf("nerdctl logout %s ", e.endpoint)
+	}
+
+	for _, host := range hosts {
+		err := e.infraDriver.CmdAsync(host, logoutCmd)
+		if err != nil {
+			return fmt.Errorf("failed to delete registry configuration: %v", err)
+		}
+	}
+
+	return nil
 }
 
-func (c *externalConfigurator) UninstallFrom(hosts []net.IP) error {
-	panic("implement external")
+func (e *externalConfigurator) GetDriver() (Driver, error) {
+	return newExternalRegistryDriver(e.endpoint), nil
 }
 
-func (c *externalConfigurator) GetDriver() (Driver, error) {
-	panic("implement external")
+func NewExternalConfigurator(regConfig *v2.ExternalRegistry, containerRuntimeInfo containerruntime.Info, driver infradriver.InfraDriver) (Configurator, error) {
+	domain := regConfig.Domain
+	if regConfig.Port != 0 {
+		domain = regConfig.Domain + ":" + strconv.Itoa(regConfig.Port)
+	}
+	return &externalConfigurator{
+		endpoint:             domain,
+		username:             regConfig.Username,
+		password:             regConfig.Password,
+		infraDriver:          driver,
+		containerRuntimeInfo: containerRuntimeInfo,
+	}, nil
 }

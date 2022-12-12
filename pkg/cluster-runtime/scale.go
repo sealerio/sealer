@@ -17,6 +17,8 @@ package clusterruntime
 import (
 	"net"
 
+	netutils "github.com/sealerio/sealer/utils/net"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
@@ -24,16 +26,18 @@ import (
 )
 
 func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, runtime.Driver, error) {
-	master0 := i.infraDriver.GetHostIPListByRole(common.MASTER)[0]
+	rootfs := i.infraDriver.GetClusterRootfsPath()
+	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
+	master0 := masters[0]
+	registryDeployHosts := []net.IP{master0}
 	all := append(newMasters, newWorkers...)
-
-	// distribute rootfs
-	if err := i.Distributor.Distribute(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
-		return nil, nil, err
-	}
 
 	// set HostAlias
 	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
+		return nil, nil, err
+	}
+	// distribute rootfs
+	if err := i.Distributor.Distribute(all, rootfs); err != nil {
 		return nil, nil, err
 	}
 
@@ -54,12 +58,20 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(crInfo, i.infraDriver, i.Distributor)
+	// reconcile registry node if local registry is ha mode.
+	if i.regConfig.LocalRegistry != nil && i.regConfig.LocalRegistry.HaMode {
+		registryDeployHosts, err = registry.NewInstaller(netutils.RemoveIPs(masters, newMasters), i.regConfig.LocalRegistry, i.infraDriver, i.Distributor).Reconcile(masters)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	registryConfigurator, err := registry.NewConfigurator(registryDeployHosts, crInfo, i.regConfig, i.infraDriver, i.Distributor)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err := registryConfigurator.InstallOn(all); err != nil {
+	if err = registryConfigurator.InstallOn(newMasters, newWorkers); err != nil {
 		return nil, nil, err
 	}
 
@@ -77,11 +89,6 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	if err := i.runHostHook(PostInitHost, all); err != nil {
 		return nil, nil, err
 	}
@@ -90,10 +97,18 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
+	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return registryDriver, runtimeDriver, nil
 }
 
 func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (registry.Driver, runtime.Driver, error) {
+	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
+	master0 := masters[0]
+	registryDeployHosts := []net.IP{master0}
 	all := append(mastersToDelete, workersToDelete...)
 	// delete HostAlias
 	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {
@@ -109,12 +124,16 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(crInfo, i.infraDriver, i.Distributor)
-	if err != nil {
-		return nil, nil, err
+	// reconcile registry node if local registry is ha mode.
+	if i.regConfig.LocalRegistry != nil && i.regConfig.LocalRegistry.HaMode {
+		registryDeployHosts, err = registry.NewInstaller(masters, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor).Reconcile(netutils.RemoveIPs(masters, mastersToDelete))
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
-	if err = registryConfigurator.UninstallFrom(all); err != nil {
+	registryConfigurator, err := registry.NewConfigurator(registryDeployHosts, crInfo, i.regConfig, i.infraDriver, i.Distributor)
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -134,6 +153,10 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 
 	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
 	if err != nil {
+		return nil, nil, err
+	}
+
+	if err = registryConfigurator.UninstallFrom(mastersToDelete, workersToDelete); err != nil {
 		return nil, nil, err
 	}
 

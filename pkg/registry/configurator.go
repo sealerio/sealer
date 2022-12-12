@@ -18,44 +18,47 @@ import (
 	"fmt"
 	"net"
 
-	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
+
+	v2 "github.com/sealerio/sealer/types/api/v2"
+
+	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
-// Configurator provide registry lifecycle management.
+// Configurator provide registry configuration management
 type Configurator interface {
-	// Launch will start built-in cluster registry component.
-	Launch() error
-	// Clean will stop built-in cluster registry component.
-	Clean() error
-
 	// InstallOn will install registry configuration on each given hosts.
-	InstallOn(hosts []net.IP) error
+	InstallOn(masters, nodes []net.IP) error
 
 	// UninstallFrom will uninstall registry configuration on each given hosts.
-	UninstallFrom(hosts []net.IP) error
+	UninstallFrom(masters, nodes []net.IP) error
 
 	GetDriver() (Driver, error)
-
-	//Upgrade() (Driver, error)
-	//Rollback() (Driver, error)
 }
 
-func NewConfigurator(containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) (Configurator, error) {
-	conf := infraDriver.GetClusterRegistryConfig()
-	if conf.LocalRegistry != nil {
-		return &localSingletonConfigurator{
+func NewConfigurator(deployHosts []net.IP,
+	containerRuntimeInfo containerruntime.Info,
+	regConfig v2.Registry,
+	infraDriver infradriver.InfraDriver,
+	distributor imagedistributor.Distributor) (Configurator, error) {
+	if regConfig.LocalRegistry != nil {
+		return &localConfigurator{
+			deployHosts:          deployHosts,
 			infraDriver:          infraDriver,
-			LocalRegistry:        conf.LocalRegistry,
+			LocalRegistry:        regConfig.LocalRegistry,
 			containerRuntimeInfo: containerRuntimeInfo,
 			distributor:          distributor,
 		}, nil
 	}
 
-	if conf.ExternalRegistry != nil {
-		return &externalConfigurator{RegistryConfig: conf.ExternalRegistry.RegistryConfig}, nil
+	if regConfig.ExternalRegistry != nil {
+		return NewExternalConfigurator(
+			regConfig.ExternalRegistry,
+			containerRuntimeInfo,
+			infraDriver,
+		)
 	}
 
-	return nil, fmt.Errorf("")
+	return nil, fmt.Errorf("unsupported registry type")
 }

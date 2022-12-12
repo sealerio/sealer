@@ -16,6 +16,7 @@ package clusterruntime
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
@@ -29,6 +30,7 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 // RuntimeConfig for Installer
@@ -45,12 +47,15 @@ type Installer struct {
 	infraDriver               infradriver.InfraDriver
 	containerRuntimeInstaller containerruntime.Installer
 	hooks                     map[Phase]HookConfigList
+	regConfig                 v2.Registry
 }
 
 func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConfig) (*Installer, error) {
 	var (
 		err       error
-		installer = &Installer{}
+		installer = &Installer{
+			regConfig: infraDriver.GetClusterRegistryConfig(),
+		}
 	)
 
 	installer.RuntimeConfig = runtimeConfig
@@ -71,7 +76,6 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	}
 	installer.hooks = hooks
 	installer.infraDriver = infraDriver
-
 	return installer, nil
 }
 
@@ -83,6 +87,7 @@ func (i *Installer) Install() error {
 		all              = append(masters, workers...)
 		cmds             = i.infraDriver.GetClusterLaunchCmds()
 		clusterImageName = i.infraDriver.GetClusterImageName()
+		rootfs           = i.infraDriver.GetClusterRootfsPath()
 	)
 
 	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: clusterImageName})
@@ -94,13 +99,13 @@ func (i *Installer) Install() error {
 		return fmt.Errorf("exit install process, wrong cluster image type: %s", extension.Type)
 	}
 
-	// distribute rootfs
-	if err := i.Distributor.Distribute(all, i.infraDriver.GetClusterRootfsPath()); err != nil {
+	// set HostAlias
+	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
 		return err
 	}
 
-	// set HostAlias
-	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
+	// distribute rootfs
+	if err := i.Distributor.Distribute(all, rootfs); err != nil {
 		return err
 	}
 
@@ -121,16 +126,28 @@ func (i *Installer) Install() error {
 		return err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(crInfo, i.infraDriver, i.Distributor)
+	var deployHosts []net.IP
+	if i.regConfig.LocalRegistry != nil {
+		installer := registry.NewInstaller(nil, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
+		if i.regConfig.LocalRegistry.HaMode {
+			deployHosts, err = installer.Reconcile(masters)
+			if err != nil {
+				return err
+			}
+		} else {
+			deployHosts, err = installer.Reconcile([]net.IP{master0})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	registryConfigurator, err := registry.NewConfigurator(deployHosts, crInfo, i.regConfig, i.infraDriver, i.Distributor)
 	if err != nil {
 		return err
 	}
 
-	if err = registryConfigurator.Launch(); err != nil {
-		return err
-	}
-
-	if err = registryConfigurator.InstallOn(all); err != nil {
+	if err = registryConfigurator.InstallOn(masters, workers); err != nil {
 		return err
 	}
 
@@ -166,13 +183,21 @@ func (i *Installer) Install() error {
 }
 
 func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) {
+	var (
+		masters             = i.infraDriver.GetHostIPListByRole(common.MASTER)
+		master0             = masters[0]
+		registryDeployHosts = masters
+	)
 	crInfo, err := i.containerRuntimeInstaller.GetInfo()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	if i.regConfig.LocalRegistry != nil && !i.regConfig.LocalRegistry.HaMode {
+		registryDeployHosts = []net.IP{master0}
+	}
 	// TODO, init here or in constructor?
-	registryConfigurator, err := registry.NewConfigurator(crInfo, i.infraDriver, i.Distributor)
+	registryConfigurator, err := registry.NewConfigurator(registryDeployHosts, crInfo, i.regConfig, i.infraDriver, i.Distributor)
 	if err != nil {
 		return nil, nil, err
 	}

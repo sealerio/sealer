@@ -58,15 +58,15 @@ func NewKubeadmRuntime(clusterFileKubeConfig kubeadm.KubeadmConfig, infra infrad
 		infra: infra,
 		Config: &Config{
 			KubeadmConfigFromClusterFile: clusterFileKubeConfig,
-			APIServerDomain:              DefaultAPIserverDomain,
-			VIP:                          DefaultVIP,
+			APIServerDomain:              common.DefaultAPIserverDomain,
+			VIP:                          common.DefaultVIP,
 			RegistryInfo:                 registryInfo,
 			containerRuntimeInfo:         containerRuntimeInfo,
 		},
 	}
 
 	if ipFamily := infra.GetClusterEnv()[common.EnvHostIPFamily]; ipFamily != nil && ipFamily.(string) == k8snet.IPv6 {
-		k.Config.VIP = DefaultVIPForIPv6
+		k.Config.VIP = common.DefaultVIPForIPv6
 	}
 
 	if logrus.GetLevel() == logrus.DebugLevel {

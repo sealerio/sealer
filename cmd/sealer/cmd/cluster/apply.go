@@ -19,11 +19,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
-
-	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
-
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
@@ -90,6 +88,15 @@ func NewApplyCmd() *cobra.Command {
 				return err
 			}
 
+			if err = imageEngine.Pull(&options.PullOptions{
+				Quiet:      false,
+				PullPolicy: "missing",
+				Image:      imageName,
+				Platform:   "local",
+			}); err != nil {
+				return err
+			}
+
 			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: imageName})
 			if err != nil {
 				return fmt.Errorf("failed to get cluster image extension: %s", err)
@@ -104,7 +111,7 @@ func NewApplyCmd() *cobra.Command {
 			if client == nil {
 				// no k8s client means to init a new cluster.
 				logrus.Infof("start to create new cluster with image: %s", imageName)
-				return createNewCluster(imageName, infraDriver, imageEngine, cf, applyMode)
+				return createNewCluster(infraDriver, imageEngine, cf, applyMode)
 			}
 
 			currentCluster, err := utils.GetCurrentCluster(client)

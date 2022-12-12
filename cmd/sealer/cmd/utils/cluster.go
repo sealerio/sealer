@@ -165,7 +165,7 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 		if addr == nil {
 			continue
 		}
-		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+		if _, ok := node.Labels[common.MasterRoleLabel]; ok {
 			masterIPList = append(masterIPList, addr)
 			continue
 		}
@@ -180,7 +180,19 @@ func getNodeAddress(node corev1.Node) net.IP {
 	if len(node.Status.Addresses) < 1 {
 		return nil
 	}
-	return net.ParseIP(node.Status.Addresses[0].Address)
+
+	var IP string
+	for _, address := range node.Status.Addresses {
+		if address.Type == "InternalIP" {
+			IP = address.Address
+		}
+	}
+
+	if IP == "" {
+		IP = node.Status.Addresses[0].Address
+	}
+
+	return net.ParseIP(IP)
 }
 
 func GetClusterClient() *k8s.Client {

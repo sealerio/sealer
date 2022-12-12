@@ -36,13 +36,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
-	DefaultVIP             = "10.103.97.2"
-	DefaultVIPForIPv6      = "1248:4003:10bb:6a01:83b9:6360:c66d:0002"
-	DefaultAPIserverDomain = "apiserver.cluster.local"
-)
-
 func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, error) {
 	conf, err := kubeadm.NewKubeadmConfig(
 		k.Config.KubeadmConfigFromClusterFile,
@@ -113,7 +106,7 @@ func (k *Runtime) createKubeConfig(master0 net.IP) error {
 func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 	for _, file := range MasterStaticFiles {
 		staticFilePath := filepath.Join(k.getStaticFileDir(), file.Name)
-		cmdLinkStatic := fmt.Sprintf(RemoteCmdCopyStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
+		cmdLinkStatic := fmt.Sprintf("mkdir -p %s && cp -f %s %s", file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
 		eg, _ := errgroup.WithContext(context.Background())
 		for _, host := range nodes {
 			h := host
