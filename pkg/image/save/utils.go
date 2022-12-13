@@ -42,6 +42,17 @@ type Named struct {
 	tag    string //eg. latest
 }
 
+func (n Named) String() string {
+	return n.Name()
+}
+
+func (n Named) Name() string {
+	if n.domain == "" {
+		return n.Repo()
+	}
+	return n.domain + "/" + n.Repo()
+}
+
 func (n Named) FullName() string {
 	return n.domain + "/" + n.repo + ":" + n.tag
 }

@@ -76,6 +76,11 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 		if err != nil {
 			return fmt.Errorf("failed to parse image name:: %v", err)
 		}
+
+		//check if image exist
+		if err := is.isImageExist(named, dir, platform); err == nil {
+			continue
+		}
 		is.domainToImages[named.domain+named.repo] = append(is.domainToImages[named.domain+named.repo], named)
 		progress.Message(is.progressOut, "", fmt.Sprintf("Pulling image: %s", named.FullName()))
 	}
@@ -108,6 +113,96 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 		progress.Message(is.progressOut, "", "Status: images save success")
 	}
 	return nil
+}
+
+// isImageExist check if an image exist in local
+func (is *DefaultImageSaver) isImageExist(named Named, dir string, platform v1.Platform) error {
+	config := configuration.Configuration{
+		Storage: configuration.Storage{
+			driverName: configuration.Parameters{configRootDir: dir},
+		},
+	}
+	registry, err := newRegistry(is.ctx, config)
+	if err != nil {
+		return err
+	}
+
+	repo, err := is.getRepository(named, registry)
+	if err != nil {
+		return err
+	}
+
+	blobList, err := is.getLocalDigest(named, repo, platform)
+	if err != nil {
+		return err
+	}
+
+	eg, _ := errgroup.WithContext(context.Background())
+	numCh := make(chan struct{}, maxPullGoroutineNum)
+	for _, blob := range blobList {
+		numCh <- struct{}{}
+		tmpblob := blob
+		eg.Go(func() error {
+			defer func() {
+				<-numCh
+			}()
+			_, err := registry.BlobStatter().Stat(is.ctx, tmpblob)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// newRegistry init a local registry service
+func newRegistry(ctx context.Context, config configuration.Configuration) (distribution.Namespace, error) {
+	driver, err := factory.Create(config.Storage.Type(), config.Storage.Parameters())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage driver: %v", err)
+	}
+
+	//create a local registry service
+	registry, err := storage.NewRegistry(ctx, driver, make([]storage.RegistryOption, 0)...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create local registry: %v", err)
+	}
+	return registry, nil
+}
+
+// getLocalDigest get local image digest list
+func (is *DefaultImageSaver) getLocalDigest(named Named, repo distribution.Repository, platform v1.Platform) ([]digest.Digest, error) {
+	manifest, err := repo.Manifests(is.ctx, make([]distribution.ManifestServiceOption, 0)...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get manifest service: %v", err)
+	}
+
+	tagService := repo.Tags(is.ctx)
+	desc, err := tagService.Get(is.ctx, named.Tag())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get %s tag descriptor in local: %v", named.repo, err)
+	}
+
+	imageDigest, err := is.handleManifest(manifest, desc.Digest, platform)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get digest: %v", err)
+	}
+
+	blobListJSON, err := manifest.Get(is.ctx, imageDigest, make([]distribution.ManifestServiceOption, 0)...)
+	if err != nil {
+		return nil, err
+	}
+
+	blobList, err := getBlobList(blobListJSON)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get blob list: %v", err)
+	}
+	return blobList, nil
 }
 
 func (is *DefaultImageSaver) SaveImagesWithAuth(imageList ImageListWithAuth, dir string, platform v1.Platform) error {
