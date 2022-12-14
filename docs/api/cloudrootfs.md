@@ -4,7 +4,6 @@ cloud rootfs will package all the dependencies refers to the kubernetes cluster 
 
 ```shell script
 .
-├── README.md # Metadata will be see in the `sealer help`
 ├── bin # binaries will be installed at all nodes' /usr/local/bin
 │   ├── conntrack
 │   ├── containerd-rootless-setuptool.sh
@@ -47,15 +46,6 @@ COPY . .
 
 ```shell script
 sealer build -t kuberntes:v1.18.3 .
-```
-
-## Metadata
-
-```shell script
-{
-  "version": "v1.18.3",
-  "arch": "amd64"
-}
 ```
 
 ## Hooks
