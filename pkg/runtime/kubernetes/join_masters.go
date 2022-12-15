@@ -81,8 +81,8 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", m, cmd, err)
 		}
 
-		if err = k.infra.CmdAsync(m, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String(), shellcommand.DefaultSealerHostAlias)); err != nil {
-			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
+		if err = k.infra.CmdAsync(m, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String(), shellcommand.DefaultSealerHostAliasForApiserver)); err != nil {
+			return fmt.Errorf("failed to set hosts alias on(%s): %v", m, err)
 		}
 
 		certCMD := runtime.RemoteCertCmd(kubeadmConfig.GetCertSANS(), m, hostname, kubeadmConfig.GetSvcCIDR(), "")
@@ -100,6 +100,5 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 
 		logrus.Infof("Succeeded in joining %s as master", m)
 	}
-
 	return nil
 }

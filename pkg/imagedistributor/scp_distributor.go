@@ -17,19 +17,16 @@ package imagedistributor
 import (
 	"context"
 	"fmt"
-	"os"
-
-	"github.com/sealerio/sealer/pkg/config"
-	"github.com/sealerio/sealer/pkg/env"
-	osi "github.com/sealerio/sealer/utils/os"
-
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/config"
+	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-
+	osi "github.com/sealerio/sealer/utils/os"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -45,14 +42,17 @@ type scpDistributor struct {
 	imageMountInfo []ClusterImageMountInfo
 }
 
-func (s *scpDistributor) DistributeRegistry(deployHost net.IP, dataDir string) error {
+func (s *scpDistributor) DistributeRegistry(deployHosts []net.IP, dataDir string) error {
 	for _, info := range s.imageMountInfo {
 		if !osi.IsFileExist(filepath.Join(info.MountDir, RegistryDirName)) {
 			continue
 		}
-		err := s.infraDriver.Copy(deployHost, filepath.Join(info.MountDir, RegistryDirName), dataDir)
-		if err != nil {
-			return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
+
+		for _, deployHost := range deployHosts {
+			err := s.infraDriver.Copy(deployHost, filepath.Join(info.MountDir, RegistryDirName), dataDir)
+			if err != nil {
+				return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
+			}
 		}
 	}
 
