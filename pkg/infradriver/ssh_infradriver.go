@@ -30,12 +30,14 @@ import (
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
+	k8sv1 "k8s.io/api/core/v1"
 	k8snet "k8s.io/utils/net"
 )
 
 type SSHInfraDriver struct {
 	sshConfigs            map[string]ssh.Interface
 	hosts                 []net.IP
+	hostTaint             map[string][]k8sv1.Taint
 	roleHostsMap          map[string][]net.IP
 	hostLabels            map[string]map[string]string
 	hostEnvMap            map[string]map[string]interface{}
@@ -58,6 +60,18 @@ func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{}
 		hostEnv[globalEnvKey] = globalEnvValue
 	}
 	return hostEnv
+}
+
+func convertTaints(taints []string) ([]k8sv1.Taint, error) {
+	var k8staints []k8sv1.Taint
+	for _, taint := range taints {
+		data, err := formatData(taint)
+		if err != nil {
+			return nil, err
+		}
+		k8staints = append(k8staints, data)
+	}
+	return k8staints, nil
 }
 
 func copyEnv(origin map[string]interface{}) map[string]interface{} {
@@ -109,6 +123,7 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		// todo need to separate env into app render data and sys render data
 		hostEnvMap:         map[string]map[string]interface{}{},
 		hostLabels:         map[string]map[string]string{},
+		hostTaint:          map[string][]k8sv1.Taint{},
 		clusterHostAliases: cluster.Spec.HostAliases,
 	}
 
@@ -191,10 +206,19 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		for _, ip := range host.IPS {
 			ret.hostEnvMap[ip.String()] = mergeList(ConvertEnv(host.Env), ret.clusterEnv)
 			ret.hostLabels[ip.String()] = host.Labels
+			taints, err := convertTaints(host.Taints)
+			if err != nil {
+				return nil, err
+			}
+			ret.hostTaint[ip.String()] = taints
 		}
 	}
 
 	return ret, err
+}
+
+func (d *SSHInfraDriver) GetHostTaints(host net.IP) []k8sv1.Taint {
+	return d.hostTaint[host.String()]
 }
 
 func (d *SSHInfraDriver) GetHostIPList() []net.IP {
