@@ -25,6 +25,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
@@ -46,6 +47,9 @@ run cluster by Clusterfile:
 
 run cluster by CLI flags:
   sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.4 -m 172.28.80.01 -n 172.28.80.02 -p Sealer123
+
+run app image:
+  sealer run localhost/nginx:v1
 `
 
 func NewRunCmd() *cobra.Command {
@@ -73,6 +77,43 @@ func NewRunCmd() *cobra.Command {
 				clusterFile     = runFlags.ClusterFile
 				applyMode       = runFlags.Mode
 			)
+			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+
+			extension, err := imageEngine.GetSealerImageExtension(&imagecommon.GetImageAnnoOptions{ImageNameOrID: args[0]})
+			if err != nil {
+				return fmt.Errorf("failed to get cluster image extension: %s", err)
+			}
+
+			if extension.Type == v12.AppInstaller {
+				logrus.Infof("start to install app image: %s", args[0])
+				cf, err := clusterfile.NewClusterFile(nil)
+				if err != nil {
+					return err
+				}
+
+				cluster := cf.GetCluster()
+				infraDriver, err := infradriver.NewInfraDriver(&cluster)
+				if err != nil {
+					return err
+				}
+
+				if err := imageEngine.Pull(&imagecommon.PullOptions{
+					Quiet:      false,
+					PullPolicy: "missing",
+					Image:      args[0],
+					Platform:   "local",
+				}); err != nil {
+					return err
+				}
+				return installApplication(args[0], runFlags.LaunchCmds, extension, infraDriver, imageEngine, applyMode)
+			}
+
+			if len(runFlags.LaunchCmds) > 0 {
+				return fmt.Errorf("this command parameter (--cmds) is only available to application images")
+			}
 
 			if runFlags.Masters == "" && clusterFile == "" {
 				return fmt.Errorf("you must input master ip Or use Clusterfile")
@@ -119,11 +160,6 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
-			if err != nil {
-				return err
-			}
-
 			return createNewCluster(infraDriver, imageEngine, cf, applyMode)
 		},
 	}
@@ -138,10 +174,10 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringVar(&runFlags.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
 	runCmd.Flags().StringVar(&runFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	runCmd.Flags().StringSliceVar(&runFlags.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
+	runCmd.Flags().StringSliceVar(&runFlags.LaunchCmds, "cmds", []string{}, "override default LaunchCmds of clusterimage")
 	runCmd.Flags().StringSliceVarP(&runFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	runCmd.Flags().StringVarP(&runFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
 	runCmd.Flags().StringVar(&runFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
-
 	//err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	//	return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
 	//})
@@ -270,5 +306,49 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	}
 
 	logrus.Infof("load image success")
+	return nil
+}
+
+func installApplication(appImageName string, launchCmds []string, extension v12.ImageExtension,
+	infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, mode string) error {
+	clusterHosts := infraDriver.GetHostIPList()
+
+	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
+	if err != nil {
+		return err
+	}
+
+	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
+	if err != nil {
+		return err
+	}
+
+	imageMountInfo, err := imageMounter.Mount(appImageName)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = imageMounter.Umount(appImageName, imageMountInfo)
+		if err != nil {
+			logrus.Errorf("failed to umount cluster image: %v", err)
+		}
+	}()
+
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil)
+	if err != nil {
+		return err
+	}
+
+	if mode == common.ApplyModeLoadImage {
+		return loadToRegistry(infraDriver, distributor)
+	}
+
+	installer := clusterruntime.NewAppInstaller(infraDriver, distributor, extension)
+	err = installer.Install(infraDriver.GetHostIPListByRole(common.MASTER)[0], launchCmds)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
