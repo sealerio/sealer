@@ -37,6 +37,7 @@ type SSHInfraDriver struct {
 	sshConfigs            map[string]ssh.Interface
 	hosts                 []net.IP
 	roleHostsMap          map[string][]net.IP
+	hostLabels            map[string]map[string]string
 	hostEnvMap            map[string]map[string]interface{}
 	clusterEnv            map[string]interface{}
 	clusterName           string
@@ -107,6 +108,7 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		roleHostsMap:      map[string][]net.IP{},
 		// todo need to separate env into app render data and sys render data
 		hostEnvMap:         map[string]map[string]interface{}{},
+		hostLabels:         map[string]map[string]string{},
 		clusterHostAliases: cluster.Spec.HostAliases,
 	}
 
@@ -183,11 +185,12 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	}
 
 	ret.clusterEnv = ConvertEnv(cluster.Spec.Env)
-	// initialize hostEnvMap field
+	// initialize hostEnvMap and host labels field
 	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
 			ret.hostEnvMap[ip.String()] = mergeList(ConvertEnv(host.Env), ret.clusterEnv)
+			ret.hostLabels[ip.String()] = host.Labels
 		}
 	}
 
@@ -209,6 +212,10 @@ func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]interface{} {
 		hostEnv[common.HostIP] = host.String()
 	}
 	return hostEnv
+}
+
+func (d *SSHInfraDriver) GetHostLabels(host net.IP) map[string]string {
+	return d.hostLabels[host.String()]
 }
 
 func (d *SSHInfraDriver) GetClusterEnv() map[string]interface{} {

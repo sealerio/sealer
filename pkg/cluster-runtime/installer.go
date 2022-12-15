@@ -15,8 +15,10 @@
 package clusterruntime
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
@@ -31,6 +33,7 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // RuntimeConfig for Installer
@@ -173,6 +176,15 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
+	if err != nil {
+		return err
+	}
+
+	if err = i.setNodeLabels(all, runtimeDriver); err != nil {
+		return err
+	}
+
 	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
 
 	if err = appInstaller.LaunchClusterImage(master0, cmds); err != nil {
@@ -218,4 +230,49 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	}
 
 	return registryDriver, runtimeDriver, nil
+}
+
+func (i *Installer) setNodeLabels(hosts []net.IP, driver runtime.Driver) error {
+	// set new added host labels if it is existed
+	nodeList := corev1.NodeList{}
+	if err := driver.List(context.TODO(), &nodeList); err != nil {
+		return fmt.Errorf("failed to list cluster nodes: %v", err)
+	}
+
+	nodeLabel := make(map[string]corev1.Node)
+	for _, node := range nodeList.Items {
+		nodeLabel[getAddress(node.Status.Addresses)] = node
+	}
+
+	for _, ip := range hosts {
+		labels := i.infraDriver.GetHostLabels(ip)
+		if len(labels) == 0 {
+			continue
+		}
+
+		if node, ok := nodeLabel[ip.String()]; ok {
+			newNode := node.DeepCopy()
+			m := node.GetLabels()
+			for key, value := range labels {
+				m[key] = value
+			}
+
+			newNode.SetLabels(m)
+			newNode.SetResourceVersion("")
+			if err := driver.Update(context.TODO(), newNode); err != nil {
+				return fmt.Errorf("failed to label cluster nodes %s: %v", ip.String(), err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func getAddress(addresses []corev1.NodeAddress) string {
+	for _, v := range addresses {
+		if strings.EqualFold(string(v.Type), "InternalIP") {
+			return v.Address
+		}
+	}
+	return ""
 }
