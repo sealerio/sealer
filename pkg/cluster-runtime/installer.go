@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
@@ -33,8 +34,12 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils"
 	corev1 "k8s.io/api/core/v1"
 )
+
+var tryTimes = 10
+var trySleepTime = time.Second
 
 // RuntimeConfig for Installer
 type RuntimeConfig struct {
@@ -185,6 +190,10 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	if err = i.setNodeTaints(all, runtimeDriver); err != nil {
+		return err
+	}
+
 	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
 
 	if err = appInstaller.LaunchClusterImage(master0, cmds); err != nil {
@@ -275,4 +284,40 @@ func getAddress(addresses []corev1.NodeAddress) string {
 		}
 	}
 	return ""
+}
+
+func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
+	var (
+		k8snode corev1.Node
+		ok      bool
+	)
+	nodeList := corev1.NodeList{}
+	if err := driver.List(context.TODO(), &nodeList); err != nil {
+		return fmt.Errorf("failed to list cluster nodes: %v", err)
+	}
+	nodeTaint := make(map[string]corev1.Node)
+	for _, node := range nodeList.Items {
+		nodeTaint[getAddress(node.Status.Addresses)] = node
+	}
+
+	for _, ip := range hosts {
+		taints := i.infraDriver.GetHostTaints(ip)
+		if len(taints) == 0 {
+			continue
+		}
+		if k8snode, ok = nodeTaint[ip.String()]; ok {
+			newNode := k8snode.DeepCopy()
+			newNode.Spec.Taints = taints
+			newNode.SetResourceVersion("")
+			if err := utils.Retry(tryTimes, trySleepTime, func() error {
+				if err := driver.Update(context.TODO(), newNode); err != nil {
+					return err
+				}
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

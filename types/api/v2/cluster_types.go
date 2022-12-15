@@ -56,6 +56,7 @@ type Host struct {
 	//overwrite env
 	Env    []string          `json:"env,omitempty"`
 	Labels map[string]string `json:"labels,omitempty"`
+	Taints []string          `json:"taints,omitempty"`
 }
 
 // HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the
