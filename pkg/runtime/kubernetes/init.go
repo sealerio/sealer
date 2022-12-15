@@ -36,13 +36,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	RemoteCmdCopyStatic    = "mkdir -p %s && cp -f %s %s"
-	DefaultVIP             = "10.103.97.2"
-	DefaultVIPForIPv6      = "1248:4003:10bb:6a01:83b9:6360:c66d:0002"
-	DefaultAPIserverDomain = "apiserver.cluster.local"
-)
-
 func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, error) {
 	conf, err := kubeadm.NewKubeadmConfig(
 		k.Config.KubeadmConfigFromClusterFile,
@@ -50,6 +43,7 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, er
 		masters,
 		k.getAPIServerDomain(),
 		k.Config.containerRuntimeInfo.Config.CgroupDriver,
+		k.Config.RegistryInfo.URL,
 		k.getAPIServerVIP())
 	if err != nil {
 		return kubeadm.KubeadmConfig{}, err
@@ -112,7 +106,7 @@ func (k *Runtime) createKubeConfig(master0 net.IP) error {
 func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 	for _, file := range MasterStaticFiles {
 		staticFilePath := filepath.Join(k.getStaticFileDir(), file.Name)
-		cmdLinkStatic := fmt.Sprintf(RemoteCmdCopyStatic, file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
+		cmdLinkStatic := fmt.Sprintf("mkdir -p %s && cp -f %s %s", file.DestinationDir, staticFilePath, filepath.Join(file.DestinationDir, file.Name))
 		eg, _ := errgroup.WithContext(context.Background())
 		for _, host := range nodes {
 			h := host
@@ -145,7 +139,7 @@ func (k *Runtime) initMaster0(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP)
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
 
-	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String(), shellcommand.DefaultSealerHostAlias)); err != nil {
+	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String(), shellcommand.DefaultSealerHostAliasForApiserver)); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 	}
 

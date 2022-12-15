@@ -16,6 +16,7 @@ package cluster
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -36,7 +37,6 @@ import (
 )
 
 var runFlags *types.Flags
-var clusterFile string
 
 var longNewRunCmdDescription = `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`
 
@@ -70,7 +70,10 @@ func NewRunCmd() *cobra.Command {
 				cf              clusterfile.Interface
 				clusterFileData []byte
 				err             error
+				clusterFile     = runFlags.ClusterFile
+				applyMode       = runFlags.Mode
 			)
+
 			if runFlags.Masters == "" && clusterFile == "" {
 				return fmt.Errorf("you must input master ip Or use Clusterfile")
 			}
@@ -121,7 +124,7 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			return createNewCluster(cluster.Spec.Image, infraDriver, imageEngine, cf)
+			return createNewCluster(infraDriver, imageEngine, cf, applyMode)
 		},
 	}
 	runFlags = &types.Flags{}
@@ -136,7 +139,8 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringVar(&runFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 	runCmd.Flags().StringSliceVar(&runFlags.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
 	runCmd.Flags().StringSliceVarP(&runFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	runCmd.Flags().StringVarP(&clusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
+	runCmd.Flags().StringVarP(&runFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
+	runCmd.Flags().StringVar(&runFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
 
 	//err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	//	return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
@@ -148,10 +152,10 @@ func NewRunCmd() *cobra.Command {
 	return runCmd
 }
 
-func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+func createNewCluster(infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface, mode string) error {
 	var (
-		clusterHosts      = infraDriver.GetHostIPList()
-		clusterLaunchCmds = infraDriver.GetClusterLaunchCmds()
+		clusterHosts     = infraDriver.GetHostIPList()
+		clusterImageName = infraDriver.GetClusterImageName()
 	)
 
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
@@ -181,15 +185,10 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 		return err
 	}
 
-	if applyMode == common.ApplyModeLoadImage {
-		logrus.Infof("start to apply with mode(%s)", applyMode)
-
-		if err = distributor.DistributeRegistry(infraDriver.GetHostIPList()[0], infraDriver.GetClusterRootfsPath()); err != nil {
-			return err
-		}
-		logrus.Infof("load image success")
-		return nil
+	if mode == common.ApplyModeLoadImage {
+		return loadToRegistry(infraDriver, distributor)
 	}
+
 	plugins, err := loadPluginsFromImage(imageMountInfo)
 	if err != nil {
 		return err
@@ -200,11 +199,9 @@ func createNewCluster(clusterImageName string, infraDriver infradriver.InfraDriv
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor:       distributor,
-		ImageEngine:       imageEngine,
-		Plugins:           plugins,
-		ClusterLaunchCmds: clusterLaunchCmds,
-		ClusterImageImage: clusterImageName,
+		Distributor: distributor,
+		ImageEngine: imageEngine,
+		Plugins:     plugins,
 	}
 
 	if cf.GetKubeadmConfig() != nil {
@@ -247,4 +244,31 @@ func loadPluginsFromImage(imageMountInfo []imagedistributor.ClusterImageMountInf
 	}
 
 	return plugins, nil
+}
+
+// loadToRegistry just load container image to local registry
+func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) error {
+	regConfig := infraDriver.GetClusterRegistryConfig()
+	// todo only support load image to local registry at present
+	if regConfig.LocalRegistry == nil {
+		return nil
+	}
+
+	deployHosts := infraDriver.GetHostIPListByRole(common.MASTER)
+	if len(deployHosts) < 1 {
+		return fmt.Errorf("local registry host can not be nil")
+	}
+	master0 := deployHosts[0]
+
+	logrus.Infof("start to apply with mode(%s)", common.ApplyModeLoadImage)
+	if !regConfig.LocalRegistry.HaMode {
+		deployHosts = []net.IP{master0}
+	}
+
+	if err := distributor.DistributeRegistry(deployHosts, filepath.Join(infraDriver.GetClusterRootfsPath(), "registry")); err != nil {
+		return err
+	}
+
+	logrus.Infof("load image success")
+	return nil
 }

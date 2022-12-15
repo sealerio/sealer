@@ -15,6 +15,8 @@
 package clusterruntime
 
 import (
+	"net"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/registry"
@@ -22,8 +24,8 @@ import (
 )
 
 func (i *Installer) UnInstall() error {
-	master0 := i.infraDriver.GetHostIPListByRole(common.MASTER)[0]
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
+	master0 := masters[0]
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
 	// delete HostAlias
@@ -53,16 +55,28 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
-	registryConfigurator, err := registry.NewConfigurator(i.RegistryConfig, crInfo, i.infraDriver, i.Distributor)
+	if i.regConfig.LocalRegistry != nil {
+		if i.regConfig.LocalRegistry.HaMode {
+			installer := registry.NewInstaller(masters, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
+			err = installer.Clean()
+			if err != nil {
+				return err
+			}
+		}
+
+		installer := registry.NewInstaller([]net.IP{master0}, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
+		err = installer.Clean()
+		if err != nil {
+			return err
+		}
+	}
+
+	registryConfigurator, err := registry.NewConfigurator(nil, crInfo, i.regConfig, i.infraDriver, i.Distributor)
 	if err != nil {
 		return err
 	}
 
-	if err = registryConfigurator.UninstallFrom(all); err != nil {
-		return err
-	}
-
-	if err = registryConfigurator.Clean(); err != nil {
+	if err = registryConfigurator.UninstallFrom(masters, workers); err != nil {
 		return err
 	}
 

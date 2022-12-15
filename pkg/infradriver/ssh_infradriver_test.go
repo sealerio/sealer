@@ -118,7 +118,8 @@ func TestSSHInfraDriver_GetClusterInfo(t *testing.T) {
 
 	assert.Equal(t, driver.GetClusterEnv(), map[string]interface{}{
 		"RegistryDomain": "sea.hub",
-		"RegistryPort":   "5000",
+		"RegistryPort":   5000,
+		"RegistryURL":    "sea.hub:5000",
 		"key1":           "value1",
 		"key2":           []string{"value2", "value3"},
 	})

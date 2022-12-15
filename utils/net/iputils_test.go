@@ -18,6 +18,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -163,6 +165,47 @@ func TestIPsToIPStrs(t *testing.T) {
 			ipStrs := IPsToIPStrs(tt.inputIPs)
 			if !equalIPStrs(ipStrs, tt.wantedIPStrs) {
 				t.Errorf("wanted IP strings is (%s), but got (%s)", tt.wantedIPStrs, ipStrs)
+			}
+		})
+	}
+}
+
+func Test_returnFilteredIPList(t *testing.T) {
+	tests := []struct {
+		name              string
+		clusterIPList     []net.IP
+		toBeDeletedIPList []net.IP
+		IPListExpected    []net.IP
+	}{
+		{
+			"test",
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
+			[]net.IP{},
+		},
+		{
+			"test1",
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
+			[]net.IP{},
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
+		},
+		{
+			"test2",
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
+			[]net.IP{net.ParseIP("10.10.10.4")},
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3")},
+		},
+		{
+			"test3",
+			[]net.IP{},
+			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
+			[]net.IP{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if res := RemoveIPs(tt.clusterIPList, tt.toBeDeletedIPList); res != nil {
+				assert.Equal(t, tt.IPListExpected, res)
 			}
 		})
 	}

@@ -68,11 +68,13 @@ const (
 	RenderManifestsDir            = "manifests"
 	APIVersion                    = "sealer.cloud/v2"
 	Kind                          = "Cluster"
-	DefaultRegistryDomain         = "sea.hub"
-	DefaultRegistryPort           = "5000"
 	HostIP                        = "HostIP"
 	EnvHostIPFamily               = "HostIPFamily"
 	EnvIPv6DualStack              = "IPv6DualStack"
+)
+
+const (
+	MasterRoleLabel = "node-role.kubernetes.io/master"
 )
 
 const (
@@ -121,9 +123,26 @@ const (
 	HOSTNAME = "HOSTNAME"
 )
 
+// default registry configuration
 const (
-	JoinSubCmd   = "join"
-	DeleteSubCmd = "delete"
+	DefaultDomain               = "sea.hub"
+	DefaultPort                 = 5000
+	DefaultEndpoint             = "sea.hub:5000"
+	DefaultRegistryHtPasswdFile = "registry_htpasswd"
+)
+
+// default cluster runtime configuration
+const (
+	DefaultVIP             = "10.103.97.2"
+	DefaultVIPForIPv6      = "1248:4003:10bb:6a01:83b9:6360:c66d:0002"
+	DefaultAPIserverDomain = "apiserver.cluster.local"
+)
+
+// build-in ENV key
+const (
+	RegistryDomainEnvKey = "RegistryDomain"
+	RegistryPortEnvKey   = "RegistryPort"
+	RegistryURLEnvKey    = "RegistryURL"
 )
 
 const (

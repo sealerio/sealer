@@ -20,75 +20,45 @@ import (
 
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 
+	v2 "github.com/sealerio/sealer/types/api/v2"
+
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
-// Configurator provide registry lifecycle management.
+// Configurator provide registry configuration management
 type Configurator interface {
-	// Launch will start built-in cluster registry component.
-	Launch() error
-	// Clean will stop built-in cluster registry component.
-	Clean() error
-
 	// InstallOn will install registry configuration on each given hosts.
-	InstallOn(hosts []net.IP) error
+	InstallOn(masters, nodes []net.IP) error
 
 	// UninstallFrom will uninstall registry configuration on each given hosts.
-	UninstallFrom(hosts []net.IP) error
+	UninstallFrom(masters, nodes []net.IP) error
 
 	GetDriver() (Driver, error)
-
-	//Upgrade() (Driver, error)
-	//Rollback() (Driver, error)
 }
 
-type RegConfig struct {
-	LocalRegistry    *LocalRegistry
-	ExternalRegistry *Registry
-}
-
-func NewConfigurator(conf RegConfig, containerRuntimeInfo containerruntime.Info, infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) (Configurator, error) {
-	if conf.LocalRegistry != nil {
-		return &localSingletonConfigurator{
+func NewConfigurator(deployHosts []net.IP,
+	containerRuntimeInfo containerruntime.Info,
+	regConfig v2.Registry,
+	infraDriver infradriver.InfraDriver,
+	distributor imagedistributor.Distributor) (Configurator, error) {
+	if regConfig.LocalRegistry != nil {
+		return &localConfigurator{
+			deployHosts:          deployHosts,
 			infraDriver:          infraDriver,
-			LocalRegistry:        conf.LocalRegistry,
+			LocalRegistry:        regConfig.LocalRegistry,
 			containerRuntimeInfo: containerRuntimeInfo,
 			distributor:          distributor,
 		}, nil
 	}
 
-	if conf.ExternalRegistry != nil {
-		return &externalConfigurator{Registry: *conf.ExternalRegistry}, nil
+	if regConfig.ExternalRegistry != nil {
+		return NewExternalConfigurator(
+			regConfig.ExternalRegistry,
+			containerRuntimeInfo,
+			infraDriver,
+		)
 	}
 
-	return nil, fmt.Errorf("")
-}
-
-type LocalRegistry struct {
-	Registry
-	DeployHost   net.IP
-	DataDir      string   `json:"dataDir,omitempty" yaml:"dataDir,omitempty"`
-	InsecureMode bool     `json:"insecure_mode,omitempty" yaml:"insecure_mode,omitempty"`
-	Cert         *TLSCert `json:"cert,omitempty" yaml:"cert,omitempty"`
-}
-
-type TLSCert struct {
-	SubjectAltName *SubjectAltName `json:"subjectAltName,omitempty" yaml:"subjectAltName,omitempty"`
-}
-
-type SubjectAltName struct {
-	DNSNames []string `json:"dnsNames,omitempty" yaml:"dnsNames,omitempty"`
-	IPs      []string `json:"ips,omitempty" yaml:"ips,omitempty"`
-}
-
-type Registry struct {
-	Domain string `json:"domain,omitempty" yaml:"domain,omitempty"`
-	Port   int    `json:"port,omitempty" yaml:"port,omitempty"`
-	Auth   *Auth  `json:"auth,omitempty" yaml:"auth,omitempty"`
-}
-
-type Auth struct {
-	Username string `json:"username" yaml:"username"`
-	Password string `json:"password" yaml:"password"`
+	return nil, fmt.Errorf("unsupported registry type")
 }
