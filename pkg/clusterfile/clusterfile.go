@@ -16,18 +16,28 @@ package clusterfile
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"sigs.k8s.io/yaml"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsos "github.com/sealerio/sealer/utils/os"
-	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	"sigs.k8s.io/yaml"
+)
+
+const (
+	configMapNamespace = "kube-system"
+	configMapDataName  = "Clusterfile"
+	configMapName      = "sealer-clusterfile"
 )
 
 type Interface interface {
@@ -36,14 +46,16 @@ type Interface interface {
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
 	GetKubeadmConfig() *kubeadm.KubeadmConfig
-	CommitSnapshot()
-	SaveAll() error
-	RollBackClusterFile()
+	SaveAll(opts SaveOptions) error
+}
+
+type SaveOptions struct {
+	// if true ,will commit clusterfile to cluster
+	CommitToCluster bool
 }
 
 type ClusterFile struct {
 	cluster       *v2.Cluster
-	cfSnapshot    *v2.Cluster
 	configs       []v1.Config
 	kubeadmConfig kubeadm.KubeadmConfig
 	plugins       []v1.Plugin
@@ -69,12 +81,7 @@ func (c *ClusterFile) GetKubeadmConfig() *kubeadm.KubeadmConfig {
 	return &c.kubeadmConfig
 }
 
-func (c *ClusterFile) CommitSnapshot() {
-	c.cfSnapshot = new(v2.Cluster)
-	*c.cfSnapshot = *c.cluster
-}
-
-func (c *ClusterFile) SaveAll() error {
+func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 	var (
 		clusterfileBytes [][]byte
 		config           []byte
@@ -150,27 +157,85 @@ func (c *ClusterFile) SaveAll() error {
 		}
 		clusterfileBytes = append(clusterfileBytes, kubeProxyConfiguration)
 	}
-	//todo cluster ssh info need to be encrypted
 
-	return utilsos.NewCommonWriter(fileName).WriteFile(bytes.Join(clusterfileBytes, []byte("---\n")))
+	content := bytes.Join(clusterfileBytes, []byte("---\n"))
+	err = utilsos.NewCommonWriter(fileName).WriteFile(content)
+	if err != nil {
+		return fmt.Errorf("failed to save clusterfile to disk:%v", err)
+	}
+
+	if opts.CommitToCluster {
+		return saveToCluster(content)
+	}
+	return nil
 }
 
-func (c *ClusterFile) RollBackClusterFile() {
-	if c.cfSnapshot == nil {
-		logrus.Errorf("cfSnapshot is nill, can not rollback")
-		return
+func saveToCluster(data []byte) error {
+	client, err := k8s.NewK8sClient()
+	if err != nil {
+		return err
 	}
-	*c.cluster = *c.cfSnapshot
-	if err := c.SaveAll(); err != nil {
-		logrus.Errorf("failed to rollback the ClusterFile to the default file: %v", err)
+
+	configMap := corev1.ConfigMap(configMapName, configMapNamespace)
+	configMap.Data = map[string]string{configMapDataName: string(data)}
+
+	_, err = client.ConfigMap(configMapNamespace).Apply(context.TODO(), configMap, metav1.ApplyOptions{FieldManager: "kubectl-create"})
+	if err != nil {
+		return fmt.Errorf("failed to create configmap: %v", err)
 	}
+	return nil
 }
 
 func NewClusterFile(b []byte) (Interface, error) {
 	clusterFile := new(ClusterFile)
-	if err := decodeClusterFile(bytes.NewReader(b), clusterFile); err != nil {
-		return nil, fmt.Errorf("failed to load clusterfile: %v", err)
+	// use user specified clusterfile
+	if len(b) > 0 {
+		if err := decodeClusterFile(bytes.NewReader(b), clusterFile); err != nil {
+			return nil, fmt.Errorf("failed to load clusterfile: %v", err)
+		}
+		return clusterFile, nil
 	}
 
+	// assume that we already have an existed cluster
+	fromCluster, err := getClusterfileFromCluster()
+	if err != nil {
+		logrus.Warn("try to get clusterfile from cluster:", err)
+	}
+	if fromCluster != nil {
+		return fromCluster, nil
+	}
+	// read local disk clusterfile
+	workClusterfile := common.GetDefaultClusterfile()
+	clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := decodeClusterFile(bytes.NewReader(clusterFileData), clusterFile); err != nil {
+		return nil, fmt.Errorf("failed to load clusterfile: %v", err)
+	}
 	return clusterFile, nil
+}
+
+func getClusterfileFromCluster() (*ClusterFile, error) {
+	clusterFile := new(ClusterFile)
+	client, err := k8s.NewK8sClient()
+	if err != nil {
+		return nil, err
+	}
+
+	cm, err := client.ConfigMap(configMapNamespace).Get(context.TODO(), configMapName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	data := cm.Data[configMapDataName]
+	if len(data) > 0 {
+		err = decodeClusterFile(bytes.NewReader([]byte(data)), clusterFile)
+		if err != nil {
+			return nil, err
+		}
+		return clusterFile, nil
+	}
+	return nil, fmt.Errorf("failed to get clusterfile from cluster")
 }

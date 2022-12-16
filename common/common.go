@@ -29,11 +29,11 @@ const (
 // Default dir and file path
 const (
 	EtcDir               = "etc"
-	KubeAdminConf        = "/etc/kubernetes/admin.conf"
-	DefaultKubectlPath   = "/usr/bin/kubectl"
 	DefaultTmpDir        = "/var/lib/sealer/tmp"
 	DefaultLogDir        = "/var/lib/sealer/log"
 	DefaultSealerDataDir = "/var/lib/sealer/data"
+	KubeAdminConf        = "/etc/kubernetes/admin.conf"
+	DefaultKubectlPath   = "/usr/bin/kubectl"
 	ClusterfileName      = "ClusterfileName"
 	RenderChartsDir      = "charts"
 	RenderManifestsDir   = "manifests"
@@ -47,14 +47,17 @@ const (
 
 // Envs
 const (
-	EnvHostIP           = "HostIP"
-	EnvHostIPFamily     = "HostIPFamily"
-	EnvIPv6DualStack    = "IPv6DualStack"
-	EnvRegistryURL      = "RegistryURL"
-	EnvRegistryDomain   = "RegistryDomain"
-	EnvRegistryUsername = "RegistryUsername"
-	EnvRegistryPassword = "RegistryPassword"
-	EnvCertSANs         = "CertSANs"
+	EnvHostIP         = "HostIP"
+	EnvHostIPFamily   = "HostIPFamily"
+	EnvIPv6DualStack  = "IPv6DualStack"
+	EnvRegistryDomain = "RegistryDomain"
+	EnvRegistryPort   = "RegistryPort"
+	EnvRegistryURL    = "RegistryURL"
+	EnvCertSANs       = "CertSANs"
+)
+
+const (
+	MasterRoleLabel = "node-role.kubernetes.io/master"
 )
 
 const (
@@ -64,14 +67,14 @@ const (
 
 // image module
 const (
-	DefaultImageRootDir     = "/var/lib/sealer/data"
-	DefaultMetadataName     = "Metadata"
-	ImageScratch            = "scratch"
-	DefaultImageMetaRootDir = "/var/lib/sealer/metadata"
-	DefaultLayerDir         = "/var/lib/sealer/data/overlay2"
-	DefaultRegistryDomain   = "sea.hub"
-	DefaultRegistryPort     = "5000"
-	DefaultRegistryURL      = DefaultRegistryDomain + ":" + DefaultRegistryPort
+	DefaultImageRootDir         = "/var/lib/sealer/data"
+	DefaultMetadataName         = "Metadata"
+	DefaultImageMetaRootDir     = "/var/lib/sealer/metadata"
+	DefaultLayerDir             = "/var/lib/sealer/data/overlay2"
+	DefaultRegistryDomain       = "sea.hub"
+	DefaultRegistryPort         = 5000
+	DefaultRegistryURL          = "sea.hub:5000"
+	DefaultRegistryHtPasswdFile = "registry_htpasswd"
 )
 
 // about infra
@@ -98,6 +101,13 @@ const (
 	TAINT    = "TAINT"
 	LABEL    = "LABEL"
 	HOSTNAME = "HOSTNAME"
+)
+
+// default cluster runtime configuration
+const (
+	DefaultVIP             = "10.103.97.2"
+	DefaultVIPForIPv6      = "1248:4003:10bb:6a01:83b9:6360:c66d:0002"
+	DefaultAPIserverDomain = "apiserver.cluster.local"
 )
 
 const (

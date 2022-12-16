@@ -25,47 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_returnFilteredIPList(t *testing.T) {
-	tests := []struct {
-		name              string
-		clusterIPList     []net.IP
-		toBeDeletedIPList []net.IP
-		IPListExpected    []net.IP
-	}{
-		{
-			"test",
-			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
-			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
-			[]net.IP{},
-		},
-		{
-			"test1",
-			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
-			[]net.IP{},
-			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
-		},
-		{
-			"test2",
-			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
-			[]net.IP{net.ParseIP("10.10.10.4")},
-			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3")},
-		},
-		{
-			"test3",
-			[]net.IP{},
-			[]net.IP{net.ParseIP("10.10.10.1"), net.ParseIP("10.10.10.2"), net.ParseIP("10.10.10.3"), net.ParseIP("10.10.10.4")},
-			[]net.IP{},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if res := removeIPList(tt.clusterIPList, tt.toBeDeletedIPList); res != nil {
-				assert.Equal(t, tt.IPListExpected, res)
-			}
-		})
-	}
-}
-
 func Test_ConstructClusterForScaleDown(t *testing.T) {
 	data := `apiVersion: sealer.cloud/v2
 kind: Cluster

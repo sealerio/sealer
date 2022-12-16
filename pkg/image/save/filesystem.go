@@ -248,7 +248,7 @@ func (d *driver) Stat(ctx context.Context, subPath string) (storagedriver.FileIn
 func (d *driver) List(ctx context.Context, subPath string) ([]string, error) {
 	fullPath := d.fullPath(subPath)
 	// #nosec
-	dir, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE, 0600)
+	dir, err := os.Open(fullPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, storagedriver.PathNotFoundError{Path: subPath}

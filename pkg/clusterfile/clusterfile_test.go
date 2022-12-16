@@ -117,7 +117,7 @@ func TestSaveAll(t *testing.T) {
 			if err := os.MkdirAll(filepath.Dir(clusterFilePath), common.FileMode0755); err != nil {
 				t.Errorf("failed to create directory, error is:(%v)", err)
 			}
-			if err := clusterFile.SaveAll(); err != nil {
+			if err := clusterFile.SaveAll(SaveOptions{}); err != nil {
 				t.Errorf("failed to save all file, error is:(%v)", err)
 			}
 			clusterFileData, err := os.ReadFile(filepath.Clean(clusterFilePath))

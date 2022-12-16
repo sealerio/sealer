@@ -12,4 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package registry
+package logger
+
+import (
+	"fmt"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/sirupsen/logrus"
+)
+
+func TestLogger_Print(t *testing.T) {
+	if err := Init(LogOptions{
+		LogToFile:    false,
+		Verbose:      true,
+		DisableColor: false,
+	}); err != nil {
+		panic(fmt.Sprintf("failed to init logger: %v\n", err))
+	}
+
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 5; i++ {
+		logrus.Info("start to test log")
+		for j := 0; j < 5; j++ {
+			wg.Add(1)
+			go func(x int) {
+				time.Sleep(1 * time.Second)
+				logrus.Debugf("i am the true entry %d", x)
+				wg.Done()
+			}(j)
+		}
+		wg.Wait()
+	}
+}

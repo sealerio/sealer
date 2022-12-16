@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"strconv"
 
 	"github.com/sealerio/sealer/common"
 	osi "github.com/sealerio/sealer/utils/os"
@@ -59,7 +60,7 @@ func GetConfig(rootfs string, registryIP net.IP) *Config {
 	var defaultConfig = &Config{
 		IP:     registryIP,
 		Domain: common.DefaultRegistryDomain,
-		Port:   common.DefaultRegistryPort,
+		Port:   strconv.Itoa(common.DefaultRegistryPort),
 	}
 	registryConfigPath := filepath.Join(rootfs, common.EtcDir, ConfigFile)
 	if !osi.IsFileExist(registryConfigPath) {

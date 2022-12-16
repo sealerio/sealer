@@ -18,7 +18,6 @@ import (
 	"net"
 
 	"github.com/sealerio/sealer/pkg/imagedistributor"
-	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
 type Info struct {
@@ -32,28 +31,45 @@ type Driver interface {
 	GetInfo() Info
 }
 
-type LocalRegistryDriver struct {
-	infraDriver infradriver.InfraDriver
-	distributor imagedistributor.Distributor
+type localRegistryDriver struct {
 	dataDir     string
 	endpoint    string
-	deployHost  net.IP
+	distributor imagedistributor.Distributor
+	deployHosts []net.IP
 }
 
-func (l LocalRegistryDriver) UploadContainerImages2Registry() error {
-	return l.distributor.DistributeRegistry(l.deployHost, l.dataDir)
+func (l localRegistryDriver) UploadContainerImages2Registry() error {
+	return l.distributor.DistributeRegistry(l.deployHosts, l.dataDir)
 }
 
-func (l LocalRegistryDriver) GetInfo() Info {
+func (l localRegistryDriver) GetInfo() Info {
 	return Info{URL: l.endpoint}
 }
 
-func newLocalRegistryDriver(endpoint string, dataDir string, deployHost net.IP, infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) Driver {
-	return LocalRegistryDriver{
+func newLocalRegistryDriver(endpoint string, dataDir string, deployHosts []net.IP, distributor imagedistributor.Distributor) Driver {
+	return localRegistryDriver{
 		endpoint:    endpoint,
 		distributor: distributor,
-		infraDriver: infraDriver,
 		dataDir:     dataDir,
-		deployHost:  deployHost,
+		deployHosts: deployHosts,
+	}
+}
+
+type externalRegistryDriver struct {
+	endpoint string
+}
+
+func (l externalRegistryDriver) UploadContainerImages2Registry() error {
+	//not implement currently
+	return nil
+}
+
+func (l externalRegistryDriver) GetInfo() Info {
+	return Info{URL: l.endpoint}
+}
+
+func newExternalRegistryDriver(endpoint string) Driver {
+	return externalRegistryDriver{
+		endpoint: endpoint,
 	}
 }

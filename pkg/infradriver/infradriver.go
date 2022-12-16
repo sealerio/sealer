@@ -17,12 +17,18 @@ package infradriver
 import (
 	"net"
 
+	k8sv1 "k8s.io/api/core/v1"
+
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 // InfraDriver treat the entire cluster as an operating system kernel,
 // interface function here is the target system call.
 type InfraDriver interface {
+	// GetHostTaints GetHostTaint return host taint
+	GetHostTaints(host net.IP) []k8sv1.Taint
+
 	GetHostIPList() []net.IP
 
 	GetHostIPListByRole(role string) []net.IP
@@ -33,6 +39,9 @@ type InfraDriver interface {
 
 	//GetHostEnv return merged env with host env and cluster env.
 	GetHostEnv(host net.IP) map[string]interface{}
+
+	//GetHostLabels return host labels.
+	GetHostLabels(host net.IP) map[string]string
 
 	//GetClusterEnv return cluster.spec.env as map[string]interface{}
 	GetClusterEnv() map[string]interface{}
@@ -90,6 +99,7 @@ type InfraDriver interface {
 	//DeleteClusterHostAliases delete additional HostAliases
 	DeleteClusterHostAliases(hosts []net.IP) error
 
+	GetClusterRegistryConfig() v2.Registry
 	// SetLvsRule add or update host name on host
 	//SetLvsRule(host net.IP, hostName string) error
 }

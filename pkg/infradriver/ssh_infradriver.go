@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/containers/buildah/util"
@@ -29,20 +30,24 @@ import (
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/ssh"
 	"golang.org/x/sync/errgroup"
+	k8sv1 "k8s.io/api/core/v1"
 	k8snet "k8s.io/utils/net"
 )
 
 type SSHInfraDriver struct {
-	sshConfigs         map[string]ssh.Interface
-	hosts              []net.IP
-	roleHostsMap       map[string][]net.IP
-	hostRolesMap       map[string][]string
-	hostEnvMap         map[string]map[string]interface{}
-	clusterEnv         map[string]interface{}
-	clusterName        string
-	clusterImageName   string
-	clusterLaunchCmds  []string
-	clusterHostAliases []v2.HostAlias
+	sshConfigs            map[string]ssh.Interface
+	hosts                 []net.IP
+	hostTaint             map[string][]k8sv1.Taint
+	hostRolesMap          map[string][]string
+	roleHostsMap          map[string][]net.IP
+	hostLabels            map[string]map[string]string
+	hostEnvMap            map[string]map[string]interface{}
+	clusterEnv            map[string]interface{}
+	clusterName           string
+	clusterImageName      string
+	clusterLaunchCmds     []string
+	clusterHostAliases    []v2.HostAlias
+	clusterRegistryConfig v2.Registry
 }
 
 func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {
@@ -56,6 +61,18 @@ func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{}
 		hostEnv[globalEnvKey] = globalEnvValue
 	}
 	return hostEnv
+}
+
+func convertTaints(taints []string) ([]k8sv1.Taint, error) {
+	var k8staints []k8sv1.Taint
+	for _, taint := range taints {
+		data, err := formatData(taint)
+		if err != nil {
+			return nil, err
+		}
+		k8staints = append(k8staints, data)
+	}
+	return k8staints, nil
 }
 
 func copyEnv(origin map[string]interface{}) map[string]interface{} {
@@ -108,6 +125,8 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		hostRolesMap:      map[string][]string{},
 		// todo need to separate env into app render data and sys render data
 		hostEnvMap:         map[string]map[string]interface{}{},
+		hostLabels:         map[string]map[string]string{},
+		hostTaint:          map[string][]k8sv1.Taint{},
 		clusterHostAliases: cluster.Spec.HostAliases,
 	}
 
@@ -120,7 +139,37 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		return nil, fmt.Errorf("no hosts specified")
 	}
 
-	if err := checkAllHostsSameFamily(ret.hosts); err != nil {
+	// check registry config is valid,
+	// make sure external registry domain is valid
+	// TODO maybe we not need to distinguish the local registry and external registry in the future.
+	if cluster.Spec.Registry.ExternalRegistry != nil {
+		if cluster.Spec.Registry.ExternalRegistry.Domain == "" {
+			return nil, fmt.Errorf("external registry domain can not be empty")
+		}
+	}
+
+	if cluster.Spec.Registry.LocalRegistry != nil {
+		if cluster.Spec.Registry.LocalRegistry.Domain == "" {
+			cluster.Spec.Registry.LocalRegistry.Domain = common.DefaultRegistryDomain
+		}
+		if cluster.Spec.Registry.LocalRegistry.Port == 0 {
+			cluster.Spec.Registry.LocalRegistry.Port = common.DefaultRegistryPort
+		}
+	}
+
+	if cluster.Spec.Registry.LocalRegistry == nil && cluster.Spec.Registry.ExternalRegistry == nil {
+		cluster.Spec.Registry.LocalRegistry = &v2.LocalRegistry{
+			InsecureMode: false,
+			HaMode:       false,
+		}
+		cluster.Spec.Registry.LocalRegistry.RegistryConfig = v2.RegistryConfig{
+			Domain: common.DefaultRegistryDomain,
+			Port:   common.DefaultRegistryPort,
+		}
+	}
+	ret.clusterRegistryConfig = cluster.Spec.Registry
+
+	if err = checkAllHostsSameFamily(ret.hosts); err != nil {
 		return nil, err
 	}
 
@@ -160,22 +209,61 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 
 	// Set the default RegistryDomain and RegistryPort env,
 	// and override the env if the user specifies RegistryDomain and RegistryPort env
-	if _, ok := ret.clusterEnv[common.EnvRegistryDomain]; !ok {
-		ret.clusterEnv[common.EnvRegistryDomain] = common.DefaultRegistryDomain
-	}
-	if _, ok := ret.clusterEnv[common.EnvRegistryURL]; !ok {
-		ret.clusterEnv[common.EnvRegistryURL] = fmt.Sprintf("%s:%s", ret.clusterEnv[common.EnvRegistryDomain].(string), common.DefaultRegistryPort)
+	_, domainExisted := ret.clusterEnv[common.EnvRegistryDomain]
+	_, portExisted := ret.clusterEnv[common.EnvRegistryPort]
+	_, registryURLExisted := ret.clusterEnv[common.EnvRegistryURL]
+
+	// expose RegistryDomain and RegistryPort to env in order others needed.
+	regConfig := ret.GetClusterRegistryConfig()
+	if !domainExisted {
+		if regConfig.ExternalRegistry != nil {
+			ret.clusterEnv[common.EnvRegistryDomain] = regConfig.ExternalRegistry.Domain
+		}
+		if regConfig.LocalRegistry != nil {
+			ret.clusterEnv[common.EnvRegistryDomain] = regConfig.LocalRegistry.Domain
+		}
 	}
 
-	// initialize hostEnvMap field
+	if !portExisted {
+		if regConfig.ExternalRegistry != nil {
+			ret.clusterEnv[common.EnvRegistryPort] = regConfig.ExternalRegistry.Port
+		}
+		if regConfig.LocalRegistry != nil {
+			ret.clusterEnv[common.EnvRegistryPort] = regConfig.LocalRegistry.Port
+		}
+	}
+
+	if !registryURLExisted {
+		if regConfig.ExternalRegistry != nil {
+			ret.clusterEnv[common.EnvRegistryURL] = net.JoinHostPort(regConfig.ExternalRegistry.Domain,
+				strconv.Itoa(regConfig.ExternalRegistry.Port))
+		}
+
+		if regConfig.LocalRegistry != nil {
+			ret.clusterEnv[common.EnvRegistryURL] = net.JoinHostPort(regConfig.LocalRegistry.Domain,
+				strconv.Itoa(regConfig.LocalRegistry.Port))
+		}
+	}
+
+	// initialize hostEnvMap and host labels field
 	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
 			ret.hostEnvMap[ip.String()] = mergeList(ConvertEnv(host.Env), ret.clusterEnv)
+			ret.hostLabels[ip.String()] = host.Labels
+			taints, err := convertTaints(host.Taints)
+			if err != nil {
+				return nil, err
+			}
+			ret.hostTaint[ip.String()] = taints
 		}
 	}
 
 	return ret, err
+}
+
+func (d *SSHInfraDriver) GetHostTaints(host net.IP) []k8sv1.Taint {
+	return d.hostTaint[host.String()]
 }
 
 func (d *SSHInfraDriver) GetHostIPList() []net.IP {
@@ -199,6 +287,10 @@ func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]interface{} {
 	return hostEnv
 }
 
+func (d *SSHInfraDriver) GetHostLabels(host net.IP) map[string]string {
+	return d.hostLabels[host.String()]
+}
+
 func (d *SSHInfraDriver) GetClusterEnv() map[string]interface{} {
 	return d.clusterEnv
 }
@@ -211,6 +303,10 @@ func (d *SSHInfraDriver) AddClusterEnv(envs []string) {
 	for k, v := range newEnv {
 		d.clusterEnv[k] = v
 	}
+}
+
+func (d *SSHInfraDriver) GetClusterRegistryConfig() v2.Registry {
+	return d.clusterRegistryConfig
 }
 
 func (d *SSHInfraDriver) Copy(host net.IP, localFilePath, remoteFilePath string) error {

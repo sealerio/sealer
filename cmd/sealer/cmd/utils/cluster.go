@@ -20,6 +20,10 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 
 	netutils "github.com/sealerio/sealer/utils/net"
@@ -92,7 +96,7 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 	if len(mastersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
 			if strUtils.IsInSlice(common.MASTER, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = removeIPList(cluster.Spec.Hosts[i].IPS, mastersToDelete)
+				cluster.Spec.Hosts[i].IPS = netutils.RemoveIPs(cluster.Spec.Hosts[i].IPS, mastersToDelete)
 			}
 			continue
 		}
@@ -101,7 +105,7 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 	if len(workersToDelete) != 0 {
 		for i := range cluster.Spec.Hosts {
 			if strUtils.IsInSlice(common.NODE, cluster.Spec.Hosts[i].Roles) {
-				cluster.Spec.Hosts[i].IPS = removeIPList(cluster.Spec.Hosts[i].IPS, workersToDelete)
+				cluster.Spec.Hosts[i].IPS = netutils.RemoveIPs(cluster.Spec.Hosts[i].IPS, workersToDelete)
 			}
 			continue
 		}
@@ -145,11 +149,58 @@ func constructHost(role string, joinIPs []net.IP, scaleFlags *types.Flags, clust
 	return host
 }
 
-func removeIPList(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP) {
-	for _, ip := range clusterIPList {
-		if !netutils.IsInIPList(ip, toBeDeletedIPList) {
-			res = append(res, ip)
+func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
+	nodes, err := client.ListNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	cluster := &v2.Cluster{}
+	var masterIPList []net.IP
+	var nodeIPList []net.IP
+
+	for _, node := range nodes.Items {
+		addr := getNodeAddress(node)
+		if addr == nil {
+			continue
+		}
+		if _, ok := node.Labels[common.MasterRoleLabel]; ok {
+			masterIPList = append(masterIPList, addr)
+			continue
+		}
+		nodeIPList = append(nodeIPList, addr)
+	}
+	cluster.Spec.Hosts = []v2.Host{{IPS: masterIPList, Roles: []string{common.MASTER}}, {IPS: nodeIPList, Roles: []string{common.NODE}}}
+
+	return cluster, nil
+}
+
+func getNodeAddress(node corev1.Node) net.IP {
+	if len(node.Status.Addresses) < 1 {
+		return nil
+	}
+
+	var IP string
+	for _, address := range node.Status.Addresses {
+		if address.Type == "InternalIP" {
+			IP = address.Address
 		}
 	}
-	return
+
+	if IP == "" {
+		IP = node.Status.Addresses[0].Address
+	}
+
+	return net.ParseIP(IP)
+}
+
+func GetClusterClient() *k8s.Client {
+	client, err := k8s.NewK8sClient()
+	if client != nil {
+		return client
+	}
+	if err != nil {
+		logrus.Warnf("try to new k8s client via default kubeconfig, maybe this is a new cluster that needs to be created: %v", err)
+	}
+	return nil
 }

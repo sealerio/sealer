@@ -44,6 +44,8 @@ type ClusterSpec struct {
 	// HostAliases holds the mapping between IP and hostnames that will be injected as an entry in the
 	// host's hosts file.
 	HostAliases []HostAlias `json:"hostAliases,omitempty"`
+	// Registry field contains configurations about local registry and remote registry.
+	Registry Registry `json:"registry,omitempty"`
 }
 
 type Host struct {
@@ -52,7 +54,9 @@ type Host struct {
 	//overwrite SSH config
 	SSH v1.SSH `json:"ssh,omitempty"`
 	//overwrite env
-	Env []string `json:"env,omitempty"`
+	Env    []string          `json:"env,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
+	Taints []string          `json:"taints,omitempty"`
 }
 
 // HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the
@@ -62,6 +66,44 @@ type HostAlias struct {
 	IP string `json:"ip,omitempty"`
 	// Hostnames for the above IP address.
 	Hostnames []string `json:"hostnames,omitempty"`
+}
+
+type Registry struct {
+	// LocalRegistry is the sealer builtin registry configuration
+	LocalRegistry *LocalRegistry `json:"localRegistry,omitempty"`
+	// ExternalRegistry used to serve external registry service. do not support yet.
+	ExternalRegistry *ExternalRegistry `json:"externalRegistry,omitempty"`
+}
+
+type RegistryConfig struct {
+	Domain   string `json:"domain,omitempty"`
+	Port     int    `json:"port,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+type ExternalRegistry struct {
+	RegistryConfig
+}
+
+type LocalRegistry struct {
+	RegistryConfig
+	// HAMode indicate that whether local registry will be deployed on all master nodes.
+	// if LocalRegistry is not specified, default value is true.
+	HaMode bool `json:"haMode,omitempty"`
+	// InsecureMode indicated that whether the local registry is exposed in HTTPS.
+	// if true sealer will not generate default ssl cert.
+	InsecureMode bool    `json:"insecureMode,omitempty"`
+	Cert         TLSCert `json:"cert,omitempty"`
+}
+
+type TLSCert struct {
+	SubjectAltName *SubjectAltName `json:"subjectAltName,omitempty"`
+}
+
+type SubjectAltName struct {
+	DNSNames []string `json:"dnsNames,omitempty"`
+	IPs      []string `json:"ips,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster

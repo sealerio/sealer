@@ -16,12 +16,9 @@ package cluster
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/spf13/cobra"
@@ -53,13 +50,7 @@ func NewCertCmd() *cobra.Command {
 				return fmt.Errorf("IP address or DNS domain needed for cert Subject Alternative Names")
 			}
 
-			workClusterfile := common.GetDefaultClusterfile()
-			clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
-			if err != nil {
-				return err
-			}
-
-			cf, err := clusterfile.NewClusterFile(clusterFileData)
+			cf, err := clusterfile.NewClusterFile(nil)
 			if err != nil {
 				return err
 			}

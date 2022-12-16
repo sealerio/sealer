@@ -104,6 +104,5 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 
 		logrus.Infof("Succeeded in joining %s as master", m)
 	}
-
 	return nil
 }
