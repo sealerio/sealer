@@ -77,43 +77,6 @@ func NewRunCmd() *cobra.Command {
 				clusterFile     = runFlags.ClusterFile
 				applyMode       = runFlags.Mode
 			)
-			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
-			if err != nil {
-				return err
-			}
-
-			extension, err := imageEngine.GetSealerImageExtension(&imagecommon.GetImageAnnoOptions{ImageNameOrID: args[0]})
-			if err != nil {
-				return fmt.Errorf("failed to get cluster image extension: %s", err)
-			}
-
-			if extension.Type == v12.AppInstaller {
-				logrus.Infof("start to install app image: %s", args[0])
-				cf, err := clusterfile.NewClusterFile(nil)
-				if err != nil {
-					return err
-				}
-
-				cluster := cf.GetCluster()
-				infraDriver, err := infradriver.NewInfraDriver(&cluster)
-				if err != nil {
-					return err
-				}
-
-				if err := imageEngine.Pull(&imagecommon.PullOptions{
-					Quiet:      false,
-					PullPolicy: "missing",
-					Image:      args[0],
-					Platform:   "local",
-				}); err != nil {
-					return err
-				}
-				return installApplication(args[0],  runFlags.Cmds, runFlags.AppNames, extension, infraDriver, imageEngine, applyMode)
-			}
-
-			if len(runFlags.Cmds) > 0 {
-				return fmt.Errorf("this command parameter (--cmds) is only available to application images")
-			}
 
 			if runFlags.Masters == "" && clusterFile == "" {
 				return fmt.Errorf("you must input master ip Or use Clusterfile")
@@ -158,6 +121,30 @@ func NewRunCmd() *cobra.Command {
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
+			}
+
+			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+
+			if err = imageEngine.Pull(&imagecommon.PullOptions{
+				Quiet:      false,
+				PullPolicy: "missing",
+				Image:      cluster.Spec.Image,
+				Platform:   "local",
+			}); err != nil {
+				return err
+			}
+
+			extension, err := imageEngine.GetSealerImageExtension(&imagecommon.GetImageAnnoOptions{ImageNameOrID: args[0]})
+			if err != nil {
+				return fmt.Errorf("failed to get cluster image extension: %s", err)
+			}
+
+			if extension.Type == v12.AppInstaller {
+				logrus.Infof("start to install app image: %s", cluster.Spec.Image)
+				return installApplication(args[0], runFlags.Cmds, runFlags.AppNames, extension, infraDriver, imageEngine, applyMode)
 			}
 
 			return createNewCluster(infraDriver, imageEngine, cf, applyMode)
