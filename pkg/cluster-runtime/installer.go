@@ -35,7 +35,9 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var tryTimes = 10
@@ -186,6 +188,10 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	if err := i.setRoles(runtimeDriver); err != nil {
+		return err
+	}
+
 	if err = i.setNodeLabels(all, runtimeDriver); err != nil {
 		return err
 	}
@@ -239,6 +245,42 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	}
 
 	return registryDriver, runtimeDriver, nil
+}
+
+// setRoles save roles
+func (i *Installer) setRoles(driver runtime.Driver) error {
+	nodeList := corev1.NodeList{}
+	if err := driver.List(context.TODO(), &nodeList); err != nil {
+		return err
+	}
+
+	for idx, node := range nodeList.Items {
+		addresses := node.Status.Addresses
+		for _, address := range addresses {
+			if address.Type != "InternalIP" {
+				continue
+			}
+			roles := i.infraDriver.GetRoleListByHostIP(address.Address)
+			if len(roles) == 0 {
+				continue
+			}
+			newNode := node.DeepCopy()
+
+			for _, role := range roles {
+				newNode.Labels["node-role.kubernetes.io/"+role] = ""
+			}
+			logrus.Infof("newNode %v", newNode)
+			patch := runtimeClient.MergeFrom(&nodeList.Items[idx])
+
+			logrus.Infof("patch %v", patch)
+
+			if err := driver.Patch(context.TODO(), newNode, patch); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (i *Installer) setNodeLabels(hosts []net.IP, driver runtime.Driver) error {

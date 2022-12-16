@@ -231,7 +231,7 @@ func createNewCluster(infraDriver infradriver.InfraDriver, imageEngine imageengi
 		return err
 	}
 
-	logrus.Infof("Succeeded in creating new cluster with image %s", clusterImageName)
+	logrus.Infof("succeeded in creating new cluster with image %s", clusterImageName)
 
 	return nil
 }

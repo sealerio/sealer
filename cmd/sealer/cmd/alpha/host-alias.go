@@ -21,7 +21,6 @@ import (
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +37,6 @@ func NewHostAliasCmd() *cobra.Command {
 				clusterFileData []byte
 				err             error
 			)
-			logrus.Warn("sealer apply command will be deprecated in the future, please use sealer run instead.")
 
 			clusterFileData, err = os.ReadFile(common.GetDefaultClusterfile())
 			if err != nil {

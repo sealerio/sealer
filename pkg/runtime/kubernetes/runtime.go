@@ -97,7 +97,7 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	token, certKey, err := k.initMaster0(kubeadmConf, masters[0])
+	token, certKey, err := k.initMaster0(masters[0])
 	if err != nil {
 		return err
 	}
@@ -112,10 +112,6 @@ func (k *Runtime) Install() error {
 
 	driver, err := k.GetCurrentRuntimeDriver()
 	if err != nil {
-		return err
-	}
-
-	if err := k.setRoles(driver); err != nil {
 		return err
 	}
 
@@ -162,15 +158,6 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 		return err
 	}
 
-	driver, err := k.GetCurrentRuntimeDriver()
-	if err != nil {
-		return err
-	}
-
-	if err := k.setRoles(driver); err != nil {
-		return err
-	}
-
 	logrus.Info("cluster scale up succeeded!")
 	return nil
 }
@@ -198,43 +185,6 @@ func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
 	}
 
 	logrus.Info("cluster scale down succeeded!")
-	return nil
-}
-
-// dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
-func (k *Runtime) setRoles(driver runtime.Driver) error {
-	nodeList := corev1.NodeList{}
-	if err := driver.List(context.TODO(), &nodeList); err != nil {
-		return err
-	}
-
-	for i, node := range nodeList.Items {
-		logrus.Infof("%v", node)
-		addresses := node.Status.Addresses
-		for _, address := range addresses {
-			if address.Type != "InternalIP" {
-				continue
-			}
-			roles := k.infra.GetRoleListByHostIP(address.Address)
-			if len(roles) == 0 {
-				continue
-			}
-			newNode := node.DeepCopy()
-
-			for _, role := range roles {
-				newNode.Labels["node-role.kubernetes.io/"+role] = ""
-			}
-			logrus.Infof("newNode %v", newNode)
-			patch := runtimeClient.MergeFrom(&nodeList.Items[i])
-
-			logrus.Infof("patch %v", patch)
-
-			if err := driver.Patch(context.TODO(), newNode, patch); err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 

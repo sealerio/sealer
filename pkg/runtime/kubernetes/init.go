@@ -131,7 +131,7 @@ func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 }
 
 // initMaster0 is using kubeadm init to start up the cluster master0.
-func (k *Runtime) initMaster0(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
+func (k *Runtime) initMaster0(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
 	if err := k.initKube([]net.IP{master0}); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
