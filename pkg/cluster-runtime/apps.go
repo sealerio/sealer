@@ -82,7 +82,7 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 		return err
 	}
 
-	return i.save(common.GetDefaultApplicationFile())
+	return nil
 }
 
 func (i AppInstaller) Launch(master0 net.IP, launchCmds []string) error {
