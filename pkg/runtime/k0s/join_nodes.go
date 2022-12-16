@@ -63,7 +63,7 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			logrus.Infof("Start to join %s as worker", node)
+			logrus.Infof("start to join %s as worker", node)
 
 			nodeCmds := append([]string{addRegistryHostsAndLogin}, cmds...)
 			ssh, err := k.getHostSSHClient(node)
@@ -73,7 +73,7 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 			if err := ssh.CmdAsync(node, nodeCmds...); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
-			logrus.Infof("Succeeded in joining %s as worker", node)
+			logrus.Infof("succeeded in joining %s as worker", node)
 			return err
 		})
 	}

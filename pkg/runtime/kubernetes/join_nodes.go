@@ -77,7 +77,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	for _, n := range newNodes {
 		node := n
 		eg.Go(func() error {
-			logrus.Infof("Start to join %s as worker", node)
+			logrus.Infof("start to join %s as worker", node)
 
 			err = k.checkMultiNetworkAddVIPRoute(node)
 			if err != nil {
@@ -104,7 +104,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 				return fmt.Errorf("failed to set lvscare static pod %s: %v", node, err)
 			}
 
-			logrus.Infof("Succeeded in joining %s as worker", node)
+			logrus.Infof("succeeded in joining %s as worker", node)
 			return nil
 		})
 	}

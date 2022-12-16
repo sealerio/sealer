@@ -53,7 +53,7 @@ func (k *Runtime) joinMasters(masters []net.IP) error {
 	}
 
 	for _, master := range masters {
-		logrus.Infof("Start to join %s as master", master)
+		logrus.Infof("start to join %s as master", master)
 
 		masterCmds := k.JoinMasterCommands(cmds)
 		client, err := k.getHostSSHClient(master)
@@ -69,7 +69,7 @@ func (k *Runtime) joinMasters(masters []net.IP) error {
 			return fmt.Errorf("failed to exec command(%s) on master(%s): %v", cmds, master, err)
 		}
 
-		logrus.Infof("Succeeded in joining %s as master", master)
+		logrus.Infof("succeeded in joining %s as master", master)
 	}
 	return nil
 }

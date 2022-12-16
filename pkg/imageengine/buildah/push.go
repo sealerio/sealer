@@ -122,7 +122,7 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 		logrus.Debugf("pushed image with digest %s", digest.String())
 	}
 
-	logrus.Infof("Successfully pushed %s with digest %s", transports.ImageName(dest), digest.String())
+	logrus.Infof("successfully pushed %s with digest %s", transports.ImageName(dest), digest.String())
 
 	return nil
 }

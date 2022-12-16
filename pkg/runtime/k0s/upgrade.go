@@ -56,7 +56,7 @@ func (k *Runtime) upgradeMasters(IPs []net.IP, binPath string) error {
 	}
 
 	for _, ip := range IPs {
-		logrus.Infof("Start to upgrade master %s", ip)
+		logrus.Infof("start to upgrade master %s", ip)
 
 		ssh, err := k.getHostSSHClient(ip)
 		if err != nil {
@@ -79,7 +79,7 @@ func (k *Runtime) upgradeNodes(IPs []net.IP, binPath string) error {
 	}
 	var err error
 	for _, ip := range IPs {
-		logrus.Infof("Start to upgrade node %s", ip)
+		logrus.Infof("start to upgrade node %s", ip)
 
 		ssh, err := k.getHostSSHClient(ip)
 		if err != nil {

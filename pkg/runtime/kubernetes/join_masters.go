@@ -60,7 +60,7 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 	//set master0 as APIServerEndpoint when join master
 	vs := net.JoinHostPort(master0.String(), "6443")
 	for _, m := range newMasters {
-		logrus.Infof("Start to join %s as master", m)
+		logrus.Infof("start to join %s as master", m)
 
 		hostname, err := k.infra.GetHostName(m)
 		if err != nil {
@@ -102,7 +102,7 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return err
 		}
 
-		logrus.Infof("Succeeded in joining %s as master", m)
+		logrus.Infof("succeeded in joining %s as master", m)
 	}
 	return nil
 }

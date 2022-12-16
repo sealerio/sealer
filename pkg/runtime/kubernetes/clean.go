@@ -85,11 +85,11 @@ func (k *Runtime) deleteMasters(mastersToDelete, remainMasters, remainWorkers []
 	for _, m := range mastersToDelete {
 		master := m
 		eg.Go(func() error {
-			logrus.Infof("Start to delete master %s", master)
+			logrus.Infof("start to delete master %s", master)
 			if err := k.deleteMaster(master, remainMaster0); err != nil {
 				return fmt.Errorf("failed to delete master %s: %v", master, err)
 			}
-			logrus.Infof("Succeeded in deleting master %s", master)
+			logrus.Infof("succeeded in deleting master %s", master)
 
 			return nil
 		})
@@ -133,11 +133,11 @@ func (k *Runtime) deleteNodes(nodesToDelete, remainMasters []net.IP) error {
 	for _, node := range nodesToDelete {
 		n := node
 		eg.Go(func() error {
-			logrus.Infof("Start to delete worker %s", n)
+			logrus.Infof("start to delete worker %s", n)
 			if err := k.deleteNode(n, remainMaster0); err != nil {
 				return fmt.Errorf("failed to delete node %s: %v", n, err)
 			}
-			logrus.Infof("Succeeded in deleting worker %s", n)
+			logrus.Infof("succeeded in deleting worker %s", n)
 
 			return nil
 		})

@@ -35,11 +35,11 @@ func (k *Runtime) deleteNodes(nodes []net.IP) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			logrus.Infof("Start to delete node %s", node)
+			logrus.Infof("start to delete node %s", node)
 			if err := k.deleteNode(node); err != nil {
 				return fmt.Errorf("failed to delete node %s: %v", node, err)
 			}
-			logrus.Infof("Succeeded in deleting node %s", node)
+			logrus.Infof("succeeded in deleting node %s", node)
 			return nil
 		})
 	}

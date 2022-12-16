@@ -36,11 +36,11 @@ func (k *Runtime) deleteMasters(masters []net.IP) error {
 	for _, master := range masters {
 		master := master
 		eg.Go(func() error {
-			logrus.Infof("Start to delete master %s", master)
+			logrus.Infof("start to delete master %s", master)
 			if err := k.deleteMaster(master); err != nil {
 				return fmt.Errorf("failed to delete master %s: %v", master, err)
 			}
-			logrus.Infof("Succeeded in deleting master %s", master)
+			logrus.Infof("succeeded in deleting master %s", master)
 			return nil
 		})
 	}
