@@ -63,7 +63,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			if err := yaml.Unmarshal(ext.Raw, &cluster); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
-			if err := checkAndCompleteCluster(&cluster); err != nil {
+			if err := checkAndFillCluster(&cluster); err != nil {
 				return fmt.Errorf("failed to check and complete cluster: %v", err)
 			}
 
@@ -127,7 +127,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 	}
 }
 
-func checkAndCompleteCluster(cluster *v2.Cluster) error {
+func checkAndFillCluster(cluster *v2.Cluster) error {
 	// check registry config is valid,
 	// make sure external registry domain is valid
 	if cluster.Spec.Registry.ExternalRegistry != nil {

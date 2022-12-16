@@ -35,7 +35,6 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -254,6 +253,10 @@ func (i *Installer) setRoles(driver runtime.Driver) error {
 		return err
 	}
 
+	genRoleLabelFunc := func(role string) string {
+		return fmt.Sprintf("node-role.kubernetes.io/%s", role)
+	}
+
 	for idx, node := range nodeList.Items {
 		addresses := node.Status.Addresses
 		for _, address := range addresses {
@@ -267,12 +270,9 @@ func (i *Installer) setRoles(driver runtime.Driver) error {
 			newNode := node.DeepCopy()
 
 			for _, role := range roles {
-				newNode.Labels["node-role.kubernetes.io/"+role] = ""
+				newNode.Labels[genRoleLabelFunc(role)] = ""
 			}
-			logrus.Infof("newNode %v", newNode)
 			patch := runtimeClient.MergeFrom(&nodeList.Items[idx])
-
-			logrus.Infof("patch %v", patch)
 
 			if err := driver.Patch(context.TODO(), newNode, patch); err != nil {
 				return err
