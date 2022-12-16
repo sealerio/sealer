@@ -34,16 +34,15 @@ import (
 )
 
 type SSHInfraDriver struct {
-	sshConfigs      map[string]ssh.Interface
-	hosts           []net.IP
-	hostTaint       map[string][]k8sv1.Taint
-	hostRolesMap    map[string][]string
-	roleHostsMap    map[string][]net.IP
-	hostLabels      map[string]map[string]string
-	hostEnvMap      map[string]map[string]interface{}
-	clusterEnv      map[string]interface{}
-	cluster         v2.Cluster
-	clusterRegistry v2.Registry
+	sshConfigs   map[string]ssh.Interface
+	hosts        []net.IP
+	hostTaint    map[string][]k8sv1.Taint
+	hostRolesMap map[string][]string
+	roleHostsMap map[string][]net.IP
+	hostLabels   map[string]map[string]string
+	hostEnvMap   map[string]map[string]interface{}
+	clusterEnv   map[string]interface{}
+	cluster      v2.Cluster
 }
 
 func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {

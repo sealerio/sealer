@@ -16,7 +16,6 @@ package cluster
 
 import (
 	"fmt"
-	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"os"
 	"path/filepath"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"

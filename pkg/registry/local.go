@@ -19,7 +19,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/sealerio/sealer/common"
 	"net"
 	"os"
 	"path/filepath"
@@ -28,6 +27,7 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
+	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"

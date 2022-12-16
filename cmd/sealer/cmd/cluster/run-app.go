@@ -16,7 +16,6 @@ package cluster
 
 import (
 	"fmt"
-	v1 "github.com/sealerio/sealer/types/api/v1"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/common"
@@ -27,6 +26,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
