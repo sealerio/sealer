@@ -220,7 +220,7 @@ func isShell(sources ...string) (bool, []string, error) {
 func getApplicationType(sources []string) (string, []string, error) {
 	isy, yamlErr := isYaml(sources...)
 	if isy {
-		return application.KubeApp, nil, nil
+		return application.KubeApp, sources, nil
 	}
 
 	iss, files, shellErr := isShell(sources...)
@@ -230,7 +230,7 @@ func getApplicationType(sources []string) (string, []string, error) {
 
 	ish, helmErr := isHelm(sources...)
 	if ish {
-		return application.HelmApp, nil, nil
+		return application.HelmApp, sources, nil
 	}
 
 	if yamlErr != nil {

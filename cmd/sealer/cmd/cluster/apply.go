@@ -99,7 +99,7 @@ func NewApplyCmd() *cobra.Command {
 			}
 
 			if extension.Type == v12.AppInstaller {
-				return installApplication(imageName, []string{}, desiredCluster.Spec.Env, extension, cf.GetConfigs(), imageEngine, applyMode)
+				return installApplication(imageName, desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames, desiredCluster.Spec.Env, extension, cf.GetConfigs(), imageEngine, applyMode)
 			}
 
 			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)

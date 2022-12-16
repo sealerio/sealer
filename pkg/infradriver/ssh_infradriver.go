@@ -346,6 +346,10 @@ func (d *SSHInfraDriver) GetClusterLaunchCmds() []string {
 	return d.cluster.Spec.CMD
 }
 
+func (d *SSHInfraDriver) GetClusterLaunchApps() []string {
+	return d.cluster.Spec.APPNames
+}
+
 func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {
 	hostName, err := d.CmdToString(hostIP, "hostname", "")
 	if err != nil {

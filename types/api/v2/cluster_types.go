@@ -39,8 +39,10 @@ type ClusterSpec struct {
 	Env     []string `json:"env,omitempty"`
 	CMDArgs []string `json:"cmd_args,omitempty"`
 	CMD     []string `json:"cmd,omitempty"`
-	Hosts   []Host   `json:"hosts,omitempty"`
-	SSH     v1.SSH   `json:"ssh,omitempty"`
+	// APPNames This field allows user to specify the app name they want to run launch.
+	APPNames []string `json:"appNames,omitempty"`
+	Hosts    []Host   `json:"hosts,omitempty"`
+	SSH      v1.SSH   `json:"ssh,omitempty"`
 	// HostAliases holds the mapping between IP and hostnames that will be injected as an entry in the
 	// host's hosts file.
 	HostAliases []HostAlias `json:"hostAliases,omitempty"`
