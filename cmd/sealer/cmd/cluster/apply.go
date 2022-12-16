@@ -104,7 +104,7 @@ func NewApplyCmd() *cobra.Command {
 
 			if extension.Type == v12.AppInstaller {
 				logrus.Infof("start to install application: %s", imageName)
-				return installApplication(imageName, []string{}, extension, infraDriver, imageEngine, applyMode)
+				return installApplication(imageName, nil, extension, infraDriver, imageEngine, applyMode)
 			}
 
 			client := utils.GetClusterClient()
