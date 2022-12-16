@@ -108,10 +108,10 @@ func NewRunCmd() *cobra.Command {
 				}); err != nil {
 					return err
 				}
-				return installApplication(args[0], runFlags.LaunchCmds, extension, infraDriver, imageEngine, applyMode)
+				return installApplication(args[0],  runFlags.Cmds, runFlags.AppNames, extension, infraDriver, imageEngine, applyMode)
 			}
 
-			if len(runFlags.LaunchCmds) > 0 {
+			if len(runFlags.Cmds) > 0 {
 				return fmt.Errorf("this command parameter (--cmds) is only available to application images")
 			}
 
@@ -173,8 +173,8 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().Uint16Var(&runFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	runCmd.Flags().StringVar(&runFlags.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
 	runCmd.Flags().StringVar(&runFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
-	runCmd.Flags().StringSliceVar(&runFlags.CMDArgs, "cmd-args", []string{}, "set args for image cmd instruction")
-	runCmd.Flags().StringSliceVar(&runFlags.LaunchCmds, "cmds", []string{}, "override default LaunchCmds of clusterimage")
+	runCmd.Flags().StringSliceVar(&runFlags.Cmds, "cmds", []string{}, "override default LaunchCmds of clusterimage")
+	runCmd.Flags().StringSliceVar(&runFlags.AppNames, "apps", []string{}, "override default AppNames of clusterimage")
 	runCmd.Flags().StringSliceVarP(&runFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	runCmd.Flags().StringVarP(&runFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
 	runCmd.Flags().StringVar(&runFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
@@ -309,8 +309,19 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	return nil
 }
 
-func installApplication(appImageName string, launchCmds []string, extension v12.ImageExtension,
+func installApplication(appImageName string, cmds []string, appNames []string, extension v12.ImageExtension,
 	infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, mode string) error {
+	if len(cmds) != 0 && len(appNames) != 0 {
+		return fmt.Errorf("only one can be selected to do overwrite for launchCmds(%s) and appNames（%s）", cmds, appNames)
+	}
+
+	var launchCmds []string
+	if len(cmds) != 0 {
+		launchCmds = cmds
+	} else {
+		launchCmds = clusterruntime.GetAppLaunchCmdsByNames(appNames, extension.Applications)
+	}
+
 	clusterHosts := infraDriver.GetHostIPList()
 
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
