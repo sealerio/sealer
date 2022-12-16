@@ -21,6 +21,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -163,6 +164,14 @@ func checkAndCompleteCluster(cluster *v2.Cluster) error {
 		regConfig = cluster.Spec.Registry.LocalRegistry.RegistryConfig
 	}
 
+	var newEnv []string
+	for _, env := range cluster.Spec.Env {
+		if strings.HasPrefix(env, common.EnvRegistryDomain) || strings.HasPrefix(env, common.EnvRegistryPort) || strings.HasPrefix(env, common.EnvRegistryURL) {
+			continue
+		}
+		newEnv = append(newEnv, env)
+	}
+	cluster.Spec.Env = newEnv
 	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryDomain, regConfig.Domain))
 	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%d", common.EnvRegistryPort, regConfig.Port))
 	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryURL, net.JoinHostPort(regConfig.Domain, strconv.Itoa(regConfig.Port))))
