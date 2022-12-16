@@ -17,6 +17,7 @@ package parser
 import (
 	"github.com/containers/common/libimage"
 	"github.com/opencontainers/go-digest"
+
 	v12 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
 	v1 "github.com/sealerio/sealer/pkg/define/image/v1"

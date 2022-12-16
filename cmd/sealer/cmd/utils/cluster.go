@@ -20,9 +20,10 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/sealerio/sealer/pkg/client/k8s"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 

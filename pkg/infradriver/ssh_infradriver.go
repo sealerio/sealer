@@ -23,14 +23,15 @@ import (
 
 	"github.com/containers/buildah/util"
 	"github.com/imdario/mergo"
+	"golang.org/x/sync/errgroup"
+	k8sv1 "k8s.io/api/core/v1"
+	k8snet "k8s.io/utils/net"
+
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/ssh"
-	"golang.org/x/sync/errgroup"
-	k8sv1 "k8s.io/api/core/v1"
-	k8snet "k8s.io/utils/net"
 )
 
 type SSHInfraDriver struct {

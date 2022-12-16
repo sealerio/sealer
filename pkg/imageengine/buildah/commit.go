@@ -27,8 +27,9 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 func (engine *Engine) Commit(opts *options.CommitOptions) (string, error) {

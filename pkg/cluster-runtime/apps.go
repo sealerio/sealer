@@ -26,6 +26,7 @@ import (
 	"github.com/sealerio/sealer/pkg/rootfs"
 
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"

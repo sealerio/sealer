@@ -19,9 +19,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/spf13/cobra"
 )
 
 var longCertCmdDescription = `This command will add the new domain or IP address in cert to update cluster API server.

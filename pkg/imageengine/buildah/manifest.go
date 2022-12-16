@@ -34,8 +34,9 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 func (engine *Engine) LookupManifest(name string) (*libimage.ManifestList, error) {

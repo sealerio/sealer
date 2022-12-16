@@ -23,15 +23,16 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	"sigs.k8s.io/yaml"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsos "github.com/sealerio/sealer/utils/os"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/applyconfigurations/core/v1"
-	"sigs.k8s.io/yaml"
 )
 
 const (

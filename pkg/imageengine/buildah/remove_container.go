@@ -21,8 +21,9 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 func (engine *Engine) RemoveContainer(opts *options.RemoveContainerOptions) error {

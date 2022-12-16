@@ -21,9 +21,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/ipvs"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/sealerio/sealer/pkg/ipvs"
 )
 
 func (k *Runtime) reset(mastersToDelete, workersToDelete []net.IP) error {

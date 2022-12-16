@@ -21,13 +21,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
-	"golang.org/x/sync/errgroup"
 )
 
 const (

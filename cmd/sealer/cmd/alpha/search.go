@@ -20,10 +20,11 @@ import (
 
 	reference2 "github.com/distribution/distribution/v3/reference"
 	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cobra"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/reference"
 	save2 "github.com/sealerio/sealer/pkg/image/save"
-	"github.com/spf13/cobra"
 )
 
 const (

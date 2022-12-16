@@ -28,8 +28,9 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 func (engine *Engine) Push(opts *options.PushOptions) error {
