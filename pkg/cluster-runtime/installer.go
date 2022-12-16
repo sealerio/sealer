@@ -94,9 +94,14 @@ func (i *Installer) Install() error {
 		workers          = getWorkerIPList(i.infraDriver)
 		all              = append(masters, workers...)
 		cmds             = i.infraDriver.GetClusterLaunchCmds()
+		appNames         = i.infraDriver.GetClusterLaunchApps()
 		clusterImageName = i.infraDriver.GetClusterImageName()
 		rootfs           = i.infraDriver.GetClusterRootfsPath()
 	)
+
+	if len(cmds) != 0 && len(appNames) != 0 {
+		return fmt.Errorf("only one can be selected to do overwrite for launchCmds(%s) and appNames（%s）", cmds, appNames)
+	}
 
 	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: clusterImageName})
 	if err != nil {
@@ -196,7 +201,14 @@ func (i *Installer) Install() error {
 
 	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
 
-	if err = appInstaller.LaunchClusterImage(master0, cmds); err != nil {
+	var launchCmds []string
+	if len(cmds) != 0 {
+		launchCmds = cmds
+	} else {
+		launchCmds = GetAppLaunchCmdsByNames(appNames, extension.Applications)
+	}
+
+	if err = appInstaller.LaunchClusterImage(master0, launchCmds); err != nil {
 		return err
 	}
 

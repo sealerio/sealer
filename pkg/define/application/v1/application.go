@@ -15,6 +15,11 @@
 package v1
 
 import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"github.com/sealerio/sealer/pkg/define/application"
 	"github.com/sealerio/sealer/pkg/define/application/version"
 )
 
@@ -37,8 +42,21 @@ func (app *Application) Type() string {
 	return app.TypeVar
 }
 
-func (app *Application) LaunchFiles() []string {
-	return app.LaunchFilesVar
+func (app *Application) LaunchCmd(appRoot string) string {
+	switch app.Type() {
+	case application.KubeApp:
+		return fmt.Sprintf("kubectl apply -f %s", appRoot)
+	case application.HelmApp:
+		return fmt.Sprintf("helm install %s %s", app.Name(), appRoot)
+	case application.ShellApp:
+		var cmds []string
+		for _, file := range app.LaunchFilesVar {
+			cmds = append(cmds, fmt.Sprintf("bash %s", filepath.Join(appRoot, file)))
+		}
+		return strings.Join(cmds, " && ")
+	default:
+		return ""
+	}
 }
 
 func NewV1Application(
