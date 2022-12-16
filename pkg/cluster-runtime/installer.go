@@ -206,7 +206,7 @@ func (i *Installer) Install() error {
 		return err
 	}
 
-	return appInstaller.save(common.GetDefaultApplicationFile())
+	return nil
 }
 
 func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) {
