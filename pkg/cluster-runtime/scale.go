@@ -59,7 +59,7 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 	}
 
 	// reconcile registry node if local registry is ha mode.
-	if i.regConfig.LocalRegistry != nil && i.regConfig.LocalRegistry.HaMode {
+	if i.regConfig.LocalRegistry != nil && *i.regConfig.LocalRegistry.HA {
 		registryDeployHosts, err = registry.NewInstaller(netutils.RemoveIPs(masters, newMasters), i.regConfig.LocalRegistry, i.infraDriver, i.Distributor).Reconcile(masters)
 		if err != nil {
 			return nil, nil, err
@@ -137,7 +137,7 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 	}
 
 	// reconcile registry node if local registry is ha mode.
-	if i.regConfig.LocalRegistry != nil && i.regConfig.LocalRegistry.HaMode {
+	if i.regConfig.LocalRegistry != nil && *i.regConfig.LocalRegistry.HA {
 		registryDeployHosts, err = registry.NewInstaller(masters, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor).Reconcile(netutils.RemoveIPs(masters, mastersToDelete))
 		if err != nil {
 			return nil, nil, err

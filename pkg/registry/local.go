@@ -58,7 +58,7 @@ func (c *localConfigurator) UninstallFrom(deletedMasters, deletedNodes []net.IP)
 	if err := c.removeRegistryConfig(all); err != nil {
 		return err
 	}
-	if !c.HaMode {
+	if !*c.HA {
 		return nil
 	}
 	// if current deployHosts is null,means clean all, just return.
@@ -95,7 +95,6 @@ func (c *localConfigurator) removeRegistryConfig(hosts []net.IP) error {
 		uninstallCmd = append(uninstallCmd, logoutCmd)
 	}
 
-	uninstallCmd = append(uninstallCmd, shellcommand.CommandUnSetHostAlias())
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, strings.Join(uninstallCmd, "&&"))
 		if err != nil {
@@ -132,7 +131,7 @@ func (c *localConfigurator) InstallOn(masters, nodes []net.IP) error {
 // add registry domain and ip to "/etc/hosts"
 // add registry ip to ipvs policy
 func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) error {
-	if !c.HaMode {
+	if !*c.HA {
 		return c.configureSingletonHostsFile(append(masters, nodes...))
 	}
 
@@ -183,7 +182,7 @@ func (c *localConfigurator) configureSingletonHostsFile(hosts []net.IP) error {
 
 func (c *localConfigurator) configureRegistryCert(hosts []net.IP) error {
 	// if deploy registry as InsecureMode ,skip to configure cert.
-	if c.InsecureMode {
+	if *c.Insecure {
 		return nil
 	}
 

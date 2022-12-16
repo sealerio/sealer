@@ -58,7 +58,7 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 	//if we use local registry service, load container image to registry
 	if regConfig.LocalRegistry != nil {
 		deployHosts := masters
-		if !regConfig.LocalRegistry.HaMode {
+		if !*regConfig.LocalRegistry.HA {
 			deployHosts = []net.IP{masters[0]}
 		}
 

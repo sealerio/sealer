@@ -138,7 +138,7 @@ func (i *Installer) Install() error {
 	var deployHosts []net.IP
 	if i.regConfig.LocalRegistry != nil {
 		installer := registry.NewInstaller(nil, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
-		if i.regConfig.LocalRegistry.HaMode {
+		if *i.regConfig.LocalRegistry.HA {
 			deployHosts, err = installer.Reconcile(masters)
 			if err != nil {
 				return err
@@ -219,7 +219,7 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 		return nil, nil, err
 	}
 
-	if i.regConfig.LocalRegistry != nil && !i.regConfig.LocalRegistry.HaMode {
+	if i.regConfig.LocalRegistry != nil && !*i.regConfig.LocalRegistry.HA {
 		registryDeployHosts = []net.IP{master0}
 	}
 	// TODO, init here or in constructor?

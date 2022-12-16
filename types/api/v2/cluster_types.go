@@ -88,13 +88,13 @@ type ExternalRegistry struct {
 
 type LocalRegistry struct {
 	RegistryConfig
-	// HAMode indicate that whether local registry will be deployed on all master nodes.
+	// HA indicate that whether local registry will be deployed on all master nodes.
 	// if LocalRegistry is not specified, default value is true.
-	HaMode bool `json:"haMode,omitempty"`
-	// InsecureMode indicated that whether the local registry is exposed in HTTPS.
+	HA *bool `json:"ha,omitempty"`
+	// Insecure indicated that whether the local registry is exposed in HTTPS.
 	// if true sealer will not generate default ssl cert.
-	InsecureMode bool    `json:"insecureMode,omitempty"`
-	Cert         TLSCert `json:"cert,omitempty"`
+	Insecure *bool   `json:"insecure,omitempty"`
+	Cert     TLSCert `json:"cert,omitempty"`
 }
 
 type TLSCert struct {

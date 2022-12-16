@@ -153,7 +153,7 @@ func (l *localInstaller) syncBasicAuthFile(hosts []net.IP) error {
 
 func (l *localInstaller) syncRegistryCert(hosts []net.IP) error {
 	// if deploy registry as InsecureMode ,skip to gen cert.
-	if l.InsecureMode {
+	if *l.Insecure {
 		return nil
 	}
 	var (

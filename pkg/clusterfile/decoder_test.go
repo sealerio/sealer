@@ -120,8 +120,8 @@ func TestDecodeClusterFile(t *testing.T) {
 						Domain: "sea.hub",
 						Port:   5000,
 					},
-					HaMode:       true,
-					InsecureMode: false,
+					HA:       &defaultHA,
+					Insecure: &defaultInsecure,
 				},
 			},
 			Hosts: []v2.Host{

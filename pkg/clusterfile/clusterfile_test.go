@@ -28,6 +28,9 @@ import (
 	"github.com/sealerio/sealer/common"
 )
 
+var defaultHA = true
+var defaultInsecure = false
+
 func TestSaveAll(t *testing.T) {
 	cluster := v2.Cluster{
 		Spec: v2.ClusterSpec{
@@ -39,8 +42,8 @@ func TestSaveAll(t *testing.T) {
 						Domain: "sea.hub",
 						Port:   5000,
 					},
-					HaMode:       true,
-					InsecureMode: false,
+					HA:       &defaultHA,
+					Insecure: &defaultInsecure,
 				},
 			},
 			SSH: v1.SSH{

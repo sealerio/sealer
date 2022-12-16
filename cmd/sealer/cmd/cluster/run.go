@@ -291,7 +291,7 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	master0 := deployHosts[0]
 
 	logrus.Infof("start to apply with mode(%s)", common.ApplyModeLoadImage)
-	if !regConfig.LocalRegistry.HaMode {
+	if !*regConfig.LocalRegistry.HA {
 		deployHosts = []net.IP{master0}
 	}
 

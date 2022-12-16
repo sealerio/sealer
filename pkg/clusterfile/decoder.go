@@ -128,12 +128,11 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 }
 
 func checkAndFillCluster(cluster *v2.Cluster) error {
-	// check registry config is valid,
-	// make sure external registry domain is valid
-	if cluster.Spec.Registry.ExternalRegistry != nil {
-		if cluster.Spec.Registry.ExternalRegistry.Domain == "" {
-			return fmt.Errorf("external registry domain can not be empty")
-		}
+	defaultInsecure := false
+	defaultHA := true
+
+	if cluster.Spec.Registry.LocalRegistry == nil && cluster.Spec.Registry.ExternalRegistry == nil {
+		cluster.Spec.Registry.LocalRegistry = &v2.LocalRegistry{}
 	}
 
 	if cluster.Spec.Registry.LocalRegistry != nil {
@@ -143,16 +142,17 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 		if cluster.Spec.Registry.LocalRegistry.Port == 0 {
 			cluster.Spec.Registry.LocalRegistry.Port = common.DefaultRegistryPort
 		}
+		if cluster.Spec.Registry.LocalRegistry.Insecure == nil {
+			cluster.Spec.Registry.LocalRegistry.Insecure = &defaultInsecure
+		}
+		if cluster.Spec.Registry.LocalRegistry.HA == nil {
+			cluster.Spec.Registry.LocalRegistry.HA = &defaultHA
+		}
 	}
 
-	if cluster.Spec.Registry.LocalRegistry == nil && cluster.Spec.Registry.ExternalRegistry == nil {
-		cluster.Spec.Registry.LocalRegistry = &v2.LocalRegistry{
-			InsecureMode: false,
-			HaMode:       true,
-		}
-		cluster.Spec.Registry.LocalRegistry.RegistryConfig = v2.RegistryConfig{
-			Domain: common.DefaultRegistryDomain,
-			Port:   common.DefaultRegistryPort,
+	if cluster.Spec.Registry.ExternalRegistry != nil {
+		if cluster.Spec.Registry.ExternalRegistry.Domain == "" {
+			return fmt.Errorf("external registry domain can not be empty")
 		}
 	}
 
