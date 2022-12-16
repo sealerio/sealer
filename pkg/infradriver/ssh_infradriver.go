@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/containers/buildah/util"
@@ -35,19 +34,16 @@ import (
 )
 
 type SSHInfraDriver struct {
-	sshConfigs            map[string]ssh.Interface
-	hosts                 []net.IP
-	hostTaint             map[string][]k8sv1.Taint
-	hostRolesMap          map[string][]string
-	roleHostsMap          map[string][]net.IP
-	hostLabels            map[string]map[string]string
-	hostEnvMap            map[string]map[string]interface{}
-	clusterEnv            map[string]interface{}
-	clusterName           string
-	clusterImageName      string
-	clusterLaunchCmds     []string
-	clusterHostAliases    []v2.HostAlias
-	clusterRegistryConfig v2.Registry
+	sshConfigs      map[string]ssh.Interface
+	hosts           []net.IP
+	hostTaint       map[string][]k8sv1.Taint
+	hostRolesMap    map[string][]string
+	roleHostsMap    map[string][]net.IP
+	hostLabels      map[string]map[string]string
+	hostEnvMap      map[string]map[string]interface{}
+	clusterEnv      map[string]interface{}
+	cluster         v2.Cluster
+	clusterRegistry v2.Registry
 }
 
 func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {
@@ -117,17 +113,14 @@ func ConvertEnv(envList []string) (env map[string]interface{}) {
 func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	var err error
 	ret := &SSHInfraDriver{
-		clusterName:       cluster.Name,
-		clusterImageName:  cluster.Spec.Image,
-		clusterLaunchCmds: cluster.Spec.CMD,
-		sshConfigs:        map[string]ssh.Interface{},
-		roleHostsMap:      map[string][]net.IP{},
-		hostRolesMap:      map[string][]string{},
+		cluster:      *cluster,
+		sshConfigs:   map[string]ssh.Interface{},
+		roleHostsMap: map[string][]net.IP{},
+		hostRolesMap: map[string][]string{},
 		// todo need to separate env into app render data and sys render data
-		hostEnvMap:         map[string]map[string]interface{}{},
-		hostLabels:         map[string]map[string]string{},
-		hostTaint:          map[string][]k8sv1.Taint{},
-		clusterHostAliases: cluster.Spec.HostAliases,
+		hostEnvMap: map[string]map[string]interface{}{},
+		hostLabels: map[string]map[string]string{},
+		hostTaint:  map[string][]k8sv1.Taint{},
 	}
 
 	// initialize hosts field
@@ -138,36 +131,6 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	if len(ret.hosts) == 0 {
 		return nil, fmt.Errorf("no hosts specified")
 	}
-
-	// check registry config is valid,
-	// make sure external registry domain is valid
-	// TODO maybe we not need to distinguish the local registry and external registry in the future.
-	if cluster.Spec.Registry.ExternalRegistry != nil {
-		if cluster.Spec.Registry.ExternalRegistry.Domain == "" {
-			return nil, fmt.Errorf("external registry domain can not be empty")
-		}
-	}
-
-	if cluster.Spec.Registry.LocalRegistry != nil {
-		if cluster.Spec.Registry.LocalRegistry.Domain == "" {
-			cluster.Spec.Registry.LocalRegistry.Domain = common.DefaultRegistryDomain
-		}
-		if cluster.Spec.Registry.LocalRegistry.Port == 0 {
-			cluster.Spec.Registry.LocalRegistry.Port = common.DefaultRegistryPort
-		}
-	}
-
-	if cluster.Spec.Registry.LocalRegistry == nil && cluster.Spec.Registry.ExternalRegistry == nil {
-		cluster.Spec.Registry.LocalRegistry = &v2.LocalRegistry{
-			InsecureMode: false,
-			HaMode:       false,
-		}
-		cluster.Spec.Registry.LocalRegistry.RegistryConfig = v2.RegistryConfig{
-			Domain: common.DefaultRegistryDomain,
-			Port:   common.DefaultRegistryPort,
-		}
-	}
-	ret.clusterRegistryConfig = cluster.Spec.Registry
 
 	if err = checkAllHostsSameFamily(ret.hosts); err != nil {
 		return nil, err
@@ -206,44 +169,6 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	}
 
 	ret.clusterEnv = ConvertEnv(cluster.Spec.Env)
-
-	// Set the default RegistryDomain and RegistryPort env,
-	// and override the env if the user specifies RegistryDomain and RegistryPort env
-	_, domainExisted := ret.clusterEnv[common.EnvRegistryDomain]
-	_, portExisted := ret.clusterEnv[common.EnvRegistryPort]
-	_, registryURLExisted := ret.clusterEnv[common.EnvRegistryURL]
-
-	// expose RegistryDomain and RegistryPort to env in order others needed.
-	regConfig := ret.GetClusterRegistryConfig()
-	if !domainExisted {
-		if regConfig.ExternalRegistry != nil {
-			ret.clusterEnv[common.EnvRegistryDomain] = regConfig.ExternalRegistry.Domain
-		}
-		if regConfig.LocalRegistry != nil {
-			ret.clusterEnv[common.EnvRegistryDomain] = regConfig.LocalRegistry.Domain
-		}
-	}
-
-	if !portExisted {
-		if regConfig.ExternalRegistry != nil {
-			ret.clusterEnv[common.EnvRegistryPort] = regConfig.ExternalRegistry.Port
-		}
-		if regConfig.LocalRegistry != nil {
-			ret.clusterEnv[common.EnvRegistryPort] = regConfig.LocalRegistry.Port
-		}
-	}
-
-	if !registryURLExisted {
-		if regConfig.ExternalRegistry != nil {
-			ret.clusterEnv[common.EnvRegistryURL] = net.JoinHostPort(regConfig.ExternalRegistry.Domain,
-				strconv.Itoa(regConfig.ExternalRegistry.Port))
-		}
-
-		if regConfig.LocalRegistry != nil {
-			ret.clusterEnv[common.EnvRegistryURL] = net.JoinHostPort(regConfig.LocalRegistry.Domain,
-				strconv.Itoa(regConfig.LocalRegistry.Port))
-		}
-	}
 
 	// initialize hostEnvMap and host labels field
 	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
@@ -305,8 +230,8 @@ func (d *SSHInfraDriver) AddClusterEnv(envs []string) {
 	}
 }
 
-func (d *SSHInfraDriver) GetClusterRegistryConfig() v2.Registry {
-	return d.clusterRegistryConfig
+func (d *SSHInfraDriver) GetClusterRegistry() v2.Registry {
+	return d.cluster.Spec.Registry
 }
 
 func (d *SSHInfraDriver) Copy(host net.IP, localFilePath, remoteFilePath string) error {
@@ -389,7 +314,7 @@ func (d *SSHInfraDriver) SetHostName(host net.IP, hostName string) error {
 
 func (d *SSHInfraDriver) SetClusterHostAliases(hosts []net.IP) error {
 	for _, host := range hosts {
-		for _, hostAliases := range d.clusterHostAliases {
+		for _, hostAliases := range d.cluster.Spec.HostAliases {
 			hostname := strings.Join(hostAliases.Hostnames, " ")
 			err := d.CmdAsync(host, shellcommand.CommandSetHostAlias(hostname, hostAliases.IP))
 			if err != nil {
@@ -411,15 +336,15 @@ func (d *SSHInfraDriver) DeleteClusterHostAliases(hosts []net.IP) error {
 }
 
 func (d *SSHInfraDriver) GetClusterName() string {
-	return d.clusterName
+	return d.cluster.Name
 }
 
 func (d *SSHInfraDriver) GetClusterImageName() string {
-	return d.clusterImageName
+	return d.cluster.Spec.Image
 }
 
 func (d *SSHInfraDriver) GetClusterLaunchCmds() []string {
-	return d.clusterLaunchCmds
+	return d.cluster.Spec.CMD
 }
 
 func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {
@@ -455,11 +380,11 @@ func (d *SSHInfraDriver) GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net
 }
 
 func (d *SSHInfraDriver) GetClusterRootfsPath() string {
-	return filepath.Join(common.DefaultSealerDataDir, d.clusterName, "rootfs")
+	return filepath.Join(common.DefaultSealerDataDir, d.cluster.Name, "rootfs")
 }
 
 func (d *SSHInfraDriver) GetClusterBasePath() string {
-	return filepath.Join(common.DefaultSealerDataDir, d.clusterName)
+	return filepath.Join(common.DefaultSealerDataDir, d.cluster.Name)
 }
 
 func (d *SSHInfraDriver) Execute(hosts []net.IP, f func(host net.IP) error) error {

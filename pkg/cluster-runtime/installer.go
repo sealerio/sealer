@@ -62,7 +62,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	var (
 		err       error
 		installer = &Installer{
-			regConfig: infraDriver.GetClusterRegistryConfig(),
+			regConfig: infraDriver.GetClusterRegistry(),
 		}
 	)
 

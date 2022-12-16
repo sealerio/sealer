@@ -49,7 +49,7 @@ func NewAppInstaller(infraDriver infradriver.InfraDriver, distributor imagedistr
 
 func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
-	regConfig := i.infraDriver.GetClusterRegistryConfig()
+	regConfig := i.infraDriver.GetClusterRegistry()
 	// distribute rootfs
 	if err := i.distributor.Distribute([]net.IP{master0}, i.infraDriver.GetClusterRootfsPath()); err != nil {
 		return err

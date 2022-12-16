@@ -248,7 +248,7 @@ func loadPluginsFromImage(imageMountInfo []imagedistributor.ClusterImageMountInf
 
 // loadToRegistry just load container image to local registry
 func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) error {
-	regConfig := infraDriver.GetClusterRegistryConfig()
+	regConfig := infraDriver.GetClusterRegistry()
 	// todo only support load image to local registry at present
 	if regConfig.LocalRegistry == nil {
 		return nil
