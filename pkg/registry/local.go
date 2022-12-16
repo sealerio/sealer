@@ -27,6 +27,8 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
@@ -35,7 +37,6 @@ import (
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/shellcommand"
-	"github.com/sirupsen/logrus"
 )
 
 type localConfigurator struct {

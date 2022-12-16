@@ -18,8 +18,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/sealerio/sealer/version"
 	"github.com/spf13/cobra"
+
+	"github.com/sealerio/sealer/version"
 )
 
 var shortPrint bool

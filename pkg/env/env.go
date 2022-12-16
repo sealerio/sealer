@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 )
@@ -75,17 +76,24 @@ func RenderTemplate(dir string, renderData map[string]interface{}) error {
 // it is convenient for user to get env in scripts
 // The scope of env comes from cluster.spec.env and host.env
 func WrapperShell(shell string, wrapperData map[string]interface{}) string {
-	var env string
+	env := getEnvFromData(wrapperData)
+
+	if len(env) == 0 {
+		return shell
+	}
+	return fmt.Sprintf("%s && %s", strings.Join(env, " "), shell)
+}
+
+func getEnvFromData(wrapperData map[string]interface{}) []string {
+	var env []string
 	for k, v := range wrapperData {
 		switch value := v.(type) {
 		case []string:
-			env = fmt.Sprintf("%s%s=(%s) ", env, k, strings.Join(value, " "))
+			env = append(env, fmt.Sprintf("%s=(%s)", k, strings.Join(value, " ")))
 		case string:
-			env = fmt.Sprintf("%s%s=\"%s\" ", env, k, value)
+			env = append(env, fmt.Sprintf("%s=\"%s\"", k, value))
 		}
 	}
-	if env == "" {
-		return shell
-	}
-	return fmt.Sprintf("%s && %s", env, shell)
+	sort.Strings(env)
+	return env
 }

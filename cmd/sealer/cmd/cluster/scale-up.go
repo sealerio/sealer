@@ -19,18 +19,18 @@ import (
 	"net"
 	"path/filepath"
 
-	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
-	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/spf13/cobra"
 )
 
 var ScaleUpFlags *types.Flags

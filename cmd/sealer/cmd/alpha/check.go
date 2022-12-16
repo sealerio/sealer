@@ -17,8 +17,9 @@ package alpha
 import (
 	"fmt"
 
-	"github.com/sealerio/sealer/pkg/checker"
 	"github.com/spf13/cobra"
+
+	"github.com/sealerio/sealer/pkg/checker"
 )
 
 type CheckArgs struct {

@@ -17,28 +17,36 @@ package buildah
 import (
 	"fmt"
 
-	v1 "github.com/sealerio/sealer/pkg/define/image/v1"
-
+	image_v1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
-func (engine *Engine) GetSealerImageExtension(opts *options.GetImageAnnoOptions) (v1.ImageExtension, error) {
+func (engine *Engine) GetSealerImageExtension(opts *options.GetImageAnnoOptions) (image_v1.ImageExtension, error) {
 	annotation, err := engine.GetImageAnnotation(opts)
-	extension := v1.ImageExtension{}
+	extension := image_v1.ImageExtension{}
 	if err != nil {
 		return extension, err
 	}
 
-	extensionStr := annotation[v1.SealerImageExtension]
+	result, err := GetImageExtensionFromAnnotations(annotation)
+	if err != nil {
+		return extension, errors.Wrapf(err, "failed to get %s in image %s", image_v1.SealerImageExtension, opts.ImageNameOrID)
+	}
+	return result, nil
+}
+
+func GetImageExtensionFromAnnotations(annotations map[string]string) (image_v1.ImageExtension, error) {
+	extension := image_v1.ImageExtension{}
+	extensionStr := annotations[image_v1.SealerImageExtension]
 	if len(extensionStr) == 0 {
-		return extension, fmt.Errorf("%s does not exist in image %s", v1.SealerImageExtension, opts.ImageNameOrID)
+		return extension, fmt.Errorf("%s does not exist", image_v1.SealerImageExtension)
 	}
 
-	err = json.Unmarshal([]byte(extensionStr), &extension)
-	if err != nil {
-		return extension, fmt.Errorf("failed to unmarshal %v for image %v: %v", v1.SealerImageExtension, opts.ImageNameOrID, err)
+	if err := json.Unmarshal([]byte(extensionStr), &extension); err != nil {
+		return extension, fmt.Errorf("failed to unmarshal %v: %v", image_v1.SealerImageExtension, err)
 	}
 	return extension, nil
 }

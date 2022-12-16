@@ -17,7 +17,7 @@ package v1
 import (
 	"encoding/json"
 
-	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
+	application_v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
 
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -28,6 +28,8 @@ const (
 	// Kube image type
 	KubeInstaller = "kube-installer"
 	AppInstaller  = "app-installer"
+
+	ImageSpecSchemaVersionV1Beta1 = "v1alpha1"
 )
 
 type ImageSpec struct {
@@ -49,9 +51,10 @@ type ImageSpec struct {
 	ImageExtension
 }
 
+// NOTE: the UnmarshalJSON function of ImageExtension has been overrode
 type ImageExtension struct {
 	// BuildClient build client info
-	BuildClient *BuildClient `json:"buildClient"`
+	BuildClient BuildClient `json:"buildClient"`
 
 	// image spec schema version
 	SchemaVersion string `json:"schemaVersion"`
@@ -80,10 +83,14 @@ type Launch struct {
 }
 
 type v1ImageExtension struct {
+	// BuildClient build client info
+	BuildClient BuildClient `json:"buildClient"`
+	// image spec schema version
+	SchemaVersion string `json:"schemaVersion"`
 	// sealer image type, like AppImage
 	Type string `json:"type,omitempty"`
 	// applications in the sealer image
-	Applications []v1.Application `json:"applications,omitempty"`
+	Applications []application_v1.Application `json:"applications,omitempty"`
 	// launch spec will declare
 	Launch Launch `json:"launch,omitempty"`
 }
@@ -95,6 +102,8 @@ func (ie *ImageExtension) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	(*ie).BuildClient = v1Ex.BuildClient
+	(*ie).SchemaVersion = v1Ex.SchemaVersion
 	(*ie).Type = v1Ex.Type
 	(*ie).Applications = make([]version.VersionedApplication, len(v1Ex.Applications))
 	for i, app := range v1Ex.Applications {

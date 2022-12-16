@@ -20,6 +20,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -32,9 +36,6 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
 )
 
 var runFlags *types.Flags

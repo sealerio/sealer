@@ -20,6 +20,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	cmdutils "github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -32,8 +35,6 @@ import (
 	"github.com/sealerio/sealer/utils"
 	netutils "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/os/fs"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 var (

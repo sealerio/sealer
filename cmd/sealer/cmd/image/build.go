@@ -21,9 +21,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/util/json"
+
 	"github.com/sealerio/sealer/build/buildimage"
 	"github.com/sealerio/sealer/build/kubefile/parser"
 	"github.com/sealerio/sealer/common"
@@ -37,9 +42,6 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/version"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/util/json"
 )
 
 var buildFlags = bc.BuildOptions{}
@@ -336,9 +338,14 @@ func saveDockerfileAsTempfile(dockerFileContent string) (string, error) {
 
 func buildImageExtensionOnResult(result *parser.KubefileResult, imageType string) *v12.ImageExtension {
 	extension := &v12.ImageExtension{
-		Type:         imageType,
-		Applications: []version2.VersionedApplication{},
-		Launch:       v12.Launch{},
+		Type:          imageType,
+		Applications:  []version2.VersionedApplication{},
+		Launch:        v12.Launch{},
+		SchemaVersion: v12.ImageSpecSchemaVersionV1Beta1,
+		BuildClient: v12.BuildClient{
+			SealerVersion:  version.Get().GitVersion,
+			BuildahVersion: define.Version,
+		},
 	}
 
 	for _, app := range result.Applications {

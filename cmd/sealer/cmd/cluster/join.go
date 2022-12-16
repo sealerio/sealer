@@ -18,6 +18,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -25,8 +28,6 @@ import (
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 var joinFlags *types.Flags

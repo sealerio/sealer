@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
@@ -35,7 +37,6 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
-	corev1 "k8s.io/api/core/v1"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 

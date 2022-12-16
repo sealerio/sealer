@@ -22,10 +22,11 @@ import (
 	"strconv"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/sirupsen/logrus"
+
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sirupsen/logrus"
 )
 
 type externalConfigurator struct {

@@ -155,7 +155,7 @@ func TestNewImageSpec(t *testing.T) {
 						},
 					},
 					ImageExtension: ImageExtension{
-						BuildClient: &BuildClient{
+						BuildClient: BuildClient{
 							SealerVersion:  "0.9",
 							BuildahVersion: "0.0.1",
 						},

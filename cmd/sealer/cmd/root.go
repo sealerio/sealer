@@ -19,15 +19,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/alpha"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/cluster"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/image"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/logger"
 	"github.com/sealerio/sealer/version"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 type rootOpts struct {
