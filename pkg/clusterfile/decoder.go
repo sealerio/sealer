@@ -174,7 +174,11 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 	cluster.Spec.Env = newEnv
 	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryDomain, regConfig.Domain))
 	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%d", common.EnvRegistryPort, regConfig.Port))
-	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryURL, net.JoinHostPort(regConfig.Domain, strconv.Itoa(regConfig.Port))))
+	registryURL := net.JoinHostPort(regConfig.Domain, strconv.Itoa(regConfig.Port))
+	if regConfig.Port == 0 {
+		registryURL = regConfig.Domain
+	}
+	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryURL, registryURL))
 
 	return nil
 }
