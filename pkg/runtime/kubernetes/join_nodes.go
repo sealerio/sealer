@@ -67,7 +67,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	}
 	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
 
-	joinNodeCmd, err := k.Command(kubeadmConfig.KubernetesVersion, masters[0].String(), JoinNode, token, "")
+	joinNodeCmd, err := k.Command(JoinNode)
 	if err != nil {
 		return err
 	}

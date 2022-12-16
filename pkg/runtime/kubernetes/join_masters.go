@@ -44,7 +44,7 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 		return err
 	}
 
-	if err := k.sendKubeConfigFilesToMaster(newMasters, kubeadmConfig.KubernetesVersion, AdminConf, ControllerConf, SchedulerConf); err != nil {
+	if err := k.sendKubeConfigFilesToMaster(newMasters, AdminConf, ControllerConf, SchedulerConf); err != nil {
 		return err
 	}
 
@@ -53,9 +53,9 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 		return err
 	}
 
-	joinCmd, err := k.Command(kubeadmConfig.KubernetesVersion, master0.String(), JoinMaster, token, certKey)
+	joinCmd, err := k.Command(JoinMaster)
 	if err != nil {
-		return fmt.Errorf("failed to get join master command, kubernetes version is %s", kubeadmConfig.KubernetesVersion)
+		return fmt.Errorf("failed to get join master command: %v", err)
 	}
 	//set master0 as APIServerEndpoint when join master
 	vs := net.JoinHostPort(master0.String(), "6443")

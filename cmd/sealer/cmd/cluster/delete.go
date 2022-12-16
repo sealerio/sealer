@@ -223,8 +223,8 @@ func scaleDownCluster(masters, workers string) error {
 
 	cluster := cf.GetCluster()
 	//master0 machine cannot be deleted
-	if netutils.IsInIPList(cluster.GetMaster0IP(), deleteMasterIPList) {
-		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
+	if cluster.Spec.Registry.LocalRegistry != nil && !cluster.Spec.Registry.LocalRegistry.HaMode && netutils.IsInIPList(cluster.GetMaster0IP(), deleteMasterIPList) {
+		return fmt.Errorf("master0 machine(%s) cannot be deleted when registry is noHA mode", cluster.GetMaster0IP())
 	}
 	// make sure deleted ip in current cluster
 	var filteredDeleteMasterIPList []net.IP

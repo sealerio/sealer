@@ -22,17 +22,11 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
-
-	"github.com/sirupsen/logrus"
+	"github.com/sealerio/sealer/pkg/runtime"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/sealerio/sealer/pkg/runtime"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-	versionUtils "github.com/sealerio/sealer/utils/version"
 )
 
 const (
@@ -125,26 +119,14 @@ const InitMaster CommandType = "initMaster"
 const JoinMaster CommandType = "joinMaster"
 const JoinNode CommandType = "joinNode"
 
-func (k *Runtime) Command(version, master0IP string, name CommandType, token v1beta2.BootstrapTokenDiscovery, certKey string) (string, error) {
+func (k *Runtime) Command(name CommandType) (string, error) {
 	//cmds := make(map[CommandType]string)
 	// Please convert your v1beta1 configuration files to v1beta2 using the
 	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
 	cmds := map[CommandType]string{
-		InitMaster: fmt.Sprintf("kubeadm init --config=%s/etc/kubeadm.yml --experimental-upload-certs", k.infra.GetClusterRootfsPath()),
-		JoinMaster: fmt.Sprintf("kubeadm join %s --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s", net.JoinHostPort(master0IP, "6443"), token.Token, token.CACertHashes, certKey),
-		JoinNode:   fmt.Sprintf("kubeadm join %s --token %s --discovery-token-ca-cert-hash %s", net.JoinHostPort(k.getAPIServerVIP().String(), "6443"), token.Token, token.CACertHashes),
-	}
-
-	kv := versionUtils.Version(version)
-	greaterThan, err := kv.GreaterThan(kubeadm.V1150)
-	//other version >= 1.15.x
-	if err != nil {
-		logrus.Errorf("failed to compare Kubernetes version: %s", err)
-	}
-	if greaterThan {
-		cmds[InitMaster] = fmt.Sprintf("kubeadm init --config=%s --upload-certs", KubeadmFileYml)
-		cmds[JoinMaster] = fmt.Sprintf("kubeadm join --config=%s", KubeadmFileYml)
-		cmds[JoinNode] = fmt.Sprintf("kubeadm join --config=%s", KubeadmFileYml)
+		InitMaster: fmt.Sprintf("kubeadm init --config=%s --upload-certs", KubeadmFileYml),
+		JoinMaster: fmt.Sprintf("kubeadm join --config=%s", KubeadmFileYml),
+		JoinNode:   fmt.Sprintf("kubeadm join --config=%s", KubeadmFileYml),
 	}
 
 	v, ok := cmds[name]

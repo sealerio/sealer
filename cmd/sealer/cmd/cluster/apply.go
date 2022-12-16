@@ -93,13 +93,12 @@ func NewApplyCmd() *cobra.Command {
 				return err
 			}
 
-			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: args[0]})
+			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: imageName})
 			if err != nil {
 				return fmt.Errorf("failed to get cluster image extension: %s", err)
 			}
 
 			if extension.Type == v12.AppInstaller {
-				logrus.Infof("start to install application: %s", imageName)
 				return installApplication(imageName, []string{}, desiredCluster.Spec.Env, extension, cf.GetConfigs(), imageEngine, applyMode)
 			}
 
@@ -111,11 +110,10 @@ func NewApplyCmd() *cobra.Command {
 			client := utils.GetClusterClient()
 			if client == nil {
 				// no k8s client means to init a new cluster.
-				logrus.Infof("start to create new cluster with image: %s", imageName)
 				return createNewCluster(infraDriver, imageEngine, cf, applyMode)
 			}
 
-			logrus.Infof("start to check if need scale")
+			logrus.Infof("Start to check if need scale")
 
 			currentCluster, err := utils.GetCurrentCluster(client)
 			if err != nil {
@@ -125,7 +123,7 @@ func NewApplyCmd() *cobra.Command {
 			mj, md := strings.Diff(currentCluster.GetMasterIPList(), desiredCluster.GetMasterIPList())
 			nj, nd := strings.Diff(currentCluster.GetNodeIPList(), desiredCluster.GetNodeIPList())
 			if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
-				logrus.Infof("no need scale, completed")
+				logrus.Infof("No need scale, completed")
 
 				return nil
 			}
@@ -133,7 +131,7 @@ func NewApplyCmd() *cobra.Command {
 			if len(md) > 0 || len(nd) > 0 {
 				logrus.Warnf("scale down not supported: %v, %v, skip them", md, nd)
 			}
-			logrus.Infof("start to scale up cluster with image: %s", imageName)
+
 			return scaleUpCluster(imageName, mj, nj, infraDriver, imageEngine, cf)
 		},
 	}

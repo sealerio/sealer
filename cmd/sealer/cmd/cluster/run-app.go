@@ -85,6 +85,8 @@ func NewRunAPPCmd() *cobra.Command {
 }
 
 func installApplication(appImageName string, launchCmds, envs []string, extension v12.ImageExtension, configs []v1.Config, imageEngine imageengine.Interface, mode string) error {
+	logrus.Infof("Start to install application: %s", appImageName)
+
 	cf, err := clusterfile.NewClusterFile(nil)
 	if err != nil {
 		return err
@@ -135,6 +137,8 @@ func installApplication(appImageName string, launchCmds, envs []string, extensio
 	if err != nil {
 		return err
 	}
+
+	logrus.Infof("Succeeded in installing new app with image %s", appImageName)
 
 	return nil
 }

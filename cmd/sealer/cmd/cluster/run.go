@@ -158,6 +158,8 @@ func createNewCluster(infraDriver infradriver.InfraDriver, imageEngine imageengi
 		clusterImageName = infraDriver.GetClusterImageName()
 	)
 
+	logrus.Infof("start to create new cluster with image: %s", clusterImageName)
+
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
 		return err
@@ -228,6 +230,8 @@ func createNewCluster(infraDriver infradriver.InfraDriver, imageEngine imageengi
 	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
 		return err
 	}
+
+	logrus.Infof("Succeeded in creating new cluster with image %s", clusterImageName)
 
 	return nil
 }
