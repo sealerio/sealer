@@ -81,7 +81,7 @@ func WrapperShell(shell string, wrapperData map[string]interface{}) string {
 		case []string:
 			env = fmt.Sprintf("%s%s=(%s) ", env, k, strings.Join(value, " "))
 		case string:
-			env = fmt.Sprintf("%s%s=%s ", env, k, value)
+			env = fmt.Sprintf("%s%s=\"%s\" ", env, k, value)
 		}
 	}
 	if env == "" {

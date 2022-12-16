@@ -104,6 +104,8 @@ func NewScaleUpCmd() *cobra.Command {
 }
 
 func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+	logrus.Infof("start to scale up cluster")
+
 	var (
 		newHosts = append(scaleUpMasterIPList, scaleUpNodeIPList...)
 	)
@@ -171,6 +173,8 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
 		return err
 	}
+
+	logrus.Infof("succeeded in scaling up cluster")
 
 	return nil
 }

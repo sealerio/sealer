@@ -20,6 +20,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 
 	"github.com/pkg/errors"
@@ -35,11 +36,11 @@ func (k *Runtime) deleteMasters(masters []net.IP) error {
 	for _, master := range masters {
 		master := master
 		eg.Go(func() error {
-			logrus.Infof("Start to delete master %s", master)
+			logrus.Infof("start to delete master %s", master)
 			if err := k.deleteMaster(master); err != nil {
 				return fmt.Errorf("failed to delete master %s: %v", master, err)
 			}
-			logrus.Infof("Succeeded in deleting master %s", master)
+			logrus.Infof("succeeded in deleting master %s", master)
 			return nil
 		})
 	}
@@ -63,10 +64,10 @@ func (k *Runtime) deleteMaster(master net.IP) error {
 	remoteCleanCmd := []string{"k0s stop",
 		fmt.Sprintf("k0s reset --cri-socket %s", ExternalCRI),
 		"rm -rf /etc/k0s/",
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", SeaHub),
+		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", common.DefaultRegistryDomain),
 		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),
 		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, SeaHub),
+		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, common.DefaultRegistryDomain),
 		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
 		"rm -rf /usr/bin/k0s"}
 

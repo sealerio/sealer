@@ -29,8 +29,8 @@ func splitVersion(version string) []string {
 	return strings.Split(version, ".")
 }
 
-// Compare if givenVersion >= oldVersion return true, else return false
-func (v Version) Compare(oldVersion Version) (bool, error) {
+// GreaterThan if givenVersion >= oldVersion return true, else return false
+func (v Version) GreaterThan(oldVersion Version) (bool, error) {
 	givenVersion := splitVersion(string(v))
 	ov := splitVersion(string(oldVersion))
 

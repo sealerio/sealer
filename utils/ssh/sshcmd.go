@@ -109,7 +109,7 @@ func (s *SSH) CmdAsync(host net.IP, cmds ...string) error {
 			continue
 		}
 		if s.User != common.ROOT {
-			cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
+			cmd = fmt.Sprintf("sudo -E /bin/bash <<EOF\n%s\nEOF", cmd)
 		}
 		if err := execFunc(cmd); err != nil {
 			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
@@ -122,7 +122,7 @@ func (s *SSH) CmdAsync(host net.IP, cmds ...string) error {
 
 func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
 	if s.User != common.ROOT {
-		cmd = fmt.Sprintf("sudo -E /bin/sh <<EOF\n%s\nEOF", cmd)
+		cmd = fmt.Sprintf("sudo -E /bin/bash <<EOF\n%s\nEOF", cmd)
 	}
 
 	var stdoutContent, stderrContent bytes.Buffer

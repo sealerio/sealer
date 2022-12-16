@@ -62,7 +62,7 @@ func TestVersion_Compare(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := tt.givenVersion
-			res, err := v.Compare(tt.oldVersion)
+			res, err := v.GreaterThan(tt.oldVersion)
 			if err != nil {
 				logrus.Errorf("compare kubernetes version failed: %s", err)
 			}

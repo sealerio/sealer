@@ -185,6 +185,7 @@ func NewShellHook() HookFunc {
 	return func(data string, hosts []net.IP, driver infradriver.InfraDriver, extraOpts map[string]bool) error {
 		rootfs := driver.GetClusterRootfsPath()
 		for _, ip := range hosts {
+			logrus.Infof("start to run hook on host %s", ip.String())
 			cmd := env.WrapperShell(data, driver.GetHostEnv(ip))
 			wrappedCmd := fmt.Sprintf(common.CdAndExecCmd, rootfs, cmd)
 			if extraOpts[ExtraOptionSkipWhenWorkspaceNotExists] {

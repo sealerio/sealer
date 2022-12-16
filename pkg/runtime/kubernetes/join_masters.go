@@ -44,7 +44,7 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 		return err
 	}
 
-	if err := k.sendKubeConfigFilesToMaster(newMasters, kubeadmConfig.KubernetesVersion, AdminConf, ControllerConf, SchedulerConf); err != nil {
+	if err := k.sendKubeConfigFilesToMaster(newMasters, AdminConf, ControllerConf, SchedulerConf); err != nil {
 		return err
 	}
 
@@ -53,14 +53,14 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 		return err
 	}
 
-	joinCmd, err := k.Command(kubeadmConfig.KubernetesVersion, master0.String(), JoinMaster, token, certKey)
+	joinCmd, err := k.Command(JoinMaster)
 	if err != nil {
-		return fmt.Errorf("failed to get join master command, kubernetes version is %s", kubeadmConfig.KubernetesVersion)
+		return fmt.Errorf("failed to get join master command: %v", err)
 	}
 	//set master0 as APIServerEndpoint when join master
 	vs := net.JoinHostPort(master0.String(), "6443")
 	for _, m := range newMasters {
-		logrus.Infof("Start to join %s as master", m)
+		logrus.Infof("start to join %s as master", m)
 
 		hostname, err := k.infra.GetHostName(m)
 		if err != nil {
@@ -81,8 +81,8 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", m, cmd, err)
 		}
 
-		if err = k.infra.CmdAsync(m, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String(), shellcommand.DefaultSealerHostAliasForApiserver)); err != nil {
-			return fmt.Errorf("failed to set hosts alias on(%s): %v", m, err)
+		if err = k.infra.CmdAsync(m, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
+			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}
 
 		certCMD := runtime.RemoteCertCmd(kubeadmConfig.GetCertSANS(), m, hostname, kubeadmConfig.GetSvcCIDR(), "")
@@ -94,11 +94,15 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return fmt.Errorf("failed to exec command(%s) on master(%s): %v", joinCmd, m, err)
 		}
 
+		if err = k.infra.CmdAsync(m, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), m.String())); err != nil {
+			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
+		}
+
 		if err = k.infra.CmdAsync(m, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
 			return err
 		}
 
-		logrus.Infof("Succeeded in joining %s as master", m)
+		logrus.Infof("succeeded in joining %s as master", m)
 	}
 	return nil
 }

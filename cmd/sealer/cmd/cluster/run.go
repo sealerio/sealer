@@ -144,7 +144,7 @@ func NewRunCmd() *cobra.Command {
 
 			if extension.Type == v12.AppInstaller {
 				logrus.Infof("start to install app image: %s", cluster.Spec.Image)
-				return installApplication(args[0], runFlags.Cmds, runFlags.AppNames, extension, infraDriver, imageEngine, applyMode)
+				return installApplication(args[0], runFlags.Cmds, runFlags.AppNames, runFlags.CustomEnv, extension, nil, imageEngine, applyMode)
 			}
 
 			return createNewCluster(infraDriver, imageEngine, cf, applyMode)
@@ -180,6 +180,8 @@ func createNewCluster(infraDriver infradriver.InfraDriver, imageEngine imageengi
 		clusterHosts     = infraDriver.GetHostIPList()
 		clusterImageName = infraDriver.GetClusterImageName()
 	)
+
+	logrus.Infof("start to create new cluster with image: %s", clusterImageName)
 
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
@@ -252,6 +254,8 @@ func createNewCluster(infraDriver infradriver.InfraDriver, imageEngine imageengi
 		return err
 	}
 
+	logrus.Infof("succeeded in creating new cluster with image %s", clusterImageName)
+
 	return nil
 }
 
@@ -271,7 +275,7 @@ func loadPluginsFromImage(imageMountInfo []imagedistributor.ClusterImageMountInf
 
 // loadToRegistry just load container image to local registry
 func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) error {
-	regConfig := infraDriver.GetClusterRegistryConfig()
+	regConfig := infraDriver.GetClusterRegistry()
 	// todo only support load image to local registry at present
 	if regConfig.LocalRegistry == nil {
 		return nil
@@ -284,7 +288,7 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	master0 := deployHosts[0]
 
 	logrus.Infof("start to apply with mode(%s)", common.ApplyModeLoadImage)
-	if !regConfig.LocalRegistry.HaMode {
+	if !*regConfig.LocalRegistry.HA {
 		deployHosts = []net.IP{master0}
 	}
 
@@ -296,8 +300,9 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	return nil
 }
 
-func installApplication(appImageName string, cmds []string, appNames []string, extension v12.ImageExtension,
-	infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, mode string) error {
+func installApplication(appImageName string, cmds, appNames, envs []string, extension v12.ImageExtension, configs []v1.Config, imageEngine imageengine.Interface, mode string) error {
+	logrus.Infof("start to install application: %s", appImageName)
+
 	if len(cmds) != 0 && len(appNames) != 0 {
 		return fmt.Errorf("only one can be selected to do overwrite for launchCmds(%s) and appNames（%s）", cmds, appNames)
 	}
@@ -308,6 +313,18 @@ func installApplication(appImageName string, cmds []string, appNames []string, e
 	} else {
 		launchCmds = clusterruntime.GetAppLaunchCmdsByNames(appNames, extension.Applications)
 	}
+	cf, err := clusterfile.NewClusterFile(nil)
+	if err != nil {
+		return err
+	}
+
+	cluster := cf.GetCluster()
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return err
+	}
+
+	infraDriver.AddClusterEnv(envs)
 
 	clusterHosts := infraDriver.GetHostIPList()
 
@@ -333,7 +350,7 @@ func installApplication(appImageName string, cmds []string, appNames []string, e
 		}
 	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil)
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, configs)
 	if err != nil {
 		return err
 	}
@@ -347,6 +364,8 @@ func installApplication(appImageName string, cmds []string, appNames []string, e
 	if err != nil {
 		return err
 	}
+
+	logrus.Infof("succeeded in installing new app with image %s", appImageName)
 
 	return nil
 }

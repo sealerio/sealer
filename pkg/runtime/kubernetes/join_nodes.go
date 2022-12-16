@@ -67,7 +67,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	}
 	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
 
-	joinNodeCmd, err := k.Command(kubeadmConfig.KubernetesVersion, masters[0].String(), JoinNode, token, "")
+	joinNodeCmd, err := k.Command(JoinNode)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	for _, n := range newNodes {
 		node := n
 		eg.Go(func() error {
-			logrus.Infof("Start to join %s as worker", node)
+			logrus.Infof("start to join %s as worker", node)
 
 			err = k.checkMultiNetworkAddVIPRoute(node)
 			if err != nil {
@@ -92,7 +92,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 				return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", node, writeJoinConfigCmd, err)
 			}
 
-			if err = k.infra.CmdAsync(node, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), k.getAPIServerVIP().String(), shellcommand.DefaultSealerHostAliasForApiserver)); err != nil {
+			if err = k.infra.CmdAsync(node, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), k.getAPIServerVIP().String())); err != nil {
 				return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 			}
 
@@ -104,7 +104,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 				return fmt.Errorf("failed to set lvscare static pod %s: %v", node, err)
 			}
 
-			logrus.Infof("Succeeded in joining %s as worker", node)
+			logrus.Infof("succeeded in joining %s as worker", node)
 			return nil
 		})
 	}
@@ -122,6 +122,8 @@ func (k *Runtime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 
 	cmd := fmt.Sprintf(RemoteAddRoute, k.getAPIServerVIP(), node)
 	output, err := k.infra.Cmd(node, cmd)
-
-	return utils.WrapExecResult(node, cmd, output, err)
+	if err != nil {
+		return utils.WrapExecResult(node, cmd, output, err)
+	}
+	return nil
 }

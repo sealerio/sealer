@@ -53,7 +53,7 @@ func NewAppInstaller(infraDriver infradriver.InfraDriver, distributor imagedistr
 
 func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
-	regConfig := i.infraDriver.GetClusterRegistryConfig()
+	regConfig := i.infraDriver.GetClusterRegistry()
 	// distribute rootfs
 	if err := i.distributor.Distribute([]net.IP{master0}, i.infraDriver.GetClusterRootfsPath()); err != nil {
 		return err
@@ -62,7 +62,7 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 	//if we use local registry service, load container image to registry
 	if regConfig.LocalRegistry != nil {
 		deployHosts := masters
-		if !regConfig.LocalRegistry.HaMode {
+		if !*regConfig.LocalRegistry.HA {
 			deployHosts = []net.IP{masters[0]}
 		}
 
@@ -82,14 +82,14 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 		}
 	}
 
-	if err := i.LaunchClusterImage(master0, cmds); err != nil {
+	if err := i.Launch(master0, cmds); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (i AppInstaller) LaunchClusterImage(master0 net.IP, launchCmds []string) error {
+func (i AppInstaller) Launch(master0 net.IP, launchCmds []string) error {
 	var (
 		cmds       []string
 		rootfsPath = i.infraDriver.GetClusterRootfsPath()
@@ -140,7 +140,7 @@ func (i AppInstaller) save(applicationFile string) error {
 		}
 	}()
 
-	content, err := json.Marshal(i.extension)
+	content, err := json.MarshalIndent(i.extension, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal image extension: %v", err)
 	}

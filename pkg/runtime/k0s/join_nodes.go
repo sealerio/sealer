@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/sealerio/sealer/common"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -45,8 +47,8 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 		return err
 	}
 	addRegistryHostsAndLogin := k.addRegistryDomainToHosts()
-	if k.RegConfig.Domain != SeaHub {
-		addSeaHubHost := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+SeaHub, k.RegConfig.IP.String()+" "+SeaHub)
+	if k.RegConfig.Domain != common.DefaultRegistryDomain {
+		addSeaHubHost := fmt.Sprintf("cat /etc/hosts | grep '%s' || echo '%s' >> /etc/hosts", k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain, k.RegConfig.IP.String()+" "+common.DefaultRegistryDomain)
 		addRegistryHostsAndLogin = fmt.Sprintf("%s && %s", addRegistryHostsAndLogin, addSeaHubHost)
 	}
 	if k.RegConfig.Username != "" && k.RegConfig.Password != "" {
@@ -61,7 +63,7 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			logrus.Infof("Start to join %s as worker", node)
+			logrus.Infof("start to join %s as worker", node)
 
 			nodeCmds := append([]string{addRegistryHostsAndLogin}, cmds...)
 			ssh, err := k.getHostSSHClient(node)
@@ -71,7 +73,7 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 			if err := ssh.CmdAsync(node, nodeCmds...); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
-			logrus.Infof("Succeeded in joining %s as worker", node)
+			logrus.Infof("succeeded in joining %s as worker", node)
 			return err
 		})
 	}

@@ -75,10 +75,6 @@ func NewApplyCmd() *cobra.Command {
 			}
 
 			desiredCluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
-			if err != nil {
-				return err
-			}
 
 			// use image extension to determine apply type:
 			// scale up cluster, install applications, maybe support upgrade later
@@ -103,18 +99,21 @@ func NewApplyCmd() *cobra.Command {
 			}
 
 			if extension.Type == v12.AppInstaller {
-				logrus.Infof("start to install application: %s", imageName)
-				cmds := infraDriver.GetClusterLaunchCmds()
-				apps := infraDriver.GetClusterLaunchApps()
-				return installApplication(imageName, cmds, apps, extension, infraDriver, imageEngine, applyMode)
+				return installApplication(imageName, desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames, desiredCluster.Spec.Env, extension, cf.GetConfigs(), imageEngine, applyMode)
+			}
+
+			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
+			if err != nil {
+				return err
 			}
 
 			client := utils.GetClusterClient()
 			if client == nil {
 				// no k8s client means to init a new cluster.
-				logrus.Infof("start to create new cluster with image: %s", imageName)
 				return createNewCluster(infraDriver, imageEngine, cf, applyMode)
 			}
+
+			logrus.Infof("Start to check if need scale")
 
 			currentCluster, err := utils.GetCurrentCluster(client)
 			if err != nil {
@@ -124,13 +123,15 @@ func NewApplyCmd() *cobra.Command {
 			mj, md := strings.Diff(currentCluster.GetMasterIPList(), desiredCluster.GetMasterIPList())
 			nj, nd := strings.Diff(currentCluster.GetNodeIPList(), desiredCluster.GetNodeIPList())
 			if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+				logrus.Infof("No need scale, completed")
+
 				return nil
 			}
 
 			if len(md) > 0 || len(nd) > 0 {
-				return fmt.Errorf("scale down not supported: %v,%v", md, nd)
+				logrus.Warnf("scale down not supported: %v, %v, skip them", md, nd)
 			}
-			logrus.Infof("start to scale up cluster with image: %s", imageName)
+
 			return scaleUpCluster(imageName, mj, nj, infraDriver, imageEngine, cf)
 		},
 	}

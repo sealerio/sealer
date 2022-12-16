@@ -36,6 +36,7 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
 	corev1 "k8s.io/api/core/v1"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var tryTimes = 10
@@ -62,7 +63,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	var (
 		err       error
 		installer = &Installer{
-			regConfig: infraDriver.GetClusterRegistryConfig(),
+			regConfig: infraDriver.GetClusterRegistry(),
 		}
 	)
 
@@ -142,7 +143,7 @@ func (i *Installer) Install() error {
 	var deployHosts []net.IP
 	if i.regConfig.LocalRegistry != nil {
 		installer := registry.NewInstaller(nil, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
-		if i.regConfig.LocalRegistry.HaMode {
+		if *i.regConfig.LocalRegistry.HA {
 			deployHosts, err = installer.Reconcile(masters)
 			if err != nil {
 				return err
@@ -191,6 +192,10 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	if err := i.setRoles(runtimeDriver); err != nil {
+		return err
+	}
+
 	if err = i.setNodeLabels(all, runtimeDriver); err != nil {
 		return err
 	}
@@ -208,7 +213,7 @@ func (i *Installer) Install() error {
 		launchCmds = GetAppLaunchCmdsByNames(appNames, extension.Applications)
 	}
 
-	if err = appInstaller.LaunchClusterImage(master0, launchCmds); err != nil {
+	if err = appInstaller.Launch(master0, launchCmds); err != nil {
 		return err
 	}
 
@@ -226,7 +231,7 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 		return nil, nil, err
 	}
 
-	if i.regConfig.LocalRegistry != nil && !i.regConfig.LocalRegistry.HaMode {
+	if i.regConfig.LocalRegistry != nil && !*i.regConfig.LocalRegistry.HA {
 		registryDeployHosts = []net.IP{master0}
 	}
 	// TODO, init here or in constructor?
@@ -251,6 +256,43 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	}
 
 	return registryDriver, runtimeDriver, nil
+}
+
+// setRoles save roles
+func (i *Installer) setRoles(driver runtime.Driver) error {
+	nodeList := corev1.NodeList{}
+	if err := driver.List(context.TODO(), &nodeList); err != nil {
+		return err
+	}
+
+	genRoleLabelFunc := func(role string) string {
+		return fmt.Sprintf("node-role.kubernetes.io/%s", role)
+	}
+
+	for idx, node := range nodeList.Items {
+		addresses := node.Status.Addresses
+		for _, address := range addresses {
+			if address.Type != "InternalIP" {
+				continue
+			}
+			roles := i.infraDriver.GetRoleListByHostIP(address.Address)
+			if len(roles) == 0 {
+				continue
+			}
+			newNode := node.DeepCopy()
+
+			for _, role := range roles {
+				newNode.Labels[genRoleLabelFunc(role)] = ""
+			}
+			patch := runtimeClient.MergeFrom(&nodeList.Items[idx])
+
+			if err := driver.Patch(context.TODO(), newNode, patch); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (i *Installer) setNodeLabels(hosts []net.IP, driver runtime.Driver) error {

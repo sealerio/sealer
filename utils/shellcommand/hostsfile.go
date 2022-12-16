@@ -14,18 +14,16 @@
 
 package shellcommand
 
-import "fmt"
-
-const (
-	DefaultSealerHostAliasForApiserver    = "#hostalias-apiserver"
-	DefaultSealerHostAliasForRegistry     = "#hostalias-registry"
-	DefaultSealerHostAliasForClusterExtra = "#hostalias-cluster-extra"
+import (
+	"fmt"
 )
 
-func CommandSetHostAlias(hostName, ip, alias string) string {
-	return fmt.Sprintf(`if grep %s /etc/hosts;then sed -i "/%s/d" /etc/hosts; fi;echo "%s %s #%s" >>/etc/hosts`, hostName, hostName, ip, hostName, alias)
+const DefaultSealerHostAliasAnnotation = "#hostalias-set-by-sealer"
+
+func CommandSetHostAlias(hostName, ip string) string {
+	return fmt.Sprintf(`if grep " %s " /etc/hosts &>/dev/null;then sed -i "/\ %s\ /d" /etc/hosts; fi;echo "%s %s %s" >>/etc/hosts`, hostName, hostName, ip, hostName, DefaultSealerHostAliasAnnotation)
 }
 
-func CommandUnSetHostAlias(alias string) string {
-	return fmt.Sprintf(`sed -i "/%s/d" /etc/hosts`, alias)
+func CommandUnSetHostAlias() string {
+	return fmt.Sprintf(`sed -i "/%s/d" /etc/hosts`, DefaultSealerHostAliasAnnotation)
 }

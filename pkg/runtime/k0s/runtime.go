@@ -49,7 +49,7 @@ func (k *Runtime) Upgrade() error {
 }
 
 func (k *Runtime) Reset() error {
-	logrus.Infof("Start to delete cluster: master %s, node %s", k.cluster.GetMasterIPList(), k.cluster.GetNodeIPList())
+	logrus.Infof("start to delete cluster: master %s, node %s", k.cluster.GetMasterIPList(), k.cluster.GetNodeIPList())
 	return k.reset()
 }
 

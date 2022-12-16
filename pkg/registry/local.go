@@ -25,8 +25,6 @@ import (
 	"strconv"
 	"strings"
 
-	utilsnet "github.com/sealerio/sealer/utils/net"
-
 	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
 	"github.com/sealerio/sealer/common"
@@ -34,6 +32,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sirupsen/logrus"
@@ -59,7 +58,7 @@ func (c *localConfigurator) UninstallFrom(deletedMasters, deletedNodes []net.IP)
 	if err := c.removeRegistryConfig(all); err != nil {
 		return err
 	}
-	if !c.HaMode {
+	if !*c.HA {
 		return nil
 	}
 	// if current deployHosts is null,means clean all, just return.
@@ -96,7 +95,6 @@ func (c *localConfigurator) removeRegistryConfig(hosts []net.IP) error {
 		uninstallCmd = append(uninstallCmd, logoutCmd)
 	}
 
-	uninstallCmd = append(uninstallCmd, shellcommand.CommandUnSetHostAlias(shellcommand.DefaultSealerHostAliasForRegistry))
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, strings.Join(uninstallCmd, "&&"))
 		if err != nil {
@@ -133,14 +131,13 @@ func (c *localConfigurator) InstallOn(masters, nodes []net.IP) error {
 // add registry domain and ip to "/etc/hosts"
 // add registry ip to ipvs policy
 func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) error {
-	if !c.HaMode {
+	if !*c.HA {
 		return c.configureSingletonHostsFile(append(masters, nodes...))
 	}
 
 	// for master: domain + local IP
 	for _, m := range masters {
-		cmd := shellcommand.CommandSetHostAlias(c.Domain, m.String(),
-			shellcommand.DefaultSealerHostAliasForRegistry)
+		cmd := shellcommand.CommandSetHostAlias(c.Domain, m.String())
 		if err := c.infraDriver.CmdAsync(m, cmd); err != nil {
 			return fmt.Errorf("failed to config masters hosts file: %v", err)
 		}
@@ -162,8 +159,7 @@ func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) er
 			return fmt.Errorf("failed to config ndoes lvs policy %s: %v", ipvsCmd, err)
 		}
 
-		err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, common.DefaultVIP,
-			shellcommand.DefaultSealerHostAliasForRegistry))
+		err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, common.DefaultVIP))
 		if err != nil {
 			return fmt.Errorf("failed to config ndoes hosts file cmd: %v", err)
 		}
@@ -174,7 +170,7 @@ func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) er
 func (c *localConfigurator) configureSingletonHostsFile(hosts []net.IP) error {
 	// add registry ip to "/etc/hosts"
 	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.deployHosts[0].String(), shellcommand.DefaultSealerHostAliasForRegistry))
+		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.deployHosts[0].String()))
 		if err != nil {
 			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}
@@ -186,7 +182,7 @@ func (c *localConfigurator) configureSingletonHostsFile(hosts []net.IP) error {
 
 func (c *localConfigurator) configureRegistryCert(hosts []net.IP) error {
 	// if deploy registry as InsecureMode ,skip to configure cert.
-	if c.InsecureMode {
+	if *c.Insecure {
 		return nil
 	}
 
@@ -268,7 +264,7 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
 	)
 
-	if endpoint == common.DefaultEndpoint {
+	if endpoint == common.DefaultRegistryURL {
 		return nil
 	}
 
@@ -320,12 +316,9 @@ func (c *localConfigurator) configureDockerDaemonService(endpoint, daemonFile st
 		}
 	}
 
-	daemonConf.MirrorRegistries = append(daemonConf.MirrorRegistries, MirrorRegistry{
-		Domain:  "*",
-		Mirrors: []string{"https://" + endpoint},
-	})
+	daemonConf.RegistryMirrors = append(daemonConf.RegistryMirrors, "https://"+endpoint)
 
-	content, err := json.Marshal(daemonConf)
+	content, err := json.MarshalIndent(daemonConf, "", "  ")
 
 	if err != nil {
 		return fmt.Errorf("failed to marshal daemonFile: %v", err)
@@ -355,7 +348,6 @@ func (c *localConfigurator) configureContainerdDaemonService(endpoint, hostTomlF
 }
 
 type DaemonConfig struct {
-	MirrorRegistries               []MirrorRegistry  `json:"mirror-registries,omitempty"`
 	AllowNonDistributableArtifacts []string          `json:"allow-nondistributable-artifacts,omitempty"`
 	APICorsHeader                  string            `json:"api-cors-header,omitempty"`
 	AuthorizationPlugins           []string          `json:"authorization-plugins,omitempty"`
@@ -424,11 +416,6 @@ type DaemonConfig struct {
 	UsernsRemap                    string            `json:"userns-remap,omitempty"`
 	ClusterStoreOpts               map[string]string `json:"cluster-store-opts,omitempty"`
 	LogOpts                        *DaemonLogOpts    `json:"log-opts,omitempty"`
-}
-
-type MirrorRegistry struct {
-	Domain  string   `json:"domain,omitempty"`
-	Mirrors []string `json:"mirrors,omitempty"`
 }
 
 type DaemonLogOpts struct {

@@ -97,7 +97,7 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	token, certKey, err := k.initMaster0(kubeadmConf, masters[0])
+	token, certKey, err := k.initMaster0(masters[0])
 	if err != nil {
 		return err
 	}
@@ -110,11 +110,16 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	if err := k.dumpKubeConfigIntoCluster(masters[0]); err != nil {
+	driver, err := k.GetCurrentRuntimeDriver()
+	if err != nil {
 		return err
 	}
 
-	logrus.Info("Succeeded in creating a new cluster.")
+	if err := k.dumpKubeConfigIntoCluster(driver, masters[0]); err != nil {
+		return err
+	}
+
+	logrus.Info("succeeded in creating a new cluster.")
 	return nil
 }
 
@@ -152,6 +157,7 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 	if err = k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
 		return err
 	}
+
 	logrus.Info("cluster scale up succeeded!")
 	return nil
 }
@@ -183,12 +189,7 @@ func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
 }
 
 // dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
-func (k *Runtime) dumpKubeConfigIntoCluster(master0 net.IP) error {
-	driver, err := k.GetCurrentRuntimeDriver()
-	if err != nil {
-		return err
-	}
-
+func (k *Runtime) dumpKubeConfigIntoCluster(driver runtime.Driver, master0 net.IP) error {
 	kubeConfigContent, err := os.ReadFile(AdminKubeConfPath)
 	if err != nil {
 		return err
