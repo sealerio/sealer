@@ -15,7 +15,6 @@
 package ipvs
 
 import (
-	"net"
 	"testing"
 )
 
@@ -46,7 +45,7 @@ spec:
     - /usr/bin/lvscare
     image: fdfadf
     imagePullPolicy: IfNotPresent
-    name: kube-lvscare
+    name: main
     resources: {}
     securityContext:
       privileged: true
@@ -84,7 +83,45 @@ spec:
     - /usr/bin/lvscare
     image: fdfadf
     imagePullPolicy: IfNotPresent
-    name: kube-lvscare
+    name: main
+    resources: {}
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /lib/modules
+      name: lib-modules
+      readOnly: true
+  hostNetwork: true
+  volumes:
+  - hostPath:
+      path: /lib/modules
+      type: ""
+    name: lib-modules
+status: {}
+`,
+	`apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  name: reg-lvscare
+  namespace: kube-system
+spec:
+  containers:
+  - args:
+    - care
+    - --vs
+    - 10.107.2.1:5000
+    - --health-path
+    - /healthz
+    - --health-schem
+    - https
+    - --rs
+    - 172.16.228.157:5000
+    command:
+    - /usr/bin/lvscare
+    image: a1
+    imagePullPolicy: IfNotPresent
+    name: main
     resources: {}
     securityContext:
       privileged: true
@@ -104,8 +141,9 @@ status: {}
 
 func TestLvsStaticPodYaml(t *testing.T) {
 	type args struct {
-		vip     net.IP
-		masters []net.IP
+		podName string
+		vip     string
+		masters []string
 		image   string
 	}
 	tests := []struct {
@@ -115,27 +153,39 @@ func TestLvsStaticPodYaml(t *testing.T) {
 	}{
 		{
 			args: args{
-				vip: net.ParseIP("10.107.2.1"),
-				masters: []net.IP{
-					net.ParseIP("172.16.228.157"),
-					net.ParseIP("172.16.228.158"),
-					net.ParseIP("172.16.228.159")},
+				podName: "kube-lvscare",
+				vip:     "10.107.2.1:6443",
+				masters: []string{
+					"172.16.228.157:6443",
+					"172.16.228.158:6443",
+					"172.16.228.159:6443",
+				},
 				image: "fdfadf",
 			},
 			want: want[0],
 		},
 		{
 			args: args{
-				vip:     net.ParseIP("10.107.2.1"),
-				masters: []net.IP{net.ParseIP("172.16.228.157")},
+				podName: "kube-lvscare",
+				vip:     "10.107.2.1:6443",
+				masters: []string{"172.16.228.157:6443"},
 				image:   "fdfadf",
 			},
 			want: want[1],
 		},
+		{
+			args: args{
+				podName: "reg-lvscare",
+				vip:     "10.107.2.1:5000",
+				masters: []string{"172.16.228.157:5000"},
+				image:   "a1",
+			},
+			want: want[2],
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := LvsStaticPodYaml(tt.args.vip, tt.args.masters, tt.args.image); got != tt.want {
+			if got, _ := LvsStaticPodYaml(tt.args.podName, tt.args.vip, tt.args.masters, tt.args.image); got != tt.want {
 				t.Errorf("LvsStaticPodYaml() = %v, want %v", got, tt.want)
 			}
 		})

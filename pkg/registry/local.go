@@ -28,15 +28,21 @@ import (
 	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
 	"github.com/sirupsen/logrus"
+	k8snet "k8s.io/utils/net"
 
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sealerio/sealer/pkg/ipvs"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/shellcommand"
+)
+
+const (
+	LvscarePodFileName = "reg-lvscare.yaml"
 )
 
 type localConfigurator struct {
@@ -48,7 +54,7 @@ type localConfigurator struct {
 }
 
 func (c *localConfigurator) GetDriver() (Driver, error) {
-	endpoint := c.Domain + ":" + strconv.Itoa(c.Port)
+	endpoint := net.JoinHostPort(c.Domain, strconv.Itoa(c.Port))
 	dataDir := filepath.Join(c.infraDriver.GetClusterRootfsPath(), "registry")
 	return newLocalRegistryDriver(endpoint, dataDir, c.deployHosts, c.distributor), nil
 }
@@ -68,21 +74,7 @@ func (c *localConfigurator) UninstallFrom(deletedMasters, deletedNodes []net.IP)
 	}
 
 	// flush ipvs policy on remain nodes
-	var rs []string
-	for _, m := range c.deployHosts {
-		rs = append(rs, fmt.Sprintf("--rs %s", net.JoinHostPort(m.String(), strconv.Itoa(c.Port))))
-	}
-
-	vs := net.JoinHostPort(common.DefaultVIP, strconv.Itoa(c.Port))
-	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
-	remainNodes := utilsnet.RemoveIPs(c.infraDriver.GetHostIPListByRole(common.NODE), deletedNodes)
-	for _, node := range remainNodes {
-		if err := c.infraDriver.CmdAsync(node, ipvsCmd); err != nil {
-			return fmt.Errorf("flush ipvs policy on remain nodes(%s): %v", node.String(), err)
-		}
-	}
-
-	return nil
+	return c.configureLvs(c.deployHosts, utilsnet.RemoveIPs(c.infraDriver.GetHostIPListByRole(common.NODE), deletedNodes))
 }
 
 func (c *localConfigurator) removeRegistryConfig(hosts []net.IP) error {
@@ -144,27 +136,49 @@ func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) er
 		}
 	}
 
+	return c.configureLvs(c.deployHosts, c.infraDriver.GetHostIPListByRole(common.NODE))
+}
+
+func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) error {
 	// for node: add ipvs policy; domain + VIP
 	var rs []string
-	for _, m := range c.deployHosts {
-		rs = append(rs, fmt.Sprintf("--rs %s", net.JoinHostPort(m.String(), strconv.Itoa(c.Port))))
+	var realEndpoints []string
+	for _, m := range registryHosts {
+		ep := net.JoinHostPort(m.String(), strconv.Itoa(c.Port))
+		rs = append(rs, fmt.Sprintf("--rs %s", ep))
+		realEndpoints = append(realEndpoints, ep)
 	}
 
-	vs := net.JoinHostPort(common.DefaultVIP, strconv.Itoa(c.Port))
+	//todo should make lvs image name as const value in sealer repo.
+	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)))
+
+	vip := common.DefaultVIP
+	if hosts := c.infraDriver.GetHostIPList(); len(hosts) > 0 && k8snet.IsIPv6(hosts[0]) {
+		vip = common.DefaultVIPForIPv6
+	}
+
+	vs := net.JoinHostPort(vip, strconv.Itoa(c.Port))
+	y, err := ipvs.LvsStaticPodYaml(common.RegLvsCareStaticPodName, vs, realEndpoints, lvsImageURL)
+	if err != nil {
+		return err
+	}
+
+	lvscareStaticCmd := ipvs.GetCreateLvscareStaticPodCmd(y, LvscarePodFileName)
+
 	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
 	// flush all cluster nodes as latest ipvs policy.
-	currentNodes := c.infraDriver.GetHostIPListByRole(common.NODE)
-	for _, n := range currentNodes {
-		err := c.infraDriver.CmdAsync(n, ipvsCmd)
+	for _, n := range clientHosts {
+		err := c.infraDriver.CmdAsync(n, ipvsCmd, lvscareStaticCmd)
 		if err != nil {
 			return fmt.Errorf("failed to config ndoes lvs policy %s: %v", ipvsCmd, err)
 		}
 
-		err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, common.DefaultVIP))
+		err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, vip))
 		if err != nil {
 			return fmt.Errorf("failed to config ndoes hosts file cmd: %v", err)
 		}
 	}
+
 	return nil
 }
 

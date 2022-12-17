@@ -41,7 +41,6 @@ const (
 	KUBECONTROLLERCONFIGFILE = "/etc/kubernetes/controller-manager.conf"
 	KUBESCHEDULERCONFIGFILE  = "/etc/kubernetes/scheduler.conf"
 	AdminKubeConfPath        = "/etc/kubernetes/admin.conf"
-	StaticPodDir             = "/etc/kubernetes/manifests"
 	LvscarePodFileName       = "kube-lvscare.yaml"
 )
 
@@ -59,13 +58,11 @@ rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd/* && rm -rf /var/etcd/* && rm -rf /root/.kube/config
 `
 	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
-	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
 	KubeDeleteNode               = "kubectl delete node %s"
 
-	CreateLvscareStaticPod = "mkdir -p %s && echo \"%s\" > %s"
-	RemoteCheckRoute       = "seautil route check --host %s"
-	RemoteAddRoute         = "seautil route add --host %s --gateway %s"
-	RemoteDelRoute         = "if command -v seautil > /dev/null 2>&1; then seautil route del --host %s --gateway %s; fi"
+	RemoteCheckRoute = "seautil route check --host %s"
+	RemoteAddRoute   = "seautil route add --host %s --gateway %s"
+	RemoteDelRoute   = "if command -v seautil > /dev/null 2>&1; then seautil route del --host %s --gateway %s; fi"
 )
 
 // StaticFile :static file should not be template, will never be changed while initialization.

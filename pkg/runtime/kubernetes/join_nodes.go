@@ -18,13 +18,13 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"path"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/ipvs"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"github.com/sealerio/sealer/utils"
@@ -61,11 +61,15 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	writeJoinConfigCmd := fmt.Sprintf("mkdir -p /etc/kubernetes && echo \"%s\" > %s", joinConfig, KubeadmFileYml)
 
 	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", k.Config.RegistryInfo.URL)
-	y, err := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), masters, lvsImageURL)
+	var realEndpoints []string
+	for _, m := range masters {
+		realEndpoints = append(realEndpoints, net.JoinHostPort(m.String(), "6443"))
+	}
+	y, err := ipvs.LvsStaticPodYaml(common.KubeLvsCareStaticPodName, net.JoinHostPort(k.getAPIServerVIP().String(), "6443"), realEndpoints, lvsImageURL)
 	if err != nil {
 		return err
 	}
-	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
+	lvscareStaticCmd := ipvs.GetCreateLvscareStaticPodCmd(y, LvscarePodFileName)
 
 	joinNodeCmd, err := k.Command(JoinNode)
 	if err != nil {

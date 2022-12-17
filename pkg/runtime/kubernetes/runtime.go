@@ -66,7 +66,7 @@ func NewKubeadmRuntime(clusterFileKubeConfig kubeadm.KubeadmConfig, infra infrad
 		},
 	}
 
-	if ipFamily := infra.GetClusterEnv()[common.EnvHostIPFamily]; ipFamily != nil && ipFamily.(string) == k8snet.IPv6 {
+	if hosts := infra.GetHostIPList(); len(hosts) > 0 && k8snet.IsIPv6(hosts[0]) {
 		k.Config.VIP = common.DefaultVIPForIPv6
 	}
 

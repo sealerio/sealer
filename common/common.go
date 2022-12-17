@@ -28,15 +28,18 @@ const (
 
 // Default dir and file path
 const (
-	EtcDir               = "etc"
-	DefaultTmpDir        = "/var/lib/sealer/tmp"
-	DefaultLogDir        = "/var/lib/sealer/log"
-	DefaultSealerDataDir = "/var/lib/sealer/data"
-	KubeAdminConf        = "/etc/kubernetes/admin.conf"
-	DefaultKubectlPath   = "/usr/bin/kubectl"
-	ClusterfileName      = "ClusterfileName"
-	RenderChartsDir      = "charts"
-	RenderManifestsDir   = "manifests"
+	EtcDir                   = "etc"
+	DefaultTmpDir            = "/var/lib/sealer/tmp"
+	DefaultLogDir            = "/var/lib/sealer/log"
+	DefaultSealerDataDir     = "/var/lib/sealer/data"
+	KubeAdminConf            = "/etc/kubernetes/admin.conf"
+	DefaultKubectlPath       = "/usr/bin/kubectl"
+	ClusterfileName          = "ClusterfileName"
+	RenderChartsDir          = "charts"
+	RenderManifestsDir       = "manifests"
+	KubeLvsCareStaticPodName = "kube-lvscare"
+	RegLvsCareStaticPodName  = "reg-lvscare"
+	StaticPodDir             = "/etc/kubernetes/manifests"
 )
 
 // API
