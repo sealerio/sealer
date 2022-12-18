@@ -63,7 +63,7 @@ func ConstructClusterForRun(imageName string, runFlags *types.Flags) (*v2.Cluste
 }
 
 func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, joinMasters, joinWorkers []net.IP) error {
-	//todo Add password encryption mode in the future
+	//TODO Add password encryption mode in the future
 	//add joined masters
 	if len(joinMasters) != 0 {
 		masterIPs := cluster.GetMasterIPList()
@@ -163,7 +163,7 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 	for _, node := range nodes.Items {
 		addr := getNodeAddress(node)
 		if addr == nil {
-			continue
+			return nil, fmt.Errorf("failed to get node address for node %s", node.Name)
 		}
 		if _, ok := node.Labels[common.MasterRoleLabel]; ok {
 			masterIPList = append(masterIPList, addr)
@@ -185,11 +185,8 @@ func getNodeAddress(node corev1.Node) net.IP {
 	for _, address := range node.Status.Addresses {
 		if address.Type == "InternalIP" {
 			IP = address.Address
+			break
 		}
-	}
-
-	if IP == "" {
-		IP = node.Status.Addresses[0].Address
 	}
 
 	return net.ParseIP(IP)

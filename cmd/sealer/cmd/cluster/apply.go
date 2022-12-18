@@ -132,6 +132,9 @@ func NewApplyCmd() *cobra.Command {
 			if len(md) > 0 || len(nd) > 0 {
 				logrus.Warnf("scale down not supported: %v, %v, skip them", md, nd)
 			}
+			if len(md) > 0 {
+				return fmt.Errorf("make sure all masters' ip exist in your clusterfile: %s", applyFlags.ClusterFile)
+			}
 
 			return scaleUpCluster(imageName, mj, nj, infraDriver, imageEngine, cf)
 		},

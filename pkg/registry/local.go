@@ -22,12 +22,14 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 	k8snet "k8s.io/utils/net"
 
 	"github.com/sealerio/sealer/common"
@@ -36,7 +38,7 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/ipvs"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	utilsnet "github.com/sealerio/sealer/utils/net"
+	netutils "github.com/sealerio/sealer/utils/net"
 	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/shellcommand"
 )
@@ -74,7 +76,7 @@ func (c *localConfigurator) UninstallFrom(deletedMasters, deletedNodes []net.IP)
 	}
 
 	// flush ipvs policy on remain nodes
-	return c.configureLvs(c.deployHosts, utilsnet.RemoveIPs(c.infraDriver.GetHostIPListByRole(common.NODE), deletedNodes))
+	return c.configureLvs(c.deployHosts, netutils.RemoveIPs(c.infraDriver.GetHostIPListByRole(common.NODE), deletedNodes))
 }
 
 func (c *localConfigurator) removeRegistryConfig(hosts []net.IP) error {
@@ -128,23 +130,33 @@ func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) er
 		return c.configureSingletonHostsFile(append(masters, nodes...))
 	}
 
-	// for master: domain + local IP
-	for _, m := range masters {
-		cmd := shellcommand.CommandSetHostAlias(c.Domain, m.String())
-		if err := c.infraDriver.CmdAsync(m, cmd); err != nil {
-			return fmt.Errorf("failed to config masters hosts file: %v", err)
-		}
+	eg, _ := errgroup.WithContext(context.Background())
+
+	for i := range masters {
+		master := masters[i]
+		eg.Go(func() error {
+			cmd := shellcommand.CommandSetHostAlias(c.Domain, master.String())
+			if err := c.infraDriver.CmdAsync(master, cmd); err != nil {
+				return fmt.Errorf("failed to config masters hosts file: %v", err)
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 
 	return c.configureLvs(c.deployHosts, c.infraDriver.GetHostIPListByRole(common.NODE))
 }
 
 func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) error {
-	// for node: add ipvs policy; domain + VIP
 	var rs []string
 	var realEndpoints []string
-	for _, m := range registryHosts {
-		ep := net.JoinHostPort(m.String(), strconv.Itoa(c.Port))
+	hosts := netutils.IPsToIPStrs(registryHosts)
+	sort.Strings(hosts)
+	for _, m := range hosts {
+		ep := net.JoinHostPort(m, strconv.Itoa(c.Port))
 		rs = append(rs, fmt.Sprintf("--rs %s", ep))
 		realEndpoints = append(realEndpoints, ep)
 	}
@@ -167,19 +179,24 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 
 	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
 	// flush all cluster nodes as latest ipvs policy.
-	for _, n := range clientHosts {
-		err := c.infraDriver.CmdAsync(n, ipvsCmd, lvscareStaticCmd)
-		if err != nil {
-			return fmt.Errorf("failed to config ndoes lvs policy %s: %v", ipvsCmd, err)
-		}
+	eg, _ := errgroup.WithContext(context.Background())
 
-		err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, vip))
-		if err != nil {
-			return fmt.Errorf("failed to config ndoes hosts file cmd: %v", err)
-		}
+	for i := range clientHosts {
+		n := clientHosts[i]
+		eg.Go(func() error {
+			err := c.infraDriver.CmdAsync(n, ipvsCmd, lvscareStaticCmd)
+			if err != nil {
+				return fmt.Errorf("failed to config ndoes lvs policy %s: %v", ipvsCmd, err)
+			}
+
+			err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, vip))
+			if err != nil {
+				return fmt.Errorf("failed to config ndoes hosts file cmd: %v", err)
+			}
+			return nil
+		})
 	}
-
-	return nil
+	return eg.Wait()
 }
 
 func (c *localConfigurator) configureSingletonHostsFile(hosts []net.IP) error {
@@ -299,20 +316,26 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 		}
 	}
 
+	eg, _ := errgroup.WithContext(context.Background())
+
 	// for docker: copy daemon.json to "/etc/docker/daemon.json"
 	// for containerd : copy hosts.toml to "/etc/containerd/certs.d/${domain}:${port}/hosts.toml"
-	for _, ip := range hosts {
-		err := c.infraDriver.Copy(ip, src, dest)
-		if err != nil {
-			return err
-		}
+	for i := range hosts {
+		ip := hosts[i]
+		eg.Go(func() error {
+			err := c.infraDriver.Copy(ip, src, dest)
+			if err != nil {
+				return err
+			}
 
-		err = c.infraDriver.CmdAsync(ip, "systemctl daemon-reload")
-		if err != nil {
-			return err
-		}
+			err = c.infraDriver.CmdAsync(ip, "systemctl daemon-reload")
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	}
-	return nil
+	return eg.Wait()
 }
 
 func (c *localConfigurator) configureDockerDaemonService(endpoint, daemonFile string) error {

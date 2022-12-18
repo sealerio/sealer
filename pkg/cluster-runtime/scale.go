@@ -122,10 +122,6 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 	master0 := masters[0]
 	registryDeployHosts := []net.IP{master0}
 	all := append(mastersToDelete, workersToDelete...)
-	// delete HostAlias
-	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {
-		return nil, nil, err
-	}
 
 	if err := i.runHostHook(PreCleanHost, all); err != nil {
 		return nil, nil, err
@@ -177,6 +173,11 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 	}
 
 	if err = i.runHostHook(PostCleanHost, all); err != nil {
+		return nil, nil, err
+	}
+
+	// delete HostAlias
+	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {
 		return nil, nil, err
 	}
 

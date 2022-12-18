@@ -37,10 +37,6 @@ func GetCreateLvscareStaticPodCmd(content, fileName string) string {
 	)
 }
 
-func GetRemoveLvscareStaticPodCmd(fileName string) string {
-	return fmt.Sprintf("rm -rf %s", path.Join(common.StaticPodDir, fileName))
-}
-
 // LvsStaticPodYaml return lvs care static pod yaml
 func LvsStaticPodYaml(podName, virtualEndpoint string, realEndpoints []string, image string) (string, error) {
 	if virtualEndpoint == "" || len(realEndpoints) == 0 || image == "" {
