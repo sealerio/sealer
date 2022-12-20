@@ -22,13 +22,15 @@ import (
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
-
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -172,18 +174,30 @@ func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 }
 
 func saveToCluster(data []byte) error {
-	client, err := k8s.NewK8sClient()
+	cli, err := kubernetes.GetClientFromConfig(kubernetes.AdminKubeConfPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to new k8s runtime client via adminconf: %v", err)
 	}
 
-	configMap := corev1.ConfigMap(configMapName, configMapNamespace)
-	configMap.Data = map[string]string{configMapDataName: string(data)}
-
-	_, err = client.ConfigMap(configMapNamespace).Apply(context.TODO(), configMap, metav1.ApplyOptions{FieldManager: "kubectl-create"})
-	if err != nil {
-		return fmt.Errorf("failed to create configmap: %v", err)
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: configMapNamespace,
+		},
+		Data: map[string]string{configMapDataName: string(data)},
 	}
+
+	ctx := context.Background()
+	if err := cli.Create(ctx, cm, &client.CreateOptions{}); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("unable to create configmap: %v", err)
+		}
+
+		if err := cli.Update(ctx, cm, &client.UpdateOptions{}); err != nil {
+			return fmt.Errorf("unable to update configmap: %v", err)
+		}
+	}
+
 	return nil
 }
 

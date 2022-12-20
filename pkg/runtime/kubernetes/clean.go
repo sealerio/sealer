@@ -18,13 +18,10 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"path"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/sealerio/sealer/pkg/ipvs"
 )
 
 func (k *Runtime) reset(mastersToDelete, workersToDelete []net.IP) error {
@@ -57,31 +54,13 @@ func (k *Runtime) reset(mastersToDelete, workersToDelete []net.IP) error {
 	return nil
 }
 
-func (k *Runtime) deleteMasters(mastersToDelete, remainMasters, remainWorkers []net.IP) error {
-	//todo should make lvs image name as const value in sealer repo.
-	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", k.Config.RegistryInfo.URL)
-	y, err := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), remainMasters, lvsImageURL)
-	if err != nil {
-		return err
-	}
-
-	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
-
-	eg, _ := errgroup.WithContext(context.Background())
-	for _, n := range remainWorkers {
-		node := n
-		eg.Go(func() error {
-			return k.infra.CmdAsync(node, RemoveLvscareStaticPod, lvscareStaticCmd)
-		})
-	}
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-
+func (k *Runtime) deleteMasters(mastersToDelete, remainMasters []net.IP) error {
 	var remainMaster0 *net.IP
 	if len(remainMasters) > 0 {
 		remainMaster0 = &remainMasters[0]
 	}
+
+	eg, _ := errgroup.WithContext(context.Background())
 
 	for _, m := range mastersToDelete {
 		master := m

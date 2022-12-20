@@ -66,7 +66,7 @@ func NewKubeadmRuntime(clusterFileKubeConfig kubeadm.KubeadmConfig, infra infrad
 		},
 	}
 
-	if ipFamily := infra.GetClusterEnv()[common.EnvHostIPFamily]; ipFamily != nil && ipFamily.(string) == k8snet.IPv6 {
+	if hosts := infra.GetHostIPList(); len(hosts) > 0 && k8snet.IsIPv6(hosts[0]) {
 		k.Config.VIP = common.DefaultVIPForIPv6
 	}
 
@@ -140,6 +140,7 @@ func (k *Runtime) Reset() error {
 
 func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
+	workers := k.infra.GetHostIPListByRole(common.NODE)
 
 	kubeadmConfig, err := kubeadm.LoadKubeadmConfigs(KubeadmFileYml, utils.DecodeCRDFromFile)
 	if err != nil {
@@ -153,6 +154,13 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 
 	if err = k.joinMasters(newMasters, masters[0], kubeadmConfig, token, certKey); err != nil {
 		return err
+	}
+
+	if len(newMasters) > 0 {
+		oldWorkers := utilsnet.RemoveIPs(workers, newWorkers)
+		if err := k.configureLvs(masters, oldWorkers); err != nil {
+			return err
+		}
 	}
 
 	if err = k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
@@ -180,7 +188,10 @@ func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
 
 	if len(mastersToDelete) > 0 {
 		remainWorkers := utilsnet.RemoveIPs(workers, workersToDelete)
-		if err := k.deleteMasters(mastersToDelete, remainMasters, remainWorkers); err != nil {
+		if err := k.deleteMasters(mastersToDelete, remainMasters); err != nil {
+			return err
+		}
+		if err := k.configureLvs(remainMasters, remainWorkers); err != nil {
 			return err
 		}
 	}

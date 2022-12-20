@@ -18,15 +18,22 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/sealerio/sealer/pkg/runtime"
+	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/ipvs"
+	"github.com/sealerio/sealer/pkg/runtime"
+	netutils "github.com/sealerio/sealer/utils/net"
+	"github.com/sealerio/sealer/utils/shellcommand"
 )
 
 const (
@@ -41,7 +48,6 @@ const (
 	KUBECONTROLLERCONFIGFILE = "/etc/kubernetes/controller-manager.conf"
 	KUBESCHEDULERCONFIGFILE  = "/etc/kubernetes/scheduler.conf"
 	AdminKubeConfPath        = "/etc/kubernetes/admin.conf"
-	StaticPodDir             = "/etc/kubernetes/manifests"
 	LvscarePodFileName       = "kube-lvscare.yaml"
 )
 
@@ -59,13 +65,11 @@ rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd/* && rm -rf /var/etcd/* && rm -rf /root/.kube/config
 `
 	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
-	RemoveLvscareStaticPod       = "rm -rf  /etc/kubernetes/manifests/kube-sealyun-lvscare*"
 	KubeDeleteNode               = "kubectl delete node %s"
 
-	CreateLvscareStaticPod = "mkdir -p %s && echo \"%s\" > %s"
-	RemoteCheckRoute       = "seautil route check --host %s"
-	RemoteAddRoute         = "seautil route add --host %s --gateway %s"
-	RemoteDelRoute         = "if command -v seautil > /dev/null 2>&1; then seautil route del --host %s --gateway %s; fi"
+	RemoteCheckRoute = "seautil route check --host %s"
+	RemoteAddRoute   = "seautil route add --host %s --gateway %s"
+	RemoteDelRoute   = "if command -v seautil > /dev/null 2>&1; then seautil route del --host %s --gateway %s; fi"
 )
 
 // StaticFile :static file should not be template, will never be changed while initialization.
@@ -170,4 +174,42 @@ func GetClientFromConfig(adminConfPath string) (runtimeClient.Client, error) {
 	})
 
 	return ret, err
+}
+
+func (k *Runtime) configureLvs(masterHosts, clientHosts []net.IP) error {
+	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", k.Config.RegistryInfo.URL)
+
+	var rs []string
+	var realEndpoints []string
+
+	masters := netutils.IPsToIPStrs(masterHosts)
+	sort.Strings(masters)
+	for _, m := range masters {
+		rep := net.JoinHostPort(m, "6443")
+		rs = append(rs, fmt.Sprintf("--rs %s", rep))
+		realEndpoints = append(realEndpoints, rep)
+	}
+	vs := net.JoinHostPort(k.getAPIServerVIP().String(), "6443")
+	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
+	y, err := ipvs.LvsStaticPodYaml(common.KubeLvsCareStaticPodName, vs, realEndpoints, lvsImageURL)
+	if err != nil {
+		return err
+	}
+	lvscareStaticCmd := ipvs.GetCreateLvscareStaticPodCmd(y, LvscarePodFileName)
+
+	eg, _ := errgroup.WithContext(context.Background())
+
+	// flush all cluster nodes as latest ipvs policy.
+	for i := range clientHosts {
+		node := clientHosts[i]
+		eg.Go(func() error {
+			err := k.infra.CmdAsync(node, ipvsCmd, lvscareStaticCmd, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), k.getAPIServerVIP().String()))
+			if err != nil {
+				return fmt.Errorf("failed to config ndoes lvs policy %s: %v", ipvsCmd, err)
+			}
+			return nil
+		})
+	}
+
+	return eg.Wait()
 }
