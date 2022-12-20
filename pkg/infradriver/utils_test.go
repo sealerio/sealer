@@ -72,7 +72,9 @@ func TestFormatData(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to format data, error:%v", err)
 			}
-			assert.Equal(t, tt.args.wanted, result)
+			for _, taint := range result {
+				assert.Equal(t, tt.args.wanted, taint)
+			}
 		})
 	}
 }

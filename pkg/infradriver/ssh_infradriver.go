@@ -66,7 +66,7 @@ func convertTaints(taints []string) ([]k8sv1.Taint, error) {
 		if err != nil {
 			return nil, err
 		}
-		k8staints = append(k8staints, data)
+		k8staints = append(k8staints, data...)
 	}
 	return k8staints, nil
 }

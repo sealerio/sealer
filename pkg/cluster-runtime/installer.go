@@ -21,8 +21,6 @@ import (
 	"strings"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
@@ -37,6 +35,8 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
+
+	corev1 "k8s.io/api/core/v1"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -343,8 +343,9 @@ func getAddress(addresses []corev1.NodeAddress) string {
 
 func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 	var (
-		k8snode corev1.Node
-		ok      bool
+		k8snode    corev1.Node
+		ok         bool
+		nodeTaints []corev1.Taint
 	)
 	nodeList := corev1.NodeList{}
 	if err := driver.List(context.TODO(), &nodeList); err != nil {
@@ -360,9 +361,21 @@ func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 		if len(taints) == 0 {
 			continue
 		}
+
 		if k8snode, ok = nodeTaint[ip.String()]; ok {
 			newNode := k8snode.DeepCopy()
-			newNode.Spec.Taints = taints
+			for _, taint := range taints {
+				if strings.Contains(taint.Key, infradriver.DelSymbol) {
+					taintKey := strings.TrimSuffix(taint.Key, infradriver.DelSymbol)
+					nodeTaints, _ = deleteTaintsByKey(newNode.Spec.Taints, taintKey)
+					newNode.Spec.Taints = nodeTaints
+				} else if strings.Contains(string(taint.Effect), infradriver.DelSymbol) {
+					nodeTaints, _ = deleteTaint(newNode.Spec.Taints, &taint) // #nosec
+					newNode.Spec.Taints = nodeTaints
+				} else {
+					newNode.Spec.Taints = taints
+				}
+			}
 			newNode.SetResourceVersion("")
 			if err := utils.Retry(tryTimes, trySleepTime, func() error {
 				if err := driver.Update(context.TODO(), newNode); err != nil {
@@ -375,4 +388,28 @@ func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 		}
 	}
 	return nil
+}
+
+// deleteTaintsByKey removes all the taints that have the same key to given taintKey
+func deleteTaintsByKey(taints []corev1.Taint, taintKey string) ([]corev1.Taint, bool) {
+	newTaints := []corev1.Taint{}
+	for i := range taints {
+		if taintKey == taints[i].Key {
+			continue
+		}
+		newTaints = append(newTaints, taints[i])
+	}
+	return newTaints, len(taints) != len(newTaints)
+}
+
+// deleteTaint removes all the taints that have the same key and effect to given taintToDelete.
+func deleteTaint(taints []corev1.Taint, taintToDelete *corev1.Taint) ([]corev1.Taint, bool) {
+	newTaints := []corev1.Taint{}
+	for i := range taints {
+		if taintToDelete.MatchTaint(&taints[i]) {
+			continue
+		}
+		newTaints = append(newTaints, taints[i])
+	}
+	return newTaints, len(taints) != len(newTaints)
 }
