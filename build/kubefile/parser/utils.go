@@ -218,18 +218,18 @@ func isShell(sources ...string) (bool, []string, error) {
 }
 
 func getApplicationType(sources []string) (string, []string, error) {
-	isy, yamlErr := isYaml(sources...)
-	if isy {
+	isYamlType, yamlErr := isYaml(sources...)
+	if isYamlType {
 		return application.KubeApp, sources, nil
 	}
 
-	iss, files, shellErr := isShell(sources...)
-	if iss {
+	isShellType, files, shellErr := isShell(sources...)
+	if isShellType {
 		return application.ShellApp, files, nil
 	}
 
-	ish, helmErr := isHelm(sources...)
-	if ish {
+	isHelmType, helmErr := isHelm(sources...)
+	if isHelmType {
 		return application.HelmApp, sources, nil
 	}
 

@@ -128,7 +128,7 @@ func (e *externalConfigurator) GetDriver() (Driver, error) {
 func NewExternalConfigurator(regConfig *v2.ExternalRegistry, containerRuntimeInfo containerruntime.Info, driver infradriver.InfraDriver) (Configurator, error) {
 	domain := regConfig.Domain
 	if regConfig.Port != 0 {
-		domain = regConfig.Domain + ":" + strconv.Itoa(regConfig.Port)
+		domain = net.JoinHostPort(regConfig.Domain, strconv.Itoa(regConfig.Port))
 	}
 	return &externalConfigurator{
 		endpoint:             domain,

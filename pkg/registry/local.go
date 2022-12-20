@@ -83,9 +83,9 @@ func (c *localConfigurator) removeRegistryConfig(hosts []net.IP) error {
 	var uninstallCmd []string
 	if c.RegistryConfig.Username != "" && c.RegistryConfig.Password != "" {
 		//todo use sdk to logout instead of shell cmd
-		logoutCmd := fmt.Sprintf("docker logout %s ", c.Domain+":"+strconv.Itoa(c.Port))
+		logoutCmd := fmt.Sprintf("docker logout %s ", net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)))
 		if c.containerRuntimeInfo.Type != "docker" {
-			logoutCmd = fmt.Sprintf("nerdctl logout %s ", c.Domain+":"+strconv.Itoa(c.Port))
+			logoutCmd = fmt.Sprintf("nerdctl logout %s ", net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)))
 		}
 		uninstallCmd = append(uninstallCmd, logoutCmd)
 	}
@@ -219,7 +219,7 @@ func (c *localConfigurator) configureRegistryCert(hosts []net.IP) error {
 	}
 
 	var (
-		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+		endpoint = net.JoinHostPort(c.Domain, strconv.Itoa(c.Port))
 		caFile   = c.Domain + ".crt"
 		src      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "certs", caFile)
 		dest     = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
@@ -232,7 +232,7 @@ func (c *localConfigurator) configureAccessCredential(hosts []net.IP) error {
 	var (
 		username        = c.RegistryConfig.Username
 		password        = c.RegistryConfig.Password
-		endpoint        = c.Domain + ":" + strconv.Itoa(c.Port)
+		endpoint        = net.JoinHostPort(c.Domain, strconv.Itoa(c.Port))
 		tmpAuthFilePath = "/tmp/config.json"
 		// todo we need this config file when kubelet pull images from registry. while, we could optimize the logic here.
 		remoteKubeletAuthFilePath = "/var/lib/kubelet/config.json"
@@ -293,7 +293,7 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 	var (
 		src      string
 		dest     string
-		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+		endpoint = net.JoinHostPort(c.Domain, strconv.Itoa(c.Port))
 	)
 
 	if endpoint == common.DefaultRegistryURL {
