@@ -49,11 +49,20 @@ func (s *scpDistributor) DistributeRegistry(deployHosts []net.IP, dataDir string
 			continue
 		}
 
+		eg, _ := errgroup.WithContext(context.Background())
 		for _, deployHost := range deployHosts {
-			err := s.infraDriver.Copy(deployHost, filepath.Join(info.MountDir, RegistryDirName), dataDir)
-			if err != nil {
-				return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
-			}
+			host := deployHost
+			eg.Go(func() error {
+				err := s.infraDriver.Copy(host, filepath.Join(info.MountDir, RegistryDirName), dataDir)
+				if err != nil {
+					return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
+				}
+				return nil
+			})
+		}
+
+		if err := eg.Wait(); err != nil {
+			return err
 		}
 	}
 
