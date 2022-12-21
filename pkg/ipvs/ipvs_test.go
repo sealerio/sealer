@@ -141,10 +141,12 @@ status: {}
 
 func TestLvsStaticPodYaml(t *testing.T) {
 	type args struct {
-		podName string
-		vip     string
-		masters []string
-		image   string
+		podName     string
+		vip         string
+		masters     []string
+		image       string
+		healthPath  string
+		healthSchem string
 	}
 	tests := []struct {
 		name string
@@ -160,32 +162,39 @@ func TestLvsStaticPodYaml(t *testing.T) {
 					"172.16.228.158:6443",
 					"172.16.228.159:6443",
 				},
-				image: "fdfadf",
+				image:       "fdfadf",
+				healthPath:  "/healthz",
+				healthSchem: "https",
 			},
 			want: want[0],
 		},
 		{
 			args: args{
-				podName: "kube-lvscare",
-				vip:     "10.107.2.1:6443",
-				masters: []string{"172.16.228.157:6443"},
-				image:   "fdfadf",
+				podName:     "kube-lvscare",
+				vip:         "10.107.2.1:6443",
+				masters:     []string{"172.16.228.157:6443"},
+				image:       "fdfadf",
+				healthPath:  "/healthz",
+				healthSchem: "https",
 			},
 			want: want[1],
 		},
 		{
 			args: args{
-				podName: "reg-lvscare",
-				vip:     "10.107.2.1:5000",
-				masters: []string{"172.16.228.157:5000"},
-				image:   "a1",
+				podName:     "reg-lvscare",
+				vip:         "10.107.2.1:5000",
+				masters:     []string{"172.16.228.157:5000"},
+				image:       "a1",
+				healthPath:  "/healthz",
+				healthSchem: "https",
 			},
 			want: want[2],
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := LvsStaticPodYaml(tt.args.podName, tt.args.vip, tt.args.masters, tt.args.image); got != tt.want {
+			if got, _ := LvsStaticPodYaml(tt.args.podName, tt.args.vip, tt.args.masters,
+				tt.args.image, tt.args.healthPath, tt.args.healthSchem); got != tt.want {
 				t.Errorf("LvsStaticPodYaml() = %v, want %v", got, tt.want)
 			}
 		})
