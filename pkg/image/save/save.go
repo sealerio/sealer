@@ -46,7 +46,8 @@ const (
 	HTTP                = "http://"
 	defaultProxyURL     = "https://registry-1.docker.io"
 	configRootDir       = "rootdirectory"
-	maxPullGoroutineNum = 1
+	maxPullGoroutineNum = 2
+	maxRetryTime        = 3
 
 	manifestV2       = "application/vnd.docker.distribution.manifest.v2+json"
 	manifestOCI      = "application/vnd.oci.image.manifest.v1+json"
@@ -235,14 +236,8 @@ func (is *DefaultImageSaver) SaveImagesWithAuth(imageList ImageListWithAuth, dir
 				defer func() {
 					<-numCh
 				}()
-
-				registry, err := NewProxyRegistryWithAuth(is.ctx, section.Username, section.Password, dir, tmpnameds[0].domain)
-				if err != nil {
-					return fmt.Errorf("failed to init registry: %v", err)
-				}
-				err = is.save(tmpnameds, platform, registry)
-				if err != nil {
-					return fmt.Errorf("failed to save domain %s image: %v", tmpnameds[0], err)
+				if err := is.download(dir, platform, section, tmpnameds, maxRetryTime); err != nil {
+					return err
 				}
 				return nil
 			})
@@ -258,6 +253,38 @@ func (is *DefaultImageSaver) SaveImagesWithAuth(imageList ImageListWithAuth, dir
 	return nil
 }
 
+func (is *DefaultImageSaver) download(dir string, platform v1.Platform, section Section, nameds []Named, retryTime int) error {
+	registry, err := NewProxyRegistryWithAuth(is.ctx, section.Username, section.Password, dir, nameds[0].domain)
+	if err != nil {
+		return fmt.Errorf("failed to init registry: %v", err)
+	}
+	err = is.save(nameds, platform, registry)
+	if err != nil {
+		return fmt.Errorf("failed to save domain %s image: %v", nameds[0], err)
+	}
+
+	// double check whether the image is unbroken
+	var imageExistError error
+	var imageExistErrorNamed Named
+	for _, named := range nameds {
+		imageExistError = is.isImageExist(named, dir, platform)
+		if imageExistError != nil {
+			imageExistErrorNamed = named
+			break
+		}
+	}
+	if imageExistError == nil {
+		return nil
+	}
+	if retryTime <= 0 {
+		return imageExistError
+	}
+	// retry to download
+	progress.Message(is.progressOut, "", fmt.Sprintf("Retry: failed to save image(%s) and retry it", imageExistErrorNamed.FullName()))
+	return is.download(dir, platform, section, nameds, retryTime-1)
+}
+
+// TODO: support retry mechanism here
 func (is *DefaultImageSaver) save(nameds []Named, platform v1.Platform, registry distribution.Namespace) error {
 	repo, err := is.getRepository(nameds[0], registry)
 	if err != nil {

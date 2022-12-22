@@ -44,12 +44,12 @@ type scpDistributor struct {
 }
 
 func (s *scpDistributor) DistributeRegistry(deployHosts []net.IP, dataDir string) error {
-	eg, _ := errgroup.WithContext(context.Background())
 	for _, info := range s.imageMountInfo {
 		if !osi.IsFileExist(filepath.Join(info.MountDir, RegistryDirName)) {
 			continue
 		}
 
+		eg, _ := errgroup.WithContext(context.Background())
 		for _, deployHost := range deployHosts {
 			tmpDeployHost := deployHost
 			eg.Go(func() error {
@@ -60,9 +60,9 @@ func (s *scpDistributor) DistributeRegistry(deployHosts []net.IP, dataDir string
 				return nil
 			})
 		}
-	}
-	if err := eg.Wait(); err != nil {
-		return err
+		if err := eg.Wait(); err != nil {
+			return err
+		}
 	}
 
 	return nil
