@@ -44,17 +44,25 @@ type scpDistributor struct {
 }
 
 func (s *scpDistributor) DistributeRegistry(deployHosts []net.IP, dataDir string) error {
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, info := range s.imageMountInfo {
 		if !osi.IsFileExist(filepath.Join(info.MountDir, RegistryDirName)) {
 			continue
 		}
 
 		for _, deployHost := range deployHosts {
-			err := s.infraDriver.Copy(deployHost, filepath.Join(info.MountDir, RegistryDirName), dataDir)
-			if err != nil {
-				return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
-			}
+			tmpDeployHost := deployHost
+			eg.Go(func() error {
+				err := s.infraDriver.Copy(tmpDeployHost, filepath.Join(info.MountDir, RegistryDirName), dataDir)
+				if err != nil {
+					return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
+				}
+				return nil
+			})
 		}
+	}
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 
 	return nil
