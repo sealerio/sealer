@@ -191,7 +191,8 @@ func (k *Runtime) configureLvs(masterHosts, clientHosts []net.IP) error {
 	}
 	vs := net.JoinHostPort(k.getAPIServerVIP().String(), "6443")
 	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
-	y, err := ipvs.LvsStaticPodYaml(common.KubeLvsCareStaticPodName, vs, realEndpoints, lvsImageURL)
+	y, err := ipvs.LvsStaticPodYaml(common.KubeLvsCareStaticPodName, vs, realEndpoints, lvsImageURL,
+		"/healthz", "https")
 	if err != nil {
 		return err
 	}

@@ -20,16 +20,16 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
+	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	netutils "github.com/sealerio/sealer/utils/net"
 	osutils "github.com/sealerio/sealer/utils/os"
-	"github.com/sealerio/sealer/utils/strings"
+	strutils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
 )
 
 // Installer provide registry lifecycle management.
@@ -76,7 +76,7 @@ func (l *localInstaller) Reconcile(desiredHosts []net.IP) ([]net.IP, error) {
 		return desiredHosts, nil
 	}
 
-	joinedHosts, deletedHosts := strings.Diff(l.currentDeployHosts, desiredHosts)
+	joinedHosts, deletedHosts := strutils.Diff(l.currentDeployHosts, desiredHosts)
 	// if targetHosts is equal deployHosts, just return.
 	if len(joinedHosts) == 0 && len(deletedHosts) == 0 {
 		return l.currentDeployHosts, nil
@@ -229,9 +229,11 @@ func (l *localInstaller) reconcileRegistry(hosts []net.IP) error {
 	}
 
 	// bash init-registry.sh ${port} ${mountData} ${domain}
+	clusterEnvs := l.infraDriver.GetClusterEnv()
 	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", rootfs, strconv.Itoa(l.Port), dataDir, l.Domain)
+	initRegistryCmd := env.WrapperShell(initRegistry, clusterEnvs)
 	for _, deployHost := range hosts {
-		if err := l.infraDriver.CmdAsync(deployHost, initRegistry); err != nil {
+		if err := l.infraDriver.CmdAsync(deployHost, initRegistryCmd); err != nil {
 			return err
 		}
 	}

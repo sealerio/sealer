@@ -38,12 +38,13 @@ func GetCreateLvscareStaticPodCmd(content, fileName string) string {
 }
 
 // LvsStaticPodYaml return lvs care static pod yaml
-func LvsStaticPodYaml(podName, virtualEndpoint string, realEndpoints []string, image string) (string, error) {
+func LvsStaticPodYaml(podName, virtualEndpoint string, realEndpoints []string, image string,
+	healthPath string, healthSchem string) (string, error) {
 	if virtualEndpoint == "" || len(realEndpoints) == 0 || image == "" {
 		return "", fmt.Errorf("invalid args to create Lvs static pod")
 	}
 
-	args := []string{"care", "--vs", virtualEndpoint, "--health-path", "/healthz", "--health-schem", "https"}
+	args := []string{"care", "--vs", virtualEndpoint, "--health-path", healthPath, "--health-schem", healthSchem}
 	for _, re := range realEndpoints {
 		args = append(args, "--rs", re)
 	}

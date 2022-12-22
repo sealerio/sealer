@@ -170,14 +170,22 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 	}
 
 	vs := net.JoinHostPort(vip, strconv.Itoa(c.Port))
-	y, err := ipvs.LvsStaticPodYaml(common.RegLvsCareStaticPodName, vs, realEndpoints, lvsImageURL)
+	// due to registry server do not have health path to check, choose "/" as default.
+	healthPath := "/"
+	healthSchem := "https"
+	if *c.Insecure {
+		healthSchem = "http"
+	}
+
+	y, err := ipvs.LvsStaticPodYaml(common.RegLvsCareStaticPodName, vs, realEndpoints, lvsImageURL, healthPath, healthSchem)
 	if err != nil {
 		return err
 	}
 
 	lvscareStaticCmd := ipvs.GetCreateLvscareStaticPodCmd(y, LvscarePodFileName)
 
-	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
+	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path %s --health-schem %s --run-once",
+		vs, strings.Join(rs, " "), healthPath, healthSchem)
 	// flush all cluster nodes as latest ipvs policy.
 	eg, _ := errgroup.WithContext(context.Background())
 
@@ -186,12 +194,12 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 		eg.Go(func() error {
 			err := c.infraDriver.CmdAsync(n, ipvsCmd, lvscareStaticCmd)
 			if err != nil {
-				return fmt.Errorf("failed to config ndoes lvs policy %s: %v", ipvsCmd, err)
+				return fmt.Errorf("failed to config nodes lvs policy %s: %v", ipvsCmd, err)
 			}
 
 			err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, vip))
 			if err != nil {
-				return fmt.Errorf("failed to config ndoes hosts file cmd: %v", err)
+				return fmt.Errorf("failed to config nodes hosts file cmd: %v", err)
 			}
 			return nil
 		})
