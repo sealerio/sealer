@@ -11,7 +11,7 @@ permissions:
 jobs:
   note:
     name: Pre note
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     timeout-minutes: 5
     outputs:
       stringver: ${{ steps.contentrel.outputs.stringver }}
@@ -55,7 +55,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ ubuntu-20.04 ]
 
     steps:
       - name: Install Go
@@ -88,7 +88,7 @@ jobs:
         shell: bash
         run: |
           export MULTI_PLATFORM_BUILD=true
-          make build
+          make linux
         working-directory: src/github.com/sealerio/sealer
 
       - name: Save build binaries
@@ -100,7 +100,7 @@ jobs:
 
   release:
     name: Create sealer Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     needs: [ build, note ]
 

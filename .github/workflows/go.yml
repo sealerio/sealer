@@ -13,7 +13,7 @@ jobs:
 
   build:
     name: ubuntu - Go v1.17
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Install deps
@@ -59,7 +59,7 @@ jobs:
         shell: bash
         run: |
           export MULTI_PLATFORM_BUILD=true
-          make build
+          make linux
         working-directory: src/github.com/sealerio/sealer
 
       - name: Save build binaries
