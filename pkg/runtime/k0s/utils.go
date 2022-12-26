@@ -40,8 +40,8 @@ func GenerateRegistryCert(registryCertPath string, baseName string) error {
 		Organization: []string{common.ExecBinaryFileName},
 		Year:         100,
 	}
-	if baseName != SeaHub {
-		regCertConfig.DNSNames = append(regCertConfig.DNSNames, SeaHub)
+	if baseName != common.DefaultRegistryDomain {
+		regCertConfig.DNSNames = append(regCertConfig.DNSNames, common.DefaultRegistryDomain)
 	}
 
 	caGenerator := cert.NewAuthorityCertificateGenerator(regCertConfig)

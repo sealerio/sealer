@@ -14,7 +14,7 @@
 
 package version
 
-// TODO maybe move it a global version interface, for version compatibility
+// VersionedApplication TODO maybe move it a global version interface, for version compatibility
 type VersionedApplication interface {
 	Version() string
 
@@ -22,5 +22,5 @@ type VersionedApplication interface {
 
 	Type() string
 
-	LaunchFiles() []string
+	LaunchCmd(appRoot string) string
 }

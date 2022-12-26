@@ -22,6 +22,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8snet "k8s.io/utils/net"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -30,12 +37,6 @@ import (
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"github.com/sealerio/sealer/utils"
 	utilsnet "github.com/sealerio/sealer/utils/net"
-	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8snet "k8s.io/utils/net"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Config struct {
@@ -65,7 +66,7 @@ func NewKubeadmRuntime(clusterFileKubeConfig kubeadm.KubeadmConfig, infra infrad
 		},
 	}
 
-	if ipFamily := infra.GetClusterEnv()[common.EnvHostIPFamily]; ipFamily != nil && ipFamily.(string) == k8snet.IPv6 {
+	if hosts := infra.GetHostIPList(); len(hosts) > 0 && k8snet.IsIPv6(hosts[0]) {
 		k.Config.VIP = common.DefaultVIPForIPv6
 	}
 
@@ -97,7 +98,7 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	token, certKey, err := k.initMaster0(kubeadmConf, masters[0])
+	token, certKey, err := k.initMaster0(masters[0])
 	if err != nil {
 		return err
 	}
@@ -110,11 +111,16 @@ func (k *Runtime) Install() error {
 		return err
 	}
 
-	if err := k.dumpKubeConfigIntoCluster(masters[0]); err != nil {
+	driver, err := k.GetCurrentRuntimeDriver()
+	if err != nil {
 		return err
 	}
 
-	logrus.Info("Succeeded in creating a new cluster.")
+	if err := k.dumpKubeConfigIntoCluster(driver, masters[0]); err != nil {
+		return err
+	}
+
+	logrus.Info("succeeded in creating a new cluster.")
 	return nil
 }
 
@@ -134,6 +140,7 @@ func (k *Runtime) Reset() error {
 
 func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
+	workers := k.infra.GetHostIPListByRole(common.NODE)
 
 	kubeadmConfig, err := kubeadm.LoadKubeadmConfigs(KubeadmFileYml, utils.DecodeCRDFromFile)
 	if err != nil {
@@ -149,9 +156,17 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 		return err
 	}
 
+	if len(newMasters) > 0 {
+		oldWorkers := utilsnet.RemoveIPs(workers, newWorkers)
+		if err := k.configureLvs(masters, oldWorkers); err != nil {
+			return err
+		}
+	}
+
 	if err = k.joinNodes(newWorkers, masters, kubeadmConfig, token); err != nil {
 		return err
 	}
+
 	logrus.Info("cluster scale up succeeded!")
 	return nil
 }
@@ -173,7 +188,10 @@ func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
 
 	if len(mastersToDelete) > 0 {
 		remainWorkers := utilsnet.RemoveIPs(workers, workersToDelete)
-		if err := k.deleteMasters(mastersToDelete, remainMasters, remainWorkers); err != nil {
+		if err := k.deleteMasters(mastersToDelete, remainMasters); err != nil {
+			return err
+		}
+		if err := k.configureLvs(remainMasters, remainWorkers); err != nil {
 			return err
 		}
 	}
@@ -183,12 +201,7 @@ func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
 }
 
 // dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
-func (k *Runtime) dumpKubeConfigIntoCluster(master0 net.IP) error {
-	driver, err := k.GetCurrentRuntimeDriver()
-	if err != nil {
-		return err
-	}
-
+func (k *Runtime) dumpKubeConfigIntoCluster(driver runtime.Driver, master0 net.IP) error {
 	kubeConfigContent, err := os.ReadFile(AdminKubeConfPath)
 	if err != nil {
 		return err

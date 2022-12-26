@@ -19,6 +19,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
+	"strconv"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,6 +63,10 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			if err := yaml.Unmarshal(ext.Raw, &cluster); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
+			if err := checkAndFillCluster(&cluster); err != nil {
+				return fmt.Errorf("failed to check and complete cluster: %v", err)
+			}
+
 			clusterfile.cluster = &cluster
 		case common.Config:
 			var cfg v1.Config
@@ -118,4 +125,60 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			clusterfile.kubeadmConfig.KubeProxyConfiguration = in
 		}
 	}
+}
+
+func checkAndFillCluster(cluster *v2.Cluster) error {
+	defaultInsecure := false
+	defaultHA := true
+
+	if cluster.Spec.Registry.LocalRegistry == nil && cluster.Spec.Registry.ExternalRegistry == nil {
+		cluster.Spec.Registry.LocalRegistry = &v2.LocalRegistry{}
+	}
+
+	if cluster.Spec.Registry.LocalRegistry != nil {
+		if cluster.Spec.Registry.LocalRegistry.Domain == "" {
+			cluster.Spec.Registry.LocalRegistry.Domain = common.DefaultRegistryDomain
+		}
+		if cluster.Spec.Registry.LocalRegistry.Port == 0 {
+			cluster.Spec.Registry.LocalRegistry.Port = common.DefaultRegistryPort
+		}
+		if cluster.Spec.Registry.LocalRegistry.Insecure == nil {
+			cluster.Spec.Registry.LocalRegistry.Insecure = &defaultInsecure
+		}
+		if cluster.Spec.Registry.LocalRegistry.HA == nil {
+			cluster.Spec.Registry.LocalRegistry.HA = &defaultHA
+		}
+	}
+
+	if cluster.Spec.Registry.ExternalRegistry != nil {
+		if cluster.Spec.Registry.ExternalRegistry.Domain == "" {
+			return fmt.Errorf("external registry domain can not be empty")
+		}
+	}
+
+	regConfig := v2.RegistryConfig{}
+	if cluster.Spec.Registry.ExternalRegistry != nil {
+		regConfig = cluster.Spec.Registry.ExternalRegistry.RegistryConfig
+	}
+	if cluster.Spec.Registry.LocalRegistry != nil {
+		regConfig = cluster.Spec.Registry.LocalRegistry.RegistryConfig
+	}
+
+	var newEnv []string
+	for _, env := range cluster.Spec.Env {
+		if strings.HasPrefix(env, common.EnvRegistryDomain) || strings.HasPrefix(env, common.EnvRegistryPort) || strings.HasPrefix(env, common.EnvRegistryURL) {
+			continue
+		}
+		newEnv = append(newEnv, env)
+	}
+	cluster.Spec.Env = newEnv
+	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryDomain, regConfig.Domain))
+	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%d", common.EnvRegistryPort, regConfig.Port))
+	registryURL := net.JoinHostPort(regConfig.Domain, strconv.Itoa(regConfig.Port))
+	if regConfig.Port == 0 {
+		registryURL = regConfig.Domain
+	}
+	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryURL, registryURL))
+
+	return nil
 }

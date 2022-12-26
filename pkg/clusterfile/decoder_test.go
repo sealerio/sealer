@@ -106,13 +106,23 @@ func TestDecodeClusterFile(t *testing.T) {
 	cluster := v2.Cluster{
 		Spec: v2.ClusterSpec{
 			Image: "kubernetes:v1.19.8",
-			Env:   []string{"key1=value1", "key2=value2;value3"},
+			Env:   []string{"key1=value1", "key2=value2;value3", "RegistryDomain=sea.hub", "RegistryPort=5000", "RegistryURL=sea.hub:5000"},
 			SSH: v1.SSH{
 				User:     "root",
 				Passwd:   "test123",
 				Port:     "22",
 				Pk:       "xxx",
 				PkPasswd: "xxx",
+			},
+			Registry: v2.Registry{
+				LocalRegistry: &v2.LocalRegistry{
+					RegistryConfig: v2.RegistryConfig{
+						Domain: "sea.hub",
+						Port:   5000,
+					},
+					HA:       &defaultHA,
+					Insecure: &defaultInsecure,
+				},
 			},
 			Hosts: []v2.Host{
 				{

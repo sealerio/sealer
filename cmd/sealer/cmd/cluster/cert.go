@@ -17,10 +17,12 @@ package cluster
 import (
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/spf13/cobra"
 )
 
 var longCertCmdDescription = `This command will add the new domain or IP address in cert to update cluster API server.
@@ -36,6 +38,7 @@ The following command will generate new api server cert and key for all control-
 `
 
 var altNames []string
+var waitForAPIServerReady bool
 
 func NewCertCmd() *cobra.Command {
 	certCmd := &cobra.Command{
@@ -68,11 +71,18 @@ func NewCertCmd() *cobra.Command {
 					return fmt.Errorf("failed to update cluster api server cert: %v", err)
 				}
 			}
+
+			if waitForAPIServerReady {
+				//TODO, should wait for apiserver reload completion
+				time.Sleep(60 * time.Second)
+			}
+
 			return nil
 		},
 	}
 
 	certCmd.Flags().StringSliceVar(&altNames, "alt-names", []string{}, "add DNS domain or IP in certs, if it is already in the cert subject alternative names list, nothing will be changed")
+	certCmd.Flags().BoolVar(&waitForAPIServerReady, "wait", true, "wait for apiserver to be ready")
 
 	return certCmd
 }

@@ -19,18 +19,18 @@ import (
 	"net"
 	"path/filepath"
 
-	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
-	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
+	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/spf13/cobra"
 )
 
 var ScaleUpFlags *types.Flags
@@ -104,6 +104,8 @@ func NewScaleUpCmd() *cobra.Command {
 }
 
 func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+	logrus.Infof("start to scale up cluster")
+
 	var (
 		newHosts = append(scaleUpMasterIPList, scaleUpNodeIPList...)
 	)
@@ -171,6 +173,8 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
 		return err
 	}
+
+	logrus.Infof("succeeded in scaling up cluster")
 
 	return nil
 }

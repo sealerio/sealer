@@ -17,9 +17,10 @@ package cmd
 import (
 	"os"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/sealerio/sealer/common"
 )
 
 var longCompletionCmdDescription = `Generate the autocompletion script for sealer for the bash shell.

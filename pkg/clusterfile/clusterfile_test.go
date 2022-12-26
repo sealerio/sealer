@@ -28,11 +28,24 @@ import (
 	"github.com/sealerio/sealer/common"
 )
 
+var defaultHA = true
+var defaultInsecure = false
+
 func TestSaveAll(t *testing.T) {
 	cluster := v2.Cluster{
 		Spec: v2.ClusterSpec{
 			Image: "kubernetes:v1.19.8",
-			Env:   []string{"key1=value1", "key2=value2;value3", "key=value"},
+			Env:   []string{"key1=value1", "key2=value2;value3", "key=value", "RegistryDomain=sea.hub", "RegistryPort=5000", "RegistryURL=sea.hub:5000"},
+			Registry: v2.Registry{
+				LocalRegistry: &v2.LocalRegistry{
+					RegistryConfig: v2.RegistryConfig{
+						Domain: "sea.hub",
+						Port:   5000,
+					},
+					HA:       &defaultHA,
+					Insecure: &defaultInsecure,
+				},
+			},
 			SSH: v1.SSH{
 				User:     "root",
 				Passwd:   "test123",

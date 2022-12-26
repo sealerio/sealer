@@ -20,9 +20,10 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/sealerio/sealer/pkg/client/k8s"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 
@@ -62,9 +63,7 @@ func ConstructClusterForRun(imageName string, runFlags *types.Flags) (*v2.Cluste
 }
 
 func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, joinMasters, joinWorkers []net.IP) error {
-	// merge custom Env to the existed cluster
-	cluster.Spec.Env = append(cluster.Spec.Env, scaleFlags.CustomEnv...)
-	//todo Add password encryption mode in the future
+	//TODO Add password encryption mode in the future
 	//add joined masters
 	if len(joinMasters) != 0 {
 		masterIPs := cluster.GetMasterIPList()
@@ -132,6 +131,7 @@ func constructHost(role string, joinIPs []net.IP, scaleFlags *types.Flags, clust
 	host := v2.Host{
 		IPS:   joinIPs,
 		Roles: []string{role},
+		Env:   scaleFlags.CustomEnv,
 	}
 
 	scaleFlagSSH := v1.SSH{
@@ -163,7 +163,7 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 	for _, node := range nodes.Items {
 		addr := getNodeAddress(node)
 		if addr == nil {
-			continue
+			return nil, fmt.Errorf("failed to get node address for node %s", node.Name)
 		}
 		if _, ok := node.Labels[common.MasterRoleLabel]; ok {
 			masterIPList = append(masterIPList, addr)
@@ -185,11 +185,8 @@ func getNodeAddress(node corev1.Node) net.IP {
 	for _, address := range node.Status.Addresses {
 		if address.Type == "InternalIP" {
 			IP = address.Address
+			break
 		}
-	}
-
-	if IP == "" {
-		IP = node.Status.Addresses[0].Address
 	}
 
 	return net.ParseIP(IP)

@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
@@ -35,7 +37,7 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
-	corev1 "k8s.io/api/core/v1"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var tryTimes = 10
@@ -62,7 +64,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	var (
 		err       error
 		installer = &Installer{
-			regConfig: infraDriver.GetClusterRegistryConfig(),
+			regConfig: infraDriver.GetClusterRegistry(),
 		}
 	)
 
@@ -94,9 +96,14 @@ func (i *Installer) Install() error {
 		workers          = getWorkerIPList(i.infraDriver)
 		all              = append(masters, workers...)
 		cmds             = i.infraDriver.GetClusterLaunchCmds()
+		appNames         = i.infraDriver.GetClusterLaunchApps()
 		clusterImageName = i.infraDriver.GetClusterImageName()
 		rootfs           = i.infraDriver.GetClusterRootfsPath()
 	)
+
+	if len(cmds) != 0 && len(appNames) != 0 {
+		return fmt.Errorf("only one can be selected to do overwrite for launchCmds(%s) and appNames（%s）", cmds, appNames)
+	}
 
 	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: clusterImageName})
 	if err != nil {
@@ -137,7 +144,7 @@ func (i *Installer) Install() error {
 	var deployHosts []net.IP
 	if i.regConfig.LocalRegistry != nil {
 		installer := registry.NewInstaller(nil, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
-		if i.regConfig.LocalRegistry.HaMode {
+		if *i.regConfig.LocalRegistry.HA {
 			deployHosts, err = installer.Reconcile(masters)
 			if err != nil {
 				return err
@@ -186,6 +193,10 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	if err := i.setRoles(runtimeDriver); err != nil {
+		return err
+	}
+
 	if err = i.setNodeLabels(all, runtimeDriver); err != nil {
 		return err
 	}
@@ -196,7 +207,14 @@ func (i *Installer) Install() error {
 
 	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
 
-	if err = appInstaller.LaunchClusterImage(master0, cmds); err != nil {
+	var launchCmds []string
+	if len(cmds) != 0 {
+		launchCmds = cmds
+	} else {
+		launchCmds = GetAppLaunchCmdsByNames(appNames, extension.Applications)
+	}
+
+	if err = appInstaller.Launch(master0, launchCmds); err != nil {
 		return err
 	}
 
@@ -214,7 +232,7 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 		return nil, nil, err
 	}
 
-	if i.regConfig.LocalRegistry != nil && !i.regConfig.LocalRegistry.HaMode {
+	if i.regConfig.LocalRegistry != nil && !*i.regConfig.LocalRegistry.HA {
 		registryDeployHosts = []net.IP{master0}
 	}
 	// TODO, init here or in constructor?
@@ -239,6 +257,43 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	}
 
 	return registryDriver, runtimeDriver, nil
+}
+
+// setRoles save roles
+func (i *Installer) setRoles(driver runtime.Driver) error {
+	nodeList := corev1.NodeList{}
+	if err := driver.List(context.TODO(), &nodeList); err != nil {
+		return err
+	}
+
+	genRoleLabelFunc := func(role string) string {
+		return fmt.Sprintf("node-role.kubernetes.io/%s", role)
+	}
+
+	for idx, node := range nodeList.Items {
+		addresses := node.Status.Addresses
+		for _, address := range addresses {
+			if address.Type != "InternalIP" {
+				continue
+			}
+			roles := i.infraDriver.GetRoleListByHostIP(address.Address)
+			if len(roles) == 0 {
+				continue
+			}
+			newNode := node.DeepCopy()
+
+			for _, role := range roles {
+				newNode.Labels[genRoleLabelFunc(role)] = ""
+			}
+			patch := runtimeClient.MergeFrom(&nodeList.Items[idx])
+
+			if err := driver.Patch(context.TODO(), newNode, patch); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (i *Installer) setNodeLabels(hosts []net.IP, driver runtime.Driver) error {

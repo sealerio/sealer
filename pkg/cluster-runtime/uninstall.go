@@ -28,10 +28,6 @@ func (i *Installer) UnInstall() error {
 	master0 := masters[0]
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
-	// delete HostAlias
-	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {
-		return err
-	}
 
 	if err := i.runClusterHook(master0, PreUnInstallCluster); err != nil {
 		return err
@@ -56,7 +52,7 @@ func (i *Installer) UnInstall() error {
 	}
 
 	if i.regConfig.LocalRegistry != nil {
-		if i.regConfig.LocalRegistry.HaMode {
+		if *i.regConfig.LocalRegistry.HA {
 			installer := registry.NewInstaller(masters, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
 			err = installer.Clean()
 			if err != nil {
@@ -89,6 +85,11 @@ func (i *Installer) UnInstall() error {
 	}
 
 	if err = i.runClusterHook(master0, PostUnInstallCluster); err != nil {
+		return err
+	}
+
+	// delete HostAlias
+	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {
 		return err
 	}
 

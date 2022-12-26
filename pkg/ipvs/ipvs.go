@@ -16,32 +16,41 @@ package ipvs
 
 import (
 	"fmt"
-	"net"
+	"path"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
+
+	"github.com/sealerio/sealer/common"
 )
 
 const (
-	LvsCareStaticPodName = "kube-lvscare"
-	LvsCareCommand       = "/usr/bin/lvscare"
+	LvsCareCommand = "/usr/bin/lvscare"
 )
 
+func GetCreateLvscareStaticPodCmd(content, fileName string) string {
+	return fmt.Sprintf("mkdir -p %s && echo \"%s\" > %s",
+		common.StaticPodDir,
+		content,
+		path.Join(common.StaticPodDir, fileName),
+	)
+}
+
 // LvsStaticPodYaml return lvs care static pod yaml
-func LvsStaticPodYaml(vip net.IP, masters []net.IP, image string) (string, error) {
-	if vip == nil || len(masters) == 0 || image == "" {
+func LvsStaticPodYaml(podName, virtualEndpoint string, realEndpoints []string, image string,
+	healthPath string, healthSchem string) (string, error) {
+	if virtualEndpoint == "" || len(realEndpoints) == 0 || image == "" {
 		return "", fmt.Errorf("invalid args to create Lvs static pod")
 	}
 
-	args := []string{"care", "--vs", net.JoinHostPort(vip.String(), "6443"), "--health-path", "/healthz", "--health-schem", "https"}
-	for _, m := range masters {
-		args = append(args, "--rs")
-		args = append(args, net.JoinHostPort(m.String(), "6443"))
+	args := []string{"care", "--vs", virtualEndpoint, "--health-path", healthPath, "--health-schem", healthSchem}
+	for _, re := range realEndpoints {
+		args = append(args, "--rs", re)
 	}
 	flag := true
-	pod := componentPod(v1.Container{
-		Name:            LvsCareStaticPodName,
+	pod := componentPod(podName, v1.Container{
+		Name:            "main",
 		Image:           image,
 		Command:         []string{LvsCareCommand},
 		Args:            args,
@@ -58,7 +67,7 @@ func LvsStaticPodYaml(vip net.IP, masters []net.IP, image string) (string, error
 }
 
 // componentPod returns a Pod object from the container and volume specifications
-func componentPod(container v1.Container) v1.Pod {
+func componentPod(podName string, container v1.Container) v1.Pod {
 	hostPathType := v1.HostPathUnset
 	mountName := "lib-modules"
 	volumes := []v1.Volume{
@@ -79,7 +88,7 @@ func componentPod(container v1.Container) v1.Pod {
 			Kind:       "Pod",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      container.Name,
+			Name:      podName,
 			Namespace: metav1.NamespaceSystem,
 		},
 		Spec: v1.PodSpec{

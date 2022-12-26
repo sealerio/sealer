@@ -18,8 +18,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/common"
 	"github.com/spf13/cobra"
+
+	"github.com/sealerio/sealer/common"
 )
 
 type ParserArg struct {

@@ -30,18 +30,16 @@ type Flags struct {
 	CMDArgs     []string
 	Mode        string
 	ClusterFile string
+
+	// override default Cmds of clusterimage
+	Cmds []string
+	// override default APPNames of clusterimage
+	// Only one can be selected for LaunchCmds and AppNames
+	AppNames []string
 }
 
 type ApplyFlags struct {
 	ClusterFile string
 	ApplyMode   string
 	ForceDelete bool
-}
-
-type APPFlags struct {
-	// override default LaunchCmds of clusterimage
-	LaunchCmds []string
-	// maybe we can support to override default LaunchArgs of clusterimage to render LaunchCmds.
-	LaunchArgs []string
-	ApplyMode  string
 }

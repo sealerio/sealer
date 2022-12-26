@@ -20,6 +20,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 
 	"github.com/sirupsen/logrus"
@@ -34,11 +35,11 @@ func (k *Runtime) deleteNodes(nodes []net.IP) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			logrus.Infof("Start to delete node %s", node)
+			logrus.Infof("start to delete node %s", node)
 			if err := k.deleteNode(node); err != nil {
 				return fmt.Errorf("failed to delete node %s: %v", node, err)
 			}
-			logrus.Infof("Succeeded in deleting node %s", node)
+			logrus.Infof("succeeded in deleting node %s", node)
 			return nil
 		})
 	}
@@ -62,10 +63,10 @@ func (k *Runtime) deleteNode(node net.IP) error {
 	remoteCleanCmds := []string{"k0s stop",
 		fmt.Sprintf("k0s reset --cri-socket %s", ExternalCRI),
 		"rm -rf /etc/k0s/",
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", SeaHub),
+		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", common.DefaultRegistryDomain),
 		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),
 		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, SeaHub),
+		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, common.DefaultRegistryDomain),
 		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
 		"rm -rf /usr/bin/k0s"}
 	if err := ssh.CmdAsync(node, remoteCleanCmds...); err != nil {

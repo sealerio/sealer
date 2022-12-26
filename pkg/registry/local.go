@@ -22,21 +22,29 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
-	utilsnet "github.com/sealerio/sealer/utils/net"
-
 	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+	k8snet "k8s.io/utils/net"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sealerio/sealer/pkg/ipvs"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	netutils "github.com/sealerio/sealer/utils/net"
 	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/shellcommand"
-	"github.com/sirupsen/logrus"
+)
+
+const (
+	LvscarePodFileName = "reg-lvscare.yaml"
 )
 
 type localConfigurator struct {
@@ -48,7 +56,7 @@ type localConfigurator struct {
 }
 
 func (c *localConfigurator) GetDriver() (Driver, error) {
-	endpoint := c.Domain + ":" + strconv.Itoa(c.Port)
+	endpoint := net.JoinHostPort(c.Domain, strconv.Itoa(c.Port))
 	dataDir := filepath.Join(c.infraDriver.GetClusterRootfsPath(), "registry")
 	return newLocalRegistryDriver(endpoint, dataDir, c.deployHosts, c.distributor), nil
 }
@@ -59,7 +67,7 @@ func (c *localConfigurator) UninstallFrom(deletedMasters, deletedNodes []net.IP)
 	if err := c.removeRegistryConfig(all); err != nil {
 		return err
 	}
-	if !c.HaMode {
+	if !*c.HA {
 		return nil
 	}
 	// if current deployHosts is null,means clean all, just return.
@@ -68,35 +76,20 @@ func (c *localConfigurator) UninstallFrom(deletedMasters, deletedNodes []net.IP)
 	}
 
 	// flush ipvs policy on remain nodes
-	var rs []string
-	for _, m := range c.deployHosts {
-		rs = append(rs, fmt.Sprintf("--rs %s", net.JoinHostPort(m.String(), strconv.Itoa(c.Port))))
-	}
-
-	vs := net.JoinHostPort(common.DefaultVIP, strconv.Itoa(c.Port))
-	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
-	remainNodes := utilsnet.RemoveIPs(c.infraDriver.GetHostIPListByRole(common.NODE), deletedNodes)
-	for _, node := range remainNodes {
-		if err := c.infraDriver.CmdAsync(node, ipvsCmd); err != nil {
-			return fmt.Errorf("flush ipvs policy on remain nodes(%s): %v", node.String(), err)
-		}
-	}
-
-	return nil
+	return c.configureLvs(c.deployHosts, netutils.RemoveIPs(c.infraDriver.GetHostIPListByRole(common.NODE), deletedNodes))
 }
 
 func (c *localConfigurator) removeRegistryConfig(hosts []net.IP) error {
 	var uninstallCmd []string
 	if c.RegistryConfig.Username != "" && c.RegistryConfig.Password != "" {
 		//todo use sdk to logout instead of shell cmd
-		logoutCmd := fmt.Sprintf("docker logout %s ", c.Domain+":"+strconv.Itoa(c.Port))
+		logoutCmd := fmt.Sprintf("docker logout %s ", net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)))
 		if c.containerRuntimeInfo.Type != "docker" {
-			logoutCmd = fmt.Sprintf("nerdctl logout %s ", c.Domain+":"+strconv.Itoa(c.Port))
+			logoutCmd = fmt.Sprintf("nerdctl logout %s ", net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)))
 		}
 		uninstallCmd = append(uninstallCmd, logoutCmd)
 	}
 
-	uninstallCmd = append(uninstallCmd, shellcommand.CommandUnSetHostAlias(shellcommand.DefaultSealerHostAliasForRegistry))
 	f := func(host net.IP) error {
 		err := c.infraDriver.CmdAsync(host, strings.Join(uninstallCmd, "&&"))
 		if err != nil {
@@ -133,48 +126,91 @@ func (c *localConfigurator) InstallOn(masters, nodes []net.IP) error {
 // add registry domain and ip to "/etc/hosts"
 // add registry ip to ipvs policy
 func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) error {
-	if !c.HaMode {
+	if !*c.HA {
 		return c.configureSingletonHostsFile(append(masters, nodes...))
 	}
 
-	// for master: domain + local IP
-	for _, m := range masters {
-		cmd := shellcommand.CommandSetHostAlias(c.Domain, m.String(),
-			shellcommand.DefaultSealerHostAliasForRegistry)
-		if err := c.infraDriver.CmdAsync(m, cmd); err != nil {
-			return fmt.Errorf("failed to config masters hosts file: %v", err)
-		}
+	eg, _ := errgroup.WithContext(context.Background())
+
+	for i := range masters {
+		master := masters[i]
+		eg.Go(func() error {
+			cmd := shellcommand.CommandSetHostAlias(c.Domain, master.String())
+			if err := c.infraDriver.CmdAsync(master, cmd); err != nil {
+				return fmt.Errorf("failed to config masters hosts file: %v", err)
+			}
+			return nil
+		})
 	}
 
-	// for node: add ipvs policy; domain + VIP
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	return c.configureLvs(c.deployHosts, c.infraDriver.GetHostIPListByRole(common.NODE))
+}
+
+func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) error {
 	var rs []string
-	for _, m := range c.deployHosts {
-		rs = append(rs, fmt.Sprintf("--rs %s", net.JoinHostPort(m.String(), strconv.Itoa(c.Port))))
+	var realEndpoints []string
+	hosts := netutils.IPsToIPStrs(registryHosts)
+	sort.Strings(hosts)
+	for _, m := range hosts {
+		ep := net.JoinHostPort(m, strconv.Itoa(c.Port))
+		rs = append(rs, fmt.Sprintf("--rs %s", ep))
+		realEndpoints = append(realEndpoints, ep)
 	}
 
-	vs := net.JoinHostPort(common.DefaultVIP, strconv.Itoa(c.Port))
-	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
+	//todo should make lvs image name as const value in sealer repo.
+	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)))
+
+	vip := common.DefaultVIP
+	if hosts := c.infraDriver.GetHostIPList(); len(hosts) > 0 && k8snet.IsIPv6(hosts[0]) {
+		vip = common.DefaultVIPForIPv6
+	}
+
+	vs := net.JoinHostPort(vip, strconv.Itoa(c.Port))
+	// due to registry server do not have health path to check, choose "/" as default.
+	healthPath := "/"
+	healthSchem := "https"
+	if *c.Insecure {
+		healthSchem = "http"
+	}
+
+	y, err := ipvs.LvsStaticPodYaml(common.RegLvsCareStaticPodName, vs, realEndpoints, lvsImageURL, healthPath, healthSchem)
+	if err != nil {
+		return err
+	}
+
+	lvscareStaticCmd := ipvs.GetCreateLvscareStaticPodCmd(y, LvscarePodFileName)
+
+	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path %s --health-schem %s --run-once",
+		vs, strings.Join(rs, " "), healthPath, healthSchem)
 	// flush all cluster nodes as latest ipvs policy.
-	currentNodes := c.infraDriver.GetHostIPListByRole(common.NODE)
-	for _, n := range currentNodes {
-		err := c.infraDriver.CmdAsync(n, ipvsCmd)
-		if err != nil {
-			return fmt.Errorf("failed to config ndoes lvs policy %s: %v", ipvsCmd, err)
-		}
+	eg, _ := errgroup.WithContext(context.Background())
 
-		err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, common.DefaultVIP,
-			shellcommand.DefaultSealerHostAliasForRegistry))
-		if err != nil {
-			return fmt.Errorf("failed to config ndoes hosts file cmd: %v", err)
-		}
+	for i := range clientHosts {
+		n := clientHosts[i]
+		eg.Go(func() error {
+			err := c.infraDriver.CmdAsync(n, ipvsCmd, lvscareStaticCmd)
+			if err != nil {
+				return fmt.Errorf("failed to config nodes lvs policy %s: %v", ipvsCmd, err)
+			}
+
+			err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, vip))
+			if err != nil {
+				return fmt.Errorf("failed to config nodes hosts file cmd: %v", err)
+			}
+			return nil
+		})
 	}
-	return nil
+	return eg.Wait()
 }
 
 func (c *localConfigurator) configureSingletonHostsFile(hosts []net.IP) error {
 	// add registry ip to "/etc/hosts"
 	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.deployHosts[0].String(), shellcommand.DefaultSealerHostAliasForRegistry))
+		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.deployHosts[0].String()))
 		if err != nil {
 			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}
@@ -186,12 +222,12 @@ func (c *localConfigurator) configureSingletonHostsFile(hosts []net.IP) error {
 
 func (c *localConfigurator) configureRegistryCert(hosts []net.IP) error {
 	// if deploy registry as InsecureMode ,skip to configure cert.
-	if c.InsecureMode {
+	if *c.Insecure {
 		return nil
 	}
 
 	var (
-		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+		endpoint = net.JoinHostPort(c.Domain, strconv.Itoa(c.Port))
 		caFile   = c.Domain + ".crt"
 		src      = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "certs", caFile)
 		dest     = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
@@ -204,7 +240,7 @@ func (c *localConfigurator) configureAccessCredential(hosts []net.IP) error {
 	var (
 		username        = c.RegistryConfig.Username
 		password        = c.RegistryConfig.Password
-		endpoint        = c.Domain + ":" + strconv.Itoa(c.Port)
+		endpoint        = net.JoinHostPort(c.Domain, strconv.Itoa(c.Port))
 		tmpAuthFilePath = "/tmp/config.json"
 		// todo we need this config file when kubelet pull images from registry. while, we could optimize the logic here.
 		remoteKubeletAuthFilePath = "/var/lib/kubelet/config.json"
@@ -265,10 +301,10 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 	var (
 		src      string
 		dest     string
-		endpoint = c.Domain + ":" + strconv.Itoa(c.Port)
+		endpoint = net.JoinHostPort(c.Domain, strconv.Itoa(c.Port))
 	)
 
-	if endpoint == common.DefaultEndpoint {
+	if endpoint == common.DefaultRegistryURL {
 		return nil
 	}
 
@@ -288,20 +324,26 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 		}
 	}
 
+	eg, _ := errgroup.WithContext(context.Background())
+
 	// for docker: copy daemon.json to "/etc/docker/daemon.json"
 	// for containerd : copy hosts.toml to "/etc/containerd/certs.d/${domain}:${port}/hosts.toml"
-	for _, ip := range hosts {
-		err := c.infraDriver.Copy(ip, src, dest)
-		if err != nil {
-			return err
-		}
+	for i := range hosts {
+		ip := hosts[i]
+		eg.Go(func() error {
+			err := c.infraDriver.Copy(ip, src, dest)
+			if err != nil {
+				return err
+			}
 
-		err = c.infraDriver.CmdAsync(ip, "systemctl daemon-reload")
-		if err != nil {
-			return err
-		}
+			err = c.infraDriver.CmdAsync(ip, "systemctl daemon-reload")
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	}
-	return nil
+	return eg.Wait()
 }
 
 func (c *localConfigurator) configureDockerDaemonService(endpoint, daemonFile string) error {
@@ -320,12 +362,9 @@ func (c *localConfigurator) configureDockerDaemonService(endpoint, daemonFile st
 		}
 	}
 
-	daemonConf.MirrorRegistries = append(daemonConf.MirrorRegistries, MirrorRegistry{
-		Domain:  "*",
-		Mirrors: []string{"https://" + endpoint},
-	})
+	daemonConf.RegistryMirrors = append(daemonConf.RegistryMirrors, "https://"+endpoint)
 
-	content, err := json.Marshal(daemonConf)
+	content, err := json.MarshalIndent(daemonConf, "", "  ")
 
 	if err != nil {
 		return fmt.Errorf("failed to marshal daemonFile: %v", err)
@@ -355,7 +394,6 @@ func (c *localConfigurator) configureContainerdDaemonService(endpoint, hostTomlF
 }
 
 type DaemonConfig struct {
-	MirrorRegistries               []MirrorRegistry  `json:"mirror-registries,omitempty"`
 	AllowNonDistributableArtifacts []string          `json:"allow-nondistributable-artifacts,omitempty"`
 	APICorsHeader                  string            `json:"api-cors-header,omitempty"`
 	AuthorizationPlugins           []string          `json:"authorization-plugins,omitempty"`
@@ -424,11 +462,6 @@ type DaemonConfig struct {
 	UsernsRemap                    string            `json:"userns-remap,omitempty"`
 	ClusterStoreOpts               map[string]string `json:"cluster-store-opts,omitempty"`
 	LogOpts                        *DaemonLogOpts    `json:"log-opts,omitempty"`
-}
-
-type MirrorRegistry struct {
-	Domain  string   `json:"domain,omitempty"`
-	Mirrors []string `json:"mirrors,omitempty"`
 }
 
 type DaemonLogOpts struct {

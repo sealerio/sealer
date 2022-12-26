@@ -18,10 +18,8 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"path"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/ipvs"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -56,40 +54,22 @@ func (k *Runtime) reset(mastersToDelete, workersToDelete []net.IP) error {
 	return nil
 }
 
-func (k *Runtime) deleteMasters(mastersToDelete, remainMasters, remainWorkers []net.IP) error {
-	//todo should make lvs image name as const value in sealer repo.
-	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", k.Config.RegistryInfo.URL)
-	y, err := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), remainMasters, lvsImageURL)
-	if err != nil {
-		return err
-	}
-
-	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
-
-	eg, _ := errgroup.WithContext(context.Background())
-	for _, n := range remainWorkers {
-		node := n
-		eg.Go(func() error {
-			return k.infra.CmdAsync(node, RemoveLvscareStaticPod, lvscareStaticCmd)
-		})
-	}
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-
+func (k *Runtime) deleteMasters(mastersToDelete, remainMasters []net.IP) error {
 	var remainMaster0 *net.IP
 	if len(remainMasters) > 0 {
 		remainMaster0 = &remainMasters[0]
 	}
 
+	eg, _ := errgroup.WithContext(context.Background())
+
 	for _, m := range mastersToDelete {
 		master := m
 		eg.Go(func() error {
-			logrus.Infof("Start to delete master %s", master)
+			logrus.Infof("start to delete master %s", master)
 			if err := k.deleteMaster(master, remainMaster0); err != nil {
 				return fmt.Errorf("failed to delete master %s: %v", master, err)
 			}
-			logrus.Infof("Succeeded in deleting master %s", master)
+			logrus.Infof("succeeded in deleting master %s", master)
 
 			return nil
 		})
@@ -112,7 +92,8 @@ func (k *Runtime) deleteMaster(master net.IP, remainMaster0 *net.IP) error {
 	if remainMaster0 != nil {
 		hostname, err := k.getNodeNameByCmd(*remainMaster0, master)
 		if err != nil {
-			return err
+			logrus.Infof("%v, just think it not in k8s and skip delete it", err)
+			return nil
 		}
 		if err = k.infra.CmdAsync(*remainMaster0, fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {
 			return fmt.Errorf("failed to delete master %s: %v", hostname, err)
@@ -132,11 +113,11 @@ func (k *Runtime) deleteNodes(nodesToDelete, remainMasters []net.IP) error {
 	for _, node := range nodesToDelete {
 		n := node
 		eg.Go(func() error {
-			logrus.Infof("Start to delete worker %s", n)
+			logrus.Infof("start to delete worker %s", n)
 			if err := k.deleteNode(n, remainMaster0); err != nil {
 				return fmt.Errorf("failed to delete node %s: %v", n, err)
 			}
-			logrus.Infof("Succeeded in deleting worker %s", n)
+			logrus.Infof("succeeded in deleting worker %s", n)
 
 			return nil
 		})
@@ -158,7 +139,8 @@ func (k *Runtime) deleteNode(node net.IP, remainMaster0 *net.IP) error {
 	if remainMaster0 != nil {
 		hostname, err := k.getNodeNameByCmd(*remainMaster0, node)
 		if err != nil {
-			return err
+			logrus.Infof("%v, just think it not in k8s and skip delete it", err)
+			return nil
 		}
 
 		if err = k.infra.CmdAsync(*remainMaster0, fmt.Sprintf(KubeDeleteNode, strings.TrimSpace(hostname))); err != nil {

@@ -24,8 +24,9 @@ import (
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/common/libimage"
 	"github.com/docker/go-units"
-	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 const none = "<none>"

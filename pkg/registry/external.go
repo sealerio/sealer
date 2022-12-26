@@ -22,10 +22,11 @@ import (
 	"strconv"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/sirupsen/logrus"
+
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sirupsen/logrus"
 )
 
 type externalConfigurator struct {
@@ -127,7 +128,7 @@ func (e *externalConfigurator) GetDriver() (Driver, error) {
 func NewExternalConfigurator(regConfig *v2.ExternalRegistry, containerRuntimeInfo containerruntime.Info, driver infradriver.InfraDriver) (Configurator, error) {
 	domain := regConfig.Domain
 	if regConfig.Port != 0 {
-		domain = regConfig.Domain + ":" + strconv.Itoa(regConfig.Port)
+		domain = net.JoinHostPort(regConfig.Domain, strconv.Itoa(regConfig.Port))
 	}
 	return &externalConfigurator{
 		endpoint:             domain,

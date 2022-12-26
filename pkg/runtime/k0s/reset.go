@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/sealerio/sealer/common"
+
 	"golang.org/x/sync/errgroup"
 )
 
@@ -77,10 +79,10 @@ func (k *Runtime) resetNode(node net.IP) error {
 		fmt.Sprintf("k0s reset --cri-socket %s", ExternalCRI),
 		"rm -rf /etc/k0s/",
 		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", SeaHub),
+		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", common.DefaultRegistryDomain),
 		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),
 		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, SeaHub)); err != nil {
+		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, common.DefaultRegistryDomain)); err != nil {
 		return err
 	}
 	return nil

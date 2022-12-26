@@ -160,7 +160,7 @@ registryBurst: 10
 registryPullQPS: 5
 rotateCertificates: true
 runtimeRequestTimeout: 2m0s
-serializeImagePulls: true
+serializeImagePulls: false
 staticPodPath: /etc/kubernetes/manifests
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s

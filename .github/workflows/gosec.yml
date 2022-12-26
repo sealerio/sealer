@@ -1,4 +1,4 @@
-name: Run Gosec
+name: Run gosec
 
 on: [ push, pull_request ]
 

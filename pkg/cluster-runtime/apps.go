@@ -20,17 +20,22 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
-	"github.com/sirupsen/logrus"
+	"github.com/sealerio/sealer/pkg/rootfs"
 
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
+
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
+	"github.com/sealerio/sealer/pkg/define/application/version"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
+	"github.com/sirupsen/logrus"
 )
 
 type AppInstaller struct {
@@ -49,7 +54,7 @@ func NewAppInstaller(infraDriver infradriver.InfraDriver, distributor imagedistr
 
 func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
-	regConfig := i.infraDriver.GetClusterRegistryConfig()
+	regConfig := i.infraDriver.GetClusterRegistry()
 	// distribute rootfs
 	if err := i.distributor.Distribute([]net.IP{master0}, i.infraDriver.GetClusterRootfsPath()); err != nil {
 		return err
@@ -58,7 +63,7 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 	//if we use local registry service, load container image to registry
 	if regConfig.LocalRegistry != nil {
 		deployHosts := masters
-		if !regConfig.LocalRegistry.HaMode {
+		if !*regConfig.LocalRegistry.HA {
 			deployHosts = []net.IP{masters[0]}
 		}
 
@@ -78,24 +83,24 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 		}
 	}
 
-	if err := i.LaunchClusterImage(master0, cmds); err != nil {
+	if err := i.Launch(master0, cmds); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (i AppInstaller) LaunchClusterImage(master0 net.IP, launchCmds []string) error {
+func (i AppInstaller) Launch(master0 net.IP, launchCmds []string) error {
 	var (
-		cmds    []string
-		appPath = i.infraDriver.GetClusterRootfsPath()
-		ex      = shell.NewLex('\\')
+		cmds       []string
+		rootfsPath = i.infraDriver.GetClusterRootfsPath()
+		ex         = shell.NewLex('\\')
 	)
 
 	if len(launchCmds) > 0 {
 		cmds = launchCmds
 	} else {
-		cmds = i.extension.Launch.Cmds
+		cmds = GetImageDefaultLaunchCmds(i.extension)
 	}
 
 	for _, value := range cmds {
@@ -107,7 +112,7 @@ func (i AppInstaller) LaunchClusterImage(master0 net.IP, launchCmds []string) er
 			return fmt.Errorf("failed to render launch cmd: %v", err)
 		}
 
-		if err = i.infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, appPath, cmdline)); err != nil {
+		if err = i.infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, rootfsPath, cmdline)); err != nil {
 			return err
 		}
 	}
@@ -136,7 +141,7 @@ func (i AppInstaller) save(applicationFile string) error {
 		}
 	}()
 
-	content, err := json.Marshal(i.extension)
+	content, err := json.MarshalIndent(i.extension, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal image extension: %v", err)
 	}
@@ -146,4 +151,38 @@ func (i AppInstaller) save(applicationFile string) error {
 	}
 
 	return nil
+}
+
+func GetImageDefaultLaunchCmds(extension v12.ImageExtension) []string {
+	appNames := extension.Launch.AppNames
+	launchCmds := GetAppLaunchCmdsByNames(appNames, extension.Applications)
+
+	// if app name exist in extension, return it`s launch cmds firstly.
+	if len(launchCmds) != 0 {
+		return launchCmds
+	}
+
+	return extension.Launch.Cmds
+}
+
+func GetAppLaunchCmdsByNames(appNames []string, apps []version.VersionedApplication) []string {
+	var appCmds []string
+	for _, name := range appNames {
+		appRoot := makeItDir(filepath.Join(rootfs.GlobalManager.App().Root(), name))
+		for _, app := range apps {
+			v1app := app.(*v1.Application)
+			if v1app.Name() != name {
+				continue
+			}
+			appCmds = append(appCmds, v1app.LaunchCmd(appRoot))
+		}
+	}
+	return appCmds
+}
+
+func makeItDir(str string) string {
+	if !strings.HasSuffix(str, "/") {
+		return str + "/"
+	}
+	return str
 }

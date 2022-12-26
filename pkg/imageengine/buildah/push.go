@@ -28,8 +28,9 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 func (engine *Engine) Push(opts *options.PushOptions) error {
@@ -122,7 +123,7 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 		logrus.Debugf("pushed image with digest %s", digest.String())
 	}
 
-	logrus.Infof("Successfully pushed %s with digest %s", transports.ImageName(dest), digest.String())
+	logrus.Infof("successfully pushed %s with digest %s", transports.ImageName(dest), digest.String())
 
 	return nil
 }

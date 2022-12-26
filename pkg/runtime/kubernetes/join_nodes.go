@@ -18,18 +18,14 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"path"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
-	"github.com/sealerio/sealer/pkg/ipvs"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"github.com/sealerio/sealer/utils"
 	utilsnet "github.com/sealerio/sealer/utils/net"
-	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/yaml"
 )
 
@@ -43,16 +39,8 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 		return err
 	}
 
-	var rs []string
-	for _, m := range masters {
-		rs = append(rs, fmt.Sprintf("--rs %s", net.JoinHostPort(m.String(), "6443")))
-	}
-	//set cluster VIP as APIServerEndpoint when join node
-	vs := net.JoinHostPort(k.getAPIServerVIP().String(), "6443")
-	ipvsCmd := fmt.Sprintf("seautil ipvs --vs %s %s --health-path /healthz --health-schem https --run-once", vs, strings.Join(rs, " "))
-
 	kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken = &token
-	kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = vs
+	kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = net.JoinHostPort(k.getAPIServerVIP().String(), "6443")
 	kubeadmConfig.JoinConfiguration.ControlPlane = nil
 	joinConfig, err := yaml.MarshalWithDelimiter(kubeadmConfig.JoinConfiguration, kubeadmConfig.KubeletConfiguration)
 	if err != nil {
@@ -60,16 +48,13 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	}
 	writeJoinConfigCmd := fmt.Sprintf("mkdir -p /etc/kubernetes && echo \"%s\" > %s", joinConfig, KubeadmFileYml)
 
-	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", k.Config.RegistryInfo.URL)
-	y, err := ipvs.LvsStaticPodYaml(k.getAPIServerVIP(), masters, lvsImageURL)
+	joinNodeCmd, err := k.Command(JoinNode)
 	if err != nil {
 		return err
 	}
-	lvscareStaticCmd := fmt.Sprintf(CreateLvscareStaticPod, StaticPodDir, y, path.Join(StaticPodDir, LvscarePodFileName))
 
-	joinNodeCmd, err := k.Command(kubeadmConfig.KubernetesVersion, masters[0].String(), JoinNode, token, "")
-	if err != nil {
-		return err
+	if err := k.configureLvs(masters, newNodes); err != nil {
+		return fmt.Errorf("failed to configure lvs rule for apiserver: %v", err)
 	}
 
 	eg, _ := errgroup.WithContext(context.Background())
@@ -77,34 +62,22 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	for _, n := range newNodes {
 		node := n
 		eg.Go(func() error {
-			logrus.Infof("Start to join %s as worker", node)
+			logrus.Infof("start to join %s as worker", node)
 
 			err = k.checkMultiNetworkAddVIPRoute(node)
 			if err != nil {
 				return fmt.Errorf("failed to check multi network: %v", err)
 			}
 
-			if err = k.infra.CmdAsync(node, ipvsCmd); err != nil {
-				return fmt.Errorf("failed to join node %s: %v", node, err)
-			}
-
 			if err = k.infra.CmdAsync(node, writeJoinConfigCmd); err != nil {
 				return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", node, writeJoinConfigCmd, err)
-			}
-
-			if err = k.infra.CmdAsync(node, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), k.getAPIServerVIP().String(), shellcommand.DefaultSealerHostAliasForApiserver)); err != nil {
-				return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 			}
 
 			if err = k.infra.CmdAsync(node, joinNodeCmd); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
 
-			if err = k.infra.CmdAsync(node, lvscareStaticCmd); err != nil {
-				return fmt.Errorf("failed to set lvscare static pod %s: %v", node, err)
-			}
-
-			logrus.Infof("Succeeded in joining %s as worker", node)
+			logrus.Infof("succeeded in joining %s as worker", node)
 			return nil
 		})
 	}
@@ -122,6 +95,8 @@ func (k *Runtime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 
 	cmd := fmt.Sprintf(RemoteAddRoute, k.getAPIServerVIP(), node)
 	output, err := k.infra.Cmd(node, cmd)
-
-	return utils.WrapExecResult(node, cmd, output, err)
+	if err != nil {
+		return utils.WrapExecResult(node, cmd, output, err)
+	}
+	return nil
 }

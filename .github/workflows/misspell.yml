@@ -1,4 +1,4 @@
-name: Check Misspell
+name: Check misspell
 
 on:
   pull_request:

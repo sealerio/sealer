@@ -20,6 +20,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	cmdutils "github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -32,8 +35,6 @@ import (
 	"github.com/sealerio/sealer/utils"
 	netutils "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/os/fs"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -223,19 +224,29 @@ func scaleDownCluster(masters, workers string) error {
 
 	cluster := cf.GetCluster()
 	//master0 machine cannot be deleted
-	if netutils.IsInIPList(cluster.GetMaster0IP(), deleteMasterIPList) {
-		return fmt.Errorf("master0 machine(%s) cannot be deleted", cluster.GetMaster0IP())
+	if cluster.Spec.Registry.LocalRegistry != nil && !*cluster.Spec.Registry.LocalRegistry.HA && netutils.IsInIPList(cluster.GetMaster0IP(), deleteMasterIPList) {
+		return fmt.Errorf("master0 machine(%s) cannot be deleted when registry is noHA mode", cluster.GetMaster0IP())
 	}
 	// make sure deleted ip in current cluster
+	var filteredDeleteMasterIPList []net.IP
 	for _, ip := range deleteMasterIPList {
-		if !netutils.IsInIPList(ip, cluster.GetMasterIPList()) {
-			return fmt.Errorf("ip(%s) not found in current master list", ip)
+		if netutils.IsInIPList(ip, cluster.GetMasterIPList()) {
+			filteredDeleteMasterIPList = append(filteredDeleteMasterIPList, ip)
 		}
 	}
+	deleteMasterIPList = filteredDeleteMasterIPList
+
+	var filteredDeleteNodeIPList []net.IP
 	for _, ip := range deleteNodeIPList {
-		if !netutils.IsInIPList(ip, cluster.GetNodeIPList()) {
-			return fmt.Errorf("ip(%s) not found in current master list", ip)
+		// filter ip not in current cluster
+		if netutils.IsInIPList(ip, cluster.GetNodeIPList()) {
+			filteredDeleteNodeIPList = append(filteredDeleteNodeIPList, ip)
 		}
+	}
+	deleteNodeIPList = filteredDeleteNodeIPList
+	if len(deleteMasterIPList) == 0 && len(deleteNodeIPList) == 0 {
+		logrus.Infof("both master and node need to be deleted all not in current cluster, skip delete")
+		return nil
 	}
 
 	if !ForceDelete {
@@ -244,7 +255,8 @@ func scaleDownCluster(masters, workers string) error {
 		}
 	}
 
-	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
+	// TODO, env should be host env
+	//cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
 
 	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {

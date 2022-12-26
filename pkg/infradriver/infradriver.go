@@ -33,6 +33,8 @@ type InfraDriver interface {
 
 	GetHostIPListByRole(role string) []net.IP
 
+	GetRoleListByHostIP(ip string) []string
+
 	GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net.IP, error)
 
 	//GetHostEnv return merged env with host env and cluster env.
@@ -44,6 +46,8 @@ type InfraDriver interface {
 	//GetClusterEnv return cluster.spec.env as map[string]interface{}
 	GetClusterEnv() map[string]interface{}
 
+	AddClusterEnv(envs []string)
+
 	//GetClusterName ${clusterName}
 	GetClusterName() string
 
@@ -52,6 +56,9 @@ type InfraDriver interface {
 
 	//GetClusterLaunchCmds ${user-defined launch command}
 	GetClusterLaunchCmds() []string
+
+	//GetClusterLaunchApps ${user-defined launch apps}
+	GetClusterLaunchApps() []string
 
 	//GetClusterRootfsPath /var/lib/sealer/data/${clusterName}/rootfs
 	GetClusterRootfsPath() string
@@ -95,7 +102,7 @@ type InfraDriver interface {
 	//DeleteClusterHostAliases delete additional HostAliases
 	DeleteClusterHostAliases(hosts []net.IP) error
 
-	GetClusterRegistryConfig() v2.Registry
+	GetClusterRegistry() v2.Registry
 	// SetLvsRule add or update host name on host
 	//SetLvsRule(host net.IP, hostName string) error
 }

@@ -18,11 +18,12 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_ConstructClusterForScaleDown(t *testing.T) {

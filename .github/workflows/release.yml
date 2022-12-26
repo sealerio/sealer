@@ -11,7 +11,7 @@ permissions:
 jobs:
   note:
     name: Pre note
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 5
     outputs:
       stringver: ${{ steps.contentrel.outputs.stringver }}
@@ -41,14 +41,6 @@ jobs:
         run: |
           echo "${{steps.drafter.outputs.body}}" >> release_note.md
 
-      - name: Note
-        id: Note
-        env:
-          VERSION: ${{ steps.contentrel.outputs.stringver }}
-        run: |
-          sh note.sh
-        working-directory: src/github.com/sealerio/sealer
-
       - name: Save release notes
         uses: actions/upload-artifact@v2
         with:
@@ -63,7 +55,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ ubuntu-18.04 ]
+        os: [ ubuntu-20.04 ]
 
     steps:
       - name: Install Go
@@ -96,7 +88,7 @@ jobs:
         shell: bash
         run: |
           export MULTI_PLATFORM_BUILD=true
-          make build
+          make linux
         working-directory: src/github.com/sealerio/sealer
 
       - name: Save build binaries
@@ -108,7 +100,7 @@ jobs:
 
   release:
     name: Create sealer Release
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     needs: [ build, note ]
 
@@ -129,13 +121,3 @@ jobs:
           body_path: ./builds/sealer-release-notes/release_note.md
           files: |
             builds/sealer-binaries/*
-      - name: Build binareies to oss
-        if: ${{ github.repository == 'sealerio/sealer' && github.ref_type=='tag' }}
-        run: |
-          releasever=${{ github.ref }}
-          releasever="${releasever#refs/tags/}"
-          wget http://gosspublic.alicdn.com/ossutil/1.6.19/ossutil64 && chmod 755 ossutil64 &&
-          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-amd64.tar.gz oss://sealer/sealers/sealer-$releasever-linux-amd64.tar.gz &&
-          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-arm64.tar.gz oss://sealer/sealers/sealer-$releasever-linux-arm64.tar.gz &&
-          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-amd64.tar.gz oss://sealer/sealer-latest.tar.gz &&
-          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-beijing.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-arm64.tar.gz oss://sealer/sealer-latest-arm64.tar.gz

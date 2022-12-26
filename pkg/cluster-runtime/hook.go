@@ -25,16 +25,17 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	netUtils "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
-	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -185,6 +186,7 @@ func NewShellHook() HookFunc {
 	return func(data string, hosts []net.IP, driver infradriver.InfraDriver, extraOpts map[string]bool) error {
 		rootfs := driver.GetClusterRootfsPath()
 		for _, ip := range hosts {
+			logrus.Infof("start to run hook on host %s", ip.String())
 			cmd := env.WrapperShell(data, driver.GetHostEnv(ip))
 			wrappedCmd := fmt.Sprintf(common.CdAndExecCmd, rootfs, cmd)
 			if extraOpts[ExtraOptionSkipWhenWorkspaceNotExists] {

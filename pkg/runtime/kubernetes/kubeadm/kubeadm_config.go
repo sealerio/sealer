@@ -95,11 +95,11 @@ func (k *KubeadmConfig) setAPIVersion(apiVersion string) {
 
 func (k *KubeadmConfig) setKubeadmAPIVersion() {
 	kv := versionUtils.Version(k.KubernetesVersion)
-	greaterThanKV1150, err := kv.Compare(V1150)
+	greaterThanKV1150, err := kv.GreaterThan(V1150)
 	if err != nil {
 		logrus.Errorf("compare kubernetes version failed: %s", err)
 	}
-	greaterThanKV1230, err := kv.Compare(V1230)
+	greaterThanKV1230, err := kv.GreaterThan(V1230)
 	if err != nil {
 		logrus.Errorf("compare kubernetes version failed: %s", err)
 	}
@@ -170,8 +170,8 @@ func getEtcdEndpointsWithHTTPSPrefix(masters []net.IP) string {
 	return strings.Join(tmpSlice, ",")
 }
 
-func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
-	masters []net.IP, apiServerDomain, cgroupDriver string, imageRepo string, apiServerVIP net.IP) (KubeadmConfig, error) {
+func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string, masters []net.IP, apiServerDomain,
+	cgroupDriver string, imageRepo string, apiServerVIP net.IP, extraSANs []string) (KubeadmConfig, error) {
 	conf := KubeadmConfig{}
 
 	if err := conf.LoadFromClusterfile(fromClusterFile); err != nil {
@@ -190,6 +190,7 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string,
 	conf.IPVS.ExcludeCIDRs = append(conf.KubeProxyConfiguration.IPVS.ExcludeCIDRs, fmt.Sprintf("%s/32", apiServerVIP))
 	conf.KubeletConfiguration.CgroupDriver = cgroupDriver
 	conf.ClusterConfiguration.APIServer.CertSANs = []string{"127.0.0.1", apiServerDomain, apiServerVIP.String()}
+	conf.ClusterConfiguration.APIServer.CertSANs = append(conf.ClusterConfiguration.APIServer.CertSANs, extraSANs...)
 	for _, m := range masters {
 		conf.ClusterConfiguration.APIServer.CertSANs = append(conf.ClusterConfiguration.APIServer.CertSANs, m.String())
 	}

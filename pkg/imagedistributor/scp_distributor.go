@@ -21,13 +21,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
-	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -48,11 +49,19 @@ func (s *scpDistributor) DistributeRegistry(deployHosts []net.IP, dataDir string
 			continue
 		}
 
+		eg, _ := errgroup.WithContext(context.Background())
 		for _, deployHost := range deployHosts {
-			err := s.infraDriver.Copy(deployHost, filepath.Join(info.MountDir, RegistryDirName), dataDir)
-			if err != nil {
-				return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
-			}
+			tmpDeployHost := deployHost
+			eg.Go(func() error {
+				err := s.infraDriver.Copy(tmpDeployHost, filepath.Join(info.MountDir, RegistryDirName), dataDir)
+				if err != nil {
+					return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
+				}
+				return nil
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			return err
 		}
 	}
 

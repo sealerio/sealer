@@ -89,6 +89,7 @@ func getDefaultCluster() (InfraDriver, error) {
 	cluster.APIVersion = "sealer.cloud/v2"
 	cluster.Kind = "Cluster"
 	cluster.Name = "my-cluster"
+
 	return NewInfraDriver(cluster)
 }
 
@@ -117,19 +118,16 @@ func TestSSHInfraDriver_GetClusterInfo(t *testing.T) {
 	})
 
 	assert.Equal(t, driver.GetClusterEnv(), map[string]interface{}{
-		"RegistryDomain": "sea.hub",
-		"RegistryPort":   5000,
-		"RegistryURL":    "sea.hub:5000",
-		"key1":           "value1",
-		"key2":           []string{"value2", "value3"},
+		"key1": "value1",
+		"key2": []string{"value2", "value3"},
 	})
 
-	assert.Equal(t, driver.GetHostEnv(net.IPv4(192, 168, 0, 2)), map[string]interface{}{
+	assert.Equal(t, map[string]interface{}{
 		"HostIP":   "192.168.0.2",
 		"key1":     "value1",
 		"key2":     []string{"value2", "value3"},
 		"etcd-dir": "/data/etcd",
-	})
+	}, driver.GetHostEnv(net.IPv4(192, 168, 0, 2)))
 
 	assert.Equal(t, driver.GetHostEnv(net.IPv4(192, 168, 0, 3)), map[string]interface{}{
 		"HostIP":            "192.168.0.3",

@@ -15,7 +15,6 @@
 package settings
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -60,7 +59,7 @@ const (
 	DefaultNydusImage = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nydus:v1.19.8"
 	ClusterNameForRun = "my-cluster"
 	TMPClusterFile    = "/tmp/Clusterfile"
-	ClusterWorkDir    = "/root/.sealer/%s"
+	ClusterWorkDir    = "/root/.sealer"
 )
 
 var (
@@ -85,7 +84,7 @@ var (
 func GetClusterWorkDir(clusterName string) string {
 	home, err := homedir.Dir()
 	if err != nil {
-		return fmt.Sprintf(ClusterWorkDir, clusterName)
+		return filepath.Join(ClusterWorkDir, clusterName)
 	}
 	return filepath.Join(home, ".sealer", clusterName)
 }

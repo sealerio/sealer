@@ -37,6 +37,11 @@ import (
 )
 
 func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, error) {
+	extraSANsStr := k.infra.GetClusterEnv()[common.EnvCertSANs]
+	var extraSANs []string
+	if extraSANsStr != nil && extraSANsStr.(string) != "" {
+		extraSANs = strings.Split(extraSANsStr.(string), ",")
+	}
 	conf, err := kubeadm.NewKubeadmConfig(
 		k.Config.KubeadmConfigFromClusterFile,
 		k.getDefaultKubeadmConfig(),
@@ -44,7 +49,7 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, er
 		k.getAPIServerDomain(),
 		k.Config.containerRuntimeInfo.Config.CgroupDriver,
 		k.Config.RegistryInfo.URL,
-		k.getAPIServerVIP())
+		k.getAPIServerVIP(), extraSANs)
 	if err != nil {
 		return kubeadm.KubeadmConfig{}, err
 	}
@@ -126,7 +131,7 @@ func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 }
 
 // initMaster0 is using kubeadm init to start up the cluster master0.
-func (k *Runtime) initMaster0(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
+func (k *Runtime) initMaster0(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
 	if err := k.initKube([]net.IP{master0}); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
@@ -135,15 +140,15 @@ func (k *Runtime) initMaster0(kubeadmConf kubeadm.KubeadmConfig, master0 net.IP)
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
 
-	if err := k.sendKubeConfigFilesToMaster([]net.IP{master0}, kubeadmConf.KubernetesVersion, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
+	if err := k.sendKubeConfigFilesToMaster([]net.IP{master0}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
 
-	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String(), shellcommand.DefaultSealerHostAliasForApiserver)); err != nil {
+	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 	}
 
-	cmdInit, err := k.Command(kubeadmConf.KubernetesVersion, master0.String(), InitMaster, v1beta2.BootstrapTokenDiscovery{}, "")
+	cmdInit, err := k.Command(InitMaster)
 	if err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
@@ -209,7 +214,7 @@ func (k *Runtime) decodeJoinCmd(cmd string) (v1beta2.BootstrapTokenDiscovery, st
 
 // initKube do some initialize kubelet works, such as configuring the host environment, initializing the kubelet service, and so on.
 func (k *Runtime) initKube(hosts []net.IP) error {
-	initKubeletCmd := fmt.Sprintf("cd %s && bash %s", filepath.Join(k.infra.GetClusterRootfsPath(), "scripts"), "init-kube.sh")
+	initKubeletCmd := fmt.Sprintf("cd %s && export RegistryURL=%s && bash %s", filepath.Join(k.infra.GetClusterRootfsPath(), "scripts"), k.Config.RegistryInfo.URL, "init-kube.sh")
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, h := range hosts {
 		host := h
@@ -238,7 +243,7 @@ func (k *Runtime) sendClusterCert(hosts []net.IP) error {
 	return k.infra.Execute(hosts, f)
 }
 
-func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, kubeVersion string, files ...string) error {
+func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, files ...string) error {
 	for _, kubeFile := range files {
 		src := filepath.Join(k.infra.GetClusterRootfsPath(), kubeFile)
 		dest := filepath.Join(clustercert.KubernetesConfigDir, kubeFile)
@@ -252,17 +257,6 @@ func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, kubeVersion stri
 		}
 		if err := k.infra.Execute(masters, f); err != nil {
 			return err
-		}
-	}
-
-	//todo load kube-controller-manager and kube-scheduler locally and then do send options
-	// fix > 1.19.1 kube-controller-manager and kube-scheduler use the LocalAPIEndpoint instead of the ControlPlaneEndpoint.
-	if kubeVersion == kubeadm.V1991 || kubeVersion == kubeadm.V1992 {
-		for _, v := range masters {
-			cmd := fmt.Sprintf(RemoteReplaceKubeConfig, KUBESCHEDULERCONFIGFILE, v.String(), KUBECONTROLLERCONFIGFILE, v.String(), KUBESCHEDULERCONFIGFILE)
-			if err := k.infra.CmdAsync(v, cmd); err != nil {
-				return fmt.Errorf("failed to replace kube config on %s: %v ", v, err)
-			}
 		}
 	}
 
