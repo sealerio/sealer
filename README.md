@@ -98,7 +98,7 @@ Sealer provides a valid image list:
 | version |                   clusterimage with CNI(calico)                     |                                   clusterimage                            |
 | :-----  | :-------------------------------------------------------------------| :-------------------------------------------------------------------------|
 | 0.8.6   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6| registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6-alpha|
-| main    | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15      | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-alpha      |
+| 0.9.0   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15      | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-alpha      |
 
 [get started](http://sealer.cool/docs/getting-started/introduction.html)
 
