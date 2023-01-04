@@ -9,6 +9,7 @@ on:
       - 'docs/**'
       - '*.md'
       - '*.yml'
+      - '.github'
 jobs:
 
   build:
