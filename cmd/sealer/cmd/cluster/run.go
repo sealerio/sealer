@@ -79,6 +79,30 @@ func NewRunCmd() *cobra.Command {
 				applyMode       = runFlags.Mode
 			)
 
+			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			if err != nil {
+				return err
+			}
+
+			if err = imageEngine.Pull(&imagecommon.PullOptions{
+				Quiet:      false,
+				PullPolicy: "missing",
+				Image:      args[0],
+				Platform:   "local",
+			}); err != nil {
+				return err
+			}
+
+			extension, err := imageEngine.GetSealerImageExtension(&imagecommon.GetImageAnnoOptions{ImageNameOrID: args[0]})
+			if err != nil {
+				return fmt.Errorf("failed to get cluster image extension: %s", err)
+			}
+
+			if extension.Type == v12.AppInstaller {
+				logrus.Infof("start to install app image: %s", args[0])
+				return installApplication(args[0], runFlags.Cmds, runFlags.AppNames, runFlags.CustomEnv, extension, nil, imageEngine, applyMode)
+			}
+
 			if runFlags.Masters == "" && clusterFile == "" {
 				return fmt.Errorf("you must input master ip Or use Clusterfile")
 			}
@@ -122,30 +146,6 @@ func NewRunCmd() *cobra.Command {
 			infraDriver, err := infradriver.NewInfraDriver(&cluster)
 			if err != nil {
 				return err
-			}
-
-			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
-			if err != nil {
-				return err
-			}
-
-			if err = imageEngine.Pull(&imagecommon.PullOptions{
-				Quiet:      false,
-				PullPolicy: "missing",
-				Image:      cluster.Spec.Image,
-				Platform:   "local",
-			}); err != nil {
-				return err
-			}
-
-			extension, err := imageEngine.GetSealerImageExtension(&imagecommon.GetImageAnnoOptions{ImageNameOrID: args[0]})
-			if err != nil {
-				return fmt.Errorf("failed to get cluster image extension: %s", err)
-			}
-
-			if extension.Type == v12.AppInstaller {
-				logrus.Infof("start to install app image: %s", cluster.Spec.Image)
-				return installApplication(args[0], runFlags.Cmds, runFlags.AppNames, runFlags.CustomEnv, extension, nil, imageEngine, applyMode)
 			}
 
 			return createNewCluster(infraDriver, imageEngine, cf, applyMode)
