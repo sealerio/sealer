@@ -57,6 +57,8 @@ const (
 	EnvRegistryPort   = "RegistryPort"
 	EnvRegistryURL    = "RegistryURL"
 	EnvCertSANs       = "CertSANs"
+	EnvIPvsVIPForIPv4 = "IPvsVIPv4"
+	EnvIPvsVIPForIPv6 = "IPvsVIPv6"
 )
 
 const (
