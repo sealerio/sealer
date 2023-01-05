@@ -608,6 +608,14 @@ github.com/liggitt/tabwriter
 # github.com/lithammer/dedent v1.1.0
 ## explicit
 github.com/lithammer/dedent
+# github.com/liushuochen/gotable v0.0.0-20221119160816-1113793e7092
+## explicit; go 1.14
+github.com/liushuochen/gotable
+github.com/liushuochen/gotable/cell
+github.com/liushuochen/gotable/color
+github.com/liushuochen/gotable/exception
+github.com/liushuochen/gotable/table
+github.com/liushuochen/gotable/util
 # github.com/magiconair/properties v1.8.5
 ## explicit; go 1.13
 github.com/magiconair/properties

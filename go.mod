@@ -21,6 +21,7 @@ require (
 	github.com/imdario/mergo v0.3.13
 	github.com/labring/lvscare v1.1.1
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
+	github.com/liushuochen/gotable v0.0.0-20221119160816-1113793e7092
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moby/buildkit v0.9.3
 	github.com/moby/sys/mountinfo v0.6.2
