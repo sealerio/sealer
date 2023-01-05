@@ -17,9 +17,11 @@ package alpha
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	reference2 "github.com/distribution/distribution/v3/reference"
 	"github.com/olekukonko/tablewriter"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/common"
@@ -50,7 +52,7 @@ func NewSearchCmd() *cobra.Command {
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			table := tablewriter.NewWriter(common.StdOut)
-			table.SetHeader([]string{imageName, "version"})
+			table.SetHeader([]string{imageName, "Version", "NetWork-Plugins"})
 			for _, imgName := range args {
 				named, err := reference.ParseToNamed(imgName)
 				if err != nil {
@@ -62,7 +64,7 @@ func NewSearchCmd() *cobra.Command {
 				}
 				rNamed, err := reference2.WithName(named.Repo())
 				if err != nil {
-					return fmt.Errorf("failed to get repository name: %v", err)
+					return errors.Wrapf(err, "repository %s does not exist", imgName)
 				}
 				repo, err := ns.Repository(context.Background(), rNamed)
 				if err != nil {
@@ -70,10 +72,15 @@ func NewSearchCmd() *cobra.Command {
 				}
 				tags, err := repo.Tags(context.Background()).All(context.Background())
 				if err != nil {
-					return err
+					return fmt.Errorf("repository %s does not exist, err:%v", imgName, err)
 				}
 				for _, tag := range tags {
-					table.Append([]string{named.String(), tag})
+					if strings.Contains(tag, "-") {
+						imgTag := strings.Split(tag, "-")
+						table.Append([]string{named.String(), tag, imgTag[1]})
+					} else {
+						table.Append([]string{named.String(), tag, "calico"})
+					}
 				}
 			}
 			table.Render()
