@@ -96,6 +96,7 @@ func NewBuildCmd() *cobra.Command {
 	buildCmd.Flags().StringSliceVar(&buildFlags.Annotations, "annotation", []string{}, "add annotations for image. Format like --annotation key=[value]")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Labels, "label", []string{getSealerLabel()}, "add labels for image. Format like --label key=[value]")
 	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
+	buildCmd.Flags().BoolVarP(&buildFlags.DownloadContainerImage, "download-container-image", "d", true, "save the container image generated during the build process.")
 
 	supportedImageType := map[string]struct{}{v12.KubeInstaller: {}, v12.AppInstaller: {}}
 	if _, ok := supportedImageType[buildFlags.ImageType]; !ok {
@@ -164,13 +165,15 @@ func buildSealerImage() error {
 	}
 
 	defer func() {
-		for _, m := range []string{tempTag} {
-			// the above image is intermediate image, we need to remove it when the build ends.
-			if err := engine.RemoveImage(&bc.RemoveImageOptions{
-				ImageNamesOrIDs: []string{m},
-				Force:           true,
-			}); err != nil {
-				logrus.Debugf("failed to remove image %s, you need to remove it manually: %v", m, err)
+		if !buildFlags.DownloadContainerImage {
+			for _, m := range []string{tempTag} {
+				// the above image is intermediate image, we need to remove it when the build ends.
+				if err := engine.RemoveImage(&bc.RemoveImageOptions{
+					ImageNamesOrIDs: []string{m},
+					Force:           true,
+				}); err != nil {
+					logrus.Debugf("failed to remove image %s, you need to remove it manually: %v", m, err)
+				}
 			}
 		}
 	}()
@@ -233,6 +236,10 @@ func commitSingleImage(iid string, tag string, engine imageengine.Interface) err
 }
 
 func applyRegistryToImage(imageID, tag, manifest string, platform v1.Platform, engine imageengine.Interface) error {
+	if !buildFlags.DownloadContainerImage {
+		return nil
+	}
+
 	_os, arch, variant := platform.OS, platform.Architecture, platform.Variant
 	// this temporary file is used to execute image pull, and save it to /registry.
 	// engine.BuildRootfs will generate an image rootfs, and link the rootfs to temporary dir(temp sealer rootfs).
