@@ -16,7 +16,7 @@ Clusterfile v1 not match some requirement.
 * Delete all kubeadm config
 
 ```yaml
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   name: my-cluster
@@ -52,7 +52,7 @@ spec:
 3 masters and a node, It's so clearly and simple, cool
 
 ```yaml
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   name: default-kubernetes-cluster
@@ -70,7 +70,7 @@ spec:
 ### Overwrite ssh config (for example password,and port)
 
 ```yaml
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   name: default-kubernetes-cluster
@@ -268,7 +268,7 @@ controlPlane:
 If you don't want to care about so much Kubeadm configs, you can use `KubeConfig` object to overwrite(json patch merge) some fields.
 
 ```yaml
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: KubeadmConfig
 metadata:
   name: default-kubernetes-config
@@ -296,7 +296,7 @@ spec:
 Using ENV in configs or yaml files [check this](https://github.com/sealerio/sealer/blob/main/docs/design/global-config.md#global-configuration)
 
 ```yaml
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   name: my-cluster
@@ -329,14 +329,14 @@ If you're using public cloud, you needn't to config the ip field in Cluster Obje
 apply resource from public cloud, then render the ip list to Cluster Object.
 
 ```yaml
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   name: default-kubernetes-cluster
 spec:
   image: kubernetes:v1.19.8
 ---
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Infra
 metadata:
   name: alicloud
@@ -363,7 +363,7 @@ spec:
 After `sealer apply -f Clusterfile`, The cluster object will update:
 
 ```yaml
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   name: default-kubernetes-cluster

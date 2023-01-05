@@ -27,7 +27,7 @@ import (
 )
 
 func Test_ConstructClusterForScaleDown(t *testing.T) {
-	data := `apiVersion: sealer.cloud/v2
+	data := `apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   creationTimestamp: null
@@ -125,7 +125,7 @@ func Test_ConstructClusterForScaleUp(t *testing.T) {
 			},
 		},
 	}
-	rawCluster.APIVersion = "sealer.cloud/v2"
+	rawCluster.APIVersion = "sealer.io/v2"
 	rawCluster.Kind = "Cluster"
 	rawCluster.Name = "mycluster"
 
@@ -174,7 +174,7 @@ func Test_ConstructClusterForScaleUp(t *testing.T) {
 			},
 		},
 	}
-	expectedCluster.APIVersion = "sealer.cloud/v2"
+	expectedCluster.APIVersion = "sealer.io/v2"
 	expectedCluster.Kind = "Cluster"
 	expectedCluster.Name = "mycluster"
 

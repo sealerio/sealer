@@ -38,7 +38,7 @@ spec:
        mysql-user: root
        mysql-passwd: xxx
 ---
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.io/v1alpha1
 kind: Plugin
 metadata:
   name: MyHostname # Specify this plugin name,will dump in $rootfs/plugins dir.
@@ -48,7 +48,7 @@ spec:
   data: |
     192.168.0.2 master-0
 ---
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.io/v1alpha1
 kind: Plugin
 metadata:
   name: MyShell # Specify this plugin name,will dump in $rootfs/plugins dir.
@@ -59,7 +59,7 @@ spec:
   data: |
     kubectl get nodes
 ---
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   name: my-cluster
@@ -100,7 +100,7 @@ ipvs:
   excludeCIDRs:
     - "10.103.97.2/32"`
 
-const APIVersion = "sealer.aliyun.com/v1alpha1"
+const APIVersion = "sealer.io/v1alpha1"
 
 func TestDecodeClusterFile(t *testing.T) {
 	cluster := v2.Cluster{
@@ -142,7 +142,7 @@ func TestDecodeClusterFile(t *testing.T) {
 			},
 		},
 	}
-	cluster.APIVersion = "sealer.cloud/v2"
+	cluster.APIVersion = "sealer.io/v2"
 	cluster.Kind = "Cluster"
 	cluster.Name = "my-cluster"
 
@@ -167,7 +167,7 @@ func TestDecodeClusterFile(t *testing.T) {
 	}
 	plugin2.Name = "MyShell"
 	plugin2.Kind = "Plugin"
-	plugin2.APIVersion = "sealer.aliyun.com/v1alpha1"
+	plugin2.APIVersion = "sealer.io/v1alpha1"
 
 	config := v1.Config{
 		Spec: v1.ConfigSpec{
