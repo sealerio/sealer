@@ -71,7 +71,7 @@ func TestSaveAll(t *testing.T) {
 			},
 		},
 	}
-	cluster.APIVersion = "sealer.cloud/v2"
+	cluster.APIVersion = "sealer.io/v2"
 	cluster.Kind = "Cluster"
 	cluster.Name = "my-cluster"
 
@@ -85,7 +85,7 @@ func TestSaveAll(t *testing.T) {
 	}
 	plugin2.Name = "MyShell"
 	plugin2.Kind = "Plugin"
-	plugin2.APIVersion = "sealer.aliyun.com/v1alpha1"
+	plugin2.APIVersion = "sealer.io/v1alpha1"
 
 	config := v1.Config{
 		Spec: v1.ConfigSpec{

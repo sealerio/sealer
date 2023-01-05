@@ -38,7 +38,7 @@ import (
 )
 
 const typeV1 = "zlink.aliyun.com/v1alpha1"
-const typeV2 = "sealer.cloud/v2"
+const typeV2 = "sealer.io/v2"
 
 var decodeCRDFuncMap = map[string]func(reader io.Reader) (interface{}, error){
 	common.Cluster:                decodeClusterFunc,

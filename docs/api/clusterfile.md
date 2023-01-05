@@ -1,7 +1,7 @@
 # Clusterfile definition
 
 ```yaml
-apiVersion: sealer.aliyun.com/v1alpha1
+apiVersion: sealer.io/v1alpha1
 kind: Cluster
 metadata:
   name: my-cluster

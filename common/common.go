@@ -44,7 +44,7 @@ const (
 
 // API
 const (
-	APIVersion = "sealer.cloud/v2"
+	APIVersion = "sealer.io/v2"
 	Kind       = "Cluster"
 )
 

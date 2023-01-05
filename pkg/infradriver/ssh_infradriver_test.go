@@ -86,7 +86,7 @@ func getDefaultCluster() (InfraDriver, error) {
 			},
 		},
 	}
-	cluster.APIVersion = "sealer.cloud/v2"
+	cluster.APIVersion = "sealer.io/v2"
 	cluster.Kind = "Cluster"
 	cluster.Name = "my-cluster"
 

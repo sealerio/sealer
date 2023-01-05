@@ -25,7 +25,7 @@ import (
 )
 
 func Test_TransferIPStrToHosts(t *testing.T) {
-	data := `apiVersion: sealer.cloud/v2
+	data := `apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   creationTimestamp: null

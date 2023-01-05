@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	testClusterfile = `apiVersion: sealer.cloud/v2
+	testClusterfile = `apiVersion: sealer.io/v2
 kind: KubeadmConfig
 metadata:
   name: default-kubernetes-config
@@ -52,14 +52,14 @@ spec:
   nodeStatusReportFrequency: 99s
   nodeStatusUpdateFrequency: 99s
 ---
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Cluster
 metadata:
   name: default-kubernetes-cluster
 spec:
   image: kubernetes:v1.19.8
 ---
-apiVersion: sealer.cloud/v2
+apiVersion: sealer.io/v2
 kind: Infra
 metadata:
   name: alicloud
