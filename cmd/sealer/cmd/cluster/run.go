@@ -38,7 +38,7 @@ import (
 	"github.com/sealerio/sealer/utils/platform"
 )
 
-var runFlags *types.Flags
+var runFlags *types.RunFlags
 
 var longNewRunCmdDescription = `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`
 
@@ -60,24 +60,22 @@ func NewRunCmd() *cobra.Command {
 		Long:    longNewRunCmdDescription,
 		Example: exampleForRunCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: remove this now, maybe we can support it later
-			// set local ip address as master0 default ip if user input is empty.
-			// this is convenient to execute `sealer run` without set many arguments.
-			// Example looks like "sealer run kubernetes:v1.19.8"
-			//if runFlags.Masters == "" {
-			//	ip, err := net.GetLocalDefaultIP()
-			//	if err != nil {
-			//		return err
-			//	}
-			//	runFlags.Masters = ip
-			//}
 			var (
-				cf              clusterfile.Interface
-				clusterFileData []byte
-				err             error
-				clusterFile     = runFlags.ClusterFile
-				applyMode       = runFlags.Mode
+				err         error
+				clusterFile = runFlags.ClusterFile
 			)
+
+			if len(args) == 0 && clusterFile == "" {
+				return fmt.Errorf("you must input image name Or use Clusterfile")
+			}
+
+			if err = utils.ValidateRunHosts(runFlags.Masters, runFlags.Nodes); err != nil {
+				return fmt.Errorf("failed to validate input run master or node: %v", err)
+			}
+
+			if clusterFile != "" {
+				return runWithClusterfile(clusterFile, runFlags)
+			}
 
 			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
 			if err != nil {
@@ -100,58 +98,29 @@ func NewRunCmd() *cobra.Command {
 
 			if extension.Type == v12.AppInstaller {
 				logrus.Infof("start to install app image: %s", args[0])
-				return installApplication(args[0], runFlags.Cmds, runFlags.AppNames, runFlags.CustomEnv, extension, nil, imageEngine, applyMode)
+				return installApplication(args[0], runFlags.Cmds, runFlags.AppNames, runFlags.CustomEnv,
+					extension, nil, imageEngine, runFlags.Mode)
 			}
 
-			if runFlags.Masters == "" && clusterFile == "" {
-				return fmt.Errorf("you must input master ip Or use Clusterfile")
-			}
-
-			if clusterFile != "" {
-				clusterFileData, err = os.ReadFile(filepath.Clean(clusterFile))
-				if err != nil {
-					return err
-				}
-
-				cf, err = clusterfile.NewClusterFile(clusterFileData)
-				if err != nil {
-					return err
-				}
-			} else {
-				if len(args) == 0 {
-					return fmt.Errorf("you must input cluster image name")
-				}
-
-				if err = utils.ValidateRunFlags(runFlags); err != nil {
-					return fmt.Errorf("failed to validate input run args: %v", err)
-				}
-
-				cluster, err := utils.ConstructClusterForRun(args[0], runFlags)
-				if err != nil {
-					return err
-				}
-
-				clusterData, err := yaml.Marshal(cluster)
-				if err != nil {
-					return err
-				}
-
-				cf, err = clusterfile.NewClusterFile(clusterData)
-				if err != nil {
-					return err
-				}
-			}
-
-			cluster := cf.GetCluster()
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
+			clusterFromFlag, err := utils.ConstructClusterForRun(args[0], runFlags)
 			if err != nil {
 				return err
 			}
 
-			return createNewCluster(infraDriver, imageEngine, cf, applyMode)
+			clusterData, err := yaml.Marshal(clusterFromFlag)
+			if err != nil {
+				return err
+			}
+
+			cf, err := clusterfile.NewClusterFile(clusterData)
+			if err != nil {
+				return err
+			}
+
+			return createNewCluster(imageEngine, cf, runFlags.Mode)
 		},
 	}
-	runFlags = &types.Flags{}
+	runFlags = &types.RunFlags{}
 	//todo remove provider Flag now, maybe we can support it later
 	//runCmd.Flags().StringVarP(&runFlags.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runFlags.Masters, "masters", "m", "", "set count or IPList to masters")
@@ -176,11 +145,70 @@ func NewRunCmd() *cobra.Command {
 	return runCmd
 }
 
-func createNewCluster(infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface, mode string) error {
-	var (
-		clusterHosts     = infraDriver.GetHostIPList()
-		clusterImageName = infraDriver.GetClusterImageName()
-	)
+func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
+	clusterFileData, err := os.ReadFile(filepath.Clean(clusterFile))
+	if err != nil {
+		return err
+	}
+
+	cf, err := clusterfile.NewClusterFile(clusterFileData)
+	if err != nil {
+		return err
+	}
+
+	cluster, err := utils.MergeClusterWithFlags(cf.GetCluster(), &types.MergeFlags{
+		Masters:    runFlags.Masters,
+		Nodes:      runFlags.Nodes,
+		CustomEnv:  runFlags.CustomEnv,
+		User:       runFlags.User,
+		Password:   runFlags.Password,
+		PkPassword: runFlags.PkPassword,
+		Pk:         runFlags.Pk,
+		Port:       runFlags.Port,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to merge cluster with run args: %v", err)
+	}
+
+	cf.SetCluster(*cluster)
+	imageName := cluster.Spec.Image
+	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+	if err != nil {
+		return err
+	}
+
+	if err = imageEngine.Pull(&imagecommon.PullOptions{
+		Quiet:      false,
+		PullPolicy: "missing",
+		Image:      imageName,
+		Platform:   "local",
+	}); err != nil {
+		return err
+	}
+
+	extension, err := imageEngine.GetSealerImageExtension(&imagecommon.GetImageAnnoOptions{ImageNameOrID: imageName})
+	if err != nil {
+		return fmt.Errorf("failed to get cluster image extension: %s", err)
+	}
+
+	if extension.Type == v12.AppInstaller {
+		logrus.Infof("start to install app image: %s", imageName)
+		return installApplication(imageName, runFlags.Cmds, runFlags.AppNames,
+			runFlags.CustomEnv, extension, cf.GetConfigs(), imageEngine, runFlags.Mode)
+	}
+
+	return createNewCluster(imageEngine, cf, runFlags.Mode)
+}
+
+func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interface, mode string) error {
+	cluster := cf.GetCluster()
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return err
+	}
+
+	clusterHosts := infraDriver.GetHostIPList()
+	clusterImageName := infraDriver.GetClusterImageName()
 
 	logrus.Infof("start to create new cluster with image: %s", clusterImageName)
 

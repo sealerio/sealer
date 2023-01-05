@@ -18,6 +18,8 @@ import (
 	"net"
 	"testing"
 
+	v1 "github.com/sealerio/sealer/types/api/v1"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -67,11 +69,12 @@ spec:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hosts, err := TransferIPStrToHosts(tt.args.inMasters, tt.args.inNodes)
+			masterIPList, nodeIPList, err := ParseToNetIPList(tt.args.inMasters, tt.args.inNodes)
 			if err != nil {
 				t.Error(err)
 				return
 			}
+			hosts := TransferIPToHosts(masterIPList, nodeIPList, v1.SSH{})
 			cf, err := clusterfile.NewClusterFile([]byte(data))
 			if err != nil {
 				assert.Errorf(t, err, "failed to NewClusterFile by name")

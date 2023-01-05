@@ -15,28 +15,23 @@
 package utils
 
 import (
-	"fmt"
+	"net"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
 
 	"github.com/sealerio/sealer/common"
 
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-// TransferIPStrToHosts now only supports input IP list and IP range.
-// IP list, like 192.168.0.1,192.168.0.2,192.168.0.3
-// IP range, like 192.168.0.5-192.168.0.7, which means 192.168.0.5,192.168.0.6,192.168.0.7
-// P.S. we have guaranteed that all the input masters and nodes are validated.
-func TransferIPStrToHosts(inMasters, inNodes string) ([]v2.Host, error) {
-	masterIPList, nodeIPList, err := ParseToNetIPList(inMasters, inNodes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ip string to net IP list: %v", err)
-	}
-
+// TransferIPToHosts constructs v2.Host through []net.ip
+func TransferIPToHosts(masterIPList, nodeIPList []net.IP, sshAuthOnHosts v1.SSH) []v2.Host {
 	var hosts []v2.Host
 	if len(masterIPList) != 0 {
 		hosts = append(hosts, v2.Host{
 			Roles: []string{common.MASTER},
 			IPS:   masterIPList,
+			SSH:   sshAuthOnHosts,
 		})
 	}
 
@@ -44,8 +39,9 @@ func TransferIPStrToHosts(inMasters, inNodes string) ([]v2.Host, error) {
 		hosts = append(hosts, v2.Host{
 			Roles: []string{common.NODE},
 			IPS:   nodeIPList,
+			SSH:   sshAuthOnHosts,
 		})
 	}
 
-	return hosts, nil
+	return hosts
 }

@@ -35,10 +35,54 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-func ConstructClusterForRun(imageName string, runFlags *types.Flags) (*v2.Cluster, error) {
-	resultHosts, err := TransferIPStrToHosts(runFlags.Masters, runFlags.Nodes)
+func MergeClusterWithFlags(cluster v2.Cluster, mergeFlags *types.MergeFlags) (*v2.Cluster, error) {
+	if len(mergeFlags.CustomEnv) > 0 {
+		cluster.Spec.Env = append(cluster.Spec.Env, mergeFlags.CustomEnv...)
+	}
+
+	// if no master and node specify form flag, just return.
+	if len(mergeFlags.Masters) == 0 && len(mergeFlags.Nodes) == 0 {
+		return &cluster, nil
+	}
+
+	flagMasters, flagNodes, err := ParseToNetIPList(mergeFlags.Masters, mergeFlags.Nodes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse ip string to net IP list: %v", err)
+	}
+
+	//validate run flags masters
+	masterIPs := cluster.GetMasterIPList()
+	for _, ip := range flagMasters {
+		if netutils.IsInIPList(ip, masterIPs) {
+			return nil, fmt.Errorf("failed to merge master ip form flags, duplicated ip is: %s", ip)
+		}
+	}
+
+	//validate run flags nodes
+	nodeIPs := cluster.GetNodeIPList()
+	for _, ip := range flagNodes {
+		if netutils.IsInIPList(ip, nodeIPs) {
+			return nil, fmt.Errorf("failed to merge node ip form flags, duplicated ip is: %s", ip)
+		}
+	}
+
+	//TODO: validate ssh auth
+	flagHosts := TransferIPToHosts(flagMasters, flagNodes, v1.SSH{
+		User:     mergeFlags.User,
+		Passwd:   mergeFlags.Password,
+		PkPasswd: mergeFlags.PkPassword,
+		Pk:       mergeFlags.Pk,
+		Port:     strconv.Itoa(int(mergeFlags.Port)),
+	})
+
+	cluster.Spec.Hosts = append(cluster.Spec.Hosts, flagHosts...)
+	return &cluster, err
+}
+
+func ConstructClusterForRun(imageName string, runFlags *types.RunFlags) (*v2.Cluster, error) {
+	masterIPList, nodeIPList, err := ParseToNetIPList(runFlags.Masters, runFlags.Nodes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 	}
 
 	cluster := v2.Cluster{
@@ -50,10 +94,10 @@ func ConstructClusterForRun(imageName string, runFlags *types.Flags) (*v2.Cluste
 				Pk:       runFlags.Pk,
 				Port:     strconv.Itoa(int(runFlags.Port)),
 			},
-			Image:   imageName,
-			Hosts:   resultHosts,
-			Env:     runFlags.CustomEnv,
-			CMDArgs: runFlags.CMDArgs,
+			Image: imageName,
+			//use cluster ssh auth by default
+			Hosts: TransferIPToHosts(masterIPList, nodeIPList, v1.SSH{}),
+			Env:   runFlags.CustomEnv,
 		},
 	}
 	cluster.APIVersion = common.APIVersion
@@ -62,7 +106,7 @@ func ConstructClusterForRun(imageName string, runFlags *types.Flags) (*v2.Cluste
 	return &cluster, nil
 }
 
-func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.Flags, joinMasters, joinWorkers []net.IP) error {
+func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.ScaleUpFlags, joinMasters, joinWorkers []net.IP) error {
 	//TODO Add password encryption mode in the future
 	//add joined masters
 	if len(joinMasters) != 0 {
@@ -125,7 +169,7 @@ func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersT
 	return nil
 }
 
-func constructHost(role string, joinIPs []net.IP, scaleFlags *types.Flags, clusterSSH v1.SSH) v2.Host {
+func constructHost(role string, joinIPs []net.IP, scaleFlags *types.ScaleUpFlags, clusterSSH v1.SSH) v2.Host {
 	//todo we could support host level env form cli later.
 	//todo we could support host level role form cli later.
 	host := v2.Host{

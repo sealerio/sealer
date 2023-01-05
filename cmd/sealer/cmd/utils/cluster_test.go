@@ -180,7 +180,7 @@ func Test_ConstructClusterForScaleUp(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		scaleFlags      *types.Flags
+		scaleFlags      *types.ScaleUpFlags
 		joinMasters     []net.IP
 		joinWorkers     []net.IP
 		rawCluster      v2.Cluster
@@ -190,7 +190,7 @@ func Test_ConstructClusterForScaleUp(t *testing.T) {
 			name:        "test scale up to build clusters ",
 			joinMasters: []net.IP{net.ParseIP("192.168.0.4"), net.ParseIP("192.168.0.6")},
 			joinWorkers: []net.IP{net.ParseIP("192.168.0.5"), net.ParseIP("192.168.0.7")},
-			scaleFlags: &types.Flags{
+			scaleFlags: &types.ScaleUpFlags{
 				User:     "root",
 				Password: "test456",
 				Port:     22,

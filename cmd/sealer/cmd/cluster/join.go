@@ -30,7 +30,7 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
-var joinFlags *types.Flags
+var joinFlags *types.ScaleUpFlags
 
 var longJoinCmdDescription = `join command is used to join master or node to the existing cluster.
 User can join cluster by explicitly specifying host IP`
@@ -89,7 +89,7 @@ func NewJoinCmd() *cobra.Command {
 		},
 	}
 
-	joinFlags = &types.Flags{}
+	joinFlags = &types.ScaleUpFlags{}
 	joinCmd.Flags().StringVarP(&joinFlags.User, "user", "u", "root", "set baremetal server username")
 	joinCmd.Flags().StringVarP(&joinFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	joinCmd.Flags().Uint16Var(&joinFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
