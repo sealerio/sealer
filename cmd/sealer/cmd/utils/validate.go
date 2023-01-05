@@ -19,25 +19,25 @@ import (
 	"net"
 	"strings"
 
-	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
-
 	netutils "github.com/sealerio/sealer/utils/net"
 )
 
-// ValidateRunFlags validates all the input args from sealer run command.
-func ValidateRunFlags(runFlags *types.Flags) error {
+// ValidateRunHosts validates the input host args such as master and node string
+func ValidateRunHosts(runMasters, runNodes string) error {
 	// TODO: add detailed validation steps.
 	var errMsg []string
 
 	// validate input masters IP info
-	if err := ValidateIPStr(runFlags.Masters); err != nil {
-		errMsg = append(errMsg, err.Error())
+	if len(runMasters) != 0 {
+		if err := ValidateIPStr(runMasters); err != nil {
+			errMsg = append(errMsg, err.Error())
+		}
 	}
 
 	// validate input nodes IP info
-	if len(runFlags.Nodes) != 0 {
+	if len(runNodes) != 0 {
 		// empty runFlags.Nodes are valid, since no nodes are input.
-		if err := ValidateIPStr(runFlags.Nodes); err != nil {
+		if err := ValidateIPStr(runNodes); err != nil {
 			errMsg = append(errMsg, err.Error())
 		}
 	}
@@ -112,6 +112,10 @@ func ValidateScaleIPStr(masters, nodes string) error {
 	return fmt.Errorf(strings.Join(errMsg, ","))
 }
 
+// ParseToNetIPList now only supports input IP list and IP range.
+// IP list, like 192.168.0.1,192.168.0.2,192.168.0.3
+// IP range, like 192.168.0.5-192.168.0.7, which means 192.168.0.5,192.168.0.6,192.168.0.7
+// P.S. we have guaranteed that all the input masters and nodes are validated.
 func ParseToNetIPList(masters, workers string) ([]net.IP, []net.IP, error) {
 	newMasters, err := netutils.TransferToIPList(masters)
 	if err != nil {

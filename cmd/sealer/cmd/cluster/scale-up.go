@@ -33,7 +33,7 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
-var ScaleUpFlags *types.Flags
+var scaleUpFlags *types.ScaleUpFlags
 
 var longScaleUpCmdDescription = `scale-up command is used to scale-up master or node to the existing cluster.
 User can scale-up cluster by explicitly specifying host IP`
@@ -57,11 +57,11 @@ func NewScaleUpCmd() *cobra.Command {
 				err error
 			)
 
-			if err = utils.ValidateScaleIPStr(ScaleUpFlags.Masters, ScaleUpFlags.Nodes); err != nil {
+			if err = utils.ValidateScaleIPStr(scaleUpFlags.Masters, scaleUpFlags.Nodes); err != nil {
 				return fmt.Errorf("failed to validate input run args: %v", err)
 			}
 
-			scaleUpMasterIPList, scaleUpNodeIPList, err := utils.ParseToNetIPList(ScaleUpFlags.Masters, ScaleUpFlags.Nodes)
+			scaleUpMasterIPList, scaleUpNodeIPList, err := utils.ParseToNetIPList(scaleUpFlags.Masters, scaleUpFlags.Nodes)
 			if err != nil {
 				return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 			}
@@ -72,7 +72,7 @@ func NewScaleUpCmd() *cobra.Command {
 			}
 
 			cluster := cf.GetCluster()
-			if err = utils.ConstructClusterForScaleUp(&cluster, ScaleUpFlags, scaleUpMasterIPList, scaleUpNodeIPList); err != nil {
+			if err = utils.ConstructClusterForScaleUp(&cluster, scaleUpFlags, scaleUpMasterIPList, scaleUpNodeIPList); err != nil {
 				return err
 			}
 			cf.SetCluster(cluster)
@@ -91,15 +91,15 @@ func NewScaleUpCmd() *cobra.Command {
 		},
 	}
 
-	ScaleUpFlags = &types.Flags{}
-	scaleUpFlagsCmd.Flags().StringVarP(&ScaleUpFlags.User, "user", "u", "root", "set baremetal server username")
-	scaleUpFlagsCmd.Flags().StringVarP(&ScaleUpFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
-	scaleUpFlagsCmd.Flags().Uint16Var(&ScaleUpFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
-	scaleUpFlagsCmd.Flags().StringVar(&ScaleUpFlags.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
-	scaleUpFlagsCmd.Flags().StringVar(&ScaleUpFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
-	scaleUpFlagsCmd.Flags().StringSliceVarP(&ScaleUpFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
-	scaleUpFlagsCmd.Flags().StringVarP(&ScaleUpFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
-	scaleUpFlagsCmd.Flags().StringVarP(&ScaleUpFlags.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
+	scaleUpFlags = &types.ScaleUpFlags{}
+	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.User, "user", "u", "root", "set baremetal server username")
+	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
+	scaleUpFlagsCmd.Flags().Uint16Var(&scaleUpFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
+	scaleUpFlagsCmd.Flags().StringVar(&scaleUpFlags.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
+	scaleUpFlagsCmd.Flags().StringVar(&scaleUpFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
+	scaleUpFlagsCmd.Flags().StringSliceVarP(&scaleUpFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
+	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
+	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
 	return scaleUpFlagsCmd
 }
 

@@ -57,7 +57,7 @@ func NewApplyCmd() *cobra.Command {
 				clusterFileData  []byte
 				err              error
 				applyClusterFile = applyFlags.ClusterFile
-				applyMode        = applyFlags.ApplyMode
+				applyMode        = applyFlags.Mode
 			)
 			logrus.Warn("sealer apply command will be deprecated in the future, please use sealer run instead.")
 
@@ -103,15 +103,28 @@ func NewApplyCmd() *cobra.Command {
 				return installApplication(imageName, desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames, desiredCluster.Spec.Env, extension, cf.GetConfigs(), imageEngine, applyMode)
 			}
 
-			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
-			if err != nil {
-				return err
-			}
-
 			client := utils.GetClusterClient()
 			if client == nil {
 				// no k8s client means to init a new cluster.
-				return createNewCluster(infraDriver, imageEngine, cf, applyMode)
+				// merge flags
+				cluster, err := utils.MergeClusterWithFlags(cf.GetCluster(), &types.MergeFlags{
+					Masters:    applyFlags.Masters,
+					Nodes:      applyFlags.Nodes,
+					CustomEnv:  applyFlags.CustomEnv,
+					User:       applyFlags.User,
+					Password:   applyFlags.Password,
+					PkPassword: applyFlags.PkPassword,
+					Pk:         applyFlags.Pk,
+					Port:       applyFlags.Port,
+				})
+
+				if err != nil {
+					return fmt.Errorf("failed to merge cluster with apply args: %v", err)
+				}
+
+				// set merged cluster
+				cf.SetCluster(*cluster)
+				return createNewCluster(imageEngine, cf, applyMode)
 			}
 
 			logrus.Infof("Start to check if need scale")
@@ -125,7 +138,6 @@ func NewApplyCmd() *cobra.Command {
 			nj, nd := strings.Diff(currentCluster.GetNodeIPList(), desiredCluster.GetNodeIPList())
 			if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
 				logrus.Infof("No need scale, completed")
-
 				return nil
 			}
 
@@ -136,6 +148,11 @@ func NewApplyCmd() *cobra.Command {
 				return fmt.Errorf("make sure all masters' ip exist in your clusterfile: %s", applyFlags.ClusterFile)
 			}
 
+			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
+			if err != nil {
+				return err
+			}
+
 			return scaleUpCluster(imageName, mj, nj, infraDriver, imageEngine, cf)
 		},
 	}
@@ -143,6 +160,16 @@ func NewApplyCmd() *cobra.Command {
 	applyFlags = &types.ApplyFlags{}
 	applyCmd.Flags().BoolVar(&applyFlags.ForceDelete, "force", false, "force to delete the specified cluster if set true")
 	applyCmd.Flags().StringVarP(&applyFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
-	applyCmd.Flags().StringVarP(&applyFlags.ApplyMode, "applyMode", "m", common.ApplyModeApply, "load images to the specified registry in advance")
+	applyCmd.Flags().StringVar(&applyFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
+	applyCmd.Flags().StringSliceVarP(&applyFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
+	// support merge clusterfile and flags, such as host ip and host auth info.
+	applyCmd.Flags().StringVarP(&applyFlags.Masters, "masters", "m", "", "set count or IPList to masters")
+	applyCmd.Flags().StringVarP(&applyFlags.Nodes, "nodes", "n", "", "set count or IPList to nodes")
+	applyCmd.Flags().StringVarP(&applyFlags.User, "user", "u", "root", "set baremetal server username")
+	applyCmd.Flags().StringVarP(&applyFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
+	applyCmd.Flags().Uint16Var(&applyFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
+	applyCmd.Flags().StringVar(&applyFlags.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
+	applyCmd.Flags().StringVar(&applyFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
+
 	return applyCmd
 }

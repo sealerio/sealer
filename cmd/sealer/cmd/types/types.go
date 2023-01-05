@@ -14,10 +14,7 @@
 
 package types
 
-type Flags struct {
-	// Masters and Nodes only support:
-	// IP list format: ip1,ip2,ip3
-	// IP range format: x.x.x.x-x.x.x.y
+type RunFlags struct {
 	Masters string
 	Nodes   string
 
@@ -27,7 +24,6 @@ type Flags struct {
 	Pk          string
 	PkPassword  string
 	CustomEnv   []string
-	CMDArgs     []string
 	Mode        string
 	ClusterFile string
 
@@ -39,7 +35,50 @@ type Flags struct {
 }
 
 type ApplyFlags struct {
+	Masters string
+	Nodes   string
+
+	User       string
+	Password   string
+	Port       uint16
+	Pk         string
+	PkPassword string
+
 	ClusterFile string
-	ApplyMode   string
+	Mode        string
+	CustomEnv   []string
 	ForceDelete bool
+}
+
+type ScaleUpFlags struct {
+	Masters string
+	Nodes   string
+
+	User       string
+	Password   string
+	Port       uint16
+	Pk         string
+	PkPassword string
+	CustomEnv  []string
+}
+
+type DeleteFlags struct {
+	Masters     string
+	Nodes       string
+	CustomEnv   []string
+	ClusterFile string
+	DeleteAll   bool
+	ForceDelete bool
+}
+
+type MergeFlags struct {
+	Masters string
+	Nodes   string
+
+	User       string
+	Password   string
+	Port       uint16
+	Pk         string
+	PkPassword string
+	CustomEnv  []string
 }
