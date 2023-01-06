@@ -22,14 +22,13 @@ import (
 	"strings"
 
 	"github.com/imdario/mergo"
-
+	"github.com/sealerio/sealer/pkg/rootfs"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/os"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	k8sv1 "k8s.io/api/core/v1"
 	k8sYaml "sigs.k8s.io/yaml"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils/os"
 )
 
 const (
@@ -71,8 +70,14 @@ func (c *Dumper) WriteFiles(configs []v1.Config) error {
 		if err := NewProcessorsAndRun(&config); err != nil {
 			return err
 		}
+
 		configData := []byte(config.Spec.Data)
-		configPath := filepath.Join(c.rootPath, config.Spec.Path)
+		path := config.Spec.Path
+		if config.Spec.APPName != "" {
+			path = filepath.Join(rootfs.GlobalManager.App().Root(), config.Spec.APPName, path)
+		}
+		configPath := filepath.Join(c.rootPath, path)
+
 		if !os.IsFileExist(configPath) {
 			err := os.NewCommonWriter(configPath).WriteFile(configData)
 			if err != nil {
