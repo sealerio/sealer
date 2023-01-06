@@ -4,7 +4,7 @@ cloud rootfs will package all the dependencies refers to the kubernetes cluster 
 
 ```shell script
 .
-├── bin
+├── bin # binaries will be installed at all nodes' /usr/local/bin
 │   ├── conntrack
 │   ├── containerd-rootless-setuptool.sh
 │   ├── containerd-rootless.sh
@@ -13,44 +13,28 @@ cloud rootfs will package all the dependencies refers to the kubernetes cluster 
 │   ├── kubectl
 │   ├── kubelet
 │   ├── nerdctl
+│   ├── kubelet-pre-start.sh
+│   ├── helm
 │   └── seautil
-├── cri
-│   ├── containerd
-│   ├── containerd-shim
-│   ├── containerd-shim-runc-v2
-│   ├── ctr
-│   ├── docker
-│   ├── dockerd
-│   ├── docker-init
-│   ├── docker-proxy
-│   ├── rootlesskit
-│   ├── rootlesskit-docker-proxy
-│   ├── runc
-│   └── vpnkit
-├── etc
+├── etc # configs will be put into all nodes' sealer-rootfs
 │   ├── 10-kubeadm.conf
-│   ├── Clusterfile  # image default Clusterfile
 │   ├── daemon.json
 │   ├── docker.service
+│   ├── audit-policy.yml
 │   ├── kubeadm-config.yaml
+│   ├── kubeadm-config.yaml.tmpl # a.b.c.tmpl will be rendered using envs and rename to a.b.c
 │   └── kubelet.service
-├── images
-│   └── registry.tar  # registry docker image, will load this image and run a local registry in cluster
-├── Kubefile
-├── Metadata
-├── README.md
-├── registry # will mount this dir to local registry
-│   └── docker
-│       └── registry
-├── scripts
-│   ├── clean.sh
-│   ├── docker.sh
-│   ├── init-kube.sh
-│   ├── init-registry.sh
-│   ├── init.sh
-│   └── kubelet-pre-start.sh
-└── statics # yaml files, sealer will render values in those files
-    └── audit-policy.yml
+├── plugins # plugins can run on some hooks, such as pre-init-host, post-install, see more in the plugins documentation
+│   └── disk_init_shell_plugin.yaml
+├── scripts # scripts can use all ClusterFile's env as Linux env variables
+│   ├── init-kube.sh # initialize kube* binaries on target hosts
+│   ├── clean-kube.sh # remove kube* binaries from target hosts
+│   ├── init-container-runtime.sh # initialize container runtime binaries on target hosts
+│   ├── clean-container-runtime.sh # remove container runtime binaries on target hosts
+│   └── init-registry.sh # initialize registry on local registry's deploy-hosts
+└── applications # applications put here
+│   ├── redis
+│   └── mysql
 ```
 
 Using cloud rootfs to build a base cloudImage:
@@ -62,15 +46,6 @@ COPY . .
 
 ```shell script
 sealer build -t kuberntes:v1.18.3 .
-```
-
-## Metadata
-
-```shell script
-{
-  "version": "v1.18.3",
-  "arch": "amd64"
-}
 ```
 
 ## Hooks
