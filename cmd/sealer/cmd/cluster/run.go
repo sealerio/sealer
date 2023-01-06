@@ -40,14 +40,14 @@ import (
 
 var runFlags *types.RunFlags
 
-var longNewRunCmdDescription = `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`
+var longNewRunCmdDescription = `sealer run docker.io/sealerio/kubernetes:v1.22.15 --masters [arg] --nodes [arg]`
 
 var exampleForRunCmd = `
 run cluster by Clusterfile: 
   sealer run -f Clusterfile
 
 run cluster by CLI flags:
-  sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.4 -m 172.28.80.01 -n 172.28.80.02 -p Sealer123
+  sealer run docker.io/sealerio/kubernetes:v1.22.15 -m 172.28.80.01 -n 172.28.80.02 -p Sealer123
 
 run app image:
   sealer run localhost/nginx:v1
@@ -60,6 +60,17 @@ func NewRunCmd() *cobra.Command {
 		Long:    longNewRunCmdDescription,
 		Example: exampleForRunCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// TODO: remove this now, maybe we can support it later
+			// set local ip address as master0 default ip if user input is empty.
+			// this is convenient to execute `sealer run` without set many arguments.
+			// Example looks like "sealer run docker.io/sealerio/kubernetes:v1.22.15"
+			//if runFlags.Masters == "" {
+			//	ip, err := net.GetLocalDefaultIP()
+			//	if err != nil {
+			//		return err
+			//	}
+			//	runFlags.Masters = ip
+			//}
 			var (
 				err         error
 				clusterFile = runFlags.ClusterFile

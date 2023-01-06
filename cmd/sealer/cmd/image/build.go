@@ -52,14 +52,14 @@ a brand new ClusterImage.`
 
 var exampleNewBuildCmd = `the current path is the context path, default build type is lite and use build cache
 build:
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8
 build without cache:
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache
 build with args:
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123
 build with image type:
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=app-installer .
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default) .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=app-installer
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default)
   app-installer type image will not install kubernetes.
 build multi-platform image:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 --platform linux/amd64,linux/arm64
