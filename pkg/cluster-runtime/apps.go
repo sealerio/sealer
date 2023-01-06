@@ -23,9 +23,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/sealerio/sealer/pkg/rootfs"
+	"github.com/sealerio/sealer/pkg/env"
 
-	"github.com/moby/buildkit/frontend/dockerfile/shell"
+	"github.com/sealerio/sealer/pkg/rootfs"
 
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
@@ -94,7 +94,7 @@ func (i AppInstaller) Launch(master0 net.IP, launchCmds []string) error {
 	var (
 		cmds       []string
 		rootfsPath = i.infraDriver.GetClusterRootfsPath()
-		ex         = shell.NewLex('\\')
+		envs       = i.infraDriver.GetClusterEnv()
 	)
 
 	if len(launchCmds) > 0 {
@@ -107,12 +107,10 @@ func (i AppInstaller) Launch(master0 net.IP, launchCmds []string) error {
 		if value == "" {
 			continue
 		}
-		cmdline, err := ex.ProcessWordWithMap(value, map[string]string{})
-		if err != nil {
-			return fmt.Errorf("failed to render launch cmd: %v", err)
-		}
 
-		if err = i.infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, rootfsPath, cmdline)); err != nil {
+		cmd := env.WrapperShell(value, envs)
+		wrappedCmd := fmt.Sprintf(common.CdAndExecCmd, rootfsPath, cmd)
+		if err := i.infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, rootfsPath, wrappedCmd)); err != nil {
 			return err
 		}
 	}
