@@ -77,13 +77,13 @@ func CheckLoginResult(registryURL, username, passwd string, result bool) {
 	if result {
 		sess, err := testhelper.Start(loginCmd)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		gomega.Eventually(sess).Should(gbytes.Say(fmt.Sprintf("%s login %s success", username, registryURL)))
+		gomega.Eventually(sess).Should(gbytes.Say(fmt.Sprintln("Login Succeeded!")))
 		gomega.Eventually(sess).Should(gexec.Exit(0))
 		return
 	}
 	sess, err := testhelper.Start(loginCmd)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.Eventually(sess).ShouldNot(gbytes.Say(fmt.Sprintf("%s login %s success", username, registryURL)))
+	gomega.Eventually(sess).ShouldNot(gbytes.Say(fmt.Sprintln("Login Succeeded!")))
 	gomega.Eventually(sess).ShouldNot(gexec.Exit(0))
 }
 
