@@ -8,7 +8,7 @@ HOSTNAME plugin will help you to change all the hostnames
 
 ```yaml
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: MyHostname # Specify this plugin name,will dump in $rootfs/plugins dir.
@@ -29,7 +29,7 @@ spec:
 You can exec any shell command on specify node in any phase.
 
 ```yaml
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: MyShell # Specify this plugin name,will dump in $rootfs/plugins dir.
@@ -65,7 +65,7 @@ data   : #Specifies the shell command to execute
 Help you set label after install kubernetes cluster
 
 ```yaml
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: MyLabel
@@ -87,7 +87,7 @@ Server and environmental factors (poor server disk performance) may cause Sealer
 The Cluster Check plugin waits for the Kubernetes cluster to stabilize before deploying the application service.
 
 ```yaml
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: checkCluster
@@ -99,7 +99,7 @@ spec:
 ### Etcd backup plugin
 
 ```yaml
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: MyBackup
@@ -115,7 +115,7 @@ Etcd backup plugin is triggered manually: `sealer plugin -f etcd_backup.yaml`
 Add or remove taint by adding the taint plugin for the PreGuest phase:
 
 ```yaml
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: taint
@@ -147,7 +147,7 @@ it.
 plugin config:
 
 ```yaml
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: label_nodes.so # out of tree plugin name
@@ -193,7 +193,7 @@ spec:
     - ips: [ 192.168.0.5 ]
       roles: [ node ]
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: LABEL
@@ -219,7 +219,7 @@ image.
 Plugin configuration shell.yaml:
 
 ```yaml
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: SHELL

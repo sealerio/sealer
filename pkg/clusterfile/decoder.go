@@ -23,16 +23,18 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sealerio/sealer/types/api/constants"
+
+	"github.com/sealerio/sealer/common"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
-
-	"github.com/sealerio/sealer/common"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
+	kubeadmConstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 )
 
 func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
@@ -57,7 +59,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 		}
 
 		switch metaType.Kind {
-		case common.Cluster:
+		case constants.ClusterKind:
 			var cluster v2.Cluster
 
 			if err := yaml.Unmarshal(ext.Raw, &cluster); err != nil {
@@ -68,14 +70,14 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			}
 
 			clusterfile.cluster = &cluster
-		case common.Config:
+		case constants.ConfigKind:
 			var cfg v1.Config
 
 			if err := yaml.Unmarshal(ext.Raw, &cfg); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 			clusterfile.configs = append(clusterfile.configs, cfg)
-		case common.Plugin:
+		case constants.PluginKind:
 			var plu v1.Plugin
 
 			if err := yaml.Unmarshal(ext.Raw, &plu); err != nil {
@@ -83,7 +85,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			}
 
 			clusterfile.plugins = append(clusterfile.plugins, plu)
-		case common.InitConfiguration:
+		case kubeadmConstants.InitConfigurationKind:
 			var in v1beta2.InitConfiguration
 
 			if err := yaml.Unmarshal(ext.Raw, &in); err != nil {
@@ -91,7 +93,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			}
 
 			clusterfile.kubeadmConfig.InitConfiguration = in
-		case common.JoinConfiguration:
+		case kubeadmConstants.JoinConfigurationKind:
 			var in v1beta2.JoinConfiguration
 
 			if err := yaml.Unmarshal(ext.Raw, &in); err != nil {
@@ -99,7 +101,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			}
 
 			clusterfile.kubeadmConfig.JoinConfiguration = in
-		case common.ClusterConfiguration:
+		case kubeadmConstants.ClusterConfigurationKind:
 			var in v1beta2.ClusterConfiguration
 
 			if err := yaml.Unmarshal(ext.Raw, &in); err != nil {

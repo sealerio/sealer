@@ -46,7 +46,7 @@ spec:
     dataDisks:
       - 100
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Config
 metadata:
   name: mysql-config
@@ -55,7 +55,7 @@ spec:
   data: |
     test
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Config
 metadata:
   name: redis-config
@@ -64,7 +64,7 @@ spec:
   data: |
     test
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: clusterfile_originally
@@ -74,7 +74,7 @@ spec:
   data: |
     hostname && echo "$env: OriginallyShell was successfully run from Clusterfile"
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: clusterfile_prejoin
@@ -95,7 +95,7 @@ spec:
   data: |
     hostname && echo "PostInstall|PostJoin from Clusterfile on sealer-test=true" `date`
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: clusterfile_postjoin
@@ -105,7 +105,7 @@ spec:
   data: |
     hostname && echo "$env: PostJoin was successfully run from Clusterfile"
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: clusterfile_preclean
@@ -115,7 +115,7 @@ spec:
   data: |
     hostname && echo "$env: PreClean was successfully run from Clusterfile"
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: clusterfile_postclean
@@ -125,7 +125,7 @@ spec:
   data: |
     hostname && echo "$env: PostJoin was successfully run from Clusterfile"
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: clusterfile_postinstall
@@ -135,7 +135,7 @@ spec:
   data: |
     echo "$env: PostInstallShell was successfully run from Clusterfile"
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: LABEL
@@ -145,7 +145,7 @@ spec:
   data: |
     172.17.102.186 ssd=true
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: taint

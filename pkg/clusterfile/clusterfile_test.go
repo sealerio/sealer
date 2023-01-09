@@ -85,7 +85,7 @@ func TestSaveAll(t *testing.T) {
 	}
 	plugin2.Name = "MyShell"
 	plugin2.Kind = "Plugin"
-	plugin2.APIVersion = "sealer.io/v1alpha1"
+	plugin2.APIVersion = "sealer.io/v1"
 
 	config := v1.Config{
 		Spec: v1.ConfigSpec{

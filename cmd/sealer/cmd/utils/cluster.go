@@ -20,19 +20,16 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-
-	"github.com/sealerio/sealer/pkg/client/k8s"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
-
-	netutils "github.com/sealerio/sealer/utils/net"
-	strUtils "github.com/sealerio/sealer/utils/strings"
-
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/types/api/constants"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	netutils "github.com/sealerio/sealer/utils/net"
+	strUtils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func MergeClusterWithFlags(cluster v2.Cluster, mergeFlags *types.MergeFlags) (*v2.Cluster, error) {
@@ -100,8 +97,8 @@ func ConstructClusterForRun(imageName string, runFlags *types.RunFlags) (*v2.Clu
 			Env:   runFlags.CustomEnv,
 		},
 	}
-	cluster.APIVersion = common.APIVersion
-	cluster.Kind = common.Kind
+	cluster.APIVersion = v2.GroupVersion.String()
+	cluster.Kind = constants.ClusterKind
 	cluster.Name = "my-cluster"
 	return &cluster, nil
 }

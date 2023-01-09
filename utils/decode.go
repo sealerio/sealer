@@ -23,32 +23,29 @@ import (
 	"path"
 	"strings"
 
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/types/api/constants"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
-
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
-
-	"github.com/sealerio/sealer/common"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
+	kubeadmConstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 )
 
-const typeV1 = "zlink.aliyun.com/v1alpha1"
-const typeV2 = "sealer.io/v2"
-
 var decodeCRDFuncMap = map[string]func(reader io.Reader) (interface{}, error){
-	common.Cluster:                decodeClusterFunc,
-	common.Config:                 decodeConfigListFunc,
-	common.Plugin:                 decodePluginListFunc,
-	common.InitConfiguration:      decodeInitConfigurationFunc,
-	common.JoinConfiguration:      decodeJoinConfigurationFunc,
-	common.ClusterConfiguration:   decodeClusterConfigurationFunc,
-	common.KubeletConfiguration:   decodeKubeletConfigurationFunc,
-	common.KubeProxyConfiguration: decodeKubeProxyConfigurationFunc,
+	constants.ClusterKind:                     decodeClusterFunc,
+	constants.ConfigKind:                      decodeConfigListFunc,
+	constants.PluginKind:                      decodePluginListFunc,
+	kubeadmConstants.InitConfigurationKind:    decodeInitConfigurationFunc,
+	kubeadmConstants.JoinConfigurationKind:    decodeJoinConfigurationFunc,
+	kubeadmConstants.ClusterConfigurationKind: decodeClusterConfigurationFunc,
+	common.KubeletConfiguration:               decodeKubeletConfigurationFunc,
+	common.KubeProxyConfiguration:             decodeKubeProxyConfigurationFunc,
 }
 
 // DecodeCRDFromFile decode custom resource definition from file, if not found, return io.EOF error.
@@ -117,22 +114,22 @@ func DecodeV1ClusterFromFile(filepath string) (*v1.Cluster, error) {
 		}
 	}()
 
-	cluster, err := decodeCRDFromReader(NewK8sYamlDecoder(file), common.Cluster, func(version string) interface{} { return &v1.Cluster{} })
+	cluster, err := decodeCRDFromReader(NewK8sYamlDecoder(file), constants.ClusterKind, func(version string) interface{} { return &v1.Cluster{} })
 	return cluster.(*v1.Cluster), err
 }
 
 func decodeClusterFunc(reader io.Reader) (out interface{}, err error) {
 	switchVersion := func(version string) interface{} {
 		switch version {
-		case typeV1:
+		case v1.GroupVersion.String():
 			return &v1.Cluster{}
-		case typeV2:
+		case v2.GroupVersion.String():
 			return &v2.Cluster{}
 		default:
 			return &v2.Cluster{}
 		}
 	}
-	out, err = decodeCRDFromReader(NewK8sYamlDecoder(reader), common.Cluster, switchVersion)
+	out, err = decodeCRDFromReader(NewK8sYamlDecoder(reader), constants.ClusterKind, switchVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +152,7 @@ func ConvertV1ClusterToV2Cluster(v1Cluster *v1.Cluster) *v2.Cluster {
 		hosts = append(hosts, v2.Host{IPS: v1Cluster.Spec.Nodes.IPList, Roles: []string{common.NODE}})
 	}
 
-	cluster.APIVersion = typeV2
+	cluster.APIVersion = v2.GroupVersion.String()
 	cluster.Spec.SSH = v1Cluster.Spec.SSH
 	cluster.Spec.Env = v1Cluster.Spec.Env
 	cluster.Spec.Hosts = hosts
@@ -172,7 +169,7 @@ func decodeConfigListFunc(reader io.Reader) (interface{}, error) {
 		switchVersion = func(version string) interface{} { return &v1.Config{} }
 	)
 	for {
-		in, err := decodeCRDFromReader(decoder, common.Config, switchVersion)
+		in, err := decodeCRDFromReader(decoder, constants.ConfigKind, switchVersion)
 		if err != nil {
 			if err == io.EOF {
 				return configs, nil
@@ -191,7 +188,7 @@ func decodePluginListFunc(reader io.Reader) (interface{}, error) {
 	)
 
 	for {
-		in, err := decodeCRDFromReader(decoder, common.Plugin, switchVersion)
+		in, err := decodeCRDFromReader(decoder, constants.PluginKind, switchVersion)
 		if err != nil {
 			if err == io.EOF {
 				return plugins, nil
@@ -204,17 +201,17 @@ func decodePluginListFunc(reader io.Reader) (interface{}, error) {
 
 func decodeInitConfigurationFunc(reader io.Reader) (out interface{}, err error) {
 	switchVersion := func(version string) interface{} { return &v1beta2.InitConfiguration{} }
-	return decodeCRDFromReader(NewK8sYamlDecoder(reader), common.InitConfiguration, switchVersion)
+	return decodeCRDFromReader(NewK8sYamlDecoder(reader), kubeadmConstants.InitConfigurationKind, switchVersion)
 }
 
 func decodeJoinConfigurationFunc(reader io.Reader) (out interface{}, err error) {
 	switchVersion := func(version string) interface{} { return &v1beta2.JoinConfiguration{} }
-	return decodeCRDFromReader(NewK8sYamlDecoder(reader), common.JoinConfiguration, switchVersion)
+	return decodeCRDFromReader(NewK8sYamlDecoder(reader), kubeadmConstants.JoinConfigurationKind, switchVersion)
 }
 
 func decodeClusterConfigurationFunc(reader io.Reader) (out interface{}, err error) {
 	switchVersion := func(version string) interface{} { return &v1beta2.ClusterConfiguration{} }
-	return decodeCRDFromReader(NewK8sYamlDecoder(reader), common.ClusterConfiguration, switchVersion)
+	return decodeCRDFromReader(NewK8sYamlDecoder(reader), kubeadmConstants.ClusterConfigurationKind, switchVersion)
 }
 
 func decodeKubeletConfigurationFunc(reader io.Reader) (out interface{}, err error) {

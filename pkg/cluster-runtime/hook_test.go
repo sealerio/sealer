@@ -25,7 +25,7 @@ package clusterruntime
 //	}
 //	plugin1.Name = "pre-init-host2"
 //	plugin1.Kind = "Plugin"
-//	plugin1.APIVersion = "sealer.io/v1alpha1"
+//	plugin1.APIVersion = "sealer.io/v1"
 //
 //	plugin2 := v1.Plugin{
 //		Spec: v1.PluginSpec{
@@ -37,7 +37,7 @@ package clusterruntime
 //	}
 //	plugin2.Name = "post-init-host2"
 //	plugin2.Kind = "Plugin"
-//	plugin2.APIVersion = "sealer.io/v1alpha1"
+//	plugin2.APIVersion = "sealer.io/v1"
 //
 //	type args struct {
 //		data   string
@@ -81,7 +81,7 @@ package clusterruntime
 //	}
 //	plugin1.Name = "MyHostname1"
 //	plugin1.Kind = "Plugin"
-//	plugin1.APIVersion = "sealer.io/v1alpha1"
+//	plugin1.APIVersion = "sealer.io/v1"
 //
 //	plugin2 := v1.Plugin{
 //		Spec: v1.PluginSpec{
@@ -93,7 +93,7 @@ package clusterruntime
 //	}
 //	plugin2.Name = "MyShell1"
 //	plugin2.Kind = "Plugin"
-//	plugin2.APIVersion = "sealer.io/v1alpha1"
+//	plugin2.APIVersion = "sealer.io/v1"
 //
 //	plugin3 := v1.Plugin{
 //		Spec: v1.PluginSpec{
@@ -105,7 +105,7 @@ package clusterruntime
 //	}
 //	plugin3.Name = "MyHostname2"
 //	plugin3.Kind = "Plugin"
-//	plugin3.APIVersion = "sealer.io/v1alpha1"
+//	plugin3.APIVersion = "sealer.io/v1"
 //
 //	plugin4 := v1.Plugin{
 //		Spec: v1.PluginSpec{
@@ -117,7 +117,7 @@ package clusterruntime
 //	}
 //	plugin4.Name = "MyShell2"
 //	plugin4.Kind = "Plugin"
-//	plugin4.APIVersion = "sealer.io/v1alpha1"
+//	plugin4.APIVersion = "sealer.io/v1"
 //
 //	wanted := map[Phase]HookConfigList{
 //		Phase("pre-init-host"): []HookConfig{
