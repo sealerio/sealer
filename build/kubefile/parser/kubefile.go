@@ -90,6 +90,7 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 
 		launchCnt = 0
 		cmdsCnt   = 0
+		cmdCnt    = 0
 	)
 
 	defer func() {
@@ -133,6 +134,17 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 			if i != len(mainNode.Children)-1 {
 				return nil, errors.New("cmds should be the last instruction")
 			}
+
+		case command.Cmd:
+			cmdCnt++
+			if cmdCnt > 1 {
+				break
+			}
+			logrus.Warn("CMD is about to be deprecated.")
+		}
+
+		if cmdCnt >= 1 && launchCnt == 1 {
+			return nil, errors.New("cmd and launch are mutually exclusive")
 		}
 
 		if err = kp.processOnCmd(result, node); err != nil {
@@ -154,9 +166,19 @@ func (kp *KubefileParser) processOnCmd(result *KubefileResult, node *Node) error
 		return kp.processLaunch(node, result)
 	case command.Cmds:
 		return kp.processCmds(node, result)
+	case command.Cmd:
+		return kp.processCmd(node, result)
 	default:
 		return fmt.Errorf("failed to recognize cmd: %s", cmd)
 	}
+}
+
+func (kp *KubefileParser) processCmd(node *Node, result *KubefileResult) error {
+	original := node.Original
+	cmd := strings.Split(original, "CMD ")
+	node.Next.Value = cmd[1]
+	result.RawCmds = append(result.RawCmds, node.Next.Value)
+	return nil
 }
 
 func (kp *KubefileParser) processCmds(node *Node, result *KubefileResult) error {

@@ -22,6 +22,7 @@ const (
 	App    = "app"
 	Launch = "launch"
 	Cmds   = "cmds"
+	Cmd    = "cmd" // Deprecated
 
 	Label      = "label"
 	Maintainer = "maintainer"
@@ -46,4 +47,5 @@ var SupportedCommands = map[string]struct{}{
 	App:        {},
 	Launch:     {},
 	Cmds:       {},
+	Cmd:        {},
 }
