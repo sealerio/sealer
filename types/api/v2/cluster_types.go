@@ -18,6 +18,7 @@ package v2
 
 import (
 	"net"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -48,6 +49,8 @@ type ClusterSpec struct {
 	HostAliases []HostAlias `json:"hostAliases,omitempty"`
 	// Registry field contains configurations about local registry and remote registry.
 	Registry Registry `json:"registry,omitempty"`
+
+	Apps []App `json:"apps,omitempty"`
 }
 
 type Host struct {
@@ -106,6 +109,123 @@ type TLSCert struct {
 type SubjectAltName struct {
 	DNSNames []string `json:"dnsNames,omitempty"`
 	IPs      []string `json:"ips,omitempty"`
+}
+
+type App struct {
+	// the AppName
+	AppName string `json:"appName,omitempty"`
+
+	AppFiles []AppFiles `json:"appFiles,omitempty"`
+
+	// app Launch customization
+	Launch *Launch `json:"launch,omitempty"`
+
+	// app Delete customization
+	Delete *Delete `json:"delete,omitempty"`
+}
+
+type ValueType string
+
+const (
+	RawValueType     ValueType = "raw"
+	SectionValueType ValueType = "section"
+	ArgsValueType    ValueType = "args"
+)
+
+type PreProcessor string
+
+const (
+	ToSecretPreProcessor    PreProcessor = "toSecret"
+	ToNamespacePreProcessor PreProcessor = "toNamespace"
+)
+
+type AppFiles struct {
+	// FilePath represents the path to write the Values, required.
+	FilePath string `json:"filePath,omitempty"`
+
+	//PreProcessor pre mutate the whole Values. The premise is ValueType must be RawValueType.
+	//ToSecretPreProcessor: mutate to kubernetes Secrete.
+	//ToNamespacePreProcessor: mutate to kubernetes Namespace.
+	PreProcessor string `json:"preProcessor,omitempty"`
+
+	//ValueType support as blew:
+	// RawValueType: this will overwrite the FilePath or work with PreProcessor to mutate the Values.
+	// SectionValueType: Only yaml files format are supported, this type will deeply merge each yaml file section.
+	// ArgsValueType: this will render the FilePath
+	ValueType string `json:"valueType,omitempty"`
+
+	// Values real app launch need.
+	// it could be raw content, yaml data, yaml section data, key-value pairs, and so on.
+	Values []byte `json:"values,omitempty"`
+}
+
+type Delete struct {
+	// raw cmds support
+	Cmds []string `json:"cmds,omitempty"`
+}
+
+type Launch struct {
+	// Cmds raw cmds support, not required, exclusive with app type.
+	Cmds []string `json:"cmds,omitempty"`
+
+	// Helm represents the helm app type
+	Helm *Helm `json:"helm,omitempty"`
+
+	// Shell represents the shell app type
+	Shell *Shell `json:"shell,omitempty"`
+
+	// Kube represents the kube app type,
+	// The reason why this is an arrays that it can support operations on resources in different namespaces.
+	Kube []Kubectl `json:"kube,omitempty"`
+}
+
+type Helm struct {
+	// ChartName will omit the chart values NAME parameter.
+	ChartName string `json:"chartName,omitempty"`
+
+	//CreateNamespace: create the release namespace if not present
+	CreateNamespace bool `json:"createNamespace,omitempty"`
+
+	//DisableHooks: prevent hooks from running during install
+	DisableHooks bool `json:"disableHooks,omitempty"`
+
+	//SkipCRDs: if set, no CRDs will be installed. By default, CRDs are installed if not already present
+	SkipCRDs bool `json:"skipCRDs,omitempty"`
+
+	//Timeout to wait for any individual Kubernetes operation (like Jobs for hooks)
+	Timeout time.Duration `json:"timeout,omitempty"`
+
+	// Wait: if set, will wait until all Pods, PVCs, Services, and minimum number of Pods of a Deployment, StatefulSet, or ReplicaSet
+	// are in a ready state before marking the release as successful. It will wait for as long as Timeout
+	Wait bool `json:"wait,omitempty"`
+
+	// ValueFiles specify values in a YAML file or a URL, it can specify multiple.
+	ValueFiles []string `json:"valueFiles,omitempty"`
+
+	//set Values on the command line ,it can specify multiple or separate values with commas: key1=val1,key2=val2.
+	Values []string `json:"values,omitempty"`
+}
+
+type Shell struct {
+	// the environment variables to execute the shell file
+	Envs []string `json:"envs,omitempty"`
+
+	//FilePath represents the shell file path
+	FilePaths []string `json:"filePaths,omitempty"`
+}
+
+type Kubectl struct {
+	//FileNames represents the resources applied from
+	FileNames []string `json:"fileNames,omitempty"`
+
+	//Directory represents the resources applied from
+	Directory string `json:"directory,omitempty"`
+
+	// Namespace apply resources to specific namespace.
+	Namespace string `json:"namespace,omitempty"`
+
+	// Action represents kubectl command type,such as apply or create.
+	Action string `json:"action,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster
