@@ -84,6 +84,9 @@ type ImageExtension struct {
 	// applications in the sealer image
 	Applications []version.VersionedApplication `json:"applications,omitempty"`
 
+	// Labels are metadata to the sealer image
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+
 	// launch spec will declare
 	Launch Launch `json:"launch,omitempty"`
 }
@@ -108,6 +111,8 @@ type v1ImageExtension struct {
 	SchemaVersion string `json:"schemaVersion"`
 	// sealer image type, like AppImage
 	Type string `json:"type,omitempty"`
+	// Labels are metadata to the sealer image
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	// applications in the sealer image
 	Applications []application_v1.Application `json:"applications,omitempty"`
 	// launch spec will declare
@@ -123,6 +128,7 @@ func (ie *ImageExtension) UnmarshalJSON(data []byte) error {
 
 	(*ie).BuildClient = v1Ex.BuildClient
 	(*ie).SchemaVersion = v1Ex.SchemaVersion
+	(*ie).Labels = v1Ex.Labels
 	(*ie).Type = v1Ex.Type
 	(*ie).Applications = make([]version.VersionedApplication, len(v1Ex.Applications))
 	for i, app := range v1Ex.Applications {
