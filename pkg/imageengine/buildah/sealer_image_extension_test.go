@@ -70,3 +70,68 @@ func TestGetImageExtensionFromAnnotations(t *testing.T) {
 		})
 	}
 }
+
+func TestGetContainerImagesFromAnnotations(t *testing.T) {
+	type args struct {
+		annotations map[string]string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []*image_v1.ContainerImage
+		wantErr bool
+	}{
+		{
+			name: "",
+			args: args{
+				annotations: map[string]string{},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "",
+			args: args{
+				annotations: map[string]string{
+					image_v1.SealerImageContainerImageList: ``,
+				},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "",
+			args: args{
+				annotations: map[string]string{
+					image_v1.SealerImageContainerImageList: `[{"image":"nginx:latest","appName":"nginx"},{"image":"registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest","appName":"dashboard"},{"image":"busybox:latest"}]`,
+				},
+			},
+			want: []*image_v1.ContainerImage{
+				{
+					Image:   "nginx:latest",
+					AppName: "nginx",
+				},
+				{
+					Image:   "registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest",
+					AppName: "dashboard",
+				},
+				{
+					Image: "busybox:latest",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetContainerImagesFromAnnotations(tt.args.annotations)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetContainerImagesFromAnnotations() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetContainerImagesFromAnnotations() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

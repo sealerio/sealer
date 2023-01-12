@@ -24,7 +24,9 @@ import (
 )
 
 const (
-	SealerImageExtension = "sealer.image.extension"
+	SealerImageExtension          = "sealer.image.extension"
+	SealerImageContainerImageList = "sealer.image.container.images"
+
 	// Kube image type
 	KubeInstaller = "kube-installer"
 	AppInstaller  = "app-installer"
@@ -49,6 +51,23 @@ type ImageSpec struct {
 	OCIv1 ociv1.Image `json:"ociv1"`
 
 	ImageExtension
+
+	// ContainerImageList the container image list contained in the sealer image
+	//
+	// TODO: populate this value during the build phase
+	ContainerImageList []*ContainerImage `json:"containerImageList,omitempty"`
+}
+
+type ContainerImage struct {
+	// Image the container image name
+	Image string `json:"image" yaml:"image"`
+
+	// AppName the mame of the app to which the container image belongs
+	//
+	// NOTE: A container image may not belong to any app. In this case, the appName value is null.
+	AppName string `json:"appName,omitempty" yaml:"appName"`
+
+	// TODO: add more info about container image if necessary such as resourceKind, resourceName, etc.
 }
 
 // NOTE: the UnmarshalJSON function of ImageExtension has been overrode
