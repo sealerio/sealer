@@ -160,7 +160,7 @@ func NewApplyCmd() *cobra.Command {
 	applyFlags = &types.ApplyFlags{}
 	applyCmd.Flags().BoolVar(&applyFlags.ForceDelete, "force", false, "force to delete the specified cluster if set true")
 	applyCmd.Flags().StringVarP(&applyFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
-	applyCmd.Flags().StringVar(&applyFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
+	applyCmd.Flags().StringVarP(&applyFlags.Mode, "applyMode", "m", common.ApplyModeApply, "load images to the specified registry in advance")
 	applyCmd.Flags().StringSliceVarP(&applyFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	// support merge clusterfile and flags, such as host ip and host auth info.
 	applyCmd.Flags().StringVarP(&applyFlags.Masters, "masters", "m", "", "set count or IPList to masters")
