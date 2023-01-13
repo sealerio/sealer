@@ -38,6 +38,20 @@ spec:
        mysql-user: root
        mysql-passwd: xxx
 ---
+apiVersion: sealer.io/v2
+kind: Application
+metadata:
+  name: my-apps
+spec:
+  launchApps:
+    - app1
+    - app2
+  configs:
+    - name: app2
+      launch:
+        cmds:
+          - kubectl get pods -A
+---
 apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
@@ -177,10 +191,30 @@ func TestDecodeClusterFile(t *testing.T) {
 	config.Kind = "Config"
 	config.APIVersion = "sealer.com/v1alpha1"
 
+	app := &v2.Application{
+		Spec: v2.ApplicationSpec{
+			LaunchApps: []string{"app1", "app2"},
+			Configs: []v2.ApplicationConfig{
+				{
+					Name: "app2",
+					Launch: &v2.Launch{
+						Cmds: []string{
+							"kubectl get pods -A",
+						},
+					},
+				},
+			},
+		},
+	}
+	app.Name = "my-apps"
+	app.Kind = constants.ApplicationKind
+	app.APIVersion = v2.GroupVersion.String()
+
 	type wanted struct {
-		cluster v2.Cluster
-		config  []v1.Config
-		plugins []v1.Plugin
+		cluster     v2.Cluster
+		config      []v1.Config
+		plugins     []v1.Plugin
+		application *v2.Application
 	}
 
 	type args struct {
@@ -197,9 +231,11 @@ func TestDecodeClusterFile(t *testing.T) {
 			args{
 				data: []byte(data),
 				wanted: wanted{
-					cluster: cluster,
-					config:  []v1.Config{config},
-					plugins: []v1.Plugin{plugin1, plugin2}},
+					cluster:     cluster,
+					config:      []v1.Config{config},
+					plugins:     []v1.Plugin{plugin1, plugin2},
+					application: app,
+				},
 			},
 		},
 	}
@@ -232,6 +268,8 @@ func TestDecodeClusterFile(t *testing.T) {
 			assert.Equal(t, tt.args.wanted.config, i.GetConfigs())
 
 			assert.Equal(t, tt.args.wanted.plugins, i.GetPlugins())
+
+			assert.Equal(t, tt.args.wanted.application, i.GetApplication())
 
 			kubeadm := i.GetKubeadmConfig()
 			assert.NotNil(t, kubeadm)

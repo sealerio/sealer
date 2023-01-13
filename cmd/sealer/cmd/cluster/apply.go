@@ -19,6 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
+	v2 "github.com/sealerio/sealer/types/api/v2"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -100,7 +102,10 @@ func NewApplyCmd() *cobra.Command {
 			}
 
 			if extension.Type == v12.AppInstaller {
-				return installApplication(imageName, desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames, desiredCluster.Spec.Env, extension, cf.GetConfigs(), imageEngine, applyMode)
+				app := v2.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
+
+				return installApplication(imageName, desiredCluster.Spec.Env,
+					app, extension, cf.GetConfigs(), imageEngine, applyMode)
 			}
 
 			client := utils.GetClusterClient()

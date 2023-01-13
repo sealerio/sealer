@@ -85,6 +85,14 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			}
 
 			clusterfile.plugins = append(clusterfile.plugins, plu)
+		case constants.ApplicationKind:
+			var app v2.Application
+
+			if err := yaml.Unmarshal(ext.Raw, &app); err != nil {
+				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
+			}
+
+			clusterfile.apps = &app
 		case kubeadmConstants.InitConfigurationKind:
 			var in v1beta2.InitConfiguration
 

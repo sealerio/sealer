@@ -37,6 +37,14 @@ func MergeClusterWithFlags(cluster v2.Cluster, mergeFlags *types.MergeFlags) (*v
 		cluster.Spec.Env = append(cluster.Spec.Env, mergeFlags.CustomEnv...)
 	}
 
+	if len(mergeFlags.Cmds) > 0 {
+		cluster.Spec.CMD = mergeFlags.Cmds
+	}
+
+	if len(mergeFlags.AppNames) > 0 {
+		cluster.Spec.APPNames = mergeFlags.AppNames
+	}
+
 	// if no master and node specify form flag, just return.
 	if len(mergeFlags.Masters) == 0 && len(mergeFlags.Nodes) == 0 {
 		return &cluster, nil
