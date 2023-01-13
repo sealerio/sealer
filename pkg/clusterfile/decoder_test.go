@@ -19,7 +19,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/types/api/constants"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kube-proxy/config/v1alpha1"
@@ -38,7 +38,7 @@ spec:
        mysql-user: root
        mysql-passwd: xxx
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: MyHostname # Specify this plugin name,will dump in $rootfs/plugins dir.
@@ -48,7 +48,7 @@ spec:
   data: |
     192.168.0.2 master-0
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Plugin
 metadata:
   name: MyShell # Specify this plugin name,will dump in $rootfs/plugins dir.
@@ -99,8 +99,6 @@ mode: "ipvs"
 ipvs:
   excludeCIDRs:
     - "10.103.97.2/32"`
-
-const APIVersion = "sealer.io/v1alpha1"
 
 func TestDecodeClusterFile(t *testing.T) {
 	cluster := v2.Cluster{
@@ -154,8 +152,8 @@ func TestDecodeClusterFile(t *testing.T) {
 		},
 	}
 	plugin1.Name = "MyHostname"
-	plugin1.Kind = common.Plugin
-	plugin1.APIVersion = APIVersion
+	plugin1.Kind = constants.PluginKind
+	plugin1.APIVersion = v1.GroupVersion.String()
 
 	plugin2 := v1.Plugin{
 		Spec: v1.PluginSpec{
@@ -167,7 +165,7 @@ func TestDecodeClusterFile(t *testing.T) {
 	}
 	plugin2.Name = "MyShell"
 	plugin2.Kind = "Plugin"
-	plugin2.APIVersion = "sealer.io/v1alpha1"
+	plugin2.APIVersion = "sealer.io/v1"
 
 	config := v1.Config{
 		Spec: v1.ConfigSpec{

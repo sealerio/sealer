@@ -23,21 +23,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/utils/os"
-
 	"github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
-
+	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/checker"
 	"github.com/sealerio/sealer/pkg/infra"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
+	"github.com/sealerio/sealer/types/api/constants"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	"github.com/sealerio/sealer/utils"
 	"github.com/sealerio/sealer/utils/exec"
+	"github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/ssh"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func getFixtures() string {
@@ -73,14 +72,14 @@ func LoadClusterFileFromDisk(clusterFilePath string) *v1.Cluster {
 }
 
 func LoadConfigFromDisk(clusterFilePath string) []v1.Config {
-	configs, err := utils.DecodeCRDFromFile(clusterFilePath, common.Config)
+	configs, err := utils.DecodeCRDFromFile(clusterFilePath, constants.ConfigKind)
 	testhelper.CheckErr(err)
 	testhelper.CheckNotNil(configs)
 	return configs.([]v1.Config)
 }
 
 func LoadPluginFromDisk(clusterFilePath string) []v1.Plugin {
-	plugins, err := utils.DecodeCRDFromFile(clusterFilePath, common.Plugin)
+	plugins, err := utils.DecodeCRDFromFile(clusterFilePath, constants.PluginKind)
 	testhelper.CheckErr(err)
 	testhelper.CheckNotNil(plugins)
 	return plugins.([]v1.Plugin)
