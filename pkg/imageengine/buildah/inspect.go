@@ -69,14 +69,19 @@ func (engine *Engine) Inspect(opts *options.InspectOptions) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to get %s in image %s", image_v1.SealerImageExtension, opts.ImageNameOrID)
 	}
+	containerImageList, err := GetContainerImagesFromAnnotations(builderInfo.ImageAnnotations)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get %s in image %s", image_v1.SealerImageContainerImageList, opts.ImageNameOrID)
+	}
 
 	result := &image_v1.ImageSpec{
-		ID:             builderInfo.FromImageID,
-		Name:           builderInfo.FromImage,
-		Digest:         builderInfo.FromImageDigest,
-		ManifestV1:     manifest,
-		OCIv1:          builderInfo.OCIv1,
-		ImageExtension: imageExtension,
+		ID:                 builderInfo.FromImageID,
+		Name:               builderInfo.FromImage,
+		Digest:             builderInfo.FromImageDigest,
+		ManifestV1:         manifest,
+		OCIv1:              builderInfo.OCIv1,
+		ImageExtension:     imageExtension,
+		ContainerImageList: containerImageList,
 	}
 	if opts.Format != "" {
 		format := opts.Format

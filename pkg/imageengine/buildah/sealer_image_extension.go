@@ -46,7 +46,20 @@ func GetImageExtensionFromAnnotations(annotations map[string]string) (image_v1.I
 	}
 
 	if err := json.Unmarshal([]byte(extensionStr), &extension); err != nil {
-		return extension, fmt.Errorf("failed to unmarshal %v: %v", image_v1.SealerImageExtension, err)
+		return extension, errors.Wrapf(err, "failed to unmarshal %v", image_v1.SealerImageExtension)
 	}
 	return extension, nil
+}
+
+func GetContainerImagesFromAnnotations(annotations map[string]string) ([]*image_v1.ContainerImage, error) {
+	var containerImageList []*image_v1.ContainerImage
+	annotationStr := annotations[image_v1.SealerImageContainerImageList]
+	if len(annotationStr) == 0 {
+		return nil, nil
+	}
+
+	if err := json.Unmarshal([]byte(annotationStr), &containerImageList); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal %v", image_v1.SealerImageContainerImageList)
+	}
+	return containerImageList, nil
 }

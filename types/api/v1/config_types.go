@@ -19,7 +19,7 @@ Application config file:
 
 Clusterfile:
 
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Cluster
 metadata:
   name: my-cluster
@@ -27,7 +27,7 @@ spec:
   image: registry.cn-qingdao.aliyuncs.com/sealer-app/my-SAAS-all-inone:latest
   provider: BAREMETAL
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Config
 metadata:
   name: mysql-config
@@ -38,7 +38,7 @@ spec:
        mysql-passwd: xxx
 ...
 ---
-apiVersion: sealer.io/v1alpha1
+apiVersion: sealer.io/v1
 kind: Config
 metadata:
   name: redis-config
