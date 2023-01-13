@@ -36,7 +36,7 @@ func Test_decodeImages(t *testing.T) {
 		want []string
 	}{
 		{
-			"test get iamges form yaml",
+			"test get image from yaml",
 			args{body},
 			[]string{"cn-app-integration:v1.0.0", "registry.cn-shanghai.aliyuncs.com/cnip/cn-app-integration:v1.0.0", "cn-app-integration:v1.0.0"},
 		},
@@ -45,6 +45,53 @@ func Test_decodeImages(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := DecodeImages(tt.args.body); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("decodeImages() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_decodeLine(t *testing.T) {
+	type args struct {
+		line string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "normal",
+			args: args{
+				line: "image: registry.cn-shanghai.aliyuncs.com/sealerio/foo:v1.0.0",
+			},
+			want: "registry.cn-shanghai.aliyuncs.com/sealerio/foo:v1.0.0",
+		},
+		{
+			name: "withBlank",
+			args: args{
+				line: "    image: registry.cn-shanghai.aliyuncs.com/sealerio/foo:v1.0.0",
+			},
+			want: "registry.cn-shanghai.aliyuncs.com/sealerio/foo:v1.0.0",
+		},
+		{
+			name: "withPrefix",
+			args: args{
+				line: "vmagent-image: \"ack-agility-registry.cn-shanghai.cr.aliyuncs.com/sealerio/foo:v1.70.0\"",
+			},
+			want: "ack-agility-registry.cn-shanghai.cr.aliyuncs.com/sealerio/foo:v1.70.0",
+		},
+		{
+			name: "inArray",
+			args: args{
+				line: "- image: \"ack-agility-registry.cn-shanghai.cr.aliyuncs.com/sealerio/foo:v1.70.0\"",
+			},
+			want: "ack-agility-registry.cn-shanghai.cr.aliyuncs.com/sealerio/foo:v1.70.0",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := decodeLine(tt.args.line); got != tt.want {
+				t.Errorf("decodeLine() = %v, want %v", got, tt.want)
 			}
 		})
 	}

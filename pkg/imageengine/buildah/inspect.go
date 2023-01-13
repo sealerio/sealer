@@ -67,6 +67,10 @@ func (engine *Engine) Inspect(opts *options.InspectOptions) error {
 	if err := json.Unmarshal([]byte(builderInfo.Manifest), &manifest); err != nil {
 		return errors.Wrapf(err, "failed to get manifest")
 	}
+	if len(manifest.Annotations) != 0 {
+		delete(manifest.Annotations, image_v1.SealerImageExtension)
+		delete(manifest.Annotations, image_v1.SealerImageContainerImageList)
+	}
 	imageExtension, err := GetImageExtensionFromAnnotations(builderInfo.ImageAnnotations)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get %s in image %s", image_v1.SealerImageExtension, opts.ImageNameOrID)

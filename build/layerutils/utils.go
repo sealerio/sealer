@@ -43,6 +43,8 @@ func DecodeImages(body string) []string {
 
 func decodeLine(line string) string {
 	l := strings.Replace(line, `"`, "", -1)
+	l = strings.Replace(l, ",", "", -1)
+	l = strings.Replace(l, " ", "", -1)
 	ss := strings.SplitN(l, ":", 2)
 	if len(ss) != 2 {
 		return ""

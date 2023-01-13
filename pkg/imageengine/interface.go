@@ -35,6 +35,8 @@ type Interface interface {
 
 	Commit(opts *options.CommitOptions) (string, error)
 
+	Config(opts *options.ConfigOptions) error
+
 	Login(opts *options.LoginOptions) error
 
 	Logout(opts *options.LogoutOptions) error
