@@ -23,9 +23,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sealerio/sealer/types/api/constants"
-
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/types/api/constants"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

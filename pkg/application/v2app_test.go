@@ -52,8 +52,8 @@ func TestV2Application_GetLaunchCmds(t *testing.T) {
 		},
 	}
 	app.Name = "my-app"
-	app.Kind = v2.GroupVersion.String()
-	app.APIVersion = constants.ApplicationKind
+	app.Kind = constants.ApplicationKind
+	app.APIVersion = v2.GroupVersion.String()
 
 	extension := v12.ImageExtension{
 		Launch: v12.Launch{

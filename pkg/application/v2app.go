@@ -19,12 +19,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	strUtils "github.com/sealerio/sealer/utils/strings"
-
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/rootfs"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	strUtils "github.com/sealerio/sealer/utils/strings"
 )
 
 type v2Application struct {

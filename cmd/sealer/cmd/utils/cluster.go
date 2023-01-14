@@ -101,8 +101,10 @@ func ConstructClusterForRun(imageName string, runFlags *types.RunFlags) (*v2.Clu
 			},
 			Image: imageName,
 			//use cluster ssh auth by default
-			Hosts: TransferIPToHosts(masterIPList, nodeIPList, v1.SSH{}),
-			Env:   runFlags.CustomEnv,
+			Hosts:    TransferIPToHosts(masterIPList, nodeIPList, v1.SSH{}),
+			Env:      runFlags.CustomEnv,
+			CMD:      runFlags.Cmds,
+			APPNames: runFlags.AppNames,
 		},
 	}
 	cluster.APIVersion = v2.GroupVersion.String()
