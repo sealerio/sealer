@@ -63,6 +63,7 @@ func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver
 		ret := &DefaultInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
+			envs:   driver.GetClusterEnv(),
 			Info: Info{
 				CertsDir:               DefaultDockerCertsDir,
 				CRISocket:              DefaultDockerCRISocket,
@@ -70,25 +71,28 @@ func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver
 				ConfigFilePath:         filepath.Join(common.GetHomeDir(), ".docker", DockerConfigFileName),
 			},
 		}
-		ret.Info.CgroupDriver = conf.ExtraArgs[CgroupDriverArg]
-		if ret.Info.CgroupDriver == "" {
-			ret.Info.CgroupDriver = DefaultCgroupDriver
+		ret.Info.CgroupDriver = DefaultCgroupDriver
+		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
+			ret.Info.CgroupDriver = cd.(string)
 		}
+
 		return ret, nil
 	case "containerd":
 		ret := &DefaultInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
+			envs:   driver.GetClusterEnv(),
 			Info: Info{
 				CertsDir:               DefaultContainerdCertsDir,
 				CRISocket:              DefaultContainerdCRISocket,
 				ContainerRuntimeConfig: conf,
 			},
 		}
-		ret.Info.CgroupDriver = conf.ExtraArgs[CgroupDriverArg]
-		if ret.Info.CgroupDriver == "" {
-			ret.Info.CgroupDriver = DefaultCgroupDriver
+		ret.Info.CgroupDriver = DefaultCgroupDriver
+		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
+			ret.Info.CgroupDriver = cd.(string)
 		}
+
 		return ret, nil
 	default:
 		return nil, fmt.Errorf("please enter the correct container type")

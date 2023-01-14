@@ -182,5 +182,9 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 	}
 	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryURL, registryURL))
 
+	if cluster.Spec.ContainerRuntime.Type != "" {
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvContainerRuntime, cluster.Spec.ContainerRuntime.Type))
+	}
+
 	return nil
 }

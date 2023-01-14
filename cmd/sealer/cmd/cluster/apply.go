@@ -163,8 +163,8 @@ func NewApplyCmd() *cobra.Command {
 	applyCmd.Flags().StringVarP(&applyFlags.Mode, "applyMode", "m", common.ApplyModeApply, "load images to the specified registry in advance")
 	applyCmd.Flags().StringSliceVarP(&applyFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	// support merge clusterfile and flags, such as host ip and host auth info.
-	applyCmd.Flags().StringVarP(&applyFlags.Masters, "masters", "m", "", "set count or IPList to masters")
-	applyCmd.Flags().StringVarP(&applyFlags.Nodes, "nodes", "n", "", "set count or IPList to nodes")
+	applyCmd.Flags().StringVar(&applyFlags.Masters, "masters", "", "set count or IPList to masters")
+	applyCmd.Flags().StringVar(&applyFlags.Nodes, "nodes", "", "set count or IPList to nodes")
 	applyCmd.Flags().StringVarP(&applyFlags.User, "user", "u", "root", "set baremetal server username")
 	applyCmd.Flags().StringVarP(&applyFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	applyCmd.Flags().Uint16Var(&applyFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
