@@ -36,19 +36,15 @@ cloud rootfs will package all the dependencies refers to the kubernetes cluster 
 │   └── kubelet.service
 ├── images
 │   └── registry.tar  # registry docker image, will load this image and run a local registry in cluster
-├── Kubefile
 ├── Metadata
-├── README.md
-├── registry # will mount this dir to local registry
-│   └── docker
-│       └── registry
+├── imageList
 ├── scripts
-│   ├── clean.sh
 │   ├── docker.sh
+│   ├── uninstall-docker.sh
+│   ├── containerd.sh
+│   ├── uninstall-containerd.sh
 │   ├── init-kube.sh
-│   ├── init-registry.sh
-│   ├── init.sh
-│   └── kubelet-pre-start.sh
+│   └── init-registry.sh
 └── statics # yaml files, sealer will render values in those files
     └── audit-policy.yml
 ```
@@ -64,7 +60,28 @@ COPY . .
 sealer build -t kuberntes:v1.18.3 .
 ```
 
-## Metadata
+If you put any file in the $rootfs and then build a cluster image, then when you use the image to deploy, sealer will ensure that these files will be put on the same relative path in all nodes' $rootfs.
+
+## Put your binaries in $rootfs/bin
+This directory is for binaries.
+
+## [Depreciated] Put your CRI packages in $rootfs/cri 
+This directory is for CRI.
+
+## Put your configurations in $rootfs/etc/
+This directory is for configurations.
+
+### Use env render
+All file with suffix '.tmpl' will be rendered using ClusterFile's env. For example, a file named XABC.yaml.tmpl will be rendered and saved into file XABC.yaml.
+
+[Env render](https://github.com/sealerio/sealer/blob/main/docs/design/global-config.md#global-configuration)
+
+## [Depreciated] Put your registry image tar in $rootfs/images
+This directory is for registry image.
+
+## Write your kubernetes metadata in Metadata
+
+For example:
 
 ```shell script
 {
@@ -72,6 +89,26 @@ sealer build -t kuberntes:v1.18.3 .
   "arch": "amd64"
 }
 ```
+
+## imageList
+Write the image list which your want involved in ClusterImage into imageList, for example:
+
+```
+docker.io/alpine:3.17.1
+k8s.gcr.io/pause:3.5
+k8s.gcr.io/kube-apiserver:v1.22.17
+```
+
+## scripts
+This directory is for scripts.
+
+The follow files are reserved by the system, you can override them to realize the functions you need:
+- docker.sh, for installing Docker.
+- uninstall-docker.sh, for cleaning Docker.
+- containerd.sh, for installing Containerd.
+- uninstall-containerd.sh, for cleaning Docker.
+- init-registry.sh, for installing registry.
+- init-kube.sh, for installing kube*.
 
 ## Hooks
 
@@ -81,7 +118,3 @@ COPY preHook.sh /scripts/
 ```
 
 preHook.sh will execute after init.sh before kubeadm init master0
-
-## Registry
-
-registry container name must be 'sealer-registry'
