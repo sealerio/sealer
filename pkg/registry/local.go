@@ -308,7 +308,7 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 		return nil
 	}
 
-	if c.containerRuntimeInfo.Config.Type == "docker" {
+	if c.containerRuntimeInfo.Type == "docker" {
 		src = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", "daemon.json")
 		dest = "/etc/docker/daemon.json"
 		if err := c.configureDockerDaemonService(endpoint, src); err != nil {
@@ -316,9 +316,9 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 		}
 	}
 
-	if c.containerRuntimeInfo.Config.Type == "containerd" {
+	if c.containerRuntimeInfo.Type == "containerd" {
 		src = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", "hosts.toml")
-		dest = filepath.Join("/etc/containerd/certs.d", endpoint, "hosts.toml")
+		dest = filepath.Join(containerruntime.DefaultContainerdCertsDir, endpoint, "hosts.toml")
 		if err := c.configureContainerdDaemonService(endpoint, src); err != nil {
 			return err
 		}

@@ -84,6 +84,15 @@ func WrapperShell(shell string, wrapperData map[string]interface{}) string {
 	return fmt.Sprintf("%s && %s", strings.Join(env, " "), shell)
 }
 
+func WrapperShellWithStringMap(shell string, wrapperData map[string]string) string {
+	env := getEnvFromStringMap(wrapperData)
+
+	if len(env) == 0 {
+		return shell
+	}
+	return fmt.Sprintf("%s && %s", strings.Join(env, " "), shell)
+}
+
 func getEnvFromData(wrapperData map[string]interface{}) []string {
 	var env []string
 	for k, v := range wrapperData {
@@ -93,6 +102,15 @@ func getEnvFromData(wrapperData map[string]interface{}) []string {
 		case string:
 			env = append(env, fmt.Sprintf("%s=\"%s\"", k, value))
 		}
+	}
+	sort.Strings(env)
+	return env
+}
+
+func getEnvFromStringMap(strMap map[string]string) []string {
+	var env []string
+	for k, v := range strMap {
+		env = append(env, fmt.Sprintf("%s=\"%s\"", k, v))
 	}
 	sort.Strings(env)
 	return env

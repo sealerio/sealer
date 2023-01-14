@@ -40,14 +40,20 @@ type ClusterSpec struct {
 	CMDArgs []string `json:"cmd_args,omitempty"`
 	CMD     []string `json:"cmd,omitempty"`
 	// APPNames This field allows user to specify the app name they want to run launch.
-	APPNames []string `json:"appNames,omitempty"`
-	Hosts    []Host   `json:"hosts,omitempty"`
-	SSH      v1.SSH   `json:"ssh,omitempty"`
+	APPNames         []string               `json:"appNames,omitempty"`
+	Hosts            []Host                 `json:"hosts,omitempty"`
+	SSH              v1.SSH                 `json:"ssh,omitempty"`
+	ContainerRuntime ContainerRuntimeConfig `json:"containerRuntime,omitempty"`
 	// HostAliases holds the mapping between IP and hostnames that will be injected as an entry in the
 	// host's hosts file.
 	HostAliases []HostAlias `json:"hostAliases,omitempty"`
 	// Registry field contains configurations about local registry and remote registry.
 	Registry Registry `json:"registry,omitempty"`
+}
+
+type ContainerRuntimeConfig struct {
+	Type      string            `json:"type,omitempty"`
+	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
 }
 
 type Host struct {
