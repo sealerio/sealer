@@ -159,16 +159,16 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 	}
 
 	regConfig := v2.RegistryConfig{}
-	if cluster.Spec.Registry.ExternalRegistry != nil {
-		regConfig = cluster.Spec.Registry.ExternalRegistry.RegistryConfig
-	}
 	if cluster.Spec.Registry.LocalRegistry != nil {
 		regConfig = cluster.Spec.Registry.LocalRegistry.RegistryConfig
+	}
+	if cluster.Spec.Registry.ExternalRegistry != nil {
+		regConfig = cluster.Spec.Registry.ExternalRegistry.RegistryConfig
 	}
 
 	var newEnv []string
 	for _, env := range cluster.Spec.Env {
-		if strings.HasPrefix(env, common.EnvRegistryDomain) || strings.HasPrefix(env, common.EnvRegistryPort) || strings.HasPrefix(env, common.EnvRegistryURL) {
+		if strings.HasPrefix(env, common.EnvRegistryDomain) || strings.HasPrefix(env, common.EnvRegistryPort) || strings.HasPrefix(env, common.EnvRegistryURL) || strings.HasPrefix(env, common.EnvContainerRuntime) {
 			continue
 		}
 		newEnv = append(newEnv, env)
@@ -181,6 +181,10 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 		registryURL = regConfig.Domain
 	}
 	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryURL, registryURL))
+
+	if cluster.Spec.ContainerRuntime.Type != "" {
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvContainerRuntime, cluster.Spec.ContainerRuntime.Type))
+	}
 
 	return nil
 }

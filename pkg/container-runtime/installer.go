@@ -16,13 +16,12 @@ package containerruntime
 
 import (
 	"fmt"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"net"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
-
 	"github.com/sealerio/sealer/pkg/infradriver"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 const (
@@ -59,10 +58,11 @@ type Info struct {
 
 func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver) (Installer, error) {
 	switch conf.Type {
-	case "docker", "":
+	case common.Docker, "":
 		ret := &DefaultInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
+			envs:   driver.GetClusterEnv(),
 			Info: Info{
 				CertsDir:               DefaultDockerCertsDir,
 				CRISocket:              DefaultDockerCRISocket,
@@ -70,27 +70,30 @@ func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver
 				ConfigFilePath:         filepath.Join(common.GetHomeDir(), ".docker", DockerConfigFileName),
 			},
 		}
-		ret.Info.CgroupDriver = conf.ExtraArgs[CgroupDriverArg]
-		if ret.Info.CgroupDriver == "" {
-			ret.Info.CgroupDriver = DefaultCgroupDriver
+		ret.Info.CgroupDriver = DefaultCgroupDriver
+		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
+			ret.Info.CgroupDriver = cd.(string)
 		}
+
 		return ret, nil
-	case "containerd":
+	case common.Containerd:
 		ret := &DefaultInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
+			envs:   driver.GetClusterEnv(),
 			Info: Info{
 				CertsDir:               DefaultContainerdCertsDir,
 				CRISocket:              DefaultContainerdCRISocket,
 				ContainerRuntimeConfig: conf,
 			},
 		}
-		ret.Info.CgroupDriver = conf.ExtraArgs[CgroupDriverArg]
-		if ret.Info.CgroupDriver == "" {
-			ret.Info.CgroupDriver = DefaultCgroupDriver
+		ret.Info.CgroupDriver = DefaultCgroupDriver
+		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
+			ret.Info.CgroupDriver = cd.(string)
 		}
+
 		return ret, nil
 	default:
-		return nil, fmt.Errorf("please enter the correct container type")
+		return nil, fmt.Errorf("invalid container runtime type")
 	}
 }

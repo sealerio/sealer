@@ -52,8 +52,7 @@ type ClusterSpec struct {
 }
 
 type ContainerRuntimeConfig struct {
-	Type      string            `json:"type,omitempty"`
-	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
+	Type string `json:"type,omitempty"`
 }
 
 type Host struct {

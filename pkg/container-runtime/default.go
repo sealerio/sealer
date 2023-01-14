@@ -25,12 +25,13 @@ import (
 
 type DefaultInstaller struct {
 	Info
+	envs   map[string]interface{}
 	rootfs string
 	driver infradriver.InfraDriver
 }
 
 func (d *DefaultInstaller) InstallOn(hosts []net.IP) error {
-	installCmd := env.WrapperShellWithStringMap(fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getInstallScriptName())), d.ExtraArgs)
+	installCmd := env.WrapperShell(fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getInstallScriptName())), d.envs)
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, installCmd)
 		if err != nil {
@@ -41,7 +42,7 @@ func (d *DefaultInstaller) InstallOn(hosts []net.IP) error {
 }
 
 func (d *DefaultInstaller) UnInstallFrom(hosts []net.IP) error {
-	cleanCmd := env.WrapperShellWithStringMap(fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getUnInstallScriptName())), d.ExtraArgs)
+	cleanCmd := env.WrapperShell(fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getUnInstallScriptName())), d.envs)
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, cleanCmd)
 		if err != nil {

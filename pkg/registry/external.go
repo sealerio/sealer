@@ -17,6 +17,7 @@ package registry
 import (
 	"context"
 	"fmt"
+	"github.com/sealerio/sealer/common"
 	"net"
 	"os"
 	"strconv"
@@ -107,7 +108,7 @@ func (e *externalConfigurator) UninstallFrom(masters, nodes []net.IP) error {
 	//todo use sdk to logout instead of shell cmd
 	logoutCmd := fmt.Sprintf("docker logout %s ", e.endpoint)
 	//nolint
-	if e.containerRuntimeInfo.Type != "docker" {
+	if e.containerRuntimeInfo.Type != common.Docker {
 		logoutCmd = fmt.Sprintf("nerdctl logout %s ", e.endpoint)
 	}
 
