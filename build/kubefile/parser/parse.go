@@ -215,6 +215,7 @@ func init() {
 		command.App:        parseMaybeJSONToList,
 		command.Launch:     parseMaybeJSONToList,
 		command.Cmds:       parseMaybeJSONToList,
+		command.Cmd:        parseMaybeJSONToList,
 	}
 }
 
