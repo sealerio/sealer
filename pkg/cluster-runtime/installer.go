@@ -21,9 +21,8 @@ import (
 	"strings"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/application"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	common2 "github.com/sealerio/sealer/pkg/define/options"
@@ -37,6 +36,7 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
+	corev1 "k8s.io/api/core/v1"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -50,6 +50,7 @@ type RuntimeConfig struct {
 	ContainerRuntimeConfig containerruntime.Config
 	KubeadmConfig          kubeadm.KubeadmConfig
 	Plugins                []v1.Plugin
+	Application            *v2.Application
 }
 
 type Installer struct {
@@ -100,10 +101,6 @@ func (i *Installer) Install() error {
 		clusterImageName = i.infraDriver.GetClusterImageName()
 		rootfs           = i.infraDriver.GetClusterRootfsPath()
 	)
-
-	if len(cmds) != 0 && len(appNames) != 0 {
-		return fmt.Errorf("only one can be selected to do overwrite for launchCmds(%s) and appNames（%s）", cmds, appNames)
-	}
 
 	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: clusterImageName})
 	if err != nil {
@@ -207,14 +204,12 @@ func (i *Installer) Install() error {
 
 	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
 
-	var launchCmds []string
-	if len(cmds) != 0 {
-		launchCmds = cmds
-	} else {
-		launchCmds = GetAppLaunchCmdsByNames(appNames, extension.Applications)
+	v2App, err := application.NewV2Application(v2.ConstructApplication(i.Application, cmds, appNames), extension)
+	if err != nil {
+		return fmt.Errorf("failed to parse application:%v ", err)
 	}
 
-	if err = appInstaller.Launch(master0, launchCmds); err != nil {
+	if err = appInstaller.Launch(master0, v2App.GetImageLaunchCmds()); err != nil {
 		return err
 	}
 
