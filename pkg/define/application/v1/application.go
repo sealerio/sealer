@@ -42,7 +42,13 @@ func (app *Application) Type() string {
 	return app.TypeVar
 }
 
-func (app *Application) LaunchCmd(appRoot string) string {
+func (app *Application) LaunchCmd(appRoot string, launchCmds []string) string {
+	if len(launchCmds) != 0 {
+		var cmds []string
+		cmds = append(cmds, []string{"cd", appRoot}...)
+		cmds = append(cmds, launchCmds...)
+		return strings.Join(cmds, " ")
+	}
 	switch app.Type() {
 	case application.KubeApp:
 		return fmt.Sprintf("kubectl apply -f %s", appRoot)

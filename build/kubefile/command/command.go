@@ -24,6 +24,7 @@ const (
 	// we recommender users to use these commands to pack their
 	// demands for applications.
 	App         = "app"
+	AppCmds     = "appcmds"
 	Launch      = "launch"
 	Cmds        = "cmds"
 	CNI         = "cni"
@@ -65,6 +66,7 @@ var SupportedCommands = map[string]struct{}{
 	Maintainer:  {},
 	Run:         {},
 	App:         {},
+	AppCmds:     {},
 	Launch:      {},
 	Cmds:        {},
 	Cmd:         {},

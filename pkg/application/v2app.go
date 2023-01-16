@@ -85,6 +85,10 @@ func NewV2Application(app *v2.Application, extension v12.ImageExtension) (Interf
 	}
 
 	// initialize appLaunchCmdsMap, get default launch cmds from image extension.
+	appConfigMap := make(map[string]*v12.ApplicationConfig)
+	for _, appConfig := range extension.Launch.AppConfigs {
+		appConfigMap[appConfig.Name] = appConfig
+	}
 	for _, name := range v2App.launchApps {
 		appRoot := makeItDir(filepath.Join(rootfs.GlobalManager.App().Root(), name))
 		for _, exApp := range extension.Applications {
@@ -92,7 +96,11 @@ func NewV2Application(app *v2.Application, extension v12.ImageExtension) (Interf
 			if v1app.Name() != name {
 				continue
 			}
-			v2App.appLaunchCmdsMap[name] = []string{v1app.LaunchCmd(appRoot)}
+			if appConfig, ok := appConfigMap[name]; ok && appConfig.Launch != nil {
+				v2App.appLaunchCmdsMap[name] = []string{v1app.LaunchCmd(appRoot, appConfig.Launch.CMDs)}
+			} else {
+				v2App.appLaunchCmdsMap[name] = []string{v1app.LaunchCmd(appRoot, nil)}
+			}
 		}
 	}
 

@@ -213,6 +213,7 @@ func init() {
 		command.Maintainer:  parseString,
 		command.Run:         parseMaybeJSON,
 		command.App:         parseMaybeJSONToList,
+		command.AppCmds:     parseMaybeJSONToList,
 		command.KUBEVERSION: parseString,
 		command.CNI:         parseMaybeJSONToList,
 		command.CSI:         parseMaybeJSONToList,
