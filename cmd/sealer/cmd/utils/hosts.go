@@ -20,7 +20,6 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 
 	"github.com/sealerio/sealer/common"
-
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 

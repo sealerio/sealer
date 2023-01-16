@@ -39,5 +39,7 @@ func NewCmdAlpha() *cobra.Command {
 	cmd.AddCommand(NewSearchCmd())
 	cmd.AddCommand(NewManifestCmd())
 	cmd.AddCommand(NewHostAliasCmd())
+	cmd.AddCommand(NewMountCmd())
+	cmd.AddCommand(NewUmountCmd())
 	return cmd
 }
