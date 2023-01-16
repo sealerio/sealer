@@ -19,6 +19,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -161,7 +162,14 @@ func (kp *KubefileParser) processOnCmd(result *KubefileResult, node *Node) error
 		result.Dockerfile = mergeLines(result.Dockerfile, node.Original)
 		return nil
 	case command.App:
-		return kp.processApp(node, result)
+		_, err := kp.processApp(node, result)
+		return err
+	case command.CNI:
+		return kp.processCNI(node, result)
+	case command.CSI:
+		return kp.processCSI(node, result)
+	case command.KUBEVERSION:
+		return kp.processKubeVersion(node, result)
 	case command.Launch:
 		return kp.processLaunch(node, result)
 	case command.Cmds:
@@ -171,6 +179,33 @@ func (kp *KubefileParser) processOnCmd(result *KubefileResult, node *Node) error
 	default:
 		return fmt.Errorf("failed to recognize cmd: %s", cmd)
 	}
+}
+
+func (kp *KubefileParser) processCNI(node *Node, result *KubefileResult) error {
+	app, err := kp.processApp(node, result)
+	if err != nil {
+		return err
+	}
+	dockerFileInstruction := fmt.Sprintf(`LABEL %s%s="true"`, command.LabelKubeCNIPrefix, app.Name())
+	result.Dockerfile = mergeLines(result.Dockerfile, dockerFileInstruction)
+	return nil
+}
+
+func (kp *KubefileParser) processCSI(node *Node, result *KubefileResult) error {
+	app, err := kp.processApp(node, result)
+	if err != nil {
+		return err
+	}
+	dockerFileInstruction := fmt.Sprintf(`LABEL %s%s="true"`, command.LabelKubeCSIPrefix, app.Name())
+	result.Dockerfile = mergeLines(result.Dockerfile, dockerFileInstruction)
+	return nil
+}
+
+func (kp *KubefileParser) processKubeVersion(node *Node, result *KubefileResult) error {
+	kubeVersionValue := node.Next.Value
+	dockerFileInstruction := fmt.Sprintf(`LABEL %s=%s`, command.LabelSupportedKubeVersionAlpha, strconv.Quote(kubeVersionValue))
+	result.Dockerfile = mergeLines(result.Dockerfile, dockerFileInstruction)
+	return nil
 }
 
 func (kp *KubefileParser) processCmd(node *Node, result *KubefileResult) error {
