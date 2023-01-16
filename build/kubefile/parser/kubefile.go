@@ -15,6 +15,7 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -22,19 +23,15 @@ import (
 	"strconv"
 	"strings"
 
+	parse2 "github.com/containers/buildah/pkg/parse"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/pkg/define/options"
-
-	parse2 "github.com/containers/buildah/pkg/parse"
-
-	"github.com/sealerio/sealer/pkg/imageengine"
-
-	"github.com/sealerio/sealer/pkg/define/application/version"
-
-	"github.com/pkg/errors"
-
 	"github.com/sealerio/sealer/build/kubefile/command"
+	"github.com/sealerio/sealer/pkg/define/application/version"
+	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
 )
 
 // LegacyContext stores legacy information during the process of parsing.
@@ -49,11 +46,12 @@ type LegacyContext struct {
 }
 
 type KubefileResult struct {
-	Dockerfile    string
-	RawCmds       []string
-	AppNames      []string
-	Applications  map[string]version.VersionedApplication
-	legacyContext LegacyContext
+	Dockerfile         string
+	RawCmds            []string
+	AppNames           []string
+	Applications       map[string]version.VersionedApplication
+	ApplicationConfigs []*v12.ApplicationConfig `json:"applicationConfigs"`
+	legacyContext      LegacyContext
 }
 
 type KubefileParser struct {
@@ -164,6 +162,8 @@ func (kp *KubefileParser) processOnCmd(result *KubefileResult, node *Node) error
 	case command.App:
 		_, err := kp.processApp(node, result)
 		return err
+	case command.AppCmds:
+		return kp.processAppCmds(node, result)
 	case command.CNI:
 		return kp.processCNI(node, result)
 	case command.CSI:
@@ -205,6 +205,54 @@ func (kp *KubefileParser) processKubeVersion(node *Node, result *KubefileResult)
 	kubeVersionValue := node.Next.Value
 	dockerFileInstruction := fmt.Sprintf(`LABEL %s=%s`, command.LabelSupportedKubeVersionAlpha, strconv.Quote(kubeVersionValue))
 	result.Dockerfile = mergeLines(result.Dockerfile, dockerFileInstruction)
+	return nil
+}
+
+func (kp *KubefileParser) processAppCmds(node *Node, result *KubefileResult) error {
+	appNode := node.Next
+	appName := appNode.Value
+	if appName == "" {
+		return errors.New("app name should be specified in the APPCMD instruction")
+	}
+
+	// check whether the app name exist
+	var appExisted bool
+	for existAppName := range result.Applications {
+		if existAppName == appName {
+			appExisted = true
+		}
+	}
+	if !appExisted {
+		return fmt.Errorf("the specified app name(%s) for `APPCMDS` should be exist", appName)
+	}
+
+	// get app cmds value
+	tmpPrefix := fmt.Sprintf("%s %s", strings.TrimSpace(strings.ToUpper(command.AppCmds)), strings.TrimSpace(appName))
+	appCmdsStr := strings.TrimSpace(strings.TrimPrefix(node.Original, tmpPrefix))
+	var appCmds []string
+	if err := json.Unmarshal([]byte(appCmdsStr), &appCmds); err != nil {
+		return errors.Wrapf(err, `the APPCMDS value should be format: APPCMDS appName ["executable","param1","param2","..."]`)
+	}
+
+	var existedApplicationConfig bool
+	for _, appConfig := range result.ApplicationConfigs {
+		if appConfig.Name != appName {
+			continue
+		}
+		existedApplicationConfig = true
+		if appConfig.Launch == nil {
+			appConfig.Launch = &v12.ApplicationConfigLaunch{}
+		}
+		appConfig.Launch.CMDs = appCmds
+	}
+	if !existedApplicationConfig {
+		result.ApplicationConfigs = append(result.ApplicationConfigs, &v12.ApplicationConfig{
+			Name: appName,
+			Launch: &v12.ApplicationConfigLaunch{
+				CMDs: appCmds,
+			},
+		})
+	}
 	return nil
 }
 

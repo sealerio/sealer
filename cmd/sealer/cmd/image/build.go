@@ -353,6 +353,7 @@ func buildImageExtensionOnResult(result *parser.KubefileResult, imageType string
 	}
 	extension.Launch.Cmds = result.RawCmds
 	extension.Launch.AppNames = result.AppNames
+	extension.Launch.AppConfigs = result.ApplicationConfigs
 	return extension
 }
 
