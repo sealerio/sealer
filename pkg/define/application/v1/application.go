@@ -46,6 +46,7 @@ func (app *Application) LaunchCmd(appRoot string, launchCmds []string) string {
 	if len(launchCmds) != 0 {
 		var cmds []string
 		cmds = append(cmds, []string{"cd", appRoot}...)
+		cmds = append(cmds, "&&")
 		cmds = append(cmds, launchCmds...)
 		return strings.Join(cmds, " ")
 	}

@@ -74,7 +74,7 @@ func NewKubeadmRuntime(clusterFileKubeConfig kubeadm.KubeadmConfig, infra infrad
 		k.Config.VIP = ipv4.(string)
 	}
 
-	if ipv6, ok := infra.GetClusterEnv()[common.EnvIPvsVIPForIPv6]; !ok {
+	if ipv6, ok := infra.GetClusterEnv()[common.EnvIPvsVIPForIPv6]; ok {
 		k.Config.VIP = ipv6.(string)
 	}
 
