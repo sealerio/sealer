@@ -173,7 +173,7 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 		vip = ipv4.(string)
 	}
 
-	if ipv6, ok := c.infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv6]; !ok {
+	if ipv6, ok := c.infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv6]; ok {
 		vip = ipv6.(string)
 	}
 
