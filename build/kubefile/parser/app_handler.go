@@ -96,7 +96,7 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (versio
 	tmpLine := strings.Join(append([]string{command.Copy}, append(filesToCopy, destDir)...), " ")
 	result.Dockerfile = mergeLines(result.Dockerfile, tmpLine)
 	result.legacyContext.apps2Files[appName] = append([]string{}, filesToCopy...)
-	appType, launchFiles, err := getApplicationType(filesToCopy)
+	appType, launchFiles, err := getApplicationTypeAndFiles(appName, filesToCopy)
 	if err != nil {
 		return nil, fmt.Errorf("error in judging the application type: %v", err)
 	}
