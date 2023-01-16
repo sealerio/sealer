@@ -169,6 +169,14 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 		vip = common.DefaultVIPForIPv6
 	}
 
+	if ipv4, ok := c.infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv4]; ok {
+		vip = ipv4.(string)
+	}
+
+	if ipv6, ok := c.infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv6]; !ok {
+		vip = ipv6.(string)
+	}
+
 	vs := net.JoinHostPort(vip, strconv.Itoa(c.Port))
 	// due to registry server do not have health path to check, choose "/" as default.
 	healthPath := "/"
