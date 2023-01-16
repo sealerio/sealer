@@ -165,7 +165,7 @@ func TestNewImageSpec(t *testing.T) {
 							&v1.Application{
 								NameVar: "app1",
 								TypeVar: application.ShellApp,
-								LaunchFilesVar: []string{
+								FilesVar: []string{
 									"cnstack-acos-0.0.5-beta-install.sh",
 								},
 								VersionVar: "v1",
@@ -173,7 +173,7 @@ func TestNewImageSpec(t *testing.T) {
 							&v1.Application{
 								NameVar: "app2",
 								TypeVar: application.HelmApp,
-								LaunchFilesVar: []string{
+								FilesVar: []string{
 									"chart.tgz",
 								},
 								VersionVar: "v1",
@@ -181,7 +181,7 @@ func TestNewImageSpec(t *testing.T) {
 							&v1.Application{
 								NameVar: "app3",
 								TypeVar: application.KubeApp,
-								LaunchFilesVar: []string{
+								FilesVar: []string{
 									"mysql.yaml",
 								},
 								VersionVar: "v1",

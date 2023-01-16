@@ -122,7 +122,8 @@ func isHelm(sources ...string) (bool, error) {
 }
 
 // isYaml sources slice only has one element
-func isYaml(sources ...string) (bool, error) {
+func isYaml(sources ...string) (bool, []string, error) {
+	var yamlFiles []string
 	isYamlType := func(fileName string) bool {
 		ext := strings.ToLower(filepath.Ext(fileName))
 		if ext == ".yaml" || ext == ".yml" {
@@ -134,7 +135,7 @@ func isYaml(sources ...string) (bool, error) {
 	for _, source := range sources {
 		s, err := os.Stat(source)
 		if err != nil {
-			return false, fmt.Errorf("failed to stat %s: %v", source, err)
+			return false, nil, fmt.Errorf("failed to stat %s: %v", source, err)
 		}
 
 		if s.IsDir() {
@@ -151,23 +152,24 @@ func isYaml(sources ...string) (bool, error) {
 					isAllYamlFiles = false
 					return filepath.SkipDir
 				}
+				yamlFiles = append(yamlFiles, strings.TrimPrefix(path, source))
 				return nil
 			})
 			if err != nil {
-				return false, fmt.Errorf("failed to walk yaml dir %s: %v", source, err)
+				return false, nil, fmt.Errorf("failed to walk yaml dir %s: %v", source, err)
 			}
 
 			if isAllYamlFiles {
-				return true, nil
+				return true, yamlFiles, nil
 			}
-			return false, nil
+			return false, nil, nil
 		}
 		if isYamlType(source) {
-			return true, nil
+			return true, []string{source}, nil
 		}
 	}
 
-	return false, nil
+	return false, nil, nil
 }
 
 // isShell sources slice only has one element
@@ -195,8 +197,7 @@ func isShell(sources ...string) (bool, []string, error) {
 				if !isShellType(f.Name()) {
 					return filepath.SkipDir
 				}
-
-				launchFiles = append(launchFiles, path)
+				launchFiles = append(launchFiles, strings.TrimPrefix(path, source))
 				return nil
 			})
 
@@ -217,10 +218,10 @@ func isShell(sources ...string) (bool, []string, error) {
 	return false, nil, nil
 }
 
-func getApplicationType(sources []string) (string, []string, error) {
-	isYamlType, yamlErr := isYaml(sources...)
+func getApplicationTypeAndFiles(appName string, sources []string) (string, []string, error) {
+	isYamlType, files, yamlErr := isYaml(sources...)
 	if isYamlType {
-		return application.KubeApp, sources, nil
+		return application.KubeApp, files, nil
 	}
 
 	isShellType, files, shellErr := isShell(sources...)
@@ -230,7 +231,7 @@ func getApplicationType(sources []string) (string, []string, error) {
 
 	isHelmType, helmErr := isHelm(sources...)
 	if isHelmType {
-		return application.HelmApp, sources, nil
+		return application.HelmApp, []string{appName}, nil
 	}
 
 	if yamlErr != nil {
