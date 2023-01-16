@@ -102,6 +102,13 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return err
 		}
 
+		if err = k.infra.CmdAsync(m, "mv /etc/kubernetes/manifests/kube-scheduler.yaml /tmp/ && mv /tmp/kube-scheduler.yaml /etc/kubernetes/manifests/"); err != nil {
+			return err
+		}
+		if err = k.infra.CmdAsync(m, "mv /etc/kubernetes/manifests/kube-controller-manager.yaml /tmp/ && mv /tmp/kube-controller-manager.yaml /etc/kubernetes/manifests/"); err != nil {
+			return err
+		}
+
 		logrus.Infof("succeeded in joining %s as master", m)
 	}
 	return nil
