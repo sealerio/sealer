@@ -19,6 +19,7 @@ import (
 
 	application_v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
+	apiv1 "github.com/sealerio/sealer/types/api/v1"
 
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -67,7 +68,18 @@ type ContainerImage struct {
 	// NOTE: A container image may not belong to any app. In this case, the appName value is null.
 	AppName string `json:"appName,omitempty" yaml:"appName"`
 
+	// Platform the container image platform
+	Platform *apiv1.Platform `json:"platform" yaml:"platform"`
+
 	// TODO: add more info about container image if necessary such as resourceKind, resourceName, etc.
+}
+
+func GetImageSliceFromContainerImageList(containerImageList []*ContainerImage) []string {
+	var images []string
+	for _, containerImage := range containerImageList {
+		images = append(images, containerImage.Image)
+	}
+	return images
 }
 
 // NOTE: the UnmarshalJSON function of ImageExtension has been overrode

@@ -60,6 +60,11 @@ type CopyOptions struct {
 	DestinationInContainer string
 }
 
+type ConfigOptions struct {
+	ContainerID string
+	Annotations []string
+}
+
 type CommitOptions struct {
 	Format             string
 	Manifest           string
