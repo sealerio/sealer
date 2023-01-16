@@ -162,7 +162,7 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 	}
 
 	//todo should make lvs image name as const value in sealer repo.
-	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)))
+	lvsImageURL := filepath.Join(net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)), common.LvsCareRepoAndTag)
 
 	vip := common.DefaultVIP
 	if hosts := c.infraDriver.GetHostIPList(); len(hosts) > 0 && k8snet.IsIPv6(hosts[0]) {
