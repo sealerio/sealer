@@ -69,6 +69,7 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (versio
 	// 1. create a temp dir under the build context
 	// 2. download remote files to the temp dir
 	// 3. append the temp files to filesToCopy
+	var downloadedFileAbsPath []string
 	if len(remoteFiles) > 0 {
 		remoteCxtAbs, err := os.MkdirTemp(kp.buildContext, "sealer-remote-files")
 		if err != nil {
@@ -85,8 +86,9 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (versio
 			fileBase := filepath.Base(f)
 			fileRel2Cxt := filepath.Join(remoteCxtBase, fileBase)
 			filesToCopy = append(filesToCopy, fileRel2Cxt)
+			downloadedFileAbsPath = append(downloadedFileAbsPath, filepath.Join(remoteCxtAbs, fileBase))
 		}
-
+		fmt.Println("AAAAAA downloadedFileAbsPath", downloadedFileAbsPath)
 		// append it to the legacy.
 		// it will be deleted by CleanContext
 		legacyCxt.directories = append(legacyCxt.directories, remoteCxtAbs)
@@ -96,11 +98,29 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (versio
 	tmpLine := strings.Join(append([]string{command.Copy}, append(filesToCopy, destDir)...), " ")
 	result.Dockerfile = mergeLines(result.Dockerfile, tmpLine)
 	result.legacyContext.apps2Files[appName] = append([]string{}, filesToCopy...)
-	appType, launchFiles, err := getApplicationTypeAndFiles(appName, filesToCopy)
-	if err != nil {
-		return nil, fmt.Errorf("error in judging the application type: %v", err)
+
+	fmt.Println("AAAAAA filesToCopy", filesToCopy)
+
+	if len(remoteFiles) > 0 {
+		// if it is remote file,use downloadedFileAbsPath to judge app type and files.
+		return makeItAsApp(appName, downloadedFileAbsPath, result)
 	}
 
+	return makeItAsApp(appName, filesToCopy, result)
+}
+
+func makeItAsApp(appName string, filesToJudge []string, result *KubefileResult) (version.VersionedApplication, error) {
+	appType, err := getApplicationType(filesToJudge)
+	if err != nil {
+		return nil, fmt.Errorf("failed to judge the application type for %s: %v", appName, err)
+	}
+
+	fmt.Println("AAAAAA getApplicationType", appType)
+	launchFiles, err := getApplicationFiles(appName, appType, filesToJudge)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app (%s)launch files: %v", appName, err)
+	}
+	fmt.Println("AAAAAA getApplicationFiles", launchFiles)
 	v1App := v1.NewV1Application(
 		appName,
 		appType,
@@ -108,6 +128,7 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (versio
 	).(*v1.Application)
 	result.Applications[v1App.Name()] = v1App
 	return v1App, nil
+
 }
 
 func downloadRemoteFiles(shadowDir string, files []string) ([]string, error) {

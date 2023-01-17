@@ -218,6 +218,117 @@ func isShell(sources ...string) (bool, []string, error) {
 	return false, nil, nil
 }
 
+func getApplicationType(sources []string) (string, error) {
+	isHelmType, helmErr := isHelm(sources...)
+	if helmErr != nil {
+		return "", helmErr
+	}
+
+	if isHelmType {
+		return application.HelmApp, nil
+	}
+
+	appTypeFunc := func(fileName string) string {
+		ext := strings.ToLower(filepath.Ext(fileName))
+		if ext == ".sh" {
+			return application.ShellApp
+		}
+
+		if ext == ".yaml" || ext == ".yml" {
+			return application.KubeApp
+		}
+
+		return "invalid"
+	}
+
+	var appTypeList []string
+	for _, source := range sources {
+		s, err := os.Stat(source)
+		if err != nil {
+			return "", fmt.Errorf("failed to stat %s: %v", source, err)
+		}
+
+		// get app type by dir
+		if s.IsDir() {
+			err = filepath.Walk(source, func(path string, f fs.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if f.IsDir() {
+					return nil
+				}
+
+				appTypeList = append(appTypeList, appTypeFunc(f.Name()))
+				return nil
+			})
+
+			if err != nil {
+				return "", fmt.Errorf("failed to walk shell dir %s: %v", source, err)
+			}
+		}
+
+		// get app type by file
+		appTypeList = append(appTypeList, appTypeFunc(source))
+	}
+
+	for _, appType := range appTypeList {
+		if appType == "invalid" {
+			return "", fmt.Errorf("unsupported application type in %s,%s,%s", application.KubeApp, application.HelmApp, application.ShellApp)
+		}
+		// if it has one bash file, consider source is ShellApp
+		// if yaml+shell,return shell
+		if appType == application.ShellApp {
+			return application.ShellApp, nil
+		}
+		return application.KubeApp, nil
+	}
+
+	return "", fmt.Errorf("application type not found")
+}
+
+func getApplicationFiles(appName, appType string, sources []string) ([]string, error) {
+	if appType == application.HelmApp {
+		return []string{appName}, nil
+	}
+
+	var launchFiles []string
+
+	for _, source := range sources {
+		s, err := os.Stat(source)
+		if err != nil {
+			return nil, fmt.Errorf("failed to stat %s: %v", source, err)
+		}
+
+		// get app launchFile if source is a dir
+		if s.IsDir() {
+			err = filepath.Walk(source, func(path string, f fs.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				fmt.Println("AAAApath ", path)
+				if f.IsDir() {
+					return nil
+				}
+				if path == source {
+					return nil
+				}
+
+				launchFiles = append(launchFiles, strings.TrimPrefix(path, source))
+				return nil
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to walk shell dir %s: %v", source, err)
+			}
+
+			continue
+		}
+		// get app launchFile if source is a file
+		launchFiles = append(launchFiles, filepath.Base(source))
+	}
+
+	return launchFiles, nil
+}
+
 func getApplicationTypeAndFiles(appName string, sources []string) (string, []string, error) {
 	isYamlType, files, yamlErr := isYaml(sources...)
 	if isYamlType {
