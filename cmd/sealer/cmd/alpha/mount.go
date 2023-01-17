@@ -15,18 +15,19 @@
 package alpha
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/storage"
+	"github.com/olekukonko/tablewriter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/olekukonko/tablewriter"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 )
 
@@ -81,16 +82,32 @@ func NewMountCmd() *cobra.Command {
 				}
 			}
 
-			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+			cid, err := engine.CreateContainer(&options.FromOptions{
+				Image: args[0],
+				Quiet: false,
+			})
 			if err != nil {
 				return err
 			}
-			if _, err := imageEngine.CreateWorkingContainer(&options.BuildRootfsOptions{
-				DestDir:       path,
-				ImageNameOrID: args[0],
-			}); err != nil {
+
+			//too fast to mount.
+			time.Sleep(time.Second * 1)
+
+			mounts, err := engine.Mount(&options.MountOptions{Containers: []string{cid}})
+			if err != nil {
 				return err
 			}
+
+			// remove destination dir if it exists, otherwise the Symlink will fail.
+			if _, err = os.Stat(path); err == nil {
+				return fmt.Errorf("destination directionay %s exists, you should remove it first", path)
+			}
+
+			mountPoint := mounts[0].MountPoint
+			if err := os.Symlink(mountPoint, path); err != nil {
+				return err
+			}
+
 			logrus.Infof("mount cluster image %s to %s successful", args[0], path)
 			return nil
 		},
