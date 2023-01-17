@@ -86,7 +86,6 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (versio
 			fileRel2Cxt := filepath.Join(remoteCxtBase, fileBase)
 			filesToCopy = append(filesToCopy, fileRel2Cxt)
 		}
-
 		// append it to the legacy.
 		// it will be deleted by CleanContext
 		legacyCxt.directories = append(legacyCxt.directories, remoteCxtAbs)
@@ -96,9 +95,19 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (versio
 	tmpLine := strings.Join(append([]string{command.Copy}, append(filesToCopy, destDir)...), " ")
 	result.Dockerfile = mergeLines(result.Dockerfile, tmpLine)
 	result.legacyContext.apps2Files[appName] = append([]string{}, filesToCopy...)
-	appType, launchFiles, err := getApplicationTypeAndFiles(appName, filesToCopy)
+
+	return makeItAsApp(appName, filesToCopy, result)
+}
+
+func makeItAsApp(appName string, filesToJudge []string, result *KubefileResult) (version.VersionedApplication, error) {
+	appType, err := getApplicationType(filesToJudge)
 	if err != nil {
-		return nil, fmt.Errorf("error in judging the application type: %v", err)
+		return nil, fmt.Errorf("failed to judge the application type for %s: %v", appName, err)
+	}
+
+	launchFiles, err := getApplicationFiles(appName, appType, filesToJudge)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app (%s)launch files: %v", appName, err)
 	}
 
 	v1App := v1.NewV1Application(
