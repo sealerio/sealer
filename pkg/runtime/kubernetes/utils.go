@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"path/filepath"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -178,7 +178,7 @@ func GetClientFromConfig(adminConfPath string) (runtimeClient.Client, error) {
 }
 
 func (k *Runtime) configureLvs(masterHosts, clientHosts []net.IP) error {
-	lvsImageURL := filepath.Join(k.Config.RegistryInfo.URL, common.LvsCareRepoAndTag)
+	lvsImageURL := path.Join(k.Config.RegistryInfo.URL, common.LvsCareRepoAndTag)
 
 	var rs []string
 	var realEndpoints []string
