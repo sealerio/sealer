@@ -392,7 +392,7 @@ func installApplication(appImageName string, envs []string, app *v2.Application,
 		return loadToRegistry(infraDriver, distributor)
 	}
 
-	installer := clusterruntime.NewAppInstaller(infraDriver, distributor, extension)
+	installer := clusterruntime.NewAppInstaller(infraDriver, distributor, extension, imageEngine)
 	err = installer.Install(infraDriver.GetHostIPListByRole(common.MASTER)[0], v2App.GetImageLaunchCmds())
 	if err != nil {
 		return err

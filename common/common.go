@@ -127,6 +127,72 @@ const (
 	WINDOWS            = "windows"
 )
 
+const (
+	ImagePolicyLabelKey         = "app.alpha.sealer.io/image-policy-plugin"
+	ImagePolicyPluginKyverno    = "kyverno"
+	ImagePolicyTemplateYamlName = "image-policy-template.yaml"
+	ImagePolicyTemplate         = `
+apiVersion : kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: [[.name]]-redirect-registry
+  namespace: kube-system
+spec:
+  background: false
+  rules:
+  - name: prepend-registry-containers
+    match:
+      resources:
+        kinds:
+        - Pod
+    preconditions:
+      all:
+      - key: "{{request.operation}}"
+        operator: In
+        value:
+        - CREATE
+        - UPDATE
+    mutate:
+      foreach:
+      - list: "request.object.spec.containers"
+        preconditions:
+          all:
+          - key: "{{element.image}}"
+            operator: AnyIn
+            value: [[.imageList]]
+        patchStrategicMerge:
+          spec:
+            containers:
+            - name: "{{ element.name }}"
+              image: "[[.registry]]/{{ images.containers.{{element.name}}.path}}:{{images.containers.{{element.name}}.tag}}"
+  - name: prepend-registry-initcontainers
+    match:
+      resources:
+        kinds:
+        - Pod
+    preconditions:
+      all:
+      - key: "{{request.operation}}"
+        operator: In
+        value:
+        - CREATE
+        - UPDATE
+    mutate:
+      foreach:
+      - list: "request.object.spec.initContainers"
+        preconditions:
+          all:
+          - key: "{{element.image}}"
+            operator: AnyIn
+            value: [[.imageList]]
+        patchStrategicMerge:
+          spec:
+            initContainers:
+            - name: "{{ element.name }}"
+              image: "[[.registry]]/{{ images.initContainers.{{element.name}}.path}}:{{images.initContainers.{{element.name}}.tag}}"
+`
+)
+
 func GetSealerWorkDir() string {
 	return filepath.Join(GetHomeDir(), ".sealer")
 }

@@ -41,6 +41,11 @@ func translateSyscallError(err error) (uint32, bool) {
 	return 0, false
 }
 
+// isRegular returns true if the mode describes a regular file.
+func isRegular(mode uint32) bool {
+	return mode&S_IFMT == syscall.S_IFREG
+}
+
 // toFileMode converts sftp filemode bits to the os.FileMode specification
 func toFileMode(mode uint32) os.FileMode {
 	var fm = os.FileMode(mode & 0777)
@@ -94,3 +99,11 @@ func fromFileMode(mode os.FileMode) uint32 {
 
 	return ret
 }
+
+// Plan 9 doesn't have setuid, setgid or sticky, but a Plan 9 client should
+// be able to send these bits to a POSIX server.
+const (
+	s_ISUID = 04000
+	s_ISGID = 02000
+	S_ISVTX = 01000
+)

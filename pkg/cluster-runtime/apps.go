@@ -26,7 +26,10 @@ import (
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sealerio/sealer/pkg/imagepolicy/kyverno"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sirupsen/logrus"
@@ -36,13 +39,15 @@ type AppInstaller struct {
 	infraDriver infradriver.InfraDriver
 	distributor imagedistributor.Distributor
 	extension   v12.ImageExtension
+	imageEngine imageengine.Interface
 }
 
-func NewAppInstaller(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor, extension v12.ImageExtension) AppInstaller {
+func NewAppInstaller(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor, extension v12.ImageExtension, imageEngine imageengine.Interface) AppInstaller {
 	return AppInstaller{
 		infraDriver: infraDriver,
 		distributor: distributor,
 		extension:   extension,
+		imageEngine: imageEngine,
 	}
 }
 
@@ -90,6 +95,20 @@ func (i AppInstaller) Launch(master0 net.IP, launchCmds []string) error {
 		ex         = shell.NewLex('\\')
 	)
 
+	var imagePolicyEngine *kyverno.Engine
+	clusterImageName := i.infraDriver.GetClusterImageName()
+	extension, err := i.imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: clusterImageName})
+	if err != nil {
+		return err
+	}
+	val, ok := extension.Labels[common.ImagePolicyLabelKey]
+	if ok && val == common.ImagePolicyPluginKyverno {
+		imagePolicyEngine, err = kyverno.NewKyvernoImagePolicyEngine()
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, value := range launchCmds {
 		if value == "" {
 			continue
@@ -101,6 +120,18 @@ func (i AppInstaller) Launch(master0 net.IP, launchCmds []string) error {
 
 		if err = i.infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, rootfsPath, cmdline)); err != nil {
 			return err
+		}
+
+		if imagePolicyEngine != nil {
+			ok, err := imagePolicyEngine.IsImagePolicyApp(cmdline)
+			if err != nil {
+				return err
+			}
+			if ok {
+				if err := imagePolicyEngine.CreateImagePolicyRule(i.infraDriver, i.imageEngine, cmdline); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
