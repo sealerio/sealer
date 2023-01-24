@@ -14,7 +14,13 @@
 
 package charts
 
-/* func TestListImages(t *testing.T) {
+import (
+	"reflect"
+	"sort"
+	"testing"
+)
+
+func TestListImages(t *testing.T) {
 	type args struct {
 		clusterName string
 	}
@@ -26,8 +32,8 @@ package charts
 	}{
 		{
 			"test list charts images",
-			args{"my_cluster"},
-			[]string{"docker.elastic.co/elasticsearch/elasticsearch:7.13.2", "traefik:2.4.9"},
+			args{"./testcharts/apps"},
+			[]string{"nginx:apps_release", "nginx:app1_release", "nginx:app2_test"},
 			false,
 		},
 	}
@@ -39,9 +45,11 @@ package charts
 				t.Errorf("ListImages() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			sort.Strings(got)
+			sort.Strings(tt.want)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ListImages() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
-}*/
+}
