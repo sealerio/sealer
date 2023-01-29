@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
 	"net"
 	"strconv"
 	"strings"
@@ -109,7 +110,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 
 			clusterfile.kubeadmConfig.JoinConfiguration = in
 		case kubeadmConstants.ClusterConfigurationKind:
-			var in v1beta2.ClusterConfiguration
+			var in v1beta3.ClusterConfiguration
 
 			if err := yaml.Unmarshal(ext.Raw, &in); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)

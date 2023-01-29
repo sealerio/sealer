@@ -17,6 +17,7 @@ package kubeadm
 import (
 	"fmt"
 	"io"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
 	"net"
 	"strings"
 
@@ -43,7 +44,7 @@ import (
 // nolint
 type KubeadmConfig struct {
 	v1beta2.InitConfiguration
-	v1beta2.ClusterConfiguration
+	v1beta3.ClusterConfiguration
 	v1alpha1.KubeProxyConfiguration
 	v1beta1.KubeletConfiguration
 	v1beta2.JoinConfiguration
@@ -138,7 +139,7 @@ func LoadKubeadmConfigs(arg string, decode func(arg string, kind string) (interf
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if clusterConfig != nil {
-		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta2.ClusterConfiguration)
+		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta3.ClusterConfiguration)
 	}
 	kubeProxyConfig, err := decode(arg, KubeProxyConfiguration)
 	if err != nil && err != io.EOF {
