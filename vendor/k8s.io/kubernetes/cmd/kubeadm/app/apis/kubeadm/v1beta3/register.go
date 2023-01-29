@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
+package v1beta3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +26,7 @@ import (
 const GroupName = "kubeadm.k8s.io"
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1beta2"}
+var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1beta3"}
 
 var (
 	// SchemeBuilder points to a list of functions added to Scheme.
@@ -57,7 +57,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&InitConfiguration{},
 		&ClusterConfiguration{},
-		&ClusterStatus{},
 		&JoinConfiguration{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)

@@ -1,8 +1,8 @@
-//go:build windows
-// +build windows
+//go:build !windows
+// +build !windows
 
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constants
+package v1beta3
 
 const (
-	// DefaultDockerCRISocket defines the default Docker CRI socket
-	DefaultDockerCRISocket = "npipe:////./pipe/docker_engine"
+	// DefaultCACertPath defines default location of CA certificate on Linux
+	DefaultCACertPath = "/etc/kubernetes/pki/ca.crt"
+	// DefaultUrlScheme defines default socket url prefix
+	DefaultUrlScheme = "unix"
 )
