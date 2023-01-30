@@ -5,7 +5,7 @@ and [Gomega](http://onsi.github.io/gomega) based integration tests that execute 
 
 ## Prerequisites
 
-Before you run the tests, you'll need a sealer binary in your machine executable path . Follow the
+Before you run the tests, you'll need a sealer binary in your machine executable path and install docker. Follow the
 instructions [here](https://github.com/sealerio/sealer#readme) to get one.
 
 ## Run the Tests
@@ -14,24 +14,22 @@ To run a single test or set of tests, you'll need the [Ginkgo](https://github.co
 machine:
 
 ```console
-go get github.com/onsi/ginkgo/ginkgo
+go install github.com/onsi/ginkgo/ginkgo@v1.16.2
 ```
 
 To install Sealer and prepare the test environment:
 
 ```console
-#install Sealer binaries
-wget https://github.com/sealerio/sealer/releases/download/v0.8.6/sealer-v0.8.6-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.8.6-linux-amd64.tar.gz && mv sealer /usr/bin
+#build sealer source code to binary for local e2e-test in containers
+git clone https://github.com/sealerio/sealer.git
+cd sealer/ && make build-in-docker
+cp _output/bin/sealer/linux_amd64/sealer /usr/local/bin
 
 #prepare test environment
-export ACCESSKEYID={your AK}
-export ACCESSKEYSECRET={your SK}
-export RegionID={your region}
 export REGISTRY_URL={your registry}
 export REGISTRY_USERNAME={user name}
 export REGISTRY_PASSWORD={password}
-#default test image name: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+#default test image name: docker.io/sealerio/kubernetes:v1.22.15
 export IMAGE_NAME={test image name}
 ```
 

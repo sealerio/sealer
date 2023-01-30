@@ -135,10 +135,10 @@ func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 		if localPath == remotePath {
 			return nil
 		}
-		logrus.Debugf("copy local files: src %s to dst %s", localPath, remotePath)
+		logrus.Debugf("copy local files: src %s to dst [%s]:%s", localPath, host, remotePath)
 		return osi.RecursionCopy(localPath, remotePath)
 	}
-	logrus.Debugf("remote copy files src %s to dst %s", localPath, remotePath)
+	logrus.Debugf("remote copy files src %s to dst [%s]:%s", localPath, host, remotePath)
 
 	sftpClient, err := s.sftpConnect(host)
 	if err != nil {

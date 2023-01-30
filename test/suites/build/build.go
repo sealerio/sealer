@@ -44,7 +44,7 @@ func GetContainerBuildDir() string {
 
 // GetTestImageName return specific image name that will be push to registry
 func GetTestImageName() string {
-	return "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8.test"
+	return "docker.io/sealerio/kubernetes:v1.22.15"
 	//return fmt.Sprintf("registry.cn-qingdao.aliyuncs.com/sealer-io/%s%d:%s", settings.ImageName, 719, "v1")
 }
 
