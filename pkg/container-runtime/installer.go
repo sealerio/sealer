@@ -59,6 +59,7 @@ type Info struct {
 func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver) (Installer, error) {
 	switch conf.Type {
 	case common.Docker, "":
+		conf.Type = common.Docker
 		ret := &DefaultInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,

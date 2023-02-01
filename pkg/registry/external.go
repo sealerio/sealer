@@ -17,7 +17,6 @@ package registry
 import (
 	"context"
 	"fmt"
-	"github.com/sealerio/sealer/common"
 	"net"
 	"os"
 	"strconv"
@@ -25,6 +24,7 @@ import (
 	"github.com/containers/common/pkg/auth"
 	"github.com/sirupsen/logrus"
 
+	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
