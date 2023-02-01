@@ -53,52 +53,125 @@ wget https://github.com/sealerio/sealer/releases/download/v0.9.0/sealer-v0.9.0-l
 tar zxvf sealer-v0.9.0-linux-amd64.tar.gz && mv sealer /usr/bin
 ```
 
-Build a ClusterImage with Kubernetes dashboard:
+## Install a kubernetes cluster
+
+```shell
+# run a kubernetes cluster
+sealer run docker.io/sealerio/kubernetes:v1.22.15 \
+  --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
+  --nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
+```
+
+## Build an sealer image
 
 Kubefile:
 
-```shell script
-# base ClusterImage contains all the files that run a kubernetes cluster needed.
-#    1. kubernetes components like kubectl kubeadm kubelet and apiserver images ...
-#    2. docker engine, and a private registry
-#    3. config files, yaml, static files, scripts ...
-FROM registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15
-# download kubernetes dashboard yaml file
-RUN wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
-# when run this ClusterImage, will apply a dashboard manifests
-CMD kubectl apply -f recommended.yaml
+```shell
+FROM docker.io/sealerio/kubernetes:v1.22.15
+APP mysql https://charts/mysql.tgz
+APP elasticsearch https://charts/elasticsearch.tgz
+APP redis local://redis.yaml
+APP businessApp local://install.sh
+LAUNCH ["calico", "mysql", "elasticsearch", "redis", "businessApp"]
 ```
 
-Build it:
+or
 
-```shell script
-sealer build -t registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest .
+```shell
+FROM docker.io/sealerio/kubernetes:v1.22.15
+COPY mysql.tgz .
+COPY elasticsearch.tgz .
+COPY redis.yaml .
+COPY install.sh .
+CMDS ["sh application/apps/calico/calico.sh", "helm install mysql.tgz", "helm install elasticsearch.tgz", "kubectl apply -f redis.yaml", "bash install.sh"]
 ```
 
-Make it run:
+build command:
 
-```shell script
-# sealer will install a kubernetes on host 192.168.0.2 then apply the dashboard manifests
-sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest --masters 192.168.0.2 --passwd xxx
+> NOTE: --type=kube-installer is the default value for sealer build
+
+```shell
+sealer build -f Kubefile -t my-kubernetes:1.0.0 .
+```
+
+## Build an app image
+
+nginx.yaml:
+
+```shell
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: my-nginx
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+        - name: my-nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+```
+
+Kubefile:
+
+```shell
+FROM scratch
+APP nginx local://nginx.yaml
+LAUNCH ["nginx"]
+```
+
+```shell
+sealer build -f Kubefile -t sealer-io/nginx:latest --type app-installer
+```
+
+## Run the app image
+
+```shell
+sealer run sealer-io/nginx:latest
 # check the pod
-kubectl get pod -A|grep dashboard
+kubectl get pod -A
 ```
 
-Push the ClusterImage to the registry
+## Push the app image to the registry
 
-```shell script
-# you can push the ClusterImage to docker hub, Ali ACR, or Harbor
-sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/dashboard:latest
+```shell
+# you can push the app image to docker hub, Ali ACR, or Harbor
+sealer tag sealer-io/nginx:latest {registryDomain}/sealer-io/nginx:latest
+sealer push {registryDomain}/sealer-io/nginx:latest
+```
+
+## Clean the cluster
+
+Some information of the basic settings will be written to the Clusterfile and stored in /root/.sealer/Clusterfile.
+
+```shell
+sealer delete -a
 ```
 
 ## User guide
 
 Sealer provides a valid image list:
 
-| version |                   clusterimage with CNI(calico)                     |                                   clusterimage                            |
-| :-----  | :-------------------------------------------------------------------| :-------------------------------------------------------------------------|
-| 0.8.6   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6| registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6-alpha|
-| 0.9.0   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15      | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-alpha      |
+| version  |                              image                                  |                  Arch                   |                                                   OS                                                |              Network plugins            |             container runtime           |
+| :------: | :-----------------------------------------------------------------: | :-------------------------------------: | :-------------------------------------------------------------------------------------------------: | :-------------------------------------: | :-------------------------------------: |
+| v0.8.6   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6|                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |            hack docker v19.03.14        |
+| v0.9.0   | docker.io/sealerio/kubernetes:v1.18.3                               |                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
+| v0.9.0   | docker.io/sealerio/kubernetes:v1.20.4                               |                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
+| v0.9.0   | docker.io/sealerio/kubernetes:v1.22.15                              |                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
+| v0.9.0   | docker.io/sealerio/kubernetes:v1-22-15-sealerio-1                   |                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |            hack docker v19.03.14        |
+| v0.9.0   | docker.io/sealerio/kubernetes-arm64:v1.18.3                         |                  arm64                  |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
+| v0.9.0   | docker.io/sealerio/kubernetes-arm64:v1.20.4                         |                  arm64                  |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
+| v0.9.0   | docker.io/sealerio/kubernetes-arm64:v1.22.15                        |                  arm64                  |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
+| v0.9.0   | docker.io/sealerio/kubernetes-arm64:v1-22-15-sealerio-1             |                  arm64                  |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |            hack docker v19.03.14        |
 
 [get started](http://sealer.cool/docs/getting-started/introduction.html)
 

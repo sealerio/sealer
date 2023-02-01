@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"text/template"
 
+	"github.com/sealerio/sealer/build/kubefile/command"
 	image_v1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 
@@ -65,10 +67,18 @@ func (engine *Engine) Inspect(opts *options.InspectOptions) error {
 	if err := json.Unmarshal([]byte(builderInfo.Manifest), &manifest); err != nil {
 		return errors.Wrapf(err, "failed to get manifest")
 	}
+	if len(manifest.Annotations) != 0 {
+		delete(manifest.Annotations, image_v1.SealerImageExtension)
+		delete(manifest.Annotations, image_v1.SealerImageContainerImageList)
+	}
 	imageExtension, err := GetImageExtensionFromAnnotations(builderInfo.ImageAnnotations)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get %s in image %s", image_v1.SealerImageExtension, opts.ImageNameOrID)
 	}
+	imageExtension.Labels = handleImageLabelOutput(builderInfo.OCIv1.Config.Labels)
+	// NOTE: avoid duplicate content output
+	builderInfo.OCIv1.Config.Labels = nil
+
 	containerImageList, err := GetContainerImagesFromAnnotations(builderInfo.ImageAnnotations)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get %s in image %s", image_v1.SealerImageContainerImageList, opts.ImageNameOrID)
@@ -109,4 +119,36 @@ func (engine *Engine) Inspect(opts *options.InspectOptions) error {
 		enc.SetEscapeHTML(false)
 	}
 	return enc.Encode(result)
+}
+
+func handleImageLabelOutput(labels map[string]string) map[string]string {
+	if len(labels) == 0 {
+		return labels
+	}
+
+	var result = make(map[string]string)
+	var supportedCNI []string
+	var supportedCSI []string
+	for k, v := range labels {
+		if strings.HasPrefix(k, command.LabelKubeCNIPrefix) {
+			supportedCNI = append(supportedCNI, strings.TrimPrefix(k, command.LabelKubeCNIPrefix))
+			continue
+		}
+		if strings.HasPrefix(k, command.LabelKubeCSIPrefix) {
+			supportedCSI = append(supportedCSI, strings.TrimPrefix(k, command.LabelKubeCSIPrefix))
+			continue
+		}
+		result[k] = v
+	}
+
+	if len(supportedCNI) != 0 {
+		supportedCNIJSON, _ := json.Marshal(supportedCNI)
+		result[command.LabelSupportedKubeCNIAlpha] = string(supportedCNIJSON)
+	}
+	if len(supportedCSI) != 0 {
+		supportedCSIJSON, _ := json.Marshal(supportedCSI)
+		result[command.LabelSupportedKubeCSIAlpha] = string(supportedCSIJSON)
+	}
+
+	return result
 }

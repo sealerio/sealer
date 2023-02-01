@@ -47,6 +47,7 @@ type Interface interface {
 	SetCluster(v2.Cluster)
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
+	GetApplication() *v2.Application
 	GetKubeadmConfig() *kubeadm.KubeadmConfig
 	SaveAll(opts SaveOptions) error
 }
@@ -61,6 +62,7 @@ type ClusterFile struct {
 	configs       []v1.Config
 	kubeadmConfig kubeadm.KubeadmConfig
 	plugins       []v1.Plugin
+	apps          *v2.Application
 }
 
 func (c *ClusterFile) GetCluster() v2.Cluster {
@@ -73,6 +75,10 @@ func (c *ClusterFile) SetCluster(cluster v2.Cluster) {
 
 func (c *ClusterFile) GetConfigs() []v1.Config {
 	return c.configs
+}
+
+func (c *ClusterFile) GetApplication() *v2.Application {
+	return c.apps
 }
 
 func (c *ClusterFile) GetPlugins() []v1.Plugin {

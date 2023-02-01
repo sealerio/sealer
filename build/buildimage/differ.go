@@ -23,48 +23,116 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
-	"github.com/sealerio/sealer/pkg/rootfs"
-
-	osi "github.com/sealerio/sealer/utils/os"
-
 	"golang.org/x/sync/errgroup"
 
 	"github.com/sealerio/sealer/build/layerutils/charts"
 	manifest "github.com/sealerio/sealer/build/layerutils/manifests"
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/define/application"
+	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/image/save"
+	"github.com/sealerio/sealer/pkg/rootfs"
 	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	osi "github.com/sealerio/sealer/utils/os"
 )
 
+// TODO: update the variable name
 var (
 	copyToManifests   = "manifests"
 	copyToChart       = "charts"
 	copyToImageList   = "imageList"
 	copyToApplication = "application"
-	dispatch          map[string]func(srcPath string) ([]string, error)
 )
 
-func init() {
-	dispatch = map[string]func(srcPath string) ([]string, error){
-		copyToManifests:   parseYamlImages,
-		copyToChart:       parseChartImages,
-		copyToImageList:   parseRawImageList,
-		copyToApplication: parseApplicationImages,
-	}
+type parseContainerImageStringSliceFunc func(srcPath string) ([]string, error)
+type parseContainerImageListFunc func(srcPath string) ([]*v12.ContainerImage, error)
+
+var parseContainerImageStringSliceFuncMap = map[string]func(srcPath string) ([]string, error){
+	copyToManifests:   parseYamlImages,
+	copyToChart:       parseChartImages,
+	copyToImageList:   parseRawImageList,
+	copyToApplication: WrapParseContainerImageList2StringSlice(parseApplicationImages),
 }
 
-type registry struct {
+var parseContainerImageListFuncMap = map[string]func(srcPath string) ([]*v12.ContainerImage, error){
+	copyToManifests:   WrapParseStringSlice2ContainerImageList(parseYamlImages),
+	copyToChart:       WrapParseStringSlice2ContainerImageList(parseChartImages),
+	copyToImageList:   WrapParseStringSlice2ContainerImageList(parseRawImageList),
+	copyToApplication: parseApplicationImages,
+}
+
+type Registry struct {
 	platform v1.Platform
 	puller   save.ImageSave
 }
 
-func (r registry) Process(srcPath, rootfs string) error {
+func NewRegistry(platform v1.Platform) *Registry {
+	ctx := context.Background()
+	return &Registry{
+		platform: platform,
+		puller:   save.NewImageSaver(ctx),
+	}
+}
+
+func (r *Registry) SaveImages(rootfs string, containerImages []string) error {
+	return r.puller.SaveImages(containerImages, filepath.Join(rootfs, common.RegistryDirName), r.platform)
+}
+
+func WrapParseStringSlice2ContainerImageList(parseFunc parseContainerImageStringSliceFunc) func(srcPath string) ([]*v12.ContainerImage, error) {
+	return func(srcPath string) ([]*v12.ContainerImage, error) {
+		images, err := parseFunc(srcPath)
+		if err != nil {
+			return nil, err
+		}
+		var containerImageList []*v12.ContainerImage
+		for _, image := range images {
+			containerImageList = append(containerImageList, &v12.ContainerImage{
+				Image:   image,
+				AppName: "",
+			})
+		}
+		return containerImageList, nil
+	}
+}
+
+func WrapParseContainerImageList2StringSlice(parseFunc parseContainerImageListFunc) func(srcPath string) ([]string, error) {
+	return func(srcPath string) ([]string, error) {
+		containerImageList, err := parseFunc(srcPath)
+		if err != nil {
+			return nil, err
+		}
+		return v12.GetImageSliceFromContainerImageList(containerImageList), nil
+	}
+}
+
+func ParseContainerImageList(srcPath string) ([]*v12.ContainerImage, error) {
+	eg, _ := errgroup.WithContext(context.Background())
+
+	var containerImageList []*v12.ContainerImage
+	for t, p := range parseContainerImageListFuncMap {
+		dispatchType := t
+		parse := p
+		eg.Go(func() error {
+			ima, err := parse(srcPath)
+			if err != nil {
+				return fmt.Errorf("failed to parse images from %s: %v", dispatchType, err)
+			}
+			containerImageList = append(containerImageList, ima...)
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+	return containerImageList, nil
+}
+
+func ParseContainerImageSlice(srcPath string) ([]string, error) {
 	eg, _ := errgroup.WithContext(context.Background())
 
 	var images []string
-	for t, p := range dispatch {
+	for t, p := range parseContainerImageStringSliceFuncMap {
 		dispatchType := t
 		parse := p
 		eg.Go(func() error {
@@ -76,23 +144,32 @@ func (r registry) Process(srcPath, rootfs string) error {
 			return nil
 		})
 	}
-
 	if err := eg.Wait(); err != nil {
-		return err
+		return nil, err
 	}
-
-	return r.puller.SaveImages(images, filepath.Join(rootfs, common.RegistryDirName), r.platform)
+	return images, nil
 }
 
+// NewRegistryDiffer
+// Deprecated
+// TODO: delete RegistryDiffer
 func NewRegistryDiffer(platform v1.Platform) Differ {
 	ctx := context.Background()
-	return registry{
+	return &Registry{
 		platform: platform,
 		puller:   save.NewImageSaver(ctx),
 	}
 }
 
-func parseApplicationImages(srcPath string) ([]string, error) {
+func (r Registry) Process(srcPath, rootfs string) error {
+	containerImageList, err := ParseContainerImageSlice(srcPath)
+	if err != nil {
+		return err
+	}
+	return r.puller.SaveImages(containerImageList, filepath.Join(rootfs, common.RegistryDirName), r.platform)
+}
+
+func parseApplicationImages(srcPath string) ([]*v12.ContainerImage, error) {
 	applicationPath := filepath.Clean(filepath.Join(srcPath, rootfs.GlobalManager.App().Root()))
 
 	if !osi.IsFileExist(applicationPath) {
@@ -100,8 +177,8 @@ func parseApplicationImages(srcPath string) ([]string, error) {
 	}
 
 	var (
-		images []string
-		err    error
+		containerImageList []*v12.ContainerImage
+		err                error
 	)
 
 	entries, err := os.ReadDir(applicationPath)
@@ -113,26 +190,38 @@ func parseApplicationImages(srcPath string) ([]string, error) {
 		appPath := filepath.Join(applicationPath, name)
 		if entry.IsDir() {
 			if !isChartArtifactEnough(appPath) {
-				imagesTmp, err := parseKubeImages(appPath)
+				imagesTmp, err := parseApplicationKubeImages(appPath)
 				if err != nil {
-					return nil, errors.Wrap(err, fmt.Sprintf("error in parseKubeImages of %s", appPath))
+					return nil, errors.Wrapf(err, "failed to parse container image list for app(%s) with type(%s)",
+						name, application.KubeApp)
 				}
-				images = append(images, imagesTmp...)
+				for _, image := range imagesTmp {
+					containerImageList = append(containerImageList, &v12.ContainerImage{
+						Image:   image,
+						AppName: name,
+					})
+				}
 				continue
 			}
 
-			imagesTmp, err := parseHelmImages(appPath)
+			imagesTmp, err := parseApplicationHelmImages(appPath)
 			if err != nil {
-				return nil, errors.Wrap(err, fmt.Sprintf("error in parseHelmImages of %s", appPath))
+				return nil, errors.Wrapf(err, "failed to parse container image list for app(%s) with type(%s)",
+					name, application.HelmApp)
 			}
-			images = append(images, imagesTmp...)
+			for _, image := range imagesTmp {
+				containerImageList = append(containerImageList, &v12.ContainerImage{
+					Image:   image,
+					AppName: name,
+				})
+			}
 		}
 	}
 
-	return images, nil
+	return containerImageList, nil
 }
 
-func parseHelmImages(helmPath string) ([]string, error) {
+func parseApplicationHelmImages(helmPath string) ([]string, error) {
 	if !osi.IsFileExist(helmPath) {
 		return nil, nil
 	}
@@ -170,7 +259,7 @@ func parseHelmImages(helmPath string) ([]string, error) {
 	return FormatImages(images), nil
 }
 
-func parseKubeImages(kubePath string) ([]string, error) {
+func parseApplicationKubeImages(kubePath string) ([]string, error) {
 	if !osi.IsFileExist(kubePath) {
 		return nil, nil
 	}
@@ -298,6 +387,7 @@ func parseRawImageList(srcPath string) ([]string, error) {
 	return FormatImages(images), nil
 }
 
+// Deprecated
 type metadata struct {
 }
 

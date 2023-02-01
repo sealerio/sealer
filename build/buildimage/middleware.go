@@ -18,13 +18,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/utils/yaml"
-
-	osi "github.com/sealerio/sealer/utils/os"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/save"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/yaml"
 )
 
 type ImageSection struct {
@@ -55,14 +53,18 @@ func (m MiddlewarePuller) Pull(imageListWithAuth, rootfs string) error {
 	}
 
 	// pares middleware file: imageListWithAuth.yaml
-	var imageSection []ImageSection
-	err := yaml.UnmarshalFile(filePath, &imageSection)
+	var imageSectionList []ImageSection
+	err := yaml.UnmarshalFile(filePath, &imageSectionList)
 	if err != nil {
 		return err
 	}
 
+	return m.PullWithImageSection(rootfs, imageSectionList)
+}
+
+func (m MiddlewarePuller) PullWithImageSection(rootfs string, imageSectionList []ImageSection) error {
 	ia := make(save.ImageListWithAuth, 0)
-	for _, section := range imageSection {
+	for _, section := range imageSectionList {
 		if len(section.Images) == 0 {
 			continue
 		}

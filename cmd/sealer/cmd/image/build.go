@@ -41,6 +41,7 @@ import (
 	"github.com/sealerio/sealer/pkg/rootfs"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/yaml"
 	"github.com/sealerio/sealer/version"
 )
 
@@ -52,14 +53,14 @@ a brand new ClusterImage.`
 
 var exampleNewBuildCmd = `the current path is the context path, default build type is lite and use build cache
 build:
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8
 build without cache:
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --no-cache
 build with args:
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123 .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --build-arg MY_ARG=abc,PASSWORD=Sealer123
 build with image type:
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=app-installer .
-  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default) .
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=app-installer
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default)
   app-installer type image will not install kubernetes.
 build multi-platform image:
 	sealer build -f Kubefile -t my-kubernetes:1.19.8 --platform linux/amd64,linux/arm64
@@ -138,7 +139,6 @@ func buildSealerImage() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal image extension")
 	}
-
 	var (
 		repoTag   = buildFlags.Tag
 		randomStr = getRandomString(8)
@@ -176,10 +176,64 @@ func buildSealerImage() error {
 	}()
 
 	if isMultiPlatform {
-		return commitMultiPlatformImage(tempTag, repoTag, engine)
+		return buildWithMultiPlatform(engine, tempTag, repoTag)
 	}
 
-	return commitSingleImage(iid, repoTag, engine)
+	return buildWithSinglePlatform(engine, iid, repoTag)
+}
+
+func buildWithMultiPlatform(engine imageengine.Interface, tempTag, manifest string) error {
+	platformedImages, err := getImageWithMultiPlatform(tempTag, engine)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get image list")
+	}
+
+	platformContainerIDMap, containerImageListMap, err := applyImagesWithMultiPlatform(engine, platformedImages)
+	if err != nil {
+		return err
+	}
+	for containerID, containerImageList := range containerImageListMap {
+		if err := updateContainerImageListAnnotations(engine, containerID, containerImageList); err != nil {
+			return err
+		}
+	}
+
+	for _, pi := range platformedImages {
+		containerID := platformContainerIDMap[pi.platform.ToString()]
+		if err := commitContainer(engine, &commitContainerOpts{
+			containerID: containerID,
+			tag:         "",
+			manifest:    manifest,
+			platform:    pi.platform,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func buildWithSinglePlatform(engine imageengine.Interface, imageID, tag string) error {
+	_os, arch, variant, err := parse.Platform(buildFlags.Platforms[0])
+	if err != nil {
+		return errors.Wrap(err, "failed to parse platform")
+	}
+	platform := &v1.Platform{OS: _os, Architecture: arch, Variant: variant}
+
+	containerID, containerImageList, err := applyImagesWithSinglePlatform(engine, imageID, platform)
+	if err != nil {
+		return err
+	}
+
+	if err := updateContainerImageListAnnotations(engine, containerID, containerImageList); err != nil {
+		return err
+	}
+
+	return commitContainer(engine, &commitContainerOpts{
+		containerID: containerID,
+		tag:         tag,
+		manifest:    "",
+		platform:    *platform,
+	})
 }
 
 type platformedImage struct {
@@ -187,58 +241,62 @@ type platformedImage struct {
 	imageNameOrID string
 }
 
-func commitMultiPlatformImage(tempTag, manifest string, engine imageengine.Interface) error {
+func getImageWithMultiPlatform(tempTag string, engine imageengine.Interface) ([]platformedImage, error) {
 	var platformedImages []platformedImage
 	manifestList, err := engine.LookupManifest(tempTag)
 	if err != nil {
-		return errors.Wrap(err, "failed to lookup manifest")
+		return nil, errors.Wrap(err, "failed to lookup manifest")
 	}
 
 	for _, p := range buildFlags.Platforms {
 		_os, arch, variant, err := parse.Platform(p)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse platform")
+			return nil, errors.Wrap(err, "failed to parse platform")
 		}
 
 		img, err := manifestList.LookupInstance(context.TODO(), arch, _os, variant)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		platformedImages = append(platformedImages,
 			platformedImage{imageNameOrID: img.ID(),
 				platform: v1.Platform{OS: _os, Architecture: arch, Variant: variant}})
 	}
+	return platformedImages, nil
+}
 
+func applyImagesWithMultiPlatform(engine imageengine.Interface, platformedImages []platformedImage) (map[string]string, map[string][]*v12.ContainerImage, error) {
+	var platformContainerIDMap = make(map[string]string)
+	var containerImageList = make(map[string][]*v12.ContainerImage)
 	for _, pi := range platformedImages {
-		if err := applyRegistryToImage(pi.imageNameOrID, "", manifest, pi.platform, engine); err != nil {
-			return errors.Wrap(err, "error in apply registry data into image")
+		containerID, tmpContainerImageList, err := applyRegistryToImage(engine, pi.imageNameOrID, pi.platform)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "error in apply registry data into image")
 		}
+		containerImageList[containerID] = tmpContainerImageList
+		platformContainerIDMap[pi.platform.ToString()] = containerID
 	}
 
-	return nil
+	return platformContainerIDMap, containerImageList, nil
 }
 
-func commitSingleImage(iid string, tag string, engine imageengine.Interface) error {
-	_os, arch, variant, err := parse.Platform(buildFlags.Platforms[0])
+func applyImagesWithSinglePlatform(engine imageengine.Interface, imageID string, platform *v1.Platform) (string, []*v12.ContainerImage, error) {
+	containerID, containerImageList, err := applyRegistryToImage(engine, imageID, *platform)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse platform")
+		return "", nil, errors.Wrap(err, "error in apply registry data into image")
 	}
 
-	if err := applyRegistryToImage(iid, tag, "", v1.Platform{OS: _os, Architecture: arch, Variant: variant}, engine); err != nil {
-		return errors.Wrap(err, "error in apply registry data into image")
-	}
-
-	return nil
+	return containerID, containerImageList, nil
 }
 
-func applyRegistryToImage(imageID, tag, manifest string, platform v1.Platform, engine imageengine.Interface) error {
+func applyRegistryToImage(engine imageengine.Interface, imageID string, platform v1.Platform) (string, []*v12.ContainerImage, error) {
 	_os, arch, variant := platform.OS, platform.Architecture, platform.Variant
 	// this temporary file is used to execute image pull, and save it to /registry.
 	// engine.BuildRootfs will generate an image rootfs, and link the rootfs to temporary dir(temp sealer rootfs).
 	tmpDir, err := os.MkdirTemp("", "sealer")
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 
 	defer func() {
@@ -249,19 +307,30 @@ func applyRegistryToImage(imageID, tag, manifest string, platform v1.Platform, e
 	}()
 
 	tmpDirForLink := filepath.Join(tmpDir, "tmp-rootfs")
-	cid, err := engine.CreateWorkingContainer(&bc.BuildRootfsOptions{
+	containerID, err := engine.CreateWorkingContainer(&bc.BuildRootfsOptions{
 		ImageNameOrID: imageID,
 		DestDir:       tmpDirForLink,
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to create working container, imageid: %s", imageID)
+		return "", nil, errors.Wrapf(err, "failed to create working container, imageid: %s", imageID)
 	}
 
-	// download container image form `imageList`
+	var containerImageList []*v12.ContainerImage
+
+	// download container image from `imageList`
 	if buildFlags.ImageList != "" && osi.IsFileExist(buildFlags.ImageList) {
 		images, err := osi.NewFileReader(buildFlags.ImageList).ReadLines()
 		if err != nil {
-			return err
+			return "", nil, err
+		}
+		for _, image := range images {
+			logrus.Debugf("get container image(%s) with platform(%s) from build flag image list",
+				image, platform.ToString())
+			containerImageList = append(containerImageList, &v12.ContainerImage{
+				Image:    image,
+				AppName:  "",
+				Platform: &platform,
+			})
 		}
 		formatImages := buildimage.FormatImages(images)
 		ctx := context.Background()
@@ -271,34 +340,97 @@ func applyRegistryToImage(imageID, tag, manifest string, platform v1.Platform, e
 			OS:           _os,
 			Variant:      variant,
 		}); err != nil {
-			return err
+			return "", nil, err
 		}
 	}
 
-	differ := buildimage.NewRegistryDiffer(v1.Platform{
+	// automatically parses container images and stores them
+	parsedContainerImageList, err := buildimage.ParseContainerImageList(tmpDirForLink)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "failed to parse container image list")
+	}
+	// add platform info for container image
+	for _, containerImage := range parsedContainerImageList {
+		logrus.Debugf("get container image(%s) with platform(%s) for app(%s) from build flag image list",
+			containerImage.Image, containerImage.AppName, platform.ToString())
+		containerImage.Platform = &platform
+		containerImageList = append(containerImageList, containerImage)
+	}
+	registry := buildimage.NewRegistry(v1.Platform{
 		Architecture: arch,
 		OS:           _os,
 		Variant:      variant,
 	})
-
-	// TODO optimize the differ.
-	if err := differ.Process(tmpDirForLink, tmpDirForLink); err != nil {
-		return errors.Wrap(err, "failed to download container images")
+	if err := registry.SaveImages(tmpDirForLink, v12.GetImageSliceFromContainerImageList(parsedContainerImageList)); err != nil {
+		return "", nil, errors.Wrap(err, "failed to download container images")
 	}
 
-	// download container image form `imageListWithAuth.yaml`
-	if err := buildimage.NewMiddlewarePuller(v1.Platform{
-		Architecture: arch,
-		OS:           _os,
-		Variant:      variant,
-	}).Pull(buildFlags.ImageListWithAuth, tmpDirForLink); err != nil {
-		return err
+	// download container image from `imageListWithAuth.yaml`
+	if buildFlags.ImageListWithAuth != "" && osi.IsFileExist(buildFlags.ImageListWithAuth) {
+		// pares middleware file: imageListWithAuth.yaml
+		var imageSectionList []buildimage.ImageSection
+		if err := yaml.UnmarshalFile(buildFlags.ImageListWithAuth, &imageSectionList); err != nil {
+			return "", nil, err
+		}
+		for _, imageSection := range imageSectionList {
+			for _, image := range imageSection.Images {
+				logrus.Debugf("get container image(%s) with platform(%s) from build flag image list",
+					image, platform.ToString())
+				containerImageList = append(containerImageList, &v12.ContainerImage{
+					Image:    image,
+					AppName:  "",
+					Platform: &platform,
+				})
+			}
+		}
+		if err := buildimage.NewMiddlewarePuller(v1.Platform{
+			Architecture: arch,
+			OS:           _os,
+			Variant:      variant,
+		}).PullWithImageSection(tmpDirForLink, imageSectionList); err != nil {
+			return "", nil, err
+		}
 	}
 
+	return containerID, containerImageList, nil
+}
+
+type commitContainerOpts struct {
+	containerID string
+	tag         string
+	manifest    string
+	platform    v1.Platform
+}
+
+func updateContainerImageListAnnotations(engine imageengine.Interface, containerID string, containerImageList []*v12.ContainerImage) error {
+	logrus.Debugf("succcss to get containerImageList: %v", containerImageList)
+	if len(containerImageList) == 0 {
+		return nil
+	}
+	containerImageListJSON, err := json.Marshal(containerImageList)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal container image list")
+	}
+	containerImageListAnnotations := fmt.Sprintf("%s=%s",
+		v12.SealerImageContainerImageList, string(containerImageListJSON))
+	if err := engine.Config(&bc.ConfigOptions{
+		ContainerID: containerID,
+		Annotations: []string{containerImageListAnnotations},
+	}); err != nil {
+		return errors.Wrapf(err, "failed to config container images list")
+	}
+	return nil
+}
+
+func commitContainer(engine imageengine.Interface, opts *commitContainerOpts) error {
+	tag := opts.tag
+	manifest := opts.manifest
+	containerID := opts.containerID
+	platform := opts.platform
 	id, err := engine.Commit(&bc.CommitOptions{
 		Format:      cli.DefaultFormat(),
 		Rm:          true,
-		ContainerID: cid,
+		ContainerID: containerID,
 		Image:       tag,
 		Manifest:    manifest,
 	})
@@ -353,6 +485,7 @@ func buildImageExtensionOnResult(result *parser.KubefileResult, imageType string
 	}
 	extension.Launch.Cmds = result.RawCmds
 	extension.Launch.AppNames = result.AppNames
+	extension.Launch.AppConfigs = result.ApplicationConfigs
 	return extension
 }
 

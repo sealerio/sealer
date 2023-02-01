@@ -205,16 +205,21 @@ func init() {
 	// functions. Errors are propagated up by Parse() and the resulting AST can
 	// be incorporated directly into the existing AST as a next.
 	dispatch = map[string]func(string, *Directive) (*Node, map[string]bool, error){
-		command.Add:        parseMaybeJSONToList,
-		command.Arg:        parseNameOrNameVal,
-		command.Copy:       parseMaybeJSONToList,
-		command.From:       parseStringsWhitespaceDelimited,
-		command.Label:      parseLabel,
-		command.Maintainer: parseString,
-		command.Run:        parseMaybeJSON,
-		command.App:        parseMaybeJSONToList,
-		command.Launch:     parseMaybeJSONToList,
-		command.Cmds:       parseMaybeJSONToList,
+		command.Add:         parseMaybeJSONToList,
+		command.Arg:         parseNameOrNameVal,
+		command.Copy:        parseMaybeJSONToList,
+		command.From:        parseStringsWhitespaceDelimited,
+		command.Label:       parseLabel,
+		command.Maintainer:  parseString,
+		command.Run:         parseMaybeJSON,
+		command.App:         parseMaybeJSONToList,
+		command.AppCmds:     parseMaybeJSONToList,
+		command.KUBEVERSION: parseString,
+		command.CNI:         parseMaybeJSONToList,
+		command.CSI:         parseMaybeJSONToList,
+		command.Launch:      parseMaybeJSONToList,
+		command.Cmds:        parseMaybeJSONToList,
+		command.Cmd:         parseMaybeJSONToList,
 	}
 }
 

@@ -15,7 +15,8 @@
 package constants
 
 const (
-	ClusterKind = "Cluster"
-	PluginKind  = "Plugin"
-	ConfigKind  = "Config"
+	ClusterKind     = "Cluster"
+	PluginKind      = "Plugin"
+	ConfigKind      = "Config"
+	ApplicationKind = "Application"
 )

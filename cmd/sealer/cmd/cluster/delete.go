@@ -51,6 +51,7 @@ delete cluster node:
   sealer delete --masters 192.168.0.1-192.168.0.3 --nodes 192.168.0.4-192.168.0.6 [--force]
 delete all:
   sealer delete --all [--force]
+  sealer delete -a -f Clusterfile [--force]
 `
 
 // NewDeleteCmd deleteCmd represents the delete command

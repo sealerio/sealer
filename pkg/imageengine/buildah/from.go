@@ -20,15 +20,16 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sealerio/sealer/pkg/define/options"
-
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
 	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/config"
 	encconfig "github.com/containers/ocicrypt/config"
+
 	"github.com/pkg/errors"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 type fromFlagsWrapper struct {

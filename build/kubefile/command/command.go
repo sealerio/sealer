@@ -14,17 +14,28 @@
 
 package command
 
+import (
+	"fmt"
+)
+
 const (
 
 	// the following commands are kubefile-spec commands
 	// we recommender users to use these commands to pack their
 	// demands for applications.
-	App    = "app"
-	Launch = "launch"
-	Cmds   = "cmds"
+	App         = "app"
+	AppCmds     = "appcmds"
+	Launch      = "launch"
+	Cmds        = "cmds"
+	CNI         = "cni"
+	CSI         = "csi"
+	KUBEVERSION = "kubeversion"
 
 	Label      = "label"
 	Maintainer = "maintainer"
+
+	// Deprecated
+	Cmd = "cmd"
 
 	// the following commands are the intenal implementations for kube commands
 	Add  = "add"
@@ -34,16 +45,32 @@ const (
 	Run  = "run"
 )
 
+const (
+	LabelSupportedKubeVersionAlpha = "app.alpha.sealer.io/supported-kube-version"
+	LabelSupportedKubeCNIAlpha     = "cluster.alpha.sealer.io/kube-cni"
+	LabelSupportedKubeCSIAlpha     = "cluster.alpha.sealer.io/kube-csi"
+)
+
+var (
+	LabelKubeCNIPrefix = fmt.Sprintf("%s-", LabelSupportedKubeCNIAlpha)
+	LabelKubeCSIPrefix = fmt.Sprintf("%s-", LabelSupportedKubeCSIAlpha)
+)
+
 // SupportedCommands is list of all Kubefile commands
 var SupportedCommands = map[string]struct{}{
-	Add:        {},
-	Arg:        {},
-	Copy:       {},
-	From:       {},
-	Label:      {},
-	Maintainer: {},
-	Run:        {},
-	App:        {},
-	Launch:     {},
-	Cmds:       {},
+	Add:         {},
+	Arg:         {},
+	Copy:        {},
+	From:        {},
+	Label:       {},
+	Maintainer:  {},
+	Run:         {},
+	App:         {},
+	AppCmds:     {},
+	Launch:      {},
+	Cmds:        {},
+	Cmd:         {},
+	CNI:         {},
+	CSI:         {},
+	KUBEVERSION: {},
 }

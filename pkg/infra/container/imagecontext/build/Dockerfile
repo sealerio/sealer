@@ -15,6 +15,8 @@
 FROM ubuntu:21.04
 
 RUN echo "Installing Packages ..." \
+    # && sed -i "s/archive.ubuntu.com/mirrors.aliyun.com/g" /etc/apt/sources.list \
+    && sed -i -e 's/archive.ubuntu.com\|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
        kmod ca-certificates \
@@ -33,6 +35,5 @@ RUN echo "Installing Packages ..." \
     && rm -f /lib/systemd/system/local-fs.target.wants/* \
     && rm -f /lib/systemd/system/sockets.target.wants/*udev* \
     && rm -f /lib/systemd/system/sockets.target.wants/*initctl* \
-    && rm -f /lib/systemd/system/basic.target.wants/*
-
+    && rm -f /lib/systemd/system/basic.target.wants/* \
 ENTRYPOINT [ "/bin/bash" ]

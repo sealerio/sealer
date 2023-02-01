@@ -24,10 +24,10 @@ import (
 )
 
 type Application struct {
-	NameVar        string   `json:"name"`
-	TypeVar        string   `json:"type,omitempty"`
-	LaunchFilesVar []string `json:"launchfiles,omitempty"`
-	VersionVar     string   `json:"version,omitempty"`
+	NameVar    string   `json:"name"`
+	TypeVar    string   `json:"type,omitempty"`
+	FilesVar   []string `json:"files,omitempty"`
+	VersionVar string   `json:"version,omitempty"`
 }
 
 func (app *Application) Version() string {
@@ -42,15 +42,26 @@ func (app *Application) Type() string {
 	return app.TypeVar
 }
 
-func (app *Application) LaunchCmd(appRoot string) string {
+func (app *Application) LaunchCmd(appRoot string, launchCmds []string) string {
+	if len(launchCmds) != 0 {
+		var cmds []string
+		cmds = append(cmds, []string{"cd", appRoot}...)
+		cmds = append(cmds, "&&")
+		cmds = append(cmds, launchCmds...)
+		return strings.Join(cmds, " ")
+	}
 	switch app.Type() {
 	case application.KubeApp:
-		return fmt.Sprintf("kubectl apply -f %s", appRoot)
+		var cmds []string
+		for _, file := range app.FilesVar {
+			cmds = append(cmds, fmt.Sprintf("kubectl apply -f %s", filepath.Join(appRoot, file)))
+		}
+		return strings.Join(cmds, " && ")
 	case application.HelmApp:
 		return fmt.Sprintf("helm install %s %s", app.Name(), appRoot)
 	case application.ShellApp:
 		var cmds []string
-		for _, file := range app.LaunchFilesVar {
+		for _, file := range app.FilesVar {
 			cmds = append(cmds, fmt.Sprintf("bash %s", filepath.Join(appRoot, file)))
 		}
 		return strings.Join(cmds, " && ")
@@ -61,11 +72,11 @@ func (app *Application) LaunchCmd(appRoot string) string {
 
 func NewV1Application(
 	name string,
-	appType string, launchFiles []string) version.VersionedApplication {
+	appType string, files []string) version.VersionedApplication {
 	return &Application{
-		NameVar:        name,
-		TypeVar:        appType,
-		LaunchFilesVar: launchFiles,
-		VersionVar:     "v1",
+		NameVar:    name,
+		TypeVar:    appType,
+		FilesVar:   files,
+		VersionVar: "v1",
 	}
 }

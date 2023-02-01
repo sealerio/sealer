@@ -20,6 +20,9 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
@@ -28,13 +31,19 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	netutils "github.com/sealerio/sealer/utils/net"
 	strUtils "github.com/sealerio/sealer/utils/strings"
-	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 )
 
 func MergeClusterWithFlags(cluster v2.Cluster, mergeFlags *types.MergeFlags) (*v2.Cluster, error) {
 	if len(mergeFlags.CustomEnv) > 0 {
 		cluster.Spec.Env = append(cluster.Spec.Env, mergeFlags.CustomEnv...)
+	}
+
+	if len(mergeFlags.Cmds) > 0 {
+		cluster.Spec.CMD = mergeFlags.Cmds
+	}
+
+	if len(mergeFlags.AppNames) > 0 {
+		cluster.Spec.APPNames = mergeFlags.AppNames
 	}
 
 	// if no master and node specify form flag, just return.
@@ -93,8 +102,10 @@ func ConstructClusterForRun(imageName string, runFlags *types.RunFlags) (*v2.Clu
 			},
 			Image: imageName,
 			//use cluster ssh auth by default
-			Hosts: TransferIPToHosts(masterIPList, nodeIPList, v1.SSH{}),
-			Env:   runFlags.CustomEnv,
+			Hosts:    TransferIPToHosts(masterIPList, nodeIPList, v1.SSH{}),
+			Env:      runFlags.CustomEnv,
+			CMD:      runFlags.Cmds,
+			APPNames: runFlags.AppNames,
 		},
 	}
 	cluster.APIVersion = v2.GroupVersion.String()

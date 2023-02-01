@@ -24,6 +24,10 @@ import (
 	"github.com/sealerio/sealer/pkg/infra/container/client"
 )
 
+const (
+	CgroupNoneDriver = "none"
+)
+
 func (p *Provider) getUserNsMode() (container.UsernsMode, error) {
 	sysInfo, err := p.DockerClient.Info(p.Ctx)
 	if err != nil {
@@ -160,14 +164,21 @@ func (p *Provider) GetServerInfo() (*client.DockerInfo, error) {
 		return nil, err
 	}
 
-	return &client.DockerInfo{
-		CgroupDriver:    sysInfo.CgroupDriver,
-		CgroupVersion:   sysInfo.CgroupVersion,
-		StorageDriver:   sysInfo.Driver,
-		MemoryLimit:     sysInfo.MemoryLimit,
-		PidsLimit:       sysInfo.PidsLimit,
-		CPUShares:       sysInfo.CPUShares,
-		CPUNumber:       sysInfo.NCPU,
-		SecurityOptions: sysInfo.SecurityOptions,
-	}, nil
+	var dInfo client.DockerInfo
+
+	// When CgroupDriver == "none", the MemoryLimit/PidsLimit/CPUShares
+	// values are meaningless and need to be considered false.
+	// https://github.com/moby/moby/issues/42151
+	dInfo.CgroupVersion = sysInfo.CgroupVersion
+	dInfo.StorageDriver = sysInfo.Driver
+	dInfo.SecurityOptions = sysInfo.SecurityOptions
+	dInfo.CgroupDriver = sysInfo.CgroupDriver
+	if sysInfo.CgroupDriver == CgroupNoneDriver {
+		return &dInfo, nil
+	}
+	dInfo.MemoryLimit = sysInfo.MemoryLimit
+	dInfo.PidsLimit = sysInfo.PidsLimit
+	dInfo.CPUShares = sysInfo.CPUShares
+	dInfo.CPUNumber = sysInfo.NCPU
+	return &dInfo, nil
 }
