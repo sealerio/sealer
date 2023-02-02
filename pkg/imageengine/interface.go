@@ -63,6 +63,8 @@ type Interface interface {
 
 	GetSealerImageExtension(opts *options.GetImageAnnoOptions) (v1.ImageExtension, error)
 
+	GetImageLabels(opts *options.GetImageLabelsOptions) (map[string]string, error)
+
 	LookupManifest(name string) (*libimage.ManifestList, error)
 
 	CreateManifest(name string, opts *options.ManifestCreateOpts) error

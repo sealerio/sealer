@@ -39,3 +39,21 @@ func (engine *Engine) GetImageAnnotation(opts *options.GetImageAnnoOptions) (map
 	out := buildah.GetBuildInfo(builder)
 	return out.ImageAnnotations, nil
 }
+
+func (engine *Engine) GetImageLabels(opts *options.GetImageLabelsOptions) (map[string]string, error) {
+	if len(opts.ImageNameOrID) == 0 {
+		return nil, errors.New("image name id or image name should be specified")
+	}
+
+	ctx := getContext()
+	store := engine.ImageStore()
+	name := opts.ImageNameOrID
+
+	builder, err := openImage(ctx, engine.SystemContext(), store, name)
+	if err != nil {
+		return nil, err
+	}
+
+	out := buildah.GetBuildInfo(builder)
+	return out.OCIv1.Config.Labels, nil
+}

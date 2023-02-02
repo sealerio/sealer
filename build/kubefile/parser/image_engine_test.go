@@ -150,6 +150,10 @@ func (testImageEngine) GetSealerImageExtension(opts *options.GetImageAnnoOptions
 	return testExtensionWithApp, nil
 }
 
+func (e testImageEngine) GetImageLabels(opts *options.GetImageLabelsOptions) (map[string]string, error) {
+	panic("implement me")
+}
+
 func (testImageEngine) LookupManifest(name string) (*libimage.ManifestList, error) {
 	panic("implement me")
 }
