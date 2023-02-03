@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -64,7 +65,7 @@ rm -rf /var/lib/kubelet/* && rm -rf /etc/sysctl.d/k8s.conf && \
 rm -rf /etc/cni && rm -rf /opt/cni && \
 rm -rf /var/lib/etcd/* && rm -rf /var/etcd/* && rm -rf /root/.kube/config
 `
-	RemoteRemoveAPIServerEtcHost = "sed -i \"/%s/d\" /etc/hosts"
+	RemoteRemoveAPIServerEtcHost = "echo \"$(sed \"/%s/d\" /etc/hosts)\" > /etc/hosts"
 	KubeDeleteNode               = "kubectl delete node %s"
 
 	RemoteCheckRoute = "seautil route check --host %s"
@@ -177,7 +178,7 @@ func GetClientFromConfig(adminConfPath string) (runtimeClient.Client, error) {
 }
 
 func (k *Runtime) configureLvs(masterHosts, clientHosts []net.IP) error {
-	lvsImageURL := fmt.Sprintf("%s/sealer/lvscare:v1.1.3-beta.8", k.Config.RegistryInfo.URL)
+	lvsImageURL := path.Join(k.Config.RegistryInfo.URL, common.LvsCareRepoAndTag)
 
 	var rs []string
 	var realEndpoints []string

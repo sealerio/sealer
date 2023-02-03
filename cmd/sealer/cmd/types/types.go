@@ -81,4 +81,9 @@ type MergeFlags struct {
 	Pk         string
 	PkPassword string
 	CustomEnv  []string
+
+	// override default Cmds of clusterimage
+	Cmds []string
+	// override default APPNames of clusterimage
+	AppNames []string
 }

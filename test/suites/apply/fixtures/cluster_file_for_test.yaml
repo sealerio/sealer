@@ -1,4 +1,4 @@
-# Copyright © 2021 Alibaba Group Holding Ltd.
+# Copyright © 2022 Alibaba Group Holding Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,33 +15,32 @@
 apiVersion: zlink.aliyun.com/v1alpha1
 kind: Cluster
 metadata:
+  creationTimestamp: null
   name: my-test-cluster
 spec:
-  image: sealer-io/kubernetes:v1.19.8
-  provider: ALI_CLOUD
-  ssh:
-    passwd: Sealer123
-    pk: xxx
-    pkPasswd: xxx
-    user: root
+  certSANS:
+  - aliyun-inc.com
+  - 10.0.0.2
+  image: docker.io/sealerio/kubernetes:v1.22.15
+  masters:
+    count: "1"
+    cpu: "2"
+    dataDisks:
+    - "100"
+    memory: "2"
+    systemDisk: "100"
   network:
     podCIDR: 100.64.0.0/10
     svcCIDR: 10.96.0.0/22
-  certSANS:
-    - aliyun-inc.com
-    - 10.0.0.2
-
-  masters:
-    cpu: 4
-    memory: 4
-    count: 1
-    systemDisk: 100
-    dataDisks:
-      - 100
   nodes:
-    cpu: 4
-    memory: 4
-    count: 1
-    systemDisk: 100
+    count: "1"
+    cpu: "2"
     dataDisks:
-      - 100
+    - "100"
+    memory: "2"
+    systemDisk: "100"
+  provider: CONTAINER
+  ssh:
+    passwd: Sealer123
+    user: root
+status: {}

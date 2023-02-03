@@ -27,8 +27,9 @@ import (
 
 var _ = Describe("sealer run", func() {
 
-	Context("run on bareMetal", func() {
+	Context("run on container", func() {
 		var tempFile string
+		apply.CheckDockerAndSwapOff()
 		BeforeEach(func() {
 			tempFile = testhelper.CreateTempFile()
 		})
@@ -37,13 +38,13 @@ var _ = Describe("sealer run", func() {
 			testhelper.RemoveTempFile(tempFile)
 		})
 
-		It("bareMetal run", func() {
+		It("container run", func() {
 			rawCluster := apply.LoadClusterFileFromDisk(apply.GetRawClusterFilePath())
 			By("start to prepare infra")
-			usedCluster := apply.CreateAliCloudInfraAndSave(rawCluster, tempFile)
+			usedCluster := apply.CreateContainerInfraAndSave(rawCluster, tempFile)
 			//defer to delete cluster
 			defer func() {
-				apply.CleanUpAliCloudInfra(usedCluster)
+				apply.CleanUpContainerInfra(usedCluster)
 			}()
 			sshClient := testhelper.NewSSHClientByCluster(usedCluster)
 			testhelper.CheckFuncBeTrue(func() bool {

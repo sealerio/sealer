@@ -19,6 +19,7 @@ import (
 
 	application_v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
+	apiv1 "github.com/sealerio/sealer/types/api/v1"
 
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -67,7 +68,18 @@ type ContainerImage struct {
 	// NOTE: A container image may not belong to any app. In this case, the appName value is null.
 	AppName string `json:"appName,omitempty" yaml:"appName"`
 
+	// Platform the container image platform
+	Platform *apiv1.Platform `json:"platform" yaml:"platform"`
+
 	// TODO: add more info about container image if necessary such as resourceKind, resourceName, etc.
+}
+
+func GetImageSliceFromContainerImageList(containerImageList []*ContainerImage) []string {
+	var images []string
+	for _, containerImage := range containerImageList {
+		images = append(images, containerImage.Image)
+	}
+	return images
 }
 
 // NOTE: the UnmarshalJSON function of ImageExtension has been overrode
@@ -84,6 +96,9 @@ type ImageExtension struct {
 	// applications in the sealer image
 	Applications []version.VersionedApplication `json:"applications,omitempty"`
 
+	// Labels are metadata to the sealer image
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+
 	// launch spec will declare
 	Launch Launch `json:"launch,omitempty"`
 }
@@ -99,6 +114,19 @@ type Launch struct {
 
 	// user specified LAUNCH instruction
 	AppNames []string `json:"app_names,omitempty"`
+
+	// AppConfigs the configs for launch application
+	AppConfigs []*ApplicationConfig `json:"appConfigs,omitempty" yaml:"appConfigs,omitempty"`
+}
+
+type ApplicationConfig struct {
+	Name string `json:"name"`
+
+	Launch *ApplicationConfigLaunch `json:"launch"`
+}
+
+type ApplicationConfigLaunch struct {
+	CMDs []string `json:"cmds" yaml:"cmds"`
 }
 
 type v1ImageExtension struct {
@@ -108,6 +136,8 @@ type v1ImageExtension struct {
 	SchemaVersion string `json:"schemaVersion"`
 	// sealer image type, like AppImage
 	Type string `json:"type,omitempty"`
+	// Labels are metadata to the sealer image
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	// applications in the sealer image
 	Applications []application_v1.Application `json:"applications,omitempty"`
 	// launch spec will declare
@@ -123,6 +153,7 @@ func (ie *ImageExtension) UnmarshalJSON(data []byte) error {
 
 	(*ie).BuildClient = v1Ex.BuildClient
 	(*ie).SchemaVersion = v1Ex.SchemaVersion
+	(*ie).Labels = v1Ex.Labels
 	(*ie).Type = v1Ex.Type
 	(*ie).Applications = make([]version.VersionedApplication, len(v1Ex.Applications))
 	for i, app := range v1Ex.Applications {

@@ -24,9 +24,10 @@ import (
 
 	"github.com/sealerio/sealer/build/kubefile/command"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
+	"github.com/sealerio/sealer/pkg/define/application/version"
 )
 
-func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
+func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) (version.VersionedApplication, error) {
 	var (
 		appName     = ""
 		localFiles  = []string{}
@@ -50,12 +51,12 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
 		case isRemote(val):
 			remoteFiles = append(remoteFiles, val)
 		default:
-			return errors.New("source schema should be specified with https:// http:// local:// in APP")
+			return nil, errors.New("source schema should be specified with https:// http:// local:// in APP")
 		}
 	}
 
 	if appName == "" {
-		return errors.New("app name should be specified in the app cmd")
+		return nil, errors.New("app name should be specified in the app cmd")
 	}
 
 	// TODO clean the app directory first before putting files into it.
@@ -71,12 +72,12 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
 	if len(remoteFiles) > 0 {
 		remoteCxtAbs, err := os.MkdirTemp(kp.buildContext, "sealer-remote-files")
 		if err != nil {
-			return errors.Errorf("failed to create remote context: %s", err)
+			return nil, errors.Errorf("failed to create remote context: %s", err)
 		}
 
 		files, err := downloadRemoteFiles(remoteCxtAbs, remoteFiles)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		remoteCxtBase := filepath.Base(remoteCxtAbs)
@@ -85,7 +86,6 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
 			fileRel2Cxt := filepath.Join(remoteCxtBase, fileBase)
 			filesToCopy = append(filesToCopy, fileRel2Cxt)
 		}
-
 		// append it to the legacy.
 		// it will be deleted by CleanContext
 		legacyCxt.directories = append(legacyCxt.directories, remoteCxtAbs)
@@ -95,9 +95,19 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
 	tmpLine := strings.Join(append([]string{command.Copy}, append(filesToCopy, destDir)...), " ")
 	result.Dockerfile = mergeLines(result.Dockerfile, tmpLine)
 	result.legacyContext.apps2Files[appName] = append([]string{}, filesToCopy...)
-	appType, launchFiles, err := getApplicationType(filesToCopy)
+
+	return makeItAsApp(appName, filesToCopy, result)
+}
+
+func makeItAsApp(appName string, filesToJudge []string, result *KubefileResult) (version.VersionedApplication, error) {
+	appType, err := getApplicationType(filesToJudge)
 	if err != nil {
-		return fmt.Errorf("error in judging the application type: %v", err)
+		return nil, fmt.Errorf("failed to judge the application type for %s: %v", appName, err)
+	}
+
+	launchFiles, err := getApplicationFiles(appName, appType, filesToJudge)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app (%s)launch files: %v", appName, err)
 	}
 
 	v1App := v1.NewV1Application(
@@ -106,7 +116,7 @@ func (kp *KubefileParser) processApp(node *Node, result *KubefileResult) error {
 		launchFiles,
 	).(*v1.Application)
 	result.Applications[v1App.Name()] = v1App
-	return nil
+	return v1App, nil
 }
 
 func downloadRemoteFiles(shadowDir string, files []string) ([]string, error) {

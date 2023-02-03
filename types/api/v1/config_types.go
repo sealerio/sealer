@@ -66,10 +66,20 @@ import (
 
 // ConfigSpec defines the desired state of Config
 type ConfigSpec struct {
+	// Enumeration value is "merge" and "overwrite". default value is "overwrite".
+	// Only yaml files format are supported if strategy is "merge", this will deeply merge each yaml file section.
+	// Otherwise, will overwrite the whole file content with config data.
 	Strategy string `json:"strategy,omitempty"`
-	Process  string `json:"process,omitempty"`
-	Data     string `json:"data,omitempty"`
-	Path     string `json:"path,omitempty"`
+	// preprocess with processor: value|toJson|toBase64|toSecret
+	Process string `json:"process,omitempty"`
+	//Data config real data
+	Data string `json:"data,omitempty"`
+	// which app to use this config.
+	APPName string `json:"appName,omitempty"`
+	// where the Data write on,
+	// it could be the relative path of rootfs (manifests/mysql.yaml).
+	// Or work with APPName to form a complete relative path(application/apps/{APPName}/mysql.yaml)
+	Path string `json:"path,omitempty"`
 }
 
 // ConfigStatus defines the observed state of Config

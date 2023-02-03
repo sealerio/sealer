@@ -36,10 +36,12 @@ jobs:
           path: src/github.com/sealerio/sealer
       - name: Install deps
         run: |
+         sudo su
          sudo apt-get update
          sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
+         sudo mkdir /var/lib/sealer
       - name: Set up Go 1.17
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.17
         id: go
@@ -47,8 +49,8 @@ jobs:
       - name: Install sealer and ginkgo
         shell: bash
         run: |
-          source hack/build.sh
-          export SEALER_DIR=$THIS_PLATFORM_BIN/sealer/linux_amd64
+          docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
+          export SEALER_DIR=${PWD}/_output/bin/sealer/linux_amd64
           echo "$SEALER_DIR" >> $GITHUB_PATH
           go install github.com/onsi/ginkgo/ginkgo@v1.16.2
           go install github.com/onsi/gomega/...@v1.12.0
@@ -70,4 +72,6 @@ jobs:
           RegionID: ${{ secrets.RegionID }}
         if: ${{ github.event.comment.body == '/test apply' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
+          # fix:open /proc/sys/net/netfilter/nf_conntrack_max: permission denied, see: https://github.com/kubernetes-sigs/kind/issues/2240
+          sudo sysctl net/netfilter/nf_conntrack_max=131072
           ginkgo -v --focus="sealer apply" test

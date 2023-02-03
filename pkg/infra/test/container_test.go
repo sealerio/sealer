@@ -53,7 +53,7 @@ func SetUpClient() (*container.ApplyProvider, error) {
 			},
 			Provider: container.CONTAINER,
 			SSH: v1.SSH{
-				Passwd: "kakazhou719",
+				Passwd: "zhy76",
 			},
 		},
 	}
@@ -113,20 +113,20 @@ func TestContainerApply(t *testing.T) {
 			Masters: v1.Hosts{
 				Count:      "1",
 				CPU:        "2",
-				Memory:     "4",
+				Memory:     "2",
 				SystemDisk: "100",
 				DataDisks:  []string{"100"},
 			},
 			Nodes: v1.Hosts{
 				Count:      "1",
 				CPU:        "2",
-				Memory:     "4",
+				Memory:     "2",
 				SystemDisk: "100",
 				DataDisks:  []string{"100"},
 			},
 			Provider: container.CONTAINER,
 			SSH: v1.SSH{
-				Passwd: "kakazhou719",
+				Passwd: "zhy76",
 			},
 		},
 	}

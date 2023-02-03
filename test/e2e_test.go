@@ -15,28 +15,31 @@
 package test
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
+	exe "github.com/sealerio/sealer/utils/exec"
 )
 
-// func TestSealerTests(t *testing.T) {
-//	return
-//	RegisterFailHandler(Fail)
-//	RunSpecs(t, "run sealer suite")
-//}
+func TestSealerTests(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "run sealer suite")
+}
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	output, err := exec.LookPath("sealer")
 	Expect(err).NotTo(HaveOccurred(), output)
 	SetDefaultEventuallyTimeout(settings.DefaultWaiteTime)
 	settings.DefaultSealerBin = output
+
 	settings.DefaultTestEnvDir = testhelper.GetPwd()
 	settings.TestImageName = settings.CustomImageName
 	settings.TestNydusImageName = settings.CustomNydusImageName
@@ -53,6 +56,17 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	},
 	"TimeFormat":"2006-01-02 15:04:05"}`
 	err = os.WriteFile(filepath.Join(home, ".sealer.json"), []byte(logcfg), os.ModePerm)
+	Expect(err).NotTo(HaveOccurred())
+	// check the whether the sealer mount dir exist, if not, make the dir
+	_dir := settings.SealerImageRootPath
+	exist, err := testhelper.PathExists(_dir)
+	Expect(err).NotTo(HaveOccurred())
+	if !exist {
+		err := os.Mkdir(_dir, os.ModePerm)
+		Expect(err).NotTo(HaveOccurred())
+	}
+	cmd := fmt.Sprintf("rm -rf %s/*", common.DefaultSealerDataDir)
+	_, err = exe.RunSimpleCmd(cmd)
 	Expect(err).NotTo(HaveOccurred())
 	return nil
 }, func(data []byte) {

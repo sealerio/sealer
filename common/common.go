@@ -40,6 +40,7 @@ const (
 	KubeLvsCareStaticPodName = "kube-lvscare"
 	RegLvsCareStaticPodName  = "reg-lvscare"
 	StaticPodDir             = "/etc/kubernetes/manifests"
+	LvsCareRepoAndTag        = "sealerio/lvscare:v1.1.3-beta.8"
 )
 
 // Envs
@@ -51,6 +52,8 @@ const (
 	EnvRegistryPort   = "RegistryPort"
 	EnvRegistryURL    = "RegistryURL"
 	EnvCertSANs       = "CertSANs"
+	EnvIPvsVIPForIPv4 = "IPvsVIPv4"
+	EnvIPvsVIPForIPv6 = "IPvsVIPv6"
 )
 
 const (

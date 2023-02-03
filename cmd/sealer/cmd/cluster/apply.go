@@ -20,9 +20,6 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -31,7 +28,10 @@ import (
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var applyFlags *types.ApplyFlags
@@ -100,7 +100,10 @@ func NewApplyCmd() *cobra.Command {
 			}
 
 			if extension.Type == v12.AppInstaller {
-				return installApplication(imageName, desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames, desiredCluster.Spec.Env, extension, cf.GetConfigs(), imageEngine, applyMode)
+				app := v2.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
+
+				return installApplication(imageName, desiredCluster.Spec.Env,
+					app, extension, cf.GetConfigs(), imageEngine, applyMode)
 			}
 
 			client := utils.GetClusterClient()

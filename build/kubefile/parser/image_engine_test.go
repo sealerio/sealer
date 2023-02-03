@@ -53,6 +53,11 @@ func (testImageEngine) Build(sealerBuildFlags *options.BuildOptions) (string, er
 	panic("implement me")
 }
 
+func (testImageEngine) Config(opts *options.ConfigOptions) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (testImageEngine) CreateContainer(opts *options.FromOptions) (string, error) {
 	//TODO implement me
 	panic("implement me")

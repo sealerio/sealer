@@ -20,13 +20,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/application"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
@@ -35,19 +32,23 @@ import (
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
 var runFlags *types.RunFlags
 
-var longNewRunCmdDescription = `sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --masters [arg] --nodes [arg]`
+var longNewRunCmdDescription = `sealer run docker.io/sealerio/kubernetes:v1.22.15 --masters [arg] --nodes [arg]`
 
 var exampleForRunCmd = `
 run cluster by Clusterfile: 
   sealer run -f Clusterfile
 
 run cluster by CLI flags:
-  sealer run registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.4 -m 172.28.80.01 -n 172.28.80.02 -p Sealer123
+  sealer run docker.io/sealerio/kubernetes:v1.22.15 -m 172.28.80.01 -n 172.28.80.02 -p Sealer123
 
 run app image:
   sealer run localhost/nginx:v1
@@ -60,6 +61,17 @@ func NewRunCmd() *cobra.Command {
 		Long:    longNewRunCmdDescription,
 		Example: exampleForRunCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// TODO: remove this now, maybe we can support it later
+			// set local ip address as master0 default ip if user input is empty.
+			// this is convenient to execute `sealer run` without set many arguments.
+			// Example looks like "sealer run docker.io/sealerio/kubernetes:v1.22.15"
+			//if runFlags.Masters == "" {
+			//	ip, err := net.GetLocalDefaultIP()
+			//	if err != nil {
+			//		return err
+			//	}
+			//	runFlags.Masters = ip
+			//}
 			var (
 				err         error
 				clusterFile = runFlags.ClusterFile
@@ -97,9 +109,10 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			if extension.Type == v12.AppInstaller {
-				logrus.Infof("start to install app image: %s", args[0])
-				return installApplication(args[0], runFlags.Cmds, runFlags.AppNames, runFlags.CustomEnv,
-					extension, nil, imageEngine, runFlags.Mode)
+				app := v2.ConstructApplication(nil, runFlags.Cmds, runFlags.AppNames)
+
+				return installApplication(args[0], runFlags.CustomEnv,
+					app, extension, nil, imageEngine, runFlags.Mode)
 			}
 
 			clusterFromFlag, err := utils.ConstructClusterForRun(args[0], runFlags)
@@ -165,6 +178,8 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 		PkPassword: runFlags.PkPassword,
 		Pk:         runFlags.Pk,
 		Port:       runFlags.Port,
+		Cmds:       runFlags.Cmds,
+		AppNames:   runFlags.AppNames,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to merge cluster with run args: %v", err)
@@ -192,9 +207,10 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 	}
 
 	if extension.Type == v12.AppInstaller {
-		logrus.Infof("start to install app image: %s", imageName)
-		return installApplication(imageName, runFlags.Cmds, runFlags.AppNames,
-			runFlags.CustomEnv, extension, cf.GetConfigs(), imageEngine, runFlags.Mode)
+		app := v2.ConstructApplication(cf.GetApplication(), cluster.Spec.CMD, cluster.Spec.APPNames)
+
+		return installApplication(imageName, runFlags.CustomEnv, app,
+			extension, cf.GetConfigs(), imageEngine, runFlags.Mode)
 	}
 
 	return createNewCluster(imageEngine, cf, runFlags.Mode)
@@ -260,6 +276,10 @@ func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interfac
 
 	if cf.GetKubeadmConfig() != nil {
 		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
+	}
+
+	if cf.GetApplication() != nil {
+		runtimeConfig.Application = cf.GetApplication()
 	}
 
 	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
@@ -329,19 +349,14 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	return nil
 }
 
-func installApplication(appImageName string, cmds, appNames, envs []string, extension v12.ImageExtension, configs []v1.Config, imageEngine imageengine.Interface, mode string) error {
+func installApplication(appImageName string, envs []string, app *v2.Application, extension v12.ImageExtension, configs []v1.Config, imageEngine imageengine.Interface, mode string) error {
 	logrus.Infof("start to install application: %s", appImageName)
 
-	if len(cmds) != 0 && len(appNames) != 0 {
-		return fmt.Errorf("only one can be selected to do overwrite for launchCmds(%s) and appNames（%s）", cmds, appNames)
+	v2App, err := application.NewV2Application(app, extension)
+	if err != nil {
+		return fmt.Errorf("failed to parse application:%v ", err)
 	}
 
-	var launchCmds []string
-	if len(cmds) != 0 {
-		launchCmds = cmds
-	} else {
-		launchCmds = clusterruntime.GetAppLaunchCmdsByNames(appNames, extension.Applications)
-	}
 	cf, err := clusterfile.NewClusterFile(nil)
 	if err != nil {
 		return err
@@ -389,7 +404,7 @@ func installApplication(appImageName string, cmds, appNames, envs []string, exte
 	}
 
 	installer := clusterruntime.NewAppInstaller(infraDriver, distributor, extension)
-	err = installer.Install(infraDriver.GetHostIPListByRole(common.MASTER)[0], launchCmds)
+	err = installer.Install(infraDriver.GetHostIPListByRole(common.MASTER)[0], v2App.GetImageLaunchCmds())
 	if err != nil {
 		return err
 	}

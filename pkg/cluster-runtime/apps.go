@@ -20,17 +20,11 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
-	"github.com/sealerio/sealer/pkg/rootfs"
-
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
-
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
-	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
-	"github.com/sealerio/sealer/pkg/define/application/version"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -92,18 +86,11 @@ func (i *AppInstaller) Install(master0 net.IP, cmds []string) error {
 
 func (i AppInstaller) Launch(master0 net.IP, launchCmds []string) error {
 	var (
-		cmds       []string
 		rootfsPath = i.infraDriver.GetClusterRootfsPath()
 		ex         = shell.NewLex('\\')
 	)
 
-	if len(launchCmds) > 0 {
-		cmds = launchCmds
-	} else {
-		cmds = GetImageDefaultLaunchCmds(i.extension)
-	}
-
-	for _, value := range cmds {
+	for _, value := range launchCmds {
 		if value == "" {
 			continue
 		}
@@ -141,6 +128,7 @@ func (i AppInstaller) save(applicationFile string) error {
 		}
 	}()
 
+	// TODO do not need all ImageExtension
 	content, err := json.MarshalIndent(i.extension, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal image extension: %v", err)
@@ -151,38 +139,4 @@ func (i AppInstaller) save(applicationFile string) error {
 	}
 
 	return nil
-}
-
-func GetImageDefaultLaunchCmds(extension v12.ImageExtension) []string {
-	appNames := extension.Launch.AppNames
-	launchCmds := GetAppLaunchCmdsByNames(appNames, extension.Applications)
-
-	// if app name exist in extension, return it`s launch cmds firstly.
-	if len(launchCmds) != 0 {
-		return launchCmds
-	}
-
-	return extension.Launch.Cmds
-}
-
-func GetAppLaunchCmdsByNames(appNames []string, apps []version.VersionedApplication) []string {
-	var appCmds []string
-	for _, name := range appNames {
-		appRoot := makeItDir(filepath.Join(rootfs.GlobalManager.App().Root(), name))
-		for _, app := range apps {
-			v1app := app.(*v1.Application)
-			if v1app.Name() != name {
-				continue
-			}
-			appCmds = append(appCmds, v1app.LaunchCmd(appRoot))
-		}
-	}
-	return appCmds
-}
-
-func makeItDir(str string) string {
-	if !strings.HasSuffix(str, "/") {
-		return str + "/"
-	}
-	return str
 }
