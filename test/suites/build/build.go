@@ -42,10 +42,9 @@ func GetContainerBuildDir() string {
 	return "container_build"
 }
 
-// GetTestImageName return specific image name that will be push to registry
-func GetTestImageName() string {
-	return "docker.io/sealerio/kubernetes:v1.22.15"
-	//return fmt.Sprintf("registry.cn-qingdao.aliyuncs.com/sealer-io/%s%d:%s", settings.ImageName, 719, "v1")
+// GetBuildImageName return specific image name for sealer build test
+func GetBuildImageName() string {
+	return fmt.Sprintf("%s-%s", settings.TestImageName, "forBuildTest")
 }
 
 type ArgsOfBuild struct {

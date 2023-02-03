@@ -24,10 +24,9 @@ import (
 
 const (
 	SealerBinPath                     = "/usr/local/bin/sealer"
-	ImageName                         = "sealer_test_image_"
 	DefaultImageDomain                = "docker.io"
-	DefaultImageRepo                  = "sealer-io"
-	DefaultImageName                  = "kubernetes:v1.22.15"
+	DefaultImageRepo                  = "sealerio"
+	DefaultImageName                  = "kubernetes:v1-22-15-sealerio-2"
 	DefaultRegistryAuthFileDir        = "/root/.docker"
 	DefaultClusterFileNeedToBeCleaned = "/root/.sealer/%s/Clusterfile"
 	SubCmdBuildOfSealer               = "build"
@@ -56,7 +55,7 @@ const (
 	BAREMETAL         = "BAREMETAL"
 	AliCloud          = "ALI_CLOUD"
 	CONTAINER         = "CONTAINER"
-	DefaultImage      = "docker.io/sealerio/kubernetes:v1.22.15"
+	DefaultImage      = "docker.io/sealerio/kubernetes:v1-22-15-sealerio-2"
 	DefaultNydusImage = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nydus:v1.19.8"
 	ClusterNameForRun = "my-cluster"
 	TMPClusterFile    = "/tmp/Clusterfile"
@@ -78,7 +77,7 @@ var (
 	AccessKey          = os.Getenv("ACCESSKEYID")
 	AccessSecret       = os.Getenv("ACCESSKEYSECRET")
 	Region             = os.Getenv("RegionID")
-	TestImageName      = DefaultImage                                                               //default: docker.io/sealer-io/kubernetes:v1.22.15
+	TestImageName      = DefaultImage                                                               //default: docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
 	TestNydusImageName = "registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nydus:v1.19.8.test" //default: registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes-nydus:v1.19.8
 )
 

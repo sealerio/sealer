@@ -29,7 +29,7 @@ cp _output/bin/sealer/linux_amd64/sealer /usr/local/bin
 export REGISTRY_URL={your registry}
 export REGISTRY_USERNAME={user name}
 export REGISTRY_PASSWORD={password}
-#default test image name: docker.io/sealerio/kubernetes:v1.22.15
+#default test image name: docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
 export IMAGE_NAME={test image name}
 ```
 
