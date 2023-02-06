@@ -24,6 +24,7 @@ import (
 	"github.com/containers/common/pkg/auth"
 	"github.com/sirupsen/logrus"
 
+	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -107,7 +108,7 @@ func (e *externalConfigurator) UninstallFrom(masters, nodes []net.IP) error {
 	//todo use sdk to logout instead of shell cmd
 	logoutCmd := fmt.Sprintf("docker logout %s ", e.endpoint)
 	//nolint
-	if e.containerRuntimeInfo.Type != "docker" {
+	if e.containerRuntimeInfo.Type != common.Docker {
 		logoutCmd = fmt.Sprintf("nerdctl logout %s ", e.endpoint)
 	}
 

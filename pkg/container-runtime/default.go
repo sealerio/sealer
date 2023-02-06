@@ -19,37 +19,47 @@ import (
 	"net"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
-type DockerInstaller struct {
+type DefaultInstaller struct {
 	Info
+	envs   map[string]interface{}
 	rootfs string
 	driver infradriver.InfraDriver
 }
 
-func (d *DockerInstaller) InstallOn(hosts []net.IP) error {
-	installCmd := fmt.Sprintf("bash %s %s", filepath.Join(d.rootfs, "scripts", "docker.sh"), d.Info.LimitNofile)
+func (d *DefaultInstaller) InstallOn(hosts []net.IP) error {
+	installCmd := env.WrapperShell(fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getInstallScriptName())), d.envs)
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, installCmd)
 		if err != nil {
-			return fmt.Errorf("failed to install docker: execute command(%s) on host (%s): error(%v)", installCmd, ip, err)
+			return fmt.Errorf("failed to install %s: execute command(%s) on host (%s): error(%v)", d.Type, installCmd, ip, err)
 		}
 	}
 	return nil
 }
 
-func (d *DockerInstaller) UnInstallFrom(hosts []net.IP) error {
-	cleanCmd := fmt.Sprintf("if ! which docker;then exit 0;fi; bash %s", filepath.Join(d.rootfs, "scripts", "uninstall-docker.sh"))
+func (d *DefaultInstaller) UnInstallFrom(hosts []net.IP) error {
+	cleanCmd := env.WrapperShell(fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getUnInstallScriptName())), d.envs)
 	for _, ip := range hosts {
 		err := d.driver.CmdAsync(ip, cleanCmd)
 		if err != nil {
-			return fmt.Errorf("failed to uninstall docker: execute command(%s) on host (%s): error(%v)", cleanCmd, ip, err)
+			return fmt.Errorf("failed to uninstall %s: execute command(%s) on host (%s): error(%v)", d.Type, cleanCmd, ip, err)
 		}
 	}
 	return nil
 }
 
-func (d DockerInstaller) GetInfo() (Info, error) {
+func (d *DefaultInstaller) GetInfo() (Info, error) {
 	return d.Info, nil
+}
+
+func (d *DefaultInstaller) getInstallScriptName() string {
+	return fmt.Sprintf("%s.sh", d.Type)
+}
+
+func (d *DefaultInstaller) getUnInstallScriptName() string {
+	return fmt.Sprintf("uninstall-%s.sh", d.Type)
 }

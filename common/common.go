@@ -26,6 +26,11 @@ const (
 	NODE = "node"
 )
 
+const (
+	Docker     = "docker"
+	Containerd = "containerd"
+)
+
 // Default dir and file path
 const (
 	EtcDir                   = "etc"
@@ -45,15 +50,22 @@ const (
 
 // Envs
 const (
-	EnvHostIP         = "HostIP"
-	EnvHostIPFamily   = "HostIPFamily"
-	EnvIPv6DualStack  = "IPv6DualStack"
-	EnvRegistryDomain = "RegistryDomain"
-	EnvRegistryPort   = "RegistryPort"
-	EnvRegistryURL    = "RegistryURL"
-	EnvCertSANs       = "CertSANs"
-	EnvIPvsVIPForIPv4 = "IPvsVIPv4"
-	EnvIPvsVIPForIPv6 = "IPvsVIPv6"
+	EnvHostIP                 = "HostIP"
+	EnvHostIPFamily           = "HostIPFamily"
+	EnvContainerRuntime       = "ContainerRuntime"
+	EnvIPv6DualStack          = "IPv6DualStack"
+	EnvRegistryDomain         = "RegistryDomain"
+	EnvRegistryPort           = "RegistryPort"
+	EnvRegistryURL            = "RegistryURL"
+	EnvLocalRegistryDomain    = "LocalRegistryDomain"
+	EnvLocalRegistryPort      = "LocalRegistryPort"
+	EnvLocalRegistryURL       = "LocalRegistryURL"
+	EnvExternalRegistryDomain = "ExternalRegistryDomain"
+	EnvExternalRegistryPort   = "ExternalRegistryPort"
+	EnvExternalRegistryURL    = "ExternalRegistryURL"
+	EnvCertSANs               = "CertSANs"
+	EnvIPvsVIPForIPv4         = "IPvsVIPv4"
+	EnvIPvsVIPForIPv6         = "IPvsVIPv6"
 )
 
 const (

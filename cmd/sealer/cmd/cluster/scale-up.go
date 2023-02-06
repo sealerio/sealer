@@ -146,8 +146,9 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor: distributor,
-		Plugins:     plugins,
+		Distributor:            distributor,
+		Plugins:                plugins,
+		ContainerRuntimeConfig: cf.GetCluster().Spec.ContainerRuntime,
 	}
 
 	if cf.GetKubeadmConfig() != nil {

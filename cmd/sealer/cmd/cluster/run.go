@@ -269,9 +269,10 @@ func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interfac
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor: distributor,
-		ImageEngine: imageEngine,
-		Plugins:     plugins,
+		Distributor:            distributor,
+		ImageEngine:            imageEngine,
+		Plugins:                plugins,
+		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
 	}
 
 	if cf.GetKubeadmConfig() != nil {

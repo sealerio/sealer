@@ -47,7 +47,7 @@ var trySleepTime = time.Second
 type RuntimeConfig struct {
 	ImageEngine            imageengine.Interface
 	Distributor            imagedistributor.Distributor
-	ContainerRuntimeConfig containerruntime.Config
+	ContainerRuntimeConfig v2.ContainerRuntimeConfig
 	KubeadmConfig          kubeadm.KubeadmConfig
 	Plugins                []v1.Plugin
 	Application            *v2.Application
@@ -72,10 +72,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 	installer.RuntimeConfig = runtimeConfig
 	// configure container runtime
 	//todo need to support other container runtimes
-	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(containerruntime.Config{
-		Type:         "docker",
-		CgroupDriver: "systemd",
-	}, infraDriver)
+	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(runtimeConfig.ContainerRuntimeConfig, infraDriver)
 	if err != nil {
 		return nil, err
 	}
