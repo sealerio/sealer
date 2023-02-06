@@ -1,0 +1,4 @@
+FROM scratch
+COPY imageList manifests/
+APP myapp local://app.yaml
+LAUNCH myapp

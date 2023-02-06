@@ -53,6 +53,6 @@ func NewPushCmd() *cobra.Command {
 	// tls-verify is not working currently
 	pushCmd.Flags().BoolVar(&pushOpts.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry. TLS verification cannot be used when talking to an insecure registry. (not work currently)")
 	pushCmd.Flags().BoolVarP(&pushOpts.Quiet, "quiet", "q", false, "don't output progress information when pushing images")
-	pushCmd.Flags().BoolVar(&pushOpts.All, "all", false, "also push the images in the list")
+	pushCmd.Flags().BoolVar(&pushOpts.All, "all", true, "also push the images in the list")
 	return pushCmd
 }

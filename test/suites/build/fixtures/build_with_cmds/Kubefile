@@ -1,0 +1,4 @@
+FROM scratch
+COPY app.yaml manifests/
+COPY imageList manifests/
+CMDS ["kubectl apply -f manifests/app.yaml"]
