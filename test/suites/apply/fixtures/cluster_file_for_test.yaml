@@ -21,7 +21,7 @@ spec:
   certSANS:
   - aliyun-inc.com
   - 10.0.0.2
-  image: docker.io/sealerio/kubernetes:v1.22.15
+  image: docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
   masters:
     count: "1"
     cpu: "2"

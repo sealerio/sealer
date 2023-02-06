@@ -15,10 +15,12 @@
 package test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/test/suites/build"
+	"github.com/sealerio/sealer/test/suites/image"
 	"github.com/sealerio/sealer/test/suites/registry"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
@@ -45,7 +47,7 @@ var _ = Describe("sealer build", func() {
 			})
 
 			It("with all build instruct", func() {
-				imageName := build.GetTestImageName()
+				imageName := build.GetBuildImageName()
 				cmd := build.NewArgsOfBuild().
 					SetKubeFile("Kubefile").
 					SetImageName(imageName).
@@ -57,6 +59,17 @@ var _ = Describe("sealer build", func() {
 				// check: sealer images whether image exist
 				testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
 			})
+		})
+
+		Context("remove image", func() {
+			imageName := build.GetBuildImageName()
+			It(fmt.Sprintf("remove image %s", imageName), func() {
+				image.DoImageOps(settings.SubCmdListOfSealer, "")
+				testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+				image.DoImageOps(settings.SubCmdRmiOfSealer, imageName)
+				testhelper.CheckNotBeTrue(build.CheckIsImageExist(imageName))
+			})
+
 		})
 	})
 

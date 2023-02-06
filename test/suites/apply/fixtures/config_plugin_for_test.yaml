@@ -12,40 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: zlink.aliyun.com/v1alpha1
-kind: Cluster
-metadata:
-  name: my-test-cluster
-spec:
-  image: docker.io/sealerio/kubernetes:v1.22.15
-  provider: CONTAINER
-  ssh:
-    passwd: Sealer123
-    pk: xxx
-    pkPasswd: xxx
-    user: root
-  network:
-    podCIDR: 100.64.0.0/10
-    svcCIDR: 10.96.0.0/22
-  certSANS:
-    - aliyun-inc.com
-    - 10.0.0.2
-
-  masters:
-    cpu: 2
-    memory: 2
-    count: 1
-    systemDisk: 100
-    dataDisks:
-      - 100
-  nodes:
-    cpu: 2
-    memory: 2
-    count: 1
-    systemDisk: 100
-    dataDisks:
-      - 100
----
 apiVersion: sealer.io/v1
 kind: Config
 metadata:

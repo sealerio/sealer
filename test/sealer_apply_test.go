@@ -21,7 +21,6 @@ import (
 	. "github.com/onsi/ginkgo"
 
 	"github.com/sealerio/sealer/test/suites/apply"
-	"github.com/sealerio/sealer/test/suites/build"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	utilsnet "github.com/sealerio/sealer/utils/net"
@@ -54,7 +53,7 @@ var _ = Describe("sealer apply", func() {
 				By("start to prepare infra")
 				cluster := rawCluster.DeepCopy()
 				cluster.Spec.Provider = settings.CONTAINER
-				cluster.Spec.Image = build.GetTestImageName()
+				cluster.Spec.Image = settings.TestImageName
 				cluster = apply.CreateContainerInfraAndSave(cluster, tempFile)
 				defer apply.CleanUpContainerInfra(cluster)
 				sshClient := testhelper.NewSSHClientByCluster(cluster)
