@@ -176,8 +176,9 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor: distributor,
-		Plugins:     plugins,
+		Distributor:            distributor,
+		Plugins:                plugins,
+		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
 	}
 
 	if cf.GetKubeadmConfig() != nil {
@@ -305,8 +306,9 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 	}
 
 	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor: distributor,
-		Plugins:     plugins,
+		Distributor:            distributor,
+		Plugins:                plugins,
+		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
 	}
 
 	if cf.GetKubeadmConfig() != nil {

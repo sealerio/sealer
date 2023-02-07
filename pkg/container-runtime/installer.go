@@ -20,17 +20,21 @@ import (
 	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
-
 	"github.com/sealerio/sealer/pkg/infradriver"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 const (
 	DefaultDockerCRISocket     = "/var/run/dockershim.sock"
+	DefaultCgroupDriver        = "systemd"
+	DefaultDockerCertsDir      = "/etc/docker/certs.d"
 	DefaultContainerdCRISocket = "/run/containerd/containerd.sock"
-	DefaultSystemdCgroupDriver = "systemd"
-	DefaultCgroupDriver        = "cgroupfs"
-	DockerDockerCertsDir       = "/etc/docker/certs.d"
+	DefaultContainerdCertsDir  = "/etc/containerd/certs.d"
 	DockerConfigFileName       = "config.json"
+)
+
+const (
+	CgroupDriverArg = "CgroupDriver"
 )
 
 type Installer interface {
@@ -44,39 +48,53 @@ type Installer interface {
 	//Rollback() (ContainerRuntimeInfo, error)
 }
 
-type Config struct {
-	Type         string
-	LimitNofile  string `json:"limitNofile,omitempty" yaml:"limitNofile,omitempty"`
-	CgroupDriver string `json:"cgroupDriver,omitempty" yaml:"cgroupDriver,omitempty"`
-}
-
 type Info struct {
-	Config
+	v2.ContainerRuntimeConfig
+	CgroupDriver   string
 	CRISocket      string
 	CertsDir       string
 	ConfigFilePath string
 }
 
-func NewInstaller(conf Config, driver infradriver.InfraDriver) (Installer, error) {
-	if conf.Type == "docker" {
-		return &DockerInstaller{
+func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver) (Installer, error) {
+	switch conf.Type {
+	case common.Docker, "":
+		conf.Type = common.Docker
+		ret := &DefaultInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
+			envs:   driver.GetClusterEnv(),
 			Info: Info{
-				CertsDir:       DockerDockerCertsDir,
-				CRISocket:      DefaultDockerCRISocket,
-				Config:         conf,
-				ConfigFilePath: filepath.Join(common.GetHomeDir(), ".docker", DockerConfigFileName),
+				CertsDir:               DefaultDockerCertsDir,
+				CRISocket:              DefaultDockerCRISocket,
+				ContainerRuntimeConfig: conf,
+				ConfigFilePath:         filepath.Join(common.GetHomeDir(), ".docker", DockerConfigFileName),
 			},
-		}, nil
-	}
+		}
+		ret.Info.CgroupDriver = DefaultCgroupDriver
+		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
+			ret.Info.CgroupDriver = cd.(string)
+		}
 
-	if conf.Type == "containerd" {
-		return &ContainerdInstaller{
+		return ret, nil
+	case common.Containerd:
+		ret := &DefaultInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
-		}, nil
-	}
+			envs:   driver.GetClusterEnv(),
+			Info: Info{
+				CertsDir:               DefaultContainerdCertsDir,
+				CRISocket:              DefaultContainerdCRISocket,
+				ContainerRuntimeConfig: conf,
+			},
+		}
+		ret.Info.CgroupDriver = DefaultCgroupDriver
+		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
+			ret.Info.CgroupDriver = cd.(string)
+		}
 
-	return nil, fmt.Errorf("please enter the correct container type")
+		return ret, nil
+	default:
+		return nil, fmt.Errorf("invalid container runtime type")
+	}
 }

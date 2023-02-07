@@ -102,6 +102,9 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return err
 		}
 
+		// At beginning, we set APIServerDomain direct to master0 and then kubeadm start scheduler and kcm, then we reset
+		// the APIServerDomain to the master itself, but scheduler and kcm already load the domain info and will not reload.
+		// So, we need restart them after reset the APIServerDomain.
 		if err = k.infra.CmdAsync(m, "mv /etc/kubernetes/manifests/kube-scheduler.yaml /tmp/ && mv /tmp/kube-scheduler.yaml /etc/kubernetes/manifests/"); err != nil {
 			return err
 		}

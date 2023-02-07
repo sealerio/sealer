@@ -38,7 +38,7 @@ var _ = Describe("sealer image", func() {
 				"e2eimage_test:latest",
 				"e2eimage_test:v0.0.1",
 				"sealer-io/e2eimage_test:v0.0.2",
-				"registry.cn-qingdao.aliyuncs.com/sealer-io/e2eimage_test:v0.0.3",
+				"docker.io/sealerio/e2eimage_test:v0.0.3",
 			}
 			By("tag by image name", func() {
 				image.TagImageList(settings.TestImageName, tagImageNames)
@@ -95,9 +95,9 @@ var _ = Describe("sealer image", func() {
 			registry.Logout()
 		})
 		It("push image", func() {
-			pushImageName := "registry.cn-qingdao.aliyuncs.com/sealer-io/e2e_image_test:v0.01"
+			pushImageName := "docker.io/sealerio/e2eimage_test:v0.0.1"
 			if settings.RegistryURL != "" && settings.RegistryUsername != "" && settings.RegistryPasswd != "" {
-				pushImageName = settings.RegistryURL + "/" + settings.RegistryUsername + "/" + settings.DefaultImageName
+				pushImageName = settings.RegistryURL + "/" + settings.RegistryUsername + "/" + "e2eimage_test:v0.0.1"
 			}
 			image.TagImages(settings.TestImageName, pushImageName)
 			image.DoImageOps(settings.SubCmdPushOfSealer, pushImageName)

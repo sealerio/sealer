@@ -40,6 +40,7 @@ var _ = Describe("sealer run", func() {
 
 		It("container run", func() {
 			rawCluster := apply.LoadClusterFileFromDisk(apply.GetRawClusterFilePath())
+			rawCluster.Spec.Image = settings.TestImageName
 			By("start to prepare infra")
 			usedCluster := apply.CreateContainerInfraAndSave(rawCluster, tempFile)
 			//defer to delete cluster
@@ -61,6 +62,9 @@ var _ = Describe("sealer run", func() {
 				apply.CheckNodeNumWithSSH(sshClient, 2)
 			})
 
+			By("Wait for the cluster to be ready", func() {
+				apply.WaitAllNodeRunningBySSH(sshClient.SSH, sshClient.RemoteHostIP)
+			})
 		})
 	})
 })

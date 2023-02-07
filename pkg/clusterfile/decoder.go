@@ -165,29 +165,63 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 		}
 	}
 
-	regConfig := v2.RegistryConfig{}
-	if cluster.Spec.Registry.ExternalRegistry != nil {
-		regConfig = cluster.Spec.Registry.ExternalRegistry.RegistryConfig
-	}
-	if cluster.Spec.Registry.LocalRegistry != nil {
-		regConfig = cluster.Spec.Registry.LocalRegistry.RegistryConfig
-	}
-
 	var newEnv []string
 	for _, env := range cluster.Spec.Env {
-		if strings.HasPrefix(env, common.EnvRegistryDomain) || strings.HasPrefix(env, common.EnvRegistryPort) || strings.HasPrefix(env, common.EnvRegistryURL) {
+		if strings.HasPrefix(env, common.EnvLocalRegistryDomain) ||
+			strings.HasPrefix(env, common.EnvLocalRegistryPort) ||
+			strings.HasPrefix(env, common.EnvLocalRegistryURL) ||
+			strings.HasPrefix(env, common.EnvExternalRegistryDomain) ||
+			strings.HasPrefix(env, common.EnvExternalRegistryPort) ||
+			strings.HasPrefix(env, common.EnvExternalRegistryURL) ||
+			strings.HasPrefix(env, common.EnvRegistryDomain) ||
+			strings.HasPrefix(env, common.EnvRegistryPort) ||
+			strings.HasPrefix(env, common.EnvRegistryURL) ||
+			strings.HasPrefix(env, common.EnvContainerRuntime) {
 			continue
 		}
 		newEnv = append(newEnv, env)
 	}
 	cluster.Spec.Env = newEnv
+
+	regConfig := v2.RegistryConfig{}
+	if cluster.Spec.Registry.LocalRegistry != nil {
+		regConfig = cluster.Spec.Registry.LocalRegistry.RegistryConfig
+
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvLocalRegistryDomain, regConfig.Domain))
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%d", common.EnvLocalRegistryPort, regConfig.Port))
+		registryURL := net.JoinHostPort(regConfig.Domain, strconv.Itoa(regConfig.Port))
+		if regConfig.Port == 0 {
+			registryURL = regConfig.Domain
+		}
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvLocalRegistryURL, registryURL))
+	}
+	if cluster.Spec.Registry.ExternalRegistry != nil {
+		regConfig = cluster.Spec.Registry.ExternalRegistry.RegistryConfig
+
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvExternalRegistryDomain, regConfig.Domain))
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%d", common.EnvExternalRegistryPort, regConfig.Port))
+		registryURL := net.JoinHostPort(regConfig.Domain, strconv.Itoa(regConfig.Port))
+		if regConfig.Port == 0 {
+			registryURL = regConfig.Domain
+		}
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvExternalRegistryURL, registryURL))
+	}
+
 	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryDomain, regConfig.Domain))
-	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%d", common.EnvRegistryPort, regConfig.Port))
+	portStr := fmt.Sprintf("%d", regConfig.Port)
+	if regConfig.Port == 0 {
+		portStr = ""
+	}
+	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryPort, portStr))
 	registryURL := net.JoinHostPort(regConfig.Domain, strconv.Itoa(regConfig.Port))
 	if regConfig.Port == 0 {
 		registryURL = regConfig.Domain
 	}
 	cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvRegistryURL, registryURL))
+
+	if cluster.Spec.ContainerRuntime.Type != "" {
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvContainerRuntime, cluster.Spec.ContainerRuntime.Type))
+	}
 
 	return nil
 }

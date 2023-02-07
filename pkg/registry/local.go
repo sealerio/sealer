@@ -85,7 +85,7 @@ func (c *localConfigurator) removeRegistryConfig(hosts []net.IP) error {
 	if c.RegistryConfig.Username != "" && c.RegistryConfig.Password != "" {
 		//todo use sdk to logout instead of shell cmd
 		logoutCmd := fmt.Sprintf("docker logout %s ", net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)))
-		if c.containerRuntimeInfo.Type != "docker" {
+		if c.containerRuntimeInfo.Type != common.Docker {
 			logoutCmd = fmt.Sprintf("nerdctl logout %s ", net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)))
 		}
 		uninstallCmd = append(uninstallCmd, logoutCmd)
@@ -317,7 +317,7 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 		return nil
 	}
 
-	if c.containerRuntimeInfo.Config.Type == "docker" {
+	if c.containerRuntimeInfo.Type == common.Docker {
 		src = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", "daemon.json")
 		dest = "/etc/docker/daemon.json"
 		if err := c.configureDockerDaemonService(endpoint, src); err != nil {
@@ -325,9 +325,9 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 		}
 	}
 
-	if c.containerRuntimeInfo.Config.Type == "containerd" {
+	if c.containerRuntimeInfo.Type == common.Containerd {
 		src = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", "hosts.toml")
-		dest = filepath.Join("/etc/containerd/certs.d", endpoint, "hosts.toml")
+		dest = filepath.Join(containerruntime.DefaultContainerdCertsDir, endpoint, "hosts.toml")
 		if err := c.configureContainerdDaemonService(endpoint, src); err != nil {
 			return err
 		}

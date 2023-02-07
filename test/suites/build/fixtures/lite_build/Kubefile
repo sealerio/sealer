@@ -1,4 +1,4 @@
-FROM docker.io/sealerio/kubernetes:v1.22.15
+FROM docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
 COPY test1 .
 COPY recommended.yaml manifests
 COPY test2 .

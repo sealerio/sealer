@@ -47,7 +47,7 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, er
 		k.getDefaultKubeadmConfig(),
 		masters,
 		k.getAPIServerDomain(),
-		k.Config.containerRuntimeInfo.Config.CgroupDriver,
+		k.Config.containerRuntimeInfo.CgroupDriver,
 		k.Config.RegistryInfo.URL,
 		k.getAPIServerVIP(), extraSANs)
 	if err != nil {
