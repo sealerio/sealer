@@ -114,7 +114,7 @@ func makeDir(root string, d dirDef) error {
 */
 
 func TestTarWithRootDir(t *testing.T) {
-	reader, err := TarWithRootDir("./hash.go")
+	reader, err := TarWithRootDir("./attr.go")
 	if err != nil {
 		t.Error(err)
 	}

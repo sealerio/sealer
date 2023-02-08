@@ -17,6 +17,7 @@ package distributionutil
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,6 +31,7 @@ import (
 	"github.com/docker/docker/dockerversion"
 	dockerRegistry "github.com/docker/docker/registry"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func Login(ctx context.Context, authConfig *types.AuthConfig) error {
@@ -72,7 +74,12 @@ func Login(ctx context.Context, authConfig *types.AuthConfig) error {
 		}
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			logrus.Warnf("failed to close http reader")
+		}
+	}(resp.Body)
 
 	if resp.StatusCode == http.StatusOK {
 		return nil

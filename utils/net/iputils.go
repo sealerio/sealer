@@ -20,9 +20,7 @@ import (
 	"math/big"
 	"net"
 	"sort"
-	"strconv"
 	"strings"
-	"time"
 
 	k8snet "k8s.io/apimachinery/pkg/util/net"
 )
@@ -177,17 +175,6 @@ func CompareIP(v1, v2 string) int {
 func NextIP(ip string) net.IP {
 	i := IPToInt(ip)
 	return i.Add(i, big.NewInt(1)).Bytes()
-}
-
-func IsHostPortExist(protocol string, hostname string, port int) bool {
-	p := strconv.Itoa(port)
-	addr := net.JoinHostPort(hostname, p)
-	conn, err := net.DialTimeout(protocol, addr, 3*time.Second)
-	if err != nil {
-		return false
-	}
-	defer conn.Close()
-	return true
 }
 
 func SortIPList(iplist []string) {

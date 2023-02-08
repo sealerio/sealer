@@ -135,7 +135,12 @@ func (d *driver) GetContent(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rc.Close()
+	defer func(rc io.ReadCloser) {
+		err := rc.Close()
+		if err != nil {
+			logrus.Warnf("failed to close reader")
+		}
+	}(rc)
 
 	p, err := io.ReadAll(rc)
 	if err != nil {
