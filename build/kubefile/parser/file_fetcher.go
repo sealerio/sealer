@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func getFileFromURL(src, rename, mountPoint string) (filePath string, err error) {
@@ -34,7 +35,12 @@ func getFileFromURL(src, rename, mountPoint string) (filePath string, err error)
 	if err != nil {
 		return "", err
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			logrus.Warnf("failed to close http reader")
+		}
+	}(response.Body)
 	// Figure out what to name the new content.
 	name := rename
 	if name == "" {
