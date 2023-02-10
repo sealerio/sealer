@@ -432,8 +432,12 @@ func buildImageExtensionOnResult(result *parser.KubefileResult, imageType string
 		extension.Applications = append(extension.Applications, app)
 	}
 	extension.Launch.Cmds = result.RawCmds
-	extension.Launch.AppNames = result.AppNames
-	extension.Launch.AppConfigs = result.ApplicationConfigs
+	extension.Launch.AppNames = result.LaunchedAppNames
+
+	for _, appConfig := range result.ApplicationConfigs {
+		extension.Launch.AppConfigs = append(extension.Launch.AppConfigs, appConfig)
+	}
+
 	return extension
 }
 

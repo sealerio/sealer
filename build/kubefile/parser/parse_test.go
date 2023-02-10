@@ -82,8 +82,8 @@ copy %s %s
 
 	result.Dockerfile = strings.TrimSpace(result.Dockerfile)
 	expectedResult := &KubefileResult{
-		Dockerfile: strings.TrimSpace(expectedText),
-		AppNames:   []string{app1Name},
+		Dockerfile:       strings.TrimSpace(expectedText),
+		LaunchedAppNames: []string{app1Name},
 		Applications: map[string]version.VersionedApplication{
 			app1Name: v1.NewV1Application(
 				app1Name,
@@ -97,7 +97,7 @@ copy %s %s
 	assert.Equal(t, len(expectedResult.Applications), len(result.Applications))
 	assert.Equal(t, expectedResult.Applications[app1Name].Name(), result.Applications[app1Name].Name())
 	assert.Equal(t, expectedResult.Applications[app1Name].Type(), result.Applications[app1Name].Type())
-	assert.Equal(t, expectedResult.AppNames, result.AppNames)
+	assert.Equal(t, expectedResult.LaunchedAppNames, result.LaunchedAppNames)
 }
 
 func TestParserHelmApp(t *testing.T) {
@@ -145,8 +145,8 @@ copy %s %s
 
 	result.Dockerfile = strings.TrimSpace(result.Dockerfile)
 	expectedResult := &KubefileResult{
-		Dockerfile: strings.TrimSpace(expectedText),
-		AppNames:   []string{app1Name},
+		Dockerfile:       strings.TrimSpace(expectedText),
+		LaunchedAppNames: []string{app1Name},
 		Applications: map[string]version.VersionedApplication{
 			app1Name: v1.NewV1Application(
 				app1Name,
@@ -160,7 +160,7 @@ copy %s %s
 	assert.Equal(t, len(expectedResult.Applications), len(result.Applications))
 	assert.Equal(t, expectedResult.Applications[app1Name].Name(), result.Applications[app1Name].Name())
 	assert.Equal(t, expectedResult.Applications[app1Name].Type(), result.Applications[app1Name].Type())
-	assert.Equal(t, expectedResult.AppNames, result.AppNames)
+	assert.Equal(t, expectedResult.LaunchedAppNames, result.LaunchedAppNames)
 }
 
 func TestParserCMDS(t *testing.T) {

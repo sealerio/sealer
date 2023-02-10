@@ -28,22 +28,27 @@ func GetBuildImageName() string {
 	return "docker.io/sealerio/build-test:v1"
 }
 
-func AppCmdsBuildDir() string {
+func WithCmdsBuildDir() string {
 	return filepath.Join(settings.DefaultTestEnvDir, "suites", "build", "fixtures",
 		"build_with_cmds")
 }
 
-func AppWithImageListFlagBuildDir() string {
+func WithImageListFlagBuildDir() string {
 	return filepath.Join(settings.DefaultTestEnvDir, "suites", "build", "fixtures",
 		"build_with_imagelist_flag")
 }
 
-func AppLaunchBuildDir() string {
+func WithLaunchBuildDir() string {
 	return filepath.Join(settings.DefaultTestEnvDir, "suites", "build", "fixtures",
 		"build_with_launch")
 }
 
-func MultiArchBuildDir() string {
+func WithAPPCmdsBuildDir() string {
+	return filepath.Join(settings.DefaultTestEnvDir, "suites", "build", "fixtures",
+		"build_with_appcmds")
+}
+
+func WithMultiArchBuildDir() string {
 	return filepath.Join(settings.DefaultTestEnvDir, "suites", "build", "fixtures",
 		"build_with_multi_arch")
 }

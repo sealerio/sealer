@@ -47,12 +47,26 @@ type LegacyContext struct {
 }
 
 type KubefileResult struct {
-	Dockerfile         string
-	RawCmds            []string
-	AppNames           []string
-	Applications       map[string]version.VersionedApplication
-	ApplicationConfigs []*v12.ApplicationConfig `json:"applicationConfigs"`
-	legacyContext      LegacyContext
+	// convert Kubefile to Dockerfile content line by line.
+	Dockerfile string
+
+	// RawCmds to launch sealer image
+	// CMDS ["kubectl apply -f recommended.yaml"]
+	RawCmds []string
+
+	// LaunchedAppNames APP name list
+	// LAUNCH ["myapp1","myapp2"]
+	LaunchedAppNames []string
+
+	// Applications structured APP instruction and register it to this map
+	// APP myapp local://app.yaml
+	Applications map[string]version.VersionedApplication
+
+	// ApplicationConfigs structured APPCMDS instruction and register it to this map
+	// APPCMDS myapp ["kubectl apply -f app.yaml"]
+	ApplicationConfigs map[string]*v12.ApplicationConfig
+
+	legacyContext LegacyContext
 }
 
 type KubefileParser struct {
@@ -77,14 +91,15 @@ func (kp *KubefileParser) ParseKubefile(rwc io.Reader) (*KubefileResult, error) 
 func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error) {
 	var (
 		result = &KubefileResult{
-			Applications: map[string]version.VersionedApplication{},
+			Applications:       map[string]version.VersionedApplication{},
+			ApplicationConfigs: map[string]*v12.ApplicationConfig{},
 			legacyContext: LegacyContext{
 				files:       []string{},
 				directories: []string{},
 				apps2Files:  map[string][]string{},
 			},
-			RawCmds:  []string{},
-			AppNames: []string{},
+			RawCmds:          []string{},
+			LaunchedAppNames: []string{},
 		}
 
 		err error
@@ -152,6 +167,19 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 			return nil, err
 		}
 	}
+
+	// check result validation
+	// if no app type detected and no ApplicationConfigs exist for this app, will return error.
+	for name, registered := range result.Applications {
+		if registered.Type() != "" {
+			continue
+		}
+
+		if _, ok := result.ApplicationConfigs[name]; !ok {
+			return nil, fmt.Errorf("app %s need to specify APPCMDS if no app type detected", name)
+		}
+	}
+
 	return result, nil
 }
 
@@ -244,8 +272,17 @@ func (kp *KubefileParser) processCopy(node *Node, result *KubefileResult) error 
 func (kp *KubefileParser) processAppCmds(node *Node, result *KubefileResult) error {
 	appNode := node.Next
 	appName := appNode.Value
+
 	if appName == "" {
-		return errors.New("app name should be specified in the APPCMD instruction")
+		return errors.New("app name should be specified in the APPCMDS instruction")
+	}
+
+	tmpPrefix := fmt.Sprintf("%s %s", strings.TrimSpace(strings.ToUpper(command.AppCmds)), strings.TrimSpace(appName))
+	appCmdsStr := strings.TrimSpace(strings.TrimPrefix(node.Original, tmpPrefix))
+
+	var appCmds []string
+	if err := json.Unmarshal([]byte(appCmdsStr), &appCmds); err != nil {
+		return errors.Wrapf(err, `the APPCMDS value should be format: APPCMDS appName ["executable","param1","param2","..."]`)
 	}
 
 	// check whether the app name exist
@@ -259,32 +296,11 @@ func (kp *KubefileParser) processAppCmds(node *Node, result *KubefileResult) err
 		return fmt.Errorf("the specified app name(%s) for `APPCMDS` should be exist", appName)
 	}
 
-	// get app cmds value
-	tmpPrefix := fmt.Sprintf("%s %s", strings.TrimSpace(strings.ToUpper(command.AppCmds)), strings.TrimSpace(appName))
-	appCmdsStr := strings.TrimSpace(strings.TrimPrefix(node.Original, tmpPrefix))
-	var appCmds []string
-	if err := json.Unmarshal([]byte(appCmdsStr), &appCmds); err != nil {
-		return errors.Wrapf(err, `the APPCMDS value should be format: APPCMDS appName ["executable","param1","param2","..."]`)
-	}
-
-	var existedApplicationConfig bool
-	for _, appConfig := range result.ApplicationConfigs {
-		if appConfig.Name != appName {
-			continue
-		}
-		existedApplicationConfig = true
-		if appConfig.Launch == nil {
-			appConfig.Launch = &v12.ApplicationConfigLaunch{}
-		}
-		appConfig.Launch.CMDs = appCmds
-	}
-	if !existedApplicationConfig {
-		result.ApplicationConfigs = append(result.ApplicationConfigs, &v12.ApplicationConfig{
-			Name: appName,
-			Launch: &v12.ApplicationConfigLaunch{
-				CMDs: appCmds,
-			},
-		})
+	result.ApplicationConfigs[appName] = &v12.ApplicationConfig{
+		Name: appName,
+		Launch: &v12.ApplicationConfigLaunch{
+			CMDs: appCmds,
+		},
 	}
 	return nil
 }
@@ -313,7 +329,7 @@ func (kp *KubefileParser) processLaunch(node *Node, result *KubefileResult) erro
 		if _, ok := result.Applications[appName]; !ok {
 			return errors.Errorf("application %s does not exist in the image", appName)
 		}
-		result.AppNames = append(result.AppNames, appName)
+		result.LaunchedAppNames = append(result.LaunchedAppNames, appName)
 	}
 
 	return nil
