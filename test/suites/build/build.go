@@ -25,7 +25,7 @@ import (
 
 // GetBuildImageName return specific image name for sealer build test
 func GetBuildImageName() string {
-	return "docker.io/sealerio/forbuildtest:v1"
+	return "docker.io/sealerio/build-test:v1"
 }
 
 func AppCmdsBuildDir() string {
@@ -140,29 +140,20 @@ func CheckIsImageExist(imageName string) bool {
 func TagBuildImage(imageName, tagTo string) error {
 	tag := fmt.Sprintf("%s tag %s %s", settings.DefaultSealerBin, imageName, tagTo)
 	_, err := exec.RunSimpleCmd(tag)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func PushBuildImage(imageName string) error {
 	push := fmt.Sprintf("%s push %s", settings.DefaultSealerBin, imageName)
 	_, err := exec.RunSimpleCmd(push)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func DeleteBuildImage(imageName string) error {
 	push := fmt.Sprintf("%s rmi %s", settings.DefaultSealerBin, imageName)
 	_, err := exec.RunSimpleCmd(push)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
