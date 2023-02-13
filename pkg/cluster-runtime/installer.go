@@ -174,11 +174,11 @@ func (i *Installer) Install() error {
 		return err
 	}
 
-	if err = i.runClusterHook(master0, PostInstallCluster); err != nil {
+	if err = i.runHostHook(PostInitHost, all); err != nil {
 		return err
 	}
 
-	if err = i.runHostHook(PostInitHost, all); err != nil {
+	if err = i.runClusterHook(master0, PostInstallCluster); err != nil {
 		return err
 	}
 
