@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	parse2 "github.com/containers/buildah/pkg/parse"
+	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -58,6 +59,7 @@ type KubefileParser struct {
 	appRootPathFunc func(name string) string
 	// path to build context
 	buildContext string
+	platform     string
 	pullPolicy   string
 	imageEngine  imageengine.Interface
 }
@@ -156,7 +158,7 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 func (kp *KubefileParser) processOnCmd(result *KubefileResult, node *Node) error {
 	cmd := node.Value
 	switch cmd {
-	case command.Label, command.Maintainer, command.Add, command.Arg, command.From, command.Copy, command.Run:
+	case command.Label, command.Maintainer, command.Add, command.Arg, command.From, command.Run:
 		result.Dockerfile = mergeLines(result.Dockerfile, node.Original)
 		return nil
 	case command.App:
@@ -174,6 +176,8 @@ func (kp *KubefileParser) processOnCmd(result *KubefileResult, node *Node) error
 		return kp.processLaunch(node, result)
 	case command.Cmds:
 		return kp.processCmds(node, result)
+	case command.Copy:
+		return kp.processCopy(node, result)
 	case command.Cmd:
 		return kp.processCmd(node, result)
 	default:
@@ -205,6 +209,35 @@ func (kp *KubefileParser) processKubeVersion(node *Node, result *KubefileResult)
 	kubeVersionValue := node.Next.Value
 	dockerFileInstruction := fmt.Sprintf(`LABEL %s=%s`, command.LabelSupportedKubeVersionAlpha, strconv.Quote(kubeVersionValue))
 	result.Dockerfile = mergeLines(result.Dockerfile, dockerFileInstruction)
+	return nil
+}
+
+func (kp *KubefileParser) processCopy(node *Node, result *KubefileResult) error {
+	if node.Next == nil || node.Next.Next == nil {
+		return fmt.Errorf("line %d: invalid copy instruction: %s", node.StartLine, node.Original)
+	}
+
+	copySrc := node.Next.Value
+	copyDest := node.Next.Next.Value
+	// support ${arch} on Kubefile COPY instruction
+	// For example:
+	// if arch is amd64
+	// `COPY ${ARCH}/* .` will be mutated to `COPY amd64/* .`
+	// `COPY $ARCH/* .` will be mutated to `COPY amd64/* .`
+	_, arch, _, err := parse2.Platform(kp.platform)
+	if err != nil {
+		return fmt.Errorf("failed to parse platform: %v", err)
+	}
+
+	ex := shell.NewLex('\\')
+	src, err := ex.ProcessWordWithMap(copySrc, map[string]string{"ARCH": arch})
+	if err != nil {
+		return fmt.Errorf("failed to render COPY instruction: %v", err)
+	}
+
+	tmpLine := strings.Join(append([]string{command.Copy}, src, copyDest), " ")
+	result.Dockerfile = mergeLines(result.Dockerfile, tmpLine)
+
 	return nil
 }
 
@@ -355,7 +388,8 @@ func (kr *KubefileResult) CleanLegacyContext() error {
 
 func NewParser(appRootPath string,
 	buildOptions options.BuildOptions,
-	imageEngine imageengine.Interface) *KubefileParser {
+	imageEngine imageengine.Interface,
+	platform string) *KubefileParser {
 	return &KubefileParser{
 		// application will be put under approot/name/
 		appRootPathFunc: func(name string) string {
@@ -364,5 +398,6 @@ func NewParser(appRootPath string,
 		imageEngine:  imageEngine,
 		buildContext: buildOptions.ContextDir,
 		pullPolicy:   buildOptions.PullPolicy,
+		platform:     platform,
 	}
 }

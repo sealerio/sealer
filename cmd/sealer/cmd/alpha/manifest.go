@@ -47,7 +47,7 @@ func NewManifestCmd() *cobra.Command {
 		Use:   "manifest",
 		Short: "manipulate manifest lists",
 		Long:  manifestDescription,
-		Example: `sealer manifest create localhost/my-manifest
+		Example: `sealer alpha manifest create localhost/my-manifest
   sealer alpha manifest add localhost/my-manifest localhost/image
   sealer alpha manifest inspect localhost/my-manifest
   sealer alpha manifest push localhost/my-manifest transport:destination

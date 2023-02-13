@@ -21,14 +21,11 @@ import (
 	"strings"
 	"testing"
 
+	platformParse "github.com/containers/buildah/pkg/parse"
 	"github.com/sealerio/sealer/pkg/define/application"
-
-	"github.com/sealerio/sealer/pkg/define/options"
-
-	"github.com/sealerio/sealer/pkg/define/application/version"
-
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
-
+	"github.com/sealerio/sealer/pkg/define/application/version"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,7 +51,7 @@ func TestParserKubeApp(t *testing.T) {
 	}()
 
 	opts.ContextDir = buildCxt
-	testParser = NewParser(testAppRootPath, opts, imageEngine)
+	testParser = NewParser(testAppRootPath, opts, imageEngine, platformParse.DefaultPlatform())
 
 	var (
 		app1Name = "nginx"
@@ -117,7 +114,7 @@ func TestParserHelmApp(t *testing.T) {
 	}()
 
 	opts.ContextDir = buildCxt
-	testParser = NewParser(testAppRootPath, opts, imageEngine)
+	testParser = NewParser(testAppRootPath, opts, imageEngine, platformParse.DefaultPlatform())
 
 	var (
 		app1Name = "github-app"
@@ -179,7 +176,7 @@ func TestParserCMDS(t *testing.T) {
 	}()
 
 	opts.ContextDir = buildCxt
-	testParser = NewParser(testAppRootPath, opts, imageEngine)
+	testParser = NewParser(testAppRootPath, opts, imageEngine, platformParse.DefaultPlatform())
 
 	var (
 		text = fmt.Sprintf(`

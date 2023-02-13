@@ -17,6 +17,8 @@ package test
 import (
 	"fmt"
 
+	"github.com/onsi/gomega"
+
 	. "github.com/onsi/ginkgo"
 
 	"github.com/sealerio/sealer/test/suites/build"
@@ -26,12 +28,11 @@ import (
 	"github.com/sealerio/sealer/test/testhelper/settings"
 )
 
-var _ = Describe("sealer image", func() {
+var _ = Describe("sealer images module", func() {
 	Context("pull image", func() {
 
 		It(fmt.Sprintf("pull image %s", settings.TestImageName), func() {
-			image.DoImageOps(settings.SubCmdListOfSealer, settings.TestImageName)
-			image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
+			image.DoImageOps("pull", settings.TestImageName)
 			testhelper.CheckBeTrue(build.CheckIsImageExist(settings.TestImageName))
 
 			tagImageNames := []string{
@@ -41,17 +42,26 @@ var _ = Describe("sealer image", func() {
 				"docker.io/sealerio/e2eimage_test:v0.0.3",
 			}
 			By("tag by image name", func() {
-				image.TagImageList(settings.TestImageName, tagImageNames)
-				image.DoImageOps(settings.SubCmdListOfSealer, "")
-				image.RemoveImageList(tagImageNames)
+				for _, newOne := range tagImageNames {
+					image.TagImages(settings.TestImageName, newOne)
+					gomega.Expect(build.CheckIsImageExist(newOne)).Should(gomega.BeTrue())
+				}
+
+				image.DoImageOps("images", "")
+
+				for _, imageName := range tagImageNames {
+					removeImage := imageName
+					image.DoImageOps("rmi", removeImage)
+				}
+
 			})
 
 			By("remove tag image", func() {
 				tagImageName := "e2e_images_test:v0.3"
-				image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
+				image.DoImageOps("pull", settings.TestImageName)
 				image.TagImages(settings.TestImageName, tagImageName)
 				testhelper.CheckBeTrue(build.CheckIsImageExist(tagImageName))
-				image.DoImageOps(settings.SubCmdRmiOfSealer, tagImageName)
+				image.DoImageOps("rmi", tagImageName)
 				testhelper.CheckNotBeTrue(build.CheckIsImageExist(tagImageName))
 			})
 
@@ -66,7 +76,7 @@ var _ = Describe("sealer image", func() {
 		for _, faultImageName := range faultImageNames {
 			faultImageName := faultImageName
 			It(fmt.Sprintf("pull fault image %s", faultImageName), func() {
-				sess, err := testhelper.Start(fmt.Sprintf("%s %s %s", settings.DefaultSealerBin, settings.SubCmdPullOfSealer, faultImageName))
+				sess, err := testhelper.Start(fmt.Sprintf("%s pull %s", settings.DefaultSealerBin, faultImageName))
 				testhelper.CheckErr(err)
 				testhelper.CheckNotExit0(sess, settings.DefaultWaiteTime)
 				testhelper.CheckNotBeTrue(build.CheckIsImageExist(faultImageName))
@@ -77,10 +87,10 @@ var _ = Describe("sealer image", func() {
 
 	Context("remove image", func() {
 		It(fmt.Sprintf("remove image %s", settings.TestImageName), func() {
-			image.DoImageOps(settings.SubCmdListOfSealer, "")
-			image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
+			image.DoImageOps("images", "")
+			image.DoImageOps("pull", settings.TestImageName)
 			testhelper.CheckBeTrue(build.CheckIsImageExist(settings.TestImageName))
-			image.DoImageOps(settings.SubCmdRmiOfSealer, settings.TestImageName)
+			image.DoImageOps("rmi", settings.TestImageName)
 			testhelper.CheckNotBeTrue(build.CheckIsImageExist(settings.TestImageName))
 		})
 
@@ -89,7 +99,7 @@ var _ = Describe("sealer image", func() {
 	Context("push image", func() {
 		BeforeEach(func() {
 			registry.Login()
-			image.DoImageOps(settings.SubCmdPullOfSealer, settings.TestImageName)
+			image.DoImageOps("pull", settings.TestImageName)
 		})
 		AfterEach(func() {
 			registry.Logout()
@@ -100,7 +110,7 @@ var _ = Describe("sealer image", func() {
 				pushImageName = settings.RegistryURL + "/" + settings.RegistryUsername + "/" + "e2eimage_test:v0.0.1"
 			}
 			image.TagImages(settings.TestImageName, pushImageName)
-			image.DoImageOps(settings.SubCmdPushOfSealer, pushImageName)
+			image.DoImageOps("push", pushImageName)
 		})
 	})
 })

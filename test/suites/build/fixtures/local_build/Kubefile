@@ -1,8 +1,0 @@
-FROM sealer-io/test:v1
-COPY test1 .
-COPY recommended.yaml .
-COPY test2 .
-COPY test3 .
-RUN wget -O redis.tar.gz http://download.redis.io/releases/redis-5.0.3.tar.gz
-RUN tar zxvf redis.tar.gz
-CMD ls -l

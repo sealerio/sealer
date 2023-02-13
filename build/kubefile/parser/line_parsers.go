@@ -27,8 +27,6 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 var (
@@ -37,7 +35,6 @@ var (
 
 const (
 	commandLabel = "LABEL"
-	ArchReg      = "${ARCH}"
 )
 
 // ignore the current argument. This will still leave a command parsed, but
@@ -307,7 +304,6 @@ func parseString(rest string, d *Directive) (*Node, map[string]bool, error) {
 //
 //nolint:unparam
 func parseJSON(rest string, d *Directive) (*Node, map[string]bool, error) {
-	rest = strings.Replace(rest, ArchReg, v1.Platform{}.Architecture, -1)
 	rest = strings.TrimLeftFunc(rest, unicode.IsSpace)
 	if !strings.HasPrefix(rest, "[") {
 		return nil, nil, fmt.Errorf(`error parsing "%s" as a JSON array`, rest)

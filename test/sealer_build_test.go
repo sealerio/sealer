@@ -15,62 +15,210 @@
 package test
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
+	. "github.com/onsi/ginkgo"
 	"github.com/sealerio/sealer/test/suites/build"
-	"github.com/sealerio/sealer/test/suites/image"
 	"github.com/sealerio/sealer/test/suites/registry"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
-
-	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("sealer build", func() {
-	Context("testing the content of kube file", func() {
-		Context("testing lite build scenario", func() {
 
-			BeforeEach(func() {
-				registry.Login()
-				liteBuildPath := filepath.Join(build.GetFixtures(), build.GetLiteBuildDir())
-				err := os.Chdir(liteBuildPath)
-				testhelper.CheckErr(err)
-				//add From custom image name
-				build.UpdateKubeFromImage(settings.TestImageName, filepath.Join(liteBuildPath, "Kubefile"))
-			})
-			AfterEach(func() {
-				registry.Logout()
-				err := os.Chdir(settings.DefaultTestEnvDir)
-				testhelper.CheckErr(err)
-			})
-
-			It("with all build instruct", func() {
-				imageName := build.GetBuildImageName()
-				cmd := build.NewArgsOfBuild().
-					SetKubeFile("Kubefile").
-					SetImageName(imageName).
-					SetContext(".").
-					Build()
-				sess, err := testhelper.Start(cmd)
-				testhelper.CheckErr(err)
-				testhelper.CheckExit0(sess, settings.MaxWaiteTime)
-				// check: sealer images whether image exist
-				testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
-			})
+	Context("testing build with cmds", func() {
+		BeforeEach(func() {
+			buildPath := filepath.Join(build.AppCmdsBuildDir())
+			err := os.Chdir(buildPath)
+			testhelper.CheckErr(err)
+		})
+		AfterEach(func() {
+			err := os.Chdir(settings.DefaultTestEnvDir)
+			testhelper.CheckErr(err)
 		})
 
-		Context("remove image", func() {
+		It("start to build with cmds", func() {
 			imageName := build.GetBuildImageName()
-			It(fmt.Sprintf("remove image %s", imageName), func() {
-				image.DoImageOps(settings.SubCmdListOfSealer, "")
-				testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
-				image.DoImageOps(settings.SubCmdRmiOfSealer, imageName)
-				testhelper.CheckNotBeTrue(build.CheckIsImageExist(imageName))
-			})
+			cmd := build.NewArgsOfBuild().
+				SetKubeFile("Kubefile").
+				SetImageName(imageName).
+				SetContext(".").
+				String()
+			sess, err := testhelper.Start(cmd)
+			testhelper.CheckErr(err)
+			testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+
+			// check: sealer images whether image exist
+			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+
+			//TODO check image spec content
+			// 1. launch cmds
+			// 2. containerImageList:
+			//docker.io/library/nginx:alpine
+			//docker.io/library/busybox:latest
+
+			// clean: build image
+			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+		})
+
+	})
+
+	Context("testing build with launch", func() {
+		BeforeEach(func() {
+			buildPath := filepath.Join(build.AppLaunchBuildDir())
+			err := os.Chdir(buildPath)
+			testhelper.CheckErr(err)
+		})
+		AfterEach(func() {
+			err := os.Chdir(settings.DefaultTestEnvDir)
+			testhelper.CheckErr(err)
+		})
+
+		It("start to build with launch", func() {
+			imageName := build.GetBuildImageName()
+			cmd := build.NewArgsOfBuild().
+				SetKubeFile("Kubefile").
+				SetImageName(imageName).
+				SetContext(".").
+				String()
+			sess, err := testhelper.Start(cmd)
+			testhelper.CheckErr(err)
+			testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+
+			// check: sealer images whether image exist
+			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+
+			//TODO check image spec content
+			// 1. launch app names
+			// 2. containerImageList:
+			//docker.io/library/nginx:alpine
+			//docker.io/library/busybox:latest
+
+			// clean: build image
+			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+		})
+
+	})
+
+	Context("testing build with --image-list flag", func() {
+		BeforeEach(func() {
+			buildPath := filepath.Join(build.AppWithImageListFlagBuildDir())
+			err := os.Chdir(buildPath)
+			testhelper.CheckErr(err)
+		})
+		AfterEach(func() {
+			err := os.Chdir(settings.DefaultTestEnvDir)
+			testhelper.CheckErr(err)
+		})
+
+		It("start to build with --image-list flag", func() {
+			imageName := build.GetBuildImageName()
+			cmd := build.NewArgsOfBuild().
+				SetKubeFile("Kubefile").
+				SetImageName(imageName).
+				SetImageList("imagelist").
+				SetContext(".").
+				String()
+			sess, err := testhelper.Start(cmd)
+			testhelper.CheckErr(err)
+			testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+
+			// check: sealer images whether image exist
+			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+
+			//TODO check image spec content
+			// 2. containerImageList:
+			//docker.io/library/nginx:alpine
+			//docker.io/library/busybox:latest
+
+			// clean: build image
+			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+		})
+
+	})
+
+	Context("testing multi platform build scenario", func() {
+
+		BeforeEach(func() {
+			registry.Login()
+			buildPath := filepath.Join(build.MultiArchBuildDir())
+			err := os.Chdir(buildPath)
+			testhelper.CheckErr(err)
 
 		})
+		AfterEach(func() {
+			registry.Logout()
+			err := os.Chdir(settings.DefaultTestEnvDir)
+			testhelper.CheckErr(err)
+		})
+
+		It("multi build only with amd64", func() {
+			imageName := build.GetBuildImageName()
+			cmd := build.NewArgsOfBuild().
+				SetKubeFile("Kubefile").
+				SetImageName(imageName).
+				SetPlatforms([]string{"linux/amd64"}).
+				SetContext(".").
+				String()
+			sess, err := testhelper.Start(cmd)
+
+			testhelper.CheckErr(err)
+			testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+
+			// check: sealer images whether image exist
+			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+
+			// check: push build image
+			testhelper.CheckErr(build.PushBuildImage(imageName))
+
+			// clean: build image
+			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+
+		})
+
+		It("multi build only with arm64", func() {
+			imageName := build.GetBuildImageName()
+			cmd := build.NewArgsOfBuild().
+				SetKubeFile("Kubefile").
+				SetImageName(imageName).
+				SetPlatforms([]string{"linux/arm64"}).
+				SetContext(".").
+				String()
+			sess, err := testhelper.Start(cmd)
+			testhelper.CheckErr(err)
+			testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+			// check: sealer images whether image exist
+			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+
+			// check: push build image
+			testhelper.CheckErr(build.PushBuildImage(imageName))
+
+			// clean: build image
+			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+		})
+
+		It("multi build with amd64 and arm64", func() {
+			imageName := build.GetBuildImageName()
+			cmd := build.NewArgsOfBuild().
+				SetKubeFile("Kubefile").
+				SetImageName(imageName).
+				SetPlatforms([]string{"linux/amd64", "linux/arm64"}).
+				SetContext(".").
+				String()
+			sess, err := testhelper.Start(cmd)
+			testhelper.CheckErr(err)
+			testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+			// check: sealer images whether image exist
+			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+
+			// check: push build image
+			testhelper.CheckErr(build.PushBuildImage(imageName))
+
+			// clean: build image
+			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+		})
+
 	})
 
 })

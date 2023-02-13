@@ -344,7 +344,6 @@ func (engine *Engine) migrateFlags2Wrapper(opts *options.BuildOptions, wrapper *
 	wrapper.NoCache = opts.NoCache
 	// tags. Like -t kubernetes:v1.16
 	wrapper.Tag = []string{opts.Tag}
-	wrapper.Manifest = opts.Manifest
 	// Hardcoded for network configuration.
 	// check parse.NamespaceOptions for detailed logic.
 	// this network setup for stage container, especially for RUN wget and so on.
@@ -361,12 +360,12 @@ func (engine *Engine) migrateFlags2Wrapper(opts *options.BuildOptions, wrapper *
 		return err
 	}
 
-	// do not pack kubefile into image.
-	wrapper.IgnoreFile = opts.Kubefile
-	wrapper.File = []string{opts.Kubefile}
+	// do not pack DockerFilePath into image.
+	//wrapper.IgnoreFile = opts.DockerFilePath
 
+	// use tmp dockerfile as build file
+	wrapper.File = []string{opts.DockerFilePath}
 	wrapper.Pull = opts.PullPolicy
-
 	wrapper.Label = append(wrapper.Label, opts.Labels...)
 	wrapper.Annotation = append(wrapper.Annotation, opts.Annotations...)
 	return nil

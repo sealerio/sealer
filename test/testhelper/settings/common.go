@@ -29,18 +29,6 @@ const (
 	DefaultImageName                  = "kubernetes:v1-22-15-sealerio-2"
 	DefaultRegistryAuthFileDir        = "/root/.docker"
 	DefaultClusterFileNeedToBeCleaned = "/root/.sealer/%s/Clusterfile"
-	SubCmdBuildOfSealer               = "build"
-	SubCmdApplyOfSealer               = "apply"
-	SubCmdDeleteOfSealer              = "delete"
-	SubCmdRunOfSealer                 = "run"
-	SubCmdLoginOfSealer               = "login"
-	SubCmdTagOfSealer                 = "tag"
-	SubCmdPullOfSealer                = "pull"
-	SubCmdListOfSealer                = "images"
-	SubCmdPushOfSealer                = "push"
-	SubCmdRmiOfSealer                 = "rmi"
-	DefaultSSHPassword                = "Sealer123"
-	ImageAnnotationForClusterfile     = "sea.aliyun.com/ClusterFile"
 	SealerImageRootPath               = "/var/lib/sealer"
 )
 

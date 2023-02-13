@@ -1,0 +1,4 @@
+FROM scratch
+COPY ${ARCH}/bin bin
+APP myapp local://app.yaml
+LAUNCH myapp
