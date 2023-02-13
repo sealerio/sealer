@@ -17,15 +17,14 @@ package test
 import (
 	"fmt"
 
-	"github.com/onsi/gomega"
-
-	. "github.com/onsi/ginkgo"
-
 	"github.com/sealerio/sealer/test/suites/build"
 	"github.com/sealerio/sealer/test/suites/image"
 	"github.com/sealerio/sealer/test/suites/registry"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("sealer images module", func() {
@@ -44,7 +43,7 @@ var _ = Describe("sealer images module", func() {
 			By("tag by image name", func() {
 				for _, newOne := range tagImageNames {
 					image.TagImages(settings.TestImageName, newOne)
-					gomega.Expect(build.CheckIsImageExist(newOne)).Should(gomega.BeTrue())
+					Expect(build.CheckIsImageExist(newOne)).Should(BeTrue())
 				}
 
 				image.DoImageOps("images", "")

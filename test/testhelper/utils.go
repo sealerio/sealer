@@ -21,11 +21,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
-	"github.com/sirupsen/logrus"
-	"sigs.k8s.io/yaml"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	v1 "github.com/sealerio/sealer/types/api/v1"
@@ -33,6 +28,11 @@ import (
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sealerio/sealer/utils/ssh"
+
+	"github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
+	"github.com/sirupsen/logrus"
+	"sigs.k8s.io/yaml"
 )
 
 func GetPwd() string {
@@ -154,10 +154,18 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 	return nil
 }
 
-// GetFileDataLocally get file data for cloud apply
-func GetFileDataLocally(filePath string) string {
+// GetLocalFileData get file data from local
+func GetLocalFileData(filePath string) string {
 	cmd := fmt.Sprintf("sudo -E cat %s", filePath)
 	result, err := exec.RunSimpleCmd(cmd)
+	CheckErr(err)
+	return result
+}
+
+// GetRemoteFileData get file data from remote
+func GetRemoteFileData(sshClient *SSHClient, filePath string) []byte {
+	cmd := fmt.Sprintf("cat %s", filePath)
+	result, err := sshClient.SSH.Cmd(sshClient.RemoteHostIP, cmd)
 	CheckErr(err)
 	return result
 }
