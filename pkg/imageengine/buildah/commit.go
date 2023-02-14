@@ -56,7 +56,7 @@ func (engine *Engine) Commit(opts *options.CommitOptions) (string, error) {
 
 	ctx := getContext()
 	store := engine.ImageStore()
-	builder, err := openBuilder(ctx, store, name)
+	builder, err := OpenBuilder(ctx, store, name)
 	if err != nil {
 		return "", errors.Wrapf(err, "error reading build container %q", name)
 	}

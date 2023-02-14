@@ -149,7 +149,7 @@ func formatImagesJSON(images []*libimage.Image, opts imageOptions) error {
 				Created:      created.Unix(),
 				CreatedAt:    units.HumanDuration(time.Since(created)) + " ago",
 				Digest:       image.Digest().String(),
-				ID:           truncateID(image.ID(), opts.truncate),
+				ID:           TruncateID(image.ID(), opts.truncate),
 				Names:        image.Names(),
 				ReadOnly:     image.IsReadOnly(),
 				Size:         formattedSize(size),
@@ -192,7 +192,7 @@ func formatImages(images []*libimage.Image, opts imageOptions) error {
 		outputParam.Created = created.Unix()
 		outputParam.CreatedAt = units.HumanDuration(time.Since(created)) + " ago"
 		outputParam.Digest = image.Digest().String()
-		outputParam.ID = truncateID(image.ID(), opts.truncate)
+		outputParam.ID = TruncateID(image.ID(), opts.truncate)
 		outputParam.Size = formattedSize(size)
 		outputParam.ReadOnly = image.IsReadOnly()
 
@@ -238,7 +238,7 @@ func formatHistory(history []string, name, tag string) string {
 	return strings.Join(history, ", ")
 }
 
-func truncateID(id string, truncate bool) string {
+func TruncateID(id string, truncate bool) string {
 	if !truncate {
 		return "sha256:" + id
 	}

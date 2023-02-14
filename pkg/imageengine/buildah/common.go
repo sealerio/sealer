@@ -79,7 +79,7 @@ func getStore(configurations *options.EngineGlobalConfigurations) (storage.Store
 	return store, err
 }
 
-func openBuilder(ctx context.Context, store storage.Store, name string) (builder *buildah.Builder, err error) {
+func OpenBuilder(ctx context.Context, store storage.Store, name string) (builder *buildah.Builder, err error) {
 	if name != "" {
 		builder, err = buildah.OpenBuilder(store, name)
 		if os.IsNotExist(errors.Cause(err)) {
