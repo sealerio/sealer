@@ -15,11 +15,11 @@
 package test
 
 import (
-	. "github.com/onsi/ginkgo"
-
 	"github.com/sealerio/sealer/test/suites/image"
 	"github.com/sealerio/sealer/test/suites/registry"
 	"github.com/sealerio/sealer/test/testhelper/settings"
+
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("sealer login", func() {

@@ -20,11 +20,11 @@ import (
 	"io"
 	"os/exec"
 
+	"github.com/sealerio/sealer/test/testhelper/settings"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-
-	"github.com/sealerio/sealer/test/testhelper/settings"
 )
 
 // Start sealer cmd and return *gexec.Session

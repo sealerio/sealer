@@ -18,12 +18,13 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-
 	"github.com/sealerio/sealer/test/suites/apply"
 	"github.com/sealerio/sealer/test/testhelper"
+	"github.com/sealerio/sealer/test/testhelper/client/k8s"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	utilsnet "github.com/sealerio/sealer/utils/net"
+
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("sealer apply", func() {
@@ -65,10 +66,12 @@ var _ = Describe("sealer apply", func() {
 				By("start to init cluster")
 				apply.GenerateClusterfile(tempFile)
 				apply.SendAndApplyCluster(sshClient, tempFile)
-				apply.CheckNodeNumWithSSH(sshClient, 2)
+				client, err := k8s.NewK8sClient(sshClient)
+				testhelper.CheckErr(err)
+				apply.CheckNodeNumWithSSH(client, 2)
 
 				By("Wait for the cluster to be ready", func() {
-					apply.WaitAllNodeRunningBySSH(sshClient.SSH, sshClient.RemoteHostIP)
+					apply.WaitAllNodeRunningBySSH(client)
 				})
 
 				By("Use join command to add 1master and 2nodes for scale up cluster in container mode", func() {
@@ -84,14 +87,14 @@ var _ = Describe("sealer apply", func() {
 					//sealer join master and node
 					apply.SendAndJoinCluster(sshClient, tempFile, joinMasters, joinNodes)
 					//add 3 masters and 3 nodes
-					apply.CheckNodeNumWithSSH(sshClient, 3)
+					apply.CheckNodeNumWithSSH(client, 3)
 				})
 
 				By("start to scale down cluster")
 				deleteNode := cluster.Spec.Nodes.IPList[1].String()
-				err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteNodeCmd(deleteNode))
+				err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteNodeCmd(deleteNode))
 				testhelper.CheckErr(err)
-				apply.CheckNodeNumWithSSH(sshClient, 2)
+				apply.CheckNodeNumWithSSH(client, 2)
 				cluster.Spec.Nodes.Count = "1"
 				cluster.Spec.Nodes.IPList = cluster.Spec.Nodes.IPList[:1]
 				cluster.Spec.Masters.Count = "1"

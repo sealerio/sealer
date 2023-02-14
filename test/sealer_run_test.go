@@ -17,12 +17,13 @@ package test
 import (
 	"strings"
 
-	. "github.com/onsi/ginkgo"
-
 	"github.com/sealerio/sealer/test/suites/apply"
 	"github.com/sealerio/sealer/test/testhelper"
+	"github.com/sealerio/sealer/test/testhelper/client/k8s"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	utilsnet "github.com/sealerio/sealer/utils/net"
+
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("sealer run", func() {
@@ -53,17 +54,18 @@ var _ = Describe("sealer run", func() {
 				return err == nil
 			}, settings.MaxWaiteTime)
 
-			By("start to init cluster", func() {
-				masterIPStrs := utilsnet.IPsToIPStrs(usedCluster.Spec.Masters.IPList)
-				masters := strings.Join(masterIPStrs, ",")
-				nodesIPStrs := utilsnet.IPsToIPStrs(usedCluster.Spec.Nodes.IPList)
-				nodes := strings.Join(nodesIPStrs, ",")
-				apply.SendAndRunCluster(sshClient, tempFile, masters, nodes, usedCluster.Spec.SSH.Passwd)
-				apply.CheckNodeNumWithSSH(sshClient, 2)
-			})
+			By("start to init cluster")
+			masterIPStrs := utilsnet.IPsToIPStrs(usedCluster.Spec.Masters.IPList)
+			masters := strings.Join(masterIPStrs, ",")
+			nodesIPStrs := utilsnet.IPsToIPStrs(usedCluster.Spec.Nodes.IPList)
+			nodes := strings.Join(nodesIPStrs, ",")
+			apply.SendAndRunCluster(sshClient, tempFile, masters, nodes, usedCluster.Spec.SSH.Passwd)
+			client, err := k8s.NewK8sClient(sshClient)
+			testhelper.CheckErr(err)
+			apply.CheckNodeNumWithSSH(client, 2)
 
 			By("Wait for the cluster to be ready", func() {
-				apply.WaitAllNodeRunningBySSH(sshClient.SSH, sshClient.RemoteHostIP)
+				apply.WaitAllNodeRunningBySSH(client)
 			})
 		})
 	})

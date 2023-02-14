@@ -18,11 +18,12 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/onsi/ginkgo"
 	"github.com/sealerio/sealer/test/suites/build"
 	"github.com/sealerio/sealer/test/suites/registry"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
+
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("sealer build", func() {

@@ -17,12 +17,12 @@ package registry
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/test/testhelper"
+	"github.com/sealerio/sealer/test/testhelper/settings"
+
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-
-	"github.com/sealerio/sealer/test/testhelper"
-	"github.com/sealerio/sealer/test/testhelper/settings"
 )
 
 func Login() {

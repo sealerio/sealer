@@ -71,4 +71,6 @@ jobs:
           RegionID: ${{ secrets.RegionID }}
         if: ${{ github.event.comment.body == '/test run' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
+          # fix bug in kernal 5.12.2+:open /proc/sys/net/netfilter/nf_conntrack_max: permission denied, see: https://github.com/kubernetes-sigs/kind/issues/2240
+          sudo sysctl net/netfilter/nf_conntrack_max=131072
           ginkgo -v --focus="sealer run" test
