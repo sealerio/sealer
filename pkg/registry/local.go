@@ -68,16 +68,7 @@ func (c *localConfigurator) UninstallFrom(deletedMasters, deletedNodes []net.IP)
 	if err := c.removeRegistryConfig(all); err != nil {
 		return err
 	}
-	if !*c.HA {
-		return nil
-	}
-	// if current deployHosts is null,means clean all, just return.
-	if len(c.deployHosts) == 0 {
-		return nil
-	}
-
-	// flush ipvs policy on remain nodes
-	return c.configureLvs(c.deployHosts, netutils.RemoveIPs(c.infraDriver.GetHostIPListByRole(common.NODE), deletedNodes))
+	return nil
 }
 
 func (c *localConfigurator) removeRegistryConfig(hosts []net.IP) error {
@@ -148,7 +139,7 @@ func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) er
 		return err
 	}
 
-	return c.configureLvs(c.deployHosts, c.infraDriver.GetHostIPListByRole(common.NODE))
+	return c.configureLvs(c.deployHosts, nodes)
 }
 
 func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) error {
