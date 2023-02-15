@@ -14,6 +14,25 @@ jobs:
     env:
       GO111MODULE: on
     steps:
+      - name: Get PR details
+        if: ${{ github.event_name == 'issue_comment'}}
+        uses: xt0rted/pull-request-comment-branch@v1
+        id: comment-branch
+
+      - name: Set commit status as pending
+        if: ${{ github.event_name == 'issue_comment'}}
+        uses: myrotvorets/set-commit-status-action@master
+        with:
+          sha: ${{ steps.comment-branch.outputs.head_sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: pending
+
+      - name: Checkout to head_ref
+        if: ${{ github.event_name == 'issue_comment'}}
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.comment-branch.outputs.head_ref }}
+
       - name: Github API Request
         id: request
         uses: octokit/request-action@v2.0.2
@@ -74,3 +93,11 @@ jobs:
           # fix bug in kernal 5.12.2+:open /proc/sys/net/netfilter/nf_conntrack_max: permission denied, see: https://github.com/kubernetes-sigs/kind/issues/2240
           sudo sysctl net/netfilter/nf_conntrack_max=131072
           ginkgo -v --focus="sealer run" test
+
+      - name: Set final commit status
+        uses: myrotvorets/set-commit-status-action@master
+        if: always()
+        with:
+          sha: ${{ steps.comment-branch.outputs.head_sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}
