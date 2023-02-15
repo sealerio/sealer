@@ -34,11 +34,11 @@ func (s *SSH) GetPlatform(host net.IP) (v1.Platform, error) {
 	}
 
 	p := v1.Platform{}
-	archResult, err := s.CmdToString(host, "uname -m", "")
+	archResult, err := s.CmdToString(host, nil, "uname -m", "")
 	if err != nil {
 		return p, err
 	}
-	osResult, err := s.CmdToString(host, "uname", "")
+	osResult, err := s.CmdToString(host, nil, "uname", "")
 	if err != nil {
 		return p, err
 	}

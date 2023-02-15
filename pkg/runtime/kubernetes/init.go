@@ -22,18 +22,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
-
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-
-	"github.com/sealerio/sealer/utils/shellcommand"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert"
+	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
+	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/yaml"
-
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 )
 
 func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, error) {
@@ -52,6 +49,10 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, er
 		k.getAPIServerVIP(), extraSANs)
 	if err != nil {
 		return kubeadm.KubeadmConfig{}, err
+	}
+
+	if output, err := k.infra.CmdToString(masters[0], nil, GetCustomizeCRISocket, ""); err == nil && output != "" {
+		conf.InitConfiguration.NodeRegistration.CRISocket = output
 	}
 
 	bs, err := yaml.MarshalWithDelimiter(&conf.InitConfiguration,
@@ -116,7 +117,7 @@ func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 		for _, host := range nodes {
 			h := host
 			eg.Go(func() error {
-				if err := k.infra.CmdAsync(h, cmdLinkStatic); err != nil {
+				if err := k.infra.CmdAsync(h, nil, cmdLinkStatic); err != nil {
 					return fmt.Errorf("[%s] failed to link static file: %s", h, err.Error())
 				}
 
@@ -144,7 +145,7 @@ func (k *Runtime) initMaster0(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, 
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
 
-	if err := k.infra.CmdAsync(master0, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
+	if err := k.infra.CmdAsync(master0, nil, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 	}
 
@@ -155,7 +156,7 @@ func (k *Runtime) initMaster0(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, 
 	logrus.Info("start to init master0...")
 
 	// TODO skip docker version error check for test
-	output, err := k.infra.Cmd(master0, cmdInit)
+	output, err := k.infra.Cmd(master0, nil, cmdInit)
 	if err != nil {
 		_, wErr := common.StdOut.WriteString(string(output))
 		if wErr != nil {
@@ -164,7 +165,7 @@ func (k *Runtime) initMaster0(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, 
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
 	}
 
-	if err = k.infra.CmdAsync(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
+	if err = k.infra.CmdAsync(master0, nil, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
 
@@ -219,7 +220,7 @@ func (k *Runtime) initKube(hosts []net.IP) error {
 	for _, h := range hosts {
 		host := h
 		eg.Go(func() error {
-			if err := k.infra.CmdAsync(host, initKubeletCmd); err != nil {
+			if err := k.infra.CmdAsync(host, nil, initKubeletCmd); err != nil {
 				return fmt.Errorf("failed to init Kubelet Service on (%s): %s", host, err.Error())
 			}
 			return nil
@@ -266,7 +267,7 @@ func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, files ...string)
 func (k *Runtime) getJoinTokenHashAndKey(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
 	cmd := fmt.Sprintf(`kubeadm init phase upload-certs --upload-certs -v %d`, k.Config.Vlog)
 
-	output, err := k.infra.CmdToString(master0, cmd, "\r\n")
+	output, err := k.infra.CmdToString(master0, nil, cmd, "\r\n")
 	if err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}
@@ -280,7 +281,7 @@ func (k *Runtime) getJoinTokenHashAndKey(master0 net.IP) (v1beta2.BootstrapToken
 
 	cmd = fmt.Sprintf("kubeadm token create --print-join-command -v %d", k.Config.Vlog)
 
-	out, err := k.infra.Cmd(master0, cmd)
+	out, err := k.infra.Cmd(master0, nil, cmd)
 	if err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to create kubeadm join token: %v", err)
 	}

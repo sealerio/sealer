@@ -52,7 +52,7 @@ func NewCertCmd() *cobra.Command {
 				return fmt.Errorf("IP address or DNS domain needed for cert Subject Alternative Names")
 			}
 
-			cf, err := clusterfile.NewClusterFile(nil)
+			cf, _, err := clusterfile.GetActualClusterFile()
 			if err != nil {
 				return err
 			}
@@ -66,7 +66,7 @@ func NewCertCmd() *cobra.Command {
 			certUpdateCmd := fmt.Sprintf("seautil cert update --alt-names %s", strings.Join(altNames, ","))
 			// modify new api cert to all master.
 			for _, ip := range cluster.GetMasterIPList() {
-				err = infraDriver.CmdAsync(ip, certUpdateCmd)
+				err = infraDriver.CmdAsync(ip, nil, certUpdateCmd)
 				if err != nil {
 					return fmt.Errorf("failed to update cluster api server cert: %v", err)
 				}

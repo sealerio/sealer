@@ -92,7 +92,7 @@ var _ = Describe("sealer apply", func() {
 
 				By("start to scale down cluster")
 				deleteNode := cluster.Spec.Nodes.IPList[1].String()
-				err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteNodeCmd(deleteNode))
+				err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, nil, apply.SealerDeleteNodeCmd(deleteNode))
 				testhelper.CheckErr(err)
 				apply.CheckNodeNumWithSSH(client, 2)
 				cluster.Spec.Nodes.Count = "1"
@@ -104,7 +104,7 @@ var _ = Describe("sealer apply", func() {
 				// apply.SendAndApplyCluster(sshClient, tempFile)
 
 				By("start to delete cluster")
-				err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, apply.SealerDeleteAll())
+				err = sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, nil, apply.SealerDeleteAll())
 				testhelper.CheckErr(err)
 			})
 

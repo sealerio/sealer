@@ -170,7 +170,7 @@ func (s *scpDistributor) Restore(targetDir string, hosts []net.IP) error {
 	for _, ip := range hosts {
 		host := ip
 		eg.Go(func() error {
-			err := s.infraDriver.CmdAsync(host, rmRootfsCMD)
+			err := s.infraDriver.CmdAsync(host, nil, rmRootfsCMD)
 			if err != nil {
 				return fmt.Errorf("faild to delete rootfs on host [%s]: %v", host.String(), err)
 			}

@@ -100,7 +100,7 @@ func (a *v2Application) Launch(infraDriver infradriver.InfraDriver) error {
 			continue
 		}
 
-		if err := infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, rootfsPath, cmdline)); err != nil {
+		if err := infraDriver.CmdAsync(master0, nil, fmt.Sprintf(common.CdAndExecCmd, rootfsPath, cmdline)); err != nil {
 			return err
 		}
 	}

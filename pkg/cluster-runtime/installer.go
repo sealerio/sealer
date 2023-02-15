@@ -395,7 +395,7 @@ func GetClusterInstallInfo(labels map[string]string) InstallInfo {
 	if clusterRuntimeType == "" {
 		clusterRuntimeType = common.K8s
 	}
-	logrus.Infof("The cri is %s, crt is %s\n", cri, clusterRuntimeType)
+	logrus.Infof("The cri is %s, cluster runtime type is %s\n", cri, clusterRuntimeType)
 	return InstallInfo{
 		ContainerRuntimeType: cri,
 		ClusterRuntimeType:   clusterRuntimeType,

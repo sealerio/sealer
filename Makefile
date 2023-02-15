@@ -29,6 +29,10 @@ linux: clean ## build binaries for linux
 	@echo "build sealer and seautil bin for linux"
 	GOOS=linux GOARCH=amd64 hack/build.sh $(GitTag)
 
+linux-arm64: clean ## build binaries for linux
+	@echo "build sealer and seautil bin for linux"
+	GOOS=linux GOARCH=arm64 hack/build.sh $(GitTag)
+
 # sealer should be compiled in linux platform, otherwise there will be GraphDriver problem.
 build-in-docker:
 	docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux

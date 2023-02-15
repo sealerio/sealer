@@ -24,7 +24,6 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
-	"github.com/sealerio/sealer/utils"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
 )
@@ -42,11 +41,6 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken = &token
 	kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = net.JoinHostPort(k.getAPIServerVIP().String(), "6443")
 	kubeadmConfig.JoinConfiguration.ControlPlane = nil
-	joinConfig, err := yaml.MarshalWithDelimiter(kubeadmConfig.JoinConfiguration, kubeadmConfig.KubeletConfiguration)
-	if err != nil {
-		return err
-	}
-	writeJoinConfigCmd := fmt.Sprintf("mkdir -p /etc/kubernetes && echo \"%s\" > %s", joinConfig, KubeadmFileYml)
 
 	joinNodeCmd, err := k.Command(JoinNode)
 	if err != nil {
@@ -64,16 +58,27 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 		eg.Go(func() error {
 			logrus.Infof("start to join %s as worker", node)
 
+			myKubeadmConfig := kubeadmConfig
+
+			if output, err := k.infra.CmdToString(node, nil, GetCustomizeCRISocket, ""); err == nil && output != "" {
+				myKubeadmConfig.JoinConfiguration.NodeRegistration.CRISocket = output
+			}
+			joinConfig, err := yaml.MarshalWithDelimiter(myKubeadmConfig.JoinConfiguration, myKubeadmConfig.KubeletConfiguration)
+			if err != nil {
+				return err
+			}
+			writeJoinConfigCmd := fmt.Sprintf("mkdir -p /etc/kubernetes && echo \"%s\" > %s", joinConfig, KubeadmFileYml)
+
 			err = k.checkMultiNetworkAddVIPRoute(node)
 			if err != nil {
 				return fmt.Errorf("failed to check multi network: %v", err)
 			}
 
-			if err = k.infra.CmdAsync(node, writeJoinConfigCmd); err != nil {
+			if err = k.infra.CmdAsync(node, nil, writeJoinConfigCmd); err != nil {
 				return fmt.Errorf("failed to set join kubeadm config on host(%s) with cmd(%s): %v", node, writeJoinConfigCmd, err)
 			}
 
-			if err = k.infra.CmdAsync(node, joinNodeCmd); err != nil {
+			if err = k.infra.CmdAsync(node, nil, joinNodeCmd); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
 
@@ -85,7 +90,7 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 }
 
 func (k *Runtime) checkMultiNetworkAddVIPRoute(node net.IP) error {
-	result, err := k.infra.CmdToString(node, fmt.Sprintf(RemoteCheckRoute, node), "")
+	result, err := k.infra.CmdToString(node, nil, fmt.Sprintf(RemoteCheckRoute, node), "")
 	if err != nil {
 		return err
 	}
@@ -94,9 +99,8 @@ func (k *Runtime) checkMultiNetworkAddVIPRoute(node net.IP) error {
 	}
 
 	cmd := fmt.Sprintf(RemoteAddRoute, k.getAPIServerVIP(), node)
-	output, err := k.infra.Cmd(node, cmd)
-	if err != nil {
-		return utils.WrapExecResult(node, cmd, output, err)
+	if _, err := k.infra.Cmd(node, nil, cmd); err != nil {
+		return err
 	}
 	return nil
 }

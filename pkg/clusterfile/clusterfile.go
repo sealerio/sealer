@@ -211,42 +211,51 @@ func saveToCluster(data []byte, confPath string) error {
 func NewClusterFile(b []byte) (Interface, error) {
 	clusterFile := new(ClusterFile)
 	// use user specified clusterfile
-	if len(b) > 0 {
-		if err := decodeClusterFile(bytes.NewReader(b), clusterFile); err != nil {
-			return nil, fmt.Errorf("failed to load clusterfile: %v", err)
-		}
-		return clusterFile, nil
+	if len(b) == 0 {
+		return nil, fmt.Errorf("empty clusterfile")
 	}
+
+	if err := decodeClusterFile(bytes.NewReader(b), clusterFile); err != nil {
+		return nil, fmt.Errorf("failed to load clusterfile: %v", err)
+	}
+
+	return clusterFile, nil
+}
+
+func GetActualClusterFile() (Interface, bool, error) {
+	clusterFile := new(ClusterFile)
 
 	// assume that we already have an existed cluster
 	fromCluster, err := getClusterfileFromCluster()
 	if err != nil {
-		logrus.Warn("try to get clusterfile from cluster:", err)
+		logrus.Warn("try to get clusterfile from cluster", err)
 	}
+
 	if fromCluster != nil {
-		return fromCluster, nil
+		return fromCluster, true, nil
 	}
+
 	// read local disk clusterfile
-	workClusterfile := common.GetDefaultClusterfile()
-	clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
+	clusterFileData, err := os.ReadFile(filepath.Clean(common.GetDefaultClusterfile()))
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if err := decodeClusterFile(bytes.NewReader(clusterFileData), clusterFile); err != nil {
-		return nil, fmt.Errorf("failed to load clusterfile: %v", err)
+		return nil, false, fmt.Errorf("failed to load clusterfile: %v", err)
 	}
-	return clusterFile, nil
+
+	return clusterFile, false, nil
 }
 
 func getClusterfileFromCluster() (*ClusterFile, error) {
 	clusterFile := new(ClusterFile)
-	client, err := k8s.NewK8sClient()
+	cli, err := k8s.NewK8sClient()
 	if err != nil {
 		return nil, err
 	}
 
-	cm, err := client.ConfigMap(ClusterfileConfigMapNamespace).Get(context.TODO(), ClusterfileConfigMapDataName, metav1.GetOptions{})
+	cm, err := cli.ConfigMap(ClusterfileConfigMapNamespace).Get(context.TODO(), ClusterfileConfigMapDataName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

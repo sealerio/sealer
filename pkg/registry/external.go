@@ -113,7 +113,7 @@ func (e *externalConfigurator) UninstallFrom(masters, nodes []net.IP) error {
 	}
 
 	for _, host := range hosts {
-		err := e.infraDriver.CmdAsync(host, logoutCmd)
+		err := e.infraDriver.CmdAsync(host, nil, logoutCmd)
 		if err != nil {
 			return fmt.Errorf("failed to delete registry configuration: %v", err)
 		}

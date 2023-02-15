@@ -114,35 +114,37 @@ func ConstructClusterForRun(imageName string, runFlags *types.RunFlags) (*v2.Clu
 	return &cluster, nil
 }
 
-func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.ScaleUpFlags, joinMasters, joinWorkers []net.IP) error {
+func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.ScaleUpFlags, currentNodes, joinMasters, joinWorkers []net.IP) (mj, nj []net.IP, err error) {
+	mj, _ = strUtils.Diff(currentNodes, joinMasters)
+	nj, _ = strUtils.Diff(currentNodes, joinWorkers)
+
+	nodes := cluster.GetAllIPList()
 	//TODO Add password encryption mode in the future
 	//add joined masters
-	if len(joinMasters) != 0 {
-		masterIPs := cluster.GetMasterIPList()
-		for _, ip := range joinMasters {
-			// if ip already taken by master will return join duplicated ip error
-			if netutils.IsInIPList(ip, masterIPs) {
-				return fmt.Errorf("failed to scale master for duplicated ip: %s", ip)
-			}
+	for _, ip := range mj {
+		// if ip already taken by node, skip it
+		if netutils.IsInIPList(ip, nodes) {
+			return nil, nil, fmt.Errorf("failed to scale master for duplicated ip: %s", ip)
 		}
-		host := constructHost(common.MASTER, joinMasters, scaleFlags, cluster.Spec.SSH)
+	}
+	if len(mj) != 0 {
+		host := constructHost(common.MASTER, mj, scaleFlags, cluster.Spec.SSH)
 		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
 	}
 
+	for _, ip := range nj {
+		// if ip already taken by node, skip it
+		if netutils.IsInIPList(ip, nodes) {
+			return nil, nil, fmt.Errorf("failed to scale node for duplicated ip: %s", ip)
+		}
+	}
 	//add joined nodes
-	if len(joinWorkers) != 0 {
-		nodeIPs := cluster.GetNodeIPList()
-		for _, ip := range joinWorkers {
-			// if ip already taken by node will return join duplicated ip error
-			if netutils.IsInIPList(ip, nodeIPs) {
-				return fmt.Errorf("failed to scale node for duplicated ip: %s", ip)
-			}
-		}
-
-		host := constructHost(common.NODE, joinWorkers, scaleFlags, cluster.Spec.SSH)
+	if len(nj) != 0 {
+		host := constructHost(common.NODE, nj, scaleFlags, cluster.Spec.SSH)
 		cluster.Spec.Hosts = append(cluster.Spec.Hosts, host)
 	}
-	return nil
+
+	return mj, nj, nil
 }
 
 func ConstructClusterForScaleDown(cluster *v2.Cluster, mastersToDelete, workersToDelete []net.IP) error {

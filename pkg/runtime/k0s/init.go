@@ -41,17 +41,17 @@ func (k *Runtime) generateConfigOnMaster0(master0 net.IP, registryInfo string) e
 func (k *Runtime) generateJoinToken(master0 net.IP) error {
 	workerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", WorkerRole, DefaultK0sWorkerJoin)
 	controllerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", ControllerRole, DefaultK0sControllerJoin)
-	return k.infra.CmdAsync(master0, workerTokenCreateCMD, controllerTokenCreateCMD)
+	return k.infra.CmdAsync(master0, nil, workerTokenCreateCMD, controllerTokenCreateCMD)
 }
 
 func (k *Runtime) generateK0sConfig(master0 net.IP) error {
 	mkdirCMD := "mkdir -p /etc/k0s"
-	if _, err := k.infra.Cmd(master0, mkdirCMD); err != nil {
+	if _, err := k.infra.Cmd(master0, nil, mkdirCMD); err != nil {
 		return err
 	}
 
 	configCreateCMD := fmt.Sprintf("k0s config create > %s", DefaultK0sConfigPath)
-	if _, err := k.infra.Cmd(master0, configCreateCMD); err != nil {
+	if _, err := k.infra.Cmd(master0, nil, configCreateCMD); err != nil {
 		return err
 	}
 
@@ -60,7 +60,7 @@ func (k *Runtime) generateK0sConfig(master0 net.IP) error {
 
 func (k *Runtime) modifyConfigRepo(master0 net.IP, registryInfo string) error {
 	addRepoCMD := fmt.Sprintf("sed -i '/  images/ a\\    repository: %s' %s", registryInfo, DefaultK0sConfigPath)
-	_, err := k.infra.Cmd(master0, addRepoCMD)
+	_, err := k.infra.Cmd(master0, nil, addRepoCMD)
 	if err != nil {
 		return err
 	}
@@ -69,12 +69,12 @@ func (k *Runtime) modifyConfigRepo(master0 net.IP, registryInfo string) error {
 
 func (k *Runtime) bootstrapMaster0(master0 net.IP) error {
 	bootstrapCMD := fmt.Sprintf("k0s install controller -c %s --cri-socket %s", DefaultK0sConfigPath, ExternalCRIAddress)
-	if _, err := k.infra.Cmd(master0, bootstrapCMD); err != nil {
+	if _, err := k.infra.Cmd(master0, nil, bootstrapCMD); err != nil {
 		return err
 	}
 
 	startSvcCMD := "k0s start"
-	if _, err := k.infra.Cmd(master0, startSvcCMD); err != nil {
+	if _, err := k.infra.Cmd(master0, nil, startSvcCMD); err != nil {
 		return err
 	}
 
@@ -82,7 +82,7 @@ func (k *Runtime) bootstrapMaster0(master0 net.IP) error {
 		return err
 	}
 	// fetch kubeconfig
-	if _, err := k.infra.Cmd(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /var/lib/k0s/pki/admin.conf /root/.kube/config"); err != nil {
+	if _, err := k.infra.Cmd(master0, nil, "rm -rf .kube/config && mkdir -p /root/.kube && cp /var/lib/k0s/pki/admin.conf /root/.kube/config"); err != nil {
 		return err
 	}
 	logrus.Infof("k0s start successfully on master0")
@@ -96,7 +96,7 @@ func (k *Runtime) initKube(hosts []net.IP) error {
 	for _, h := range hosts {
 		host := h
 		eg.Go(func() error {
-			if err := k.infra.CmdAsync(host, initKubeletCmd); err != nil {
+			if err := k.infra.CmdAsync(host, nil, initKubeletCmd); err != nil {
 				return fmt.Errorf("failed to init Kubelet Service on (%s): %s", host, err.Error())
 			}
 			return nil

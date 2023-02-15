@@ -24,6 +24,7 @@ import (
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Test_ConstructClusterForScaleDown(t *testing.T) {
@@ -130,6 +131,13 @@ func Test_ConstructClusterForScaleUp(t *testing.T) {
 	rawCluster.Name = "mycluster"
 
 	expectedCluster := v2.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "sealer.io/v2",
+			Kind:       "Cluster",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mycluster",
+		},
 		Spec: v2.ClusterSpec{
 			Image: "kubernetes:v1.19.8",
 			Env:   []string{"key1=value1", "key2=value2;value3", "key=value"},
@@ -174,38 +182,113 @@ func Test_ConstructClusterForScaleUp(t *testing.T) {
 			},
 		},
 	}
-	expectedCluster.APIVersion = "sealer.io/v2"
-	expectedCluster.Kind = "Cluster"
-	expectedCluster.Name = "mycluster"
 
-	tests := []struct {
+	type testT struct {
 		name            string
 		scaleFlags      *types.ScaleUpFlags
+		currentNodes    []net.IP
 		joinMasters     []net.IP
 		joinWorkers     []net.IP
 		rawCluster      v2.Cluster
 		expectedCluster v2.Cluster
-	}{
-		{
-			name:        "test scale up to build clusters ",
-			joinMasters: []net.IP{net.ParseIP("192.168.0.4"), net.ParseIP("192.168.0.6")},
-			joinWorkers: []net.IP{net.ParseIP("192.168.0.5"), net.ParseIP("192.168.0.7")},
-			scaleFlags: &types.ScaleUpFlags{
-				User:     "root",
-				Password: "test456",
-				Port:     22,
+	}
+	t1 := testT{
+		name:        "test scale up to build clusters ",
+		joinMasters: []net.IP{net.ParseIP("192.168.0.4"), net.ParseIP("192.168.0.6")},
+		joinWorkers: []net.IP{net.ParseIP("192.168.0.5"), net.ParseIP("192.168.0.7")},
+		scaleFlags: &types.ScaleUpFlags{
+			User:     "root",
+			Password: "test456",
+			Port:     22,
+		},
+		rawCluster:      rawCluster,
+		expectedCluster: expectedCluster,
+	}
+	t.Run(t1.name, func(t *testing.T) {
+		mj, nj, err := ConstructClusterForScaleUp(&t1.rawCluster, t1.scaleFlags, t1.currentNodes, t1.joinMasters, t1.joinWorkers)
+		if err != nil {
+			t.Errorf("Scale up failed to reduce a cluster node,error:%v", err)
+		}
+
+		assert.Equal(t, t1.joinMasters, mj)
+		assert.Equal(t, t1.joinWorkers, nj)
+		assert.Equal(t, t1.rawCluster.Spec.Hosts, t1.expectedCluster.Spec.Hosts)
+	})
+
+	expectedCluster = v2.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "sealer.io/v2",
+			Kind:       "Cluster",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mycluster",
+		},
+		Spec: v2.ClusterSpec{
+			Image: "kubernetes:v1.19.8",
+			Env:   []string{"key1=value1", "key2=value2;value3", "key=value"},
+			SSH: v1.SSH{
+				User:   "root",
+				Passwd: "test123",
+				Port:   "22",
 			},
-			rawCluster:      rawCluster,
-			expectedCluster: expectedCluster,
+			Hosts: []v2.Host{
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.2")},
+					Roles: []string{"master"},
+					Env:   []string{"etcd-dir=/data/etcd"},
+					SSH: v1.SSH{
+						User:   "root",
+						Passwd: "test456",
+						Port:   "22",
+					},
+				},
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.3")},
+					Roles: []string{"node", "db"},
+				},
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.6")},
+					Roles: []string{"master"},
+					SSH: v1.SSH{
+						User:   "root",
+						Passwd: "test456",
+						Port:   "22",
+					},
+				},
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.5")},
+					Roles: []string{"node"},
+					SSH: v1.SSH{
+						User:   "root",
+						Passwd: "test456",
+						Port:   "22",
+					},
+				},
+			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := ConstructClusterForScaleUp(&tt.rawCluster, tt.scaleFlags, tt.joinMasters, tt.joinWorkers); err != nil {
-				t.Errorf("Scale up failed to reduce a cluster node,error:%v", err)
-			}
 
-			assert.Equal(t, tt.rawCluster.Spec.Hosts, tt.expectedCluster.Spec.Hosts)
-		})
+	t1 = testT{
+		name:         "test scale up to build clusters ",
+		currentNodes: []net.IP{net.ParseIP("192.168.0.4"), net.ParseIP("192.168.0.7")},
+		joinMasters:  []net.IP{net.ParseIP("192.168.0.4"), net.ParseIP("192.168.0.6")},
+		joinWorkers:  []net.IP{net.ParseIP("192.168.0.5"), net.ParseIP("192.168.0.7")},
+		scaleFlags: &types.ScaleUpFlags{
+			User:     "root",
+			Password: "test456",
+			Port:     22,
+		},
+		rawCluster:      rawCluster,
+		expectedCluster: expectedCluster,
 	}
+	t.Run(t1.name, func(t *testing.T) {
+		mj, nj, err := ConstructClusterForScaleUp(&t1.rawCluster, t1.scaleFlags, t1.currentNodes, t1.joinMasters, t1.joinWorkers)
+		if err != nil {
+			t.Errorf("Scale up failed to reduce a cluster node,error:%v", err)
+		}
+
+		assert.Equal(t, []net.IP{net.ParseIP("192.168.0.6")}, mj)
+		assert.Equal(t, []net.IP{net.ParseIP("192.168.0.5")}, nj)
+		assert.Equal(t, t1.rawCluster.Spec.Hosts, t1.expectedCluster.Spec.Hosts)
+	})
 }

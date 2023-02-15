@@ -24,7 +24,6 @@ import (
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
-	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -232,9 +231,8 @@ func (l *localInstaller) reconcileRegistry(hosts []net.IP) error {
 	// bash init-registry.sh ${port} ${mountData} ${domain}
 	clusterEnvs := l.infraDriver.GetClusterEnv()
 	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", rootfs, strconv.Itoa(l.Port), dataDir, l.Domain)
-	initRegistryCmd := env.WrapperShell(initRegistry, clusterEnvs)
 	for _, deployHost := range hosts {
-		if err := l.infraDriver.CmdAsync(deployHost, initRegistryCmd); err != nil {
+		if err := l.infraDriver.CmdAsync(deployHost, clusterEnvs, initRegistry); err != nil {
 			return err
 		}
 	}
@@ -244,7 +242,7 @@ func (l *localInstaller) reconcileRegistry(hosts []net.IP) error {
 func (l *localInstaller) clean(cleanHosts []net.IP) error {
 	deleteRegistryCommand := "if docker inspect %s 2>/dev/null;then docker rm -f %[1]s;fi && ((! nerdctl ps -a 2>/dev/null |grep %[1]s) || (nerdctl stop %[1]s && nerdctl rmi -f %[1]s))"
 	for _, deployHost := range cleanHosts {
-		if err := l.infraDriver.CmdAsync(deployHost, fmt.Sprintf(deleteRegistryCommand, "sealer-registry")); err != nil {
+		if err := l.infraDriver.CmdAsync(deployHost, nil, fmt.Sprintf(deleteRegistryCommand, "sealer-registry")); err != nil {
 			return err
 		}
 	}

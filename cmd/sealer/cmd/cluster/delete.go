@@ -102,7 +102,7 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 
 	if workClusterfile == "" {
 		// use default clusterfile to do delete
-		cf, err = clusterfile.NewClusterFile(nil)
+		cf, _, err = clusterfile.GetActualClusterFile()
 		if err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 		return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 	}
 
-	cf, err := clusterfile.NewClusterFile(nil)
+	cf, _, err := clusterfile.GetActualClusterFile()
 	if err != nil {
 		return err
 	}

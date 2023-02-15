@@ -66,13 +66,25 @@ func NewScaleUpCmd() *cobra.Command {
 				return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 			}
 
-			cf, err = clusterfile.NewClusterFile(nil)
+			cf, _, err = clusterfile.GetActualClusterFile()
 			if err != nil {
 				return err
 			}
 
 			cluster := cf.GetCluster()
-			if err = utils.ConstructClusterForScaleUp(&cluster, scaleUpFlags, scaleUpMasterIPList, scaleUpNodeIPList); err != nil {
+			client := utils.GetClusterClient()
+			if client == nil {
+				return fmt.Errorf("failed to get cluster client")
+			}
+
+			currentCluster, err := utils.GetCurrentCluster(client)
+			if err != nil {
+				return fmt.Errorf("failed to get current cluster: %v", err)
+			}
+			currentNodes := currentCluster.GetAllIPList()
+
+			mj, nj, err := utils.ConstructClusterForScaleUp(&cluster, scaleUpFlags, currentNodes, scaleUpMasterIPList, scaleUpNodeIPList)
+			if err != nil {
 				return err
 			}
 			cf.SetCluster(cluster)
@@ -87,7 +99,7 @@ func NewScaleUpCmd() *cobra.Command {
 				return err
 			}
 
-			return scaleUpCluster(cluster.Spec.Image, scaleUpMasterIPList, scaleUpNodeIPList, infraDriver, imageEngine, cf)
+			return scaleUpCluster(cluster.Spec.Image, mj, nj, infraDriver, imageEngine, cf)
 		},
 	}
 

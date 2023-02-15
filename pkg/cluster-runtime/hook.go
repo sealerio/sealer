@@ -31,7 +31,6 @@ import (
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	netUtils "github.com/sealerio/sealer/utils/net"
@@ -66,6 +65,8 @@ const (
 	PreCleanHost Phase = "pre-clean-host"
 	//PostCleanHost on role
 	PostCleanHost Phase = "post-clean-host"
+	//UpgradeHost on role
+	UpgradeHost Phase = "upgrade-host"
 )
 
 type HookType string
@@ -185,17 +186,16 @@ func (i *Installer) getHostIPListByScope(scope Scope) []net.IP {
 }
 
 func NewShellHook() HookFunc {
-	return func(data string, hosts []net.IP, driver infradriver.InfraDriver, extraOpts map[string]bool) error {
+	return func(cmd string, hosts []net.IP, driver infradriver.InfraDriver, extraOpts map[string]bool) error {
 		rootfs := driver.GetClusterRootfsPath()
 		for _, ip := range hosts {
 			logrus.Infof("start to run hook on host %s", ip.String())
-			cmd := env.WrapperShell(data, driver.GetHostEnv(ip))
 			wrappedCmd := fmt.Sprintf(common.CdAndExecCmd, rootfs, cmd)
 			if extraOpts[ExtraOptionSkipWhenWorkspaceNotExists] {
 				wrappedCmd = fmt.Sprintf(common.CdIfExistAndExecCmd, rootfs, rootfs, cmd)
 			}
 
-			err := driver.CmdAsync(ip, wrappedCmd)
+			err := driver.CmdAsync(ip, driver.GetHostEnv(ip), wrappedCmd)
 			if err != nil {
 				return fmt.Errorf("failed to run shell hook(%s) on host(%s): %v", wrappedCmd, ip.String(), err)
 			}

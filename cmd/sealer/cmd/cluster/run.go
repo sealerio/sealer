@@ -403,7 +403,7 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 		return fmt.Errorf("failed to parse application:%v ", err)
 	}
 
-	cf, err := clusterfile.NewClusterFile(nil)
+	cf, _, err := clusterfile.GetActualClusterFile()
 	if err != nil {
 		return err
 	}

@@ -264,7 +264,7 @@ func (a *ApplyProvider) changeDefaultPasswd(containerIP net.IP) error {
 	}
 
 	cmd := fmt.Sprintf(ChangePasswordCmd, a.Cluster.Spec.SSH.Passwd)
-	_, err := sshClient.Cmd(containerIP, cmd)
+	_, err := sshClient.Cmd(containerIP, nil, cmd)
 	return err
 }
 

@@ -236,7 +236,7 @@ func SendAndRemoteExecCluster(sshClient *testhelper.SSHClient, clusterFile strin
 		err := sshClient.SSH.Copy(sshClient.RemoteHostIP, clusterFile, clusterFile)
 		return err == nil
 	}, settings.MaxWaiteTime).Should(gomega.BeTrue())
-	err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, remoteCmd)
+	err := sshClient.SSH.CmdAsync(sshClient.RemoteHostIP, nil, remoteCmd)
 	testhelper.CheckErr(err)
 }
 

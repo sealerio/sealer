@@ -165,7 +165,7 @@ func GetLocalFileData(filePath string) string {
 // GetRemoteFileData get file data from remote
 func GetRemoteFileData(sshClient *SSHClient, filePath string) []byte {
 	cmd := fmt.Sprintf("cat %s", filePath)
-	result, err := sshClient.SSH.Cmd(sshClient.RemoteHostIP, cmd)
+	result, err := sshClient.SSH.Cmd(sshClient.RemoteHostIP, nil, cmd)
 	CheckErr(err)
 	return result
 }

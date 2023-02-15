@@ -92,7 +92,7 @@ func (c *localConfigurator) removeRegistryConfig(hosts []net.IP) error {
 	}
 
 	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, strings.Join(uninstallCmd, "&&"))
+		err := c.infraDriver.CmdAsync(host, nil, strings.Join(uninstallCmd, "&&"))
 		if err != nil {
 			return fmt.Errorf("failed to delete registry configuration: %v", err)
 		}
@@ -137,7 +137,7 @@ func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) er
 		master := masters[i]
 		eg.Go(func() error {
 			cmd := shellcommand.CommandSetHostAlias(c.Domain, master.String())
-			if err := c.infraDriver.CmdAsync(master, cmd); err != nil {
+			if err := c.infraDriver.CmdAsync(master, nil, cmd); err != nil {
 				return fmt.Errorf("failed to config masters hosts file: %v", err)
 			}
 			return nil
@@ -201,12 +201,12 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 	for i := range clientHosts {
 		n := clientHosts[i]
 		eg.Go(func() error {
-			err := c.infraDriver.CmdAsync(n, ipvsCmd, lvscareStaticCmd)
+			err := c.infraDriver.CmdAsync(n, nil, ipvsCmd, lvscareStaticCmd)
 			if err != nil {
 				return fmt.Errorf("failed to config nodes lvs policy %s: %v", ipvsCmd, err)
 			}
 
-			err = c.infraDriver.CmdAsync(n, shellcommand.CommandSetHostAlias(c.Domain, vip))
+			err = c.infraDriver.CmdAsync(n, nil, shellcommand.CommandSetHostAlias(c.Domain, vip))
 			if err != nil {
 				return fmt.Errorf("failed to config nodes hosts file cmd: %v", err)
 			}
@@ -219,7 +219,7 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 func (c *localConfigurator) configureSingletonHostsFile(hosts []net.IP) error {
 	// add registry ip to "/etc/hosts"
 	f := func(host net.IP) error {
-		err := c.infraDriver.CmdAsync(host, shellcommand.CommandSetHostAlias(c.Domain, c.deployHosts[0].String()))
+		err := c.infraDriver.CmdAsync(host, nil, shellcommand.CommandSetHostAlias(c.Domain, c.deployHosts[0].String()))
 		if err != nil {
 			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}
@@ -345,7 +345,7 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 				return err
 			}
 
-			err = c.infraDriver.CmdAsync(ip, "systemctl daemon-reload")
+			err = c.infraDriver.CmdAsync(ip, nil, "systemctl daemon-reload")
 			if err != nil {
 				return err
 			}
