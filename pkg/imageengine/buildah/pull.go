@@ -17,8 +17,6 @@ package buildah
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/containers/buildah/pkg/parse"
 
 	"os"
@@ -31,15 +29,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (engine *Engine) Pull(opts *options.PullOptions) error {
+func (engine *Engine) Pull(opts *options.PullOptions) (string, error) {
 	if len(opts.Image) == 0 {
-		return errors.Errorf("an image name must be specified")
+		return "", errors.Errorf("an image name must be specified")
 	}
 
 	systemCxt := engine.SystemContext()
 	store := engine.ImageStore()
 	if err := auth.CheckAuthFile(systemCxt.AuthFilePath); err != nil {
-		return err
+		return "", err
 	}
 
 	// we need to new a systemContext instead of taking the systemContext of engine,
@@ -47,7 +45,7 @@ func (engine *Engine) Pull(opts *options.PullOptions) error {
 	newSystemCxt := systemContext()
 	_os, arch, variant, err := parse.Platform(opts.Platform)
 	if err != nil {
-		return errors.Errorf("failed to init platform from %s: %v", opts.Platform, err)
+		return "", errors.Errorf("failed to init platform from %s: %v", opts.Platform, err)
 	}
 	newSystemCxt.OSChoice = _os
 	newSystemCxt.ArchitectureChoice = arch
@@ -55,7 +53,7 @@ func (engine *Engine) Pull(opts *options.PullOptions) error {
 
 	policy, ok := define.PolicyMap[opts.PullPolicy]
 	if !ok {
-		return fmt.Errorf("unsupported pull policy %q", opts.PullPolicy)
+		return "", fmt.Errorf("unsupported pull policy %q", opts.PullPolicy)
 	}
 	options := buildah.PullOptions{
 		Store:         store,
@@ -74,8 +72,8 @@ func (engine *Engine) Pull(opts *options.PullOptions) error {
 
 	id, err := buildah.Pull(getContext(), opts.Image, options)
 	if err != nil {
-		return err
+		return "", err
 	}
-	logrus.Infof("%s", id)
-	return nil
+
+	return id, nil
 }

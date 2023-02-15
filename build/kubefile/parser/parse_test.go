@@ -57,7 +57,7 @@ func TestParserKubeApp(t *testing.T) {
 		app1Name = "nginx"
 		app1Path = testParser.appRootPathFunc(app1Name)
 		text     = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 APP %s local://%s
 LAUNCH ["%s"]
 `, app1Name, nginxDemoPath, app1Name)
@@ -73,7 +73,7 @@ LAUNCH ["%s"]
 	}()
 
 	var expectedText = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 copy %s %s
 `,
 		strings.Join(result.legacyContext.apps2Files[app1Name], " "),
@@ -120,7 +120,7 @@ func TestParserHelmApp(t *testing.T) {
 		app1Name = "github-app"
 		app1Path = testParser.appRootPathFunc(app1Name)
 		text     = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 APP %s local://%s
 LAUNCH %s
 `, app1Name, githubAppPath, app1Name)
@@ -136,7 +136,7 @@ LAUNCH %s
 	}()
 
 	var expectedText = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 copy %s %s
 `,
 		strings.Join(result.legacyContext.apps2Files[app1Name], " "),
@@ -180,7 +180,7 @@ func TestParserCMDS(t *testing.T) {
 
 	var (
 		text = fmt.Sprintf(`
-FROM busybox as base
+FROM scratch
 CMDS ["%s", "%s"]
 `, "kubectl apply -f abc.yaml", "kubectl apply -f bcd.yaml")
 	)
@@ -195,7 +195,7 @@ CMDS ["%s", "%s"]
 	}()
 
 	var expectedText = `
-FROM busybox as base
+FROM scratch
 `
 
 	result.Dockerfile = strings.TrimSpace(result.Dockerfile)

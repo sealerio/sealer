@@ -15,10 +15,17 @@
 package image
 
 import (
-	"github.com/spf13/cobra"
+	"encoding/json"
+	"fmt"
+	"os"
+	"regexp"
+	"text/template"
 
+	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var inspectOpts *options.InspectOptions
@@ -45,11 +52,37 @@ func NewInspectCmd() *cobra.Command {
 			}
 
 			inspectOpts.ImageNameOrID = args[0]
-			err = engine.Inspect(inspectOpts)
+			result, err := engine.Inspect(inspectOpts)
 			if err != nil {
 				return err
 			}
-			return nil
+
+			if inspectOpts.Format != "" {
+				format := inspectOpts.Format
+				if matched, err := regexp.MatchString("{{.*}}", format); err != nil {
+					return errors.Wrapf(err, "error validating format provided: %s", format)
+				} else if !matched {
+					return errors.Errorf("error invalid format provided: %s", format)
+				}
+				t, err := template.New("format").Parse(format)
+				if err != nil {
+					return errors.Wrapf(err, "Template parsing error")
+				}
+				if err = t.Execute(os.Stdout, result); err != nil {
+					return err
+				}
+				if term.IsTerminal(int(os.Stdout.Fd())) {
+					fmt.Println()
+				}
+				return nil
+			}
+
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "    ")
+			if term.IsTerminal(int(os.Stdout.Fd())) {
+				enc.SetEscapeHTML(false)
+			}
+			return enc.Encode(result)
 		},
 	}
 	inspectOpts = &options.InspectOptions{}

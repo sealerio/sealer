@@ -360,20 +360,21 @@ func (kp *KubefileParser) processFrom(node *Node, result *KubefileResult) error 
 		return nil
 	}
 
-	if err := kp.imageEngine.Pull(&options.PullOptions{
+	id, err := kp.imageEngine.Pull(&options.PullOptions{
 		PullPolicy: kp.pullPolicy,
 		Image:      image,
 		Platform:   platform,
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("failed to pull image %s: %v", image, err)
 	}
 
-	extension, err := kp.imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: image})
+	imageSpec, err := kp.imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 	if err != nil {
 		return fmt.Errorf("failed to get image-extension %s: %s", image, err)
 	}
 
-	for _, app := range extension.Applications {
+	for _, app := range imageSpec.ImageExtension.Applications {
 		// for range has problem.
 		// can't assign address to the target.
 		// we should use temp value.
