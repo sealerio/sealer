@@ -17,6 +17,7 @@ package test
 import (
 	"fmt"
 
+	"github.com/sealerio/sealer/cmd/sealer/cmd/alpha"
 	"github.com/sealerio/sealer/test/suites/build"
 	"github.com/sealerio/sealer/test/suites/image"
 	"github.com/sealerio/sealer/test/suites/registry"
@@ -110,6 +111,33 @@ var _ = Describe("sealer images module", func() {
 			}
 			image.TagImages(settings.TestImageName, pushImageName)
 			image.DoImageOps("push", pushImageName)
+		})
+	})
+
+	Context("mount and unmount images", func() {
+		BeforeEach(func() {
+			image.DoImageOps("pull", settings.TestImageName)
+			testhelper.CheckBeTrue(build.CheckIsImageExist(settings.TestImageName))
+		})
+
+		It("start to mount and umount", func() {
+
+			By("start to mount images")
+			mountInfo, err := alpha.NewMountService()
+			testhelper.CheckErr(err)
+			if err := image.Mount(mountInfo, settings.TestImageName); err != nil {
+				testhelper.CheckErr(err)
+			}
+
+			By("start to umount images")
+			containerID, err := image.GetContainerID()
+			if err != nil {
+				testhelper.CheckErr(err)
+			}
+
+			if err = mountInfo.Umount(containerID); err != nil {
+				testhelper.CheckErr(err)
+			}
 		})
 	})
 })
