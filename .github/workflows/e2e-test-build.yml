@@ -6,6 +6,10 @@ on:
   issue_comment:
     types:
       - created
+      
+permissions:
+  statuses: write
+
 jobs:
   build:
     name: test
