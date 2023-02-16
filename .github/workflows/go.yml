@@ -64,7 +64,7 @@ jobs:
         working-directory: src/github.com/sealerio/sealer
 
       - name: Save build binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: sealer-binaries
           path: src/github.com/sealerio/sealer/_output/assets/*.tar.gz*

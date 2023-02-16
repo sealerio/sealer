@@ -30,4 +30,4 @@ jobs:
       - name: Run go test and generate coverage
         run: go test -v -race -coverprofile=coverage.out -covermode=atomic `go list ./... | grep -v /test`
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
