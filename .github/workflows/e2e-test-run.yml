@@ -31,12 +31,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           status: pending
 
-      - name: Checkout to head_ref
-        if: ${{ github.event_name == 'issue_comment'}}
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ steps.comment-branch.outputs.head_ref }}
-
       - name: Github API Request
         id: request
         uses: octokit/request-action@v2.0.2
