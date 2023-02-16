@@ -75,12 +75,38 @@ func (engine *Engine) Build(opts *options.BuildOptions) (string, error) {
 		return "", err
 	}
 
-	options, kubefiles, err := engine.wrapper2Options(opts, wrapper)
+	opt, kubeFiles, err := engine.wrapper2Options(opts, wrapper)
 	if err != nil {
 		return "", err
 	}
 
-	return engine.build(getContext(), kubefiles, options)
+	return engine.build(getContext(), kubeFiles, opt)
+}
+
+// this function aims to set buildah configuration based on sealer image engine flags.
+func (engine *Engine) migrateFlags2Wrapper(opts *options.BuildOptions, wrapper *buildFlagsWrapper) error {
+	flags := engine.Flags()
+	// imageengine cache related flags
+	// cache intermediate layers during build, it is enabled when len(opts.Platforms) <= 1 and "no-cache" is false
+	wrapper.Layers = len(opts.Platforms) <= 1 && !opts.NoCache
+	wrapper.NoCache = opts.NoCache
+	// tags. Like -t kubernetes:v1.16
+	wrapper.Tag = []string{opts.Tag}
+	// Hardcoded for network configuration.
+	// check parse.NamespaceOptions for detailed logic.
+	// this network setup for stage container, especially for RUN wget and so on.
+	// so I think we can set as host network.
+	err := flags.Set("network", "host")
+	if err != nil {
+		return err
+	}
+
+	// use tmp dockerfile as build file
+	wrapper.File = []string{opts.DockerFilePath}
+	wrapper.Pull = opts.PullPolicy
+	wrapper.Label = append(wrapper.Label, opts.Labels...)
+	wrapper.Annotation = append(wrapper.Annotation, opts.Annotations...)
+	return nil
 }
 
 func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *buildFlagsWrapper) (define.BuildOptions, []string, error) {
@@ -153,7 +179,7 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 		}
 	}
 
-	kubefiles := getKubefiles(wrapper.File)
+	kubefiles := getKubeFiles(wrapper.File)
 	if len(kubefiles) == 0 {
 		kubefile, err := DiscoverKubefile(contextDir)
 		if err != nil {
@@ -210,9 +236,9 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 	}
 	namespaceOptions.AddOrReplace(usernsOption...)
 
-	platforms, err := parse.PlatformsFromOptions(engine.Command)
+	platforms, err := parsePlatformsFromOptions(opts.Platforms)
 	if err != nil {
-		return define.BuildOptions{}, []string{}, err
+		return define.BuildOptions{}, nil, err
 	}
 
 	var excludes []string
@@ -297,6 +323,18 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 	return options, kubefiles, nil
 }
 
+func (engine *Engine) build(cxt context.Context, kubefiles []string, options define.BuildOptions) (id string, err error) {
+	id, ref, err := imagebuildah.BuildDockerfiles(cxt, engine.ImageStore(), options, kubefiles...)
+	if err == nil && options.Manifest != "" {
+		logrus.Debugf("manifest list id = %q, ref = %q", id, ref.String())
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to build image %v: %v", options.AdditionalTags, err)
+	}
+
+	return id, nil
+}
+
 func parseArgs(buildArgs []string) (map[string]string, error) {
 	res := map[string]string{}
 	for _, arg := range buildArgs {
@@ -311,19 +349,7 @@ func parseArgs(buildArgs []string) (map[string]string, error) {
 	return res, nil
 }
 
-func (engine *Engine) build(cxt context.Context, kubefiles []string, options define.BuildOptions) (id string, err error) {
-	id, ref, err := imagebuildah.BuildDockerfiles(cxt, engine.ImageStore(), options, kubefiles...)
-	if err == nil && options.Manifest != "" {
-		logrus.Debugf("manifest list id = %q, ref = %q", id, ref.String())
-	}
-	if err != nil {
-		return "", fmt.Errorf("failed to build image %v: %v", options.AdditionalTags, err)
-	}
-
-	return id, nil
-}
-
-func getKubefiles(files []string) []string {
+func getKubeFiles(files []string) []string {
 	var kubefiles []string
 	for _, f := range files {
 		if f == "-" {
@@ -335,38 +361,15 @@ func getKubefiles(files []string) []string {
 	return kubefiles
 }
 
-// this function aims to set buildah configuration based on sealer imageengine flags.
-func (engine *Engine) migrateFlags2Wrapper(opts *options.BuildOptions, wrapper *buildFlagsWrapper) error {
-	flags := engine.Flags()
-	// imageengine cache related flags
-	// cache intermediate layers during build, it is enabled when len(opts.Platforms) <= 1 and "no-cache" is false
-	wrapper.Layers = len(opts.Platforms) <= 1 && !opts.NoCache
-	wrapper.NoCache = opts.NoCache
-	// tags. Like -t kubernetes:v1.16
-	wrapper.Tag = []string{opts.Tag}
-	// Hardcoded for network configuration.
-	// check parse.NamespaceOptions for detailed logic.
-	// this network setup for stage container, especially for RUN wget and so on.
-	// so I think we can set as host network.
-	err := flags.Set("network", "host")
-	if err != nil {
-		return err
+func parsePlatformsFromOptions(platformSpecs []string) (platforms []struct{ OS, Arch, Variant string }, err error) {
+	var _os, arch, variant string
+
+	for _, pf := range platformSpecs {
+		if _os, arch, variant, err = parse.Platform(pf); err != nil {
+			return nil, fmt.Errorf("unable to parse platform %q: %w", pf, err)
+		}
+		platforms = append(platforms, struct{ OS, Arch, Variant string }{_os, arch, variant})
 	}
 
-	// set platform to the flags in buildah
-	// check the detail in parse.PlatformsFromOptions
-	err = flags.Set("platform", strings.Join(opts.Platforms, ","))
-	if err != nil {
-		return err
-	}
-
-	// do not pack DockerFilePath into image.
-	//wrapper.IgnoreFile = opts.DockerFilePath
-
-	// use tmp dockerfile as build file
-	wrapper.File = []string{opts.DockerFilePath}
-	wrapper.Pull = opts.PullPolicy
-	wrapper.Label = append(wrapper.Label, opts.Labels...)
-	wrapper.Annotation = append(wrapper.Annotation, opts.Annotations...)
-	return nil
+	return platforms, nil
 }
