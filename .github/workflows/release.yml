@@ -19,8 +19,8 @@ jobs:
       stringver: ${{ steps.contentrel.outputs.stringver }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Check out code
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.ref }}
           path: src/github.com/sealerio/sealer
@@ -60,8 +60,8 @@ jobs:
         os: [ ubuntu-20.04 ]
 
     steps:
-      - name: Install Go
-        uses: actions/setup-go@v2
+      - name: Set up Go 1.17
+        uses: actions/setup-go@v3
         with:
           go-version: '1.17'
       - name: Install deps
@@ -81,7 +81,7 @@ jobs:
           echo "OS=${os}" >> $GITHUB_ENV
           echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
       - name: Checkout sealer
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.ref }}
           path: src/github.com/sealerio/sealer
