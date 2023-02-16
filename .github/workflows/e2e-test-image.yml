@@ -6,6 +6,11 @@ on:
   issue_comment:
     types:
       - created
+  pull_request:
+    branches: "*"
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
 
 permissions:
   statuses: write
@@ -14,7 +19,7 @@ jobs:
   build:
     name: test
     runs-on: ubuntu-latest
-    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test image')) || github.event_name == 'push' }}
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test image')) || github.event_name == 'pull_request' || github.event_name == 'push' }}
     env:
       GO111MODULE: on
     steps:
@@ -81,7 +86,6 @@ jobs:
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-        if: ${{ github.event.comment.body == '/test login' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
           ginkgo -v --focus="sealer login" test
 
@@ -93,7 +97,6 @@ jobs:
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           IMAGE_NAME: ${{ secrets.IMAGE_NAME}}
-        if: ${{ github.event.comment.body == '/test image' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
           ginkgo -v --focus="sealer image" test
 

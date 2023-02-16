@@ -6,7 +6,12 @@ on:
   issue_comment:
     types:
       - created
-      
+  pull_request:
+    branches: "*"
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+
 permissions:
   statuses: write
 
@@ -14,7 +19,7 @@ jobs:
   build:
     name: test
     runs-on: ubuntu-latest
-    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test run')) || github.event_name == 'push' }}
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test run')) || github.event_name == 'pull_request' || github.event_name == 'push' }}
     env:
       GO111MODULE: on
     steps:
@@ -86,7 +91,6 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
-        if: ${{ github.event.comment.body == '/test run' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
         run: |
           # fix bug in kernal 5.12.2+:open /proc/sys/net/netfilter/nf_conntrack_max: permission denied, see: https://github.com/kubernetes-sigs/kind/issues/2240
           sudo sysctl net/netfilter/nf_conntrack_max=131072
