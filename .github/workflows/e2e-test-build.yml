@@ -33,7 +33,7 @@ jobs:
 
       - name: Github API Request
         id: request
-        uses: octokit/request-action@v2.0.2
+        uses: octokit/request-action@v2.1.7
         with:
           route: ${{ github.event.issue.pull_request.url }}
         env:
@@ -41,9 +41,9 @@ jobs:
       - name: Get PR informations
         id: pr_data
         run: |
-          echo "::set-output name=repo_name::${{ fromJson(steps.request.outputs.data).head.repo.full_name }}"
-          echo "::set-output name=repo_clone_url::${{ fromJson(steps.request.outputs.data).head.repo.clone_url }}"
-          echo "::set-output name=repo_ssh_url::${{ fromJson(steps.request.outputs.data).head.repo.ssh_url }}"
+          echo "repo_name=${{ fromJson(steps.request.outputs.data).head.repo.full_name }}" >> $GITHUB_STATE
+          echo "repo_clone_url=${{ fromJson(steps.request.outputs.data).head.repo.clone_url }}" >> $GITHUB_STATE
+          echo "repo_ssh_url=${{ fromJson(steps.request.outputs.data).head.repo.ssh_url }}" >> $GITHUB_STATE
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
         with:

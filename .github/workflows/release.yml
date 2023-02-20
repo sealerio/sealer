@@ -28,7 +28,7 @@ jobs:
         id: contentrel
         run: |
           RELEASEVER=${{ github.ref }}
-          echo "::set-output name=stringver::${RELEASEVER#refs/tags/v}"
+          echo "stringver=${RELEASEVER#refs/tags/v}" >> $GITHUB_STATE
         working-directory: src/github.com/sealerio/sealer
 
       - uses: release-drafter/release-drafter@v5
