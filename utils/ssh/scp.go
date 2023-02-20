@@ -43,7 +43,7 @@ var (
 	writer          *io.PipeWriter
 	writeFlusher    *dockerioutils.WriteFlusher
 	progressChanOut progress.Output
-	epuMap          = map[string]*easyProgressUtil{}
+	epuMap          = NewEpuRWMap()
 )
 
 type easyProgressUtil struct {
@@ -53,22 +53,28 @@ type easyProgressUtil struct {
 	total          int
 }
 
-// must call DisplayInit first
-func registerEpu(ip net.IP, total int) {
-	if progressChanOut == nil {
-		logrus.Warn("call DisplayInit first")
-		return
+func NewEpuRWMap() *epuRWMap {
+	return &epuRWMap{
+		epu: map[string]*easyProgressUtil{},
 	}
-	if _, ok := epuMap[ip.String()]; !ok {
-		epuMap[ip.String()] = &easyProgressUtil{
-			output:         progressChanOut,
-			copyID:         "copying files to " + ip.String(),
-			completeNumber: 0,
-			total:          total,
-		}
-	} else {
-		logrus.Warnf("%s already exist in easyProgressUtil", ip)
-	}
+}
+
+type epuRWMap struct {
+	sync.RWMutex
+	epu map[string]*easyProgressUtil
+}
+
+func (m *epuRWMap) Get(k string) (*easyProgressUtil, bool) {
+	m.RLock()
+	defer m.RUnlock()
+	v, existed := m.epu[k]
+	return v, existed
+}
+
+func (m *epuRWMap) Set(k string, v *easyProgressUtil) {
+	m.Lock()
+	defer m.Unlock()
+	m.epu[k] = v
 }
 
 func (epu *easyProgressUtil) increment() {
@@ -165,15 +171,27 @@ func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 	if number == 0 {
 		return nil
 	}
-	epu, ok := epuMap[host.String()]
+
+	epu, ok := epuMap.Get(host.String())
 	if !ok {
-		registerEpu(host, number)
-		epu = epuMap[host.String()]
+		if progressChanOut == nil {
+			logrus.Warn("call DisplayInit first")
+		}
+
+		epu = &easyProgressUtil{
+			output:         progressChanOut,
+			copyID:         "copying files to " + host.String(),
+			completeNumber: 0,
+			total:          number,
+		}
+
+		epuMap.Set(host.String(), epu)
 	} else {
 		epu.total += number
 	}
 
 	epu.startMessage()
+
 	if f.IsDir() {
 		s.copyLocalDirToRemote(host, sftpClient, localPath, remotePath, epu)
 	} else {
