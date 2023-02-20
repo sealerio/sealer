@@ -43,7 +43,7 @@ var (
 	writer          *io.PipeWriter
 	writeFlusher    *dockerioutils.WriteFlusher
 	progressChanOut progress.Output
-	epuMap          = NewEpuRWMap()
+	epuMap          = &epuRWMap{epu: map[string]*easyProgressUtil{}}
 )
 
 type easyProgressUtil struct {
@@ -51,12 +51,6 @@ type easyProgressUtil struct {
 	copyID         string
 	completeNumber int
 	total          int
-}
-
-func NewEpuRWMap() *epuRWMap {
-	return &epuRWMap{
-		epu: map[string]*easyProgressUtil{},
-	}
 }
 
 type epuRWMap struct {
