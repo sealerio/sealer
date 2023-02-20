@@ -15,31 +15,31 @@
 package image
 
 import (
-	"context"
 	"crypto/rand"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/containerd/containerd/platforms"
-	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/cli"
-	"github.com/containers/buildah/pkg/parse"
-	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/build/buildimage"
 	"github.com/sealerio/sealer/build/kubefile/parser"
-	"github.com/sealerio/sealer/common"
 	version2 "github.com/sealerio/sealer/pkg/define/application/version"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/image/save"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 	"github.com/sealerio/sealer/pkg/rootfs"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sealerio/sealer/utils/yaml"
 	"github.com/sealerio/sealer/version"
+
+	"github.com/containerd/containerd/platforms"
+	"github.com/containers/buildah/define"
+	"github.com/containers/buildah/pkg/cli"
+	"github.com/containers/buildah/pkg/parse"
+	reference2 "github.com/docker/distribution/reference"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -63,7 +63,9 @@ build with image type:
   sealer build -f Kubefile -t my-kubernetes:1.19.8 --type=kube-installer(default)
   app-installer type image will not install kubernetes.
 build multi-platform image:
-	sealer build -f Kubefile -t my-kubernetes:1.19.8 --platform linux/amd64,linux/arm64
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --platform linux/amd64,linux/arm64
+build manually ignore image:
+  sealer build -f Kubefile -t my-kubernetes:1.19.8 --ignored-image-list ignoredListPath
 `
 
 // NewBuildCmd buildCmd represents the build command
@@ -107,6 +109,7 @@ func NewBuildCmd() *cobra.Command {
 	//todo we can support imageList Flag to download extra container image rather than copy it to rootfs
 	buildCmd.Flags().StringVar(&buildFlags.ImageList, "image-list", "filepath", "`pathname` of imageList filepath, if set, sealer will read its content and download extra container")
 	buildCmd.Flags().StringVar(&buildFlags.ImageListWithAuth, "image-list-with-auth", "", "`pathname` of imageListWithAuth.yaml filepath, if set, sealer will read its content and download extra container images to rootfs(not usually used)")
+	buildCmd.Flags().StringVar(&buildFlags.IgnoredImageList, "ignored-image-list", "filepath", "`pathname` of ignored image list filepath, if set, sealer will read its contents and prevent downloading of the corresponding container image")
 	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "ifnewer", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always, --pull=ifnewer")
 	buildCmd.Flags().StringVar(&buildFlags.ImageType, "type", v12.KubeInstaller, fmt.Sprintf("specify the image type, --type=%s, --type=%s, default is %s", v12.KubeInstaller, v12.AppInstaller, v12.KubeInstaller))
 	buildCmd.Flags().StringSliceVar(&buildFlags.Platforms, "platform", []string{parse.DefaultPlatform()}, "set the target platform, --platform=linux/amd64 or --platform=linux/amd64/v7. Multi-platform will be like --platform=linux/amd64,linux/amd64/v7")
@@ -239,6 +242,8 @@ func applyImagesWithSinglePlatform(engine imageengine.Interface, imageID string,
 }
 
 func applyRegistryToImage(engine imageengine.Interface, imageID string, platform v1.Platform) (string, []*v12.ContainerImage, error) {
+	var containerImageList []*v12.ContainerImage
+
 	_os, arch, variant := platform.OS, platform.Architecture, platform.Variant
 	// this temporary file is used to execute image pull, and save it to /registry.
 	// engine.BuildRootfs will generate an image rootfs, and link the rootfs to temporary dir(temp sealer rootfs).
@@ -263,8 +268,6 @@ func applyRegistryToImage(engine imageengine.Interface, imageID string, platform
 		return "", nil, errors.Wrapf(err, "failed to create working container, imageid: %s", imageID)
 	}
 
-	var containerImageList []*v12.ContainerImage
-
 	// download container image from `imageList`
 	if buildFlags.ImageList != "" && osi.IsFileExist(buildFlags.ImageList) {
 		images, err := osi.NewFileReader(buildFlags.ImageList).ReadLines()
@@ -274,21 +277,15 @@ func applyRegistryToImage(engine imageengine.Interface, imageID string, platform
 		for _, image := range images {
 			logrus.Debugf("get container image(%s) with platform(%s) from build flag image list",
 				image, platform.ToString())
+			img, err := reference2.ParseNormalizedNamed(image)
+			if err != nil {
+				return "", nil, err
+			}
 			containerImageList = append(containerImageList, &v12.ContainerImage{
-				Image:    image,
+				Image:    img.String(),
 				AppName:  "",
 				Platform: &platform,
 			})
-		}
-		formatImages := buildimage.FormatImages(images)
-		ctx := context.Background()
-		imageSave := save.NewImageSaver(ctx)
-		if err := imageSave.SaveImages(formatImages, filepath.Join(tmpDirForLink, common.RegistryDirName), v1.Platform{
-			Architecture: arch,
-			OS:           _os,
-			Variant:      variant,
-		}); err != nil {
-			return "", nil, err
 		}
 	}
 
@@ -297,19 +294,30 @@ func applyRegistryToImage(engine imageengine.Interface, imageID string, platform
 	if err != nil {
 		return "", nil, errors.Wrap(err, "failed to parse container image list")
 	}
-	// add platform info for container image
-	for _, containerImage := range parsedContainerImageList {
-		logrus.Debugf("get container image(%s) with platform(%s) for app(%s) from build flag image list",
-			containerImage.Image, containerImage.AppName, platform.ToString())
-		containerImage.Platform = &platform
-		containerImageList = append(containerImageList, containerImage)
+	containerImageList = append(containerImageList, parsedContainerImageList...)
+
+	// ignored image list
+	if buildFlags.IgnoredImageList != "" && osi.IsFileExist(buildFlags.IgnoredImageList) {
+		ignoredImageList, err := osi.NewFileReader(buildFlags.IgnoredImageList).ReadLines()
+		if err != nil {
+			return "", nil, err
+		}
+
+		imageList := containerImageList
+		containerImageList = nil
+		for _, list := range imageList {
+			if !strings.IsInSlice(list.Image, ignoredImageList) {
+				containerImageList = append(containerImageList, list)
+			}
+		}
 	}
+
 	registry := buildimage.NewRegistry(v1.Platform{
 		Architecture: arch,
 		OS:           _os,
 		Variant:      variant,
 	})
-	if err := registry.SaveImages(tmpDirForLink, v12.GetImageSliceFromContainerImageList(parsedContainerImageList)); err != nil {
+	if err := registry.SaveImages(tmpDirForLink, v12.GetImageSliceFromContainerImageList(containerImageList)); err != nil {
 		return "", nil, errors.Wrap(err, "failed to download container images")
 	}
 
