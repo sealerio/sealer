@@ -15,33 +15,23 @@
 package buildah
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"regexp"
 	"strings"
-	"text/template"
-
-	"github.com/sealerio/sealer/build/kubefile/command"
-	image_v1 "github.com/sealerio/sealer/pkg/define/image/v1"
-	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"golang.org/x/term"
+	"github.com/sealerio/sealer/build/kubefile/command"
+	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
+	"github.com/sealerio/sealer/pkg/define/options"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
-const (
-	//inspectTypeContainer = "container"
-	inspectTypeImage = "image"
-	//inspectTypeManifest  = "manifest"
-)
-
-func (engine *Engine) Inspect(opts *options.InspectOptions) error {
+func (engine *Engine) Inspect(opts *options.InspectOptions) (*imagev1.ImageSpec, error) {
 	if len(opts.ImageNameOrID) == 0 {
-		return errors.Errorf("image name or image id must be specified.")
+		return nil, errors.Errorf("image name or image id must be specified.")
 	}
+
 	var (
 		builder *buildah.Builder
 		err     error
@@ -49,42 +39,41 @@ func (engine *Engine) Inspect(opts *options.InspectOptions) error {
 
 	ctx := getContext()
 	store := engine.ImageStore()
+	newSystemCxt := engine.SystemContext()
 	name := opts.ImageNameOrID
 
-	switch opts.InspectType {
-	case inspectTypeImage:
-		builder, err = openImage(ctx, engine.SystemContext(), store, name)
-		if err != nil {
-			return err
-		}
-	//case inspectTypeManifest:
-	default:
-		return errors.Errorf("the only recognized type is %q", inspectTypeImage)
+	builder, err = openImage(ctx, newSystemCxt, store, name)
+	if err != nil {
+		return nil, err
 	}
 
 	builderInfo := buildah.GetBuildInfo(builder)
 	var manifest = ociv1.Manifest{}
 	if err := json.Unmarshal([]byte(builderInfo.Manifest), &manifest); err != nil {
-		return errors.Wrapf(err, "failed to get manifest")
+		return nil, errors.Wrapf(err, "failed to get manifest")
 	}
+
 	if len(manifest.Annotations) != 0 {
-		delete(manifest.Annotations, image_v1.SealerImageExtension)
-		delete(manifest.Annotations, image_v1.SealerImageContainerImageList)
+		delete(manifest.Annotations, imagev1.SealerImageExtension)
+		delete(manifest.Annotations, imagev1.SealerImageContainerImageList)
 	}
-	imageExtension, err := GetImageExtensionFromAnnotations(builderInfo.ImageAnnotations)
+
+	imageExtension, err := getImageExtensionFromAnnotations(builderInfo.ImageAnnotations)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get %s in image %s", image_v1.SealerImageExtension, opts.ImageNameOrID)
+		return nil, errors.Wrapf(err, "failed to get %s in image %s", imagev1.SealerImageExtension, opts.ImageNameOrID)
 	}
+
 	imageExtension.Labels = handleImageLabelOutput(builderInfo.OCIv1.Config.Labels)
+
 	// NOTE: avoid duplicate content output
 	builderInfo.OCIv1.Config.Labels = nil
 
-	containerImageList, err := GetContainerImagesFromAnnotations(builderInfo.ImageAnnotations)
+	containerImageList, err := getContainerImagesFromAnnotations(builderInfo.ImageAnnotations)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get %s in image %s", image_v1.SealerImageContainerImageList, opts.ImageNameOrID)
+		return nil, errors.Wrapf(err, "failed to get %s in image %s", imagev1.SealerImageContainerImageList, opts.ImageNameOrID)
 	}
 
-	result := &image_v1.ImageSpec{
+	result := &imagev1.ImageSpec{
 		ID:                 builderInfo.FromImageID,
 		Name:               builderInfo.FromImage,
 		Digest:             builderInfo.FromImageDigest,
@@ -93,32 +82,34 @@ func (engine *Engine) Inspect(opts *options.InspectOptions) error {
 		ImageExtension:     imageExtension,
 		ContainerImageList: containerImageList,
 	}
-	if opts.Format != "" {
-		format := opts.Format
-		if matched, err := regexp.MatchString("{{.*}}", format); err != nil {
-			return errors.Wrapf(err, "error validating format provided: %s", format)
-		} else if !matched {
-			return errors.Errorf("error invalid format provided: %s", format)
-		}
-		t, err := template.New("format").Parse(format)
-		if err != nil {
-			return errors.Wrapf(err, "Template parsing error")
-		}
-		if err = t.Execute(os.Stdout, result); err != nil {
-			return err
-		}
-		if term.IsTerminal(int(os.Stdout.Fd())) {
-			fmt.Println()
-		}
-		return nil
+
+	return result, nil
+}
+
+func getImageExtensionFromAnnotations(annotations map[string]string) (imagev1.ImageExtension, error) {
+	extension := imagev1.ImageExtension{}
+	extensionStr := annotations[imagev1.SealerImageExtension]
+	if len(extensionStr) == 0 {
+		return extension, fmt.Errorf("%s does not exist", imagev1.SealerImageExtension)
 	}
 
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "    ")
-	if term.IsTerminal(int(os.Stdout.Fd())) {
-		enc.SetEscapeHTML(false)
+	if err := json.Unmarshal([]byte(extensionStr), &extension); err != nil {
+		return extension, errors.Wrapf(err, "failed to unmarshal %v", imagev1.SealerImageExtension)
 	}
-	return enc.Encode(result)
+	return extension, nil
+}
+
+func getContainerImagesFromAnnotations(annotations map[string]string) ([]*imagev1.ContainerImage, error) {
+	var containerImageList []*imagev1.ContainerImage
+	annotationStr := annotations[imagev1.SealerImageContainerImageList]
+	if len(annotationStr) == 0 {
+		return nil, nil
+	}
+
+	if err := json.Unmarshal([]byte(annotationStr), &containerImageList); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal %v", imagev1.SealerImageContainerImageList)
+	}
+	return containerImageList, nil
 }
 
 func handleImageLabelOutput(labels map[string]string) map[string]string {

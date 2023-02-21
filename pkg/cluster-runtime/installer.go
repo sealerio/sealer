@@ -24,10 +24,8 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/application"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
-	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
-	common2 "github.com/sealerio/sealer/pkg/define/options"
+	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
-	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
@@ -45,7 +43,7 @@ var trySleepTime = time.Second
 
 // RuntimeConfig for Installer
 type RuntimeConfig struct {
-	ImageEngine            imageengine.Interface
+	ImageSpec              *imagev1.ImageSpec
 	Distributor            imagedistributor.Distributor
 	ContainerRuntimeConfig v2.ContainerRuntimeConfig
 	KubeadmConfig          kubeadm.KubeadmConfig
@@ -89,22 +87,17 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 
 func (i *Installer) Install() error {
 	var (
-		masters          = i.infraDriver.GetHostIPListByRole(common.MASTER)
-		master0          = masters[0]
-		workers          = getWorkerIPList(i.infraDriver)
-		all              = append(masters, workers...)
-		cmds             = i.infraDriver.GetClusterLaunchCmds()
-		appNames         = i.infraDriver.GetClusterLaunchApps()
-		clusterImageName = i.infraDriver.GetClusterImageName()
-		rootfs           = i.infraDriver.GetClusterRootfsPath()
+		masters   = i.infraDriver.GetHostIPListByRole(common.MASTER)
+		master0   = masters[0]
+		workers   = getWorkerIPList(i.infraDriver)
+		all       = append(masters, workers...)
+		cmds      = i.infraDriver.GetClusterLaunchCmds()
+		appNames  = i.infraDriver.GetClusterLaunchApps()
+		rootfs    = i.infraDriver.GetClusterRootfsPath()
+		extension = i.ImageSpec.ImageExtension
 	)
 
-	extension, err := i.ImageEngine.GetSealerImageExtension(&common2.GetImageAnnoOptions{ImageNameOrID: clusterImageName})
-	if err != nil {
-		return fmt.Errorf("failed to get cluster image extension: %s", err)
-	}
-
-	if extension.Type != v12.KubeInstaller {
+	if extension.Type != imagev1.KubeInstaller {
 		return fmt.Errorf("exit install process, wrong cluster image type: %s", extension.Type)
 	}
 

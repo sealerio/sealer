@@ -85,25 +85,26 @@ func NewApplyCmd() *cobra.Command {
 				return err
 			}
 
-			if err = imageEngine.Pull(&options.PullOptions{
+			id, err := imageEngine.Pull(&options.PullOptions{
 				Quiet:      false,
 				PullPolicy: "missing",
 				Image:      imageName,
 				Platform:   "local",
-			}); err != nil {
+			})
+			if err != nil {
 				return err
 			}
 
-			extension, err := imageEngine.GetSealerImageExtension(&options.GetImageAnnoOptions{ImageNameOrID: imageName})
+			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 			if err != nil {
 				return fmt.Errorf("failed to get cluster image extension: %s", err)
 			}
 
-			if extension.Type == v12.AppInstaller {
+			if imageSpec.ImageExtension.Type == v12.AppInstaller {
 				app := v2.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
 
 				return installApplication(imageName, desiredCluster.Spec.Env,
-					app, extension, cf.GetConfigs(), imageEngine, applyMode)
+					app, imageSpec.ImageExtension, cf.GetConfigs(), imageEngine, applyMode)
 			}
 
 			client := utils.GetClusterClient()
@@ -127,7 +128,7 @@ func NewApplyCmd() *cobra.Command {
 
 				// set merged cluster
 				cf.SetCluster(*cluster)
-				return createNewCluster(imageEngine, cf, applyMode)
+				return createNewCluster(imageEngine, cf, imageSpec, applyMode)
 			}
 
 			logrus.Infof("Start to check if need scale")

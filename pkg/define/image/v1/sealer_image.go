@@ -51,7 +51,7 @@ type ImageSpec struct {
 	// OCIv1 OCI version v1 image spec
 	OCIv1 ociv1.Image `json:"ociv1"`
 
-	ImageExtension
+	ImageExtension ImageExtension `json:"imageExtension"`
 
 	// ContainerImageList the container image list contained in the sealer image
 	//

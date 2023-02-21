@@ -150,10 +150,6 @@ type RemoveImageOptions struct {
 	Prune           bool
 }
 
-type GetImageAnnoOptions struct {
-	ImageNameOrID string
-}
-
 type EngineGlobalConfigurations struct {
 	AuthFile  string
 	GraphRoot string
