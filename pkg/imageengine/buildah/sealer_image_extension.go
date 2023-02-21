@@ -51,6 +51,16 @@ func GetImageExtensionFromAnnotations(annotations map[string]string) (image_v1.I
 	return extension, nil
 }
 
+func (engine *Engine) GetSealerContainerImageList(opts *options.GetImageAnnoOptions) ([]*image_v1.ContainerImage, error) {
+	annotation, err := engine.GetImageAnnotation(opts)
+	result, err := GetContainerImagesFromAnnotations(annotation)
+	if err != nil {
+		return []*image_v1.ContainerImage{}, errors.Wrapf(err, "failed to get %s in image %s", image_v1.SealerImageContainerImageList, opts.ImageNameOrID)
+	}
+
+	return result, nil
+}
+
 func GetContainerImagesFromAnnotations(annotations map[string]string) ([]*image_v1.ContainerImage, error) {
 	var containerImageList []*image_v1.ContainerImage
 	annotationStr := annotations[image_v1.SealerImageContainerImageList]

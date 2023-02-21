@@ -199,7 +199,7 @@ func (i *Installer) Install() error {
 		return err
 	}
 
-	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
+	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension, i.ImageEngine)
 
 	v2App, err := application.NewV2Application(v2.ConstructApplication(i.Application, cmds, appNames), extension)
 	if err != nil {
