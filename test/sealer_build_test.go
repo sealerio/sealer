@@ -30,7 +30,7 @@ var _ = Describe("sealer build", func() {
 
 	Context("testing build with cmds", func() {
 		BeforeEach(func() {
-			buildPath := filepath.Join(build.AppCmdsBuildDir())
+			buildPath := filepath.Join(build.WithCmdsBuildDir())
 			err := os.Chdir(buildPath)
 			testhelper.CheckErr(err)
 		})
@@ -67,7 +67,7 @@ var _ = Describe("sealer build", func() {
 
 	Context("testing build with launch", func() {
 		BeforeEach(func() {
-			buildPath := filepath.Join(build.AppLaunchBuildDir())
+			buildPath := filepath.Join(build.WithLaunchBuildDir())
 			err := os.Chdir(buildPath)
 			testhelper.CheckErr(err)
 		})
@@ -102,9 +102,44 @@ var _ = Describe("sealer build", func() {
 
 	})
 
+	Context("testing build with app cmds", func() {
+		BeforeEach(func() {
+			buildPath := filepath.Join(build.WithAPPCmdsBuildDir())
+			err := os.Chdir(buildPath)
+			testhelper.CheckErr(err)
+		})
+		AfterEach(func() {
+			err := os.Chdir(settings.DefaultTestEnvDir)
+			testhelper.CheckErr(err)
+		})
+
+		It("start to build with app cmds", func() {
+			imageName := build.GetBuildImageName()
+			cmd := build.NewArgsOfBuild().
+				SetKubeFile("Kubefile").
+				SetImageName(imageName).
+				SetContext(".").
+				String()
+			sess, err := testhelper.Start(cmd)
+			testhelper.CheckErr(err)
+			testhelper.CheckExit0(sess, settings.MaxWaiteTime)
+
+			// check: sealer images whether image exist
+			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+
+			//TODO check image spec content
+			// 1. launch app names
+			// 2. launch app cmds:
+
+			// clean: build image
+			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+		})
+
+	})
+
 	Context("testing build with --image-list flag", func() {
 		BeforeEach(func() {
-			buildPath := filepath.Join(build.AppWithImageListFlagBuildDir())
+			buildPath := filepath.Join(build.WithImageListFlagBuildDir())
 			err := os.Chdir(buildPath)
 			testhelper.CheckErr(err)
 		})
@@ -143,7 +178,7 @@ var _ = Describe("sealer build", func() {
 
 		BeforeEach(func() {
 			registry.Login()
-			buildPath := filepath.Join(build.MultiArchBuildDir())
+			buildPath := filepath.Join(build.WithMultiArchBuildDir())
 			err := os.Chdir(buildPath)
 			testhelper.CheckErr(err)
 

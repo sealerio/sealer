@@ -19,6 +19,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/sealerio/sealer/pkg/define/application"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -102,4 +104,132 @@ func TestIsHelm(t *testing.T) {
 		}
 		assert.Equal(t, false, isH)
 	})
+}
+
+func TestGetApplicationType(t *testing.T) {
+	type args struct {
+		preparedFunc func() (string, error)
+		wanted       string
+	}
+	var tests = []struct {
+		name string
+		args args
+	}{
+		{
+			name: "it is helm application",
+			args: args{
+				preparedFunc: func() (string, error) {
+					dir, err := os.MkdirTemp("/tmp/", "sealer-test")
+					if err != nil {
+						t.Error(err)
+					}
+					targets := []string{
+						filepath.Join(dir, "values.yaml"),
+						filepath.Join(dir, "Chart.yaml"),
+						filepath.Join(dir, "templates"),
+					}
+					for _, tar := range targets {
+						if _, err := os.Create(tar); err != nil {
+							t.Error(err)
+						}
+					}
+
+					return dir, nil
+				},
+				wanted: application.HelmApp,
+			},
+		},
+		{
+			name: "it is kube yaml application",
+			args: args{
+				preparedFunc: func() (string, error) {
+					dir, err := os.MkdirTemp("/tmp/", "sealer-test")
+					if err != nil {
+						t.Error(err)
+					}
+					targets := []string{
+						filepath.Join(dir, "a.yaml"),
+						filepath.Join(dir, "b.yaml"),
+						filepath.Join(dir, "c.yaml"),
+					}
+					for _, tar := range targets {
+						if _, err := os.Create(tar); err != nil {
+							t.Error(err)
+						}
+					}
+
+					return dir, nil
+				},
+				wanted: application.KubeApp,
+			},
+		},
+		{
+			name: "it is shell application",
+			args: args{
+				preparedFunc: func() (string, error) {
+					dir, err := os.MkdirTemp("/tmp/", "sealer-test")
+					if err != nil {
+						t.Error(err)
+					}
+					targets := []string{
+						filepath.Join(dir, "a.sh"),
+						filepath.Join(dir, "v.sh"),
+						filepath.Join(dir, "c.sh"),
+					}
+					for _, tar := range targets {
+						if _, err := os.Create(tar); err != nil {
+							t.Error(err)
+						}
+					}
+
+					return dir, nil
+				},
+				wanted: application.ShellApp,
+			},
+		},
+		{
+			name: "it is mixed application",
+			args: args{
+				preparedFunc: func() (string, error) {
+					dir, err := os.MkdirTemp("/tmp/", "sealer-test")
+					if err != nil {
+						t.Error(err)
+					}
+					targets := []string{
+						filepath.Join(dir, "a.sh"),
+						filepath.Join(dir, "t.yaml"),
+						filepath.Join(dir, "c.sh"),
+					}
+					for _, tar := range targets {
+						if _, err := os.Create(tar); err != nil {
+							t.Error(err)
+						}
+					}
+
+					return dir, nil
+				},
+				wanted: "",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir, err := tt.args.preparedFunc()
+			if err != nil {
+				assert.Errorf(t, err, "failed to create test files for %s: %v", tt.name, err)
+			}
+			defer func() {
+				_ = os.RemoveAll(dir)
+			}()
+
+			appType, err := getApplicationType([]string{dir})
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			assert.Equal(t, tt.args.wanted, appType)
+		})
+	}
 }
