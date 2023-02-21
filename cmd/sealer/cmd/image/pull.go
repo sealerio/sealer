@@ -52,7 +52,7 @@ func NewPullCmd() *cobra.Command {
 				return fmt.Errorf("failed to pull image: %s", pullOpts.Image)
 			}
 
-			logrus.Infof("%s", imageID)
+			logrus.Infof("successful pull %s with the image ID: %s", pullOpts.Image, imageID)
 			return err
 		},
 	}
