@@ -44,7 +44,7 @@ type ApplicationConfig struct {
 	// the AppName
 	Name string `json:"name,omitempty"`
 
-	//Files []AppFile `json:"files,omitempty"`
+	Files []AppFile `json:"files,omitempty"`
 
 	// app Launch customization
 	Launch *Launch `json:"launch,omitempty"`
@@ -53,34 +53,30 @@ type ApplicationConfig struct {
 	//Delete *Delete `json:"delete,omitempty"`
 }
 
-type ValueType string
+type Strategy string
 
 const (
-	RawValueType       ValueType = "raw"
-	ArgsValueType      ValueType = "args"
-	SecretValueType    ValueType = "secret"
-	NamespaceValueType ValueType = "namespace"
+	OverWriteStrategy Strategy = "overwrite"
+	MergeStrategy     Strategy = "merge"
+	RenderStrategy    Strategy = "render"
 )
 
 type AppFile struct {
-	// FilePath represents the path to write the Values, required.
-	FilePath string `json:"filePath,omitempty"`
+	// Path represents the path to write the Values, required.
+	Path string `json:"path,omitempty"`
 
 	//PreProcessor pre mutate the whole Values.
 	//PreProcessor string `json:"preProcessor,omitempty"`
 
-	// TODO add "section" ValueType to do deep merge with values
-	//ValueType support as blew:
-	// RawValueType: this will overwrite the FilePath with the Values.
-	// ArgsValueType: this will render the FilePath with the Values.
-	// SecretValueType: this will write Values as Secret data to the file loaded from FilePath.
-	// NamespaceValueType: this will write Values as Namespace name to the FilePath whether it is exists or not.
-	// if not represent, RawValueType is default.
-	ValueType string `json:"valueType,omitempty"`
+	// Enumeration value is "merge", "overwrite", "render". default value is "overwrite".
+	// OverWriteStrategy : this will overwrite the FilePath with the Data.
+	// RenderStrategy: this will render the FilePath with the Data.
+	// MergeStrategy: this will merge the FilePath with the Data, and only yaml files format are supported
+	Strategy Strategy `json:"strategy,omitempty"`
 
-	// Values real app launch need.
+	// Data real app launch need.
 	// it could be raw content, yaml data, yaml section data, key-value pairs, and so on.
-	Values string `json:"values,omitempty"`
+	Data string `json:"data,omitempty"`
 }
 
 type Delete struct {

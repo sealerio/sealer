@@ -28,15 +28,18 @@ type Interface interface {
 	GetAppLaunchCmds(appName string) []string
 
 	// GetAppNames :get application name list
-	// return spec.AppNames firstly Or get from image extension.
+	// return spec.AppNames
 	GetAppNames() []string
+
+	//GetAppRoot :get appRoot path by its name.
+	GetAppRoot(appName string) string
 
 	// GetDeleteCmds :get application delete commands from configs
 	// return Delete.Cmds firstly Or wrapper application commands through its type.
 	//GetDeleteCmds(appName string) []string
 
-	// GetFileProcessors :get application file Processor using at mount stage to modify build app files.
-	//GetFileProcessors(appName string) ([]FileProcessor, error)
+	// FileProcess :Process application file using at mount stage to modify build app files.
+	FileProcess(mountDir string) error
 
 	//GetImageName ()string
 	//GetGlobalEnv() map[string]interface{}
@@ -50,9 +53,7 @@ type Interface interface {
 type FileProcessor interface {
 	//Process application files though ValueType
 	// currently Processor register as blew:
-	// rawTypeProcessor: this will overwrite the FilePath with the Values.
-	// argsTypeProcessor: this will render the FilePath with the Values.
-	// secretTypeProcessor: this will write Values as Secret data to the file loaded from FilePath.
-	// nameSpaceTypeProcessor: this will write Values as Namespace name to the FilePath whether it is exists or not.
+	// overWriteProcessor: this will overwrite the FilePath with the Values.
+	// renderProcessor: this will render the FilePath with the Values.
 	Process(appRoot string) error
 }

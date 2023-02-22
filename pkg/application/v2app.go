@@ -15,6 +15,7 @@
 package application
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -22,14 +23,17 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/imdario/mergo"
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
-	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
+	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/rootfs"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	osUtils "github.com/sealerio/sealer/utils/os"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
 type v2Application struct {
@@ -44,8 +48,15 @@ type v2Application struct {
 	// appLaunchCmdsMap contains the whole appLaunchCmds with app name as its key.
 	appLaunchCmdsMap map[string][]string
 	//appDeleteCmdsMap    map[string][]string
+
 	//appFileProcessorMap map[string][]Processor
-	extension v12.ImageExtension
+	extension imagev1.ImageExtension
+
+	// appRootMap contains the whole app root with app name as its key.
+	appRootMap map[string]string
+
+	// appFileProcessorMap contains the whole FileProcessors with app name as its key.
+	appFileProcessorMap map[string][]FileProcessor
 }
 
 func (a *v2Application) GetAppLaunchCmds(appName string) []string {
@@ -54,6 +65,10 @@ func (a *v2Application) GetAppLaunchCmds(appName string) []string {
 
 func (a *v2Application) GetAppNames() []string {
 	return a.launchApps
+}
+
+func (a *v2Application) GetAppRoot(appName string) string {
+	return a.appRootMap[appName]
 }
 
 func (a *v2Application) GetImageLaunchCmds() []string {
@@ -130,13 +145,26 @@ func (a *v2Application) Save(opts SaveOptions) error {
 	return nil
 }
 
-func NewV2Application(app *v2.Application, extension v12.ImageExtension) (Interface, error) {
+func (a *v2Application) FileProcess(mountDir string) error {
+	for appName, processors := range a.appFileProcessorMap {
+		for _, fp := range processors {
+			if err := fp.Process(filepath.Join(mountDir, a.GetAppRoot(appName))); err != nil {
+				return fmt.Errorf("failed to process appFiles for %s: %v", appName, err)
+			}
+		}
+	}
+	return nil
+}
+
+// NewV2Application :unify v2.Application and image extension into same Interface using to do Application ops.
+func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (Interface, error) {
 	v2App := &v2Application{
-		app:              app,
-		extension:        extension,
-		globalCmds:       extension.Launch.Cmds,
-		launchApps:       extension.Launch.AppNames,
-		appLaunchCmdsMap: map[string][]string{},
+		app:                 app,
+		globalCmds:          extension.Launch.Cmds,
+		launchApps:          extension.Launch.AppNames,
+		appLaunchCmdsMap:    map[string][]string{},
+		appRootMap:          map[string]string{},
+		appFileProcessorMap: map[string][]FileProcessor{},
 	}
 
 	// initialize globalCmds, overwrite default cmds from image extension.
@@ -150,18 +178,21 @@ func NewV2Application(app *v2.Application, extension v12.ImageExtension) (Interf
 	}
 
 	// initialize appLaunchCmdsMap, get default launch cmds from image extension.
-	appConfigMap := make(map[string]*v12.ApplicationConfig)
+	appConfigFromImageMap := make(map[string]*imagev1.ApplicationConfig)
+
 	for _, appConfig := range extension.Launch.AppConfigs {
-		appConfigMap[appConfig.Name] = appConfig
+		appConfigFromImageMap[appConfig.Name] = appConfig
 	}
+
 	for _, name := range v2App.launchApps {
 		appRoot := makeItDir(filepath.Join(rootfs.GlobalManager.App().Root(), name))
+		v2App.appRootMap[name] = appRoot
 		for _, exApp := range extension.Applications {
 			v1app := exApp.(*v1.Application)
 			if v1app.Name() != name {
 				continue
 			}
-			if appConfig, ok := appConfigMap[name]; ok && appConfig.Launch != nil {
+			if appConfig, ok := appConfigFromImageMap[name]; ok && appConfig.Launch != nil {
 				v2App.appLaunchCmdsMap[name] = []string{v1app.LaunchCmd(appRoot, appConfig.Launch.CMDs)}
 			} else {
 				v2App.appLaunchCmdsMap[name] = []string{v1app.LaunchCmd(appRoot, nil)}
@@ -186,11 +217,21 @@ func NewV2Application(app *v2.Application, extension v12.ImageExtension) (Interf
 			if launchCmds == nil {
 				return nil, fmt.Errorf("failed to get launchCmds from v2Application configs")
 			}
-
 			v2App.appLaunchCmdsMap[name] = launchCmds
 		}
+
+		// initialize app files
+		var fileProcessors []FileProcessor
+		for _, appFile := range config.Files {
+			fp, err := newFileProcessor(appFile)
+			if err != nil {
+				return nil, err
+			}
+			fileProcessors = append(fileProcessors, fp)
+		}
+		v2App.appFileProcessorMap[name] = fileProcessors
+
 		// TODO initialize delete field
-		// TODO initialize files field
 	}
 
 	return v2App, nil
@@ -214,3 +255,116 @@ func makeItDir(str string) string {
 	}
 	return str
 }
+
+func newFileProcessor(appFile v2.AppFile) (FileProcessor, error) {
+	switch appFile.Strategy {
+	case v2.OverWriteStrategy:
+		return overWriteProcessor{appFile}, nil
+	case v2.MergeStrategy:
+		return mergeProcessor{appFile}, nil
+	}
+
+	return nil, fmt.Errorf("failed to init fileProcessor,%s is not register", appFile.Strategy)
+}
+
+// overWriteProcessor :this will overwrite the FilePath with the Values.
+type overWriteProcessor struct {
+	v2.AppFile
+}
+
+func (r overWriteProcessor) Process(appRoot string) error {
+	target := filepath.Join(appRoot, r.Path)
+
+	err := osUtils.NewCommonWriter(target).WriteFile([]byte(r.Data))
+	if err != nil {
+		return fmt.Errorf("failed to write to file %s with raw mode: %v", target, err)
+	}
+	return nil
+}
+
+// mergeProcessor :this will merge the FilePath with the Values.
+//Only files in yaml format are supported.
+//if Strategy is "merge" will deeply merge each yaml file section.
+type mergeProcessor struct {
+	v2.AppFile
+}
+
+func (m mergeProcessor) Process(appRoot string) error {
+	var (
+		result     [][]byte
+		srcDataMap = make(map[string]interface{})
+	)
+
+	err := yaml.Unmarshal([]byte(m.Data), &srcDataMap)
+	if err != nil {
+		return fmt.Errorf("failed to load config data: %v", err)
+	}
+
+	target := filepath.Join(appRoot, m.Path)
+	contents, err := os.ReadFile(filepath.Clean(target))
+	if err != nil {
+		return err
+	}
+
+	for _, section := range bytes.Split(contents, []byte("---\n")) {
+		destDataMap := make(map[string]interface{})
+
+		err = yaml.Unmarshal(section, &destDataMap)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal config data: %v", err)
+		}
+
+		err = mergo.Merge(&destDataMap, &srcDataMap, mergo.WithOverride)
+		if err != nil {
+			return fmt.Errorf("failed to merge config: %v", err)
+		}
+
+		out, err := yaml.Marshal(destDataMap)
+		if err != nil {
+			return err
+		}
+
+		result = append(result, out)
+	}
+
+	err = osUtils.NewCommonWriter(target).WriteFile(bytes.Join(result, []byte("---\n")))
+	if err != nil {
+		return fmt.Errorf("failed to write to file %s with raw mode: %v", target, err)
+	}
+	return nil
+}
+
+// renderProcessor : this will render the FilePath with the Values.
+//type renderProcessor struct {
+//	v2.AppFile
+//}
+
+//const templateSuffix = ".tmpl"
+
+//func (a renderProcessor) Process(appRoot string) error {
+//	target := filepath.Join(appRoot, a.Path)
+//
+//	if !strings.HasSuffix(a.Path, templateSuffix) {
+//		return nil
+//	}
+//
+//	writer, err := os.OpenFile(filepath.Clean(strings.TrimSuffix(target, templateSuffix)), os.O_CREATE|os.O_RDWR, os.ModePerm)
+//	if err != nil {
+//		return fmt.Errorf("failed to open file [%s] when render args: %v", target, err)
+//	}
+//
+//	defer func() {
+//		_ = writer.Close()
+//	}()
+//
+//	t, err := template.New(a.Path).ParseFiles(target)
+//	if err != nil {
+//		return fmt.Errorf("failed to create template(%s): %v", target, err)
+//	}
+//
+//	if err := t.Execute(writer, strUtils.ConvertEnv(strings.Split(a.Data, " "))); err != nil {
+//		return fmt.Errorf("failed to render file %s with args mode: %v", target, err)
+//	}
+//
+//	return nil
+//}
