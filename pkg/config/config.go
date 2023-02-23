@@ -32,8 +32,7 @@ import (
 )
 
 const (
-	Merge     = "merge"
-	Overwrite = "overwrite"
+	Merge = "merge"
 )
 
 type Interface interface {

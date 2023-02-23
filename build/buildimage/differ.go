@@ -32,7 +32,6 @@ import (
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/image/save"
 	"github.com/sealerio/sealer/pkg/rootfs"
-	"github.com/sealerio/sealer/pkg/runtime"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
 )
@@ -148,25 +147,6 @@ func ParseContainerImageSlice(srcPath string) ([]string, error) {
 		return nil, err
 	}
 	return images, nil
-}
-
-// NewRegistryDiffer
-// Deprecated
-// TODO: delete RegistryDiffer
-func NewRegistryDiffer(platform v1.Platform) Differ {
-	ctx := context.Background()
-	return &Registry{
-		platform: platform,
-		puller:   save.NewImageSaver(ctx),
-	}
-}
-
-func (r Registry) Process(srcPath, rootfs string) error {
-	containerImageList, err := ParseContainerImageSlice(srcPath)
-	if err != nil {
-		return err
-	}
-	return r.puller.SaveImages(containerImageList, filepath.Join(rootfs, common.RegistryDirName), r.platform)
 }
 
 func parseApplicationImages(srcPath string) ([]*v12.ContainerImage, error) {
@@ -385,60 +365,6 @@ func parseRawImageList(srcPath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read file content %s:%v", imageListFilePath, err)
 	}
 	return FormatImages(images), nil
-}
-
-// Deprecated
-type metadata struct {
-}
-
-func (m metadata) Process(srcPath, rootfs string) error {
-	// check "KubeVersion" of Chart.yaml under charts dir,to overwrite the metadata.
-	kv := getKubeVersion(srcPath)
-	if kv == "" {
-		return nil
-	}
-
-	md, err := m.loadMetadata(srcPath, rootfs)
-	if err != nil {
-		return err
-	}
-
-	if md.KubeVersion == kv {
-		return nil
-	}
-	md.KubeVersion = kv
-	mf := filepath.Join(rootfs, common.DefaultMetadataName)
-	if err = marshalJSONToFile(mf, md); err != nil {
-		return fmt.Errorf("failed to set image Metadata file, err: %v", err)
-	}
-
-	return nil
-}
-
-func (m metadata) loadMetadata(srcPath, rootfs string) (*runtime.Metadata, error) {
-	// if Metadata file existed in srcPath, load and marshal to check the legality of it's content.
-	// if not, use rootfs Metadata.
-	smd, err := runtime.LoadMetadata(srcPath)
-	if err != nil {
-		return nil, err
-	}
-	if smd != nil {
-		return smd, nil
-	}
-
-	md, err := runtime.LoadMetadata(rootfs)
-	if err != nil {
-		return nil, err
-	}
-
-	if md != nil {
-		return md, nil
-	}
-	return nil, fmt.Errorf("failed to load rootfs Metadata")
-}
-
-func NewMetadataDiffer() Differ {
-	return metadata{}
 }
 
 var isChartArtifactEnough = func(path string) bool {

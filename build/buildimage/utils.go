@@ -15,51 +15,10 @@
 package buildimage
 
 import (
-	"encoding/json"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"strings"
 
-	"helm.sh/helm/v3/pkg/chartutil"
-
-	"github.com/sealerio/sealer/common"
-	osi "github.com/sealerio/sealer/utils/os"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 )
-
-func getKubeVersion(rootfs string) string {
-	chartsPath := filepath.Join(rootfs, "charts")
-	if !osi.IsFileExist(chartsPath) {
-		return ""
-	}
-	return readCharts(chartsPath)
-}
-
-func readCharts(chartsPath string) string {
-	var kv string
-	err := filepath.Walk(chartsPath, func(path string, f fs.FileInfo, err error) error {
-		if kv != "" {
-			return nil
-		}
-		if f.IsDir() || f.Name() != "Chart.yaml" {
-			return nil
-		}
-		meta, walkErr := chartutil.LoadChartfile(path)
-		if walkErr != nil {
-			return walkErr
-		}
-		if meta.KubeVersion != "" {
-			kv = meta.KubeVersion
-		}
-		return nil
-	})
-
-	if err != nil {
-		return ""
-	}
-	return kv
-}
 
 func FormatImages(images []string) (res []string) {
 	for _, img := range images {
@@ -74,25 +33,4 @@ func FormatImages(images []string) (res []string) {
 
 	res = strUtils.RemoveDuplicate(res)
 	return
-}
-
-//func trimQuotes(s string) string {
-//	if len(s) >= 2 {
-//		if c := s[len(s)-1]; s[0] == c && (c == '"' || c == '\'') {
-//			return s[1 : len(s)-1]
-//		}
-//	}
-//	return s
-//}
-
-func marshalJSONToFile(file string, obj interface{}) error {
-	data, err := json.MarshalIndent(obj, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	if err = os.WriteFile(file, data, common.FileMode0644); err != nil {
-		return err
-	}
-	return nil
 }

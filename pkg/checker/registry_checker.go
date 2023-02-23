@@ -58,7 +58,3 @@ func (r *RegistryChecker) Check(cluster *v2.Cluster, phase string) error {
 	}
 	return nil
 }
-
-func NewRegistryChecker(registryDomain string) Interface {
-	return &RegistryChecker{RegistryDomain: registryDomain}
-}
