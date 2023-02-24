@@ -52,11 +52,7 @@ func (engine *Engine) CreateManifest(name string, opts *options.ManifestCreateOp
 	if err != nil {
 		return fmt.Errorf("encountered while expanding image name %q: %w", name, err)
 	}
-
-	imageID, err := list.SaveToImage(store, "", names, manifest.DockerV2ListMediaType)
-	if err == nil {
-		logrus.Infof("%s", imageID)
-	}
+	_, err = list.SaveToImage(store, "", names, manifest.DockerV2ListMediaType)
 
 	return err
 }
@@ -330,10 +326,7 @@ func (engine *Engine) AddToManifest(name, imageSpec string, opts *options.Manife
 		}
 	}
 
-	updatedListID, err := list.SaveToImage(store, manifestList.ID(), nil, "")
-	if err == nil {
-		logrus.Infof("%s: %s", updatedListID, digestID.String())
-	}
+	_, err = list.SaveToImage(store, manifestList.ID(), nil, "")
 
 	return err
 }
