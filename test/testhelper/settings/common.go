@@ -48,6 +48,9 @@ const (
 	ClusterNameForRun = "my-cluster"
 	TMPClusterFile    = "/tmp/Clusterfile"
 	ClusterWorkDir    = "/root/.sealer"
+	TestAppName1      = "docker.io/sealerio/nginx:v1"
+	TestAppName2      = "docker.io/sealerio/golang:v1"
+	TestAppName3      = "docker.io/sealerio/tomcat:v1"
 )
 
 var (

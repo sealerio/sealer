@@ -15,13 +15,13 @@
 package test
 
 import (
-	"strings"
-
 	"github.com/sealerio/sealer/test/suites/apply"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/client/k8s"
 	"github.com/sealerio/sealer/test/testhelper/settings"
 	utilsnet "github.com/sealerio/sealer/utils/net"
+	"github.com/sirupsen/logrus"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -46,6 +46,7 @@ var _ = Describe("sealer run", func() {
 			usedCluster := apply.CreateContainerInfraAndSave(rawCluster, tempFile)
 			//defer to delete cluster
 			defer func() {
+				logrus.Infof("delete cluster")
 				apply.CleanUpContainerInfra(usedCluster)
 			}()
 			sshClient := testhelper.NewSSHClientByCluster(usedCluster)
@@ -67,6 +68,32 @@ var _ = Describe("sealer run", func() {
 			By("Wait for the cluster to be ready", func() {
 				apply.WaitAllNodeRunningBySSH(client)
 			})
+
+			By("Deploy application images concurrently", func() {
+
+				testhelper.RunCmdAndCheckResult("tree", 0)
+
+				logrus.Infof("deploy application images concurrently")
+
+				var appImages []string
+
+				appImages = append(appImages, settings.TestAppName1, settings.TestAppName2, settings.TestAppName3)
+				apply.DeployAppImagesConcurrently(appImages)
+
+				//wait pod all running
+				err = apply.WaitPodRunning(client)
+				testhelper.CheckErr(err)
+			})
+
+			//By("deploy application images concurrently")
+			//var appImages []string
+			//appImages = append(appImages, settings.TestAppName1, settings.TestAppName2, settings.TestAppName3)
+			//apply.DeployAppImagesConcurrently(appImages)
+			//
+			////wait pod all running
+			//err = apply.WaitPodRunning(client)
+			//testhelper.CheckErr(err)
+
 		})
 	})
 })

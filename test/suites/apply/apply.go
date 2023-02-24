@@ -17,8 +17,10 @@ package apply
 import (
 	"bytes"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/sealerio/sealer/common"
@@ -38,6 +40,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
+
+var wg sync.WaitGroup
 
 func getFixtures() string {
 	pwd := settings.DefaultTestEnvDir
@@ -315,4 +319,39 @@ func CheckDockerAndSwapOff() {
 	testhelper.CheckErr(err)
 	_, err = exec.RunSimpleCmd("swapoff -a")
 	testhelper.CheckErr(err)
+}
+
+func DeployAppImagesConcurrently(apps []string) {
+	for _, app := range apps {
+		wg.Add(1)
+		cmd := fmt.Sprintf("%s run %s -d", settings.DefaultSealerBin, app)
+		go RunCmd(cmd)
+	}
+	wg.Wait()
+}
+
+func RunCmd(cmd string) {
+	defer wg.Done()
+	testhelper.RunCmdAndCheckResult(cmd, 0)
+}
+
+func WaitPodRunning(client *k8s.Client) error {
+	time.Sleep(30 * time.Second)
+	var notRunningPodList []*corev1.Pod
+	namespacePodList, err := client.ListAllNamespacesPods()
+	testhelper.CheckErr(err)
+	//err = utils.Retry(10, 5*time.Second, func() error {
+	for _, podNamespace := range namespacePodList {
+		for _, pod := range podNamespace.PodList.Items {
+			if pod.Status.Phase != "Running" {
+				newPod := pod
+				notRunningPodList = append(notRunningPodList, &newPod)
+			}
+		}
+	}
+	if len(notRunningPodList) > 0 {
+		return fmt.Errorf("pod not running")
+	}
+	return nil
+	//})
 }
