@@ -45,7 +45,13 @@ func NewLoadCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return engine.Load(loadOpts)
+
+			err = engine.Load(loadOpts)
+			if err == nil {
+				logrus.Infof("successfully load %s to image storage", loadOpts.Input)
+			}
+
+			return err
 		},
 	}
 	loadOpts = &options.LoadOptions{}

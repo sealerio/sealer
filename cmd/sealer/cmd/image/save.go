@@ -47,8 +47,14 @@ func NewSaveCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
 			saveOpts.ImageNameOrID = args[0]
-			return engine.Save(saveOpts)
+
+			err = engine.Save(saveOpts)
+			if err == nil {
+				logrus.Infof("successfully save %s to %s", args[0], saveOpts.Output)
+			}
+			return err
 		},
 	}
 	saveOpts = &options.SaveOptions{}
