@@ -24,12 +24,15 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage"
+	"github.com/go-errors/errors"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/utils/archive"
 	fsUtil "github.com/sealerio/sealer/utils/os/fs"
 	"github.com/sirupsen/logrus"
 )
+
+var LoadError = errors.Errorf("failed to load new image")
 
 func (engine *Engine) Load(opts *options.LoadOptions) error {
 	// Download the input file if needed.
@@ -100,6 +103,7 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 	// delete it if manifestName is already used
 	_, err = engine.ImageRuntime().LookupManifestList(manifestName)
 	if err == nil {
+		logrus.Warnf("%s is already in use, will delete it", manifestName)
 		delErr := engine.DeleteManifests([]string{manifestName}, &options.ManifestDeleteOpts{})
 		if delErr != nil {
 			return fmt.Errorf("%s is already in use: %v", manifestName, delErr)
@@ -133,11 +137,20 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 		return fmt.Errorf("failed to create new manifest %s :%v ", manifestName, err)
 	}
 
+	defer func() {
+		if errors.Is(err, LoadError) {
+			err = engine.DeleteManifests([]string{manifestName}, &options.ManifestDeleteOpts{})
+			if err != nil {
+				logrus.Errorf("failed to delete manifest %s :%v ", manifestName, err)
+			}
+		}
+	}()
+
 	for _, imageID := range instancesIDs {
 		err = engine.AddToManifest(manifestName, imageID, &options.ManifestAddOpts{})
 		if err != nil {
-			_ = engine.DeleteManifests([]string{manifestName}, &options.ManifestDeleteOpts{})
-			return fmt.Errorf("failed to add new image %s to %s :%v ", imageID, manifestName, err)
+			logrus.Errorf("failed to add new image %s to %s :%v ", imageID, manifestName, err)
+			return LoadError
 		}
 	}
 
