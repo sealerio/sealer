@@ -62,7 +62,7 @@ Since you are ready to improve Sealer with a PR, we suggest you could take a loo
 * [Commit Rules](#commit-rules)
 * [PR Description](#pr-description)
 * [Developing Environment](#developing-environment)
-* [Golang Dependency Management](#golang-dependency-management)
+* [Run E2E Test or Write E2E Test Cases](#Run-E2E-Test-or-Write-E2E-Test-Cases)
 
 ### Workspace Preparation
 
@@ -183,6 +183,256 @@ Here are some dependents with specific version:
 * gpgme(brew install gpgme)
 
 When you develop the Sealer project at the local environment, you should use subcommands of Makefile to help yourself to check and build the latest version of Sealer. For the convenience of developers, we use the docker to build Sealer. It can reduce problems of the developing environment.
+
+### Run E2E Test or Write E2E Test Cases
+Before you commit a pull request, you need to run E2E test first. If you have modified the code or added features, you need to write corresponding E2E test cases, or you want to contribute E2E test cases for sealer, please read this section.
+
+#### Principle of sealer k8s in docker
+
+Sealer E2E test is inspired by kind, uses a container to emulate a node by running systemd inside the container and hosting other processes with systemd.
+Sealer uses [pkg/infra/container/imagecontext/base/Dockerfile](https://github.com/sealerio/sealer/blob/main/pkg/infra/container/imagecontext/base/Dockerfile) to build a basic image: `sealerio/sealer-base-image:v1`，and use this image to start the container to emulate node。
+
+After starting the container, the sealer binary is transferred to the container through ssh, and the sealer commands such as: sealer run and sealer apply are invoked through ssh to create the k8s cluster (k8s in docker), as shown in the figure below:
+
+![sealer E2E drawio (1)](https://user-images.githubusercontent.com/56665618/217173635-3f27033d-3cf5-47e2-9b4c-66173eb89821.png)
+
+#### How to run E2E test locally
+
+The code in test repository is a set of [Ginkgo](http://onsi.github.io/ginkgo) and [Gomega](http://onsi.github.io/gomega) based integration tests that execute commands using the sealer CLI.
+
+* Prerequisites
+
+Before you run the tests, you'll need a sealer binary in your machine executable path and install docker.
+
+* Run the Tests
+
+To run a single test or set of tests, you'll need the [Ginkgo](https://github.com/onsi/ginkgo) tool installed on your machine:
+
+```bash
+go install github.com/onsi/ginkgo/ginkgo@v1.16.2
+```
+
+To install Sealer and prepare the test environment:
+
+```bash
+#build sealer source code to binary for local e2e-test in containers
+git clone https://github.com/sealerio/sealer.git
+cd sealer/ && make build-in-docker
+cp _output/bin/sealer/linux_amd64/sealer /usr/local/bin
+
+#prepare test environment
+export REGISTRY_URL={your registry}
+export REGISTRY_USERNAME={user name}
+export REGISTRY_PASSWORD={password}
+#default test image name: docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
+export IMAGE_NAME={test image name}
+```
+
+To execute the entire test suite:
+
+```bash
+cd sealer && ginkgo test
+```
+
+You can then use the `--focus` option to run subsets of the test suite:
+
+```bash
+ginkgo --focus="sealer login" test
+```
+
+You can then use the `-v` option to print out default reporter as all specs begin:
+
+```bash
+ginkgo -v test
+```
+
+More ginkgo helpful info see:
+
+```bash
+ginkgo --help
+```
+
+#### How to run E2E Tests using github action
+
+Before we run the CI by using github aciton, please make sure that these four variables: `REGISTRY_URL={your registry}`, `REGISTRY_USERNAME={user name}`, `REGISTRY_PASSWORD={password}`, `IMAGE_NAME={test image name}` have been setted in github's secret (for sealer login and sealer image tests).
+
+CI is triggered when we push a branch with name starts with release or comment `/test all` in PR，you can also comment `/test {test to run}` in PR to run subsets of the test suite.
+
+#### How to write E2E test cases for sealer
+
+E2E tests required by sealer can be divided into those that need cluster construction and those that do not. For tests that need cluster construction, container needs to be started to simulate node (such as sealer run and sealer apply). If you don't need to build a cluster, you just need to execute it on the machine (e.g., sealer pull, sealer tag, sealer build).
+
+* E2E test entry
+
+Sealer all E2E test files are in the `test` directory, where `e2e_test.go` is the entry to E2E test.
+
+The function： `func TestSealerTests(t *testing.T)`is the entry point for Ginkgo - the go test runner will run this function when you run `go test` or `ginkgo`. `RegisterFailHandler(Fail)`is the single line of glue code connecting Ginkgo to Gomega. If we were to avoid dot-imports this would read as `gomega.RegisterFailHandler(ginkgo.Fail)`- what we're doing here is telling our matcher library (Gomega) which function to call (Ginkgo's `Fail`) in the event a failure is detected.
+
+* Writing Specs
+
+You can use `ginkgo generate` to generate a E2E test file (eg. `ginkgo generate sealer_alpha`)
+
+Ginkgo allows you to hierarchically organize the specs in your suite using container nodes. Ginkgo provides three synonymous nouns for creating container nodes: `Describe`, `Context`, and `When`. These three are functionally identical and are provided to help the spec narrative flow. You usually `Describe`different capabilities of your code and explore the behavior of each capability across different `Context`s.
+
+For example:
+
+```go
+var _ = Describe("sealer login", func() {
+	Context("login docker registry", func() {
+		AfterEach(func() {
+			registry.Logout()
+		})
+		It("with correct name and password", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				settings.RegistryUsername,
+				settings.RegistryPasswd,
+				true)
+		})
+		It("with incorrect name and password", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				settings.RegistryPasswd,
+				settings.RegistryUsername,
+				false)
+		})
+		It("with only name", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				settings.RegistryUsername,
+				"",
+				false)
+		})
+		It("with only password", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				"",
+				settings.RegistryPasswd,
+				false)
+		})
+		It("with only registryURL", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				"",
+				"",
+				false)
+		})
+	})
+})
+```
+
+The configuration of e2e test is in `test/testhelper/settings`, The test data and methods for e2e test are here: `test/suites`.
+
+More information about ginkgo and gomega can be found in the documentation:[Ginkgo](http://onsi.github.io/ginkgo) and [Gomega](http://onsi.github.io/gomega).
+
+#### Configure github action file
+
+The github action file for e2e test is under the `.github/workflows` directory. You need to configure the file here for CI.
+
+For example:
+
+```yaml
+name: {Test name}
+
+on:
+  push:
+    branches: "release*"
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  statuses: write
+
+jobs:
+  build:
+    name: test
+    runs-on: ubuntu-latest
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test {name}')) || github.event_name == 'push' }}
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Get PR details
+        if: ${{ github.event_name == 'issue_comment'}}
+        uses: xt0rted/pull-request-comment-branch@v1
+        id: comment-branch
+
+      - name: Set commit status as pending
+        if: ${{ github.event_name == 'issue_comment'}}
+        uses: myrotvorets/set-commit-status-action@master
+        with:
+          sha: ${{ steps.comment-branch.outputs.head_sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: pending
+
+      - name: Github API Request
+        id: request
+        uses: octokit/request-action@v2.1.7
+        with:
+          route: ${{ github.event.issue.pull_request.url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get PR informations
+        id: pr_data
+        run: |
+          echo "repo_name=${{ fromJson(steps.request.outputs.data).head.repo.full_name }}" >> $GITHUB_STATE
+          echo "repo_clone_url=${{ fromJson(steps.request.outputs.data).head.repo.clone_url }}" >> $GITHUB_STATE
+          echo "repo_ssh_url=${{ fromJson(steps.request.outputs.data).head.repo.ssh_url }}" >> $GITHUB_STATE
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{fromJson(steps.request.outputs.data).head.repo.full_name}}
+          ref: ${{fromJson(steps.request.outputs.data).head.ref}}
+          path: src/github.com/sealerio/sealer
+      - name: Install deps
+        run: |
+          sudo su
+          sudo apt-get update
+          sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
+          sudo mkdir /var/lib/sealer
+      - name: Set up Go 1.17
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.17
+        id: go
+
+      - name: Install sealer and ginkgo
+        shell: bash
+        run: |
+          docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
+          export SEALER_DIR=${PWD}/_output/bin/sealer/linux_amd64
+          echo "$SEALER_DIR" >> $GITHUB_PATH
+          go install github.com/onsi/ginkgo/ginkgo@v1.16.2
+          go install github.com/onsi/gomega/...@v1.12.0
+          GOPATH=`go env GOPATH`
+          echo "$GOPATH/bin" >> $GITHUB_PATH
+        working-directory: src/github.com/sealerio/sealer
+
+      - name: Run **{Test name}** test
+        shell: bash
+        working-directory: src/github.com/sealerio/sealer
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          IMAGE_NAME: ${{ secrets.IMAGE_NAME}}
+          ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
+          ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
+          RegionID: ${{ secrets.RegionID }}
+        run: | # Your main focus is here
+          ginkgo -v --focus="sealer {test name}" test
+
+      - name: Set final commit status
+        uses: myrotvorets/set-commit-status-action@master
+        if: always()
+        with:
+          sha: ${{ steps.comment-branch.outputs.head_sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}
+```
+
+More information about github action can be found in the documentation:[Github action](https://docs.github.com/en/actions/quickstart).
 
 ## Engage to help anything
 
