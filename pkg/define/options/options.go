@@ -31,6 +31,7 @@ type BuildOptions struct {
 	Base              bool
 	ImageList         string
 	ImageListWithAuth string
+	IgnoredImageList  string
 }
 
 type FromOptions struct {

@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	reference2 "github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
@@ -114,11 +115,21 @@ func ParseContainerImageList(srcPath string) ([]*v12.ContainerImage, error) {
 		dispatchType := t
 		parse := p
 		eg.Go(func() error {
-			ima, err := parse(srcPath)
+			parsedImageList, err := parse(srcPath)
 			if err != nil {
 				return fmt.Errorf("failed to parse images from %s: %v", dispatchType, err)
 			}
-			containerImageList = append(containerImageList, ima...)
+			for _, image := range parsedImageList {
+				img, err := reference2.ParseNormalizedNamed(image.Image)
+				if err != nil {
+					continue
+				}
+				containerImageList = append(containerImageList, &v12.ContainerImage{
+					Image:    img.String(),
+					AppName:  image.AppName,
+					Platform: image.Platform,
+				})
+			}
 			return nil
 		})
 	}
