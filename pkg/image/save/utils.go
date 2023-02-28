@@ -18,13 +18,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
-	v1 "github.com/sealerio/sealer/types/api/v1"
-
 	"github.com/distribution/distribution/v3"
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/json"
+
+	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
 // this package contains some utils to handle docker image name

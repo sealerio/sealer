@@ -128,16 +128,18 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	registryType := extension.GetRegistryType()
+
 	var deployHosts []net.IP
 	if i.regConfig.LocalRegistry != nil {
 		installer := registry.NewInstaller(nil, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
 		if *i.regConfig.LocalRegistry.HA {
-			deployHosts, err = installer.Reconcile(masters)
+			deployHosts, err = installer.Reconcile(masters, registryType)
 			if err != nil {
 				return err
 			}
 		} else {
-			deployHosts, err = installer.Reconcile([]net.IP{master0})
+			deployHosts, err = installer.Reconcile([]net.IP{master0}, registryType)
 			if err != nil {
 				return err
 			}

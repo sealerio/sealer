@@ -17,11 +17,11 @@ package v1
 import (
 	"encoding/json"
 
+	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/sealerio/sealer/common"
 	application_v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
 	apiv1 "github.com/sealerio/sealer/types/api/v1"
-
-	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
@@ -107,6 +107,8 @@ type BuildClient struct {
 	SealerVersion string `json:"sealerVersion"`
 
 	BuildahVersion string `json:"buildahVersion"`
+
+	RegistryType string `json:"registryType,omitempty"` // docker、oci, default docker, "" is considered to be docker
 }
 
 type Launch struct {
@@ -162,4 +164,12 @@ func (ie *ImageExtension) UnmarshalJSON(data []byte) error {
 	}
 	(*ie).Launch = v1Ex.Launch
 	return nil
+}
+
+// GetRegistryType get registry type from imageExtension
+func (ie *ImageExtension) GetRegistryType() string {
+	if ie.BuildClient.RegistryType == "" {
+		return common.DefaultRegistryType
+	}
+	return ie.BuildClient.RegistryType
 }

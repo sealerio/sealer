@@ -65,7 +65,7 @@ var parseContainerImageListFuncMap = map[string]func(srcPath string) ([]*v12.Con
 
 type Registry struct {
 	platform v1.Platform
-	puller   save.ImageSave
+	puller   save.ImageSaver
 }
 
 func NewRegistry(platform v1.Platform) *Registry {

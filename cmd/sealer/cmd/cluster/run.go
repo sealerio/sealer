@@ -20,6 +20,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -34,9 +38,6 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
 )
 
 var runFlags *types.RunFlags
@@ -100,11 +101,13 @@ func NewRunCmd() *cobra.Command {
 				Image:      args[0],
 				Platform:   "local",
 			})
+
 			if err != nil {
 				return err
 			}
 
 			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
+
 			if err != nil {
 				return fmt.Errorf("failed to get cluster image extension: %s", err)
 			}
@@ -205,7 +208,7 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 
 	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 	if err != nil {
-		return fmt.Errorf("failed to get cluster image extension: %s", err)
+		return fmt.Errorf("failed to get cluster image spec: %s", err)
 	}
 
 	if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
@@ -369,6 +372,21 @@ func installApplication(appImageName string, envs []string, app *v2.Application,
 	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {
 		return err
+	}
+
+	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: cluster.Spec.Image})
+	if err != nil {
+		return fmt.Errorf("failed to get cluster image extension: %s", err)
+	}
+	clusterRegistryType := imageSpec.ImageExtension.GetRegistryType()
+	applicationRegistryType := extension.GetRegistryType()
+	if clusterRegistryType != applicationRegistryType {
+		if clusterRegistryType == common.OCIRegistryType &&
+			applicationRegistryType == common.DefaultRegistryType {
+			return fmt.Errorf("current cluster using OCI registry, can't run app-installer with docker registry over cluster with OCI registry")
+		}
+		// TODO: need a tool to copy OCI images to docker registry
+		return fmt.Errorf("current cluster using docker registry, can't run app-installer with OCI registry over cluster with docker registry now. Remained to be implemented")
 	}
 
 	infraDriver.AddClusterEnv(envs)
