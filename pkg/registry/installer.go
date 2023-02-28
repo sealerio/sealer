@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert/cert"
 	"github.com/sealerio/sealer/pkg/env"
@@ -29,7 +31,6 @@ import (
 	netutils "github.com/sealerio/sealer/utils/net"
 	osutils "github.com/sealerio/sealer/utils/os"
 	strutils "github.com/sealerio/sealer/utils/strings"
-	"github.com/sirupsen/logrus"
 )
 
 // Installer provide registry lifecycle management.

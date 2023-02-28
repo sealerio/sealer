@@ -23,6 +23,7 @@ import (
 
 	"github.com/sealerio/sealer/pkg/define/application"
 	osi "github.com/sealerio/sealer/utils/os"
+
 	"github.com/sirupsen/logrus"
 )
 

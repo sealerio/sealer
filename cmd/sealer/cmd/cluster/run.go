@@ -21,6 +21,10 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
+
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -37,9 +41,6 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
 )
 
 var runFlags *types.RunFlags
@@ -115,8 +116,15 @@ func NewRunCmd() *cobra.Command {
 			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
 				app := v2.ConstructApplication(nil, runFlags.Cmds, runFlags.AppNames)
 
-				return runApplicationImage(args[0], runFlags.CustomEnv,
-					app, imageSpec.ImageExtension, nil, imageEngine, runFlags.Mode)
+				return runApplicationImage(&RunApplicationImageRequest{
+					ImageName:   args[0],
+					Application: app,
+					Envs:        runFlags.CustomEnv,
+					ImageEngine: imageEngine,
+					Extension:   imageSpec.ImageExtension,
+					Configs:     nil,
+					RunMode:     runFlags.Mode,
+				})
 			}
 
 			if runFlags.Mode == common.ApplyModeUpgrade {
@@ -222,8 +230,15 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 	if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
 		app := v2.ConstructApplication(cf.GetApplication(), cluster.Spec.CMD, cluster.Spec.APPNames)
 
-		return runApplicationImage(imageName, runFlags.CustomEnv, app,
-			imageSpec.ImageExtension, cf.GetConfigs(), imageEngine, runFlags.Mode)
+		return runApplicationImage(&RunApplicationImageRequest{
+			ImageName:   imageName,
+			Application: app,
+			Envs:        runFlags.CustomEnv,
+			ImageEngine: imageEngine,
+			Extension:   imageSpec.ImageExtension,
+			Configs:     cf.GetConfigs(),
+			RunMode:     runFlags.Mode,
+		})
 	}
 
 	return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode)
@@ -269,7 +284,7 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 	}
 
 	if mode == common.ApplyModeLoadImage {
-		return loadToRegistry(infraDriver, distributor)
+		return clusterruntime.LoadToRegistry(infraDriver, distributor)
 	}
 
 	plugins, err := loadPluginsFromImage(imageMountInfo)
@@ -379,10 +394,21 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	return nil
 }
 
-func runApplicationImage(appImageName string, envs []string, app *v2.Application, extension imagev1.ImageExtension, configs []v1.Config, imageEngine imageengine.Interface, mode string) error {
-	logrus.Infof("start to install application: %s", appImageName)
+type RunApplicationImageRequest struct {
+	ImageName                 string
+	Application               *v2.Application
+	Envs                      []string
+	ImageEngine               imageengine.Interface
+	Extension                 imagev1.ImageExtension
+	Configs                   []v1.Config
+	RunMode                   string
+	IgnorePrepareAppMaterials bool
+}
 
-	v2App, err := application.NewV2Application(app, extension)
+func runApplicationImage(request *RunApplicationImageRequest) error {
+	logrus.Infof("start to install application: %s", request.ImageName)
+
+	v2App, err := application.NewV2Application(request.Application, request.Extension)
 	if err != nil {
 		return fmt.Errorf("failed to parse application:%v ", err)
 	}
@@ -397,11 +423,31 @@ func runApplicationImage(appImageName string, envs []string, app *v2.Application
 	if err != nil {
 		return err
 	}
+	infraDriver.AddClusterEnv(request.Envs)
 
-	infraDriver.AddClusterEnv(envs)
+	if !request.IgnorePrepareAppMaterials {
+		if err := prepareMaterials(infraDriver, request.ImageEngine, v2App,
+			request.ImageName, request.RunMode, request.Configs); err != nil {
+			return err
+		}
+	}
 
+	if err = v2App.Launch(infraDriver); err != nil {
+		return err
+	}
+	if err = v2App.Save(application.SaveOptions{}); err != nil {
+		return err
+	}
+
+	logrus.Infof("succeeded in installing new app with image %s", request.ImageName)
+
+	return nil
+}
+
+func prepareMaterials(infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface,
+	v2App application.Interface,
+	appImageName, mode string, configs []v1.Config) error {
 	clusterHosts := infraDriver.GetHostIPList()
-
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
 		return err
@@ -443,42 +489,35 @@ func runApplicationImage(appImageName string, envs []string, app *v2.Application
 	masters := infraDriver.GetHostIPListByRole(common.MASTER)
 	regConfig := infraDriver.GetClusterRegistry()
 	// distribute rootfs
-	if err = distributor.Distribute(masters, infraDriver.GetClusterRootfsPath()); err != nil {
+	if err := distributor.Distribute(masters, infraDriver.GetClusterRootfsPath()); err != nil {
 		return err
 	}
 
 	//if we use local registry service, load container image to registry
-	if regConfig.LocalRegistry != nil {
-		deployHosts := masters
-		if !*regConfig.LocalRegistry.HA {
-			deployHosts = []net.IP{masters[0]}
-		}
-
-		registryConfigurator, err := registry.NewConfigurator(deployHosts, containerruntime.Info{}, regConfig, infraDriver, distributor)
-		if err != nil {
-			return err
-		}
-
-		registryDriver, err := registryConfigurator.GetDriver()
-		if err != nil {
-			return err
-		}
-
-		err = registryDriver.UploadContainerImages2Registry()
-		if err != nil {
-			return err
-		}
+	if regConfig.LocalRegistry == nil {
+		return nil
+	}
+	deployHosts := masters
+	if !*regConfig.LocalRegistry.HA {
+		deployHosts = []net.IP{masters[0]}
 	}
 
-	if err = v2App.Launch(infraDriver); err != nil {
-		return err
-	}
-	if err = v2App.Save(application.SaveOptions{}); err != nil {
+	registryConfigurator, err := registry.NewConfigurator(deployHosts,
+		containerruntime.Info{},
+		regConfig, infraDriver, distributor)
+	if err != nil {
 		return err
 	}
 
-	logrus.Infof("succeeded in installing new app with image %s", appImageName)
+	registryDriver, err := registryConfigurator.GetDriver()
+	if err != nil {
+		return err
+	}
 
+	err = registryDriver.UploadContainerImages2Registry()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

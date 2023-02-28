@@ -22,13 +22,14 @@ import (
 	"strings"
 
 	"github.com/imdario/mergo"
-	"github.com/sealerio/sealer/pkg/rootfs"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	"github.com/sealerio/sealer/utils/os"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	k8sv1 "k8s.io/api/core/v1"
 	k8sYaml "sigs.k8s.io/yaml"
+
+	"github.com/sealerio/sealer/pkg/rootfs"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	"github.com/sealerio/sealer/utils/os"
 )
 
 const (

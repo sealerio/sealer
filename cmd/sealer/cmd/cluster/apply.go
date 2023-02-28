@@ -19,17 +19,19 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
+	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/strings"
+
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -100,64 +102,52 @@ func NewApplyCmd() *cobra.Command {
 				return fmt.Errorf("failed to get cluster image extension: %s", err)
 			}
 
-			if imageSpec.ImageExtension.Type == v12.AppInstaller {
+			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
 				app := v2.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
 
-				return runApplicationImage(imageName, desiredCluster.Spec.Env,
-					app, imageSpec.ImageExtension, cf.GetConfigs(), imageEngine, applyMode)
+				return runApplicationImage(&RunApplicationImageRequest{
+					ImageName:   imageName,
+					Application: app,
+					Envs:        desiredCluster.Spec.Env,
+					ImageEngine: imageEngine,
+					Extension:   imageSpec.ImageExtension,
+					Configs:     cf.GetConfigs(),
+					RunMode:     applyMode,
+				})
 			}
 
-			client := utils.GetClusterClient()
-			if client == nil {
-				// no k8s client means to init a new cluster.
-				// merge flags
-				cluster, err := utils.MergeClusterWithFlags(cf.GetCluster(), &types.MergeFlags{
-					Masters:    applyFlags.Masters,
-					Nodes:      applyFlags.Nodes,
-					CustomEnv:  applyFlags.CustomEnv,
-					User:       applyFlags.User,
-					Password:   applyFlags.Password,
-					PkPassword: applyFlags.PkPassword,
-					Pk:         applyFlags.Pk,
-					Port:       applyFlags.Port,
-				})
-
-				if err != nil {
-					return fmt.Errorf("failed to merge cluster with apply args: %v", err)
+			// NOTE: in some scenarios, we do not need to prepare the app file repeatedly,
+			// such as the cluster and the apps in the same image
+			var ignorePrepareAppMaterials bool
+			// ensure that the cluster reaches the final state firstly
+			if imageSpec.ImageExtension.Type == imagev1.KubeInstaller {
+				client := utils.GetClusterClient()
+				if client == nil {
+					// the application will also been installed for a new cluster
+					// TODO: decouple the cluster installation and application installation
+					return applyClusterWithNew(cf, applyMode, imageEngine, imageSpec)
 				}
 
-				// set merged cluster
-				cf.SetCluster(*cluster)
-				return runClusterImage(imageEngine, cf, imageSpec, applyMode)
+				if err := applyClusterWithExisted(cf, client, imageEngine, imageSpec); err != nil {
+					return err
+				}
+				// NOTE: we should continue to apply application after the cluster is applied successfully
+				// And it's not needed to prepare the app file repeatedly
+				ignorePrepareAppMaterials = true
 			}
 
-			logrus.Infof("Start to check if need scale")
-
-			currentCluster, err := utils.GetCurrentCluster(client)
-			if err != nil {
-				return errors.Wrap(err, "failed to get current cluster")
-			}
-
-			mj, md := strings.Diff(currentCluster.GetMasterIPList(), desiredCluster.GetMasterIPList())
-			nj, nd := strings.Diff(currentCluster.GetNodeIPList(), desiredCluster.GetNodeIPList())
-			if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
-				logrus.Infof("No need scale, completed")
-				return nil
-			}
-
-			if len(md) > 0 || len(nd) > 0 {
-				logrus.Warnf("scale down not supported: %v, %v, skip them", md, nd)
-			}
-			if len(md) > 0 {
-				return fmt.Errorf("make sure all masters' ip exist in your clusterfile: %s", applyFlags.ClusterFile)
-			}
-
-			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
-			if err != nil {
-				return err
-			}
-
-			return scaleUpCluster(imageName, mj, nj, infraDriver, imageEngine, cf)
+			// install application
+			app := v2.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
+			return runApplicationImage(&RunApplicationImageRequest{
+				ImageName:                 imageName,
+				Application:               app,
+				Envs:                      desiredCluster.Spec.Env,
+				ImageEngine:               imageEngine,
+				Extension:                 imageSpec.ImageExtension,
+				Configs:                   cf.GetConfigs(),
+				RunMode:                   applyMode,
+				IgnorePrepareAppMaterials: ignorePrepareAppMaterials,
+			})
 		},
 	}
 
@@ -176,4 +166,59 @@ func NewApplyCmd() *cobra.Command {
 	applyCmd.Flags().StringVar(&applyFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
 
 	return applyCmd
+}
+
+func applyClusterWithNew(cf clusterfile.Interface, applyMode string,
+	imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
+	desiredCluster := cf.GetCluster()
+	// no k8s client means to init a new cluster.
+	// merge flags
+	cluster, err := utils.MergeClusterWithFlags(desiredCluster, &types.MergeFlags{
+		Masters:    applyFlags.Masters,
+		Nodes:      applyFlags.Nodes,
+		CustomEnv:  applyFlags.CustomEnv,
+		User:       applyFlags.User,
+		Password:   applyFlags.Password,
+		PkPassword: applyFlags.PkPassword,
+		Pk:         applyFlags.Pk,
+		Port:       applyFlags.Port,
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to merge cluster with apply args: %v", err)
+	}
+
+	// set merged cluster
+	cf.SetCluster(*cluster)
+	return runClusterImage(imageEngine, cf, imageSpec, applyMode)
+}
+
+func applyClusterWithExisted(cf clusterfile.Interface, client *k8s.Client,
+	imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
+	desiredCluster := cf.GetCluster()
+	currentCluster, err := utils.GetCurrentCluster(client)
+	if err != nil {
+		return errors.Wrap(err, "failed to get current cluster")
+	}
+
+	mj, md := strings.Diff(currentCluster.GetMasterIPList(), desiredCluster.GetMasterIPList())
+	nj, nd := strings.Diff(currentCluster.GetNodeIPList(), desiredCluster.GetNodeIPList())
+	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
+		logrus.Infof("No need scale, completed")
+		return nil
+	}
+
+	if len(md) > 0 || len(nd) > 0 {
+		logrus.Warnf("scale down not supported: %v, %v, skip them", md, nd)
+	}
+	if len(md) > 0 {
+		return fmt.Errorf("make sure all masters' ip exist in your clusterfile: %s", applyFlags.ClusterFile)
+	}
+
+	infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
+	if err != nil {
+		return err
+	}
+
+	return scaleUpCluster(imageSpec.Name, mj, nj, infraDriver, imageEngine, cf)
 }

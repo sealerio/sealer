@@ -21,10 +21,11 @@ import (
 	"github.com/containers/buildah"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/json"
+
 	"github.com/sealerio/sealer/build/kubefile/command"
 	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
-	"k8s.io/apimachinery/pkg/util/json"
 )
 
 func (engine *Engine) Inspect(opts *options.InspectOptions) (*imagev1.ImageSpec, error) {

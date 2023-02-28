@@ -23,10 +23,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/types/api/constants"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,6 +31,11 @@ import (
 	"k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 	kubeadmConstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
+
+	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/types/api/constants"
+	v1 "github.com/sealerio/sealer/types/api/v1"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 var decodeCRDFuncMap = map[string]func(reader io.Reader) (interface{}, error){

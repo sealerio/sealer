@@ -17,11 +17,12 @@ package alpha
 import (
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/spf13/cobra"
 )
 
 var hostAlias v2.HostAlias

@@ -22,11 +22,12 @@ import (
 	"testing"
 
 	platformParse "github.com/containers/buildah/pkg/parse"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/sealerio/sealer/pkg/define/application"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
 	"github.com/sealerio/sealer/pkg/define/options"
-	"github.com/stretchr/testify/assert"
 )
 
 const (
