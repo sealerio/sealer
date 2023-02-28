@@ -22,6 +22,7 @@ import (
 
 	"github.com/sealerio/sealer/build/buildimage"
 	"github.com/sealerio/sealer/build/kubefile/parser"
+	"github.com/sealerio/sealer/common"
 	version2 "github.com/sealerio/sealer/pkg/define/application/version"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
@@ -112,6 +113,7 @@ func NewBuildCmd() *cobra.Command {
 	buildCmd.Flags().StringVar(&buildFlags.IgnoredImageList, "ignored-image-list", "filepath", "`pathname` of ignored image list filepath, if set, sealer will read its contents and prevent downloading of the corresponding container image")
 	buildCmd.Flags().StringVar(&buildFlags.PullPolicy, "pull", "ifnewer", "pull policy. Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always, --pull=ifnewer")
 	buildCmd.Flags().StringVar(&buildFlags.ImageType, "type", v12.KubeInstaller, fmt.Sprintf("specify the image type, --type=%s, --type=%s, default is %s", v12.KubeInstaller, v12.AppInstaller, v12.KubeInstaller))
+	buildCmd.Flags().StringVar(&buildFlags.RegistryType, "registry-type", common.DefaultRegistryType, fmt.Sprintf("set internal registry type, --registry-type=%s, --registry-type=%s, default is %s", common.DefaultRegistryType, common.OCIRegistryType, common.DefaultRegistryType))
 	buildCmd.Flags().StringSliceVar(&buildFlags.Platforms, "platform", []string{parse.DefaultPlatform()}, "set the target platform, --platform=linux/amd64 or --platform=linux/amd64/v7. Multi-platform will be like --platform=linux/amd64,linux/amd64/v7")
 	buildCmd.Flags().StringSliceVar(&buildFlags.BuildArgs, "build-arg", []string{}, "set custom build args")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Annotations, "annotation", []string{}, "add annotations for image. Format like --annotation key=[value]")
@@ -122,7 +124,10 @@ func NewBuildCmd() *cobra.Command {
 	if _, ok := supportedImageType[buildFlags.ImageType]; !ok {
 		logrus.Fatalf("image type %s is not supported", buildFlags.ImageType)
 	}
-
+	supportedRegistryType := map[string]struct{}{common.DefaultRegistryType: {}, common.OCIRegistryType: {}}
+	if _, ok := supportedRegistryType[buildFlags.RegistryType]; !ok {
+		logrus.Fatalf("registry type %s is not supported", buildFlags.RegistryType)
+	}
 	return buildCmd
 }
 
@@ -316,7 +321,7 @@ func applyRegistryToImage(engine imageengine.Interface, imageID string, platform
 		Architecture: arch,
 		OS:           _os,
 		Variant:      variant,
-	})
+	}, buildFlags.RegistryType)
 	if err := registry.SaveImages(tmpDirForLink, v12.GetImageSliceFromContainerImageList(containerImageList)); err != nil {
 		return "", nil, errors.Wrap(err, "failed to download container images")
 	}
@@ -343,7 +348,7 @@ func applyRegistryToImage(engine imageengine.Interface, imageID string, platform
 			Architecture: arch,
 			OS:           _os,
 			Variant:      variant,
-		}).PullWithImageSection(tmpDirForLink, imageSectionList); err != nil {
+		}, buildFlags.RegistryType).PullWithImageSection(tmpDirForLink, imageSectionList); err != nil {
 			return "", nil, err
 		}
 	}
@@ -433,6 +438,7 @@ func buildImageExtensionOnResult(result *parser.KubefileResult, imageType string
 		BuildClient: v12.BuildClient{
 			SealerVersion:  version.Get().GitVersion,
 			BuildahVersion: define.Version,
+			RegistryType:   buildFlags.RegistryType,
 		},
 	}
 

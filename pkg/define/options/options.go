@@ -32,6 +32,7 @@ type BuildOptions struct {
 	ImageList         string
 	ImageListWithAuth string
 	IgnoredImageList  string
+	RegistryType      string
 }
 
 type FromOptions struct {

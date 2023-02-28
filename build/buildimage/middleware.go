@@ -15,6 +15,7 @@
 package buildimage
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -33,14 +34,15 @@ type ImageSection struct {
 }
 
 type MiddlewarePuller struct {
-	puller   save.DefaultImageSaver
+	puller   save.ImageSaver
 	platform v1.Platform
 }
 
-func NewMiddlewarePuller(platform v1.Platform) MiddlewarePuller {
+func NewMiddlewarePuller(platform v1.Platform, registryType string) MiddlewarePuller {
+	puller := save.NewImageSaver(context.Background(), registryType)
 	return MiddlewarePuller{
 		platform: platform,
-		puller:   save.DefaultImageSaver{},
+		puller:   puller,
 	}
 }
 

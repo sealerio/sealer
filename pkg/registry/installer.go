@@ -50,12 +50,14 @@ type Installer interface {
 func NewInstaller(currentDeployHost []net.IP,
 	regConfig *v2.LocalRegistry,
 	infraDriver infradriver.InfraDriver,
-	distributor imagedistributor.Distributor) Installer {
+	distributor imagedistributor.Distributor,
+	registryType string) Installer {
 	return &localInstaller{
 		currentDeployHosts: currentDeployHost,
 		infraDriver:        infraDriver,
 		LocalRegistry:      regConfig,
 		distributor:        distributor,
+		registryType:       registryType,
 	}
 }
 
@@ -64,6 +66,7 @@ type localInstaller struct {
 	currentDeployHosts []net.IP
 	infraDriver        infradriver.InfraDriver
 	distributor        imagedistributor.Distributor
+	registryType       string
 }
 
 func (l *localInstaller) Reconcile(desiredHosts []net.IP) ([]net.IP, error) {
@@ -230,7 +233,7 @@ func (l *localInstaller) reconcileRegistry(hosts []net.IP) error {
 
 	// bash init-registry.sh ${port} ${mountData} ${domain}
 	clusterEnvs := l.infraDriver.GetClusterEnv()
-	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", rootfs, strconv.Itoa(l.Port), dataDir, l.Domain)
+	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s %s", rootfs, strconv.Itoa(l.Port), dataDir, l.Domain, l.registryType)
 	initRegistryCmd := env.WrapperShell(initRegistry, clusterEnvs)
 	for _, deployHost := range hosts {
 		if err := l.infraDriver.CmdAsync(deployHost, initRegistryCmd); err != nil {

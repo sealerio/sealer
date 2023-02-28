@@ -65,14 +65,14 @@ var parseContainerImageListFuncMap = map[string]func(srcPath string) ([]*v12.Con
 
 type Registry struct {
 	platform v1.Platform
-	puller   save.ImageSave
+	puller   save.ImageSaver
 }
 
-func NewRegistry(platform v1.Platform) *Registry {
+func NewRegistry(platform v1.Platform, registryType string) *Registry {
 	ctx := context.Background()
 	return &Registry{
 		platform: platform,
-		puller:   save.NewImageSaver(ctx),
+		puller:   save.NewImageSaver(ctx, registryType),
 	}
 }
 
@@ -164,11 +164,11 @@ func ParseContainerImageSlice(srcPath string) ([]string, error) {
 // NewRegistryDiffer
 // Deprecated
 // TODO: delete RegistryDiffer
-func NewRegistryDiffer(platform v1.Platform) Differ {
+func NewRegistryDiffer(platform v1.Platform, registryType string) Differ {
 	ctx := context.Background()
 	return &Registry{
 		platform: platform,
-		puller:   save.NewImageSaver(ctx),
+		puller:   save.NewImageSaver(ctx, registryType),
 	}
 }
 

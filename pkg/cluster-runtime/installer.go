@@ -130,7 +130,7 @@ func (i *Installer) Install() error {
 
 	var deployHosts []net.IP
 	if i.regConfig.LocalRegistry != nil {
-		installer := registry.NewInstaller(nil, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
+		installer := registry.NewInstaller(nil, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor, i.RuntimeConfig.ImageSpec.ImageExtension.GetRegistryType())
 		if *i.regConfig.LocalRegistry.HA {
 			deployHosts, err = installer.Reconcile(masters)
 			if err != nil {

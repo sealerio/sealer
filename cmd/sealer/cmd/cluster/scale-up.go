@@ -27,7 +27,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -82,7 +82,7 @@ func NewScaleUpCmd() *cobra.Command {
 				return err
 			}
 
-			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
@@ -159,7 +159,6 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 	if err != nil {
 		return err
 	}
-
 	//we need to save desired clusterfile to local disk temporarily.
 	//and will use it later to clean the cluster node if ScaleUp failed.
 	if err = cf.SaveAll(clusterfile.SaveOptions{}); err != nil {

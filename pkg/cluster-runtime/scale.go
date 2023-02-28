@@ -57,10 +57,10 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 	if err != nil {
 		return nil, nil, err
 	}
-
 	// reconcile registry node if local registry is ha mode.
 	if i.regConfig.LocalRegistry != nil && *i.regConfig.LocalRegistry.HA {
-		registryDeployHosts, err = registry.NewInstaller(netutils.RemoveIPs(masters, newMasters), i.regConfig.LocalRegistry, i.infraDriver, i.Distributor).Reconcile(masters)
+		// i.ImageSpec.ImageExtension.GetRegistryType()
+		registryDeployHosts, err = registry.NewInstaller(netutils.RemoveIPs(masters, newMasters), i.regConfig.LocalRegistry, i.infraDriver, i.Distributor, i.ImageSpec.ImageExtension.GetRegistryType()).Reconcile(masters)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -134,7 +134,7 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 
 	// reconcile registry node if local registry is ha mode.
 	if i.regConfig.LocalRegistry != nil && *i.regConfig.LocalRegistry.HA {
-		registryDeployHosts, err = registry.NewInstaller(masters, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor).Reconcile(netutils.RemoveIPs(masters, mastersToDelete))
+		registryDeployHosts, err = registry.NewInstaller(masters, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor, i.ImageSpec.ImageExtension.GetRegistryType()).Reconcile(netutils.RemoveIPs(masters, mastersToDelete))
 		if err != nil {
 			return nil, nil, err
 		}

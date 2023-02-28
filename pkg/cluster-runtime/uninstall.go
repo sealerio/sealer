@@ -53,14 +53,13 @@ func (i *Installer) UnInstall() error {
 
 	if i.regConfig.LocalRegistry != nil {
 		if *i.regConfig.LocalRegistry.HA {
-			installer := registry.NewInstaller(masters, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
+			installer := registry.NewInstaller(masters, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor, "")
 			err = installer.Clean()
 			if err != nil {
 				return err
 			}
 		}
-
-		installer := registry.NewInstaller([]net.IP{master0}, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
+		installer := registry.NewInstaller([]net.IP{master0}, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor, "")
 		err = installer.Clean()
 		if err != nil {
 			return err

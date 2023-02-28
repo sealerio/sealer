@@ -19,13 +19,15 @@ import (
 
 	"github.com/docker/docker/pkg/progress"
 
+	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
-// ImageSave can save a list of images of the specified platform
-type ImageSave interface {
+// ImageSaver can save a list of images of the specified platform
+type ImageSaver interface {
 	// SaveImages is not concurrently safe
 	SaveImages(images []string, dir string, platform v1.Platform) error
+	SaveImagesWithAuth(imageList ImageListWithAuth, dir string, platform v1.Platform) error
 }
 
 type Section struct {
@@ -43,12 +45,27 @@ type DefaultImageSaver struct {
 	progressOut    progress.Output
 }
 
-func NewImageSaver(ctx context.Context) ImageSave {
+type OCIImageSaver struct {
+	ctx          context.Context
+	typeToImages map[string][]Named
+	progressOut  progress.Output
+}
+
+func NewImageSaver(ctx context.Context, registryType string) ImageSaver {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return &DefaultImageSaver{
-		ctx:            ctx,
-		domainToImages: make(map[string][]Named),
+	//registryType := define.GetRegistryType()
+	switch registryType {
+	case common.OCIRegistryType:
+		return &OCIImageSaver{
+			ctx:          ctx,
+			typeToImages: make(map[string][]Named),
+		}
+	default:
+		return &DefaultImageSaver{
+			ctx:            ctx,
+			domainToImages: make(map[string][]Named),
+		}
 	}
 }
