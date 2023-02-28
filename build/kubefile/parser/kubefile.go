@@ -141,7 +141,6 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 			if i != len(mainNode.Children)-1 {
 				return nil, errors.New("launch should be the last instruction")
 			}
-
 		case command.Cmds:
 			cmdsCnt++
 			if cmdsCnt > 1 {
@@ -381,6 +380,9 @@ func (kp *KubefileParser) processFrom(node *Node, result *KubefileResult) error 
 		// https://github.com/golang/gofrontend/blob/e387439bfd24d5e142874b8e68e7039f74c744d7/go/statements.cc#L5501
 		theApp := app
 		result.Applications[app.Name()] = theApp
+	}
+	for _, appConfig := range imageSpec.ImageExtension.Launch.AppConfigs {
+		result.ApplicationConfigs[appConfig.Name] = appConfig
 	}
 
 	return nil
