@@ -133,7 +133,7 @@ func buildMultiPlatformSealerImage(engine imageengine.Interface) error {
 	)
 
 	// create manifest firstly
-	err := engine.CreateManifest(manifest, &options.ManifestCreateOpts{})
+	_, err := engine.CreateManifest(manifest, &options.ManifestCreateOpts{})
 	if err != nil {
 		return errors.Wrap(err, "failed to create manifest for multi platform build")
 	}

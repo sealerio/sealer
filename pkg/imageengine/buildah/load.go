@@ -132,7 +132,7 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 	})
 
 	// create a new manifest and add instance to it.
-	err = engine.CreateManifest(manifestName, &options.ManifestCreateOpts{})
+	_, err = engine.CreateManifest(manifestName, &options.ManifestCreateOpts{})
 	if err != nil {
 		return fmt.Errorf("failed to create new manifest %s :%v ", manifestName, err)
 	}

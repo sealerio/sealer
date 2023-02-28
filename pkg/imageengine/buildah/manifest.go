@@ -15,9 +15,7 @@
 package buildah
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -29,11 +27,9 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
-	"github.com/containers/storage"
 	"github.com/hashicorp/go-multierror"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/pkg/define/options"
@@ -43,18 +39,17 @@ func (engine *Engine) LookupManifest(name string) (*libimage.ManifestList, error
 	return engine.libimageRuntime.LookupManifestList(name)
 }
 
-func (engine *Engine) CreateManifest(name string, opts *options.ManifestCreateOpts) error {
+func (engine *Engine) CreateManifest(name string, opts *options.ManifestCreateOpts) (string, error) {
 	store := engine.ImageStore()
 	systemCxt := engine.SystemContext()
 	list := manifests.Create()
 
 	names, err := util.ExpandNames([]string{name}, systemCxt, store)
 	if err != nil {
-		return fmt.Errorf("encountered while expanding image name %q: %w", name, err)
+		return "", fmt.Errorf("encountered while expanding image name %q: %w", name, err)
 	}
-	_, err = list.SaveToImage(store, "", names, manifest.DockerV2ListMediaType)
 
-	return err
+	return list.SaveToImage(store, "", names, manifest.DockerV2ListMediaType)
 }
 
 func (engine *Engine) DeleteManifests(names []string, opts *options.ManifestDeleteOpts) error {
@@ -80,101 +75,16 @@ func (engine *Engine) DeleteManifests(names []string, opts *options.ManifestDele
 	return multiE.ErrorOrNil()
 }
 
-func (engine *Engine) InspectManifest(name string, opts *options.ManifestInspectOpts) error {
-	printManifest := func(manifest []byte) error {
-		var b bytes.Buffer
-		err := json.Indent(&b, manifest, "", "    ")
-		if err != nil {
-			return fmt.Errorf("rendering manifest for display: %w", err)
-		}
-
-		logrus.Infof("%s", b.String())
-		return nil
-	}
-
+func (engine *Engine) InspectManifest(name string, opts *options.ManifestInspectOpts) (*libimage.ManifestListData, error) {
 	runtime := engine.ImageRuntime()
-	store := engine.ImageStore()
-	systemCxt := engine.SystemContext()
-	ctx := getContext()
 
-	// Before doing a remote lookup, attempt to resolve the manifest list
-	// locally.
+	// attempt to resolve the manifest list locally.
 	manifestList, err := runtime.LookupManifestList(name)
-	if err == nil {
-		schema2List, err := manifestList.Inspect()
-		if err != nil {
-			return err
-		}
-
-		rawSchema2List, err := json.Marshal(schema2List)
-		if err != nil {
-			return err
-		}
-
-		return printManifest(rawSchema2List)
-	}
-	if !errors.Is(err, storage.ErrImageUnknown) && !errors.Is(err, libimage.ErrNotAManifestList) {
-		return err
-	}
-
-	// TODO: at some point `libimage` should support resolving manifests
-	// like that.  Similar to `libimage.Runtime.LookupImage` we could
-	// implement a `*.LookupImageIndex`.
-	refs, err := util.ResolveNameToReferences(store, systemCxt, name)
 	if err != nil {
-		logrus.Debugf("error parsing reference to image %q: %v", name, err)
+		return nil, err
 	}
 
-	if ref, _, err := util.FindImage(store, "", systemCxt, name); err == nil {
-		refs = append(refs, ref)
-	} else if ref, err := alltransports.ParseImageName(name); err == nil {
-		refs = append(refs, ref)
-	}
-	if len(refs) == 0 {
-		return fmt.Errorf("locating images with names %v", name)
-	}
-
-	var (
-		latestErr error
-		result    []byte
-	)
-
-	appendErr := func(e error) {
-		if latestErr == nil {
-			latestErr = e
-		} else {
-			latestErr = fmt.Errorf("tried %v: %w", e, latestErr)
-		}
-	}
-
-	for _, ref := range refs {
-		logrus.Debugf("Testing reference %q for possible manifest", transports.ImageName(ref))
-
-		src, err := ref.NewImageSource(ctx, systemCxt)
-		if err != nil {
-			appendErr(fmt.Errorf("reading image %q: %w", transports.ImageName(ref), err))
-			continue
-		}
-		defer src.Close()
-
-		manifestBytes, manifestType, err := src.GetManifest(ctx, nil)
-		if err != nil {
-			appendErr(fmt.Errorf("loading manifest %q: %w", transports.ImageName(ref), err))
-			continue
-		}
-
-		if !manifest.MIMETypeIsMultiImage(manifestType) {
-			appendErr(fmt.Errorf("manifest is of type %s (not a list type)", manifestType))
-			continue
-		}
-		result = manifestBytes
-		break
-	}
-	if len(result) == 0 && latestErr != nil {
-		return latestErr
-	}
-
-	return printManifest(result)
+	return manifestList.Inspect()
 }
 
 func (engine *Engine) PushManifest(name, destSpec string, opts *options.PushOptions) error {

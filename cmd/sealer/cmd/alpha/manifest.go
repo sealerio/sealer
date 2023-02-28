@@ -15,8 +15,11 @@
 package alpha
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/containers/common/pkg/auth"
 	digest "github.com/opencontainers/go-digest"
@@ -78,7 +81,12 @@ func manifestCreateCommand() *cobra.Command {
 				return err
 			}
 
-			return engine.CreateManifest(args[0], &createManifestOpts)
+			id, err := engine.CreateManifest(args[0], &createManifestOpts)
+			if err == nil {
+				logrus.Infof("successfully create manifest %s with ID %s", args[0], id)
+			}
+
+			return err
 		},
 		Example: `sealer alpha manifest create mylist:v1.11`,
 		Args:    cobra.MinimumNArgs(1),
@@ -209,7 +217,18 @@ func manifestInspectCommand() *cobra.Command {
 				return err
 			}
 
-			return engine.InspectManifest(name, &inspectManifestOpts)
+			schema2List, err := engine.InspectManifest(name, &inspectManifestOpts)
+			if err != nil {
+				return err
+			}
+
+			b, err := json.MarshalIndent(schema2List, "", "    ")
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(string(b))
+			return nil
 		},
 		Example: `sealer alpha manifest inspect mylist:v1.11`,
 		Args:    cobra.MinimumNArgs(1),
