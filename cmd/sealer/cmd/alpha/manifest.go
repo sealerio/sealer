@@ -19,14 +19,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/containers/common/pkg/auth"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -82,11 +80,12 @@ func manifestCreateCommand() *cobra.Command {
 			}
 
 			id, err := engine.CreateManifest(args[0], &createManifestOpts)
-			if err == nil {
-				logrus.Infof("successfully create manifest %s with ID %s", args[0], id)
+			if err != nil {
+				return err
 			}
 
-			return err
+			logrus.Infof("successfully create manifest %s with ID %s", args[0], id)
+			return nil
 		},
 		Example: `sealer alpha manifest create mylist:v1.11`,
 		Args:    cobra.MinimumNArgs(1),
