@@ -22,6 +22,7 @@ import (
 
 	"github.com/sealerio/sealer/build/buildimage"
 	"github.com/sealerio/sealer/build/kubefile/parser"
+	rd "github.com/sealerio/sealer/pkg/define"
 	version2 "github.com/sealerio/sealer/pkg/define/application/version"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
@@ -433,6 +434,7 @@ func buildImageExtensionOnResult(result *parser.KubefileResult, imageType string
 		BuildClient: v12.BuildClient{
 			SealerVersion:  version.Get().GitVersion,
 			BuildahVersion: define.Version,
+			RegistryType:   rd.GetRegistryType(),
 		},
 	}
 

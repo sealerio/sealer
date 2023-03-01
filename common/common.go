@@ -141,8 +141,17 @@ const (
 	WINDOWS            = "windows"
 )
 
+const (
+	DefaultRegistryType = "docker"
+	OCIRegistryType     = "oci"
+)
+
 func GetSealerWorkDir() string {
 	return filepath.Join(GetHomeDir(), ".sealer")
+}
+
+func GetSealerConfigFile() string {
+	return filepath.Join(GetSealerWorkDir(), "config")
 }
 
 func GetDefaultClusterfile() string {

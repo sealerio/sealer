@@ -41,7 +41,7 @@ type Installer interface {
 	// launch registry node
 	// scale-up registry node
 	// scale down registry node
-	Reconcile(desiredHosts []net.IP) ([]net.IP, error)
+	Reconcile(desiredHosts []net.IP, registryType string) ([]net.IP, error)
 
 	// Clean all registry deploy hosts
 	Clean() error
@@ -66,10 +66,10 @@ type localInstaller struct {
 	distributor        imagedistributor.Distributor
 }
 
-func (l *localInstaller) Reconcile(desiredHosts []net.IP) ([]net.IP, error) {
+func (l *localInstaller) Reconcile(desiredHosts []net.IP, registryType string) ([]net.IP, error) {
 	// if deployHosts is null,means first time installation
 	if len(l.currentDeployHosts) == 0 {
-		err := l.install(desiredHosts)
+		err := l.install(desiredHosts, registryType)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +84,7 @@ func (l *localInstaller) Reconcile(desiredHosts []net.IP) ([]net.IP, error) {
 
 	// join new hosts
 	if len(joinedHosts) != 0 {
-		err := l.install(joinedHosts)
+		err := l.install(joinedHosts, registryType)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func (l *localInstaller) Reconcile(desiredHosts []net.IP) ([]net.IP, error) {
 	return nil, nil
 }
 
-func (l *localInstaller) install(deployHosts []net.IP) error {
+func (l *localInstaller) install(deployHosts []net.IP, registryType string) error {
 	logrus.Infof("will launch local private registry on %+v\n", deployHosts)
 
 	if err := l.syncBasicAuthFile(deployHosts); err != nil {
@@ -114,7 +114,7 @@ func (l *localInstaller) install(deployHosts []net.IP) error {
 		return err
 	}
 
-	if err := l.reconcileRegistry(deployHosts); err != nil {
+	if err := l.reconcileRegistry(deployHosts, registryType); err != nil {
 		return err
 	}
 	return nil
@@ -218,7 +218,7 @@ func (l *localInstaller) gen(certPath, certName string) error {
 	return nil
 }
 
-func (l *localInstaller) reconcileRegistry(hosts []net.IP) error {
+func (l *localInstaller) reconcileRegistry(hosts []net.IP, registryType string) error {
 	var (
 		rootfs  = l.infraDriver.GetClusterRootfsPath()
 		dataDir = filepath.Join(rootfs, "registry")
@@ -230,7 +230,7 @@ func (l *localInstaller) reconcileRegistry(hosts []net.IP) error {
 
 	// bash init-registry.sh ${port} ${mountData} ${domain}
 	clusterEnvs := l.infraDriver.GetClusterEnv()
-	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s", rootfs, strconv.Itoa(l.Port), dataDir, l.Domain)
+	initRegistry := fmt.Sprintf("cd %s/scripts && bash init-registry.sh %s %s %s %s", rootfs, strconv.Itoa(l.Port), dataDir, l.Domain, registryType)
 	initRegistryCmd := env.WrapperShell(initRegistry, clusterEnvs)
 	for _, deployHost := range hosts {
 		if err := l.infraDriver.CmdAsync(deployHost, initRegistryCmd); err != nil {
