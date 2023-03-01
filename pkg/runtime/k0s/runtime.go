@@ -58,7 +58,6 @@ func NewK0sRuntime(infra infradriver.InfraDriver, containerRuntimeInfo container
 }
 
 func (k *Runtime) Install() error {
-
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 	workers := k.infra.GetHostIPListByRole(common.NODE)
 
