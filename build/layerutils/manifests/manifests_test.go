@@ -27,7 +27,7 @@ package manifest
 		{
 			"test list manifests images",
 			args{"my_cluster"},
-			[]string{"k8s.gcr.io/etcd:3.4.13-0", "k8s.gcr.io/kube-apiserver:v1.19.7", "k8s.gcr.io/kube-controller-manager:v1.19.7", "k8s.gcr.io/kube-scheduler:v1.19.7"},
+			[]string{"registry.k8s.io/etcd:3.4.13-0", "registry.k8s.io/kube-apiserver:v1.19.7", "registry.k8s.io/kube-controller-manager:v1.19.7", "registry.k8s.io/kube-scheduler:v1.19.7"},
 			false,
 		},
 	}

@@ -95,8 +95,8 @@ Write the image list which your want involved in ClusterImage into imageList, fo
 
 ```
 docker.io/alpine:3.17.1
-k8s.gcr.io/pause:3.5
-k8s.gcr.io/kube-apiserver:v1.22.17
+registry.k8s.io/pause:3.5
+registry.k8s.io/kube-apiserver:v1.22.17
 ```
 
 ## scripts
