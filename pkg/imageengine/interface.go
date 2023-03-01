@@ -60,11 +60,11 @@ type Interface interface {
 
 	LookupManifest(name string) (*libimage.ManifestList, error)
 
-	CreateManifest(name string, opts *options.ManifestCreateOpts) error
+	CreateManifest(name string, opts *options.ManifestCreateOpts) (string, error)
 
 	DeleteManifests(names []string, opts *options.ManifestDeleteOpts) error
 
-	InspectManifest(name string, opts *options.ManifestInspectOpts) error
+	InspectManifest(name string, opts *options.ManifestInspectOpts) (*libimage.ManifestListData, error)
 
 	PushManifest(name, destSpec string, opts *options.PushOptions) error
 

@@ -117,7 +117,7 @@ func (testImageEngine) LookupManifest(name string) (*libimage.ManifestList, erro
 	panic("implement me")
 }
 
-func (testImageEngine) CreateManifest(name string, opts *options.ManifestCreateOpts) error {
+func (testImageEngine) CreateManifest(name string, opts *options.ManifestCreateOpts) (string, error) {
 	panic("implement me")
 }
 
@@ -125,7 +125,7 @@ func (testImageEngine) DeleteManifests(names []string, opts *options.ManifestDel
 	panic("implement me")
 }
 
-func (testImageEngine) InspectManifest(name string, opts *options.ManifestInspectOpts) error {
+func (testImageEngine) InspectManifest(name string, opts *options.ManifestInspectOpts) (*libimage.ManifestListData, error) {
 	panic("implement me")
 }
 
