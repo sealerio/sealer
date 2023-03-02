@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestV2Application_GetLaunchCmds(t *testing.T) {
+func newTestApplication() (Interface, error) {
 	app := &v2.Application{
 		Spec: v2.ApplicationSpec{
 			LaunchApps: []string{"nginx1", "nginx2"},
@@ -80,6 +80,15 @@ func TestV2Application_GetLaunchCmds(t *testing.T) {
 
 	driver, err := NewV2Application(app, extension)
 	if err != nil {
+		return nil, err
+	}
+
+	return driver, nil
+}
+
+func TestV2Application_GetLaunchCmds(t *testing.T) {
+	driver, err := newTestApplication()
+	if err != nil {
 		assert.Error(t, err)
 	}
 
@@ -119,6 +128,71 @@ func TestV2Application_GetLaunchCmds(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := driver.GetAppLaunchCmds(tt.args.appName)
+			assert.Equal(t, tt.args.wanted, result)
+		})
+	}
+}
+
+func TestV2Application_GetAppNames(t *testing.T) {
+	driver, err := newTestApplication()
+	if err != nil {
+		assert.Error(t, err)
+	}
+
+	type args struct {
+		driver Interface
+		wanted []string
+	}
+	var tests = []struct {
+		name string
+		args args
+	}{{
+		name: "get app launch names",
+		args: args{
+			driver: driver,
+			wanted: []string{"nginx1", "nginx2"},
+		},
+	},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := driver.GetAppNames()
+			assert.Equal(t, tt.args.wanted, result)
+		})
+	}
+}
+
+func TestV2Application_GetImageLaunchCmds(t *testing.T) {
+	driver, err := newTestApplication()
+	if err != nil {
+		assert.Error(t, err)
+	}
+
+	type args struct {
+		driver Interface
+		wanted []string
+	}
+	var tests = []struct {
+		name string
+		args args
+	}{{
+		name: "get image launch cmds",
+		args: args{
+			driver: driver,
+			wanted: []string{
+				"kubectl apply -f ns.yaml",
+				"kubectl apply -f nginx.yaml -n sealer-kube1",
+				"kubectl apply -f ns.yaml",
+				"kubectl apply -f nginx.yaml -n sealer-kube2",
+			},
+		},
+	},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := driver.GetImageLaunchCmds()
 			assert.Equal(t, tt.args.wanted, result)
 		})
 	}

@@ -23,15 +23,15 @@ import (
 
 	"github.com/containers/buildah/util"
 	"github.com/imdario/mergo"
-	"golang.org/x/sync/errgroup"
-	k8sv1 "k8s.io/api/core/v1"
-	k8snet "k8s.io/utils/net"
-
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/ssh"
+	strUtil "github.com/sealerio/sealer/utils/strings"
+	"golang.org/x/sync/errgroup"
+	k8sv1 "k8s.io/api/core/v1"
+	k8snet "k8s.io/utils/net"
 )
 
 type SSHInfraDriver struct {
@@ -81,32 +81,6 @@ func copyEnv(origin map[string]interface{}) map[string]interface{} {
 	}
 
 	return ret
-}
-
-// ConvertEnv Convert []string to map[string]interface{}
-func ConvertEnv(envList []string) (env map[string]interface{}) {
-	temp := make(map[string][]string)
-	env = make(map[string]interface{})
-
-	for _, e := range envList {
-		var kv []string
-		if kv = strings.SplitN(e, "=", 2); len(kv) != 2 {
-			continue
-		}
-		temp[kv[0]] = append(temp[kv[0]], strings.Split(kv[1], ";")...)
-	}
-
-	for k, v := range temp {
-		if len(v) > 1 {
-			env[k] = v
-			continue
-		}
-		if len(v) == 1 {
-			env[k] = v[0]
-		}
-	}
-
-	return
 }
 
 // NewInfraDriver will create a new Infra driver, and if extraEnv specified, it will set env not exist in Cluster
@@ -168,13 +142,13 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		}
 	}
 
-	ret.clusterEnv = ConvertEnv(cluster.Spec.Env)
+	ret.clusterEnv = strUtil.ConvertStringSliceToMap(cluster.Spec.Env)
 
 	// initialize hostEnvMap and host labels field
 	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
-			ret.hostEnvMap[ip.String()] = mergeList(ConvertEnv(host.Env), ret.clusterEnv)
+			ret.hostEnvMap[ip.String()] = mergeList(strUtil.ConvertStringSliceToMap(host.Env), ret.clusterEnv)
 			ret.hostLabels[ip.String()] = host.Labels
 			taints, err := convertTaints(host.Taints)
 			if err != nil {
@@ -224,7 +198,7 @@ func (d *SSHInfraDriver) AddClusterEnv(envs []string) {
 	if d.clusterEnv == nil || envs == nil {
 		return
 	}
-	newEnv := ConvertEnv(envs)
+	newEnv := strUtil.ConvertStringSliceToMap(envs)
 	for k, v := range newEnv {
 		d.clusterEnv[k] = v
 	}
