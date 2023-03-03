@@ -19,20 +19,18 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sealerio/sealer/common"
-
 	"golang.org/x/sync/errgroup"
 )
 
-func (k *Runtime) reset() error {
-	if err := k.resetNodes(k.cluster.GetNodeIPList()); err != nil {
-		return err
-	}
-	if err := k.resetMasters(k.cluster.GetMasterIPList()); err != nil {
+func (k *Runtime) reset(mastersToDelete, workersToDelete []net.IP) error {
+	if err := k.resetNodes(workersToDelete); err != nil {
 		return err
 	}
 
-	return k.DeleteRegistry()
+	if err := k.resetMasters(mastersToDelete); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (k *Runtime) resetNodes(nodes []net.IP) error {
@@ -40,7 +38,13 @@ func (k *Runtime) resetNodes(nodes []net.IP) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			if err := k.resetNode(node); err != nil {
+			if err := k.infra.CmdAsync(node, "k0s stop",
+				"umount $(df -HT | grep '/var/lib/k0s/kubelet/pods' | awk '{print $7}')",
+				"k0s reset",
+				"rm -rf /etc/k0s/",
+				"rm -rf /usr/bin/k0s",
+				"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
+				"rm -rf /etc/cni && rm -rf /opt/cni"); err != nil {
 				return fmt.Errorf("failed to reset node %s: %v", node, err)
 			}
 			return nil
@@ -54,36 +58,17 @@ func (k *Runtime) resetMasters(nodes []net.IP) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			if err := k.resetNode(node); err != nil {
+			if err := k.infra.CmdAsync(node, "k0s stop",
+				"k0s reset",
+				"rm -rf /etc/k0s/",
+				"rm -rf /usr/bin/k0s",
+				"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
+				"rm -rf /etc/cni && rm -rf /opt/cni",
+				"rm -rf .kube/config"); err != nil {
 				return fmt.Errorf("failed to reset master %s: %v", node, err)
 			}
 			return nil
 		})
 	}
 	return eg.Wait()
-}
-
-func (k *Runtime) resetNode(node net.IP) error {
-	ssh, err := k.getHostSSHClient(node)
-	if err != nil {
-		return err
-	}
-
-	/** To reset a node, do following commands one by one:
-	STEP1: stop k0s service
-	STEP2: reset the node with install configuration
-	STEP3: remove k0s cluster config generate by k0s under /etc/k0s
-	STEP4: remove private registry config in /etc/host
-	*/
-	if err := ssh.CmdAsync(node, "k0s stop",
-		fmt.Sprintf("k0s reset --cri-socket %s", ExternalCRI),
-		"rm -rf /etc/k0s/",
-		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", common.DefaultRegistryDomain),
-		fmt.Sprintf("sed -i \"/%s/d\" /etc/hosts", k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, k.RegConfig.Domain),
-		fmt.Sprintf("rm -rf %s /%s*", DockerCertDir, common.DefaultRegistryDomain)); err != nil {
-		return err
-	}
-	return nil
 }

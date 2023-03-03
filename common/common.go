@@ -31,6 +31,12 @@ const (
 	Containerd = "containerd"
 )
 
+const (
+	K0s string = "k0s"
+	K3s string = "k3s"
+	K8s string = "kubernetes"
+)
+
 // Default dir and file path
 const (
 	EtcDir                   = "etc"

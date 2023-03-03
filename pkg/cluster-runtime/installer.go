@@ -29,17 +29,26 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sealerio/sealer/pkg/runtime/k0s"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var tryTimes = 10
 var trySleepTime = time.Second
+
+const (
+	// CRILabel is key for get container runtime interface type.
+	CRILabel = "cluster.alpha.sealer.io/container-runtime-type"
+	// CRTLabel is key for get cluster runtime type.
+	CRTLabel = "cluster.alpha.sealer.io/cluster-runtime-type"
+)
 
 // RuntimeConfig for Installer
 type RuntimeConfig struct {
@@ -55,22 +64,57 @@ type Installer struct {
 	RuntimeConfig
 	infraDriver               infradriver.InfraDriver
 	containerRuntimeInstaller containerruntime.Installer
+	clusterRuntimeType        string
 	hooks                     map[Phase]HookConfigList
 	regConfig                 v2.Registry
 }
 
-func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConfig) (*Installer, error) {
+type InstallInfo struct {
+	ContainerRuntimeType string
+	ClusterRuntimeType   string
+}
+
+func getCRIInstaller(containerRuntime string, infraDriver infradriver.InfraDriver) (containerruntime.Installer, error) {
+	switch containerRuntime {
+	case common.Docker:
+		return containerruntime.NewInstaller(v2.ContainerRuntimeConfig{
+			Type: common.Docker,
+		}, infraDriver)
+	case common.Containerd:
+		return containerruntime.NewInstaller(v2.ContainerRuntimeConfig{
+			Type: common.Containerd,
+		}, infraDriver)
+	default:
+		return nil, fmt.Errorf("not support container runtime %s", containerRuntime)
+	}
+}
+
+func getClusterRuntimeInstaller(clusterRuntimeType string, driver infradriver.InfraDriver, crInfo containerruntime.Info,
+	registryInfo registry.Info, kubeadmConfig kubeadm.KubeadmConfig) (runtime.Installer, error) {
+	switch clusterRuntimeType {
+	case common.K8s:
+		return kubernetes.NewKubeadmRuntime(kubeadmConfig, driver, crInfo, registryInfo)
+	case common.K0s:
+		return k0s.NewK0sRuntime(driver, crInfo, registryInfo)
+		//todo support k3s runtime
+	default:
+		return nil, fmt.Errorf("not support cluster runtime %s", clusterRuntimeType)
+	}
+}
+
+func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConfig, installInfo InstallInfo) (*Installer, error) {
 	var (
 		err       error
 		installer = &Installer{
-			regConfig: infraDriver.GetClusterRegistry(),
+			regConfig:          infraDriver.GetClusterRegistry(),
+			clusterRuntimeType: installInfo.ClusterRuntimeType,
 		}
 	)
 
 	installer.RuntimeConfig = runtimeConfig
 	// configure container runtime
 	//todo need to support other container runtimes
-	installer.containerRuntimeInstaller, err = containerruntime.NewInstaller(runtimeConfig.ContainerRuntimeConfig, infraDriver)
+	installer.containerRuntimeInstaller, err = getCRIInstaller(installInfo.ContainerRuntimeType, infraDriver)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +202,8 @@ func (i *Installer) Install() error {
 		return err
 	}
 
-	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, crInfo, registryDriver.GetInfo())
+	kubeRuntimeInstaller, err := getClusterRuntimeInstaller(i.clusterRuntimeType, i.infraDriver,
+		crInfo, registryDriver.GetInfo(), i.KubeadmConfig)
 	if err != nil {
 		return err
 	}
@@ -360,4 +405,36 @@ func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 		}
 	}
 	return nil
+}
+
+func GetClusterInstallInfo(labels map[string]string) InstallInfo {
+	cri := labels[CRILabel]
+	if cri == "" {
+		cri = common.Docker
+	}
+	clusterRuntimeType := labels[CRTLabel]
+	if clusterRuntimeType == "" {
+		clusterRuntimeType = common.K8s
+	}
+	logrus.Infof("The cri is %s, crt is %s\n", cri, clusterRuntimeType)
+	return InstallInfo{
+		ContainerRuntimeType: cri,
+		ClusterRuntimeType:   clusterRuntimeType,
+	}
+}
+
+func GetClusterConfPath(labels map[string]string) string {
+	clusterRuntimeType := labels[CRTLabel]
+	if clusterRuntimeType == "" {
+		clusterRuntimeType = common.K8s
+	}
+	switch clusterRuntimeType {
+	case common.K8s:
+		return kubernetes.AdminKubeConfPath
+	case common.K0s:
+		return k0s.DefaultAdminConfPath
+	//TODO support k3s
+	default:
+		return kubernetes.AdminKubeConfPath
+	}
 }

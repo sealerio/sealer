@@ -20,7 +20,6 @@ import (
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/registry"
-	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
 )
 
 func (i *Installer) UnInstall() error {
@@ -37,7 +36,8 @@ func (i *Installer) UnInstall() error {
 		return err
 	}
 
-	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, containerruntime.Info{}, registry.Info{})
+	kubeRuntimeInstaller, err := getClusterRuntimeInstaller(i.clusterRuntimeType, i.infraDriver,
+		containerruntime.Info{}, registry.Info{}, i.KubeadmConfig)
 	if err != nil {
 		return err
 	}

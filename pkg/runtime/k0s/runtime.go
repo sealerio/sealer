@@ -15,99 +15,124 @@
 package k0s
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net"
-	"strings"
-	"time"
+	"os"
 
 	"github.com/sealerio/sealer/common"
+	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
-	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils/platform"
-	"github.com/sealerio/sealer/utils/ssh"
+	utilsnet "github.com/sealerio/sealer/utils/net"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Runtime struct is the runtime interface for k0s
 type Runtime struct {
-	// cluster is sealer clusterFile
-	cluster   *v2.Cluster
-	Vlog      int
-	RegConfig *registry.Config
+	infra                infradriver.InfraDriver
+	Vlog                 int
+	containerRuntimeInfo containerruntime.Info
+	registryInfo         registry.Info
+	//TODO：now do not support custom APIServerDomain
 }
 
-func (k *Runtime) Init() error {
-	return k.init()
-}
-
-func (k *Runtime) Upgrade() error {
-	return k.upgrade()
-}
-
-func (k *Runtime) Reset() error {
-	logrus.Infof("start to delete cluster: master %s, node %s", k.cluster.GetMasterIPList(), k.cluster.GetNodeIPList())
-	return k.reset()
-}
-
-func (k *Runtime) JoinMasters(newMastersIPList []net.IP) error {
-	if len(newMastersIPList) != 0 {
-		logrus.Infof("%s will be added as master", newMastersIPList)
-	}
-	return k.joinMasters(newMastersIPList)
-}
-
-func (k *Runtime) JoinNodes(newNodesIPList []net.IP) error {
-	if len(newNodesIPList) != 0 {
-		logrus.Infof("%s will be added as worker", newNodesIPList)
-	}
-	return k.joinNodes(newNodesIPList)
-}
-
-func (k *Runtime) DeleteMasters(mastersIPList []net.IP) error {
-	if len(mastersIPList) != 0 {
-		logrus.Infof("master %s will be deleted", mastersIPList)
-		return k.deleteMasters(mastersIPList)
-	}
-	return nil
-}
-
-func (k *Runtime) DeleteNodes(nodesIPList []net.IP) error {
-	if len(nodesIPList) != 0 {
-		logrus.Infof("worker %s will be deleted", nodesIPList)
-		return k.deleteNodes(nodesIPList)
-	}
-	return nil
-}
-
-func (k *Runtime) GetClusterMetadata() (*runtime.Metadata, error) {
-	return k.getClusterMetadata()
-}
-
-// NewK0sRuntime arg "clusterConfig" is the k0s config file under etc/${ant_name.yaml}, runtime need read k0s config from it
-// Mount image is required before new Runtime.
-func NewK0sRuntime(cluster *v2.Cluster) (runtime.Installer, error) {
-	return newK0sRuntime(cluster)
-}
-
-func newK0sRuntime(cluster *v2.Cluster) (runtime.Installer, error) {
+// NewK0sRuntime gen a k0s bootstrap process that leading k0s cluster management
+func NewK0sRuntime(infra infradriver.InfraDriver, containerRuntimeInfo containerruntime.Info, registryInfo registry.Info) (runtime.Installer, error) {
 	k := &Runtime{
-		cluster: cluster,
-	}
-
-	k.RegConfig = registry.GetConfig(k.getImageMountDir(), k.cluster.GetMaster0IP())
-
-	if err := k.checkList(); err != nil {
-		return nil, err
+		infra:                infra,
+		registryInfo:         registryInfo,
+		containerRuntimeInfo: containerRuntimeInfo,
 	}
 
 	setDebugLevel(k)
-	// todo need to adapt the new runtime interface.temporarily return nil
-	return nil, nil
-	//return k, nil
+	return k, nil
+}
+
+func (k *Runtime) Install() error {
+	masters := k.infra.GetHostIPListByRole(common.MASTER)
+	workers := k.infra.GetHostIPListByRole(common.NODE)
+
+	if err := k.initKube([]net.IP{masters[0]}); err != nil {
+		return err
+	}
+	// registryInfo like "sea.hub:5000" is needed which used to modify the k0s.yaml private registry repo
+	if err := k.generateConfigOnMaster0(masters[0], k.registryInfo.URL); err != nil {
+		return err
+	}
+
+	if err := k.bootstrapMaster0(masters[0]); err != nil {
+		return err
+	}
+
+	if err := k.generateJoinToken(masters[0]); err != nil {
+		return err
+	}
+
+	if err := k.joinMasters(masters[1:], k.registryInfo.URL); err != nil {
+		return err
+	}
+
+	if err := k.joinNodes(workers); err != nil {
+		return err
+	}
+
+	driver, err := k.GetCurrentRuntimeDriver()
+	if err != nil {
+		return err
+	}
+
+	if err := k.dumpKubeConfigIntoCluster(driver, masters[0]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *Runtime) GetCurrentRuntimeDriver() (runtime.Driver, error) {
+	return NewKubeDriver(DefaultAdminConfPath)
+}
+
+func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
+	if err := k.joinMasters(newMasters, k.registryInfo.URL); err != nil {
+		return err
+	}
+
+	if err := k.joinNodes(newWorkers); err != nil {
+		return err
+	}
+	logrus.Info("cluster scale up succeeded!")
+	return nil
+}
+
+func (k *Runtime) ScaleDown(mastersToDelete, workersToDelete []net.IP) error {
+	masters := k.infra.GetHostIPListByRole(common.MASTER)
+
+	remainMasters := utilsnet.RemoveIPs(masters, mastersToDelete)
+	if len(remainMasters) == 0 {
+		return fmt.Errorf("cleaning up all masters is illegal, unless you give the --all flag, which will delete the entire cluster")
+	}
+
+	if len(workersToDelete) > 0 {
+		if err := k.deleteNodes(workersToDelete, remainMasters); err != nil {
+			return err
+		}
+	}
+
+	if len(mastersToDelete) > 0 {
+		if err := k.deleteMasters(mastersToDelete, remainMasters); err != nil {
+			return err
+		}
+	}
+	logrus.Info("cluster scale down succeeded!")
+	return nil
 }
 
 func setDebugLevel(k *Runtime) {
@@ -116,84 +141,18 @@ func setDebugLevel(k *Runtime) {
 	}
 }
 
-// checkList do a simple check for cluster spec Hosts which can not be empty.
-func (k *Runtime) checkList() error {
-	if len(k.cluster.Spec.Hosts) == 0 {
-		return fmt.Errorf("hosts spec cannot be empty")
-	}
-	if k.cluster.GetMaster0IP() == nil {
-		return fmt.Errorf("master0 IP cannot be empty")
-	}
-	return nil
+func (k *Runtime) Upgrade() error {
+	panic("implement me")
 }
 
-// getImageMountDir return a path for mount dir, eg: /var/lib/sealer/data/my-k0s-cluster/mount
-func (k *Runtime) getImageMountDir() string {
-	return platform.DefaultMountClusterImageDir(k.cluster.Name)
-}
-
-// getHostSSHClient return ssh client with destination machine.
-func (k *Runtime) getHostSSHClient(hostIP net.IP) (ssh.Interface, error) {
-	return ssh.NewStdoutSSHClient(hostIP, k.cluster)
-}
-
-// getRootfs return the rootfs dir like: /var/lib/sealer/data/my-k0s-cluster/rootfs
-func (k *Runtime) getRootfs() string {
-	return common.DefaultTheClusterRootfsDir(k.cluster.Name)
-}
-
-// getCertsDir return a Dir value such as: /var/lib/sealer/data/my-k0s-cluster/certs
-func (k *Runtime) getCertsDir() string {
-	return common.TheDefaultClusterCertDir(k.cluster.Name)
-}
-
-// sendFileToHosts sent file to the dst dir on host machine
-func (k *Runtime) sendFileToHosts(Hosts []net.IP, src, dst string) error {
-	eg, _ := errgroup.WithContext(context.Background())
-	for _, node := range Hosts {
-		node := node
-		eg.Go(func() error {
-			sshClient, err := k.getHostSSHClient(node)
-			if err != nil {
-				return fmt.Errorf("failed to send file: %v", err)
-			}
-			if err := sshClient.Copy(node, src, dst); err != nil {
-				return fmt.Errorf("failed to send file: %v", err)
-			}
-			return err
-		})
-	}
-	return eg.Wait()
-}
-
-func (k *Runtime) WaitSSHReady(tryTimes int, hosts ...net.IP) error {
-	eg, _ := errgroup.WithContext(context.Background())
-	for _, h := range hosts {
-		host := h
-		eg.Go(func() error {
-			for i := 0; i < tryTimes; i++ {
-				sshClient, err := k.getHostSSHClient(host)
-				if err != nil {
-					return err
-				}
-				err = sshClient.Ping(host)
-				if err == nil {
-					return nil
-				}
-				time.Sleep(time.Duration(i) * time.Second)
-			}
-			return fmt.Errorf("wait for [%s] ssh ready timeout, ensure that the IP address or password is correct", host)
-		})
-	}
-	return eg.Wait()
+func (k *Runtime) Reset() error {
+	masters := k.infra.GetHostIPListByRole(common.MASTER)
+	workers := k.infra.GetHostIPListByRole(common.NODE)
+	return k.reset(masters, workers)
 }
 
 func (k *Runtime) CopyJoinToken(role string, hosts []net.IP) error {
 	var joinCertPath string
-	ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
-	if err != nil {
-		return err
-	}
 	switch role {
 	case ControllerRole:
 		joinCertPath = DefaultK0sControllerJoin
@@ -207,21 +166,21 @@ func (k *Runtime) CopyJoinToken(role string, hosts []net.IP) error {
 	for _, host := range hosts {
 		host := host
 		eg.Go(func() error {
-			return ssh.Copy(host, joinCertPath, joinCertPath)
+			return k.infra.Copy(host, joinCertPath, joinCertPath)
 		})
 	}
 	return nil
 }
 
-func (k *Runtime) JoinCommand(role string) []string {
+func (k *Runtime) JoinCommand(role, registryInfo string) []string {
 	cmds := map[string][]string{
-		ControllerRole: {"mkdir -r /etc/k0s", fmt.Sprintf("k0s config create > %s", DefaultK0sConfigPath),
-			fmt.Sprintf("sed -i '/  images/ a\\    repository: \"%s:%s\"' %s", k.RegConfig.Domain, k.RegConfig.Port, DefaultK0sConfigPath),
+		ControllerRole: {"mkdir -p /etc/k0s", fmt.Sprintf("k0s config create > %s", DefaultK0sConfigPath),
+			fmt.Sprintf("sed -i '/  images/ a\\    repository: \"%s\"' %s", registryInfo, DefaultK0sConfigPath),
 			fmt.Sprintf("k0s install controller --token-file %s -c %s --cri-socket %s",
-				DefaultK0sControllerJoin, DefaultK0sConfigPath, ExternalCRI),
+				DefaultK0sControllerJoin, DefaultK0sConfigPath, ExternalCRIAddress),
 			"k0s start",
 		},
-		WorkerRole: {fmt.Sprintf("k0s install worker --cri-socket %s --token-file %s", ExternalCRI, DefaultK0sWorkerJoin),
+		WorkerRole: {fmt.Sprintf("k0s install worker --cri-socket %s --token-file %s", ExternalCRIAddress, DefaultK0sWorkerJoin),
 			"k0s start"},
 	}
 
@@ -232,35 +191,35 @@ func (k *Runtime) JoinCommand(role string) []string {
 	return v
 }
 
-// CmdToString is in host exec cmd and replace to spilt str
-func (k *Runtime) CmdToString(host net.IP, cmd, split string) (string, error) {
-	ssh, err := k.getHostSSHClient(host)
+// dumpKubeConfigIntoCluster save AdminKubeConf to cluster as secret resource.
+func (k *Runtime) dumpKubeConfigIntoCluster(driver runtime.Driver, master0 net.IP) error {
+	kubeConfigContent, err := os.ReadFile(DefaultAdminConfPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to get ssh clientof host(%s): %v", host, err)
+		return err
 	}
-	return ssh.CmdToString(host, cmd, split)
-}
 
-func (k *Runtime) getClusterMetadata() (*runtime.Metadata, error) {
-	metadata := &runtime.Metadata{}
+	kubeConfigContent = bytes.ReplaceAll(kubeConfigContent, []byte("apiserver.cluster.local"), []byte(master0.String()))
 
-	version, err := k.getKubeVersion()
-	if err != nil {
-		return metadata, err
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "admin.conf",
+			Namespace: metav1.NamespaceSystem,
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"admin.conf": kubeConfigContent,
+		},
 	}
-	metadata.Version = version
-	metadata.ClusterRuntime = RuntimeFlag
-	return metadata, nil
-}
 
-func (k *Runtime) getKubeVersion() (string, error) {
-	ssh, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
-	if err != nil {
-		return "", err
+	if err := driver.Create(context.Background(), secret, &runtimeClient.CreateOptions{}); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("unable to create secret: %v", err)
+		}
+
+		if err := driver.Update(context.Background(), secret, &runtimeClient.UpdateOptions{}); err != nil {
+			return fmt.Errorf("unable to update secret: %v", err)
+		}
 	}
-	bytes, err := ssh.Cmd(k.cluster.GetMaster0IP(), VersionCmd)
-	if err != nil {
-		return "", err
-	}
-	return strings.Split(string(bytes), "+")[0], nil
+
+	return nil
 }

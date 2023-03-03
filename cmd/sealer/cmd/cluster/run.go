@@ -34,6 +34,7 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -295,7 +296,8 @@ func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interfac
 		runtimeConfig.Application = cf.GetApplication()
 	}
 
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
+		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
 	if err != nil {
 		return err
 	}
@@ -311,8 +313,9 @@ func createNewCluster(imageEngine imageengine.Interface, cf clusterfile.Interfac
 		return err
 	}
 
+	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
 	//save and commit
-	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
 		return err
 	}
 
@@ -485,7 +488,7 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
 	}
 
-	upgrader, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig)
+	upgrader, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig, clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
 	if err != nil {
 		return err
 	}
@@ -501,8 +504,9 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 		return err
 	}
 
+	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
 	//save and commit
-	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true}); err != nil {
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
 		return err
 	}
 

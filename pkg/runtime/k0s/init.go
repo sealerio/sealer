@@ -15,130 +15,95 @@
 package k0s
 
 import (
+	"context"
 	"fmt"
-
-	"github.com/sealerio/sealer/common"
-	osi "github.com/sealerio/sealer/utils/os"
+	"net"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
-func (k *Runtime) init() error {
-	pipeline := []func() error{
-		k.GenerateConfigOnMaster0,
-		k.BootstrapMaster0,
-		// TODO: move all these registry operation to the specific registry packages.
-		k.GenerateCert,
-		k.ApplyRegistryOnMaster0,
-		k.GetKubectlAndKubeconfig,
-	}
-
-	for _, f := range pipeline {
-		if err := f(); err != nil {
-			return fmt.Errorf("failed to prepare Master0 env: %v", err)
-		}
-	}
-
-	return nil
-}
-
-// GenerateConfigOnMaster0 generate the k0s.yaml to /etc/k0s/k0s.yaml and lead the controller node install
-func (k *Runtime) GenerateConfigOnMaster0() error {
-	if err := k.generateK0sConfig(); err != nil {
+// generateConfigOnMaster0 generate the k0s.yaml to /etc/k0s/k0s.yaml and lead the controller node install
+func (k *Runtime) generateConfigOnMaster0(master0 net.IP, registryInfo string) error {
+	if err := k.generateK0sConfig(master0); err != nil {
 		return fmt.Errorf("failed to generate config: %v", err)
 	}
 	logrus.Infof("k0s config created under /etc/k0s")
 
-	if err := k.modifyConfigRepo(); err != nil {
+	if err := k.modifyConfigRepo(master0, registryInfo); err != nil {
 		return fmt.Errorf("failed to modify config to private repository: %s", err)
 	}
 	return nil
 }
 
-// GenerateCert generate the containerd CA for registry TLS and k0s join token for 100 years.
-func (k *Runtime) GenerateCert() error {
-	if err := k.generateK0sToken(); err != nil {
-		return err
-	}
-	if err := k.GenerateRegistryCert(); err != nil {
-		return err
-	}
-	return k.SendRegistryCert(k.cluster.GetMasterIPList()[:1])
+// GenerateCert generate k0s join token for 100 years.
+func (k *Runtime) generateJoinToken(master0 net.IP) error {
+	workerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", WorkerRole, DefaultK0sWorkerJoin)
+	controllerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", ControllerRole, DefaultK0sControllerJoin)
+	return k.infra.CmdAsync(master0, workerTokenCreateCMD, controllerTokenCreateCMD)
 }
 
-func (k *Runtime) generateK0sConfig() error {
-	master0IP := k.cluster.GetMaster0IP()
-	ssh, err := k.getHostSSHClient(master0IP)
-	if err != nil {
-		return err
-	}
-
+func (k *Runtime) generateK0sConfig(master0 net.IP) error {
 	mkdirCMD := "mkdir -p /etc/k0s"
-	if _, err := ssh.Cmd(master0IP, mkdirCMD); err != nil {
+	if _, err := k.infra.Cmd(master0, mkdirCMD); err != nil {
 		return err
 	}
 
 	configCreateCMD := fmt.Sprintf("k0s config create > %s", DefaultK0sConfigPath)
+	if _, err := k.infra.Cmd(master0, configCreateCMD); err != nil {
+		return err
+	}
 
-	if _, err := ssh.Cmd(master0IP, configCreateCMD); err != nil {
+	return nil
+}
+
+func (k *Runtime) modifyConfigRepo(master0 net.IP, registryInfo string) error {
+	addRepoCMD := fmt.Sprintf("sed -i '/  images/ a\\    repository: %s' %s", registryInfo, DefaultK0sConfigPath)
+	_, err := k.infra.Cmd(master0, addRepoCMD)
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (k *Runtime) modifyConfigRepo() error {
-	master0IP := k.cluster.GetMaster0IP()
-	ssh, err := k.getHostSSHClient(master0IP)
-	if err != nil {
+func (k *Runtime) bootstrapMaster0(master0 net.IP) error {
+	bootstrapCMD := fmt.Sprintf("k0s install controller -c %s --cri-socket %s", DefaultK0sConfigPath, ExternalCRIAddress)
+	if _, err := k.infra.Cmd(master0, bootstrapCMD); err != nil {
 		return err
 	}
 
-	addRepoCMD := fmt.Sprintf("sed -i '/  images/ a\\    repository: %s' %s", k.RegConfig.Domain+":"+k.RegConfig.Port, DefaultK0sConfigPath)
-	_, err = ssh.Cmd(master0IP, addRepoCMD)
-
-	return err
-}
-
-func (k *Runtime) BootstrapMaster0() error {
-	master0IP := k.cluster.GetMaster0IP()
-	ssh, err := k.getHostSSHClient(master0IP)
-	if err != nil {
-		return err
-	}
-	bootstrapCMD := fmt.Sprintf("k0s install controller -c %s --cri-socket %s", DefaultK0sConfigPath, ExternalCRI)
-	if _, err := ssh.Cmd(master0IP, bootstrapCMD); err != nil {
-		return err
-	}
 	startSvcCMD := "k0s start"
-	if _, err := ssh.Cmd(master0IP, startSvcCMD); err != nil {
+	if _, err := k.infra.Cmd(master0, startSvcCMD); err != nil {
 		return err
 	}
 
-	if err := k.WaitK0sReady(ssh, master0IP); err != nil {
+	if err := k.WaitK0sReady(master0); err != nil {
+		return err
+	}
+	// fetch kubeconfig
+	if _, err := k.infra.Cmd(master0, "rm -rf .kube/config && mkdir -p /root/.kube && cp /var/lib/k0s/pki/admin.conf /root/.kube/config"); err != nil {
 		return err
 	}
 	logrus.Infof("k0s start successfully on master0")
 	return nil
 }
 
-func (k *Runtime) generateK0sToken() error {
-	master0IP := k.cluster.GetMaster0IP()
-	ssh, err := k.getHostSSHClient(master0IP)
-	if err != nil {
+// initKube prepare install environment.
+func (k *Runtime) initKube(hosts []net.IP) error {
+	initKubeletCmd := fmt.Sprintf("cd %s && export RegistryURL=%s && bash %s", filepath.Join(k.infra.GetClusterRootfsPath(), "scripts"), k.registryInfo.URL, "init-kube.sh")
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, h := range hosts {
+		host := h
+		eg.Go(func() error {
+			if err := k.infra.CmdAsync(host, initKubeletCmd); err != nil {
+				return fmt.Errorf("failed to init Kubelet Service on (%s): %s", host, err.Error())
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
 		return err
 	}
-	workerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", WorkerRole, DefaultK0sWorkerJoin)
-	controllerTokenCreateCMD := fmt.Sprintf("k0s token create --role=%s --expiry=876000h > %s", ControllerRole, DefaultK0sControllerJoin)
-	return ssh.CmdAsync(master0IP, workerTokenCreateCMD, controllerTokenCreateCMD)
-}
-
-func (k *Runtime) GetKubectlAndKubeconfig() error {
-	if osi.IsFileExist(common.DefaultKubeConfigFile()) {
-		return nil
-	}
-	client, err := k.getHostSSHClient(k.cluster.GetMaster0IP())
-	if err != nil {
-		return fmt.Errorf("failed to get ssh client of master0(%s) when get kubectl and kubeconfig: %v", k.cluster.GetMaster0IP(), err)
-	}
-	return FetchKubeconfigAndGetKubectl(client, k.cluster.GetMaster0IP(), k.getImageMountDir())
+	return nil
 }
