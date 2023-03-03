@@ -49,8 +49,8 @@ func Test_splitDockerDomain(t *testing.T) {
 		},
 		{
 			name:       "test3",
-			imageName:  "k8s.gcr.io/kube-apiserver",
-			wantDomain: "k8s.gcr.io",
+			imageName:  "registry.k8s.io/kube-apiserver",
+			wantDomain: "registry.k8s.io",
 			wantRemain: "kube-apiserver",
 		},
 	}
@@ -87,8 +87,8 @@ func Test_parseNormalizedNamed(t *testing.T) {
 		},
 		{
 			name:       "test3",
-			imageName:  "k8s.gcr.io/kube-apiserver",
-			wantDomain: "k8s.gcr.io",
+			imageName:  "registry.k8s.io/kube-apiserver",
+			wantDomain: "registry.k8s.io",
 			wantRepo:   "kube-apiserver",
 			wantTag:    defaultTag,
 		},
