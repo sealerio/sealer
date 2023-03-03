@@ -18,42 +18,11 @@ import (
 	"net"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/stretchr/testify/assert"
 )
-
-func TestConvertEnv(t *testing.T) {
-	type args struct {
-		data   []string
-		wanted map[string]interface{}
-	}
-
-	var tests = []struct {
-		name string
-		args args
-	}{
-		{
-			"test convert env",
-			args{
-				data: []string{"IP=127.0.0.1;192.168.0.2", "key=value"},
-				wanted: map[string]interface{}{
-					"IP":  []string{"127.0.0.1", "192.168.0.2"},
-					"key": "value",
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ConvertEnv(tt.args.data)
-			assert.Equal(t, tt.args.wanted, result)
-		})
-	}
-}
 
 func getDefaultCluster() (InfraDriver, error) {
 	cluster := &v2.Cluster{

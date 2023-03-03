@@ -14,6 +14,8 @@
 
 package application
 
+import "github.com/sealerio/sealer/pkg/infradriver"
+
 // Interface works like application driver,
 // it converts Application fields, such as app configs, app global envs, app image names and so on.
 type Interface interface {
@@ -24,10 +26,6 @@ type Interface interface {
 	// GetAppLaunchCmds :get application launch commands from configs
 	// return Launch.Cmds firstly Or wrapper application commands through its type.
 	GetAppLaunchCmds(appName string) []string
-
-	// GetGlobalCmds :get application global Cmd list
-	// return ApplicationSpec.Cmds.
-	GetGlobalCmds() []string
 
 	// GetAppNames :get application name list
 	// return spec.AppNames firstly Or get from image extension.
@@ -43,6 +41,10 @@ type Interface interface {
 	//GetImageName ()string
 	//GetGlobalEnv() map[string]interface{}
 	//AddGlobalEnv(envs []string)
+
+	Launch(infraDriver infradriver.InfraDriver) error
+
+	Save(opts SaveOptions) error
 }
 
 type FileProcessor interface {

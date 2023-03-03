@@ -15,31 +15,20 @@
 package clusterruntime
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/application"
-	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/registry"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
 func (i *Installer) Upgrade() error {
 	var (
-		masters   = i.infraDriver.GetHostIPListByRole(common.MASTER)
-		master0   = masters[0]
-		workers   = getWorkerIPList(i.infraDriver)
-		all       = append(masters, workers...)
-		rootfs    = i.infraDriver.GetClusterRootfsPath()
-		cmds      = i.infraDriver.GetClusterLaunchCmds()
-		appNames  = i.infraDriver.GetClusterLaunchApps()
-		extension = i.ImageSpec.ImageExtension
+		masters = i.infraDriver.GetHostIPListByRole(common.MASTER)
+		master0 = masters[0]
+		workers = getWorkerIPList(i.infraDriver)
+		all     = append(masters, workers...)
+		rootfs  = i.infraDriver.GetClusterRootfsPath()
 	)
-
-	if extension.Type != imagev1.KubeInstaller {
-		return fmt.Errorf("exit upgrade process, wrong cluster image type: %s", extension.Type)
-	}
 
 	// distribute rootfs
 	if err := i.Distributor.Distribute(all, rootfs); err != nil {
@@ -76,19 +65,6 @@ func (i *Installer) Upgrade() error {
 	}
 
 	if err := i.runClusterHook(master0, UpgradeCluster); err != nil {
-		return err
-	}
-
-	//CMD
-
-	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
-
-	v2App, err := application.NewV2Application(v2.ConstructApplication(i.Application, cmds, appNames), extension)
-	if err != nil {
-		return fmt.Errorf("failed to parse application:%v ", err)
-	}
-
-	if err = appInstaller.Launch(master0, v2App.GetImageLaunchCmds()); err != nil {
 		return err
 	}
 

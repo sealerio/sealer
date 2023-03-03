@@ -22,9 +22,7 @@ import (
 	"time"
 
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/application"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
-	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/registry"
@@ -52,12 +50,10 @@ const (
 
 // RuntimeConfig for Installer
 type RuntimeConfig struct {
-	ImageSpec              *imagev1.ImageSpec
 	Distributor            imagedistributor.Distributor
 	ContainerRuntimeConfig v2.ContainerRuntimeConfig
 	KubeadmConfig          kubeadm.KubeadmConfig
 	Plugins                []v1.Plugin
-	Application            *v2.Application
 }
 
 type Installer struct {
@@ -131,19 +127,12 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 
 func (i *Installer) Install() error {
 	var (
-		masters   = i.infraDriver.GetHostIPListByRole(common.MASTER)
-		master0   = masters[0]
-		workers   = getWorkerIPList(i.infraDriver)
-		all       = append(masters, workers...)
-		cmds      = i.infraDriver.GetClusterLaunchCmds()
-		appNames  = i.infraDriver.GetClusterLaunchApps()
-		rootfs    = i.infraDriver.GetClusterRootfsPath()
-		extension = i.ImageSpec.ImageExtension
+		masters = i.infraDriver.GetHostIPListByRole(common.MASTER)
+		master0 = masters[0]
+		workers = getWorkerIPList(i.infraDriver)
+		all     = append(masters, workers...)
+		rootfs  = i.infraDriver.GetClusterRootfsPath()
 	)
-
-	if extension.Type != imagev1.KubeInstaller {
-		return fmt.Errorf("exit install process, wrong cluster image type: %s", extension.Type)
-	}
 
 	// set HostAlias
 	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
@@ -234,17 +223,6 @@ func (i *Installer) Install() error {
 	}
 
 	if err = i.setNodeTaints(all, runtimeDriver); err != nil {
-		return err
-	}
-
-	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
-
-	v2App, err := application.NewV2Application(v2.ConstructApplication(i.Application, cmds, appNames), extension)
-	if err != nil {
-		return fmt.Errorf("failed to parse application:%v ", err)
-	}
-
-	if err = appInstaller.Launch(master0, v2App.GetImageLaunchCmds()); err != nil {
 		return err
 	}
 

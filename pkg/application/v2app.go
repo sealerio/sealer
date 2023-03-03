@@ -15,15 +15,21 @@
 package application
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
+	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
+	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/rootfs"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
 )
 
 type v2Application struct {
@@ -39,6 +45,7 @@ type v2Application struct {
 	appLaunchCmdsMap map[string][]string
 	//appDeleteCmdsMap    map[string][]string
 	//appFileProcessorMap map[string][]Processor
+	extension v12.ImageExtension
 }
 
 func (a *v2Application) GetAppLaunchCmds(appName string) []string {
@@ -49,26 +56,84 @@ func (a *v2Application) GetAppNames() []string {
 	return a.launchApps
 }
 
-func (a *v2Application) GetGlobalCmds() []string {
-	return a.globalCmds
-}
-
 func (a *v2Application) GetImageLaunchCmds() []string {
 	if a.globalCmds != nil {
 		return a.globalCmds
 	}
 
 	var cmds []string
-	for _, v := range a.appLaunchCmdsMap {
-		cmds = append(cmds, v...)
+
+	for _, appName := range a.launchApps {
+		if appCmds, ok := a.appLaunchCmdsMap[appName]; ok {
+			cmds = append(cmds, appCmds...)
+		}
 	}
 
 	return cmds
 }
 
+func (a *v2Application) Launch(infraDriver infradriver.InfraDriver) error {
+	var (
+		rootfsPath = infraDriver.GetClusterRootfsPath()
+		masters    = infraDriver.GetHostIPListByRole(common.MASTER)
+		master0    = masters[0]
+		launchCmds = a.GetImageLaunchCmds()
+	)
+
+	for _, cmdline := range launchCmds {
+		if cmdline == "" {
+			continue
+		}
+
+		if err := infraDriver.CmdAsync(master0, fmt.Sprintf(common.CdAndExecCmd, rootfsPath, cmdline)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+//Save application install history
+//TODO save to cluster, also need a save struct.
+func (a *v2Application) Save(opts SaveOptions) error {
+	applicationFile := common.GetDefaultApplicationFile()
+
+	f, err := os.OpenFile(filepath.Clean(applicationFile), os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		return fmt.Errorf("cannot flock file %s - %s", applicationFile, err)
+	}
+	defer func() {
+		err := syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+		if err != nil {
+			logrus.Errorf("failed to unlock %s", applicationFile)
+		}
+	}()
+
+	// TODO do not need all ImageExtension
+	content, err := json.MarshalIndent(a.extension, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal image extension: %v", err)
+	}
+
+	if _, err = f.Write(content); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewV2Application(app *v2.Application, extension v12.ImageExtension) (Interface, error) {
 	v2App := &v2Application{
 		app:              app,
+		extension:        extension,
 		globalCmds:       extension.Launch.Cmds,
 		launchApps:       extension.Launch.AppNames,
 		appLaunchCmdsMap: map[string][]string{},

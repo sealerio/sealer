@@ -103,7 +103,7 @@ func NewApplyCmd() *cobra.Command {
 			if imageSpec.ImageExtension.Type == v12.AppInstaller {
 				app := v2.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
 
-				return installApplication(imageName, desiredCluster.Spec.Env,
+				return runApplicationImage(imageName, desiredCluster.Spec.Env,
 					app, imageSpec.ImageExtension, cf.GetConfigs(), imageEngine, applyMode)
 			}
 
@@ -128,7 +128,7 @@ func NewApplyCmd() *cobra.Command {
 
 				// set merged cluster
 				cf.SetCluster(*cluster)
-				return createNewCluster(imageEngine, cf, imageSpec, applyMode)
+				return runClusterImage(imageEngine, cf, imageSpec, applyMode)
 			}
 
 			logrus.Infof("Start to check if need scale")

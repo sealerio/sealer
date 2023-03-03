@@ -158,28 +158,30 @@ func Merge(ms ...[]string) []string {
 	return base
 }
 
-// ConvertToMap :if env list containers Unicode punctuation character,will ignore this element.
-func ConvertToMap(env []string) map[string]string {
-	envs := map[string]string{}
-	var k, v string
-	for _, e := range env {
-		if e == "" {
+// ConvertStringSliceToMap Convert []string to map[string]interface{}
+func ConvertStringSliceToMap(stringSlice []string) (stringInterfaceMap map[string]interface{}) {
+	temp := make(map[string][]string)
+	stringInterfaceMap = make(map[string]interface{})
+
+	for _, e := range stringSlice {
+		var kv []string
+		if kv = strings.SplitN(e, "=", 2); len(kv) != 2 {
 			continue
 		}
-		i := strings.Index(e, "=")
-		if i < 0 {
-			k = e
-		} else {
-			k = e[:i]
-			v = e[i+1:]
-		}
-		// ensure map key not containers special character.
-		if !IsLetterOrNumber(k) {
-			continue
-		}
-		envs[k] = v
+		temp[kv[0]] = append(temp[kv[0]], strings.Split(kv[1], ";")...)
 	}
-	return envs
+
+	for k, v := range temp {
+		if len(v) > 1 {
+			stringInterfaceMap[k] = v
+			continue
+		}
+		if len(v) == 1 {
+			stringInterfaceMap[k] = v[0]
+		}
+	}
+
+	return
 }
 
 func Diff(old, new []net.IP) (add, sub []net.IP) {

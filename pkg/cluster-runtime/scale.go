@@ -25,12 +25,11 @@ import (
 )
 
 func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, runtime.Driver, error) {
-	rootfs := i.infraDriver.GetClusterRootfsPath()
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	master0 := masters[0]
 	registryDeployHosts := []net.IP{master0}
 	all := append(newMasters, newWorkers...)
-
+	rootfs := i.infraDriver.GetClusterRootfsPath()
 	// set HostAlias
 	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
 		return nil, nil, err
