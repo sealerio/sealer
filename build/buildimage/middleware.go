@@ -21,8 +21,6 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/image/save"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	osi "github.com/sealerio/sealer/utils/os"
-	"github.com/sealerio/sealer/utils/yaml"
 )
 
 type ImageSection struct {
@@ -42,24 +40,6 @@ func NewMiddlewarePuller(platform v1.Platform) MiddlewarePuller {
 		platform: platform,
 		puller:   save.DefaultImageSaver{},
 	}
-}
-
-func (m MiddlewarePuller) Pull(imageListWithAuth, rootfs string) error {
-	//read the filePath if not exists just return;
-	//pares the images and save to rootfs
-	filePath := imageListWithAuth
-	if !osi.IsFileExist(filePath) {
-		return nil
-	}
-
-	// pares middleware file: imageListWithAuth.yaml
-	var imageSectionList []ImageSection
-	err := yaml.UnmarshalFile(filePath, &imageSectionList)
-	if err != nil {
-		return err
-	}
-
-	return m.PullWithImageSection(rootfs, imageSectionList)
 }
 
 func (m MiddlewarePuller) PullWithImageSection(rootfs string, imageSectionList []ImageSection) error {

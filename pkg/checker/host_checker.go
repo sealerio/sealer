@@ -40,10 +40,6 @@ func (a HostChecker) Check(cluster *v2.Cluster, phase string) error {
 	return checkTimeSync(cluster, ipList)
 }
 
-func NewHostChecker() Interface {
-	return &HostChecker{}
-}
-
 func checkHostnameUnique(cluster *v2.Cluster, ipList []net.IP) error {
 	hostnameList := map[string]bool{}
 	for _, ip := range ipList {

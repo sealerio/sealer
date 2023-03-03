@@ -56,37 +56,9 @@ func (d *DockerAuth) Get(domain string) (string, string, error) {
 	return string(decode[:i]), string(decode[i+1:]), nil
 }
 
-func (d *DockerAuth) Set(hostname, username, password string) {
-	authEncode := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
-	d.Auths[hostname] = Item{Auth: authEncode}
-}
-
 type DockerAuthService struct {
 	FilePath    string
 	AuthContent DockerAuth `json:"auths"`
-}
-
-func (s *DockerAuthService) SetAuthInfo(hostname, username, password string) error {
-	if !osi.IsFileExist(s.FilePath) {
-		if err := os.MkdirAll(filepath.Dir(s.FilePath), common.FileMode0755); err != nil {
-			return err
-		}
-	}
-
-	s.AuthContent.Set(hostname, username, password)
-	data, err := json.MarshalIndent(s.AuthContent, "", "\t")
-	if err != nil {
-		return err
-	}
-
-	if err := os.WriteFile(s.FilePath, data, common.FileMode0644); err != nil {
-		return fmt.Errorf("write %s failed,%s", s.FilePath, err)
-	}
-	return nil
-}
-
-func (s *DockerAuthService) GetAuthInfoByDomain(domain string) (string, string, error) {
-	return s.AuthContent.Get(domain)
 }
 
 func (s *DockerAuthService) GetAuthByDomain(domain string) (types.AuthConfig, error) {
