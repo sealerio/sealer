@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -422,6 +423,13 @@ func runApplicationImage(appImageName string, envs []string, app *v2.Application
 			logrus.Errorf("failed to umount cluster image: %v", err)
 		}
 	}()
+
+	for _, info := range imageMountInfo {
+		err = v2App.FileProcess(info.MountDir)
+		if err != nil {
+			return errors.Wrapf(err, "failed to execute file processor")
+		}
+	}
 
 	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, configs)
 	if err != nil {
