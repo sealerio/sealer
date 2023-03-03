@@ -17,6 +17,7 @@ package imageengine
 import (
 	"github.com/containers/common/libimage"
 	"github.com/opencontainers/go-digest"
+
 	v1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 )

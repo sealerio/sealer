@@ -23,12 +23,13 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/utils/archive"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
-	"github.com/sirupsen/logrus"
 )
 
 // Save image as tar file, if image is multi-arch image, will save all its instances and manifest name as tar file.

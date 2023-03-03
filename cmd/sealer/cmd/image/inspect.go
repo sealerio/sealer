@@ -22,10 +22,11 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
+
+	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/imageengine"
 )
 
 var inspectOpts *options.InspectOptions

@@ -19,8 +19,9 @@ package v2
 import (
 	"time"
 
-	"github.com/sealerio/sealer/types/api/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/sealerio/sealer/types/api/constants"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.

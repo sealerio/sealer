@@ -15,10 +15,15 @@
 package clusterruntime
 
 import (
+	"fmt"
 	"net"
+	"path/filepath"
 
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
+
+	"github.com/sirupsen/logrus"
 )
 
 func getWorkerIPList(infraDriver infradriver.InfraDriver) []net.IP {
@@ -38,4 +43,31 @@ func getWorkerIPList(infraDriver infradriver.InfraDriver) []net.IP {
 	}
 
 	return workers
+}
+
+// LoadToRegistry just load container image to local registry
+func LoadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) error {
+	regConfig := infraDriver.GetClusterRegistry()
+	// todo only support load image to local registry at present
+	if regConfig.LocalRegistry == nil {
+		return nil
+	}
+
+	deployHosts := infraDriver.GetHostIPListByRole(common.MASTER)
+	if len(deployHosts) < 1 {
+		return fmt.Errorf("local registry host can not be nil")
+	}
+	master0 := deployHosts[0]
+
+	logrus.Infof("start to apply with mode(%s)", common.ApplyModeLoadImage)
+	if !*regConfig.LocalRegistry.HA {
+		deployHosts = []net.IP{master0}
+	}
+
+	if err := distributor.DistributeRegistry(deployHosts, filepath.Join(infraDriver.GetClusterRootfsPath(), "registry")); err != nil {
+		return err
+	}
+
+	logrus.Infof("load image success")
+	return nil
 }

@@ -20,8 +20,9 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sirupsen/logrus"
+
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 func (engine *Engine) RemoveImage(opts *options.RemoveImageOptions) error {

@@ -17,12 +17,13 @@ package application
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
 	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/types/api/constants"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/stretchr/testify/assert"
 )
 
 func newTestApplication() (Interface, error) {
