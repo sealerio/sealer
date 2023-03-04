@@ -14,6 +14,12 @@
 
 package ssh
 
+import (
+	"net"
+	"reflect"
+	"testing"
+)
+
 /*
 func TestSSH_Cmd(t *testing.T) {
 	type args struct {
@@ -212,3 +218,103 @@ func TestSSH_CmdAsync(t *testing.T) {
 	}
 }
 */
+
+func TestSSH_Ping(t *testing.T) {
+	type args struct {
+		host net.IP
+	}
+	tests := []struct {
+		name    string
+		s       *SSH
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.s.Ping(tt.args.host); (err != nil) != tt.wantErr {
+				t.Errorf("SSH.Ping() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSSH_CmdAsync(t *testing.T) {
+	type args struct {
+		host net.IP
+		cmds []string
+	}
+	tests := []struct {
+		name    string
+		s       *SSH
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.s.CmdAsync(tt.args.host, tt.args.cmds...); (err != nil) != tt.wantErr {
+				t.Errorf("SSH.CmdAsync() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSSH_Cmd(t *testing.T) {
+	type args struct {
+		host net.IP
+		cmd  string
+	}
+	tests := []struct {
+		name    string
+		s       *SSH
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.s.Cmd(tt.args.host, tt.args.cmd)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SSH.Cmd() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("SSH.Cmd() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSSH_CmdToString(t *testing.T) {
+	type args struct {
+		host  net.IP
+		cmd   string
+		split string
+	}
+	tests := []struct {
+		name    string
+		s       *SSH
+		args    args
+		want    string
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.s.CmdToString(tt.args.host, tt.args.cmd, tt.args.split)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SSH.CmdToString() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("SSH.CmdToString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

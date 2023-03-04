@@ -97,28 +97,32 @@ func (i *Installer) Install() error {
 		extension = i.ImageSpec.ImageExtension
 	)
 
+	// Check if the cluster image type is correct
 	if extension.Type != imagev1.KubeInstaller {
 		return fmt.Errorf("exit install process, wrong cluster image type: %s", extension.Type)
 	}
 
-	// set HostAlias
+	// Set the HostAlias for all hosts
 	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
 		return err
 	}
 
-	// distribute rootfs
+	// Distribute the rootfs to all hosts
 	if err := i.Distributor.Distribute(all, rootfs); err != nil {
 		return err
 	}
 
+	// Run the PreInstallCluster hook on the first master
 	if err := i.runClusterHook(master0, PreInstallCluster); err != nil {
 		return err
 	}
 
+	// Run the PreInitHost hook on all hosts
 	if err := i.runHostHook(PreInitHost, all); err != nil {
 		return err
 	}
 
+	// Install the container runtime on all hosts
 	if err := i.containerRuntimeInstaller.InstallOn(all); err != nil {
 		return err
 	}
@@ -128,6 +132,7 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	// Install the local registry on the masters
 	var deployHosts []net.IP
 	if i.regConfig.LocalRegistry != nil {
 		installer := registry.NewInstaller(nil, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor)
@@ -153,11 +158,13 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	// Get registry driver information
 	registryDriver, err := registryConfigurator.GetDriver()
 	if err != nil {
 		return err
 	}
 
+	// Install the Kubernetes runtime
 	kubeRuntimeInstaller, err := kubernetes.NewKubeadmRuntime(i.KubeadmConfig, i.infraDriver, crInfo, registryDriver.GetInfo())
 	if err != nil {
 		return err
@@ -167,10 +174,12 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	// Run the PostInitHost hook on all hosts
 	if err = i.runHostHook(PostInitHost, all); err != nil {
 		return err
 	}
 
+	// Run the PostInstallCluster hook on the first master
 	if err = i.runClusterHook(master0, PostInstallCluster); err != nil {
 		return err
 	}
@@ -180,18 +189,21 @@ func (i *Installer) Install() error {
 		return err
 	}
 
-	if err := i.setRoles(runtimeDriver); err != nil {
+	if err := i.SetRoles(runtimeDriver); err != nil {
 		return err
 	}
 
+	// Set node labels based on the current runtime driver
 	if err = i.setNodeLabels(all, runtimeDriver); err != nil {
 		return err
 	}
 
+	// Set node taints based on the current runtime driver
 	if err = i.setNodeTaints(all, runtimeDriver); err != nil {
 		return err
 	}
 
+	// Launch the application on the first master
 	appInstaller := NewAppInstaller(i.infraDriver, i.Distributor, extension)
 
 	v2App, err := application.NewV2Application(v2.ConstructApplication(i.Application, cmds, appNames), extension)
@@ -220,6 +232,7 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	if i.regConfig.LocalRegistry != nil && !*i.regConfig.LocalRegistry.HA {
 		registryDeployHosts = []net.IP{master0}
 	}
+
 	// TODO, init here or in constructor?
 	registryConfigurator, err := registry.NewConfigurator(registryDeployHosts, crInfo, i.regConfig, i.infraDriver, i.Distributor)
 	if err != nil {
@@ -244,8 +257,9 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	return registryDriver, runtimeDriver, nil
 }
 
-// setRoles save roles
-func (i *Installer) setRoles(driver runtime.Driver) error {
+// SetRoles assigns role labels
+func (i *Installer) SetRoles(driver runtime.Driver) error {
+	// Retrieve list of nodes from the driver
 	nodeList := corev1.NodeList{}
 	if err := driver.List(context.TODO(), &nodeList); err != nil {
 		return err
@@ -255,10 +269,10 @@ func (i *Installer) setRoles(driver runtime.Driver) error {
 		return fmt.Sprintf("node-role.kubernetes.io/%s", role)
 	}
 
-	for idx, node := range nodeList.Items {
-		addresses := node.Status.Addresses
-		for _, address := range addresses {
-			if address.Type != "InternalIP" {
+	for idx := range nodeList.Items {
+		node := &nodeList.Items[idx]
+		for _, address := range node.Status.Addresses {
+			if address.Type != corev1.NodeInternalIP {
 				continue
 			}
 			roles := i.infraDriver.GetRoleListByHostIP(address.Address)
@@ -266,12 +280,12 @@ func (i *Installer) setRoles(driver runtime.Driver) error {
 				continue
 			}
 			newNode := node.DeepCopy()
-
+	
 			for _, role := range roles {
 				newNode.Labels[genRoleLabelFunc(role)] = ""
 			}
-			patch := runtimeClient.MergeFrom(&nodeList.Items[idx])
-
+	
+			patch := runtimeClient.MergeFrom(node)
 			if err := driver.Patch(context.TODO(), newNode, patch); err != nil {
 				return err
 			}
@@ -317,6 +331,7 @@ func (i *Installer) setNodeLabels(hosts []net.IP, driver runtime.Driver) error {
 	return nil
 }
 
+// getAddress finds and returns the first internal IP address in a list of NodeAddresses
 func getAddress(addresses []corev1.NodeAddress) string {
 	for _, v := range addresses {
 		if strings.EqualFold(string(v.Type), "InternalIP") {

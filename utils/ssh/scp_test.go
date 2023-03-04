@@ -14,6 +14,14 @@
 
 package ssh
 
+import (
+	"net"
+	"reflect"
+	"testing"
+
+	"github.com/pkg/sftp"
+)
+
 /*
 func TestSSHCopyLocalToRemote(t *testing.T) {
 	type args struct {
@@ -215,3 +223,264 @@ func TestSSH_Copy(t *testing.T) {
 	}
 }
 */
+
+func Test_epuRWMap_Get(t *testing.T) {
+	type args struct {
+		k string
+	}
+	tests := []struct {
+		name  string
+		m     *epuRWMap
+		args  args
+		want  *easyProgressUtil
+		want1 bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := tt.m.Get(tt.args.k)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("epuRWMap.Get() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("epuRWMap.Get() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func Test_epuRWMap_Set(t *testing.T) {
+	type args struct {
+		k string
+		v *easyProgressUtil
+	}
+	tests := []struct {
+		name string
+		m    *epuRWMap
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.m.Set(tt.args.k, tt.args.v)
+		})
+	}
+}
+
+func Test_easyProgressUtil_increment(t *testing.T) {
+	tests := []struct {
+		name string
+		epu  *easyProgressUtil
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.epu.increment()
+		})
+	}
+}
+
+func Test_easyProgressUtil_fail(t *testing.T) {
+	type args struct {
+		err error
+	}
+	tests := []struct {
+		name string
+		epu  *easyProgressUtil
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.epu.fail(tt.args.err)
+		})
+	}
+}
+
+func Test_easyProgressUtil_startMessage(t *testing.T) {
+	tests := []struct {
+		name string
+		epu  *easyProgressUtil
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.epu.startMessage()
+		})
+	}
+}
+
+func TestSSH_CopyR(t *testing.T) {
+	type args struct {
+		host           net.IP
+		localFilePath  string
+		remoteFilePath string
+	}
+	tests := []struct {
+		name    string
+		s       *SSH
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.s.CopyR(tt.args.host, tt.args.localFilePath, tt.args.remoteFilePath); (err != nil) != tt.wantErr {
+				t.Errorf("SSH.CopyR() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSSH_Copy(t *testing.T) {
+	type args struct {
+		host       net.IP
+		localPath  string
+		remotePath string
+	}
+	tests := []struct {
+		name    string
+		s       *SSH
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.s.Copy(tt.args.host, tt.args.localPath, tt.args.remotePath); (err != nil) != tt.wantErr {
+				t.Errorf("SSH.Copy() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSSH_remoteMd5Sum(t *testing.T) {
+	type args struct {
+		host           net.IP
+		remoteFilePath string
+	}
+	tests := []struct {
+		name string
+		s    *SSH
+		args args
+		want string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.remoteMd5Sum(tt.args.host, tt.args.remoteFilePath); got != tt.want {
+				t.Errorf("SSH.remoteMd5Sum() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSSH_copyLocalDirToRemote(t *testing.T) {
+	type args struct {
+		host       net.IP
+		sftpClient *sftp.Client
+		localPath  string
+		remotePath string
+		epu        *easyProgressUtil
+	}
+	tests := []struct {
+		name string
+		s    *SSH
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.s.copyLocalDirToRemote(tt.args.host, tt.args.sftpClient, tt.args.localPath, tt.args.remotePath, tt.args.epu)
+		})
+	}
+}
+
+func TestSSH_copyLocalFileToRemote(t *testing.T) {
+	type args struct {
+		host       net.IP
+		sftpClient *sftp.Client
+		localPath  string
+		remotePath string
+	}
+	tests := []struct {
+		name    string
+		s       *SSH
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.s.copyLocalFileToRemote(tt.args.host, tt.args.sftpClient, tt.args.localPath, tt.args.remotePath); (err != nil) != tt.wantErr {
+				t.Errorf("SSH.copyLocalFileToRemote() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSSH_RemoteDirExist(t *testing.T) {
+	type args struct {
+		host          net.IP
+		remoteDirPath string
+	}
+	tests := []struct {
+		name    string
+		s       *SSH
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.s.RemoteDirExist(tt.args.host, tt.args.remoteDirPath)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SSH.RemoteDirExist() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("SSH.RemoteDirExist() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSSH_IsFileExist(t *testing.T) {
+	type args struct {
+		host           net.IP
+		remoteFilePath string
+	}
+	tests := []struct {
+		name    string
+		s       *SSH
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.s.IsFileExist(tt.args.host, tt.args.remoteFilePath)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SSH.IsFileExist() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("SSH.IsFileExist() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

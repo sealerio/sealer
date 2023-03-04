@@ -286,7 +286,8 @@ func (a *ApplyProvider) applyToDelete(deleteIPList []net.IP) error {
 }
 
 func (a *ApplyProvider) CleanUp() error {
-	/*	a,clean up container,cleanup image,clean up network
+	/*	
+		a,clean up container,cleanup image,clean up network
 		b,rm -rf /var/lib/sealer/data/my-cluster
 	*/
 	var iplist []net.IP

@@ -37,6 +37,7 @@ const (
 	CgroupDriverArg = "CgroupDriver"
 )
 
+// Installer interface defines the methods required for installing, getting information, and uninstalling
 type Installer interface {
 	InstallOn(hosts []net.IP) error
 
@@ -44,7 +45,10 @@ type Installer interface {
 
 	UnInstallFrom(hosts []net.IP) error
 
+	// TODO: Upgrade upgrades the cluster to a newer version
 	//Upgrade() (ContainerRuntimeInfo, error)
+
+	// TODO: Rollback rolls back the cluster to a previous version
 	//Rollback() (ContainerRuntimeInfo, error)
 }
 
@@ -56,45 +60,47 @@ type Info struct {
 	ConfigFilePath string
 }
 
+// NewInstaller creates a new Installer based on the specified ContainerRuntimeConfig and InfraDriver
+// The returned Installer will be either a DefaultInstaller for Docker or a DefaultInstaller for containerd,
+// depending on the value of the ContainerRuntimeConfig.Type field.
 func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver) (Installer, error) {
+	// Check container runtime type
 	switch conf.Type {
 	case common.Docker, "":
+		// Set container runtime type to Docker if not specified
 		conf.Type = common.Docker
-		ret := &DefaultInstaller{
-			rootfs: driver.GetClusterRootfsPath(),
-			driver: driver,
-			envs:   driver.GetClusterEnv(),
-			Info: Info{
-				CertsDir:               DefaultDockerCertsDir,
-				CRISocket:              DefaultDockerCRISocket,
-				ContainerRuntimeConfig: conf,
-				ConfigFilePath:         filepath.Join(common.GetHomeDir(), ".docker", DockerConfigFileName),
-			},
-		}
-		ret.Info.CgroupDriver = DefaultCgroupDriver
-		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
-			ret.Info.CgroupDriver = cd.(string)
-		}
+
+		ret := newDefaultInstaller(driver, conf, DefaultDockerCertsDir, DefaultDockerCRISocket, DefaultCgroupDriver, filepath.Join(common.GetHomeDir(), ".docker", DockerConfigFileName))
 
 		return ret, nil
 	case common.Containerd:
-		ret := &DefaultInstaller{
-			rootfs: driver.GetClusterRootfsPath(),
-			driver: driver,
-			envs:   driver.GetClusterEnv(),
-			Info: Info{
-				CertsDir:               DefaultContainerdCertsDir,
-				CRISocket:              DefaultContainerdCRISocket,
-				ContainerRuntimeConfig: conf,
-			},
-		}
-		ret.Info.CgroupDriver = DefaultCgroupDriver
-		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
-			ret.Info.CgroupDriver = cd.(string)
-		}
+		ret := newDefaultInstaller(driver, conf, DefaultContainerdCertsDir, DefaultContainerdCRISocket, DefaultCgroupDriver, "")
 
 		return ret, nil
 	default:
-		return nil, fmt.Errorf("invalid container runtime type")
+		return nil, fmt.Errorf("invalid container runtime type: specify docker OR containerd ")
 	}
+}
+
+// newDefaultInstaller pass NewInstaller creates a new DefaultInstaller object with the specified parameters
+func newDefaultInstaller(driver infradriver.InfraDriver, conf v2.ContainerRuntimeConfig, certsDir string, criSocket string, defaultCgroupDriver string, configFile string) *DefaultInstaller {
+	ret := &DefaultInstaller{
+		rootfs: driver.GetClusterRootfsPath(),
+		driver: driver,
+		envs:   driver.GetClusterEnv(),
+		Info: Info{
+			CertsDir:               certsDir,
+			CRISocket:              criSocket,
+			ContainerRuntimeConfig: conf,
+			ConfigFilePath:         configFile,
+		},
+	}
+
+	// Set Cgroup driver to default value, or use the value from driver environment if provided
+	ret.Info.CgroupDriver = defaultCgroupDriver
+	if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
+		ret.Info.CgroupDriver = cd.(string)
+	}
+
+	return ret
 }

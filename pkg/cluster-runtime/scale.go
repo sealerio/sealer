@@ -102,7 +102,7 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 		return nil, nil, err
 	}
 
-	if err := i.setRoles(runtimeDriver); err != nil {
+	if err := i.SetRoles(runtimeDriver); err != nil {
 		return nil, nil, err
 	}
 

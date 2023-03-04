@@ -96,13 +96,13 @@ type InfraDriver interface {
 	// SetHostName add or update host name on host
 	SetHostName(host net.IP, hostName string) error
 
-	//SetClusterHostAliases set additional HostAliases
+	// SetClusterHostAliases set additional HostAliases
 	SetClusterHostAliases(hosts []net.IP) error
 
-	//DeleteClusterHostAliases delete additional HostAliases
+	// DeleteClusterHostAliases delete additional HostAliases
 	DeleteClusterHostAliases(hosts []net.IP) error
 
 	GetClusterRegistry() v2.Registry
 	// SetLvsRule add or update host name on host
-	//SetLvsRule(host net.IP, hostName string) error
+	// SetLvsRule(host net.IP, hostName string) error
 }

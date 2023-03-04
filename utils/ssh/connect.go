@@ -15,12 +15,10 @@
 package ssh
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -41,7 +39,7 @@ func (s *SSH) connect(host net.IP) (*ssh.Client, error) {
 		if err != nil {
 			return nil, err
 		}
-		s.Password = passwd
+		s.Password = fmt.Sprintf(`"%s"`, passwd)
 		s.Encrypted = false
 	}
 	auth := s.sshAuthMethod(s.Password, s.PkFile, s.PkPassword)
@@ -179,48 +177,45 @@ func (s *SSH) sftpConnect(host net.IP) (*sftp.Client, error) {
 
 func (s *SSH) NewSudoSftpClient(conn *ssh.Client, opts ...sftp.ClientOption) (*sftp.Client, error) {
 	var (
-		cmd            string
+		cmd            = SUDO + `grep -oP "Subsystem\s+sftp\s+\K.*" /etc/ssh/sshd_config`
 		err            error
-		ses, ses2      *ssh.Session
-		buff           []byte
 		sftpServerPath string
 	)
 
-	ses2, err = conn.NewSession()
+	sess, err := conn.NewSession()
 	if err != nil {
 		return nil, err
 	}
-	defer ses2.Close()
+	defer sess.Close()
 
-	cmd = `grep -oP "Subsystem\s+sftp\s+\K.*" /etc/ssh/sshd_config`
-	buff, err = ses2.Output(cmd)
+	buff, err := sess.Output(cmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute cmd(%s): %v", cmd, err)
 	}
 
-	ses, err = conn.NewSession()
+	sftpServerPath = strings.TrimSpace(string(buff))
+	if !strings.HasPrefix(sftpServerPath, "sudo ") {
+		sftpServerPath = "sudo " + sftpServerPath
+	}
+
+	sess, err = conn.NewSession()
+	if err != nil {
+		return nil, err
+	}
+	defer sess.Close()
+
+	if err = sess.Start(sftpServerPath); err != nil {
+		return nil, fmt.Errorf("failed to start sftp subsystem: %v", err)
+	}
+
+	stdin, err := sess.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	stdout, err := sess.StdoutPipe()
 	if err != nil {
 		return nil, err
 	}
 
-	sftpServerPath = strings.ReplaceAll(string(buff), "\r", "")
-	if match, _ := regexp.MatchString(`^sudo `, sftpServerPath); !match {
-		sftpServerPath = SUDO + sftpServerPath
-	}
-
-	ok, err := ses.SendRequest("exec", true, ssh.Marshal(struct{ Command string }{sftpServerPath}))
-	if err == nil && !ok {
-		return nil, errors.New("ssh: failed to exec request")
-	}
-
-	pw, err := ses.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-	pr, err := ses.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	return sftp.NewClientPipe(pr, pw, opts...)
+	return sftp.NewClientPipe(stdout, stdin, opts...)
 }

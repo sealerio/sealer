@@ -50,13 +50,14 @@ type Installer interface {
 func NewInstaller(currentDeployHost []net.IP,
 	regConfig *v2.LocalRegistry,
 	infraDriver infradriver.InfraDriver,
-	distributor imagedistributor.Distributor) Installer {
-	return &localInstaller{
+	distributor imagedistributor.Distributor) (i Installer) {
+	i = &localInstaller{
 		currentDeployHosts: currentDeployHost,
 		infraDriver:        infraDriver,
 		LocalRegistry:      regConfig,
 		distributor:        distributor,
 	}
+	return
 }
 
 type localInstaller struct {
@@ -66,13 +67,15 @@ type localInstaller struct {
 	distributor        imagedistributor.Distributor
 }
 
+// Reconcile compares the desired set of hosts with the current set of deployed hosts,
+// and takes necessary actions to reconcile the differences, including installing.
 func (l *localInstaller) Reconcile(desiredHosts []net.IP) ([]net.IP, error) {
-	// if deployHosts is null,means first time installation
+	// if deployHosts is null, means first time installation
 	if len(l.currentDeployHosts) == 0 {
-		err := l.install(desiredHosts)
-		if err != nil {
+		if err := l.install(desiredHosts); err != nil {
 			return nil, err
 		}
+		l.currentDeployHosts = desiredHosts
 		return desiredHosts, nil
 	}
 
@@ -84,23 +87,21 @@ func (l *localInstaller) Reconcile(desiredHosts []net.IP) ([]net.IP, error) {
 
 	// join new hosts
 	if len(joinedHosts) != 0 {
-		err := l.install(joinedHosts)
-		if err != nil {
+		if err := l.install(joinedHosts); err != nil {
 			return nil, err
 		}
-		return append(l.currentDeployHosts, joinedHosts...), nil
+		l.currentDeployHosts = append(l.currentDeployHosts, joinedHosts...)
 	}
 
 	// delete hosts
 	if len(deletedHosts) != 0 {
-		err := l.clean(deletedHosts)
-		if err != nil {
+		if err := l.clean(deletedHosts); err != nil {
 			return nil, err
 		}
-		return netutils.RemoveIPs(l.currentDeployHosts, deletedHosts), nil
+		l.currentDeployHosts = netutils.RemoveIPs(l.currentDeployHosts, deletedHosts)
 	}
 
-	return nil, nil
+	return l.currentDeployHosts, nil
 }
 
 func (l *localInstaller) install(deployHosts []net.IP) error {
