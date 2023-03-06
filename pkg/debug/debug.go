@@ -378,7 +378,7 @@ func WaitForContainer(ctx context.Context, client corev1client.PodsGetter, names
 		}
 
 		if status.State.Waiting != nil && status.State.Waiting.Reason == "ImagePullBackOff" {
-			return false, fmt.Errorf("failed to pull image")
+			return false, fmt.Errorf("failed to pull image: (%s: %s)", status.State.Waiting.Reason, status.State.Waiting.Message)
 		}
 
 		if status.State.Running != nil || status.State.Terminated != nil {
