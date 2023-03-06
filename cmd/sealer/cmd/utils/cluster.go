@@ -102,7 +102,13 @@ func ConstructClusterForRun(imageName string, runFlags *types.RunFlags) (*v2.Clu
 			},
 			Image: imageName,
 			//use cluster ssh auth by default
-			Hosts:    TransferIPToHosts(masterIPList, nodeIPList, v1.SSH{}),
+			Hosts: TransferIPToHosts(masterIPList, nodeIPList, v1.SSH{
+				User:     runFlags.User,
+				Passwd:   runFlags.Password,
+				PkPasswd: runFlags.PkPassword,
+				Pk:       runFlags.Pk,
+				Port:     strconv.Itoa(int(runFlags.Port)),
+			}),
 			Env:      runFlags.CustomEnv,
 			CMD:      runFlags.Cmds,
 			APPNames: runFlags.AppNames,
