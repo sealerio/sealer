@@ -87,3 +87,7 @@ type MergeFlags struct {
 	// override default APPNames of clusterimage
 	AppNames []string
 }
+
+type UpgradeFlags struct {
+	ClusterFile string
+}
