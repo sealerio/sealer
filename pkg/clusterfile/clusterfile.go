@@ -38,9 +38,9 @@ import (
 )
 
 const (
-	configMapNamespace = "kube-system"
-	configMapDataName  = "Clusterfile"
-	configMapName      = "sealer-clusterfile"
+	ClusterfileConfigMapNamespace = "kube-system"
+	ClusterfileConfigMapName      = "sealer-clusterfile"
+	ClusterfileConfigMapDataName  = "Clusterfile"
 )
 
 type Interface interface {
@@ -188,10 +188,10 @@ func saveToCluster(data []byte, confPath string) error {
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName,
-			Namespace: configMapNamespace,
+			Name:      ClusterfileConfigMapDataName,
+			Namespace: ClusterfileConfigMapNamespace,
 		},
-		Data: map[string]string{configMapDataName: string(data)},
+		Data: map[string]string{ClusterfileConfigMapName: string(data)},
 	}
 
 	ctx := context.Background()
@@ -246,12 +246,12 @@ func getClusterfileFromCluster() (*ClusterFile, error) {
 		return nil, err
 	}
 
-	cm, err := client.ConfigMap(configMapNamespace).Get(context.TODO(), configMapName, metav1.GetOptions{})
+	cm, err := client.ConfigMap(ClusterfileConfigMapNamespace).Get(context.TODO(), ClusterfileConfigMapDataName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	data := cm.Data[configMapDataName]
+	data := cm.Data[ClusterfileConfigMapName]
 	if len(data) > 0 {
 		err = decodeClusterFile(bytes.NewReader([]byte(data)), clusterFile)
 		if err != nil {

@@ -50,7 +50,7 @@ func NewPullCmd() *cobra.Command {
 			pullOpts.Image = args[0]
 			imageID, err := engine.Pull(pullOpts)
 			if err != nil {
-				return fmt.Errorf("failed to pull image: %s", pullOpts.Image)
+				return fmt.Errorf("failed to pull image: %s: %v", pullOpts.Image, err)
 			}
 
 			logrus.Infof("successful pull %s with the image ID: %s", pullOpts.Image, imageID)
