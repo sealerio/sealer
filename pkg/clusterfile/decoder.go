@@ -37,6 +37,15 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
+func DecodeClusterfile(reader io.Reader) (*ClusterFile, error) {
+	clusterFile := new(ClusterFile)
+	// use user specified Clusterfile
+	if err := decodeClusterFile(reader, clusterFile); err != nil {
+		return nil, fmt.Errorf("failed to load clusterfile: %v", err)
+	}
+	return clusterFile, nil
+}
+
 func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 	decoder := yaml.NewYAMLToJSONDecoder(bufio.NewReaderSize(reader, 4096))
 
