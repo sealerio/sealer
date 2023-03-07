@@ -188,10 +188,10 @@ func saveToCluster(data []byte, confPath string) error {
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ClusterfileConfigMapDataName,
+			Name:      ClusterfileConfigMapName,
 			Namespace: ClusterfileConfigMapNamespace,
 		},
-		Data: map[string]string{ClusterfileConfigMapName: string(data)},
+		Data: map[string]string{ClusterfileConfigMapDataName: string(data)},
 	}
 
 	ctx := context.Background()

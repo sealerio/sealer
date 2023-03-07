@@ -81,7 +81,6 @@ const (
 const (
 	ApplyModeApply     = "apply"
 	ApplyModeLoadImage = "loadImage"
-	ApplyModeUpgrade   = "upgrade"
 )
 
 // image module
