@@ -191,7 +191,7 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 	}
 
 	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
-		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
+		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, cluster.Spec.ContainerRuntime))
 	if err != nil {
 		return err
 	}
@@ -327,7 +327,7 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 	}
 
 	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
-		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
+		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, cluster.Spec.ContainerRuntime))
 	if err != nil {
 		return err
 	}

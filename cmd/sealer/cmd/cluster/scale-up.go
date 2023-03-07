@@ -173,7 +173,7 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 	}
 
 	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
-		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
+		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, runtimeConfig.ContainerRuntimeConfig))
 	if err != nil {
 		return err
 	}

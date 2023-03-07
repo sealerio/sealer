@@ -386,12 +386,15 @@ func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 	return nil
 }
 
-func GetClusterInstallInfo(labels map[string]string) InstallInfo {
-	cri := labels[CRILabel]
+func GetClusterInstallInfo(imageLabels map[string]string, criConfig v2.ContainerRuntimeConfig) InstallInfo {
+	cri := imageLabels[CRILabel]
 	if cri == "" {
 		cri = common.Docker
 	}
-	clusterRuntimeType := labels[CRTLabel]
+	if criConfig.Type != "" {
+		cri = criConfig.Type
+	}
+	clusterRuntimeType := imageLabels[CRTLabel]
 	if clusterRuntimeType == "" {
 		clusterRuntimeType = common.K8s
 	}

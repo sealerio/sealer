@@ -168,7 +168,7 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
 	}
 
-	upgrader, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig, clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
+	upgrader, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig, clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, runtimeConfig.ContainerRuntimeConfig))
 	if err != nil {
 		return err
 	}

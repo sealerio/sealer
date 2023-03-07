@@ -296,7 +296,7 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
 	}
 
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig, clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels))
+	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig, clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, cluster.Spec.ContainerRuntime))
 	if err != nil {
 		return err
 	}
