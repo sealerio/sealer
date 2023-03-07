@@ -98,7 +98,7 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 	}
 
 	//get origin cluster
-	cf, err := clusterfile.NewClusterFile(nil)
+	cf, _, err := clusterfile.GetActualClusterFile()
 	if err != nil {
 		return err
 	}

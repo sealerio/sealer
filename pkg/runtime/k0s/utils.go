@@ -43,7 +43,7 @@ func (k *Runtime) WaitK0sReady(host net.IP) error {
 		}
 		logrus.Infof("waiting for k0s service ready")
 		time.Sleep(time.Second * 5)
-		bytes, err := k.infra.Cmd(host, "k0s status")
+		bytes, err := k.infra.Cmd(host, nil, "k0s status")
 		if err != nil {
 			return err
 		}
@@ -115,7 +115,7 @@ func (k *Runtime) getNodeName(host net.IP) (string, error) {
 		hosts = append(hosts, node.GetName())
 	}
 
-	hostName, err := k.infra.CmdToString(host, "hostname", "")
+	hostName, err := k.infra.CmdToString(host, nil, "hostname", "")
 	if err != nil {
 		return "", err
 	}

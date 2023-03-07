@@ -58,7 +58,7 @@ func (k *Runtime) joinNodes(nodes []net.IP) error {
 		eg.Go(func() error {
 			logrus.Infof("Start to join %s as worker", node)
 
-			if err := k.infra.CmdAsync(node, cmds...); err != nil {
+			if err := k.infra.CmdAsync(node, nil, cmds...); err != nil {
 				return fmt.Errorf("failed to join node %s: %v", node, err)
 			}
 			logrus.Infof("Succeeded in joining %s as worker", node)

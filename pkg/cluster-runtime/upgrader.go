@@ -35,6 +35,10 @@ func (i *Installer) Upgrade() error {
 		return err
 	}
 
+	if err := i.runHostHook(UpgradeHost, all); err != nil {
+		return err
+	}
+
 	crInfo, err := i.containerRuntimeInstaller.GetInfo()
 	if err != nil {
 		return err

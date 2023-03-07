@@ -81,7 +81,7 @@ func WrapperShell(shell string, wrapperData map[string]interface{}) string {
 	if len(env) == 0 {
 		return shell
 	}
-	return fmt.Sprintf("%s && %s", strings.Join(env, " "), shell)
+	return fmt.Sprintf("%s %s", strings.Join(env, " "), shell)
 }
 
 func getEnvFromData(wrapperData map[string]interface{}) []string {
@@ -89,9 +89,9 @@ func getEnvFromData(wrapperData map[string]interface{}) []string {
 	for k, v := range wrapperData {
 		switch value := v.(type) {
 		case []string:
-			env = append(env, fmt.Sprintf("%s=(%s)", k, strings.Join(value, " ")))
+			env = append(env, fmt.Sprintf("export %s=(%s);", k, strings.Join(value, " ")))
 		case string:
-			env = append(env, fmt.Sprintf("%s=\"%s\"", k, value))
+			env = append(env, fmt.Sprintf("export %s=\"%s\";", k, value))
 		}
 	}
 	sort.Strings(env)

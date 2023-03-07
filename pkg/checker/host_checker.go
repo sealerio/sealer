@@ -47,7 +47,7 @@ func checkHostnameUnique(cluster *v2.Cluster, ipList []net.IP) error {
 		if err != nil {
 			return fmt.Errorf("checker: failed to get ssh client of host(%s): %v", ip, err)
 		}
-		hostname, err := s.CmdToString(ip, "hostname", "")
+		hostname, err := s.CmdToString(ip, nil, "hostname", "")
 		if err != nil {
 			return fmt.Errorf("checker: failed to get hostname of host(%s): %v", ip, err)
 		}
@@ -66,7 +66,7 @@ func checkTimeSync(cluster *v2.Cluster, ipList []net.IP) error {
 		if err != nil {
 			return fmt.Errorf("checker: failed to get ssh client of host(%s): %v", ip, err)
 		}
-		timeStamp, err := s.CmdToString(ip, "date +%s", "")
+		timeStamp, err := s.CmdToString(ip, nil, "date +%s", "")
 		if err != nil {
 			return fmt.Errorf("checker: failed to get timestamp of host(%s): %v", ip, err)
 		}

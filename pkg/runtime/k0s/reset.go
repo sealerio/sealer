@@ -38,7 +38,7 @@ func (k *Runtime) resetNodes(nodes []net.IP) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			if err := k.infra.CmdAsync(node, "k0s stop",
+			if err := k.infra.CmdAsync(node, nil, "k0s stop",
 				"umount $(df -HT | grep '/var/lib/k0s/kubelet/pods' | awk '{print $7}')",
 				"k0s reset",
 				"rm -rf /etc/k0s/",
@@ -58,7 +58,7 @@ func (k *Runtime) resetMasters(nodes []net.IP) error {
 	for _, node := range nodes {
 		node := node
 		eg.Go(func() error {
-			if err := k.infra.CmdAsync(node, "k0s stop",
+			if err := k.infra.CmdAsync(node, nil, "k0s stop",
 				"k0s reset",
 				"rm -rf /etc/k0s/",
 				"rm -rf /usr/bin/k0s",

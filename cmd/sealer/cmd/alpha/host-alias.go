@@ -15,14 +15,10 @@
 package alpha
 
 import (
-	"os"
-
-	"github.com/spf13/cobra"
-
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/spf13/cobra"
 )
 
 var hostAlias v2.HostAlias
@@ -34,17 +30,11 @@ func NewHostAliasCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				cf              clusterfile.Interface
-				clusterFileData []byte
-				err             error
+				cf  clusterfile.Interface
+				err error
 			)
 
-			clusterFileData, err = os.ReadFile(common.GetDefaultClusterfile())
-			if err != nil {
-				return err
-			}
-
-			cf, err = clusterfile.NewClusterFile(clusterFileData)
+			cf, _, err = clusterfile.GetActualClusterFile()
 			if err != nil {
 				return err
 			}

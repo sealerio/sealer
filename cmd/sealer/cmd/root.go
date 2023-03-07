@@ -89,7 +89,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&rootCmd.SilenceUsage, "quiet", "q", false, "silence the usage when fail")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogTime, "hide-time", false, "hide the log time")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogPath, "hide-path", false, "hide the log path")
-	rootCmd.PersistentFlags().BoolVar(&rootOpt.logToFile, "log-to-file", false, "write log message to disk")
+	rootCmd.PersistentFlags().BoolVar(&rootOpt.logToFile, "log-to-file", true, "write log message to disk")
 	rootCmd.PersistentFlags().StringVar(&rootOpt.colorMode, "color", colorModeAlways, fmt.Sprintf("set the log color mode, the possible values can be %v", supportedColorModes))
 	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerURL, "remote-logger-url", "", "remote logger url, if not empty, will send log to this url")
 	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerTaskName, "task-name", "", "task name which will embedded in the remote logger header, only valid when --remote-logger-url is set")

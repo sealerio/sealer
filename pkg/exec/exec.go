@@ -43,7 +43,7 @@ func (e *Exec) RunCmd(cmd string) error {
 			if sshErr != nil {
 				return sshErr
 			}
-			err := sshClient.CmdAsync(ip, cmd)
+			err := sshClient.CmdAsync(ip, nil, cmd)
 			if err != nil {
 				return err
 			}

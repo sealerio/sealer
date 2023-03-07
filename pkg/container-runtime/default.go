@@ -19,7 +19,6 @@ import (
 	"net"
 	"path/filepath"
 
-	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/infradriver"
 )
 
@@ -31,9 +30,9 @@ type DefaultInstaller struct {
 }
 
 func (d *DefaultInstaller) InstallOn(hosts []net.IP) error {
-	installCmd := env.WrapperShell(fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getInstallScriptName())), d.envs)
+	installCmd := fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getInstallScriptName()))
 	for _, ip := range hosts {
-		err := d.driver.CmdAsync(ip, installCmd)
+		err := d.driver.CmdAsync(ip, d.envs, installCmd)
 		if err != nil {
 			return fmt.Errorf("failed to install %s: execute command(%s) on host (%s): error(%v)", d.Type, installCmd, ip, err)
 		}
@@ -42,9 +41,9 @@ func (d *DefaultInstaller) InstallOn(hosts []net.IP) error {
 }
 
 func (d *DefaultInstaller) UnInstallFrom(hosts []net.IP) error {
-	cleanCmd := env.WrapperShell(fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getUnInstallScriptName())), d.envs)
+	cleanCmd := fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getUnInstallScriptName()))
 	for _, ip := range hosts {
-		err := d.driver.CmdAsync(ip, cleanCmd)
+		err := d.driver.CmdAsync(ip, d.envs, cleanCmd)
 		if err != nil {
 			return fmt.Errorf("failed to uninstall %s: execute command(%s) on host (%s): error(%v)", d.Type, cleanCmd, ip, err)
 		}

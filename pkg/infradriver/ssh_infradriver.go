@@ -225,28 +225,28 @@ func (d *SSHInfraDriver) CopyR(host net.IP, remoteFilePath, localFilePath string
 	return client.CopyR(host, localFilePath, remoteFilePath)
 }
 
-func (d *SSHInfraDriver) CmdAsync(host net.IP, cmd ...string) error {
+func (d *SSHInfraDriver) CmdAsync(host net.IP, env map[string]interface{}, cmd ...string) error {
 	client := d.sshConfigs[host.String()]
 	if client == nil {
 		return fmt.Errorf("ip(%s) is not in cluster", host.String())
 	}
-	return client.CmdAsync(host, cmd...)
+	return client.CmdAsync(host, env, cmd...)
 }
 
-func (d *SSHInfraDriver) Cmd(host net.IP, cmd string) ([]byte, error) {
+func (d *SSHInfraDriver) Cmd(host net.IP, env map[string]interface{}, cmd string) ([]byte, error) {
 	client := d.sshConfigs[host.String()]
 	if client == nil {
 		return nil, fmt.Errorf("ip(%s) is not in cluster", host.String())
 	}
-	return client.Cmd(host, cmd)
+	return client.Cmd(host, env, cmd)
 }
 
-func (d *SSHInfraDriver) CmdToString(host net.IP, cmd, spilt string) (string, error) {
+func (d *SSHInfraDriver) CmdToString(host net.IP, env map[string]interface{}, cmd, spilt string) (string, error) {
 	client := d.sshConfigs[host.String()]
 	if client == nil {
 		return "", fmt.Errorf("ip(%s) is not in cluster", host.String())
 	}
-	return client.CmdToString(host, cmd, spilt)
+	return client.CmdToString(host, env, cmd, spilt)
 }
 
 func (d *SSHInfraDriver) IsFileExist(host net.IP, remoteFilePath string) (bool, error) {
@@ -283,14 +283,14 @@ func (d *SSHInfraDriver) Ping(host net.IP) error {
 
 func (d *SSHInfraDriver) SetHostName(host net.IP, hostName string) error {
 	setHostNameCmd := fmt.Sprintf("hostnamectl set-hostname %s", hostName)
-	return d.CmdAsync(host, setHostNameCmd)
+	return d.CmdAsync(host, nil, setHostNameCmd)
 }
 
 func (d *SSHInfraDriver) SetClusterHostAliases(hosts []net.IP) error {
 	for _, host := range hosts {
 		for _, hostAliases := range d.cluster.Spec.HostAliases {
 			hostname := strings.Join(hostAliases.Hostnames, " ")
-			err := d.CmdAsync(host, shellcommand.CommandSetHostAlias(hostname, hostAliases.IP))
+			err := d.CmdAsync(host, nil, shellcommand.CommandSetHostAlias(hostname, hostAliases.IP))
 			if err != nil {
 				return err
 			}
@@ -301,7 +301,7 @@ func (d *SSHInfraDriver) SetClusterHostAliases(hosts []net.IP) error {
 
 func (d *SSHInfraDriver) DeleteClusterHostAliases(hosts []net.IP) error {
 	for _, host := range hosts {
-		err := d.CmdAsync(host, shellcommand.CommandUnSetHostAlias())
+		err := d.CmdAsync(host, nil, shellcommand.CommandUnSetHostAlias())
 		if err != nil {
 			return err
 		}
@@ -326,7 +326,7 @@ func (d *SSHInfraDriver) GetClusterLaunchApps() []string {
 }
 
 func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {
-	hostName, err := d.CmdToString(hostIP, "hostname", "")
+	hostName, err := d.CmdToString(hostIP, nil, "hostname", "")
 	if err != nil {
 		return "", err
 	}

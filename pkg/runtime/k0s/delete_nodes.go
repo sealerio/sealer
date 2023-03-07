@@ -75,7 +75,7 @@ func (k *Runtime) deleteNode(node net.IP, remainMaster0 *net.IP) error {
 		"rm -rf /etc/k0s/",
 		"rm -rf /usr/bin/kube* && rm -rf ~/.kube/",
 		"rm -rf /usr/bin/k0s"}
-	if err := k.infra.CmdAsync(node, remoteCleanCmds...); err != nil {
+	if err := k.infra.CmdAsync(node, nil, remoteCleanCmds...); err != nil {
 		return err
 	}
 	return nil

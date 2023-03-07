@@ -53,10 +53,12 @@ const (
 )
 
 const (
-	RemoteAddEtcHosts       = "cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts"
-	RemoteReplaceKubeConfig = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
-	RemoveKubeConfig        = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
-	RemoteCleanK8sOnHost    = `systemctl restart docker kubelet; if which kubeadm > /dev/null 2>&1;then kubeadm reset -f %s;fi && \
+	GetCustomizeCRISocket         = "cat /etc/sealerio/cri/socket-path"
+	RemoteCleanCustomizeCRISocket = "rm -f /etc/sealerio/cri/socket-path"
+	RemoteAddEtcHosts             = "cat /etc/hosts |grep '%s' || echo '%s' >> /etc/hosts"
+	RemoteReplaceKubeConfig       = `grep -qF "apiserver.cluster.local" %s  && sed -i 's/apiserver.cluster.local/%s/' %s && sed -i 's/apiserver.cluster.local/%s/' %s`
+	RemoveKubeConfig              = "rm -rf /usr/bin/kube* && rm -rf ~/.kube/"
+	RemoteCleanK8sOnHost          = `systemctl restart docker kubelet; if which kubeadm > /dev/null 2>&1;then kubeadm reset -f %s;fi && \
 rm -rf /etc/kubernetes/ && \
 rm -rf /etc/systemd/system/kubelet.service.d && rm -rf /etc/systemd/system/kubelet.service && \
 rm -rf /usr/bin/kubeadm && rm -rf /usr/bin/kubelet-pre-start.sh && \
@@ -88,25 +90,21 @@ var MasterStaticFiles = []*StaticFile{
 }
 
 // return node name from k8s cluster, if not found, return "" and error is nil
-func (k *Runtime) getNodeNameByCmd(master, host net.IP) (string, error) {
-	//todo get node name from k8s sdk
-	cmd := fmt.Sprintf("kubectl get nodes -o wide | grep -v NAME  | grep %s | awk '{print $1}'", host)
-	hostName, err := k.infra.CmdToString(master, cmd, "")
+func (k *Runtime) getNodeNameByCmd(host net.IP) (string, error) {
+	cli, err := k.GetCurrentRuntimeDriver()
 	if err != nil {
 		return "", err
 	}
-
-	hostString, err := k.infra.CmdToString(master, "kubectl get nodes | grep -v NAME  | awk '{print $1}'", ",")
-	if err != nil {
+	nodes := &corev1.NodeList{}
+	if err := cli.List(context.Background(), nodes); err != nil {
 		return "", err
 	}
-	nodeNames := strings.Split(hostString, ",")
 
-	for _, nodeName := range nodeNames {
-		if strings.TrimSpace(nodeName) == "" {
-			continue
-		} else if strings.EqualFold(nodeName, hostName) {
-			return nodeName, nil
+	for _, nodeInfo := range nodes.Items {
+		for _, addr := range nodeInfo.Status.Addresses {
+			if addr.Type == corev1.NodeInternalIP && host.String() == addr.Address {
+				return nodeInfo.Name, nil
+			}
 		}
 	}
 
@@ -205,7 +203,7 @@ func (k *Runtime) configureLvs(masterHosts, clientHosts []net.IP) error {
 	for i := range clientHosts {
 		node := clientHosts[i]
 		eg.Go(func() error {
-			err := k.infra.CmdAsync(node, ipvsCmd, lvscareStaticCmd, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), k.getAPIServerVIP().String()))
+			err := k.infra.CmdAsync(node, nil, ipvsCmd, lvscareStaticCmd, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), k.getAPIServerVIP().String()))
 			if err != nil {
 				return fmt.Errorf("failed to config ndoes lvs policy %s: %v", ipvsCmd, err)
 			}

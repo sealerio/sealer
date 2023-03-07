@@ -200,7 +200,7 @@ func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 
 func (s *SSH) remoteMd5Sum(host net.IP, remoteFilePath string) string {
 	cmd := fmt.Sprintf(Md5sumCmd, remoteFilePath)
-	remoteMD5, err := s.CmdToString(host, cmd, "")
+	remoteMD5, err := s.CmdToString(host, nil, cmd, "")
 	if err != nil {
 		logrus.Errorf("failed to count md5 of remote file(%s) on host(%s): %v", remoteFilePath, host, err)
 	}

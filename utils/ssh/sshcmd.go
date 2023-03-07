@@ -22,9 +22,8 @@ import (
 	"strings"
 
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/env"
 	utilsnet "github.com/sealerio/sealer/utils/net"
-
-	"github.com/sirupsen/logrus"
 )
 
 const SUDO = "sudo "
@@ -44,7 +43,7 @@ func (s *SSH) Ping(host net.IP) error {
 	return nil
 }
 
-func (s *SSH) CmdAsync(host net.IP, cmds ...string) error {
+func (s *SSH) CmdAsync(host net.IP, hostEnv map[string]interface{}, cmds ...string) error {
 	var execFunc func(cmd string) error
 
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
@@ -111,8 +110,9 @@ func (s *SSH) CmdAsync(host net.IP, cmds ...string) error {
 		if s.User != common.ROOT {
 			cmd = fmt.Sprintf("sudo -E /bin/bash <<EOF\n%s\nEOF", cmd)
 		}
+		cmd = env.WrapperShell(cmd, hostEnv)
+
 		if err := execFunc(cmd); err != nil {
-			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, err)
 			return err
 		}
 	}
@@ -120,10 +120,11 @@ func (s *SSH) CmdAsync(host net.IP, cmds ...string) error {
 	return nil
 }
 
-func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
+func (s *SSH) Cmd(host net.IP, hostEnv map[string]interface{}, cmd string) ([]byte, error) {
 	if s.User != common.ROOT {
 		cmd = fmt.Sprintf("sudo -E /bin/bash <<EOF\n%s\nEOF", cmd)
 	}
+	cmd = env.WrapperShell(cmd, hostEnv)
 
 	var stdoutContent, stderrContent bytes.Buffer
 
@@ -132,7 +133,6 @@ func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
 		localCmd.Stdout = &stdoutContent
 		localCmd.Stderr = &stderrContent
 		if err := localCmd.Run(); err != nil {
-			logrus.Debugf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, stderrContent.String())
 			return stdoutContent.Bytes(), fmt.Errorf("failed to execute command(%s) on host(%s): error(%v)", cmd, host, stderrContent.String())
 		}
 		return stdoutContent.Bytes(), nil
@@ -148,7 +148,6 @@ func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
 	session.Stdout = &stdoutContent
 	session.Stderr = &stderrContent
 	if err := session.Run(cmd); err != nil {
-		logrus.Debugf("[ssh][%s]failed to run command[%s]: %s", host, cmd, stderrContent.String())
 		return stdoutContent.Bytes(), fmt.Errorf("[ssh][%s]failed to run command[%s]: %s", host, cmd, stderrContent.String())
 	}
 
@@ -156,8 +155,8 @@ func (s *SSH) Cmd(host net.IP, cmd string) ([]byte, error) {
 }
 
 // CmdToString is in host exec cmd and replace to spilt str
-func (s *SSH) CmdToString(host net.IP, cmd, split string) (string, error) {
-	data, err := s.Cmd(host, cmd)
+func (s *SSH) CmdToString(host net.IP, env map[string]interface{}, cmd, split string) (string, error) {
+	data, err := s.Cmd(host, env, cmd)
 	str := string(data)
 	if err != nil {
 		return str, err

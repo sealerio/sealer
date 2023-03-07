@@ -56,7 +56,7 @@ func (k *Runtime) joinMasters(masters []net.IP, registryInfo string) error {
 
 	for _, master := range masters {
 		logrus.Infof("Start to join %s as master", master)
-		if err := k.infra.CmdAsync(master, cmds...); err != nil {
+		if err := k.infra.CmdAsync(master, nil, cmds...); err != nil {
 			return fmt.Errorf("failed to exec command(%s) on master(%s): %v", cmds, master, err)
 		}
 		if err := k.fetchKubeconfig(master); err != nil {
@@ -71,7 +71,7 @@ func (k *Runtime) fetchKubeconfig(m net.IP) error {
 	logrus.Infof("waiting around 10 seconds for fetch k0s admin.conf")
 	// waiting k0s start success.
 	time.Sleep(time.Second * TimeForWaitingK0sStart)
-	if err := k.infra.CmdAsync(m, "rm -rf .kube/config && mkdir -p /root/.kube && cp /var/lib/k0s/pki/admin.conf /root/.kube/config"); err != nil {
+	if err := k.infra.CmdAsync(m, nil, "rm -rf .kube/config && mkdir -p /root/.kube && cp /var/lib/k0s/pki/admin.conf /root/.kube/config"); err != nil {
 		return err
 	}
 	return nil
