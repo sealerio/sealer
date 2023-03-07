@@ -42,7 +42,7 @@ func (engine *Engine) Mount(opts *options.MountOptions) ([]options.JSONMount, er
 	}
 
 	for _, name := range containers {
-		builder, err := openBuilder(getContext(), store, name)
+		builder, err := OpenBuilder(getContext(), store, name)
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)

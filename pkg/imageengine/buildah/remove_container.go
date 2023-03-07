@@ -53,7 +53,7 @@ func (engine *Engine) RemoveContainer(opts *options.RemoveContainerOptions) erro
 		}
 	} else {
 		for _, name := range opts.ContainerNamesOrIDs {
-			builder, err := openBuilder(getContext(), store, name)
+			builder, err := OpenBuilder(getContext(), store, name)
 			if err != nil {
 				lastError = util.WriteError(os.Stderr, errors.Wrapf(err, "%s %q", delContainerErrStr, name), lastError)
 				continue

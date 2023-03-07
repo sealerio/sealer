@@ -53,7 +53,7 @@ func (engine *Engine) Copy(opts *options.CopyOptions) error {
 		return errors.Errorf("--ignorefile option requires that you specify a context dir using --contextdir")
 	}
 
-	builder, err := openBuilder(getContext(), store, name)
+	builder, err := OpenBuilder(getContext(), store, name)
 	if err != nil {
 		return errors.Wrapf(err, "error reading build container %q", name)
 	}
