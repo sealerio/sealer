@@ -228,7 +228,7 @@ func GetActualClusterFile() (Interface, bool, error) {
 	// assume that we already have an existed cluster
 	fromCluster, err := getClusterfileFromCluster()
 	if err != nil {
-		logrus.Warn("try to get clusterfile from cluster", err)
+		logrus.Warn("try to get clusterfile from cluster: ", err)
 	}
 
 	if fromCluster != nil {
@@ -255,12 +255,12 @@ func getClusterfileFromCluster() (*ClusterFile, error) {
 		return nil, err
 	}
 
-	cm, err := cli.ConfigMap(ClusterfileConfigMapNamespace).Get(context.TODO(), ClusterfileConfigMapDataName, metav1.GetOptions{})
+	cm, err := cli.ConfigMap(ClusterfileConfigMapNamespace).Get(context.TODO(), ClusterfileConfigMapName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	data := cm.Data[ClusterfileConfigMapName]
+	data := cm.Data[ClusterfileConfigMapDataName]
 	if len(data) > 0 {
 		err = decodeClusterFile(bytes.NewReader([]byte(data)), clusterFile)
 		if err != nil {
