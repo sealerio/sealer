@@ -20,17 +20,15 @@ import (
 	"net"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
-
-	versionUtils "github.com/sealerio/sealer/utils/version"
-
+	"github.com/imdario/mergo"
 	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"
-
-	"github.com/imdario/mergo"
+	versionUtils "github.com/sealerio/sealer/utils/version"
+	"github.com/sirupsen/logrus"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
 )
 
 // Read config from https://github.com/sealerio/sealer/blob/main/docs/design/clusterfile-v2.md and overwrite default kubeadm.yaml
@@ -43,7 +41,7 @@ import (
 // nolint
 type KubeadmConfig struct {
 	v1beta2.InitConfiguration
-	v1beta2.ClusterConfiguration
+	v1beta3.ClusterConfiguration
 	v1alpha1.KubeProxyConfiguration
 	v1beta1.KubeletConfiguration
 	v1beta2.JoinConfiguration
@@ -138,7 +136,7 @@ func LoadKubeadmConfigs(arg string, decode func(arg string, kind string) (interf
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if clusterConfig != nil {
-		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta2.ClusterConfiguration)
+		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta3.ClusterConfiguration)
 	}
 	kubeProxyConfig, err := decode(arg, KubeProxyConfiguration)
 	if err != nil && err != io.EOF {
