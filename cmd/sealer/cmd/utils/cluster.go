@@ -26,12 +26,15 @@ import (
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/types/api/constants"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	netutils "github.com/sealerio/sealer/utils/net"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 )
+
+const clusterExists = "exist"
 
 func MergeClusterWithFlags(cluster v2.Cluster, mergeFlags *types.MergeFlags) (*v2.Cluster, error) {
 	if len(mergeFlags.CustomEnv) > 0 {
@@ -255,4 +258,16 @@ func GetClusterClient() *k8s.Client {
 		logrus.Warnf("try to new k8s client via default kubeconfig, maybe this is a new cluster that needs to be created: %v", err)
 	}
 	return nil
+}
+
+func CheckClusterIsExists(cluster v2.Cluster) (string, error) {
+	clusterFile, _, err := clusterfile.GetActualClusterFile()
+	if err == nil {
+		newClusterfile := clusterFile.GetCluster()
+		if cluster.Spec.Image != newClusterfile.Spec.Image {
+			return clusterExists, fmt.Errorf("the cluster image already exists, please uninstall the current cluster and install another version of the cluster image")
+		}
+		return clusterExists, fmt.Errorf("this cluster image has already been installed, please do not repeat the operation")
+	}
+	return "", nil
 }

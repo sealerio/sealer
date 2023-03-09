@@ -236,6 +236,11 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 
 func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface, imageSpec *imagev1.ImageSpec, mode string) error {
 	cluster := cf.GetCluster()
+	//check cluster
+	checkClusterFile, err := utils.CheckClusterIsExists(cluster)
+	if checkClusterFile != "" {
+		return err
+	}
 	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {
 		return err
