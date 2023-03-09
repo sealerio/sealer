@@ -385,14 +385,14 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 }
 
 type RunApplicationImageRequest struct {
-	ImageName                 string
-	Application               *v2.Application
-	Envs                      []string
-	ImageEngine               imageengine.Interface
-	Extension                 imagev1.ImageExtension
-	Configs                   []v1.Config
-	RunMode                   string
-	IgnorePrepareAppMaterials bool
+	ImageName               string
+	Application             *v2.Application
+	Envs                    []string
+	ImageEngine             imageengine.Interface
+	Extension               imagev1.ImageExtension
+	Configs                 []v1.Config
+	RunMode                 string
+	SkipPrepareAppMaterials bool
 }
 
 func runApplicationImage(request *RunApplicationImageRequest) error {
@@ -415,11 +415,14 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 	}
 	infraDriver.AddClusterEnv(request.Envs)
 
-	if !request.IgnorePrepareAppMaterials {
+	if !request.SkipPrepareAppMaterials {
 		if err := prepareMaterials(infraDriver, request.ImageEngine, v2App,
 			request.ImageName, request.RunMode, request.Configs); err != nil {
 			return err
 		}
+	}
+	if request.RunMode == common.ApplyModeLoadImage {
+		return nil
 	}
 
 	if err = v2App.Launch(infraDriver); err != nil {

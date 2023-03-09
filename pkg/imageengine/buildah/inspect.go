@@ -16,6 +16,7 @@ package buildah
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -134,10 +135,12 @@ func handleImageLabelOutput(labels map[string]string) map[string]string {
 	}
 
 	if len(supportedCNI) != 0 {
+		sort.Strings(supportedCNI)
 		supportedCNIJSON, _ := json.Marshal(supportedCNI)
 		result[command.LabelSupportedKubeCNIAlpha] = string(supportedCNIJSON)
 	}
 	if len(supportedCSI) != 0 {
+		sort.Strings(supportedCSI)
 		supportedCSIJSON, _ := json.Marshal(supportedCSI)
 		result[command.LabelSupportedKubeCSIAlpha] = string(supportedCSIJSON)
 	}
