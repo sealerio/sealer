@@ -85,6 +85,15 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 			if err := yaml.Unmarshal(ext.Raw, &cfg); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
+
+			if cfg.Spec.Path == "" {
+				return fmt.Errorf("failed to decode config %s, config path is empty", cfg.Name)
+			}
+
+			if cfg.Spec.Data == "" {
+				return fmt.Errorf("failed to decode config %s, config data is empty", cfg.Name)
+			}
+
 			clusterfile.configs = append(clusterfile.configs, cfg)
 		case constants.PluginKind:
 			var plu v1.Plugin
