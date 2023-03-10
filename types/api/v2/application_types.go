@@ -20,8 +20,6 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/sealerio/sealer/types/api/constants"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -186,32 +184,6 @@ type ApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Application `json:"items"`
-}
-
-//ConstructApplication merge flags to v2.Application
-func ConstructApplication(app *Application, cmds, appNames []string) *Application {
-	var newApp *Application
-
-	if app != nil {
-		newApp = app
-	} else {
-		newApp = &Application{
-			Spec: ApplicationSpec{},
-		}
-		newApp.Name = "my-application"
-		newApp.Kind = GroupVersion.String()
-		newApp.APIVersion = constants.ApplicationKind
-	}
-
-	if len(cmds) > 0 {
-		newApp.Spec.Cmds = cmds
-	}
-
-	if len(appNames) > 0 {
-		newApp.Spec.LaunchApps = appNames
-	}
-
-	return newApp
 }
 
 func init() {

@@ -101,6 +101,29 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
 			}
 
+			for _, config := range app.Spec.Configs {
+				if config.Name == "" {
+					return fmt.Errorf("application configs name coule not be nil")
+				}
+
+				if config.Launch != nil {
+					launchCmds := parseLaunchCmds(config.Launch)
+					if launchCmds == nil {
+						return fmt.Errorf("failed to get launchCmds from application configs")
+					}
+				}
+
+				for _, appFile := range config.Files {
+					if appFile.Data == "" {
+						return fmt.Errorf("failed to decode application config %s. data is empty", config.Name)
+					}
+
+					if appFile.Path == "" {
+						return fmt.Errorf("failed to decode application config %s. path is empty", config.Name)
+					}
+				}
+			}
+
 			clusterfile.apps = &app
 		case kubeadmConstants.InitConfigurationKind:
 			var in v1beta2.InitConfiguration
@@ -233,5 +256,17 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvContainerRuntime, cluster.Spec.ContainerRuntime.Type))
 	}
 
+	return nil
+}
+
+//parseLaunchCmds parse shell, kube,helm type launch cmds
+// kubectl apply -n sealer-io -f ns.yaml -f app.yaml
+// helm install my-nginx bitnami/nginx
+// key1=value1 key2=value2 && bash install1.sh && bash install2.sh
+func parseLaunchCmds(launch *v2.Launch) []string {
+	if launch.Cmds != nil {
+		return launch.Cmds
+	}
+	// TODO add shell,helm,kube type cmds.
 	return nil
 }
