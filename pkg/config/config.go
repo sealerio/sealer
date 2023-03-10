@@ -59,7 +59,7 @@ func (c *Dumper) Dump(configs []v1.Config) error {
 	}
 
 	if err := c.WriteFiles(configs); err != nil {
-		return fmt.Errorf("failed to write config files %v", err)
+		return fmt.Errorf("failed to dump config files %v", err)
 	}
 	return nil
 }
