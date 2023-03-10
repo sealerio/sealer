@@ -28,7 +28,6 @@ import (
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/pkg/errors"
@@ -103,7 +102,7 @@ func NewApplyCmd() *cobra.Command {
 			}
 
 			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
-				app := v2.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
+				app := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
 
 				return runApplicationImage(&RunApplicationImageRequest{
 					ImageName:   imageName,
@@ -137,7 +136,7 @@ func NewApplyCmd() *cobra.Command {
 			}
 
 			// install application
-			app := v2.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
+			app := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
 			return runApplicationImage(&RunApplicationImageRequest{
 				ImageName:                 imageName,
 				Application:               app,

@@ -19,11 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/pkg/application"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -32,7 +29,9 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
 var upgradeFlags *types.UpgradeFlags
@@ -190,7 +189,7 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 	appNames := infraDriver.GetClusterLaunchApps()
 
 	// merge to application between v2.ClusterSpec, v2.Application and image extension
-	v2App, err := application.NewV2Application(v2.ConstructApplication(cf.GetApplication(), cmds, appNames), imageSpec.ImageExtension)
+	v2App, err := application.NewV2Application(utils.ConstructApplication(cf.GetApplication(), cmds, appNames), imageSpec.ImageExtension)
 	if err != nil {
 		return fmt.Errorf("failed to parse application from Clusterfile:%v ", err)
 	}
