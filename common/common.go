@@ -72,6 +72,10 @@ const (
 	EnvCertSANs               = "CertSANs"
 	EnvIPvsVIPForIPv4         = "IPvsVIPv4"
 	EnvIPvsVIPForIPv6         = "IPvsVIPv6"
+	EnvSvcCIDR                = "SvcCIDR"
+	EnvPodCIDR                = "PodCIDR"
+	EnvDNSSvcIP               = "DNSSvcIP"
+	EnvKubeSvcIP              = "KubeSvcIP"
 )
 
 const (
