@@ -225,7 +225,7 @@ var _ = Describe("sealer build", func() {
 			testhelper.CheckErr(err)
 			testhelper.CheckExit0(sess, settings.MaxWaiteTime)
 			// check: sealer images whether image exist
-			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+			testhelper.CheckBeTrue(build.CheckIsMultiArchImageExist(imageName))
 
 			// check: push build image
 			testhelper.CheckErr(build.PushBuildImage(imageName))

@@ -136,6 +136,12 @@ func NewArgsOfBuild() *ArgsOfBuild {
 	return &ArgsOfBuild{}
 }
 
+func CheckIsMultiArchImageExist(imageName string) bool {
+	cmd := fmt.Sprintf("%s alpha manifest inspect %s", settings.DefaultSealerBin, imageName)
+	_, err := exec.RunSimpleCmd(cmd)
+	return err == nil
+}
+
 func CheckIsImageExist(imageName string) bool {
 	cmd := fmt.Sprintf("%s inspect %s", settings.DefaultSealerBin, imageName)
 	_, err := exec.RunSimpleCmd(cmd)
@@ -157,8 +163,8 @@ func PushBuildImage(imageName string) error {
 }
 
 func DeleteBuildImage(imageName string) error {
-	push := fmt.Sprintf("%s rmi %s", settings.DefaultSealerBin, imageName)
-	_, err := exec.RunSimpleCmd(push)
+	rmi := fmt.Sprintf("%s rmi %s", settings.DefaultSealerBin, imageName)
+	_, err := exec.RunSimpleCmd(rmi)
 
 	return err
 }
