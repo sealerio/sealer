@@ -32,7 +32,7 @@ var exampleForListCmd = `
 func NewListCmd() *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:   "images",
-		Short: "list all ClusterImages on the local node",
+		Short: "list all sealer images on the local node",
 		// TODO: add long description.
 		Long:    longNewListCmdDescription,
 		Args:    cobra.NoArgs,

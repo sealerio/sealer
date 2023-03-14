@@ -38,7 +38,7 @@ save kubernetes:v1.19.8 image to kubernetes.tar file:
 func NewSaveCmd() *cobra.Command {
 	saveCmd := &cobra.Command{
 		Use:     "save",
-		Short:   "save ClusterImage to a tar file",
+		Short:   "save sealer image to a tar file",
 		Long:    longNewSaveCmdDescription,
 		Example: exampleForSaveCmd,
 		Args:    cobra.ExactArgs(1),

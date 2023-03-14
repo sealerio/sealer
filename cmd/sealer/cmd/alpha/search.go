@@ -43,7 +43,7 @@ ex.:
 func NewSearchCmd() *cobra.Command {
 	searchCmd := &cobra.Command{
 		Use:   "search",
-		Short: "search ClusterImage in default registry",
+		Short: "search sealer image in default registry",
 		// TODO: add long description.
 		Long:    longNewSearchCmdDescription,
 		Example: exampleForSearchCmd,

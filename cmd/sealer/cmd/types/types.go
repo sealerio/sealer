@@ -27,9 +27,9 @@ type RunFlags struct {
 	Mode        string
 	ClusterFile string
 
-	// override default Cmds of clusterimage
+	// override default Cmds of sealer image
 	Cmds []string
-	// override default APPNames of clusterimage
+	// override default APPNames of sealer image
 	// Only one can be selected for LaunchCmds and AppNames
 	AppNames []string
 }
@@ -82,9 +82,9 @@ type MergeFlags struct {
 	PkPassword string
 	CustomEnv  []string
 
-	// override default Cmds of clusterimage
+	// override default Cmds of sealer image
 	Cmds []string
-	// override default APPNames of clusterimage
+	// override default APPNames of sealer image
 	AppNames []string
 }
 

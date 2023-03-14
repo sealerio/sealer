@@ -30,7 +30,7 @@ var exampleForTagCmd = `
 func NewTagCmd() *cobra.Command {
 	tagCmd := &cobra.Command{
 		Use:     "tag",
-		Short:   "create one or more tags for local ClusterImage",
+		Short:   "create one or more tags for local sealer image",
 		Long:    longNewTagCmdDescription,
 		Example: exampleForTagCmd,
 		Args:    cobra.MinimumNArgs(2),

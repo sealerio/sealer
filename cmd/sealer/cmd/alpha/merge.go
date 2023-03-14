@@ -27,7 +27,7 @@ var (
 
 var longMergeCmdDescription = `Sealer merge command will merge all layers of source image into one target image`
 
-var exampleForMergeCmd = `Merge mysql,redis and kubernetes image as one ClusterImage named my-image:v1:
+var exampleForMergeCmd = `Merge mysql,redis and kubernetes image as one sealer image named my-image:v1:
   sealer alpha merge kubernetes:v1.19.9 mysql:5.7.0 redis:6.0.0 -t my-image:v1`
 
 func NewMergeCmd() *cobra.Command {
@@ -43,7 +43,7 @@ func NewMergeCmd() *cobra.Command {
 	}
 
 	mergeCmd.Flags().StringVarP(&mergeImageName, "target-image", "t", "", "target image name")
-	mergeCmd.Flags().StringVar(&mergePlatform, "platform", "", "set ClusterImage platform, if not set,keep same platform with runtime")
+	mergeCmd.Flags().StringVar(&mergePlatform, "platform", "", "set sealer image platform, if not set,keep same platform with runtime")
 
 	if err := mergeCmd.MarkFlagRequired("target-image"); err != nil {
 		logrus.Errorf("failed to init flag target image: %v", err)

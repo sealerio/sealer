@@ -29,7 +29,7 @@ var (
 	umountAll bool
 
 	longUmountCmdDescription = `
-umount the cluster image and delete the mount directory
+umount the sealer image and delete the mount directory
 `
 	exampleForUmountCmd = `
   sealer alpha umount containerID
@@ -40,7 +40,7 @@ umount the cluster image and delete the mount directory
 func NewUmountCmd() *cobra.Command {
 	umountCmd := &cobra.Command{
 		Use:     "umount",
-		Short:   "umount cluster image",
+		Short:   "umount sealer image",
 		Long:    longUmountCmdDescription,
 		Example: exampleForUmountCmd,
 		Args:    cobra.MaximumNArgs(1),
@@ -68,7 +68,7 @@ func NewUmountCmd() *cobra.Command {
 			return nil
 		},
 	}
-	umountCmd.Flags().BoolVarP(&umountAll, "all", "a", false, "umount all cluster image directories")
+	umountCmd.Flags().BoolVarP(&umountAll, "all", "a", false, "umount all sealer image directories")
 	return umountCmd
 }
 

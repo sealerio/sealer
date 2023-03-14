@@ -59,7 +59,7 @@ run app image:
 func NewRunCmd() *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:     "run",
-		Short:   "start to run a cluster from a ClusterImage",
+		Short:   "start to run a cluster from a sealer image",
 		Long:    longNewRunCmdDescription,
 		Example: exampleForRunCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -108,7 +108,7 @@ func NewRunCmd() *cobra.Command {
 
 			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 			if err != nil {
-				return fmt.Errorf("failed to get cluster image extension: %s", err)
+				return fmt.Errorf("failed to get sealer image extension: %s", err)
 			}
 
 			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
@@ -153,8 +153,8 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().Uint16Var(&runFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	runCmd.Flags().StringVar(&runFlags.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
 	runCmd.Flags().StringVar(&runFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
-	runCmd.Flags().StringSliceVar(&runFlags.Cmds, "cmds", []string{}, "override default LaunchCmds of clusterimage")
-	runCmd.Flags().StringSliceVar(&runFlags.AppNames, "apps", []string{}, "override default AppNames of clusterimage")
+	runCmd.Flags().StringSliceVar(&runFlags.Cmds, "cmds", []string{}, "override default LaunchCmds of sealer image")
+	runCmd.Flags().StringSliceVar(&runFlags.AppNames, "apps", []string{}, "override default AppNames of sealer image")
 	runCmd.Flags().StringSliceVarP(&runFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	runCmd.Flags().StringVarP(&runFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
 	runCmd.Flags().StringVar(&runFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
@@ -214,7 +214,7 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 
 	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 	if err != nil {
-		return fmt.Errorf("failed to get cluster image extension: %s", err)
+		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
 	if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
@@ -264,7 +264,7 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 	defer func() {
 		err = imageMounter.Umount(clusterImageName, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount sealer image")
 		}
 	}()
 
@@ -456,7 +456,7 @@ func prepareMaterials(infraDriver infradriver.InfraDriver, imageEngine imageengi
 	defer func() {
 		err = imageMounter.Umount(appImageName, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image: %v", err)
+			logrus.Errorf("failed to umount sealer image: %v", err)
 		}
 	}()
 
