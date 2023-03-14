@@ -18,16 +18,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	imagecommon "github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
-	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var joinFlags *types.ScaleUpFlags
@@ -87,17 +85,12 @@ func NewJoinCmd() *cobra.Command {
 			}
 			cf.SetCluster(cluster)
 
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
-			if err != nil {
-				return err
-			}
-
 			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
 
-			return scaleUpCluster(cluster.Spec.Image, mj, nj, infraDriver, imageEngine, cf)
+			return scaleUpCluster(cf, mj, nj, imageEngine)
 		},
 	}
 

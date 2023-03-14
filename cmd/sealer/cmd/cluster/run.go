@@ -21,10 +21,6 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -41,6 +37,9 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	"github.com/sealerio/sealer/utils/platform"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
 var runFlags *types.RunFlags
@@ -140,7 +139,7 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode)
+			return runClusterImage(cf, imageEngine, imageSpec, runFlags.Mode)
 		},
 	}
 	runFlags = &types.RunFlags{}
@@ -231,10 +230,11 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 		})
 	}
 
-	return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode)
+	return runClusterImage(cf, imageEngine, imageSpec, runFlags.Mode)
 }
 
-func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface, imageSpec *imagev1.ImageSpec, mode string) error {
+//runClusterImage: create new cluster and install its contains applications.
+func runClusterImage(cf clusterfile.Interface, imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec, mode string) error {
 	cluster := cf.GetCluster()
 	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {
@@ -385,14 +385,16 @@ func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 }
 
 type RunApplicationImageRequest struct {
-	ImageName                 string
-	Application               *v2.Application
-	Envs                      []string
-	ImageEngine               imageengine.Interface
-	Extension                 imagev1.ImageExtension
-	Configs                   []v1.Config
-	RunMode                   string
-	IgnorePrepareAppMaterials bool
+	ImageName   string
+	Application *v2.Application
+	Envs        []string
+	ImageEngine imageengine.Interface
+	Extension   imagev1.ImageExtension
+	Configs     []v1.Config
+	RunMode     string
+	// NOTE: in some case, we do not need to prepare the app file repeatedly,
+	// such as the cluster and the apps in the same image
+	SkipPrepareAppMaterials bool
 }
 
 func runApplicationImage(request *RunApplicationImageRequest) error {
@@ -415,7 +417,7 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 	}
 	infraDriver.AddClusterEnv(request.Envs)
 
-	if !request.IgnorePrepareAppMaterials {
+	if !request.SkipPrepareAppMaterials {
 		if err := prepareMaterials(infraDriver, request.ImageEngine, v2App,
 			request.ImageName, request.RunMode, request.Configs); err != nil {
 			return err

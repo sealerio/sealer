@@ -89,17 +89,12 @@ func NewScaleUpCmd() *cobra.Command {
 			}
 			cf.SetCluster(cluster)
 
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
-			if err != nil {
-				return err
-			}
-
 			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
 
-			return scaleUpCluster(cluster.Spec.Image, mj, nj, infraDriver, imageEngine, cf)
+			return scaleUpCluster(cf, mj, nj, imageEngine)
 		},
 	}
 
@@ -115,12 +110,20 @@ func NewScaleUpCmd() *cobra.Command {
 	return scaleUpFlagsCmd
 }
 
-func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+func scaleUpCluster(cf clusterfile.Interface, scaleUpMasterIPList, scaleUpNodeIPList []net.IP,
+	imageEngine imageengine.Interface) error {
 	logrus.Infof("start to scale up cluster")
 
 	var (
-		newHosts = append(scaleUpMasterIPList, scaleUpNodeIPList...)
+		desiredCluster   = cf.GetCluster()
+		newHosts         = append(scaleUpMasterIPList, scaleUpNodeIPList...)
+		clusterImageName = desiredCluster.Spec.Image
 	)
+
+	infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
+	if err != nil {
+		return err
+	}
 
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(newHosts)
 	if err != nil {

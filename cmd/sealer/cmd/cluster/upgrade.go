@@ -40,6 +40,7 @@ var longUpgradeCmdDescription = `upgrade command is used to upgrade a Kubernetes
 
 var exampleForUpgradeCmd = `
   sealer upgrade docker.io/sealerio/kubernetes:v1.22.15-upgrade
+  sealer upgrade -f Clusterfile
 `
 
 func NewUpgradeCmd() *cobra.Command {
@@ -50,15 +51,27 @@ func NewUpgradeCmd() *cobra.Command {
 		Example: exampleForUpgradeCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				err         error
-				clusterFile = upgradeFlags.ClusterFile
+				err              error
+				clusterFile      = upgradeFlags.ClusterFile
+				upgradeImageName = args[0]
 			)
+
 			if len(args) == 0 && clusterFile == "" {
 				return fmt.Errorf("you must input image name Or use Clusterfile")
 			}
 
 			if clusterFile != "" {
-				return upgradeWithClusterfile(clusterFile)
+				//read image name from clusterfile
+				clusterFileData, err := os.ReadFile(filepath.Clean(clusterFile))
+				if err != nil {
+					return err
+				}
+
+				cf, err := clusterfile.NewClusterFile(clusterFileData)
+				if err != nil {
+					return err
+				}
+				upgradeImageName = cf.GetCluster().Spec.Image
 			}
 
 			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
@@ -69,7 +82,7 @@ func NewUpgradeCmd() *cobra.Command {
 			id, err := imageEngine.Pull(&options.PullOptions{
 				Quiet:      false,
 				PullPolicy: "missing",
-				Image:      args[0],
+				Image:      upgradeImageName,
 				Platform:   "local",
 			})
 			if err != nil {
@@ -111,6 +124,7 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 	}
 
 	//generate new cluster
+	// TODO Potential Bug: new cf will lose previous Clusterfile object such as config,plugins.so new cf will only have v2.Cluster.
 	cf, err = clusterfile.NewClusterFile(clusterData)
 	if err != nil {
 		return err
@@ -184,7 +198,6 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 	}
 
 	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
-	logrus.Info(confPath)
 	cmds := infraDriver.GetClusterLaunchCmds()
 	appNames := infraDriver.GetClusterLaunchApps()
 
@@ -210,40 +223,4 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 	logrus.Infof("succeeded in upgrading cluster with image %s", imageSpec.Name)
 
 	return nil
-}
-
-func upgradeWithClusterfile(clusterFile string) error {
-	clusterFileData, err := os.ReadFile(filepath.Clean(clusterFile))
-	if err != nil {
-		return err
-	}
-
-	cf, err := clusterfile.NewClusterFile(clusterFileData)
-	if err != nil {
-		return err
-	}
-
-	cluster := cf.GetCluster()
-	imageName := cluster.Spec.Image
-	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-	if err != nil {
-		return err
-	}
-
-	id, err := imageEngine.Pull(&options.PullOptions{
-		Quiet:      false,
-		PullPolicy: "missing",
-		Image:      imageName,
-		Platform:   "local",
-	})
-	if err != nil {
-		return err
-	}
-
-	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
-	if err != nil {
-		return fmt.Errorf("failed to get cluster image extension: %s", err)
-	}
-
-	return upgradeCluster(imageEngine, imageSpec)
 }

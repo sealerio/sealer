@@ -20,11 +20,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
-	cmdutils "github.com/sealerio/sealer/cmd/sealer/cmd/utils"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
@@ -32,9 +29,10 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sealerio/sealer/utils"
 	netutils "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/os/fs"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -216,11 +214,11 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 }
 
 func scaleDownCluster(masters, workers string, forceDelete bool) error {
-	if err := cmdutils.ValidateScaleIPStr(masters, workers); err != nil {
+	if err := utils.ValidateScaleIPStr(masters, workers); err != nil {
 		return fmt.Errorf("failed to validate input run args: %v", err)
 	}
 
-	deleteMasterIPList, deleteNodeIPList, err := cmdutils.ParseToNetIPList(masters, workers)
+	deleteMasterIPList, deleteNodeIPList, err := utils.ParseToNetIPList(masters, workers)
 	if err != nil {
 		return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
 	}
@@ -337,7 +335,7 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 		return err
 	}
 
-	if err = cmdutils.ConstructClusterForScaleDown(&cluster, deleteMasterIPList, deleteNodeIPList); err != nil {
+	if err = utils.ConstructClusterForScaleDown(&cluster, deleteMasterIPList, deleteNodeIPList); err != nil {
 		return err
 	}
 	cf.SetCluster(cluster)

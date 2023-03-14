@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2023 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,18 +16,26 @@ package utils
 
 import (
 	"fmt"
-	"time"
+	"regexp"
 )
 
-func Retry(tryTimes int, trySleepTime time.Duration, action func() error) error {
-	var err error
-	for i := 0; i < tryTimes; i++ {
-		err = action()
-		if err == nil {
-			return nil
+// ConfirmOperation confirm whether to continue with the operation, typing yes will return true.
+func ConfirmOperation(promptInfo string) (bool, error) {
+	var yesRx = regexp.MustCompile("^(?:y(?:es)?)$")
+	var noRx = regexp.MustCompile("^(?:n(?:o)?)$")
+	var input string
+	for {
+		fmt.Printf(promptInfo + " Yes [y/yes], No [n/no] : ")
+		_, err := fmt.Scanln(&input)
+		if err != nil {
+			return false, err
 		}
-
-		time.Sleep(trySleepTime * time.Duration(2*i+1))
+		if yesRx.MatchString(input) {
+			break
+		}
+		if noRx.MatchString(input) {
+			return false, nil
+		}
 	}
-	return fmt.Errorf("retry action timeout: %v", err)
+	return true, nil
 }
