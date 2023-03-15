@@ -78,13 +78,13 @@ func (engine *Engine) Save(opts *options.SaveOptions) error {
 		}
 	}()
 
-	tempDir, err := fs.FS.MkTmpdir()
+	tempDir, err := os.MkdirTemp("", "sealer-save-tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
 	}
 
 	defer func() {
-		err = fs.FS.RemoveAll(tempDir)
+		err = os.RemoveAll(tempDir)
 		if err != nil {
 			logrus.Warnf("failed to delete %s: %v", tempDir, err)
 		}

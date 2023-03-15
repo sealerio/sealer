@@ -30,26 +30,11 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/utils/archive"
-	fsUtil "github.com/sealerio/sealer/utils/os/fs"
 )
 
 var LoadError = errors.Errorf("failed to load new image")
 
 func (engine *Engine) Load(opts *options.LoadOptions) error {
-	// Download the input file if needed.
-	//if strings.HasPrefix(opts.Input, "https://") || strings.HasPrefix(opts.Input, "http://") {
-	//	tmpdir, err := util.DefaultContainerConfig().ImageCopyTmpDir()
-	//	if err != nil {
-	//		return err
-	//	}
-	//	tmpfile, err := download.FromURL(tmpdir, loadOpts.Input)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	defer os.Remove(tmpfile)
-	//	loadOpts.Input = tmpfile
-	//}
-
 	imageSrc := opts.Input
 	if _, err := os.Stat(imageSrc); err != nil {
 		return err
@@ -71,15 +56,15 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 		}
 	}()
 
-	tempDir, err := fsUtil.FS.MkTmpdir()
+	tempDir, err := os.MkdirTemp("", "sealer-load-tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
 	}
 
 	defer func() {
-		err = fsUtil.FS.RemoveAll(tempDir)
+		err = os.RemoveAll(tempDir)
 		if err != nil {
-			logrus.Warnf("failed to delete %s: %v", tempDir, err)
+			logrus.Errorf("failed to delete %s: %v", tempDir, err)
 		}
 	}()
 
@@ -131,6 +116,10 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 		instancesIDs = append(instancesIDs, strings.TrimSuffix(f.Name(), ".tar"))
 		return nil
 	})
+
+	if err != nil {
+		return fmt.Errorf("failed to load image instance %v", err)
+	}
 
 	// create a new manifest and add instance to it.
 	_, err = engine.CreateManifest(manifestName, &options.ManifestCreateOpts{})
