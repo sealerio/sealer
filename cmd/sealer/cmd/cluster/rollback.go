@@ -1,4 +1,4 @@
-// Copyright © 2023 Alibaba Group Holding Ltd.
+// Copyright © 2021 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,11 @@ package cluster
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"path"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
@@ -29,37 +32,28 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
 )
 
-var upgradeFlags *types.UpgradeFlags
+var rollbackFlags *types.RollbackFlags
 
-var longUpgradeCmdDescription = `upgrade command is used to upgrade a Kubernetes cluster via specified Clusterfile.`
+var longRollbackCmdDescription = `rollback command is used to rollback a Kubernetes cluster via specified Clusterfile.`
 
-var exampleForUpgradeCmd = `
-  sealer upgrade docker.io/sealerio/kubernetes:v1.22.15-upgrade
-  sealer upgrade -f Clusterfile
+var exampleForRollbackCmd = `
+  sealer rollback docker.io/sealerio/kubernetes:v1.22.15-rollback
 `
 
-func NewUpgradeCmd() *cobra.Command {
-	upgradeCmd := &cobra.Command{
-		Use:     "upgrade",
-		Short:   "upgrade a Kubernetes cluster via specified Clusterfile",
-		Long:    longUpgradeCmdDescription,
-		Example: exampleForUpgradeCmd,
+func NewRollbackCmd() *cobra.Command {
+	rollbackCmd := &cobra.Command{
+		Use:     "rollback",
+		Short:   "rollback a Kubernetes cluster via specified Clusterfile",
+		Long:    longRollbackCmdDescription,
+		Example: exampleForRollbackCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				err         error
-				clusterFile = upgradeFlags.ClusterFile
+				err error
 			)
-			if len(args) == 0 && clusterFile == "" {
-				return fmt.Errorf("you must input image name Or use Clusterfile")
-			}
-
-			if clusterFile != "" {
-				return upgradeWithClusterfile(clusterFile)
+			if len(args) == 0 {
+				return fmt.Errorf("you must input image name")
 			}
 
 			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
@@ -79,16 +73,18 @@ func NewUpgradeCmd() *cobra.Command {
 
 			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 			if err != nil {
-				return fmt.Errorf("failed to get sealer image extension: %s", err)
+				return fmt.Errorf("failed to get cluster image extension: %s", err)
 			}
 
+			//get origin cluster
 			current, _, err := clusterfile.GetActualClusterFile()
 			if err != nil {
 				return err
 			}
-
 			cluster := current.GetCluster()
+
 			//update image of cluster
+			cluster.Spec.APPNames = rollbackFlags.AppNames
 			cluster.Spec.Image = imageSpec.Name
 			clusterData, err := yaml.Marshal(cluster)
 			if err != nil {
@@ -96,25 +92,24 @@ func NewUpgradeCmd() *cobra.Command {
 			}
 
 			//generate new cluster
-			//TODO Potential Bug: new cf will lose previous Clusterfile object such as config,plugins.so new cf will only have v2.Cluster.
 			newClusterfile, err := clusterfile.NewClusterFile(clusterData)
 			if err != nil {
 				return err
 			}
 
-			return upgradeCluster(newClusterfile, imageEngine, imageSpec)
+			return rollbackCluster(newClusterfile, imageEngine, imageSpec)
 		},
 	}
 
-	upgradeFlags = &types.UpgradeFlags{}
-	upgradeCmd.Flags().StringVarP(&upgradeFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to upgrade a Kubernetes cluster")
+	rollbackFlags = &types.RollbackFlags{}
+	rollbackCmd.Flags().StringSliceVar(&rollbackFlags.AppNames, "apps", nil, "override default AppNames of sealer image")
 
-	return upgradeCmd
+	return rollbackCmd
 }
 
-func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
+func rollbackCluster(cf clusterfile.Interface, imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
 	if imageSpec.ImageExtension.Type != imagev1.KubeInstaller {
-		return fmt.Errorf("exit upgrade process, wrong sealer image type: %s", imageSpec.ImageExtension.Type)
+		return fmt.Errorf("exit rollback process, wrong cluster image type: %s", imageSpec.ImageExtension.Type)
 	}
 
 	cluster := cf.GetCluster()
@@ -122,14 +117,14 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 	if err != nil {
 		return err
 	}
-
 	clusterHosts := infraDriver.GetHostIPList()
+
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
 		return err
 	}
 
-	logrus.Infof("start to upgrade cluster with image: %s", imageSpec.Name)
+	logrus.Infof("start to rollback cluster with image: %s", imageSpec.Name)
 
 	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
 	if err != nil {
@@ -144,7 +139,7 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 	defer func() {
 		err = imageMounter.Umount(imageSpec.Name, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount sealer image")
+			logrus.Errorf("failed to umount cluster image")
 		}
 	}()
 
@@ -153,7 +148,8 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 		return err
 	}
 
-	plugins, err := loadPluginsFromImage(imageMountInfo)
+	pluginFilePath := path.Join(infraDriver.GetClusterRootfsPath(), "plugins")
+	plugins, err := clusterruntime.LoadPluginsFromFile(pluginFilePath)
 	if err != nil {
 		return err
 	}
@@ -168,7 +164,7 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
 	}
 
-	upgrader, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig, clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, runtimeConfig.ContainerRuntimeConfig))
+	rollbacker, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig, clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, runtimeConfig.ContainerRuntimeConfig))
 	if err != nil {
 		return err
 	}
@@ -179,7 +175,7 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 		return err
 	}
 
-	err = upgrader.Upgrade()
+	err = rollbacker.Rollback()
 	if err != nil {
 		return err
 	}
@@ -207,43 +203,7 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 		return err
 	}
 
-	logrus.Infof("succeeded in upgrading cluster with image %s", imageSpec.Name)
+	logrus.Infof("succeeded in rollingback cluster with image %s", imageSpec.Name)
 
 	return nil
-}
-
-func upgradeWithClusterfile(clusterFile string) error {
-	clusterFileData, err := os.ReadFile(filepath.Clean(clusterFile))
-	if err != nil {
-		return err
-	}
-
-	cf, err := clusterfile.NewClusterFile(clusterFileData)
-	if err != nil {
-		return err
-	}
-
-	cluster := cf.GetCluster()
-	imageName := cluster.Spec.Image
-	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-	if err != nil {
-		return err
-	}
-
-	id, err := imageEngine.Pull(&options.PullOptions{
-		Quiet:      false,
-		PullPolicy: "missing",
-		Image:      imageName,
-		Platform:   "local",
-	})
-	if err != nil {
-		return err
-	}
-
-	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
-	if err != nil {
-		return fmt.Errorf("failed to get sealer image extension: %s", err)
-	}
-
-	return upgradeCluster(cf, imageEngine, imageSpec)
 }
