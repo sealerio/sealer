@@ -147,24 +147,3 @@ func CheckIsImageExist(imageName string) bool {
 	_, err := exec.RunSimpleCmd(cmd)
 	return err == nil
 }
-
-func TagBuildImage(imageName, tagTo string) error {
-	tag := fmt.Sprintf("%s tag %s %s", settings.DefaultSealerBin, imageName, tagTo)
-	_, err := exec.RunSimpleCmd(tag)
-
-	return err
-}
-
-func PushBuildImage(imageName string) error {
-	push := fmt.Sprintf("%s push %s", settings.DefaultSealerBin, imageName)
-	_, err := exec.RunSimpleCmd(push)
-
-	return err
-}
-
-func DeleteBuildImage(imageName string) error {
-	rmi := fmt.Sprintf("%s rmi %s", settings.DefaultSealerBin, imageName)
-	_, err := exec.RunSimpleCmd(rmi)
-
-	return err
-}

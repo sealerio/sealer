@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 
 	"github.com/sealerio/sealer/test/suites/build"
+	"github.com/sealerio/sealer/test/suites/image"
 	"github.com/sealerio/sealer/test/suites/registry"
 	"github.com/sealerio/sealer/test/testhelper"
 	"github.com/sealerio/sealer/test/testhelper/settings"
@@ -60,7 +61,7 @@ var _ = Describe("sealer build", func() {
 			//docker.io/library/busybox:latest
 
 			// clean: build image
-			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+			image.DoImageOps("rmi", imageName)
 		})
 
 	})
@@ -97,7 +98,7 @@ var _ = Describe("sealer build", func() {
 			//docker.io/library/busybox:latest
 
 			// clean: build image
-			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+			image.DoImageOps("rmi", imageName)
 		})
 
 	})
@@ -132,7 +133,7 @@ var _ = Describe("sealer build", func() {
 			// 2. launch app cmds:
 
 			// clean: build image
-			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+			image.DoImageOps("rmi", imageName)
 		})
 
 	})
@@ -169,7 +170,7 @@ var _ = Describe("sealer build", func() {
 			//docker.io/library/busybox:latest
 
 			// clean: build image
-			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+			image.DoImageOps("rmi", imageName)
 		})
 
 	})
@@ -206,10 +207,10 @@ var _ = Describe("sealer build", func() {
 			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
 
 			// check: push build image
-			testhelper.CheckErr(build.PushBuildImage(imageName))
+			image.DoImageOps("push", imageName)
 
 			// clean: build image
-			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+			image.DoImageOps("rmi", imageName)
 
 		})
 
@@ -228,10 +229,10 @@ var _ = Describe("sealer build", func() {
 			testhelper.CheckBeTrue(build.CheckIsMultiArchImageExist(imageName))
 
 			// check: push build image
-			testhelper.CheckErr(build.PushBuildImage(imageName))
+			image.DoImageOps("push", imageName)
 
 			// clean: build image
-			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+			image.DoImageOps("rmi", imageName)
 		})
 
 		It("multi build with amd64 and arm64", func() {
@@ -246,13 +247,13 @@ var _ = Describe("sealer build", func() {
 			testhelper.CheckErr(err)
 			testhelper.CheckExit0(sess, settings.MaxWaiteTime)
 			// check: sealer images whether image exist
-			testhelper.CheckBeTrue(build.CheckIsImageExist(imageName))
+			testhelper.CheckBeTrue(build.CheckIsMultiArchImageExist(imageName))
 
 			// check: push build image
-			testhelper.CheckErr(build.PushBuildImage(imageName))
+			image.DoImageOps("push", imageName)
 
 			// clean: build image
-			testhelper.CheckErr(build.DeleteBuildImage(imageName))
+			image.DoImageOps("rmi", imageName)
 		})
 
 	})
