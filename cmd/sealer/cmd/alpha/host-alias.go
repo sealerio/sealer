@@ -15,6 +15,8 @@
 package alpha
 
 import (
+	"reflect"
+
 	"github.com/sealerio/sealer/pkg/clusterfile"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -40,7 +42,19 @@ func NewHostAliasCmd() *cobra.Command {
 			}
 
 			desiredCluster := cf.GetCluster()
-			desiredCluster.Spec.HostAliases = append(desiredCluster.Spec.HostAliases, hostAlias)
+			needAppendCluster := true
+			for _, ha := range desiredCluster.Spec.HostAliases {
+				if reflect.DeepEqual(ha, hostAlias) {
+					needAppendCluster = false
+
+					break
+				}
+			}
+
+			if needAppendCluster {
+				desiredCluster.Spec.HostAliases = append(desiredCluster.Spec.HostAliases, hostAlias)
+			}
+
 			infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
 			if err != nil {
 				return err
@@ -50,6 +64,12 @@ func NewHostAliasCmd() *cobra.Command {
 			if err := infraDriver.SetClusterHostAliases(infraDriver.GetHostIPList()); err != nil {
 				return err
 			}
+
+			if !needAppendCluster {
+				return nil
+			}
+
+			cf.SetCluster(desiredCluster)
 
 			return cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true})
 		},

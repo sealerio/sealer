@@ -181,6 +181,9 @@ func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 }
 
 func saveToCluster(data []byte, confPath string) error {
+	if confPath == "" {
+		confPath = kubernetes.AdminKubeConfPath
+	}
 	cli, err := kubernetes.GetClientFromConfig(confPath)
 	if err != nil {
 		return fmt.Errorf("failed to new k8s runtime client via adminconf: %v", err)
