@@ -38,7 +38,7 @@ func ConstructApplication(app *v2.Application, cmds, appNames []string) *v2.Appl
 		newApp.Spec.Cmds = cmds
 	}
 
-	if len(appNames) > 0 {
+	if appNames != nil {
 		newApp.Spec.LaunchApps = appNames
 	}
 

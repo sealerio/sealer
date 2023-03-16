@@ -40,6 +40,9 @@ type v2Application struct {
 	app *v2.Application
 
 	// launchApps indicate that which applications will be launched
+	//if launchApps==nil, use default launch apps got from image extension to launch.
+	//if launchApps==[""], skip launch apps.
+	//if launchApps==["app1","app2"], launch app1,app2.
 	launchApps []string
 
 	// globalCmds is raw cmds without any application info
@@ -173,7 +176,18 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 	}
 
 	// initialize appNames field, overwrite default app names from image extension.
-	if len(app.Spec.LaunchApps) > 0 {
+	if app.Spec.LaunchApps != nil {
+		// validate app.Spec.LaunchApps, if not in image extension,will return error
+		// NOTE: app name =="" is valid
+		for _, wanted := range app.Spec.LaunchApps {
+			if len(wanted) == 0 {
+				continue
+			}
+			if !strUtils.IsInSlice(wanted, v2App.launchApps) {
+				return nil, fmt.Errorf("app name `%s` is not found in %s", wanted, v2App.launchApps)
+			}
+		}
+
 		v2App.launchApps = app.Spec.LaunchApps
 	}
 
