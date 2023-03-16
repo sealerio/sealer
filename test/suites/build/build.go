@@ -25,7 +25,11 @@ import (
 
 // GetBuildImageName return specific image name for sealer build test
 func GetBuildImageName() string {
-	return "docker.io/sealerio/build-test:v1"
+	buildImageName := "docker.io/sealerio/build-test:v1"
+	if settings.RegistryURL != "" && settings.RegistryUsername != "" && settings.RegistryPasswd != "" {
+		buildImageName = settings.RegistryURL + "/" + settings.RegistryUsername + "/" + "build-test:v1"
+	}
+	return buildImageName
 }
 
 func WithCmdsBuildDir() string {

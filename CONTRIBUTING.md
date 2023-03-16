@@ -340,6 +340,14 @@ on:
   issue_comment:
     types:
       - created
+  workflow_dispatch: {}
+  pull_request:
+    branches: "*"
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '*.yml'
+      - '.github'
 
 permissions:
   statuses: write
@@ -348,7 +356,7 @@ jobs:
   build:
     name: test
     runs-on: ubuntu-latest
-    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test {name}')) || github.event_name == 'push' }}
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test {name}')) || github.event_name == 'push' || github.event_name == 'pull_request' }}
     env:
       GO111MODULE: on
     steps:
@@ -409,7 +417,7 @@ jobs:
           echo "$GOPATH/bin" >> $GITHUB_PATH
         working-directory: src/github.com/sealerio/sealer
 
-      - name: Run **{Test name}** test
+      - name: Run **{Test name}** test and generate coverage
         shell: bash
         working-directory: src/github.com/sealerio/sealer
         env:
@@ -421,11 +429,19 @@ jobs:
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
         run: | # Your main focus is here
-          ginkgo -v --focus="sealer {test name}" test
+          ginkgo -v -focus="{your test}" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage.out -trace test
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: /tmp/coverage.out
+          flags: e2e-tests
+          name: codecov-umbrella
 
       - name: Set final commit status
         uses: myrotvorets/set-commit-status-action@master
-        if: always()
+        if: contains(github.event.comment.body, '/test') && always()
         with:
           sha: ${{ steps.comment-branch.outputs.head_sha }}
           token: ${{ secrets.GITHUB_TOKEN }}

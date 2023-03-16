@@ -41,9 +41,6 @@ func GetContainerID() (string, error) {
 		testhelper.CheckErr(err)
 	}
 	store := engine.ImageStore()
-	if err != nil {
-		testhelper.CheckErr(err)
-	}
 	clients, err := buildah.OpenAllBuilders(store)
 	if err != nil {
 		testhelper.CheckErr(err)
