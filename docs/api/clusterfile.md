@@ -24,7 +24,8 @@ spec:
   certSANS:
     - aliyun-inc.com
     - 10.0.0.2
-
+  containerRuntime:
+    type: docker
   masters: # if provider is ALI_CLOUD or CONTAINER, you can specify the number of server, if BAREMETAL using ipList.
     cpu: 4
     memory: 8

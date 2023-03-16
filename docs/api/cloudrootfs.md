@@ -111,6 +111,24 @@ The follow files are reserved by the system, you can override them to realize th
 - init-registry.sh, for installing registry.
 - init-kube.sh, for installing kube*.
 
+If you want to add a new CRI type, you can put packages in this directory, and add a couple of scripts named ${CRI_NAME}.sh and uninstall-${CRI_NAME}.sh in directory $rootfs/scripts:
+
+- ${CRI_NAME}.sh: used to install this CRI, and write the CRI socket info into /etc/sealerio/cri/socket-path
+- uninstall-${CRI_NAME}.sh: used to uninstall this CRI
+
+Users can specify container runtime type to use customized CRI:
+
+Clusterfile:
+
+```yaml
+apiVersion: sealer.io/v1
+kind: Cluster
+spec:
+  containerRuntime:
+    type: ${CRI_NAME}
+...
+```
+
 ## Hooks
 
 ```shell script
