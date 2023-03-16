@@ -78,10 +78,10 @@ type CommitOptions struct {
 }
 
 type LoginOptions struct {
-	Domain    string
-	Username  string
-	Password  string
-	TLSVerify bool
+	Domain        string
+	Username      string
+	Password      string
+	SkipTLSVerify bool
 }
 
 type LogoutOptions struct {
@@ -90,23 +90,24 @@ type LogoutOptions struct {
 }
 
 type PushOptions struct {
-	Authfile    string
-	CertDir     string
-	Format      string
-	Image       string
-	Destination string
-	Rm          bool
-	Quiet       bool
-	TLSVerify   bool
-	All         bool
+	Authfile      string
+	CertDir       string
+	Format        string
+	Image         string
+	Destination   string
+	Rm            bool
+	Quiet         bool
+	SkipTLSVerify bool
+	All           bool
 }
 
 type PullOptions struct {
-	CertDir    string
-	Quiet      bool
-	PullPolicy string
-	Image      string
-	Platform   string
+	CertDir       string
+	Quiet         bool
+	SkipTLSVerify bool
+	PullPolicy    string
+	Image         string
+	Platform      string
 }
 
 type ImagesOptions struct {

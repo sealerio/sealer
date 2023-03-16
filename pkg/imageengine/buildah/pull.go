@@ -16,17 +16,15 @@ package buildah
 
 import (
 	"fmt"
-
-	"github.com/containers/buildah/pkg/parse"
-
 	"os"
-
-	"github.com/sealerio/sealer/pkg/define/options"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/image/v5/types"
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 func (engine *Engine) Pull(opts *options.PullOptions) (string, error) {
@@ -50,6 +48,8 @@ func (engine *Engine) Pull(opts *options.PullOptions) (string, error) {
 	newSystemCxt.OSChoice = _os
 	newSystemCxt.ArchitectureChoice = arch
 	newSystemCxt.VariantChoice = variant
+	newSystemCxt.OCIInsecureSkipTLSVerify = opts.SkipTLSVerify
+	newSystemCxt.DockerInsecureSkipTLSVerify = types.NewOptionalBool(opts.SkipTLSVerify)
 
 	policy, ok := define.PolicyMap[opts.PullPolicy]
 	if !ok {

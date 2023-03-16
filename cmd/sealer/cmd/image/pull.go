@@ -61,5 +61,6 @@ func NewPullCmd() *cobra.Command {
 	pullCmd.Flags().StringVar(&pullOpts.Platform, "platform", parse.DefaultPlatform(), "prefer OS/ARCH instead of the current operating system and architecture for choosing images")
 	pullCmd.Flags().StringVar(&pullOpts.PullPolicy, "policy", "always", "missing, always, ifnewer or never.")
 	pullCmd.Flags().BoolVarP(&pullOpts.Quiet, "quiet", "q", false, "don't output progress information when pulling images")
+	pullCmd.Flags().BoolVar(&pullOpts.SkipTLSVerify, "skip-tls-verify", false, "default is requiring HTTPS and verify certificates when accessing the registry.")
 	return pullCmd
 }
