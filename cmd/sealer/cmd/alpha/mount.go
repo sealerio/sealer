@@ -31,7 +31,7 @@ import (
 )
 
 var longMountCmdDescription = `
-mount the cluster image to '/var/lib/containers/storage/overlay' the directory and check whether the contents of the build image and rootfs are consistent in advance
+mount the sealer image to '/var/lib/containers/storage/overlay' the directory and check whether the contents of the build image and rootfs are consistent in advance
 `
 
 var exampleForMountCmd = `
@@ -57,7 +57,7 @@ type MountService struct {
 func NewMountCmd() *cobra.Command {
 	mountCmd := &cobra.Command{
 		Use:     "mount",
-		Short:   "mount cluster image",
+		Short:   "mount sealer image",
 		Long:    longMountCmdDescription,
 		Example: exampleForMountCmd,
 		Args:    cobra.MaximumNArgs(1),
@@ -197,7 +197,7 @@ func (m MountService) Mount(imageNameOrID string) (string, error) {
 		return "", err
 	}
 	mountPoint := mounts[0].MountPoint
-	logrus.Infof("mount cluster image %s to %s successful", imageNameOrID, mountPoint)
+	logrus.Infof("mount sealer image %s to %s successful", imageNameOrID, mountPoint)
 
 	return mountPoint, nil
 }

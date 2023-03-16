@@ -50,7 +50,7 @@ const (
 )
 
 var longRootCmdDescription = `sealer is a tool to seal application's all dependencies and Kubernetes
-into ClusterImage by Kubefile, distribute this application anywhere via ClusterImage, 
+into sealer image by Kubefile, distribute this application anywhere via sealer image, 
 and run it within any cluster with Clusterfile in one command.
 `
 

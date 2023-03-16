@@ -34,7 +34,7 @@ var exampleForPushCmd = `
 func NewPushCmd() *cobra.Command {
 	pushCmd := &cobra.Command{
 		Use:   "push",
-		Short: "push ClusterImage to remote registry",
+		Short: "push sealer image to remote registry",
 		// TODO: add long description.
 		Long:    longNewPushCmdDescription,
 		Example: exampleForPushCmd,

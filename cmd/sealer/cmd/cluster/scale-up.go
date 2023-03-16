@@ -139,7 +139,7 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 	defer func() {
 		err = imageMounter.Umount(clusterImageName, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount sealer image")
 		}
 	}()
 
@@ -169,7 +169,7 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 
 	imageSpec, err := imageEngine.Inspect(&imagecommon.InspectOptions{ImageNameOrID: clusterImageName})
 	if err != nil {
-		return fmt.Errorf("failed to get cluster image extension: %s", err)
+		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
 	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,

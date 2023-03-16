@@ -26,7 +26,7 @@ import (
 
 var loadOpts *options.LoadOptions
 
-var longNewLoadCmdDescription = `Load a ClusterImage from a tar archive`
+var longNewLoadCmdDescription = `Load a sealer image from a tar archive`
 
 var exampleForLoadCmd = `
   sealer load -i kubernetes.tar
@@ -36,7 +36,7 @@ var exampleForLoadCmd = `
 func NewLoadCmd() *cobra.Command {
 	loadCmd := &cobra.Command{
 		Use:     "load",
-		Short:   "load a ClusterImage from a tar file",
+		Short:   "load a sealer image from a tar file",
 		Long:    longNewLoadCmdDescription,
 		Example: exampleForLoadCmd,
 		Args:    cobra.NoArgs,

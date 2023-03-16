@@ -78,7 +78,7 @@ func NewUpgradeCmd() *cobra.Command {
 
 			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 			if err != nil {
-				return fmt.Errorf("failed to get cluster image extension: %s", err)
+				return fmt.Errorf("failed to get sealer image extension: %s", err)
 			}
 
 			return upgradeCluster(imageEngine, imageSpec)
@@ -93,7 +93,7 @@ func NewUpgradeCmd() *cobra.Command {
 
 func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
 	if imageSpec.ImageExtension.Type != imagev1.KubeInstaller {
-		return fmt.Errorf("exit upgrade process, wrong cluster image type: %s", imageSpec.ImageExtension.Type)
+		return fmt.Errorf("exit upgrade process, wrong sealer image type: %s", imageSpec.ImageExtension.Type)
 	}
 
 	//get origin cluster
@@ -143,7 +143,7 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 	defer func() {
 		err = imageMounter.Umount(imageSpec.Name, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image")
+			logrus.Errorf("failed to umount sealer image")
 		}
 	}()
 
@@ -242,7 +242,7 @@ func upgradeWithClusterfile(clusterFile string) error {
 
 	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 	if err != nil {
-		return fmt.Errorf("failed to get cluster image extension: %s", err)
+		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
 	return upgradeCluster(imageEngine, imageSpec)

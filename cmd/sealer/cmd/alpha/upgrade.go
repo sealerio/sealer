@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var longUpgradeCmdDescription = `Sealer upgrade command will upgrade the current cluster to the specified version with the ClusterImage using kubeadm upgrade
+var longUpgradeCmdDescription = `Sealer upgrade command will upgrade the current cluster to the specified version with the sealer image using kubeadm upgrade
 `
 
 var exampleForUpgradeCmd = `The following command will upgrade the current cluster to kubernetes:v1.19.9

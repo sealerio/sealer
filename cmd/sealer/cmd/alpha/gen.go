@@ -34,7 +34,7 @@ type ParserArg struct {
 
 var flag *ParserArg
 
-var longGenCmdDescription = `Sealer will call kubernetes API to get masters and nodes IP info, then generate a Clusterfile. and also pull a ClusterImage which matches the kubernetes version.
+var longGenCmdDescription = `Sealer will call kubernetes API to get masters and nodes IP info, then generate a Clusterfile. and also pull a sealer image which matches the kubernetes version.
 
 Then you can use any sealer command to manage the cluster like:
 
@@ -65,7 +65,7 @@ func NewGenCmd() *cobra.Command {
 	genCmd.Flags().Uint16Var(&flag.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	genCmd.Flags().StringVar(&flag.Pk, "pk", common.GetHomeDir()+"/.ssh/id_rsa", "set server private key")
 	genCmd.Flags().StringVar(&flag.PkPassword, "pk-passwd", "", "set server private key password")
-	genCmd.Flags().StringVar(&flag.Image, "image", "", "Set taken over ClusterImage")
+	genCmd.Flags().StringVar(&flag.Image, "image", "", "Set taken over sealer image")
 	genCmd.Flags().StringVar(&flag.Name, "name", "default", "Set taken over cluster name")
 	genCmd.Flags().StringVar(&flag.Passwd, "passwd", "", "Set taken over ssh passwd")
 

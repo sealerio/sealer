@@ -38,7 +38,7 @@ var exampleForPullCmd = `
 func NewPullCmd() *cobra.Command {
 	pullCmd := &cobra.Command{
 		Use:     "pull",
-		Short:   "pull ClusterImage from a registry to local",
+		Short:   "pull sealer image from a registry to local",
 		Long:    longNewPullCmdDescription,
 		Example: exampleForPullCmd,
 		Args:    cobra.ExactArgs(1),

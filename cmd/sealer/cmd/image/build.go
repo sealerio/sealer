@@ -47,9 +47,9 @@ import (
 
 var buildFlags = options.BuildOptions{}
 
-var longNewBuildCmdDescription = `build command is used to generate a ClusterImage from specified Kubefile.
+var longNewBuildCmdDescription = `build command is used to generate a sealer image from specified Kubefile.
 It organizes the specified Kubefile and input building context, and builds
-a brand new ClusterImage.`
+a brand new sealer image.`
 
 var exampleNewBuildCmd = `the current path is the context path, default build type is lite and use build cache
 build:
@@ -72,7 +72,7 @@ build manually ignore image:
 func NewBuildCmd() *cobra.Command {
 	buildCmd := &cobra.Command{
 		Use:     "build [flags] PATH",
-		Short:   "build a ClusterImage from a Kubefile",
+		Short:   "build a sealer image from a Kubefile",
 		Long:    longNewBuildCmdDescription,
 		Args:    cobra.MaximumNArgs(1),
 		Example: exampleNewBuildCmd,
@@ -105,7 +105,7 @@ func NewBuildCmd() *cobra.Command {
 		},
 	}
 	buildCmd.Flags().StringVarP(&buildFlags.Kubefile, "file", "f", "Kubefile", "Kubefile filepath")
-	buildCmd.Flags().StringVarP(&buildFlags.Tag, "tag", "t", "", "specify a name for ClusterImage")
+	buildCmd.Flags().StringVarP(&buildFlags.Tag, "tag", "t", "", "specify a name for sealer image")
 	//todo we can support imageList Flag to download extra container image rather than copy it to rootfs
 	buildCmd.Flags().StringVar(&buildFlags.ImageList, "image-list", "filepath", "`pathname` of imageList filepath, if set, sealer will read its content and download extra container")
 	buildCmd.Flags().StringVar(&buildFlags.ImageListWithAuth, "image-list-with-auth", "", "`pathname` of imageListWithAuth.yaml filepath, if set, sealer will read its content and download extra container images to rootfs(not usually used)")

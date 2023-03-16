@@ -98,7 +98,7 @@ func NewApplyCmd() *cobra.Command {
 
 			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 			if err != nil {
-				return fmt.Errorf("failed to get cluster image extension: %s", err)
+				return fmt.Errorf("failed to get sealer image extension: %s", err)
 			}
 
 			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {

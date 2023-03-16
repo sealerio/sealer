@@ -157,7 +157,7 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 	defer func() {
 		err = imageMounter.Umount(cluster.Spec.Image, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image: %v", err)
+			logrus.Errorf("failed to umount sealer image: %v", err)
 		}
 	}()
 
@@ -187,7 +187,7 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 
 	imageSpec, err := imageEngine.Inspect(&imagecommon.InspectOptions{ImageNameOrID: cluster.Spec.Image})
 	if err != nil {
-		return fmt.Errorf("failed to get cluster image extension: %s", err)
+		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
 	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
@@ -293,7 +293,7 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 	defer func() {
 		err = imageMounter.Umount(cluster.Spec.Image, imageMountInfo)
 		if err != nil {
-			logrus.Errorf("failed to umount cluster image: %v", err)
+			logrus.Errorf("failed to umount sealer image: %v", err)
 		}
 	}()
 
@@ -323,7 +323,7 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 
 	imageSpec, err := imageEngine.Inspect(&imagecommon.InspectOptions{ImageNameOrID: cluster.Spec.Image})
 	if err != nil {
-		return fmt.Errorf("failed to get cluster image extension: %s", err)
+		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
 	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
