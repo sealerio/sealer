@@ -35,6 +35,8 @@ import (
 	"github.com/sealerio/sealer/types/api/constants"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	utilsnet "github.com/sealerio/sealer/utils/net"
+	strUtil "github.com/sealerio/sealer/utils/strings"
 )
 
 func DecodeClusterfile(reader io.Reader) (*ClusterFile, error) {
@@ -218,12 +220,32 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 			strings.HasPrefix(env, common.EnvRegistryDomain) ||
 			strings.HasPrefix(env, common.EnvRegistryPort) ||
 			strings.HasPrefix(env, common.EnvRegistryURL) ||
-			strings.HasPrefix(env, common.EnvContainerRuntime) {
+			strings.HasPrefix(env, common.EnvContainerRuntime) ||
+			strings.HasPrefix(env, common.EnvDNSSvcIP) ||
+			strings.HasPrefix(env, common.EnvKubeSvcIP) {
 			continue
 		}
 		newEnv = append(newEnv, env)
 	}
 	cluster.Spec.Env = newEnv
+
+	clusterEnvMap := strUtil.ConvertStringSliceToMap(cluster.Spec.Env)
+	if svcCIDR, ok := clusterEnvMap[common.EnvSvcCIDR]; ok && svcCIDR != nil {
+		_, cidr, err := net.ParseCIDR(svcCIDR.(string))
+		if err != nil {
+			return fmt.Errorf("failed to parse svc CIDR: %v", err)
+		}
+		kubeIP, err := utilsnet.GetIndexIP(cidr, 1)
+		if err != nil {
+			return fmt.Errorf("failed to get 1th ip from svc CIDR: %v", err)
+		}
+		dnsIP, err := utilsnet.GetIndexIP(cidr, 10)
+		if err != nil {
+			return fmt.Errorf("failed to get 10th ip from svc CIDR: %v", err)
+		}
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvKubeSvcIP, kubeIP))
+		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvDNSSvcIP, dnsIP))
+	}
 
 	regConfig := v2.RegistryConfig{}
 	if cluster.Spec.Registry.LocalRegistry != nil {

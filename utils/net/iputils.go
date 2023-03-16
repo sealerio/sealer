@@ -25,34 +25,6 @@ import (
 	k8snet "k8s.io/apimachinery/pkg/util/net"
 )
 
-func GetHostIP(host string) string {
-	if !strings.ContainsRune(host, ':') {
-		return host
-	}
-	return strings.Split(host, ":")[0]
-}
-
-func GetHostIPSlice(hosts []string) (res []string) {
-	for _, ip := range hosts {
-		res = append(res, GetHostIP(ip))
-	}
-	return
-}
-
-func IsIPList(args string) bool {
-	ipList := strings.Split(args, ",")
-
-	for _, i := range ipList {
-		if !strings.Contains(i, ":") {
-			return net.ParseIP(i) != nil
-		}
-		if _, err := net.ResolveTCPAddr("tcp", i); err != nil {
-			return false
-		}
-	}
-	return true
-}
-
 func GetHostNetInterface(host net.IP) (string, error) {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
@@ -235,4 +207,17 @@ func RemoveIPs(clusterIPList []net.IP, toBeDeletedIPList []net.IP) (res []net.IP
 		}
 	}
 	return
+}
+
+func GetIndexIP(subnet *net.IPNet, index int) (string, error) {
+	bip := big.NewInt(0).SetBytes(subnet.IP.To4())
+	if subnet.IP.To4() == nil {
+		bip = big.NewInt(0).SetBytes(subnet.IP.To16())
+	}
+	ip := net.IP(big.NewInt(0).Add(bip, big.NewInt(int64(index))).Bytes())
+	if subnet.Contains(ip) {
+		return ip.String(), nil
+	}
+
+	return "", fmt.Errorf("can't generate IP with index %d from subnet. subnet too small. subnet: %q", index, subnet)
 }
