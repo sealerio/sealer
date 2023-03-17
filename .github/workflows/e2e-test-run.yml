@@ -6,6 +6,14 @@ on:
   issue_comment:
     types:
       - created
+  workflow_dispatch: {}
+  pull_request:
+    branches: "*"
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '*.yml'
+      - '.github'
       
 permissions:
   statuses: write
@@ -14,7 +22,7 @@ jobs:
   build:
     name: test
     runs-on: ubuntu-latest
-    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test run')) || github.event_name == 'push' }}
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test run')) || github.event_name == 'push' || github.event_name == 'pull_request' }}
     env:
       GO111MODULE: on
     steps:
@@ -75,7 +83,7 @@ jobs:
           echo "$GOPATH/bin" >> $GITHUB_PATH
         working-directory: src/github.com/sealerio/sealer
 
-      - name: Run sealer run test
+      - name: Run sealer run test and generate coverage
         shell: bash
         working-directory: src/github.com/sealerio/sealer
         env:
@@ -86,15 +94,23 @@ jobs:
           ACCESSKEYID: ${{ secrets.ACCESSKEYID }}
           ACCESSKEYSECRET: ${{ secrets.ACCESSKEYSECRET }}
           RegionID: ${{ secrets.RegionID }}
-        if: ${{ github.event.comment.body == '/test run' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
+        if: ${{ github.event.comment.body == '/test run' || github.event.comment.body == '/test all' || github.event_name == 'push' || github.event_name == 'pull_request' }}
         run: |
           # fix bug in kernal 5.12.2+:open /proc/sys/net/netfilter/nf_conntrack_max: permission denied, see: https://github.com/kubernetes-sigs/kind/issues/2240
           sudo sysctl net/netfilter/nf_conntrack_max=131072
-          ginkgo -v --focus="sealer run" test
+          ginkgo -v -focus="sealer run" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage.out -trace test
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: /tmp/coverage.out
+          flags: e2e-tests
+          name: codecov-umbrella
 
       - name: Set final commit status
         uses: myrotvorets/set-commit-status-action@master
-        if: always()
+        if: contains(github.event.comment.body, '/test') && always()
         with:
           sha: ${{ steps.comment-branch.outputs.head_sha }}
           token: ${{ secrets.GITHUB_TOKEN }}

@@ -6,6 +6,14 @@ on:
   issue_comment:
     types:
       - created
+  workflow_dispatch: {}
+  pull_request:
+    branches: "*"
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '*.yml'
+      - '.github'
 
 permissions:
   statuses: write
@@ -14,7 +22,7 @@ jobs:
   build:
     name: test
     runs-on: ubuntu-latest
-    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test image')) || github.event_name == 'push' }}
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test image')) || github.event_name == 'push' || github.event_name == 'pull_request' }}
     env:
       GO111MODULE: on
     steps:
@@ -53,6 +61,7 @@ jobs:
           path: src/github.com/sealerio/sealer
       - name: Install deps
         run: |
+          sudo su
           sudo apt-get update
           sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
           sudo mkdir /var/lib/sealer
@@ -81,11 +90,11 @@ jobs:
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-        if: ${{ github.event.comment.body == '/test login' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
+        if: ${{ github.event.comment.body == '/test login' || github.event.comment.body == '/test all' || github.event_name == 'push' || github.event_name == 'pull_request' }}
         run: |
-          ginkgo -v --focus="sealer login" test
+          ginkgo -v -focus="sealer login" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage-login.out -trace test
 
-      - name: Run sealer image test
+      - name: Run sealer image test and generate coverage
         shell: bash
         working-directory: src/github.com/sealerio/sealer
         env:
@@ -93,13 +102,21 @@ jobs:
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           IMAGE_NAME: ${{ secrets.IMAGE_NAME}}
-        if: ${{ github.event.comment.body == '/test image' || github.event.comment.body == '/test all' || github.event_name == 'push' }}
+        if: ${{ github.event.comment.body == '/test image' || github.event.comment.body == '/test all' || github.event_name == 'push' || github.event_name == 'pull_request' }}
         run: |
-          ginkgo -v --focus="sealer image" test
+          ginkgo -v -focus="sealer image" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage-image.out -trace test
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: /tmp/coverage-login.out, /tmp/coverage-image.out
+          flags: e2e-tests
+          name: codecov-umbrella
 
       - name: Set final commit status
         uses: myrotvorets/set-commit-status-action@master
-        if: always()
+        if: contains(github.event.comment.body, '/test') && always()
         with:
           sha: ${{ steps.comment-branch.outputs.head_sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
