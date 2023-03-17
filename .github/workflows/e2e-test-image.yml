@@ -18,7 +18,7 @@ on:
 
 permissions:
   statuses: write
-  
+
 jobs:
   build:
     name: test
@@ -84,17 +84,6 @@ jobs:
           echo "$GOPATH/bin" >> $GITHUB_PATH
         working-directory: src/github.com/sealerio/sealer
 
-      - name: Run sealer login test
-        shell: bash
-        working-directory: src/github.com/sealerio/sealer
-        env:
-          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-        if: ${{ github.event.comment.body == '/test login' || github.event.comment.body == '/test all' || github.event_name == 'push' || github.event_name == 'pull_request_target' }}
-        run: |
-          ginkgo -v -focus="sealer login" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage-login.out -trace test
-
       - name: Run sealer image test and generate coverage
         shell: bash
         working-directory: src/github.com/sealerio/sealer
@@ -106,7 +95,7 @@ jobs:
         if: ${{ github.event.comment.body == '/test image' || github.event.comment.body == '/test all' || github.event_name == 'push' || github.event_name == 'pull_request_target' }}
         run: |
           ginkgo -v -focus="sealer image" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage-image.out -trace test
-      
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

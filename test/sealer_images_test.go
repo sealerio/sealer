@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("sealer images module", func() {
+var _ = Describe("sealer image", func() {
 	Context("pull image", func() {
 
 		It(fmt.Sprintf("pull image %s", settings.TestImageName), func() {
@@ -110,6 +110,47 @@ var _ = Describe("sealer images module", func() {
 			}
 			image.TagImages(settings.TestImageName, pushImageName)
 			image.DoImageOps("push", pushImageName)
+		})
+	})
+
+	Context("login registry", func() {
+		AfterEach(func() {
+			registry.Logout()
+		})
+		It("with correct name and password", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				settings.RegistryUsername,
+				settings.RegistryPasswd,
+				true)
+		})
+		It("with incorrect name and password", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				settings.RegistryPasswd,
+				settings.RegistryUsername,
+				false)
+		})
+		It("with only name", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				settings.RegistryUsername,
+				"",
+				false)
+		})
+		It("with only password", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				"",
+				settings.RegistryPasswd,
+				false)
+		})
+		It("with only registryURL", func() {
+			image.CheckLoginResult(
+				settings.RegistryURL,
+				"",
+				"",
+				false)
 		})
 	})
 
