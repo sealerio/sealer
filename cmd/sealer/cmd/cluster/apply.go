@@ -117,7 +117,7 @@ func NewApplyCmd() *cobra.Command {
 
 			// NOTE: in some scenarios, we do not need to prepare the app file repeatedly,
 			// such as the cluster and the apps in the same image
-			var ignorePrepareAppMaterials bool
+			var skipPrepareAppMaterials bool
 			// ensure that the cluster reaches the final state firstly
 			if imageSpec.ImageExtension.Type == imagev1.KubeInstaller {
 				client := utils.GetClusterClient()
@@ -127,25 +127,26 @@ func NewApplyCmd() *cobra.Command {
 					return applyClusterWithNew(cf, applyMode, imageEngine, imageSpec)
 				}
 
-				if err := applyClusterWithExisted(cf, client, imageEngine, imageSpec); err != nil {
+				clusterUpdated, err := applyClusterWithExisted(cf, client, imageEngine, imageSpec)
+				if err != nil {
 					return err
 				}
 				// NOTE: we should continue to apply application after the cluster is applied successfully
 				// And it's not needed to prepare the app file repeatedly
-				ignorePrepareAppMaterials = true
+				skipPrepareAppMaterials = clusterUpdated
 			}
 
 			// install application
 			app := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
 			return runApplicationImage(&RunApplicationImageRequest{
-				ImageName:                 imageName,
-				Application:               app,
-				Envs:                      desiredCluster.Spec.Env,
-				ImageEngine:               imageEngine,
-				Extension:                 imageSpec.ImageExtension,
-				Configs:                   cf.GetConfigs(),
-				RunMode:                   applyMode,
-				IgnorePrepareAppMaterials: ignorePrepareAppMaterials,
+				ImageName:               imageName,
+				Application:             app,
+				Envs:                    desiredCluster.Spec.Env,
+				ImageEngine:             imageEngine,
+				Extension:               imageSpec.ImageExtension,
+				Configs:                 cf.GetConfigs(),
+				RunMode:                 applyMode,
+				SkipPrepareAppMaterials: skipPrepareAppMaterials,
 			})
 		},
 	}
@@ -193,31 +194,34 @@ func applyClusterWithNew(cf clusterfile.Interface, applyMode string,
 }
 
 func applyClusterWithExisted(cf clusterfile.Interface, client *k8s.Client,
-	imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
+	imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) (bool, error) {
 	desiredCluster := cf.GetCluster()
 	currentCluster, err := utils.GetCurrentCluster(client)
 	if err != nil {
-		return errors.Wrap(err, "failed to get current cluster")
+		return false, errors.Wrap(err, "failed to get current cluster")
 	}
 
 	mj, md := strings.Diff(currentCluster.GetMasterIPList(), desiredCluster.GetMasterIPList())
 	nj, nd := strings.Diff(currentCluster.GetNodeIPList(), desiredCluster.GetNodeIPList())
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
 		logrus.Infof("No need scale, completed")
-		return nil
+		return false, nil
 	}
 
 	if len(md) > 0 || len(nd) > 0 {
 		logrus.Warnf("scale down not supported: %v, %v, skip them", md, nd)
 	}
 	if len(md) > 0 {
-		return fmt.Errorf("make sure all masters' ip exist in your clusterfile: %s", applyFlags.ClusterFile)
+		return false, fmt.Errorf("make sure all masters' ip exist in your clusterfile: %s", applyFlags.ClusterFile)
 	}
 
 	infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return scaleUpCluster(imageSpec.Name, mj, nj, infraDriver, imageEngine, cf)
+	if err := scaleUpCluster(imageSpec.Name, mj, nj, infraDriver, imageEngine, cf); err != nil {
+		return false, err
+	}
+	return true, nil
 }
