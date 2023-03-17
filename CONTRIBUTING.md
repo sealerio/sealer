@@ -341,7 +341,8 @@ on:
     types:
       - created
   workflow_dispatch: {}
-  pull_request:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
     branches: "*"
     paths-ignore:
       - 'docs/**'
@@ -356,7 +357,7 @@ jobs:
   build:
     name: test
     runs-on: ubuntu-latest
-    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test {name}')) || github.event_name == 'push' || github.event_name == 'pull_request' }}
+    if: ${{ (github.event.issue.pull_request && (github.event.comment.body == '/test all' || github.event.comment.body == '/test {name}')) || github.event_name == 'push' || github.event_name == 'pull_request_target' }}
     env:
       GO111MODULE: on
     steps:
