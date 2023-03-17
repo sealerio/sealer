@@ -53,7 +53,7 @@ func NewLoginCmd() *cobra.Command {
 	loginConfig = &options.LoginOptions{}
 	loginCmd.Flags().StringVarP(&loginConfig.Username, "username", "u", "", "user name for login registry")
 	loginCmd.Flags().StringVarP(&loginConfig.Password, "passwd", "p", "", "password for login registry")
-	loginCmd.Flags().BoolVar(&loginConfig.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry. TLS verification cannot be used when talking to an insecure registry.")
+	loginCmd.Flags().BoolVar(&loginConfig.SkipTLSVerify, "skip-tls-verify", false, "default is requiring require HTTPS and verify certificates when accessing the registry. TLS verification cannot be used when talking to an insecure registry.")
 	if err := loginCmd.MarkFlagRequired("username"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)

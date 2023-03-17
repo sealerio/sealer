@@ -26,11 +26,11 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sirupsen/logrus"
 )
 
 func (engine *Engine) Push(opts *options.PushOptions) error {
@@ -41,6 +41,8 @@ func (engine *Engine) Push(opts *options.PushOptions) error {
 	if err := auth.CheckAuthFile(systemCxt.AuthFilePath); err != nil {
 		return err
 	}
+	systemCxt.OCIInsecureSkipTLSVerify = opts.SkipTLSVerify
+	systemCxt.DockerInsecureSkipTLSVerify = types.NewOptionalBool(opts.SkipTLSVerify)
 
 	src, destSpec := opts.Image, opts.Image
 	if len(opts.Destination) != 0 {

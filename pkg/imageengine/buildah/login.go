@@ -16,14 +16,12 @@ package buildah
 
 import (
 	"context"
-
-	"github.com/containers/common/pkg/auth"
-
-	"github.com/sealerio/sealer/pkg/define/options"
-
 	"os"
 
+	"github.com/containers/common/pkg/auth"
+	"github.com/containers/image/v5/types"
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/pkg/define/options"
 )
 
 func (engine *Engine) Login(opts *options.LoginOptions) error {
@@ -32,6 +30,8 @@ func (engine *Engine) Login(opts *options.LoginOptions) error {
 	}
 
 	systemCxt := engine.SystemContext()
+	systemCxt.OCIInsecureSkipTLSVerify = opts.SkipTLSVerify
+	systemCxt.DockerInsecureSkipTLSVerify = types.NewOptionalBool(opts.SkipTLSVerify)
 
 	return auth.Login(context.TODO(),
 		systemCxt,

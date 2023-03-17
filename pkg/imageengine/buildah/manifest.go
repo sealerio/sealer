@@ -27,12 +27,12 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/hashicorp/go-multierror"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sirupsen/logrus"
 )
 
 func (engine *Engine) LookupManifest(name string) (*libimage.ManifestList, error) {
@@ -91,6 +91,8 @@ func (engine *Engine) PushManifest(name, destSpec string, opts *options.PushOpti
 	runtime := engine.ImageRuntime()
 	store := engine.ImageStore()
 	systemCxt := engine.SystemContext()
+	systemCxt.OCIInsecureSkipTLSVerify = opts.SkipTLSVerify
+	systemCxt.DockerInsecureSkipTLSVerify = types.NewOptionalBool(opts.SkipTLSVerify)
 
 	manifestList, err := runtime.LookupManifestList(name)
 	if err != nil {

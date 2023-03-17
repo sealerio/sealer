@@ -304,7 +304,7 @@ func manifestPushCommand() *cobra.Command {
 	flags.StringVar(&pushManifestOpts.Authfile, "authfile", auth.GetDefaultAuthFile(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&pushManifestOpts.CertDir, "cert-dir", "", "use certificates at the specified path to access the registry")
 	flags.StringVarP(&pushManifestOpts.Format, "format", "f", "", "manifest type (oci or v2s2) to attempt to use when pushing the manifest list (default is manifest type of source)")
-	flags.BoolVar(&pushManifestOpts.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry. TLS verification cannot be used when talking to an insecure registry.")
+	flags.BoolVar(&pushManifestOpts.SkipTLSVerify, "skip-tls-verify", false, "default is requiring HTTPS and verify certificates when accessing the registry.")
 	flags.BoolVarP(&pushManifestOpts.Quiet, "quiet", "q", false, "don't output progress information when pushing lists")
 
 	return pushCommand
