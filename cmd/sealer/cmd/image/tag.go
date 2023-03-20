@@ -24,7 +24,7 @@ import (
 var longNewTagCmdDescription = ``
 
 var exampleForTagCmd = `
-  sealer tag kubernetes:v1.19.8 firstName secondName
+  sealer tag docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 firstName secondName
 `
 
 func NewTagCmd() *cobra.Command {
