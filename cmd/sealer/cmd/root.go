@@ -15,20 +15,23 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/alpha"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/cluster"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/image"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/logger"
+	osUtils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/version"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type rootOpts struct {
@@ -44,19 +47,14 @@ type rootOpts struct {
 
 var rootOpt rootOpts
 
-const (
-	colorModeNever  = "never"
-	colorModeAlways = "always"
-)
-
 var longRootCmdDescription = `sealer is a tool to seal application's all dependencies and Kubernetes
 into sealer image by Kubefile, distribute this application anywhere via sealer image, 
 and run it within any cluster with Clusterfile in one command.
 `
 
-var supportedColorModes = []string{
-	colorModeNever,
-	colorModeAlways,
+var supportedColorModes = []ColorMode{
+	ColorModeNever,
+	ColorModeAlways,
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -84,39 +82,87 @@ func init() {
 	rootCmd.AddCommand(cluster.NewClusterCommands()...)
 	rootCmd.AddCommand(image.NewImageCommands()...)
 
-	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file of sealer tool (default is $HOME/.sealer.json)")
+	rootCmd.PersistentFlags().StringVar(&rootOpt.cfgFile, "config", "", "config file of sealer tool (default is $HOME/.sealer/config.json)")
 	rootCmd.PersistentFlags().BoolVarP(&rootOpt.debugModeOn, "debug", "d", false, "turn on debug mode")
 	rootCmd.PersistentFlags().BoolVarP(&rootCmd.SilenceUsage, "quiet", "q", false, "silence the usage when fail")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogTime, "hide-time", false, "hide the log time")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.hideLogPath, "hide-path", false, "hide the log path")
 	rootCmd.PersistentFlags().BoolVar(&rootOpt.logToFile, "log-to-file", true, "write log message to disk")
-	rootCmd.PersistentFlags().StringVar(&rootOpt.colorMode, "color", colorModeAlways, fmt.Sprintf("set the log color mode, the possible values can be %v", supportedColorModes))
+	rootCmd.PersistentFlags().StringVar(&rootOpt.colorMode, "color", string(ColorModeAlways), fmt.Sprintf("set the log color mode, the possible values can be %v", supportedColorModes))
 	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerURL, "remote-logger-url", "", "remote logger url, if not empty, will send log to this url")
 	rootCmd.PersistentFlags().StringVar(&rootOpt.remoteLoggerTaskName, "task-name", "", "task name which will embedded in the remote logger header, only valid when --remote-logger-url is set")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.DisableAutoGenTag = true
 }
 
-// initConfig reads in config file and ENV variables if set.
+// initConfig load DefaultConfig and merge with config file if it exists.
+//sealer config uses the following precedence order:
+//cmd flag
+//$HOME/.sealer/config.json
+//DefaultConfig
 func initConfig() {
+	viper.SetConfigType("json")
+	bs, err := json.Marshal(DefaultConfig())
+	if err != nil {
+		panic(fmt.Errorf("failed to init default sealer config: %v", err))
+	}
+
+	err = viper.ReadConfig(bytes.NewReader(bs))
+	if err != nil {
+		panic(fmt.Errorf("failed to read default sealer config: %v", err))
+	}
+
 	if rootOpt.cfgFile == "" {
 		// Find home directory.
-		rootOpt.cfgFile = filepath.Join(common.GetHomeDir(), ".sealer.json")
+		rootOpt.cfgFile = filepath.Join(common.GetSealerWorkDir(), "config.json")
 	}
-	// Use config file from the flag.
-	// if not set config file, Search config in home directory with name ".sealer.json" (without extension).
-	//viper.AddConfigPath(home)
-	viper.SetConfigFile(rootOpt.cfgFile)
+
+	if osUtils.IsFileExist(rootOpt.cfgFile) {
+		bs, err = ioutil.ReadFile(rootOpt.cfgFile)
+		if err != nil {
+			panic(fmt.Sprintf("failed to read sealer config file %s: %v", rootOpt.cfgFile, err))
+		}
+
+		err = viper.MergeConfig(bytes.NewReader(bs))
+		if err != nil {
+			panic(fmt.Sprintf("failed to merge sealer config file %s: %v", rootOpt.cfgFile, err))
+		}
+	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 
-	if err := logger.Init(logger.LogOptions{
-		LogToFile:            rootOpt.logToFile,
-		Verbose:              rootOpt.debugModeOn,
-		RemoteLoggerURL:      rootOpt.remoteLoggerURL,
-		RemoteLoggerTaskName: rootOpt.remoteLoggerTaskName,
-		DisableColor:         rootOpt.colorMode == colorModeNever,
-	}); err != nil {
+	lo := logger.LogOptions{
+		Verbose:              viper.GetBool("debugOn"),
+		RemoteLoggerURL:      viper.GetString("remoteLoggerURL"),
+		RemoteLoggerTaskName: viper.GetString("remoteLoggerTaskName"),
+		LogToFile: func() bool {
+			return viper.GetString("LogWriteTo") == string(LogWriteToFile)
+		}(),
+		DisableColor: func() bool {
+			return viper.GetString("colorMode") == string(ColorModeNever)
+		}(),
+	}
+
+	if rootOpt.remoteLoggerURL != "" {
+		lo.RemoteLoggerURL = rootOpt.remoteLoggerURL
+	}
+	if rootOpt.remoteLoggerTaskName != "" {
+		lo.RemoteLoggerTaskName = rootOpt.remoteLoggerTaskName
+	}
+
+	if rootOpt.logToFile {
+		lo.LogToFile = rootOpt.logToFile
+	}
+
+	if rootOpt.debugModeOn {
+		lo.Verbose = rootOpt.debugModeOn
+	}
+
+	if rootOpt.colorMode != string(ColorModeAlways) {
+		lo.DisableColor = true
+	}
+
+	if err := logger.Init(lo); err != nil {
 		panic(fmt.Sprintf("failed to init logger: %v\n", err))
 	}
 }
