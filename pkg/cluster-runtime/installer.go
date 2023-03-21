@@ -100,17 +100,15 @@ func getClusterRuntimeInstaller(clusterRuntimeType string, driver infradriver.In
 }
 
 func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConfig, installInfo InstallInfo) (*Installer, error) {
-	var (
-		err       error
-		installer = &Installer{
-			regConfig:          infraDriver.GetClusterRegistry(),
-			clusterRuntimeType: installInfo.ClusterRuntimeType,
-		}
-	)
-
-	installer.RuntimeConfig = runtimeConfig
+	installer := &Installer{
+		regConfig:          infraDriver.GetClusterRegistry(),
+		clusterRuntimeType: installInfo.ClusterRuntimeType,
+		RuntimeConfig:      runtimeConfig,
+		infraDriver:        infraDriver,
+	}
 	// configure container runtime
 	//todo need to support other container runtimes
+	var err error
 	installer.containerRuntimeInstaller, err = getCRIInstaller(installInfo.ContainerRuntimeType, infraDriver)
 	if err != nil {
 		return nil, err
@@ -122,7 +120,7 @@ func NewInstaller(infraDriver infradriver.InfraDriver, runtimeConfig RuntimeConf
 		return nil, err
 	}
 	installer.hooks = hooks
-	installer.infraDriver = infraDriver
+
 	return installer, nil
 }
 
@@ -244,6 +242,7 @@ func (i *Installer) GetCurrentDriver() (registry.Driver, runtime.Driver, error) 
 	if i.regConfig.LocalRegistry != nil && !*i.regConfig.LocalRegistry.HA {
 		registryDeployHosts = []net.IP{master0}
 	}
+	
 	// TODO, init here or in constructor?
 	registryConfigurator, err := registry.NewConfigurator(registryDeployHosts, crInfo, i.regConfig, i.infraDriver, i.Distributor)
 	if err != nil {
@@ -386,6 +385,7 @@ func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 	return nil
 }
 
+// GetClusterInstallInfo obtain the cluster installation information. The default CRI is docker and ClusterRuntime is Kubernetes
 func GetClusterInstallInfo(imageLabels map[string]string, criConfig v2.ContainerRuntimeConfig) InstallInfo {
 	cri := imageLabels[CRILabel]
 	if cri == "" {

@@ -102,6 +102,7 @@ func NewRunCmd() *cobra.Command {
 				Image:      args[0],
 				Platform:   "local",
 			})
+
 			if err != nil {
 				return err
 			}

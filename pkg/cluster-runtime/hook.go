@@ -103,7 +103,7 @@ func (r HookConfigList) Len() int           { return len(r) }
 func (r HookConfigList) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r HookConfigList) Less(i, j int) bool { return r[i].Name < r[j].Name }
 
-// runHostHook run host scope hook by Phase and only execute hook on the given host list.
+// runHostHook runs host scope hook by Phase and only executes hook on the given host list.
 func (i *Installer) runHostHook(phase Phase, hosts []net.IP) error {
 	hookConfigList, ok := i.hooks[phase]
 	if !ok {
@@ -218,6 +218,7 @@ func Register(name HookType, factory HookFunc) {
 	hookFactories[name] = factory
 }
 
+// transferPluginsToHooks transfer pluginConfig to hookConfig
 func transferPluginsToHooks(plugins []v1.Plugin) (map[Phase]HookConfigList, error) {
 	hooks := make(map[Phase]HookConfigList)
 

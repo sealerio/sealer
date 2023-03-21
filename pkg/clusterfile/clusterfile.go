@@ -144,6 +144,7 @@ func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 		}
 		clusterfileBytes = append(clusterfileBytes, joinConfiguration)
 	}
+	
 	if len(c.kubeadmConfig.ClusterConfiguration.TypeMeta.Kind) != 0 {
 		clusterConfiguration, err := yaml.Marshal(c.kubeadmConfig.ClusterConfiguration)
 		if err != nil {
