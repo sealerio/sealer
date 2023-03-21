@@ -20,10 +20,10 @@ import (
 	"net"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
 
 	versionUtils "github.com/sealerio/sealer/utils/version"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"
@@ -37,16 +37,16 @@ import (
 // Use github.com/imdario/mergo to merge kubeadm config in Clusterfile and the default kubeadm config
 // Using a config filter to handle some edge cases
 
-// https://github.com/kubernetes/kubernetes/blob/master/cmd/kubeadm/app/apis/kubeadm/v1beta2/types.go
+// https://github.com/kubernetes/kubernetes/blob/master/cmd/kubeadm/app/apis/kubeadm/v1beta3/types.go
 // Using map to overwrite Kubeadm configs
 
 // nolint
 type KubeadmConfig struct {
-	v1beta2.InitConfiguration
-	v1beta2.ClusterConfiguration
+	v1beta3.InitConfiguration
+	v1beta3.ClusterConfiguration
 	v1alpha1.KubeProxyConfiguration
 	v1beta1.KubeletConfiguration
-	v1beta2.JoinConfiguration
+	v1beta3.JoinConfiguration
 }
 
 const (
@@ -132,13 +132,13 @@ func LoadKubeadmConfigs(arg string, decode func(arg string, kind string) (interf
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if initConfig != nil {
-		kubeadmConfig.InitConfiguration = *initConfig.(*v1beta2.InitConfiguration)
+		kubeadmConfig.InitConfiguration = *initConfig.(*v1beta3.InitConfiguration)
 	}
 	clusterConfig, err := decode(arg, ClusterConfiguration)
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if clusterConfig != nil {
-		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta2.ClusterConfiguration)
+		kubeadmConfig.ClusterConfiguration = *clusterConfig.(*v1beta3.ClusterConfiguration)
 	}
 	kubeProxyConfig, err := decode(arg, KubeProxyConfiguration)
 	if err != nil && err != io.EOF {
@@ -156,7 +156,7 @@ func LoadKubeadmConfigs(arg string, decode func(arg string, kind string) (interf
 	if err != nil && err != io.EOF {
 		return kubeadmConfig, err
 	} else if joinConfig != nil {
-		kubeadmConfig.JoinConfiguration = *joinConfig.(*v1beta2.JoinConfiguration)
+		kubeadmConfig.JoinConfiguration = *joinConfig.(*v1beta3.JoinConfiguration)
 	}
 	return kubeadmConfig, nil
 }
@@ -209,7 +209,7 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string, masters []
 		conf.ClusterConfiguration.Networking.DNSDomain = "cluster.local"
 	}
 	if conf.JoinConfiguration.Discovery.BootstrapToken == nil {
-		conf.JoinConfiguration.Discovery.BootstrapToken = &v1beta2.BootstrapTokenDiscovery{}
+		conf.JoinConfiguration.Discovery.BootstrapToken = &v1beta3.BootstrapTokenDiscovery{}
 	}
 
 	// set cluster image repo,kubeadm will pull container image from this registry.

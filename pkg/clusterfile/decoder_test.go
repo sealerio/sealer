@@ -100,7 +100,7 @@ spec:
     - ips: [ 192.168.0.3 ]
       roles: [ node,db ]
 ---
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/v1beta3
 kind: InitConfiguration
 localAPIEndpoint:
   bindPort: 6443

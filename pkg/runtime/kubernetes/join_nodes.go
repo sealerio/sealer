@@ -21,14 +21,14 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
 )
 
-func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery) error {
+func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.KubeadmConfig, token v1beta3.BootstrapTokenDiscovery) error {
 	if len(newNodes) == 0 {
 		return nil
 	}

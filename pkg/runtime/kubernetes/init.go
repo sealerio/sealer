@@ -22,15 +22,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clustercert"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/yaml"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, error) {
@@ -132,26 +132,26 @@ func (k *Runtime) copyStaticFiles(nodes []net.IP) error {
 }
 
 // initMaster0 is using kubeadm init to start up the cluster master0.
-func (k *Runtime) initMaster0(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
+func (k *Runtime) initMaster0(master0 net.IP) (v1beta3.BootstrapTokenDiscovery, string, error) {
 	if err := k.initKube([]net.IP{master0}); err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", err
+		return v1beta3.BootstrapTokenDiscovery{}, "", err
 	}
 
 	if err := k.sendClusterCert([]net.IP{master0}); err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", err
+		return v1beta3.BootstrapTokenDiscovery{}, "", err
 	}
 
 	if err := k.sendKubeConfigFilesToMaster([]net.IP{master0}, AdminConf, ControllerConf, SchedulerConf, KubeletConf); err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", err
+		return v1beta3.BootstrapTokenDiscovery{}, "", err
 	}
 
 	if err := k.infra.CmdAsync(master0, nil, shellcommand.CommandSetHostAlias(k.getAPIServerDomain(), master0.String())); err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
+		return v1beta3.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 	}
 
 	cmdInit, err := k.Command(InitMaster)
 	if err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", err
+		return v1beta3.BootstrapTokenDiscovery{}, "", err
 	}
 	logrus.Info("start to init master0...")
 
@@ -160,13 +160,13 @@ func (k *Runtime) initMaster0(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, 
 	if err != nil {
 		_, wErr := common.StdOut.WriteString(string(output))
 		if wErr != nil {
-			return v1beta2.BootstrapTokenDiscovery{}, "", err
+			return v1beta3.BootstrapTokenDiscovery{}, "", err
 		}
-		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
+		return v1beta3.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to init master0: %s. Please clean and reinstall", err)
 	}
 
 	if err = k.infra.CmdAsync(master0, nil, "rm -rf .kube/config && mkdir -p /root/.kube && cp /etc/kubernetes/admin.conf /root/.kube/config"); err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", err
+		return v1beta3.BootstrapTokenDiscovery{}, "", err
 	}
 
 	token, certKey := k.decodeMaster0Output(output)
@@ -175,7 +175,7 @@ func (k *Runtime) initMaster0(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, 
 }
 
 // decode output to join token hash and key
-func (k *Runtime) decodeMaster0Output(output []byte) (v1beta2.BootstrapTokenDiscovery, string) {
+func (k *Runtime) decodeMaster0Output(output []byte) (v1beta3.BootstrapTokenDiscovery, string) {
 	s0 := string(output)
 	logrus.Debugf("decodeOutput: %s", s0)
 	slice := strings.Split(s0, "kubeadm join")
@@ -186,11 +186,11 @@ func (k *Runtime) decodeMaster0Output(output []byte) (v1beta2.BootstrapTokenDisc
 }
 
 // 192.168.0.200:6443 --token 9vr73a.a8uxyaju799qwdjv --discovery-token-ca-cert-hash sha256:7c2e69131a36ae2a042a339b33381c6d0d43887e2de83720eff5359e26aec866 --experimental-control-plane --certificate-key f8902e114ef118304e561c3ecd4d0b543adc226b7a07f675f56564185ffe0c07
-func (k *Runtime) decodeJoinCmd(cmd string) (v1beta2.BootstrapTokenDiscovery, string) {
+func (k *Runtime) decodeJoinCmd(cmd string) (v1beta3.BootstrapTokenDiscovery, string) {
 	logrus.Debugf("[globals]decodeJoinCmd: %s", cmd)
 	stringSlice := strings.Split(cmd, " ")
 
-	token := v1beta2.BootstrapTokenDiscovery{}
+	token := v1beta3.BootstrapTokenDiscovery{}
 	var certKey string
 
 	for i, r := range stringSlice {
@@ -264,17 +264,17 @@ func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, files ...string)
 	return nil
 }
 
-func (k *Runtime) getJoinTokenHashAndKey(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, string, error) {
+func (k *Runtime) getJoinTokenHashAndKey(master0 net.IP) (v1beta3.BootstrapTokenDiscovery, string, error) {
 	cmd := fmt.Sprintf(`kubeadm init phase upload-certs --upload-certs -v %d`, k.Config.Vlog)
 
 	output, err := k.infra.CmdToString(master0, nil, cmd, "\r\n")
 	if err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", err
+		return v1beta3.BootstrapTokenDiscovery{}, "", err
 	}
 	logrus.Debugf("[globals]decodeCertCmd: %s", output)
 	slice := strings.Split(output, "Using certificate key:")
 	if len(slice) != 2 {
-		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to get certifacate key: %s", slice)
+		return v1beta3.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to get certifacate key: %s", slice)
 	}
 	key := strings.Replace(slice[1], "\r\n", "", -1)
 	certKey := strings.Replace(key, "\n", "", -1)
@@ -283,7 +283,7 @@ func (k *Runtime) getJoinTokenHashAndKey(master0 net.IP) (v1beta2.BootstrapToken
 
 	out, err := k.infra.Cmd(master0, nil, cmd)
 	if err != nil {
-		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to create kubeadm join token: %v", err)
+		return v1beta3.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to create kubeadm join token: %v", err)
 	}
 
 	token, certKey2 := k.decodeMaster0Output(out)
