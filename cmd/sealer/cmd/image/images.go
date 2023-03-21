@@ -15,10 +15,9 @@
 package image
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
+	"github.com/spf13/cobra"
 )
 
 var imagesOpts *options.ImagesOptions
