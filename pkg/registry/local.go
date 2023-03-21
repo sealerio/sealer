@@ -29,10 +29,6 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/pelletier/go-toml"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
-	k8snet "k8s.io/utils/net"
-
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
@@ -42,6 +38,9 @@ import (
 	netutils "github.com/sealerio/sealer/utils/net"
 	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/shellcommand"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+	k8snet "k8s.io/utils/net"
 )
 
 const (
@@ -389,17 +388,35 @@ func (c *localConfigurator) configureContainerdDaemonService(endpoint, hostTomlF
 		url                = "https://" + endpoint
 	)
 
-	tree, err := toml.TreeFromMap(map[string]interface{}{
-		"server": url,
-		fmt.Sprintf(`host."%s"`, url): map[string]interface{}{
-			"ca": registryCaCertPath,
+	cfg := Hosts{
+		Server: url,
+		HostConfigs: map[string]HostFileConfig{
+			url: {CACert: registryCaCertPath},
 		},
-	})
-
-	if err != nil {
-		return fmt.Errorf("failed to marshal Containerd hosts.toml file: %v", err)
 	}
-	return osutils.NewCommonWriter(hostTomlFile).WriteFile([]byte(tree.String()))
+
+	bs, err := toml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal containerd hosts.toml file: %v", err)
+	}
+
+	return osutils.NewCommonWriter(hostTomlFile).WriteFile(bs)
+}
+
+type Hosts struct {
+	// Server specifies the default server. When `host` is
+	// also specified, those hosts are tried first.
+	Server string `toml:"server"`
+	// HostConfigs store the per-host configuration
+	HostConfigs map[string]HostFileConfig `toml:"host"`
+}
+
+type HostFileConfig struct {
+	// CACert are the public key certificates for TLS
+	// Accepted types
+	// - string - Single file with certificate(s)
+	// - []string - Multiple files with certificates
+	CACert interface{} `toml:"ca"`
 }
 
 type DaemonConfig struct {
