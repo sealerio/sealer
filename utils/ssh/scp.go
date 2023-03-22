@@ -24,13 +24,11 @@ import (
 	"strings"
 	"sync"
 
-	dockerioutils "github.com/docker/docker/pkg/ioutils"
-	"github.com/docker/docker/pkg/progress"
 	"github.com/pkg/sftp"
-	"github.com/sirupsen/logrus"
-
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	osi "github.com/sealerio/sealer/utils/os"
+	progressbar "github.com/sealerio/sealer/utils/progressbar"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -38,50 +36,25 @@ const (
 )
 
 var (
-	displayInitOnce sync.Once
-	reader          *io.PipeReader
-	writer          *io.PipeWriter
-	writeFlusher    *dockerioutils.WriteFlusher
-	progressChanOut progress.Output
-	epuMap          = &epuRWMap{epu: map[string]*easyProgressUtil{}}
+	epuMap = &epuRWMap{epu: map[string]*progressbar.EasyProgressUtil{}}
 )
-
-type easyProgressUtil struct {
-	output         progress.Output
-	copyID         string
-	completeNumber int
-	total          int
-}
 
 type epuRWMap struct {
 	sync.RWMutex
-	epu map[string]*easyProgressUtil
+	epu map[string]*progressbar.EasyProgressUtil
 }
 
-func (m *epuRWMap) Get(k string) (*easyProgressUtil, bool) {
+func (m *epuRWMap) Get(k string) (*progressbar.EasyProgressUtil, bool) {
 	m.RLock()
 	defer m.RUnlock()
 	v, existed := m.epu[k]
 	return v, existed
 }
 
-func (m *epuRWMap) Set(k string, v *easyProgressUtil) {
+func (m *epuRWMap) Set(k string, v *progressbar.EasyProgressUtil) {
 	m.Lock()
 	defer m.Unlock()
 	m.epu[k] = v
-}
-
-func (epu *easyProgressUtil) increment() {
-	epu.completeNumber = epu.completeNumber + 1
-	progress.Update(epu.output, epu.copyID, fmt.Sprintf("%d/%d", epu.completeNumber, epu.total))
-}
-
-func (epu *easyProgressUtil) fail(err error) {
-	progress.Update(epu.output, epu.copyID, fmt.Sprintf("failed, err: %s", err))
-}
-
-func (epu *easyProgressUtil) startMessage() {
-	progress.Update(epu.output, epu.copyID, fmt.Sprintf("%d/%d", epu.completeNumber, epu.total))
 }
 
 // CopyR scp remote file to local
@@ -130,7 +103,6 @@ func (s *SSH) CopyR(host net.IP, localFilePath, remoteFilePath string) error {
 
 // Copy file or dir to remotePath, add md5 validate
 func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
-	go displayInitOnce.Do(displayInit)
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
 		if localPath == remotePath {
 			return nil
@@ -168,32 +140,20 @@ func (s *SSH) Copy(host net.IP, localPath, remotePath string) error {
 
 	epu, ok := epuMap.Get(host.String())
 	if !ok {
-		if progressChanOut == nil {
-			logrus.Warn("call DisplayInit first")
-		}
-
-		epu = &easyProgressUtil{
-			output:         progressChanOut,
-			copyID:         "copying files to " + host.String(),
-			completeNumber: 0,
-			total:          number,
-		}
-
+		epu = progressbar.NewEasyProgressUtil(number, fmt.Sprintf("[copying files to %s]", host))
 		epuMap.Set(host.String(), epu)
 	} else {
-		epu.total += number
+		epu.SetTotal(epu.GetMax() + number)
 	}
-
-	epu.startMessage()
 
 	if f.IsDir() {
 		s.copyLocalDirToRemote(host, sftpClient, localPath, remotePath, epu)
 	} else {
 		err = s.copyLocalFileToRemote(host, sftpClient, localPath, remotePath)
 		if err != nil {
-			epu.fail(err)
+			epu.Fail(err)
 		}
-		epu.increment()
+		epu.Increment()
 	}
 	return nil
 }
@@ -207,7 +167,7 @@ func (s *SSH) remoteMd5Sum(host net.IP, remoteFilePath string) string {
 	return strings.ReplaceAll(remoteMD5, "\r", "")
 }
 
-func (s *SSH) copyLocalDirToRemote(host net.IP, sftpClient *sftp.Client, localPath, remotePath string, epu *easyProgressUtil) {
+func (s *SSH) copyLocalDirToRemote(host net.IP, sftpClient *sftp.Client, localPath, remotePath string, epu *progressbar.EasyProgressUtil) {
 	localFiles, err := os.ReadDir(localPath)
 	if err != nil {
 		logrus.Errorf("failed to read local path dir(%s) on host(%s): %s", localPath, host, err)
@@ -230,11 +190,11 @@ func (s *SSH) copyLocalDirToRemote(host net.IP, sftpClient *sftp.Client, localPa
 			err := s.copyLocalFileToRemote(host, sftpClient, lfp, rfp)
 			if err != nil {
 				errMsg := fmt.Sprintf("failed to copy local file(%s) to remote(%s) on host(%s): %v", lfp, rfp, host, err)
-				epu.fail(err)
+				epu.Fail(err)
 				logrus.Error(errMsg)
 				return
 			}
-			epu.increment()
+			epu.Increment()
 		}
 	}
 }
