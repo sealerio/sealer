@@ -22,8 +22,8 @@ import (
 var longUpgradeCmdDescription = `Sealer upgrade command will upgrade the current cluster to the specified version with the sealer image using kubeadm upgrade
 `
 
-var exampleForUpgradeCmd = `The following command will upgrade the current cluster to kubernetes:v1.19.9
-  sealer alpha upgrade kubernetes:v1.19.9
+var exampleForUpgradeCmd = `The following command will upgrade the current cluster to docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
+  sealer alpha upgrade docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
 `
 
 var upgradeClusterName string

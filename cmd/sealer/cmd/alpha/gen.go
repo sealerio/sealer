@@ -43,7 +43,7 @@ Then you can use any sealer command to manage the cluster like:
 
 var exampleForGenCmd = `The following command will generate Clusterfile used by sealer under user home dir:
 
-  sealer alpha gen --passwd Sealer123 --image kubernetes:v1.19.8
+  sealer alpha gen --passwd 'Sealer123' --image docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
 `
 
 // NewGenCmd returns the sealer gen Cobra command

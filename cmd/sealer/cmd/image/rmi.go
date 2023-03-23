@@ -26,13 +26,13 @@ var removeOpts *options.RemoveImageOptions
 var longNewRmiCmdDescription = ``
 
 var exampleForRmiCmd = `
-  sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
+  sealer rmi docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
 
 prune dangling images:
   sealer rmi --prune/-p
 
 force removal of the image and any containers using the image:
-  sealer rmi registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --force/-f
+  sealer rmi docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 --force/-f
 
 `
 

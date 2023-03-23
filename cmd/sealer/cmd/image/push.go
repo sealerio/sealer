@@ -27,7 +27,7 @@ var pushOpts *options.PushOptions
 var longNewPushCmdDescription = ``
 
 var exampleForPushCmd = `
-  sealer push registry.cn-qingdao.aliyuncs.com/sealer-io/my-kubernetes-cluster-with-dashboard:latest
+  sealer push docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
 `
 
 // NewPushCmd pushCmd represents the push command

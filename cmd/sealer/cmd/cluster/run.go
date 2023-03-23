@@ -51,7 +51,7 @@ var exampleForRunCmd = `
 run cluster by Clusterfile: 
   sealer run -f Clusterfile
 run cluster by CLI flags:
-  sealer run docker.io/sealerio/kubernetes:v1.22.15 -m 172.28.80.01 -n 172.28.80.02 -p Sealer123
+  sealer run docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 -m 172.16.130.21 -n 172.16.130.22 -p 'Sealer123'
 run app image:
   sealer run localhost/nginx:v1
 `
