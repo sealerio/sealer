@@ -163,6 +163,7 @@ func (a *v2Application) FileProcess(mountDir string) error {
 func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (Interface, error) {
 	v2App := &v2Application{
 		app:                 app,
+		extension:           extension,
 		globalCmds:          extension.Launch.Cmds,
 		launchApps:          extension.Launch.AppNames,
 		appLaunchCmdsMap:    map[string][]string{},
