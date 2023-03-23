@@ -102,6 +102,9 @@ func (k *Runtime) createKubeConfig(master0 net.IP) error {
 	if err != nil {
 		return err
 	}
+	if nno := k.getNodeNameOverride(master0); nno != "" {
+		hostName = nno
+	}
 
 	controlPlaneEndpoint := fmt.Sprintf("https://%s", net.JoinHostPort(k.getAPIServerDomain(), "6443"))
 
@@ -149,7 +152,7 @@ func (k *Runtime) initMaster0(master0 net.IP) (v1beta2.BootstrapTokenDiscovery, 
 		return v1beta2.BootstrapTokenDiscovery{}, "", fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 	}
 
-	cmdInit, err := k.Command(InitMaster)
+	cmdInit, err := k.Command(InitMaster, k.getNodeNameOverride(master0))
 	if err != nil {
 		return v1beta2.BootstrapTokenDiscovery{}, "", err
 	}

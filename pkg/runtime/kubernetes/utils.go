@@ -122,7 +122,7 @@ const InitMaster CommandType = "initMaster"
 const JoinMaster CommandType = "joinMaster"
 const JoinNode CommandType = "joinNode"
 
-func (k *Runtime) Command(name CommandType) (string, error) {
+func (k *Runtime) Command(name CommandType, nodeNameOverride string) (string, error) {
 	//cmds := make(map[CommandType]string)
 	// Please convert your v1beta1 configuration files to v1beta2 using the
 	// "kubeadm config migrate" command of kubeadm v1.15.x, so v1.14 not support multi network interface.
@@ -136,6 +136,9 @@ func (k *Runtime) Command(name CommandType) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("failed to get kubeadm command: %v", cmds)
 	}
+	if nodeNameOverride != "" {
+		v = fmt.Sprintf("%s --node-name %s", v, nodeNameOverride)
+	}
 
 	if runtime.IsInContainer() {
 		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=all"), nil
@@ -145,6 +148,14 @@ func (k *Runtime) Command(name CommandType) (string, error) {
 	}
 
 	return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=Port-10250,DirAvailable--etc-kubernetes-manifests"), nil
+}
+
+func (k *Runtime) getNodeNameOverride(ip net.IP) string {
+	if v, ok := k.infra.GetClusterEnv()[common.EnvUseIPasNodeName]; ok && v.(string) == "true" {
+		return ip.String()
+	}
+
+	return ""
 }
 
 func GetClientFromConfig(adminConfPath string) (runtimeClient.Client, error) {

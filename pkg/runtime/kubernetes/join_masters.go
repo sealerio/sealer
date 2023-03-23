@@ -51,14 +51,15 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 		return err
 	}
 
-	joinCmd, err := k.Command(JoinMaster)
-	if err != nil {
-		return fmt.Errorf("failed to get join master command: %v", err)
-	}
 	//set master0 as APIServerEndpoint when join master
 	vs := net.JoinHostPort(master0.String(), "6443")
 	for _, m := range newMasters {
 		logrus.Infof("start to join %s as master", m)
+
+		joinCmd, err := k.Command(JoinMaster, k.getNodeNameOverride(m))
+		if err != nil {
+			return fmt.Errorf("failed to get join master command: %v", err)
+		}
 
 		hostname, err := k.infra.GetHostName(m)
 		if err != nil {
