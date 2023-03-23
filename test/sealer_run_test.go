@@ -73,6 +73,9 @@ var _ = Describe("sealer run", func() {
 
 				testhelper.RunCmdAndCheckResult("find / -name Clusterfile", 0)
 
+				testhelper.RunCmdAndCheckResult("sudo cp /home/runner/work/sealer/sealer/src/github.com/sealerio/sealer/utils/test/file/Clusterfile /home/runner/.sealer/", 0)
+
+				testhelper.RunCmdAndCheckResult("pwd", 0)
 				logrus.Infof("deploy application images concurrently")
 
 				var appImages []string
