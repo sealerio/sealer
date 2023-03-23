@@ -14,17 +14,6 @@
 
 package maps
 
-// Merge :merge map type as overwrite model
-func Merge(ms ...map[string]string) map[string]string {
-	res := map[string]string{}
-	for _, m := range ms {
-		for k, v := range m {
-			res[k] = v
-		}
-	}
-	return res
-}
-
 // ConvertToSlice Use the equal sign to link key and value looks like key1=value1,key2=value2.
 func ConvertToSlice(m map[string]string) []string {
 	result := []string{}
@@ -32,4 +21,30 @@ func ConvertToSlice(m map[string]string) []string {
 		result = append(result, k+"="+v)
 	}
 	return result
+}
+
+// Merge :get all elements, only insert key which is not in dst form src.
+func Merge(dst, src map[string]string) map[string]string {
+	if len(dst) == 0 {
+		return Copy(src)
+	}
+	for srcEnvKey, srcEnvValue := range src {
+		if _, ok := dst[srcEnvKey]; ok {
+			continue
+		}
+		dst[srcEnvKey] = srcEnvValue
+	}
+	return dst
+}
+
+func Copy(origin map[string]string) map[string]string {
+	if origin == nil {
+		return nil
+	}
+	ret := make(map[string]string, len(origin))
+	for k, v := range origin {
+		ret[k] = v
+	}
+
+	return ret
 }
