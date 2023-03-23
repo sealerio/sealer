@@ -91,3 +91,7 @@ type MergeFlags struct {
 type UpgradeFlags struct {
 	ClusterFile string
 }
+
+type RollbackFlags struct {
+	AppNames []string // override default APPNames of sealer image
+}

@@ -54,8 +54,10 @@ const (
 	PreScaleUpCluster Phase = "pre-scaleup"
 	//PostScaleUpCluster on master0
 	PostScaleUpCluster Phase = "post-scaleup"
-	//UpgradeHost on master0
+	//UpgradeCluster on master0
 	UpgradeCluster Phase = "upgrade"
+	//RollbackCluster on master0
+	RollbackCluster Phase = "rollback"
 
 	//PreInitHost on role
 	PreInitHost Phase = "pre-init-host"

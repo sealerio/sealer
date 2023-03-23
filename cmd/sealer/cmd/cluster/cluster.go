@@ -18,6 +18,6 @@ import "github.com/spf13/cobra"
 
 func NewClusterCommands() []*cobra.Command {
 	var clusterCommands []*cobra.Command
-	clusterCommands = append(clusterCommands, NewDeleteCmd(), NewJoinCmd(), NewRunCmd(), NewCertCmd(), NewScaleUpCmd(), NewApplyCmd(), NewUpgradeCmd())
+	clusterCommands = append(clusterCommands, NewDeleteCmd(), NewJoinCmd(), NewRunCmd(), NewCertCmd(), NewScaleUpCmd(), NewApplyCmd(), NewUpgradeCmd(), NewRollbackCmd())
 	return clusterCommands
 }
