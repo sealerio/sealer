@@ -71,7 +71,7 @@ var _ = Describe("sealer run", func() {
 
 			By("Deploy application images concurrently", func() {
 
-				testhelper.RunCmdAndCheckResult("tree", 0)
+				testhelper.RunCmdAndCheckResult("find / -name Clusterfile", 0)
 
 				logrus.Infof("deploy application images concurrently")
 
