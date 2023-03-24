@@ -131,8 +131,9 @@ type SaveOptions struct {
 }
 
 type LoadOptions struct {
-	Input string
-	Quiet bool
+	Input  string
+	TmpDir string
+	Quiet  bool
 }
 
 type InspectOptions struct {
