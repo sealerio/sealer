@@ -58,6 +58,7 @@ func NewLoadCmd() *cobra.Command {
 	flags := loadCmd.Flags()
 	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Load image from file")
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
+	flags.StringVar(&loadOpts.TmpDir, "tmp-dir", "", "set temporary directory when load image. if not set, use system`s temporary directory")
 	if err := loadCmd.MarkFlagRequired("input"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
