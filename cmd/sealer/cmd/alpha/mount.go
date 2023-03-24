@@ -41,8 +41,8 @@ var exampleForMountCmd = `
 `
 
 const (
-	tableHeaderMountPath   = "MOUNT PATH"
-	tableHeaderContainerID = "CONTAINER ID"
+	tableHeaderMountPath = "MOUNT PATH"
+	tableHeaderImageID   = "IMAGE ID"
 )
 
 type MountService struct {
@@ -106,7 +106,7 @@ func NewMountService() (MountService, error) {
 	}
 
 	table := tablewriter.NewWriter(common.StdOut)
-	table.SetHeader([]string{tableHeaderContainerID, tableHeaderMountPath})
+	table.SetHeader([]string{tableHeaderImageID, tableHeaderMountPath})
 
 	return MountService{
 		table:      table,
@@ -130,8 +130,8 @@ func (m MountService) Show() error {
 		}
 		for _, container := range m.containers {
 			if client.ContainerID == container.ID && mounted {
-				containerID := imagebuildah.TruncateID(client.ContainerID, true)
-				m.table.Append([]string{containerID, client.MountPoint})
+				imageID := imagebuildah.TruncateID(container.ImageID, true)
+				m.table.Append([]string{imageID, client.MountPoint})
 			}
 		}
 	}
@@ -140,13 +140,12 @@ func (m MountService) Show() error {
 }
 
 func (m MountService) getMountedImageID(container storage.Container) string {
-	var imageID string
 	for _, image := range m.images {
 		if container.ImageID == image.ID {
-			imageID = image.ID
+			return image.ID
 		}
 	}
-	return imageID
+	return ""
 }
 
 func (m MountService) getImageID(name string) string {

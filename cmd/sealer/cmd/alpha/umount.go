@@ -17,6 +17,7 @@ package alpha
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/containers/buildah"
 	"github.com/sirupsen/logrus"
@@ -32,7 +33,7 @@ var (
 umount the sealer image and delete the mount directory
 `
 	exampleForUmountCmd = `
-  sealer alpha umount containerID
+  sealer alpha umount imageID
   sealer alpha umount --all
 `
 )
@@ -72,7 +73,14 @@ func NewUmountCmd() *cobra.Command {
 	return umountCmd
 }
 
-func (m MountService) Umount(containerID string) error {
+func (m MountService) Umount(imageID string) error {
+	var containerID string
+	for _, cid := range m.containers {
+		if strings.HasPrefix(cid.ImageID, imageID) {
+			containerID = cid.ID
+		}
+	}
+
 	client, err := imagebuildah.OpenBuilder(context.TODO(), m.store, containerID)
 	if err != nil {
 		return fmt.Errorf("failed to reading build container %s: %w", containerID, err)
@@ -80,6 +88,9 @@ func (m MountService) Umount(containerID string) error {
 
 	if err := client.Unmount(); err != nil {
 		return fmt.Errorf("failed to unmount container %q: %w", client.Container, err)
+	}
+	if err := client.Delete(); err != nil {
+		return err
 	}
 	logrus.Infof("umount %s successful", containerID)
 	return nil
@@ -97,6 +108,9 @@ func (m MountService) UmountAllContainers() error {
 
 		if err := client.Unmount(); err != nil {
 			return fmt.Errorf("failed to unmount container %q: %w", client.Container, err)
+		}
+		if err := client.Delete(); err != nil {
+			return err
 		}
 	}
 	return nil
