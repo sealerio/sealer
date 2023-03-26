@@ -66,7 +66,7 @@ const (
 	KubeadmV1beta3 = "kubeadm.k8s.io/v1beta3"
 )
 
-// LoadFromClusterfile :Load KubeadmConfig from Clusterfile.
+// LoadFromClusterfile: Load KubeadmConfig from Clusterfile.
 // If it has `KubeadmConfig` in Clusterfile, load every field to each configuration.
 // If Kubeadm raw config in Clusterfile, just load it.
 func (k *KubeadmConfig) LoadFromClusterfile(kubeadmConfig KubeadmConfig) error {

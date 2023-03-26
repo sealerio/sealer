@@ -43,6 +43,11 @@ const (
 	ClusterfileConfigMapDataName  = "Clusterfile"
 )
 
+const (
+	ClusterfileSecretNamespace = "kube-system"
+	ClusterfileSecretName      = "sealer-clusterfile-local-registry"
+)
+
 type Interface interface {
 	GetCluster() v2.Cluster
 	SetCluster(v2.Cluster)
@@ -107,6 +112,7 @@ func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 	if err != nil {
 		return err
 	}
+
 	clusterfileBytes = append(clusterfileBytes, cluster)
 
 	if len(c.configs) != 0 {
@@ -144,7 +150,7 @@ func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 		}
 		clusterfileBytes = append(clusterfileBytes, joinConfiguration)
 	}
-	
+
 	if len(c.kubeadmConfig.ClusterConfiguration.TypeMeta.Kind) != 0 {
 		clusterConfiguration, err := yaml.Marshal(c.kubeadmConfig.ClusterConfiguration)
 		if err != nil {
@@ -176,12 +182,14 @@ func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 	}
 
 	if opts.CommitToCluster {
-		return saveToCluster(content, opts.ConfPath)
+		saveConfigMapToCluster(content, opts.ConfPath)
+		saveSecretToCluster(content, opts.ConfPath)
+		return nil
 	}
 	return nil
 }
 
-func saveToCluster(data []byte, confPath string) error {
+func saveConfigMapToCluster(data []byte, confPath string) error {
 	if confPath == "" {
 		confPath = kubernetes.AdminKubeConfPath
 	}
@@ -206,6 +214,50 @@ func saveToCluster(data []byte, confPath string) error {
 
 		if err := cli.Update(ctx, cm, &client.UpdateOptions{}); err != nil {
 			return fmt.Errorf("unable to update configmap: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// saveSecretToCluster saves the cluster configuration file to a Kubernetes cluster as a Secret object.
+// This function uses the Kubernetes API client to create or update a Secret object with the local registry configuration data.
+func saveSecretToCluster(data []byte, confPath string) error {
+	if confPath == "" {
+		confPath = kubernetes.AdminKubeConfPath
+	}
+
+	cli, err := kubernetes.GetClientFromConfig(confPath)
+	if err != nil {
+		return fmt.Errorf("failed to new k8s runtime client via adminconf: %v", err)
+	}
+
+	var config map[string]interface{}
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		return err
+	}
+
+	if localRegistry, ok := config["spec"].(map[string]interface{})["registry"].(map[string]interface{})["localRegistry"]; ok {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ClusterfileSecretName,
+				Namespace: ClusterfileSecretNamespace,
+			},
+			Data: map[string][]byte{
+				"localRegistry": []byte(fmt.Sprintf("%v", localRegistry)),
+			},
+		}
+
+		ctx := context.Background()
+		if err := cli.Create(ctx, secret, &client.CreateOptions{}); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return fmt.Errorf("unable to create secret: %v", err)
+			}
+
+			if err := cli.Update(ctx, secret, &client.UpdateOptions{}); err != nil {
+				return fmt.Errorf("unable to update secret: %v", err)
+			}
 		}
 	}
 

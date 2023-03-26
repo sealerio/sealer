@@ -20,12 +20,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
+	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-
-	"github.com/sealerio/sealer/common"
+	"github.com/stretchr/testify/assert"
 )
 
 var defaultHA = true

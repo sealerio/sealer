@@ -414,6 +414,7 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 	if err != nil {
 		return err
 	}
+	
 	infraDriver.AddClusterEnv(request.Envs)
 
 	if !request.SkipPrepareAppMaterials {
