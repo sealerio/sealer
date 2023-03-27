@@ -102,6 +102,7 @@ func NewRunCmd() *cobra.Command {
 				Image:      args[0],
 				Platform:   "local",
 			})
+
 			if err != nil {
 				return err
 			}
@@ -413,6 +414,7 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 	if err != nil {
 		return err
 	}
+	
 	infraDriver.AddClusterEnv(request.Envs)
 
 	if !request.SkipPrepareAppMaterials {

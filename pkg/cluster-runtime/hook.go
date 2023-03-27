@@ -54,7 +54,7 @@ const (
 	PreScaleUpCluster Phase = "pre-scaleup"
 	//PostScaleUpCluster on master0: will run after scaleup cluster
 	PostScaleUpCluster Phase = "post-scaleup"
-	//UpgradeHost on master0: will run for upgrading cluster 
+	//UpgradeHost on master0: will run for upgrading cluster
 	UpgradeCluster Phase = "upgrade"
 
 	//PreInitHost on role: will run before init cluster host
