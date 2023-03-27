@@ -24,14 +24,13 @@ all: tidy gen add-copyright format lint cover build
 ROOT_PACKAGE=github.com/sealerio/sealer
 VERSION_PACKAGE=github.com/sealerio/sealer/pkg/version
 
-Dirs=$(shell ls)
-
 # ==============================================================================
 # Includes
 
 include scripts/make-rules/common.mk # make sure include common.mk at the first include line
 include scripts/make-rules/golang.mk
 include scripts/make-rules/image.mk
+include scripts/make-rules/deploy.mk
 include scripts/make-rules/copyright.mk
 include scripts/make-rules/gen.mk
 include scripts/make-rules/ca.mk
@@ -47,36 +46,27 @@ define USAGE_OPTIONS
 
 Options:
   DEBUG            Whether to generate debug symbols. Default is 0.
-
   BINS             The binaries to build. Default is all of cmd.
                    This option is available when using: make build/build.multiarch
                    Example: make build BINS="iam-apiserver iam-authz-server"
-
   IMAGES           Backend images to make. Default is all of cmd starting with iam-.
                    This option is available when using: make image/image.multiarch/push/push.multiarch
                    Example: make image.multiarch IMAGES="iam-apiserver iam-authz-server"
-
   REGISTRY_PREFIX  Docker registry prefix. Default is marmotedu. 
                    Example: make push REGISTRY_PREFIX=ccr.ccs.tencentyun.com/marmotedu VERSION=v1.6.2
-
   PLATFORMS        The multiple platforms to build. Default is linux_amd64 and linux_arm64.
                    This option is available when using: make build.multiarch/image.multiarch/push.multiarch
                    Example: make image.multiarch IMAGES="iam-apiserver iam-pump" PLATFORMS="linux_amd64 linux_arm64"
-
   VERSION          The version information compiled into binaries.
                    The default is obtained from gsemver or git.
-
   V                Set to 1 enable verbose build. Default is 0.
 endef
 export USAGE_OPTIONS
 
 # ==============================================================================
 # Targets
-GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
 
-TOOLS_DIR := hack/build.sh
+Dirs=$(shell ls)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifneq (,$(shell go env GOBIN))
@@ -85,52 +75,48 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-## fmt: Run go fmt against code.
-.PHONY: fmt
-fmt:
+
+fmt: ## Run go fmt against code.
 	go fmt ./...
 
 ## vet: Run go vet against code.
-.PHONY: vet
 vet:
 	go vet ./...
 
 ## lint: Run go lint against code.
-.PHONY: lint
 lint:
 	golangci-lint run -v ./...
 
-## style: code style -> fmt,vet,lint
-.PHONY: style
+## style: code style: fmt,vet,lint
 style: fmt vet lint
 
 ## build: Build binaries by default
 build: clean
-	@echo "===========> build sealer and seautil bin"
-	@scripts/build.sh
+	@echo "build sealer and seautil bin"
+	scripts/build.sh
 
-## linux-amd64: Build binaries for Linux (amd64)
-linux-amd64: clean
-	@echo "Building sealer and seautil binaries for Linux (amd64)"
-	GOOS=linux GOARCH=amd64 $(TOOLS_DIR) $(GIT_TAG)
+## linux: Build binaries for linux
+linux: clean
+	@echo "build sealer and seautil bin for linux"
+	GOOS=linux GOARCH=amd64 hack/build.sh $(GitTag)
 
-## linux-arm64: Build binaries for Linux (arm64)
+## linux-arm64: build binaries for linux
 linux-arm64: clean
-	@echo "Building sealer and seautil binaries for Linux (arm64)"
-	GOOS=linux GOARCH=arm64 $(TOOLS_DIR) $(GIT_TAG)
+	@echo "build sealer and seautil bin for linux"
+	GOOS=linux GOARCH=arm64 hack/build.sh $(GitTag)
 
-## build-in-docker: sealer should be compiled in linux platform, otherwise there will be GraphDriver problem.
+# sealer should be compiled in linux platform, otherwise there will be GraphDriver problem.
 build-in-docker:
 	docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
 
-## clean: Remove all files that are created by building. 
-.PHONY: clean
-clean:
-	@echo "===========> Cleaning all build output"
-	@-rm -rf _output
+test-sealer:
+	@echo "run e2e test for sealer bin"
+	hack/test-sealer.sh
 
-## install-addlicense: check license if not exist install addlicense tools
-install-addlicense:
+clean: ## clean
+	@rm -rf _output
+
+install-addlicense: ## check license if not exist install addlicense tools
 ifeq (, $(shell which addlicense))
 	@{ \
 	set -e ;\
@@ -146,17 +132,15 @@ ADDLICENSE_BIN=$(shell which addlicense)
 endif
 
 filelicense: SHELL:=/bin/bash
-## filelicense: add license
-filelicense:
+filelicense: ## add license
 	for file in ${Dirs} ; do \
 		if [[  $$file != '_output' && $$file != 'docs' && $$file != 'vendor' && $$file != 'logger' && $$file != 'applications' ]]; then \
-			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f scripts/LICENSE_TEMPLATE ./$$file ; \
+			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f hack/LICENSE_TEMPLATE ./$$file ; \
 		fi \
     done
 
 
-## install-gosec: check license if not exist install addlicense tools
-install-gosec:
+install-gosec: ## check license if not exist install addlicense tools
 ifeq (, $(shell which gosec))
 	@{ \
 	set -e ;\
