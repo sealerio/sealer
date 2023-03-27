@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -95,8 +94,13 @@ type InitConfig struct {
 // NewNetworkInterface creates the ContainerNetwork interface for the netavark backend.
 // Note: The networks are not loaded from disk until a method is called.
 func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
-	// TODO: consider using a shared memory lock
-	lock, err := lockfile.GetLockfile(filepath.Join(conf.NetworkConfigDir, "netavark.lock"))
+	// root needs to use a globally unique lock because there is only one host netns
+	lockPath := defaultRootLockPath
+	if unshare.IsRootless() {
+		lockPath = filepath.Join(conf.NetworkConfigDir, "netavark.lock")
+	}
+
+	lock, err := lockfile.GetLockFile(lockPath)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +178,7 @@ func (n *netavarkNetwork) loadNetworks() error {
 	n.networks = nil
 	n.modTime = modTime
 
-	files, err := ioutil.ReadDir(n.networkConfigDir)
+	files, err := os.ReadDir(n.networkConfigDir)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}

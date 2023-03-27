@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"unicode"
 
 	"github.com/containers/storage/types"
 )
@@ -16,12 +17,12 @@ func GetRootlessRuntimeDir(rootlessUID int) (string, error) {
 	return types.GetRootlessRuntimeDir(rootlessUID)
 }
 
-// DefaultStoreOptionsAutoDetectUID returns the default storage ops for containers
+// DefaultStoreOptionsAutoDetectUID returns the default storage options for containers
 func DefaultStoreOptionsAutoDetectUID() (types.StoreOptions, error) {
 	return types.DefaultStoreOptionsAutoDetectUID()
 }
 
-// DefaultStoreOptions returns the default storage ops for containers
+// DefaultStoreOptions returns the default storage options for containers
 func DefaultStoreOptions(rootless bool, rootlessUID int) (types.StoreOptions, error) {
 	return types.DefaultStoreOptions(rootless, rootlessUID)
 }
@@ -71,4 +72,16 @@ func applyNameOperation(oldNames []string, opParameters []string, op updateNameO
 		return result, errInvalidUpdateNameOperation
 	}
 	return dedupeNames(result), nil
+}
+
+func nameLooksLikeID(name string) bool {
+	if len(name) != 64 {
+		return false
+	}
+	for _, c := range name {
+		if !unicode.Is(unicode.ASCII_Hex_Digit, c) {
+			return false
+		}
+	}
+	return true
 }

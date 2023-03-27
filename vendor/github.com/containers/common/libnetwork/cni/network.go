@@ -18,8 +18,11 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/lockfile"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
 )
+
+const defaultRootLockPath = "/run/lock/podman-cni.lock"
 
 type cniNetwork struct {
 	// cniConfigDir is directory where the cni config files are stored.
@@ -62,6 +65,8 @@ type InitConfig struct {
 	CNIConfigDir string
 	// CNIPluginDirs is a list of directories where cni should look for the plugins.
 	CNIPluginDirs []string
+	// RunDir is a directory where temporary files can be stored.
+	RunDir string
 
 	// DefaultNetwork is the name for the default network.
 	DefaultNetwork string
@@ -78,8 +83,13 @@ type InitConfig struct {
 // NewCNINetworkInterface creates the ContainerNetwork interface for the CNI backend.
 // Note: The networks are not loaded from disk until a method is called.
 func NewCNINetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
-	// TODO: consider using a shared memory lock
-	lock, err := lockfile.GetLockfile(filepath.Join(conf.CNIConfigDir, "cni.lock"))
+	// root needs to use a globally unique lock because there is only one host netns
+	lockPath := defaultRootLockPath
+	if unshare.IsRootless() {
+		lockPath = filepath.Join(conf.CNIConfigDir, "cni.lock")
+	}
+
+	lock, err := lockfile.GetLockFile(lockPath)
 	if err != nil {
 		return nil, err
 	}
@@ -131,11 +141,15 @@ func (n *cniNetwork) DefaultNetworkName() string {
 
 func (n *cniNetwork) loadNetworks() error {
 	// check the mod time of the config dir
+	var modTime time.Time
 	f, err := os.Stat(n.cniConfigDir)
-	if err != nil {
+	// ignore error if the file does not exists
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	modTime := f.ModTime()
+	if err == nil {
+		modTime = f.ModTime()
+	}
 
 	// skip loading networks if they are already loaded and
 	// if the config dir was not modified since the last call

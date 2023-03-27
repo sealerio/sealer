@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +19,8 @@ import (
 	"github.com/containers/buildah/pkg/util"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/types"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -47,6 +48,18 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	output := ""
 	cleanTmpFile := false
 	tags := []string{}
+	if iopts.Network == "none" {
+		if c.Flag("dns").Changed {
+			return options, nil, nil, errors.New("the --dns option cannot be used with --network=none")
+		}
+		if c.Flag("dns-option").Changed {
+			return options, nil, nil, errors.New("the --dns-option option cannot be used with --network=none")
+		}
+		if c.Flag("dns-search").Changed {
+			return options, nil, nil, errors.New("the --dns-search option cannot be used with --network=none")
+		}
+
+	}
 	if c.Flag("tag").Changed {
 		tags = iopts.Tag
 		if len(tags) > 0 {
@@ -147,7 +160,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		// The context directory could be a URL.  Try to handle that.
 		tempDir, subDir, err := define.TempDirForURL("", "buildah", cliArgs[0])
 		if err != nil {
-			return options, nil, nil, fmt.Errorf("error prepping temporary context directory: %w", err)
+			return options, nil, nil, fmt.Errorf("prepping temporary context directory: %w", err)
 		}
 		if tempDir != "" {
 			// We had to download it to a temporary directory.
@@ -158,7 +171,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			// Nope, it was local.  Use it as is.
 			absDir, err := filepath.Abs(cliArgs[0])
 			if err != nil {
-				return options, nil, nil, fmt.Errorf("error determining path to directory: %w", err)
+				return options, nil, nil, fmt.Errorf("determining path to directory: %w", err)
 			}
 			contextDir = absDir
 		}
@@ -176,7 +189,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 
 	contextDir, err = filepath.EvalSymlinks(contextDir)
 	if err != nil {
-		return options, nil, nil, fmt.Errorf("error evaluating symlinks in build context path: %w", err)
+		return options, nil, nil, fmt.Errorf("evaluating symlinks in build context path: %w", err)
 	}
 
 	var stdin io.Reader
@@ -197,7 +210,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 
 	systemContext, err := parse.SystemContextFromOptions(c)
 	if err != nil {
-		return options, nil, nil, fmt.Errorf("error building system context: %w", err)
+		return options, nil, nil, fmt.Errorf("building system context: %w", err)
 	}
 
 	isolation, err := parse.IsolationOption(iopts.Isolation)
@@ -253,7 +266,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	}
 	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c, isolation)
 	if err != nil {
-		return options, nil, nil, fmt.Errorf("error parsing ID mapping options: %w", err)
+		return options, nil, nil, fmt.Errorf("parsing ID mapping options: %w", err)
 	}
 	namespaceOptions.AddOrReplace(usernsOption...)
 
@@ -269,7 +282,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 
 	var excludes []string
 	if iopts.IgnoreFile != "" {
-		if excludes, _, err = parse.ContainerIgnoreFile(contextDir, iopts.IgnoreFile); err != nil {
+		if excludes, _, err = parse.ContainerIgnoreFile(contextDir, iopts.IgnoreFile, containerfiles); err != nil {
 			return options, nil, nil, err
 		}
 	}
@@ -287,18 +300,18 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			iopts.Quiet = true
 		}
 	}
-	var cacheTo reference.Named
-	var cacheFrom reference.Named
+	var cacheTo []reference.Named
+	var cacheFrom []reference.Named
 	cacheTo = nil
 	cacheFrom = nil
 	if c.Flag("cache-to").Changed {
-		cacheTo, err = parse.RepoNameToNamedReference(iopts.CacheTo)
+		cacheTo, err = parse.RepoNamesToNamedReferences(iopts.CacheTo)
 		if err != nil {
 			return options, nil, nil, fmt.Errorf("unable to parse value provided `%s` to --cache-to: %w", iopts.CacheTo, err)
 		}
 	}
 	if c.Flag("cache-from").Changed {
-		cacheFrom, err = parse.RepoNameToNamedReference(iopts.CacheFrom)
+		cacheFrom, err = parse.RepoNamesToNamedReferences(iopts.CacheFrom)
 		if err != nil {
 			return options, nil, nil, fmt.Errorf("unable to parse value provided `%s` to --cache-from: %w", iopts.CacheTo, err)
 		}
@@ -309,7 +322,37 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		if err != nil {
 			return options, nil, nil, fmt.Errorf("unable to parse value provided %q as --cache-ttl: %w", iopts.CacheTTL, err)
 		}
+		// If user explicitly specified `--cache-ttl=0s`
+		// it would effectively mean that user is asking
+		// to use no cache at all. In such use cases
+		// buildah can skip looking for cache entierly
+		// by setting `--no-cache=true` internally.
+		if int64(cacheTTL) == 0 {
+			logrus.Debug("Setting --no-cache=true since --cache-ttl was set to 0s which effectively means user wants to ignore cache")
+			if c.Flag("no-cache").Changed && !iopts.NoCache {
+				return options, nil, nil, fmt.Errorf("cannot use --cache-ttl with duration as 0 and --no-cache=false")
+			}
+			iopts.NoCache = true
+		}
 	}
+	var pullPushRetryDelay time.Duration
+	pullPushRetryDelay, err = time.ParseDuration(iopts.RetryDelay)
+	if err != nil {
+		return options, nil, nil, fmt.Errorf("unable to parse value provided %q as --retry-delay: %w", iopts.RetryDelay, err)
+	}
+	// Following log line is used in integration test.
+	logrus.Debugf("Setting MaxPullPushRetries to %d and PullPushRetryDelay to %v", iopts.Retry, pullPushRetryDelay)
+
+	if c.Flag("network").Changed && c.Flag("isolation").Changed {
+		if isolation == define.IsolationChroot {
+			if ns := namespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil {
+				if !ns.Host {
+					return options, nil, nil, fmt.Errorf("cannot set --network other than host with --isolation %s", c.Flag("isolation").Value.String())
+				}
+			}
+		}
+	}
+
 	options = define.BuildOptions{
 		AddCapabilities:         iopts.CapAdd,
 		AdditionalBuildContexts: additionalBuildContext,
@@ -337,6 +380,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Excludes:                excludes,
 		ForceRmIntermediateCtrs: iopts.ForceRm,
 		From:                    iopts.From,
+		GroupAdd:                iopts.GroupAdd,
 		IDMappingOptions:        idmappingOptions,
 		IIDFile:                 iopts.Iidfile,
 		IgnoreFile:              iopts.IgnoreFile,
@@ -349,7 +393,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		LogRusage:               iopts.LogRusage,
 		LogSplitByPlatform:      iopts.LogSplitByPlatform,
 		Manifest:                iopts.Manifest,
-		MaxPullPushRetries:      MaxPullPushRetries,
+		MaxPullPushRetries:      iopts.Retry,
 		NamespaceOptions:        namespaceOptions,
 		NoCache:                 iopts.NoCache,
 		OS:                      systemContext.OSChoice,
@@ -361,7 +405,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		OutputFormat:            format,
 		Platforms:               platforms,
 		PullPolicy:              pullPolicy,
-		PullPushRetryDelay:      PullPushRetryDelay,
+		PullPushRetryDelay:      pullPushRetryDelay,
 		Quiet:                   iopts.Quiet,
 		RemoveIntermediateCtrs:  iopts.Rm,
 		ReportWriter:            reporter,
@@ -370,6 +414,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		RusageLogFile:           iopts.RusageLogFile,
 		SignBy:                  iopts.SignBy,
 		SignaturePolicyPath:     iopts.SignaturePolicy,
+		SkipUnusedStages:        types.NewOptionalBool(iopts.SkipUnusedStages),
 		Squash:                  iopts.Squash,
 		SystemContext:           systemContext,
 		Target:                  iopts.Target,
@@ -378,7 +423,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		UnsetEnvs:               iopts.UnsetEnvs,
 	}
 	if iopts.Quiet {
-		options.ReportWriter = ioutil.Discard
+		options.ReportWriter = io.Discard
 	}
 	return options, containerfiles, removeAll, nil
 }

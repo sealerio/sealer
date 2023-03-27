@@ -23,11 +23,11 @@ sudo yum -y install buildah
 #### [Debian](https://debian.org)
 
 The buildah package is available in
-the [Bullseye (testing) branch](https://packages.debian.org/bullseye/buildah), which
-will be the next stable release (Debian 11) as well as Debian Unstable/Sid.
+the [Bullseye](https://packages.debian.org/bullseye/buildah), which
+is the current stable release (Debian 11), as well as Debian Unstable/Sid.
 
 ```bash
-# Debian Testing/Bullseye or Unstable/Sid
+# Debian Stable/Bullseye or Unstable/Sid
 sudo apt-get update
 sudo apt-get -y install buildah
 ```
@@ -52,9 +52,9 @@ rpm-ostree install buildah
 Note: [`podman`](https://podman.io) build is available by default.
 
 ### [Gentoo](https://www.gentoo.org)
-[app-containers/podman](https://packages.gentoo.org/packages/app-containers/podman)
+[app-containers/buildah](https://packages.gentoo.org/packages/app-containers/buildah)
 ```bash
-sudo emerge app-containers/podman
+sudo emerge app-containers/buildah
 ```
 
 ### [openSUSE](https://www.opensuse.org)

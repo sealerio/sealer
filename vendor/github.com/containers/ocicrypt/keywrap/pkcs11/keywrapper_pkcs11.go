@@ -17,12 +17,13 @@
 package pkcs11
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/containers/ocicrypt/config"
 	"github.com/containers/ocicrypt/crypto/pkcs11"
 	"github.com/containers/ocicrypt/keywrap"
 	"github.com/containers/ocicrypt/utils"
-
-	"github.com/pkg/errors"
 )
 
 type pkcs11KeyWrapper struct {
@@ -51,7 +52,7 @@ func (kw *pkcs11KeyWrapper) WrapKeys(ec *config.EncryptConfig, optsData []byte) 
 
 	jsonString, err := pkcs11.EncryptMultiple(pkcs11Recipients, optsData)
 	if err != nil {
-		return nil, errors.Wrapf(err, "PKCS11 EncryptMulitple failed")
+		return nil, fmt.Errorf("PKCS11 EncryptMulitple failed: %w", err)
 	}
 	return jsonString, nil
 }
@@ -91,7 +92,7 @@ func (kw *pkcs11KeyWrapper) UnwrapKey(dc *config.DecryptConfig, jsonString []byt
 		return plaintext, nil
 	}
 
-	return nil, errors.Wrapf(err, "PKCS11: No suitable private key found for decryption")
+	return nil, fmt.Errorf("PKCS11: No suitable private key found for decryption: %w", err)
 }
 
 func (kw *pkcs11KeyWrapper) NoPossibleKeys(dcparameters map[string][][]byte) bool {
@@ -139,7 +140,7 @@ func addPubKeys(dc *config.DecryptConfig, pubKeys [][]byte) ([]interface{}, erro
 	return pkcs11Keys, nil
 }
 
-func p11confFromParameters(dcparameters map[string][][]byte) (*pkcs11.Pkcs11Config, error){
+func p11confFromParameters(dcparameters map[string][][]byte) (*pkcs11.Pkcs11Config, error) {
 	if _, ok := dcparameters["pkcs11-config"]; ok {
 		return pkcs11.ParsePkcs11ConfigFile(dcparameters["pkcs11-config"][0])
 	}

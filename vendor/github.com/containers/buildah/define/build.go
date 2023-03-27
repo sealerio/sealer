@@ -67,6 +67,8 @@ type CommonBuildOptions struct {
 	// NoHosts tells the builder not to create /etc/hosts content when running
 	// containers.
 	NoHosts bool
+	// NoNewPrivileges removes the ability for the container to gain privileges
+	NoNewPrivileges bool
 	// OmitTimestamp forces epoch 0 as created timestamp to allow for
 	// deterministic, content-addressable builds.
 	OmitTimestamp bool
@@ -139,10 +141,10 @@ type BuildOptions struct {
 	TransientMounts []string
 	// CacheFrom specifies any remote repository which can be treated as
 	// potential cache source.
-	CacheFrom reference.Named
+	CacheFrom []reference.Named
 	// CacheTo specifies any remote repository which can be treated as
 	// potential cache destination.
-	CacheTo reference.Named
+	CacheTo []reference.Named
 	// CacheTTL specifies duration, if specified using `--cache-ttl` then
 	// cache intermediate images under this duration will be considered as
 	// valid cache sources and images outside this duration will be ignored.
@@ -186,6 +188,10 @@ type BuildOptions struct {
 	// specified, indicating that the shared, system-wide default policy
 	// should be used.
 	SignaturePolicyPath string
+	// SkipUnusedStages allows users to skip stages in a multi-stage builds
+	// which do not contribute anything to the target stage. Expected default
+	// value is true.
+	SkipUnusedStages types.OptionalBool
 	// ReportWriter is an io.Writer which will be used to report the
 	// progress of the (possible) pulling of the source image and the
 	// writing of the new image.
@@ -292,6 +298,10 @@ type BuildOptions struct {
 	// From is the image name to use to replace the value specified in the first
 	// FROM instruction in the Containerfile
 	From string
+	// GroupAdd is a list of groups to add to the primary process within
+	// the container. 'keep-groups' allows container processes to use
+	// supplementary groups.
+	GroupAdd []string
 	// Platforms is the list of parsed OS/Arch/Variant triples that we want
 	// to build the image for.  If this slice has items in it, the OS and
 	// Architecture fields above are ignored.

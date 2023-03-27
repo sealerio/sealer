@@ -1,15 +1,11 @@
 package config
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -24,19 +20,6 @@ import (
 )
 
 const (
-	// _conmonMinMajorVersion is the major version required for conmon.
-	_conmonMinMajorVersion = 2
-
-	// _conmonMinMinorVersion is the minor version required for conmon.
-	_conmonMinMinorVersion = 0
-
-	// _conmonMinPatchVersion is the sub-minor version required for conmon.
-	_conmonMinPatchVersion = 1
-
-	// _conmonVersionFormatErr is used when the expected versio-format of conmon
-	// has changed.
-	_conmonVersionFormatErr = "conmon version changed format: %w"
-
 	// _defaultGraphRoot points to the default path of the graph root.
 	_defaultGraphRoot = "/var/lib/containers/storage"
 
@@ -67,20 +50,16 @@ var (
 	DefaultHooksDirs = []string{"/usr/share/containers/oci/hooks.d"}
 	// DefaultCapabilities is the default for the default_capabilities option in the containers.conf file.
 	DefaultCapabilities = []string{
-		"CAP_AUDIT_WRITE",
 		"CAP_CHOWN",
 		"CAP_DAC_OVERRIDE",
 		"CAP_FOWNER",
 		"CAP_FSETID",
 		"CAP_KILL",
-		"CAP_MKNOD",
 		"CAP_NET_BIND_SERVICE",
-		"CAP_NET_RAW",
 		"CAP_SETFCAP",
 		"CAP_SETGID",
 		"CAP_SETPCAP",
 		"CAP_SETUID",
-		"CAP_SYS_CHROOT",
 	}
 
 	// Search these locations in which CNIPlugins can be installed.
@@ -140,9 +119,6 @@ const (
 	DefaultPidsLimit = 2048
 	// DefaultPullPolicy pulls the image if it does not exist locally.
 	DefaultPullPolicy = "missing"
-	// DefaultSignaturePolicyPath is the default value for the
-	// policy.json file.
-	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
 	// DefaultSubnet is the subnet that will be used for the default
 	// network.
 	DefaultSubnet = "10.88.0.0/16"
@@ -152,6 +128,7 @@ const (
 	// DefaultShmSize is the default upper limit on the size of tmpfs mounts.
 	DefaultShmSize = "65536k"
 	// DefaultUserNSSize indicates the default number of UIDs allocated for user namespace within a container.
+	// Deprecated: no user of this field is known.
 	DefaultUserNSSize = 65536
 	// OCIBufSize limits maximum LogSizeMax.
 	OCIBufSize = 8192
@@ -159,6 +136,8 @@ const (
 	SeccompOverridePath = _etcDir + "/containers/seccomp.json"
 	// SeccompDefaultPath defines the default seccomp path.
 	SeccompDefaultPath = _installPrefix + "/share/containers/seccomp.json"
+	// DefaultVolumePluginTimeout is the default volume plugin timeout, in seconds
+	DefaultVolumePluginTimeout = 5
 )
 
 // DefaultConfig defines the default values from containers.conf.
@@ -169,7 +148,7 @@ func DefaultConfig() (*Config, error) {
 	}
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-	if unshare.IsRootless() {
+	if useUserConfigLocations() {
 		configHome, err := homedir.GetConfigHome()
 		if err != nil {
 			return nil, err
@@ -224,7 +203,7 @@ func DefaultConfig() (*Config, error) {
 			TZ:         "",
 			Umask:      "0022",
 			UTSNS:      "private",
-			UserNSSize: DefaultUserNSSize,
+			UserNSSize: DefaultUserNSSize, // Deprecated
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:     "podman",
@@ -255,7 +234,7 @@ func defaultMachineConfig() MachineConfig {
 		Image:    getDefaultMachineImage(),
 		Memory:   2048,
 		User:     getDefaultMachineUser(),
-		Volumes:  []string{"$HOME:$HOME"},
+		Volumes:  getDefaultMachineVolumes(),
 	}
 }
 
@@ -269,16 +248,16 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	}
 	c.TmpDir = tmp
 
-	c.EventsLogFilePath = filepath.Join(c.TmpDir, "events", "events.log")
-
 	c.EventsLogFileMaxSize = eventsLogMaxSize(DefaultEventsLogSizeMax)
 
 	c.CompatAPIEnforceDockerHub = true
 
 	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
-		types.SetDefaultConfigFilePath(path)
+		if err := types.SetDefaultConfigFilePath(path); err != nil {
+			return nil, err
+		}
 	}
-	storeOpts, err := types.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
+	storeOpts, err := types.DefaultStoreOptions(useUserConfigLocations(), unshare.GetRootlessUID())
 	if err != nil {
 		return nil, err
 	}
@@ -287,10 +266,13 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		logrus.Warnf("Storage configuration is unset - using hardcoded default graph root %q", _defaultGraphRoot)
 		storeOpts.GraphRoot = _defaultGraphRoot
 	}
+
 	c.graphRoot = storeOpts.GraphRoot
 	c.ImageCopyTmpDir = getDefaultTmpDir()
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
+
+	c.VolumePluginTimeout = DefaultVolumePluginTimeout
 
 	c.HelperBinariesDir = defaultHelperBinariesDir
 	if additionalHelperBinariesDir != "" {
@@ -317,6 +299,15 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/sbin/crun",
 			"/bin/crun",
 			"/run/current-system/sw/bin/crun",
+		},
+		"crun-wasm": {
+			"/usr/bin/crun-wasm",
+			"/usr/sbin/crun-wasm",
+			"/usr/local/bin/crun-wasm",
+			"/usr/local/sbin/crun-wasm",
+			"/sbin/crun-wasm",
+			"/bin/crun-wasm",
+			"/run/current-system/sw/bin/crun-wasm",
 		},
 		"runc": {
 			"/usr/bin/runc",
@@ -350,10 +341,24 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/sbin/runsc",
 			"/run/current-system/sw/bin/runsc",
 		},
+		"youki": {
+			"/usr/local/bin/youki",
+			"/usr/bin/youki",
+			"/bin/youki",
+			"/run/current-system/sw/bin/youki",
+		},
 		"krun": {
 			"/usr/bin/krun",
 			"/usr/local/bin/krun",
 		},
+		"ocijail": {
+			"/usr/local/bin/ocijail",
+		},
+	}
+	c.PlatformToOCIRuntime = map[string]string{
+		"wasi/wasm":   "crun-wasm",
+		"wasi/wasm32": "crun-wasm",
+		"wasi/wasm64": "crun-wasm",
 	}
 	// Needs to be called after populating c.OCIRuntimes.
 	c.OCIRuntime = c.findRuntime()
@@ -371,12 +376,23 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"/usr/local/sbin/conmon",
 		"/run/current-system/sw/bin/conmon",
 	}
+	c.ConmonRsPath = []string{
+		"/usr/libexec/podman/conmonrs",
+		"/usr/local/libexec/podman/conmonrs",
+		"/usr/local/lib/podman/conmonrs",
+		"/usr/bin/conmonrs",
+		"/usr/sbin/conmonrs",
+		"/usr/local/bin/conmonrs",
+		"/usr/local/sbin/conmonrs",
+		"/run/current-system/sw/bin/conmonrs",
+	}
 	c.PullPolicy = DefaultPullPolicy
 	c.RuntimeSupportsJSON = []string{
 		"crun",
 		"runc",
 		"kata",
 		"runsc",
+		"youki",
 		"krun",
 	}
 	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}
@@ -397,12 +413,13 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.ChownCopiedFiles = true
 
 	c.PodExitPolicy = defaultPodExitPolicy
+	c.SSHConfig = getDefaultSSHConfig()
 
 	return c, nil
 }
 
 func defaultTmpDir() (string, error) {
-	if !unshare.IsRootless() {
+	if !useUserConfigLocations() {
 		return getLibpodTmpDir(), nil
 	}
 
@@ -421,57 +438,6 @@ func defaultTmpDir() (string, error) {
 		}
 	}
 	return filepath.Join(libpodRuntimeDir, "tmp"), nil
-}
-
-// probeConmon calls conmon --version and verifies it is a new enough version for
-// the runtime expectations the container engine currently has.
-func probeConmon(conmonBinary string) error {
-	cmd := exec.Command(conmonBinary, "--version")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
-
-	matches := r.FindStringSubmatch(out.String())
-	if len(matches) != 4 {
-		return errors.New(_conmonVersionFormatErr)
-	}
-	major, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return fmt.Errorf(_conmonVersionFormatErr, err)
-	}
-	if major < _conmonMinMajorVersion {
-		return ErrConmonOutdated
-	}
-	if major > _conmonMinMajorVersion {
-		return nil
-	}
-
-	minor, err := strconv.Atoi(matches[2])
-	if err != nil {
-		return fmt.Errorf(_conmonVersionFormatErr, err)
-	}
-	if minor < _conmonMinMinorVersion {
-		return ErrConmonOutdated
-	}
-	if minor > _conmonMinMinorVersion {
-		return nil
-	}
-
-	patch, err := strconv.Atoi(matches[3])
-	if err != nil {
-		return fmt.Errorf(_conmonVersionFormatErr, err)
-	}
-	if patch < _conmonMinPatchVersion {
-		return ErrConmonOutdated
-	}
-	if patch > _conmonMinPatchVersion {
-		return nil
-	}
-
-	return nil
 }
 
 // NetNS returns the default network namespace.
@@ -632,4 +598,18 @@ func machineVolumes(volumes []string) ([]string, error) {
 		translatedVolumes = append(translatedVolumes, vol)
 	}
 	return translatedVolumes, nil
+}
+
+func getDefaultSSHConfig() string {
+	if path, ok := os.LookupEnv("CONTAINERS_SSH_CONF"); ok {
+		return path
+	}
+	dirname := homedir.Get()
+	return filepath.Join(dirname, ".ssh", "config")
+}
+
+func useUserConfigLocations() bool {
+	// NOTE: For now we want Windows to use system locations.
+	// GetRootlessUID == -1 on Windows, so exclude negative range
+	return unshare.GetRootlessUID() > 0
 }
