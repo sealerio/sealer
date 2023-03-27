@@ -243,7 +243,7 @@ func (engine *Engine) wrapper2Options(opts *options.BuildOptions, wrapper *build
 
 	var excludes []string
 	if wrapper.IgnoreFile != "" {
-		if excludes, _, err = parse.ContainerIgnoreFile(contextDir, wrapper.IgnoreFile,nil); err != nil {
+		if excludes, _, err = parse.ContainerIgnoreFile(contextDir, wrapper.IgnoreFile, nil); err != nil {
 			return define.BuildOptions{}, []string{}, err
 		}
 	}
