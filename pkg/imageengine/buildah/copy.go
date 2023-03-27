@@ -67,7 +67,7 @@ func (engine *Engine) Copy(opts *options.CopyOptions) error {
 	if opts.ContextDir != "" {
 		var excludes []string
 
-		excludes, options.IgnoreFile, err = parse.ContainerIgnoreFile(options.ContextDir, opts.IgnoreFile)
+		excludes, options.IgnoreFile, err = parse.ContainerIgnoreFile(options.ContextDir, opts.IgnoreFile,nil)
 		if err != nil {
 			return err
 		}
