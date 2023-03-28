@@ -97,7 +97,7 @@ The better way is to add kubeadm config directly into Clusterfile, of course eve
 You can only define part of those configs, sealer will merge then into default config.
 
 ```yaml
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/v1beta3
 kind: InitConfiguration
 localAPIEndpoint:
   # advertiseAddress: 192.168.2.110
@@ -106,7 +106,7 @@ nodeRegistration:
   criSocket: /var/run/dockershim.sock
 
 ---
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 kubernetesVersion: v1.19.8
 controlPlaneEndpoint: "apiserver.cluster.local:6443"
@@ -250,7 +250,7 @@ streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
 ---
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/v1beta3
 kind: JoinConfiguration
 caCertPath: /etc/kubernetes/pki/ca.crt
 discovery:
