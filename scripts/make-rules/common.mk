@@ -14,6 +14,10 @@
 
 SHELL := /bin/bash
 DIRS=$(shell ls)
+DEBUG ?= 0
+GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
+GIT_COMMIT ?= $(shell git rev-parse --short HEAD || echo "0.0.0")
+BUILD_DATE=$(shell date +%FT%T%z)
 
 # include the common makefile
 COMMON_SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
@@ -25,13 +29,13 @@ endif
 
 # OUTPUT_DIR: The directory where the build output is stored.
 ifeq ($(origin OUTPUT_DIR),undefined)
-OUTPUT_DIR := $(ROOT_DIR)/_output
+OUTPUT_DIR := $(ROOT_DIR)/dist
 $(shell mkdir -p $(OUTPUT_DIR))
 endif
 
 # BIN_DIR: Directory where executable files are stored.
 ifeq ($(origin BIN_DIR),undefined)
-BIN_DIR := $(ROOT_DIR)/bin
+BIN_DIR := $(ROOT_DIR)/out_put
 $(shell mkdir -p $(BIN_DIR))
 endif
 
@@ -75,7 +79,25 @@ else
 	IMAGE_PLAT := $(PLATFORM)
 endif
 
+# Linux command settings
+# TODO: Whether you need to join utils?
+FIND := find . ! -path './utils/*' ! -path './vendor/*'
+XARGS := xargs -r
+# CODE_DIRS := $(ROOT_DIR)/pkg $(ROOT_DIR)/cmd $(ROOT_DIR)/test $(ROOT_DIR)/build
+# FIND := find $(CODE_DIRS)
 
 # Linux command settings
 CODE_DIRS := $(ROOT_DIR)/pkg $(ROOT_DIR)/cmd $(ROOT_DIR)/test $(ROOT_DIR)/staging
 FIND := find $(CODE_DIRS)
+
+# Makefile settings: Select different behaviors by determining whether V option is set
+ifeq ($(origin V), undefined) # ifndef V
+MAKEFLAGS += --no-print-directory
+endif
+
+# COMMA: Concatenate multiple strings to form a list of strings
+COMMA := ,
+# SPACE: Used to separate strings
+SPACE :=
+# SPACE: Replace multiple consecutive Spaces with a single space
+SPACE +=
