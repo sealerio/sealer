@@ -88,7 +88,7 @@ func (n *NodeChecker) Check(cluster *v2.Cluster, phase string) error {
 }
 
 func (n *NodeChecker) Output(nodeCLusterStatus NodeClusterStatus) error {
-	//t1, err := template.ParseFiles("templates/node_checker.tpl")
+	// t1, err := template.ParseFiles("templates/node_checker.tpl")
 	t := template.New("node_checker")
 	t, err := t.Parse(
 		`Cluster Node Status

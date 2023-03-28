@@ -22,3 +22,9 @@ pkg/cloud/dashboard/Cargo.lock
 docs/site/node_modules
 docs/site/package-lock.json
 
+.vscode
+
+# tools is responsible for collecting sealer third party package binary tools
+tools
+#coverage.out
+tmp

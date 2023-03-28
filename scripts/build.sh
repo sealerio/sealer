@@ -65,7 +65,7 @@ ldflags() {
       "-X '${SEALER_GO_PACKAGE}/version.${key}=${val}'"
     )
   }
-  add_ldflag "buildDate" "$(date "+%F %T")"
+  add_ldflag "buildDate" "$(date "+%FT %T %z")"
   if [[ -n ${GIT_COMMIT-} ]]; then
     add_ldflag "gitCommit" "${GIT_COMMIT}"
   fi
@@ -140,4 +140,3 @@ if [[ $MULTI_PLATFORM_BUILD ]]; then
 else
   build_binaries `go env GOOS` `go env GOARCH`
 fi
-

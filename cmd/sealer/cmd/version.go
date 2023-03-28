@@ -20,7 +20,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sealerio/sealer/version"
+	"github.com/sealerio/sealer/pkg/version"
 )
 
 var shortPrint bool

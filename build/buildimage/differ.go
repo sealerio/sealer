@@ -37,7 +37,7 @@ import (
 	osi "github.com/sealerio/sealer/utils/os"
 )
 
-// TODO: update the variable name
+// TODO: update the variable name.
 var (
 	copyToManifests   = "manifests"
 	copyToChart       = "charts"
@@ -45,8 +45,10 @@ var (
 	copyToApplication = "application"
 )
 
-type parseContainerImageStringSliceFunc func(srcPath string) ([]string, error)
-type parseContainerImageListFunc func(srcPath string) ([]*v12.ContainerImage, error)
+type (
+	parseContainerImageStringSliceFunc func(srcPath string) ([]string, error)
+	parseContainerImageListFunc        func(srcPath string) ([]*v12.ContainerImage, error)
+)
 
 var parseContainerImageStringSliceFuncMap = map[string]func(srcPath string) ([]string, error){
 	copyToManifests:   parseYamlImages,
@@ -274,7 +276,6 @@ func parseApplicationKubeImages(kubePath string) ([]string, error) {
 		}
 
 		ima, err := imageSearcher.ListImages(path)
-
 		if err != nil {
 			return err
 		}
@@ -351,7 +352,6 @@ func parseYamlImages(srcPath string) ([]string, error) {
 		}
 
 		ima, err := imageSearcher.ListImages(path)
-
 		if err != nil {
 			return err
 		}

@@ -12,19 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Help by default, even if it's not first
+# ==============================================================================
+# define the default goal
+#
+
 .DEFAULT_GOAL := help
 
 .PHONY: all
 all: tidy gen add-copyright format lint cover build
 
 # ==============================================================================
-# Build options
+# Build set
 
 ROOT_PACKAGE=github.com/sealerio/sealer
 VERSION_PACKAGE=github.com/sealerio/sealer/pkg/version
 
 Dirs=$(shell ls)
+GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+
+BUILD_SCRIPTS := scripts/build.sh
 
 # ==============================================================================
 # Includes
@@ -34,9 +42,6 @@ include scripts/make-rules/golang.mk
 include scripts/make-rules/image.mk
 include scripts/make-rules/copyright.mk
 include scripts/make-rules/gen.mk
-include scripts/make-rules/ca.mk
-include scripts/make-rules/release.mk
-include scripts/make-rules/swagger.mk
 include scripts/make-rules/dependencies.mk
 include scripts/make-rules/tools.mk
 
@@ -46,25 +51,16 @@ include scripts/make-rules/tools.mk
 define USAGE_OPTIONS
 
 Options:
-  DEBUG            Whether to generate debug symbols. Default is 0.
 
-  BINS             The binaries to build. Default is all of cmd.
-                   This option is available when using: make build/build.multiarch
-                   Example: make build BINS="iam-apiserver iam-authz-server"
+  DEBUG            Whether or not to generate debug symbols. Default is 0.
 
-  IMAGES           Backend images to make. Default is all of cmd starting with iam-.
-                   This option is available when using: make image/image.multiarch/push/push.multiarch
-                   Example: make image.multiarch IMAGES="iam-apiserver iam-authz-server"
+  BINS             Binaries to build. Default is all binaries under cmd.
+                   This option is available when using: make {build}(.multiarch)
+                   Example: make build BINS="sealer sealctl"
 
-  REGISTRY_PREFIX  Docker registry prefix. Default is marmotedu. 
-                   Example: make push REGISTRY_PREFIX=ccr.ccs.tencentyun.com/marmotedu VERSION=v1.6.2
-
-  PLATFORMS        The multiple platforms to build. Default is linux_amd64 and linux_arm64.
-                   This option is available when using: make build.multiarch/image.multiarch/push.multiarch
-                   Example: make image.multiarch IMAGES="iam-apiserver iam-pump" PLATFORMS="linux_amd64 linux_arm64"
-
-  VERSION          The version information compiled into binaries.
-                   The default is obtained from gsemver or git.
+  PLATFORMS        Platform to build for. Default is linux_arm64 and linux_amd64.
+                   This option is available when using: make {build}.multiarch
+                   Example: make build.multiarch PLATFORMS="linux_arm64 linux_amd64"
 
   V                Set to 1 enable verbose build. Default is 0.
 endef
@@ -72,18 +68,11 @@ export USAGE_OPTIONS
 
 # ==============================================================================
 # Targets
-GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
 
-TOOLS_DIR := hack/build.sh
-
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifneq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
+## build: Build binaries by default
+.PHONY: build
+build: clean
+	@$(MAKE) go.build
 
 ## fmt: Run go fmt against code.
 .PHONY: fmt
@@ -104,76 +93,47 @@ lint:
 .PHONY: style
 style: fmt vet lint
 
-## build: Build binaries by default
-build: clean
-	@echo "===========> build sealer and seautil bin"
-	@scripts/build.sh
-
 ## linux-amd64: Build binaries for Linux (amd64)
 linux-amd64: clean
 	@echo "Building sealer and seautil binaries for Linux (amd64)"
-	GOOS=linux GOARCH=amd64 $(TOOLS_DIR) $(GIT_TAG)
+	@GOOS=linux GOARCH=amd64 $(BUILD_SCRIPTS) $(GIT_TAG)
 
 ## linux-arm64: Build binaries for Linux (arm64)
 linux-arm64: clean
 	@echo "Building sealer and seautil binaries for Linux (arm64)"
-	GOOS=linux GOARCH=arm64 $(TOOLS_DIR) $(GIT_TAG)
+	@GOOS=linux GOARCH=arm64 $(BUILD_SCRIPTS) $(GIT_TAG)
 
 ## build-in-docker: sealer should be compiled in linux platform, otherwise there will be GraphDriver problem.
 build-in-docker:
-	docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
+	@docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
 
-## clean: Remove all files that are created by building. 
-.PHONY: clean
-clean:
-	@echo "===========> Cleaning all build output"
-	@-rm -rf _output
+## gen: Generate all necessary files.
+.PHONY: gen
+gen:
+	@$(MAKE) gen.run
 
-## install-addlicense: check license if not exist install addlicense tools
-install-addlicense:
-ifeq (, $(shell which addlicense))
-	@{ \
-	set -e ;\
-	LICENSE_TMP_DIR=$$(mktemp -d) ;\
-	cd $$LICENSE_TMP_DIR ;\
-	go mod init tmp ;\
-	go get -v github.com/google/addlicense ;\
-	rm -rf $$LICENSE_TMP_DIR ;\
-	}
-ADDLICENSE_BIN=$(GOBIN)/addlicense
-else
-ADDLICENSE_BIN=$(shell which addlicense)
-endif
+## verify-copyright: Verify the license headers for all files.
+.PHONY: verify-copyright
+verify-license:
+	@$(MAKE) copyright.verify
 
-filelicense: SHELL:=/bin/bash
-## filelicense: add license
-filelicense:
-	for file in ${Dirs} ; do \
-		if [[  $$file != '_output' && $$file != 'docs' && $$file != 'vendor' && $$file != 'logger' && $$file != 'applications' ]]; then \
-			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f scripts/LICENSE_TEMPLATE ./$$file ; \
-		fi \
-    done
-
-
-## install-gosec: check license if not exist install addlicense tools
-install-gosec:
-ifeq (, $(shell which gosec))
-	@{ \
-	set -e ;\
-	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(GOBIN) v2.2.0 ;\
-	}
-GOSEC_BIN=$(GOBIN)/gosec
-else
-GOSEC_BIN=$(shell which gosec)
-endif
+## add-copyright: Add copyright ensure source code files have license headers.
+.PHONY: add-copyright
+add-license:
+	@$(MAKE) copyright.add
 
 gosec: install-gosec
 	$(GOSEC_BIN) ./...
 
+## tools: Install dependent tools.
+.PHONY: tools
+tools:
+	@$(MAKE) tools.install
 
+## install-deepcopy-gen: check license if not exist install deepcopy-gen tools.
 install-deepcopy-gen:
 ifeq (, $(shell which deepcopy-gen))
-	@{ \
+	{ \
 	set -e ;\
 	LICENSE_TMP_DIR=$$(mktemp -d) ;\
 	cd $$LICENSE_TMP_DIR ;\
@@ -186,23 +146,33 @@ else
 DEEPCOPY_BIN=$(shell which deepcopy-gen)
 endif
 
-HEAD_FILE := scripts/boilerplate.go.txt
-INPUT_DIR := github.com/sealerio/sealer/types/api
-deepcopy:install-deepcopy-gen
+# BOILERPLATE := scripts/boilerplate.go.txt
+# INPUT_DIR := github.com/sealerio/sealer/types/api
+
+## deepcopy: generate deepcopy code.
+deepcopy: install-deepcopy-gen
 	$(DEEPCOPY_BIN) \
       --input-dirs="$(INPUT_DIR)/v1" \
       -O zz_generated.deepcopy   \
-      --go-header-file "$(HEAD_FILE)" \
+      --go-header-file "$(BOILERPLATE)" \
       --output-base "${GOPATH}/src"
 	$(DEEPCOPY_BIN) \
 	  --input-dirs="$(INPUT_DIR)/v2" \
 	  -O zz_generated.deepcopy   \
-	  --go-header-file "$(HEAD_FILE)" \
+	  --go-header-file "$(BOILERPLATE)" \
 	  --output-base "${GOPATH}/src"
+
+## clean: Remove all files that are created by building. 
+.PHONY: clean
+clean:
+	@$(MAKE) go.clean
 
 ## help: Show this help info.
 .PHONY: help
 help: Makefile
-	@printf "\nUsage: make <TARGETS> <OPTIONS> ...\n\nTargets:\n"
-	@sed -n 's/^##//p' $< | column -t -s ':' | sed -e 's/^/ /'
-	@echo "$$USAGE_OPTIONS"
+	$(call makehelp)
+
+## all-help: Show all help details info.
+.PHONY: all-help
+all-help: go.help copyright.help tools.help image.help help
+	$(call makeallhelp)
