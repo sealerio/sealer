@@ -30,8 +30,8 @@ var pullOpts *options.PullOptions
 var longNewPullCmdDescription = ``
 
 var exampleForPullCmd = `
-  sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8
-  sealer pull registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.19.8 --platform linux/amd64
+  sealer pull docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
+  sealer pull docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 --platform linux/amd64
 `
 
 // NewPullCmd pullCmd represents the pull command

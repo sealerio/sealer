@@ -56,7 +56,7 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 		}
 	}()
 
-	tempDir, err := os.MkdirTemp("", "sealer-load-tmp")
+	tempDir, err := os.MkdirTemp(opts.TmpDir, "sealer-load-tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
 	}

@@ -1,4 +1,4 @@
-// Copyright © 2021 Alibaba Group Holding Ltd.
+// Copyright © 2023 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -41,6 +40,7 @@ var longUpgradeCmdDescription = `upgrade command is used to upgrade a Kubernetes
 
 var exampleForUpgradeCmd = `
   sealer upgrade docker.io/sealerio/kubernetes:v1.22.15-upgrade
+  sealer upgrade -f Clusterfile
 `
 
 func NewUpgradeCmd() *cobra.Command {
@@ -82,7 +82,27 @@ func NewUpgradeCmd() *cobra.Command {
 				return fmt.Errorf("failed to get sealer image extension: %s", err)
 			}
 
-			return upgradeCluster(imageEngine, imageSpec)
+			current, _, err := clusterfile.GetActualClusterFile()
+			if err != nil {
+				return err
+			}
+
+			cluster := current.GetCluster()
+			//update image of cluster
+			cluster.Spec.Image = imageSpec.Name
+			clusterData, err := yaml.Marshal(cluster)
+			if err != nil {
+				return err
+			}
+
+			//generate new cluster
+			//TODO Potential Bug: new cf will lose previous Clusterfile object such as config,plugins.so new cf will only have v2.Cluster.
+			newClusterfile, err := clusterfile.NewClusterFile(clusterData)
+			if err != nil {
+				return err
+			}
+
+			return upgradeCluster(newClusterfile, imageEngine, imageSpec)
 		},
 	}
 
@@ -92,38 +112,18 @@ func NewUpgradeCmd() *cobra.Command {
 	return upgradeCmd
 }
 
-func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
+func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
 	if imageSpec.ImageExtension.Type != imagev1.KubeInstaller {
 		return fmt.Errorf("exit upgrade process, wrong sealer image type: %s", imageSpec.ImageExtension.Type)
 	}
 
-	//get origin cluster
-	cf, _, err := clusterfile.GetActualClusterFile()
-	if err != nil {
-		return err
-	}
 	cluster := cf.GetCluster()
-
-	//update image of cluster
-	cluster.Spec.Image = imageSpec.Name
-	clusterData, err := yaml.Marshal(cluster)
-	if err != nil {
-		return err
-	}
-
-	//generate new cluster
-	cf, err = clusterfile.NewClusterFile(clusterData)
-	if err != nil {
-		return err
-	}
-	cluster = cf.GetCluster()
-
 	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {
 		return err
 	}
-	clusterHosts := infraDriver.GetHostIPList()
 
+	clusterHosts := infraDriver.GetHostIPList()
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
 		return err
@@ -185,7 +185,6 @@ func upgradeCluster(imageEngine imageengine.Interface, imageSpec *imagev1.ImageS
 	}
 
 	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
-	logrus.Info(confPath)
 	cmds := infraDriver.GetClusterLaunchCmds()
 	appNames := infraDriver.GetClusterLaunchApps()
 
@@ -246,5 +245,5 @@ func upgradeWithClusterfile(clusterFile string) error {
 		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
-	return upgradeCluster(imageEngine, imageSpec)
+	return upgradeCluster(cf, imageEngine, imageSpec)
 }

@@ -76,6 +76,7 @@ const (
 	EnvPodCIDR                = "PodCIDR"
 	EnvDNSSvcIP               = "DNSSvcIP"
 	EnvKubeSvcIP              = "KubeSvcIP"
+	EnvUseIPasNodeName        = "UseIPasNodeName"
 )
 
 const (

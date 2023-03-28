@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kube-proxy/config/v1alpha1"
 	"k8s.io/kubelet/config/v1beta1"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
 	kubeadmConstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 
 	"github.com/sealerio/sealer/common"
@@ -137,7 +137,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 
 			clusterfile.apps = &app
 		case kubeadmConstants.InitConfigurationKind:
-			var in v1beta2.InitConfiguration
+			var in v1beta3.InitConfiguration
 
 			if err := yaml.Unmarshal(ext.Raw, &in); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
@@ -145,7 +145,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 
 			clusterfile.kubeadmConfig.InitConfiguration = in
 		case kubeadmConstants.JoinConfigurationKind:
-			var in v1beta2.JoinConfiguration
+			var in v1beta3.JoinConfiguration
 
 			if err := yaml.Unmarshal(ext.Raw, &in); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)
@@ -153,7 +153,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 
 			clusterfile.kubeadmConfig.JoinConfiguration = in
 		case kubeadmConstants.ClusterConfigurationKind:
-			var in v1beta2.ClusterConfiguration
+			var in v1beta3.ClusterConfiguration
 
 			if err := yaml.Unmarshal(ext.Raw, &in); err != nil {
 				return fmt.Errorf("failed to decode %s[%s]: %v", metaType.Kind, metaType.APIVersion, err)

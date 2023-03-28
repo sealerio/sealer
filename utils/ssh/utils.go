@@ -24,31 +24,26 @@ import (
 	"sync"
 	"time"
 
-	dockerstreams "github.com/docker/cli/cli/streams"
-	dockerioutils "github.com/docker/docker/pkg/ioutils"
-	dockerjsonmessage "github.com/docker/docker/pkg/jsonmessage"
-	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/utils/hash"
 )
 
-func displayInit() {
-	reader, writer = io.Pipe()
-	writeFlusher = dockerioutils.NewWriteFlusher(writer)
-	defer func() {
-		_ = reader.Close()
-		_ = writer.Close()
-		_ = writeFlusher.Close()
-	}()
-	progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
-	err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
-	if err != nil && err != io.ErrClosedPipe {
-		logrus.Warnf("error occurs in display progressing, err: %s", err)
-	}
-}
+//func displayInit() {
+//	reader, writer = io.Pipe()
+//	writeFlusher = dockerioutils.NewWriteFlusher(writer)
+//	defer func() {
+//		_ = reader.Close()
+//		_ = writer.Close()
+//		_ = writeFlusher.Close()
+//	}()
+//	progressChanOut = streamformatter.NewJSONProgressOutput(writeFlusher, false)
+//	err := dockerjsonmessage.DisplayJSONMessagesToStream(reader, dockerstreams.NewOut(common.StdOut), nil)
+//	if err != nil && err != io.ErrClosedPipe {
+//		logrus.Warnf("error occurs in display progressing, err: %s", err)
+//	}
+//}
 
 func localMd5Sum(localPath string) string {
 	md5, err := hash.FileMD5(localPath)

@@ -21,14 +21,14 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
 
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes/kubeadm"
 	utilsnet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/yaml"
 )
 
-func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.KubeadmConfig, token v1beta2.BootstrapTokenDiscovery) error {
+func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.KubeadmConfig, token v1beta3.BootstrapTokenDiscovery) error {
 	if len(newNodes) == 0 {
 		return nil
 	}
@@ -42,11 +42,6 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 	kubeadmConfig.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = net.JoinHostPort(k.getAPIServerVIP().String(), "6443")
 	kubeadmConfig.JoinConfiguration.ControlPlane = nil
 
-	joinNodeCmd, err := k.Command(JoinNode)
-	if err != nil {
-		return err
-	}
-
 	if err := k.configureLvs(masters, newNodes); err != nil {
 		return fmt.Errorf("failed to configure lvs rule for apiserver: %v", err)
 	}
@@ -57,6 +52,10 @@ func (k *Runtime) joinNodes(newNodes, masters []net.IP, kubeadmConfig kubeadm.Ku
 		node := n
 		eg.Go(func() error {
 			logrus.Infof("start to join %s as worker", node)
+			joinNodeCmd, err := k.Command(JoinNode, k.getNodeNameOverride(node))
+			if err != nil {
+				return err
+			}
 
 			myKubeadmConfig := kubeadmConfig
 

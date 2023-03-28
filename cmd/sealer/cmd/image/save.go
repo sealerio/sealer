@@ -30,9 +30,9 @@ var saveOpts *options.SaveOptions
 var longNewSaveCmdDescription = `sealer save -o [output file name] [image name]`
 
 var exampleForSaveCmd = `
-save kubernetes:v1.19.8 image to kubernetes.tar file:
+save docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 image to kubernetes.tar file:
 
-  sealer save -o kubernetes.tar kubernetes:v1.19.8`
+  sealer save -o kubernetes.tar docker.io/sealerio/kubernetes:v1-22-15-sealerio-2`
 
 // NewSaveCmd saveCmd represents the save command
 func NewSaveCmd() *cobra.Command {
