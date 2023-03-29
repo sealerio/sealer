@@ -1,4 +1,11 @@
+.DEFAULT_GOAL := help
+
 Dirs=$(shell ls)
+GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+
+TOOLS_DIR := hack/build.sh
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifneq (,$(shell go env GOBIN))
@@ -7,44 +14,53 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-help: ## this help
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
-
-fmt: ## Run go fmt against code.
+## fmt: Run go fmt against code.
+fmt:
 	go fmt ./...
 
-vet: ## Run go vet against code.
+## vet: Run go vet against code.
+vet:
 	go vet ./...
 
-lint: ## Run go lint against code.
+## lint: Run go lint against code.
+lint:
 	golangci-lint run -v ./...
 
-style: fmt vet lint ## code style: fmt,vet,lint
+## style: code style: fmt,vet,lint
+style: fmt vet lint
 
-build: clean ## build binaries by default
+## build: Build binaries by default
+build: clean
 	@echo "build sealer and seautil bin"
-	hack/build.sh
+	$(TOOLS_DIR)
 
-linux: clean ## build binaries for linux
-	@echo "build sealer and seautil bin for linux"
-	GOOS=linux GOARCH=amd64 hack/build.sh $(GitTag)
+## linux: Build binaries for Linux
+linux: clean
+	@echo "Building sealer and seautil binaries for Linux (amd64)"
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(TOOLS_DIR) $(GIT_TAG)
 
-linux-arm64: clean ## build binaries for linux
-	@echo "build sealer and seautil bin for linux"
-	GOOS=linux GOARCH=arm64 hack/build.sh $(GitTag)
+## linux-amd64: Build binaries for Linux (amd64)
+linux-amd64: clean
+	@echo "Building sealer and seautil binaries for Linux (amd64)"
+	GOOS=linux GOARCH=amd64 $(TOOLS_DIR) $(GIT_TAG)
 
-# sealer should be compiled in linux platform, otherwise there will be GraphDriver problem.
+## linux-arm64: Build binaries for Linux (arm64)
+linux-arm64: clean
+	@echo "Building sealer and seautil binaries for Linux (arm64)"
+	GOOS=linux GOARCH=arm64 $(TOOLS_DIR) $(GIT_TAG)
+
+## build-in-docker: sealer should be compiled in linux platform, otherwise there will be GraphDriver problem.
 build-in-docker:
 	docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
 
-test-sealer:
-	@echo "run e2e test for sealer bin"
-	hack/test-sealer.sh
+## clean: Remove all files that are created by building. 
+.PHONY: clean
+clean:
+	@echo "===========> Cleaning all build output"
+	@-rm -rf _output
 
-clean: ## clean
-	@rm -rf _output
-
-install-addlicense: ## check license if not exist install addlicense tools
+## install-addlicense: check license if not exist install addlicense tools
+install-addlicense:
 ifeq (, $(shell which addlicense))
 	@{ \
 	set -e ;\
@@ -60,7 +76,8 @@ ADDLICENSE_BIN=$(shell which addlicense)
 endif
 
 filelicense: SHELL:=/bin/bash
-filelicense: ## add license
+## filelicense: add license
+filelicense:
 	for file in ${Dirs} ; do \
 		if [[  $$file != '_output' && $$file != 'docs' && $$file != 'vendor' && $$file != 'logger' && $$file != 'applications' ]]; then \
 			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f hack/LICENSE_TEMPLATE ./$$file ; \
@@ -68,7 +85,8 @@ filelicense: ## add license
     done
 
 
-install-gosec: ## check license if not exist install addlicense tools
+## install-gosec: check license if not exist install addlicense tools
+install-gosec:
 ifeq (, $(shell which gosec))
 	@{ \
 	set -e ;\
@@ -111,3 +129,12 @@ deepcopy:install-deepcopy-gen
 	  -O zz_generated.deepcopy   \
 	  --go-header-file "$(HEAD_FILE)" \
 	  --output-base "${GOPATH}/src"
+
+## help: Display help information
+help: Makefile
+	@echo ""
+	@echo "Usage:" "\n"
+	@echo "  make [target]" "\n"
+	@echo "Targets:" "\n" ""
+	@awk -F ':|##' '/^[^\.%\t][^\t]*:.*##/{printf "  \033[36m%-20s\033[0m %s\n", $$1, $$NF}' $(MAKEFILE_LIST) | sort
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
