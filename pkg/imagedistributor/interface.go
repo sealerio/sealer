@@ -30,6 +30,9 @@ type Distributor interface {
 }
 
 type Mounter interface {
-	Mount(imageName string, platform v1.Platform) (string, string, error)
+	//Mount sealer image with specified platform, return mount Dir,container ID,image ID and err.
+	Mount(imageName string, platform v1.Platform) (string, string, string, error)
+
+	//Umount :delete all mounted directory and remove related working container.
 	Umount(dir, containerID string) error
 }

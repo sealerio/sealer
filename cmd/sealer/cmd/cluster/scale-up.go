@@ -99,7 +99,7 @@ func NewScaleUpCmd() *cobra.Command {
 				return err
 			}
 
-			return scaleUpCluster(cluster.Spec.Image, mj, nj, infraDriver, imageEngine, cf)
+			return scaleUpCluster(cluster.Spec.Image, mj, nj, infraDriver, imageEngine, cf, scaleUpFlags.IgnoreCache)
 		},
 	}
 
@@ -112,10 +112,13 @@ func NewScaleUpCmd() *cobra.Command {
 	scaleUpFlagsCmd.Flags().StringSliceVarP(&scaleUpFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
 	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
+	scaleUpFlagsCmd.Flags().BoolVar(&scaleUpFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
 	return scaleUpFlagsCmd
 }
 
-func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP, infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface, cf clusterfile.Interface) error {
+func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP,
+	infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface,
+	cf clusterfile.Interface, ignoreCache bool) error {
 	logrus.Infof("start to scale up cluster")
 
 	var (
@@ -143,7 +146,9 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 		}
 	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs(), imagedistributor.DistributeOption{
+		IgnoreCache: ignoreCache,
+	})
 	if err != nil {
 		return err
 	}

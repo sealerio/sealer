@@ -122,6 +122,7 @@ func NewRunCmd() *cobra.Command {
 					Extension:   imageSpec.ImageExtension,
 					Configs:     nil,
 					RunMode:     runFlags.Mode,
+					IgnoreCache: runFlags.IgnoreCache,
 				})
 			}
 
@@ -140,7 +141,7 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode)
+			return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode, runFlags.IgnoreCache)
 		},
 	}
 	runFlags = &types.RunFlags{}
@@ -158,6 +159,8 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringSliceVarP(&runFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	runCmd.Flags().StringVarP(&runFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
 	runCmd.Flags().StringVar(&runFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
+	runCmd.Flags().BoolVar(&runFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
+
 	//err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	//	return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
 	//})
@@ -228,13 +231,15 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 			Extension:   imageSpec.ImageExtension,
 			Configs:     cf.GetConfigs(),
 			RunMode:     runFlags.Mode,
+			IgnoreCache: runFlags.IgnoreCache,
 		})
 	}
 
-	return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode)
+	return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode, runFlags.IgnoreCache)
 }
 
-func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface, imageSpec *imagev1.ImageSpec, mode string) error {
+func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface,
+	imageSpec *imagev1.ImageSpec, mode string, ignoreCache bool) error {
 	cluster := cf.GetCluster()
 	infraDriver, err := infradriver.NewInfraDriver(&cluster)
 	if err != nil {
@@ -268,7 +273,9 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 		}
 	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs(), imagedistributor.DistributeOption{
+		IgnoreCache: ignoreCache,
+	})
 	if err != nil {
 		return err
 	}
@@ -393,6 +400,7 @@ type RunApplicationImageRequest struct {
 	Configs                 []v1.Config
 	RunMode                 string
 	SkipPrepareAppMaterials bool
+	IgnoreCache             bool
 }
 
 func runApplicationImage(request *RunApplicationImageRequest) error {
@@ -417,7 +425,7 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 
 	if !request.SkipPrepareAppMaterials {
 		if err := prepareMaterials(infraDriver, request.ImageEngine, v2App,
-			request.ImageName, request.RunMode, request.Configs); err != nil {
+			request.ImageName, request.RunMode, request.Configs, request.IgnoreCache); err != nil {
 			return err
 		}
 	}
@@ -438,8 +446,7 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 }
 
 func prepareMaterials(infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface,
-	v2App application.Interface,
-	appImageName, mode string, configs []v1.Config) error {
+	v2App application.Interface, appImageName, mode string, configs []v1.Config, ignoreCache bool) error {
 	clusterHosts := infraDriver.GetHostIPList()
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
@@ -470,7 +477,9 @@ func prepareMaterials(infraDriver infradriver.InfraDriver, imageEngine imageengi
 		}
 	}
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, configs)
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, configs, imagedistributor.DistributeOption{
+		IgnoreCache: ignoreCache,
+	})
 	if err != nil {
 		return err
 	}

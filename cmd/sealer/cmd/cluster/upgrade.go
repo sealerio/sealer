@@ -111,6 +111,7 @@ func NewUpgradeCmd() *cobra.Command {
 	upgradeFlags = &types.UpgradeFlags{}
 	upgradeCmd.Flags().StringVarP(&upgradeFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to upgrade a Kubernetes cluster")
 	upgradeCmd.Flags().StringSliceVar(&upgradeFlags.AppNames, "apps", nil, "override default AppNames of sealer image")
+	upgradeCmd.Flags().BoolVar(&upgradeFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
 
 	return upgradeCmd
 }
@@ -153,7 +154,9 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 		}
 	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs(), imagedistributor.DistributeOption{
+		IgnoreCache: upgradeFlags.IgnoreCache,
+	})
 	if err != nil {
 		return err
 	}

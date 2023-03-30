@@ -89,7 +89,7 @@ func NewDeleteCmd() *cobra.Command {
 	deleteCmd.Flags().StringSliceVarP(&deleteFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	deleteCmd.Flags().BoolVar(&deleteFlags.ForceDelete, "force", false, "We also can input an --force flag to delete cluster by force")
 	deleteCmd.Flags().BoolVarP(&deleteFlags.DeleteAll, "all", "a", false, "this flags is for delete the entire cluster, default is false")
-	deleteCmd.Flags().BoolVarP(&imagedistributor.IsPrune, "prune", "p", true, "this flags is for delete all cluster rootfs, default is true")
+	deleteCmd.Flags().BoolVarP(&deleteFlags.Prune, "prune", "p", false, "this flags is for delete all cluster rootfs, default is false")
 
 	return deleteCmd
 }
@@ -161,7 +161,9 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 		}
 	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil)
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil, imagedistributor.DistributeOption{
+		Prune: deleteFlags.Prune,
+	})
 	if err != nil {
 		return err
 	}
@@ -203,13 +205,6 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 	//delete local files,including sealer workdir,cluster file under sealer,kubeconfig under home dir.
 	if err = fs.FS.RemoveAll(common.GetSealerWorkDir(), common.DefaultKubeConfigDir()); err != nil {
 		return err
-	}
-
-	// delete cluster file under sealer if isPrune is true
-	if imagedistributor.IsPrune {
-		if err = fs.FS.RemoveAll(common.DefaultClusterBaseDir(infraDriver.GetClusterName())); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -297,7 +292,9 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 		}
 	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil)
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil, imagedistributor.DistributeOption{
+		Prune: deleteFlags.Prune,
+	})
 	if err != nil {
 		return err
 	}
