@@ -85,7 +85,7 @@ func NewRollbackCmd() *cobra.Command {
 
 			//update image of cluster
 			cluster.Spec.APPNames = rollbackFlags.AppNames
-			cluster.Spec.Image = imageSpec.Name
+			cluster.Spec.Image = args[0]
 			clusterData, err := yaml.Marshal(cluster)
 			if err != nil {
 				return err
@@ -119,25 +119,27 @@ func rollbackCluster(cf clusterfile.Interface, imageEngine imageengine.Interface
 	}
 	clusterHosts := infraDriver.GetHostIPList()
 
+	imageName := infraDriver.GetClusterImageName()
+
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
 		return err
 	}
 
-	logrus.Infof("start to rollback cluster with image: %s", imageSpec.Name)
+	logrus.Infof("start to rollback cluster with image: %s", imageName)
 
 	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
 	if err != nil {
 		return err
 	}
 
-	imageMountInfo, err := imageMounter.Mount(imageSpec.Name)
+	imageMountInfo, err := imageMounter.Mount(imageName)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		err = imageMounter.Umount(imageSpec.Name, imageMountInfo)
+		err = imageMounter.Umount(imageName, imageMountInfo)
 		if err != nil {
 			logrus.Errorf("failed to umount cluster image")
 		}
@@ -203,7 +205,7 @@ func rollbackCluster(cf clusterfile.Interface, imageEngine imageengine.Interface
 		return err
 	}
 
-	logrus.Infof("succeeded in rollingback cluster with image %s", imageSpec.Name)
+	logrus.Infof("succeeded in rollingback cluster with image %s", imageName)
 
 	return nil
 }

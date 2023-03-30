@@ -89,7 +89,7 @@ func NewUpgradeCmd() *cobra.Command {
 
 			cluster := current.GetCluster()
 			//update image of cluster
-			cluster.Spec.Image = imageSpec.Name
+			cluster.Spec.Image = args[0]
 			clusterData, err := yaml.Marshal(cluster)
 			if err != nil {
 				return err
@@ -123,26 +123,28 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 		return err
 	}
 
+	imageName := infraDriver.GetClusterImageName()
+
 	clusterHosts := infraDriver.GetHostIPList()
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
 		return err
 	}
 
-	logrus.Infof("start to upgrade cluster with image: %s", imageSpec.Name)
+	logrus.Infof("start to upgrade cluster with image: \"%s\"", imageName)
 
 	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
 	if err != nil {
 		return err
 	}
 
-	imageMountInfo, err := imageMounter.Mount(imageSpec.Name)
+	imageMountInfo, err := imageMounter.Mount(imageName)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		err = imageMounter.Umount(imageSpec.Name, imageMountInfo)
+		err = imageMounter.Umount(imageName, imageMountInfo)
 		if err != nil {
 			logrus.Errorf("failed to umount sealer image")
 		}
@@ -207,7 +209,7 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 		return err
 	}
 
-	logrus.Infof("succeeded in upgrading cluster with image %s", imageSpec.Name)
+	logrus.Infof("succeeded in upgrading cluster with image %s", imageName)
 
 	return nil
 }
