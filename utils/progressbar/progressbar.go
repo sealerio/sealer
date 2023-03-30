@@ -15,8 +15,6 @@
 package progressbar
 
 import (
-	"fmt"
-
 	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 )
@@ -29,6 +27,8 @@ var (
 	width                  = 50
 	optionEnableColorCodes = progressbar.OptionEnableColorCodes(true)
 	optionSetWidth         = progressbar.OptionSetWidth(width)
+	optionShowCount        = progressbar.OptionShowCount()
+	OptionShowIts          = progressbar.OptionShowIts()
 	optionSetTheme         = progressbar.OptionSetTheme(progressbar.Theme{
 		Saucer:        "=",
 		SaucerHead:    ">",
@@ -38,38 +38,50 @@ var (
 	})
 )
 
+// NewEasyProgressUtil create a new progress bar like this:
+// [copying files to 1.1.1.1]  94% [==============================================>   ] (18/19, 6 it/s) [3s:0s]
 func NewEasyProgressUtil(total int, describe string) *EasyProgressUtil {
 	return &EasyProgressUtil{
 		*progressbar.NewOptions(total,
 			optionEnableColorCodes,
 			optionSetWidth,
 			optionSetTheme,
+			optionShowCount,
+			OptionShowIts,
 			progressbar.OptionSetDescription(describe),
-			// after finish, print a new line
-			progressbar.OptionOnCompletion(func() {
-				fmt.Println()
-			}),
 		),
 	}
 }
 
-// increment add 1 to progress bar
+// Increment add 1 to progress bar
 func (epu *EasyProgressUtil) Increment() {
 	if err := epu.Add(1); err != nil {
 		logrus.Errorf("failed to increment progress bar, err: %s", err)
 	}
 }
 
-// fail print error message
+// Fail print error message
 func (epu *EasyProgressUtil) Fail(err error) {
 	if err != nil {
 		epu.Describe(err.Error())
 	}
 }
 
-// setTotal set total num of progress bar
+// Refresh make progress bar refresh
+// NB: We have to do this when progress bar is finished, but we want to reuse it
+func (epu *EasyProgressUtil) Refresh() {
+	// save current
+	current := epu.ProgressBar.State().CurrentBytes
+	epu.Reset()
+	if err := epu.Set(int(current)); err != nil {
+		logrus.Errorf("failed to refresh progress bar, err: %s", err)
+	}
+}
+
+// SetTotal set total num of progress bar
 func (epu *EasyProgressUtil) SetTotal(num int) {
 	if num > epu.GetMax() {
 		epu.ChangeMax(num)
+		epu.Refresh()
 	}
 }
