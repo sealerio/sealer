@@ -62,9 +62,8 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 	}
 
 	defer func() {
-		err = os.RemoveAll(tempDir)
-		if err != nil {
-			logrus.Errorf("failed to delete %s: %v", tempDir, err)
+		if err = os.RemoveAll(tempDir); err != nil {
+			logrus.Warnf("failed to delete %s: %v", tempDir, err)
 		}
 	}()
 
