@@ -120,15 +120,16 @@ type ImagesOptions struct {
 	JSON      bool
 }
 
+// SaveOptions provide options for saving images.
 type SaveOptions struct {
-	Compress bool
-	Format   string
-	// don't support currently
-	MultiImageArchive bool
-	Output            string
-	Quiet             bool
-	ImageNameOrID     string
-	TmpDir            string
+	Compress          bool   // Whether or not to compress the image layers when saving to a directory. Default is false.
+	Format            string // The format to save the image in. Possible values are oci-archive, oci-dir, docker-archive, and docker-dir. Default is oci-archive.
+	MultiImageArchive bool   // Whether or not to save multiple images into a single archive file. Default is false.
+	Output            string // The file or directory to save the image to. If not set, output will go to stdout.
+	Quiet             bool   // Whether or not to suppress output when saving the image. Default is false.
+	ImageNameOrID     string // The name or ID of the image to save.
+	// // TODO: unrealized, Set temporary directory when save image. if not set, use system temporary directory(`/var/tmp/`)
+	TmpDir string
 }
 
 type LoadOptions struct {

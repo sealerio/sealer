@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/auth"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -34,42 +35,54 @@ import (
 
 // Save image as tar file, if image is multi-arch image, will save all its instances and manifest name as tar file.
 func (engine *Engine) Save(opts *options.SaveOptions) error {
-	imageNameOrID := opts.ImageNameOrID
-	imageTar := opts.Output
+	var (
+		imageNameOrID = opts.ImageNameOrID
+		output        = opts.Output
+		format        = opts.Format
+		tmpDir        = opts.TmpDir
+		compress      = opts.Compress
+	)
+
+	systemCxt := engine.SystemContext()
+	if err := auth.CheckAuthFile(systemCxt.AuthFilePath); err != nil {
+		return err
+	}
+
+	systemCxt.BigFilesTemporaryDir = tmpDir
 
 	if len(imageNameOrID) == 0 {
-		return errors.New("image name or id must be specified")
+		return errors.New("failed to save image, image name or id is empty")
 	}
-	if opts.Compress && (opts.Format != OCIManifestDir && opts.Format != V2s2ManifestDir) {
+
+	if compress && (format != OCIManifestDir && format != V2s2ManifestDir) {
 		return errors.New("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
 	}
 
-	img, _, err := engine.ImageRuntime().LookupImage(imageNameOrID, &libimage.LookupImageOptions{
-		ManifestList: true,
-	})
+	img, _, err := engine.ImageRuntime().LookupImage(imageNameOrID,
+		&libimage.LookupImageOptions{
+			ManifestList: true,
+		})
 	if err != nil {
 		return err
 	}
 
-	isManifest, err := img.IsManifestList(getContext())
-	if err != nil {
+	// checks if the image is a manifest list or an image index, and saves the image if it is not
+	if isManifest, err := img.IsManifestList(getContext()); err != nil {
 		return err
-	}
-
-	if !isManifest {
-		return engine.saveOneImage(imageNameOrID, opts.Format, imageTar, opts.Compress)
+	} else if !isManifest {
+		return engine.saveOneImage(imageNameOrID, format, output, compress)
 	}
 
 	// save multi-arch images :including each platform images and manifest.
-	var pathsToCompress []string
+	pathsToCompress := []string{}
 
-	if err := fs.FS.MkdirAll(filepath.Dir(imageTar)); err != nil {
-		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
+	if err := fs.FS.MkdirAll(filepath.Dir(output)); err != nil {
+		return fmt.Errorf("failed to create %s, err: %v", output, err)
 	}
 
-	file, err := os.Create(filepath.Clean(imageTar))
+	file, err := os.Create(filepath.Clean(output))
 	if err != nil {
-		return fmt.Errorf("failed to create %s, err: %v", imageTar, err)
+		return fmt.Errorf("failed to create %s, err: %v", output, err)
 	}
 
 	defer func() {
@@ -78,14 +91,13 @@ func (engine *Engine) Save(opts *options.SaveOptions) error {
 		}
 	}()
 
-	tempDir, err := os.MkdirTemp(opts.TmpDir, "sealer-save-tmp")
+	tempDir, err := os.MkdirTemp(tmpDir, "sealer-save-tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
 	}
 
 	defer func() {
-		err = os.RemoveAll(tempDir)
-		if err != nil {
+		if err = os.RemoveAll(tempDir); err != nil {
 			logrus.Warnf("failed to delete %s: %v", tempDir, err)
 		}
 	}()
@@ -110,7 +122,7 @@ func (engine *Engine) Save(opts *options.SaveOptions) error {
 		}
 
 		instanceTar := filepath.Join(tempDir, instance.ID()+".tar")
-		err = engine.saveOneImage(instance.ID(), opts.Format, instanceTar, opts.Compress)
+		err = engine.saveOneImage(instance.ID(), format, instanceTar, compress)
 		if err != nil {
 			return err
 		}

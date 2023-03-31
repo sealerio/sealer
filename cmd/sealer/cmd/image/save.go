@@ -15,8 +15,6 @@
 package image
 
 import (
-	"os"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -25,14 +23,22 @@ import (
 	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 )
 
-var saveOpts *options.SaveOptions
+var (
+	saveOpts *options.SaveOptions
 
-var longNewSaveCmdDescription = `sealer save -o [output file name] [image name]`
+	longNewSaveCmdDescription = `
+  sealer save -o [output file name] [image name]
+  Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
 
-var exampleForSaveCmd = `
-save docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 image to kubernetes.tar file:
+	exampleForSaveCmd = `
+  sealer save docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 
 
-  sealer save -o kubernetes.tar docker.io/sealerio/kubernetes:v1-22-15-sealerio-2`
+Image to kubernetes.tar file, and specify the temporary load directory:
+
+  sealer save docker.io/sealerio/kubernetes:v1.22.15  -o kubernetes.tar --tmp-dir /root/tmp`
+)
+
+// var containerConfig = buildah.NewPodmanConfig()
 
 // NewSaveCmd saveCmd represents the save command
 func NewSaveCmd() *cobra.Command {
@@ -59,14 +65,26 @@ func NewSaveCmd() *cobra.Command {
 	}
 	saveOpts = &options.SaveOptions{}
 	flags := saveCmd.Flags()
-	flags.StringVar(&saveOpts.Format, "format", buildah.OCIArchive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
-	flags.StringVarP(&saveOpts.Output, "output", "o", "", "Write image to a specified file")
+
+	formatFlagName := "format"
+	flags.StringVar(&saveOpts.Format, formatFlagName, buildah.OCIArchive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
+
+	outputFlagName := "output"
+	flags.StringVarP(&saveOpts.Output, outputFlagName, "o", "", "Write to a specified file (default: stdout, which must be redirected)")
+
+	// TODO: Waiting for implementation, not yet supported
+	flags.StringVar(&loadOpts.TmpDir, "tmp-dir", "", "Set temporary directory when load image. use system temporary directory(/var/tmp/) if not present.")
+
 	flags.BoolVarP(&saveOpts.Quiet, "quiet", "q", false, "Suppress the output")
-	flags.StringVar(&saveOpts.TmpDir, "tmp-dir", "", "set temporary directory when save image. if not set, use system`s temporary directory")
-	flags.BoolVar(&saveOpts.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
+
+	compressFlagName := "compress"
+	flags.BoolVar(&saveOpts.Compress, compressFlagName, false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
+
+	// MultiImageArchiveFlagName := "multi-image-archive"
+	// flags.BoolVarP(&saveOpts.MultiImageArchive, MultiImageArchiveFlagName, "m", containerConfig.ContainersConfDefaultsRO.Engine.MultiImageArchive, "Interpret additional arguments as images not tags and create a multi-image-archive (only for docker-archive)")
+
 	if err := saveCmd.MarkFlagRequired("output"); err != nil {
-		logrus.Errorf("failed to init flag: %v", err)
-		os.Exit(1)
+		logrus.WithError(err).Fatal("failed to mark flag as required")
 	}
 
 	return saveCmd
