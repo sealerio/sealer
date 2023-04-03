@@ -35,12 +35,23 @@ type Flag struct {
 	CertEtcdPath string
 }
 
+// NewCmdCert return "seautil cert" command.
+func NewCmdCert() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "cert",
+		Short: "seautil cert experimental sub-commands",
+	}
+	cmd.AddCommand(NewCertGenCmd())
+	cmd.AddCommand(NewCertUpdateCmd())
+	return cmd
+}
+
 // NewCertGenCmd gen all kubernetes certs
 func NewCertGenCmd() *cobra.Command {
 	flag := new(Flag)
 
 	// certsCmd represents the certs command
-	var certsCmd = &cobra.Command{
+	certsCmd := &cobra.Command{
 		Use:   "gen",
 		Short: "generate kubernetes certs",
 		Long:  `seautil cert gen --node-ip 192.168.0.2 --node-name master1 --dns-domain sealer.com --alt-names sealer.local --service-cidr 10.103.97.2/24`,
@@ -93,19 +104,4 @@ func NewCertUpdateCmd() *cobra.Command {
 	}
 
 	return certCmd
-}
-
-// NewCmdCert return "seautil cert" command.
-func NewCmdCert() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "cert",
-		Short: "seautil cert experimental sub-commands",
-	}
-	cmd.AddCommand(NewCertGenCmd())
-	cmd.AddCommand(NewCertUpdateCmd())
-	return cmd
-}
-
-func init() {
-	rootCmd.AddCommand(NewCmdCert())
 }

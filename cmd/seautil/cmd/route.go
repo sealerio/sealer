@@ -31,7 +31,7 @@ type RouteFlag struct {
 var routeFlag *RouteFlag
 
 func NewRouteCmd() *cobra.Command {
-	var routeCmd = &cobra.Command{
+	routeCmd := &cobra.Command{
 		Use:   "route",
 		Short: "A brief description of your command",
 	}
@@ -106,8 +106,4 @@ func RouteDelCmd() *cobra.Command {
 	delCmd.Flags().StringVar(&routeFlag.host, "host", "", "route host ,ex ip route del host via gateway")
 	delCmd.Flags().StringVar(&routeFlag.gatewayIP, "gateway", "", "route gateway ,ex ip route del host via gateway")
 	return delCmd
-}
-
-func init() {
-	rootCmd.AddCommand(NewRouteCmd())
 }
