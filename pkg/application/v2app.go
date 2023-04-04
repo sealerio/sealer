@@ -165,10 +165,13 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 		app:                 app,
 		extension:           extension,
 		globalCmds:          extension.Launch.Cmds,
-		launchApps:          extension.Launch.AppNames,
 		appLaunchCmdsMap:    map[string][]string{},
 		appRootMap:          map[string]string{},
 		appFileProcessorMap: map[string][]FileProcessor{},
+	}
+
+	for _, registered := range extension.Applications {
+		v2App.launchApps = append(v2App.launchApps, registered.Name())
 	}
 
 	// initialize globalCmds, overwrite default cmds from image extension.
