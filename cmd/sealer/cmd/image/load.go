@@ -24,13 +24,19 @@ import (
 	"github.com/sealerio/sealer/pkg/imageengine"
 )
 
-var loadOpts *options.LoadOptions
+var (
+	loadOpts *options.LoadOptions
 
-var longNewLoadCmdDescription = `Load a sealer image from a tar archive`
+	longNewLoadCmdDescription = `
+  Load a sealer image from a tar archive
+  Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
 
-var exampleForLoadCmd = `
+	exampleForLoadCmd = `
   sealer load -i kubernetes.tar
-`
+
+Specifies the temporary load directory:
+  sealer load -i my.tar --tmp-dir /root/my-tmp`
+)
 
 // NewLoadCmd loadCmd represents the load command
 func NewLoadCmd() *cobra.Command {
@@ -40,28 +46,31 @@ func NewLoadCmd() *cobra.Command {
 		Long:    longNewLoadCmdDescription,
 		Example: exampleForLoadCmd,
 		Args:    cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-			if err != nil {
-				return err
-			}
-
-			err = engine.Load(loadOpts)
-			if err == nil {
-				logrus.Infof("successfully load %s to image storage", loadOpts.Input)
-			}
-
-			return err
-		},
+		RunE:    runLoadCmd,
 	}
 	loadOpts = &options.LoadOptions{}
 	flags := loadCmd.Flags()
-	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Load image from file")
+	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Read from specified archive file")
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
-	flags.StringVar(&loadOpts.TmpDir, "tmp-dir", "", "set temporary directory when load image. if not set, use system`s temporary directory")
+	flags.StringVar(&loadOpts.TmpDir, "tmp-dir", "", "Set temporary directory when load image. use system temporary directory is not (/var/tmp/)at present ")
+
 	if err := loadCmd.MarkFlagRequired("input"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
 	}
 	return loadCmd
+}
+
+func runLoadCmd(cmd *cobra.Command, args []string) error {
+	engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
+	if err != nil {
+		return err
+	}
+
+	err = engine.Load(loadOpts)
+	if err == nil {
+		logrus.Infof("successfully load %s to image storage", loadOpts.Input)
+	}
+
+	return err
 }

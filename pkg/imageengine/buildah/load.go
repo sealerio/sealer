@@ -87,11 +87,9 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 
 	manifestName := string(metaBytes)
 	// delete it if manifestName is already used
-	_, err = engine.ImageRuntime().LookupManifestList(manifestName)
-	if err == nil {
+	if _, err := engine.ImageRuntime().LookupManifestList(manifestName); err == nil {
 		logrus.Warnf("%s is already in use, will delete it", manifestName)
-		delErr := engine.DeleteManifests([]string{manifestName}, &options.ManifestDeleteOpts{})
-		if delErr != nil {
+		if delErr := engine.DeleteManifests([]string{manifestName}, &options.ManifestDeleteOpts{}); delErr != nil {
 			return fmt.Errorf("%s is already in use: %v", manifestName, delErr)
 		}
 	}
