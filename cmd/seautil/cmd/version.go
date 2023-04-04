@@ -27,26 +27,24 @@ import (
 
 var shortPrint bool
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "version",
-	Long:  `sealer version`,
-	Run: func(cmd *cobra.Command, args []string) {
-		marshalled, err := json.Marshal(version.Get())
-		if err != nil {
-			logrus.Error(err)
-			os.Exit(1)
-		}
-		if shortPrint {
-			fmt.Println(version.Get().String())
-		} else {
-			fmt.Println(string(marshalled))
-		}
-
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(versionCmd)
+func NewVersionCmd() *cobra.Command {
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "version",
+		Long:  `sealer version`,
+		Run: func(cmd *cobra.Command, args []string) {
+			marshalled, err := json.Marshal(version.Get())
+			if err != nil {
+				logrus.Error(err)
+				os.Exit(1)
+			}
+			if shortPrint {
+				fmt.Println(version.Get().String())
+			} else {
+				fmt.Println(string(marshalled))
+			}
+		},
+	}
 	versionCmd.Flags().BoolVar(&shortPrint, "short", false, "If true, print just the version number.")
+	return versionCmd
 }
