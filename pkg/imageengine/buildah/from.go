@@ -38,6 +38,15 @@ type fromFlagsWrapper struct {
 	*buildahcli.NameSpaceResults
 }
 
+type ContainerConfig struct {
+	ContainersConfDefaultsRO config.Config
+}
+
+func NewBuildahConfig() *ContainerConfig {
+	var buildOptions ContainerConfig
+	return &buildOptions
+}
+
 // createContainerFromImage create a working container. This function is copied from
 // "buildah from". This function takes args([]string{"$image"}), and create a working container
 // based on $image, this will generate an empty dictionary, not a real rootfs. And this container is a fake container.

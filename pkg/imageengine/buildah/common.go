@@ -47,6 +47,7 @@ const (
 	V2s2Archive     = "docker-archive"
 )
 
+// getStore gets an instance of a storage engine
 func getStore(configurations *options.EngineGlobalConfigurations) (storage.Store, error) {
 	options, err := storage.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
 	if err != nil {

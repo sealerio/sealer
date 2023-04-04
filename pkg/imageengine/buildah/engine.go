@@ -15,11 +15,13 @@
 package buildah
 
 import (
+	"fmt"
 	"path/filepath"
 	"runtime"
 
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/v5/types"
+	"github.com/pkg/errors"
 
 	"github.com/sealerio/sealer/pkg/auth"
 
@@ -28,7 +30,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/drivers/overlay"
 	types2 "github.com/containers/storage/types"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/sealerio/sealer/pkg/define/options"
@@ -52,27 +53,27 @@ func (engine *Engine) SystemContext() *types.SystemContext {
 	return engine.libimageRuntime.SystemContext()
 }
 
-func checkOverlaySupported() {
+func checkOverlaySupported() error {
 	conf := types2.TomlConfig{}
 	if _, err := toml.DecodeFile(storageConfPath, &conf); err != nil {
-		logrus.Warnf("failed to decode storage.conf, which may incur problems: %v", err)
-		return
+		return fmt.Errorf("failed to decode storage.conf, which may incur problems: %v", err)
 	}
 
 	if conf.Storage.RunRoot == "" || conf.Storage.GraphRoot == "" {
-		logrus.Warnf("runroot or graphroot is empty")
-		return
+		return errors.New("runroot or graphroot is empty")
 	}
 
-	// this check aims to register "overlay" and "overlay2" driver.
+	// This check aims to register "overlay" and "overlay2" driver.
 	// Otherwise, there will be "overlay" unsupported problem.
 	// This issue is relevant with low-level library problem.
 	// This is a weird problem. So fix it in this way currently.
 	if _, err := overlay.SupportsNativeOverlay(
 		filepath.Join(conf.Storage.GraphRoot, "overlay"),
 		filepath.Join(conf.Storage.RunRoot, "overlay")); err != nil {
-		logrus.Warnf("detect there is no native overlay supported: %v", err)
+		return fmt.Errorf("detect there is no native overlay supported: %v", err)
 	}
+
+	return nil
 }
 
 // TODO we can provide a configuration file to export those options.
@@ -89,6 +90,32 @@ func systemContext() *types.SystemContext {
 		DockerRegistryUserAgent:           "Buildah/1.25.0",
 		AuthFilePath:                      auth.GetDefaultAuthFilePath(),
 		BigFilesTemporaryDir:              parse.GetTempDir(),
+		OSChoice:                          runtime.GOOS,
+		ArchitectureChoice:                runtime.GOARCH,
+		DockerInsecureSkipTLSVerify:       types.NewOptionalBool(false),
+		OCIInsecureSkipTLSVerify:          false,
+		DockerDaemonInsecureSkipTLSVerify: false,
+	}
+}
+
+// TODO we can provide a configuration file to export those options.
+// the detailed information in the parse.SystemContextFromOptions
+func systemContextFromOptions() *types.SystemContext {
+	var (
+		options *options.SaveOptions
+		tmpDir  string
+	)
+
+	if options.TmpDir == "" {
+		tmpDir = parse.GetTempDir()
+	} else {
+		tmpDir = options.TmpDir
+	}
+
+	return &types.SystemContext{
+		DockerRegistryUserAgent:           "Buildah/1.25.0",
+		AuthFilePath:                      auth.GetDefaultAuthFilePath(),
+		BigFilesTemporaryDir:              tmpDir,
 		OSChoice:                          runtime.GOOS,
 		ArchitectureChoice:                runtime.GOARCH,
 		DockerInsecureSkipTLSVerify:       types.NewOptionalBool(false),

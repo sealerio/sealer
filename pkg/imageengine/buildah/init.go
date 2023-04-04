@@ -24,7 +24,8 @@ import (
 const (
 	policyAbsPath     = "/etc/containers/policy.json"
 	registriesAbsPath = "/etc/containers/registries.conf"
-	storageConfPath   = "/etc/containers/storage.conf"
+	storageConfPath   = "/etc/containers/storage.conf" // The container stores the driver's configuration file path
+	storageAbsPath    = "/etc/containers/storage.conf" //The root directory of the container image store
 
 	buildahEtcRegistriesConf = `
 [registries.search]
@@ -118,11 +119,11 @@ func initBuildah() error {
 	if err := writeFileIfNotExist(policyAbsPath, []byte(builadhEtcPolicy)); err != nil {
 		return err
 	}
+	
 	if err := writeFileIfNotExist(registriesAbsPath, []byte(buildahEtcRegistriesConf)); err != nil {
 		return err
 	}
 
-	storageAbsPath := "/etc/containers/storage.conf"
 	if err := writeFileIfNotExist(storageAbsPath, []byte(buildahStorageConf)); err != nil {
 		return err
 	}
