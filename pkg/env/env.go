@@ -48,7 +48,7 @@ func RenderTemplate(dir string, renderData map[string]interface{}) error {
 		if info.IsDir() || !strings.HasSuffix(info.Name(), templateSuffix) {
 			return nil
 		}
-		writer, err := os.OpenFile(strings.TrimSuffix(path, templateSuffix), os.O_CREATE|os.O_RDWR, os.ModePerm)
+		writer, err := os.Create(strings.TrimSuffix(path, templateSuffix))
 		if err != nil {
 			return fmt.Errorf("failed to open file [%s] when render env: %v", path, err)
 		}
