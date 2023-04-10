@@ -72,8 +72,8 @@ func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver
 			},
 		}
 		ret.Info.CgroupDriver = DefaultCgroupDriver
-		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
-			ret.Info.CgroupDriver = cd.(string)
+		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != "" {
+			ret.Info.CgroupDriver = cd
 		}
 
 		return ret, nil
@@ -89,8 +89,8 @@ func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver
 			},
 		}
 		ret.Info.CgroupDriver = DefaultCgroupDriver
-		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != nil {
-			ret.Info.CgroupDriver = cd.(string)
+		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != "" {
+			ret.Info.CgroupDriver = cd
 		}
 
 		return ret, nil

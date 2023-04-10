@@ -43,7 +43,7 @@ func (s *SSH) Ping(host net.IP) error {
 	return nil
 }
 
-func (s *SSH) CmdAsync(host net.IP, hostEnv map[string]interface{}, cmds ...string) error {
+func (s *SSH) CmdAsync(host net.IP, hostEnv map[string]string, cmds ...string) error {
 	var execFunc func(cmd string) error
 
 	if utilsnet.IsLocalIP(host, s.LocalAddress) {
@@ -120,7 +120,7 @@ func (s *SSH) CmdAsync(host net.IP, hostEnv map[string]interface{}, cmds ...stri
 	return nil
 }
 
-func (s *SSH) Cmd(host net.IP, hostEnv map[string]interface{}, cmd string) ([]byte, error) {
+func (s *SSH) Cmd(host net.IP, hostEnv map[string]string, cmd string) ([]byte, error) {
 	if s.User != common.ROOT {
 		cmd = fmt.Sprintf("sudo -E /bin/bash <<EOF\n%s\nEOF", cmd)
 	}
@@ -155,7 +155,7 @@ func (s *SSH) Cmd(host net.IP, hostEnv map[string]interface{}, cmd string) ([]by
 }
 
 // CmdToString is in host exec cmd and replace to spilt str
-func (s *SSH) CmdToString(host net.IP, env map[string]interface{}, cmd, split string) (string, error) {
+func (s *SSH) CmdToString(host net.IP, env map[string]string, cmd, split string) (string, error) {
 	data, err := s.Cmd(host, env, cmd)
 	str := string(data)
 	if err != nil {

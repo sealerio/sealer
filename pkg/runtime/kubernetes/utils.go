@@ -151,7 +151,7 @@ func (k *Runtime) Command(name CommandType, nodeNameOverride string) (string, er
 }
 
 func (k *Runtime) getNodeNameOverride(ip net.IP) string {
-	if v, ok := k.infra.GetClusterEnv()[common.EnvUseIPasNodeName]; ok && v.(string) == "true" {
+	if v, ok := k.infra.GetClusterEnv()[common.EnvUseIPasNodeName]; ok && v == "true" {
 		return ip.String()
 	}
 

@@ -230,8 +230,8 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 	cluster.Spec.Env = newEnv
 
 	clusterEnvMap := strUtil.ConvertStringSliceToMap(cluster.Spec.Env)
-	if svcCIDR, ok := clusterEnvMap[common.EnvSvcCIDR]; ok && svcCIDR != nil {
-		cidrs := strings.Split(svcCIDR.(string), ",")
+	if svcCIDR, ok := clusterEnvMap[common.EnvSvcCIDR]; ok && svcCIDR != "" {
+		cidrs := strings.Split(svcCIDR, ",")
 		_, cidr, err := net.ParseCIDR(cidrs[0])
 		if err != nil {
 			return fmt.Errorf("failed to parse svc CIDR: %v", err)

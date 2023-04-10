@@ -28,7 +28,7 @@ func getDefaultCluster() (InfraDriver, error) {
 	cluster := &v2.Cluster{
 		Spec: v2.ClusterSpec{
 			Image: "kubernetes:v1.19.8",
-			Env:   []string{"key1=value1", "key2=value2;value3"},
+			Env:   []string{"key1=value1", "key2=value2, value3"},
 			SSH: v1.SSH{
 				User:     "root",
 				Passwd:   "test123",
@@ -86,22 +86,22 @@ func TestSSHInfraDriver_GetClusterInfo(t *testing.T) {
 		net.IPv4(192, 168, 0, 3),
 	})
 
-	assert.Equal(t, driver.GetClusterEnv(), map[string]interface{}{
+	assert.Equal(t, driver.GetClusterEnv(), map[string]string{
 		"key1": "value1",
-		"key2": []string{"value2", "value3"},
+		"key2": "value2, value3",
 	})
 
-	assert.Equal(t, map[string]interface{}{
+	assert.Equal(t, map[string]string{
 		"HostIP":   "192.168.0.2",
 		"key1":     "value1",
-		"key2":     []string{"value2", "value3"},
+		"key2":     "value2, value3",
 		"etcd-dir": "/data/etcd",
 	}, driver.GetHostEnv(net.IPv4(192, 168, 0, 2)))
 
-	assert.Equal(t, driver.GetHostEnv(net.IPv4(192, 168, 0, 3)), map[string]interface{}{
+	assert.Equal(t, driver.GetHostEnv(net.IPv4(192, 168, 0, 3)), map[string]string{
 		"HostIP":            "192.168.0.3",
 		"key1":              "value1",
-		"key2":              []string{"value2", "value3"},
+		"key2":              "value2, value3",
 		"test_node_env_key": "test_node_env_value",
 	})
 }
