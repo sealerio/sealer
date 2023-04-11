@@ -170,11 +170,11 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 	}
 
 	if ipv4, ok := c.infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv4]; ok {
-		vip = ipv4.(string)
+		vip = ipv4
 	}
 
 	if ipv6, ok := c.infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv6]; ok {
-		vip = ipv6.(string)
+		vip = ipv6
 	}
 
 	vs := net.JoinHostPort(vip, strconv.Itoa(c.Port))

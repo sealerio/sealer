@@ -20,7 +20,7 @@ import (
 
 func Test_processor_WrapperShell(t *testing.T) {
 	type args struct {
-		wrapperData map[string]interface{}
+		wrapperData map[string]string
 		shell       string
 	}
 	tests := []struct {
@@ -31,7 +31,7 @@ func Test_processor_WrapperShell(t *testing.T) {
 		{
 			"test WrapperShell ",
 			args{
-				wrapperData: map[string]interface{}{
+				wrapperData: map[string]string{
 					"foo": "bar",
 					"IP":  "127.0.0.1",
 				},
@@ -51,7 +51,7 @@ func Test_processor_WrapperShell(t *testing.T) {
 
 func Test_processor_RenderAll(t *testing.T) {
 	type args struct {
-		renderData map[string]interface{}
+		renderData map[string]string
 		dir        string
 	}
 	tests := []struct {
@@ -62,7 +62,7 @@ func Test_processor_RenderAll(t *testing.T) {
 		{
 			"test render dir",
 			args{
-				renderData: map[string]interface{}{
+				renderData: map[string]string{
 					"PodCIDR": "100.64.0.0/10",
 					"SvcCIDR": "10.96.0.0/16",
 				},

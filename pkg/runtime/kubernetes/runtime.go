@@ -71,11 +71,11 @@ func NewKubeadmRuntime(clusterFileKubeConfig kubeadm.KubeadmConfig, infra infrad
 	}
 
 	if ipv4, ok := infra.GetClusterEnv()[common.EnvIPvsVIPForIPv4]; ok {
-		k.Config.VIP = ipv4.(string)
+		k.Config.VIP = ipv4
 	}
 
 	if ipv6, ok := infra.GetClusterEnv()[common.EnvIPvsVIPForIPv6]; ok {
-		k.Config.VIP = ipv6.(string)
+		k.Config.VIP = ipv6
 	}
 
 	if logrus.GetLevel() == logrus.DebugLevel {

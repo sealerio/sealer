@@ -24,7 +24,7 @@ import (
 
 type DefaultInstaller struct {
 	Info
-	envs   map[string]interface{}
+	envs   map[string]string
 	rootfs string
 	driver infradriver.InfraDriver
 }

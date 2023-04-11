@@ -24,7 +24,7 @@ import (
 func TestConvertEnv(t *testing.T) {
 	type args struct {
 		data   []string
-		wanted map[string]interface{}
+		wanted map[string]string
 	}
 
 	var tests = []struct {
@@ -34,9 +34,9 @@ func TestConvertEnv(t *testing.T) {
 		{
 			"test convert env",
 			args{
-				data: []string{"IP=127.0.0.1;192.168.0.2", "key=value"},
-				wanted: map[string]interface{}{
-					"IP":  []string{"127.0.0.1", "192.168.0.2"},
+				data: []string{"IP=127.0.0.1,192.168.0.2", "key=value"},
+				wanted: map[string]string{
+					"IP":  "127.0.0.1,192.168.0.2",
 					"key": "value",
 				},
 			},

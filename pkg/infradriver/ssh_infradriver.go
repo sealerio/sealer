@@ -41,12 +41,12 @@ type SSHInfraDriver struct {
 	hostRolesMap map[string][]string
 	roleHostsMap map[string][]net.IP
 	hostLabels   map[string]map[string]string
-	hostEnvMap   map[string]map[string]interface{}
-	clusterEnv   map[string]interface{}
+	hostEnvMap   map[string]map[string]string
+	clusterEnv   map[string]string
 	cluster      v2.Cluster
 }
 
-func mergeList(hostEnv, globalEnv map[string]interface{}) map[string]interface{} {
+func mergeList(hostEnv, globalEnv map[string]string) map[string]string {
 	if len(hostEnv) == 0 {
 		return copyEnv(globalEnv)
 	}
@@ -71,11 +71,11 @@ func convertTaints(taints []string) ([]k8sv1.Taint, error) {
 	return k8staints, nil
 }
 
-func copyEnv(origin map[string]interface{}) map[string]interface{} {
+func copyEnv(origin map[string]string) map[string]string {
 	if origin == nil {
 		return nil
 	}
-	ret := make(map[string]interface{}, len(origin))
+	ret := make(map[string]string, len(origin))
 	for k, v := range origin {
 		ret[k] = v
 	}
@@ -92,7 +92,7 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		roleHostsMap: map[string][]net.IP{},
 		hostRolesMap: map[string][]string{},
 		// todo need to separate env into app render data and sys render data
-		hostEnvMap: map[string]map[string]interface{}{},
+		hostEnvMap: map[string]map[string]string{},
 		hostLabels: map[string]map[string]string{},
 		hostTaint:  map[string][]k8sv1.Taint{},
 	}
@@ -177,7 +177,7 @@ func (d *SSHInfraDriver) GetRoleListByHostIP(ip string) []string {
 	return d.hostRolesMap[ip]
 }
 
-func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]interface{} {
+func (d *SSHInfraDriver) GetHostEnv(host net.IP) map[string]string {
 	// Set env for each host
 	hostEnv := d.hostEnvMap[host.String()]
 	if _, ok := hostEnv[common.EnvHostIP]; !ok {
@@ -190,7 +190,7 @@ func (d *SSHInfraDriver) GetHostLabels(host net.IP) map[string]string {
 	return d.hostLabels[host.String()]
 }
 
-func (d *SSHInfraDriver) GetClusterEnv() map[string]interface{} {
+func (d *SSHInfraDriver) GetClusterEnv() map[string]string {
 	return d.clusterEnv
 }
 
@@ -225,7 +225,7 @@ func (d *SSHInfraDriver) CopyR(host net.IP, remoteFilePath, localFilePath string
 	return client.CopyR(host, localFilePath, remoteFilePath)
 }
 
-func (d *SSHInfraDriver) CmdAsync(host net.IP, env map[string]interface{}, cmd ...string) error {
+func (d *SSHInfraDriver) CmdAsync(host net.IP, env map[string]string, cmd ...string) error {
 	client := d.sshConfigs[host.String()]
 	if client == nil {
 		return fmt.Errorf("ip(%s) is not in cluster", host.String())
@@ -233,7 +233,7 @@ func (d *SSHInfraDriver) CmdAsync(host net.IP, env map[string]interface{}, cmd .
 	return client.CmdAsync(host, env, cmd...)
 }
 
-func (d *SSHInfraDriver) Cmd(host net.IP, env map[string]interface{}, cmd string) ([]byte, error) {
+func (d *SSHInfraDriver) Cmd(host net.IP, env map[string]string, cmd string) ([]byte, error) {
 	client := d.sshConfigs[host.String()]
 	if client == nil {
 		return nil, fmt.Errorf("ip(%s) is not in cluster", host.String())
@@ -241,7 +241,7 @@ func (d *SSHInfraDriver) Cmd(host net.IP, env map[string]interface{}, cmd string
 	return client.Cmd(host, env, cmd)
 }
 
-func (d *SSHInfraDriver) CmdToString(host net.IP, env map[string]interface{}, cmd, spilt string) (string, error) {
+func (d *SSHInfraDriver) CmdToString(host net.IP, env map[string]string, cmd, spilt string) (string, error) {
 	client := d.sshConfigs[host.String()]
 	if client == nil {
 		return "", fmt.Errorf("ip(%s) is not in cluster", host.String())

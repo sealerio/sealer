@@ -158,30 +158,18 @@ func Merge(ms ...[]string) []string {
 	return base
 }
 
-// ConvertStringSliceToMap Convert []string to map[string]interface{}
-func ConvertStringSliceToMap(stringSlice []string) (stringInterfaceMap map[string]interface{}) {
-	temp := make(map[string][]string)
-	stringInterfaceMap = make(map[string]interface{})
-
-	for _, e := range stringSlice {
-		var kv []string
-		if kv = strings.SplitN(e, "=", 2); len(kv) != 2 {
+// ConvertStringSliceToMap Convert []string to map[string]string
+func ConvertStringSliceToMap(stringSlice []string) (stringInterfaceMap map[string]string) {
+	ret := make(map[string]string, len(stringSlice))
+	for _, env := range stringSlice {
+		parsed := strings.SplitN(env, "=", 2)
+		if len(parsed) != 2 {
 			continue
 		}
-		temp[kv[0]] = append(temp[kv[0]], strings.Split(kv[1], ";")...)
+		ret[parsed[0]] = parsed[1]
 	}
 
-	for k, v := range temp {
-		if len(v) > 1 {
-			stringInterfaceMap[k] = v
-			continue
-		}
-		if len(v) == 1 {
-			stringInterfaceMap[k] = v[0]
-		}
-	}
-
-	return
+	return ret
 }
 
 func Diff(old, new []net.IP) (add, sub []net.IP) {

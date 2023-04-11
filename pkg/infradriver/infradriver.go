@@ -38,13 +38,13 @@ type InfraDriver interface {
 	GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net.IP, error)
 
 	//GetHostEnv return merged env with host env and cluster env.
-	GetHostEnv(host net.IP) map[string]interface{}
+	GetHostEnv(host net.IP) map[string]string
 
 	//GetHostLabels return host labels.
 	GetHostLabels(host net.IP) map[string]string
 
 	//GetClusterEnv return cluster.spec.env as map[string]interface{}
-	GetClusterEnv() map[string]interface{}
+	GetClusterEnv() map[string]string
 
 	AddClusterEnv(envs []string)
 
@@ -76,11 +76,11 @@ type InfraDriver interface {
 	// CopyR copy remote host files to localhost
 	CopyR(host net.IP, remoteFilePath, localFilePath string) error
 	// CmdAsync exec command on remote host, and asynchronous return logs
-	CmdAsync(host net.IP, env map[string]interface{}, cmd ...string) error
+	CmdAsync(host net.IP, env map[string]string, cmd ...string) error
 	// Cmd exec command on remote host, and return combined standard output and standard error
-	Cmd(host net.IP, env map[string]interface{}, cmd string) ([]byte, error)
+	Cmd(host net.IP, env map[string]string, cmd string) ([]byte, error)
 	// CmdToString exec command on remote host, and return spilt standard output and standard error
-	CmdToString(host net.IP, env map[string]interface{}, cmd, spilt string) (string, error)
+	CmdToString(host net.IP, env map[string]string, cmd, spilt string) (string, error)
 
 	// IsFileExist check remote file exist or not
 	IsFileExist(host net.IP, remoteFilePath string) (bool, error)
