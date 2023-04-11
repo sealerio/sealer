@@ -17,7 +17,7 @@ package v1
 import (
 	"encoding/json"
 
-	application_v1 "github.com/sealerio/sealer/pkg/define/application/v1"
+	applicationV1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
 	apiv1 "github.com/sealerio/sealer/types/api/v1"
 
@@ -99,6 +99,11 @@ type ImageExtension struct {
 	// Labels are metadata to the sealer image
 	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
+	// Env is a set of key value pair.
+	// set to sealer image some default parameters which is in global level.
+	// user could overwrite it through v2.ClusterSpec at run stage.
+	Env map[string]string `json:"env,omitempty"`
+
 	// launch spec will declare
 	Launch Launch `json:"launch,omitempty"`
 }
@@ -139,9 +144,11 @@ type v1ImageExtension struct {
 	// Labels are metadata to the sealer image
 	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	// applications in the sealer image
-	Applications []application_v1.Application `json:"applications,omitempty"`
+	Applications []applicationV1.Application `json:"applications,omitempty"`
 	// launch spec will declare
 	Launch Launch `json:"launch,omitempty"`
+	// Env global env
+	Env map[string]string `json:"env,omitempty"`
 }
 
 func (ie *ImageExtension) UnmarshalJSON(data []byte) error {
@@ -154,6 +161,7 @@ func (ie *ImageExtension) UnmarshalJSON(data []byte) error {
 	(*ie).BuildClient = v1Ex.BuildClient
 	(*ie).SchemaVersion = v1Ex.SchemaVersion
 	(*ie).Labels = v1Ex.Labels
+	(*ie).Env = v1Ex.Env
 	(*ie).Type = v1Ex.Type
 	(*ie).Applications = make([]version.VersionedApplication, len(v1Ex.Applications))
 	for i, app := range v1Ex.Applications {

@@ -22,5 +22,7 @@ type VersionedApplication interface {
 
 	Type() string
 
+	Files() []string
+
 	LaunchCmd(appRoot string, launchCmds []string) string
 }

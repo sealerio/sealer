@@ -28,6 +28,11 @@ type Application struct {
 	TypeVar    string   `json:"type,omitempty"`
 	FilesVar   []string `json:"files,omitempty"`
 	VersionVar string   `json:"version,omitempty"`
+
+	// AppEnv is a set of key value pair.
+	// it is app level, only this app will be aware of its existence,
+	// it is used to render app files, or as an environment variable for app startup and deletion commands
+	AppEnv map[string]string `json:"env,omitempty"`
 }
 
 func (app *Application) Version() string {
@@ -40,6 +45,10 @@ func (app *Application) Name() string {
 
 func (app *Application) Type() string {
 	return app.TypeVar
+}
+
+func (app *Application) Files() []string {
+	return app.FilesVar
 }
 
 func (app *Application) LaunchCmd(appRoot string, launchCmds []string) string {
