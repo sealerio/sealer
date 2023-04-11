@@ -27,8 +27,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/pkg/auth"
-	"github.com/pelletier/go-toml"
 	"github.com/sealerio/sealer/common"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
@@ -38,6 +36,9 @@ import (
 	netutils "github.com/sealerio/sealer/utils/net"
 	osutils "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/shellcommand"
+
+	"github.com/containers/common/pkg/auth"
+	"github.com/pelletier/go-toml"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	k8snet "k8s.io/utils/net"
@@ -53,6 +54,17 @@ type localConfigurator struct {
 	containerRuntimeInfo containerruntime.Info
 	infraDriver          infradriver.InfraDriver
 	distributor          imagedistributor.Distributor
+}
+
+func (c *localConfigurator) GetRegistryInfo() RegistryInfo {
+	registryInfo := RegistryInfo{Local: LocalRegistryInfo{LocalRegistry: c.LocalRegistry}}
+	if *c.LocalRegistry.HA {
+		registryInfo.Local.Vip = GetRegistryVIP(c.infraDriver)
+		registryInfo.Local.DeployHosts = c.deployHosts
+	} else {
+		registryInfo.Local.DeployHosts = append(registryInfo.Local.DeployHosts, c.deployHosts[0])
+	}
+	return registryInfo
 }
 
 func (c *localConfigurator) GetDriver() (Driver, error) {
@@ -164,18 +176,7 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 	//todo should make lvs image name as const value in sealer repo.
 	lvsImageURL := path.Join(net.JoinHostPort(c.Domain, strconv.Itoa(c.Port)), common.LvsCareRepoAndTag)
 
-	vip := common.DefaultVIP
-	if hosts := c.infraDriver.GetHostIPList(); len(hosts) > 0 && k8snet.IsIPv6(hosts[0]) {
-		vip = common.DefaultVIPForIPv6
-	}
-
-	if ipv4, ok := c.infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv4]; ok {
-		vip = ipv4
-	}
-
-	if ipv6, ok := c.infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv6]; ok {
-		vip = ipv6
-	}
+	vip := GetRegistryVIP(c.infraDriver)
 
 	vs := net.JoinHostPort(vip, strconv.Itoa(c.Port))
 	// due to registry server do not have health path to check, choose "/" as default.
@@ -499,4 +500,20 @@ type DaemonLogOpts struct {
 	Labels        string `json:"labels,omitempty"`
 	MaxFile       string `json:"max-file,omitempty"`
 	MaxSize       string `json:"max-size,omitempty"`
+}
+
+func GetRegistryVIP(infraDriver infradriver.InfraDriver) string {
+	vip := common.DefaultVIP
+	if hosts := infraDriver.GetHostIPList(); len(hosts) > 0 && k8snet.IsIPv6(hosts[0]) {
+		vip = common.DefaultVIPForIPv6
+	}
+
+	if ipv4, ok := infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv4]; ok {
+		vip = ipv4
+	}
+
+	if ipv6, ok := infraDriver.GetClusterEnv()[common.EnvIPvsVIPForIPv6]; ok {
+		vip = ipv6
+	}
+	return vip
 }
