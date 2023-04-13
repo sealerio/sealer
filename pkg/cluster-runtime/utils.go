@@ -71,3 +71,15 @@ func LoadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	logrus.Infof("load image success")
 	return nil
 }
+
+func CheckNodeSSH(infraDriver infradriver.InfraDriver, clientHosts []net.IP) error {
+	for i := range clientHosts {
+		n := clientHosts[i]
+		logrus.Debug("checking ssh client of ", n)
+		err := infraDriver.CmdAsync(n, nil, "ls >> /dev/null")
+		if err != nil {
+			return fmt.Errorf("failed to connect node: %s: %v", n, err)
+		}
+	}
+	return nil
+}

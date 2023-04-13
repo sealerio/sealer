@@ -22,14 +22,31 @@ import (
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/registry"
 	"github.com/sealerio/sealer/pkg/runtime"
+	"github.com/sirupsen/logrus"
 )
 
 func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, runtime.Driver, error) {
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	master0 := masters[0]
+	workers := getWorkerIPList(i.infraDriver)
 	registryDeployHosts := []net.IP{master0}
 	all := append(newMasters, newWorkers...)
 	rootfs := i.infraDriver.GetClusterRootfsPath()
+
+	logrus.Debug("check ssh of new nodes")
+	err := CheckNodeSSH(i.infraDriver, append(newMasters, newWorkers...))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(newMasters) != 0 {
+		logrus.Debug("check ssh of workers")
+		err = CheckNodeSSH(i.infraDriver, workers)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
 	// set HostAlias
 	if err := i.infraDriver.SetClusterHostAliases(all); err != nil {
 		return nil, nil, err
@@ -119,8 +136,23 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (registry.Driver, runtime.Driver, error) {
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	master0 := masters[0]
+	workers := getWorkerIPList(i.infraDriver)
 	registryDeployHosts := []net.IP{master0}
 	all := append(mastersToDelete, workersToDelete...)
+
+	logrus.Debug("check ssh of nodesToDelete")
+	err := CheckNodeSSH(i.infraDriver, append(mastersToDelete, workersToDelete...))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(mastersToDelete) != 0 {
+		logrus.Debug("check ssh of workers")
+		err = CheckNodeSSH(i.infraDriver, workers)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 
 	if err := i.runHostHook(PreCleanHost, all); err != nil {
 		return nil, nil, err
