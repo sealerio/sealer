@@ -90,6 +90,7 @@ func NewUpgradeCmd() *cobra.Command {
 
 			cluster := current.GetCluster()
 			//update image of cluster
+			cluster.Spec.APPNames = upgradeFlags.AppNames
 			cluster.Spec.Image = args[0]
 			clusterData, err := yaml.Marshal(cluster)
 			if err != nil {
@@ -109,6 +110,7 @@ func NewUpgradeCmd() *cobra.Command {
 
 	upgradeFlags = &types.UpgradeFlags{}
 	upgradeCmd.Flags().StringVarP(&upgradeFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to upgrade a Kubernetes cluster")
+	upgradeCmd.Flags().StringSliceVar(&upgradeFlags.AppNames, "apps", nil, "override default AppNames of sealer image")
 
 	return upgradeCmd
 }
