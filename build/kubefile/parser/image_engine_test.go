@@ -133,7 +133,7 @@ func (testImageEngine) PushManifest(name, destSpec string, opts *options.PushOpt
 	panic("implement me")
 }
 
-func (testImageEngine) AddToManifest(name, imageSpec string, opts *options.ManifestAddOpts) error {
+func (testImageEngine) AddToManifest(name string, imageSpec []string, opts *options.ManifestAddOpts) error {
 	panic("implement me")
 }
 

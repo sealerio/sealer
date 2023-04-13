@@ -69,7 +69,7 @@ type Interface interface {
 
 	PushManifest(name, destSpec string, opts *options.PushOptions) error
 
-	AddToManifest(name, imageSpec string, opts *options.ManifestAddOpts) error
+	AddToManifest(name string, imageNameOrIDList []string, opts *options.ManifestAddOpts) error
 
 	RemoveFromManifest(name string, instanceDigest digest.Digest, opts *options.ManifestRemoveOpts) error
 }

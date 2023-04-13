@@ -101,23 +101,14 @@ func manifestAddCommand() *cobra.Command {
 		Long:  manifestAddDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				name, imageSpec string
+				manifestName = addManifestOpts.TargetName
+				imagesToAdd  = args
 			)
 
-			switch len(args) {
-			case 0, 1:
-				return errors.New("at least a manifest name and an image name to add must be specified")
-			case 2:
-				name = args[0]
-				if name == "" {
-					return fmt.Errorf(`invalid manifest name "%s" `, args[0])
-				}
-				imageSpec = args[1]
-				if imageSpec == "" {
-					return fmt.Errorf(`invalid image name "%s" `, args[1])
-				}
-			default:
-				return errors.New("at least two arguments are necessary: manifest name and an image name to add to list ")
+			// if not set `-t` flag , assume the first one is the manifestName,others is the images need to be added to.
+			if manifestName == "" {
+				manifestName = args[0]
+				imagesToAdd = args[1:]
 			}
 
 			engine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
@@ -125,11 +116,11 @@ func manifestAddCommand() *cobra.Command {
 				return err
 			}
 
-			return engine.AddToManifest(name, imageSpec, &addManifestOpts)
+			return engine.AddToManifest(manifestName, imagesToAdd, &addManifestOpts)
 		},
-		Example: `sealer alpha manifest add mylist:v1.11 image:v1.11-amd64
-  sealer alpha manifest add mylist:v1.11 transport:imageName`,
-		Args: cobra.MinimumNArgs(2),
+		Example: `sealer alpha manifest add app-amd:v1 app-arm:v1 -t all-in-one:v1
+  sealer alpha manifest add mylist:v1.11 image:v1.11-amd64`,
+		Args: cobra.MinimumNArgs(1),
 	}
 
 	flags := addCommand.Flags()
@@ -140,6 +131,7 @@ func manifestAddCommand() *cobra.Command {
 	flags.StringSliceVar(&addManifestOpts.OsFeatures, "os-features", nil, "override the OS `features` of the specified image")
 	flags.StringSliceVar(&addManifestOpts.Annotations, "annotation", nil, "set an `annotation` for the specified image")
 	flags.BoolVar(&addManifestOpts.All, "all", false, "add all of the list's images if the image is a list")
+	flags.StringVarP(&addManifestOpts.TargetName, "target", "t", "", "target image name,if it is not exist,will create a new one")
 
 	return addCommand
 }
