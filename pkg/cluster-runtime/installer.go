@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -36,7 +37,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 var tryTimes = 10
@@ -47,6 +51,9 @@ const (
 	CRILabel = "cluster.alpha.sealer.io/container-runtime-type"
 	// CRTLabel is key for get cluster runtime type.
 	CRTLabel = "cluster.alpha.sealer.io/cluster-runtime-type"
+
+	RegistryConfigMapName     = "sealer-registry"
+	RegistryConfigMapDataName = "registry"
 )
 
 // RuntimeConfig for Installer
@@ -192,6 +199,8 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	registryInfo := registryConfigurator.GetRegistryInfo()
+
 	kubeRuntimeInstaller, err := getClusterRuntimeInstaller(i.clusterRuntimeType, i.infraDriver,
 		crInfo, registryDriver.GetInfo(), i.KubeadmConfig)
 	if err != nil {
@@ -224,6 +233,10 @@ func (i *Installer) Install() error {
 	}
 
 	if err = i.setNodeTaints(all, runtimeDriver); err != nil {
+		return err
+	}
+
+	if err = i.saveRegistryInfo(runtimeDriver, registryInfo); err != nil {
 		return err
 	}
 
@@ -381,6 +394,33 @@ func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 			}); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func (i *Installer) saveRegistryInfo(driver runtime.Driver, registryInfo registry.RegistryInfo) error {
+	info, err := yaml.Marshal(registryInfo)
+	if err != nil {
+		return err
+	}
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      RegistryConfigMapName,
+			Namespace: clusterfile.ClusterfileConfigMapNamespace,
+		},
+		Data: map[string]string{RegistryConfigMapDataName: string(info)},
+	}
+
+	ctx := context.Background()
+	if err := driver.Create(ctx, cm); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("unable to create configmap: %v", err)
+		}
+
+		if err := driver.Update(ctx, cm); err != nil {
+			return fmt.Errorf("unable to update configmap: %v", err)
 		}
 	}
 	return nil
