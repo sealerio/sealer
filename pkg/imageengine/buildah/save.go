@@ -78,7 +78,7 @@ func (engine *Engine) Save(opts *options.SaveOptions) error {
 		}
 	}()
 
-	tempDir, err := os.MkdirTemp("", "sealer-save-tmp")
+	tempDir, err := os.MkdirTemp(opts.TmpDir, "sealer-save-tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create %s, err: %v", tempDir, err)
 	}
