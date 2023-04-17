@@ -128,6 +128,7 @@ type SaveOptions struct {
 	Output            string
 	Quiet             bool
 	ImageNameOrID     string
+	TmpDir            string
 }
 
 type LoadOptions struct {
