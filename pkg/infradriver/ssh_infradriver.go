@@ -150,11 +150,15 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 		for _, ip := range host.IPS {
 			ret.hostEnvMap[ip.String()] = mergeList(strUtil.ConvertStringSliceToMap(host.Env), ret.clusterEnv)
 			ret.hostLabels[ip.String()] = host.Labels
-			taints, err := convertTaints(host.Taints)
+		}
+	}
+
+	for _, host := range cluster.Spec.Hosts {
+		for _, ip := range host.IPS {
+			ret.hostTaint[ip.String()], err = convertTaints(host.Taints)
 			if err != nil {
 				return nil, err
 			}
-			ret.hostTaint[ip.String()] = taints
 		}
 	}
 

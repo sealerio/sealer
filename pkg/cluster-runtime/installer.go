@@ -365,8 +365,9 @@ func getAddress(addresses []corev1.NodeAddress) string {
 
 func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 	var (
-		k8snode corev1.Node
-		ok      bool
+		k8snode    corev1.Node
+		ok         bool
+		nodeTaints []corev1.Taint
 	)
 	nodeList := corev1.NodeList{}
 	if err := driver.List(context.TODO(), &nodeList); err != nil {
@@ -382,20 +383,34 @@ func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 		if len(taints) == 0 {
 			continue
 		}
-		if k8snode, ok = nodeTaint[ip.String()]; ok {
-			newNode := k8snode.DeepCopy()
-			newNode.Spec.Taints = taints
-			newNode.SetResourceVersion("")
-			if err := utils.Retry(tryTimes, trySleepTime, func() error {
-				if err := driver.Update(context.TODO(), newNode); err != nil {
-					return err
-				}
-				return nil
-			}); err != nil {
-				return err
+
+		if k8snode, ok = nodeTaint[ip.String()]; !ok {
+			continue
+		}
+		newNode := k8snode.DeepCopy()
+		for _, taint := range taints {
+			if strings.Contains(taint.Key, infradriver.DelSymbol) {
+				taintKey := strings.TrimSuffix(taint.Key, infradriver.DelSymbol)
+				nodeTaints, _ = infradriver.DeleteTaintsByKey(newNode.Spec.Taints, taintKey)
+				newNode.Spec.Taints = nodeTaints
+			} else if strings.Contains(string(taint.Effect), infradriver.DelSymbol) {
+				nodeTaints, _ = infradriver.DeleteTaint(newNode.Spec.Taints, &taint) // #nosec
+				newNode.Spec.Taints = nodeTaints
+			} else {
+				newNode.Spec.Taints = taints
 			}
 		}
+		newNode.SetResourceVersion("")
+		if err := utils.Retry(tryTimes, trySleepTime, func() error {
+			if err := driver.Update(context.TODO(), newNode); err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 

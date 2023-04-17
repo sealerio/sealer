@@ -64,6 +64,28 @@ func TestFormatData(t *testing.T) {
 				},
 			},
 		},
+		{
+			"test format date: key4:NoExecute-",
+			args{
+				data: "key4:NoExecute-",
+				wanted: k8sv1.Taint{
+					Key:    "key4",
+					Value:  "",
+					Effect: k8sv1.TaintEffect("NoExecute-"),
+				},
+			},
+		},
+		{
+			"test format date: key7-",
+			args{
+				data: "key7-",
+				wanted: k8sv1.Taint{
+					Key:    "key7-",
+					Value:  "",
+					Effect: k8sv1.TaintEffect(""),
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
