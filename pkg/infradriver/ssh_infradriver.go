@@ -26,6 +26,7 @@ import (
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	mapUtils "github.com/sealerio/sealer/utils/maps"
 	"github.com/sealerio/sealer/utils/shellcommand"
 	"github.com/sealerio/sealer/utils/ssh"
 	strUtil "github.com/sealerio/sealer/utils/strings"
@@ -46,19 +47,6 @@ type SSHInfraDriver struct {
 	cluster      v2.Cluster
 }
 
-func mergeList(hostEnv, globalEnv map[string]string) map[string]string {
-	if len(hostEnv) == 0 {
-		return copyEnv(globalEnv)
-	}
-	for globalEnvKey, globalEnvValue := range globalEnv {
-		if _, ok := hostEnv[globalEnvKey]; ok {
-			continue
-		}
-		hostEnv[globalEnvKey] = globalEnvValue
-	}
-	return hostEnv
-}
-
 func convertTaints(taints []string) ([]k8sv1.Taint, error) {
 	var k8staints []k8sv1.Taint
 	for _, taint := range taints {
@@ -69,18 +57,6 @@ func convertTaints(taints []string) ([]k8sv1.Taint, error) {
 		k8staints = append(k8staints, data)
 	}
 	return k8staints, nil
-}
-
-func copyEnv(origin map[string]string) map[string]string {
-	if origin == nil {
-		return nil
-	}
-	ret := make(map[string]string, len(origin))
-	for k, v := range origin {
-		ret[k] = v
-	}
-
-	return ret
 }
 
 // NewInfraDriver will create a new Infra driver, and if extraEnv specified, it will set env not exist in Cluster
@@ -148,7 +124,7 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	// merge the host ENV and global env, the host env will overwrite cluster.Spec.Env
 	for _, host := range cluster.Spec.Hosts {
 		for _, ip := range host.IPS {
-			ret.hostEnvMap[ip.String()] = mergeList(strUtil.ConvertStringSliceToMap(host.Env), ret.clusterEnv)
+			ret.hostEnvMap[ip.String()] = mapUtils.Merge(strUtil.ConvertStringSliceToMap(host.Env), ret.clusterEnv)
 			ret.hostLabels[ip.String()] = host.Labels
 		}
 	}
