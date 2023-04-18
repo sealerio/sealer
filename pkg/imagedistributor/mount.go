@@ -36,13 +36,13 @@ type buildAhMounter struct {
 	imageEngine imageengine.Interface
 }
 
-func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, string, error) {
+func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, string, string, error) {
 	path := platform.OS + "_" + platform.Architecture + "_" + platform.Variant
 	mountDir := filepath.Join(imageMountDir(imageName), path)
 	if osi.IsFileExist(mountDir) {
 		err := os.RemoveAll(mountDir)
 		if err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 	}
 
@@ -53,11 +53,11 @@ func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, s
 		Platform:   platform.ToString(),
 	})
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	if err := fs.FS.MkdirAll(filepath.Dir(mountDir)); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	id, err := b.imageEngine.CreateWorkingContainer(&options.BuildRootfsOptions{
@@ -66,9 +66,9 @@ func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, s
 	})
 
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return mountDir, id, nil
+	return mountDir, id, imageID, nil
 }
 
 func (b buildAhMounter) Umount(mountDir, cid string) error {
@@ -102,12 +102,13 @@ type ClusterImageMountInfo struct {
 	Platform    v1.Platform
 	MountDir    string
 	ContainerID string
+	ImageID     string
 }
 
 func (c ImagerMounter) Mount(imageName string) ([]ClusterImageMountInfo, error) {
 	var imageMountInfos []ClusterImageMountInfo
 	for platform, hosts := range c.hostsPlatform {
-		mountDir, cid, err := c.Mounter.Mount(imageName, platform)
+		mountDir, cid, imageID, err := c.Mounter.Mount(imageName, platform)
 		if err != nil {
 			return nil, fmt.Errorf("failed to mount image with platform %s:%v", platform.ToString(), err)
 		}
@@ -116,6 +117,7 @@ func (c ImagerMounter) Mount(imageName string) ([]ClusterImageMountInfo, error) 
 			Platform:    platform,
 			MountDir:    mountDir,
 			ContainerID: cid,
+			ImageID:     imageID,
 		})
 	}
 

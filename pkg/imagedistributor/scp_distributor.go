@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/sirupsen/logrus"
 
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/config"
@@ -29,18 +29,22 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
-	RegistryDirName = "registry"
+	RegistryDirName      = "registry"
+	RootfsCacheDirName   = "image"
+	RegistryCacheDirName = "registry"
 )
 
-var IsPrune bool
-
 type scpDistributor struct {
-	configs        []v1.Config
-	infraDriver    infradriver.InfraDriver
-	imageMountInfo []ClusterImageMountInfo
+	configs          []v1.Config
+	infraDriver      infradriver.InfraDriver
+	imageMountInfo   []ClusterImageMountInfo
+	registryCacheDir string
+	rootfsCacheDir   string
+	options          DistributeOption
 }
 
 func (s *scpDistributor) DistributeRegistry(deployHosts []net.IP, dataDir string) error {
@@ -49,14 +53,39 @@ func (s *scpDistributor) DistributeRegistry(deployHosts []net.IP, dataDir string
 			continue
 		}
 
+		localCacheFile := filepath.Join(info.MountDir, info.ImageID)
+		remoteCacheFile := filepath.Join(s.registryCacheDir, info.ImageID)
 		eg, _ := errgroup.WithContext(context.Background())
+
 		for _, deployHost := range deployHosts {
 			tmpDeployHost := deployHost
 			eg.Go(func() error {
+				if !s.options.IgnoreCache {
+					// detect if remote cache file is exist.
+					existed, err := s.infraDriver.IsFileExist(tmpDeployHost, remoteCacheFile)
+					if err != nil {
+						return fmt.Errorf("failed to detect registry cache %s on host %s: %v",
+							remoteCacheFile, tmpDeployHost.String(), err)
+					}
+
+					if existed {
+						return nil
+					}
+				}
+
+				// copy registry data
 				err := s.infraDriver.Copy(tmpDeployHost, filepath.Join(info.MountDir, RegistryDirName), dataDir)
 				if err != nil {
 					return fmt.Errorf("failed to copy registry data %s: %v", info.MountDir, err)
 				}
+
+				// write cache flag
+				err = s.writeCacheFlag(localCacheFile, remoteCacheFile, tmpDeployHost)
+				if err != nil {
+					return fmt.Errorf("failed to write registry cache %s on host %s: %v",
+						remoteCacheFile, tmpDeployHost.String(), err)
+				}
+
 				return nil
 			})
 		}
@@ -78,28 +107,55 @@ func (s *scpDistributor) Distribute(hosts []net.IP, dest string) error {
 			return err
 		}
 
-		targetDirs, err := s.filterRootfs(info.MountDir)
-		if err != nil {
-			return err
+		eg, _ := errgroup.WithContext(context.Background())
+		localCacheFile := filepath.Join(info.MountDir, info.ImageID)
+		remoteCacheFile := filepath.Join(s.rootfsCacheDir, info.ImageID)
+
+		for _, ip := range info.Hosts {
+			host := ip
+			eg.Go(func() error {
+				if !s.options.IgnoreCache {
+					// detect if remote cache file is exist.
+					existed, err := s.infraDriver.IsFileExist(host, remoteCacheFile)
+					if err != nil {
+						return fmt.Errorf("failed to detect rootfs cache %s on host %s: %v",
+							remoteCacheFile, host.String(), err)
+					}
+
+					if existed {
+						return nil
+					}
+				}
+
+				// copy rootfs data
+				err := s.filterCopy(info.MountDir, dest, host)
+				if err != nil {
+					return fmt.Errorf("failed to copy rootfs files: %v", err)
+				}
+
+				// write cache flag
+				err = s.writeCacheFlag(localCacheFile, remoteCacheFile, host)
+				if err != nil {
+					return fmt.Errorf("failed to write rootfs cache %s on host %s: %v",
+						remoteCacheFile, host.String(), err)
+				}
+
+				return nil
+			})
 		}
 
-		for _, target := range targetDirs {
-			err = s.copyRootfs(target, filepath.Join(dest, filepath.Base(target)), info.Hosts)
-			if err != nil {
-				return err
-			}
+		if err := eg.Wait(); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (s *scpDistributor) filterRootfs(mountDir string) ([]string, error) {
-	var AllMountFiles []string
-
+func (s *scpDistributor) filterCopy(mountDir, dest string, host net.IP) error {
 	files, err := os.ReadDir(mountDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read dir %s: %s", mountDir, err)
+		return fmt.Errorf("failed to read dir %s: %s", mountDir, err)
 	}
 
 	for _, f := range files {
@@ -107,30 +163,14 @@ func (s *scpDistributor) filterRootfs(mountDir string) ([]string, error) {
 		if f.IsDir() && f.Name() == RegistryDirName {
 			continue
 		}
-		AllMountFiles = append(AllMountFiles, filepath.Join(mountDir, f.Name()))
+
+		// copy rootfs data
+		err = s.infraDriver.Copy(host, filepath.Join(mountDir, f.Name()), filepath.Join(dest, f.Name()))
+		if err != nil {
+			return fmt.Errorf("failed to copy rootfs files: %v", err)
+		}
 	}
 
-	return AllMountFiles, nil
-}
-
-func (s *scpDistributor) copyRootfs(mountDir, targetDir string, hosts []net.IP) error {
-	eg, _ := errgroup.WithContext(context.Background())
-	//todo bug: If the clusterimage has too many layer files,will cause the ssh session to crash,
-	// then need to config target host sshd "maxstartups"
-	for _, ip := range hosts {
-		host := ip
-		eg.Go(func() error {
-			err := s.infraDriver.Copy(host, mountDir, targetDir)
-			if err != nil {
-				return fmt.Errorf("failed to copy rootfs files: %v", err)
-			}
-			return nil
-		})
-	}
-
-	if err := eg.Wait(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -159,8 +199,27 @@ func (s *scpDistributor) renderRootfs(mountDir string) error {
 	return nil
 }
 
+// writeCacheFlag : write image sha256ID to remote host.
+// remoteCacheFile looks like: /var/lib/sealer/data/my-cluster/rootfs/cache/registry/9eb6f8a1ca09559189dd1fed5e587b14
+func (s *scpDistributor) writeCacheFlag(localCacheFile, remoteCacheFile string, host net.IP) error {
+	if !osi.IsFileExist(localCacheFile) {
+		err := osi.NewCommonWriter(localCacheFile).WriteFile([]byte(""))
+		if err != nil {
+			return fmt.Errorf("failed to write local cache file %s: %v", localCacheFile, err)
+		}
+	}
+
+	err := s.infraDriver.Copy(host, localCacheFile, remoteCacheFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy rootfs cache file: %v", err)
+	}
+
+	logrus.Debugf("successfully write cache file %s on: %s", remoteCacheFile, host.String())
+	return nil
+}
+
 func (s *scpDistributor) Restore(targetDir string, hosts []net.IP) error {
-	if !IsPrune {
+	if !s.options.Prune {
 		return nil
 	}
 
@@ -185,9 +244,13 @@ func (s *scpDistributor) Restore(targetDir string, hosts []net.IP) error {
 	return nil
 }
 
-func NewScpDistributor(imageMountInfo []ClusterImageMountInfo, driver infradriver.InfraDriver, configs []v1.Config) (Distributor, error) {
+func NewScpDistributor(imageMountInfo []ClusterImageMountInfo, driver infradriver.InfraDriver, configs []v1.Config, options DistributeOption) (Distributor, error) {
 	return &scpDistributor{
-		configs:        configs,
-		imageMountInfo: imageMountInfo,
-		infraDriver:    driver}, nil
+		configs:          configs,
+		imageMountInfo:   imageMountInfo,
+		infraDriver:      driver,
+		registryCacheDir: filepath.Join(driver.GetClusterRootfsPath(), "cache", RegistryCacheDirName),
+		rootfsCacheDir:   filepath.Join(driver.GetClusterRootfsPath(), "cache", RootfsCacheDirName),
+		options:          options,
+	}, nil
 }

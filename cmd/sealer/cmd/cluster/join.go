@@ -97,7 +97,7 @@ func NewJoinCmd() *cobra.Command {
 				return err
 			}
 
-			return scaleUpCluster(cluster.Spec.Image, mj, nj, infraDriver, imageEngine, cf)
+			return scaleUpCluster(cluster.Spec.Image, mj, nj, infraDriver, imageEngine, cf, joinFlags.IgnoreCache)
 		},
 	}
 
@@ -110,5 +110,7 @@ func NewJoinCmd() *cobra.Command {
 	joinCmd.Flags().StringSliceVarP(&joinFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
 	joinCmd.Flags().StringVarP(&joinFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
 	joinCmd.Flags().StringVarP(&joinFlags.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
+	joinCmd.Flags().BoolVar(&joinFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
+
 	return joinCmd
 }

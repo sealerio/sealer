@@ -103,6 +103,7 @@ func NewRollbackCmd() *cobra.Command {
 
 	rollbackFlags = &types.RollbackFlags{}
 	rollbackCmd.Flags().StringSliceVar(&rollbackFlags.AppNames, "apps", nil, "override default AppNames of sealer image")
+	rollbackCmd.Flags().BoolVar(&rollbackFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
 
 	return rollbackCmd
 }
@@ -145,7 +146,9 @@ func rollbackCluster(cf clusterfile.Interface, imageEngine imageengine.Interface
 		}
 	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs(), imagedistributor.DistributeOption{
+		IgnoreCache: rollbackFlags.IgnoreCache,
+	})
 	if err != nil {
 		return err
 	}
