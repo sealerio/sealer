@@ -131,9 +131,9 @@ type SaveOptions struct {
 }
 
 type LoadOptions struct {
-	Input  string
-	TmpDir string
-	Quiet  bool
+	Input  string //read from specified archive file
+	TmpDir string //temporary load directory
+	Quiet  bool   //suppress the output
 }
 
 type InspectOptions struct {

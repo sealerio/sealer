@@ -50,24 +50,24 @@ const (
 	PreUnInstallCluster Phase = "pre-uninstall"
 	//PostUnInstallCluster on master0
 	PostUnInstallCluster Phase = "post-uninstall"
-	//PreScaleUpCluster on master0
+	//PreScaleUpCluster on master0: will run before scaleup cluster
 	PreScaleUpCluster Phase = "pre-scaleup"
-	//PostScaleUpCluster on master0
+	//PostScaleUpCluster on master0: will run after scaleup cluster
 	PostScaleUpCluster Phase = "post-scaleup"
-	//UpgradeCluster on master0
+	//UpgradeHost on master0: will run for upgrading cluster
 	UpgradeCluster Phase = "upgrade"
 	//RollbackCluster on master0
 	RollbackCluster Phase = "rollback"
 
-	//PreInitHost on role
+	//PreInitHost on role: will run before init cluster host
 	PreInitHost Phase = "pre-init-host"
-	//PostInitHost on role
+	//PostInitHost on role: will run after init cluster host
 	PostInitHost Phase = "post-init-host"
-	//PreCleanHost on role
+	//PreCleanHost on role: will run before clean cluster host
 	PreCleanHost Phase = "pre-clean-host"
-	//PostCleanHost on role
+	//PostCleanHost on role: will run after clean cluster host
 	PostCleanHost Phase = "post-clean-host"
-	//UpgradeHost on role
+	//UpgradeHost on role: will run before upgrade cluster
 	UpgradeHost Phase = "upgrade-host"
 )
 

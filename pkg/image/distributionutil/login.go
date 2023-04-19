@@ -16,8 +16,10 @@ package distributionutil
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,22 +32,30 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/dockerversion"
 	dockerRegistry "github.com/docker/docker/registry"
+	"github.com/docker/go-connections/tlsconfig"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 func Login(ctx context.Context, authConfig *types.AuthConfig) error {
+	if authConfig.Username == "" && authConfig.Password == "" {
+		return errors.New("must provide username and password")
+	}
+
 	domain := authConfig.ServerAddress
 	if !strings.HasPrefix(domain, "http://") && !strings.HasPrefix(domain, "https://") {
 		domain = "https://" + domain
 	}
+
+	logrus.Debugf("login domain: %s", domain)
+
 	endpointURL, err := url.Parse(domain)
 	if err != nil {
 		return err
 	}
 
 	modifiers := dockerRegistry.Headers(dockerversion.DockerUserAgent(ctx), nil)
-	base := dockerRegistry.NewTransport(nil)
+	base := newTransport(nil)
 	base.TLSClientConfig.InsecureSkipVerify = os.Getenv("SKIP_TLS_VERIFY") == "true"
 	if err := dockerRegistry.ReadCertsDirectory(base.TLSClientConfig, filepath.Join(dockerRegistry.CertsDir(), endpointURL.Host)); err != nil {
 		return err
@@ -56,6 +66,7 @@ func Login(ctx context.Context, authConfig *types.AuthConfig) error {
 	creds := loginCredentialStore{
 		authConfig: &credentialAuthConfig,
 	}
+
 	loginClient, err := authHTTPClient(endpointURL, authTransport, modifiers, creds, nil)
 	if err != nil {
 		return err
@@ -88,6 +99,28 @@ func Login(ctx context.Context, authConfig *types.AuthConfig) error {
 	// TODO(dmcgowan): Attempt to further interpret result, status code and error code string
 	err = errors.Errorf("login attempt to %s failed with status: %d %s", endpointStr, resp.StatusCode, http.StatusText(resp.StatusCode))
 	return err
+}
+
+// newTransport returns a new HTTP transport. If tlsConfig is nil, it uses the
+// default TLS configuration.
+func newTransport(tlsConfig *tls.Config) *http.Transport {
+	if tlsConfig == nil {
+		tlsConfig = tlsconfig.ServerDefault()
+	}
+
+	direct := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	return &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         direct.DialContext,
+		TLSHandshakeTimeout: 10 * time.Second,
+		TLSClientConfig:     tlsConfig,
+		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
+		DisableKeepAlives: true,
+	}
 }
 
 func authHTTPClient(endpoint *url.URL, authTransport http.RoundTripper, modifiers []transport.RequestModifier, creds auth.CredentialStore, scopes []auth.Scope) (*http.Client, error) {

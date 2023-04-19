@@ -52,7 +52,7 @@ func NewLoadCmd() *cobra.Command {
 	flags := loadCmd.Flags()
 	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Read from specified archive file")
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
-	flags.StringVar(&loadOpts.TmpDir, "tmp-dir", "", "Set temporary directory when load image. use system temporary directory is not (/var/tmp/)at present ")
+	flags.StringVar(&loadOpts.TmpDir, "tmp-dir", "", "Set temporary directory when load image. use system temporary directory(/tmp/) if not present.")
 
 	if err := loadCmd.MarkFlagRequired("input"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)

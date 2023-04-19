@@ -27,6 +27,7 @@ import (
 	"github.com/go-errors/errors"
 	"github.com/sirupsen/logrus"
 
+	"github.com/containers/common/pkg/auth"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/utils/archive"
@@ -39,6 +40,13 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 	if _, err := os.Stat(imageSrc); err != nil {
 		return err
 	}
+
+	systemCxt := engine.SystemContext()
+	if err := auth.CheckAuthFile(systemCxt.AuthFilePath); err != nil {
+		return err
+	}
+
+	systemCxt.BigFilesTemporaryDir = opts.TmpDir
 
 	loadOpts := &libimage.LoadOptions{}
 	if !opts.Quiet {
@@ -74,8 +82,9 @@ func (engine *Engine) Load(opts *options.LoadOptions) error {
 	}
 
 	metaFile := filepath.Join(tempDir, common.DefaultMetadataName)
+
+	// assume it is single image to load
 	if _, err := os.Stat(metaFile); err != nil {
-		//assume it is single image to load
 		return engine.loadOneImage(imageSrc, loadOpts)
 	}
 
