@@ -50,8 +50,8 @@ IMAGES ?= $(filter-out tools,$(foreach image,${IMAGES_DIR},$(notdir ${image})))
 # Image targets
 # ==============================================================================
 
-.PHONY: image.verify
 ## image.verify: Verify docker version
+.PHONY: image.verify
 image.verify:
 	$(eval API_VERSION := $(shell $(DOCKER) version | grep -E 'API version: {1,6}[0-9]' | head -n1 | awk '{print $$3} END { if (NR==0) print 0}' ))
 	$(eval PASS := $(shell echo "$(API_VERSION) > $(DOCKER_SUPPORTED_API_VERSION)" | bc))
@@ -61,8 +61,8 @@ image.verify:
 		exit 1; \
 	fi
 
-.PHONY: image.daemon.verify
 ## image.daemon.verify: Verify docker daemon experimental features
+.PHONY: image.daemon.verify
 image.daemon.verify:
 	$(eval PASS := $(shell $(DOCKER) version | grep -q -E 'Experimental: {1,5}true' && echo 1 || echo 0))
 	@if [ $(PASS) -ne 1 ]; then \
@@ -70,16 +70,16 @@ image.daemon.verify:
 		exit 1; \
 	fi
 
-.PHONY: image.build
 ## image.build: Build docker images
+.PHONY: image.build
 image.build: image.verify go.build.verify $(addprefix image.build., $(addprefix $(IMAGE_PLAT)., $(IMAGES)))
 
-.PHONY: image.build.multiarch
 ## image.build.multiarch: Build docker images for all platforms
+.PHONY: image.build.multiarch
 image.build.multiarch: image.verify go.build.verify $(foreach p,$(PLATFORMS),$(addprefix image.build., $(addprefix $(p)., $(IMAGES))))
 
-.PHONY: image.build.%
 ## image.build.%: Build docker image for a specific platform
+.PHONY: image.build.%
 image.build.%: go.build.%
 	$(eval IMAGE := $(COMMAND))
 	$(eval IMAGE_PLAT := $(subst _,/,$(PLATFORM)))
@@ -98,28 +98,28 @@ image.build.%: go.build.%
 	fi
 	@rm -rf $(TMP_DIR)/$(IMAGE)
 
-.PHONY: image.push
 ## image.push: Push docker images
+.PHONY: image.push
 image.push: image.verify go.build.verify $(addprefix image.push., $(addprefix $(IMAGE_PLAT)., $(IMAGES)))
 
-.PHONY: image.push.multiarch
 ## image.push.multiarch: Push docker images for all platforms
+.PHONY: image.push.multiarch
 image.push.multiarch: image.verify go.build.verify $(foreach p,$(PLATFORMS),$(addprefix image.push., $(addprefix $(p)., $(IMAGES))))
 
-.PHONY: image.push.%
 ## image.push.%: Push docker image for a specific platform
+.PHONY: image.push.%
 image.push.%: image.build.%
 	@echo "===========> Pushing image $(IMAGE) $(VERSION) to $(REGISTRY_PREFIX)"
 	$(DOCKER) push $(REGISTRY_PREFIX)/$(IMAGE)-$(ARCH):$(VERSION)
 
-.PHONY: image.manifest.push
 ## image.manifest.push: Push manifest list for multi-arch images
+.PHONY: image.manifest.push
 image.manifest.push: export DOCKER_CLI_EXPERIMENTAL := enabled
 image.manifest.push: image.verify go.build.verify \
 $(addprefix image.manifest.push., $(addprefix $(IMAGE_PLAT)., $(IMAGES)))
 
-.PHONY: image.manifest.push.%
 ## image.manifest.push.%: Push manifest list for multi-arch images for a specific platform
+.PHONY: image.manifest.push.%
 image.manifest.push.%: image.push.% image.manifest.remove.%
 	@echo "===========> Pushing manifest $(IMAGE) $(VERSION) to $(REGISTRY_PREFIX) and then remove the local manifest list"
 	@$(DOCKER) manifest create $(REGISTRY_PREFIX)/$(IMAGE):$(VERSION) \
@@ -133,23 +133,23 @@ image.manifest.push.%: image.push.% image.manifest.remove.%
 # If you find your manifests were not updated,
 # Please manually delete them in $HOME/.docker/manifests/
 # and re-run.
-.PHONY: image.manifest.remove.%
 ## image.manifest.remove.%: Remove local manifest list
+.PHONY: image.manifest.remove.%
 image.manifest.remove.%:
 	@rm -rf ${HOME}/.docker/manifests/docker.io_$(REGISTRY_PREFIX)_$(IMAGE)-$(VERSION)
 
-.PHONY: image.manifest.push.multiarch
 ## image.manifest.push.multiarch: Push manifest list for multi-arch images for all platforms
+.PHONY: image.manifest.push.multiarch
 image.manifest.push.multiarch: image.push.multiarch $(addprefix image.manifest.push.multiarch., $(IMAGES))
 
-.PHONY: image.manifest.push.multiarch.%
 ## image.manifest.push.multiarch.%: Push manifest list for multi-arch images for all platforms for a specific image
+.PHONY: image.manifest.push.multiarch.%
 image.manifest.push.multiarch.%:
 	@echo "===========> Pushing manifest $* $(VERSION) to $(REGISTRY_PREFIX) and then remove the local manifest list"
 	REGISTRY_PREFIX=$(REGISTRY_PREFIX) PLATFROMS="$(PLATFORMS)" IMAGE=$* VERSION=$(VERSION) DOCKER_CLI_EXPERIMENTAL=enabled \
 	  $(ROOT_DIR)/build/lib/create-manifest.sh
 
-.PHONY: image.help
 ## image.help: Print help for image targets
+.PHONY: image.help
 image.help: scripts/make-rules/image.mk
 	$(call smallhelp)

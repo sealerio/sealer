@@ -55,15 +55,17 @@
 
 LICENSE_TEMPLATE ?= $(ROOT_DIR)/scripts/LICENSE_TEMPLATE
 
-.PHONY: copyright.verify
+
 # TODO: GOBIN -> TOOLS_DIR
+## copyright.verify: Validate boilerplate headers for assign files
+.PHONY: copyright.verify
 copyright.verify: tools.verify.addlicense
 	@echo "===========> Validate boilerplate headers for assign files starting in the $(ROOT_DIR) directory"
 	@$(GOBIN)/addlicense -v -check -ignore **/test/** -f $(LICENSE_TEMPLATE) $(CODE_DIRS)
 	@echo "===========> End of boilerplate headers check..."
 
-.PHONY: copyright.add
 ## copyright.add: Add the boilerplate headers for all files
+.PHONY: copyright.add
 copyright.add: tools.verify.addlicense
 	@echo "===========> Adding $(LICENSE_TEMPLATE) the boilerplate headers for all files"
 	@$(GOBIN)/addlicense -y $(shell date +"%Y") -v -c "Alibaba Group Holding Ltd." -f $(LICENSE_TEMPLATE) $(CODE_DIRS)
@@ -87,7 +89,7 @@ copyright.add: tools.verify.addlicense
 #   -y string
 #         copyright year(s) (default "2023")
 
-.PHONY: copyright.help
 ## copyright.help: Show copyright help
+.PHONY: copyright.help
 copyright.help: scripts/make-rules/copyright.mk
 	$(call smallhelp)
