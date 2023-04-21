@@ -214,6 +214,8 @@ func init() {
 		command.Run:         parseMaybeJSON,
 		command.App:         parseMaybeJSONToList,
 		command.AppCmds:     parseMaybeJSONToList,
+		command.Env:         parseNameOrNameVal,
+		command.AppEnv:      parseMaybeJSONToList,
 		command.KUBEVERSION: parseString,
 		command.CNI:         parseMaybeJSONToList,
 		command.CSI:         parseMaybeJSONToList,

@@ -34,6 +34,9 @@ const (
 	Label      = "label"
 	Maintainer = "maintainer"
 
+	Env    = "env"
+	AppEnv = "appenv"
+
 	// Deprecated
 	Cmd = "cmd"
 
@@ -73,4 +76,6 @@ var SupportedCommands = map[string]struct{}{
 	CNI:         {},
 	CSI:         {},
 	KUBEVERSION: {},
+	Env:         {},
+	AppEnv:      {},
 }
