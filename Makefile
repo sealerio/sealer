@@ -173,6 +173,6 @@ help: Makefile
 	$(call makehelp)
 
 ## all-help: Show all help details info.
-.PHONY: all-help
-all-help: go.help copyright.help tools.help image.help help
+.PHONY: help-all
+help-all: go.help copyright.help tools.help image.help help
 	$(call makeallhelp)

@@ -159,7 +159,7 @@ go.test.cover: go.test
 	@$(GO) tool cover -func=$(OUTPUT_DIR)/coverage.out | \
 		awk -v target=$(COVERAGE) -f $(ROOT_DIR)/scripts/coverage.awk
 
-## go.test.integration: Run integration test
+## go.test.format: Run unit test and format codes
 .PHONY: go.format
 go.format: tools.verify.goimports
 	@echo "===========> Formating codes"

@@ -140,7 +140,7 @@ endef
 # Here are some examples of builds
 define MAKEFILE_EXAMPLE
 # make build BINS=sealer                                         Only a single sealer binary is built 
-# make fmt vet lint                                              Run code style check
+# make -j $(nproc) all                                           Run tidy gen add-copyright format lint cover build concurrently
 # make gen                                                       Generate all necessary files
 # make deepcopy                                                  Generate deepcopy code
 # make verify-copyright                                          Verify the license headers for all files

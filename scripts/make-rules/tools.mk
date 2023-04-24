@@ -14,9 +14,25 @@
 
 # ==============================================================================
 # Makefile helper functions for tools(https://github.com/avelino/awesome-go) -> DIR: {TOOT_DIR}/tools | (go >= 1.19)
+# Why download to the tools directory, thinking we might often switch Go versions using gvm.
 #
 
+# sealer build use BUILD_TOOLS
 BUILD_TOOLS ?= golangci-lint goimports addlicense deepcopy-gen conversion-gen ginkgo
+# Code analysis tools
+ANALYSIS_TOOLS = golangci-lint goimports golines go-callvis kube-score
+# Code generation tools
+GENERATION_TOOLS = deepcopy-gen conversion-gen protoc-gen-go cfssl rts codegen
+# Testing tools
+TEST_TOOLS = ginkgo junit-report gotests
+# Version control tools
+VERSION_CONTROL_TOOLS = addlicense go-gitlint git-chglog github-release gsemver
+# Cloud storage tools
+CLOUD_STORAGE_TOOLS = coscli coscmd
+# Utility tools
+UTILITY_TOOLS = go-mod-outdated mockgen gothanks richgo
+# All tools
+ALL_TOOLS ?= $(ANALYSIS_TOOLS) $(GENERATION_TOOLS) $(TEST_TOOLS) $(VERSION_CONTROL_TOOLS) $(CLOUD_STORAGE_TOOLS) $(UTILITY_TOOLS)
 
 ## tools.install: Install all tools
 .PHONY: tools.install
