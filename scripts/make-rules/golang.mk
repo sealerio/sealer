@@ -18,7 +18,7 @@
 
 GO := go
 # ! go 1.8 some packages fail to be pulled out. You are advised to use the gvm switchover version of the tools toolkit
-GO_SUPPORTED_VERSIONS ?= |1.18|1.19|1.20|
+GO_SUPPORTED_VERSIONS ?= |1.17|1.18|1.19|1.20|
 
 GO_LDFLAGS += -X $(VERSION_PACKAGE).gitVersion=${GIT_TAG} \
 	-X $(VERSION_PACKAGE).gitCommit=${GIT_COMMIT} \
@@ -62,7 +62,7 @@ ifeq (${BINS},)
 endif
 
 # TODO: EXCLUDE_TESTS variable, which contains the name of the package to be excluded from the test
-EXCLUDE_TESTS := github.com/sealerio/sealer/test github.com/sealerio/sealer/pkg/logger   
+EXCLUDE_TESTS := github.com/sealerio/sealer/test github.com/sealerio/sealer/pkg/logger
 
 # ==============================================================================
 # make: Nothing to be done build and build sub targets
@@ -143,39 +143,65 @@ go.lint: tools.verify.golangci-lint
 	@golangci-lint run -c $(ROOT_DIR)/.golangci.yml $(ROOT_DIR)/...
 
 ## go.test: Run unit test
-.PHONY: go.test
-go.test: tools.verify.go-junit-report
+go.test:
 	@echo "===========> Run unit test"
-#	@set -o pipefail;$(GO) test -race -cover -coverprofile=$(OUTPUT_DIR)/coverage.out \
-#		-timeout=10m -shuffle=on -short -v `go list ./...|\
-#		egrep -v $(subst $(SPACE),'|',$(sort $(EXCLUDE_TESTS)))` 2>&1 | \
-#		tee >(go-junit-report --set-exit-code >$(OUTPUT_DIR)/report.xml)
-#	@sed -i '/mock_.*.go/d' $(OUTPUT_DIR)/coverage.out # remove mock_.*.go files from test coverage
-#	@$(GO) tool cover -html=$(OUTPUT_DIR)/coverage.out -o $(OUTPUT_DIR)/coverage.html
+	@$(GO) test ./...
 
-## go.test.cover: Run unit test and check coverage
+## go.test.junit-report: Run unit test
+.PHONY: go.test.junit-report
+go.test.junit-report: tools.verify.go-junit-report
+	@echo "===========> Run unit test > $(TMP_DIR)/report.xml"
+	@$(GO) test -v -coverprofile=$(TMP_DIR)/coverage.out 2>&1 ./... | $(TOOLS_DIR)/go-junit-report -set-exit-code > $(TMP_DIR)/report.xml
+	@sed -i '/mock_.*.go/d' $(TMP_DIR)/coverage.out
+	@echo "===========> Test coverage of Go code is reported to $(TMP_DIR)/coverage.html by generating HTML"
+	@$(GO) tool cover -html=$(TMP_DIR)/coverage.out -o $(TMP_DIR)/coverage.html
+
+# .PHONY: go.test.junit-report
+# go.test.junit-report: tools.verify.go-junit-report
+# 	@echo "===========> Run unit test"
+# 	@$(GO) test -race -cover -coverprofile=$(OUTPUT_DIR)/coverage.out \
+# 		-timeout=10m -shuffle=on -short -v `go list ./pkg/hook/ |\
+# 		egrep -v $(subst $(SPACE),'|',$(sort $(EXCLUDE_TESTS)))` 2>&1 | \
+# 		tee >(go-junit-report --set-exit-code >$(OUTPUT_DIR)/report.xml)
+# 	@sed -i '/mock_.*.go/d' $(OUTPUT_DIR)/coverage.out # remove mock_.*.go files from test coverage
+# 	@$(GO) tool cover -html=$(OUTPUT_DIR)/coverage.out -o $(OUTPUT_DIR)/coverage.html
+
+## go.test.cover: Run unit test with coverage
 .PHONY: go.test.cover
-go.test.cover: go.test
-	@$(GO) tool cover -func=$(OUTPUT_DIR)/coverage.out | \
+go.test.cover: go.test.junit-report
+	@touch $(TMP_DIR)/coverage.out
+	@$(GO) tool cover -func=$(TMP_DIR)/coverage.out | \
 		awk -v target=$(COVERAGE) -f $(ROOT_DIR)/scripts/coverage.awk
 
 ## go.test.format: Run unit test and format codes
 .PHONY: go.format
-go.format: tools.verify.goimports
+go.format: tools.verify.golines tools.verify.goimports
 	@echo "===========> Formating codes"
-	@$(FIND) -type f -name '*.go' | xargs gofmt -s -w
-	@$(FIND) -type f -name '*.go' | xargs $(TOOLS_DIR)/goimports -l -w -local $(ROOT_PACKAGE)
+	@$(FIND) -type f -name '*.go' | $(XARGS) gofmt -s -w
+	@$(FIND) -type f -name '*.go' | $(XARGS) $(TOOLS_DIR)/goimports -w -local $(ROOT_PACKAGE)
+	@$(FIND) -type f -name '*.go' | $(XARGS) $(TOOLS_DIR)/golines -w --max-len=120 --reformat-tags --shorten-comments --ignore-generated .
 	@$(GO) mod edit -fmt
+
+## imports: task to automatically handle import packages in Go files using goimports tool
+.PHONY: go.imports
+go.imports: tools.verify.goimports
+	@$(TOOLS_DIR)/goimports -l -w $(SRC)
+
+## lint: Run the golangci-lint
+.PHONY: go.lint
+go.lint: tools.verify.golangci-lint
+	@echo "===========> Run golangci to lint source codes"
+	@$(TOOLS_DIR)/golangci-lint run -c $(ROOT_DIR)/.golangci.yml $(ROOT_DIR)/...	
 
 ## go.updates: Check for updates to go.mod dependencies
 .PHONY: go.updates
 go.updates: tools.verify.go-mod-outdated
 	@$(GO) list -u -m -json all | go-mod-outdated -update -direct
 
-## go.clean: Clean all builds
+## go.clean: Clean all builds directories and files
 .PHONY: go.clean
 go.clean:
-	@echo "===========> Cleaning all builds $(OUTPUT_DIR) and $(BIN_DIR)"
+	@echo "===========> Cleaning all builds OUTPUT_DIR($(OUTPUT_DIR)) AND BIN_DIR($(BIN_DIR))"
 	@-rm -vrf $(OUTPUT_DIR) $(BIN_DIR)
 	@echo "===========> End clean..."
 

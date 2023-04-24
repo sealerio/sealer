@@ -27,17 +27,12 @@ all: tidy gen add-copyright format lint cover build
 ROOT_PACKAGE=github.com/sealerio/sealer
 VERSION_PACKAGE=github.com/sealerio/sealer/pkg/version
 
-Dirs=$(shell ls)
-GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
-
 BUILD_SCRIPTS := scripts/build.sh
 
 # ==============================================================================
 # Includes
 
-include scripts/make-rules/common.mk # make sure include common.mk at the first include line
+include scripts/make-rules/common.mk	# make sure include common.mk at the first include line
 include scripts/make-rules/golang.mk
 include scripts/make-rules/image.mk
 include scripts/make-rules/copyright.mk
@@ -74,20 +69,30 @@ export USAGE_OPTIONS
 build: clean
 	@$(MAKE) go.build
 
+## tidy: tidy go.mod
+.PHONY: tidy
+tidy:
+	@$(GO) mod tidy
+
+## vendor: vendor go.mod
+.PHONY: vendor
+vendor:
+	@$(GO) mod vendor
+
 ## fmt: Run go fmt against code.
 .PHONY: fmt
 fmt:
-	go fmt ./...
+	@$(GO) fmt ./...
 
 ## vet: Run go vet against code.
 .PHONY: vet
 vet:
-	go vet ./...
+	@$(GO) vet ./...
 
-## lint: Run go lint against code.
+## lint: Check syntax and styling of go sources.
 .PHONY: lint
 lint:
-	golangci-lint run -v ./...
+	@$(MAKE) go.lint
 
 ## style: code style -> fmt,vet,lint
 .PHONY: style
@@ -122,13 +127,34 @@ verify-license:
 add-license:
 	@$(MAKE) copyright.add
 
-gosec: install-gosec
-	$(GOSEC_BIN) ./...
+## format: Gofmt (reformat) package sources (exclude vendor dir if existed).
+.PHONY: format
+format: 
+	@$(MAKE) go.format
 
 ## tools: Install dependent tools.
 .PHONY: tools
 tools:
 	@$(MAKE) tools.install
+
+## test: Run unit test.
+.PHONY: test
+test:
+	@$(MAKE) go.test
+
+## cover: Run unit test and get test coverage.
+.PHONY: cover 
+cover:
+	@$(MAKE) go.test.cover
+
+## updates: Check for updates to go.mod dependencies
+.PHONY: updates
+	@$(MAKE) go.updates
+
+## imports: task to automatically handle import packages in Go files using goimports tool
+.PHONY: imports
+imports:
+	@$(MAKE) go.imports
 
 ## install-deepcopy-gen: check license if not exist install deepcopy-gen tools.
 install-deepcopy-gen:

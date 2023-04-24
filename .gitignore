@@ -25,6 +25,6 @@ docs/site/package-lock.json
 .vscode
 
 # tools is responsible for collecting sealer third party package binary tools
-tools
+tools/
 #coverage.out
-tmp
+tmp/

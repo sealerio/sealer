@@ -17,6 +17,7 @@
 #
 
 SHELL := /bin/bash
+GO := go
 DIRS=$(shell ls)
 DEBUG ?= 0
 GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
@@ -25,6 +26,8 @@ BUILD_DATE=$(shell date '+%FT %T %z')	# "buildDate":"2023-03-31T 20:05:43 +0800"
 
 # include the common makefile
 COMMON_SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
+SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 # ROOT_DIR: root directory of the code base
 ifeq ($(origin ROOT_DIR),undefined)

@@ -18,7 +18,7 @@
 #
 
 # sealer build use BUILD_TOOLS
-BUILD_TOOLS ?= golangci-lint goimports addlicense deepcopy-gen conversion-gen ginkgo
+BUILD_TOOLS ?= golangci-lint goimports addlicense deepcopy-gen conversion-gen ginkgo junit-report
 # Code analysis tools
 ANALYSIS_TOOLS = golangci-lint goimports golines go-callvis kube-score
 # Code generation tools
@@ -27,34 +27,41 @@ GENERATION_TOOLS = deepcopy-gen conversion-gen protoc-gen-go cfssl rts codegen
 TEST_TOOLS = ginkgo junit-report gotests
 # Version control tools
 VERSION_CONTROL_TOOLS = addlicense go-gitlint git-chglog github-release gsemver
-# Cloud storage tools
-CLOUD_STORAGE_TOOLS = coscli coscmd
 # Utility tools
 UTILITY_TOOLS = go-mod-outdated mockgen gothanks richgo
 # All tools
-ALL_TOOLS ?= $(ANALYSIS_TOOLS) $(GENERATION_TOOLS) $(TEST_TOOLS) $(VERSION_CONTROL_TOOLS) $(CLOUD_STORAGE_TOOLS) $(UTILITY_TOOLS)
+ALL_TOOLS ?= $(ANALYSIS_TOOLS) $(GENERATION_TOOLS) $(TEST_TOOLS) $(VERSION_CONTROL_TOOLS) $(UTILITY_TOOLS)
 
-## tools.install: Install all tools
+## tools.install: Install a must tools
 .PHONY: tools.install
 tools.install: $(addprefix tools.install., $(BUILD_TOOLS))
  
-## tools.install.%: Install a single tool
+## tools.install-all: Install all tools
+.PHONY: tools.install-all
+tools.install-all: $(addprefix tools.install-all., $(ALL_TOOLS))
+
+## tools.install.%: Install a single tool in $GOBIN/
 .PHONY: tools.install.%
 tools.install.%:
 	@echo "===========> Installing $,The default installation path is $(GOBIN)/$*"
 	@$(MAKE) install.$*
-	@echo "===========> $* installed successfully"
+
+## tools.install-all.%: Parallelism install a single tool in ./tools/*
+.PHONY: tools.install-all.%
+tools.install-all.%:
+	@echo "===========> Installing $,The default installation path is $(TOOLS_DIR)/$*"
+	@$(MAKE) -j $(nproc) install.$*
 
 ## tools.verify.%: Check if a tool is installed and install it
 .PHONY: tools.verify.%
 tools.verify.%:
 	@echo "===========> Verifying $* is installed"
 	@if [ ! -f $(TOOLS_DIR)/$* ]; then GOBIN=$(TOOLS_DIR) $(MAKE) tools.install.$*; fi
+	@echo "===========> $* is install in $(TOOLS_DIR)/$*"
 
 .PHONY:  
 ## install.golangci-lint: Install golangci-lint
 install.golangci-lint:
-	@echo "===========> Installing golangci-lint,The default installation path is $(GOBIN)/golangci-lint"
 	@$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 #	@golangci-lint completion bash > $(HOME)/.golangci-lint.bash
 #	@if ! grep -q .golangci-lint.bash $(HOME)/.bashrc; then echo "source \$$HOME/.golangci-lint.bash" >> $(HOME)/.bashrc; fi
@@ -62,7 +69,6 @@ install.golangci-lint:
 ## install.goimports: Install goimports, used to format go source files
 .PHONY: install.goimports
 install.goimports:
-	@echo "===========> Installing goimports,The default installation path is $(GOBIN)/goimports"
 	@$(GO) install golang.org/x/tools/cmd/goimports@latest
 
 # Actions path: https://github.com/sealerio/sealer/tree/main/.github/workflows/go.yml#L37-L50
@@ -84,17 +90,16 @@ install.conversion-gen:
 ## install.ginkgo: Install ginkgo to run a single test or set of tests
 .PHONY: install.ginkgo
 install.ginkgo:
-	@echo "===========> Installing ginkgo,The default installation path is $(GOBIN)/ginkgo"
 	@$(GO) install github.com/onsi/ginkgo/ginkgo@v1.16.2
-
-# ==============================================================================
-# Tools that might be used include go gvm
-#
 
 ## go-junit-report: Install go-junit-report, used to convert go test output to junit xml
 .PHONY: install.go-junit-report
 install.go-junit-report:
 	@$(GO) install github.com/jstemmer/go-junit-report@latest
+
+# ==============================================================================
+# Tools that might be used include go gvm
+#
 
 ## install.kube-score: Install kube-score, used to check kubernetes yaml files
 .PHONY: install.kube-score
@@ -127,17 +132,6 @@ install.gvm:
 	@echo "===========> Installing gvm,The default installation path is ~/.gvm/scripts/gvm"
 	@bash < <(curl -s -S -L https://raw.gitee.com/moovweb/gvm/master/binscripts/gvm-installer)
 	@$(shell source /root/.gvm/scripts/gvm)
-
-## install.coscli: Install coscli. COSCLI is a command line tool for Tencent Cloud Object Storage (COS)
-.PHONY: install.coscli
-install.coscli:
-	@wget -q https://github.com/tencentyun/coscli/releases/download/v0.10.2-beta/coscli-linux -O ${HOME}/bin/coscli
-	@chmod +x ${HOME}/bin/coscli
-
-## install.coscmd: Install coscmd, used to upload files to Tencent Cloud Object Storage (COS)
-.PHONY: install.coscmd
-install.coscmd:
-	@if which pip &>/dev/null; then pip install coscmd; else pip3 install coscmd; fi
 
 ## install.golines: Install golines, used to format long lines
 .PHONY: install.golines

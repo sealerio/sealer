@@ -52,9 +52,10 @@
 # else
 # GOSEC_BIN=$(shell which gosec)
 # endif
+# gosec: install-gosec
+# 	$(GOSEC_BIN) ./...
 
 LICENSE_TEMPLATE ?= $(ROOT_DIR)/scripts/LICENSE_TEMPLATE
-
 
 # TODO: GOBIN -> TOOLS_DIR
 ## copyright.verify: Validate boilerplate headers for assign files
