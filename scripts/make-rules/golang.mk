@@ -136,15 +136,23 @@ go.build: go.build.verify $(addprefix go.build., $(addprefix $(PLATFORM)., $(BIN
 .PHONY: go.build.multiarch
 go.build.multiarch: go.build.verify $(foreach p,$(PLATFORMS),$(addprefix go.build., $(addprefix $(p)., $(BINS))))
 
+## go.linux.%: Build linux_amd64 binaries
+.PHONY: go.linux.%
+go.linux.%:
+	@echo "Building sealer and seautil binaries for Linux $*"
+	@GOOS=linux GOARCH=$* $(BUILD_SCRIPTS) $(GIT_TAG)
+	@echo "$(shell go version)"
+	@echo "===========> Building binary for Linux $* $(BUILDAPP) *[Git Info]: $(VERSION)-$(GIT_TAG)-$(GIT_COMMIT)"
+
 ## go.lint: Run golangci to lint source codes
 .PHONY: go.lint
 go.lint: tools.verify.golangci-lint
 	@echo "===========> Run golangci to lint source codes"
-	@golangci-lint run -c $(ROOT_DIR)/.golangci.yml $(ROOT_DIR)/...
+	@$(TOOLS_DIR)/golangci-lint run -c $(ROOT_DIR)/.golangci.yml $(ROOT_DIR)/...
 
 ## go.test: Run unit test
+.PHONY: go.test
 go.test:
-	@echo "===========> Run unit test"
 	@$(GO) test ./...
 
 ## go.test.junit-report: Run unit test
@@ -173,7 +181,7 @@ go.test.cover: go.test.junit-report
 	@$(GO) tool cover -func=$(TMP_DIR)/coverage.out | \
 		awk -v target=$(COVERAGE) -f $(ROOT_DIR)/scripts/coverage.awk
 
-## go.test.format: Run unit test and format codes
+## go.format: Run unit test and format codes
 .PHONY: go.format
 go.format: tools.verify.golines tools.verify.goimports
 	@echo "===========> Formating codes"
@@ -186,12 +194,6 @@ go.format: tools.verify.golines tools.verify.goimports
 .PHONY: go.imports
 go.imports: tools.verify.goimports
 	@$(TOOLS_DIR)/goimports -l -w $(SRC)
-
-## lint: Run the golangci-lint
-.PHONY: go.lint
-go.lint: tools.verify.golangci-lint
-	@echo "===========> Run golangci to lint source codes"
-	@$(TOOLS_DIR)/golangci-lint run -c $(ROOT_DIR)/.golangci.yml $(ROOT_DIR)/...	
 
 ## go.updates: Check for updates to go.mod dependencies
 .PHONY: go.updates

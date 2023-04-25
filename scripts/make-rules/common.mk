@@ -17,7 +17,7 @@
 #
 
 SHELL := /bin/bash
-GO := go
+GO:=go
 DIRS=$(shell ls)
 DEBUG ?= 0
 GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
@@ -128,7 +128,6 @@ COMMA := ,
 SPACE :=
 # SPACE: Replace multiple consecutive Spaces with a single space
 SPACE +=
-
 
 # ==============================================================================
 # Makefile helper functions for common tasks

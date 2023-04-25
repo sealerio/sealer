@@ -17,47 +17,10 @@
 # Makefile helper functions for copyright
 #
 
-# filelicense: SHELL:=/bin/bash
-# ## filelicense: add license for all files
-# filelicense:
-# 	for file in ${Dirs} ; do \
-# 		if [[  $$file != '_output' && $$file != 'docs' && $$file != 'vendor' && $$file != 'logger' && $$file != 'applications' ]]; then \
-# 			$(ADDLICENSE_BIN)  -y $(shell date +"%Y") -c "Alibaba Group Holding Ltd." -f scripts/LICENSE_TEMPLATE ./$$file ; \
-# 		fi \
-#     done
-#
-# install-addlicense:
-# ifeq (, $(shell which addlicense))
-# 	@{ \
-# 	set -e ;\
-# 	LICENSE_TMP_DIR=$$(mktemp -d) ;\
-# 	cd $$LICENSE_TMP_DIR ;\
-# 	go mod init tmp ;\
-# 	go get -v github.com/google/addlicense ;\
-# 	rm -rf $$LICENSE_TMP_DIR ;\
-# 	}
-# ADDLICENSE_BIN=$(GOBIN)/addlicense
-# else
-# ADDLICENSE_BIN=$(shell which addlicense)
-# endif
-#
-# ## install-gosec: check license if not exist install addlicense tools.
-# install-gosec:
-# ifeq (, $(shell which gosec))
-# 	@{ \
-# 	set -e ;\
-# 	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(GOBIN) v2.2.0 ;\
-# 	}
-# GOSEC_BIN=$(GOBIN)/gosec
-# else
-# GOSEC_BIN=$(shell which gosec)
-# endif
-# gosec: install-gosec
-# 	$(GOSEC_BIN) ./...
-
 LICENSE_TEMPLATE ?= $(ROOT_DIR)/scripts/LICENSE_TEMPLATE
 
 # TODO: GOBIN -> TOOLS_DIR
+# Questions about go mod instead of go path: https://github.com/kubernetes/kubernetes/issues/117181
 ## copyright.verify: Validate boilerplate headers for assign files
 .PHONY: copyright.verify
 copyright.verify: tools.verify.addlicense

@@ -18,13 +18,13 @@
 #
 
 # sealer build use BUILD_TOOLS
-BUILD_TOOLS ?= golangci-lint goimports addlicense deepcopy-gen conversion-gen ginkgo junit-report
+BUILD_TOOLS ?= golangci-lint goimports addlicense deepcopy-gen conversion-gen ginkgo go-junit-report
 # Code analysis tools
 ANALYSIS_TOOLS = golangci-lint goimports golines go-callvis kube-score
 # Code generation tools
 GENERATION_TOOLS = deepcopy-gen conversion-gen protoc-gen-go cfssl rts codegen
 # Testing tools
-TEST_TOOLS = ginkgo junit-report gotests
+TEST_TOOLS = ginkgo go-junit-report gotests
 # Version control tools
 VERSION_CONTROL_TOOLS = addlicense go-gitlint git-chglog github-release gsemver
 # Utility tools
@@ -63,8 +63,6 @@ tools.verify.%:
 ## install.golangci-lint: Install golangci-lint
 install.golangci-lint:
 	@$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-#	@golangci-lint completion bash > $(HOME)/.golangci-lint.bash
-#	@if ! grep -q .golangci-lint.bash $(HOME)/.bashrc; then echo "source \$$HOME/.golangci-lint.bash" >> $(HOME)/.bashrc; fi
 
 ## install.goimports: Install goimports, used to format go source files
 .PHONY: install.goimports
@@ -92,7 +90,7 @@ install.conversion-gen:
 install.ginkgo:
 	@$(GO) install github.com/onsi/ginkgo/ginkgo@v1.16.2
 
-## go-junit-report: Install go-junit-report, used to convert go test output to junit xml
+## install.go-junit-report: Install go-junit-report, used to convert go test output to junit xml
 .PHONY: install.go-junit-report
 install.go-junit-report:
 	@$(GO) install github.com/jstemmer/go-junit-report@latest

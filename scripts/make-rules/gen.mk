@@ -57,10 +57,10 @@ gen.run: gen.clean gen.deepcopyV1 gen.deepcopyV2 #gen.docs
 
 BOILERPLATE := $(ROOT_DIR)/scripts/boilerplate.go.txt
 
-INPUT_DIR := $(ROOT_DIR)/types/api/v1
-INPUT_DIRV2 := $(ROOT_DIR)/types/api/v2
-INPUT_DIRS := $(ROOT_PACKAGE)/types/api/v1
-INPUT_DIRSV2 := $(ROOT_PACKAGE)/types/api/v2
+INPUT_DIR := ./types/api/v1
+INPUT_DIRV2 := ./types/api/v2
+OUTPUT_DIRS := $(ROOT_DIR)/types/api/v1/../../..
+OUTPUT_DIRSV2 := $(ROOT_DIR)/types/api/v2/../../..
 
 # TODO: output-base: $(ROOT_PACKAGE)/types/api/v2/...... 
 ## gen.deepcopy: generate deepcopy v1 code
@@ -68,20 +68,20 @@ INPUT_DIRSV2 := $(ROOT_PACKAGE)/types/api/v2
 gen.deepcopyV1: tools.verify.deepcopy-gen
 	@echo "===========> Generating deepcopy go source files in $(INPUT_DIRS)"
 	@$(TOOLS_DIR)/deepcopy-gen \
-		--input-dirs="$(INPUT_DIRS)" \
+		--input-dirs="$(INPUT_DIR)" \
 		--output-file-base zz_generated.deepcopy \
 		--go-header-file "$(BOILERPLATE)" \
-		--output-base "$(INPUT_DIR)"
+		--output-base "$(OUTPUT_DIRS)"
 
 ## gen.deepcopyV2: generate deepcopy v2 code
 .PHONY: gen.deepcopyV2
 gen.deepcopyV2: tools.verify.deepcopy-gen
 	@echo "===========> Generating deepcopy go source files in $(INPUT_DIRSV2)"
 	@$(TOOLS_DIR)/deepcopy-gen \
-		--input-dirs="$(INPUT_DIRSV2)" \
+		--input-dirs="$(INPUT_DIRV2)" \
 		--output-file-base zz_generated.deepcopy \
 		--go-header-file "$(BOILERPLATE)" \
-		--output-base "$()"
+		--output-base "$(OUTPUT_DIRSV2)"
 
 ## gen.docgo: generate doc.go
 .PHONY: gen.docs
@@ -93,9 +93,9 @@ gen.docs: go.build
 .PHONY: gen.clean
 gen.clean:
 	@echo "===========> Delete $(INPUT_DIR)..."
-#	@find $(INPUT_DIR) -type f -name '*_generated.*.go' -delete
-	@echo "===========> Delete $(INPUT_DIRS)"
-#	@find $(INPUT_DIRV2) -type f -name '*_generated.*.go' -delete
+	@find $(INPUT_DIR) -type f -name '*_generated.*.go' -delete
+	@echo "===========> Delete $(INPUT_DIRSV2)"
+	@find $(INPUT_DIRV2) -type f -name '*_generated.*.go' -delete
 
 ## gen.help: show help for gen
 .PHONY: gen.help
