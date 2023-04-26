@@ -10,3 +10,4 @@
 |Jiangnan Bao|ZheJiang University|[justadogistaken](https://github.com/justadogistaken)|baojn1998@163.com|
 |Xun Wang|ZhengcaiCloud|[lllwan](https://github.com/lllwan)|lllwan@vip.qq.com|
 |Vince Cui|Alibaba Group|[vincecui](https://github.com/vincecui)|huaiyou.cyz@alibaba-inc.com|
+|Yuxing Liu|Alibaba Group|[Starnop](https://github.com/Starnop)|starnop@163.com|
