@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
@@ -150,7 +151,7 @@ func (k *Runtime) ScaleUp(newMasters, newWorkers []net.IP) error {
 	masters := k.infra.GetHostIPListByRole(common.MASTER)
 	workers := k.infra.GetHostIPListByRole(common.NODE)
 
-	kubeadmConfig, err := kubeadm.LoadKubeadmConfigs(KubeadmFileYml, utils.DecodeCRDFromFile)
+	kubeadmConfig, err := kubeadm.LoadKubeadmConfigs(path.Join(k.infra.GetClusterRootfsPath(), "kubeadm.yaml"), utils.DecodeCRDFromFile)
 	if err != nil {
 		return err
 	}

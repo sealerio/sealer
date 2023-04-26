@@ -78,7 +78,7 @@ func NewDeleteCmd() *cobra.Command {
 			if deleteAll {
 				return deleteCluster(specifyClusterfile, forceDelete)
 			}
-			return scaleDownCluster(mastersToDelete, workersToDelete, forceDelete)
+			return scaleDownCluster(specifyClusterfile, mastersToDelete, workersToDelete, forceDelete)
 		},
 	}
 
@@ -210,7 +210,7 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 	return nil
 }
 
-func scaleDownCluster(masters, workers string, forceDelete bool) error {
+func scaleDownCluster(workClusterfile, masters, workers string, forceDelete bool) error {
 	if err := cmdutils.ValidateScaleIPStr(masters, workers); err != nil {
 		return fmt.Errorf("failed to validate input run args: %v", err)
 	}
@@ -223,6 +223,18 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 	cf, _, err := clusterfile.GetActualClusterFile()
 	if err != nil {
 		return err
+	}
+	if workClusterfile != "" {
+		// use user specified clusterfile to do delete
+		clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
+		if err != nil {
+			return err
+		}
+
+		cf, err = clusterfile.NewClusterFile(clusterFileData)
+		if err != nil {
+			return err
+		}
 	}
 
 	cluster := cf.GetCluster()

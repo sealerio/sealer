@@ -46,6 +46,10 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 		return err
 	}
 
+	if err := k.sendKubeadmFile(newMasters); err != nil {
+		return err
+	}
+
 	// TODO only needs send ca?
 	if err := k.sendClusterCert(newMasters); err != nil {
 		return err
