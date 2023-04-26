@@ -21,15 +21,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/docker/docker/api/types/mount"
-	"github.com/sirupsen/logrus"
-
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/infra/container/client"
 	"github.com/sealerio/sealer/pkg/infra/container/client/docker"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/ssh"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -212,16 +209,6 @@ func (a *ApplyProvider) applyToJoin(toJoinNumber int, role string) ([]net.IP, er
 		}
 		if len(a.Cluster.Spec.Masters.IPList) == 0 && i == 0 {
 			opts.ContainerLabel[RoleLabelMaster] = "true"
-			sealerMount := mount.Mount{
-				Type:     mount.TypeBind,
-				Source:   SealerImageRootPath,
-				Target:   SealerImageRootPath,
-				ReadOnly: false,
-				BindOptions: &mount.BindOptions{
-					Propagation: mount.PropagationRPrivate,
-				},
-			}
-			opts.Mount = append(opts.Mount, sealerMount)
 		}
 
 		containerID, err := a.Provider.RunContainer(opts)
@@ -286,9 +273,7 @@ func (a *ApplyProvider) applyToDelete(deleteIPList []net.IP) error {
 }
 
 func (a *ApplyProvider) CleanUp() error {
-	/*	a,clean up container,cleanup image,clean up network
-		b,rm -rf /var/lib/sealer/data/my-cluster
-	*/
+	//clean up container,cleanup image,clean up network
 	var iplist []net.IP
 	iplist = append(iplist, a.Cluster.Spec.Masters.IPList...)
 	iplist = append(iplist, a.Cluster.Spec.Nodes.IPList...)
@@ -302,11 +287,11 @@ func (a *ApplyProvider) CleanUp() error {
 		if err != nil {
 			// log it
 			logrus.Infof("failed to delete container:%s", id)
+			return err
 		}
-		continue
 	}
 
-	return os.RemoveAll(common.DefaultClusterBaseDir(a.Cluster.Name))
+	return nil
 }
 
 func NewClientWithCluster(cluster *v1.Cluster) (*ApplyProvider, error) {
