@@ -20,18 +20,30 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
+	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/types/api/constants"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/sealerio/sealer/utils/maps"
 	netutils "github.com/sealerio/sealer/utils/net"
 	strUtils "github.com/sealerio/sealer/utils/strings"
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 )
+
+// MergeClusterWithImageExtension :set default value get from image extension,such as image global env
+func MergeClusterWithImageExtension(cluster *v2.Cluster, imageExt imagev1.ImageExtension) *v2.Cluster {
+	if len(imageExt.Env) > 0 {
+		envs := maps.ConvertToSlice(imageExt.Env)
+		envs = append(envs, cluster.Spec.Env...)
+		cluster.Spec.Env = envs
+	}
+
+	return cluster
+}
 
 func MergeClusterWithFlags(cluster v2.Cluster, mergeFlags *types.MergeFlags) (*v2.Cluster, error) {
 	if len(mergeFlags.CustomEnv) > 0 {

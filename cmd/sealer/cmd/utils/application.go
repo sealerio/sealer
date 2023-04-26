@@ -20,7 +20,7 @@ import (
 )
 
 //ConstructApplication merge flags to v2.Application
-func ConstructApplication(app *v2.Application, cmds, appNames []string) *v2.Application {
+func ConstructApplication(app *v2.Application, cmds, appNames, appEnvs []string) *v2.Application {
 	var newApp *v2.Application
 
 	if app != nil {
@@ -40,6 +40,16 @@ func ConstructApplication(app *v2.Application, cmds, appNames []string) *v2.Appl
 
 	if appNames != nil {
 		newApp.Spec.LaunchApps = appNames
+	}
+
+	// add appEnvs from flag to application object.
+	if len(appEnvs) > 0 {
+		var appConfigList []v2.ApplicationConfig
+		for _, appConfig := range newApp.Spec.Configs {
+			appConfig.Env = append(appEnvs, appConfig.Env...)
+			appConfigList = append(appConfigList, appConfig)
+		}
+		newApp.Spec.Configs = appConfigList
 	}
 
 	return newApp

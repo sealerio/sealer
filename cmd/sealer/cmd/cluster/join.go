@@ -18,16 +18,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
-	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var joinFlags *types.ScaleUpFlags
@@ -85,19 +83,35 @@ func NewJoinCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cf.SetCluster(cluster)
 
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
+			// get image extension
+			imageName := cluster.Spec.Image
+			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
 
-			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			id, err := imageEngine.Pull(&options.PullOptions{
+				Quiet:      false,
+				PullPolicy: "missing",
+				Image:      imageName,
+				Platform:   "local",
+			})
 			if err != nil {
 				return err
 			}
 
-			return scaleUpCluster(cluster.Spec.Image, mj, nj, infraDriver, imageEngine, cf, joinFlags.IgnoreCache)
+			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
+			if err != nil {
+				return fmt.Errorf("failed to get sealer image extension: %s", err)
+			}
+
+			// merge image extension
+			mergedWithExt := utils.MergeClusterWithImageExtension(&cluster, imageSpec.ImageExtension)
+
+			cf.SetCluster(*mergedWithExt)
+
+			return scaleUpCluster(mj, nj, imageSpec, cf, imageEngine, joinFlags.IgnoreCache)
 		},
 	}
 

@@ -22,6 +22,8 @@ import (
 	"strings"
 	"syscall"
 
+	mapUtils "github.com/sealerio/sealer/utils/maps"
+
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
@@ -202,6 +204,8 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 		appConfigFromImageMap[appConfig.Name] = appConfig
 	}
 
+	appEnvFromExtension := make(map[string]map[string]string)
+
 	for _, name := range v2App.launchApps {
 		appRoot := makeItDir(filepath.Join(rootfs.GlobalManager.App().Root(), name))
 		v2App.appRootMap[name] = appRoot
@@ -215,6 +219,7 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 			} else {
 				v2App.appLaunchCmdsMap[name] = []string{v1app.LaunchCmd(appRoot, nil)}
 			}
+			appEnvFromExtension[name] = mapUtils.Merge(v1app.AppEnv, extension.Env)
 		}
 	}
 
@@ -239,7 +244,7 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 		}
 
 		// add app env
-		v2App.appEnvMap[name] = strUtils.ConvertStringSliceToMap(config.Env)
+		v2App.appEnvMap[name] = mapUtils.Merge(strUtils.ConvertStringSliceToMap(config.Env), appEnvFromExtension[name])
 
 		// initialize app FileProcessors
 		var fileProcessors []FileProcessor
