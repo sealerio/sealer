@@ -99,7 +99,7 @@ jobs:
         run: |
           # fix bug in kernal 5.12.2+:open /proc/sys/net/netfilter/nf_conntrack_max: permission denied, see: https://github.com/kubernetes-sigs/kind/issues/2240
           sudo sysctl net/netfilter/nf_conntrack_max=131072
-          sudo ginkgo -v -focus="sealer apply" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage.out -trace test
+          ginkgo -v -focus="sealer apply" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage.out -trace test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

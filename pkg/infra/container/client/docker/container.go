@@ -147,6 +147,7 @@ func (p *Provider) GetContainerIDByIP(containerIP string, networkName string) (s
 func (p *Provider) RmContainer(containerID string) error {
 	err := p.DockerClient.ContainerRemove(p.Ctx, containerID, types.ContainerRemoveOptions{
 		RemoveVolumes: true,
+		RemoveLinks:   true,
 		Force:         true,
 	})
 

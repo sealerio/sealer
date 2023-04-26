@@ -21,10 +21,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sealerio/sealer/common"
+
 	"github.com/docker/docker/api/types/mount"
 	"github.com/sirupsen/logrus"
 
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/infra/container/client"
 	"github.com/sealerio/sealer/pkg/infra/container/client/docker"
 	v1 "github.com/sealerio/sealer/types/api/v1"
@@ -302,10 +303,18 @@ func (a *ApplyProvider) CleanUp() error {
 		if err != nil {
 			// log it
 			logrus.Infof("failed to delete container:%s", id)
+			return err
 		}
-		continue
 	}
-
+	fi,err:=os.Stat(common.DefaultClusterBaseDir(a.Cluster.Name))
+	if err!=nil{
+		return err
+	}
+	fmt.Println("AAAA  name  ",common.DefaultClusterBaseDir(a.Cluster.Name))
+	fmt.Println("AAAA fi name ",fi.Name())
+	fmt.Println("AAAA IsRegular ",fi.Mode().IsRegular())
+	fmt.Println("AAAA Perm",fi.Mode().Perm())
+	fmt.Println("AAAA String ",fi.Mode().String())
 	return os.RemoveAll(common.DefaultClusterBaseDir(a.Cluster.Name))
 }
 
