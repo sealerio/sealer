@@ -57,8 +57,8 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{fromJson(steps.request.outputs.data).head.repo.full_name}}
-          ref: ${{fromJson(steps.request.outputs.data).head.ref}}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
           path: src/github.com/sealerio/sealer
       - name: Install deps
         run: |
@@ -99,7 +99,7 @@ jobs:
         run: |
           # fix bug in kernal 5.12.2+:open /proc/sys/net/netfilter/nf_conntrack_max: permission denied, see: https://github.com/kubernetes-sigs/kind/issues/2240
           sudo sysctl net/netfilter/nf_conntrack_max=131072
-          ginkgo -v -focus="sealer apply" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage.out -trace test
+          sudo ginkgo -v -focus="sealer apply" -cover -covermode=atomic -coverpkg=./... -coverprofile=/tmp/coverage.out -trace test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
