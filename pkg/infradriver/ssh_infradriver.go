@@ -306,7 +306,7 @@ func (d *SSHInfraDriver) GetClusterLaunchApps() []string {
 }
 
 func (d *SSHInfraDriver) GetHostName(hostIP net.IP) (string, error) {
-	hostName, err := d.CmdToString(hostIP, nil, "hostname", "")
+	hostName, err := d.CmdToString(hostIP, nil, "uname -n", "")
 	if err != nil {
 		return "", err
 	}
