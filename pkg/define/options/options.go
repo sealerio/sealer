@@ -187,6 +187,7 @@ type ManifestAddOpts struct {
 	OsFeatures  []string
 	Annotations []string
 	All         bool
+	TargetName  string
 }
 
 type ManifestRemoveOpts struct {

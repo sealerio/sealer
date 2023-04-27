@@ -22,20 +22,21 @@ import (
 	"path/filepath"
 
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/libimage/manifests"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/utils/archive"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
+	"github.com/sirupsen/logrus"
 )
 
 // Save image as tar file, if image is multi-arch image, will save all its instances and manifest name as tar file.
 func (engine *Engine) Save(opts *options.SaveOptions) error {
 	imageNameOrID := opts.ImageNameOrID
 	imageTar := opts.Output
+	store := engine.ImageStore()
 
 	if len(imageNameOrID) == 0 {
 		return errors.New("image name or id must be specified")
@@ -98,23 +99,25 @@ func (engine *Engine) Save(opts *options.SaveOptions) error {
 		return err
 	}
 
-	schema2List, err := manifestList.Inspect()
+	_, list, err := manifests.LoadFromImage(store, manifestList.ID())
 	if err != nil {
 		return err
 	}
 
-	for _, m := range schema2List.Manifests {
-		instance, err := manifestList.LookupInstance(engine.Context(), m.Platform.Architecture, m.Platform.OS, m.Platform.Variant)
+	for _, instanceDigest := range list.Instances() {
+		images, err := store.ImagesByDigest(instanceDigest)
 		if err != nil {
 			return err
 		}
+		if len(images) == 0 {
+			return fmt.Errorf("no image matched with digest %s", instanceDigest)
+		}
 
-		instanceTar := filepath.Join(tempDir, instance.ID()+".tar")
-		err = engine.saveOneImage(instance.ID(), opts.Format, instanceTar, opts.Compress)
+		instanceTar := filepath.Join(tempDir, images[0].ID+".tar")
+		err = engine.saveOneImage(images[0].ID, opts.Format, instanceTar, opts.Compress)
 		if err != nil {
 			return err
 		}
-
 		pathsToCompress = append(pathsToCompress, instanceTar)
 	}
 
