@@ -71,14 +71,14 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 		}
 	}()
 
-	//handle image name
+	// handle image name
 	for _, image := range images {
 		named, err := ParseNormalizedNamed(image, "")
 		if err != nil {
 			return fmt.Errorf("failed to parse image name:: %v", err)
 		}
 
-		//check if image exist
+		// check if image exist
 		if err := is.isImageExist(named, dir, platform); err == nil {
 			continue
 		}
@@ -86,7 +86,7 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 		progress.Message(is.progressOut, "", fmt.Sprintf("Pulling image: %s", named.FullName()))
 	}
 
-	//perform image save ability
+	// perform image save ability
 	eg, _ := errgroup.WithContext(context.Background())
 	numCh := make(chan struct{}, maxPullGoroutineNum)
 	for _, nameds := range is.domainToImages {

@@ -24,13 +24,17 @@ import (
 	"github.com/sealerio/sealer/pkg/imageengine"
 )
 
-var loadOpts *options.LoadOptions
+var (
+	loadOpts *options.LoadOptions
 
-var longNewLoadCmdDescription = `Load a sealer image from a tar archive`
+	longNewLoadCmdDescription = `
+  Load a sealer image from a tar archive
+  Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
 
-var exampleForLoadCmd = `
+	exampleForLoadCmd = `
   sealer load -i kubernetes.tar
-`
+  sealer save abc:v1 -o my.tar --tmp-dir /root/my-tmp`
+)
 
 // NewLoadCmd loadCmd represents the load command
 func NewLoadCmd() *cobra.Command {
@@ -58,7 +62,7 @@ func NewLoadCmd() *cobra.Command {
 	flags := loadCmd.Flags()
 	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Load image from file")
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
-	flags.StringVar(&loadOpts.TmpDir, "tmp-dir", "", "set temporary directory when load image. if not set, use system`s temporary directory")
+	flags.StringVar(&loadOpts.TmpDir, "tmp-dir", "", "Set temporary directory when load image. if not set, use system temporary directory(`/var/tmp/`)")
 	if err := loadCmd.MarkFlagRequired("input"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)
 		os.Exit(1)
