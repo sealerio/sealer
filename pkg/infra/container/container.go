@@ -306,15 +306,16 @@ func (a *ApplyProvider) CleanUp() error {
 			return err
 		}
 	}
-	fi,err:=os.Stat(common.DefaultClusterBaseDir(a.Cluster.Name))
-	if err!=nil{
+	fi, err := os.Stat(common.DefaultClusterBaseDir(a.Cluster.Name))
+	if err != nil {
 		return err
 	}
-	fmt.Println("AAAA  name  ",common.DefaultClusterBaseDir(a.Cluster.Name))
-	fmt.Println("AAAA fi name ",fi.Name())
-	fmt.Println("AAAA IsRegular ",fi.Mode().IsRegular())
-	fmt.Println("AAAA Perm",fi.Mode().Perm())
-	fmt.Println("AAAA String ",fi.Mode().String())
+
+
+	fmt.Println("AAAA  name  ", common.DefaultClusterBaseDir(a.Cluster.Name))
+
+	logrus.Infof("AAAAA %s %s %s ", fi.Mode().IsRegular(), fi.Mode().Perm(), fi.Mode().String())
+
 	return os.RemoveAll(common.DefaultClusterBaseDir(a.Cluster.Name))
 }
 
