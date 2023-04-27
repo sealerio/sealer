@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/sealerio/sealer/common"
+	"github.com/sealerio/sealer/pkg/clusterfile"
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
@@ -36,7 +37,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 var tryTimes = 10
@@ -47,6 +51,9 @@ const (
 	CRILabel = "cluster.alpha.sealer.io/container-runtime-type"
 	// CRTLabel is key for get cluster runtime type.
 	CRTLabel = "cluster.alpha.sealer.io/cluster-runtime-type"
+
+	RegistryConfigMapName     = "sealer-registry"
+	RegistryConfigMapDataName = "registry"
 )
 
 // RuntimeConfig for Installer
@@ -192,6 +199,8 @@ func (i *Installer) Install() error {
 		return err
 	}
 
+	registryInfo := registryConfigurator.GetRegistryInfo()
+
 	kubeRuntimeInstaller, err := getClusterRuntimeInstaller(i.clusterRuntimeType, i.infraDriver,
 		crInfo, registryDriver.GetInfo(), i.KubeadmConfig)
 	if err != nil {
@@ -224,6 +233,10 @@ func (i *Installer) Install() error {
 	}
 
 	if err = i.setNodeTaints(all, runtimeDriver); err != nil {
+		return err
+	}
+
+	if err = i.saveRegistryInfo(runtimeDriver, registryInfo); err != nil {
 		return err
 	}
 
@@ -352,8 +365,9 @@ func getAddress(addresses []corev1.NodeAddress) string {
 
 func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 	var (
-		k8snode corev1.Node
-		ok      bool
+		k8snode    corev1.Node
+		ok         bool
+		nodeTaints []corev1.Taint
 	)
 	nodeList := corev1.NodeList{}
 	if err := driver.List(context.TODO(), &nodeList); err != nil {
@@ -369,18 +383,59 @@ func (i *Installer) setNodeTaints(hosts []net.IP, driver runtime.Driver) error {
 		if len(taints) == 0 {
 			continue
 		}
-		if k8snode, ok = nodeTaint[ip.String()]; ok {
-			newNode := k8snode.DeepCopy()
-			newNode.Spec.Taints = taints
-			newNode.SetResourceVersion("")
-			if err := utils.Retry(tryTimes, trySleepTime, func() error {
-				if err := driver.Update(context.TODO(), newNode); err != nil {
-					return err
-				}
-				return nil
-			}); err != nil {
+
+		if k8snode, ok = nodeTaint[ip.String()]; !ok {
+			continue
+		}
+		newNode := k8snode.DeepCopy()
+		for _, taint := range taints {
+			if strings.Contains(taint.Key, infradriver.DelSymbol) {
+				taintKey := strings.TrimSuffix(taint.Key, infradriver.DelSymbol)
+				nodeTaints, _ = infradriver.DeleteTaintsByKey(newNode.Spec.Taints, taintKey)
+				newNode.Spec.Taints = nodeTaints
+			} else if strings.Contains(string(taint.Effect), infradriver.DelSymbol) {
+				nodeTaints, _ = infradriver.DeleteTaint(newNode.Spec.Taints, &taint) // #nosec
+				newNode.Spec.Taints = nodeTaints
+			} else {
+				newNode.Spec.Taints = taints
+			}
+		}
+		newNode.SetResourceVersion("")
+		if err := utils.Retry(tryTimes, trySleepTime, func() error {
+			if err := driver.Update(context.TODO(), newNode); err != nil {
 				return err
 			}
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (i *Installer) saveRegistryInfo(driver runtime.Driver, registryInfo registry.RegistryInfo) error {
+	info, err := yaml.Marshal(registryInfo)
+	if err != nil {
+		return err
+	}
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      RegistryConfigMapName,
+			Namespace: clusterfile.ClusterfileConfigMapNamespace,
+		},
+		Data: map[string]string{RegistryConfigMapDataName: string(info)},
+	}
+
+	ctx := context.Background()
+	if err := driver.Create(ctx, cm); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("unable to create configmap: %v", err)
+		}
+
+		if err := driver.Update(ctx, cm); err != nil {
+			return fmt.Errorf("unable to update configmap: %v", err)
 		}
 	}
 	return nil

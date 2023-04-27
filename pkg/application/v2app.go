@@ -15,7 +15,6 @@
 package application
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -23,17 +22,14 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/imdario/mergo"
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/rootfs"
 	v2 "github.com/sealerio/sealer/types/api/v2"
-	osUtils "github.com/sealerio/sealer/utils/os"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 type v2Application struct {
@@ -57,6 +53,9 @@ type v2Application struct {
 
 	// appRootMap contains the whole app root with app name as its key.
 	appRootMap map[string]string
+
+	// appEnvMap contains the whole app env with app name as its key.
+	appEnvMap map[string]map[string]string
 
 	// appFileProcessorMap contains the whole FileProcessors with app name as its key.
 	appFileProcessorMap map[string][]FileProcessor
@@ -167,6 +166,7 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 		globalCmds:          extension.Launch.Cmds,
 		appLaunchCmdsMap:    map[string][]string{},
 		appRootMap:          map[string]string{},
+		appEnvMap:           map[string]map[string]string{},
 		appFileProcessorMap: map[string][]FileProcessor{},
 	}
 
@@ -238,8 +238,15 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 			v2App.appLaunchCmdsMap[name] = launchCmds
 		}
 
-		// initialize app files
+		// add app env
+		v2App.appEnvMap[name] = strUtils.ConvertStringSliceToMap(config.Env)
+
+		// initialize app FileProcessors
 		var fileProcessors []FileProcessor
+		if len(v2App.appEnvMap[name]) > 0 {
+			fileProcessors = append(fileProcessors, envRender{envData: v2App.appEnvMap[name]})
+		}
+
 		for _, appFile := range config.Files {
 			fp, err := newFileProcessor(appFile)
 			if err != nil {
@@ -273,116 +280,3 @@ func makeItDir(str string) string {
 	}
 	return str
 }
-
-func newFileProcessor(appFile v2.AppFile) (FileProcessor, error) {
-	switch appFile.Strategy {
-	case v2.OverWriteStrategy:
-		return overWriteProcessor{appFile}, nil
-	case v2.MergeStrategy:
-		return mergeProcessor{appFile}, nil
-	}
-
-	return nil, fmt.Errorf("failed to init fileProcessor,%s is not register", appFile.Strategy)
-}
-
-// overWriteProcessor :this will overwrite the FilePath with the Values.
-type overWriteProcessor struct {
-	v2.AppFile
-}
-
-func (r overWriteProcessor) Process(appRoot string) error {
-	target := filepath.Join(appRoot, r.Path)
-
-	err := osUtils.NewCommonWriter(target).WriteFile([]byte(r.Data))
-	if err != nil {
-		return fmt.Errorf("failed to write to file %s with raw mode: %v", target, err)
-	}
-	return nil
-}
-
-// mergeProcessor :this will merge the FilePath with the Values.
-//Only files in yaml format are supported.
-//if Strategy is "merge" will deeply merge each yaml file section.
-type mergeProcessor struct {
-	v2.AppFile
-}
-
-func (m mergeProcessor) Process(appRoot string) error {
-	var (
-		result     [][]byte
-		srcDataMap = make(map[string]interface{})
-	)
-
-	err := yaml.Unmarshal([]byte(m.Data), &srcDataMap)
-	if err != nil {
-		return fmt.Errorf("failed to load config data: %v", err)
-	}
-
-	target := filepath.Join(appRoot, m.Path)
-	contents, err := os.ReadFile(filepath.Clean(target))
-	if err != nil {
-		return err
-	}
-
-	for _, section := range bytes.Split(contents, []byte("---\n")) {
-		destDataMap := make(map[string]interface{})
-
-		err = yaml.Unmarshal(section, &destDataMap)
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal config data: %v", err)
-		}
-
-		err = mergo.Merge(&destDataMap, &srcDataMap, mergo.WithOverride)
-		if err != nil {
-			return fmt.Errorf("failed to merge config: %v", err)
-		}
-
-		out, err := yaml.Marshal(destDataMap)
-		if err != nil {
-			return err
-		}
-
-		result = append(result, out)
-	}
-
-	err = osUtils.NewCommonWriter(target).WriteFile(bytes.Join(result, []byte("---\n")))
-	if err != nil {
-		return fmt.Errorf("failed to write to file %s with raw mode: %v", target, err)
-	}
-	return nil
-}
-
-// renderProcessor : this will render the FilePath with the Values.
-//type renderProcessor struct {
-//	v2.AppFile
-//}
-
-//const templateSuffix = ".tmpl"
-
-//func (a renderProcessor) Process(appRoot string) error {
-//	target := filepath.Join(appRoot, a.Path)
-//
-//	if !strings.HasSuffix(a.Path, templateSuffix) {
-//		return nil
-//	}
-//
-//	writer, err := os.OpenFile(filepath.Clean(strings.TrimSuffix(target, templateSuffix)), os.O_CREATE|os.O_RDWR, os.ModePerm)
-//	if err != nil {
-//		return fmt.Errorf("failed to open file [%s] when render args: %v", target, err)
-//	}
-//
-//	defer func() {
-//		_ = writer.Close()
-//	}()
-//
-//	t, err := template.New(a.Path).ParseFiles(target)
-//	if err != nil {
-//		return fmt.Errorf("failed to create template(%s): %v", target, err)
-//	}
-//
-//	if err := t.Execute(writer, strUtils.ConvertEnv(strings.Split(a.Data, " "))); err != nil {
-//		return fmt.Errorf("failed to render file %s with args mode: %v", target, err)
-//	}
-//
-//	return nil
-//}

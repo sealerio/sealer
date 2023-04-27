@@ -43,6 +43,13 @@ type ApplicationConfig struct {
 	// the AppName
 	Name string `json:"name,omitempty"`
 
+	// Env is a set of key value pair.
+	// it is app level, only this app will be aware of its existence,
+	// it is used to render app files, or as an environment variable for app startup and deletion commands
+	// it takes precedence over ApplicationSpec.Env.
+	Env []string `json:"env,omitempty"`
+
+	//Files indicates that how to modify the specific app files.
 	Files []AppFile `json:"files,omitempty"`
 
 	// app Launch customization
@@ -57,7 +64,6 @@ type Strategy string
 const (
 	OverWriteStrategy Strategy = "overwrite"
 	MergeStrategy     Strategy = "merge"
-	RenderStrategy    Strategy = "render"
 )
 
 type AppFile struct {
@@ -69,7 +75,6 @@ type AppFile struct {
 
 	// Enumeration value is "merge", "overwrite", "render". default value is "overwrite".
 	// OverWriteStrategy : this will overwrite the FilePath with the Data.
-	// RenderStrategy: this will render the FilePath with the Data.
 	// MergeStrategy: this will merge the FilePath with the Data, and only yaml files format are supported
 	Strategy Strategy `json:"strategy,omitempty"`
 

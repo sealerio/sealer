@@ -18,13 +18,22 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sealerio/sealer/pkg/imagedistributor"
-
-	v2 "github.com/sealerio/sealer/types/api/v2"
-
 	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
+	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	v2 "github.com/sealerio/sealer/types/api/v2"
 )
+
+type LocalRegistryInfo struct {
+	*v2.LocalRegistry
+	DeployHosts []net.IP `json:"deployHosts,omitempty"`
+	Vip         string   `json:"vip,omitempty"`
+}
+
+type RegistryInfo struct { // nolint
+	External *v2.ExternalRegistry `json:"external,omitempty"`
+	Local    LocalRegistryInfo    `json:"local,omitempty"`
+}
 
 // Configurator provide registry configuration management
 type Configurator interface {
@@ -35,6 +44,8 @@ type Configurator interface {
 	UninstallFrom(masters, nodes []net.IP) error
 
 	GetDriver() (Driver, error)
+
+	GetRegistryInfo() RegistryInfo
 }
 
 func NewConfigurator(deployHosts []net.IP,

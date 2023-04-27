@@ -38,6 +38,13 @@ type externalConfigurator struct {
 	password             string
 }
 
+func (e *externalConfigurator) GetRegistryInfo() RegistryInfo {
+	clusterRegistry := e.infraDriver.GetClusterRegistry()
+	return RegistryInfo{
+		External: clusterRegistry.ExternalRegistry,
+	}
+}
+
 func (e *externalConfigurator) InstallOn(masters, nodes []net.IP) error {
 	hosts := append(masters, nodes...)
 	var (

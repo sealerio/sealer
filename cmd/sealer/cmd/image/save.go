@@ -62,6 +62,7 @@ func NewSaveCmd() *cobra.Command {
 	flags.StringVar(&saveOpts.Format, "format", buildah.OCIArchive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
 	flags.StringVarP(&saveOpts.Output, "output", "o", "", "Write image to a specified file")
 	flags.BoolVarP(&saveOpts.Quiet, "quiet", "q", false, "Suppress the output")
+	flags.StringVar(&saveOpts.TmpDir, "tmp-dir", "", "set temporary directory when save image. if not set, use system`s temporary directory")
 	flags.BoolVar(&saveOpts.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
 	if err := saveCmd.MarkFlagRequired("output"); err != nil {
 		logrus.Errorf("failed to init flag: %v", err)

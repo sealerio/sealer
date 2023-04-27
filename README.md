@@ -50,15 +50,15 @@ Download sealer binary file.
 
 ```shell script
 #install Sealer binaries
-wget https://github.com/sealerio/sealer/releases/download/v0.9.0/sealer-v0.9.0-linux-amd64.tar.gz && \
-tar zxvf sealer-v0.9.0-linux-amd64.tar.gz && mv sealer /usr/bin
+wget https://github.com/sealerio/sealer/releases/download/v0.9.3/sealer-v0.9.3-linux-amd64.tar.gz && \
+tar zxvf sealer-v0.9.3-linux-amd64.tar.gz && mv sealer /usr/bin
 ```
 
 ## Install a kubernetes cluster
 
 ```shell
 # run a kubernetes cluster
-sealer run docker.io/sealerio/kubernetes:v1.22.15 \
+sealer run docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 \
   --masters 192.168.0.2,192.168.0.3,192.168.0.4 \
   --nodes 192.168.0.5,192.168.0.6,192.168.0.7 --passwd xxx
 ```
@@ -68,7 +68,7 @@ sealer run docker.io/sealerio/kubernetes:v1.22.15 \
 Kubefile:
 
 ```shell
-FROM docker.io/sealerio/kubernetes:v1.22.15
+FROM docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
 APP mysql https://charts/mysql.tgz
 APP elasticsearch https://charts/elasticsearch.tgz
 APP redis local://redis.yaml
@@ -79,7 +79,7 @@ LAUNCH ["calico", "mysql", "elasticsearch", "redis", "businessApp"]
 or
 
 ```shell
-FROM docker.io/sealerio/kubernetes:v1.22.15
+FROM docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
 COPY mysql.tgz .
 COPY elasticsearch.tgz .
 COPY redis.yaml .
@@ -162,17 +162,12 @@ sealer delete -a
 
 Sealer provides a valid image list:
 
-| version  |                              image                                  |                  Arch                   |                                                   OS                                                |              Network plugins            |             container runtime           |
-| :------: | :-----------------------------------------------------------------: | :-------------------------------------: | :-------------------------------------------------------------------------------------------------: | :-------------------------------------: | :-------------------------------------: |
-| v0.8.6   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6|                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |            hack docker v19.03.14        |
-| v0.9.0   | docker.io/sealerio/kubernetes:v1.18.3                               |                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
-| v0.9.0   | docker.io/sealerio/kubernetes:v1.20.4                               |                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
-| v0.9.0   | docker.io/sealerio/kubernetes:v1.22.15                              |                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
-| v0.9.0   | docker.io/sealerio/kubernetes:v1-22-15-sealerio-1                   |                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |            hack docker v19.03.14        |
-| v0.9.0   | docker.io/sealerio/kubernetes-arm64:v1.18.3                         |                  arm64                  |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
-| v0.9.0   | docker.io/sealerio/kubernetes-arm64:v1.20.4                         |                  arm64                  |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
-| v0.9.0   | docker.io/sealerio/kubernetes-arm64:v1.22.15                        |                  arm64                  |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |          Official docker v19.03.15      |
-| v0.9.0   | docker.io/sealerio/kubernetes-arm64:v1-22-15-sealerio-1             |                  arm64                  |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9     |                 calico                  |            hack docker v19.03.14        |
+| version  |                              image                                  |                  Arch                   |                                                           OS                                                        |              Network plugins            |             container runtime           |
+| :------: | :-----------------------------------------------------------------: | :-------------------------------------: | :-----------------------------------------------------------------------------------------------------------------: | :-------------------------------------: | :-------------------------------------: |
+| v0.8.6   | registry.cn-qingdao.aliyuncs.com/sealer-io/kubernetes:v1.22.15-0.8.6|                   x86                   |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9<br>Ubuntu 20.04     |                 calico                  |            hack docker v19.03.14        |
+| v0.9.3   | docker.io/sealerio/kubernetes:v1-18-3-sealerio-2                    |                x86/arm64                |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9<br>Ubuntu 20.04     |                 calico                  |            hack docker v19.03.14        |
+| v0.9.3   | docker.io/sealerio/kubernetes:v1-20-4-sealerio-2                    |                x86/arm64                |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9<br>Ubuntu 20.04     |                 calico                  |            hack docker v19.03.14        |
+| v0.9.3   | docker.io/sealerio/kubernetes:v1-22-15-sealerio-2                   |                x86/arm64                |     CentOS/RHEL 7.5<br>CentOS/RHEL 7.6<br>CentOS/RHEL 7.7<br>CentOS/RHEL 7.8<br>CentOS/RHEL 7.9<br>Ubuntu 20.04     |                 calico                  |            hack docker v19.03.14        |
 
 [get started](http://sealer.cool/docs/getting-started/introduction.html)
 

@@ -112,6 +112,7 @@ func NewApplyCmd() *cobra.Command {
 					Extension:   imageSpec.ImageExtension,
 					Configs:     cf.GetConfigs(),
 					RunMode:     applyMode,
+					IgnoreCache: applyFlags.IgnoreCache,
 				})
 			}
 
@@ -147,6 +148,7 @@ func NewApplyCmd() *cobra.Command {
 				Configs:                 cf.GetConfigs(),
 				RunMode:                 applyMode,
 				SkipPrepareAppMaterials: skipPrepareAppMaterials,
+				IgnoreCache:             applyFlags.IgnoreCache,
 			})
 		},
 	}
@@ -164,6 +166,7 @@ func NewApplyCmd() *cobra.Command {
 	applyCmd.Flags().Uint16Var(&applyFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
 	applyCmd.Flags().StringVar(&applyFlags.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
 	applyCmd.Flags().StringVar(&applyFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
+	applyCmd.Flags().BoolVar(&applyFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
 
 	return applyCmd
 }
@@ -190,7 +193,7 @@ func applyClusterWithNew(cf clusterfile.Interface, applyMode string,
 
 	// set merged cluster
 	cf.SetCluster(*cluster)
-	return runClusterImage(imageEngine, cf, imageSpec, applyMode)
+	return runClusterImage(imageEngine, cf, imageSpec, applyMode, applyFlags.IgnoreCache)
 }
 
 func applyClusterWithExisted(cf clusterfile.Interface, client *k8s.Client,
@@ -220,7 +223,7 @@ func applyClusterWithExisted(cf clusterfile.Interface, client *k8s.Client,
 		return false, err
 	}
 
-	if err := scaleUpCluster(imageSpec.Name, mj, nj, infraDriver, imageEngine, cf); err != nil {
+	if err := scaleUpCluster(imageSpec.Name, mj, nj, infraDriver, imageEngine, cf, applyFlags.IgnoreCache); err != nil {
 		return false, err
 	}
 	return true, nil

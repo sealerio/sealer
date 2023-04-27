@@ -430,6 +430,7 @@ func buildImageExtensionOnResult(result *parser.KubefileResult, imageType string
 		Applications:  []version2.VersionedApplication{},
 		Launch:        v12.Launch{},
 		SchemaVersion: v12.ImageSpecSchemaVersionV1Beta1,
+		Env:           result.GlobalEnv,
 		BuildClient: v12.BuildClient{
 			SealerVersion:  version.Get().GitVersion,
 			BuildahVersion: define.Version,

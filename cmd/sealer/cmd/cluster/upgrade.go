@@ -29,6 +29,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -89,6 +90,7 @@ func NewUpgradeCmd() *cobra.Command {
 
 			cluster := current.GetCluster()
 			//update image of cluster
+			cluster.Spec.APPNames = upgradeFlags.AppNames
 			cluster.Spec.Image = args[0]
 			clusterData, err := yaml.Marshal(cluster)
 			if err != nil {
@@ -108,6 +110,8 @@ func NewUpgradeCmd() *cobra.Command {
 
 	upgradeFlags = &types.UpgradeFlags{}
 	upgradeCmd.Flags().StringVarP(&upgradeFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to upgrade a Kubernetes cluster")
+	upgradeCmd.Flags().StringSliceVar(&upgradeFlags.AppNames, "apps", nil, "override default AppNames of sealer image")
+	upgradeCmd.Flags().BoolVar(&upgradeFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
 
 	return upgradeCmd
 }
@@ -150,7 +154,9 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 		}
 	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs())
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs(), imagedistributor.DistributeOption{
+		IgnoreCache: upgradeFlags.IgnoreCache,
+	})
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/storage"
+	"github.com/pkg/errors"
+
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libimage/manifests"
@@ -158,19 +161,87 @@ func (engine *Engine) PushManifest(name, destSpec string, opts *options.PushOpti
 	return err
 }
 
-func (engine *Engine) AddToManifest(name, imageSpec string, opts *options.ManifestAddOpts) error {
-	runtime := engine.ImageRuntime()
-	store := engine.ImageStore()
-	systemCxt := engine.SystemContext()
+// AddToManifest :
+//for `manifestName`: if it is not exist,will create a new one. if not, it must be an existed manifest name.
+//for `imageNameOrIDList`:
+//if element is a single image just add it,
+//if element is a manifest will add it’s s all instance no matter what platform it is.
+func (engine *Engine) AddToManifest(manifestName string, imageNameOrIDList []string, opts *options.ManifestAddOpts) error {
+	var (
+		runtime = engine.ImageRuntime()
+	)
 
-	manifestList, err := runtime.LookupManifestList(name)
+	// check whether manifestName is already existed.
+	manifestList, err := runtime.LookupManifestList(manifestName)
+	if err == nil {
+		return engine.addToManifestList(manifestList, imageNameOrIDList, opts)
+	}
+
+	if !errors.Is(err, storage.ErrImageUnknown) {
+		return err
+	}
+
+	logrus.Infof("will create a new one manifest with name %s", manifestName)
+	// if not exit,create a new one
+	_, err = engine.CreateManifest(manifestName, &options.ManifestCreateOpts{})
+	if err != nil {
+		return fmt.Errorf("failed to create a new one manifest with name %s :%v", manifestName, err)
+	}
+	manifestList, err = runtime.LookupManifestList(manifestName)
 	if err != nil {
 		return err
 	}
+
+	err = engine.addToManifestList(manifestList, imageNameOrIDList, opts)
+	if err != nil {
+		delErr := engine.DeleteManifests([]string{manifestName}, &options.ManifestDeleteOpts{})
+		if delErr != nil {
+			return fmt.Errorf("failed to delete %s : %v", manifestName, delErr)
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (engine *Engine) addToManifestList(manifestList *libimage.ManifestList, imageNameOrIDList []string, opts *options.ManifestAddOpts) error {
+	var (
+		imageIDToAdd []string
+		err          error
+		store        = engine.ImageStore()
+	)
+
+	// determine all images
+	for _, imageNameOrID := range imageNameOrIDList {
+		ret, err := engine.getImageIDList(imageNameOrID)
+		if err != nil {
+			return fmt.Errorf("failed to look up %s", imageNameOrID)
+		}
+
+		imageIDToAdd = append(imageIDToAdd, ret...)
+	}
+
 	_, list, err := manifests.LoadFromImage(store, manifestList.ID())
 	if err != nil {
 		return err
 	}
+
+	// add each to manifest list
+	for _, imageID := range imageIDToAdd {
+		err = engine.addOneToManifestList(list, imageID, opts)
+		if err != nil {
+			return fmt.Errorf("failed to add new image %s to manifest :%v ", imageID, err)
+		}
+	}
+
+	_, err = list.SaveToImage(store, manifestList.ID(), nil, "")
+
+	return err
+}
+
+func (engine *Engine) addOneToManifestList(list manifests.List, imageSpec string, opts *options.ManifestAddOpts) error {
+	store := engine.ImageStore()
+	systemCxt := engine.SystemContext()
 
 	ref, err := alltransports.ParseImageName(imageSpec)
 	if err != nil {
@@ -238,9 +309,61 @@ func (engine *Engine) AddToManifest(name, imageSpec string, opts *options.Manife
 		}
 	}
 
-	_, err = list.SaveToImage(store, manifestList.ID(), nil, "")
+	logrus.Infof("adding image %s successfully", imageSpec)
 
-	return err
+	return nil
+}
+
+//getImageId get imageID by name Or id,what ever it is an image or a manifest
+// if it is image just return imageID
+// if it is a manifest, return its included instance IDs.
+func (engine *Engine) getImageIDList(imageNameOrID string) ([]string, error) {
+	// try to look up `imageNameOrID` as ManifestList
+	store := engine.ImageStore()
+	img, _, err := engine.ImageRuntime().LookupImage(imageNameOrID, &libimage.LookupImageOptions{
+		ManifestList: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	isManifest, err := img.IsManifestList(getContext())
+	if err != nil {
+		return nil, err
+	}
+
+	// if not manifest, just return its ID.
+	if !isManifest {
+		return []string{img.ID()}, nil
+	}
+
+	// if it is a manifest, return its included instance ID.
+	logrus.Infof("image %q is a manifest list, looking up matching instances", imageNameOrID)
+
+	imageName := img.Names()[0]
+	manifestList, err := engine.ImageRuntime().LookupManifestList(imageName)
+	if err != nil {
+		return nil, err
+	}
+
+	_, list, err := manifests.LoadFromImage(store, manifestList.ID())
+	if err != nil {
+		return nil, err
+	}
+
+	var imageIDList []string
+	for _, instanceDigest := range list.Instances() {
+		images, err := store.ImagesByDigest(instanceDigest)
+		if err != nil {
+			return nil, err
+		}
+		if len(images) == 0 {
+			return nil, fmt.Errorf("no image matched with digest %s", instanceDigest)
+		}
+		imageIDList = append(imageIDList, images[0].ID)
+	}
+
+	return imageIDList, nil
 }
 
 func (engine *Engine) RemoveFromManifest(name string, instanceDigest digest.Digest, opts *options.ManifestRemoveOpts) error {

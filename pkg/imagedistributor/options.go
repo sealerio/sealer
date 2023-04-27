@@ -1,4 +1,4 @@
-// Copyright © 2022 Alibaba Group Holding Ltd.
+// Copyright © 2023 Alibaba Group Holding Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,17 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package version
+package imagedistributor
 
-// VersionedApplication TODO maybe move it a global version interface, for version compatibility
-type VersionedApplication interface {
-	Version() string
+// DistributeOption :control some distribute logic.
+type DistributeOption struct {
+	//IgnoreCache: indicate that whether sealer use cache when distribute sealer image,
+	//if not, will force sync sealer rootfs.
+	//default is false.
+	IgnoreCache bool
 
-	Name() string
-
-	Type() string
-
-	Files() []string
-
-	LaunchCmd(appRoot string, launchCmds []string) string
+	// Prune: if it is true, will delete all cluster rootfs
+	// default is false.
+	Prune bool
 }

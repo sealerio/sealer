@@ -27,18 +27,27 @@ const (
 	ColonSymbol = ":"
 )
 
-// FormatData process data in the specified format
-//eg: key1=value1:NoSchedule;key1:NoSchedule;key1=value1:NoSchedule
+/*
+add:
+key1=value1:NoSchedule;
+key1:NoSchedule;
+key1=:NoSchedule
+
+delete:
+key-;
+key1:NoSchedule-;
+*/
+// formatData process data in the specified format
 func formatData(data string) (k8sv1.Taint, error) {
 	var (
 		key, value, effect string
-		taint              k8sv1.Taint
 		TaintEffectValues  = []k8sv1.TaintEffect{k8sv1.TaintEffectNoSchedule, k8sv1.TaintEffectNoExecute, k8sv1.TaintEffectPreferNoSchedule}
 	)
 
 	data = strings.TrimSpace(data)
 	switch {
-	case strings.Contains(data, EqualSymbol) && !strings.Contains(data, EqualSymbol+ColonSymbol):
+	// key1=value1:NoSchedule
+	case strings.Contains(data, EqualSymbol) && !strings.Contains(data, EqualSymbol+ColonSymbol) && !strings.Contains(data, DelSymbol):
 		temps := strings.Split(data, EqualSymbol)
 		if len(temps) != 2 {
 			return k8sv1.Taint{}, fmt.Errorf("faild to split taint argument: %s", data)
@@ -51,27 +60,44 @@ func formatData(data string) (k8sv1.Taint, error) {
 		value, effect = taintArgs[0], taintArgs[1]
 		effect = strings.TrimSuffix(effect, DelSymbol)
 
-	case !strings.Contains(data, EqualSymbol):
+		//key1:NoSchedule
+	case !strings.Contains(data, EqualSymbol) && strings.Contains(data, ColonSymbol) && !strings.Contains(data, DelSymbol):
 		temps := strings.Split(data, ColonSymbol)
 		if len(temps) != 2 {
 			return k8sv1.Taint{}, fmt.Errorf("faild to split taint argument: %s", data)
 		}
 		key, value, effect = temps[0], "", temps[1]
 
-	case strings.Contains(data, EqualSymbol+ColonSymbol):
+		//key1=:NoSchedule
+	case strings.Contains(data, EqualSymbol+ColonSymbol) && !strings.Contains(data, DelSymbol):
 		temps := strings.Split(data, EqualSymbol+ColonSymbol)
+		if len(temps) != 2 {
+			return k8sv1.Taint{}, fmt.Errorf("faild to split taint argument: %s", data)
+		}
+		key, value, effect = temps[0], "", temps[1]
+
+		// key1-
+	case strings.Contains(data, DelSymbol) && !strings.Contains(data, EqualSymbol) && !strings.Contains(data, ColonSymbol):
+		key, value, effect = data, "", ""
+
+		// key1:NoSchedule-
+	case strings.Contains(data, DelSymbol) && !strings.Contains(data, EqualSymbol) && strings.Contains(data, ColonSymbol):
+		temps := strings.Split(data, ColonSymbol)
 		if len(temps) != 2 {
 			return k8sv1.Taint{}, fmt.Errorf("faild to split taint argument: %s", data)
 		}
 		key, value, effect = temps[0], "", temps[1]
 	}
 
-	effect = strings.TrimSuffix(effect, DelSymbol)
-	if notInEffect(k8sv1.TaintEffect(effect), TaintEffectValues) {
-		return k8sv1.Taint{}, fmt.Errorf("taint effect %s need in %v", data, TaintEffectValues)
+	//determine whether the Effect is legal
+	if effect != "" {
+		taintEffect := strings.TrimSuffix(effect, DelSymbol)
+		if notInEffect(k8sv1.TaintEffect(taintEffect), TaintEffectValues) {
+			return k8sv1.Taint{}, fmt.Errorf("taint effect %s need in %v", data, TaintEffectValues)
+		}
 	}
 
-	taint = k8sv1.Taint{
+	taint := k8sv1.Taint{
 		Key:    key,
 		Value:  value,
 		Effect: k8sv1.TaintEffect(effect),
@@ -86,4 +112,28 @@ func notInEffect(effect k8sv1.TaintEffect, effects []k8sv1.TaintEffect) bool {
 		}
 	}
 	return true
+}
+
+// DeleteTaintsByKey removes all the taints that have the same key to given taintKey
+func DeleteTaintsByKey(taints []k8sv1.Taint, taintKey string) ([]k8sv1.Taint, bool) {
+	newTaints := []k8sv1.Taint{}
+	for i := range taints {
+		if taintKey == taints[i].Key {
+			continue
+		}
+		newTaints = append(newTaints, taints[i])
+	}
+	return newTaints, len(taints) != len(newTaints)
+}
+
+// DeleteTaint removes all the taints that have the same key and effect to given taintToDelete.
+func DeleteTaint(taints []k8sv1.Taint, taintToDelete *k8sv1.Taint) ([]k8sv1.Taint, bool) {
+	newTaints := []k8sv1.Taint{}
+	for i := range taints {
+		if taintToDelete.MatchTaint(&taints[i]) {
+			continue
+		}
+		newTaints = append(newTaints, taints[i])
+	}
+	return newTaints, len(taints) != len(newTaints)
 }
