@@ -86,7 +86,10 @@ func (c *localConfigurator) UninstallFrom(deletedMasters, deletedNodes []net.IP)
 	if len(c.deployHosts) == 0 {
 		return nil
 	}
-
+	// if deletedMasters is nil, means no need to flush workers, just return
+	if len(deletedMasters) == 0 {
+		return nil
+	}
 	// flush ipvs policy on remain nodes
 	return c.configureLvs(c.deployHosts, netutils.RemoveIPs(c.infraDriver.GetHostIPListByRole(common.NODE), deletedNodes))
 }
@@ -159,6 +162,10 @@ func (c *localConfigurator) configureRegistryNetwork(masters, nodes []net.IP) er
 		return err
 	}
 
+	// if masters is nil, means no need to flush old nodes
+	if len(masters) == 0 {
+		return c.configureLvs(c.deployHosts, nodes)
+	}
 	return c.configureLvs(c.deployHosts, c.infraDriver.GetHostIPListByRole(common.NODE))
 }
 
@@ -203,7 +210,7 @@ func (c *localConfigurator) configureLvs(registryHosts, clientHosts []net.IP) er
 		eg.Go(func() error {
 			err := c.infraDriver.CmdAsync(n, nil, ipvsCmd, lvscareStaticCmd)
 			if err != nil {
-				return fmt.Errorf("failed to config nodes lvs policy %s: %v", ipvsCmd, err)
+				return fmt.Errorf("failed to config nodes lvs policy: %s: %v", ipvsCmd, err)
 			}
 
 			err = c.infraDriver.CmdAsync(n, nil, shellcommand.CommandSetHostAlias(c.Domain, vip))
