@@ -123,3 +123,12 @@ jobs:
           body_path: ./builds/sealer-release-notes/release_note.md
           files: |
             builds/sealer-binaries/*
+
+      - name: Build binareies to oss
+        if: ${{ github.repository == 'sealerio/sealer' && github.ref_type=='tag' }}
+        run: |
+          releasever=${{ github.ref }}
+          releasever="${releasever#refs/tags/}"
+          wget http://gosspublic.alicdn.com/ossutil/1.6.19/ossutil64 && chmod 755 ossutil64 &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-shanghai.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-amd64.tar.gz oss://sealerio/releases/sealer-$releasever-linux-amd64.tar.gz &&
+          ./ossutil64 -i ${{ secrets.ACCESSKEYID }} -k ${{ secrets.ACCESSKEYSECRET }} -e oss-cn-shanghai.aliyuncs.com cp -rf ./builds/sealer-binaries/sealer-$releasever-linux-arm64.tar.gz oss://sealerio/releases/sealer-$releasever-linux-arm64.tar.gz
