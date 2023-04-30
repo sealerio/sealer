@@ -18,6 +18,7 @@ type RunFlags struct {
 	Masters string
 	Nodes   string
 
+	Provider		string
 	User        string
 	Password    string
 	Port        uint16

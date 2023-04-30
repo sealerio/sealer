@@ -19,6 +19,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -40,7 +41,9 @@ import (
 	"github.com/sealerio/sealer/pkg/registry"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	mynet "github.com/sealerio/sealer/utils/net"
 	"github.com/sealerio/sealer/utils/platform"
+	mystrings "github.com/sealerio/sealer/utils/strings"
 )
 
 var runFlags *types.RunFlags
@@ -63,24 +66,33 @@ func NewRunCmd() *cobra.Command {
 		Long:    longNewRunCmdDescription,
 		Example: exampleForRunCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: remove this now, maybe we can support it later
-			// set local ip address as master0 default ip if user input is empty.
-			// this is convenient to execute `sealer run` without set many arguments.
-			// Example looks like "sealer run docker.io/sealerio/kubernetes:v1.22.15"
-			//if runFlags.Masters == "" {
-			//	ip, err := net.GetLocalDefaultIP()
-			//	if err != nil {
-			//		return err
-			//	}
-			//	runFlags.Masters = ip
-			//}
 			var (
 				err         error
+				localIp     string
 				clusterFile = runFlags.ClusterFile
 			)
 
+			if runFlags.Masters == "" {
+				localIp, err = mynet.GetLocalDefaultIP()
+				if err != nil {
+					return err
+				}
+				runFlags.Masters = localIp
+			}
+
 			if len(args) == 0 && clusterFile == "" {
 				return fmt.Errorf("you must input image name Or use Clusterfile")
+			}
+
+			if runFlags.Provider != "" {
+				switch strings.ToLower(runFlags.Provider) {
+				case "container":
+					return runInLocal(args[0])
+				case "alicloud":
+					// TODO
+				case "baremetal":
+					// TODO
+				}
 			}
 
 			if err = utils.ValidateRunHosts(runFlags.Masters, runFlags.Nodes); err != nil {
@@ -145,8 +157,7 @@ func NewRunCmd() *cobra.Command {
 		},
 	}
 	runFlags = &types.RunFlags{}
-	//todo remove provider Flag now, maybe we can support it later
-	//runCmd.Flags().StringVarP(&runFlags.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
+	runCmd.Flags().StringVarP(&runFlags.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runFlags.Masters, "masters", "m", "", "set count or IPList to masters")
 	runCmd.Flags().StringVarP(&runFlags.Nodes, "nodes", "n", "", "set count or IPList to nodes")
 	runCmd.Flags().StringVarP(&runFlags.User, "user", "u", "root", "set baremetal server username")
@@ -161,13 +172,13 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringVar(&runFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
 	runCmd.Flags().BoolVar(&runFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
 
-	//err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	//	return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
-	//})
-	//if err != nil {
-	//	logrus.Errorf("provide completion for provider flag, err: %v", err)
-	//	os.Exit(1)
-	//}
+	err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return mystrings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		logrus.Errorf("provide completion for provider flag, err: %v", err)
+		os.Exit(1)
+	}
 	return runCmd
 }
 
@@ -236,6 +247,15 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 	}
 
 	return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode, runFlags.IgnoreCache)
+}
+
+func runInLocal(imageName string) error {
+	fmt.Println(imageName)
+	fmt.Println(runFlags.Provider)
+	fmt.Println(runFlags.Masters)
+	fmt.Println(runFlags.Nodes)
+
+	return nil
 }
 
 func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface,
