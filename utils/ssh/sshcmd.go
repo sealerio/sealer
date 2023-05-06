@@ -162,6 +162,7 @@ func (s *SSH) CmdToString(host net.IP, env map[string]string, cmd, split string)
 		return str, err
 	}
 	if data != nil {
+		str = strings.ReplaceAll(str, "\r", split)
 		str = strings.ReplaceAll(str, "\r\n", split)
 		str = strings.ReplaceAll(str, "\n", split)
 		return str, nil
