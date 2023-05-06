@@ -28,7 +28,7 @@ TEST_TOOLS = ginkgo go-junit-report gotests
 # Version control tools
 VERSION_CONTROL_TOOLS = addlicense go-gitlint git-chglog github-release gsemver
 # Utility tools
-UTILITY_TOOLS = go-mod-outdated mockgen gothanks richgo
+UTILITY_TOOLS = go-mod-outdated mockgen gothanks richgo kubeconform
 # All tools
 ALL_TOOLS ?= $(ANALYSIS_TOOLS) $(GENERATION_TOOLS) $(TEST_TOOLS) $(VERSION_CONTROL_TOOLS) $(UTILITY_TOOLS)
 
@@ -103,6 +103,11 @@ install.go-junit-report:
 .PHONY: install.kube-score
 install.kube-score:
 	@$(GO) install github.com/zegl/kube-score/cmd/kube-score@latest
+
+## install.kubeconform: Install kubeconform, used to check kubernetes yaml files
+.PHONY: install.kubeconform
+install.kubeconform:
+	@$(GO) install github.com/yannh/kubeconform/cmd/kubeconform@latest
 
 ## Install go-gitlint: Install go-gitlint, used to check git commit message
 .PHONY: install.go-gitlint
