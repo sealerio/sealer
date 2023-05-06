@@ -33,7 +33,10 @@ ifeq ($(DEBUG), 1)
 	GO_BUILD_FLAGS += -gcflags "all=-N -l"
 	GO_LDFLAGS=
 endif
-GO_BUILD_FLAGS += -tags "containers_image_openpgp netgo exclude_graphdriver_devicemapper static osusergo exclude_graphdriver_btrfs" -trimpath -ldflags "$(GO_LDFLAGS)"
+# Fixed container dependency issues
+# Link -> https://github.com/containers/image/pull/271/files
+# For btrfs, we are currently only using overlays, so we don't need to include btrfs, otherwise we need to fix some lib issues
+GO_BUILD_FLAGS += -tags "containers_image_openpgp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs"
 
 # ifeq ($(GOOS),windows)
 # 	GO_OUT_EXT := .exe
@@ -103,7 +106,7 @@ go.bin.%:
 	$(eval COMMAND := $(word 2,$(subst ., ,$*)))
 	$(eval PLATFORM := $(word 1,$(subst ., ,$*)))
 	@echo "===========> Verifying binary $(COMMAND) $(VERSION) for $(PLATFORM)"
-	@if [ ! -f $(BIN_DIR)/$(PLATFORM)/$(COMMAND) ]; then echo $(MAKE) go.build PLATFORM=$(PLATFORM); fi
+	@if [ ! -f $(BIN_DIR)/$(COMMAND)/$(PLATFORM)/$(COMMAND) ]; then echo $(MAKE) go.build PLATFORM=$(PLATFORM); fi
 
 ## go.build.%: Build binary for specific platform
 .PHONY: go.build.%
@@ -114,22 +117,23 @@ go.build.%:
 	$(eval ARCH := $(word 2,$(subst _, ,$(PLATFORM))))
 	@echo "COMMAND=$(COMMAND)"
 	@echo "PLATFORM=$(PLATFORM)"
-	@echo "OS=$(OS)"
-	@echo "ARCH=$(ARCH)"
-	@echo "BINS=$(BINS)"
 	@echo "BIN_DIR=$(BIN_DIR)"
-	@echo "===========> Building binary $(COMMAND) $(VERSION) for $(OS) $(ARCH)"
-	@mkdir -p $(OUTPUT_DIR)/bin/$(OS)/$(ARCH)
-	
-#	@CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) $(GO) build $(GO_BUILD_FLAGS) -o $(OUTPUT_DIR)/bin/$(OS)/$(ARCH)/$(COMMAND)$(GO_OUT_EXT) $(ROOT_PACKAGE)/cmd/$(COMMAND)
+	@echo "===========> Building binary $(COMMAND) $(VERSION) for $(OS)_$(ARCH)"
+	@mkdir -p $(BIN_DIR)/$(COMMAND)/$(PLATFORM)
+	@if [ "$(COMMAND)" == "sealer" ] || [ "$(COMMAND)" == "seautil" ]; then \
+		CGO_ENABLED=1; \
+		CC=x86_64-linux-gnu-gcc; \
+		if [ "$(ARCH)" == "arm64" ]; then \
+			CC=aarch64-linux-gnu-gcc; \
+		fi; \
+		CGO_ENABLED=$$CGO_ENABLED CC=$$CC GOOS=$(OS) GOARCH=$(ARCH) $(GO) build $(GO_BUILD_FLAGS) -o $(BIN_DIR)/$(COMMAND)/$(PLATFORM) -mod vendor $(ROOT_PACKAGE)/cmd/$(COMMAND); \
+	else \
+		CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) $(GO) build $(GO_BUILD_FLAGS) -o $(BIN_DIR)/$(COMMAND)/$(PLATFORM) -mod vendor $(ROOT_PACKAGE)/cmd/$(COMMAND); \
+	fi
 
 ## go.build: Build binaries
 .PHONY: go.build
 go.build: go.build.verify $(addprefix go.build., $(addprefix $(PLATFORM)., $(BINS)))
-	@echo "COMMAND=$(COMMAND)"
-	@echo "PLATFORM=$(PLATFORM)"
-	@echo "OS=$(OS)"
-	@echo "ARCH=$(ARCH)"
 	@echo "===========> Building binary $(BINS) $(VERSION) for $(PLATFORM)"
 
 ## go.build.multiarch: Build multi-arch binaries
@@ -153,7 +157,7 @@ go.lint: tools.verify.golangci-lint
 ## go.test: Run unit test
 .PHONY: go.test
 go.test:
-	@$(GO) test ./...
+	@$(GO) test $(GO_BUILD_FLAGS) ./...
 
 ## go.test.junit-report: Run unit test
 .PHONY: go.test.junit-report
