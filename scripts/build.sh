@@ -72,7 +72,7 @@ ldflags() {
     local val=${2}
     # If you update these, also update the list component-base/version/def.bzl.
     ldflags+=(
-      "-X '${SEALER_GO_PACKAGE}/version.${key}=${val}'"
+      "-X '${SEALER_GO_PACKAGE}/pkg/version.${key}=${val}'"
     )
   }
   add_ldflag "buildDate" "$(date "+%FT %T %z")"

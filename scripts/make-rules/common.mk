@@ -22,7 +22,7 @@ DIRS=$(shell ls)
 DEBUG ?= 0
 GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD || echo "0.0.0")
-BUILD_DATE=$(shell date '+%FT %T %z')	# "buildDate":"2023-03-31T 20:05:43 +0800"
+BUILD_DATE ?=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')	# Blank error: date '+%FT %T %z':"buildDate":"2023-03-31T 20:05:43 +0800"
 
 # include the common makefile
 COMMON_SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))

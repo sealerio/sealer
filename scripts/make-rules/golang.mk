@@ -20,15 +20,11 @@ GO := go
 # ! go 1.8 some packages fail to be pulled out. You are advised to use the gvm switchover version of the tools toolkit
 GO_SUPPORTED_VERSIONS ?= |1.17|1.18|1.19|1.20|
 
-GO_LDFLAGS += -X $(VERSION_PACKAGE).gitVersion=${GIT_TAG} \
-	-X $(VERSION_PACKAGE).gitCommit=${GIT_COMMIT} \
-	-X $(VERSION_PACKAGE).GitTreeState=$(GIT_TREE_STATE) \
-	-X $(VERSION_PACKAGE).buildDate=${BUILD_DATE} \
+GO_LDFLAGS += -X $(VERSION_PACKAGE).gitVersion=$(GIT_TAG) \
+	-X $(VERSION_PACKAGE).gitCommit=$(GIT_COMMIT) \
+	-X $(VERSION_PACKAGE).gitTreeState=$(GIT_TREE_STATE) \
+	-X $(VERSION_PACKAGE).buildDate=$(BUILD_DATE) \
 	-s -w		# -s -w deletes debugging information and symbol tables
-ifneq ($(DLV),)
-	GO_BUILD_FLAGS += -gcflags "all=-N -l"
-	LDFLAGS = ""
-endif
 ifeq ($(DEBUG), 1)
 	GO_BUILD_FLAGS += -gcflags "all=-N -l"
 	GO_LDFLAGS=
@@ -36,11 +32,7 @@ endif
 # Fixed container dependency issues
 # Link -> https://github.com/containers/image/pull/271/files
 # For btrfs, we are currently only using overlays, so we don't need to include btrfs, otherwise we need to fix some lib issues
-GO_BUILD_FLAGS += -tags "containers_image_openpgp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs"
-
-# ifeq ($(GOOS),windows)
-# 	GO_OUT_EXT := .exe
-# endif
+GO_BUILD_FLAGS += -tags "containers_image_openpgp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs" -trimpath -ldflags "$(GO_LDFLAGS)"
 
 ifeq ($(ROOT_PACKAGE),)
 	$(error the variable ROOT_PACKAGE must be set prior to including golang.mk, ->/Makefile)
@@ -115,9 +107,9 @@ go.build.%:
 	$(eval PLATFORM := $(word 1,$(subst ., ,$*)))
 	$(eval OS := $(word 1,$(subst _, ,$(PLATFORM))))
 	$(eval ARCH := $(word 2,$(subst _, ,$(PLATFORM))))
-	@echo "COMMAND=$(COMMAND)"
-	@echo "PLATFORM=$(PLATFORM)"
-	@echo "BIN_DIR=$(BIN_DIR)"
+	@echo "=====> COMMAND=$(COMMAND)"
+	@echo "=====> PLATFORM=$(PLATFORM)"
+	@echo "=====> BIN_DIR=$(BIN_DIR)"
 	@echo "===========> Building binary $(COMMAND) $(VERSION) for $(OS)_$(ARCH)"
 	@mkdir -p $(BIN_DIR)/$(COMMAND)/$(PLATFORM)
 	@if [ "$(COMMAND)" == "sealer" ] || [ "$(COMMAND)" == "seautil" ]; then \
@@ -136,7 +128,7 @@ go.build.%:
 go.build: go.build.verify $(addprefix go.build., $(addprefix $(PLATFORM)., $(BINS)))
 	@echo "===========> Building binary $(BINS) $(VERSION) for $(PLATFORM)"
 
-## go.build.multiarch: Build multi-arch binaries
+## go.multiarch: Build multi-arch binaries
 .PHONY: go.build.multiarch
 go.build.multiarch: go.build.verify $(foreach p,$(PLATFORMS),$(addprefix go.build., $(addprefix $(p)., $(BINS))))
 
