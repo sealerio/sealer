@@ -25,10 +25,10 @@ GO_LDFLAGS += -X $(VERSION_PACKAGE).gitVersion=${GIT_TAG} \
 	-X $(VERSION_PACKAGE).GitTreeState=$(GIT_TREE_STATE) \
 	-X $(VERSION_PACKAGE).buildDate=${BUILD_DATE} \
 	-s -w		# -s -w deletes debugging information and symbol tables
-# ifneq ($(DLV),)
-# 	GO_BUILD_FLAGS += -gcflags "all=-N -l"
-# 	LDFLAGS = ""
-# endif
+ifneq ($(DLV),)
+	GO_BUILD_FLAGS += -gcflags "all=-N -l"
+	LDFLAGS = ""
+endif
 ifeq ($(DEBUG), 1)
 	GO_BUILD_FLAGS += -gcflags "all=-N -l"
 	GO_LDFLAGS=
@@ -126,7 +126,7 @@ go.build.%:
 		if [ "$(ARCH)" == "arm64" ]; then \
 			CC=aarch64-linux-gnu-gcc; \
 		fi; \
-		CGO_ENABLED=$$CGO_ENABLED CC=$$CC GOOS=$(OS) GOARCH=$(ARCH) $(GO) build $(GO_BUILD_FLAGS) -o $(BIN_DIR)/$(COMMAND)/$(PLATFORM) -mod vendor $(ROOT_PACKAGE)/cmd/$(COMMAND); \
+		CGO_ENABLED=$$CGO_ENABLED CC=$$CC GOOS=$(OS) GOARCH=$(ARCH) $(GO) build $(GO_BUILD_FLAGS) -o $(BIN_DIR)/$(COMMAND)/$(PLATFORM) $(ROOT_PACKAGE)/cmd/$(COMMAND); \
 	else \
 		CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) $(GO) build $(GO_BUILD_FLAGS) -o $(BIN_DIR)/$(COMMAND)/$(PLATFORM) -mod vendor $(ROOT_PACKAGE)/cmd/$(COMMAND); \
 	fi
@@ -140,11 +140,17 @@ go.build: go.build.verify $(addprefix go.build., $(addprefix $(PLATFORM)., $(BIN
 .PHONY: go.build.multiarch
 go.build.multiarch: go.build.verify $(foreach p,$(PLATFORMS),$(addprefix go.build., $(addprefix $(p)., $(BINS))))
 
+## go.linux-a: Build the project with a build script, use: ./scripts/build.sh -h
+.PHONY: go.linux-a
+go.linux-a:
+	@chmod +x $(BUILD_SCRIPTS)
+	@$(BUILD_SCRIPTS) -a
+
 ## go.linux.%: Build linux_amd64 OR linux_arm64 binaries
 .PHONY: go.linux.%
 go.linux.%:
 	@echo "Building sealer and seautil binaries for Linux $*"
-	@GOOS=linux GOARCH=$* $(BUILD_SCRIPTS) $(GIT_TAG)
+	@chmod +x $(BUILD_SCRIPTS);GOOS=linux GOARCH=$* $(BUILD_SCRIPTS) -p linux/$*
 	@echo "$(shell go version)"
 	@echo "===========> Building binary for Linux $* $(BUILDAPP) *[Git Info]: $(VERSION)-$(GIT_TAG)-$(GIT_COMMIT)"
 
@@ -163,7 +169,7 @@ go.test:
 .PHONY: go.test.junit-report
 go.test.junit-report: tools.verify.go-junit-report
 	@echo "===========> Run unit test > $(TMP_DIR)/report.xml"
-	@$(GO) test -v -coverprofile=$(TMP_DIR)/coverage.out 2>&1 ./... | $(TOOLS_DIR)/go-junit-report -set-exit-code > $(TMP_DIR)/report.xml
+	@$(GO) test -v -coverprofile=$(TMP_DIR)/coverage.out 2>&1 $(GO_BUILD_FLAGS) ./... | $(TOOLS_DIR)/go-junit-report -set-exit-code > $(TMP_DIR)/report.xml
 	@sed -i '/mock_.*.go/d' $(TMP_DIR)/coverage.out
 	@echo "===========> Test coverage of Go code is reported to $(TMP_DIR)/coverage.html by generating HTML"
 	@$(GO) tool cover -html=$(TMP_DIR)/coverage.out -o $(TMP_DIR)/coverage.html

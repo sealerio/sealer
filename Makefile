@@ -98,6 +98,11 @@ lint:
 .PHONY: style
 style: fmt vet lint
 
+## linux: Build the all with a build script
+.PHONY: linux
+linux:
+	@$(MAKE) go.linux-a
+
 ## linux.%: Build binaries for Linux (make linux.amd64 OR make linux.arm64)
 linux.%:
 	@$(MAKE) go.linux.$*

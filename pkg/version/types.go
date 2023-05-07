@@ -14,6 +14,8 @@
 
 package version
 
+import "fmt"
+
 // Info contains versioning information.
 // TODO: Add []string of api versions supported? It's still unclear
 // how we'll want to distribute that information.
@@ -28,7 +30,23 @@ type Info struct {
 	Platform   string `json:"platform"`
 }
 
+type Output struct {
+	SealosVersion     Info               `json:"SealosVersion,omitempty" yaml:"SealosVersion,omitempty"`
+	CriRuntimeVersion *CriRuntimeVersion `json:"CriVersionInfo,omitempty" yaml:"CriVersionInfo,omitempty"`
+	KubernetesVersion *KubernetesVersion `json:"KubernetesVersionInfo,omitempty" yaml:"KubernetesVersionInfo,omitempty"`
+	KubectlVersion    *KubectlVersion    `json:"KubectlVersionInfo,omitempty yaml:"KubectlVersionInfo,omitempty"`
+}
+
+type CriRuntimeVersion struct {
+}
+
+type KubernetesVersion struct {
+}
+
+type KubectlVersion struct {
+}
+
 // String returns info as a human-friendly version string.
 func (info Info) String() string {
-	return info.GitVersion
+	return fmt.Sprintf("%s-%s", info.GitVersion, info.GitCommit)
 }
