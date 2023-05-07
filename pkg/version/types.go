@@ -34,9 +34,9 @@ type Info struct {
 }
 
 type Output struct {
-	SealerVersion     Info               `json:"Version,omitempty" yaml:"SealerVersion,omitempty"`
-	CriRuntimeVersion *CriRuntimeVersion `json:"CriVersionInfo,omitempty" yaml:"CriVersionInfo,omitempty"`
-	KubernetesVersion *KubernetesVersion `json:"KubernetesVersionInfo,omitempty" yaml:"KubernetesVersionInfo,omitempty"`
+	SealerVersion     Info               `json:"sealerVersion,omitempty" yaml:"sealerVersion,omitempty"`
+	CriRuntimeVersion *CriRuntimeVersion `json:"criVersionInfo,omitempty" yaml:"criVersionInfo,omitempty"`
+	KubernetesVersion *KubernetesVersion `json:"kubernetesVersionInfo,omitempty" yaml:"kubernetesVersionInfo,omitempty"`
 	K0sVersion        *k0sVersion        `json:"k0sVersionInfo,omitempty" yaml:"k0sVersionInfo,omitempty"`
 	K3sVersion        *k3sVersion        `json:"k3sVersionInfo,omitempty" yaml:"k3sVersionInfo,omitempty"`
 }

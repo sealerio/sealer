@@ -116,7 +116,7 @@ go.build.%:
 		CGO_ENABLED=1; \
 		CC=x86_64-linux-gnu-gcc; \
 		if [ "$(ARCH)" == "arm64" ]; then \
-			CC=aarch64-linux-gnu-gcc; \
+			CC=aarch-linux-gnu-gcc; \
 		fi; \
 		CGO_ENABLED=$$CGO_ENABLED CC=$$CC GOOS=$(OS) GOARCH=$(ARCH) $(GO) build $(GO_BUILD_FLAGS) -o $(BIN_DIR)/$(COMMAND)/$(PLATFORM) $(ROOT_PACKAGE)/cmd/$(COMMAND); \
 	else \
