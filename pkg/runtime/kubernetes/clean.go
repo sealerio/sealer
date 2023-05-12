@@ -85,7 +85,7 @@ func (k *Runtime) deleteMaster(master net.IP, remainMaster0 *net.IP) error {
 	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.
 
 	if err := k.infra.CmdAsync(master, nil, remoteCleanCmd...); err != nil {
-		return err
+		logrus.Warnf("failed to run remote cleanup cmd on master %s, ignore and continue remove it from cluster", master)
 	}
 
 	// if remainMaster0 is nil, no need delete master from cluster
@@ -127,12 +127,12 @@ func (k *Runtime) deleteNodes(nodesToDelete, remainMasters []net.IP) error {
 
 func (k *Runtime) deleteNode(node net.IP, remainMaster0 *net.IP) error {
 	remoteCleanCmd := []string{fmt.Sprintf(RemoteCleanK8sOnHost, vlogToStr(k.Config.Vlog)),
-		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()), RemoteCleanCustomizeCRISocket}
+		fmt.Sprintf(RemoteRemoveAPIServerEtcHost, k.getAPIServerDomain()), RemoteCleanCustomizeCRISocket, fmt.Sprintf(RemoteDelRoute, k.getAPIServerVIP(), node)}
 
 	//if the master to be removed is the execution machine, kubelet and ~./kube will not be removed and ApiServer host will be added.
 
 	if err := k.infra.CmdAsync(node, nil, remoteCleanCmd...); err != nil {
-		return err
+		logrus.Warnf("failed to run remote cleanup cmd on node %s, ignore and continue remove it from cluster", node)
 	}
 
 	// if remainMaster0 is nil, no need delete master from cluster
@@ -148,7 +148,7 @@ func (k *Runtime) deleteNode(node net.IP, remainMaster0 *net.IP) error {
 		}
 	}
 
-	return k.deleteVIPRouteIfExist(node)
+	return nil
 }
 
 func (k *Runtime) deleteVIPRouteIfExist(node net.IP) error {

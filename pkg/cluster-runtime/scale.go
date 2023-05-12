@@ -15,6 +15,7 @@
 package clusterruntime
 
 import (
+	"fmt"
 	"net"
 
 	netutils "github.com/sealerio/sealer/utils/net"
@@ -34,14 +35,14 @@ func (i *Installer) ScaleUp(newMasters, newWorkers []net.IP) (registry.Driver, r
 	rootfs := i.infraDriver.GetClusterRootfsPath()
 
 	logrus.Debug("check ssh of new nodes")
-	err := CheckNodeSSH(i.infraDriver, append(newMasters, newWorkers...))
+	_, err := CheckNodeSSH(i.infraDriver, append(newMasters, newWorkers...))
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if len(newMasters) != 0 {
 		logrus.Debug("check ssh of workers")
-		err = CheckNodeSSH(i.infraDriver, workers)
+		_, err = CheckNodeSSH(i.infraDriver, workers)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -137,32 +138,14 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	master0 := masters[0]
 	workers := getWorkerIPList(i.infraDriver)
-	registryDeployHosts := []net.IP{master0}
-	all := append(mastersToDelete, workersToDelete...)
-
-	logrus.Debug("check ssh of nodesToDelete")
-	err := CheckNodeSSH(i.infraDriver, append(mastersToDelete, workersToDelete...))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(mastersToDelete) != 0 {
-		logrus.Debug("check ssh of workers")
-		err = CheckNodeSSH(i.infraDriver, workers)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	if err := i.runHostHook(PreCleanHost, all); err != nil {
-		return nil, nil, err
-	}
+	remainWorkers := netutils.RemoveIPs(workers, workersToDelete)
 
 	crInfo, err := i.containerRuntimeInstaller.GetInfo()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	registryDeployHosts := []net.IP{master0}
 	// reconcile registry node if local registry is ha mode.
 	if i.regConfig.LocalRegistry != nil && *i.regConfig.LocalRegistry.HA {
 		registryDeployHosts, err = registry.NewInstaller(masters, i.regConfig.LocalRegistry, i.infraDriver, i.Distributor).Reconcile(netutils.RemoveIPs(masters, mastersToDelete))
@@ -187,35 +170,81 @@ func (i *Installer) ScaleDown(mastersToDelete, workersToDelete []net.IP) (regist
 		return nil, nil, err
 	}
 
-	if err = kubeRuntimeInstaller.ScaleDown(mastersToDelete, workersToDelete); err != nil {
-		return nil, nil, err
-	}
-
 	runtimeDriver, err := kubeRuntimeInstaller.GetCurrentRuntimeDriver()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err = registryConfigurator.UninstallFrom(mastersToDelete, workersToDelete); err != nil {
+	if len(mastersToDelete) != 0 {
+		logrus.Debug("check ssh of remainWorkers")
+		_, err := CheckNodeSSH(i.infraDriver, remainWorkers)
+		if err != nil {
+			return nil, nil, fmt.Errorf("because master list changed, we need connect to all existing workers to maintain some configs, but failed: %v", err)
+		}
+	}
+
+	logrus.Debug("check ssh of nodesToDelete")
+	disconnetedMasters, err := CheckNodeSSH(i.infraDriver, mastersToDelete)
+	if err != nil {
+		logrus.Warn(err.Error())
+	}
+	disconnetedWorkers, err := CheckNodeSSH(i.infraDriver, workersToDelete)
+	if err != nil {
+		logrus.Warn(err.Error())
+	}
+
+	if err := i.resetAndScaleDown(kubeRuntimeInstaller, registryConfigurator, netutils.RemoveIPs(mastersToDelete, disconnetedMasters), netutils.RemoveIPs(workersToDelete, disconnetedWorkers)); err != nil {
 		return nil, nil, err
 	}
 
-	if err = i.containerRuntimeInstaller.UnInstallFrom(all); err != nil {
-		return nil, nil, err
-	}
-
-	if err = i.runHostHook(PostCleanHost, all); err != nil {
-		return nil, nil, err
-	}
-
-	// delete HostAlias
-	if err := i.infraDriver.DeleteClusterHostAliases(all); err != nil {
-		return nil, nil, err
-	}
-
-	if err = i.Distributor.Restore(i.infraDriver.GetClusterBasePath(), all); err != nil {
+	if err := i.onlyScaleDown(kubeRuntimeInstaller, disconnetedMasters, disconnetedWorkers); err != nil {
 		return nil, nil, err
 	}
 
 	return registryDriver, runtimeDriver, nil
+}
+
+func (i *Installer) resetAndScaleDown(kubeRuntimeInstaller runtime.Installer, registryConfigurator registry.Configurator, mastersToDelete, workersToDelete []net.IP) error {
+	allToDelete := append(mastersToDelete, workersToDelete...)
+
+	if err := i.runHostHook(PreCleanHost, allToDelete); err != nil {
+		return err
+	}
+
+	if err := kubeRuntimeInstaller.ScaleDown(mastersToDelete, workersToDelete); err != nil {
+		return err
+	}
+
+	if err := registryConfigurator.UninstallFrom(mastersToDelete, workersToDelete); err != nil {
+		return err
+	}
+
+	if err := i.containerRuntimeInstaller.UnInstallFrom(allToDelete); err != nil {
+		return err
+	}
+
+	if err := i.runHostHook(PostCleanHost, allToDelete); err != nil {
+		return err
+	}
+
+	// delete HostAlias
+	if err := i.infraDriver.DeleteClusterHostAliases(allToDelete); err != nil {
+		return err
+	}
+
+	if i.Distributor != nil {
+		if err := i.Distributor.Restore(i.infraDriver.GetClusterBasePath(), allToDelete); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (i *Installer) onlyScaleDown(kubeRuntimeInstaller runtime.Installer, mastersToDelete, workersToDelete []net.IP) error {
+	if err := kubeRuntimeInstaller.ScaleDown(mastersToDelete, workersToDelete); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -34,7 +34,7 @@ func (s *SSH) Ping(host net.IP) error {
 	}
 	client, _, err := s.Connect(host)
 	if err != nil {
-		return fmt.Errorf("[ssh %s] failed to create ssh session: %v", host, err)
+		return fmt.Errorf("failed to ping node %s using ssh session: %v", host, err)
 	}
 	err = client.Close()
 	if err != nil {
@@ -45,6 +45,9 @@ func (s *SSH) Ping(host net.IP) error {
 
 func (s *SSH) CmdAsync(host net.IP, hostEnv map[string]string, cmds ...string) error {
 	// force specify PATH env
+	if hostEnv == nil {
+		hostEnv = map[string]string{}
+	}
 	if hostEnv["PATH"] == "" {
 		hostEnv["PATH"] = "/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin"
 	}
@@ -127,6 +130,9 @@ func (s *SSH) CmdAsync(host net.IP, hostEnv map[string]string, cmds ...string) e
 
 func (s *SSH) Cmd(host net.IP, hostEnv map[string]string, cmd string) ([]byte, error) {
 	// force specify PATH env
+	if hostEnv == nil {
+		hostEnv = map[string]string{}
+	}
 	if hostEnv["PATH"] == "" {
 		hostEnv["PATH"] = "/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin"
 	}

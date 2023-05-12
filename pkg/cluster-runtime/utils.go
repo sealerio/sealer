@@ -72,14 +72,21 @@ func LoadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistri
 	return nil
 }
 
-func CheckNodeSSH(infraDriver infradriver.InfraDriver, clientHosts []net.IP) error {
+func CheckNodeSSH(infraDriver infradriver.InfraDriver, clientHosts []net.IP) ([]net.IP, error) {
+	var failed []net.IP
 	for i := range clientHosts {
 		n := clientHosts[i]
 		logrus.Debug("checking ssh client of ", n)
 		err := infraDriver.CmdAsync(n, nil, "ls >> /dev/null")
 		if err != nil {
-			return fmt.Errorf("failed to connect node: %s: %v", n, err)
+			failed = append(failed, n)
+			logrus.Errorf("failed to connect node %s: %v", n.String(), err)
 		}
 	}
-	return nil
+
+	var retErr error
+	if len(failed) > 0 {
+		retErr = fmt.Errorf("failed to connect node: %v, maybe you have change its sshpasswd, if so, please correct passwd via cmd (kubectl -n kube-system edit cm sealer-clusterfile) or check other errors by yourself", failed)
+	}
+	return failed, retErr
 }
