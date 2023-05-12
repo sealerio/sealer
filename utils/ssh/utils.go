@@ -59,7 +59,7 @@ func fileExist(path string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func ReadPipe(stdout, stderr io.Reader, alsoToStdout bool) {
+func ReadPipe(stdout, stderr io.Reader, alsoToStdout bool) error {
 	var combineSlice []string
 	var combineLock sync.Mutex
 	doneout := make(chan error, 1)
@@ -70,8 +70,11 @@ func ReadPipe(stdout, stderr io.Reader, alsoToStdout bool) {
 	go func() {
 		doneout <- readPipe(stdout, &combineSlice, &combineLock, alsoToStdout)
 	}()
-	<-doneerr
 	<-doneout
+	if errMsg := <-doneerr; errMsg != nil {
+		return errMsg
+	}
+	return nil
 }
 
 func readPipe(pipe io.Reader, combineSlice *[]string, combineLock *sync.Mutex, alsoToStdout bool) error {
