@@ -265,7 +265,8 @@ controlPlane:
 
 ### Using Kubeconfig to overwrite kubeadm configs
 
-If you don't want to care about so much Kubeadm configs, you can use `KubeConfig` object to overwrite(json patch merge) some fields.
+If you don't want to care about so much Kubeadm configs, you can use `KubeConfig` object to overwrite(json patch merge)
+some fields.
 
 ```yaml
 apiVersion: sealer.io/v2
@@ -293,7 +294,8 @@ spec:
 
 ### Using ENV in configs and script
 
-Using ENV in configs or yaml files [check this](https://github.com/sealerio/sealer/blob/main/docs/design/global-config.md#global-configuration)
+Using ENV in configs or yaml
+files [check this](https://github.com/sealerio/sealer/blob/main/docs/design/global-config.md#global-configuration)
 
 ```yaml
 apiVersion: sealer.io/v2

@@ -2,47 +2,41 @@
 
 ## Introduction
 
-Kubefile is a declaration for a set of kube-based applications and operations right after initiation of cluster.
-Content of Kubefile is composed of various instructions and arguments. These declarations define what kind of
-cluster-runtime and which applications will be packing together to distribute a user-specific cluster. Kubefile
-serves for building ClusterImages, and building is available on `linux platform only`. The reason for naming it
-as Kubefile is that the Kubefile contains a prefix 'Kube', which means that there are always Kubernetes-related
-binaries located in every ClusterImage. And Kubefile aims to provide editor a sense of defining applications
-based on taking k8s as kernel.
+Kubefile is a declaration for a set of kube-based applications and operations right after initiation of cluster. Content
+of Kubefile is composed of various instructions and arguments. These declarations define what kind of cluster-runtime
+and which applications will be packing together to distribute a user-specific cluster. Kubefile serves for building
+ClusterImages, and building is available on `linux platform only`. The reason for naming it as Kubefile is that the
+Kubefile contains a prefix 'Kube', which means that there are always Kubernetes-related binaries located in every
+ClusterImage. And Kubefile aims to provide editor a sense of defining applications based on taking k8s as kernel.
 
 ## Benefit
 
-Kubefile enables greater flexibility and portability of distributed applications.
-IT orgainizations take advantages fo Kubefiles to package distributed applications
-and their dependencies in a Kubernetes cluster that can run on premise, in public
-or private cloud, or on bare metal. Besides, Kubefile brings much more efficiency
-in distributed application delivery lifecycle.
+Kubefile enables greater flexibility and portability of distributed applications. IT orgainizations take advantages fo
+Kubefiles to package distributed applications and their dependencies in a Kubernetes cluster that can run on premise, in
+public or private cloud, or on bare metal. Besides, Kubefile brings much more efficiency in distributed application
+delivery lifecycle.
 
-Without Kubefile, IT engineers take quite complicated steps to run distributed
-application(s). Taking a three-node etcd cluster without Helm as an example, IT engineers must
-prepare three nodes which meet the reprequisites of etcd installation, download
-and configure essential dependencies of etcd, and start to install and construct
-an etcd cluster. If etcd cluster is to be installed by Helm on an existing Kubernets,
-it could be shorten steps above without concerning about reprequisites and manually
-startup trigger. If there is no existing Kubernetes, Kubefile and ClusterImage are
-the best to choice to setup etcd cluster with one command just in minutes.
+Without Kubefile, IT engineers take quite complicated steps to run distributed application(s). Taking a three-node etcd
+cluster without Helm as an example, IT engineers must prepare three nodes which meet the reprequisites of etcd
+installation, download and configure essential dependencies of etcd, and start to install and construct an etcd cluster.
+If etcd cluster is to be installed by Helm on an existing Kubernets, it could be shorten steps above without concerning
+about reprequisites and manually startup trigger. If there is no existing Kubernetes, Kubefile and ClusterImage are the
+best to choice to setup etcd cluster with one command just in minutes.
 
 ## Concept Origin
 
-Kubefile has quite similar concept with Dockerfile. And Kubefile is indeed inpired
-by Dockerfile. Actullay, Dockerfile encapsulates single-host application(s) into a single-host
-box(Docker image). While Kubefile encapsulates cluster-level distributed
-application(s) into a cluster-level box(ClusterImage).
+Kubefile has quite similar concept with Dockerfile. And Kubefile is indeed inpired by Dockerfile. Actullay, Dockerfile
+encapsulates single-host application(s) into a single-host box(Docker image). While Kubefile encapsulates cluster-level
+distributed application(s) into a cluster-level box(ClusterImage).
 
 Docker uses Dockerfile to build Docker image, and run Docker container with Docker image.
 
 sealer uses Kubefile to build ClusterImage, and run Kubernetes cluster with ClusterImage.
 
-Docker tackles almost all of delivery issues of single-host application(s). sealer expands
-the concept to cluster level, and mostly focus on the perspetives of distributed application(s).
-To be specific, since Kubefile contains a Kubernetes cluster inside of itself by deault and
-Kubernetes has powerful ability to manage containers from Dockerfiles, we can say that
-Kubefile's concept in built on the basis of Dockerfile, Kubernetes.
+Docker tackles almost all of delivery issues of single-host application(s). sealer expands the concept to cluster level,
+and mostly focus on the perspetives of distributed application(s). To be specific, since Kubefile contains a Kubernetes
+cluster inside of itself by deault and Kubernetes has powerful ability to manage containers from Dockerfiles, we can say
+that Kubefile's concept in built on the basis of Dockerfile, Kubernetes.
 
 ## Kubefile Command Syntax
 
@@ -63,8 +57,8 @@ LAUNCH [applist]
 The further introductions for command as follows:
 
 ### FROM
-`FROM` allows user to define the base image. User is able to do some incremental operations on
-base image.
+
+`FROM` allows user to define the base image. User is able to do some incremental operations on base image.
 
 base image could be any of cluster image or scratch.
 
@@ -77,7 +71,8 @@ Some behaviors are available:
 `CNI --type calico / flannel --cidr ...` an easiest way to deploy CNI, sealer will support several types of CNI.
 
 `CNI path / https://... / oss://`. `path` is a relative path refers to local build context, this can be a directory
-contains multiple yaml or a single yaml for deploying CNI. `https://...; oss://` are remote addresses for downloading related files to deploy CNI.
+contains multiple yaml or a single yaml for deploying CNI. `https://...; oss://` are remote addresses for downloading
+related files to deploy CNI.
 
 ### CSI(Unrealized)
 
@@ -88,7 +83,8 @@ Some behaviors are available:
 `CSI --type alibaba-cloud-csi-driver` an easiest way to deploy CSI, sealer will support several types of CSI.
 
 `CSI [path, https://, oss://]`. `path` is a relative path refers to local build context, this can be a directory
-contains multiple yaml or a single yaml for deploying CSI. `https://...; oss://` are remote addresses for downloading related files to deploy CSI.
+contains multiple yaml or a single yaml for deploying CSI. `https://...; oss://` are remote addresses for downloading
+related files to deploy CSI.
 
 `[]` means user could declare several sources
 
@@ -113,8 +109,8 @@ There can be many `APP` in a `Kubefile`.
 
 ### LAUNCH
 
-`LAUNCH` allows user to specify which apps(specified by instruction `APP`) to start right after the completion of cluster initiation.
-Users are able to declare which applications to launch within the sealer image.
+`LAUNCH` allows user to specify which apps(specified by instruction `APP`) to start right after the completion of
+cluster initiation. Users are able to declare which applications to launch within the sealer image.
 
 The `LAUNCH` instruction has one form:
 

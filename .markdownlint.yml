@@ -1,0 +1,13 @@
+# rules schema: https://github.com/DavidAnson/markdownlint/blob/main/schema/.markdownlint.yaml
+default: false
+MD010:
+  code_blocks: false
+MD013:
+  line_length: 200
+  tables: false
+  code_blocks: false
+MD022: true
+MD024: true
+MD026: true
+MD029: true
+MD036: true

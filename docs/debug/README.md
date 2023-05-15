@@ -1,8 +1,11 @@
 # What is sealer debug
 
-`sealer debug` can debug nodes, pods and containers with plenty of useful tools. Based on `sealer debug` , SRE can locate the problems of nodes, pods or containers.
+`sealer debug` can debug nodes, pods and containers with plenty of useful tools. Based on `sealer debug` , SRE can
+locate the problems of nodes, pods or containers.
 
-You can use `sealer debug pod mypod -it`  to debug the pod named `mypod`. It will create an interactive debugging session in pod `mypod` and immediately attach to it.  In this way, you can use plenty of useful tools to debug `mypod` and the first container of `mypod`.
+You can use `sealer debug pod mypod -it`  to debug the pod named `mypod`. It will create an interactive debugging
+session in pod `mypod` and immediately attach to it. In this way, you can use plenty of useful tools to debug `mypod`
+and the first container of `mypod`.
 
 ![](images/example.png)
 
@@ -70,7 +73,8 @@ RichToolsOnUbuntu:  debug:ubuntu
 RichToolsOnAlpine:  debug:apline
 ```
 
-`sealer debug node mynode/pod mypod` will generate a debug pod/container, but it will not be cleaned automatically. So we can use `sealer debug clean [DEBUG_ID]` to clean the generated debug pod or container.
+`sealer debug node mynode/pod mypod` will generate a debug pod/container, but it will not be cleaned automatically. So
+we can use `sealer debug clean [DEBUG_ID]` to clean the generated debug pod or container.
 
 ```
 # Clean generated debug pod/container using debug ID.
@@ -81,10 +85,13 @@ $ sealer debug clean sealer-pod-debugger-khwbl.mynode.default
 
 ![](images/implementation.png)
 
-When debug node, `sealer debug node` will create a debug pod on node, and it will attach to the debug pod. So it can debug the node with the tools provided by debug pod.
+When debug node, `sealer debug node` will create a debug pod on node, and it will attach to the debug pod. So it can
+debug the node with the tools provided by debug pod.
 
-Just like debug node, `sealer debug pod` will create a debug container in pod, and it will attach to the debug container to debug pod/container with the tools provided by debug container.
+Just like debug node, `sealer debug pod` will create a debug container in pod, and it will attach to the debug container
+to debug pod/container with the tools provided by debug container.
 
 When the debug is done, the generated debug pods or debug containers will be cleaned automatically.
 
-Besides, `sealer debug` also provide some default images for debugging. You can use `sealer debug show-images` to look th default images provided.
+Besides, `sealer debug` also provide some default images for debugging. You can use `sealer debug show-images` to look
+th default images provided.

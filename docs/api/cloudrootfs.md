@@ -60,23 +60,30 @@ COPY . .
 sealer build -t kuberntes:v1.18.3 .
 ```
 
-If you put any file in the $rootfs and then build a cluster image, then when you use the image to deploy, sealer will ensure that these files will be put on the same relative path in all nodes' $rootfs.
+If you put any file in the $rootfs and then build a cluster image, then when you use the image to deploy, sealer will
+ensure that these files will be put on the same relative path in all nodes' $rootfs.
 
 ## Put your binaries in $rootfs/bin
+
 This directory is for binaries.
 
 ## [Deprecated] Put your CRI packages in $rootfs/cri
+
 This directory is for CRI.
 
 ## Put your configurations in $rootfs/etc/
+
 This directory is for configurations.
 
 ### Use env render
-All file with suffix '.tmpl' will be rendered using ClusterFile's env. For example, a file named XABC.yaml.tmpl will be rendered and saved into file XABC.yaml.
+
+All file with suffix '.tmpl' will be rendered using ClusterFile's env. For example, a file named XABC.yaml.tmpl will be
+rendered and saved into file XABC.yaml.
 
 [Env render](https://github.com/sealerio/sealer/blob/main/docs/design/global-config.md#global-configuration)
 
 ## [Deprecated] Put your registry image tar in $rootfs/images
+
 This directory is for registry image.
 
 ## Write your kubernetes metadata in Metadata
@@ -91,6 +98,7 @@ For example:
 ```
 
 ## imageList
+
 Write the image list which your want involved in ClusterImage into imageList, for example:
 
 ```
@@ -100,6 +108,7 @@ registry.k8s.io/kube-apiserver:v1.22.17
 ```
 
 ## scripts
+
 This directory is for scripts.
 
 The follow files are reserved by the system, you can override them to realize the functions you need:
@@ -111,7 +120,8 @@ The follow files are reserved by the system, you can override them to realize th
 - init-registry.sh, for installing registry.
 - init-kube.sh, for installing kube*.
 
-If you want to add a new CRI type, you can put packages in this directory, and add a couple of scripts named ${CRI_NAME}.sh and uninstall-${CRI_NAME}.sh in directory $rootfs/scripts:
+If you want to add a new CRI type, you can put packages in this directory, and add a couple of scripts named
+${CRI_NAME}.sh and uninstall-${CRI_NAME}.sh in directory $rootfs/scripts:
 
 - ${CRI_NAME}.sh: used to install this CRI, and write the CRI socket info into /etc/sealerio/cri/socket-path
 - uninstall-${CRI_NAME}.sh: used to uninstall this CRI

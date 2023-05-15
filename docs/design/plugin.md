@@ -83,8 +83,9 @@ spec:
 
 ## clusterCheck plugin
 
-Server and environmental factors (poor server disk performance) may cause Sealer to deploy the application services immediately after installing the Kubernetes cluster, causing deployment failures.
-The Cluster Check plugin waits for the Kubernetes cluster to stabilize before deploying the application service.
+Server and environmental factors (poor server disk performance) may cause Sealer to deploy the application services
+immediately after installing the Kubernetes cluster, causing deployment failures. The Cluster Check plugin waits for the
+Kubernetes cluster to stabilize before deploying the application service.
 
 ```yaml
 apiVersion: sealer.io/v1
