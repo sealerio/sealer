@@ -22,14 +22,13 @@ import (
 	"strings"
 	"syscall"
 
-	mapUtils "github.com/sealerio/sealer/utils/maps"
-
 	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/rootfs"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	mapUtils "github.com/sealerio/sealer/utils/maps"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 )
