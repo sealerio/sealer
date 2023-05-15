@@ -74,20 +74,20 @@ To put forward a PR, we assume you have registered a GitHub ID. Then you could f
 
 1. **Set Remote** upstream to be `https://github.com/sealerio/sealer.git` using the following two commands:
 
-	```
+```
 	git remote add upstream https://github.com/sealerio/sealer.git
 	git remote set-url --push upstream no-pushing
-	```
+```
 
 	With this remote setting, you can check your git remote configuration like this:
 
-	```
+```
 	$ git remote -v
 	origin     https://github.com/<your-username>/sealer.git (fetch)
 	origin     https://github.com/<your-username>/sealer.git (push)
 	upstream   https://github.com/sealerio/sealer.git (fetch)
 	upstream   no-pushing (push)
-	```
+```
 
 	Adding this, we can easily synchronize local branches with upstream branches.
 
