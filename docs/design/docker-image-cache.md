@@ -12,7 +12,7 @@ Over the standard docker version. `docker pull a.test.com/test/test:v1` will go 
 With "mirror-registries", we can make the `docker pull a.test.com/test/test:v1` to some mirror endpoints. There are some
 examples following:
 
-step 1:
+Step 1:
 
 `docker pull reg.test1.com/library/nginx:latest` from `mirror.test1.com`, `/mirror.test2.com` first.
 
@@ -30,7 +30,7 @@ step 1:
 }
 ```
 
-step 2:
+Step 2:
 
 docker pull anything from `http://sea.hub:5000`, `https://mirror.test2.com` first
 
@@ -54,7 +54,7 @@ docker pull anything from `http://sea.hub:5000`, `https://mirror.test2.com` firs
 
 ### registry config
 
-1. config with registry auth info
+Config with registry auth info
 
 ```yaml
 version: 0.1
@@ -90,7 +90,7 @@ health:
     threshold: 3
 ```
 
-2. or config with nothing remote registry info, we can get this info dynamically.
+Or config with nothing remote registry info, we can get this info dynamically.
 
 ```yaml
 version: 0.1
