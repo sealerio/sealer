@@ -28,7 +28,7 @@ func (i *Installer) UnInstall() error {
 	workers := getWorkerIPList(i.infraDriver)
 	all := append(masters, workers...)
 
-	err := CheckNodeSSH(i.infraDriver, all)
+	_, err := CheckNodeSSH(i.infraDriver, all)
 	if err != nil {
 		return err
 	}

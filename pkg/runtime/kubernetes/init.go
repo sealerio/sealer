@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -70,6 +71,9 @@ func (k *Runtime) initKubeadmConfig(masters []net.IP) (kubeadm.KubeadmConfig, er
 	}
 
 	if err = k.infra.Copy(masters[0], localTmpFile, KubeadmFileYml); err != nil {
+		return kubeadm.KubeadmConfig{}, err
+	}
+	if err = k.infra.Copy(masters[0], localTmpFile, path.Join(k.infra.GetClusterRootfsPath(), "kubeadm.yaml")); err != nil {
 		return kubeadm.KubeadmConfig{}, err
 	}
 
@@ -237,9 +241,22 @@ func (k *Runtime) initKube(hosts []net.IP) error {
 
 func (k *Runtime) sendClusterCert(hosts []net.IP) error {
 	f := func(host net.IP) error {
-		err := k.infra.Copy(host, k.getPKIPath(), clustercert.KubeDefaultCertPath)
-		if err != nil {
-			return fmt.Errorf("failed to copy cluster cert : %v", err)
+		if err := k.infra.Copy(host, k.getPKIPath(), clustercert.KubeDefaultCertPath); err != nil {
+			return fmt.Errorf("failed to copy cluster cert: %v", err)
+		}
+		if err := k.infra.Copy(host, k.getPKIPath(), k.getPKIPath()); err != nil {
+			return fmt.Errorf("failed to copy cluster cert: %v", err)
+		}
+		return nil
+	}
+
+	return k.infra.Execute(hosts, f)
+}
+
+func (k *Runtime) sendKubeadmFile(hosts []net.IP) error {
+	f := func(host net.IP) error {
+		if err := k.infra.Copy(host, path.Join(k.infra.GetClusterRootfsPath(), "kubeadm.yaml"), path.Join(k.infra.GetClusterRootfsPath(), "kubeadm.yaml")); err != nil {
+			return fmt.Errorf("failed to copy kubeadm file: %v", err)
 		}
 		return nil
 	}
@@ -253,8 +270,10 @@ func (k *Runtime) sendKubeConfigFilesToMaster(masters []net.IP, files ...string)
 		dest := filepath.Join(clustercert.KubernetesConfigDir, kubeFile)
 
 		f := func(host net.IP) error {
-			err := k.infra.Copy(host, src, dest)
-			if err != nil {
+			if err := k.infra.Copy(host, src, dest); err != nil {
+				return fmt.Errorf("failed to copy cluster kubeconfig file : %v", err)
+			}
+			if err := k.infra.Copy(host, src, src); err != nil {
 				return fmt.Errorf("failed to copy cluster kubeconfig file : %v", err)
 			}
 			return nil

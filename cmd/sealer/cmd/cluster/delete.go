@@ -78,7 +78,7 @@ func NewDeleteCmd() *cobra.Command {
 			if deleteAll {
 				return deleteCluster(specifyClusterfile, forceDelete)
 			}
-			return scaleDownCluster(mastersToDelete, workersToDelete, forceDelete)
+			return scaleDownCluster(specifyClusterfile, mastersToDelete, workersToDelete, forceDelete)
 		},
 	}
 
@@ -210,7 +210,7 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 	return nil
 }
 
-func scaleDownCluster(masters, workers string, forceDelete bool) error {
+func scaleDownCluster(workClusterfile, masters, workers string, forceDelete bool) error {
 	if err := cmdutils.ValidateScaleIPStr(masters, workers); err != nil {
 		return fmt.Errorf("failed to validate input run args: %v", err)
 	}
@@ -224,6 +224,18 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 	if err != nil {
 		return err
 	}
+	if workClusterfile != "" {
+		// use user specified clusterfile to do delete
+		clusterFileData, err := os.ReadFile(filepath.Clean(workClusterfile))
+		if err != nil {
+			return err
+		}
+
+		cf, err = clusterfile.NewClusterFile(clusterFileData)
+		if err != nil {
+			return err
+		}
+	}
 
 	cluster := cf.GetCluster()
 	//master0 machine cannot be deleted
@@ -234,6 +246,9 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 	var filteredDeleteMasterIPList []net.IP
 	for _, ip := range deleteMasterIPList {
 		if netutils.IsInIPList(ip, cluster.GetMasterIPList()) {
+			if netutils.IsLocalIP(ip, nil) {
+				return fmt.Errorf("not allow delete master %s from itself, you can login other master to execute this deletation", ip)
+			}
 			filteredDeleteMasterIPList = append(filteredDeleteMasterIPList, ip)
 		}
 	}
@@ -271,47 +286,47 @@ func scaleDownCluster(masters, workers string, forceDelete bool) error {
 		return err
 	}
 
+	runtimeConfig := &clusterruntime.RuntimeConfig{
+		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
+	}
+
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(append(deleteMasterIPList, deleteNodeIPList...))
 	if err != nil {
-		return err
-	}
-
-	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-	if err != nil {
-		return err
-	}
-
-	imageMountInfo, err := imageMounter.Mount(cluster.Spec.Image)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = imageMounter.Umount(cluster.Spec.Image, imageMountInfo)
+		logrus.Warn("failed to get hosts platform for deleted node, we will skip reset work on it in next steps")
+	} else {
+		imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
 		if err != nil {
-			logrus.Errorf("failed to umount sealer image: %v", err)
+			return err
 		}
-	}()
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil, imagedistributor.DistributeOption{
-		Prune: deleteFlags.Prune,
-	})
-	if err != nil {
-		return err
-	}
+		imageMountInfo, err := imageMounter.Mount(cluster.Spec.Image)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			err = imageMounter.Umount(cluster.Spec.Image, imageMountInfo)
+			if err != nil {
+				logrus.Errorf("failed to umount sealer image: %v", err)
+			}
+		}()
 
-	plugins, err := loadPluginsFromImage(imageMountInfo)
-	if err != nil {
-		return err
-	}
+		distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil, imagedistributor.DistributeOption{
+			Prune: deleteFlags.Prune,
+		})
+		if err != nil {
+			return err
+		}
+		runtimeConfig.Distributor = distributor
 
-	if cf.GetPlugins() != nil {
-		plugins = append(plugins, cf.GetPlugins()...)
-	}
+		plugins, err := loadPluginsFromImage(imageMountInfo)
+		if err != nil {
+			return err
+		}
 
-	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor:            distributor,
-		Plugins:                plugins,
-		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
+		if cf.GetPlugins() != nil {
+			plugins = append(plugins, cf.GetPlugins()...)
+		}
+		runtimeConfig.Plugins = plugins
 	}
 
 	if cf.GetKubeadmConfig() != nil {

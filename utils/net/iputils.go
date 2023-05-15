@@ -68,6 +68,10 @@ func GetLocalHostAddresses() ([]net.Addr, error) {
 }
 
 func IsLocalIP(ip net.IP, addrs []net.Addr) bool {
+	if len(addrs) == 0 {
+		addrs, _ = GetLocalHostAddresses()
+	}
+
 	for _, address := range addrs {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.Equal(ip) {
 			return true
