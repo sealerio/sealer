@@ -24,7 +24,7 @@ instance on master0 node. So the following document are mainly for built registr
 
 ### For configuration of builtin registry
 
-1. expose below `Registry` struct to clusterfile which is contains configurations about local registry and remote
+* expose below `Registry` struct to clusterfile which is contains configurations about local registry and remote
    registry.
 
 ```yaml
@@ -45,7 +45,7 @@ type Registry struct {
 }
 ```
 
-2. save registry configuration to cluster as configmap with name "sealer-registry" in namespace "kub-system".
+* save registry configuration to cluster as configmap with name "sealer-registry" in namespace "kub-system".
 
 ```shell
 # must exist, this is core registry configuration
@@ -57,7 +57,7 @@ type Registry struct {
 /var/lib/sealer/data/my-cluster/rootfs/etc/registry_htpasswd
 ```
 
-3. save boot history of application image to cluster as configmap with name "sealer-apps" in namespace "kub-system".
+* save boot history of application image to cluster as configmap with name "sealer-apps" in namespace "kub-system".
 
 ```json
 {
@@ -89,14 +89,14 @@ type Registry struct {
 
 ### For recovery of builtin registry
 
-1. Pre-distribute all registry data to all deploy hosts
+Step 1: Pre-distribute all registry data to all deploy hosts
 
 * load registry configuration from cluster on new master0
 * dump registry configuration files from cluster to rootfs on new master0
 * launch builtin registry thought rootfs scripts and configuration files to recover registry service.
 * replace the latest registry ip address on all cluster nodes.
 
-2. Post-distribute registry data on recovery host
+Step 2: Post-distribute registry data on recovery host
 
 * load registry configuration from cluster on new master0
 * dump registry configuration files from cluster to rootfs on new master0
@@ -104,7 +104,7 @@ type Registry struct {
 * launch builtin registry thought rootfs scripts and configuration files to recover registry service.
 * replace the latest registry ip address on all cluster nodes.
 
-3. also need a sealer subcommand to do above recovery implementation
+Step 3: also need a sealer subcommand to do above recovery implementation
 
 ```shell
 sealer alpha recover master0 --host 192.168.1.100
