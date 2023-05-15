@@ -2,7 +2,6 @@
 default: false
 MD010:
   code_blocks: false
-MD022: true
 MD024: true
 MD026: true
 MD029: true
