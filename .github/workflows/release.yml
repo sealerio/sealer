@@ -42,7 +42,24 @@ jobs:
         working-directory: src/github.com/sealerio/sealer
         run: |
           echo "${{steps.drafter.outputs.body}}" >> release_note.md
+      - name: write oss address to release draft
+        id: note
+        run: |
+          echo "
+          ## Usage" >> release_note.md
+          echo "
+          \`\`\`sh
+          # Download and install sealer. Sealer is a binary tool of golang. You can download and unzip it directly to the bin directory, and the release page can also be downloaded
+          $ wget -c https://sealerio.oss-cn-shanghai.aliyuncs.com/releases/sealer-$releasever-linux-amd64.tar.gz && \\
+                tar -xvf sealer-$releasever-linux-amd64.tar.gz -C /usr/bin
+          \`\`\`
+          " >> release_note.md
+          echo "### [amd64 Download address]" >> release_note.md
+          echo "[OSS Download address](https://sealerio.oss-cn-shanghai.aliyuncs.com/releases/sealer-$releasever-linux-amd64.tar.gz)" >> release_note.md
+          echo "### [arm64 Download address]" >> release_note.md
+          echo "[OSS Download address](https://sealerio.oss-cn-shanghai.aliyuncs.com/releases/sealer-$releasever-linux-arm64.tar.gz)" >> release_note.md
 
+        working-directory: src/github.com/sealerio/sealer
       - name: Save release notes
         uses: actions/upload-artifact@v2
         with:
