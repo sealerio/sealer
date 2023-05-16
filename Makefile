@@ -1,7 +1,6 @@
 .DEFAULT_GOAL := help
 
 Dirs=$(shell ls)
-GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 

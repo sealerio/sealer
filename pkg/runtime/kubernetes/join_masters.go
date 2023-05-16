@@ -92,7 +92,7 @@ func (k *Runtime) joinMasters(newMasters []net.IP, master0 net.IP, kubeadmConfig
 			return fmt.Errorf("failed to config cluster hosts file cmd: %v", err)
 		}
 
-		certCMD := runtime.RemoteCertCmd(kubeadmConfig.GetCertSANS(), m, hostname, kubeadmConfig.GetSvcCIDR(), "")
+		certCMD := runtime.RemoteCertCmd(kubeadmConfig.GetCertSANS(), m, hostname, kubeadmConfig.GetSvcCIDR(), kubeadmConfig.GetDNSDomain())
 		if err = k.infra.CmdAsync(m, nil, certCMD); err != nil {
 			return fmt.Errorf("failed to exec command(%s) on master(%s): %v", certCMD, m, err)
 		}
