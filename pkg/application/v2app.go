@@ -28,6 +28,7 @@ import (
 	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/pkg/rootfs"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	mapUtils "github.com/sealerio/sealer/utils/maps"
 	strUtils "github.com/sealerio/sealer/utils/strings"
 	"github.com/sirupsen/logrus"
 )
@@ -202,6 +203,8 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 		appConfigFromImageMap[appConfig.Name] = appConfig
 	}
 
+	appEnvFromExtension := make(map[string]map[string]string)
+
 	for _, name := range v2App.launchApps {
 		appRoot := makeItDir(filepath.Join(rootfs.GlobalManager.App().Root(), name))
 		v2App.appRootMap[name] = appRoot
@@ -215,6 +218,7 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 			} else {
 				v2App.appLaunchCmdsMap[name] = []string{v1app.LaunchCmd(appRoot, nil)}
 			}
+			appEnvFromExtension[name] = mapUtils.Merge(v1app.AppEnv, extension.Env)
 		}
 	}
 
@@ -239,7 +243,7 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 		}
 
 		// add app env
-		v2App.appEnvMap[name] = strUtils.ConvertStringSliceToMap(config.Env)
+		v2App.appEnvMap[name] = mapUtils.Merge(strUtils.ConvertStringSliceToMap(config.Env), appEnvFromExtension[name])
 
 		// initialize app FileProcessors
 		var fileProcessors []FileProcessor

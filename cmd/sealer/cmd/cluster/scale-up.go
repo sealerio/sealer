@@ -19,18 +19,18 @@ import (
 	"net"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
+	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var scaleUpFlags *types.ScaleUpFlags
@@ -87,19 +87,33 @@ func NewScaleUpCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cf.SetCluster(cluster)
 
-			infraDriver, err := infradriver.NewInfraDriver(&cluster)
+			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 			if err != nil {
 				return err
 			}
 
-			imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+			id, err := imageEngine.Pull(&options.PullOptions{
+				Quiet:      false,
+				PullPolicy: "missing",
+				Image:      cluster.Spec.Image,
+				Platform:   "local",
+			})
 			if err != nil {
 				return err
 			}
 
-			return scaleUpCluster(cluster.Spec.Image, mj, nj, infraDriver, imageEngine, cf, scaleUpFlags.IgnoreCache)
+			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
+			if err != nil {
+				return fmt.Errorf("failed to get sealer image extension: %s", err)
+			}
+
+			// merge image extension
+			mergedWithExt := utils.MergeClusterWithImageExtension(&cluster, imageSpec.ImageExtension)
+
+			cf.SetCluster(*mergedWithExt)
+
+			return scaleUpCluster(mj, nj, imageSpec, cf, imageEngine, scaleUpFlags.IgnoreCache)
 		},
 	}
 
@@ -116,14 +130,22 @@ func NewScaleUpCmd() *cobra.Command {
 	return scaleUpFlagsCmd
 }
 
-func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPList []net.IP,
-	infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface,
-	cf clusterfile.Interface, ignoreCache bool) error {
+func scaleUpCluster(scaleUpMasterIPList, scaleUpNodeIPList []net.IP, imageSpec *imagev1.ImageSpec,
+	cf clusterfile.Interface, imageEngine imageengine.Interface, ignoreCache bool) error {
 	logrus.Infof("start to scale up cluster")
 
 	var (
 		newHosts = append(scaleUpMasterIPList, scaleUpNodeIPList...)
 	)
+
+	cluster := cf.GetCluster()
+
+	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	if err != nil {
+		return err
+	}
+
+	clusterImageName := infraDriver.GetClusterImageName()
 
 	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(newHosts)
 	if err != nil {
@@ -170,11 +192,6 @@ func scaleUpCluster(clusterImageName string, scaleUpMasterIPList, scaleUpNodeIPL
 
 	if cf.GetKubeadmConfig() != nil {
 		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-	}
-
-	imageSpec, err := imageEngine.Inspect(&imagecommon.InspectOptions{ImageNameOrID: clusterImageName})
-	if err != nil {
-		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
 	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,

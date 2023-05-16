@@ -27,7 +27,6 @@ import (
 	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
-	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils/strings"
 
 	"github.com/pkg/errors"
@@ -102,7 +101,8 @@ func NewApplyCmd() *cobra.Command {
 			}
 
 			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
-				app := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
+				app := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD,
+					desiredCluster.Spec.APPNames, desiredCluster.Spec.Env)
 
 				return runApplicationImage(&RunApplicationImageRequest{
 					ImageName:   imageName,
@@ -138,7 +138,8 @@ func NewApplyCmd() *cobra.Command {
 			}
 
 			// install application
-			app := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames)
+			//TODO use flag env to construct application directly. at present ,sealer use cluster.env to construct application
+			app := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames, desiredCluster.Spec.Env)
 			return runApplicationImage(&RunApplicationImageRequest{
 				ImageName:               imageName,
 				Application:             app,
@@ -191,8 +192,11 @@ func applyClusterWithNew(cf clusterfile.Interface, applyMode string,
 		return fmt.Errorf("failed to merge cluster with apply args: %v", err)
 	}
 
+	// merge image extension
+	mergedWithExt := utils.MergeClusterWithImageExtension(cluster, imageSpec.ImageExtension)
+
 	// set merged cluster
-	cf.SetCluster(*cluster)
+	cf.SetCluster(*mergedWithExt)
 	return runClusterImage(imageEngine, cf, imageSpec, applyMode, applyFlags.IgnoreCache)
 }
 
@@ -218,12 +222,12 @@ func applyClusterWithExisted(cf clusterfile.Interface, client *k8s.Client,
 		return false, fmt.Errorf("make sure all masters' ip exist in your clusterfile: %s", applyFlags.ClusterFile)
 	}
 
-	infraDriver, err := infradriver.NewInfraDriver(&desiredCluster)
-	if err != nil {
-		return false, err
-	}
+	// merge image extension
+	mergedWithExt := utils.MergeClusterWithImageExtension(&desiredCluster, imageSpec.ImageExtension)
 
-	if err := scaleUpCluster(imageSpec.Name, mj, nj, infraDriver, imageEngine, cf, applyFlags.IgnoreCache); err != nil {
+	cf.SetCluster(*mergedWithExt)
+
+	if err := scaleUpCluster(mj, nj, imageSpec, cf, imageEngine, applyFlags.IgnoreCache); err != nil {
 		return false, err
 	}
 	return true, nil

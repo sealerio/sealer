@@ -18,12 +18,12 @@ import (
 	"net"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/pkg/clusterfile"
+	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -291,4 +291,96 @@ func Test_ConstructClusterForScaleUp(t *testing.T) {
 		assert.Equal(t, []net.IP{net.ParseIP("192.168.0.5")}, nj)
 		assert.Equal(t, t1.rawCluster.Spec.Hosts, t1.expectedCluster.Spec.Hosts)
 	})
+}
+
+func Test_MergeClusterWithImageExtension(t *testing.T) {
+	rawCluster := &v2.Cluster{
+		Spec: v2.ClusterSpec{
+			Image: "kubernetes:v1.19.8",
+			Env:   []string{"key=value", "key1=value1", "key2=value2"},
+			SSH: v1.SSH{
+				User:   "root",
+				Passwd: "test123",
+				Port:   "22",
+			},
+			Hosts: []v2.Host{
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.2")},
+					Roles: []string{"master"},
+					Env:   []string{"etcd-dir=/data/etcd"},
+					SSH: v1.SSH{
+						User:   "root",
+						Passwd: "test456",
+						Port:   "22",
+					},
+				},
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.3")},
+					Roles: []string{"node", "db"},
+				},
+			},
+		},
+	}
+	rawCluster.APIVersion = "sealer.io/v2"
+	rawCluster.Kind = "Cluster"
+	rawCluster.Name = "mycluster"
+
+	extension := imagev1.ImageExtension{
+		Env: map[string]string{"KeyDefault": "ValueDefault"},
+	}
+
+	expectedCluster := &v2.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "sealer.io/v2",
+			Kind:       "Cluster",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mycluster",
+		},
+		Spec: v2.ClusterSpec{
+			Image: "kubernetes:v1.19.8",
+			Env:   []string{"KeyDefault=ValueDefault", "key=value", "key1=value1", "key2=value2"},
+			SSH: v1.SSH{
+				User:   "root",
+				Passwd: "test123",
+				Port:   "22",
+			},
+			Hosts: []v2.Host{
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.2")},
+					Roles: []string{"master"},
+					Env:   []string{"etcd-dir=/data/etcd"},
+					SSH: v1.SSH{
+						User:   "root",
+						Passwd: "test456",
+						Port:   "22",
+					},
+				},
+				{
+					IPS:   []net.IP{net.ParseIP("192.168.0.3")},
+					Roles: []string{"node", "db"},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		rawCluster *v2.Cluster
+		imageExt   imagev1.ImageExtension
+	}{
+		{
+			name:       " test merge image extension with v2.cluster",
+			rawCluster: rawCluster,
+			imageExt:   extension,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mergedWithExt := MergeClusterWithImageExtension(tt.rawCluster, tt.imageExt)
+
+			assert.Equal(t, mergedWithExt, expectedCluster)
+		})
+	}
 }

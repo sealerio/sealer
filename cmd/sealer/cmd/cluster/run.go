@@ -112,7 +112,7 @@ func NewRunCmd() *cobra.Command {
 			}
 
 			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
-				app := utils.ConstructApplication(nil, runFlags.Cmds, runFlags.AppNames)
+				app := utils.ConstructApplication(nil, runFlags.Cmds, runFlags.AppNames, runFlags.CustomEnv)
 
 				return runApplicationImage(&RunApplicationImageRequest{
 					ImageName:   args[0],
@@ -221,7 +221,7 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 	}
 
 	if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
-		app := utils.ConstructApplication(cf.GetApplication(), cluster.Spec.CMD, cluster.Spec.APPNames)
+		app := utils.ConstructApplication(cf.GetApplication(), cluster.Spec.CMD, cluster.Spec.APPNames, runFlags.CustomEnv)
 
 		return runApplicationImage(&RunApplicationImageRequest{
 			ImageName:   imageName,
@@ -241,7 +241,11 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface,
 	imageSpec *imagev1.ImageSpec, mode string, ignoreCache bool) error {
 	cluster := cf.GetCluster()
-	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+
+	// merge image extension
+	mergedWithExt := utils.MergeClusterWithImageExtension(&cluster, imageSpec.ImageExtension)
+
+	infraDriver, err := infradriver.NewInfraDriver(mergedWithExt)
 	if err != nil {
 		return err
 	}
@@ -327,7 +331,7 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 
 	// TODO valid construct application
 	// merge to application between v2.ClusterSpec, v2.Application and image extension
-	v2App, err := application.NewV2Application(utils.ConstructApplication(cf.GetApplication(), cmds, appNames), imageSpec.ImageExtension)
+	v2App, err := application.NewV2Application(utils.ConstructApplication(cf.GetApplication(), cmds, appNames, cluster.Spec.Env), imageSpec.ImageExtension)
 	if err != nil {
 		return fmt.Errorf("failed to parse application from Clusterfile:%v ", err)
 	}
