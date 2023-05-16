@@ -346,7 +346,7 @@ github.com/distribution/distribution/v3/uuid
 # github.com/docker/cli v20.10.17+incompatible
 ## explicit
 github.com/docker/cli/cli/streams
-# github.com/docker/distribution v2.8.1+incompatible
+# github.com/docker/distribution v2.8.2+incompatible
 ## explicit
 github.com/docker/distribution
 github.com/docker/distribution/digestset
