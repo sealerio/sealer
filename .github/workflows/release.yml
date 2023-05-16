@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "${{steps.drafter.outputs.body}}" >> release_note.md
       - name: write oss address to release draft
-        id: note
+        id: oss
         run: |
           echo "
           ## Usage" >> release_note.md
