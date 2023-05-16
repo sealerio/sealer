@@ -144,7 +144,7 @@ func (k *Runtime) Command(name CommandType, nodeNameOverride string) (string, er
 		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=all"), nil
 	}
 	if name == InitMaster || name == JoinMaster {
-		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=SystemVerification,Port-10250,DirAvailable--etc-kubernetes-manifests"), nil
+		return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=SystemVerification,Port-10250,DirAvailable--etc-kubernetes-manifests,DirAvailable--var-lib-etcd"), nil
 	}
 
 	return fmt.Sprintf("%s%s%s", v, vlogToStr(k.Config.Vlog), " --ignore-preflight-errors=Port-10250,DirAvailable--etc-kubernetes-manifests"), nil
