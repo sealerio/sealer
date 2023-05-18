@@ -24,6 +24,7 @@ import (
 
 	versionUtils "github.com/sealerio/sealer/utils/version"
 	"github.com/sirupsen/logrus"
+	k8sVersionUtil "k8s.io/apimachinery/pkg/util/version"
 
 	"github.com/sealerio/sealer/utils"
 	strUtils "github.com/sealerio/sealer/utils/strings"
@@ -170,6 +171,68 @@ func getEtcdEndpointsWithHTTPSPrefix(masters []net.IP) string {
 	return strings.Join(tmpSlice, ",")
 }
 
+func featureGatesToMap(featureGateStr string) map[string]string {
+	tmpFeatureGates := strings.Split(featureGateStr, ",")
+	featureGates := map[string]string{}
+	for _, featureGate := range tmpFeatureGates {
+		split := strings.Split(featureGate, "=")
+		if len(split) == 2 {
+			featureGates[split[0]] = split[1]
+		}
+	}
+	return featureGates
+}
+
+func featureGatesUpdate(kubernetesVersion *k8sVersionUtil.Version, featureGateStr string) string {
+	if featureGateStr != "" {
+		featureGates := featureGatesToMap(featureGateStr)
+		for gate := range featureGates {
+			if rangeData, ok := RemovedFeatureGates[gate]; ok {
+				min, max := rangeData[0], rangeData[1]
+				if kubernetesVersion.LessThan(k8sVersionUtil.MustParseGeneric(min)) {
+					delete(featureGates, gate)
+					logrus.Info(fmt.Sprintf("kubernetes version <= %s remove not supported feature-gates [%s]", min, gate))
+				}
+				if kubernetesVersion.AtLeast(k8sVersionUtil.MustParseGeneric(max)) {
+					delete(featureGates, gate)
+					logrus.Info(fmt.Sprintf("kubernetes version >= %s remove deprecated feature-gates [%s]", max, gate))
+				}
+			}
+		}
+		var newFeatureGates []string
+		for key, value := range featureGates {
+			newFeatureGates = append(newFeatureGates, fmt.Sprintf("%s=%v", key, value))
+		}
+		return strings.Join(newFeatureGates, ",")
+	}
+	return featureGateStr
+}
+
+// ConfigurationOptimization Optimize the parameters according to the kubernetes version
+func (k *KubeadmConfig) ConfigurationOptimization() {
+	kubernetesVersion := k8sVersionUtil.MustParseSemantic(k.ClusterConfiguration.KubernetesVersion)
+	if k.ClusterConfiguration.APIServer.ExtraArgs != nil {
+		k.ClusterConfiguration.APIServer.ExtraArgs["feature-gates"] = featureGatesUpdate(kubernetesVersion, k.ClusterConfiguration.APIServer.ExtraArgs["feature-gates"])
+	}
+	if k.ClusterConfiguration.Scheduler.ExtraArgs != nil {
+		k.ClusterConfiguration.Scheduler.ExtraArgs["feature-gates"] = featureGatesUpdate(kubernetesVersion, k.ClusterConfiguration.Scheduler.ExtraArgs["feature-gates"])
+	}
+	if k.ClusterConfiguration.ControllerManager.ExtraArgs != nil {
+		k.ClusterConfiguration.ControllerManager.ExtraArgs["feature-gates"] = featureGatesUpdate(kubernetesVersion, k.ClusterConfiguration.ControllerManager.ExtraArgs["feature-gates"])
+		if _, ok := k.ClusterConfiguration.ControllerManager.ExtraArgs["experimental-cluster-signing-duration"]; ok {
+			if kubernetesVersion.AtLeast(k8sVersionUtil.MustParseSemantic("v1.19.0")) {
+				delete(k.ClusterConfiguration.ControllerManager.ExtraArgs, "experimental-cluster-signing-duration")
+				if k.ClusterConfiguration.ControllerManager.ExtraArgs["experimental-cluster-signing-duration"] == "" {
+					k.ClusterConfiguration.ControllerManager.ExtraArgs["cluster-signing-duration"] = "876000h"
+				} else {
+					k.ClusterConfiguration.ControllerManager.ExtraArgs["cluster-signing-duration"] = k.ClusterConfiguration.ControllerManager.ExtraArgs["experimental-cluster-signing-duration"]
+				}
+				logrus.Info("kubernetes version >= 1.19.0 replace [experimental-cluster-signing-duration] to [cluster-signing-duration]")
+			}
+		}
+	}
+}
+
 func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string, masters []net.IP, apiServerDomain,
 	cgroupDriver string, imageRepo string, apiServerVIP net.IP, extraSANs []string) (KubeadmConfig, error) {
 	conf := KubeadmConfig{}
@@ -219,6 +282,8 @@ func NewKubeadmConfig(fromClusterFile KubeadmConfig, fromFile string, masters []
 	if conf.ClusterConfiguration.DNS.ImageMeta.ImageRepository == "" {
 		conf.ClusterConfiguration.DNS.ImageMeta.ImageRepository = fmt.Sprintf("%s/%s", imageRepo, "coredns")
 	}
+
+	conf.ConfigurationOptimization()
 
 	return conf, nil
 }

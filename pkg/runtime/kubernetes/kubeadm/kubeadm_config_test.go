@@ -153,12 +153,18 @@ volumeStatsAggPeriod: 1m0s
 ---
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
+kubernetesVersion: v1.26.2
 networking:
   podSubnet: 100.64.0.0/10
   serviceSubnet: 10.96.0.0/22
 apiServer:
+  extraArgs:
+    feature-gates: TTLAfterFinished=true,EphemeralContainers=true
   certSANs:
     - default.raw.config
+controllerManager:
+  extraArgs:
+    experimental-cluster-signing-duration: 876000h
 ---
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: InitConfiguration
@@ -214,6 +220,7 @@ func TestKubeadmConfig_LoadFromClusterfile(t *testing.T) {
 				t.Errorf("LoadFromClusterfile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			logrus.Infof("k.InitConfiguration.Kind: %v", k.InitConfiguration.Kind)
+			k.ConfigurationOptimization()
 			out, err := yaml.MarshalWithDelimiter(k.InitConfiguration, k.ClusterConfiguration,
 				k.JoinConfiguration, k.KubeletConfiguration, k.KubeProxyConfiguration)
 			if (err != nil) != tt.wantErr {
