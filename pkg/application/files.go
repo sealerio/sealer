@@ -54,8 +54,8 @@ func (r overWriteProcessor) Process(appRoot string) error {
 }
 
 // mergeProcessor :this will merge the FilePath with the Values.
-//Only files in yaml format are supported.
-//if Strategy is "merge" will deeply merge each yaml file section.
+// Only files in yaml format are supported.
+// if Strategy is "merge" will deeply merge each yaml file section.
 type mergeProcessor struct {
 	v2.AppFile
 }
@@ -105,7 +105,7 @@ func (m mergeProcessor) Process(appRoot string) error {
 	return nil
 }
 
-//envRender :this will render the FilePath with the Values.
+// envRender :this will render the FilePath with the Values.
 type envRender struct {
 	envData map[string]string
 }

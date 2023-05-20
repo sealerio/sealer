@@ -178,7 +178,7 @@ controlPlane:
     bindPort: 6443`
 )
 
-// RemovedFeatureGates
+// RemovedFeatureGates kubernetes removed feature gates
 // key: featureGate
 // value[0]: min/supported version
 // value[1]: max/removed version
