@@ -15,6 +15,7 @@
 FROM multiarch/ubuntu-core:arm64-focal
 COPY entrypoint /usr/bin/
 RUN chmod +x /usr/bin/entrypoint
+COPY 10-network-security.conf /etc/sysctl.d/
 ARG PASSWORD="Seadent123"
 
 RUN echo "Installing Packages ..." \
@@ -44,6 +45,11 @@ RUN echo "Installing Packages ..." \
     && rm -f /lib/systemd/system/basic.target.wants/* \
     && echo "ReadKMsg=no" >> /etc/systemd/journald.conf \
     && ln -s "$(which systemd)" /sbin/init
+
+RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ devel main" > /etc/apt/sources.list.d/temp.list \
+    && apt-get update \
+    && apt-get install -y libc6 \
+    && rm /etc/apt/sources.list.d/temp.list
 
 RUN echo "Config ssh ..." \
     && echo "PermitRootLogin yes" >> /etc/ssh/sshd_config \
