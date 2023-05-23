@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
@@ -28,27 +29,25 @@ import (
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/utils/strings"
-
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var applyFlags *types.ApplyFlags
-
-var longApplyCmdDescription = `apply command is used to apply a Kubernetes cluster via specified Clusterfile.
-If the Clusterfile is applied first time, Kubernetes cluster will be created. Otherwise, sealer
-will apply the diff change of current Clusterfile and the original one.`
-
-var exampleForApplyCmd = `
+var (
+	exampleForApplyCmd = `
   sealer apply -f Clusterfile
 `
+	longDescriptionForApplyCmd = `apply command is used to apply a Kubernetes cluster via specified Clusterfile.
+If the Clusterfile is applied first time, Kubernetes cluster will be created. Otherwise, sealer
+will apply the diff change of current Clusterfile and the original one.`
+)
 
 func NewApplyCmd() *cobra.Command {
+	applyFlags := &types.ApplyFlags{}
 	applyCmd := &cobra.Command{
 		Use:     "apply",
 		Short:   "apply a Kubernetes cluster via specified Clusterfile",
-		Long:    longApplyCmdDescription,
+		Long:    longDescriptionForApplyCmd,
 		Example: exampleForApplyCmd,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -100,22 +99,6 @@ func NewApplyCmd() *cobra.Command {
 				return fmt.Errorf("failed to get sealer image extension: %s", err)
 			}
 
-			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
-				app := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD,
-					desiredCluster.Spec.APPNames, desiredCluster.Spec.Env)
-
-				return runApplicationImage(&RunApplicationImageRequest{
-					ImageName:   imageName,
-					Application: app,
-					Envs:        desiredCluster.Spec.Env,
-					ImageEngine: imageEngine,
-					Extension:   imageSpec.ImageExtension,
-					Configs:     cf.GetConfigs(),
-					RunMode:     applyMode,
-					IgnoreCache: applyFlags.IgnoreCache,
-				})
-			}
-
 			// NOTE: in some scenarios, we do not need to prepare the app file repeatedly,
 			// such as the cluster and the apps in the same image
 			var skipPrepareAppMaterials bool
@@ -125,10 +108,10 @@ func NewApplyCmd() *cobra.Command {
 				if client == nil {
 					// the application will also been installed for a new cluster
 					// TODO: decouple the cluster installation and application installation
-					return applyClusterWithNew(cf, applyMode, imageEngine, imageSpec)
+					return applyClusterWithNew(cf, applyMode, imageEngine, imageSpec, applyFlags)
 				}
 
-				clusterUpdated, err := applyClusterWithExisted(cf, client, imageEngine, imageSpec)
+				clusterUpdated, err := applyClusterWithExisted(cf, client, imageEngine, imageSpec, applyFlags)
 				if err != nil {
 					return err
 				}
@@ -139,14 +122,15 @@ func NewApplyCmd() *cobra.Command {
 
 			// install application
 			//TODO use flag env to construct application directly. at present ,sealer use cluster.env to construct application
-			app := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD, desiredCluster.Spec.APPNames, desiredCluster.Spec.Env)
-			return runApplicationImage(&RunApplicationImageRequest{
-				ImageName:               imageName,
-				Application:             app,
+			appSpec := utils.ConstructApplication(cf.GetApplication(), desiredCluster.Spec.CMD,
+				desiredCluster.Spec.APPNames, desiredCluster.Spec.Env)
+			appInstaller, err := NewApplicationInstaller(appSpec, imageSpec.ImageExtension, imageEngine)
+			if err != nil {
+				return err
+			}
+
+			return appInstaller.Install(imageName, AppInstallOptions{
 				Envs:                    desiredCluster.Spec.Env,
-				ImageEngine:             imageEngine,
-				Extension:               imageSpec.ImageExtension,
-				Configs:                 cf.GetConfigs(),
 				RunMode:                 applyMode,
 				SkipPrepareAppMaterials: skipPrepareAppMaterials,
 				IgnoreCache:             applyFlags.IgnoreCache,
@@ -154,7 +138,6 @@ func NewApplyCmd() *cobra.Command {
 		},
 	}
 
-	applyFlags = &types.ApplyFlags{}
 	applyCmd.Flags().BoolVar(&applyFlags.ForceDelete, "force", false, "force to delete the specified cluster if set true")
 	applyCmd.Flags().StringVarP(&applyFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to apply a Kubernetes cluster")
 	applyCmd.Flags().StringVarP(&applyFlags.Mode, "applyMode", "m", common.ApplyModeApply, "load images to the specified registry in advance")
@@ -173,7 +156,7 @@ func NewApplyCmd() *cobra.Command {
 }
 
 func applyClusterWithNew(cf clusterfile.Interface, applyMode string,
-	imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
+	imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec, applyFlags *types.ApplyFlags) error {
 	desiredCluster := cf.GetCluster()
 	// no k8s client means to init a new cluster.
 	// merge flags
@@ -197,11 +180,19 @@ func applyClusterWithNew(cf clusterfile.Interface, applyMode string,
 
 	// set merged cluster
 	cf.SetCluster(*mergedWithExt)
-	return runClusterImage(imageEngine, cf, imageSpec, applyMode, applyFlags.IgnoreCache)
+	kubeInstaller, err := NewKubeInstaller(cf, imageEngine, imageSpec)
+	if err != nil {
+		return err
+	}
+
+	return kubeInstaller.Install(mergedWithExt.Spec.Image, KubeInstallOptions{
+		RunMode:     applyMode,
+		IgnoreCache: applyFlags.IgnoreCache,
+	})
 }
 
 func applyClusterWithExisted(cf clusterfile.Interface, client *k8s.Client,
-	imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) (bool, error) {
+	imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec, applyFlags *types.ApplyFlags) (bool, error) {
 	desiredCluster := cf.GetCluster()
 	currentCluster, err := utils.GetCurrentCluster(client)
 	if err != nil {
@@ -211,24 +202,31 @@ func applyClusterWithExisted(cf clusterfile.Interface, client *k8s.Client,
 	mj, md := strings.Diff(currentCluster.GetMasterIPList(), desiredCluster.GetMasterIPList())
 	nj, nd := strings.Diff(currentCluster.GetNodeIPList(), desiredCluster.GetNodeIPList())
 	if len(mj) == 0 && len(md) == 0 && len(nj) == 0 && len(nd) == 0 {
-		logrus.Infof("No need scale, completed")
+		logrus.Infof("no need to do scale, completed")
 		return false, nil
 	}
 
 	if len(md) > 0 || len(nd) > 0 {
-		logrus.Warnf("scale down not supported: %v, %v, skip them", md, nd)
-	}
-	if len(md) > 0 {
-		return false, fmt.Errorf("make sure all masters' ip exist in your clusterfile: %s", applyFlags.ClusterFile)
+		logrus.Warnf("scale down is not supported. master: %v, node: %v, skip them", md, nd)
+		return false, nil
 	}
 
+	logrus.Infof("apply detection result: will scale up cluster with master: %v, node :%v", mj, nj)
 	// merge image extension
 	mergedWithExt := utils.MergeClusterWithImageExtension(&desiredCluster, imageSpec.ImageExtension)
 
 	cf.SetCluster(*mergedWithExt)
 
-	if err := scaleUpCluster(mj, nj, imageSpec, cf, imageEngine, applyFlags.IgnoreCache); err != nil {
+	kubeInstaller, err := NewKubeInstaller(cf, imageEngine, imageSpec)
+	if err != nil {
 		return false, err
 	}
+
+	if err = kubeInstaller.ScaleUp(mj, nj, KubeScaleUpOptions{
+		IgnoreCache: applyFlags.IgnoreCache,
+	}); err != nil {
+		return false, err
+	}
+
 	return true, nil
 }

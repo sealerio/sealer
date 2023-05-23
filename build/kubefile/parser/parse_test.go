@@ -31,7 +31,7 @@ import (
 )
 
 const (
-//nginxDemoURL = "https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/deployment.yaml"
+// nginxDemoURL = "https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/deployment.yaml"
 )
 
 var testParser *KubefileParser

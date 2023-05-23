@@ -29,26 +29,25 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 )
 
-var upgradeFlags *types.UpgradeFlags
-
-var longUpgradeCmdDescription = `upgrade command is used to upgrade a Kubernetes cluster via specified Clusterfile.`
-
-var exampleForUpgradeCmd = `
+var (
+	exampleForUpgradeCmd = `
   sealer upgrade docker.io/sealerio/kubernetes:v1.22.15-upgrade
   sealer upgrade -f Clusterfile
 `
+	longDescriptionForUpgradeCmd = `upgrade command is used to upgrade a Kubernetes cluster via specified Clusterfile.`
+)
 
 func NewUpgradeCmd() *cobra.Command {
+	upgradeFlags := &types.UpgradeFlags{}
 	upgradeCmd := &cobra.Command{
 		Use:     "upgrade",
 		Short:   "upgrade a Kubernetes cluster via specified Clusterfile",
-		Long:    longUpgradeCmdDescription,
+		Long:    longDescriptionForUpgradeCmd,
 		Example: exampleForUpgradeCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
@@ -60,7 +59,7 @@ func NewUpgradeCmd() *cobra.Command {
 			}
 
 			if clusterFile != "" {
-				return upgradeWithClusterfile(clusterFile)
+				return upgradeWithClusterfile(clusterFile, upgradeFlags)
 			}
 
 			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
@@ -104,11 +103,10 @@ func NewUpgradeCmd() *cobra.Command {
 				return err
 			}
 
-			return upgradeCluster(newClusterfile, imageEngine, imageSpec)
+			return upgradeCluster(newClusterfile, imageEngine, imageSpec, upgradeFlags)
 		},
 	}
 
-	upgradeFlags = &types.UpgradeFlags{}
 	upgradeCmd.Flags().StringVarP(&upgradeFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to upgrade a Kubernetes cluster")
 	upgradeCmd.Flags().StringSliceVar(&upgradeFlags.AppNames, "apps", nil, "override default AppNames of sealer image")
 	upgradeCmd.Flags().BoolVar(&upgradeFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
@@ -116,7 +114,7 @@ func NewUpgradeCmd() *cobra.Command {
 	return upgradeCmd
 }
 
-func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
+func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec, upgradeFlags *types.UpgradeFlags) error {
 	if imageSpec.ImageExtension.Type != imagev1.KubeInstaller {
 		return fmt.Errorf("exit upgrade process, wrong sealer image type: %s", imageSpec.ImageExtension.Type)
 	}
@@ -220,7 +218,7 @@ func upgradeCluster(cf clusterfile.Interface, imageEngine imageengine.Interface,
 	return nil
 }
 
-func upgradeWithClusterfile(clusterFile string) error {
+func upgradeWithClusterfile(clusterFile string, upgradeFlags *types.UpgradeFlags) error {
 	clusterFileData, err := os.ReadFile(filepath.Clean(clusterFile))
 	if err != nil {
 		return err
@@ -253,5 +251,5 @@ func upgradeWithClusterfile(clusterFile string) error {
 		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
-	return upgradeCluster(cf, imageEngine, imageSpec)
+	return upgradeCluster(cf, imageEngine, imageSpec, upgradeFlags)
 }

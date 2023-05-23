@@ -16,38 +16,22 @@ package cluster
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
-
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
-	"github.com/sealerio/sealer/pkg/application"
-	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	containerruntime "github.com/sealerio/sealer/pkg/container-runtime"
 	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
-	"github.com/sealerio/sealer/pkg/infradriver"
-	"github.com/sealerio/sealer/pkg/registry"
-	v1 "github.com/sealerio/sealer/types/api/v1"
-	v2 "github.com/sealerio/sealer/types/api/v2"
-	"github.com/sealerio/sealer/utils/platform"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
-var runFlags *types.RunFlags
-
-var longNewRunCmdDescription = `sealer run docker.io/sealerio/kubernetes:v1.22.15 --masters [arg] --nodes [arg]`
-
-var exampleForRunCmd = `
+var (
+	exampleForRunCmd = `
 run cluster by Clusterfile: 
   sealer run -f Clusterfile
 run cluster by CLI flags:
@@ -56,11 +40,15 @@ run app image:
   sealer run localhost/nginx:v1
 `
 
+	longDescriptionForRunCmd = `sealer run docker.io/sealerio/kubernetes:v1.22.15 --masters [arg] --nodes [arg]`
+)
+
 func NewRunCmd() *cobra.Command {
+	runFlags := &types.RunFlags{}
 	runCmd := &cobra.Command{
 		Use:     "run",
 		Short:   "start to run a cluster from a sealer image",
-		Long:    longNewRunCmdDescription,
+		Long:    longDescriptionForRunCmd,
 		Example: exampleForRunCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO: remove this now, maybe we can support it later
@@ -91,60 +79,10 @@ func NewRunCmd() *cobra.Command {
 				return runWithClusterfile(clusterFile, runFlags)
 			}
 
-			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-			if err != nil {
-				return err
-			}
-
-			id, err := imageEngine.Pull(&options.PullOptions{
-				Quiet:      false,
-				PullPolicy: "missing",
-				Image:      args[0],
-				Platform:   "local",
-			})
-			if err != nil {
-				return err
-			}
-
-			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
-			if err != nil {
-				return fmt.Errorf("failed to get sealer image extension: %s", err)
-			}
-
-			if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
-				app := utils.ConstructApplication(nil, runFlags.Cmds, runFlags.AppNames, runFlags.CustomEnv)
-
-				return runApplicationImage(&RunApplicationImageRequest{
-					ImageName:   args[0],
-					Application: app,
-					Envs:        runFlags.CustomEnv,
-					ImageEngine: imageEngine,
-					Extension:   imageSpec.ImageExtension,
-					Configs:     nil,
-					RunMode:     runFlags.Mode,
-					IgnoreCache: runFlags.IgnoreCache,
-				})
-			}
-
-			clusterFromFlag, err := utils.ConstructClusterForRun(args[0], runFlags)
-			if err != nil {
-				return err
-			}
-
-			clusterData, err := yaml.Marshal(clusterFromFlag)
-			if err != nil {
-				return err
-			}
-
-			cf, err := clusterfile.NewClusterFile(clusterData)
-			if err != nil {
-				return err
-			}
-
-			return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode, runFlags.IgnoreCache)
+			return runWithArgs(args[0], runFlags)
 		},
 	}
-	runFlags = &types.RunFlags{}
+
 	//todo remove provider Flag now, maybe we can support it later
 	//runCmd.Flags().StringVarP(&runFlags.Provider, "provider", "", "", "set infra provider, example `ALI_CLOUD`, the local server need ignore this")
 	runCmd.Flags().StringVarP(&runFlags.Masters, "masters", "m", "", "set count or IPList to masters")
@@ -199,6 +137,7 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 	}
 
 	cf.SetCluster(*cluster)
+
 	imageName := cluster.Spec.Image
 	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
@@ -221,315 +160,89 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 	}
 
 	if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
-		app := utils.ConstructApplication(cf.GetApplication(), cluster.Spec.CMD, cluster.Spec.APPNames, runFlags.CustomEnv)
+		appSpec := utils.ConstructApplication(cf.GetApplication(), cluster.Spec.CMD, cluster.Spec.APPNames, runFlags.CustomEnv)
 
-		return runApplicationImage(&RunApplicationImageRequest{
-			ImageName:   imageName,
-			Application: app,
+		appInstaller, err := NewApplicationInstaller(appSpec, imageSpec.ImageExtension, imageEngine)
+		if err != nil {
+			return err
+		}
+
+		return appInstaller.Install(imageName, AppInstallOptions{
 			Envs:        runFlags.CustomEnv,
-			ImageEngine: imageEngine,
-			Extension:   imageSpec.ImageExtension,
-			Configs:     cf.GetConfigs(),
 			RunMode:     runFlags.Mode,
 			IgnoreCache: runFlags.IgnoreCache,
 		})
 	}
 
-	return runClusterImage(imageEngine, cf, imageSpec, runFlags.Mode, runFlags.IgnoreCache)
+	kubeInstaller, err := NewKubeInstaller(cf, imageEngine, imageSpec)
+	if err != nil {
+		return err
+	}
+
+	return kubeInstaller.Install(imageName, KubeInstallOptions{
+		RunMode:     runFlags.Mode,
+		IgnoreCache: runFlags.IgnoreCache,
+	})
 }
 
-func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface,
-	imageSpec *imagev1.ImageSpec, mode string, ignoreCache bool) error {
-	cluster := cf.GetCluster()
-
-	// merge image extension with cluster
-	mergedWithExt := utils.MergeClusterWithImageExtension(&cluster, imageSpec.ImageExtension)
-
-	infraDriver, err := infradriver.NewInfraDriver(mergedWithExt)
+func runWithArgs(imageName string, runFlags *types.RunFlags) error {
+	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return err
 	}
 
-	clusterHosts := infraDriver.GetHostIPList()
-	clusterImageName := infraDriver.GetClusterImageName()
-
-	logrus.Infof("start to create new cluster with image: %s", clusterImageName)
-
-	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
-	if err != nil {
-		return err
-	}
-
-	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-	if err != nil {
-		return err
-	}
-
-	imageMountInfo, err := imageMounter.Mount(clusterImageName)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		err = imageMounter.Umount(clusterImageName, imageMountInfo)
-		if err != nil {
-			logrus.Errorf("failed to umount sealer image")
-		}
-	}()
-
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs(), imagedistributor.DistributeOption{
-		IgnoreCache: ignoreCache,
+	id, err := imageEngine.Pull(&options.PullOptions{
+		Quiet:      false,
+		PullPolicy: "missing",
+		Image:      imageName,
+		Platform:   "local",
 	})
 	if err != nil {
 		return err
 	}
 
-	if mode == common.ApplyModeLoadImage {
-		return clusterruntime.LoadToRegistry(infraDriver, distributor)
-	}
-
-	plugins, err := loadPluginsFromImage(imageMountInfo)
+	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
-	if cf.GetPlugins() != nil {
-		plugins = append(plugins, cf.GetPlugins()...)
-	}
+	if imageSpec.ImageExtension.Type == imagev1.AppInstaller {
+		appSpec := utils.ConstructApplication(nil, runFlags.Cmds, runFlags.AppNames, runFlags.CustomEnv)
 
-	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor:            distributor,
-		Plugins:                plugins,
-		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
-	}
-
-	if cf.GetKubeadmConfig() != nil {
-		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-	}
-
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig, clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, cluster.Spec.ContainerRuntime))
-	if err != nil {
-		return err
-	}
-
-	//we need to save desired clusterfile to local disk temporarily
-	//and will use it later to clean the cluster node if apply failed.
-	if err = cf.SaveAll(clusterfile.SaveOptions{}); err != nil {
-		return err
-	}
-
-	// install cluster
-	err = installer.Install()
-	if err != nil {
-		return err
-	}
-
-	cmds := infraDriver.GetClusterLaunchCmds()
-	appNames := infraDriver.GetClusterLaunchApps()
-
-	// TODO valid construct application
-	// merge to application between v2.ClusterSpec, v2.Application and image extension
-	v2App, err := application.NewV2Application(utils.ConstructApplication(cf.GetApplication(), cmds, appNames, cluster.Spec.Env), imageSpec.ImageExtension)
-	if err != nil {
-		return fmt.Errorf("failed to parse application from Clusterfile:%v ", err)
-	}
-
-	// install application
-	if err = v2App.Launch(infraDriver); err != nil {
-		return err
-	}
-	if err = v2App.Save(application.SaveOptions{}); err != nil {
-		return err
-	}
-
-	//save and commit
-	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
-	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
-		return err
-	}
-
-	logrus.Infof("succeeded in creating new cluster with image %s", clusterImageName)
-
-	return nil
-}
-
-func loadPluginsFromImage(imageMountInfo []imagedistributor.ClusterImageMountInfo) (plugins []v1.Plugin, err error) {
-	for _, info := range imageMountInfo {
-		defaultPlatform := platform.GetDefaultPlatform()
-		if info.Platform.ToString() == defaultPlatform.ToString() {
-			plugins, err = clusterruntime.LoadPluginsFromFile(filepath.Join(info.MountDir, "plugins"))
-			if err != nil {
-				return
-			}
-		}
-	}
-
-	return plugins, nil
-}
-
-// loadToRegistry just load container image to local registry
-func loadToRegistry(infraDriver infradriver.InfraDriver, distributor imagedistributor.Distributor) error {
-	regConfig := infraDriver.GetClusterRegistry()
-	// todo only support load image to local registry at present
-	if regConfig.LocalRegistry == nil {
-		return nil
-	}
-
-	deployHosts := infraDriver.GetHostIPListByRole(common.MASTER)
-	if len(deployHosts) < 1 {
-		return fmt.Errorf("local registry host can not be nil")
-	}
-	master0 := deployHosts[0]
-
-	logrus.Infof("start to apply with mode(%s)", common.ApplyModeLoadImage)
-	if !*regConfig.LocalRegistry.HA {
-		deployHosts = []net.IP{master0}
-	}
-
-	if err := distributor.DistributeRegistry(deployHosts, filepath.Join(infraDriver.GetClusterRootfsPath(), "registry")); err != nil {
-		return err
-	}
-
-	logrus.Infof("load image success")
-	return nil
-}
-
-type RunApplicationImageRequest struct {
-	ImageName               string
-	Application             *v2.Application
-	Envs                    []string
-	ImageEngine             imageengine.Interface
-	Extension               imagev1.ImageExtension
-	Configs                 []v1.Config
-	RunMode                 string
-	SkipPrepareAppMaterials bool
-	IgnoreCache             bool
-}
-
-func runApplicationImage(request *RunApplicationImageRequest) error {
-	logrus.Infof("start to install application: %s", request.ImageName)
-
-	v2App, err := application.NewV2Application(request.Application, request.Extension)
-	if err != nil {
-		return fmt.Errorf("failed to parse application:%v ", err)
-	}
-
-	cf, _, err := clusterfile.GetActualClusterFile()
-	if err != nil {
-		return err
-	}
-
-	cluster := cf.GetCluster()
-	infraDriver, err := infradriver.NewInfraDriver(&cluster)
-	if err != nil {
-		return err
-	}
-	infraDriver.AddClusterEnv(request.Envs)
-
-	if !request.SkipPrepareAppMaterials {
-		if err := prepareMaterials(infraDriver, request.ImageEngine, v2App,
-			request.ImageName, request.RunMode, request.Configs, request.IgnoreCache); err != nil {
+		appInstaller, err := NewApplicationInstaller(appSpec, imageSpec.ImageExtension, imageEngine)
+		if err != nil {
 			return err
 		}
-	}
-	if request.RunMode == common.ApplyModeLoadImage {
-		return nil
-	}
 
-	// install application
-	if err = v2App.Launch(infraDriver); err != nil {
-		return err
-	}
-	if err = v2App.Save(application.SaveOptions{}); err != nil {
-		return err
+		return appInstaller.Install(imageName, AppInstallOptions{
+			Envs:        runFlags.CustomEnv,
+			RunMode:     runFlags.Mode,
+			IgnoreCache: runFlags.IgnoreCache,
+		})
 	}
 
-	//save and commit
-	cf.SetApplication(v2App.GetApplication())
-	confPath := clusterruntime.GetClusterConfPath(request.Extension.Labels)
-	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
-		return err
-	}
-
-	logrus.Infof("succeeded in installing new app with image %s", request.ImageName)
-
-	return nil
-}
-
-func prepareMaterials(infraDriver infradriver.InfraDriver, imageEngine imageengine.Interface,
-	v2App application.Interface, appImageName, mode string, configs []v1.Config, ignoreCache bool) error {
-	clusterHosts := infraDriver.GetHostIPList()
-	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(clusterHosts)
+	cluster, err := utils.ConstructClusterForRun(imageName, runFlags)
 	if err != nil {
 		return err
 	}
 
-	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
+	clusterData, err := yaml.Marshal(cluster)
 	if err != nil {
 		return err
 	}
 
-	imageMountInfo, err := imageMounter.Mount(appImageName)
+	cf, err := clusterfile.NewClusterFile(clusterData)
 	if err != nil {
 		return err
 	}
 
-	defer func() {
-		err = imageMounter.Umount(appImageName, imageMountInfo)
-		if err != nil {
-			logrus.Errorf("failed to umount sealer image: %v", err)
-		}
-	}()
-
-	for _, info := range imageMountInfo {
-		err = v2App.FileProcess(info.MountDir)
-		if err != nil {
-			return errors.Wrapf(err, "failed to execute file processor")
-		}
+	kubeInstaller, err := NewKubeInstaller(cf, imageEngine, imageSpec)
+	if err != nil {
+		return err
 	}
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, configs, imagedistributor.DistributeOption{
-		IgnoreCache: ignoreCache,
+	return kubeInstaller.Install(imageName, KubeInstallOptions{
+		RunMode:     runFlags.Mode,
+		IgnoreCache: runFlags.IgnoreCache,
 	})
-	if err != nil {
-		return err
-	}
-
-	if mode == common.ApplyModeLoadImage {
-		return loadToRegistry(infraDriver, distributor)
-	}
-
-	masters := infraDriver.GetHostIPListByRole(common.MASTER)
-	regConfig := infraDriver.GetClusterRegistry()
-	// distribute rootfs
-	if err := distributor.Distribute(masters, infraDriver.GetClusterRootfsPath()); err != nil {
-		return err
-	}
-
-	//if we use local registry service, load container image to registry
-	if regConfig.LocalRegistry == nil {
-		return nil
-	}
-	deployHosts := masters
-	if !*regConfig.LocalRegistry.HA {
-		deployHosts = []net.IP{masters[0]}
-	}
-
-	registryConfigurator, err := registry.NewConfigurator(deployHosts,
-		containerruntime.Info{},
-		regConfig, infraDriver, distributor)
-	if err != nil {
-		return err
-	}
-
-	registryDriver, err := registryConfigurator.GetDriver()
-	if err != nil {
-		return err
-	}
-
-	err = registryDriver.UploadContainerImages2Registry()
-	if err != nil {
-		return err
-	}
-	return nil
 }

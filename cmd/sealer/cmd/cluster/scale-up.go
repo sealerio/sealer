@@ -16,108 +16,77 @@ package cluster
 
 import (
 	"fmt"
-	"net"
 	"path/filepath"
 
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
-	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
-	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var scaleUpFlags *types.ScaleUpFlags
-
-var longScaleUpCmdDescription = `scale-up command is used to scale-up master or node to the existing cluster.
-User can scale-up cluster by explicitly specifying host IP`
-
-var exampleForScaleUpCmd = `
+var (
+	exampleForScaleUpCmd = `
 scale-up cluster:
   sealer scale-up --masters 192.168.0.1 --nodes 192.168.0.2 -p 'Sealer123'
   sealer scale-up --masters 192.168.0.1-192.168.0.3 --nodes 192.168.0.4-192.168.0.6 -p 'Sealer123'
 `
+	longDescriptionForScaleUpCmd = `scale-up command is used to scale-up master or node to the existing cluster.
+User can scale-up cluster by explicitly specifying host IP`
 
-func NewScaleUpCmd() *cobra.Command {
-	scaleUpFlagsCmd := &cobra.Command{
-		Use:     "scale-up",
-		Short:   "scale-up new master or worker node to specified cluster",
-		Long:    longScaleUpCmdDescription,
+	exampleForJoinCmd = `
+join cluster:
+  sealer join --masters 192.168.0.1 --nodes 192.168.0.2 -p 'Sealer123'
+  sealer join --masters 192.168.0.1-192.168.0.3 --nodes 192.168.0.4-192.168.0.6 -p 'Sealer123'
+`
+	longDescriptionForJoinCmd = `join command is used to join master or node to the existing cluster.
+User can join cluster by explicitly specifying host IP`
+)
+
+func NewJoinCmd() *cobra.Command {
+	joinFlags := &types.ScaleUpFlags{}
+	joinCmd := &cobra.Command{
+		Use:     "join",
+		Short:   "join new master or worker node to specified cluster",
+		Long:    longDescriptionForJoinCmd,
 		Args:    cobra.NoArgs,
-		Example: exampleForScaleUpCmd,
+		Example: exampleForJoinCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var (
-				cf  clusterfile.Interface
-				err error
-			)
+			logrus.Warn("sealer join command will be deprecated in the future, please use sealer scale-up instead.")
 
-			if err = utils.ValidateScaleIPStr(scaleUpFlags.Masters, scaleUpFlags.Nodes); err != nil {
-				return fmt.Errorf("failed to validate input run args: %v", err)
-			}
-
-			scaleUpMasterIPList, scaleUpNodeIPList, err := utils.ParseToNetIPList(scaleUpFlags.Masters, scaleUpFlags.Nodes)
-			if err != nil {
-				return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
-			}
-
-			cf, _, err = clusterfile.GetActualClusterFile()
-			if err != nil {
-				return err
-			}
-
-			cluster := cf.GetCluster()
-			client := utils.GetClusterClient()
-			if client == nil {
-				return fmt.Errorf("failed to get cluster client")
-			}
-
-			currentCluster, err := utils.GetCurrentCluster(client)
-			if err != nil {
-				return fmt.Errorf("failed to get current cluster: %v", err)
-			}
-			currentNodes := currentCluster.GetAllIPList()
-
-			mj, nj, err := utils.ConstructClusterForScaleUp(&cluster, scaleUpFlags, currentNodes, scaleUpMasterIPList, scaleUpNodeIPList)
-			if err != nil {
-				return err
-			}
-
-			imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
-			if err != nil {
-				return err
-			}
-
-			id, err := imageEngine.Pull(&options.PullOptions{
-				Quiet:      false,
-				PullPolicy: "missing",
-				Image:      cluster.Spec.Image,
-				Platform:   "local",
-			})
-			if err != nil {
-				return err
-			}
-
-			imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
-			if err != nil {
-				return fmt.Errorf("failed to get sealer image extension: %s", err)
-			}
-
-			// merge image extension
-			mergedWithExt := utils.MergeClusterWithImageExtension(&cluster, imageSpec.ImageExtension)
-
-			cf.SetCluster(*mergedWithExt)
-
-			return scaleUpCluster(mj, nj, imageSpec, cf, imageEngine, scaleUpFlags.IgnoreCache)
+			return scaleUpRunFunc(joinFlags)
 		},
 	}
 
-	scaleUpFlags = &types.ScaleUpFlags{}
+	joinCmd.Flags().StringVarP(&joinFlags.User, "user", "u", "root", "set baremetal server username")
+	joinCmd.Flags().StringVarP(&joinFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
+	joinCmd.Flags().Uint16Var(&joinFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
+	joinCmd.Flags().StringVar(&joinFlags.Pk, "pk", filepath.Join(common.GetHomeDir(), ".ssh", "id_rsa"), "set baremetal server private key")
+	joinCmd.Flags().StringVar(&joinFlags.PkPassword, "pk-passwd", "", "set baremetal server private key password")
+	joinCmd.Flags().StringSliceVarP(&joinFlags.CustomEnv, "env", "e", []string{}, "set custom environment variables")
+	joinCmd.Flags().StringVarP(&joinFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
+	joinCmd.Flags().StringVarP(&joinFlags.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
+	joinCmd.Flags().BoolVar(&joinFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
+
+	return joinCmd
+}
+
+func NewScaleUpCmd() *cobra.Command {
+	scaleUpFlags := &types.ScaleUpFlags{}
+	scaleUpFlagsCmd := &cobra.Command{
+		Use:     "scale-up",
+		Short:   "scale-up new master or worker node to specified cluster",
+		Long:    longDescriptionForScaleUpCmd,
+		Args:    cobra.NoArgs,
+		Example: exampleForScaleUpCmd,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return scaleUpRunFunc(scaleUpFlags)
+		},
+	}
+
 	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.User, "user", "u", "root", "set baremetal server username")
 	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.Password, "passwd", "p", "", "set cloud provider or baremetal server password")
 	scaleUpFlagsCmd.Flags().Uint16Var(&scaleUpFlags.Port, "port", 22, "set the sshd service port number for the server (default port: 22)")
@@ -127,96 +96,78 @@ func NewScaleUpCmd() *cobra.Command {
 	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.Masters, "masters", "m", "", "set Count or IPList to masters")
 	scaleUpFlagsCmd.Flags().StringVarP(&scaleUpFlags.Nodes, "nodes", "n", "", "set Count or IPList to nodes")
 	scaleUpFlagsCmd.Flags().BoolVar(&scaleUpFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
+
 	return scaleUpFlagsCmd
 }
 
-func scaleUpCluster(scaleUpMasterIPList, scaleUpNodeIPList []net.IP, imageSpec *imagev1.ImageSpec,
-	cf clusterfile.Interface, imageEngine imageengine.Interface, ignoreCache bool) error {
-	logrus.Infof("start to scale up cluster")
-
+func scaleUpRunFunc(scaleUpFlags *types.ScaleUpFlags) error {
 	var (
-		newHosts = append(scaleUpMasterIPList, scaleUpNodeIPList...)
+		cf  clusterfile.Interface
+		err error
 	)
 
+	if err = utils.ValidateScaleIPStr(scaleUpFlags.Masters, scaleUpFlags.Nodes); err != nil {
+		return fmt.Errorf("failed to validate input run args: %v", err)
+	}
+
+	scaleUpMasterIPList, scaleUpNodeIPList, err := utils.ParseToNetIPList(scaleUpFlags.Masters, scaleUpFlags.Nodes)
+	if err != nil {
+		return fmt.Errorf("failed to parse ip string to net IP list: %v", err)
+	}
+
+	cf, _, err = clusterfile.GetActualClusterFile()
+	if err != nil {
+		return err
+	}
+
 	cluster := cf.GetCluster()
+	client := utils.GetClusterClient()
+	if client == nil {
+		return fmt.Errorf("failed to get cluster client")
+	}
 
-	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	currentCluster, err := utils.GetCurrentCluster(client)
+	if err != nil {
+		return fmt.Errorf("failed to get current cluster: %v", err)
+	}
+	currentNodes := currentCluster.GetAllIPList()
+
+	mj, nj, err := utils.ConstructClusterForScaleUp(&cluster, scaleUpFlags, currentNodes, scaleUpMasterIPList, scaleUpNodeIPList)
 	if err != nil {
 		return err
 	}
 
-	clusterImageName := infraDriver.GetClusterImageName()
-
-	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(newHosts)
+	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return err
 	}
 
-	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-	if err != nil {
-		return err
-	}
-
-	imageMountInfo, err := imageMounter.Mount(clusterImageName)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = imageMounter.Umount(clusterImageName, imageMountInfo)
-		if err != nil {
-			logrus.Errorf("failed to umount sealer image")
-		}
-	}()
-
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs(), imagedistributor.DistributeOption{
-		IgnoreCache: ignoreCache,
+	id, err := imageEngine.Pull(&options.PullOptions{
+		Quiet:      false,
+		PullPolicy: "missing",
+		Image:      cluster.Spec.Image,
+		Platform:   "local",
 	})
 	if err != nil {
 		return err
 	}
 
-	plugins, err := loadPluginsFromImage(imageMountInfo)
+	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
+	if err != nil {
+		return fmt.Errorf("failed to get sealer image extension: %s", err)
+	}
+
+	// merge image extension
+	mergedWithExt := utils.MergeClusterWithImageExtension(&cluster, imageSpec.ImageExtension)
+
+	cf.SetCluster(*mergedWithExt)
+
+	kubeInstaller, err := NewKubeInstaller(cf, imageEngine, imageSpec)
 	if err != nil {
 		return err
 	}
 
-	if cf.GetPlugins() != nil {
-		plugins = append(plugins, cf.GetPlugins()...)
-	}
-
-	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor:            distributor,
-		Plugins:                plugins,
-		ContainerRuntimeConfig: cf.GetCluster().Spec.ContainerRuntime,
-	}
-
-	if cf.GetKubeadmConfig() != nil {
-		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-	}
-
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
-		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, runtimeConfig.ContainerRuntimeConfig))
-	if err != nil {
-		return err
-	}
-
-	//we need to save desired clusterfile to local disk temporarily.
-	//and will use it later to clean the cluster node if ScaleUp failed.
-	if err = cf.SaveAll(clusterfile.SaveOptions{}); err != nil {
-		return err
-	}
-
-	_, _, err = installer.ScaleUp(scaleUpMasterIPList, scaleUpNodeIPList)
-	if err != nil {
-		return err
-	}
-
-	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
-	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
-		return err
-	}
-
-	logrus.Infof("succeeded in scaling up cluster")
-
-	return nil
+	return kubeInstaller.ScaleUp(mj, nj, KubeScaleUpOptions{
+		IgnoreCache: scaleUpFlags.IgnoreCache,
+	})
 }
