@@ -242,7 +242,7 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 	imageSpec *imagev1.ImageSpec, mode string, ignoreCache bool) error {
 	cluster := cf.GetCluster()
 
-	// merge image extension
+	// merge image extension with cluster
 	mergedWithExt := utils.MergeClusterWithImageExtension(&cluster, imageSpec.ImageExtension)
 
 	infraDriver, err := infradriver.NewInfraDriver(mergedWithExt)
@@ -250,8 +250,21 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 		return err
 	}
 
-	clusterHosts := infraDriver.GetHostIPList()
-	clusterImageName := infraDriver.GetClusterImageName()
+	var (
+		// cluster parameters
+		clusterHosts     = infraDriver.GetHostIPList()
+		clusterImageName = infraDriver.GetClusterImageName()
+
+		// app parameters
+		cmds     = infraDriver.GetClusterLaunchCmds()
+		appNames = infraDriver.GetClusterLaunchApps()
+	)
+
+	// merge image extension with app
+	v2App, err := application.NewV2Application(utils.ConstructApplication(cf.GetApplication(), cmds, appNames, cluster.Spec.Env), imageSpec.ImageExtension)
+	if err != nil {
+		return fmt.Errorf("failed to parse application from Clusterfile:%v ", err)
+	}
 
 	logrus.Infof("start to create new cluster with image: %s", clusterImageName)
 
@@ -276,6 +289,14 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 			logrus.Errorf("failed to umount sealer image")
 		}
 	}()
+
+	// process app files
+	for _, info := range imageMountInfo {
+		err = v2App.FileProcess(info.MountDir)
+		if err != nil {
+			return errors.Wrapf(err, "failed to execute file processor")
+		}
+	}
 
 	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs(), imagedistributor.DistributeOption{
 		IgnoreCache: ignoreCache,
@@ -324,19 +345,9 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 		return err
 	}
 
-	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
-
-	cmds := infraDriver.GetClusterLaunchCmds()
-	appNames := infraDriver.GetClusterLaunchApps()
-
-	// TODO valid construct application
-	// merge to application between v2.ClusterSpec, v2.Application and image extension
-	v2App, err := application.NewV2Application(utils.ConstructApplication(cf.GetApplication(), cmds, appNames, cluster.Spec.Env), imageSpec.ImageExtension)
-	if err != nil {
-		return fmt.Errorf("failed to parse application from Clusterfile:%v ", err)
-	}
-
 	// install application
+	logrus.Infof("start to launch sealer applications: %s", v2App.GetAppNames())
+
 	if err = v2App.Launch(infraDriver); err != nil {
 		return err
 	}
@@ -345,6 +356,7 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 	}
 
 	//save and commit
+	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
 	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
 		return err
 	}
@@ -437,10 +449,20 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 		return nil
 	}
 
+	// install application
+	logrus.Infof("start to launch sealer applications: %s", v2App.GetAppNames())
+
 	if err = v2App.Launch(infraDriver); err != nil {
 		return err
 	}
 	if err = v2App.Save(application.SaveOptions{}); err != nil {
+		return err
+	}
+
+	//save and commit
+	cf.SetApplication(v2App.GetApplication())
+	confPath := clusterruntime.GetClusterConfPath(request.Extension.Labels)
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
 		return err
 	}
 

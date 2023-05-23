@@ -90,6 +90,10 @@ func (a *v2Application) GetImageLaunchCmds() []string {
 	return cmds
 }
 
+func (a *v2Application) GetApplication() v2.Application {
+	return *a.app
+}
+
 func (a *v2Application) Launch(infraDriver infradriver.InfraDriver) error {
 	var (
 		rootfsPath = infraDriver.GetClusterRootfsPath()
@@ -97,6 +101,8 @@ func (a *v2Application) Launch(infraDriver infradriver.InfraDriver) error {
 		master0    = masters[0]
 		launchCmds = a.GetImageLaunchCmds()
 	)
+
+	logrus.Debugf("will to launch applications with cmd: %s", launchCmds)
 
 	for _, cmdline := range launchCmds {
 		if cmdline == "" {
@@ -111,8 +117,8 @@ func (a *v2Application) Launch(infraDriver infradriver.InfraDriver) error {
 	return nil
 }
 
-//Save application install history
-//TODO save to cluster, also need a save struct.
+// Save application install history
+// TODO save to cluster, also need a save struct.
 func (a *v2Application) Save(opts SaveOptions) error {
 	applicationFile := common.GetDefaultApplicationFile()
 
@@ -266,7 +272,7 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 	return v2App, nil
 }
 
-//parseLaunchCmds parse shell, kube,helm type launch cmds
+// parseLaunchCmds parse shell, kube,helm type launch cmds
 // kubectl apply -n sealer-io -f ns.yaml -f app.yaml
 // helm install my-nginx bitnami/nginx
 // key1=value1 key2=value2 && bash install1.sh && bash install2.sh

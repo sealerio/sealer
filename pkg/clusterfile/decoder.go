@@ -135,7 +135,7 @@ func decodeClusterFile(reader io.Reader, clusterfile *ClusterFile) error {
 				}
 			}
 
-			clusterfile.apps = &app
+			clusterfile.app = &app
 		case kubeadmConstants.InitConfigurationKind:
 			var in v1beta3.InitConfiguration
 
