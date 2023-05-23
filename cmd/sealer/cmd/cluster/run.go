@@ -346,8 +346,6 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 	}
 
 	// install application
-	logrus.Infof("start to launch sealer applications: %s", v2App.GetAppNames())
-
 	if err = v2App.Launch(infraDriver); err != nil {
 		return err
 	}
@@ -450,8 +448,6 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 	}
 
 	// install application
-	logrus.Infof("start to launch sealer applications: %s", v2App.GetAppNames())
-
 	if err = v2App.Launch(infraDriver); err != nil {
 		return err
 	}

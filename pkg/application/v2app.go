@@ -102,6 +102,8 @@ func (a *v2Application) Launch(infraDriver infradriver.InfraDriver) error {
 		launchCmds = a.GetImageLaunchCmds()
 	)
 
+	logrus.Infof("start to launch sealer applications: %s", a.GetAppNames())
+
 	logrus.Debugf("will to launch applications with cmd: %s", launchCmds)
 
 	for _, cmdline := range launchCmds {
