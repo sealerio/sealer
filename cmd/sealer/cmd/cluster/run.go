@@ -250,21 +250,8 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 		return err
 	}
 
-	var (
-		// cluster parameters
-		clusterHosts     = infraDriver.GetHostIPList()
-		clusterImageName = infraDriver.GetClusterImageName()
-
-		// app parameters
-		cmds     = infraDriver.GetClusterLaunchCmds()
-		appNames = infraDriver.GetClusterLaunchApps()
-	)
-
-	// merge image extension with app
-	v2App, err := application.NewV2Application(utils.ConstructApplication(cf.GetApplication(), cmds, appNames, cluster.Spec.Env), imageSpec.ImageExtension)
-	if err != nil {
-		return fmt.Errorf("failed to parse application from Clusterfile:%v ", err)
-	}
+	clusterHosts := infraDriver.GetHostIPList()
+	clusterImageName := infraDriver.GetClusterImageName()
 
 	logrus.Infof("start to create new cluster with image: %s", clusterImageName)
 
@@ -289,14 +276,6 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 			logrus.Errorf("failed to umount sealer image")
 		}
 	}()
-
-	// process app files
-	for _, info := range imageMountInfo {
-		err = v2App.FileProcess(info.MountDir)
-		if err != nil {
-			return errors.Wrapf(err, "failed to execute file processor")
-		}
-	}
 
 	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, cf.GetConfigs(), imagedistributor.DistributeOption{
 		IgnoreCache: ignoreCache,
@@ -343,6 +322,16 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 	err = installer.Install()
 	if err != nil {
 		return err
+	}
+
+	cmds := infraDriver.GetClusterLaunchCmds()
+	appNames := infraDriver.GetClusterLaunchApps()
+
+	// TODO valid construct application
+	// merge to application between v2.ClusterSpec, v2.Application and image extension
+	v2App, err := application.NewV2Application(utils.ConstructApplication(cf.GetApplication(), cmds, appNames, cluster.Spec.Env), imageSpec.ImageExtension)
+	if err != nil {
+		return fmt.Errorf("failed to parse application from Clusterfile:%v ", err)
 	}
 
 	// install application
