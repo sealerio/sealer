@@ -14,7 +14,10 @@
 
 package application
 
-import "github.com/sealerio/sealer/pkg/infradriver"
+import (
+	"github.com/sealerio/sealer/pkg/infradriver"
+	v2 "github.com/sealerio/sealer/types/api/v2"
+)
 
 // Interface works like application driver,
 // it converts Application fields, such as app configs, app global envs, app image names and so on.
@@ -40,6 +43,10 @@ type Interface interface {
 
 	// FileProcess :Process application file using at mount stage to modify build app files.
 	FileProcess(mountDir string) error
+
+	// GetApplication :get application spec
+	// return v2.Application
+	GetApplication() v2.Application
 
 	//GetImageName ()string
 	//GetGlobalEnv() map[string]interface{}

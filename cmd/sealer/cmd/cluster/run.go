@@ -242,7 +242,7 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 	imageSpec *imagev1.ImageSpec, mode string, ignoreCache bool) error {
 	cluster := cf.GetCluster()
 
-	// merge image extension
+	// merge image extension with cluster
 	mergedWithExt := utils.MergeClusterWithImageExtension(&cluster, imageSpec.ImageExtension)
 
 	infraDriver, err := infradriver.NewInfraDriver(mergedWithExt)
@@ -324,8 +324,6 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 		return err
 	}
 
-	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
-
 	cmds := infraDriver.GetClusterLaunchCmds()
 	appNames := infraDriver.GetClusterLaunchApps()
 
@@ -345,6 +343,7 @@ func runClusterImage(imageEngine imageengine.Interface, cf clusterfile.Interface
 	}
 
 	//save and commit
+	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
 	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
 		return err
 	}
@@ -437,10 +436,18 @@ func runApplicationImage(request *RunApplicationImageRequest) error {
 		return nil
 	}
 
+	// install application
 	if err = v2App.Launch(infraDriver); err != nil {
 		return err
 	}
 	if err = v2App.Save(application.SaveOptions{}); err != nil {
+		return err
+	}
+
+	//save and commit
+	cf.SetApplication(v2App.GetApplication())
+	confPath := clusterruntime.GetClusterConfPath(request.Extension.Labels)
+	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
 		return err
 	}
 
