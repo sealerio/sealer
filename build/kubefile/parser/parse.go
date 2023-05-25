@@ -26,7 +26,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/docker/docker/pkg/system"
+	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
 
 	"github.com/sealerio/sealer/build/kubefile/command"
