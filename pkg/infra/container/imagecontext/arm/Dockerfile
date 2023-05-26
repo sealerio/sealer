@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM multiarch/ubuntu-core:arm64-focal
+FROM arm64v8/ubuntu:focal
 COPY entrypoint /usr/bin/
 RUN chmod +x /usr/bin/entrypoint
 COPY 10-network-security.conf /etc/sysctl.d/
@@ -23,7 +23,7 @@ RUN echo "Installing Packages ..." \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       systemd \
-      conntrack iproute2 ethtool socat util-linux mount ebtables kmod \
+      conntrack iptables iproute2 ethtool socat util-linux mount ebtables kmod \
       libseccomp2 pigz \
       bash ca-certificates curl rsync vim openssh-server ufw \
     && apt-get clean -y                                               \
@@ -45,11 +45,6 @@ RUN echo "Installing Packages ..." \
     && rm -f /lib/systemd/system/basic.target.wants/* \
     && echo "ReadKMsg=no" >> /etc/systemd/journald.conf \
     && ln -s "$(which systemd)" /sbin/init
-
-RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ devel main" > /etc/apt/sources.list.d/temp.list \
-    && apt-get update \
-    && apt-get install -y libc6 \
-    && rm /etc/apt/sources.list.d/temp.list
 
 RUN echo "Config ssh ..." \
     && echo "PermitRootLogin yes" >> /etc/ssh/sshd_config \
