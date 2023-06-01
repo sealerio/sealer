@@ -325,11 +325,7 @@ func (c *localConfigurator) configureDaemonService(hosts []net.IP) error {
 	}
 
 	if c.containerRuntimeInfo.Type == common.Docker {
-		src = filepath.Join(c.infraDriver.GetClusterRootfsPath(), "etc", "daemon.json")
-		dest = "/etc/docker/daemon.json"
-		if err := c.configureDockerDaemonService(endpoint, src); err != nil {
-			return err
-		}
+		return nil
 	}
 
 	if c.containerRuntimeInfo.Type == common.Containerd {
