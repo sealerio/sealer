@@ -24,7 +24,6 @@ import (
 
 type DefaultInstaller struct {
 	Info
-	envs   map[string]string
 	rootfs string
 	driver infradriver.InfraDriver
 }
@@ -32,7 +31,7 @@ type DefaultInstaller struct {
 func (d *DefaultInstaller) InstallOn(hosts []net.IP) error {
 	installCmd := fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getInstallScriptName()))
 	for _, ip := range hosts {
-		err := d.driver.CmdAsync(ip, d.envs, installCmd)
+		err := d.driver.CmdAsync(ip, d.driver.GetHostEnv(ip), installCmd)
 		if err != nil {
 			return fmt.Errorf("failed to install %s: execute command(%s) on host (%s): error(%v)", d.Type, installCmd, ip, err)
 		}
@@ -43,7 +42,7 @@ func (d *DefaultInstaller) InstallOn(hosts []net.IP) error {
 func (d *DefaultInstaller) UnInstallFrom(hosts []net.IP) error {
 	cleanCmd := fmt.Sprintf("bash %s", filepath.Join(d.rootfs, "scripts", d.getUnInstallScriptName()))
 	for _, ip := range hosts {
-		err := d.driver.CmdAsync(ip, d.envs, cleanCmd)
+		err := d.driver.CmdAsync(ip, d.driver.GetHostEnv(ip), cleanCmd)
 		if err != nil {
 			return fmt.Errorf("failed to uninstall %s: execute command(%s) on host (%s): error(%v)", d.Type, cleanCmd, ip, err)
 		}

@@ -63,7 +63,6 @@ func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver
 		ret := &DefaultInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
-			envs:   driver.GetClusterEnv(),
 			Info: Info{
 				CertsDir:               DefaultDockerCertsDir,
 				CRISocket:              DefaultDockerCRISocket,
@@ -72,7 +71,7 @@ func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver
 			},
 		}
 		ret.Info.CgroupDriver = DefaultCgroupDriver
-		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != "" {
+		if cd, ok := driver.GetClusterEnv()[CgroupDriverArg]; ok && cd != "" {
 			ret.Info.CgroupDriver = cd
 		}
 
@@ -81,7 +80,6 @@ func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver
 		ret := &DefaultInstaller{
 			rootfs: driver.GetClusterRootfsPath(),
 			driver: driver,
-			envs:   driver.GetClusterEnv(),
 			Info: Info{
 				CertsDir:               DefaultContainerdCertsDir,
 				CRISocket:              DefaultContainerdCRISocket,
@@ -89,7 +87,7 @@ func NewInstaller(conf v2.ContainerRuntimeConfig, driver infradriver.InfraDriver
 			},
 		}
 		ret.Info.CgroupDriver = DefaultCgroupDriver
-		if cd, ok := ret.envs[CgroupDriverArg]; ok && cd != "" {
+		if cd, ok := driver.GetClusterEnv()[CgroupDriverArg]; ok && cd != "" {
 			ret.Info.CgroupDriver = cd
 		}
 
