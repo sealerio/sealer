@@ -34,6 +34,9 @@ func getNewApp() *v2.Application {
 				"app1",
 				"app2",
 			},
+			Configs: []v2.ApplicationConfig{
+				{Env: []string{"Key=Value"}},
+			},
 		},
 	}
 	newApp.Name = "my-application"
@@ -60,6 +63,9 @@ func Test_ConstructApplication(t *testing.T) {
 				"app1",
 				"app2",
 			},
+			Configs: []v2.ApplicationConfig{
+				{Env: []string{"Key=Value"}},
+			},
 		},
 	}
 
@@ -79,6 +85,9 @@ func Test_ConstructApplication(t *testing.T) {
 			LaunchApps: []string{
 				"overwrite app1",
 				"overwrite app2",
+			},
+			Configs: []v2.ApplicationConfig{
+				{Env: []string{"Key=Value"}},
 			},
 		},
 	}
@@ -100,6 +109,32 @@ func Test_ConstructApplication(t *testing.T) {
 				"overwrite app1",
 				"overwrite app2",
 			},
+			Configs: []v2.ApplicationConfig{
+				{Env: []string{"Key=Value"}},
+			},
+		},
+	}
+
+	expectedAddAppEnvs := &v2.Application{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: constants.ApplicationKind,
+			Kind:       v2.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-application",
+		},
+		Spec: v2.ApplicationSpec{
+			Cmds: []string{
+				"cmd 1",
+				"cmd 2",
+			},
+			LaunchApps: []string{
+				"app1",
+				"app2",
+			},
+			Configs: []v2.ApplicationConfig{
+				{Env: []string{"Key1=Value1", "Key=Value"}},
+			},
 		},
 	}
 
@@ -107,6 +142,7 @@ func Test_ConstructApplication(t *testing.T) {
 		name        string
 		cmds        []string
 		appNames    []string
+		appEnvs     []string
 		rawApp      *v2.Application
 		expectedApp *v2.Application
 	}{
@@ -122,7 +158,6 @@ func Test_ConstructApplication(t *testing.T) {
 			rawApp:      getNewApp(),
 			expectedApp: expectedOverwriteAppNames,
 		},
-
 		{
 			name:        "test overwrite app names and cmds",
 			cmds:        []string{"overwrite cmd 1", "overwrite cmd 2"},
@@ -130,11 +165,17 @@ func Test_ConstructApplication(t *testing.T) {
 			rawApp:      getNewApp(),
 			expectedApp: expectedOverwriteCmdsAndAppNames,
 		},
+		{
+			name:        "test add app envs",
+			appEnvs:     []string{"Key1=Value1"},
+			rawApp:      getNewApp(),
+			expectedApp: expectedAddAppEnvs,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			expectedApp := ConstructApplication(tt.rawApp, tt.cmds, tt.appNames)
+			expectedApp := ConstructApplication(tt.rawApp, tt.cmds, tt.appNames, tt.appEnvs)
 			assert.Equal(t, expectedApp, tt.expectedApp)
 		})
 	}

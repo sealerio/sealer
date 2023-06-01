@@ -21,13 +21,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/client/k8s"
 	"github.com/sealerio/sealer/pkg/runtime/kubernetes"
@@ -35,6 +28,12 @@ import (
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
 	utilsos "github.com/sealerio/sealer/utils/os"
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -46,6 +45,7 @@ const (
 type Interface interface {
 	GetCluster() v2.Cluster
 	SetCluster(v2.Cluster)
+	SetApplication(app v2.Application)
 	GetConfigs() []v1.Config
 	GetPlugins() []v1.Plugin
 	GetApplication() *v2.Application
@@ -64,7 +64,7 @@ type ClusterFile struct {
 	configs       []v1.Config
 	kubeadmConfig kubeadm.KubeadmConfig
 	plugins       []v1.Plugin
-	apps          *v2.Application
+	app           *v2.Application
 }
 
 func (c *ClusterFile) GetCluster() v2.Cluster {
@@ -75,12 +75,16 @@ func (c *ClusterFile) SetCluster(cluster v2.Cluster) {
 	c.cluster = &cluster
 }
 
+func (c *ClusterFile) SetApplication(app v2.Application) {
+	c.app = &app
+}
+
 func (c *ClusterFile) GetConfigs() []v1.Config {
 	return c.configs
 }
 
 func (c *ClusterFile) GetApplication() *v2.Application {
-	return c.apps
+	return c.app
 }
 
 func (c *ClusterFile) GetPlugins() []v1.Plugin {
@@ -94,6 +98,7 @@ func (c *ClusterFile) GetKubeadmConfig() *kubeadm.KubeadmConfig {
 func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 	var (
 		clusterfileBytes [][]byte
+		appBytes         []byte
 		config           []byte
 		plugin           []byte
 	)
@@ -108,6 +113,14 @@ func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 		return err
 	}
 	clusterfileBytes = append(clusterfileBytes, cluster)
+
+	if c.app != nil {
+		appBytes, err = yaml.Marshal(c.app)
+		if err != nil {
+			return err
+		}
+		clusterfileBytes = append(clusterfileBytes, appBytes)
+	}
 
 	if len(c.configs) != 0 {
 		for _, cg := range c.configs {
@@ -177,6 +190,8 @@ func (c *ClusterFile) SaveAll(opts SaveOptions) error {
 	if opts.CommitToCluster {
 		return saveToCluster(content, opts.ConfPath)
 	}
+
+	logrus.Info("succeeded in saving clusterfile")
 	return nil
 }
 
