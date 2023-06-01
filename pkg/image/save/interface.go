@@ -18,7 +18,6 @@ import (
 	"context"
 
 	"github.com/docker/docker/pkg/progress"
-
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
