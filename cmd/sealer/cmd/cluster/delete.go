@@ -20,31 +20,20 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	cmdutils "github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
-	clusterruntime "github.com/sealerio/sealer/pkg/cluster-runtime"
 	"github.com/sealerio/sealer/pkg/clusterfile"
-	imagecommon "github.com/sealerio/sealer/pkg/define/options"
-	"github.com/sealerio/sealer/pkg/imagedistributor"
+	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
-	"github.com/sealerio/sealer/pkg/infradriver"
 	"github.com/sealerio/sealer/utils"
 	netutils "github.com/sealerio/sealer/utils/net"
-	"github.com/sealerio/sealer/utils/os/fs"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
-	deleteFlags *types.DeleteFlags
-)
-
-var longDeleteCmdDescription = `delete command is used to delete part or all of existing cluster.
-User can delete cluster by explicitly specifying host IP`
-
-var exampleForDeleteCmd = `
+	exampleForDeleteCmd = `
 delete cluster node: 
   sealer delete --nodes 192.168.0.1 [--force]
   sealer delete --masters 192.168.0.1 --nodes 192.168.0.2 [--force]
@@ -54,12 +43,17 @@ delete all:
   sealer delete -a -f Clusterfile [--force]
 `
 
+	longDescriptionForDeleteCmd = `delete command is used to delete part or all of existing cluster.
+User can delete cluster by explicitly specifying host IP`
+)
+
 // NewDeleteCmd deleteCmd represents the delete command
 func NewDeleteCmd() *cobra.Command {
+	deleteFlags := &types.DeleteFlags{}
 	deleteCmd := &cobra.Command{
 		Use:     "delete",
 		Short:   "delete an existing cluster",
-		Long:    longDeleteCmdDescription,
+		Long:    longDescriptionForDeleteCmd,
 		Args:    cobra.NoArgs,
 		Example: exampleForDeleteCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -76,13 +70,13 @@ func NewDeleteCmd() *cobra.Command {
 			}
 
 			if deleteAll {
-				return deleteCluster(specifyClusterfile, forceDelete)
+				return deleteCluster(specifyClusterfile, forceDelete, deleteFlags)
 			}
-			return scaleDownCluster(specifyClusterfile, mastersToDelete, workersToDelete, forceDelete)
+
+			return scaleDownCluster(specifyClusterfile, mastersToDelete, workersToDelete, forceDelete, deleteFlags)
 		},
 	}
 
-	deleteFlags = &types.DeleteFlags{}
 	deleteCmd.Flags().StringVarP(&deleteFlags.Masters, "masters", "m", "", "reduce Count or IPList to masters")
 	deleteCmd.Flags().StringVarP(&deleteFlags.Nodes, "nodes", "n", "", "reduce Count or IPList to nodes")
 	deleteCmd.Flags().StringVarP(&deleteFlags.ClusterFile, "Clusterfile", "f", "", "delete a kubernetes cluster with Clusterfile")
@@ -94,7 +88,7 @@ func NewDeleteCmd() *cobra.Command {
 	return deleteCmd
 }
 
-func deleteCluster(workClusterfile string, forceDelete bool) error {
+func deleteCluster(workClusterfile string, forceDelete bool, deleteFlags *types.DeleteFlags) error {
 	var (
 		cf  clusterfile.Interface
 		err error
@@ -123,6 +117,7 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 	//append custom env from CLI to cluster, if it is used to wrapper shell plugin
 	cluster := cf.GetCluster()
 	cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
+	cf.SetCluster(cluster)
 
 	if !forceDelete {
 		if err = confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), cluster.GetAllIPList()); err != nil {
@@ -130,87 +125,37 @@ func deleteCluster(workClusterfile string, forceDelete bool) error {
 		}
 	}
 
-	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return err
 	}
 
-	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
-	if err != nil {
-		return err
-	}
-
-	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(infraDriver.GetHostIPList())
-	if err != nil {
-		return err
-	}
-
-	imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-	if err != nil {
-		return err
-	}
-
-	imageMountInfo, err := imageMounter.Mount(cluster.Spec.Image)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = imageMounter.Umount(cluster.Spec.Image, imageMountInfo)
-		if err != nil {
-			logrus.Errorf("failed to umount sealer image: %v", err)
-		}
-	}()
-
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil, imagedistributor.DistributeOption{
-		Prune: deleteFlags.Prune,
+	id, err := imageEngine.Pull(&options.PullOptions{
+		Quiet:      false,
+		PullPolicy: "missing",
+		Image:      cluster.Spec.Image,
+		Platform:   "local",
 	})
 	if err != nil {
 		return err
 	}
 
-	plugins, err := loadPluginsFromImage(imageMountInfo)
-	if err != nil {
-		return err
-	}
-
-	if cf.GetPlugins() != nil {
-		plugins = append(plugins, cf.GetPlugins()...)
-	}
-
-	runtimeConfig := &clusterruntime.RuntimeConfig{
-		Distributor:            distributor,
-		Plugins:                plugins,
-		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
-	}
-
-	if cf.GetKubeadmConfig() != nil {
-		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-	}
-
-	imageSpec, err := imageEngine.Inspect(&imagecommon.InspectOptions{ImageNameOrID: cluster.Spec.Image})
+	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 	if err != nil {
 		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
-		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, cluster.Spec.ContainerRuntime))
+	kubeInstaller, err := NewKubeInstaller(cf, imageEngine, imageSpec)
 	if err != nil {
 		return err
 	}
 
-	if err = installer.UnInstall(); err != nil {
-		return err
-	}
-
-	//delete local files,including sealer workdir,cluster file under sealer,kubeconfig under home dir.
-	if err = fs.FS.RemoveAll(common.GetSealerWorkDir(), common.DefaultKubeConfigDir()); err != nil {
-		return err
-	}
-
-	return nil
+	return kubeInstaller.Delete(KubeDeleteOptions{
+		Prune: deleteFlags.Prune,
+	})
 }
 
-func scaleDownCluster(workClusterfile, masters, workers string, forceDelete bool) error {
+func scaleDownCluster(workClusterfile, masters, workers string, forceDelete bool, deleteFlags *types.DeleteFlags) error {
 	if err := cmdutils.ValidateScaleIPStr(masters, workers); err != nil {
 		return fmt.Errorf("failed to validate input run args: %v", err)
 	}
@@ -273,92 +218,34 @@ func scaleDownCluster(workClusterfile, masters, workers string, forceDelete bool
 		}
 	}
 
-	// TODO, env should be host env
-	//cluster.Spec.Env = append(cluster.Spec.Env, deleteFlags.CustomEnv...)
-
-	infraDriver, err := infradriver.NewInfraDriver(&cluster)
+	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return err
 	}
 
-	imageEngine, err := imageengine.NewImageEngine(imagecommon.EngineGlobalConfigurations{})
+	id, err := imageEngine.Pull(&options.PullOptions{
+		Quiet:      false,
+		PullPolicy: "missing",
+		Image:      cluster.Spec.Image,
+		Platform:   "local",
+	})
 	if err != nil {
 		return err
 	}
 
-	runtimeConfig := &clusterruntime.RuntimeConfig{
-		ContainerRuntimeConfig: cluster.Spec.ContainerRuntime,
-	}
-
-	clusterHostsPlatform, err := infraDriver.GetHostsPlatform(append(deleteMasterIPList, deleteNodeIPList...))
-	if err != nil {
-		logrus.Warn("failed to get hosts platform for deleted node, we will skip reset work on it in next steps")
-	} else {
-		imageMounter, err := imagedistributor.NewImageMounter(imageEngine, clusterHostsPlatform)
-		if err != nil {
-			return err
-		}
-
-		imageMountInfo, err := imageMounter.Mount(cluster.Spec.Image)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			err = imageMounter.Umount(cluster.Spec.Image, imageMountInfo)
-			if err != nil {
-				logrus.Errorf("failed to umount sealer image: %v", err)
-			}
-		}()
-
-		distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, infraDriver, nil, imagedistributor.DistributeOption{
-			Prune: deleteFlags.Prune,
-		})
-		if err != nil {
-			return err
-		}
-		runtimeConfig.Distributor = distributor
-
-		plugins, err := loadPluginsFromImage(imageMountInfo)
-		if err != nil {
-			return err
-		}
-
-		if cf.GetPlugins() != nil {
-			plugins = append(plugins, cf.GetPlugins()...)
-		}
-		runtimeConfig.Plugins = plugins
-	}
-
-	if cf.GetKubeadmConfig() != nil {
-		runtimeConfig.KubeadmConfig = *cf.GetKubeadmConfig()
-	}
-
-	imageSpec, err := imageEngine.Inspect(&imagecommon.InspectOptions{ImageNameOrID: cluster.Spec.Image})
+	imageSpec, err := imageEngine.Inspect(&options.InspectOptions{ImageNameOrID: id})
 	if err != nil {
 		return fmt.Errorf("failed to get sealer image extension: %s", err)
 	}
 
-	installer, err := clusterruntime.NewInstaller(infraDriver, *runtimeConfig,
-		clusterruntime.GetClusterInstallInfo(imageSpec.ImageExtension.Labels, cluster.Spec.ContainerRuntime))
+	kubeInstaller, err := NewKubeInstaller(cf, imageEngine, imageSpec)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = installer.ScaleDown(deleteMasterIPList, deleteNodeIPList)
-	if err != nil {
-		return err
-	}
-
-	if err = cmdutils.ConstructClusterForScaleDown(&cluster, deleteMasterIPList, deleteNodeIPList); err != nil {
-		return err
-	}
-	cf.SetCluster(cluster)
-
-	confPath := clusterruntime.GetClusterConfPath(imageSpec.ImageExtension.Labels)
-	if err = cf.SaveAll(clusterfile.SaveOptions{CommitToCluster: true, ConfPath: confPath}); err != nil {
-		return err
-	}
-	return nil
+	return kubeInstaller.ScaleDown(deleteMasterIPList, deleteNodeIPList, KubeScaleDownOptions{
+		Prune: deleteFlags.Prune,
+	})
 }
 
 func confirmDeleteHosts(role string, hostsToDelete []net.IP) error {

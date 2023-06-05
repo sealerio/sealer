@@ -14,7 +14,9 @@
 
 package cluster
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 func NewClusterCommands() []*cobra.Command {
 	var clusterCommands []*cobra.Command

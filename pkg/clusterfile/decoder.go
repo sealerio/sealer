@@ -291,7 +291,7 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 	return nil
 }
 
-//parseLaunchCmds parse shell, kube,helm type launch cmds
+// parseLaunchCmds parse shell, kube,helm type launch cmds
 // kubectl apply -n sealer-io -f ns.yaml -f app.yaml
 // helm install my-nginx bitnami/nginx
 // key1=value1 key2=value2 && bash install1.sh && bash install2.sh

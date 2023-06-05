@@ -18,10 +18,6 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
-
 	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/pkg/application"
@@ -32,21 +28,25 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
-var rollbackFlags *types.RollbackFlags
-
-var longRollbackCmdDescription = `rollback command is used to rollback a Kubernetes cluster via specified Clusterfile.`
-
-var exampleForRollbackCmd = `
+var (
+	exampleForRollbackCmd = `
   sealer rollback docker.io/sealerio/kubernetes:v1.22.15-rollback
 `
 
+	longDescriptionForRollbackCmd = `rollback command is used to rollback a Kubernetes cluster via specified Clusterfile.`
+)
+
 func NewRollbackCmd() *cobra.Command {
+	rollbackFlags := &types.RollbackFlags{}
 	rollbackCmd := &cobra.Command{
 		Use:     "rollback",
 		Short:   "rollback a Kubernetes cluster via specified Clusterfile",
-		Long:    longRollbackCmdDescription,
+		Long:    longDescriptionForRollbackCmd,
 		Example: exampleForRollbackCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
@@ -97,18 +97,17 @@ func NewRollbackCmd() *cobra.Command {
 				return err
 			}
 
-			return rollbackCluster(newClusterfile, imageEngine, imageSpec)
+			return rollbackCluster(newClusterfile, imageEngine, imageSpec, rollbackFlags)
 		},
 	}
 
-	rollbackFlags = &types.RollbackFlags{}
 	rollbackCmd.Flags().StringSliceVar(&rollbackFlags.AppNames, "apps", nil, "override default AppNames of sealer image")
 	rollbackCmd.Flags().BoolVar(&rollbackFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
 
 	return rollbackCmd
 }
 
-func rollbackCluster(cf clusterfile.Interface, imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec) error {
+func rollbackCluster(cf clusterfile.Interface, imageEngine imageengine.Interface, imageSpec *imagev1.ImageSpec, rollbackFlags *types.RollbackFlags) error {
 	if imageSpec.ImageExtension.Type != imagev1.KubeInstaller {
 		return fmt.Errorf("exit rollback process, wrong cluster image type: %s", imageSpec.ImageExtension.Type)
 	}

@@ -80,18 +80,22 @@ func (c *ClusterFile) SetApplication(app v2.Application) {
 }
 
 func (c *ClusterFile) GetConfigs() []v1.Config {
+	logrus.Debugf("loaded configs from clusterfile: %+v\n", c.configs)
 	return c.configs
 }
 
 func (c *ClusterFile) GetApplication() *v2.Application {
+	logrus.Debugf("loaded application from clusterfile: %+v\n", c.app)
 	return c.app
 }
 
 func (c *ClusterFile) GetPlugins() []v1.Plugin {
+	logrus.Debugf("loaded plugins from clusterfile: %+v\n", c.plugins)
 	return c.plugins
 }
 
 func (c *ClusterFile) GetKubeadmConfig() *kubeadm.KubeadmConfig {
+	logrus.Debugf("loaded kubeadm config from clusterfile: %+v\n", c.kubeadmConfig)
 	return &c.kubeadmConfig
 }
 

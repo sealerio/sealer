@@ -78,6 +78,7 @@ func (c *Dumper) WriteFiles(configs []v1.Config) error {
 		}
 		configPath := filepath.Join(c.rootPath, path)
 
+		logrus.Debugf("dumping config:%+v\n on the target file", config)
 		if !os.IsFileExist(configPath) {
 			err := os.NewCommonWriter(configPath).WriteFile(configData)
 			if err != nil {

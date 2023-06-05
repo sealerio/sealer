@@ -162,10 +162,10 @@ func (engine *Engine) PushManifest(name, destSpec string, opts *options.PushOpti
 }
 
 // AddToManifest :
-//for `manifestName`: if it is not exist,will create a new one. if not, it must be an existed manifest name.
-//for `imageNameOrIDList`:
-//if element is a single image just add it,
-//if element is a manifest will add it’s s all instance no matter what platform it is.
+// for `manifestName`: if it is not exist,will create a new one. if not, it must be an existed manifest name.
+// for `imageNameOrIDList`:
+// if element is a single image just add it,
+// if element is a manifest will add it’s s all instance no matter what platform it is.
 func (engine *Engine) AddToManifest(manifestName string, imageNameOrIDList []string, opts *options.ManifestAddOpts) error {
 	var (
 		runtime = engine.ImageRuntime()
@@ -314,7 +314,7 @@ func (engine *Engine) addOneToManifestList(list manifests.List, imageSpec string
 	return nil
 }
 
-//getImageId get imageID by name Or id,what ever it is an image or a manifest
+// getImageId get imageID by name Or id,what ever it is an image or a manifest
 // if it is image just return imageID
 // if it is a manifest, return its included instance IDs.
 func (engine *Engine) getImageIDList(imageNameOrID string) ([]string, error) {

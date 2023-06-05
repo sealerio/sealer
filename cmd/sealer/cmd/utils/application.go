@@ -19,7 +19,7 @@ import (
 	v2 "github.com/sealerio/sealer/types/api/v2"
 )
 
-//ConstructApplication merge flags to v2.Application
+// ConstructApplication merge flags to v2.Application
 func ConstructApplication(app *v2.Application, cmds, appNames, globalEnvs []string) *v2.Application {
 	var newApp *v2.Application
 
