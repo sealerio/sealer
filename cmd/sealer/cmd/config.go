@@ -35,49 +35,46 @@ const (
 	RegistryTypeOci    RegistryType = "oci"
 )
 
-func DefaultConfig() *Config {
-	bc := BuildConfig{
-		Compressed:   false,
-		RegistryType: RegistryTypeDocker,
-	}
+const (
+	DefaultSealerRootDir = "/var/lib/sealer"
+)
 
+func DefaultConfig() *Config {
 	return &Config{
 		DebugOn:    false,
 		LogWriteTo: LogWriteToStdout,
 		ColorMode:  ColorModeAlways,
-		Cluster: ClusterConfig{
-			CacheImage: false,
-			Prune:      true,
-		},
-		Image: ImageConfig{
-			Build: bc,
-		},
+		DataRoot:   DefaultSealerRootDir,
 	}
 }
 
 type Config struct {
 	// Debug refers to the log mode.
-	DebugOn bool `json:"debugOn"`
+	DebugOn bool `json:"debugOn,omitempty"`
 
 	//LogWriteTo where log sealer messages to.
 	//default is stdout.
-	LogWriteTo LogWriteTo `json:"LogWriteTo"`
+	LogWriteTo LogWriteTo `json:"LogWriteTo,omitempty"`
 
 	//RemoteLoggerURL, if not empty, will send sealer log to this url.
-	RemoteLoggerURL string `json:"remoteLoggerURL"`
+	RemoteLoggerURL string `json:"remoteLoggerURL,omitempty"`
 
 	//RemoteLoggerTaskName which will embedded in the remote logger header, only valid when --remote-logger-url is set
-	RemoteLoggerTaskName string `json:"remoteLoggerTaskName"`
+	RemoteLoggerTaskName string `json:"remoteLoggerTaskName,omitempty"`
 
 	//set the log color mode.
 	//default is "always",
-	ColorMode ColorMode `json:"colorMode"`
+	ColorMode ColorMode `json:"colorMode,omitempty"`
+
+	//set sealer data root.
+	//default is `/var/lib/sealer`
+	DataRoot string `json:"dataRoot,omitempty"`
 
 	// Image static related config, such as "image build", "image pull", and so on.
-	Image ImageConfig `json:"image"`
+	//Image ImageConfig `json:"image"`
 
 	// Cluster running state related config, such as whether to cache sealer images.
-	Cluster ClusterConfig `json:"cluster"`
+	//Cluster ClusterConfig `json:"cluster"`
 }
 
 type ImageConfig struct {
@@ -87,11 +84,11 @@ type ImageConfig struct {
 type BuildConfig struct {
 	//docker: use docker registry data format
 	//oci: use oci registry data format
-	RegistryType RegistryType `json:"registryType"`
+	RegistryType RegistryType `json:"registryType,omitempty"`
 
 	// whether to compress registry.
 	// default is false.
-	Compressed bool `json:"compressed"`
+	Compressed bool `json:"compressed,omitempty"`
 }
 
 type ClusterConfig struct {
@@ -99,9 +96,9 @@ type ClusterConfig struct {
 	//for run: if run the same repeatedly,will skip image distribution when cache is existed.
 	//for delete: if true,will not delete remote rootfs files.
 	//default is false.
-	CacheImage bool `json:"cacheImage"`
+	CacheImage bool `json:"cacheImage,omitempty"`
 
 	// Prune: force delete remote rootfs
 	// default is true.
-	Prune bool `json:"prune"`
+	Prune bool `json:"prune,omitempty"`
 }

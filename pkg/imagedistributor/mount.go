@@ -21,15 +21,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sealerio/sealer/common"
+
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
-)
-
-const (
-	mountBaseDir = "/var/lib/sealer/data/mount"
 )
 
 type buildAhMounter struct {
@@ -146,6 +144,7 @@ func NewImageMounter(imageEngine imageengine.Interface, hostsPlatform map[v1.Pla
 	return c, nil
 }
 
+// imageMountDir "/var/lib/sealer/data/mount/${image-name}"
 func imageMountDir(name string) string {
-	return filepath.Join(mountBaseDir, strings.ReplaceAll(name, "/", "_"))
+	return filepath.Join(common.DefaultSealerDataDir(), "mount", strings.ReplaceAll(name, "/", "_"))
 }

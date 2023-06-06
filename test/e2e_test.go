@@ -66,7 +66,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		err := os.Mkdir(_dir, os.ModePerm)
 		Expect(err).NotTo(HaveOccurred())
 	}
-	cmd := fmt.Sprintf("rm -rf %s/*", common.DefaultSealerDataDir)
+	cmd := fmt.Sprintf("rm -rf %s/*", common.DefaultSealerDataDir())
 	_, err = exe.RunSimpleCmd(cmd)
 	Expect(err).NotTo(HaveOccurred())
 	return nil

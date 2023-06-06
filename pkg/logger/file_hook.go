@@ -29,7 +29,7 @@ import (
 
 func NewFileHook(filePath string) (logrus.Hook, error) {
 	if filePath == "" {
-		filePath = common.DefaultLogDir
+		filePath = common.DefaultSealerLogDir()
 	}
 
 	path := filepath.Join(filePath, "sealer.log")

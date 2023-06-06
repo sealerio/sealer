@@ -96,10 +96,10 @@ func init() {
 }
 
 // initConfig load DefaultConfig and merge with config file if it exists.
-//sealer config uses the following precedence order:
-//cmd flag
-//$HOME/.sealer/config.json
-//DefaultConfig
+// sealer config uses the following precedence order:
+// a. cmd flag
+// b. $HOME/.sealer/config.json
+// c. DefaultConfig
 func initConfig() {
 	viper.SetConfigType("json")
 	bs, err := json.Marshal(DefaultConfig())
@@ -127,10 +127,22 @@ func initConfig() {
 		if err != nil {
 			panic(fmt.Sprintf("failed to merge sealer config file %s: %v", rootOpt.cfgFile, err))
 		}
+	} else {
+		err = ioutil.WriteFile(rootOpt.cfgFile, []byte(`{}`), os.ModePerm)
+		if err != nil {
+			panic(fmt.Sprintf("failed to write sealer config file %s: %v", rootOpt.cfgFile, err))
+		}
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	// read in environment variables that match
+	viper.AutomaticEnv()
 
+	// save to disk
+	if err = viper.WriteConfigAs(rootOpt.cfgFile); err != nil {
+		panic(fmt.Sprintf("failed to write sealer config : %v\n", err))
+	}
+
+	// init logger
 	lo := logger.LogOptions{
 		Verbose:              viper.GetBool("debugOn"),
 		RemoteLoggerURL:      viper.GetString("remoteLoggerURL"),
