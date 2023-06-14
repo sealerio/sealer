@@ -288,6 +288,10 @@ func checkAndFillCluster(cluster *v2.Cluster) error {
 		cluster.Spec.Env = append(cluster.Spec.Env, fmt.Sprintf("%s=%s", common.EnvContainerRuntime, cluster.Spec.ContainerRuntime.Type))
 	}
 
+	if cluster.Spec.DataRoot == "" {
+		cluster.Spec.DataRoot = common.DefaultSealerDataDir
+	}
+
 	return nil
 }
 
