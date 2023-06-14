@@ -29,6 +29,7 @@ import (
 
 func NewFileHook(filePath string) (logrus.Hook, error) {
 	if filePath == "" {
+		//todo : user could set log dir through sealer config
 		filePath = common.DefaultLogDir
 	}
 

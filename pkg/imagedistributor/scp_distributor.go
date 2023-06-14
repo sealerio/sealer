@@ -21,14 +21,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/config"
 	"github.com/sealerio/sealer/pkg/env"
 	"github.com/sealerio/sealer/pkg/infradriver"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -181,9 +179,9 @@ func (s *scpDistributor) dumpConfigToRootfs(mountDir string) error {
 // using cluster render data to render Rootfs files
 func (s *scpDistributor) renderRootfs(mountDir string) error {
 	var (
-		renderEtc       = filepath.Join(mountDir, common.EtcDir)
-		renderChart     = filepath.Join(mountDir, common.RenderChartsDir)
-		renderManifests = filepath.Join(mountDir, common.RenderManifestsDir)
+		renderEtc       = filepath.Join(mountDir, "etc")
+		renderChart     = filepath.Join(mountDir, "charts")
+		renderManifests = filepath.Join(mountDir, "manifests")
 		renderData      = s.infraDriver.GetClusterEnv()
 	)
 

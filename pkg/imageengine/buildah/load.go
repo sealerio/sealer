@@ -25,11 +25,10 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/go-errors/errors"
-	"github.com/sirupsen/logrus"
-
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/utils/archive"
+	"github.com/sirupsen/logrus"
 )
 
 var LoadError = errors.Errorf("failed to load new image")
