@@ -24,27 +24,17 @@ import (
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	v1 "github.com/sealerio/sealer/types/api/v1"
-	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/os/fs"
-)
-
-const (
-	mountBaseDir = "/var/lib/sealer/data/mount"
 )
 
 type buildAhMounter struct {
 	imageEngine imageengine.Interface
 }
 
-func (b buildAhMounter) Mount(imageName string, platform v1.Platform) (string, string, string, error) {
-	path := platform.OS + "_" + platform.Architecture + "_" + platform.Variant
-	mountDir := filepath.Join(imageMountDir(imageName), path)
-	if osi.IsFileExist(mountDir) {
-		err := os.RemoveAll(mountDir)
-		if err != nil {
-			return "", "", "", err
-		}
-	}
+func (b buildAhMounter) Mount(imageName string, platform v1.Platform, dest string) (string, string, string, error) {
+	mountDir := filepath.Join(dest,
+		strings.ReplaceAll(imageName, "/", "_"),
+		strings.Join([]string{platform.OS, platform.Architecture, platform.Variant}, "_"))
 
 	imageID, err := b.imageEngine.Pull(&options.PullOptions{
 		Quiet:      false,
@@ -93,6 +83,7 @@ func NewBuildAhMounter(imageEngine imageengine.Interface) Mounter {
 
 type ImagerMounter struct {
 	Mounter
+	rootDir       string
 	hostsPlatform map[v1.Platform][]net.IP
 }
 
@@ -108,9 +99,9 @@ type ClusterImageMountInfo struct {
 func (c ImagerMounter) Mount(imageName string) ([]ClusterImageMountInfo, error) {
 	var imageMountInfos []ClusterImageMountInfo
 	for platform, hosts := range c.hostsPlatform {
-		mountDir, cid, imageID, err := c.Mounter.Mount(imageName, platform)
+		mountDir, cid, imageID, err := c.Mounter.Mount(imageName, platform, c.rootDir)
 		if err != nil {
-			return nil, fmt.Errorf("failed to mount image with platform %s:%v", platform.ToString(), err)
+			return nil, fmt.Errorf("failed to mount image %s with platform %s:%v", imageName, platform.ToString(), err)
 		}
 		imageMountInfos = append(imageMountInfos, ClusterImageMountInfo{
 			Hosts:       hosts,
@@ -131,21 +122,26 @@ func (c ImagerMounter) Umount(imageName string, imageMountInfo []ClusterImageMou
 			return fmt.Errorf("failed to umount %s:%v", info.MountDir, err)
 		}
 	}
+
 	// delete all mounted images
-	if err := fs.FS.RemoveAll(imageMountDir(imageName)); err != nil {
+	if err := fs.FS.RemoveAll(c.rootDir); err != nil {
 		return err
 	}
 	return nil
 }
 
 func NewImageMounter(imageEngine imageengine.Interface, hostsPlatform map[v1.Platform][]net.IP) (*ImagerMounter, error) {
+	tempDir, err := os.MkdirTemp("", "sealer-mount-tmp")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tmp mount dir, err: %v", err)
+	}
+
 	c := &ImagerMounter{
+		// todo : user could set this value by env or sealer config
+		rootDir:       tempDir,
 		hostsPlatform: hostsPlatform,
 	}
+
 	c.Mounter = NewBuildAhMounter(imageEngine)
 	return c, nil
-}
-
-func imageMountDir(name string) string {
-	return filepath.Join(mountBaseDir, strings.ReplaceAll(name, "/", "_"))
 }

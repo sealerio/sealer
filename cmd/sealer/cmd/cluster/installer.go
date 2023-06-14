@@ -17,6 +17,7 @@ package cluster
 import (
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -567,9 +568,17 @@ func (k KubeInstaller) Delete(options KubeDeleteOptions) error {
 	if err = installer.UnInstall(); err != nil {
 		return err
 	}
+	//delete local files,including clusterfile, application.json under sealer work dir
+	if err = os.Remove(common.GetDefaultClusterfile()); err != nil {
+		return err
+	}
 
-	//delete local files,including sealer workdir,cluster file under sealer,kubeconfig under home dir.
-	if err = fs.FS.RemoveAll(common.GetSealerWorkDir(), common.DefaultKubeConfigDir()); err != nil {
+	if err = os.Remove(common.GetDefaultApplicationFile()); err != nil {
+		return err
+	}
+
+	//delete kubeconfig under home dir.
+	if err = fs.FS.RemoveAll(common.DefaultKubeConfigDir()); err != nil {
 		return err
 	}
 

@@ -22,9 +22,6 @@ import (
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/sealerio/sealer/common"
-
 	"golang.org/x/sys/unix"
 )
 
@@ -34,7 +31,7 @@ type Interface interface {
 	Stat(name string) (os.FileInfo, error)
 	Rename(oldPath, newPath string) error
 	MkdirAll(path string) error
-	MkTmpdir() (string, error)
+	MkTmpdir(path string) (string, error)
 	CopyFile(src, dst string) (int64, error)
 	CopyDir(srcPath, dstPath string) error
 	RemoveAll(path ...string) error
@@ -83,8 +80,8 @@ func (f filesystem) MkdirAll(path string) error {
 	return os.MkdirAll(path, os.ModePerm)
 }
 
-func (f filesystem) MkTmpdir() (string, error) {
-	tempDir, err := os.MkdirTemp(common.DefaultTmpDir, ".DTmp-")
+func (f filesystem) MkTmpdir(path string) (string, error) {
+	tempDir, err := os.MkdirTemp(path, ".DTmp-")
 	if err != nil {
 		return "", err
 	}

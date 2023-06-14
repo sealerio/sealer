@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
-
 	"github.com/sealerio/sealer/common"
 	osi "github.com/sealerio/sealer/utils/os"
 )

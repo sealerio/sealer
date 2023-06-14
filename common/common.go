@@ -39,15 +39,10 @@ const (
 
 // Default dir and file path
 const (
-	EtcDir                   = "etc"
-	DefaultTmpDir            = "/var/lib/sealer/tmp"
 	DefaultLogDir            = "/var/lib/sealer/log"
 	DefaultSealerDataDir     = "/var/lib/sealer/data"
 	KubeAdminConf            = "/etc/kubernetes/admin.conf"
-	DefaultKubectlPath       = "/usr/bin/kubectl"
 	ClusterfileName          = "ClusterfileName"
-	RenderChartsDir          = "charts"
-	RenderManifestsDir       = "manifests"
 	KubeLvsCareStaticPodName = "kube-lvscare"
 	RegLvsCareStaticPodName  = "reg-lvscare"
 	StaticPodDir             = "/etc/kubernetes/manifests"
@@ -90,10 +85,7 @@ const (
 
 // image module
 const (
-	DefaultImageRootDir         = "/var/lib/sealer/data"
 	DefaultMetadataName         = "Metadata"
-	DefaultImageMetaRootDir     = "/var/lib/sealer/metadata"
-	DefaultLayerDir             = "/var/lib/sealer/data/overlay2"
 	DefaultRegistryDomain       = "sea.hub"
 	DefaultRegistryPort         = 5000
 	DefaultRegistryURL          = "sea.hub:5000"
@@ -169,34 +161,6 @@ func DefaultRegistryAuthConfigDir() string {
 
 func DefaultKubeConfigDir() string {
 	return filepath.Join(GetHomeDir(), ".kube")
-}
-
-func DefaultKubeConfigFile() string {
-	return filepath.Join(DefaultKubeConfigDir(), "config")
-}
-
-func DefaultTheClusterRootfsDir(clusterName string) string {
-	return filepath.Join(DefaultSealerDataDir, clusterName, "rootfs")
-}
-
-func DefaultTheClusterNydusdDir(clusterName string) string {
-	return filepath.Join(DefaultSealerDataDir, clusterName, "nydusd")
-}
-
-func DefaultTheClusterNydusdFileDir(clusterName string) string {
-	return filepath.Join(DefaultSealerDataDir, clusterName, "nydusdfile")
-}
-
-func DefaultTheClusterRootfsPluginDir(clusterName string) string {
-	return filepath.Join(DefaultTheClusterRootfsDir(clusterName), "plugins")
-}
-
-func TheDefaultClusterCertDir(clusterName string) string {
-	return filepath.Join(DefaultSealerDataDir, clusterName, "certs")
-}
-
-func DefaultClusterBaseDir(clusterName string) string {
-	return filepath.Join(DefaultSealerDataDir, clusterName)
 }
 
 func GetHomeDir() string {

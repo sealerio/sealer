@@ -15,16 +15,12 @@
 package platform
 
 import (
-	"fmt"
 	"path"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 
 	"github.com/pkg/errors"
-
-	"github.com/sealerio/sealer/common"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 )
 
@@ -224,11 +220,4 @@ func normalizeOS(os string) string {
 		os = "darwin"
 	}
 	return os
-}
-func DefaultMountClusterImageDir(clusterName string) string {
-	return GetMountClusterImagePlatformDir(clusterName, GetDefaultPlatform())
-}
-
-func GetMountClusterImagePlatformDir(clusterName string, platform v1.Platform) string {
-	return filepath.Join(common.DefaultSealerDataDir, clusterName, "mount", fmt.Sprintf("%s_%s_%s", platform.OS, platform.Architecture, platform.Variant))
 }

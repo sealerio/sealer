@@ -21,10 +21,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sealerio/sealer/common"
+
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libimage/manifests"
 	"github.com/pkg/errors"
-	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/utils/archive"
 	osi "github.com/sealerio/sealer/utils/os"
