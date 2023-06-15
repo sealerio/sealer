@@ -49,6 +49,10 @@ type ClusterSpec struct {
 	HostAliases []HostAlias `json:"hostAliases,omitempty"`
 	// Registry field contains configurations about local registry and remote registry.
 	Registry Registry `json:"registry,omitempty"`
+
+	// DataRoot set sealer rootfs directory path.
+	// if not set, default value is "/var/lib/sealer/data"
+	DataRoot string `json:"dataRoot,omitempty"`
 }
 
 type ContainerRuntimeConfig struct {

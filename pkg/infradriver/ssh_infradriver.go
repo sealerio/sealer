@@ -338,11 +338,21 @@ func (d *SSHInfraDriver) GetHostsPlatform(hosts []net.IP) (map[v1.Platform][]net
 }
 
 func (d *SSHInfraDriver) GetClusterRootfsPath() string {
-	return filepath.Join(common.DefaultSealerDataDir, d.cluster.Name, "rootfs")
+	dataRoot := d.cluster.Spec.DataRoot
+	if dataRoot == "" {
+		dataRoot = common.DefaultSealerDataDir
+	}
+
+	return filepath.Join(dataRoot, d.cluster.Name, "rootfs")
 }
 
 func (d *SSHInfraDriver) GetClusterBasePath() string {
-	return filepath.Join(common.DefaultSealerDataDir, d.cluster.Name)
+	dataRoot := d.cluster.Spec.DataRoot
+	if dataRoot == "" {
+		dataRoot = common.DefaultSealerDataDir
+	}
+
+	return filepath.Join(dataRoot, d.cluster.Name)
 }
 
 func (d *SSHInfraDriver) Execute(hosts []net.IP, f func(host net.IP) error) error {
