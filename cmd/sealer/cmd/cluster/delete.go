@@ -120,7 +120,7 @@ func deleteCluster(workClusterfile string, forceDelete bool, deleteFlags *types.
 	cf.SetCluster(cluster)
 
 	if !forceDelete {
-		if err = confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), cluster.GetAllIPList()); err != nil {
+		if err = confirmDeleteHosts(cluster.GetMasterIPList(), cluster.GetNodeIPList()); err != nil {
 			return err
 		}
 	}
@@ -213,7 +213,7 @@ func scaleDownCluster(workClusterfile, masters, workers string, forceDelete bool
 	}
 
 	if !forceDelete {
-		if err = confirmDeleteHosts(fmt.Sprintf("%s/%s", common.MASTER, common.NODE), append(deleteMasterIPList, deleteNodeIPList...)); err != nil {
+		if err = confirmDeleteHosts(deleteMasterIPList, deleteNodeIPList); err != nil {
 			return err
 		}
 	}
@@ -248,8 +248,18 @@ func scaleDownCluster(workClusterfile, masters, workers string, forceDelete bool
 	})
 }
 
-func confirmDeleteHosts(role string, hostsToDelete []net.IP) error {
-	if pass, err := utils.ConfirmOperation(fmt.Sprintf("Are you sure to delete these %s: %v? ", role, hostsToDelete)); err != nil {
+func confirmDeleteHosts(masterToDelete, nodeToDelete []net.IP) error {
+	prompt := "Are you sure to delete:"
+
+	if len(masterToDelete) != 0 {
+		prompt = fmt.Sprintf("%s %s %v", prompt, common.MASTER, masterToDelete)
+	}
+
+	if len(nodeToDelete) != 0 {
+		prompt = fmt.Sprintf("%s %s %v", prompt, common.NODE, nodeToDelete)
+	}
+
+	if pass, err := utils.ConfirmOperation(prompt); err != nil {
 		return err
 	} else if !pass {
 		return fmt.Errorf("exit the operation of delete these nodes")

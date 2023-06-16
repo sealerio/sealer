@@ -130,6 +130,10 @@ func ConstructClusterForScaleUp(cluster *v2.Cluster, scaleFlags *types.ScaleUpFl
 	mj, _ = strUtils.Diff(currentNodes, joinMasters)
 	nj, _ = strUtils.Diff(currentNodes, joinWorkers)
 
+	if len(mj) == 0 && len(nj) == 0 {
+		return nil, nil, fmt.Errorf("scale ip %v is already in the current cluster %v", append(joinMasters, joinWorkers...), currentNodes)
+	}
+
 	nodes := cluster.GetAllIPList()
 	//TODO Add password encryption mode in the future
 	//add joined masters
