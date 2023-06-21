@@ -14,6 +14,16 @@
 
 package options
 
+const (
+	WithLiteMode = "lite"
+	WithAllMode  = "all"
+)
+
+var SupportedBuildModes = []string{
+	WithLiteMode,
+	WithAllMode,
+}
+
 // BuildOptions should be out of buildah scope.
 type BuildOptions struct {
 	Kubefile       string
@@ -32,6 +42,10 @@ type BuildOptions struct {
 	ImageList         string
 	ImageListWithAuth string
 	IgnoredImageList  string
+
+	//BuildMode means whether to download container image during the build process
+	// default value is download all container images.
+	BuildMode string
 }
 
 type FromOptions struct {

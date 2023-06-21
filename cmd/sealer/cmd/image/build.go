@@ -117,10 +117,16 @@ func NewBuildCmd() *cobra.Command {
 	buildCmd.Flags().StringSliceVar(&buildFlags.Annotations, "annotation", []string{}, "add annotations for image. Format like --annotation key=[value]")
 	buildCmd.Flags().StringSliceVar(&buildFlags.Labels, "label", []string{getSealerLabel()}, "add labels for image. Format like --label key=[value]")
 	buildCmd.Flags().BoolVar(&buildFlags.NoCache, "no-cache", false, "do not use existing cached images for building. Build from the start with a new set of cached layers.")
+	buildCmd.Flags().StringVar(&buildFlags.BuildMode, "build-mode", options.WithAllMode, "whether to download container image during the build process. default is `all`.")
 
 	supportedImageType := map[string]struct{}{v12.KubeInstaller: {}, v12.AppInstaller: {}}
 	if _, ok := supportedImageType[buildFlags.ImageType]; !ok {
 		logrus.Fatalf("image type %s is not supported", buildFlags.ImageType)
+	}
+
+	supportedBuildModeType := map[string]struct{}{options.WithAllMode: {}, options.WithLiteMode: {}}
+	if _, ok := supportedBuildModeType[buildFlags.BuildMode]; !ok {
+		logrus.Fatalf("build mode type %s is not supported in %s", buildFlags.BuildMode, options.SupportedBuildModes)
 	}
 
 	return buildCmd
@@ -172,6 +178,7 @@ func buildSingleSealerImage(engine imageengine.Interface, imageName string, mani
 	defer func() {
 		_ = os.Remove(dockerfilePath)
 	}()
+	buildFlags.DockerFilePath = dockerfilePath
 
 	// set the image extension to oci image annotation
 	imageExtension := buildImageExtensionOnResult(result, buildFlags.ImageType)
@@ -180,18 +187,40 @@ func buildSingleSealerImage(engine imageengine.Interface, imageName string, mani
 		return errors.Wrap(err, "failed to marshal image extension")
 	}
 
+	// add annotations to image. Store some sealer specific information
+	buildFlags.Annotations = append(buildFlags.Annotations, fmt.Sprintf("%s=%s", v12.SealerImageExtension, string(iejson)))
+	buildFlags.Platforms = []string{platformStr}
+
+	// if it is lite mode, just build it and return
+	if buildFlags.BuildMode == options.WithLiteMode {
+		// build single platform image
+		if manifest == "" {
+			_, err = engine.Build(&buildFlags)
+			if err != nil {
+				return fmt.Errorf("failed to build sealer image with lite mode: %+v", err)
+			}
+
+			return nil
+		}
+
+		// build multi-platform image
+		buildFlags.Tag = ""
+		buildFlags.NoCache = true
+		iid, err := engine.Build(&buildFlags)
+		if err != nil {
+			return fmt.Errorf("failed to build sealer image with all mode: %+v", err)
+		}
+
+		return engine.AddToManifest(manifest, []string{iid}, &options.ManifestAddOpts{})
+	}
+
 	var (
-		randomStr = getRandomString(8)
 		// use temp tag to do temp image build, because after build,
 		// we need to download some container data loaded from rootfs to it.
-		tempTag = imageName + randomStr
+		tempTag = imageName + getRandomString(8)
 	)
 
 	buildFlags.Tag = tempTag
-	// add annotations to image. Store some sealer specific information
-	buildFlags.DockerFilePath = dockerfilePath
-	buildFlags.Annotations = append(buildFlags.Annotations, fmt.Sprintf("%s=%s", v12.SealerImageExtension, string(iejson)))
-	buildFlags.Platforms = []string{platformStr}
 	iid, err := engine.Build(&buildFlags)
 	if err != nil {
 		return errors.Errorf("error in building image, %v", err)
