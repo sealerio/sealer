@@ -192,7 +192,7 @@ func rollbackCluster(cf clusterfile.Interface, imageEngine imageengine.Interface
 	appNames := infraDriver.GetClusterLaunchApps()
 
 	// merge to application between v2.ClusterSpec, v2.Application and image extension
-	v2App, err := application.NewV2Application(utils.ConstructApplication(cf.GetApplication(), cmds, appNames, cluster.Spec.Env), imageSpec.ImageExtension)
+	v2App, err := application.NewAppDriver(utils.ConstructApplication(cf.GetApplication(), cmds, appNames, cluster.Spec.Env), imageSpec.ImageExtension)
 	if err != nil {
 		return fmt.Errorf("failed to parse application from Clusterfile:%v ", err)
 	}

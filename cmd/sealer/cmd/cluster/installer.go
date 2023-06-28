@@ -166,7 +166,7 @@ func (i AppInstaller) prepareMaterials(appImageName string, mode string, ignoreC
 }
 
 func NewApplicationInstaller(appSpec *v2.Application, extension imagev1.ImageExtension, imageEngine imageengine.Interface) (*AppInstaller, error) {
-	v2App, err := application.NewV2Application(appSpec, extension)
+	v2App, err := application.NewAppDriver(appSpec, extension)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse application:%v ", err)
 	}
@@ -256,7 +256,7 @@ func (k KubeInstaller) Install(kubeImageName string, options KubeInstallOptions)
 	}()
 
 	// new merge image extension with app
-	v2App, err := application.NewV2Application(utils.ConstructApplication(k.cf.GetApplication(), cmds, appNames, cluster.Spec.Env), k.imageSpec.ImageExtension)
+	v2App, err := application.NewAppDriver(utils.ConstructApplication(k.cf.GetApplication(), cmds, appNames, cluster.Spec.Env), k.imageSpec.ImageExtension)
 	if err != nil {
 		return fmt.Errorf("failed to parse application from Clusterfile:%v ", err)
 	}

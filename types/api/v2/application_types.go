@@ -28,7 +28,7 @@ import (
 type ApplicationSpec struct {
 	//Cmds raw command line which has the highest priority, is mutually exclusive with the AppNames parameter
 	// it could be overwritten from ClusterSpec.CMD and cli flags, and it is not required.
-	Cmds []string `json:"cmds"`
+	Cmds []string `json:"cmds,omitempty"`
 
 	//LaunchApps This field allows user to specify the app names they want to launch.
 	// it could be overwritten from ClusterSpec.APPNames and cli flags.

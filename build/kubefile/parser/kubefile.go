@@ -27,9 +27,7 @@ import (
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
 	"github.com/sealerio/sealer/build/kubefile/command"
-	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
-	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/pkg/define/options"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sirupsen/logrus"
@@ -73,9 +71,9 @@ type KubefileResult struct {
 	// APP myapp local://app.yaml
 	Applications map[string]version.VersionedApplication
 
-	// ApplicationConfigs structured APPCMDS instruction and register it to this map
+	// AppCmdsMap structured APPCMDS instruction and register it to this map
 	// APPCMDS myapp ["kubectl apply -f app.yaml"]
-	ApplicationConfigs map[string]*v12.ApplicationConfig
+	AppCmdsMap map[string][]string
 
 	legacyContext LegacyContext
 }
@@ -102,10 +100,10 @@ func (kp *KubefileParser) ParseKubefile(rwc io.Reader) (*KubefileResult, error) 
 func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error) {
 	var (
 		result = &KubefileResult{
-			Applications:       map[string]version.VersionedApplication{},
-			ApplicationConfigs: map[string]*v12.ApplicationConfig{},
-			GlobalEnv:          map[string]string{},
-			AppEnvMap:          map[string]map[string]string{},
+			Applications: map[string]version.VersionedApplication{},
+			AppCmdsMap:   map[string][]string{},
+			GlobalEnv:    map[string]string{},
+			AppEnvMap:    map[string]map[string]string{},
 			legacyContext: LegacyContext{
 				files:       []string{},
 				directories: []string{},
@@ -181,27 +179,29 @@ func (kp *KubefileParser) generateResult(mainNode *Node) (*KubefileResult, error
 	}
 
 	// check result validation
-	// if no app type detected and no ApplicationConfigs exist for this app, will return error.
+	// if no app type detected and no AppCmds exist for this app, will return error.
 	for name, registered := range result.Applications {
 		if registered.Type() != "" {
 			continue
 		}
 
-		if _, ok := result.ApplicationConfigs[name]; !ok {
+		if _, ok := result.AppCmdsMap[name]; !ok {
 			return nil, fmt.Errorf("app %s need to specify APPCMDS if no app type detected", name)
 		}
 	}
 
-	// register app with all env list.
+	// register app with app env list.
 	for appName, appEnv := range result.AppEnvMap {
 		app := result.Applications[appName]
-		result.Applications[appName] = &v1.Application{
-			NameVar:    app.Name(),
-			TypeVar:    app.Type(),
-			FilesVar:   app.Files(),
-			VersionVar: app.Version(),
-			AppEnv:     appEnv,
-		}
+		app.SetEnv(appEnv)
+		result.Applications[appName] = app
+	}
+
+	// register app with app cmds.
+	for appName, appCmds := range result.AppCmdsMap {
+		app := result.Applications[appName]
+		app.SetCmds(appCmds)
+		result.Applications[appName] = app
 	}
 
 	return result, nil
@@ -326,12 +326,7 @@ func (kp *KubefileParser) processAppCmds(node *Node, result *KubefileResult) err
 		return fmt.Errorf("the specified app name(%s) for `APPCMDS` should be exist", appName)
 	}
 
-	result.ApplicationConfigs[appName] = &v12.ApplicationConfig{
-		Name: appName,
-		Launch: &v12.ApplicationConfigLaunch{
-			CMDs: appCmds,
-		},
-	}
+	result.AppCmdsMap[appName] = appCmds
 	return nil
 }
 
@@ -480,9 +475,6 @@ func (kp *KubefileParser) processFrom(node *Node, result *KubefileResult) error 
 		// https://github.com/golang/gofrontend/blob/e387439bfd24d5e142874b8e68e7039f74c744d7/go/statements.cc#L5501
 		theApp := app
 		result.Applications[app.Name()] = theApp
-	}
-	for _, appConfig := range imageSpec.ImageExtension.Launch.AppConfigs {
-		result.ApplicationConfigs[appConfig.Name] = appConfig
 	}
 
 	return nil

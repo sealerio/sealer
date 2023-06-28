@@ -24,5 +24,7 @@ type VersionedApplication interface {
 
 	Files() []string
 
-	LaunchCmd(appRoot string, launchCmds []string) string
+	SetEnv(appEnv map[string]string)
+
+	SetCmds(appCmds []string)
 }
