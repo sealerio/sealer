@@ -119,19 +119,6 @@ type Launch struct {
 
 	// user specified LAUNCH instruction
 	AppNames []string `json:"app_names,omitempty"`
-
-	// AppConfigs the configs for launch application
-	AppConfigs []*ApplicationConfig `json:"appConfigs,omitempty" yaml:"appConfigs,omitempty"`
-}
-
-type ApplicationConfig struct {
-	Name string `json:"name"`
-
-	Launch *ApplicationConfigLaunch `json:"launch"`
-}
-
-type ApplicationConfigLaunch struct {
-	CMDs []string `json:"cmds" yaml:"cmds"`
 }
 
 type v1ImageExtension struct {

@@ -17,13 +17,12 @@ package application
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	v1 "github.com/sealerio/sealer/pkg/define/application/v1"
 	"github.com/sealerio/sealer/pkg/define/application/version"
-	v12 "github.com/sealerio/sealer/pkg/define/image/v1"
+	imagev1 "github.com/sealerio/sealer/pkg/define/image/v1"
 	"github.com/sealerio/sealer/types/api/constants"
 	v2 "github.com/sealerio/sealer/types/api/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func newTestApplication() (Interface, error) {
@@ -56,8 +55,8 @@ func newTestApplication() (Interface, error) {
 	app.Kind = constants.ApplicationKind
 	app.APIVersion = v2.GroupVersion.String()
 
-	extension := v12.ImageExtension{
-		Launch: v12.Launch{
+	extension := imagev1.ImageExtension{
+		Launch: imagev1.Launch{
 			AppNames: []string{"nginx1", "nginx2"},
 		},
 		Applications: []version.VersionedApplication{
@@ -79,7 +78,7 @@ func newTestApplication() (Interface, error) {
 		},
 	}
 
-	driver, err := NewV2Application(app, extension)
+	driver, err := NewAppDriver(app, extension)
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +193,96 @@ func TestV2Application_GetImageLaunchCmds(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := driver.GetImageLaunchCmds()
+			assert.Equal(t, tt.args.wanted, result)
+		})
+	}
+}
+
+func TestFormatExtensionToApplication(t *testing.T) {
+	extension := imagev1.ImageExtension{
+		Env: map[string]string{"globalKey": "globalValue"},
+		Launch: imagev1.Launch{
+			Cmds:     []string{"kubectl apply -f nginx.yaml"},
+			AppNames: []string{"app1", "app2"},
+		},
+		Applications: []version.VersionedApplication{
+			&v1.Application{
+				NameVar:    "app1",
+				TypeVar:    "kube",
+				FilesVar:   []string{"/app1.yaml"},
+				VersionVar: "v1",
+				AppEnv:     map[string]string{"key1": "value1", "key2": "value2"},
+				AppCMDs:    []string{"kubectl apply -f app1.yaml -n nginx-namespace"},
+			},
+			&v1.Application{
+				NameVar:    "app2",
+				TypeVar:    "kube",
+				FilesVar:   []string{"/app2.yaml"},
+				VersionVar: "v1",
+				AppEnv:     map[string]string{"key3": "value3", "key4": "value4"},
+				AppCMDs:    []string{"kubectl apply -f app2.yaml -n nginx-namespace"},
+			},
+			&v1.Application{
+				NameVar:    "app3",
+				TypeVar:    "kube",
+				FilesVar:   []string{"/app3.yaml"},
+				VersionVar: "v1",
+				AppEnv:     map[string]string{"key5": "value5", "key6": "value6"},
+				AppCMDs:    []string{"kubectl apply -f app3.yaml -n nginx-namespace"},
+			},
+		},
+	}
+
+	appEnvMap := map[string]map[string]string{
+		"app1": {"key1": "value1", "key2": "value2", "globalKey": "globalValue"},
+		"app2": {"key3": "value3", "key4": "value4", "globalKey": "globalValue"},
+		"app3": {"key5": "value5", "key6": "value6", "globalKey": "globalValue"},
+	}
+
+	v2App := &applicationDriver{
+		app:            nil,
+		extension:      extension,
+		globalCmds:     []string{"kubectl apply -f nginx.yaml"},
+		globalEnv:      map[string]string{"globalKey": "globalValue"},
+		launchApps:     []string{"app1", "app2"},
+		registeredApps: []string{"app1", "app2", "app3"},
+		appLaunchCmdsMap: map[string][]string{
+			"app1": {"cd application/apps/app1/ && kubectl apply -f app1.yaml -n nginx-namespace"},
+			"app2": {"cd application/apps/app2/ && kubectl apply -f app2.yaml -n nginx-namespace"},
+			"app3": {"cd application/apps/app3/ && kubectl apply -f app3.yaml -n nginx-namespace"},
+		},
+		appRootMap: map[string]string{
+			"app1": "application/apps/app1/",
+			"app2": "application/apps/app2/",
+			"app3": "application/apps/app3/",
+		},
+		appEnvMap: appEnvMap,
+		appFileProcessorMap: map[string][]FileProcessor{
+			"app1": {envRender{envData: appEnvMap["app1"]}},
+			"app2": {envRender{envData: appEnvMap["app2"]}},
+			"app3": {envRender{envData: appEnvMap["app3"]}},
+		},
+	}
+
+	type args struct {
+		input  imagev1.ImageExtension
+		wanted *applicationDriver
+	}
+	var tests = []struct {
+		name string
+		args args
+	}{{
+		name: "format extension to application",
+		args: args{
+			input:  extension,
+			wanted: v2App,
+		},
+	},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatImageExtension(tt.args.input)
 			assert.Equal(t, tt.args.wanted, result)
 		})
 	}

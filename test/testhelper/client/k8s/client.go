@@ -277,6 +277,10 @@ func (c *Client) CheckAllNodeReady() (bool, error) {
 				continue
 			}
 			if condition.Status == FALSE {
+				fmt.Println("********************************************************Node*****************************************************************************")
+				fmt.Println(condition.Reason)
+				fmt.Println(condition.Message)
+				fmt.Println("=========================================================================================================================================")
 				return false, nil
 			}
 		}

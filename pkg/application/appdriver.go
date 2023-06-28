@@ -33,7 +33,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type v2Application struct {
+type applicationDriver struct {
 	app *v2.Application
 
 	// launchApps indicate that which applications will be launched
@@ -42,14 +42,20 @@ type v2Application struct {
 	//if launchApps==["app1","app2"], launch app1,app2.
 	launchApps []string
 
+	// registeredApps is the app name list which registered in image extension at build stage.
+	registeredApps []string
+
 	// globalCmds is raw cmds without any application info
 	globalCmds []string
+
+	// globalEnv is global env registered in image extension
+	globalEnv map[string]string
 
 	// appLaunchCmdsMap contains the whole appLaunchCmds with app name as its key.
 	appLaunchCmdsMap map[string][]string
 	//appDeleteCmdsMap    map[string][]string
 
-	//appFileProcessorMap map[string][]Processor
+	//extension is ImageExtension
 	extension imagev1.ImageExtension
 
 	// appRootMap contains the whole app root with app name as its key.
@@ -62,19 +68,19 @@ type v2Application struct {
 	appFileProcessorMap map[string][]FileProcessor
 }
 
-func (a *v2Application) GetAppLaunchCmds(appName string) []string {
+func (a *applicationDriver) GetAppLaunchCmds(appName string) []string {
 	return a.appLaunchCmdsMap[appName]
 }
 
-func (a *v2Application) GetAppNames() []string {
+func (a *applicationDriver) GetAppNames() []string {
 	return a.launchApps
 }
 
-func (a *v2Application) GetAppRoot(appName string) string {
+func (a *applicationDriver) GetAppRoot(appName string) string {
 	return a.appRootMap[appName]
 }
 
-func (a *v2Application) GetImageLaunchCmds() []string {
+func (a *applicationDriver) GetImageLaunchCmds() []string {
 	if a.globalCmds != nil {
 		return a.globalCmds
 	}
@@ -90,11 +96,11 @@ func (a *v2Application) GetImageLaunchCmds() []string {
 	return cmds
 }
 
-func (a *v2Application) GetApplication() v2.Application {
+func (a *applicationDriver) GetApplication() v2.Application {
 	return *a.app
 }
 
-func (a *v2Application) Launch(infraDriver infradriver.InfraDriver) error {
+func (a *applicationDriver) Launch(infraDriver infradriver.InfraDriver) error {
 	var (
 		rootfsPath = infraDriver.GetClusterRootfsPath()
 		masters    = infraDriver.GetHostIPListByRole(common.MASTER)
@@ -121,7 +127,7 @@ func (a *v2Application) Launch(infraDriver infradriver.InfraDriver) error {
 
 // Save application install history
 // TODO save to cluster, also need a save struct.
-func (a *v2Application) Save(opts SaveOptions) error {
+func (a *applicationDriver) Save(opts SaveOptions) error {
 	applicationFile := common.GetDefaultApplicationFile()
 
 	f, err := os.OpenFile(filepath.Clean(applicationFile), os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
@@ -156,7 +162,7 @@ func (a *v2Application) Save(opts SaveOptions) error {
 	return nil
 }
 
-func (a *v2Application) FileProcess(mountDir string) error {
+func (a *applicationDriver) FileProcess(mountDir string) error {
 	for appName, processors := range a.appFileProcessorMap {
 		for _, fp := range processors {
 			if err := fp.Process(filepath.Join(mountDir, a.GetAppRoot(appName))); err != nil {
@@ -167,25 +173,13 @@ func (a *v2Application) FileProcess(mountDir string) error {
 	return nil
 }
 
-// NewV2Application :unify v2.Application and image extension into same Interface using to do Application ops.
-func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (Interface, error) {
-	v2App := &v2Application{
-		app:                 app,
-		extension:           extension,
-		globalCmds:          extension.Launch.Cmds,
-		appLaunchCmdsMap:    map[string][]string{},
-		appRootMap:          map[string]string{},
-		appEnvMap:           map[string]map[string]string{},
-		appFileProcessorMap: map[string][]FileProcessor{},
-	}
-
-	for _, registered := range extension.Applications {
-		v2App.launchApps = append(v2App.launchApps, registered.Name())
-	}
-
+// NewAppDriver :unify v2.Application and image extension into same Interface using to do Application ops.
+func NewAppDriver(app *v2.Application, extension imagev1.ImageExtension) (Interface, error) {
+	appDriver := formatImageExtension(extension)
+	appDriver.app = app
 	// initialize globalCmds, overwrite default cmds from image extension.
 	if len(app.Spec.Cmds) > 0 {
-		v2App.globalCmds = app.Spec.Cmds
+		appDriver.globalCmds = app.Spec.Cmds
 	}
 
 	// initialize appNames field, overwrite default app names from image extension.
@@ -196,67 +190,45 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 			if len(wanted) == 0 {
 				continue
 			}
-			if !strUtils.IsInSlice(wanted, v2App.launchApps) {
-				return nil, fmt.Errorf("app name `%s` is not found in %s", wanted, v2App.launchApps)
+			if !strUtils.IsInSlice(wanted, appDriver.registeredApps) {
+				return nil, fmt.Errorf("app name `%s` is not found in %s", wanted, appDriver.registeredApps)
 			}
 		}
 
-		v2App.launchApps = app.Spec.LaunchApps
-	}
-
-	// initialize appLaunchCmdsMap, get default launch cmds from image extension.
-	appConfigFromImageMap := make(map[string]*imagev1.ApplicationConfig)
-
-	for _, appConfig := range extension.Launch.AppConfigs {
-		appConfigFromImageMap[appConfig.Name] = appConfig
-	}
-
-	appEnvFromExtension := make(map[string]map[string]string)
-
-	for _, name := range v2App.launchApps {
-		appRoot := makeItDir(filepath.Join(rootfs.GlobalManager.App().Root(), name))
-		v2App.appRootMap[name] = appRoot
-		for _, exApp := range extension.Applications {
-			v1app := exApp.(*v1.Application)
-			if v1app.Name() != name {
-				continue
-			}
-			if appConfig, ok := appConfigFromImageMap[name]; ok && appConfig.Launch != nil {
-				v2App.appLaunchCmdsMap[name] = []string{v1app.LaunchCmd(appRoot, appConfig.Launch.CMDs)}
-			} else {
-				v2App.appLaunchCmdsMap[name] = []string{v1app.LaunchCmd(appRoot, nil)}
-			}
-			appEnvFromExtension[name] = mapUtils.Merge(v1app.AppEnv, extension.Env)
-		}
+		appDriver.launchApps = app.Spec.LaunchApps
 	}
 
 	// initialize Configs field
 	for _, config := range app.Spec.Configs {
 		if config.Name == "" {
-			return nil, fmt.Errorf("v2Application configs name coule not be nil")
+			return nil, fmt.Errorf("application configs name could not be nil")
 		}
 
 		name := config.Name
-		// make sure config in launchApps,if not will ignore this config.
-		if !strUtils.IsInSlice(name, v2App.launchApps) {
+		// make sure config in launchApps, if not will ignore this config.
+		if !strUtils.IsInSlice(name, appDriver.launchApps) {
 			continue
 		}
 
 		if config.Launch != nil {
 			launchCmds := parseLaunchCmds(config.Launch)
 			if launchCmds == nil {
-				return nil, fmt.Errorf("failed to get launchCmds from v2Application configs")
+				return nil, fmt.Errorf("failed to get launchCmds from application configs")
 			}
-			v2App.appLaunchCmdsMap[name] = launchCmds
+			appDriver.appLaunchCmdsMap[name] = launchCmds
 		}
 
-		// add app env
-		v2App.appEnvMap[name] = mapUtils.Merge(strUtils.ConvertStringSliceToMap(config.Env), appEnvFromExtension[name])
+		// merge config env with extension env
+		if len(config.Env) > 0 {
+			appEnvFromExtension := appDriver.appEnvMap[name]
+			appEnvFromConfig := strUtils.ConvertStringSliceToMap(config.Env)
+			appDriver.appEnvMap[name] = mapUtils.Merge(appEnvFromConfig, appEnvFromExtension)
+		}
 
 		// initialize app FileProcessors
 		var fileProcessors []FileProcessor
-		if len(v2App.appEnvMap[name]) > 0 {
-			fileProcessors = append(fileProcessors, envRender{envData: v2App.appEnvMap[name]})
+		if len(appDriver.appEnvMap[name]) > 0 {
+			fileProcessors = append(fileProcessors, envRender{envData: appDriver.appEnvMap[name]})
 		}
 
 		for _, appFile := range config.Files {
@@ -266,12 +238,50 @@ func NewV2Application(app *v2.Application, extension imagev1.ImageExtension) (In
 			}
 			fileProcessors = append(fileProcessors, fp)
 		}
-		v2App.appFileProcessorMap[name] = fileProcessors
+		appDriver.appFileProcessorMap[name] = fileProcessors
 
 		// TODO initialize delete field
 	}
 
-	return v2App, nil
+	return appDriver, nil
+}
+
+func formatImageExtension(extension imagev1.ImageExtension) *applicationDriver {
+	appDriver := &applicationDriver{
+		extension:           extension,
+		globalCmds:          extension.Launch.Cmds,
+		globalEnv:           extension.Env,
+		launchApps:          extension.Launch.AppNames,
+		registeredApps:      []string{},
+		appLaunchCmdsMap:    map[string][]string{},
+		appRootMap:          map[string]string{},
+		appEnvMap:           map[string]map[string]string{},
+		appFileProcessorMap: map[string][]FileProcessor{},
+	}
+
+	for _, registeredApp := range extension.Applications {
+		appName := registeredApp.Name()
+		// initialize app name
+		appDriver.registeredApps = append(appDriver.registeredApps, appName)
+
+		// initialize app root path
+		appRoot := makeItDir(filepath.Join(rootfs.GlobalManager.App().Root(), appName))
+		appDriver.appRootMap[appName] = appRoot
+
+		// initialize app LaunchCmds
+		app := registeredApp.(*v1.Application)
+		appDriver.appLaunchCmdsMap[appName] = []string{v1.GetAppLaunchCmd(appRoot, app)}
+
+		// initialize app env
+		appDriver.appEnvMap[appName] = mapUtils.Merge(app.AppEnv, extension.Env)
+
+		// initialize app FileProcessors
+		if len(appDriver.appEnvMap[appName]) > 0 {
+			appDriver.appFileProcessorMap[appName] = []FileProcessor{envRender{envData: appDriver.appEnvMap[appName]}}
+		}
+	}
+
+	return appDriver
 }
 
 // parseLaunchCmds parse shell, kube,helm type launch cmds
