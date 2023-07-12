@@ -13,7 +13,7 @@ jobs:
     steps:
 
       - name: Invite user to join our group
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v3
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
