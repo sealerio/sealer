@@ -109,15 +109,25 @@ func (engine *Engine) Save(opts *options.SaveOptions) error {
 		if err != nil {
 			return err
 		}
+
 		if len(images) == 0 {
 			return fmt.Errorf("no image matched with digest %s", instanceDigest)
 		}
 
-		instanceTar := filepath.Join(tempDir, images[0].ID+".tar")
-		err = engine.saveOneImage(images[0].ID, opts.Format, instanceTar, opts.Compress)
+		instance := images[0]
+		instanceTar := filepath.Join(tempDir, instance.ID+".tar")
+
+		// if instance has "Names", use the first one as saved name
+		instanceName := instance.ID
+		if len(instance.Names) > 0 {
+			instanceName = instance.Names[0]
+		}
+
+		err = engine.saveOneImage(instanceName, opts.Format, instanceTar, opts.Compress)
 		if err != nil {
 			return err
 		}
+
 		pathsToCompress = append(pathsToCompress, instanceTar)
 	}
 
