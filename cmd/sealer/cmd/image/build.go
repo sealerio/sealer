@@ -323,7 +323,15 @@ func applyRegistryToImage(engine imageengine.Interface, imageID string, platform
 	if err != nil {
 		return "", nil, errors.Wrap(err, "failed to parse container image list")
 	}
-	containerImageList = append(containerImageList, parsedContainerImageList...)
+	for _, image := range parsedContainerImageList {
+		logrus.Debugf("get container image(%s) with platform(%s) from build context",
+			image.Image, platform.ToString())
+		containerImageList = append(containerImageList, &v12.ContainerImage{
+			Image:    image.Image,
+			AppName:  image.AppName,
+			Platform: &platform,
+		})
+	}
 
 	// ignored image list
 	if buildFlags.IgnoredImageList != "" && osi.IsFileExist(buildFlags.IgnoredImageList) {

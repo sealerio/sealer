@@ -67,6 +67,7 @@ func (s *scpDistributor) DistributeRegistry(deployHosts []net.IP, dataDir string
 					}
 
 					if existed {
+						logrus.Debugf("cache %s hits on: %s, skip to do distribution", info.ImageID, tmpDeployHost.String())
 						return nil
 					}
 				}
@@ -121,6 +122,7 @@ func (s *scpDistributor) Distribute(hosts []net.IP, dest string) error {
 					}
 
 					if existed {
+						logrus.Debugf("cache %s hits on: %s, skip to do distribution", info.ImageID, host.String())
 						return nil
 					}
 				}

@@ -71,6 +71,7 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 		}
 	}()
 
+	existFlag := make(map[string]struct{})
 	//handle image name
 	for _, image := range images {
 		named, err := ParseNormalizedNamed(image, "")
@@ -78,7 +79,14 @@ func (is *DefaultImageSaver) SaveImages(images []string, dir string, platform v1
 			return fmt.Errorf("failed to parse image name:: %v", err)
 		}
 
-		//check if image exist
+		//check if image is duplicate
+		if _, exist := existFlag[named.FullName()]; exist {
+			continue
+		} else {
+			existFlag[named.FullName()] = struct{}{}
+		}
+
+		//check if image exist in disk
 		if err := is.isImageExist(named, dir, platform); err == nil {
 			continue
 		}
