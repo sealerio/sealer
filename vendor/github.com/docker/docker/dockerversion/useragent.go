@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"sync"
 
 	"github.com/docker/docker/pkg/parsers/kernel"
 	"github.com/docker/docker/pkg/useragent"
@@ -14,25 +15,46 @@ type UAStringKey struct{}
 
 // DockerUserAgent is the User-Agent the Docker client uses to identify itself.
 // In accordance with RFC 7231 (5.5.3) is of the form:
-//    [docker client's UA] UpstreamClient([upstream client's UA])
+//
+//	[docker client's UA] UpstreamClient([upstream client's UA])
 func DockerUserAgent(ctx context.Context) string {
-	httpVersion := make([]useragent.VersionInfo, 0, 6)
-	httpVersion = append(httpVersion, useragent.VersionInfo{Name: "docker", Version: Version})
-	httpVersion = append(httpVersion, useragent.VersionInfo{Name: "go", Version: runtime.Version()})
-	httpVersion = append(httpVersion, useragent.VersionInfo{Name: "git-commit", Version: GitCommit})
-	if kernelVersion, err := kernel.GetKernelVersion(); err == nil {
-		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "kernel", Version: kernelVersion.String()})
+	daemonUA := getDaemonUserAgent()
+	if upstreamUA := getUserAgentFromContext(ctx); len(upstreamUA) > 0 {
+		return insertUpstreamUserAgent(upstreamUA, daemonUA)
 	}
-	httpVersion = append(httpVersion, useragent.VersionInfo{Name: "os", Version: runtime.GOOS})
-	httpVersion = append(httpVersion, useragent.VersionInfo{Name: "arch", Version: runtime.GOARCH})
+	return daemonUA
+}
 
-	dockerUA := useragent.AppendVersions("", httpVersion...)
-	upstreamUA := getUserAgentFromContext(ctx)
-	if len(upstreamUA) > 0 {
-		ret := insertUpstreamUserAgent(upstreamUA, dockerUA)
-		return ret
-	}
-	return dockerUA
+var (
+	daemonUAOnce sync.Once
+	daemonUA     string
+)
+
+// getDaemonUserAgent returns the user-agent to use for requests made by
+// the daemon.
+//
+// It includes;
+//
+// - the docker version
+// - go version
+// - git-commit
+// - kernel version
+// - os
+// - architecture
+func getDaemonUserAgent() string {
+	daemonUAOnce.Do(func() {
+		httpVersion := make([]useragent.VersionInfo, 0, 6)
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "docker", Version: Version})
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "go", Version: runtime.Version()})
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "git-commit", Version: GitCommit})
+		if kernelVersion, err := kernel.GetKernelVersion(); err == nil {
+			httpVersion = append(httpVersion, useragent.VersionInfo{Name: "kernel", Version: kernelVersion.String()})
+		}
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "os", Version: runtime.GOOS})
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "arch", Version: runtime.GOARCH})
+		daemonUA = useragent.AppendVersions("", httpVersion...)
+	})
+	return daemonUA
 }
 
 // getUserAgentFromContext returns the previously saved user-agent context stored in ctx, if one exists
@@ -68,7 +90,8 @@ func escapeStr(s string, charsToEscape string) string {
 
 // insertUpstreamUserAgent adds the upstream client useragent to create a user-agent
 // string of the form:
-//   $dockerUA UpstreamClient($upstreamUA)
+//
+//	$dockerUA UpstreamClient($upstreamUA)
 func insertUpstreamUserAgent(upstreamUA string, dockerUA string) string {
 	charsToEscape := `();\`
 	upstreamUAEscaped := escapeStr(upstreamUA, charsToEscape)
