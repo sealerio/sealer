@@ -81,6 +81,7 @@ type ImportImageRequest struct {
 	Tag                  *[]ImportImageTag               `position:"Query" name:"Tag"  type:"Repeated"`
 	Architecture         string                          `position:"Query" name:"Architecture"`
 	LicenseType          string                          `position:"Query" name:"LicenseType"`
+	DetectionStrategy    string                          `position:"Query" name:"DetectionStrategy"`
 	ResourceOwnerAccount string                          `position:"Query" name:"ResourceOwnerAccount"`
 	RoleName             string                          `position:"Query" name:"RoleName"`
 	OSType               string                          `position:"Query" name:"OSType"`
@@ -107,9 +108,9 @@ type ImportImageTag struct {
 type ImportImageResponse struct {
 	*responses.BaseResponse
 	RequestId string `json:"RequestId" xml:"RequestId"`
+	ImageId   string `json:"ImageId" xml:"ImageId"`
 	TaskId    string `json:"TaskId" xml:"TaskId"`
 	RegionId  string `json:"RegionId" xml:"RegionId"`
-	ImageId   string `json:"ImageId" xml:"ImageId"`
 }
 
 // CreateImportImageRequest creates a request to invoke ImportImage API

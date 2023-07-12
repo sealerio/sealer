@@ -109,11 +109,11 @@ type DescribeSnapshotsTag struct {
 // DescribeSnapshotsResponse is the response struct for api DescribeSnapshots
 type DescribeSnapshotsResponse struct {
 	*responses.BaseResponse
+	NextToken  string                       `json:"NextToken" xml:"NextToken"`
+	PageSize   int                          `json:"PageSize" xml:"PageSize"`
+	PageNumber int                          `json:"PageNumber" xml:"PageNumber"`
 	RequestId  string                       `json:"RequestId" xml:"RequestId"`
 	TotalCount int                          `json:"TotalCount" xml:"TotalCount"`
-	PageNumber int                          `json:"PageNumber" xml:"PageNumber"`
-	PageSize   int                          `json:"PageSize" xml:"PageSize"`
-	NextToken  string                       `json:"NextToken" xml:"NextToken"`
 	Snapshots  SnapshotsInDescribeSnapshots `json:"Snapshots" xml:"Snapshots"`
 }
 

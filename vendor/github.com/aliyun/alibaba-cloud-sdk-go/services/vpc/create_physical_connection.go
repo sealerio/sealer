@@ -71,28 +71,37 @@ func (client *Client) CreatePhysicalConnectionWithCallback(request *CreatePhysic
 // CreatePhysicalConnectionRequest is the request struct for api CreatePhysicalConnection
 type CreatePhysicalConnectionRequest struct {
 	*requests.RpcRequest
-	AccessPointId                 string           `position:"Query" name:"AccessPointId"`
-	ResourceOwnerId               requests.Integer `position:"Query" name:"ResourceOwnerId"`
-	PortType                      string           `position:"Query" name:"PortType"`
-	CircuitCode                   string           `position:"Query" name:"CircuitCode"`
-	ClientToken                   string           `position:"Query" name:"ClientToken"`
-	Description                   string           `position:"Query" name:"Description"`
-	Type                          string           `position:"Query" name:"Type"`
-	RedundantPhysicalConnectionId string           `position:"Query" name:"RedundantPhysicalConnectionId"`
-	PeerLocation                  string           `position:"Query" name:"PeerLocation"`
-	Bandwidth                     requests.Integer `position:"Query" name:"bandwidth"`
-	ResourceOwnerAccount          string           `position:"Query" name:"ResourceOwnerAccount"`
-	OwnerAccount                  string           `position:"Query" name:"OwnerAccount"`
-	OwnerId                       requests.Integer `position:"Query" name:"OwnerId"`
-	LineOperator                  string           `position:"Query" name:"LineOperator"`
-	Name                          string           `position:"Query" name:"Name"`
+	AccessPointId                 string                         `position:"Query" name:"AccessPointId"`
+	CloudBoxInstanceId            string                         `position:"Query" name:"CloudBoxInstanceId"`
+	ResourceOwnerId               requests.Integer               `position:"Query" name:"ResourceOwnerId"`
+	PortType                      string                         `position:"Query" name:"PortType"`
+	CircuitCode                   string                         `position:"Query" name:"CircuitCode"`
+	ClientToken                   string                         `position:"Query" name:"ClientToken"`
+	Description                   string                         `position:"Query" name:"Description"`
+	Type                          string                         `position:"Query" name:"Type"`
+	ResourceGroupId               string                         `position:"Query" name:"ResourceGroupId"`
+	Tag                           *[]CreatePhysicalConnectionTag `position:"Query" name:"Tag"  type:"Repeated"`
+	RedundantPhysicalConnectionId string                         `position:"Query" name:"RedundantPhysicalConnectionId"`
+	PeerLocation                  string                         `position:"Query" name:"PeerLocation"`
+	Bandwidth                     requests.Integer               `position:"Query" name:"bandwidth"`
+	ResourceOwnerAccount          string                         `position:"Query" name:"ResourceOwnerAccount"`
+	OwnerAccount                  string                         `position:"Query" name:"OwnerAccount"`
+	OwnerId                       requests.Integer               `position:"Query" name:"OwnerId"`
+	LineOperator                  string                         `position:"Query" name:"LineOperator"`
+	Name                          string                         `position:"Query" name:"Name"`
+}
+
+// CreatePhysicalConnectionTag is a repeated param struct in CreatePhysicalConnectionRequest
+type CreatePhysicalConnectionTag struct {
+	Value string `name:"Value"`
+	Key   string `name:"Key"`
 }
 
 // CreatePhysicalConnectionResponse is the response struct for api CreatePhysicalConnection
 type CreatePhysicalConnectionResponse struct {
 	*responses.BaseResponse
-	RequestId            string `json:"RequestId" xml:"RequestId"`
 	PhysicalConnectionId string `json:"PhysicalConnectionId" xml:"PhysicalConnectionId"`
+	RequestId            string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateCreatePhysicalConnectionRequest creates a request to invoke CreatePhysicalConnection API

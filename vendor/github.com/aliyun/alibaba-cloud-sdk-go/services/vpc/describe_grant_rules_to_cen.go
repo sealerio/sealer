@@ -73,7 +73,9 @@ type DescribeGrantRulesToCenRequest struct {
 	*requests.RpcRequest
 	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
 	ClientToken          string           `position:"Query" name:"ClientToken"`
+	PageNumber           requests.Integer `position:"Query" name:"PageNumber"`
 	ResourceGroupId      string           `position:"Query" name:"ResourceGroupId"`
+	PageSize             requests.Integer `position:"Query" name:"PageSize"`
 	InstanceType         string           `position:"Query" name:"InstanceType"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
@@ -84,10 +86,10 @@ type DescribeGrantRulesToCenRequest struct {
 // DescribeGrantRulesToCenResponse is the response struct for api DescribeGrantRulesToCen
 type DescribeGrantRulesToCenResponse struct {
 	*responses.BaseResponse
-	RequestId     string        `json:"RequestId" xml:"RequestId"`
-	TotalCount    int           `json:"TotalCount" xml:"TotalCount"`
-	PageNumber    int           `json:"PageNumber" xml:"PageNumber"`
 	PageSize      int           `json:"PageSize" xml:"PageSize"`
+	RequestId     string        `json:"RequestId" xml:"RequestId"`
+	PageNumber    int           `json:"PageNumber" xml:"PageNumber"`
+	TotalCount    int           `json:"TotalCount" xml:"TotalCount"`
 	CenGrantRules CenGrantRules `json:"CenGrantRules" xml:"CenGrantRules"`
 }
 

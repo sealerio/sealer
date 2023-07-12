@@ -71,26 +71,34 @@ func (client *Client) CreateCustomerGatewayWithCallback(request *CreateCustomerG
 // CreateCustomerGatewayRequest is the request struct for api CreateCustomerGateway
 type CreateCustomerGatewayRequest struct {
 	*requests.RpcRequest
-	IpAddress            string           `position:"Query" name:"IpAddress"`
-	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
-	ClientToken          string           `position:"Query" name:"ClientToken"`
-	Description          string           `position:"Query" name:"Description"`
-	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
-	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
-	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
-	Name                 string           `position:"Query" name:"Name"`
-	Asn                  string           `position:"Query" name:"Asn"`
+	IpAddress            string                       `position:"Query" name:"IpAddress"`
+	AuthKey              string                       `position:"Query" name:"AuthKey"`
+	ResourceOwnerId      requests.Integer             `position:"Query" name:"ResourceOwnerId"`
+	ClientToken          string                       `position:"Query" name:"ClientToken"`
+	Description          string                       `position:"Query" name:"Description"`
+	ResourceOwnerAccount string                       `position:"Query" name:"ResourceOwnerAccount"`
+	OwnerAccount         string                       `position:"Query" name:"OwnerAccount"`
+	OwnerId              requests.Integer             `position:"Query" name:"OwnerId"`
+	Tags                 *[]CreateCustomerGatewayTags `position:"Query" name:"Tags"  type:"Repeated"`
+	Name                 string                       `position:"Query" name:"Name"`
+	Asn                  string                       `position:"Query" name:"Asn"`
+}
+
+// CreateCustomerGatewayTags is a repeated param struct in CreateCustomerGatewayRequest
+type CreateCustomerGatewayTags struct {
+	Value string `name:"Value"`
+	Key   string `name:"Key"`
 }
 
 // CreateCustomerGatewayResponse is the response struct for api CreateCustomerGateway
 type CreateCustomerGatewayResponse struct {
 	*responses.BaseResponse
 	RequestId         string `json:"RequestId" xml:"RequestId"`
-	CustomerGatewayId string `json:"CustomerGatewayId" xml:"CustomerGatewayId"`
 	IpAddress         string `json:"IpAddress" xml:"IpAddress"`
-	Name              string `json:"Name" xml:"Name"`
 	Description       string `json:"Description" xml:"Description"`
+	CustomerGatewayId string `json:"CustomerGatewayId" xml:"CustomerGatewayId"`
 	CreateTime        int64  `json:"CreateTime" xml:"CreateTime"`
+	Name              string `json:"Name" xml:"Name"`
 }
 
 // CreateCreateCustomerGatewayRequest creates a request to invoke CreateCustomerGateway API

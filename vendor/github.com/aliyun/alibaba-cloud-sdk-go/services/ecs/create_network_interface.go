@@ -73,22 +73,30 @@ type CreateNetworkInterfaceRequest struct {
 	*requests.RpcRequest
 	QueueNumber                    requests.Integer             `position:"Query" name:"QueueNumber"`
 	ResourceOwnerId                requests.Integer             `position:"Query" name:"ResourceOwnerId"`
-	ClientToken                    string                       `position:"Query" name:"ClientToken"`
-	SecurityGroupId                string                       `position:"Query" name:"SecurityGroupId"`
-	Description                    string                       `position:"Query" name:"Description"`
+	Ipv4Prefix                     *[]string                    `position:"Query" name:"Ipv4Prefix"  type:"Repeated"`
 	SecondaryPrivateIpAddressCount requests.Integer             `position:"Query" name:"SecondaryPrivateIpAddressCount"`
 	BusinessType                   string                       `position:"Query" name:"BusinessType"`
 	ResourceGroupId                string                       `position:"Query" name:"ResourceGroupId"`
-	InstanceType                   string                       `position:"Query" name:"InstanceType"`
 	Tag                            *[]CreateNetworkInterfaceTag `position:"Query" name:"Tag"  type:"Repeated"`
 	NetworkInterfaceName           string                       `position:"Query" name:"NetworkInterfaceName"`
 	Visible                        requests.Boolean             `position:"Query" name:"Visible"`
-	ResourceOwnerAccount           string                       `position:"Query" name:"ResourceOwnerAccount"`
-	OwnerAccount                   string                       `position:"Query" name:"OwnerAccount"`
+	Ipv6AddressCount               requests.Integer             `position:"Query" name:"Ipv6AddressCount"`
 	OwnerId                        requests.Integer             `position:"Query" name:"OwnerId"`
-	SecurityGroupIds               *[]string                    `position:"Query" name:"SecurityGroupIds"  type:"Repeated"`
 	VSwitchId                      string                       `position:"Query" name:"VSwitchId"`
 	PrivateIpAddress               *[]string                    `position:"Query" name:"PrivateIpAddress"  type:"Repeated"`
+	Ipv6Address                    *[]string                    `position:"Query" name:"Ipv6Address"  type:"Repeated"`
+	ClientToken                    string                       `position:"Query" name:"ClientToken"`
+	Ipv6Prefix                     *[]string                    `position:"Query" name:"Ipv6Prefix"  type:"Repeated"`
+	SecurityGroupId                string                       `position:"Query" name:"SecurityGroupId"`
+	Description                    string                       `position:"Query" name:"Description"`
+	Ipv6PrefixCount                requests.Integer             `position:"Query" name:"Ipv6PrefixCount"`
+	InstanceType                   string                       `position:"Query" name:"InstanceType"`
+	ResourceOwnerAccount           string                       `position:"Query" name:"ResourceOwnerAccount"`
+	OwnerAccount                   string                       `position:"Query" name:"OwnerAccount"`
+	QueuePairNumber                requests.Integer             `position:"Query" name:"QueuePairNumber"`
+	SecurityGroupIds               *[]string                    `position:"Query" name:"SecurityGroupIds"  type:"Repeated"`
+	NetworkInterfaceTrafficMode    string                       `position:"Query" name:"NetworkInterfaceTrafficMode"`
+	Ipv4PrefixCount                requests.Integer             `position:"Query" name:"Ipv4PrefixCount"`
 	PrimaryIpAddress               string                       `position:"Query" name:"PrimaryIpAddress"`
 }
 
@@ -101,24 +109,27 @@ type CreateNetworkInterfaceTag struct {
 // CreateNetworkInterfaceResponse is the response struct for api CreateNetworkInterface
 type CreateNetworkInterfaceResponse struct {
 	*responses.BaseResponse
-	RequestId            string                                   `json:"RequestId" xml:"RequestId"`
-	NetworkInterfaceId   string                                   `json:"NetworkInterfaceId" xml:"NetworkInterfaceId"`
 	Status               string                                   `json:"Status" xml:"Status"`
 	Type                 string                                   `json:"Type" xml:"Type"`
 	VpcId                string                                   `json:"VpcId" xml:"VpcId"`
-	VSwitchId            string                                   `json:"VSwitchId" xml:"VSwitchId"`
-	ZoneId               string                                   `json:"ZoneId" xml:"ZoneId"`
-	PrivateIpAddress     string                                   `json:"PrivateIpAddress" xml:"PrivateIpAddress"`
-	MacAddress           string                                   `json:"MacAddress" xml:"MacAddress"`
 	NetworkInterfaceName string                                   `json:"NetworkInterfaceName" xml:"NetworkInterfaceName"`
+	MacAddress           string                                   `json:"MacAddress" xml:"MacAddress"`
+	NetworkInterfaceId   string                                   `json:"NetworkInterfaceId" xml:"NetworkInterfaceId"`
+	ServiceID            int64                                    `json:"ServiceID" xml:"ServiceID"`
+	OwnerId              string                                   `json:"OwnerId" xml:"OwnerId"`
+	ServiceManaged       bool                                     `json:"ServiceManaged" xml:"ServiceManaged"`
+	VSwitchId            string                                   `json:"VSwitchId" xml:"VSwitchId"`
+	RequestId            string                                   `json:"RequestId" xml:"RequestId"`
 	Description          string                                   `json:"Description" xml:"Description"`
 	ResourceGroupId      string                                   `json:"ResourceGroupId" xml:"ResourceGroupId"`
-	ServiceID            int64                                    `json:"ServiceID" xml:"ServiceID"`
-	ServiceManaged       bool                                     `json:"ServiceManaged" xml:"ServiceManaged"`
-	OwnerId              string                                   `json:"OwnerId" xml:"OwnerId"`
+	ZoneId               string                                   `json:"ZoneId" xml:"ZoneId"`
+	PrivateIpAddress     string                                   `json:"PrivateIpAddress" xml:"PrivateIpAddress"`
 	SecurityGroupIds     SecurityGroupIdsInCreateNetworkInterface `json:"SecurityGroupIds" xml:"SecurityGroupIds"`
 	PrivateIpSets        PrivateIpSetsInCreateNetworkInterface    `json:"PrivateIpSets" xml:"PrivateIpSets"`
 	Tags                 TagsInCreateNetworkInterface             `json:"Tags" xml:"Tags"`
+	Ipv6Sets             Ipv6SetsInCreateNetworkInterface         `json:"Ipv6Sets" xml:"Ipv6Sets"`
+	Ipv4PrefixSets       Ipv4PrefixSetsInCreateNetworkInterface   `json:"Ipv4PrefixSets" xml:"Ipv4PrefixSets"`
+	Ipv6PrefixSets       Ipv6PrefixSetsInCreateNetworkInterface   `json:"Ipv6PrefixSets" xml:"Ipv6PrefixSets"`
 }
 
 // CreateCreateNetworkInterfaceRequest creates a request to invoke CreateNetworkInterface API

@@ -84,16 +84,16 @@ type ListTagResourcesRequest struct {
 
 // ListTagResourcesTag is a repeated param struct in ListTagResourcesRequest
 type ListTagResourcesTag struct {
-	Value string `name:"Value"`
 	Key   string `name:"Key"`
+	Value string `name:"Value"`
 }
 
 // ListTagResourcesResponse is the response struct for api ListTagResources
 type ListTagResourcesResponse struct {
 	*responses.BaseResponse
-	RequestId    string       `json:"RequestId" xml:"RequestId"`
-	NextToken    string       `json:"NextToken" xml:"NextToken"`
-	TagResources TagResources `json:"TagResources" xml:"TagResources"`
+	NextToken    string                         `json:"NextToken" xml:"NextToken"`
+	RequestId    string                         `json:"RequestId" xml:"RequestId"`
+	TagResources TagResourcesInListTagResources `json:"TagResources" xml:"TagResources"`
 }
 
 // CreateListTagResourcesRequest creates a request to invoke ListTagResources API

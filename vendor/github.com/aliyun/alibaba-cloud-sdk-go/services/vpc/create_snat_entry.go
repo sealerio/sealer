@@ -76,6 +76,7 @@ type CreateSnatEntryRequest struct {
 	SourceCIDR           string           `position:"Query" name:"SourceCIDR"`
 	SnatIp               string           `position:"Query" name:"SnatIp"`
 	SourceVSwitchId      string           `position:"Query" name:"SourceVSwitchId"`
+	EipAffinity          requests.Integer `position:"Query" name:"EipAffinity"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	SnatTableId          string           `position:"Query" name:"SnatTableId"`
@@ -86,8 +87,8 @@ type CreateSnatEntryRequest struct {
 // CreateSnatEntryResponse is the response struct for api CreateSnatEntry
 type CreateSnatEntryResponse struct {
 	*responses.BaseResponse
-	RequestId   string `json:"RequestId" xml:"RequestId"`
 	SnatEntryId string `json:"SnatEntryId" xml:"SnatEntryId"`
+	RequestId   string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateCreateSnatEntryRequest creates a request to invoke CreateSnatEntry API

@@ -17,19 +17,21 @@ package ecs
 
 // Command is a nested struct in ecs response
 type Command struct {
-	CommandId       string         `json:"CommandId" xml:"CommandId"`
-	Name            string         `json:"Name" xml:"Name"`
-	Type            string         `json:"Type" xml:"Type"`
-	Version         int            `json:"Version" xml:"Version"`
-	Latest          bool           `json:"Latest" xml:"Latest"`
-	Provider        string         `json:"Provider" xml:"Provider"`
-	Category        string         `json:"Category" xml:"Category"`
-	Description     string         `json:"Description" xml:"Description"`
-	CommandContent  string         `json:"CommandContent" xml:"CommandContent"`
-	WorkingDir      string         `json:"WorkingDir" xml:"WorkingDir"`
-	Timeout         int64          `json:"Timeout" xml:"Timeout"`
-	InvokeTimes     int            `json:"InvokeTimes" xml:"InvokeTimes"`
-	CreationTime    string         `json:"CreationTime" xml:"CreationTime"`
-	EnableParameter bool           `json:"EnableParameter" xml:"EnableParameter"`
-	ParameterNames  ParameterNames `json:"ParameterNames" xml:"ParameterNames"`
+	CreationTime         string                 `json:"CreationTime" xml:"CreationTime"`
+	Type                 string                 `json:"Type" xml:"Type"`
+	Timeout              int64                  `json:"Timeout" xml:"Timeout"`
+	InvokeTimes          int                    `json:"InvokeTimes" xml:"InvokeTimes"`
+	CommandId            string                 `json:"CommandId" xml:"CommandId"`
+	WorkingDir           string                 `json:"WorkingDir" xml:"WorkingDir"`
+	Description          string                 `json:"Description" xml:"Description"`
+	Version              int                    `json:"Version" xml:"Version"`
+	Provider             string                 `json:"Provider" xml:"Provider"`
+	CommandContent       string                 `json:"CommandContent" xml:"CommandContent"`
+	Category             string                 `json:"Category" xml:"Category"`
+	Latest               bool                   `json:"Latest" xml:"Latest"`
+	Name                 string                 `json:"Name" xml:"Name"`
+	EnableParameter      bool                   `json:"EnableParameter" xml:"EnableParameter"`
+	ParameterNames       ParameterNames         `json:"ParameterNames" xml:"ParameterNames"`
+	ParameterDefinitions ParameterDefinitions   `json:"ParameterDefinitions" xml:"ParameterDefinitions"`
+	Tags                 TagsInDescribeCommands `json:"Tags" xml:"Tags"`
 }

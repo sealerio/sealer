@@ -82,28 +82,32 @@ type DescribeVpnGatewayRequest struct {
 // DescribeVpnGatewayResponse is the response struct for api DescribeVpnGateway
 type DescribeVpnGatewayResponse struct {
 	*responses.BaseResponse
-	RequestId         string                   `json:"RequestId" xml:"RequestId"`
-	VpnGatewayId      string                   `json:"VpnGatewayId" xml:"VpnGatewayId"`
-	VpcId             string                   `json:"VpcId" xml:"VpcId"`
-	VSwitchId         string                   `json:"VSwitchId" xml:"VSwitchId"`
-	InternetIp        string                   `json:"InternetIp" xml:"InternetIp"`
-	CreateTime        int64                    `json:"CreateTime" xml:"CreateTime"`
-	EndTime           int64                    `json:"EndTime" xml:"EndTime"`
-	Spec              string                   `json:"Spec" xml:"Spec"`
-	Name              string                   `json:"Name" xml:"Name"`
-	Description       string                   `json:"Description" xml:"Description"`
-	Status            string                   `json:"Status" xml:"Status"`
-	BusinessStatus    string                   `json:"BusinessStatus" xml:"BusinessStatus"`
-	ChargeType        string                   `json:"ChargeType" xml:"ChargeType"`
-	IpsecVpn          string                   `json:"IpsecVpn" xml:"IpsecVpn"`
-	SslVpn            string                   `json:"SslVpn" xml:"SslVpn"`
-	SslMaxConnections int64                    `json:"SslMaxConnections" xml:"SslMaxConnections"`
-	Tag               string                   `json:"Tag" xml:"Tag"`
-	EnableBgp         bool                     `json:"EnableBgp" xml:"EnableBgp"`
-	AutoPropagate     bool                     `json:"AutoPropagate" xml:"AutoPropagate"`
-	VpnType           string                   `json:"VpnType" xml:"VpnType"`
-	ReservationData   ReservationData          `json:"ReservationData" xml:"ReservationData"`
-	Tags              TagsInDescribeVpnGateway `json:"Tags" xml:"Tags"`
+	VpnType                    string                   `json:"VpnType" xml:"VpnType"`
+	Status                     string                   `json:"Status" xml:"Status"`
+	VpcId                      string                   `json:"VpcId" xml:"VpcId"`
+	SslMaxConnections          int64                    `json:"SslMaxConnections" xml:"SslMaxConnections"`
+	Spec                       string                   `json:"Spec" xml:"Spec"`
+	InternetIp                 string                   `json:"InternetIp" xml:"InternetIp"`
+	CreateTime                 int64                    `json:"CreateTime" xml:"CreateTime"`
+	AutoPropagate              bool                     `json:"AutoPropagate" xml:"AutoPropagate"`
+	ChargeType                 string                   `json:"ChargeType" xml:"ChargeType"`
+	VpnGatewayId               string                   `json:"VpnGatewayId" xml:"VpnGatewayId"`
+	Tag                        string                   `json:"Tag" xml:"Tag"`
+	IpsecVpn                   string                   `json:"IpsecVpn" xml:"IpsecVpn"`
+	EndTime                    int64                    `json:"EndTime" xml:"EndTime"`
+	VSwitchId                  string                   `json:"VSwitchId" xml:"VSwitchId"`
+	RequestId                  string                   `json:"RequestId" xml:"RequestId"`
+	Description                string                   `json:"Description" xml:"Description"`
+	EnableBgp                  bool                     `json:"EnableBgp" xml:"EnableBgp"`
+	BusinessStatus             string                   `json:"BusinessStatus" xml:"BusinessStatus"`
+	SslVpn                     string                   `json:"SslVpn" xml:"SslVpn"`
+	Name                       string                   `json:"Name" xml:"Name"`
+	NetworkType                string                   `json:"NetworkType" xml:"NetworkType"`
+	DisasterRecoveryInternetIp string                   `json:"DisasterRecoveryInternetIp" xml:"DisasterRecoveryInternetIp"`
+	DisasterRecoveryVSwitchId  string                   `json:"DisasterRecoveryVSwitchId" xml:"DisasterRecoveryVSwitchId"`
+	SslVpnInternetIp           string                   `json:"SslVpnInternetIp" xml:"SslVpnInternetIp"`
+	ReservationData            ReservationData          `json:"ReservationData" xml:"ReservationData"`
+	Tags                       TagsInDescribeVpnGateway `json:"Tags" xml:"Tags"`
 }
 
 // CreateDescribeVpnGatewayRequest creates a request to invoke DescribeVpnGateway API

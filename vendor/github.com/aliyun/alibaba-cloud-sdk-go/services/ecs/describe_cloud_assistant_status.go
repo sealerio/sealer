@@ -72,8 +72,11 @@ func (client *Client) DescribeCloudAssistantStatusWithCallback(request *Describe
 type DescribeCloudAssistantStatusRequest struct {
 	*requests.RpcRequest
 	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
+	PageNumber           requests.Integer `position:"Query" name:"PageNumber"`
+	PageSize             requests.Integer `position:"Query" name:"PageSize"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
+	OSType               string           `position:"Query" name:"OSType"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
 	InstanceId           *[]string        `position:"Query" name:"InstanceId"  type:"Repeated"`
 }
@@ -81,7 +84,10 @@ type DescribeCloudAssistantStatusRequest struct {
 // DescribeCloudAssistantStatusResponse is the response struct for api DescribeCloudAssistantStatus
 type DescribeCloudAssistantStatusResponse struct {
 	*responses.BaseResponse
+	PageSize                        int64                           `json:"PageSize" xml:"PageSize"`
 	RequestId                       string                          `json:"RequestId" xml:"RequestId"`
+	PageNumber                      int64                           `json:"PageNumber" xml:"PageNumber"`
+	TotalCount                      int64                           `json:"TotalCount" xml:"TotalCount"`
 	InstanceCloudAssistantStatusSet InstanceCloudAssistantStatusSet `json:"InstanceCloudAssistantStatusSet" xml:"InstanceCloudAssistantStatusSet"`
 }
 

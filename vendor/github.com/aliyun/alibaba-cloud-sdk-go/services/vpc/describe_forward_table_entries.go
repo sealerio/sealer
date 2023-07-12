@@ -77,6 +77,7 @@ type DescribeForwardTableEntriesRequest struct {
 	PageNumber           requests.Integer `position:"Query" name:"PageNumber"`
 	ForwardEntryId       string           `position:"Query" name:"ForwardEntryId"`
 	PageSize             requests.Integer `position:"Query" name:"PageSize"`
+	NatGatewayId         string           `position:"Query" name:"NatGatewayId"`
 	ExternalIp           string           `position:"Query" name:"ExternalIp"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	IpProtocol           string           `position:"Query" name:"IpProtocol"`
@@ -90,10 +91,10 @@ type DescribeForwardTableEntriesRequest struct {
 // DescribeForwardTableEntriesResponse is the response struct for api DescribeForwardTableEntries
 type DescribeForwardTableEntriesResponse struct {
 	*responses.BaseResponse
-	RequestId           string              `json:"RequestId" xml:"RequestId"`
-	TotalCount          int                 `json:"TotalCount" xml:"TotalCount"`
-	PageNumber          int                 `json:"PageNumber" xml:"PageNumber"`
 	PageSize            int                 `json:"PageSize" xml:"PageSize"`
+	RequestId           string              `json:"RequestId" xml:"RequestId"`
+	PageNumber          int                 `json:"PageNumber" xml:"PageNumber"`
+	TotalCount          int                 `json:"TotalCount" xml:"TotalCount"`
 	ForwardTableEntries ForwardTableEntries `json:"ForwardTableEntries" xml:"ForwardTableEntries"`
 }
 

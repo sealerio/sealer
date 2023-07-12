@@ -71,26 +71,33 @@ func (client *Client) DescribeNetworkAclsWithCallback(request *DescribeNetworkAc
 // DescribeNetworkAclsRequest is the request struct for api DescribeNetworkAcls
 type DescribeNetworkAclsRequest struct {
 	*requests.RpcRequest
-	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
-	ClientToken          string           `position:"Query" name:"ClientToken"`
-	PageNumber           requests.Integer `position:"Query" name:"PageNumber"`
-	PageSize             requests.Integer `position:"Query" name:"PageSize"`
-	NetworkAclId         string           `position:"Query" name:"NetworkAclId"`
-	ResourceId           string           `position:"Query" name:"ResourceId"`
-	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
-	NetworkAclName       string           `position:"Query" name:"NetworkAclName"`
-	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
-	ResourceType         string           `position:"Query" name:"ResourceType"`
-	VpcId                string           `position:"Query" name:"VpcId"`
+	ResourceOwnerId      requests.Integer           `position:"Query" name:"ResourceOwnerId"`
+	ClientToken          string                     `position:"Query" name:"ClientToken"`
+	PageNumber           requests.Integer           `position:"Query" name:"PageNumber"`
+	PageSize             requests.Integer           `position:"Query" name:"PageSize"`
+	NetworkAclId         string                     `position:"Query" name:"NetworkAclId"`
+	ResourceId           string                     `position:"Query" name:"ResourceId"`
+	ResourceOwnerAccount string                     `position:"Query" name:"ResourceOwnerAccount"`
+	NetworkAclName       string                     `position:"Query" name:"NetworkAclName"`
+	OwnerId              requests.Integer           `position:"Query" name:"OwnerId"`
+	ResourceType         string                     `position:"Query" name:"ResourceType"`
+	Tags                 *[]DescribeNetworkAclsTags `position:"Query" name:"Tags"  type:"Repeated"`
+	VpcId                string                     `position:"Query" name:"VpcId"`
+}
+
+// DescribeNetworkAclsTags is a repeated param struct in DescribeNetworkAclsRequest
+type DescribeNetworkAclsTags struct {
+	Key   string `name:"Key"`
+	Value string `name:"Value"`
 }
 
 // DescribeNetworkAclsResponse is the response struct for api DescribeNetworkAcls
 type DescribeNetworkAclsResponse struct {
 	*responses.BaseResponse
-	RequestId   string      `json:"RequestId" xml:"RequestId"`
-	TotalCount  string      `json:"TotalCount" xml:"TotalCount"`
-	PageNumber  string      `json:"PageNumber" xml:"PageNumber"`
 	PageSize    string      `json:"PageSize" xml:"PageSize"`
+	RequestId   string      `json:"RequestId" xml:"RequestId"`
+	PageNumber  string      `json:"PageNumber" xml:"PageNumber"`
+	TotalCount  string      `json:"TotalCount" xml:"TotalCount"`
 	NetworkAcls NetworkAcls `json:"NetworkAcls" xml:"NetworkAcls"`
 }
 

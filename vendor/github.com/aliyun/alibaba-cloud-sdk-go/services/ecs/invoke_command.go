@@ -71,24 +71,45 @@ func (client *Client) InvokeCommandWithCallback(request *InvokeCommandRequest, c
 // InvokeCommandRequest is the request struct for api InvokeCommand
 type InvokeCommandRequest struct {
 	*requests.RpcRequest
-	ResourceOwnerId      requests.Integer       `position:"Query" name:"ResourceOwnerId"`
-	CommandId            string                 `position:"Query" name:"CommandId"`
-	Frequency            string                 `position:"Query" name:"Frequency"`
-	WindowsPasswordName  string                 `position:"Query" name:"WindowsPasswordName"`
-	Timed                requests.Boolean       `position:"Query" name:"Timed"`
-	ResourceOwnerAccount string                 `position:"Query" name:"ResourceOwnerAccount"`
-	OwnerAccount         string                 `position:"Query" name:"OwnerAccount"`
-	OwnerId              requests.Integer       `position:"Query" name:"OwnerId"`
-	InstanceId           *[]string              `position:"Query" name:"InstanceId"  type:"Repeated"`
-	Parameters           map[string]interface{} `position:"Query" name:"Parameters"`
-	Username             string                 `position:"Query" name:"Username"`
+	ResourceOwnerId      requests.Integer          `position:"Query" name:"ResourceOwnerId"`
+	ContainerName        string                    `position:"Query" name:"ContainerName"`
+	ClientToken          string                    `position:"Query" name:"ClientToken"`
+	SystemTag            *[]InvokeCommandSystemTag `position:"Query" name:"SystemTag"  type:"Repeated"`
+	CommandId            string                    `position:"Query" name:"CommandId"`
+	Timeout              requests.Integer          `position:"Query" name:"Timeout"`
+	Frequency            string                    `position:"Query" name:"Frequency"`
+	ResourceGroupId      string                    `position:"Query" name:"ResourceGroupId"`
+	RepeatMode           string                    `position:"Query" name:"RepeatMode"`
+	WindowsPasswordName  string                    `position:"Query" name:"WindowsPasswordName"`
+	Tag                  *[]InvokeCommandTag       `position:"Query" name:"Tag"  type:"Repeated"`
+	Timed                requests.Boolean          `position:"Query" name:"Timed"`
+	ResourceOwnerAccount string                    `position:"Query" name:"ResourceOwnerAccount"`
+	OwnerAccount         string                    `position:"Query" name:"OwnerAccount"`
+	OwnerId              requests.Integer          `position:"Query" name:"OwnerId"`
+	InstanceId           *[]string                 `position:"Query" name:"InstanceId"  type:"Repeated"`
+	ContainerId          string                    `position:"Query" name:"ContainerId"`
+	Parameters           map[string]interface{}    `position:"Query" name:"Parameters"`
+	Username             string                    `position:"Query" name:"Username"`
+}
+
+// InvokeCommandSystemTag is a repeated param struct in InvokeCommandRequest
+type InvokeCommandSystemTag struct {
+	Key   string `name:"Key"`
+	Value string `name:"Value"`
+	Scope string `name:"Scope"`
+}
+
+// InvokeCommandTag is a repeated param struct in InvokeCommandRequest
+type InvokeCommandTag struct {
+	Key   string `name:"Key"`
+	Value string `name:"Value"`
 }
 
 // InvokeCommandResponse is the response struct for api InvokeCommand
 type InvokeCommandResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	InvokeId  string `json:"InvokeId" xml:"InvokeId"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateInvokeCommandRequest creates a request to invoke InvokeCommand API

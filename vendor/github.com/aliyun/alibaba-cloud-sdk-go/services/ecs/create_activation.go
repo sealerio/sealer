@@ -71,23 +71,30 @@ func (client *Client) CreateActivationWithCallback(request *CreateActivationRequ
 // CreateActivationRequest is the request struct for api CreateActivation
 type CreateActivationRequest struct {
 	*requests.RpcRequest
-	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
-	Description          string           `position:"Query" name:"Description"`
-	InstanceCount        requests.Integer `position:"Query" name:"InstanceCount"`
-	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
-	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
-	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
-	InstanceName         string           `position:"Query" name:"InstanceName"`
-	TimeToLiveInHours    requests.Integer `position:"Query" name:"TimeToLiveInHours"`
-	IpAddressRange       string           `position:"Query" name:"IpAddressRange"`
+	ResourceOwnerId      requests.Integer       `position:"Query" name:"ResourceOwnerId"`
+	Description          string                 `position:"Query" name:"Description"`
+	InstanceCount        requests.Integer       `position:"Query" name:"InstanceCount"`
+	Tag                  *[]CreateActivationTag `position:"Query" name:"Tag"  type:"Repeated"`
+	ResourceOwnerAccount string                 `position:"Query" name:"ResourceOwnerAccount"`
+	OwnerAccount         string                 `position:"Query" name:"OwnerAccount"`
+	OwnerId              requests.Integer       `position:"Query" name:"OwnerId"`
+	InstanceName         string                 `position:"Query" name:"InstanceName"`
+	TimeToLiveInHours    requests.Integer       `position:"Query" name:"TimeToLiveInHours"`
+	IpAddressRange       string                 `position:"Query" name:"IpAddressRange"`
+}
+
+// CreateActivationTag is a repeated param struct in CreateActivationRequest
+type CreateActivationTag struct {
+	Key   string `name:"Key"`
+	Value string `name:"Value"`
 }
 
 // CreateActivationResponse is the response struct for api CreateActivation
 type CreateActivationResponse struct {
 	*responses.BaseResponse
 	RequestId      string `json:"RequestId" xml:"RequestId"`
-	ActivationId   string `json:"ActivationId" xml:"ActivationId"`
 	ActivationCode string `json:"ActivationCode" xml:"ActivationCode"`
+	ActivationId   string `json:"ActivationId" xml:"ActivationId"`
 }
 
 // CreateCreateActivationRequest creates a request to invoke CreateActivation API

@@ -71,24 +71,31 @@ func (client *Client) DescribeVpnConnectionsWithCallback(request *DescribeVpnCon
 // DescribeVpnConnectionsRequest is the request struct for api DescribeVpnConnections
 type DescribeVpnConnectionsRequest struct {
 	*requests.RpcRequest
-	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
-	CustomerGatewayId    string           `position:"Query" name:"CustomerGatewayId"`
-	PageNumber           requests.Integer `position:"Query" name:"PageNumber"`
-	PageSize             requests.Integer `position:"Query" name:"PageSize"`
-	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
-	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
-	VpnGatewayId         string           `position:"Query" name:"VpnGatewayId"`
-	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
-	VpnConnectionId      string           `position:"Query" name:"VpnConnectionId"`
+	ResourceOwnerId      requests.Integer             `position:"Query" name:"ResourceOwnerId"`
+	CustomerGatewayId    string                       `position:"Query" name:"CustomerGatewayId"`
+	PageNumber           requests.Integer             `position:"Query" name:"PageNumber"`
+	PageSize             requests.Integer             `position:"Query" name:"PageSize"`
+	Tag                  *[]DescribeVpnConnectionsTag `position:"Query" name:"Tag"  type:"Repeated"`
+	ResourceOwnerAccount string                       `position:"Query" name:"ResourceOwnerAccount"`
+	OwnerAccount         string                       `position:"Query" name:"OwnerAccount"`
+	VpnGatewayId         string                       `position:"Query" name:"VpnGatewayId"`
+	OwnerId              requests.Integer             `position:"Query" name:"OwnerId"`
+	VpnConnectionId      string                       `position:"Query" name:"VpnConnectionId"`
+}
+
+// DescribeVpnConnectionsTag is a repeated param struct in DescribeVpnConnectionsRequest
+type DescribeVpnConnectionsTag struct {
+	Value string `name:"Value"`
+	Key   string `name:"Key"`
 }
 
 // DescribeVpnConnectionsResponse is the response struct for api DescribeVpnConnections
 type DescribeVpnConnectionsResponse struct {
 	*responses.BaseResponse
-	RequestId      string         `json:"RequestId" xml:"RequestId"`
-	TotalCount     int            `json:"TotalCount" xml:"TotalCount"`
-	PageNumber     int            `json:"PageNumber" xml:"PageNumber"`
 	PageSize       int            `json:"PageSize" xml:"PageSize"`
+	RequestId      string         `json:"RequestId" xml:"RequestId"`
+	PageNumber     int            `json:"PageNumber" xml:"PageNumber"`
+	TotalCount     int            `json:"TotalCount" xml:"TotalCount"`
 	VpnConnections VpnConnections `json:"VpnConnections" xml:"VpnConnections"`
 }
 

@@ -73,11 +73,14 @@ type CreateFlowLogRequest struct {
 	*requests.RpcRequest
 	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
 	Description          string           `position:"Query" name:"Description"`
+	ResourceGroupId      string           `position:"Query" name:"ResourceGroupId"`
 	ResourceId           string           `position:"Query" name:"ResourceId"`
 	ProjectName          string           `position:"Query" name:"ProjectName"`
 	LogStoreName         string           `position:"Query" name:"LogStoreName"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
+	TrafficPath          *[]string        `position:"Query" name:"TrafficPath"  type:"Repeated"`
+	AggregationInterval  requests.Integer `position:"Query" name:"AggregationInterval"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
 	ResourceType         string           `position:"Query" name:"ResourceType"`
 	TrafficType          string           `position:"Query" name:"TrafficType"`
@@ -87,9 +90,10 @@ type CreateFlowLogRequest struct {
 // CreateFlowLogResponse is the response struct for api CreateFlowLog
 type CreateFlowLogResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
-	Success   string `json:"Success" xml:"Success"`
-	FlowLogId string `json:"FlowLogId" xml:"FlowLogId"`
+	RequestId       string `json:"RequestId" xml:"RequestId"`
+	Success         string `json:"Success" xml:"Success"`
+	FlowLogId       string `json:"FlowLogId" xml:"FlowLogId"`
+	ResourceGroupId string `json:"ResourceGroupId" xml:"ResourceGroupId"`
 }
 
 // CreateCreateFlowLogRequest creates a request to invoke CreateFlowLog API

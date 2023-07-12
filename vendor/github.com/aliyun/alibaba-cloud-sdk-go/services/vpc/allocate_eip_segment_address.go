@@ -75,6 +75,7 @@ type AllocateEipSegmentAddressRequest struct {
 	ClientToken          string           `position:"Query" name:"ClientToken"`
 	Isp                  string           `position:"Query" name:"Isp"`
 	ResourceGroupId      string           `position:"Query" name:"ResourceGroupId"`
+	Zone                 string           `position:"Query" name:"Zone"`
 	Netmode              string           `position:"Query" name:"Netmode"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	Bandwidth            string           `position:"Query" name:"Bandwidth"`
@@ -88,8 +89,8 @@ type AllocateEipSegmentAddressRequest struct {
 type AllocateEipSegmentAddressResponse struct {
 	*responses.BaseResponse
 	RequestId            string `json:"RequestId" xml:"RequestId"`
-	EipSegmentInstanceId string `json:"EipSegmentInstanceId" xml:"EipSegmentInstanceId"`
 	OrderId              int64  `json:"OrderId" xml:"OrderId"`
+	EipSegmentInstanceId string `json:"EipSegmentInstanceId" xml:"EipSegmentInstanceId"`
 }
 
 // CreateAllocateEipSegmentAddressRequest creates a request to invoke AllocateEipSegmentAddress API

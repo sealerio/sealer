@@ -18,15 +18,19 @@ package ecs
 // ElasticityAssuranceItem is a nested struct in ecs response
 type ElasticityAssuranceItem struct {
 	PrivatePoolOptionsName          string                                           `json:"PrivatePoolOptionsName" xml:"PrivatePoolOptionsName"`
-	RegionId                        string                                           `json:"RegionId" xml:"RegionId"`
-	UsedAssuranceTimes              int                                              `json:"UsedAssuranceTimes" xml:"UsedAssuranceTimes"`
-	StartTime                       string                                           `json:"StartTime" xml:"StartTime"`
-	EndTime                         string                                           `json:"EndTime" xml:"EndTime"`
-	TotalAssuranceTimes             string                                           `json:"TotalAssuranceTimes" xml:"TotalAssuranceTimes"`
 	PrivatePoolOptionsMatchCriteria string                                           `json:"PrivatePoolOptionsMatchCriteria" xml:"PrivatePoolOptionsMatchCriteria"`
 	LatestStartTime                 string                                           `json:"LatestStartTime" xml:"LatestStartTime"`
+	UsedAssuranceTimes              int                                              `json:"UsedAssuranceTimes" xml:"UsedAssuranceTimes"`
+	RegionId                        string                                           `json:"RegionId" xml:"RegionId"`
+	StartTime                       string                                           `json:"StartTime" xml:"StartTime"`
+	EndTime                         string                                           `json:"EndTime" xml:"EndTime"`
+	ResourceGroupId                 string                                           `json:"ResourceGroupId" xml:"ResourceGroupId"`
+	TotalAssuranceTimes             string                                           `json:"TotalAssuranceTimes" xml:"TotalAssuranceTimes"`
+	StartTimeType                   string                                           `json:"StartTimeType" xml:"StartTimeType"`
 	Status                          string                                           `json:"Status" xml:"Status"`
 	Description                     string                                           `json:"Description" xml:"Description"`
+	InstanceChargeType              string                                           `json:"InstanceChargeType" xml:"InstanceChargeType"`
 	PrivatePoolOptionsId            string                                           `json:"PrivatePoolOptionsId" xml:"PrivatePoolOptionsId"`
 	AllocatedResources              AllocatedResourcesInDescribeElasticityAssurances `json:"AllocatedResources" xml:"AllocatedResources"`
+	Tags                            TagsInDescribeElasticityAssurances               `json:"Tags" xml:"Tags"`
 }

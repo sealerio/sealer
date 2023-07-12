@@ -75,7 +75,9 @@ type SendFileRequest struct {
 	Description          string           `position:"Query" name:"Description"`
 	Timeout              requests.Integer `position:"Query" name:"Timeout"`
 	Content              string           `position:"Query" name:"Content"`
+	ResourceGroupId      string           `position:"Query" name:"ResourceGroupId"`
 	FileOwner            string           `position:"Query" name:"FileOwner"`
+	Tag                  *[]SendFileTag   `position:"Query" name:"Tag"  type:"Repeated"`
 	Overwrite            requests.Boolean `position:"Query" name:"Overwrite"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
@@ -88,11 +90,17 @@ type SendFileRequest struct {
 	TargetDir            string           `position:"Query" name:"TargetDir"`
 }
 
+// SendFileTag is a repeated param struct in SendFileRequest
+type SendFileTag struct {
+	Key   string `name:"Key"`
+	Value string `name:"Value"`
+}
+
 // SendFileResponse is the response struct for api SendFile
 type SendFileResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	InvokeId  string `json:"InvokeId" xml:"InvokeId"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateSendFileRequest creates a request to invoke SendFile API

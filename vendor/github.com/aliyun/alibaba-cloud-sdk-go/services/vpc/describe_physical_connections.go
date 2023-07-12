@@ -75,11 +75,19 @@ type DescribePhysicalConnectionsRequest struct {
 	ClientToken            string                               `position:"Query" name:"ClientToken"`
 	IncludeReservationData requests.Boolean                     `position:"Query" name:"IncludeReservationData"`
 	PageNumber             requests.Integer                     `position:"Query" name:"PageNumber"`
+	ResourceGroupId        string                               `position:"Query" name:"ResourceGroupId"`
 	PageSize               requests.Integer                     `position:"Query" name:"PageSize"`
 	ResourceOwnerAccount   string                               `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount           string                               `position:"Query" name:"OwnerAccount"`
 	OwnerId                requests.Integer                     `position:"Query" name:"OwnerId"`
+	Tags                   *[]DescribePhysicalConnectionsTags   `position:"Query" name:"Tags"  type:"Repeated"`
 	Filter                 *[]DescribePhysicalConnectionsFilter `position:"Query" name:"Filter"  type:"Repeated"`
+}
+
+// DescribePhysicalConnectionsTags is a repeated param struct in DescribePhysicalConnectionsRequest
+type DescribePhysicalConnectionsTags struct {
+	Value string `name:"Value"`
+	Key   string `name:"Key"`
 }
 
 // DescribePhysicalConnectionsFilter is a repeated param struct in DescribePhysicalConnectionsRequest

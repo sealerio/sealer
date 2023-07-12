@@ -34,6 +34,7 @@ type Instance struct {
 	MachineId                       string                               `json:"MachineId" xml:"MachineId"`
 	PrivatePoolOptionsId            string                               `json:"PrivatePoolOptionsId" xml:"PrivatePoolOptionsId"`
 	ClusterId                       string                               `json:"ClusterId" xml:"ClusterId"`
+	SocketId                        string                               `json:"SocketId" xml:"SocketId"`
 	InstanceName                    string                               `json:"InstanceName" xml:"InstanceName"`
 	PrivatePoolOptionsMatchCriteria string                               `json:"PrivatePoolOptionsMatchCriteria" xml:"PrivatePoolOptionsMatchCriteria"`
 	DeploymentSetGroupNo            int                                  `json:"DeploymentSetGroupNo" xml:"DeploymentSetGroupNo"`
@@ -43,8 +44,8 @@ type Instance struct {
 	InvocationCount                 int64                                `json:"InvocationCount" xml:"InvocationCount"`
 	StartTime                       string                               `json:"StartTime" xml:"StartTime"`
 	ZoneId                          string                               `json:"ZoneId" xml:"ZoneId"`
-	InternetChargeType              string                               `json:"InternetChargeType" xml:"InternetChargeType"`
 	InternetMaxBandwidthIn          int                                  `json:"InternetMaxBandwidthIn" xml:"InternetMaxBandwidthIn"`
+	InternetChargeType              string                               `json:"InternetChargeType" xml:"InternetChargeType"`
 	HostName                        string                               `json:"HostName" xml:"HostName"`
 	Status                          string                               `json:"Status" xml:"Status"`
 	CPU                             int                                  `json:"CPU" xml:"CPU"`
@@ -53,6 +54,7 @@ type Instance struct {
 	OsVersion                       string                               `json:"OsVersion" xml:"OsVersion"`
 	SpotPriceLimit                  float64                              `json:"SpotPriceLimit" xml:"SpotPriceLimit"`
 	OSName                          string                               `json:"OSName" xml:"OSName"`
+	InstanceOwnerId                 int64                                `json:"InstanceOwnerId" xml:"InstanceOwnerId"`
 	OSNameEn                        string                               `json:"OSNameEn" xml:"OSNameEn"`
 	SerialNumber                    string                               `json:"SerialNumber" xml:"SerialNumber"`
 	RegionId                        string                               `json:"RegionId" xml:"RegionId"`
@@ -85,14 +87,16 @@ type Instance struct {
 	InnerIpAddress                  InnerIpAddressInDescribeInstances    `json:"InnerIpAddress" xml:"InnerIpAddress"`
 	PublicIpAddress                 PublicIpAddressInDescribeInstances   `json:"PublicIpAddress" xml:"PublicIpAddress"`
 	RdmaIpAddress                   RdmaIpAddress                        `json:"RdmaIpAddress" xml:"RdmaIpAddress"`
-	MetadataOptions                 MetadataOptions                      `json:"MetadataOptions" xml:"MetadataOptions"`
+	ImageOptions                    ImageOptions                         `json:"ImageOptions" xml:"ImageOptions"`
 	DedicatedHostAttribute          DedicatedHostAttribute               `json:"DedicatedHostAttribute" xml:"DedicatedHostAttribute"`
-	EipAddress                      EipAddressInDescribeInstances        `json:"EipAddress" xml:"EipAddress"`
-	CpuOptions                      CpuOptions                           `json:"CpuOptions" xml:"CpuOptions"`
 	EcsCapacityReservationAttr      EcsCapacityReservationAttr           `json:"EcsCapacityReservationAttr" xml:"EcsCapacityReservationAttr"`
+	HibernationOptions              HibernationOptions                   `json:"HibernationOptions" xml:"HibernationOptions"`
 	DedicatedInstanceAttribute      DedicatedInstanceAttribute           `json:"DedicatedInstanceAttribute" xml:"DedicatedInstanceAttribute"`
+	EipAddress                      EipAddressInDescribeInstances        `json:"EipAddress" xml:"EipAddress"`
+	MetadataOptions                 MetadataOptions                      `json:"MetadataOptions" xml:"MetadataOptions"`
+	CpuOptions                      CpuOptions                           `json:"CpuOptions" xml:"CpuOptions"`
 	VpcAttributes                   VpcAttributes                        `json:"VpcAttributes" xml:"VpcAttributes"`
-	OperationLocks                  OperationLocksInDescribeInstances    `json:"OperationLocks" xml:"OperationLocks"`
-	Tags                            TagsInDescribeInstances              `json:"Tags" xml:"Tags"`
 	NetworkInterfaces               NetworkInterfacesInDescribeInstances `json:"NetworkInterfaces" xml:"NetworkInterfaces"`
+	Tags                            TagsInDescribeInstances              `json:"Tags" xml:"Tags"`
+	OperationLocks                  OperationLocksInDescribeInstances    `json:"OperationLocks" xml:"OperationLocks"`
 }

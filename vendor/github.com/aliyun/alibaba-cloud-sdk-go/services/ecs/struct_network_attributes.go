@@ -17,6 +17,6 @@ package ecs
 
 // NetworkAttributes is a nested struct in ecs response
 type NetworkAttributes struct {
-	SlbUdpTimeout int `json:"SlbUdpTimeout" xml:"SlbUdpTimeout"`
 	UdpTimeout    int `json:"UdpTimeout" xml:"UdpTimeout"`
+	SlbUdpTimeout int `json:"SlbUdpTimeout" xml:"SlbUdpTimeout"`
 }

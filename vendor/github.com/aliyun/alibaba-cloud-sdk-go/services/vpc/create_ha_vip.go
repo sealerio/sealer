@@ -75,6 +75,7 @@ type CreateHaVipRequest struct {
 	ResourceOwnerId      requests.Integer `position:"Query" name:"ResourceOwnerId"`
 	ClientToken          string           `position:"Query" name:"ClientToken"`
 	Description          string           `position:"Query" name:"Description"`
+	ResourceGroupId      string           `position:"Query" name:"ResourceGroupId"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
@@ -86,8 +87,8 @@ type CreateHaVipRequest struct {
 type CreateHaVipResponse struct {
 	*responses.BaseResponse
 	RequestId string `json:"RequestId" xml:"RequestId"`
-	HaVipId   string `json:"HaVipId" xml:"HaVipId"`
 	IpAddress string `json:"IpAddress" xml:"IpAddress"`
+	HaVipId   string `json:"HaVipId" xml:"HaVipId"`
 }
 
 // CreateCreateHaVipRequest creates a request to invoke CreateHaVip API

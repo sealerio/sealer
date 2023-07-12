@@ -74,6 +74,7 @@ type DescribeIpv6AddressesRequest struct {
 	ResourceOwnerId         requests.Integer `position:"Query" name:"ResourceOwnerId"`
 	Ipv6InternetBandwidthId string           `position:"Query" name:"Ipv6InternetBandwidthId"`
 	NetworkType             string           `position:"Query" name:"NetworkType"`
+	IncludeReservationData  requests.Boolean `position:"Query" name:"IncludeReservationData"`
 	PageNumber              requests.Integer `position:"Query" name:"PageNumber"`
 	AssociatedInstanceType  string           `position:"Query" name:"AssociatedInstanceType"`
 	PageSize                requests.Integer `position:"Query" name:"PageSize"`
@@ -91,10 +92,10 @@ type DescribeIpv6AddressesRequest struct {
 // DescribeIpv6AddressesResponse is the response struct for api DescribeIpv6Addresses
 type DescribeIpv6AddressesResponse struct {
 	*responses.BaseResponse
-	RequestId     string        `json:"RequestId" xml:"RequestId"`
-	TotalCount    int           `json:"TotalCount" xml:"TotalCount"`
-	PageNumber    int           `json:"PageNumber" xml:"PageNumber"`
 	PageSize      int           `json:"PageSize" xml:"PageSize"`
+	RequestId     string        `json:"RequestId" xml:"RequestId"`
+	PageNumber    int           `json:"PageNumber" xml:"PageNumber"`
+	TotalCount    int           `json:"TotalCount" xml:"TotalCount"`
 	Ipv6Addresses Ipv6Addresses `json:"Ipv6Addresses" xml:"Ipv6Addresses"`
 }
 

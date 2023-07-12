@@ -78,6 +78,7 @@ type DescribeSnatTableEntriesRequest struct {
 	SourceVSwitchId      string           `position:"Query" name:"SourceVSwitchId"`
 	PageSize             requests.Integer `position:"Query" name:"PageSize"`
 	SnatEntryId          string           `position:"Query" name:"SnatEntryId"`
+	NatGatewayId         string           `position:"Query" name:"NatGatewayId"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	SnatTableId          string           `position:"Query" name:"SnatTableId"`
@@ -88,10 +89,10 @@ type DescribeSnatTableEntriesRequest struct {
 // DescribeSnatTableEntriesResponse is the response struct for api DescribeSnatTableEntries
 type DescribeSnatTableEntriesResponse struct {
 	*responses.BaseResponse
-	RequestId        string           `json:"RequestId" xml:"RequestId"`
-	TotalCount       int              `json:"TotalCount" xml:"TotalCount"`
-	PageNumber       int              `json:"PageNumber" xml:"PageNumber"`
 	PageSize         int              `json:"PageSize" xml:"PageSize"`
+	RequestId        string           `json:"RequestId" xml:"RequestId"`
+	PageNumber       int              `json:"PageNumber" xml:"PageNumber"`
+	TotalCount       int              `json:"TotalCount" xml:"TotalCount"`
 	SnatTableEntries SnatTableEntries `json:"SnatTableEntries" xml:"SnatTableEntries"`
 }
 

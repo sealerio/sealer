@@ -81,13 +81,15 @@ type DescribeCustomerGatewayRequest struct {
 // DescribeCustomerGatewayResponse is the response struct for api DescribeCustomerGateway
 type DescribeCustomerGatewayResponse struct {
 	*responses.BaseResponse
-	RequestId         string `json:"RequestId" xml:"RequestId"`
-	CustomerGatewayId string `json:"CustomerGatewayId" xml:"CustomerGatewayId"`
-	IpAddress         string `json:"IpAddress" xml:"IpAddress"`
-	Name              string `json:"Name" xml:"Name"`
-	Description       string `json:"Description" xml:"Description"`
-	CreateTime        int64  `json:"CreateTime" xml:"CreateTime"`
-	Asn               int    `json:"Asn" xml:"Asn"`
+	Asn               int64                         `json:"Asn" xml:"Asn"`
+	RequestId         string                        `json:"RequestId" xml:"RequestId"`
+	IpAddress         string                        `json:"IpAddress" xml:"IpAddress"`
+	Description       string                        `json:"Description" xml:"Description"`
+	CustomerGatewayId string                        `json:"CustomerGatewayId" xml:"CustomerGatewayId"`
+	CreateTime        int64                         `json:"CreateTime" xml:"CreateTime"`
+	Name              string                        `json:"Name" xml:"Name"`
+	AuthKey           string                        `json:"AuthKey" xml:"AuthKey"`
+	Tags              TagsInDescribeCustomerGateway `json:"Tags" xml:"Tags"`
 }
 
 // CreateDescribeCustomerGatewayRequest creates a request to invoke DescribeCustomerGateway API

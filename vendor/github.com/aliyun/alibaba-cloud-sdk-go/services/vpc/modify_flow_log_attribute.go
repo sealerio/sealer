@@ -75,6 +75,7 @@ type ModifyFlowLogAttributeRequest struct {
 	Description          string           `position:"Query" name:"Description"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
+	AggregationInterval  requests.Integer `position:"Query" name:"AggregationInterval"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
 	FlowLogId            string           `position:"Query" name:"FlowLogId"`
 	FlowLogName          string           `position:"Query" name:"FlowLogName"`
@@ -83,8 +84,8 @@ type ModifyFlowLogAttributeRequest struct {
 // ModifyFlowLogAttributeResponse is the response struct for api ModifyFlowLogAttribute
 type ModifyFlowLogAttributeResponse struct {
 	*responses.BaseResponse
-	RequestId string `json:"RequestId" xml:"RequestId"`
 	Success   string `json:"Success" xml:"Success"`
+	RequestId string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateModifyFlowLogAttributeRequest creates a request to invoke ModifyFlowLogAttribute API

@@ -18,5 +18,9 @@ package vpc
 // DhcpOptions is a nested struct in vpc response
 type DhcpOptions struct {
 	DomainNameServers string `json:"DomainNameServers" xml:"DomainNameServers"`
+	BootFileName      string `json:"BootFileName" xml:"BootFileName"`
 	DomainName        string `json:"DomainName" xml:"DomainName"`
+	LeaseTime         string `json:"LeaseTime" xml:"LeaseTime"`
+	TFTPServerName    string `json:"TFTPServerName" xml:"TFTPServerName"`
+	Ipv6LeaseTime     string `json:"Ipv6LeaseTime" xml:"Ipv6LeaseTime"`
 }

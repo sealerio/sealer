@@ -75,13 +75,14 @@ type DescribeDeploymentSetSupportedInstanceTypeFamilyRequest struct {
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
+	Strategy             string           `position:"Query" name:"Strategy"`
 }
 
 // DescribeDeploymentSetSupportedInstanceTypeFamilyResponse is the response struct for api DescribeDeploymentSetSupportedInstanceTypeFamily
 type DescribeDeploymentSetSupportedInstanceTypeFamilyResponse struct {
 	*responses.BaseResponse
-	RequestId            string `json:"RequestId" xml:"RequestId"`
 	InstanceTypeFamilies string `json:"InstanceTypeFamilies" xml:"InstanceTypeFamilies"`
+	RequestId            string `json:"RequestId" xml:"RequestId"`
 }
 
 // CreateDescribeDeploymentSetSupportedInstanceTypeFamilyRequest creates a request to invoke DescribeDeploymentSetSupportedInstanceTypeFamily API

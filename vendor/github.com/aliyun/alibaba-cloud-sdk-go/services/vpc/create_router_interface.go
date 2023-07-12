@@ -80,16 +80,20 @@ type CreateRouterInterfaceRequest struct {
 	HealthCheckTargetIp      string           `position:"Query" name:"HealthCheckTargetIp"`
 	Description              string           `position:"Query" name:"Description"`
 	Spec                     string           `position:"Query" name:"Spec"`
+	FastLinkMode             requests.Boolean `position:"Query" name:"FastLinkMode"`
 	OppositeInterfaceId      string           `position:"Query" name:"OppositeInterfaceId"`
 	InstanceChargeType       string           `position:"Query" name:"InstanceChargeType"`
 	Period                   requests.Integer `position:"Query" name:"Period"`
 	AutoPay                  requests.Boolean `position:"Query" name:"AutoPay"`
+	PromotionOptionNo        string           `position:"Query" name:"PromotionOptionNo"`
+	AvailableZoneId          string           `position:"Query" name:"AvailableZoneId"`
 	ResourceOwnerAccount     string           `position:"Query" name:"ResourceOwnerAccount"`
 	OppositeRegionId         string           `position:"Query" name:"OppositeRegionId"`
 	OwnerAccount             string           `position:"Query" name:"OwnerAccount"`
 	OwnerId                  requests.Integer `position:"Query" name:"OwnerId"`
 	OppositeInterfaceOwnerId string           `position:"Query" name:"OppositeInterfaceOwnerId"`
 	RouterType               string           `position:"Query" name:"RouterType"`
+	AutoRenew                requests.Boolean `position:"Query" name:"AutoRenew"`
 	HealthCheckSourceIp      string           `position:"Query" name:"HealthCheckSourceIp"`
 	RouterId                 string           `position:"Query" name:"RouterId"`
 	OppositeRouterType       string           `position:"Query" name:"OppositeRouterType"`
@@ -101,8 +105,8 @@ type CreateRouterInterfaceRequest struct {
 type CreateRouterInterfaceResponse struct {
 	*responses.BaseResponse
 	RequestId         string `json:"RequestId" xml:"RequestId"`
-	RouterInterfaceId string `json:"RouterInterfaceId" xml:"RouterInterfaceId"`
 	OrderId           int64  `json:"OrderId" xml:"OrderId"`
+	RouterInterfaceId string `json:"RouterInterfaceId" xml:"RouterInterfaceId"`
 }
 
 // CreateCreateRouterInterfaceRequest creates a request to invoke CreateRouterInterface API

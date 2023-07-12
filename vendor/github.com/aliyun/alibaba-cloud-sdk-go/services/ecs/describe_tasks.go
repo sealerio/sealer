@@ -82,16 +82,17 @@ type DescribeTasksRequest struct {
 	EndTime              string           `position:"Query" name:"EndTime"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`
 	TaskAction           string           `position:"Query" name:"TaskAction"`
+	ResourceIds          *[]string        `position:"Query" name:"ResourceIds"  type:"Repeated"`
 }
 
 // DescribeTasksResponse is the response struct for api DescribeTasks
 type DescribeTasksResponse struct {
 	*responses.BaseResponse
-	RequestId  string  `json:"RequestId" xml:"RequestId"`
-	RegionId   string  `json:"RegionId" xml:"RegionId"`
-	TotalCount int     `json:"TotalCount" xml:"TotalCount"`
-	PageNumber int     `json:"PageNumber" xml:"PageNumber"`
 	PageSize   int     `json:"PageSize" xml:"PageSize"`
+	PageNumber int     `json:"PageNumber" xml:"PageNumber"`
+	RequestId  string  `json:"RequestId" xml:"RequestId"`
+	TotalCount int     `json:"TotalCount" xml:"TotalCount"`
+	RegionId   string  `json:"RegionId" xml:"RegionId"`
 	TaskSet    TaskSet `json:"TaskSet" xml:"TaskSet"`
 }
 

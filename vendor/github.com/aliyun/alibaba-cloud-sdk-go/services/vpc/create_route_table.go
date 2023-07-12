@@ -75,6 +75,7 @@ type CreateRouteTableRequest struct {
 	ClientToken          string           `position:"Query" name:"ClientToken"`
 	Description          string           `position:"Query" name:"Description"`
 	RouteTableName       string           `position:"Query" name:"RouteTableName"`
+	AssociateType        string           `position:"Query" name:"AssociateType"`
 	ResourceOwnerAccount string           `position:"Query" name:"ResourceOwnerAccount"`
 	OwnerAccount         string           `position:"Query" name:"OwnerAccount"`
 	OwnerId              requests.Integer `position:"Query" name:"OwnerId"`

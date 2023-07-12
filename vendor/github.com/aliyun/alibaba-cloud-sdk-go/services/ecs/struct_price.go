@@ -20,7 +20,7 @@ type Price struct {
 	DiscountPrice             float64                    `json:"DiscountPrice" xml:"DiscountPrice"`
 	TradePrice                float64                    `json:"TradePrice" xml:"TradePrice"`
 	OriginalPrice             float64                    `json:"OriginalPrice" xml:"OriginalPrice"`
-	ReservedInstanceHourPrice float64                    `json:"ReservedInstanceHourPrice" xml:"ReservedInstanceHourPrice"`
 	Currency                  string                     `json:"Currency" xml:"Currency"`
+	ReservedInstanceHourPrice float64                    `json:"ReservedInstanceHourPrice" xml:"ReservedInstanceHourPrice"`
 	DetailInfos               DetailInfosInDescribePrice `json:"DetailInfos" xml:"DetailInfos"`
 }

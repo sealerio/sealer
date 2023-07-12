@@ -18,15 +18,15 @@ package ecs
 // SecurityGroup is a nested struct in ecs response
 type SecurityGroup struct {
 	SecurityGroupId         string                       `json:"SecurityGroupId" xml:"SecurityGroupId"`
-	Description             string                       `json:"Description" xml:"Description"`
 	SecurityGroupName       string                       `json:"SecurityGroupName" xml:"SecurityGroupName"`
+	Description             string                       `json:"Description" xml:"Description"`
+	SecurityGroupType       string                       `json:"SecurityGroupType" xml:"SecurityGroupType"`
 	VpcId                   string                       `json:"VpcId" xml:"VpcId"`
 	CreationTime            string                       `json:"CreationTime" xml:"CreationTime"`
-	SecurityGroupType       string                       `json:"SecurityGroupType" xml:"SecurityGroupType"`
-	AvailableInstanceAmount int                          `json:"AvailableInstanceAmount" xml:"AvailableInstanceAmount"`
 	EcsCount                int                          `json:"EcsCount" xml:"EcsCount"`
+	AvailableInstanceAmount int                          `json:"AvailableInstanceAmount" xml:"AvailableInstanceAmount"`
 	ResourceGroupId         string                       `json:"ResourceGroupId" xml:"ResourceGroupId"`
-	ServiceID               int64                        `json:"ServiceID" xml:"ServiceID"`
 	ServiceManaged          bool                         `json:"ServiceManaged" xml:"ServiceManaged"`
+	ServiceID               int64                        `json:"ServiceID" xml:"ServiceID"`
 	Tags                    TagsInDescribeSecurityGroups `json:"Tags" xml:"Tags"`
 }
