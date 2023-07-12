@@ -36,7 +36,7 @@ require (
 	github.com/pkg/sftp v1.13.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/schollz/progressbar/v3 v3.13.1
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.10.0
 	github.com/stretchr/testify v1.8.0
@@ -57,6 +57,7 @@ require (
 	k8s.io/kubernetes v1.23.0
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 	sigs.k8s.io/controller-runtime v0.8.1
+	sigs.k8s.io/kustomize/kyaml v0.13.6
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -206,7 +207,6 @@ require (
 	k8s.io/kube-openapi v0.0.0-20220627174259-011e075b9cb8 // indirect
 	sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect
 	sigs.k8s.io/kustomize/api v0.11.4 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.13.6 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 )
 
