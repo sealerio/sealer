@@ -133,7 +133,7 @@ func marshalPacket(m encoding.BinaryMarshaler) (header, payload []byte, err erro
 func sendPacket(w io.Writer, m encoding.BinaryMarshaler) error {
 	header, payload, err := marshalPacket(m)
 	if err != nil {
-		return errors.Errorf("binary marshaller failed: %v", err)
+		return errors.Wrap(err, "binary marshaller failed")
 	}
 
 	length := len(header) + len(payload) - 4 // subtract the uint32(length) from the start
@@ -146,12 +146,12 @@ func sendPacket(w io.Writer, m encoding.BinaryMarshaler) error {
 	binary.BigEndian.PutUint32(header[:4], uint32(length))
 
 	if _, err := w.Write(header); err != nil {
-		return errors.Errorf("failed to send packet: %v", err)
+		return errors.Wrap(err, "failed to send packet")
 	}
 
 	if len(payload) > 0 {
 		if _, err := w.Write(payload); err != nil {
-			return errors.Errorf("failed to send packet payload: %v", err)
+			return errors.Wrap(err, "failed to send packet payload")
 		}
 	}
 
