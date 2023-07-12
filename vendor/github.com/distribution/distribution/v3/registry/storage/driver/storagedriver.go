@@ -17,14 +17,14 @@ type Version string
 
 // Major returns the major (primary) component of a version.
 func (version Version) Major() uint {
-	majorPart := strings.Split(string(version), ".")[0]
+	majorPart, _, _ := strings.Cut(string(version), ".")
 	major, _ := strconv.ParseUint(majorPart, 10, 0)
 	return uint(major)
 }
 
 // Minor returns the minor (secondary) component of a version.
 func (version Version) Minor() uint {
-	minorPart := strings.Split(string(version), ".")[1]
+	_, minorPart, _ := strings.Cut(string(version), ".")
 	minor, _ := strconv.ParseUint(minorPart, 10, 0)
 	return uint(minor)
 }
@@ -66,7 +66,7 @@ type StorageDriver interface {
 	Stat(ctx context.Context, path string) (FileInfo, error)
 
 	// List returns a list of the objects that are direct descendants of the
-	//given path.
+	// given path.
 	List(ctx context.Context, path string) ([]string, error)
 
 	// Move moves an object stored at sourcePath to destPath, removing the
@@ -168,4 +168,28 @@ type Error struct {
 
 func (err Error) Error() string {
 	return fmt.Sprintf("%s: %s", err.DriverName, err.Enclosed)
+}
+
+// Errors provides the envelope for multiple errors
+// for use within the storagedriver implementations.
+type Errors struct {
+	DriverName string
+	Errs       []error
+}
+
+var _ error = Errors{}
+
+func (e Errors) Error() string {
+	switch len(e.Errs) {
+	case 0:
+		return "<nil>"
+	case 1:
+		return e.Errs[0].Error()
+	default:
+		msg := "errors:\n"
+		for _, err := range e.Errs {
+			msg += err.Error() + "\n"
+		}
+		return msg
+	}
 }

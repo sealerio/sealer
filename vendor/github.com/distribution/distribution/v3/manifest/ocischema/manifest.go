@@ -11,14 +11,12 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-var (
-	// SchemaVersion provides a pre-initialized version structure for this
-	// packages version of the manifest.
-	SchemaVersion = manifest.Versioned{
-		SchemaVersion: 2, // historical value here.. does not pertain to OCI or docker version
-		MediaType:     v1.MediaTypeImageManifest,
-	}
-)
+// SchemaVersion provides a pre-initialized version structure for this
+// packages version of the manifest.
+var SchemaVersion = manifest.Versioned{
+	SchemaVersion: 2, // historical value here.. does not pertain to OCI or docker version
+	MediaType:     v1.MediaTypeImageManifest,
+}
 
 func init() {
 	ocischemaFunc := func(b []byte) (distribution.Manifest, distribution.Descriptor, error) {
@@ -95,17 +93,17 @@ func (m *DeserializedManifest) UnmarshalJSON(b []byte) error {
 	copy(m.canonical, b)
 
 	// Unmarshal canonical JSON into Manifest object
-	var manifest Manifest
-	if err := json.Unmarshal(m.canonical, &manifest); err != nil {
+	var mfst Manifest
+	if err := json.Unmarshal(m.canonical, &mfst); err != nil {
 		return err
 	}
 
-	if manifest.MediaType != "" && manifest.MediaType != v1.MediaTypeImageManifest {
+	if mfst.MediaType != "" && mfst.MediaType != v1.MediaTypeImageManifest {
 		return fmt.Errorf("if present, mediaType in manifest should be '%s' not '%s'",
-			v1.MediaTypeImageManifest, manifest.MediaType)
+			v1.MediaTypeImageManifest, mfst.MediaType)
 	}
 
-	m.Manifest = manifest
+	m.Manifest = mfst
 
 	return nil
 }
