@@ -227,6 +227,9 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 	var nodeIPList []net.IP
 
 	for _, node := range nodes.Items {
+		if _, ok := node.Labels["node-role.kubernetes.io/agent"]; ok {
+			continue
+		}
 		addr := getNodeAddress(node)
 		if addr == nil {
 			return nil, fmt.Errorf("failed to get node address for node %s", node.Name)
