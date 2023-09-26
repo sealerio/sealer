@@ -28,7 +28,7 @@ import (
 	"github.com/sealerio/sealer/cmd/sealer/cmd/image"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/logger"
-	"github.com/sealerio/sealer/version"
+	"github.com/sealerio/sealer/pkg/version"
 )
 
 type rootOpts struct {

@@ -40,7 +40,7 @@ const (
 	// Deprecated
 	Cmd = "cmd"
 
-	// the following commands are the intenal implementations for kube commands
+	// the following commands are the intenal implementations for kube commands.
 	Add  = "add"
 	Arg  = "arg"
 	Copy = "copy"
@@ -59,7 +59,7 @@ var (
 	LabelKubeCSIPrefix = fmt.Sprintf("%s-", LabelSupportedKubeCSIAlpha)
 )
 
-// SupportedCommands is list of all Kubefile commands
+// SupportedCommands is list of all Kubefile commands.
 var SupportedCommands = map[string]struct{}{
 	Add:         {},
 	Arg:         {},

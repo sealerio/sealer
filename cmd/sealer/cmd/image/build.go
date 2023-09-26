@@ -28,11 +28,11 @@ import (
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/imageengine/buildah"
 	"github.com/sealerio/sealer/pkg/rootfs"
+	"github.com/sealerio/sealer/pkg/version"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	osi "github.com/sealerio/sealer/utils/os"
 	"github.com/sealerio/sealer/utils/strings"
 	"github.com/sealerio/sealer/utils/yaml"
-	"github.com/sealerio/sealer/version"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
