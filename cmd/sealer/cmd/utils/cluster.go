@@ -227,7 +227,7 @@ func GetCurrentCluster(client *k8s.Client) (*v2.Cluster, error) {
 	var nodeIPList []net.IP
 
 	for _, node := range nodes.Items {
-		if _, ok := node.Labels["node-role.kubernetes.io/agent"]; ok {
+		if _, ok := node.Labels["node-role.kubernetes.io/agent"]; ok || node.Labels["kubernetes.io/role"] == "agent" {
 			continue
 		}
 		addr := getNodeAddress(node)
