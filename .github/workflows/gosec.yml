@@ -20,6 +20,6 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
+        uses: securego/gosec@v2.14.0
         with:
           args: ./...
