@@ -327,7 +327,7 @@ func Decompress(src io.Reader, dst string, options Options) (int64, error) {
 	}
 
 	var (
-		size int64 = 0
+		size int64
 		dirs []*tar.Header
 		tr   = tar.NewReader(reader)
 	)

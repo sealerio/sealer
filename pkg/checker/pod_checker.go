@@ -55,8 +55,8 @@ func (n *PodChecker) Check(cluster *v2.Cluster, phase string) error {
 		return err
 	}
 	for _, podNamespace := range namespacePodList {
-		var runningCount uint32 = 0
-		var notRunningCount uint32 = 0
+		var runningCount uint32
+		var notRunningCount uint32
 		var podCount uint32
 		var notRunningPodList []*corev1.Pod
 		for _, pod := range podNamespace.PodList.Items {

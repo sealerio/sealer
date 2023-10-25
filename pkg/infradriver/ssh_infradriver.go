@@ -94,12 +94,12 @@ func NewInfraDriver(cluster *v2.Cluster) (InfraDriver, error) {
 	}
 
 	// initialize sshConfigs field
-	for _, host := range cluster.Spec.Hosts {
-		if err = mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
+	for i := range cluster.Spec.Hosts {
+		if err = mergo.Merge(&cluster.Spec.Hosts[i].SSH, &cluster.Spec.SSH); err != nil {
 			return nil, err
 		}
-		for _, ip := range host.IPS {
-			ret.sshConfigs[ip.String()] = ssh.NewSSHClient(&host.SSH, true)
+		for _, ip := range cluster.Spec.Hosts[i].IPS {
+			ret.sshConfigs[ip.String()] = ssh.NewSSHClient(&cluster.Spec.Hosts[i].SSH, true)
 		}
 	}
 
