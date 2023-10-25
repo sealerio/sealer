@@ -52,10 +52,7 @@ func (a *AliProvider) RetryEcsRequest(request requests.AcsRequest, response resp
 
 func (a *AliProvider) RetryEcsAction(request requests.AcsRequest, response responses.AcsResponse, tryTimes int) error {
 	return utils.Retry(tryTimes, TrySleepTime, func() error {
-		if err := a.EcsClient.DoAction(request, response); err != nil {
-			return err
-		}
-		return nil
+		return a.EcsClient.DoAction(request, response)
 	})
 }
 

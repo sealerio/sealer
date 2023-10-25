@@ -58,9 +58,9 @@ func (n *NodeChecker) Check(cluster *v2.Cluster, phase string) error {
 		return err
 	}
 	var notReadyNodeList []string
-	var readyCount uint32 = 0
+	var readyCount uint32
 	var nodeCount uint32
-	var notReadyCount uint32 = 0
+	var notReadyCount uint32
 	for _, node := range nodes.Items {
 		nodeIP, nodePhase := getNodeStatus(node)
 		if nodePhase != ReadyNodeStatus {

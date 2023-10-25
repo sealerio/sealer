@@ -146,10 +146,7 @@ func (a *ApplyProvider) ReconcileContainer() error {
 	if err := a.applyResult(masterApplyResult); err != nil {
 		return err
 	}
-	if err := a.applyResult(nodeApplyResult); err != nil {
-		return err
-	}
-	return nil
+	return a.applyResult(nodeApplyResult)
 }
 
 func (a *ApplyProvider) applyResult(result *ApplyResult) error {

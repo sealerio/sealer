@@ -46,11 +46,7 @@ func MarshalToFile(file string, obj interface{}) error {
 		return err
 	}
 
-	if err = osi.NewAtomicWriter(file).WriteFile(data); err != nil {
-		return err
-	}
-
-	return nil
+	return osi.NewAtomicWriter(file).WriteFile(data)
 }
 
 func MarshalWithDelimiter(configs ...interface{}) ([]byte, error) {

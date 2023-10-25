@@ -73,10 +73,7 @@ func WriteFile(fileName string, content []byte) error {
 		}
 	}
 
-	if err := os.WriteFile(fileName, content, settings.FileMode0644); err != nil {
-		return err
-	}
-	return nil
+	return os.WriteFile(fileName, content, settings.FileMode0644)
 }
 
 type SSHClient struct {
@@ -148,10 +145,7 @@ func MarshalYamlToFile(file string, obj interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err = WriteFile(file, data); err != nil {
-		return err
-	}
-	return nil
+	return WriteFile(file, data)
 }
 
 // GetLocalFileData get file data from local

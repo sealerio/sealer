@@ -88,13 +88,13 @@ func NewSSHClient(ssh *v1.SSH, alsoToStdout bool) Interface {
 
 // GetHostSSHClient is used to executed bash command and no std out to be printed.
 func GetHostSSHClient(hostIP net.IP, cluster *v2.Cluster) (Interface, error) {
-	for _, host := range cluster.Spec.Hosts {
-		for _, ip := range host.IPS {
+	for i := range cluster.Spec.Hosts {
+		for _, ip := range cluster.Spec.Hosts[i].IPS {
 			if hostIP.Equal(ip) {
-				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
+				if err := mergo.Merge(&cluster.Spec.Hosts[i].SSH, &cluster.Spec.SSH); err != nil {
 					return nil, err
 				}
-				return NewSSHClient(&host.SSH, false), nil
+				return NewSSHClient(&cluster.Spec.Hosts[i].SSH, false), nil
 			}
 		}
 	}
@@ -103,13 +103,13 @@ func GetHostSSHClient(hostIP net.IP, cluster *v2.Cluster) (Interface, error) {
 
 // NewStdoutSSHClient is used to show std out when execute bash command.
 func NewStdoutSSHClient(hostIP net.IP, cluster *v2.Cluster) (Interface, error) {
-	for _, host := range cluster.Spec.Hosts {
-		for _, ip := range host.IPS {
+	for i := range cluster.Spec.Hosts {
+		for _, ip := range cluster.Spec.Hosts[i].IPS {
 			if hostIP.Equal(ip) {
-				if err := mergo.Merge(&host.SSH, &cluster.Spec.SSH); err != nil {
+				if err := mergo.Merge(&cluster.Spec.Hosts[i].SSH, &cluster.Spec.SSH); err != nil {
 					return nil, err
 				}
-				return NewSSHClient(&host.SSH, true), nil
+				return NewSSHClient(&cluster.Spec.Hosts[i].SSH, true), nil
 			}
 		}
 	}

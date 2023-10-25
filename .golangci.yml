@@ -25,7 +25,7 @@ linters:
   enable:
     - gofmt
     - goimports
-    - golint
+    - revive
     - stylecheck
     - goconst
     - gosimple
@@ -34,16 +34,12 @@ linters:
     - ineffassign
     - vet
     - typecheck
-    - deadcode
     - errcheck
     - govet
     - staticcheck
-    - structcheck
     - unused
-    - varcheck
     - nilerr
     - unparam
-    - ifshort
     - unconvert
 
 issues:
@@ -51,6 +47,12 @@ issues:
     - linters:
         - golint
       text: "AccessKeyId"
+    - linters:
+        - typecheck
+      text: "has no field or method"
+    - linters:
+        - revive
+      text: "just return error instead"
 
 # golangci.com configuration
 # https://github.com/golangci/golangci/wiki/Configuration
