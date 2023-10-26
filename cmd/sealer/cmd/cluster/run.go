@@ -98,6 +98,7 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringVarP(&runFlags.ClusterFile, "Clusterfile", "f", "", "Clusterfile path to run a Kubernetes cluster")
 	runCmd.Flags().StringVar(&runFlags.Mode, "mode", common.ApplyModeApply, "load images to the specified registry in advance")
 	runCmd.Flags().BoolVar(&runFlags.IgnoreCache, "ignore-cache", false, "whether ignore cache when distribute sealer image, default is false.")
+	runCmd.Flags().StringVar(&runFlags.Distributor, "distributor", "sftp", "distribution method to use (sftp, p2p), default is sftp.")
 
 	//err := runCmd.RegisterFlagCompletionFunc("provider", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	//	return strings.ContainPartial([]string{common.BAREMETAL, common.AliCloud, common.CONTAINER}, toComplete), cobra.ShellCompDirectiveNoFileComp
@@ -110,6 +111,16 @@ func NewRunCmd() *cobra.Command {
 }
 
 func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
+	var p2p bool
+	switch runFlags.Distributor {
+	case "sftp":
+		p2p = false
+	case "p2p":
+		p2p = true
+	default:
+		return fmt.Errorf("invalid distributor %s", runFlags.Distributor)
+	}
+
 	clusterFileData, err := os.ReadFile(filepath.Clean(clusterFile))
 	if err != nil {
 		return err
@@ -168,9 +179,10 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 		}
 
 		return appInstaller.Install(imageName, AppInstallOptions{
-			Envs:        runFlags.CustomEnv,
-			RunMode:     runFlags.Mode,
-			IgnoreCache: runFlags.IgnoreCache,
+			Envs:         runFlags.CustomEnv,
+			RunMode:      runFlags.Mode,
+			IgnoreCache:  runFlags.IgnoreCache,
+			Distribution: types.P2PDistribution,
 		})
 	}
 
@@ -180,12 +192,23 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 	}
 
 	return kubeInstaller.Install(imageName, KubeInstallOptions{
-		RunMode:     runFlags.Mode,
-		IgnoreCache: runFlags.IgnoreCache,
+		RunMode:         runFlags.Mode,
+		IgnoreCache:     runFlags.IgnoreCache,
+		P2PDistribution: p2p,
 	})
 }
 
 func runWithArgs(imageName string, runFlags *types.RunFlags) error {
+	var p2p bool
+	switch runFlags.Distributor {
+	case "sftp":
+		p2p = false
+	case "p2p":
+		p2p = true
+	default:
+		return fmt.Errorf("invalid distributor %s", runFlags.Distributor)
+	}
+
 	imageEngine, err := imageengine.NewImageEngine(options.EngineGlobalConfigurations{})
 	if err != nil {
 		return err
@@ -215,9 +238,10 @@ func runWithArgs(imageName string, runFlags *types.RunFlags) error {
 		}
 
 		return appInstaller.Install(imageName, AppInstallOptions{
-			Envs:        runFlags.CustomEnv,
-			RunMode:     runFlags.Mode,
-			IgnoreCache: runFlags.IgnoreCache,
+			Envs:         runFlags.CustomEnv,
+			RunMode:      runFlags.Mode,
+			IgnoreCache:  runFlags.IgnoreCache,
+			Distribution: types.P2PDistribution,
 		})
 	}
 
@@ -242,7 +266,8 @@ func runWithArgs(imageName string, runFlags *types.RunFlags) error {
 	}
 
 	return kubeInstaller.Install(imageName, KubeInstallOptions{
-		RunMode:     runFlags.Mode,
-		IgnoreCache: runFlags.IgnoreCache,
+		RunMode:         runFlags.Mode,
+		IgnoreCache:     runFlags.IgnoreCache,
+		P2PDistribution: p2p,
 	})
 }

@@ -37,6 +37,10 @@ type RunFlags struct {
 	//if not, will force sync sealer rootfs.
 	//default is false.
 	IgnoreCache bool
+
+	// Distributor: distribution method to use (sftp, p2p)
+	// default is sftp
+	Distributor string
 }
 
 type ApplyFlags struct {
@@ -122,3 +126,10 @@ type RollbackFlags struct {
 	//default is false.
 	IgnoreCache bool
 }
+
+type DistributionMethod uint64
+
+const (
+	SFTPDistribution DistributionMethod = iota
+	P2PDistribution
+)

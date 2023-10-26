@@ -125,6 +125,17 @@ build_binaries() {
   debug "output tar.gz: $THIS_PLATFORM_ASSETS/seautil-$tarFile"
   debug "output sha256sum: $THIS_PLATFORM_ASSETS/seautil-$tarFile.sha256sum"
 
+  debug "!!! build $osarch dist-receiver"
+  GOOS=${1-} GOARCH=${2-} go build -o $THIS_PLATFORM_BIN/dist-receiver/$osarch/dist-receiver -mod vendor -ldflags "$goldflags"  $SEALER_ROOT/cmd/dist-receiver/main.go
+  check $? "build $osarch dist-receiver"
+  debug "output bin: $THIS_PLATFORM_BIN/dist-receiver/$osarch/dist-receiver"
+  cd ${SEALER_ROOT}/_output/bin/dist-receiver/$osarch/
+  tar czf dist-receiver-$tarFile dist-receiver
+  sha256sum dist-receiver-$tarFile > dist-receiver-$tarFile.sha256sum
+  mv *.tar.gz*  $THIS_PLATFORM_ASSETS/
+  debug "output tar.gz: $THIS_PLATFORM_ASSETS/dist-receiver-$tarFile"
+  debug "output sha256sum: $THIS_PLATFORM_ASSETS/dist-receiver-$tarFile.sha256sum"
+
 }
 
 debug "root dir: $SEALER_ROOT"

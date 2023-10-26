@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package graphsync.message.pb;
+
+option go_package = ".;graphsync_message_pb";
+
+message Message {
+
+  message Request {
+    int32 id = 1;       // unique id set on the requester side
+    bytes root = 2;     // a CID for the root node in the query
+    bytes selector = 3; // ipld selector to retrieve
+    map<string, bytes> extensions = 4;    // aux information. useful for other protocols
+    int32 priority = 5;	// the priority (normalized). default to 1
+    bool  cancel = 6;   // whether this cancels a request
+    bool  update = 7;   // whether this requests resumes a previous request
+  }
+
+  message Response {
+    int32 id = 1;     // the request id
+    int32 status = 2; // a status code.
+    map<string, bytes> extensions = 3; // additional data
+  }
+
+  message Block {
+  	bytes prefix = 1; // CID prefix (cid version, multicodec and multihash prefix (type + length)
+  	bytes data = 2;
+  }
+  
+  // the actual data included in this message
+  bool completeRequestList    = 1; // This request list includes *all* requests, replacing outstanding requests.
+  repeated Request  requests  = 2; // The list of requests.
+  repeated Response responses = 3; // The list of responses.
+  repeated Block    data      = 4; // Blocks related to the responses
+
+}

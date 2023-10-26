@@ -13,10 +13,10 @@ const (
 	sshFileXferAttrUIDGID      = 0x00000002
 	sshFileXferAttrPermissions = 0x00000004
 	sshFileXferAttrACmodTime   = 0x00000008
-	sshFileXferAttrExtented    = 0x80000000
+	sshFileXferAttrExtended    = 0x80000000
 
 	sshFileXferAttrAll = sshFileXferAttrSize | sshFileXferAttrUIDGID | sshFileXferAttrPermissions |
-		sshFileXferAttrACmodTime | sshFileXferAttrExtented
+		sshFileXferAttrACmodTime | sshFileXferAttrExtended
 )
 
 // fileInfo is an artificial type designed to satisfy os.FileInfo.
@@ -119,7 +119,7 @@ func getFileStat(flags uint32, b []byte) (*FileStat, []byte) {
 		fs.Atime, b, _ = unmarshalUint32Safe(b)
 		fs.Mtime, b, _ = unmarshalUint32Safe(b)
 	}
-	if flags&sshFileXferAttrExtented == sshFileXferAttrExtented {
+	if flags&sshFileXferAttrExtended == sshFileXferAttrExtended {
 		var count uint32
 		count, b, _ = unmarshalUint32Safe(b)
 		ext := make([]StatExtended, count)
