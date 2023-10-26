@@ -31,7 +31,7 @@ import (
 
 func (engine *Engine) Inspect(opts *options.InspectOptions) (*imagev1.ImageSpec, error) {
 	if len(opts.ImageNameOrID) == 0 {
-		return nil, errors.Errorf("image name or image id must be specified.")
+		return nil, errors.Errorf("image name or image id must be specified")
 	}
 
 	var (
