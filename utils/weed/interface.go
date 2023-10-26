@@ -101,15 +101,10 @@ type Deployer interface {
 }
 
 type deployer struct {
-	// config is the config of the weed cluster and etcd cluster.
-	config *Config
-	// etcd is the etcd cluster.
-	etcd Etcd
-	// client is the etcd client.
-	client Client
-	// weedMaster is the weed master node.
+	config     *Config
+	etcd       Etcd
+	client     Client
 	weedMaster Master
-	// weedVolume is the weed volume node.
 	weedVolume Volume
 }
 
