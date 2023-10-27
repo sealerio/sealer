@@ -232,10 +232,8 @@ func (i *Installer) resetAndScaleDown(kubeRuntimeInstaller runtime.Installer, re
 		return err
 	}
 
-	if i.Distributor != nil {
-		if err := i.Distributor.Restore(i.infraDriver.GetClusterBasePath(), allToDelete); err != nil {
-			return err
-		}
+	if err := i.Distributor.Restore(i.infraDriver.GetClusterBasePath(), allToDelete); err != nil {
+		return err
 	}
 
 	return nil

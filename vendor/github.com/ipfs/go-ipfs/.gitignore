@@ -1,0 +1,35 @@
+# ipfs can generate profiling dump files
+*.cpuprof
+*.memprof
+
+*.swp
+.ipfsconfig
+*.out
+*.coverprofile
+*.test
+*.orig
+*~
+
+coverage.txt
+gx-workspace-update.json
+
+.ipfs
+bin/gx
+bin/protoc-*
+bin/gx*
+bin/tmp
+bin/gocovmerge
+bin/cover
+
+
+vendor
+.tarball
+go-ipfs-source.tar.gz
+docs/examples/go-ipfs-as-a-library/example-folder/Qm*
+/test/sharness/t0054-dag-car-import-export-data/*.car
+
+# ignore build output from snapcraft
+/ipfs_*.snap
+/parts
+/stage
+/prime

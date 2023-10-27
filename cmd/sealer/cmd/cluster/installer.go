@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/sealerio/sealer/cmd/sealer/cmd/types"
 	"github.com/sealerio/sealer/cmd/sealer/cmd/utils"
 	"github.com/sealerio/sealer/common"
 	"github.com/sealerio/sealer/pkg/application"
@@ -52,6 +53,7 @@ type AppInstallOptions struct {
 	RunMode                 string
 	SkipPrepareAppMaterials bool
 	IgnoreCache             bool
+	Distribution            types.DistributionMethod
 }
 
 func (i AppInstaller) Install(imageName string, options AppInstallOptions) error {
@@ -60,7 +62,7 @@ func (i AppInstaller) Install(imageName string, options AppInstallOptions) error
 	i.infraDriver.AddClusterEnv(options.Envs)
 
 	if !options.SkipPrepareAppMaterials {
-		if err := i.prepareMaterials(imageName, options.RunMode, options.IgnoreCache); err != nil {
+		if err := i.prepareMaterials(imageName, options.RunMode, options.IgnoreCache, options.Distribution); err != nil {
 			return err
 		}
 	}
@@ -87,7 +89,7 @@ func (i AppInstaller) Install(imageName string, options AppInstallOptions) error
 	return nil
 }
 
-func (i AppInstaller) prepareMaterials(appImageName string, mode string, ignoreCache bool) error {
+func (i AppInstaller) prepareMaterials(appImageName string, mode string, ignoreCache bool, distribution types.DistributionMethod) error {
 	clusterHosts := i.infraDriver.GetHostIPList()
 	clusterHostsPlatform, err := i.infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
@@ -118,11 +120,21 @@ func (i AppInstaller) prepareMaterials(appImageName string, mode string, ignoreC
 		}
 	}
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, i.infraDriver, nil, imagedistributor.DistributeOption{
-		IgnoreCache: ignoreCache,
-	})
-	if err != nil {
-		return err
+	var distributor imagedistributor.Distributor
+	if distribution == types.P2PDistribution {
+		distributor, err = imagedistributor.NewP2PDistributor(imageMountInfo, i.infraDriver, nil, imagedistributor.DistributeOption{
+			IgnoreCache: ignoreCache,
+		})
+		if err != nil {
+			logrus.Warnf("failed to initialize P2P-based distributor: %s", err)
+		}
+	} else {
+		distributor, err = imagedistributor.NewScpDistributor(imageMountInfo, i.infraDriver, nil, imagedistributor.DistributeOption{
+			IgnoreCache: ignoreCache,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	if mode == common.ApplyModeLoadImage {
@@ -132,6 +144,7 @@ func (i AppInstaller) prepareMaterials(appImageName string, mode string, ignoreC
 	masters := i.infraDriver.GetHostIPListByRole(common.MASTER)
 	regConfig := i.infraDriver.GetClusterRegistry()
 	// distribute rootfs
+
 	if err := distributor.Distribute(masters, i.infraDriver.GetClusterRootfsPath()); err != nil {
 		return err
 	}
@@ -199,8 +212,9 @@ type KubeInstaller struct {
 }
 
 type KubeInstallOptions struct {
-	RunMode     string
-	IgnoreCache bool
+	RunMode         string
+	IgnoreCache     bool
+	P2PDistribution bool
 }
 
 type KubeScaleUpOptions struct {
@@ -269,11 +283,21 @@ func (k KubeInstaller) Install(kubeImageName string, options KubeInstallOptions)
 		}
 	}
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, k.infraDriver, configsFromFile, imagedistributor.DistributeOption{
-		IgnoreCache: options.IgnoreCache,
-	})
-	if err != nil {
-		return err
+	var distributor imagedistributor.Distributor
+	if options.P2PDistribution {
+		distributor, err = imagedistributor.NewP2PDistributor(imageMountInfo, k.infraDriver, configsFromFile, imagedistributor.DistributeOption{
+			IgnoreCache: options.IgnoreCache,
+		})
+		if err != nil {
+			logrus.Warnf("failed to initialize P2P-based distributor: %s", err)
+		}
+	} else {
+		distributor, err = imagedistributor.NewScpDistributor(imageMountInfo, k.infraDriver, configsFromFile, imagedistributor.DistributeOption{
+			IgnoreCache: options.IgnoreCache,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	if options.RunMode == common.ApplyModeLoadImage {
