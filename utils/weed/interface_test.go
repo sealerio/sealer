@@ -14,34 +14,29 @@
 
 package weed
 
-import (
-	"context"
-	"testing"
-)
-
 // This should run with root permission.
 
 //func clean() {
 //}
 //
-func TestDeployer_CreateEtcdCluster1(t *testing.T) {
-	err := NewDeployer(&Config{
-		BinDir:         "./test/bin3",
-		DataDir:        "./test/data3",
-		LogDir:         "./test/log3",
-		MasterIP:       []string{"127.0.0.1:1111", "127.0.0.1:2222", "127.0.0.1:3333"},
-		VolumeIP:       []string{"127.0.0.1:4444", "127.0.0.1:5555", "127.0.0.1:6666"},
-		PidDir:         "./test/pid3",
-		CurrentIP:      "127.0.0.1",
-		PeerPort:       3333,
-		ClientPort:     2390,
-		EtcdConfigPath: "./test/etcd3.conf",
-	}).CreateEtcdCluster(context.Background())
-	if err != nil {
-		t.Error(err)
-		return
-	}
-}
+//func TestDeployer_CreateEtcdCluster1(t *testing.T) {
+//	err := NewDeployer(&Config{
+//		BinDir:         "./test/bin3",
+//		DataDir:        "./test/data3",
+//		LogDir:         "./test/log3",
+//		MasterIP:       []string{"127.0.0.1:1111", "127.0.0.1:2222", "127.0.0.1:3333"},
+//		VolumeIP:       []string{"127.0.0.1:4444", "127.0.0.1:5555", "127.0.0.1:6666"},
+//		PidDir:         "./test/pid3",
+//		CurrentIP:      "127.0.0.1",
+//		PeerPort:       3333,
+//		ClientPort:     2390,
+//		EtcdConfigPath: "./test/etcd3.conf",
+//	}).CreateEtcdCluster(context.Background())
+//	if err != nil {
+//		t.Error(err)
+//		return
+//	}
+//}
 
 //
 //func TestDeployer_CreateEtcdCluster2(t *testing.T) {
