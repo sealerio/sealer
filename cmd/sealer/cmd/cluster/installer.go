@@ -32,6 +32,7 @@ import (
 	"github.com/sealerio/sealer/pkg/imagedistributor"
 	"github.com/sealerio/sealer/pkg/imageengine"
 	"github.com/sealerio/sealer/pkg/infradriver"
+	"github.com/sealerio/sealer/pkg/preflight"
 	"github.com/sealerio/sealer/pkg/registry"
 	v1 "github.com/sealerio/sealer/types/api/v1"
 	v2 "github.com/sealerio/sealer/types/api/v2"
@@ -243,6 +244,15 @@ func (k KubeInstaller) Install(kubeImageName string, options KubeInstallOptions)
 		cmds     = k.infraDriver.GetClusterLaunchCmds()
 		appNames = k.infraDriver.GetClusterLaunchApps()
 	)
+
+	runners := preflight.Runner{
+		Checkers: []preflight.Checker{preflight.ClusterIsExistsCheck{}},
+	}
+
+	err := runners.Execute()
+	if err != nil {
+		return err
+	}
 
 	logrus.Infof("start to create new cluster with image: %s", kubeImageName)
 	logrus.Debugf("will create a new cluster using: %+v\n", cluster)
