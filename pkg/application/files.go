@@ -16,7 +16,9 @@ package application
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -77,15 +79,18 @@ func (m mergeProcessor) Process(appRoot string) error {
 
 	logrus.Debugf("will do merge processor on the file : %s", target)
 
-	contents, err := os.ReadFile(filepath.Clean(target))
+	f, err := os.Open(filepath.Clean(target))
 	if err != nil {
 		return err
 	}
 
-	for _, section := range bytes.Split(contents, []byte("---\n")) {
+	dec := yaml.NewDecoder(f)
+	for {
 		destDataMap := make(map[string]interface{})
-
-		err = yaml.Unmarshal(section, &destDataMap)
+		err = dec.Decode(destDataMap)
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return fmt.Errorf("failed to unmarshal config data: %v", err)
 		}
@@ -103,7 +108,7 @@ func (m mergeProcessor) Process(appRoot string) error {
 		result = append(result, out)
 	}
 
-	err = osUtils.NewCommonWriter(target).WriteFile(bytes.Join(result, []byte("---\n")))
+	err = osUtils.NewCommonWriter(target).WriteFile(bytes.Join(result, []byte("\n---\n")))
 	if err != nil {
 		return fmt.Errorf("failed to write to file %s with raw mode: %v", target, err)
 	}
