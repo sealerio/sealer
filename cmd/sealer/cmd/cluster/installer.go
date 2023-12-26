@@ -52,6 +52,7 @@ type AppInstallOptions struct {
 	RunMode                 string
 	SkipPrepareAppMaterials bool
 	IgnoreCache             bool
+	Configs                 []v1.Config
 }
 
 func (i AppInstaller) Install(imageName string, options AppInstallOptions) error {
@@ -60,7 +61,7 @@ func (i AppInstaller) Install(imageName string, options AppInstallOptions) error
 	i.infraDriver.AddClusterEnv(options.Envs)
 
 	if !options.SkipPrepareAppMaterials {
-		if err := i.prepareMaterials(imageName, options.RunMode, options.IgnoreCache); err != nil {
+		if err := i.prepareMaterials(imageName, options.RunMode, options.IgnoreCache, options.Configs); err != nil {
 			return err
 		}
 	}
@@ -87,7 +88,7 @@ func (i AppInstaller) Install(imageName string, options AppInstallOptions) error
 	return nil
 }
 
-func (i AppInstaller) prepareMaterials(appImageName string, mode string, ignoreCache bool) error {
+func (i AppInstaller) prepareMaterials(appImageName string, mode string, ignoreCache bool, configs []v1.Config) error {
 	clusterHosts := i.infraDriver.GetHostIPList()
 	clusterHostsPlatform, err := i.infraDriver.GetHostsPlatform(clusterHosts)
 	if err != nil {
@@ -118,7 +119,7 @@ func (i AppInstaller) prepareMaterials(appImageName string, mode string, ignoreC
 		}
 	}
 
-	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, i.infraDriver, nil, imagedistributor.DistributeOption{
+	distributor, err := imagedistributor.NewScpDistributor(imageMountInfo, i.infraDriver, configs, imagedistributor.DistributeOption{
 		IgnoreCache: ignoreCache,
 	})
 	if err != nil {

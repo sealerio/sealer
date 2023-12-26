@@ -134,6 +134,7 @@ func NewApplyCmd() *cobra.Command {
 				RunMode:                 applyMode,
 				SkipPrepareAppMaterials: skipPrepareAppMaterials,
 				IgnoreCache:             applyFlags.IgnoreCache,
+				Configs:                 cf.GetConfigs(),
 			})
 		},
 	}

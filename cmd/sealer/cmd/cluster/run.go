@@ -171,6 +171,7 @@ func runWithClusterfile(clusterFile string, runFlags *types.RunFlags) error {
 			Envs:        runFlags.CustomEnv,
 			RunMode:     runFlags.Mode,
 			IgnoreCache: runFlags.IgnoreCache,
+			Configs:     cf.GetConfigs(),
 		})
 	}
 
@@ -218,6 +219,7 @@ func runWithArgs(imageName string, runFlags *types.RunFlags) error {
 			Envs:        runFlags.CustomEnv,
 			RunMode:     runFlags.Mode,
 			IgnoreCache: runFlags.IgnoreCache,
+			Configs:     nil,
 		})
 	}
 
