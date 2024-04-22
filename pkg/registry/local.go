@@ -399,8 +399,7 @@ func (c *localConfigurator) configureContainerdDaemonService(endpoint, hostTomlF
 	cfg := Hosts{
 		Server: url,
 		HostConfigs: map[string]HostFileConfig{
-			url: {CACert: registryCaCertPath},
-			SkipServerVerify:  true,
+			url: {CACert: registryCaCertPath, SkipServerVerify: true},
 		},
 	}
 
@@ -426,6 +425,7 @@ type HostFileConfig struct {
 	// - string - Single file with certificate(s)
 	// - []string - Multiple files with certificates
 	CACert interface{} `toml:"ca"`
+	SkipServerVerify bool `toml:"skip_verify"`
 }
 
 type DaemonConfig struct {
