@@ -46,3 +46,14 @@ func (engine *Engine) Tag(opts *options.TagOptions) error {
 
 	return nil
 }
+
+func (engine *Engine) Untag(name string) error {
+
+	lookupOptions := &libimage.LookupImageOptions{ManifestList: true}
+	existImage, _, err := engine.ImageRuntime().LookupImage(name, lookupOptions)
+	if err != nil {
+		return fmt.Errorf("failed to lookup image: %v", err)
+	}
+
+	return existImage.Untag(name)
+}

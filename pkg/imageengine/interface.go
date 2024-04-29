@@ -57,6 +57,8 @@ type Interface interface {
 
 	Tag(opts *options.TagOptions) error
 
+	Untag(name string) error
+
 	Inspect(opts *options.InspectOptions) (*v1.ImageSpec, error)
 
 	LookupManifest(name string) (*libimage.ManifestList, error)
