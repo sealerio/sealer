@@ -27,11 +27,14 @@ import (
 
 var pullOpts *options.PullOptions
 
+var pullPlatforms []string
+
 var longNewPullCmdDescription = ``
 
 var exampleForPullCmd = `
   sealer pull docker.io/sealerio/kubernetes:v1-22-15-sealerio-2
   sealer pull docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 --platform linux/amd64
+  sealer pull docker.io/sealerio/kubernetes:v1-22-15-sealerio-2 --platform linux/amd64,linux/arm64
 `
 
 // NewPullCmd pullCmd represents the pull command
@@ -48,17 +51,51 @@ func NewPullCmd() *cobra.Command {
 				return err
 			}
 			pullOpts.Image = args[0]
-			imageID, err := engine.Pull(pullOpts)
-			if err != nil {
-				return fmt.Errorf("failed to pull image: %s: %v", pullOpts.Image, err)
+
+			if len(pullPlatforms) == 0 {
+				pullPlatforms = []string{parse.DefaultPlatform()}
 			}
 
-			logrus.Infof("successful pull %s with the image ID: %s", pullOpts.Image, imageID)
-			return err
+			if len(pullPlatforms) == 1 {
+				pullOpts.Platform = pullPlatforms[0]
+				imageID, err := engine.Pull(pullOpts)
+				if err != nil {
+					return fmt.Errorf("failed to pull image: %s: %w", pullOpts.Image, err)
+				}
+
+				logrus.Infof("successful pull %s with the image ID: %s", pullOpts.Image, imageID)
+				return err
+			}
+
+			imageIDList := make([]string, 0)
+			for _, p := range pullPlatforms {
+				pullOpts.Platform = p
+				imageID, err := engine.Pull(pullOpts)
+				if err != nil {
+					return fmt.Errorf("failed to pull image: %s for %s: %w", pullOpts.Image, p, err)
+				}
+				imageIDList = append(imageIDList, imageID)
+
+				if err := engine.Untag(args[0]); err != nil {
+					return fmt.Errorf("failed to pull image: %s for %s: untag: %w", pullOpts.Image, p, err)
+				}
+			}
+
+			if _, err := engine.CreateManifest(args[0], &options.ManifestCreateOpts{}); err != nil {
+				return fmt.Errorf("failed to pull image: %s: create image list: %w", pullOpts.Image, err)
+			}
+
+			if err := engine.AddToManifest(args[0], imageIDList, &options.ManifestAddOpts{All: true}); err != nil {
+				return fmt.Errorf("failed to pull image: %s: fill image list: %w", pullOpts.Image, err)
+			}
+
+			return nil
 		},
 	}
+
 	pullOpts = &options.PullOptions{}
-	pullCmd.Flags().StringVar(&pullOpts.Platform, "platform", parse.DefaultPlatform(), "prefer OS/ARCH instead of the current operating system and architecture for choosing images")
+	pullCmd.Flags().StringSliceVar(&pullPlatforms, "platform", []string{parse.DefaultPlatform()}, "prefer OS/ARCH instead of the current"+
+		" operating system and architecture for choosing images, use a comma spereated list to pull muiltple platforms")
 	pullCmd.Flags().StringVar(&pullOpts.PullPolicy, "policy", "always", "missing, always, ifnewer or never.")
 	pullCmd.Flags().BoolVarP(&pullOpts.Quiet, "quiet", "q", false, "don't output progress information when pulling images")
 	pullCmd.Flags().BoolVar(&pullOpts.SkipTLSVerify, "skip-tls-verify", false, "default is requiring HTTPS and verify certificates when accessing the registry.")

@@ -108,6 +108,11 @@ func (testImageEngine) Tag(opts *options.TagOptions) error {
 	panic("implement me")
 }
 
+func (testImageEngine) Untag(name string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (testImageEngine) CreateWorkingContainer(opts *options.BuildRootfsOptions) (string, error) {
 	//TODO implement me
 	panic("implement me")
