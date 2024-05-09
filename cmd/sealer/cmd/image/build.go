@@ -446,6 +446,7 @@ func saveDockerfileAsTempfile(dockerFileContent string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer f.Close()
 
 	defer func() {
 		if err != nil {
