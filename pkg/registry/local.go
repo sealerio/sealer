@@ -393,13 +393,13 @@ func (c *localConfigurator) configureContainerdDaemonService(endpoint, hostTomlF
 	var (
 		caFile             = c.Domain + ".crt"
 		registryCaCertPath = filepath.Join(c.containerRuntimeInfo.CertsDir, endpoint, caFile)
-		url                = "https://" + endpoint
+		url                = "http://" + endpoint
 	)
 
 	cfg := Hosts{
 		Server: url,
 		HostConfigs: map[string]HostFileConfig{
-			url: {CACert: registryCaCertPath},
+			url: {CACert: registryCaCertPath, SkipServerVerify: true},
 		},
 	}
 
@@ -425,6 +425,7 @@ type HostFileConfig struct {
 	// - string - Single file with certificate(s)
 	// - []string - Multiple files with certificates
 	CACert interface{} `toml:"ca"`
+	SkipServerVerify bool `toml:"skip_verify"`
 }
 
 type DaemonConfig struct {
