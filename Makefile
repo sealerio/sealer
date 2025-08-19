@@ -53,6 +53,9 @@ linux-arm64: clean
 build-in-docker:
 	docker run --rm -v ${PWD}:/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
 
+podman-build:
+	sudo podman run --rm -v $(shell pwd):/usr/src/sealer -w /usr/src/sealer registry.cn-qingdao.aliyuncs.com/sealer-io/sealer-build:v1 make linux
+
 ## clean: Remove all files that are created by building. 
 .PHONY: clean
 clean:
