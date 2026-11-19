@@ -254,7 +254,7 @@ ginkgo --help
 
 #### How to run E2E Tests using github action
 
-Before we run the CI by using github aciton, please make sure that these four variables: `REGISTRY_URL={your registry}`, `REGISTRY_USERNAME={user name}`, `REGISTRY_PASSWORD={password}`, `IMAGE_NAME={test image name}` have been setted in github's secret (for sealer login and sealer image tests).
+Before we run the CI by using github action, please make sure that these four variables: `REGISTRY_URL={your registry}`, `REGISTRY_USERNAME={user name}`, `REGISTRY_PASSWORD={password}`, `IMAGE_NAME={test image name}` have been setted in github's secret (for sealer login and sealer image tests).
 
 CI is triggered when we push a branch with name starts with release or comment `/test all` in PR，you can also comment `/test {test to run}` in PR to run subsets of the test suite.
 
@@ -381,7 +381,7 @@ jobs:
           route: ${{ github.event.issue.pull_request.url }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Get PR informations
+      - name: Get PR information
         id: pr_data
         run: |
           echo "repo_name=${{ fromJson(steps.request.outputs.data).head.repo.full_name }}" >> $GITHUB_STATE

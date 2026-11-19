@@ -23,7 +23,7 @@ Without Kubefile, IT engineers take quite complicated steps to run distributed
 application(s). Taking a three-node etcd cluster without Helm as an example, IT engineers must
 prepare three nodes which meet the reprequisites of etcd installation, download
 and configure essential dependencies of etcd, and start to install and construct
-an etcd cluster. If etcd cluster is to be installed by Helm on an existing Kubernets,
+an etcd cluster. If etcd cluster is to be installed by Helm on an existing Kubernetes,
 it could be shorten steps above without concerning about reprequisites and manually
 startup trigger. If there is no existing Kubernetes, Kubefile and ClusterImage are
 the best to choice to setup etcd cluster with one command just in minutes.

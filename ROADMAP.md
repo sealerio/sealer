@@ -15,7 +15,7 @@
 * Support more built-in application types
   * contains common application types including helm chart, kube resource, OAM, etc
   * provide extensibility, supports user-defined extended app types
-* Support ClusterImage on more heterogeneous infrastucture:
+* Support ClusterImage on more heterogeneous infrastructure:
   * general OS and arch
   * general existing Kubernetes
 
