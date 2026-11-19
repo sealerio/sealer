@@ -33,7 +33,7 @@ $ sealer debug node mynode -it --image busybox
 # debug ID format is `container_name.pod_name.namespace`.
 $ sealer debug node mynode
 
-# Debug node `mynode` with envionment variables.
+# Debug node `mynode` with environment variables.
 $ sealer debug node mynode -it --env yyds=sealer,debug=sealer
 
 # Debug node `mynode` and set some check items. After attaching to the debug pod , it will check the specified check items automatic and show the check results.
@@ -63,7 +63,7 @@ $ sealer debug pod coredns-b55nb -n kube-system -it
 The `sealer debug` also provides some default images.
 
 ```
-# Show the defautl images provided by sealer.
+# Show the default images provided by sealer.
 $ sealer debug show-images
 There are several default images you can use：
 RichToolsOnUbuntu:  debug:ubuntu

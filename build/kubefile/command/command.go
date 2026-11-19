@@ -40,7 +40,7 @@ const (
 	// Deprecated
 	Cmd = "cmd"
 
-	// the following commands are the intenal implementations for kube commands
+	// the following commands are the internal implementations for kube commands
 	Add  = "add"
 	Arg  = "arg"
 	Copy = "copy"

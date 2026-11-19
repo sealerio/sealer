@@ -360,7 +360,7 @@ func applyRegistryToImage(engine imageengine.Interface, imageID string, platform
 
 	// download container image from `imageListWithAuth.yaml`
 	if buildFlags.ImageListWithAuth != "" && osi.IsFileExist(buildFlags.ImageListWithAuth) {
-		// pares middleware file: imageListWithAuth.yaml
+		// parse middleware file: imageListWithAuth.yaml
 		var imageSectionList []buildimage.ImageSection
 		if err := yaml.UnmarshalFile(buildFlags.ImageListWithAuth, &imageSectionList); err != nil {
 			return "", nil, err
